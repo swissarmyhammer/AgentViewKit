@@ -1,13 +1,11 @@
 # AgentViewKit — a SwiftUI agent UI component library
 
-**Status:** v0.11 — draft
 **Target:** macOS 27+ (Apple Silicon), OS 27 SDK — so we assume the WWDC 2026 surface (the
 FoundationModels `Transcript` shape, Liquid Glass 2, the long-form-reading accessibility APIs) with
 no back-deployment.
 **What:** the native SwiftUI counterpart to Vercel AI Elements / assistant-ui, bound to the
 FoundationModels `Transcript`. A reusable, open-sourceable Swift Package — same posture as the Swift
 ACP SDK.
-**Last updated:** 2026-06-17
 
 ---
 
@@ -48,7 +46,9 @@ a first-class component (→ native `ApprovalView`). Skip the framework lock-in.
 - **Microsoft SwiftStreamingMarkdown** — performant streaming markdown built for chat: feed it
   progressively larger snapshots, it incrementally parses/renders. Purpose-built for LLM output.
 - **MarkdownUI** (gonzalezreal) — mature GFM renderer with theming, now in *maintenance mode*;
-  successor is **Textual** (same author). Watch Textual; use one of these for non-streaming.
+  successor is **Textual** (same author). **AgentViewKit renders prose and markdown through
+  Textual** — message bodies, plain text, and streaming responses (§4.2); EditorKit is reserved for
+  source code, diffs, and the input editor.
 - **Splash** (Sundell) / **Highlightr** — Swift code highlighters. We use neither: code rendering is
   **EditorKit** (ours, §4.1), so highlighting stays consistent between code blocks and the editor.
 - **GetStream stream-chat-swift-ai** — closest existing SwiftUI kit: StreamingMessageView,
@@ -75,7 +75,7 @@ AgentTranscriptView(session.transcript)          // or AgentTranscriptView(sessi
 **Entry → block mapping.** AgentViewKit derives its render block model (§9) straight from the Transcript:
 - `.instructions` → hidden by default (system prompt), inspectable.
 - `.prompt` → a user message; `.text` segments are the user's words, `.structure` segments are attached context.
-- `.response` → assistant text, **split into paragraph blocks** so only the streaming paragraph re-renders (§8); rendered through EditorKit (§4.1).
+- `.response` → assistant text, **split into paragraph blocks** so only the streaming paragraph re-renders (§8).
 - `.toolCalls` + the following `.toolOutput` → a **tool-call group**, paired by call id/name, with args, result, and duration.
 - `@unknown default` → skipped safely (forward-compat for new entry kinds).
 
@@ -117,12 +117,16 @@ instead of a switch:
 ```
 
 So: typed modifiers for the closed set of FM types, a `source`-keyed modifier for the open set of custom
-segments. No call-site switch anywhere.
+segments. No call-site switch anywhere. Registrations resolve **last-writer-wins** — the innermost
+`.structuredSegment(source:)` for a given `source` wins, like any environment override — and an
+unregistered `source` falls back to a generic **collapsible structured-content view** (a labeled
+disclosure + pretty-printed `GeneratedContent`), so a new segment kind is always inspectable, never
+dropped (§11.2).
 
 **Attachments are per-type too — files, not just images.** The FoundationModels docs lean on images, but
 a user prompt (and a file artifact) can carry any file. AgentViewKit models an `Attachment` by its
 `UTType` and renders it with a default keyed to that type — image preview, PDF/QuickLook thumbnail,
-text/code via EditorKit, audio/video player, and a generic file chip (type icon + name + size, QuickLook
+plain text/markdown via Textual, source code via EditorKit, audio/video player, and a generic file chip (type icon + name + size, QuickLook
 on tap) as the catch-all. Because UTTypes are open-ended, the renderer is overridable by a keyed modifier,
 the same shape as custom structured segments:
 
@@ -132,7 +136,7 @@ the same shape as custom structured segments:
 ```
 
 Resolution follows the **UTType conformance hierarchy**: an exact registration wins, else the nearest
-conforming supertype (a `.swift` file falls to `.sourceCode` → `.text` → EditorKit; an unknown binary
+conforming supertype (a `.swift` file falls to `.sourceCode` → EditorKit, a plain `.txt` to `.text` → Textual; an unknown binary
 falls to `.data` → the generic chip). Defaults lean on the platform — `UTType` for detection,
 `NSWorkspace`/SF Symbol icons, and QuickLook (`QLThumbnailGenerator`, `QLPreviewView`) for previewing
 arbitrary files — so an unrecognized type still gets a real native preview, never a broken-image
@@ -195,32 +199,33 @@ composable primitives below for full control.
 All-Swift, native — **no WebView or JSCore anywhere**. Links don't render as embedded web tiles (a live
 page in a tile is worse than the real thing); they open in the user's browser via `openURL` /
 `NSWorkspace`, optionally shown as a native rich-link card (LinkPresentation `LPLinkView`) that still
-launches the browser on click. Both
-prose **and** code render through **EditorKit** (below), our high-power drop-in for SwiftUI `Text`.
+launches the browser on click. **Prose and markdown render through Textual** (§4.2); **source code,
+diffs, and the input editor render through EditorKit** (§4.1) — our high-power drop-in for SwiftUI
+`Text`.
 
 | Concern | Use | Why |
 |---|---|---|
-| Markdown parse + streaming balance | **SwiftStreamingMarkdown** (+ a streaming balancer, §8) | structure only — produces blocks/attributed runs; rendering is EditorKit's job |
-| Text + code rendering | **EditorKit (ours)** — drop-in for `Text` | one engine for prose, streaming text, code blocks, and editable diffs: selection, rich runs, performance |
-| Static / rich markdown | MarkdownUI (→ Textual) as the parser where needed | mature GFM; still renders through EditorKit |
+| Prose / markdown rendering | **Textual** (gonzalezreal) | mature GFM + theming; renders message bodies, plain text, and streaming responses (§4.2) |
+| Streaming balance | **a streaming balancer** (§8); optionally SwiftStreamingMarkdown for incremental parse | rebalances the trailing in-progress paragraph before it reaches Textual |
+| Code rendering + text input | **EditorKit (ours)** — drop-in for `Text` | one engine for code blocks, editable diffs, and the rich composer: selection, syntax highlighting, slash/chip/@file affordances (§4.1) |
+| Math typesetting | **`MathView`** + a math engine | inline `$…$` / block `$$…$$` LaTeX, detected by Textual and typeset natively (§11.7) |
 | Layout / scroll | native `ScrollView` + `ScrollViewReader` + `LazyVStack`/`List` | scroll anchoring; lazy row creation, windowed for long threads (§8) |
 | Chrome / styling | native **Liquid Glass** (`glassEffect`/`GlassEffectContainer`) + design tokens | Xcode-assistant look by default (§5); no web theming to port |
 | Activity / progress | **shimmer** for streaming/thinking · native `ProgressView` for discrete tool calls · **SF Symbols** w/ effects | native affordances, not facsimiles (§5) |
 | Speech in/out | native `Speech` + our `whisper-rs`/`cpal` path | voice composer + transcription |
 
-### 4.1 Dependency: EditorKit — the universal text renderer
+### 4.1 Dependency: EditorKit — code, diffs, and rich input
 
-AgentViewKit **depends on EditorKit** and uses it as a **high-power drop-in for SwiftUI `Text`**: the
-native counterpart to CM6 in the web app, the "one universal editor everywhere" principle. Anywhere
-the kit would otherwise use `Text`, it uses EditorKit instead, so the heavy lifting (glyph layout,
-text selection across the transcript, rich attributed runs, syntax highlighting, large-document
-performance) lives in one NSTextView-backed surface that still presents as an ordinary SwiftUI view.
-Three roles:
-- **Prose render** — message body text and streaming text render through EditorKit, giving real
-  transcript-wide selection (the thing plain SwiftUI `Text` does poorly) for free.
+AgentViewKit **depends on EditorKit** as its **code and editing engine** — the native counterpart to
+CM6 in the web app. EditorKit is an NSTextView-backed surface that presents as an ordinary SwiftUI
+view; the kit reaches for it wherever content is *code* or *editable*, so glyph layout, syntax
+highlighting, code selection, and large-document performance live in one place. (Prose and markdown
+go to Textual instead — §4.2.) Three roles:
 - **Code render** — fenced code blocks render in EditorKit's read-only highlight mode (Splash/
-  Highlightr dropped). The markdown layer produces blocks; EditorKit renders both the prose runs and
-  the code blocks, so styling is uniform.
+  Highlightr dropped). EditorKit is plugged into Textual *as its code-block renderer* — Textual
+  parses the markdown and, wherever it hits a fenced block, hands the code + language to EditorKit
+  via its code-block customization hook (§4.2), so a code block in prose looks identical to the
+  standalone editor.
 - **Full editor** — editable artifacts and diffs use the same EditorKit, so "code the agent showed
   me" and "code I'm editing" are identical in highlighting, theme, and language support.
 - **Rich input** — as the composer's editor, EditorKit also owns the in-line input affordances:
@@ -228,10 +233,29 @@ Three roles:
   are EditorKit features, the native analog of how CM6 handles them in the web app. The composer
   inherits all of this by hosting EditorKit; AgentViewKit doesn't reimplement them.
 
-This is what keeps the transcript pure SwiftUI at scale (§8): the SwiftUI list stays light because the
-expensive text work is inside EditorKit, not in per-cell SwiftUI view trees. The highlighting/layout
-engine choice (tree-sitter, NSTextView internals) lives in EditorKit's own spec — out of scope here;
-AgentViewKit just treats it as a `Text` that can do far more.
+The highlighting/layout engine choice (tree-sitter, NSTextView internals) lives in EditorKit's own
+spec — out of scope here; AgentViewKit just treats it as a `Text` that can do far more.
+
+### 4.2 Dependency: Textual — prose and markdown
+
+AgentViewKit **depends on Textual** (gonzalezreal, the MarkdownUI successor) as its **prose and
+markdown renderer**: message bodies, plain text, and streaming assistant responses render through
+Textual, themed to match the Xcode-assistant look (§5). It is a pure-SwiftUI GFM renderer, so it
+slots straight into the `LazyVStack` rows and inherits SwiftUI accessibility and Dynamic Type for
+free. On the streaming path it is fed progressively larger snapshots, with the trailing paragraph
+rebalanced by the `StreamingMarkdownBalancer` (§8) so half-typed delimiters don't flash. **Textual's
+code-block renderer is overridden to host EditorKit** — Textual handles every prose construct (lists,
+tables, emphasis, links, blockquotes), but a fenced code block is routed out to EditorKit (§4.1) so
+code inside a message looks identical to a standalone code block and the editor. That hook is the one
+seam between the two engines.
+
+Textual also owns **math detection**: it spots inline `$…$` and block `$$…$$` spans and routes them to
+`MathView` (§9 B) — the typeset third engine alongside prose-in-Textual and code-in-EditorKit (§11.7).
+
+The one thing this split gives up relative to the old EditorKit-for-prose plan is **transcript-wide
+text selection** — NSTextView gave cross-message selection for free, whereas SwiftUI text selection is
+per-view. The v1 bar (§11.8): per-message selection plus a **Copy thread** action in `MessageActions`;
+a contiguous cross-message drag-select is deferred.
 
 ## 5. Default styling — make it look like Apple shipped it
 
@@ -265,8 +289,10 @@ reserved for primary actions and status. Reasoning is a quiet collapsible block,
 compact rows that expand, and a plan renders as a checklist — the Xcode "plan mode" idiom.
 
 **Tokens, not hard-coded values.** Defaults read from a small design-token set (spacing, radii,
-material levels, symbol weights) so the kit restyles coherently and a consumer can re-tint without
-touching component internals. Builders (§7) override structure; tokens tune the default look.
+material levels, symbol weights, accent, density) — exposed publicly as **`AgentTheme`**, applied with
+`.agentTheme(_:)` and read from the environment (§11.6) — so the kit restyles coherently and a consumer
+can re-tint without touching component internals. Builders (§7) override structure; tokens tune the
+default look.
 
 ## 6. Accessibility
 
@@ -392,10 +418,11 @@ failure mode during streaming is re-diffing the whole list on every token. Disci
   (UICollectionView-backed, true recycling) is the fallback for pathologically long, regular threads.
 - **Scoped state.** No single global observable driving the whole screen; split list data from
   screen-level UI state so unrelated updates don't invalidate the list.
-- **Heavy text lives in EditorKit, not the cells.** The reason pure SwiftUI holds up here is that the
-  expensive text work — glyph layout, selection, highlighting — is inside EditorKit's NSTextView-backed
-  surface (§4.1), so the SwiftUI cells stay thin wrappers. This is how we get native-grade transcript
-  performance without dropping the list itself to AppKit.
+- **Heavy text work is delegated, not in the cells.** Code and diffs render inside EditorKit's
+  NSTextView-backed surface (§4.1) — its glyph layout, selection, and highlighting cost stays out of
+  the SwiftUI view tree. Prose renders through Textual (§4.2), kept cheap by parsing the markdown when
+  the event arrives and caching it on the model (above), never re-parsing in `body`. Either way the
+  SwiftUI cells stay thin wrappers, so the list holds up without dropping itself to AppKit.
 - **Streaming markdown needs a balancer.** Feeding raw growing markdown to a renderer makes half-typed
   delimiters flash as broken markup. A `StreamingMarkdownBalancer` rebalances only the *trailing
   in-progress paragraph* (closing a dangling `**`/`[`), detects an open code fence (odd/even split on
@@ -414,22 +441,23 @@ Grouped; "source" = native (build), reuse (existing lib), or net-new (agent-grad
 - `AgentTranscriptView` — **the drop-in**: observe a FoundationModels `Transcript` (or a `LanguageModelSession`) and render the whole surface (§3). *net-new (the easy path)*
 - `AgentThreadView` — same surface driven by an `AgentViewSession` (the `Transcript` + the interaction verbs send/interrupt/respond) when you need to act on it, not just render. *net-new (composes the rest)*
 - `ConversationView` — container: auto-scroll, scroll-to-bottom, empty state. *native*
-- `MessageView` — user/assistant, parts-based render; body text via EditorKit (§4.1). *native*
-- `MessageActions` — copy / retry / edit, in a **footer** block (not hover-revealed). *native*
+- `MessageView` — user/assistant, parts-based render; body text via Textual (§4.2), code blocks via EditorKit (§4.1). *native*
+- `MessageActions` — copy / **copy thread** / retry / edit, in a **footer** block (not hover-revealed); per-message selection, no cross-message drag-select in v1 (§11.8). *native*
 - `BranchNavigator` — regenerate / branch paging. *native*
 - `ThreadMinimapView` — condensed overview of the whole thread (turns, tool calls, errors) as a scrubbable rail for navigating long conversations; click to jump, highlights current viewport. *net-new*
 
 **A2. Transcript entry views (one per `Transcript.Entry`/`Segment`, each overridable §3/§7)**
 - `InstructionsView` — system prompt; hidden by default, inspectable. *net-new*
 - `PromptView` — a `.prompt` entry (user turn) + its segments; attachments render via the `AttachmentView` family (§3, §9 F). *net-new*
-- `ResponseView` — a `.response` entry, paragraph-split, via EditorKit. *net-new (see B)*
+- `ResponseView` — a `.response` entry, paragraph-split, via Textual. *net-new (see B)*
 - `ToolCallGroupView` — `.toolCalls` + paired `.toolOutput`, grouped with per-call duration. *net-new (see C)*
 - `ToolOutputView` — a standalone `.toolOutput`. *net-new*
 - `TextSegmentView` / `StructuredSegmentView` — the two `Transcript.Segment` kinds; the structured one dispatches on `source` to a native renderer (chart/diff/card). *net-new*
 
 **B. Streaming content**
-- `ResponseView` — streaming-safe message text; rendered via **EditorKit** (text drop-in, §4.1), fed by the SwiftStreamingMarkdown parser + balancer (§8). *EditorKit + parser*
+- `ResponseView` — streaming-safe message text; rendered via **Textual** (§4.2) with fenced code routed to EditorKit, fed progressively and rebalanced at the trailing paragraph (§8). *Textual + balancer*
 - `CodeBlockView` — copy + filename; renders via **EditorKit** (read-only highlight). *EditorKit*
+- `MathView` — typeset LaTeX: inline `$…$` and block `$$…$$`, detected by Textual and routed here (§4.2, §11.7); honors Reduce Motion / Dynamic Type. *net-new (math engine)*
 - `ReasoningView` — collapsible streaming thinking; **shimmering** title while in progress, auto-collapse on done. *net-new (§5)*
 - `ActivityIndicator` — "Thinking / Running tool…" states; **shimmer** for streaming, native `ProgressView` for discrete steps. *native (§5)*
 - `ShimmerView` — reusable shimmer for any in-progress label/text. *net-new (§5)*
@@ -458,7 +486,7 @@ Grouped; "source" = native (build), reuse (existing lib), or net-new (agent-grad
 - `PermissionPromptView` — scoped grant (once / session / always for this dir). *net-new*
 
 **F. Artifacts / attachments / rich output**
-- `AttachmentView` — **per-attachment, any file** (§3): keyed by `UTType` with conformance-based fallback; defaults to image preview, PDF/QuickLook thumbnail, text/code (EditorKit), audio/video player, or a generic file chip (icon + name + size, QuickLook on tap). Overridable via `.attachmentView(for:)`. Shared by composer chips, prompt attachments, and file artifacts. *net-new (native QuickLook/UTType)*
+- `AttachmentView` — **per-attachment, any file** (§3): keyed by `UTType` with conformance-based fallback; defaults to image preview, PDF/QuickLook thumbnail, plain text/markdown (Textual), source code (EditorKit), audio/video player, or a generic file chip (icon + name + size, QuickLook on tap). Overridable via `.attachmentView(for:)`. Shared by composer chips, prompt attachments, and file artifacts. *net-new (native QuickLook/UTType)*
 - `AttachmentInspector` — trailing **`.inspector`** split-view (Claude-style) with an embedded `QLPreviewView` of the selected attachment/artifact/file output + actions: Open, Reveal in Finder, Share, Save/Download, pop-out Quick Look (§3). *net-new (native Inspector + QuickLook)*
 - `ArtifactView` — generated document / file panel; file body via `AttachmentView`. *net-new*
 - `DiffView` — code diffs from agent edits; **EditorKit** diff mode. *EditorKit (important for coding agents)*
@@ -477,22 +505,27 @@ Grouped; "source" = native (build), reuse (existing lib), or net-new (agent-grad
   highlighters (use our EditorKit), **embedded web preview** (Vercel's `WebPreview` / any `WKWebView` —
   open the user's browser instead, with a native `LPLinkView` card; no live web in a tile).
 
-## 11. Open questions
+## 11. Decisions
 
 *Resolved:* **Primary binding = a FoundationModels `Transcript`** — `AgentTranscriptView(transcript)`
 renders the whole surface. Everything renderable lives in the transcript (entry, tool output, or a
 custom `.structure` segment); in-progress state is *derived* from unpaired tail entries, not signaled;
-`AgentViewSession` adds only the interaction verbs (send/interrupt/respond) — no parallel channel (§3). **SwiftUI throughout** — the transcript stays SwiftUI (`LazyVStack`/`List`); heavy text work lives
-in EditorKit so the cells stay light (§8). **EditorKit is the universal text renderer** — a drop-in for
-`Text` covering prose, streaming text, code, and diffs (§4.1); SwiftStreamingMarkdown (+balancer)
-parses, EditorKit renders. Composability via `@ViewBuilder` slots with default overloads (§7). Default
+`AgentViewSession` adds only the interaction verbs (send/interrupt/respond) — no parallel channel (§3). **SwiftUI throughout** — the transcript stays SwiftUI (`LazyVStack`/`List`); heavy text work is
+delegated — code/diffs to EditorKit, prose to Textual — so the cells stay light (§8). **Two text
+renderers, split by content** — **Textual** renders prose and markdown (message bodies, streaming
+responses, §4.2); **EditorKit** renders source code, diffs, and the rich input editor (§4.1), and is
+plugged into Textual *as its code-block renderer* so fenced code matches the standalone editor; a
+balancer rebalances the streaming tail before Textual. Composability via `@ViewBuilder` slots with default overloads (§7). Default
 look = Liquid Glass + Xcode-assistant cues; **shimmer** for streaming/thinking, native `ProgressView`
 for discrete steps (§5); fully accessible by default (§6).
 
-1. Distribution: standalone open-source SPM package (like the Swift ACP SDK) vs in-app target. Lean standalone + open primitives; depends on EditorKit.
-2. Custom-segment registration: fixed entry/segment types get typed override modifiers (§3); the open-ended `.structure` `source` gets a `.structuredSegment(source:)` modifier. Open part: collision/precedence when two registrations claim a `source`, and the default view for an unknown `source`.
-3. `AgentGraphView`: v1 or later? (Later — single-agent activity first.)
-4. EditorKit ↔ markdown integration: the parser produces blocks/attributed runs; confirm the cleanest hand-off so streaming prose and fenced code both render through EditorKit without a per-token re-layout storm.
-5. Long-thread strategy (all SwiftUI): `LazyVStack` for custom layout vs `List` (recycling) for very long threads — and whether windowing/pagination is needed on top, given EditorKit already carries the per-cell text cost.
-6. Design tokens (§5): ship a public, themeable token set consumers can re-tint, or keep tokens internal and rely on builder overrides + the system Liquid Glass tint/opacity?
-7. Math rendering: agent output contains LaTeX/math — add a native `MathView` (and which engine), since EditorKit is text/code, not math typesetting?
+The remaining questions are now resolved:
+
+1. **Distribution — standalone open-source SPM package.** Shipped like the Swift ACP SDK: a real SPM library of open, overridable primitives — not an in-app target, not copy-to-codebase. Depends on **EditorKit** (code/diffs/input), **Textual** (prose/markdown), and a math-typesetting engine (decision 7).
+2. **Custom-segment registration — last writer wins; unknown `source` is shown, never dropped.** Fixed entry/segment types keep their typed override modifiers (§3); the open-ended `.structure` `source` uses `.structuredSegment(source:)`, which writes into the environment, so the *innermost* registration for a `source` wins (ordinary override semantics). An unrecognized `source` falls back to a generic **collapsible structured-content view** — a labeled disclosure showing the `source` + pretty-printed `GeneratedContent` — so a new segment kind is always inspectable, never blank or a crash.
+3. **`AgentGraphView` — later, not v1.** Single-agent activity (tool calls, reasoning, plans, approvals) ships first; the multi-agent `Canvas` graph is a post-v1 addition.
+4. **Textual ↔ streaming/code — Textual-only on the streaming path.** Textual is fed balanced snapshots (the `StreamingMarkdownBalancer`, §8) directly; we do **not** add SwiftStreamingMarkdown unless a perf spike shows Textual can't keep up with token-rate snapshots. The EditorKit code-block hook caches the EditorKit view per fenced-block id, so a streaming tail re-render never relayouts settled code blocks.
+5. **Long threads — LazyVStack + windowing is the default path.** `LazyVStack` carries the custom agent layout; `ScrollAnchorManager` + windowing/pagination of older turns (§8) sit on top for memory. `List` (true recycling) stays a documented escape hatch for pathologically long, regular threads, behind a flag — not the default.
+6. **Design tokens — a small public, themeable set.** A public **`AgentTheme`** (spacing, radii, material levels, symbol weights, accent, density), applied with `.agentTheme(_:)` and read from the environment, so consumers re-tint coherently without touching internals (§5). Builder overrides (§7) remain for structure; tokens tune the look.
+7. **Math — a native `MathView` in v1.** AgentViewKit takes a math-typesetting dependency; Textual gets a hook that detects inline `$…$` and block `$$…$$` spans and routes them to `MathView` — the third content engine alongside Textual (prose) and EditorKit (code), §4. Honors Reduce Motion / Dynamic Type like the rest.
+8. **Transcript-wide selection — per-message + Copy thread, no cross-message drag-select in v1.** Each message is individually selectable/copyable; `MessageActions` adds a **Copy thread** action for the whole log (§9 A). A transcript-level selectable mode (true cross-message drag-select) is deferred — revisit if users ask. This is the accepted cost of moving prose to SwiftUI/Textual (§4.2).
