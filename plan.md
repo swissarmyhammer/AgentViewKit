@@ -175,17 +175,24 @@ is just the transcript plus those verbs:
 ```swift
 protocol AgentViewSession: Observable {
     var transcript: Transcript { get }                               // the whole renderable record
+    var connections: ConnectionStore { get }                         // ambient connect-state, not transcript (§12)
     func send(_ input: UserInput) async                              // text + attachments
     func interrupt()                                                  // stop the current turn
-    func respond(to: ApprovalRequest, _ decision: ApprovalDecision)  // unblock the paused gate
+    func respond(to: ApprovalRequest, _ decision: ApprovalDecision)  // unblock the paused per-action gate
+    func connect(_ request: AuthorizationRequest) async throws       // run the OAuth handoff for a server (§12)
 }
 ```
 
 The approval flow is the proof: the runtime's permission gate (§4.11) injects an `approval` custom
 segment when it blocks; `AgentTranscriptView` renders it as `ApprovalView`; the user's choice flows back
 through `respond(to:_:)` and the gate resumes — request in the transcript, decision via a callback, no
-channel. A live token/context gauge is the one genuine piece of runtime state, and it isn't transcript
-content either: the host binds a plain `@Observable` usage value to `ContextUsageView` directly.
+channel. **OAuth authorization is the second proof of the same shape** (§12): when a tool's MCP server
+needs the user to connect, the runtime injects an `authorization` custom segment; `AuthorizationView`
+renders the "Connect" card; the browser handoff runs through `connect(_:)`; the runtime exchanges the
+token and retries, and the now-authorized tool output lands in the transcript — request in the
+transcript, no channel. Two genuine pieces of runtime state are *not* transcript content and are bound
+directly as ambient `@Observable`s: a live token/context gauge (`ContextUsageView`) and the per-server
+**connection state** (`ConnectionStore` → `ConnectionsView`, §12).
 
 Every runtime backend is a `LanguageModelSession`, so the `Transcript` already covers System / MLX /
 llama / Claude Code / Codex uniformly; a non-FM source driven directly (e.g. a remote ACP agent) maps its
@@ -485,6 +492,12 @@ Grouped; "source" = native (build), reuse (existing lib), or net-new (agent-grad
 - `ApprovalView` — approve / deny / **edit** a tool call or permission request; renders the consequence-language prompt + Once/Session/Always/Deny. *net-new — the GUI for the permission gate (runtime-spec §4.11)*
 - `PermissionPromptView` — scoped grant (once / session / always for this dir). *net-new*
 
+**E2. Connections / authorization (OAuth, §12)** — the per-server *connect* gate, kept distinct from the per-action *approval* gate above.
+- `AuthorizationView` — the in-thread just-in-time "Connect to *X*" card, rendered from an `authorization` custom segment: server name, requested scopes, a `.glassProminent` **Connect** button that drives the browser handoff via `connect(_:)`. Shares `ApprovalView`'s consequence-language + glass styling; it is the in-thread twin of `ApprovalView` but grants a *connection*, not a single action. *net-new*
+- `ConnectionsView` — the durable settings surface (the dominant pattern across ChatGPT / Claude / VS Code / Cursor): a `List`/`Form` of MCP servers & services, each a `ConnectionRow`, bound to the ambient `ConnectionStore` (not the transcript). Connect / Disconnect, per-tool toggles, step-up scope re-consent. *net-new*
+- `ConnectionRow` / `ConnectionStatusChip` — name + `ConnectionStatusChip` (green/yellow/red dot + label: *Connected / Needs authentication / Authenticating / Expired / Error*) + Connect/Disconnect. The chip also surfaces inline on a `ToolCallView` blocked on auth. *net-new*
+- `AuthorizationPresenter` — **infrastructure** (sibling of `ScrollAnchorManager`, §C2): wraps `ASWebAuthenticationSession` against the kit's `NSWindow` presentation anchor. Given an authorization URL + callback config from the runtime, it runs the system-browser handoff and returns the callback `URL`. **Touches zero OAuth protocol** — PKCE, discovery, CIMD/DCR, token exchange/refresh, and Keychain storage all live in the runtime beneath the kit (§12). *net-new (native AuthenticationServices)*
+
 **F. Artifacts / attachments / rich output**
 - `AttachmentView` — **per-attachment, any file** (§3): keyed by `UTType` with conformance-based fallback; defaults to image preview, PDF/QuickLook thumbnail, plain text/markdown (Textual), source code (EditorKit), audio/video player, or a generic file chip (icon + name + size, QuickLook on tap). Overridable via `.attachmentView(for:)`. Shared by composer chips, prompt attachments, and file artifacts. *net-new (native QuickLook/UTType)*
 - `AttachmentInspector` — trailing **`.inspector`** split-view (Claude-style) with an embedded `QLPreviewView` of the selected attachment/artifact/file output + actions: Open, Reveal in Finder, Share, Save/Download, pop-out Quick Look (§3). *net-new (native Inspector + QuickLook)*
@@ -529,3 +542,24 @@ The remaining questions are now resolved:
 6. **Design tokens — a small public, themeable set.** A public **`AgentTheme`** (spacing, radii, material levels, symbol weights, accent, density), applied with `.agentTheme(_:)` and read from the environment, so consumers re-tint coherently without touching internals (§5). Builder overrides (§7) remain for structure; tokens tune the look.
 7. **Math — a native `MathView` in v1.** AgentViewKit takes a math-typesetting dependency; Textual gets a hook that detects inline `$…$` and block `$$…$$` spans and routes them to `MathView` — the third content engine alongside Textual (prose) and EditorKit (code), §4. Honors Reduce Motion / Dynamic Type like the rest.
 8. **Transcript-wide selection — per-message + Copy thread, no cross-message drag-select in v1.** Each message is individually selectable/copyable; `MessageActions` adds a **Copy thread** action for the whole log (§9 A). A transcript-level selectable mode (true cross-message drag-select) is deferred — revisit if users ask. This is the accepted cost of moving prose to SwiftUI/Textual (§4.2).
+9. **OAuth / connections — in-thread gate + settings surface; the kit presents, the runtime authorizes; app sign-in is out of scope (§12).** The just-in-time *connect* gate is transcript-native (an `authorization` custom segment + the `connect(_:)` verb), and a durable `ConnectionsView` bound to an ambient `ConnectionStore` is the management home — both ship in v1. The kit owns only a thin `AuthorizationPresenter` over `ASWebAuthenticationSession` (it supplies the `NSWindow` anchor and returns the callback URL); all OAuth protocol — discovery, PKCE, CIMD/DCR, token exchange/refresh, Keychain — lives in the runtime beneath. App-level user identity (signing into the app/provider itself) is the **host's** responsibility, not the kit's.
+
+## 12. Authorization & connections (OAuth)
+
+MCP tools — and third-party services generally — increasingly require the user to authorize before the agent can act. This is genuinely *out-of-band, browser-based, stateful* work that fights the transcript spine; the resolution is to split it exactly along the seam §3 already draws, so OAuth costs the architecture **one verb, one ambient `@Observable`, one in-thread segment type** — nothing more.
+
+**Four distinct things, kept distinct (the consistent lesson from every shipping agent).** Products visually collapse these, but they are logically separate and the kit keeps them so:
+1. **App sign-in** — the user logging into the app/provider itself. **Out of scope** — the host's job, pre-conversation (Sign in with Apple, provider login). The kit documents the boundary and does not ship a component for it.
+2. **Per-server connect / account link** — "Connect to GitHub." A one-time *durable* grant. This is what the kit owns (below).
+3. **Per-action approval** — "Allow this tool to run?" Fires at execution time *even after* the server is connected. Already in the plan as **`ApprovalView`** (§9 E) — kept separate from connecting.
+4. **Step-up scope consent** — a 403 `insufficient_scope` mid-session; same machinery as #2, different trigger. Handled as a re-consent on the existing connection.
+
+**The split along the §3 seam.** Per-server connect has two faces, each landing on the side of the architecture it belongs to:
+- **In-thread, just-in-time → transcript-native.** When a tool's MCP server needs authorization, the runtime injects an `authorization` custom segment (exactly as the permission gate injects `approval`). `AuthorizationView` renders a "Connect to *X*" card with the requested scopes; the user taps **Connect**; the handoff runs via `connect(_:)`; the runtime exchanges the token and retries; the now-authorized tool output lands in the transcript. *Request in the transcript, result in the transcript, no parallel channel* — the second proof of §3's claim. And "this tool is blocked on auth" stays **derived**, not signaled: a `.toolCall` followed by an `authorization` segment *is* a blocked tool, surfaced inline on `ToolCallView` via a `ConnectionStatusChip`.
+- **Durable management → ambient state, not transcript.** The settings home (`ConnectionsView`) is the dominant pattern across ChatGPT / Claude / VS Code / Cursor — a list of servers/services with status, Connect/Disconnect, and per-tool toggles. This is *not* conversation content; it's the **second occupant of §3's "ambient runtime state" category**, the sibling of `ContextUsageView`'s usage gauge: the host binds an `@Observable` `ConnectionStore` and `ConnectionsView` renders it.
+
+**The state machine is event-driven from the protocol** (MCP 2025-11-25). A server is `connected`; it transitions to `needs-auth` precisely on a `401` + `WWW-Authenticate`; to `authenticating` while the browser session is open; back to `connected` after a successful Bearer retry; and to `expired` / `needs-auth` on refresh failure. `ConnectionStatusChip` renders this five-state machine (green / yellow / red + label); nothing else needs to *announce* connection state.
+
+**Division of labor — the kit presents, the runtime authorizes.** This mirrors how the kit treats EditorKit/Textual as engines beneath it. The kit owns a thin **`AuthorizationPresenter`** (§9 E2) that wraps **`ASWebAuthenticationSession`**: it supplies the required **`NSWindow` presentation anchor**, opens the system browser on a user action (never an embedded webview — RFC 8252 §4/§8.12), and returns the callback `URL` to the runtime. **Everything else is the runtime's**, beneath the kit and out of its spec: PRM/AS-metadata discovery (RFC 9728 / 8414 + OIDC), client identity (**CIMD preferred, DCR fallback** — the live 2025→2026 change), PKCE `S256` (verified before proceeding), the RFC 8707 `resource` audience binding, token exchange/refresh rotation, and **Keychain** storage (`kSecClassGenericPassword`, `kSecUseDataProtectionKeychain` on macOS). The redirect strategy (loopback `127.0.0.1:ephemeral`, the RFC 8252-preferred desktop form Claude Code / VS Code / Cursor use, vs. a custom/HTTPS callback scheme `ASWebAuthenticationSession` intercepts directly) is a **runtime** choice; the presenter accepts whatever callback config the runtime hands it. `prefersEphemeralWebBrowserSession` is exposed so the host can opt into a fresh, no-shared-cookies login.
+
+**No prior art to port.** None of assistant-ui, Vercel AI Elements, CopilotKit, or AG-UI ships a first-class auth/connection component — each leaves it to an out-of-band Bearer token or a hand-built tool-UI/HITL card. So this surface is net-new and a genuine differentiator: AgentViewKit is the agent UI kit that makes *connecting* a first-class, transcript-native moment rather than a settings-only afterthought.
