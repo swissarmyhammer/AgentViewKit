@@ -180,6 +180,7 @@ protocol AgentViewSession: Observable {
     func interrupt()                                                  // stop the current turn
     func respond(to: ApprovalRequest, _ decision: ApprovalDecision)  // unblock the paused per-action gate
     func connect(_ request: AuthorizationRequest) async throws       // run the OAuth handoff for a server (§12)
+    func respond(to: ElicitationRequest, _ result: ElicitationResult) async  // answer a server's form/URL elicitation (§13)
 }
 ```
 
@@ -190,7 +191,11 @@ channel. **OAuth authorization is the second proof of the same shape** (§12): w
 needs the user to connect, the runtime injects an `authorization` custom segment; `AuthorizationView`
 renders the "Connect" card; the browser handoff runs through `connect(_:)`; the runtime exchanges the
 token and retries, and the now-authorized tool output lands in the transcript — request in the
-transcript, no channel. Two genuine pieces of runtime state are *not* transcript content and are bound
+transcript, no channel. **MCP elicitation is the third proof of the same shape** (§13): when a server
+asks the user for structured input mid-tool-call, the runtime injects an `elicitation` custom segment;
+`AgentTranscriptView` renders it as `ElicitationView` (a schema-driven form); the user's answer flows back
+through `respond(to:_:)` and the tool resumes — request in the transcript, result via a callback, no
+channel. Two genuine pieces of runtime state are *not* transcript content and are bound
 directly as ambient `@Observable`s: a live token/context gauge (`ContextUsageView`) and the per-server
 **connection state** (`ConnectionStore` → `ConnectionsView`, §12).
 
@@ -492,6 +497,11 @@ Grouped; "source" = native (build), reuse (existing lib), or net-new (agent-grad
 - `ApprovalView` — approve / deny / **edit** a tool call or permission request; renders the consequence-language prompt + Once/Session/Always/Deny. *net-new — the GUI for the permission gate (runtime-spec §4.11)*
 - `PermissionPromptView` — scoped grant (once / session / always for this dir). *net-new*
 
+**E3. Elicitation (MCP `elicitation/create`, §13)** — a *server's* request for structured input mid-tool-call; distinct from the per-action *approval* (E) and the per-server *connect* (E2). A compound, schema-driven form with swappable parts (§13).
+- `ElicitationView` — **the compound form** (form mode): rendered from an `elicitation` custom segment, it shows the requesting server + `message`, generates one field per `requestedSchema` property, validates against the schema, and submits via `respond(to:_:)`. Multi-field requests render **tabbed** (Claude-style, §13); single-field renders inline. Three actions: **Submit** (accept) / **Decline** / **Cancel**. Every constituent is a builder slot. *net-new*
+- `ElicitationFieldView` family — one renderer per derived field kind, each an overridable slot (§13): `ElicitationTextField` (string; **defaults to EditorKit** as the input engine, swappable), `ElicitationNumberField` (number/integer + min/max → stepper/slider), `ElicitationToggleField` (boolean → `Toggle`), `ElicitationDateField` (`format: date`/`date-time` → `DatePicker`), `ElicitationSingleChoiceField` (enum / titled `oneOf` → **radio**/menu), `ElicitationMultiChoiceField` (array-of-enum / titled `anyOf` → **checkboxes** with min/max-items). *net-new*
+- `ElicitationURLConsentView` — **URL mode**: a consent card showing the full `url` with the **domain highlighted**, gated on explicit user consent, that opens the link in the **safe system browser** (never a webview) by reusing the `AuthorizationPresenter` infra (§9 E2 / §12). Resolves on `notifications/elicitation/complete` or manual retry; also the renderer for a `-32042 URLElicitationRequiredError`. *net-new (shares §12's browser-handoff infra)*
+
 **E2. Connections / authorization (OAuth, §12)** — the per-server *connect* gate, kept distinct from the per-action *approval* gate above.
 - `AuthorizationView` — the in-thread just-in-time "Connect to *X*" card, rendered from an `authorization` custom segment: server name, requested scopes, a `.glassProminent` **Connect** button that drives the browser handoff via `connect(_:)`. Shares `ApprovalView`'s consequence-language + glass styling; it is the in-thread twin of `ApprovalView` but grants a *connection*, not a single action. *net-new*
 - `ConnectionsView` — the durable settings surface (the dominant pattern across ChatGPT / Claude / VS Code / Cursor): a `List`/`Form` of MCP servers & services, each a `ConnectionRow`, bound to the ambient `ConnectionStore` (not the transcript). Connect / Disconnect, per-tool toggles, step-up scope re-consent. *net-new*
@@ -543,6 +553,7 @@ The remaining questions are now resolved:
 7. **Math — a native `MathView` in v1.** AgentViewKit takes a math-typesetting dependency; Textual gets a hook that detects inline `$…$` and block `$$…$$` spans and routes them to `MathView` — the third content engine alongside Textual (prose) and EditorKit (code), §4. Honors Reduce Motion / Dynamic Type like the rest.
 8. **Transcript-wide selection — per-message + Copy thread, no cross-message drag-select in v1.** Each message is individually selectable/copyable; `MessageActions` adds a **Copy thread** action for the whole log (§9 A). A transcript-level selectable mode (true cross-message drag-select) is deferred — revisit if users ask. This is the accepted cost of moving prose to SwiftUI/Textual (§4.2).
 9. **OAuth / connections — in-thread gate + settings surface; the kit presents, the runtime authorizes; app sign-in is out of scope (§12).** The just-in-time *connect* gate is transcript-native (an `authorization` custom segment + the `connect(_:)` verb), and a durable `ConnectionsView` bound to an ambient `ConnectionStore` is the management home — both ship in v1. The kit owns only a thin `AuthorizationPresenter` over `ASWebAuthenticationSession` (it supplies the `NSWindow` anchor and returns the callback URL); all OAuth protocol — discovery, PKCE, CIMD/DCR, token exchange/refresh, Keychain — lives in the runtime beneath. App-level user identity (signing into the app/provider itself) is the **host's** responsibility, not the kit's.
+10. **Elicitation — a transcript-native, schema-driven form (form mode) + a URL-mode consent card; both ship in v1 (§13).** MCP `elicitation/create` is the *third proof* of the §3 seam: the request is an `elicitation` custom segment, the answer is the new `respond(to:ElicitationRequest,_:)` verb, no parallel channel. **Form mode** renders `ElicitationView` — a compound form that normalizes all four enum encodings (plain `enum`, legacy `enumNames`, titled `oneOf`, multi-select `anyOf`/array) into one field model, maps each field to a native control (radio for single-choice, checkboxes for multi-choice with min/max-items, `Toggle`/`DatePicker`/stepper for the rest), pre-populates `default`s, validates against the schema before enabling **Submit**, and lays out **tabbed** when there's more than one field. Every part is a **builder slot** (§7 pattern): the whole view, the per-kind field renderers, header, and footer are overridable — and **free-text fields default to EditorKit** (the kit's input engine, §4.1) with a slot to swap. Actions are the spec's three: **accept** (with `content`), **decline**, **cancel**. **URL mode** never passes data through the client: `ElicitationURLConsentView` shows the full URL with the domain highlighted, gets explicit consent, and opens the **safe system browser** by reusing §12's `AuthorizationPresenter` — resolving on `notifications/elicitation/complete` (or manual retry), and also rendering the `-32042 URLElicitationRequiredError`. Servers **MUST NOT** request secrets via form mode (that's what URL mode is for); the kit always offers decline/cancel and always names the requesting server (§13).
 
 ## 12. Authorization & connections (OAuth)
 
@@ -563,3 +574,144 @@ MCP tools — and third-party services generally — increasingly require the us
 **Division of labor — the kit presents, the runtime authorizes.** This mirrors how the kit treats EditorKit/Textual as engines beneath it. The kit owns a thin **`AuthorizationPresenter`** (§9 E2) that wraps **`ASWebAuthenticationSession`**: it supplies the required **`NSWindow` presentation anchor**, opens the system browser on a user action (never an embedded webview — RFC 8252 §4/§8.12), and returns the callback `URL` to the runtime. **Everything else is the runtime's**, beneath the kit and out of its spec: PRM/AS-metadata discovery (RFC 9728 / 8414 + OIDC), client identity (**CIMD preferred, DCR fallback** — the live 2025→2026 change), PKCE `S256` (verified before proceeding), the RFC 8707 `resource` audience binding, token exchange/refresh rotation, and **Keychain** storage (`kSecClassGenericPassword`, `kSecUseDataProtectionKeychain` on macOS). The redirect strategy (loopback `127.0.0.1:ephemeral`, the RFC 8252-preferred desktop form Claude Code / VS Code / Cursor use, vs. a custom/HTTPS callback scheme `ASWebAuthenticationSession` intercepts directly) is a **runtime** choice; the presenter accepts whatever callback config the runtime hands it. `prefersEphemeralWebBrowserSession` is exposed so the host can opt into a fresh, no-shared-cookies login.
 
 **No prior art to port.** None of assistant-ui, Vercel AI Elements, CopilotKit, or AG-UI ships a first-class auth/connection component — each leaves it to an out-of-band Bearer token or a hand-built tool-UI/HITL card. So this surface is net-new and a genuine differentiator: AgentViewKit is the agent UI kit that makes *connecting* a first-class, transcript-native moment rather than a settings-only afterthought.
+
+## 13. Elicitation (MCP `elicitation/create`)
+
+Elicitation is MCP's standard mechanism for a **server** to ask the **user** for input in the middle of a
+tool call — "what's your GitHub username?", "pick the branches to deploy", "set your reminder time" —
+without baking those answers into the tool's up-front parameters. It's the third MCP interaction primitive
+the kit makes first-class, after per-action **approval** (§9 E) and per-server **connect** (§12). It lands
+on the exact §3 seam those two already use, so it costs the architecture **one verb, one in-thread segment
+type, one compound view** — and is the *third proof* of §3's "everything renderable lives in the
+transcript, only interaction verbs sit outside it" claim.
+
+**The spec, precisely (MCP `2025-11-25`, with `2025-06-18` back-compat).** A server sends
+`elicitation/create` with a human-readable `message` and a `mode`. There are two modes, and the kit
+renders each on the side of the §3 seam it belongs to:
+
+- **`form`** (default; `mode` omitted ⇒ form) — in-band structured collection. Carries a `requestedSchema`:
+  a **flat object of primitive properties only** (no nesting, no arrays-of-objects). The response is the
+  three-action model — `accept` (+ `content` matching the schema), `decline`, `cancel`.
+- **`url`** — out-of-band interaction (auth, payment, anything sensitive) that **must not pass through the
+  client**. Carries a `url` + an `elicitationId`. The client's *only* job is to get consent and open the
+  URL safely; the result arrives later via `notifications/elicitation/complete` (or the request was
+  triggered by a `-32042 URLElicitationRequiredError`, which the client may retry after completion).
+
+The kit answers both through the same verb:
+
+```swift
+func respond(to request: ElicitationRequest, _ result: ElicitationResult) async
+enum ElicitationResult {
+    case accept(GeneratedContent)   // form mode: the validated field values
+    case decline                    // user explicitly said no
+    case cancel                     // user dismissed (Esc, clicked away, browser failed to load)
+}
+```
+
+### 13.1 Form mode — `ElicitationView`, a compound schema-driven form
+
+The runtime injects an `elicitation` custom segment (exactly as it injects `approval`/`authorization`);
+`AgentTranscriptView` dispatches it to `ElicitationView`. The view does four things: **name the requesting
+server** (a security MUST — always show *who* is asking and *why*, from `message`), **generate a field per
+schema property**, **validate** locally against the schema, and **return** via `respond(to:_:)`.
+
+**Schema → field-kind, normalized once.** The wire format for choices is a mess of four encodings across
+spec versions; `ElicitationView` collapses them into a single internal field model so no renderer ever
+branches on wire shape:
+
+| `requestedSchema` property | Field kind | Default control |
+|---|---|---|
+| `string` (+ `minLength`/`maxLength`/`pattern`) | text | **EditorKit** input (single-line, or multi-line for long/large-max) |
+| `string` + `format: email`/`uri` | text, validated | EditorKit input + format validation |
+| `string` + `format: date`/`date-time` | date | `DatePicker` |
+| `number`/`integer` (+ `minimum`/`maximum`) | number | stepper, or **slider** when both bounds present |
+| `boolean` | boolean | `Toggle` (one switch, not two radios) |
+| `enum: [...]` *or* `oneOf: [{const,title}]` *or* legacy `enumNames` | single-choice | **radio group** (≲5 options) / menu (more) |
+| `type: array, items: {enum}` *or* `items: {anyOf: [{const,title}]}` (+ `minItems`/`maxItems`) | multi-choice | **checkbox group**, enforcing min/max-items |
+
+Each choice normalizes to a `(value, title)` pair — for untitled encodings `title == value`; for titled
+`oneOf`/`anyOf`, `value == const`. `default`s pre-populate every field (a `2025-11-25` addition, supported
+across all primitive types). **Validation is the gate**: required properties, `min/maxLength`, `pattern`,
+`min/maximum`, `min/maxItems`, and `format` are checked live; **Submit** (accept) is disabled with inline
+field errors until the whole object validates — the client-side half of the spec's "validate before
+sending."
+
+**Multiple questions → tabbed, Claude-style.** A single-property request renders inline. A multi-property
+request renders **tabbed** — one chip per property across the top, each marked required/optional and
+showing an answered/valid checkmark, with the body showing the active field — so a request with several
+multiple-choice questions is a clean step-through, not a long scroll. (This is the kit's read of Claude's
+multi-question UX, which the user called out as the nice pattern.) The threshold (inline vs. tabbed vs. a
+plain scrolling `Form`) is itself a configuration point on the layout slot below; tabbed is the default
+above one field.
+
+**Three actions, always available.** The footer carries **Submit** (accept; `.buttonStyle(.glassProminent)`,
+disabled until valid), **Decline**, and **Cancel**; `Esc` / dismiss maps to `cancel`, never a silent
+accept. Per §6, VoiceOver focus moves to the elicitation when it appears (it's a decision gate) and back to
+the composer when it resolves.
+
+### 13.2 Composability — a builder slot for every part (the explicit ask)
+
+`ElicitationView` follows §7 exactly: a working default out of the box, and **every constituent is an
+overridable slot**, so a consumer can restyle one field kind, the chrome, or the whole layout without
+forking the view. The closed set of field kinds gets **typed override modifiers** (like §3's
+`.responseView`/`.toolCallGroupView`), each closure receiving the concrete field context — not a switch:
+
+```swift
+ElicitationView(request)
+    .elicitationTextField        { ctx in EditorKitInput(ctx) }   // DEFAULT — swap for stock or custom
+    .elicitationSingleChoiceField { ctx in MyRadioGroup(ctx) }
+    .elicitationMultiChoiceField  { ctx in MyCheckboxes(ctx) }
+    .elicitationHeader  { req in MyServerBanner(req) }            // who's asking
+    .elicitationLayout  { fields in MyTabStrip(fields) }          // tabbed / form / wizard
+    .elicitationFooter  { actions in MyActionBar(actions) }       // Submit / Decline / Cancel
+
+public struct ElicitationFieldContext {     // what the kit hands each field renderer
+    public let schema: ElicitationFieldSchema   // title, description, constraints, format, choices
+    public let value: Binding<GeneratedContent> // the field's current answer
+    public let validation: FieldValidationState // live errors, required, satisfied
+}
+```
+
+**Free text defaults to EditorKit, by design.** The kit already depends on EditorKit as its input engine
+(§4.1, the "rich input" role), so the default `elicitationTextField` *is* EditorKit — single-line for short
+strings, multi-line for long/large-`maxLength` ones — giving elicitation the same selection, theming, and
+affordances as the composer. This defaults the **opposite direction from `PromptInputView`** (which defaults
+to a stock editor, §7) — a deliberate choice the user asked for: one input engine for in-thread text, with
+the slot there to drop in a stock SwiftUI field or any custom editor later. The constrained-extension
+overload pattern (§7) supplies the EditorKit default so the no-closure `ElicitationView(request)` still
+compiles as the drop-in.
+
+### 13.3 URL mode — reuse the §12 browser handoff, don't rebuild it
+
+URL-mode elicitation is structurally the OAuth-connect card again: out-of-band, browser-based, must not
+leak data through the client. So it **reuses §12's machinery** rather than adding a parallel path.
+`ElicitationURLConsentView` (the form-mode twin's sibling) renders a consent card — server name, the
+`message`, and the **full `url` with its domain highlighted** — and on consent runs the open through the
+same `AuthorizationPresenter` (§9 E2). The spec's safe-handling MUSTs map directly onto what that presenter
+already does and onto the kit's no-WebView rule (§4): **never auto-open or pre-fetch**, **show the full URL
+for examination**, **highlight the domain** (warn on Punycode/ambiguous hosts), and **open only in the safe
+system browser** (`ASWebAuthenticationSession` / `SFSafariViewController`-class, *never* a `WKWebView` the
+client or LLM could inspect). The kit returns `accept` to signal consent-to-open (not completion); the
+interaction finishes out of band and resolves when `notifications/elicitation/complete` (matched by
+`elicitationId`) arrives, with a manual **Retry**/**Cancel** always present in case the notification never
+does. A `-32042 URLElicitationRequiredError` returned from a `tools/call` renders the same card and lets the
+runtime retry the call after completion. The kit touches **zero** of the OAuth/token protocol — same
+division of labor as §12: *the kit presents and gets consent; the runtime and server own everything else.*
+
+### 13.4 Security posture (the spec's client MUSTs, mapped to the kit)
+
+- **Form mode never carries secrets.** Servers MUST NOT request passwords/API keys/tokens via form mode —
+  that's precisely what URL mode exists for. The kit surfaces the mode distinction in the UI and routes
+  sensitive collection out-of-band.
+- **Always identifiable, always refusable.** Every elicitation names the requesting server and offers
+  **Decline** and **Cancel** at all times (§13.1) — the client's "make it clear who's asking" and "allow
+  decline at any time" obligations.
+- **Validate before sending** (§13.1) and **no clickable URLs in form fields** — only the `url` field of a
+  URL-mode request is ever rendered as openable, and only through the consent flow (§13.3).
+- **Rate-limiting / flood control** is a runtime concern beneath the kit; the kit renders whatever the
+  runtime admits, the same as every other segment.
+
+**Prior art.** As with §12, none of assistant-ui, Vercel AI Elements, or CopilotKit ships a first-class,
+schema-driven elicitation form with the four-encoding enum normalization, tabbed multi-question layout, and
+a swappable EditorKit text engine — so this, too, is net-new and a differentiator: AgentViewKit makes a
+server *asking the user a question* a native, transcript-grounded moment.
