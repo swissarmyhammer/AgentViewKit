@@ -87,7 +87,7 @@ public protocol ThreadRecord: AnyObject, Identifiable, Observable {
 A patch mutates the record in place and bumps `revision`. Only the row that reads that record invalidates (§8). The `_meta` field lets an adapter or a host read extension data later (see R14). The cases:
 
 - `.system(SystemPrompt)`. The instructions. Hidden by default, inspectable.
-- `.userMessage(Message)` and `.assistantMessage(Message)`. A `Message` holds `[ContentBlock]`: `text`, `image`, `audio`, `resourceLink` (with `icons`), `resource`, `attachment(URL)`, `structured(schemaName, GeneratedContent)`, `unknown`. Each block carries optional `annotations` with `audience` and `priority`. The renderer hides a block whose audience excludes the user, and orders by priority when it must truncate.
+- `.userMessage(Message)` and `.assistantMessage(Message)`. A `Message` holds `[ContentBlock]`: `text`, `image`, `audio`, `resourceLink` (with `icons`), `resource`, `attachment(URL)`, `structured(schemaName, JSONValue)`, `unknown`. `JSONValue` is a kit-local JSON enum, so the core target has no FoundationModels or ACP import. The FoundationModels target converts `GeneratedContent` to and from it. Each block carries optional `annotations` with `audience` and `priority`. The renderer hides a block whose audience excludes the user, and orders by priority when it must truncate.
 - `.reasoning(Reasoning)`. Segments plus an optional signature.
 - `.toolCall(ToolCallRecord)`. `title`, `kind` (`read`, `edit`, `delete`, `move`, `search`, `execute`, `think`, `fetch`, `switchMode`, `other`, `unknown`), `status` (`pending`, `inProgress`, `completed`, `failed`, `cancelled`, `lost`, `unknown`), `content` (`[ToolContent]`: `block`, `diff`, `terminal`), `locations`, `rawInput`, `rawOutput`, and host-measured `startedAt` and `endedAt`. The ACP agent emits a custom `_lost` status when a result was lost. It maps to `lost` and renders as its own state. Other custom statuses fall to `unknown`.
 - `.structured(StructuredRecord)`. A FoundationModels `.structure` segment that no mapping claimed. Keyed by `schemaName`.
@@ -191,7 +191,7 @@ The open-ended cases get keyed modifiers:
     .attachmentView(for: .pdf)            { file in MyPDFPreview(file) }         // by UTType
 ```
 
-`.structuredItem(schemaName)` matches both a `.structured` thread item and a `structured` content block inside a message, so one registration covers a chart wherever it arrives. Registrations resolve last-writer-wins through the environment. An unregistered `schemaName` falls back to a collapsible pretty-printed `GeneratedContent` view. An unregistered `UTType` falls to the nearest conforming supertype, then to the generic file chip. Nothing is dropped.
+`.structuredItem(schemaName)` matches both a `.structured` thread item and a `structured` content block inside a message, so one registration covers a chart wherever it arrives. Registrations resolve last-writer-wins through the environment. An unregistered `schemaName` falls back to a collapsible pretty-printed `JSONValue` view. An unregistered `UTType` falls to the nearest conforming supertype, then to the generic file chip. Nothing is dropped.
 
 **Attachments are per-type.** An `Attachment` is keyed by `UTType`. Defaults: image preview, PDF and QuickLook thumbnail, plain text and markdown via Textual, source code via EditorKit, audio and video player, and a generic file chip. One `AttachmentView` family renders in the composer, in prompts, and in artifacts. What a source accepts differs: FoundationModels takes images only, ACP takes audio, resources, and links. Research R15 finds what the runtime does with other files.
 
@@ -330,7 +330,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 - `SystemPromptView`: the instructions, collapsed by default. *net-new*
 - `UserMessageView` and `AssistantMessageView`: content-block based, share `MessageActions`. *net-new*
 - `ReasoningView`: see group B. `ToolCallView`: see group C.
-- `StructuredItemView`: the `schemaName` registry fallback, a collapsible pretty-printed `GeneratedContent`. *net-new*
+- `StructuredItemView`: the `schemaName` registry fallback, a collapsible pretty-printed `JSONValue`. *net-new*
 - `CompactionMarkerView`: marks a transcript rewrite with its summary. Research R17 sets the design. *net-new*
 - `UnknownItemView`: collapsible raw view for any unknown record or content block. *net-new*
 - `ErrorView` renders one block per error kind, each with an action. `contextSizeExceeded(contextSize:tokenCount:)`: show the counts and offer Compact. `rateLimited`: show the reset time and offer Retry. `guardrailViolation` and `refusal`: show the explanation and offer Rephrase. `timeout`: offer Retry. ACP errors: show the code and message. A stop reason from `StateBanner` links here when the user needs to act.
@@ -447,7 +447,7 @@ Elicitation is how a server asks the user for input mid-tool-call. It reaches th
 ```swift
 func respond(to request: ElicitationRequest, _ result: ElicitationResult) async
 enum ElicitationResult {
-    case accept(GeneratedContent?)  // form: validated values; url: nil, consent to open only
+    case accept(JSONValue?)         // form: validated values; url: nil, consent to open only
     case decline
     case cancel
 }
@@ -488,7 +488,7 @@ ElicitationView(request)
 
 public struct ElicitationFieldContext {       // what the kit hands each field renderer
     public let schema: ElicitationFieldSchema   // title, description, constraints, format, choices
-    public let value: Binding<GeneratedContent> // the field's current answer
+    public let value: Binding<JSONValue?>       // the field's current answer
     public let validation: FieldValidationState // live errors, required, satisfied
 }
 ```
