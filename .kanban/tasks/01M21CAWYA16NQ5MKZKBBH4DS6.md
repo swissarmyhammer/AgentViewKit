@@ -10,13 +10,22 @@ comments:
     - `UserInput.attachments` is `[URL]`. The attachments task changes it to `Attachment`.
     - ThreadFixtures adds `toolCallForEachStatus()`, `formElicitationRequest(id:)`, and `urlElicitationRequest(id:)` for the "per status" and "both modes" builders.
   timestamp: 2026-09-16T17:16:03.990062+00:00
+- actor: claude-code
+  id: 01m2nkn2rz36w07m8sjtj3sjm2
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files (4 source, 2 test)
+    - test: green — swift test, 633 passed (20 + 552 + 1 + 1 + 59), 0 failed
+    - commit: a32c546
+    - review: clean — review sha HEAD~1..HEAD, 0 findings, 7 attempted, 0 failed
+  timestamp: 2026-09-16T17:18:55.775760+00:00
 depends_on:
 - 01M21BD0YVS2J4MD6VXDM317W6
 - 01M21BYFK7KVCKXYXJFCJW7FSM
 - 01M21A9KJGPPJE0X01JE0B9V33
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '9880'
 title: AgentThreadActions protocol, NoopThreadActions, and ThreadFixtures (plan §3.4)
 ---
 ## What
