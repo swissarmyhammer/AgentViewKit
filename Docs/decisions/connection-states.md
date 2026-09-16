@@ -53,3 +53,27 @@ The reasons for the edges:
 - The status chip has the static text trait. An element with no role does
   not give its accessibility value, and the value of an `error` chip is the
   error text.
+
+## The in-thread card
+
+`AuthorizationView` shows one `AuthorizationRequest`. These rules apply:
+
+- The card finds the server in the `ConnectionStore` by the connection
+  identifier that is equal to `serverName`. If no identifier is equal, it uses
+  the first connection with the display name `serverName`. If the store has no
+  such server, or the environment has no store, the chip shows `needs-auth`.
+  A request exists only for a server that needs authorization.
+- The card does not change the store. While `connect(_:)` runs, only the chip
+  of the card shows `authenticating`. The host reports the real state with
+  `transition(_:to:)`.
+- While `connect(_:)` runs, the Connect button is disabled and shows a
+  progress view. SwiftUI merges the button into the progress view, so the
+  element has the `AXBusyIndicator` role at that time.
+- When `connect(_:)` throws, the card shows the error text and a Retry button
+  in place of the Connect button. A `CancellationError` shows no error.
+- The accessibility identifiers are `authorization-card-<id>`,
+  `authorization-title-<id>`, `authorization-scope-<id>-<scope>`,
+  `authorization-connect-<id>`, `authorization-retry-<id>`, and
+  `authorization-error-<id>`.
+- `PendingRequestsHost` (the PermissionView task) shows one card for each
+  entry in `thread.pendingAuthorizations`.
