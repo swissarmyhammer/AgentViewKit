@@ -598,6 +598,18 @@ public enum SessionUpdateMapping {
     }
   }
 
+  /// Changes a kit JSON value into an ACP JSON value.
+  public static func wireJSON(_ value: AgentViewKit.JSONValue) -> FoundationModelsACP.JSONValue {
+    switch value {
+    case .null: .null
+    case .bool(let bool): .bool(bool)
+    case .number(let number): .number(number)
+    case .string(let string): .string(string)
+    case .array(let elements): .array(elements.map(wireJSON))
+    case .object(let members): .object(members.mapValues(wireJSON))
+    }
+  }
+
   /// Changes an ACP patch field into a kit patch field of the same state.
   static func wirePatch<Wire, Kit>(
     _ field: FoundationModelsACP.PatchField<Wire>, _ transform: (Wire) -> Kit
