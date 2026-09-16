@@ -30,12 +30,21 @@ comments:
     - decisions: order allow_once, allow_always, reject_once, reject_always, then unknown kinds (stable). The kept kinds and unknown kinds are secondary. No fifth option in v1. Switch to auto shows when the first `mode` select has an `auto` choice and the current value is not `auto` or `plan`. `autoModeOption(in:)` gives the option for PermissionView to set.
     - next: full test run.
   timestamp: 2026-09-16T16:35:53.938452+00:00
+- actor: claude-code
+  id: 01m2nhacmbmab98g79ygk2z1ea
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 5 files (decision file, PermissionPresentation, SelectChoices.options, two test files)
+    - test: green — `swift test`: 479 tests in 38 suites and the other targets passed; 0 failures, 0 skipped; only the accepted mlx-swift build warning
+    - commit: 4e6e208
+    - review: clean — `review sha HEAD~1..HEAD`, 0 findings (7 attempted, 0 failed). The decision .md file has no validator.
+  timestamp: 2026-09-16T16:38:08.267250+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BD0YVS2J4MD6VXDM317W6
 - 01M21BYFK7KVCKXYXJFCJW7FSM
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '9480'
 title: 'Research R8: permission and mode option sets from Claude Code, Cursor, and Codex, mapped to ACP (plan §14)'
 ---
 ## What
