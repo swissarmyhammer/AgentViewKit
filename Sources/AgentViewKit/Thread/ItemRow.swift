@@ -104,8 +104,8 @@ public struct ItemRow: View, Equatable {
         placeholder("Assistant message")
       }
     case .reasoning(let record):
-      OverridableItemView(\.reasoningViewOverride, record: record) { _ in
-        placeholder("Reasoning")
+      OverridableItemView(\.reasoningViewOverride, record: record) { record in
+        ThreadReasoningView(record: record)
       }
     case .toolCall(let record):
       OverridableItemView(\.toolCallViewOverride, record: record) { _ in
@@ -177,6 +177,27 @@ private struct OverridableItemView<Record, Fallback: View>: View {
     } else {
       fallback(record)
     }
+  }
+}
+
+/// Shows a ``ReasoningView`` with the in-progress state and the stream from
+/// the thread of the environment (plan.md §3.5).
+///
+/// This view, and not the row, reads the thread. Thus a change to the last
+/// item or to the run state evaluates only this view, and the row stays
+/// equal.
+private struct ThreadReasoningView: View {
+  /// The record to show.
+  let record: Reasoning
+
+  @Environment(\.agentThread) private var thread
+
+  var body: some View {
+    ReasoningView(
+      record: record,
+      isInProgress: thread?.isLastWhileRunning(record.id) ?? false,
+      streaming: thread?.streaming[record.id]
+    )
   }
 }
 

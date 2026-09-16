@@ -70,6 +70,18 @@ public final class ExpandedBlocksStore {
     entry(for: item.id).decision ?? defaultExpanded(item)
   }
 
+  /// The recorded decision for the item with this identifier.
+  ///
+  /// A view that has its own default, for example a block that is open
+  /// while it streams, uses this value to tell a user decision from no
+  /// decision.
+  ///
+  /// - Parameter id: The item identifier.
+  /// - Returns: The recorded decision, or `nil` when there is none.
+  public func decision(for id: String) -> Bool? {
+    entry(for: id).decision
+  }
+
   // MARK: - Write
 
   /// Records the ``defaultExpanded`` value for the item, when the item has no

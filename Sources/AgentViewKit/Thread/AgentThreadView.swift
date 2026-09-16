@@ -49,6 +49,7 @@ public struct AgentThreadView: View {
       }
       .padding(theme.rowPadding)
     }
+    .environment(\.agentThread, thread)
     .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
     .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
   }

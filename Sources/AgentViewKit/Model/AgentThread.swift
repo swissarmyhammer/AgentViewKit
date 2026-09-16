@@ -63,6 +63,13 @@ public final class AgentThread {
   /// the record.
   public private(set) var streaming: [String: StreamingMessage] = [:]
 
+  /// The id of the last item, or `nil` when the thread has no items.
+  ///
+  /// The thread writes this value only when the last item changes. Thus a
+  /// view that reads it does not become invalid for each change to
+  /// ``items``.
+  public private(set) var lastItemID: String?
+
   /// The position of each item in ``items``, keyed by item id.
   @ObservationIgnored private var index: [String: Int] = [:]
 
@@ -90,6 +97,19 @@ public final class AgentThread {
   /// - Returns: The run.
   public func subagent(id: SubagentRunID) -> SubagentRun? {
     subagentIndex[id]
+  }
+
+  /// Tells if the item is the last item while the thread runs a turn
+  /// (plan.md §3.5).
+  ///
+  /// A reasoning item for which this is `true` is still in progress. The
+  /// function reads only ``state`` and ``lastItemID``.
+  ///
+  /// - Parameter id: The identifier of the item.
+  /// - Returns: `true` when the item is last and ``state`` is
+  ///   ``ThreadState/running``.
+  public func isLastWhileRunning(_ id: String) -> Bool {
+    state == .running && lastItemID == id
   }
 
   /// Applies one change to the thread.
@@ -137,6 +157,7 @@ public final class AgentThread {
   private func insert(_ item: ThreadItem, at position: Int) {
     items.insert(item, at: position)
     reindex(from: position)
+    noteLastItem()
   }
 
   private func patch(id: String, with patch: ItemPatch) {
@@ -172,6 +193,7 @@ public final class AgentThread {
     guard let position = index.removeValue(forKey: id) else { return }
     items.remove(at: position)
     reindex(from: position)
+    noteLastItem()
   }
 
   private func clear() {
@@ -186,6 +208,14 @@ public final class AgentThread {
     pendingAuthorizations = []
     checkpoints = []
     streaming = [:]
+    noteLastItem()
+  }
+
+  /// Writes ``lastItemID`` when the last item changed.
+  private func noteLastItem() {
+    let last = items.last?.id
+    guard lastItemID != last else { return }
+    lastItemID = last
   }
 
   /// Writes the positions of the items from `start` to the end.
