@@ -9,10 +9,28 @@ comments:
     - note for ^hpprm0t: the Checkpoint fields and rules are in the Decision section of checkpoints.md. The Router source must prove `restoreSession(id:)` on a nested fork id with a test.
     - next: test, commit, review
   timestamp: 2026-09-16T15:55:33.107574+00:00
+- actor: claude-code
+  id: 01m2nf574mdnqh5d5ehtrjbhdg
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 3 files (decision, CheckpointCapabilities, test)
+    - test: green — swift test --filter AgentViewKitTests, 374 passed
+    - commit: 3897f56
+    - review: findings — Tests/AgentViewKitTests/Checkpoints/CheckpointCapabilitiesTests.swift:69 (reuse/reuse)
+  timestamp: 2026-09-16T16:00:21.652791+00:00
+- actor: claude-code
+  id: 01m2nf9rbn2gw0afydpxekqrea
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — MarkdownTable helper; CheckpointCapabilitiesTests and ContextUsageTests use it
+    - test: green — swift test --filter AgentViewKitTests, 374 passed
+    - commit: b3f1518
+    - review: clean — review sha HEAD~1..HEAD, 0 findings
+  timestamp: 2026-09-16T16:02:50.357251+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: '9080'
 title: 'Research R13: checkpoint sources in the Router and ACP, recorded as the Checkpoint decision (plan §14)'
 ---
 ## What
