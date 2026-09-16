@@ -166,8 +166,17 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
 
   /// The default tokens. `DefaultTokens.json` holds the same values.
   public static let `default` = AgentTheme(
-    spacing: Spacing(xs: 4, s: 8, m: 12, l: 20),
-    radii: Radii(s: 4, m: 8, l: 12),
+    spacing: Spacing(
+      xs: DefaultValues.spacingExtraSmall,
+      s: DefaultValues.spacingSmall,
+      m: DefaultValues.spacingMedium,
+      l: DefaultValues.spacingLarge
+    ),
+    radii: Radii(
+      s: DefaultValues.radiusSmall,
+      m: DefaultValues.radiusMedium,
+      l: DefaultValues.radiusLarge
+    ),
     materialLevel: .regular,
     symbolWeight: .regular,
     accent: .accentColor,
@@ -195,5 +204,24 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     case .balanced: spacing.s
     case .detailed: spacing.m
     }
+  }
+
+  /// The point values of ``default``. `DefaultTokens.json` holds the same
+  /// values.
+  private enum DefaultValues {
+    /// The default extra small spacing step.
+    static let spacingExtraSmall: CGFloat = 4
+    /// The default small spacing step.
+    static let spacingSmall: CGFloat = 8
+    /// The default medium spacing step.
+    static let spacingMedium: CGFloat = 12
+    /// The default large spacing step.
+    static let spacingLarge: CGFloat = 20
+    /// The default small corner radius.
+    static let radiusSmall: CGFloat = 4
+    /// The default medium corner radius.
+    static let radiusMedium: CGFloat = 8
+    /// The default large corner radius.
+    static let radiusLarge: CGFloat = 12
   }
 }
