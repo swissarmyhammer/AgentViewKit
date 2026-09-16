@@ -99,6 +99,22 @@ thread id and the parent tool call id, with the AG-UI field names as the model.
 | No Router signal | `readyForReview` is not used by the Router source |
 | A status that the adapter does not know | `unknown(String)` with the raw value |
 
+## Adapter
+
+- `SubagentMapping` (`Sources/AgentViewKitRouter/SubagentMapping.swift`)
+  holds the pure mapping. `spawnChange(for:parentRunID:)` changes the
+  `session` event into `ThreadChange.upsertSubagent`. `patch(for:now:)`
+  changes a parent session event into a `SubagentPatch` for the run with the
+  id of its tool call.
+- `RouterThreadSource.apply(_: TranscriptEvent)` adds the run. The source
+  applies a parent session patch only to a run that the thread has, because a
+  session event does not tell whether its tool call started a subagent.
+- A cancelled `runSettled` outcome gives `unknown("cancelled")`, because a
+  cancelled run can still do work.
+- The adapter tests are in
+  `Tests/AgentViewKitRouterTests/Subagents/SubagentAdapterTests.swift`. The
+  `AgentViewKitTests` target cannot import the Router (ImportBoundaryTests).
+
 ## Fixture
 
 `Tests/Fixtures/subagent/router-agent-spawn.jsonl` holds the

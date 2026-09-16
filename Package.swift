@@ -141,6 +141,8 @@ let package = Package(
       dependencies: [
         "AgentViewKitRouter",
         "AgentViewKitTestSupport",
+        // SubagentAdapterTests reads the subagent fixture from disk.
+        "PackageFileSupport",
         .product(name: "FoundationModelsRouter", package: "FoundationModelsRouter"),
         .product(name: "FoundationModelsExtras", package: "FoundationModelsExtras"),
       ],

@@ -60,6 +60,14 @@ public final class RouterThreadSource {
   /// first.
   private var provisionalRows: [StreamKind: [String]] = [:]
 
+  /// The host clock. It gives the start and the end times of the subagent
+  /// runs.
+  private let clock: () -> Date
+
+  /// The host clock value when each tool call started, keyed by tool call
+  /// id. A spawned run reads its start time from this table.
+  private var toolCallStarts: [String: Date] = [:]
+
   /// The log of the source.
   private let logger = Logger(subsystem: "AgentViewKit", category: "RouterThreadSource")
 
@@ -68,8 +76,13 @@ public final class RouterThreadSource {
   /// - Parameters:
   ///   - thread: The thread to fill.
   ///   - session: The Router session to read.
-  public convenience init(thread: AgentThread = AgentThread(), session: any RoutedSession) {
-    self.init(thread: thread, port: RoutedSessionPort(session: session))
+  ///   - clock: The host clock for the times of the subagent runs.
+  public convenience init(
+    thread: AgentThread = AgentThread(),
+    session: any RoutedSession,
+    clock: @escaping () -> Date = Date.init
+  ) {
+    self.init(thread: thread, port: RoutedSessionPort(session: session), clock: clock)
   }
 
   /// Makes a source for a session port.
@@ -77,9 +90,15 @@ public final class RouterThreadSource {
   /// - Parameters:
   ///   - thread: The thread to fill.
   ///   - port: The calls to the session.
-  public init(thread: AgentThread = AgentThread(), port: any RouterSessionPort) {
+  ///   - clock: The host clock for the times of the subagent runs.
+  public init(
+    thread: AgentThread = AgentThread(),
+    port: any RouterSessionPort,
+    clock: @escaping () -> Date = Date.init
+  ) {
     self.thread = thread
     self.session = port
+    self.clock = clock
   }
 
   /// Copies the transcript of the session into the thread, then applies each
@@ -124,6 +143,34 @@ public final class RouterThreadSource {
       .discoveryPrimingFailed, .generationStalled, .runSettled, .elicitationRequested:
       applyChanges(of: event)
     }
+    applySubagentPatch(of: event)
+  }
+
+  /// Applies one Router transcript event to the subagent runs of the thread.
+  ///
+  /// The `session` event of a spawned session adds its run
+  /// (`Docs/decisions/subagent-source.md`). The parent of the run is the run
+  /// whose thread is the parent session. A new run takes its title, its
+  /// state, and its start time from the parent tool call, when the source
+  /// saw that call. Other events change nothing.
+  ///
+  /// - Parameter event: A transcript event from a Router recorder sink.
+  public func apply(_ event: TranscriptEvent) {
+    let parentSession = SubagentMapping.parentSessionID(of: event)
+    let parentRunID = thread.subagents.first { $0.threadID != nil && $0.threadID == parentSession }?.id
+    guard case .upsertSubagent(var patch) = SubagentMapping.spawnChange(for: event, parentRunID: parentRunID)
+    else { return }
+    if thread.subagent(id: patch.id) == nil {
+      let callID = patch.id.rawValue
+      if case .toolCall(let call) = thread.item(id: callID) {
+        patch.title = .value(call.title)
+        patch.state = .value(SubagentMapping.state(for: call.status))
+      }
+      if let start = toolCallStarts[callID] {
+        patch.startedAt = .value(start)
+      }
+    }
+    thread.apply(.upsertSubagent(patch))
   }
 
   // MARK: - Actions support
@@ -253,6 +300,19 @@ public final class RouterThreadSource {
     guard let copy = thread.item(id: old)?.copy(id: new) else { return }
     thread.apply(.insert(copy, after: old))
     thread.apply(.remove(id: old))
+  }
+
+  /// Keeps the start time of a tool call, and changes the subagent run of
+  /// the event when the thread has that run.
+  ///
+  /// - Parameter event: The session event.
+  private func applySubagentPatch(of event: SessionEvent) {
+    guard let patch = SubagentMapping.patch(for: event, now: clock()) else { return }
+    if case .toolCall(let id, _, _) = event, case .value(let start) = patch.startedAt {
+      toolCallStarts[id] = start
+    }
+    guard thread.subagent(id: patch.id) != nil else { return }
+    thread.apply(.upsertSubagent(patch))
   }
 
   /// Applies the mapped changes of an event.
