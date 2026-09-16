@@ -143,7 +143,12 @@ let package = Package(
     ),
     .testTarget(
       name: "AgentViewKitACPTests",
-      dependencies: ["AgentViewKitACP", "AgentViewKitTestSupport"],
+      dependencies: [
+        "AgentViewKitACP",
+        "AgentViewKitTestSupport",
+        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
+      ],
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links only PackageFileSupport,
