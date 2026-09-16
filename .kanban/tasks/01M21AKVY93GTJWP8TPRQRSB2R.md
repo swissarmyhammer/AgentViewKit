@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nxa0fzmye4gt9wktqa3fkm
+  text: 'Note from ^5a3wmgc (ElicitationView): `ElicitationView(request:)` shows no fields for a URL mode request. The host must show `ElicitationURLConsentView` for `.url` mode. To keep the three-action rule the same, the consent view can use `ElicitationHeader(request:)` for the server name, and the `focusReporter` environment value on appear.'
+  timestamp: 2026-09-16T20:07:38.751724+00:00
 depends_on:
 - 01M21BDG310SH8A60AFWXKPSDC
 - 01M21AEPX6A1KRH0TQ0D4QV9CP

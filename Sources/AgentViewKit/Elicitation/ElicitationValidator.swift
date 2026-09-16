@@ -68,6 +68,24 @@ public nonisolated enum ElicitationValidator {
     schemas.allSatisfy { validate(values[$0.name], against: $0).isSatisfied }
   }
 
+  /// Tells whether a field has an answer that passes validation.
+  ///
+  /// The tab of a field shows the answered mark when this is `true`
+  /// (plan.md §13.1).
+  ///
+  /// - Parameters:
+  ///   - value: The answer, or `nil` when there is no answer.
+  ///   - schema: The field schema.
+  /// - Returns: `true` when the answer is not empty and passes each
+  ///   constraint of the field kind.
+  public static func isAnswered(
+    _ value: JSONValue?,
+    against schema: ElicitationFieldSchema
+  ) -> Bool {
+    guard let value, !isEmpty(value) else { return false }
+    return errors(for: value, kind: schema.kind).isEmpty
+  }
+
   // MARK: - Checks
 
   /// Tells whether an answer is empty.

@@ -362,4 +362,21 @@ import Testing
         values: ["name": .string("Ada"), "age": .number(-1)], schemas: schemas))
     #expect(ElicitationValidator.isComplete(values: [:], schemas: []))
   }
+
+  // MARK: - Answered
+
+  @Test func onlyAValidAnswerThatIsNotEmptyIsAnswered() {
+    let age = field(.number(integer: true, minimum: 1, maximum: 9))
+
+    #expect(!ElicitationValidator.isAnswered(nil, against: age))
+    #expect(!ElicitationValidator.isAnswered(.null, against: age))
+    #expect(!ElicitationValidator.isAnswered(.number(12), against: age))
+    #expect(ElicitationValidator.isAnswered(.number(3), against: age))
+  }
+
+  @Test func anEmptyListIsNotAnsweredAndFalseIsAnswered() {
+    #expect(!ElicitationValidator.isAnswered(.array([]), against: field(multiChoice())))
+    #expect(ElicitationValidator.isAnswered(.array([.string("a")]), against: field(multiChoice())))
+    #expect(ElicitationValidator.isAnswered(.bool(false), against: field(.boolean)))
+  }
 }
