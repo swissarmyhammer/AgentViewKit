@@ -17,10 +17,19 @@ comments:
     - commit: ce97ca3
     - review: findings — Sources/AgentViewKit/Model/JSONValue.swift:153, :161, :170 (no_direct_standard_out_logs; the private helper had the name `print`). Fix: rename the helper to `encodedText(of:formatting:)`.
   timestamp: 2026-09-16T14:06:43.377541+00:00
+- actor: claude-code
+  id: 01m2n8q7f4vfwcn08vttw9eq95
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — renamed the helper `print` to `encodedText(of:formatting:)` in JSONValue.swift
+    - test: green — swift test, 165 tests passed, no new warnings
+    - commit: 27555ee
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; each prior finding is checked. Task moved to done.
+  timestamp: 2026-09-16T14:07:51.780550+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: '8780'
 title: 'JSONValue: the kit-local JSON enum (plan §3.2, §11#1)'
 ---
 ## What
