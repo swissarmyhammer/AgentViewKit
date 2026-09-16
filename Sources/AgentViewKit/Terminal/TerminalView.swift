@@ -228,21 +228,12 @@ public struct TerminalView: View {
   /// - Parameter rows: The rows that show.
   /// - Returns: The row.
   private func capRow(_ rows: CommandOutputView.VisibleRows) -> some View {
-    HStack(spacing: theme.spacing.s) {
-      Text(String(localized: "Showing the last \(rows.visibleCount) of \(rows.totalCount) lines"))
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .accessibilityIdentifier(Self.capIdentifier)
-      Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Show all \(rows.totalCount) lines")) {
-        showsAll = true
-      }
-      .buttonStyle(.borderless)
-      .font(.caption)
-      .accessibilityIdentifier(Self.showAllIdentifier)
+    OutputCapRow(
+      rows: rows, capIdentifier: Self.capIdentifier,
+      showAllIdentifier: Self.showAllIdentifier
+    ) {
+      showsAll = true
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
   }
 
   /// The row with the input field.
@@ -271,43 +262,26 @@ public struct TerminalView: View {
 
   /// The footer: a progress indicator while the command runs, and the exit
   /// status after it exits.
-  private var footer: some View {
-    Group {
-      if let status = record.exitStatus {
-        exitRow(ExitSummary(status))
-      } else {
-        HStack(spacing: theme.spacing.s) {
-          ProgressView()
-            .controlSize(.mini)
-            .accessibilityLabel(String(localized: "Running"))
-            .accessibilityIdentifier(Self.progressIdentifier)
-          Text(String(localized: "Running"))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .accessibilityHidden(true)
-        }
+  @ViewBuilder private var footer: some View {
+    if let status = record.exitStatus {
+      let summary = ExitSummary(status)
+      OutputExitLabel(
+        text: summary.label, symbolName: summary.symbolName, outcome: summary.outcome,
+        identifier: Self.footerIdentifier)
+    } else {
+      HStack(spacing: theme.spacing.s) {
+        ProgressView()
+          .controlSize(.mini)
+          .accessibilityLabel(String(localized: "Running"))
+          .accessibilityIdentifier(Self.progressIdentifier)
+        Text(String(localized: "Running"))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .accessibilityHidden(true)
       }
+      .padding(.horizontal, theme.spacing.m)
+      .padding(.vertical, theme.spacing.xs)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
-    .frame(maxWidth: .infinity, alignment: .leading)
-  }
-
-  /// The row with the exit status.
-  ///
-  /// - Parameter summary: The exit status.
-  /// - Returns: The row.
-  private func exitRow(_ summary: ExitSummary) -> some View {
-    Label(summary.label, systemImage: summary.symbolName)
-      .font(.caption)
-      .fontWeight(theme.symbolWeight)
-      .foregroundStyle(summary.outcome.map(theme.statusColors.color(for:)) ?? Color.secondary)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(summary.label)
-      .accessibilityValue(summary.outcome?.label ?? "")
-      // An element with no role does not give its value. The trait gives the
-      // static text role.
-      .accessibilityAddTraits(.isStaticText)
-      .accessibilityIdentifier(Self.footerIdentifier)
   }
 }

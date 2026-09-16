@@ -51,6 +51,20 @@ public nonisolated enum ANSIText {
       self.green = green
       self.blue = blue
     }
+
+    /// Makes a color from six hexadecimal digits, such as `CD3131`.
+    ///
+    /// - Parameter hex: The red, green, and blue channels as two
+    ///   hexadecimal digits each. Text that is not hexadecimal gives black.
+    init(hex: String) {
+      let value = Int(hex, radix: Palette.hexRadix) ?? 0
+      let mask = Palette.channelMask
+      let bits = Palette.channelBits
+      self.init(
+        red: (value >> (bits + bits)) & mask,
+        green: (value >> bits) & mask,
+        blue: value & mask)
+    }
   }
 
   /// The 16 standard colors, in SGR order: the eight normal colors, then the
@@ -58,24 +72,7 @@ public nonisolated enum ANSIText {
   ///
   /// The values are the terminal palette of Visual Studio Code. They are
   /// easy to read on a light and on a dark background.
-  public static let standardPalette: [RGB] = [
-    RGB(red: 0, green: 0, blue: 0),
-    RGB(red: 205, green: 49, blue: 49),
-    RGB(red: 13, green: 188, blue: 121),
-    RGB(red: 229, green: 229, blue: 16),
-    RGB(red: 36, green: 114, blue: 200),
-    RGB(red: 188, green: 63, blue: 188),
-    RGB(red: 17, green: 168, blue: 205),
-    RGB(red: 229, green: 229, blue: 229),
-    RGB(red: 102, green: 102, blue: 102),
-    RGB(red: 241, green: 76, blue: 76),
-    RGB(red: 35, green: 209, blue: 139),
-    RGB(red: 245, green: 245, blue: 67),
-    RGB(red: 59, green: 142, blue: 234),
-    RGB(red: 214, green: 112, blue: 214),
-    RGB(red: 41, green: 184, blue: 219),
-    RGB(red: 255, green: 255, blue: 255),
-  ]
+  public static let standardPalette: [RGB] = Palette.standardHex.map(RGB.init(hex:))
 
   /// The 16 standard colors as SwiftUI colors, in the order of
   /// ``standardPalette``.
@@ -105,11 +102,11 @@ public nonisolated enum ANSIText {
       return standardPalette[index]
     case Palette.cubeRange:
       let offset = index - Palette.cubeRange.lowerBound
-      let side = Palette.cubeLevels.count
+      let side = Palette.cubeSide
       return RGB(
-        red: Palette.cubeLevels[offset / (side * side)],
-        green: Palette.cubeLevels[(offset / side) % side],
-        blue: Palette.cubeLevels[offset % side])
+        red: Palette.cubeLevel(offset / (side * side)),
+        green: Palette.cubeLevel((offset / side) % side),
+        blue: Palette.cubeLevel(offset % side))
     case Palette.grayRange:
       let level =
         Palette.grayStart + Palette.grayStep * (index - Palette.grayRange.lowerBound)
@@ -138,10 +135,33 @@ nonisolated extension ANSIText {
   enum Palette {
     /// The largest value of an 8-bit channel.
     static let channelMaximum = 255.0
+    /// The bit mask of an 8-bit channel.
+    static let channelMask = 0xFF
+    /// The number of bits in a channel.
+    static let channelBits = 8
+    /// The radix of a hexadecimal color.
+    static let hexRadix = 16
+    /// The 16 standard colors as hexadecimal text, in SGR order.
+    static let standardHex = [
+      "000000", "CD3131", "0DBC79", "E5E510", "2472C8", "BC3FBC", "11A8CD", "E5E5E5",
+      "666666", "F14C4C", "23D18B", "F5F543", "3B8EEA", "D670D6", "29B8DB", "FFFFFF",
+    ]
     /// The indices of the 6 x 6 x 6 color cube.
     static let cubeRange = 16...231
-    /// The channel levels of the color cube.
-    static let cubeLevels = [0, 95, 135, 175, 215, 255]
+    /// The number of levels on each side of the color cube.
+    static let cubeSide = 6
+    /// The channel level of the second cube level. The first level is zero.
+    static let cubeBase = 55
+    /// The channel difference between two cube levels after the first.
+    static let cubeStep = 40
+
+    /// The channel level of the color cube at `step`.
+    ///
+    /// - Parameter step: The level, from zero to ``cubeSide`` minus one.
+    /// - Returns: The channel level.
+    static func cubeLevel(_ step: Int) -> Int {
+      step == 0 ? 0 : cubeBase + cubeStep * step
+    }
     /// The indices of the gray ramp.
     static let grayRange = 232...255
     /// The channel level of the first gray.
@@ -169,6 +189,10 @@ nonisolated extension ANSIText {
     static let paletteMode = 5
     /// The mode of an extended color that gives three channels.
     static let directMode = 2
+    /// The number of values after the palette mode: one index.
+    static let paletteValueCount = 1
+    /// The number of values after the direct mode: three channels.
+    static let directValueCount = 3
   }
 
   /// The scalars that the parser acts on.
@@ -419,13 +443,15 @@ nonisolated extension ANSIText {
         case SGR.foreground:
           style.foreground = Self.standardColor(code, in: SGR.foreground)
         case SGR.brightForeground:
-          style.foreground = Self.standardColor(code, in: SGR.brightForeground, offset: SGR.brightOffset)
+          style.foreground = Self.standardColor(
+            code, in: SGR.brightForeground, offset: SGR.brightOffset)
         case SGR.defaultForeground:
           style.foreground = nil
         case SGR.background:
           style.background = Self.standardColor(code, in: SGR.background)
         case SGR.brightBackground:
-          style.background = Self.standardColor(code, in: SGR.brightBackground, offset: SGR.brightOffset)
+          style.background = Self.standardColor(
+            code, in: SGR.brightBackground, offset: SGR.brightOffset)
         case SGR.defaultBackground:
           style.background = nil
         case SGR.extendedForeground:
@@ -461,19 +487,26 @@ nonisolated extension ANSIText {
       guard index < codes.endIndex else { return nil }
       let mode = codes[index]
       index += 1
-      let count = mode == SGR.paletteMode ? 1 : mode == SGR.directMode ? 3 : 0
+      let count: Int
+      switch mode {
+      case SGR.paletteMode: count = SGR.paletteValueCount
+      case SGR.directMode: count = SGR.directValueCount
+      default: count = 0
+      }
       guard count > 0, codes.endIndex - index >= count else {
         index = codes.endIndex
         return nil
       }
       let values = Array(codes[index..<(index + count)])
       index += count
-      if mode == SGR.paletteMode {
-        return paletteColor(values[0])
+      guard mode == SGR.directMode else {
+        return values.first.flatMap(paletteColor)
       }
-      let channels = 0...Int(Palette.channelMaximum)
-      guard values.allSatisfy(channels.contains) else { return nil }
-      return RGB(red: values[0], green: values[1], blue: values[2])
+      let channels = 0...Palette.channelMask
+      guard values.allSatisfy(channels.contains), let red = values.first, let blue = values.last,
+        let green = values.dropFirst().first
+      else { return nil }
+      return RGB(red: red, green: green, blue: blue)
     }
   }
 }

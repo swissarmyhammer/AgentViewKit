@@ -222,21 +222,12 @@ public struct CommandOutputView: View {
   /// - Parameter rows: The rows that show.
   /// - Returns: The row.
   private func capRow(_ rows: VisibleRows) -> some View {
-    HStack(spacing: theme.spacing.s) {
-      Text(String(localized: "Showing the last \(rows.visibleCount) of \(rows.totalCount) lines"))
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .accessibilityIdentifier(Self.capIdentifier)
-      Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Show all \(rows.totalCount) lines")) {
-        showsAll = true
-      }
-      .buttonStyle(.borderless)
-      .font(.caption)
-      .accessibilityIdentifier(Self.showAllIdentifier)
+    OutputCapRow(
+      rows: rows, capIdentifier: Self.capIdentifier,
+      showAllIdentifier: Self.showAllIdentifier
+    ) {
+      showsAll = true
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
   }
 
   /// The row with the exit code.
@@ -246,21 +237,9 @@ public struct CommandOutputView: View {
   ///   - outcome: The outcome of `exitCode`.
   /// - Returns: The row.
   private func footer(exitCode: Int, outcome: ExitOutcome) -> some View {
-    let text = String(localized: "Exit code \(exitCode)")
-    return Label(text, systemImage: outcome.symbolName)
-      .font(.caption)
-      .fontWeight(theme.symbolWeight)
-      .foregroundStyle(theme.statusColors.color(for: outcome))
-      .padding(.horizontal, theme.spacing.m)
-      .padding(.vertical, theme.spacing.xs)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(text)
-      .accessibilityValue(outcome.label)
-      // An element with no role does not give its value. The trait gives the
-      // static text role.
-      .accessibilityAddTraits(.isStaticText)
-      .accessibilityIdentifier(Self.footerIdentifier)
+    OutputExitLabel(
+      text: String(localized: "Exit code \(exitCode)"), symbolName: outcome.symbolName,
+      outcome: outcome, identifier: Self.footerIdentifier)
   }
 }
 
