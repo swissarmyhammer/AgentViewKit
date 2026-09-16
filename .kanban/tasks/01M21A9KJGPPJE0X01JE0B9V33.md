@@ -1,8 +1,8 @@
 ---
 depends_on:
 - 01M21BCD7C9V8N4SED5GE34A4E
-position_column: todo
-position_ordinal: '8280'
+position_column: doing
+position_ordinal: '8180'
 title: 'Thread-level types: ThreadState, Plan, SlashCommand, ThreadInfo, ContextUsage with the R16 usage merge (plan §3.2, §14)'
 ---
 ## What
