@@ -107,25 +107,32 @@ let package = Package(
       ],
       swiftSettings: mainActorIsolated
     ),
+    // The hosted view harness and the recording fakes. This target is not a
+    // product. Each test target that links a package target links it too.
+    .target(
+      name: "AgentViewKitTestSupport",
+      dependencies: ["AgentViewKit"],
+      swiftSettings: mainActorIsolated
+    ),
 
     .testTarget(
       name: "AgentViewKitTests",
-      dependencies: ["AgentViewKit"] + editorKitTestSupportProducts,
+      dependencies: ["AgentViewKit", "AgentViewKitTestSupport"] + editorKitTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
     .testTarget(
       name: "AgentViewKitFoundationModelsTests",
-      dependencies: ["AgentViewKitFoundationModels"],
+      dependencies: ["AgentViewKitFoundationModels", "AgentViewKitTestSupport"],
       swiftSettings: mainActorIsolated
     ),
     .testTarget(
       name: "AgentViewKitRouterTests",
-      dependencies: ["AgentViewKitRouter"],
+      dependencies: ["AgentViewKitRouter", "AgentViewKitTestSupport"],
       swiftSettings: mainActorIsolated
     ),
     .testTarget(
       name: "AgentViewKitACPTests",
-      dependencies: ["AgentViewKitACP"],
+      dependencies: ["AgentViewKitACP", "AgentViewKitTestSupport"],
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links no package target. The

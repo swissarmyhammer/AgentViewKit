@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2n2jwb34wgpq6x03vj5cadn
+  text: 'Note from ^he8kkt1: `Sources/AgentViewKit/Connections/WebAuthSessionFactory.swift` now holds the `WebAuthSession` and `WebAuthSessionFactory` protocols and the `WebAuthSessionCompletion` typealias (`@Sendable (URL?, (any Error)?) -> Void`). `makeSession` takes `url:callbackScheme:completion:`. In this task, add the default factory over `ASWebAuthenticationSession` to that file. `FakeWebAuthSession` (in `AgentViewKitTestSupport`) completes synchronously in `start()` with the scripted URL, with `ASWebAuthenticationSessionError(.canceledLogin)`, or returns `false` for `.failsToStart`.'
+  timestamp: 2026-09-16T12:20:37.859702+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCRF2JZ6W49NKXHE8KKT1

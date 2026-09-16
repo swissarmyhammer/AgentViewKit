@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2n2jt7he6hfmtbbe9c5nmr9
+  text: 'Note from ^he8kkt1: the `ProcessLauncher` and `LaunchedProcess` protocols are now in `Sources/AgentViewKit/Platform/ProcessLauncher.swift` (the test-support target links only the kit). Signature: `launch(program:arguments:environment:) throws -> any LaunchedProcess`; `LaunchedProcess` has `output: AsyncStream<Data>`, `exitStatus: Int32?`, `write(_:) throws`, `terminate()`. In this task, add only the default launcher over `AgentProcess` in `Sources/AgentViewKitACP/ProcessLauncher.swift`. `FakeProcessLauncher` is in `AgentViewKitTestSupport`.'
+  timestamp: 2026-09-16T12:20:35.697485+00:00
 depends_on:
 - 01M21ADNAKRK96TKZQMRMW1MG7
 - 01M21BDG310SH8A60AFWXKPSDC

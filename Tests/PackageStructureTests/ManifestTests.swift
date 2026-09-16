@@ -56,6 +56,20 @@ import Testing
     #expect(Set(names) == Self.editorKitProducts)
   }
 
+  @Test func declaresTheTestSupportTargetOnTheKitOnly() {
+    let target = /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit"\]/
+    #expect(manifest.contains(target))
+  }
+
+  @Test func linksTheTestSupportTargetFromEachKitTestTarget() throws {
+    for testTarget in ["AgentViewKitTests", "AgentViewKitFoundationModelsTests", "AgentViewKitRouterTests", "AgentViewKitACPTests"] {
+      let declaration = try Regex(
+        #"\.testTarget\(\s*name:\s*"\#(testTarget)",\s*dependencies:\s*\[[^\]]*"AgentViewKitTestSupport"[^\]]*\]"#
+      )
+      #expect(manifest.contains(declaration), "\(testTarget) does not link AgentViewKitTestSupport")
+    }
+  }
+
   @Test func pinsTheSiblingPackagesToMain() {
     for sibling in ["EditorKit", "FoundationModelsACP", "FoundationModelsACPClient", "FoundationModelsRouter", "FoundationModelsExtras"] {
       #expect(

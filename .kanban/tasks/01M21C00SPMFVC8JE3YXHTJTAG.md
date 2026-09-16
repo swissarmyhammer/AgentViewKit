@@ -11,10 +11,27 @@ comments:
     - evidence: swift build: only the accepted mlx-swift warning. swift test: 22 tests pass (13 + 6 + 1 + 1 + 1). swift test --filter AgentViewKitTests: 6 tests pass, exit 0.
     - next: commit
   timestamp: 2026-09-16T12:06:53.033544+00:00
+- actor: claude-code
+  id: 01m2n1xpaxr8e62rrsy4epqt2v
+  text: |-
+    ### commit — changed
+    - evidence: 4e09338 docs(decisions): record the R14 subagent source as the Router (^xhtjtag)
+    - next: review
+
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD: 0 findings, 7 validator runs, 0 failed. No validator matches the .md, .jsonl, .gitignore, and .reviewignore files. .kanban/ is ignored.
+    - next: done
+
+    ### finish iteration 1 — clean
+    - implement: changed — 4 new files
+    - test: green — swift test, 22 passed
+    - commit: 4e09338
+    - review: clean — 0 findings
+  timestamp: 2026-09-16T12:09:03.581070+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: '8180'
 title: 'Research R14: subagent data source survey, recorded as the SubagentSource decision (plan §14)'
 ---
 ## What
