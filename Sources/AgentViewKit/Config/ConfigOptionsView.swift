@@ -127,7 +127,7 @@ public struct ConfigOptionsView: View {
   ///   - groupID: The ``SelectGroup/id`` of the group.
   /// - Returns: The identifier, such as `config-option-model-group-fast`.
   public static func groupIdentifier(for id: ConfigOptionID, groupID: String) -> String {
-    controlIdentifier(for: id) + groupIdentifierInfix + groupID
+    controlIdentifier(for: id, infix: groupIdentifierInfix, suffix: groupID)
   }
 
   /// The accessibility identifier of one value of a select option.
@@ -137,7 +137,22 @@ public struct ConfigOptionsView: View {
   ///   - value: The ``SelectOption/id`` of the value.
   /// - Returns: The identifier, such as `config-option-model-value-fast-1`.
   public static func choiceIdentifier(for id: ConfigOptionID, value: String) -> String {
-    controlIdentifier(for: id) + choiceIdentifierInfix + value
+    controlIdentifier(for: id, infix: choiceIdentifierInfix, suffix: value)
+  }
+
+  /// The accessibility identifier of a part of the control of an option.
+  ///
+  /// - Parameters:
+  ///   - id: The identifier of the option.
+  ///   - infix: The text between the control identifier and `suffix`.
+  ///   - suffix: The id of the part.
+  /// - Returns: The control identifier, then `infix`, then `suffix`.
+  private static func controlIdentifier(
+    for id: ConfigOptionID,
+    infix: String,
+    suffix: String
+  ) -> String {
+    controlIdentifier(for: id) + infix + suffix
   }
 
   /// The accessibility identifier of the header of a category section.

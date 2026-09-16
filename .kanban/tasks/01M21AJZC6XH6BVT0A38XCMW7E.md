@@ -14,11 +14,20 @@ comments:
       - A press on a segment of a segmented Picker stops the test process (as a stepper does). The mode picker test sets the shared binding. The harness doc now says this.
     - next: test
   timestamp: 2026-09-16T21:40:55.801497+00:00
+- actor: claude-code
+  id: 01m2p31q5hvexktnqhz380k1rm
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 2 new source files, 1 new test file, HostedViewHarness and its tests
+    - test: green — swift test exits 0, 952 passed (PackageStructure 20, AgentViewKitTests 769, Router 71, FoundationModels 1, ACP 91)
+    - commit: 83a8f0f
+    - review: findings — ConfigOptionsView.swift:129, ConfigOptionsView.swift:139, HostedViewHarness.swift:471 (3 duplication findings; fixed in the next iteration with a shared `controlIdentifier(for:infix:suffix:)` and `attributeText(_:of:)`, swift test green again, 952 passed)
+  timestamp: 2026-09-16T21:47:58.513963+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: ConfigOptionsView and PermissionModePicker (plan §9 D, §9 E, §11#16)
 ---
 ## What
@@ -39,3 +48,14 @@ Create `Sources/AgentViewKit/Config/ConfigOptionsView.swift` and `PermissionMode
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 16:41)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Config/ConfigOptionsView.swift:129` `duplication/duplication` — Lines 129-131 duplicate lines 139-141, differing only in the parameter name (`groupID` vs `value`) and the infix constant (`groupIdentifierInfix` vs `choiceIdentifierInfix`). Both functions follow the identical pattern: `controlIdentifier(for: id) + infix + parameter`. Extract a shared helper function `identifierWithInfix(_ baseID: ConfigOptionID, infix: String, _ value: String) -> String` that returns `controlIdentifier(for: baseID) + infix + value`. Then have both groupIdentifier and choiceIdentifier call this helper, passing the appropriate infix constant.
+- [x] `Sources/AgentViewKit/Config/ConfigOptionsView.swift:139` `duplication/duplication` — Lines 139-141 duplicate lines 129-131, differing only in the parameter name (`value` vs `groupID`) and the infix constant (`choiceIdentifierInfix` vs `groupIdentifierInfix`). Both functions follow the identical pattern: `controlIdentifier(for: id) + infix + parameter`. Extract a shared helper function as described in the groupIdentifier finding. Both functions should call this helper with their respective infix constants.
+- [x] `Sources/AgentViewKitTestSupport/HostedViewHarness.swift:471` `duplication/duplication` — Line 471 duplicates line 472 exactly except for the variable name (`label` vs `title`) and the selector used (`labelSelector` vs `titleSelector`). Both statements follow the identical pattern: `let <name> = text(of: objectAttribute(<selector>, of: element))`. Extract a helper function `private static func attributeText(_ selector: Selector, of element: NSObject) -> String? { text(of: objectAttribute(selector, of: element)) }` and call it for both label and title: `let label = attributeText(labelSelector, of: element)` and `let title = attributeText(titleSelector, of: element)`.

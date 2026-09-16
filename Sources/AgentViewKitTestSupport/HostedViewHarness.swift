@@ -409,7 +409,18 @@ public final class HostedViewHarness<Content: View> {
   /// - Parameter element: The element.
   /// - Returns: The identifier, or `nil` when it is missing or empty.
   private static func identifier(of element: NSObject) -> String? {
-    text(of: objectAttribute(identifierSelector, of: element))
+    attributeText(identifierSelector, of: element)
+  }
+
+  /// The text that a getter of `element` returns.
+  ///
+  /// - Parameters:
+  ///   - selector: The selector of the getter.
+  ///   - element: The element.
+  /// - Returns: The ``text(of:)`` form of the object that
+  ///   ``objectAttribute(_:of:)`` returns.
+  private static func attributeText(_ selector: Selector, of element: NSObject) -> String? {
+    text(of: objectAttribute(selector, of: element))
   }
 
   /// The selector of the accessibility label getter.
@@ -468,8 +479,8 @@ public final class HostedViewHarness<Content: View> {
     let object = element as AnyObject
     let role: NSAccessibility.Role? = object.accessibilityRole?() ?? nil
     let value = text(of: object.accessibilityValue?() ?? nil)
-    let label = text(of: objectAttribute(labelSelector, of: element))
-    let title = text(of: objectAttribute(titleSelector, of: element))
+    let label = attributeText(labelSelector, of: element)
+    let title = attributeText(titleSelector, of: element)
     let isEnabled: Bool = object.isAccessibilityEnabled?() ?? true
     let links =
       includingLinks
