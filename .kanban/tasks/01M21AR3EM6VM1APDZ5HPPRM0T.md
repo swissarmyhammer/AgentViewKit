@@ -16,12 +16,21 @@ comments:
     - evidence: swift test, 646 + 71 + 85 + 20 + 1 tests pass; 10 new CheckpointView hosted tests and 5 Checkpoint model tests.
     - next: commit, then review.
   timestamp: 2026-09-16T19:47:38.185963+00:00
+- actor: claude-code
+  id: 01m2nw9rm41prsxyt7fm3rj8e4
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — Checkpoint.swift, CheckpointActions.swift, CheckpointView.swift, RecordingCheckpointActions.swift, AgentThread.swift, ThreadChange.swift, 2 test files
+    - test: green — swift test, 646 + 85 + 71 + 20 + 1 tests pass, no new warnings
+    - commit: 7e18f95
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (7 files reviewed)
+  timestamp: 2026-09-16T19:50:02.116455+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BZT72PPWS2479YRC8DJEE
 - 01M21ABCXCQMMYMRK3QBM7CCJV
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: a080
 title: 'CheckpointView: history slider with restore code, conversation, or both, over a Checkpoint model (plan §9 E)'
 ---
 ## What
