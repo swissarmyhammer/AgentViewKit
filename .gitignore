@@ -1,0 +1,5 @@
+# Build products and local tool state.
+.build/
+.swiftpm/
+*.xcodeproj
+DerivedData/
