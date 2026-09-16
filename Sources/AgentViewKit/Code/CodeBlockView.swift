@@ -22,13 +22,13 @@ public struct CodeBlockView: View {
   public static let plainTextName = "plain text"
 
   /// The code to show.
-  private let code: String
+  let code: String
   /// The language, with no whitespace at the start or the end, or `nil`.
-  private let language: String?
+  let language: String?
   /// The filename to show in the header, or `nil`.
-  private let filename: String?
+  let filename: String?
   /// The model that the host gives, or `nil` when the view keeps its own.
-  private let suppliedModel: EditorModel?
+  let suppliedModel: EditorModel?
 
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot()
@@ -83,13 +83,20 @@ public struct CodeBlockView: View {
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
     .onChange(of: code, initial: true) {
-      // A write to an observed property notifies each observer, also when
-      // the value does not change. Thus the view writes only a new value.
-      if !model.isReadOnly {
-        model.isReadOnly = true
-      }
-      model.syncStreaming(to: code)
+      syncModel(model)
     }
+  }
+
+  /// Makes `model` read-only and changes its text to ``code``.
+  ///
+  /// - Parameter model: The model that the view shows.
+  private func syncModel(_ model: EditorModel) {
+    // A write to an observed property notifies each observer, also when
+    // the value does not change. Thus the view writes only a new value.
+    if !model.isReadOnly {
+      model.isReadOnly = true
+    }
+    model.syncStreaming(to: code)
   }
 
   /// The label that VoiceOver reads for the block.
@@ -174,7 +181,7 @@ private final class OwnModelSlot {
     if let model {
       return model
     }
-    let model = EditorModel.readOnly(code)
+    let model = EditorModel.makeReadOnly(code)
     self.model = model
     return model
   }

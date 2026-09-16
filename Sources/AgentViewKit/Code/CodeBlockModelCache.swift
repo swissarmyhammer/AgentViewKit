@@ -64,7 +64,7 @@ public final class CodeBlockModelCache {
     if let model = models[id] {
       return model
     }
-    let model = EditorModel.readOnly(code)
+    let model = EditorModel.makeReadOnly(code)
     models[id] = model
     return model
   }
@@ -87,7 +87,7 @@ extension EditorModel {
   ///
   /// - Parameter code: The text of the model.
   /// - Returns: The model.
-  static func readOnly(_ code: String) -> EditorModel {
+  static func makeReadOnly(_ code: String) -> EditorModel {
     let model = EditorModel(code)
     model.isReadOnly = true
     return model
