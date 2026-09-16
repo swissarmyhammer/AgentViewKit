@@ -53,6 +53,25 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
     self.quota = quota
   }
 
+  /// Makes a usage value from the tokens in use and the part of the window
+  /// that they fill.
+  ///
+  /// A source that gives the fill but not the window size uses this
+  /// initializer. The size is `used` divided by `fill`, rounded. When `fill`
+  /// is not a positive finite number, the size is `0`, so ``fraction`` is `0`.
+  ///
+  /// - Parameters:
+  ///   - used: The number of tokens in the context window now.
+  ///   - fill: The part of the context window that `used` fills, from `0` to
+  ///     `1`.
+  public init(used: Int, fill: Double) {
+    guard fill.isFinite, fill > 0 else {
+      self.init(used: used, size: 0)
+      return
+    }
+    self.init(used: used, size: Int((Double(used) / fill).rounded()))
+  }
+
   /// The part of the context window that is in use, from `0` to `1`.
   ///
   /// The value is ``used`` divided by ``size``, clamped to `0...1`. When

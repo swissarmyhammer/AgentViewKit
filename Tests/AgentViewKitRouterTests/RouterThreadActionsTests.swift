@@ -32,8 +32,8 @@ private struct Harness {
 @MainActor
 private func formRequest() throws -> AgentViewKit.ElicitationRequest {
   let thread = AgentThread()
-  for change in SessionEventMapping.changes(for: .elicitationRequested(try RouterFixtures.formElicitation()))
-  {
+  let event = SessionEvent.elicitationRequested(try RouterFixtures.formElicitation())
+  for change in SessionEventMapping.changes(for: event) {
     thread.apply(change)
   }
   return try #require(thread.pendingElicitations.first)
@@ -58,7 +58,7 @@ private func authorizationRequest(meta: AgentViewKit.JSONValue?) -> Authorizatio
       .turnStarted(RouterFixtures.turnStart),
       .textDelta("Hi "),
       .textDelta("there"),
-      .turnEnded(TokenUsage(tokensIn: 1, tokensOut: 1, contextFill: 0.5)),
+      .turnEnded(RouterFixtures.usage),
     ]
     await harness.actions.send(UserInput(text: "Hello"))
     #expect(harness.session.calls == [.promptEvents("Hello")])

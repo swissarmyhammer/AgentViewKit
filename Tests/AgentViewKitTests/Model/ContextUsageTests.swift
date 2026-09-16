@@ -29,6 +29,29 @@ import Testing
     #expect(ContextUsage(used: 10, size: 0).fraction == 0)
   }
 
+  // MARK: - Fill
+
+  /// The tokens in use of the fill tests.
+  private static let usedTokens = 400
+
+  /// The part of the window that ``usedTokens`` fills.
+  nonisolated private static let quarterFill = 0.25
+
+  /// The window size that ``usedTokens`` and ``quarterFill`` give.
+  private static let windowSize = 1_600
+
+  @Test func fillGivesTheSizeOfTheWindow() {
+    let usage = ContextUsage(used: Self.usedTokens, fill: Self.quarterFill)
+
+    #expect(usage == ContextUsage(used: Self.usedTokens, size: Self.windowSize))
+    #expect(usage.fraction == Self.quarterFill)
+  }
+
+  @Test(arguments: [0, -Self.quarterFill, .nan, .infinity])
+  func aFillThatIsNotPositiveAndFiniteGivesAZeroSize(fill: Double) {
+    #expect(ContextUsage(used: Self.usedTokens, fill: fill) == ContextUsage(used: Self.usedTokens, size: 0))
+  }
+
   @Test func theOptionalPartsDefaultToNil() {
     let usage = ContextUsage(used: 1, size: 2)
 

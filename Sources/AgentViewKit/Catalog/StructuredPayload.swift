@@ -37,8 +37,7 @@ nonisolated extension StructuredPayload {
   /// - Returns: The JSON body of the payload.
   /// - Throws: `EncodingError` when a value of the payload cannot be encoded.
   public func jsonValue() throws -> JSONValue {
-    let data = try JSONEncoder().encode(self)
-    return try JSONDecoder().decode(JSONValue.self, from: data)
+    try JSONValue(encoding: self)
   }
 
   /// Compares the payload with a payload of an unknown type.

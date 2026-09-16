@@ -5,26 +5,6 @@ import FoundationModelsExtras
 
 @testable import FoundationModelsRouter
 
-/// The number of times that ``waitUntil(_:)`` checks its condition.
-private let maximumPolls = 400
-
-/// The time between two checks of ``waitUntil(_:)``, in milliseconds.
-private let pollMilliseconds = 5
-
-/// Checks a condition until it is true or the time runs out.
-///
-/// - Parameter condition: The condition to check.
-/// - Returns: The last value of the condition.
-@MainActor
-func waitUntil(_ condition: () -> Bool) async -> Bool {
-  var polls = 0
-  while !condition(), polls < maximumPolls {
-    try? await Task.sleep(for: .milliseconds(pollMilliseconds))
-    polls += 1
-  }
-  return condition()
-}
-
 /// A ``RouterSessionPort`` that records each call and gives scripted events.
 final class FakeRouterSession: RouterSessionPort {
   /// One recorded call.
@@ -124,8 +104,11 @@ enum RouterFixtures {
   /// The URL of the URL-mode fixtures.
   static let url = URL(string: "https://example.com/authorize")!
 
+  /// The start time of the tool invocation fixture, in seconds after 1970.
+  static let openedAtSeconds: TimeInterval = 1_000
+
   /// The start time of the tool invocation fixture.
-  static let openedAt = Date(timeIntervalSince1970: 1_000)
+  static let openedAt = Date(timeIntervalSince1970: openedAtSeconds)
 
   /// The input token count of the usage fixture.
   static let tokensIn = 300
@@ -133,14 +116,38 @@ enum RouterFixtures {
   /// The output token count of the usage fixture.
   static let tokensOut = 100
 
+  /// The tokens in use that the usage fixture gives.
+  static let usedTokens = tokensIn + tokensOut
+
   /// The context fill of the usage fixture: 400 of 1,600 tokens.
   static let contextFill = 0.25
 
   /// The context size that the usage fixture gives.
   static let contextSize = 1_600
 
+  /// The token usage of one attempt.
+  static let usage = TokenUsage(tokensIn: tokensIn, tokensOut: tokensOut, contextFill: contextFill)
+
+  /// The context usage that ``usage`` gives.
+  static let contextUsage = ContextUsage(used: usedTokens, size: contextSize)
+
+  /// The token count before the compaction fixture.
+  static let tokensBeforeCompaction = 900
+
+  /// The token count after the compaction fixture.
+  static let tokensAfterCompaction = 300
+
+  /// The time without progress of the stall fixture.
+  static let stallTime = Duration.seconds(30)
+
+  /// The time in flight of the stall fixture.
+  static let flightTime = Duration.seconds(60)
+
+  /// The number of the first turn of a session.
+  static let firstTurnNumber: UInt64 = 1
+
   /// A turn start.
-  static let turnStart = TurnStart(turnId: TurnID(1), promptId: nil)
+  static let turnStart = TurnStart(turnId: TurnID(firstTurnNumber), promptId: nil)
 
   /// The requested schema of the form fixture.
   static func requestedSchema() throws -> ElicitationRequestedSchema {

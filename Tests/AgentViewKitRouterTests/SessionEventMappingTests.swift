@@ -8,6 +8,18 @@ import Testing
 /// The id of the unknown records that the tests make.
 private let unknownID = "unknown-1"
 
+/// The line count in the structured output of the tool status fixture.
+private let lineCount = 42.0
+
+/// The value in the legacy custom segment of the tool status fixture.
+private let legacyValue = 1.0
+
+/// The line count in the first attachment of the report fixture.
+private let diffLineCount = 3.0
+
+/// The number value in the accepted form of the response fixture.
+private let fileCount = 2.0
+
 /// Applies the changes of one event to a new thread.
 ///
 /// - Parameter event: The session event.
@@ -15,9 +27,9 @@ private let unknownID = "unknown-1"
 @MainActor
 private func thread(after event: SessionEvent) -> AgentThread {
   let thread = AgentThread()
-  for change in SessionEventMapping.changes(
+  let changes = SessionEventMapping.changes(
     for: event, textID: "t1", reasoningID: "r1", makeUnknownID: { unknownID })
-  {
+  for change in changes {
     thread.apply(change)
   }
   return thread
@@ -30,6 +42,18 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
   return record
 }
 
+/// The tool call record of the thread with the id `c1`.
+@MainActor
+private func toolCall(_ thread: AgentThread) throws -> ToolCallRecord {
+  guard case .toolCall(let call)? = thread.item(id: "c1") else {
+    throw MissingRecord()
+  }
+  return call
+}
+
+/// The error of a test that does not find the record that it reads.
+private struct MissingRecord: Error {}
+
 /// One test for each `SessionEvent` case.
 @MainActor
 @Suite struct SessionEventMappingTests {
@@ -38,13 +62,9 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
   }
 
   @Test func textDeltaAppendsToTheStreamOfTheTextRow() {
-    let changes = SessionEventMapping.changes(for: .textDelta("Hello"), textID: "t1")
-    guard case .appendStreaming(let id, let text)? = changes.first, changes.count == 1 else {
-      Issue.record("Expected one appendStreaming change, got \(changes)")
-      return
-    }
-    #expect(id == "t1")
-    #expect(text == "Hello")
+    let thread = thread(after: .textDelta("Hello"))
+    #expect(thread.streaming["t1"]?.text == "Hello")
+    #expect(thread.streaming["r1"] == nil)
   }
 
   @Test func textResetClosesTheStreamOfTheTextRow() {
@@ -62,23 +82,16 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
     #expect(thread.streaming["t1"] == nil)
   }
 
-  @Test func toolCallMakesAToolCallInProgress() {
-    let thread = thread(after: .toolCall(id: "c1", name: "read", argumentsJSON: #"{"path": "a.swift"}"#))
-    guard case .toolCall(let call)? = thread.item(id: "c1") else {
-      Issue.record("Expected a tool call record")
-      return
-    }
+  @Test func toolCallMakesAToolCallInProgress() throws {
+    let call = try toolCall(
+      thread(after: .toolCall(id: "c1", name: "read", argumentsJSON: #"{"path": "a.swift"}"#)))
     #expect(call.title == "read")
     #expect(call.status == .inProgress)
     #expect(call.rawInput == .object(["path": .string("a.swift")]))
   }
 
-  @Test func toolCallKeepsArgumentsThatAreNotJSONAsText() {
-    let thread = thread(after: .toolCall(id: "c1", name: "read", argumentsJSON: "not json"))
-    guard case .toolCall(let call)? = thread.item(id: "c1") else {
-      Issue.record("Expected a tool call record")
-      return
-    }
+  @Test func toolCallKeepsArgumentsThatAreNotJSONAsText() throws {
+    let call = try toolCall(thread(after: .toolCall(id: "c1", name: "read", argumentsJSON: "not json")))
     #expect(call.rawInput == .string("not json"))
   }
 
@@ -89,49 +102,45 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
   ])
   func toolStatusSetsTheStatus(
     status: FoundationModelsRouter.ToolCallStatus, expected: AgentViewKit.ToolCallStatus
-  ) {
-    let thread = thread(after: .toolStatus(id: "c1", status: status, summary: nil, output: nil))
-    guard case .toolCall(let call)? = thread.item(id: "c1") else {
-      Issue.record("Expected a tool call record")
-      return
-    }
+  ) throws {
+    let call = try toolCall(thread(after: .toolStatus(id: "c1", status: status, summary: nil, output: nil)))
     #expect(call.status == expected)
     #expect(call.content.isEmpty)
     #expect(call.rawOutput == nil)
   }
 
-  @Test func toolStatusWithOutputSetsTheContentAndTheSummary() {
+  @Test func toolStatusWithOutputSetsTheContentAndTheSummary() throws {
+    let unknownSegment = SegmentPayload.unknown(id: "s5", description: "future")
     let output: [SegmentPayload] = [
       .text(id: "s1", content: "42 lines"),
-      .structure(id: "s2", schemaName: "Lines", contentJSON: #"{"count": 42}"#),
+      .structure(id: "s2", schemaName: "Lines", contentJSON: #"{"count": \#(lineCount)}"#),
       .attachment(id: "s3", label: "log", url: "file:///tmp/log.txt"),
-      .custom(id: "s4", typeDiscriminator: "Legacy", contentJSON: #"{"a": 1}"#, description: nil),
-      .unknown(id: "s5", description: "future"),
+      .custom(
+        id: "s4", typeDiscriminator: "Legacy", contentJSON: #"{"a": \#(legacyValue)}"#, description: nil),
+      unknownSegment,
     ]
-    let thread = thread(after: .toolStatus(id: "c1", status: .completed, summary: "42 lines", output: output))
-    guard case .toolCall(let call)? = thread.item(id: "c1") else {
-      Issue.record("Expected a tool call record")
-      return
-    }
+    let expected: [ToolContent] = [
+      .block(ContentBlock(text: "42 lines")),
+      .block(
+        ContentBlock(
+          content: .structured(schemaName: "Lines", payload: .object(["count": .number(lineCount)])))),
+      .block(ContentBlock(content: .attachment(URL(string: "file:///tmp/log.txt")!))),
+      .block(
+        ContentBlock(
+          content: .unknown(
+            kind: "custom",
+            raw: .object([
+              "typeDiscriminator": .string("Legacy"), "content": .object(["a": .number(legacyValue)]),
+            ])
+          ))),
+      .block(
+        ContentBlock(
+          content: .unknown(kind: "segment", raw: AgentViewKit.JSONValue.encodedOrNull(unknownSegment)))),
+    ]
+    let call = try toolCall(
+      thread(after: .toolStatus(id: "c1", status: .completed, summary: "42 lines", output: output)))
     #expect(call.rawOutput == .string("42 lines"))
-    let contents = call.content.map { content -> ContentBlock.Content? in
-      guard case .block(let block) = content else { return nil }
-      return block.content
-    }
-    #expect(contents.count == output.count)
-    #expect(contents[0] == .text("42 lines"))
-    #expect(contents[1] == .structured(schemaName: "Lines", payload: .object(["count": .number(42)])))
-    #expect(contents[2] == .attachment(URL(string: "file:///tmp/log.txt")!))
-    #expect(
-      contents[3]
-        == .unknown(
-          kind: "custom",
-          raw: .object(["typeDiscriminator": .string("Legacy"), "content": .object(["a": .number(1)])])))
-    guard case .unknown(let kind, _)? = contents[4] else {
-      Issue.record("Expected an unknown block for an unknown segment")
-      return
-    }
-    #expect(kind == "segment")
+    #expect(call.content == expected)
   }
 
   @Test func toolInvocationBecomesAnUnknownRecord() throws {
@@ -148,12 +157,12 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
       correlationID: "run-5",
       sessionID: RouterFixtures.sessionID,
       attachments: [
-        ToolCallAttachment(schemaName: "Diff", contentJSON: #"{"lines": 3}"#),
+        ToolCallAttachment(schemaName: "Diff", contentJSON: #"{"lines": \#(diffLineCount)}"#),
         ToolCallAttachment(schemaName: "Log", contentJSON: #"{"text": "ok"}"#),
       ]
     )
     let thread = thread(after: .toolCallReport(report))
-    #expect(thread.items.count == 2)
+    #expect(thread.items.count == report.attachments.count)
     guard case .structured(let first)? = thread.item(id: "run-5#attachment-0"),
       case .structured(let second)? = thread.item(id: "run-5#attachment-1")
     else {
@@ -161,7 +170,7 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
       return
     }
     #expect(first.schemaName == "Diff")
-    #expect(first.payload == .object(["lines": .number(3)]))
+    #expect(first.payload == .object(["lines": .number(diffLineCount)]))
     #expect(first.meta?["correlationID"] == .string("run-5"))
     #expect(second.schemaName == "Log")
   }
@@ -172,15 +181,20 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
 
   @Test func compactionMakesACompactionMarker() throws {
     let result = CompactionResult(
-      id: "k1", summary: "Earlier work", tokensBefore: 900, tokensAfter: 300, stagesApplied: ["elide"])
+      id: "k1",
+      summary: "Earlier work",
+      tokensBefore: RouterFixtures.tokensBeforeCompaction,
+      tokensAfter: RouterFixtures.tokensAfterCompaction,
+      stagesApplied: ["elide"]
+    )
     let thread = thread(after: .compaction(result))
     guard case .compaction(let marker)? = thread.item(id: "k1") else {
       Issue.record("Expected a compaction marker")
       return
     }
     #expect(marker.summary == "Earlier work")
-    #expect(marker.meta?["tokensBefore"] == .number(900))
-    #expect(marker.meta?["tokensAfter"] == .number(300))
+    #expect(marker.meta?["tokensBefore"] == .number(Double(RouterFixtures.tokensBeforeCompaction)))
+    #expect(marker.meta?["tokensAfter"] == .number(Double(RouterFixtures.tokensAfterCompaction)))
     #expect(marker.meta?["stagesApplied"] == .array([.string("elide")]))
   }
 
@@ -192,7 +206,8 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
 
   @Test func generationStalledBecomesAnUnknownRecord() throws {
     let stall = GenerationStall(
-      timeWithoutProgress: .seconds(30), timeInFlight: .seconds(60), visibility: .wholeAnswer)
+      timeWithoutProgress: RouterFixtures.stallTime, timeInFlight: RouterFixtures.flightTime,
+      visibility: .wholeAnswer)
     let thread = thread(after: .generationStalled(stall))
     let record = try #require(unknownRecord(thread, id: unknownID))
     #expect(record.kind == "generationStalled")
@@ -239,18 +254,15 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
       tokensIn: RouterFixtures.tokensIn, tokensOut: RouterFixtures.tokensOut,
       contextFill: RouterFixtures.contextFill, finishReason: .maxTokens)
     let thread = thread(after: .turnEnded(usage))
-    #expect(
-      thread.usage
-        == ContextUsage(
-          used: RouterFixtures.tokensIn + RouterFixtures.tokensOut, size: RouterFixtures.contextSize))
+    #expect(thread.usage == RouterFixtures.contextUsage)
     #expect(thread.state == .idle(.maxTokens))
   }
 
   @Test func turnEndedWithNoFillGivesASizeOfZero() {
     let usage = TokenUsage(
-      tokensIn: RouterFixtures.tokensIn, tokensOut: RouterFixtures.tokensOut, contextFill: 0)
+      tokensIn: RouterFixtures.tokensIn, tokensOut: RouterFixtures.tokensOut, contextFill: .zero)
     let thread = thread(after: .turnEnded(usage))
-    #expect(thread.usage?.size == 0)
+    #expect(thread.usage == ContextUsage(used: RouterFixtures.usedTokens, size: .zero))
     #expect(thread.state == .idle(.endTurn))
   }
 
@@ -267,7 +279,9 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
       .toolStatus(id: "c1", status: .completed, summary: "ok", output: [.text(id: "s1", content: "ok")]))
     projection.apply(
       .compaction(
-        CompactionResult(id: "k1", summary: nil, tokensBefore: 2, tokensAfter: 1, stagesApplied: [])))
+        CompactionResult(
+          id: "k1", summary: nil, tokensBefore: RouterFixtures.tokensBeforeCompaction,
+          tokensAfter: RouterFixtures.tokensAfterCompaction, stagesApplied: [])))
     let thread = AgentThread()
     for row in projection.transcript {
       for change in SessionEventMapping.changes(for: row) {
@@ -277,12 +291,12 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
     #expect(thread.items.map(\.id) == ["e1", "e2", "c1", "k1"])
     guard case .assistantMessage(let message)? = thread.item(id: "e1"),
       case .reasoning(let reasoning)? = thread.item(id: "e2"),
-      case .toolCall(let call)? = thread.item(id: "c1"),
       case .compaction? = thread.item(id: "k1")
     else {
-      Issue.record("Expected a message, a reasoning record, a tool call, and a marker")
+      Issue.record("Expected a message, a reasoning record, and a marker")
       return
     }
+    let call = try toolCall(thread)
     #expect(message.blocks == [ContentBlock(text: "Hi")])
     #expect(reasoning.segments == ["Hmm"])
     #expect(call.status == .completed)
@@ -297,19 +311,20 @@ private func unknownRecord(_ thread: AgentThread, id: String) -> UnknownRecord? 
       for: .accept(
         .object([
           "name": .string("a.swift"),
-          "count": .number(2),
+          "count": .number(fileCount),
           "force": .bool(true),
           "tags": .array([.string("x")]),
-          "mixed": .array([.number(1)]),
+          "mixed": .array([.number(fileCount)]),
           "nothing": .null,
           "nested": .object([:]),
         ])))
-    #expect(
-      response
-        == .accept(content: [
-          "name": .string("a.swift"), "count": .number(2), "force": .boolean(true),
-          "tags": .stringArray(["x"]),
-        ]))
+    let expected = ElicitationResponse.accept(content: [
+      "name": .string("a.swift"),
+      "count": .number(fileCount),
+      "force": .boolean(true),
+      "tags": .stringArray(["x"]),
+    ])
+    #expect(response == expected)
   }
 
   @Test func acceptWithNoContentGivesAnAcceptWithNoContent() {

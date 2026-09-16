@@ -14,14 +14,23 @@ comments:
     - Known limit: `SessionProjection` drops prompts, so a seeded thread has no user messages.
     - Tests use `@testable import FoundationModelsRouter` in RouterFixtures.swift only, because `TurnStart` has no public init.
   timestamp: 2026-09-16T17:32:17.394867+00:00
+- actor: claude-code
+  id: 01m2nnmb1pc7s7j9pg78jzk1v9
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 10 files (5 sources, 5 tests) and Package.swift
+    - test: green — swift test, 693 passed (Router 61), 0 failed; only the accepted mlx-swift warning
+    - commit: b08e05e
+    - review: findings — 6 findings (2 of 14 review tasks failed) — SessionEventMapping.swift:431, SessionEventMapping.swift:475, CatalogRouterTests.swift:30, :43, :44, RouterFixtures.swift:128
+  timestamp: 2026-09-16T17:53:28.630617+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ABXR3PMT1VCWPJK80Z9E8
 - 01M21ACSE9JBXMRD2FQQD4CYR6
 - 01M21BDG310SH8A60AFWXKPSDC
 - 01M21CAWYA16NQ5MKZKBBH4DS6
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'RouterThreadSource: SessionEvent stream, elicitation path, PersistableStructuredSegment conformance (plan §3.3)'
 ---
 ## What
@@ -48,3 +57,19 @@ Create `Sources/AgentViewKitRouter/RouterThreadSource.swift`, `RouterThreadActio
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 12:32)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 11 file(s) reviewed, 2 not reviewed.
+
+> ⚠️ 2/14 review tasks failed — results are INCOMPLETE.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKitRouter/SessionEventMapping.swift:431` `reuse/reuse` — SessionEventMapping.contextUsage() reimplements token-to-usage conversion logic that already exists in SessionUpdateMapping with 0.91 similarity. The function performs identical calculations (used = tokensIn + tokensOut, size = used/fill) to convert usage statistics into ContextUsage format, regardless of whether input comes from Router or ACP events. Extract contextUsage conversion to a shared utility function that both SessionEventMapping and SessionUpdateMapping call, since the calculation logic is domain-agnostic and produces identical ContextUsage output.
+- [x] `Sources/AgentViewKitRouter/SessionEventMapping.swift:475` `reuse/reuse` — SessionEventMapping.json(encoding:) reimplements Encodable-to-JSONValue conversion logic that already exists in SessionUpdateMapping.encodedJSON with 0.97 similarity—nearly identical. Both perform the same JSON round-trip (encode to Data, decode as JSONValue) with matching error handling, yet code is duplicated. Extract the JSON encoding logic to a shared utility since this operation is domain-agnostic. Both mapping classes should call a single implementation rather than maintaining duplicate versions.
+- [x] `Tests/AgentViewKitRouterTests/CatalogRouterTests.swift:30` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitRouterTests/CatalogRouterTests.swift:43` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitRouterTests/CatalogRouterTests.swift:44` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitRouterTests/RouterFixtures.swift:128` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

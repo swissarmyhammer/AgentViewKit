@@ -114,8 +114,9 @@ public enum SessionEventMapping {
     case .elicitationRequested(let operation):
       return [elicitationChange(operation)]
     case .turnEnded(let usage):
+      // The Router gives the fill of the working context, not its size.
       return [
-        .setUsage(contextUsage(usage)),
+        .setUsage(ContextUsage(used: usage.tokensIn + usage.tokensOut, fill: usage.contextFill)),
         .setState(.idle(stopReason(usage.finishReason))),
       ]
     case .toolInvocation(let record):
@@ -123,7 +124,7 @@ public enum SessionEventMapping {
         unknownChange(
           id: toolInvocationIDPrefix + record.correlationID,
           kind: toolInvocationKind,
-          raw: json(encoding: record)
+          raw: AgentViewKit.JSONValue.encodedOrNull(record)
         )
       ]
     case .runSettled(let operation):
@@ -131,7 +132,7 @@ public enum SessionEventMapping {
         unknownChange(
           id: runSettledIDPrefix + operation.correlationID,
           kind: runSettledKind,
-          raw: json(encoding: operation)
+          raw: AgentViewKit.JSONValue.encodedOrNull(operation)
         )
       ]
     case .discoveryPrimingFailed(let failure):
@@ -270,7 +271,7 @@ public enum SessionEventMapping {
   private static func unknownBlock(kind: String, segment: SegmentPayload, id: String, label: String?)
     -> ContentBlock
   {
-    let raw = json(encoding: segment)
+    let raw = AgentViewKit.JSONValue.encodedOrNull(segment)
     logger.debug("The Router segment \(id, privacy: .public) of kind \(kind, privacy: .public) is not known.")
     return ContentBlock(content: .unknown(kind: kind, raw: raw == .null ? .string(label ?? id) : raw))
   }
@@ -330,7 +331,7 @@ public enum SessionEventMapping {
       return unknownChange(
         id: elicitationIDPrefix + operation.correlationID,
         kind: elicitationRequestedKind,
-        raw: json(encoding: operation)
+        raw: AgentViewKit.JSONValue.encodedOrNull(operation)
       )
     }
     return .addElicitation(request)
@@ -351,7 +352,9 @@ public enum SessionEventMapping {
     let mode: AgentViewKit.ElicitationRequest.Mode
     switch request.mode {
     case .form:
-      mode = .form(requestedSchema: request.requestedSchema.map { json(encoding: $0) } ?? .object([:]))
+      mode = .form(
+        requestedSchema: request.requestedSchema.map { AgentViewKit.JSONValue.encodedOrNull($0) }
+          ?? .object([:]))
     case .url:
       guard let url = request.url else { return nil }
       mode = .url(url, elicitationId: elicitationId)
@@ -417,23 +420,7 @@ public enum SessionEventMapping {
     }
   }
 
-  // MARK: - Usage
-
-  /// Changes the token usage of one attempt into context usage.
-  ///
-  /// `used` is the sum of the input and output tokens. The Router gives the
-  /// fill as `used` divided by the working context, so `size` is `used`
-  /// divided by the fill. When the fill is not a positive finite number,
-  /// `size` is `0`.
-  ///
-  /// - Parameter usage: The token usage of the attempt.
-  /// - Returns: The context usage.
-  static func contextUsage(_ usage: TokenUsage) -> ContextUsage {
-    let used = usage.tokensIn + usage.tokensOut
-    let fill = usage.contextFill
-    guard fill.isFinite, fill > 0 else { return ContextUsage(used: used, size: 0) }
-    return ContextUsage(used: used, size: Int((Double(used) / fill).rounded()))
-  }
+  // MARK: - Stop reason
 
   /// Changes a Router finish reason into a stop reason.
   ///
@@ -465,20 +452,5 @@ public enum SessionEventMapping {
   /// - Returns: The value, or the text as a string when it is not valid JSON.
   static func json(parsing text: String) -> AgentViewKit.JSONValue {
     (try? AgentViewKit.JSONValue(json: text)) ?? .string(text)
-  }
-
-  /// Encodes a value into a kit value.
-  ///
-  /// - Parameter value: The value to encode.
-  /// - Returns: The JSON value, or ``AgentViewKit/JSONValue/null`` when the
-  ///   value cannot be encoded. The log records the failure.
-  static func json(encoding value: some Encodable) -> AgentViewKit.JSONValue {
-    do {
-      let data = try JSONEncoder().encode(value)
-      return try JSONDecoder().decode(AgentViewKit.JSONValue.self, from: data)
-    } catch {
-      logger.error("A Router value did not encode as JSON: \(String(describing: error), privacy: .public)")
-      return .null
-    }
   }
 }

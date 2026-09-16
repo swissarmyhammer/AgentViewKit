@@ -29,7 +29,7 @@ private func messageText(_ item: ThreadItem?) -> String? {
       .turnStarted(RouterFixtures.turnStart),
       .toolCall(id: "c1", name: "read", argumentsJSON: "{}"),
       .toolStatus(id: "c1", status: .completed, summary: "ok", output: nil),
-      .turnEnded(TokenUsage(tokensIn: 1, tokensOut: 1, contextFill: 0.5))
+      .turnEnded(RouterFixtures.usage)
     )
     session.finish()
     await source.run()
@@ -37,7 +37,7 @@ private func messageText(_ item: ThreadItem?) -> String? {
     #expect(source.thread.items.map(\.id) == ["e0", "c1"])
     #expect(messageText(source.thread.item(id: "e0")) == "Earlier")
     #expect(source.thread.state == .idle(.endTurn))
-    #expect(source.thread.usage == ContextUsage(used: 2, size: 4))
+    #expect(source.thread.usage == RouterFixtures.contextUsage)
   }
 
   @Test func runReadsTheSessionOneTime() async {
@@ -109,7 +109,7 @@ private func messageText(_ item: ThreadItem?) -> String? {
   @Test func turnEndedClosesTheOpenStream() {
     let source = RouterThreadSource(port: FakeRouterSession())
     source.apply(.textDelta("Partial"))
-    source.apply(.turnEnded(TokenUsage(tokensIn: 1, tokensOut: 1, contextFill: 0.5)))
+    source.apply(.turnEnded(RouterFixtures.usage))
     #expect(source.thread.streaming.isEmpty)
     #expect(messageText(source.thread.item(id: "provisional-1")) == "Partial")
   }

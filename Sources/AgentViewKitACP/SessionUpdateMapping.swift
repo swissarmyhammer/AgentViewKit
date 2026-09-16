@@ -96,7 +96,10 @@ public enum SessionUpdateMapping {
     case .sessionInfoUpdate(let info):
       return [.patchInfo(infoPatch(info))]
     case .usageUpdate(let usage):
-      return [.setUsage(contextUsage(usage))]
+      // An ACP update gives the window size, so the fields go to the
+      // `ContextUsage` initializer directly.
+      let cost = usage.cost.map { ContextUsage.Cost(amount: $0.amount, currency: $0.currency) }
+      return [.setUsage(ContextUsage(used: usage.used, size: usage.size, cost: cost))]
     case .unknown(let kind, let raw):
       return [unknownInsert(id: makeUnknownID(), kind: kind, raw: json(raw))]
     }
@@ -180,7 +183,10 @@ public enum SessionUpdateMapping {
     .insert(
       .unknown(
         UnknownRecord(
-          id: messageID + thoughtContentIDSuffix, kind: kind, raw: encodedJSON(update))
+          id: messageID + thoughtContentIDSuffix,
+          kind: kind,
+          raw: AgentViewKit.JSONValue.encodedOrNull(update)
+        )
       ),
       after: messageID
     )
@@ -225,7 +231,7 @@ public enum SessionUpdateMapping {
       return .block(contentBlock(wrapped.content))
     case .diff(let diff):
       guard let patch = diff.patch, patch.format.wireValue == gitPatchFormat else {
-        return .unknown(kind: diffContentKind, raw: encodedJSON(diff))
+        return .unknown(kind: diffContentKind, raw: AgentViewKit.JSONValue.encodedOrNull(diff))
       }
       return .diff(patch: patch.text)
     case .terminal(let terminal):
@@ -357,18 +363,9 @@ public enum SessionUpdateMapping {
         name: option.name,
         description: option.description,
         category: option.category.map { ConfigOption.Category(wireValue: $0.wireValue) },
-        kind: .unknown(type: option.type.wireTag, raw: encodedJSON(option))
+        kind: .unknown(type: option.type.wireTag, raw: AgentViewKit.JSONValue.encodedOrNull(option))
       )
     }
-  }
-
-  /// Changes an ACP usage update into kit context usage.
-  private static func contextUsage(_ usage: UsageUpdate) -> ContextUsage {
-    ContextUsage(
-      used: usage.used,
-      size: usage.size,
-      cost: usage.cost.map { ContextUsage.Cost(amount: $0.amount, currency: $0.currency) }
-    )
   }
 
   /// The patch of a session info update.
@@ -480,7 +477,8 @@ public enum SessionUpdateMapping {
   private static func unknownBlock(
     _ block: FoundationModelsACP.ContentBlock
   ) -> AgentViewKit.ContentBlock {
-    AgentViewKit.ContentBlock(content: .unknown(kind: block.wireTag, raw: encodedJSON(block)))
+    AgentViewKit.ContentBlock(
+      content: .unknown(kind: block.wireTag, raw: AgentViewKit.JSONValue.encodedOrNull(block)))
   }
 
   /// Changes ACP annotations into kit annotations.
@@ -566,7 +564,7 @@ public enum SessionUpdateMapping {
     let mode: ElicitationRequest.Mode
     switch request.mode {
     case .form(let form):
-      mode = .form(requestedSchema: encodedJSON(form.requestedSchema))
+      mode = .form(requestedSchema: AgentViewKit.JSONValue.encodedOrNull(form.requestedSchema))
     case .url(let urlMode):
       guard let url = URL(string: urlMode.url) else {
         logger.error("The elicitation URL \(urlMode.url, privacy: .public) is not valid.")
@@ -597,19 +595,6 @@ public enum SessionUpdateMapping {
     case .string(let string): .string(string)
     case .array(let elements): .array(elements.map(json))
     case .object(let members): .object(members.mapValues(json))
-    }
-  }
-
-  /// The kit JSON form of an encodable ACP value.
-  ///
-  /// A value that does not encode gives ``AgentViewKit/JSONValue/null``.
-  static func encodedJSON(_ value: some Encodable) -> AgentViewKit.JSONValue {
-    do {
-      let data = try JSONEncoder().encode(value)
-      return try JSONDecoder().decode(AgentViewKit.JSONValue.self, from: data)
-    } catch {
-      logger.error("An ACP value does not encode as JSON: \(error, privacy: .public)")
-      return .null
     }
   }
 

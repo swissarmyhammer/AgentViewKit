@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// A JSON value that the core target owns (plan.md §3.2, §11#1).
 ///
@@ -91,6 +92,37 @@ public nonisolated enum JSONValue: Sendable, Hashable, Codable {
   public init(json: String) throws {
     self = try JSONDecoder().decode(JSONValue.self, from: Data(json.utf8))
   }
+
+  // MARK: - Encoding
+
+  /// The JSON form of an encodable value.
+  ///
+  /// - Parameter value: The value to encode.
+  /// - Throws: `EncodingError` when the value does not encode.
+  public init(encoding value: some Encodable) throws {
+    let data = try JSONEncoder().encode(value)
+    self = try JSONDecoder().decode(JSONValue.self, from: data)
+  }
+
+  /// The JSON form of an encodable value, or `null` when the value does not
+  /// encode.
+  ///
+  /// The adapters use this function for a source value that the kit does not
+  /// know. The log records each failure.
+  ///
+  /// - Parameter value: The value to encode.
+  /// - Returns: The JSON value, or ``null``.
+  public static func encodedOrNull(_ value: some Encodable) -> JSONValue {
+    do {
+      return try JSONValue(encoding: value)
+    } catch {
+      encodingLogger.error("A value does not encode as JSON: \(String(describing: error), privacy: .public)")
+      return .null
+    }
+  }
+
+  /// The log of ``encodedOrNull(_:)``.
+  private static let encodingLogger = Logger(subsystem: "AgentViewKit", category: "JSONValue")
 
   // MARK: - Subscripts
 

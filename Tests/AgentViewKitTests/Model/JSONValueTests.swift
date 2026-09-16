@@ -13,6 +13,36 @@ import Testing
     "tags": .array([.string("a"), .number(1), .null, .object(["deep": .bool(false)])]),
   ])
 
+  // MARK: - Encoding
+
+  /// A value that always fails to encode.
+  private struct FailingValue: Encodable {
+    func encode(to encoder: any Encoder) throws {
+      throw EncodingError.invalidValue(
+        self, EncodingError.Context(codingPath: [], debugDescription: "The value does not encode."))
+    }
+  }
+
+  /// A value that encodes as an object.
+  private struct Pair: Encodable {
+    var name = "tool"
+    var enabled = true
+  }
+
+  @Test func anEncodableValueGivesItsJSONForm() throws {
+    let expected: JSONValue = .object(["name": .string("tool"), "enabled": .bool(true)])
+
+    #expect(try JSONValue(encoding: Pair()) == expected)
+    #expect(JSONValue.encodedOrNull(Pair()) == expected)
+  }
+
+  @Test func aValueThatDoesNotEncodeThrowsOrGivesNull() {
+    #expect(throws: EncodingError.self) {
+      try JSONValue(encoding: FailingValue())
+    }
+    #expect(JSONValue.encodedOrNull(FailingValue()) == .null)
+  }
+
   // MARK: - Codable
 
   @Test func aNestedObjectRoundTripsThroughCodable() throws {

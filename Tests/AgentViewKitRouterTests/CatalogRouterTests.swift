@@ -10,6 +10,33 @@ private let segmentID = "segment-1"
 
 /// One value of each catalog payload.
 private enum Samples {
+  /// The paragraph of the citation marker.
+  static let markerParagraph = 0
+
+  /// The character offset of the citation marker.
+  static let markerOffset = 12
+
+  /// The tokens in use of the usage sample.
+  static let usedTokens = 1_200
+
+  /// The context size of the usage sample.
+  static let contextSize = 8_000
+
+  /// The cost of the usage sample, in US dollars.
+  static let costAmount = 0.25
+
+  /// The input tokens of the usage sample.
+  static let inputTokens = 900
+
+  /// The cached input tokens of the usage sample.
+  static let cachedTokens = 100
+
+  /// The output tokens of the usage sample.
+  static let outputTokens = 300
+
+  /// The reasoning output tokens of the usage sample.
+  static let reasoningTokens = 50
+
   static let approval = ApprovalPayload(
     id: "approval-1", title: "Delete the build folder", description: "The agent wants to delete `.build`.",
     options: ["Allow", "Deny"])
@@ -27,7 +54,7 @@ private enum Samples {
         id: "source-1", title: "Swift Book", url: URL(string: "https://docs.swift.org/book")!,
         snippet: "Swift is a language.")
     ],
-    markers: [CitationMarker(sourceID: "source-1", paragraphIndex: 0, offset: 12)])
+    markers: [CitationMarker(sourceID: "source-1", paragraphIndex: markerParagraph, offset: markerOffset)])
 
   static let artifact = ArtifactPayload(
     id: "artifact-1", title: "Report", type: "public.plain-text",
@@ -40,8 +67,11 @@ private enum Samples {
 
   static let usage = UsagePayload(
     ContextUsage(
-      used: 1_200, size: 8_000, cost: .init(amount: 0.25, currency: "USD"),
-      input: .init(total: 900, cached: 100), output: .init(total: 300, reasoning: 50),
+      used: usedTokens,
+      size: contextSize,
+      cost: .init(amount: costAmount, currency: "USD"),
+      input: .init(total: inputTokens, cached: cachedTokens),
+      output: .init(total: outputTokens, reasoning: reasoningTokens),
       quota: .belowLimit(approaching: true)))
 }
 
@@ -63,9 +93,9 @@ private func roundTrip<Payload: StructuredPayload>(_ payload: Payload) throws ->
 ///
 /// - Parameter payload: The payload.
 /// - Returns: The segment that the persisted form gives back.
-private func persistedRoundTrip<Payload: StructuredPayload>(_ payload: Payload) throws -> CatalogSegment<
-  Payload
->? {
+private func persistedRoundTrip<Payload: StructuredPayload>(
+  _ payload: Payload
+) throws -> CatalogSegment<Payload>? {
   let segment = try payload.routerSegment(id: segmentID).structuredSegment()
   let recorded = SegmentPayload.structure(
     id: segment.id, schemaName: segment.schemaName, contentJSON: segment.content.jsonString)
@@ -127,7 +157,8 @@ private func persistedRoundTrip<Payload: StructuredPayload>(_ payload: Payload) 
 
   @Test func aBodyThatDoesNotDecodeThrows() throws {
     let segment = Transcript.StructuredSegment(
-      id: segmentID, schemaName: PlanSegment.schemaName, content: try GeneratedContent(json: #"{"id": 1}"#))
+      id: segmentID, schemaName: PlanSegment.schemaName, content: try GeneratedContent(json: #"{"id": true}"#)
+    )
     #expect(throws: DecodingError.self) {
       try PlanSegment(structuredSegment: segment)
     }
