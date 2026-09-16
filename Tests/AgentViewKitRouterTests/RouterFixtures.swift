@@ -137,11 +137,17 @@ enum RouterFixtures {
   /// The token count after the compaction fixture.
   static let tokensAfterCompaction = 300
 
+  /// The seconds without progress of the stall fixture.
+  static let stallSeconds = 30
+
+  /// The seconds in flight of the stall fixture.
+  static let flightSeconds = 60
+
   /// The time without progress of the stall fixture.
-  static let stallTime = Duration.seconds(30)
+  static let stallTime = Duration.seconds(stallSeconds)
 
   /// The time in flight of the stall fixture.
-  static let flightTime = Duration.seconds(60)
+  static let flightTime = Duration.seconds(flightSeconds)
 
   /// The number of the first turn of a session.
   static let firstTurnNumber: UInt64 = 1

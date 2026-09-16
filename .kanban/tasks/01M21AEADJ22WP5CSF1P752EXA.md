@@ -23,6 +23,15 @@ comments:
     - commit: b08e05e
     - review: findings — 6 findings (2 of 14 review tasks failed) — SessionEventMapping.swift:431, SessionEventMapping.swift:475, CatalogRouterTests.swift:30, :43, :44, RouterFixtures.swift:128
   timestamp: 2026-09-16T17:53:28.630617+00:00
+- actor: claude-code
+  id: 01m2np3djbfnj2va4tyhezedkt
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — JSONValue(encoding:) and JSONValue.encodedOrNull(_:) in the core, used by both mappings (ACP encodedJSON removed); ContextUsage(used:fill:) in the core (Router contextUsage and ACP contextUsage removed); named test numbers
+    - test: green — swift test, 697 passed, 0 failed; only the accepted mlx-swift warning
+    - commit: 05a39c5
+    - review: findings — 2 findings — RouterFixtures.swift:141, RouterFixtures.swift:144 (Duration literals); fixed in the working tree for iteration 3
+  timestamp: 2026-09-16T18:01:42.731563+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ABXR3PMT1VCWPJK80Z9E8
@@ -73,3 +82,13 @@ Create `Sources/AgentViewKitRouter/RouterThreadSource.swift`, `RouterThreadActio
 - [x] `Tests/AgentViewKitRouterTests/CatalogRouterTests.swift:43` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Tests/AgentViewKitRouterTests/CatalogRouterTests.swift:44` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Tests/AgentViewKitRouterTests/RouterFixtures.swift:128` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+
+## Review Findings (2026-09-16 12:58)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitRouterTests/RouterFixtures.swift:141` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitRouterTests/RouterFixtures.swift:144` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
