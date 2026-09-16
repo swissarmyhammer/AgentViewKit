@@ -123,6 +123,9 @@ public nonisolated enum StreamingMarkdownBalancer {
     /// The longest emphasis delimiter.
     private static let strongLength = 2
 
+    /// The length of an escape: a backslash and the character after it.
+    private static let escapeLength = 2
+
     /// Scans each character of the tail.
     mutating func scan() {
       var index = 0
@@ -153,13 +156,13 @@ public nonisolated enum StreamingMarkdownBalancer {
         return index + run
       }
       if inLinkDestination {
-        if character == "\\" { return index + 2 }
+        if character == "\\" { return index + Self.escapeLength }
         if character == ")" { inLinkDestination = false }
         return index + 1
       }
       switch character {
       case "\\":
-        return index + 2
+        return index + Self.escapeLength
       case "`":
         let run = runLength(at: index)
         codeSpanLength = run

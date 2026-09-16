@@ -16,8 +16,11 @@
 /// is `@MainActor` state.
 @MainActor
 public final class StreamingCoalescer {
+  /// The length of the default flush interval, in milliseconds.
+  private static let defaultIntervalMilliseconds = 33
+
   /// The default flush interval: 33 ms.
-  public static let defaultInterval: Duration = .milliseconds(33)
+  public static let defaultInterval: Duration = .milliseconds(defaultIntervalMilliseconds)
 
   /// The time from the first chunk of a batch to the flush of the batch.
   public let interval: Duration
