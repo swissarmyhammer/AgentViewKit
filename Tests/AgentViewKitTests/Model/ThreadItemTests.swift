@@ -1,6 +1,5 @@
 import AgentViewKit
 import Foundation
-import Synchronization
 import Testing
 
 @Suite struct ThreadItemTests {
@@ -165,20 +164,5 @@ import Testing
     ]
 
     #expect(types.count == 8)
-  }
-}
-
-/// A flag that an observation change handler sets.
-///
-/// The change handler is `@Sendable`, so the flag uses a lock.
-nonisolated private final class ChangeFlag: Sendable {
-  private let storage = Mutex(false)
-
-  /// `true` after ``set()``.
-  var value: Bool { storage.withLock { $0 } }
-
-  /// Sets the flag.
-  func set() {
-    storage.withLock { $0 = true }
   }
 }
