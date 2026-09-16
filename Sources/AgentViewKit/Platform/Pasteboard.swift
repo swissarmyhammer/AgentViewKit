@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// The pasteboard that the kit writes to when a user copies text.
 ///
@@ -23,4 +24,12 @@ extension NSPasteboard: Pasteboard {
     clearContents()
     setString(text, forType: .string)
   }
+}
+
+extension EnvironmentValues {
+  /// The pasteboard that a copy action of the kit writes to.
+  ///
+  /// The value is `NSPasteboard.general` until a host or a test sets a
+  /// different pasteboard.
+  @Entry public var pasteboard: any Pasteboard = NSPasteboard.general
 }

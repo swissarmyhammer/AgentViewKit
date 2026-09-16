@@ -1,6 +1,19 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2n4kdpy9f60svwzbya2yxm3
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — the task cannot start. The code part needs types that do not exist yet.
+    - `PermissionPresentation.order(for:)` and `isSecondary(_:)` need `PermissionOption.Kind`. Task 01M21BD0YVS2J4MD6VXDM317W6 (Pending request types) makes that type. It is in todo.
+    - `showsSwitchToAuto(configOptions:)` needs `ConfigOption` and `ConfigOption.Category`. Task 01M21BYFK7KVCKXYXJFCJW7FSM (TerminalRecord and ConfigOption types) makes that type. It is in todo.
+    - This task depends only on 01M21A8RWGWE533JR6GQ4DNN06. Add the two tasks above to `depends_on`, then start this task again.
+    - test: not run. commit: none. review: not run.
+  timestamp: 2026-09-16T12:55:52.798676+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
+- 01M21BD0YVS2J4MD6VXDM317W6
+- 01M21BYFK7KVCKXYXJFCJW7FSM
 position_column: todo
 position_ordinal: be80
 title: 'Research R8: permission and mode option sets from Claude Code, Cursor, and Codex, mapped to ACP (plan §14)'

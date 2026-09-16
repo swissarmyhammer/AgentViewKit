@@ -13,8 +13,8 @@ depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCRF2JZ6W49NKXHE8KKT1
 - 01M21ABMYXZQRNRDGB3DR6RK73
-position_column: todo
-position_ordinal: c980
+position_column: doing
+position_ordinal: '80'
 title: CodeBlockView on EditorKit, the Textual CodeBlockStyle hook, per-fence model cache, and the streaming append helper (plan §4.1, §8)
 ---
 ## What
