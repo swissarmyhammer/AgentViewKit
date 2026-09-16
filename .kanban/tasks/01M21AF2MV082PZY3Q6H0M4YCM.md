@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2p34k2t1mhas4bgjp1r3qcx
+  text: 'Requirement from ^8xcmw7e (done): `PermissionModePicker(options:)` is in Sources/AgentViewKit/Config/PermissionModePicker.swift. Put it in the composer accessory and pass `thread.configOptions`. It is empty when the thread has no `mode` select option. `ConfigOptionsView(options:style: .menu)` is the toolbar menu for the other options. Test note: do not press a segment of the segmented picker in a hosted test; the press stops the test process (see the `press` doc of HostedViewHarness).'
+  timestamp: 2026-09-16T21:49:32.634951+00:00
 depends_on:
 - 01M21A9KJGPPJE0X01JE0B9V33
 - 01M21ABMYXZQRNRDGB3DR6RK73

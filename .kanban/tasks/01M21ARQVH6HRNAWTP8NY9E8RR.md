@@ -4,6 +4,10 @@ comments:
   id: 01m2nz1r99pnyatmjwrcprc5yt
   text: 'Note from ^a9ptv4s (SessionListView): the sidebar must make `ACPSessionList(connection:cwd:)` from the ACP connection and give it to `SessionListView(provider:onSelect:onNewSession:onDelete:)`. Give `onDelete: provider.delete` only when the agent sends the `session.delete` capability. `onSelect` must load the selected session (session/load or session/resume) and bind ACPThreadSource to it. The in-memory agent must answer `session/list`, or the sidebar shows the failure message.'
   timestamp: 2026-09-16T20:38:05.353672+00:00
+- actor: claude-code
+  id: 01m2p34mvv60ppz5hpx0va8hfd
+  text: 'Requirement from ^8xcmw7e (done): the settings sheet must show `ConfigOptionsView(options: thread.configOptions, style: .form)`, and the toolbar can show `ConfigOptionsView(options: thread.configOptions)` (menu style). Both views take the options list; read the thread in the host view so that the views update when the source replaces the list.'
+  timestamp: 2026-09-16T21:49:34.459615+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21AH4QCEFEBPTZ8GR061H51

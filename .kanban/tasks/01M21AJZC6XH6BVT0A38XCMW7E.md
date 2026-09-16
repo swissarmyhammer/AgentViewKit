@@ -23,11 +23,20 @@ comments:
     - commit: 83a8f0f
     - review: findings — ConfigOptionsView.swift:129, ConfigOptionsView.swift:139, HostedViewHarness.swift:471 (3 duplication findings; fixed in the next iteration with a shared `controlIdentifier(for:infix:suffix:)` and `attributeText(_:of:)`, swift test green again, 952 passed)
   timestamp: 2026-09-16T21:47:58.513963+00:00
+- actor: claude-code
+  id: 01m2p34gr433wpv212r5t3q10a
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ConfigOptionsView.swift, HostedViewHarness.swift (the 3 findings)
+    - test: green — swift test exits 0, 952 passed
+    - commit: 5042d8c
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; every prior item is checked. Task moved to done.
+  timestamp: 2026-09-16T21:49:30.244256+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: a980
 title: ConfigOptionsView and PermissionModePicker (plan §9 D, §9 E, §11#16)
 ---
 ## What
