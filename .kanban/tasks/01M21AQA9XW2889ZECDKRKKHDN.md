@@ -28,10 +28,19 @@ comments:
     - The other matches (ConnectionStatusChip, SubagentTreeView, Plan, SessionEventMapping, SubagentMapping) do not map ToolCallStatus to Color. They map ConnectionState, SubagentRun state, or wire strings. Thus they cannot call a ToolCallStatus function. The later ToolCallView task must call `color(for:)`.
     - test: green — 612 tests in 52 suites passed.
   timestamp: 2026-09-16T19:27:56.665167+00:00
+- actor: claude-code
+  id: 01m2nv4k4rkksd063fb42k2a2d
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — AgentTheme.swift, ThreadMinimapView.swift, StatusColorsTests.swift
+    - test: green — `timeout 900 swift test --filter AgentViewKitTests`, 612 passed in 52 suites
+    - commit: f9d41a6
+    - review: clean — `review sha HEAD~1..HEAD`, 0 findings; the prior finding is checked. The task moved to done.
+  timestamp: 2026-09-16T19:29:44.088808+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: '9e80'
 title: 'ThreadMinimapView: scrubbable rail of turns, tool calls, and errors (plan §9 A)'
 ---
 ## What
