@@ -16,10 +16,19 @@ comments:
     - The note about `StateBanner` is for the view that mounts the banner. I wrote it on ^xa2n421 (ConversationView).
     - evidence: `swift test --filter AgentViewKitTests` — 653 tests in 58 suites passed.
   timestamp: 2026-09-16T19:54:18.419130+00:00
+- actor: claude-code
+  id: 01m2nwv2ynk9t3ppxrghgpnmyy
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ErrorView.swift, ErrorActions.swift, ItemRow.swift, ErrorViewHostedTests.swift
+    - test: green — swift test --filter AgentViewKitTests, 653 tests in 58 suites passed
+    - commit: e1841b8
+    - review: findings — Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:82, Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:158
+  timestamp: 2026-09-16T19:59:29.749770+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'ErrorView: one block per error kind with an action (plan §9 A2)'
 ---
 ## What
@@ -41,3 +50,13 @@ Create `Sources/AgentViewKit/Items/ErrorView.swift` and `ErrorActions.swift`, pe
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 14:54)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:82` `completeness/invariant-propagation` — The `refusal` kind is tested only with an explanation provided, while `guardrailViolation` (lines 75–81) is tested both with and without explanation. In the ErrorView.content() function (lines 134–139 vs 128–133), both kinds handle an optional explanation identically — using a default message when nil — so the test coverage should match. Add a test case for `.refusal(explanation: nil)` with `identifier: "error-refusal"`, `buttonTitle: "Rephrase"`, and `detailParts: []` to mirror the nil-explanation test for guardrailViolation.
+- [x] `Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:158` `completeness/invariant-propagation` — The test `tappingRetryCallsTheClosureOnce` (line 158–167) verifies that tapping the Retry button calls its handler. However, the Compact button (used in the test case at line 62 for contextSizeExceeded) and Rephrase button (used at lines 76 and 83 for guardrailViolation and refusal) are included in test cases but are never tested for calling their handlers. In ErrorView.swift:185–189, all three action types are handled identically — each checks if a handler exists and calls it — so the test coverage should be symmetric. Add tests `tappingCompactCallsTheClosureOnce` (for the contextSizeExceeded case) and `tappingRephraseCallsTheClosureOnce` (for guardrailViolation or refusal case) following the same pattern as the Retry test.

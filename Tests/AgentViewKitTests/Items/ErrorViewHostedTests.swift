@@ -82,6 +82,9 @@ import Testing
     Case(
       kind: .refusal(explanation: "I cannot help with that."), identifier: "error-refusal",
       buttonTitle: "Rephrase", detailParts: ["I cannot help with that."]),
+    Case(
+      kind: .refusal(explanation: nil), identifier: "error-refusal", buttonTitle: "Rephrase",
+      detailParts: []),
     Case(kind: .timeout, identifier: "error-timeout", buttonTitle: "Retry", detailParts: []),
     Case(
       kind: .acp(code: acpCode, message: "Internal error"), identifier: "error-acp",
@@ -155,15 +158,35 @@ import Testing
     #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .retry)) == nil)
   }
 
-  @Test func tappingRetryCallsTheClosureOnce() async throws {
+  /// Taps the button of `action` on a card of `kind`, and tells whether the
+  /// closure of `action`, and no other closure, got the error one time.
+  ///
+  /// - Parameters:
+  ///   - action: The button to tap.
+  ///   - kind: The kind of the error, which must show the button of `action`.
+  func expectOneCall(of action: ErrorView.Action, on kind: ThreadError.Kind) async throws {
     let calls = ActionCalls()
-    let harness = Self.mount(ThreadError(id: "error-7", kind: .timeout), actions: calls.actions())
+    let harness = Self.mount(ThreadError(id: "error-7", kind: kind), actions: calls.actions())
     defer { harness.close() }
 
-    try harness.press(identifier: ErrorView.actionIdentifier(for: .retry))
-    await harness.pump(until: Self.callWaitSeconds) { calls.calls[.retry] != nil }
+    try harness.press(identifier: ErrorView.actionIdentifier(for: action))
+    await harness.pump(until: Self.callWaitSeconds) { calls.calls[action] != nil }
 
-    #expect(calls.calls == [.retry: ["error-7"]])
+    #expect(calls.calls == [action: ["error-7"]])
+  }
+
+  @Test func tappingRetryCallsTheClosureOnce() async throws {
+    try await expectOneCall(of: .retry, on: .timeout)
+  }
+
+  @Test func tappingCompactCallsTheClosureOnce() async throws {
+    try await expectOneCall(
+      of: .compact,
+      on: .contextSizeExceeded(contextSize: Self.contextSize, tokenCount: Self.tokenCount))
+  }
+
+  @Test func tappingRephraseCallsTheClosureOnce() async throws {
+    try await expectOneCall(of: .rephrase, on: .refusal(explanation: nil))
   }
 
   @Test func aPatchOfTheKindChangesTheCard() {
