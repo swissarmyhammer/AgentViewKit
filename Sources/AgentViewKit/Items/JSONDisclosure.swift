@@ -4,8 +4,8 @@ import SwiftUI
 ///
 /// ``StructuredItemView`` and ``UnknownItemView`` use this view. The expanded
 /// state is in the ``ExpandedBlocksStore`` of the environment, keyed by the
-/// record id. When the environment has no store, the view keeps the state
-/// itself.
+/// record id. When the environment has no store, the view uses a store of its
+/// own.
 struct JSONDisclosure: View {
   /// The identifier of the record. The store keys the state by this value.
   let id: String
@@ -19,10 +19,10 @@ struct JSONDisclosure: View {
   /// The accessibility identifier of the block.
   let identifier: String
 
-  /// The expanded state when the environment has no store.
-  @State private var localExpanded: Bool
+  /// The store that the view uses when the environment has no store.
+  @State private var ownStore: ExpandedBlocksStore
 
-  @Environment(\.expandedBlocksStore) private var store
+  @Environment(\.expandedBlocksStore) private var environmentStore
   @Environment(\.agentTheme) private var theme
 
   /// Makes the block.
@@ -38,11 +38,28 @@ struct JSONDisclosure: View {
     self.title = title
     self.json = json
     self.identifier = identifier
-    _localExpanded = State(initialValue: isExpanded)
+    let store = ExpandedBlocksStore()
+    if isExpanded {
+      store.expand(id)
+    }
+    _ownStore = State(initialValue: store)
   }
 
   var body: some View {
-    DisclosureGroup(isExpanded: expanded) {
+    let store = environmentStore ?? ownStore
+    let id = id
+    DisclosureGroup(
+      isExpanded: Binding(
+        get: { store.isExpanded(id) },
+        set: { isExpanded in
+          if isExpanded {
+            store.expand(id)
+          } else {
+            store.collapse(id)
+          }
+        }
+      )
+    ) {
       Text(json)
         .font(theme.codeFont)
         .textSelection(.enabled)
@@ -54,22 +71,5 @@ struct JSONDisclosure: View {
         .lineLimit(1)
     }
     .accessibilityIdentifier(identifier)
-  }
-
-  /// The binding of the expanded state: the store of the environment, or
-  /// the local state when there is no store.
-  private var expanded: Binding<Bool> {
-    guard let store else { return $localExpanded }
-    let id = id
-    return Binding(
-      get: { store.isExpanded(id) },
-      set: { isExpanded in
-        if isExpanded {
-          store.expand(id)
-        } else {
-          store.collapse(id)
-        }
-      }
-    )
   }
 }

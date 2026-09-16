@@ -12,6 +12,16 @@ comments:
     - evidence: `swift test` green, 733 tests (566 in AgentViewKitTests).
     - next: commit, then review.
   timestamp: 2026-09-16T18:40:17.998374+00:00
+- actor: claude-code
+  id: 01m2nrhdgtedct7k9a7xsdwtxy
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 8 files
+    - test: green — swift test, 733 passed
+    - commit: 4de38f3
+    - review: findings — Sources/AgentViewKit/Items/JSONDisclosure.swift:23 (`code-hygiene/dead-code-swift` — var.instance `localExpanded` is unused.)
+    - next: replace the local Bool state with a local fallback `ExpandedBlocksStore` that the view reads directly.
+  timestamp: 2026-09-16T18:44:18.586199+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ABMYXZQRNRDGB3DR6RK73
@@ -19,8 +29,8 @@ depends_on:
 - 01M21BD96KGE840RF97MXKS47E
 - 01M21BCRF2JZ6W49NKXHE8KKT1
 - 01M21CAWYA16NQ5MKZKBBH4DS6
-position_column: todo
-position_ordinal: '8e80'
+position_column: review
+position_ordinal: '80'
 title: AgentThreadView and ItemRow with per-record re-render, plus StructuredItemView and UnknownItemView (plan §3.6, §8, §9 A2)
 ---
 ## What
@@ -46,3 +56,12 @@ Create `Sources/AgentViewKit/Thread/AgentThreadView.swift`, `ItemRow.swift`, `So
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 13:40)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Items/JSONDisclosure.swift:23` `code-hygiene/dead-code-swift` — var.instance `localExpanded` is unused.
