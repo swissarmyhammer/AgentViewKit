@@ -2,8 +2,8 @@
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21ACHJYSF8G8R7HY3M70Z7F
-position_column: todo
-position_ordinal: bb80
+position_column: doing
+position_ordinal: '8180'
 title: CommandOutputView for shell and job output blocks (plan §9 F)
 ---
 ## What
@@ -14,13 +14,13 @@ Create `Sources/AgentViewKit/Content/CommandOutputView.swift`, per plan.md §9 F
 - Accessibility label "Command output, exit <code>".
 
 ## Acceptance Criteria
-- [ ] A 500-line output shows the cap and "show all" expands it.
-- [ ] Exit code 0 tints success; 1 tints failure; nil shows no footer.
-- [ ] Copy puts the output on the pasteboard.
+- [x] A 500-line output shows the cap and "show all" expands it.
+- [x] Exit code 0 tints success; 1 tints failure; nil shows no footer.
+- [x] Copy puts the output on the pasteboard.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Content/CommandOutputViewHostedTests.swift`: cap, footer, copy through `FakePasteboard`.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Content/CommandOutputViewHostedTests.swift`: cap, footer, copy through `FakePasteboard`.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

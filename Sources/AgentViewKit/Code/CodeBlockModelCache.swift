@@ -92,6 +92,19 @@ extension EditorModel {
     model.isReadOnly = true
     return model
   }
+
+  /// Makes the model read-only and changes its text to `text`.
+  ///
+  /// A write to an observed property notifies each observer, also when the
+  /// value does not change. Thus the function writes only a new value.
+  ///
+  /// - Parameter text: The full text that the document must have.
+  func syncReadOnly(to text: String) {
+    if !isReadOnly {
+      isReadOnly = true
+    }
+    syncStreaming(to: text)
+  }
 }
 
 extension EnvironmentValues {

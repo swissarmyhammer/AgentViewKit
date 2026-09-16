@@ -66,7 +66,7 @@ public struct CodeBlockView: View {
   }
 
   public var body: some View {
-    let model = suppliedModel ?? ownModel.model(code: code)
+    let model = suppliedModel ?? ownModel.model(text: code)
     VStack(alignment: .leading, spacing: 0) {
       header
       Divider()
@@ -83,20 +83,8 @@ public struct CodeBlockView: View {
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
     .onChange(of: code, initial: true) {
-      syncModel(model)
+      model.syncReadOnly(to: code)
     }
-  }
-
-  /// Makes `model` read-only and changes its text to ``code``.
-  ///
-  /// - Parameter model: The model that the view shows.
-  private func syncModel(_ model: EditorModel) {
-    // A write to an observed property notifies each observer, also when
-    // the value does not change. Thus the view writes only a new value.
-    if !model.isReadOnly {
-      model.isReadOnly = true
-    }
-    model.syncStreaming(to: code)
   }
 
   /// The label that VoiceOver reads for the block.
@@ -160,29 +148,5 @@ public struct CodeBlockView: View {
       !trimmed.isEmpty
     else { return nil }
     return trimmed
-  }
-}
-
-/// The model that a ``CodeBlockView`` keeps when the host gives no model.
-///
-/// The slot makes the model at the first read. A `@State` value that holds
-/// the model directly would make a new model each time SwiftUI makes the
-/// view value again.
-private final class OwnModelSlot {
-  /// The model, or `nil` before the first read.
-  private var model: EditorModel?
-
-  /// The model of the slot. The first read makes a read-only model that
-  /// holds `code`.
-  ///
-  /// - Parameter code: The text of a new model.
-  /// - Returns: The model.
-  func model(code: String) -> EditorModel {
-    if let model {
-      return model
-    }
-    let model = EditorModel.makeReadOnly(code)
-    self.model = model
-    return model
   }
 }

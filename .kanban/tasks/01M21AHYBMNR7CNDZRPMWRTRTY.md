@@ -1,9 +1,15 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nzc425nq0fnm9nqefg07kb
+  text: 'Dependency added: ^eh8gn3p (ContentBlockView family). This task shows each `ToolContent.block` through `ContentBlockView`. `ContentBlockView` is not in the tree, and ^eh8gn3p is not done. The task permits placeholders only for `DiffView` and `TerminalView`. Thus this task waits for ^eh8gn3p.'
+  timestamp: 2026-09-16T20:43:45.093957+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AFDM0RPN9SPB5D35Y2FDR
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 - 01M21BCRF2JZ6W49NKXHE8KKT1
+- 01M21BDXGQ5HYN8GCKAEH8GN3P
 position_column: todo
 position_ordinal: '9680'
 title: 'ToolCallView: kind icons, status effects, locations, raw input and output, collapsible content (plan §5, §9 C)'
