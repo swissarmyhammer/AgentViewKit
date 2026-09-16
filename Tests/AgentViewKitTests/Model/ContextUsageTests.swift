@@ -1,4 +1,5 @@
 import AgentViewKit
+import AgentViewKitTestSupport
 import Foundation
 import Testing
 
@@ -62,12 +63,23 @@ import Testing
   /// The header row of the merge table.
   private static let tableHeader = "| source field | ContextUsage field | note |"
 
+  /// The stored property names of `ContextUsage`, in declaration order.
+  private static let storedProperties: [String] =
+    Mirror(reflecting: ContextUsage(used: 0, size: 0)).children.compactMap(\.label)
+
+  /// The body rows of the merge table in the decision file.
+  ///
+  /// - Returns: The rows, in file order.
+  /// - Throws: The read error, or ``UsageDecisionTable/MissingTable`` when the
+  ///   file has no merge table.
+  private static func mergeTableRows() throws -> [UsageDecisionTable.Row] {
+    let text = try PackageFiles.text(of: decisionPath)
+    return try UsageDecisionTable.rows(in: text, header: tableHeader)
+  }
+
   @Test func everyTableRowNamesAStoredPropertyOfContextUsage() throws {
-    let text = try UsageDecisionFile.text(of: Self.decisionPath)
-    let rows = try UsageDecisionFile.tableRows(in: text, header: Self.tableHeader)
-    let storedProperties = Set(
-      Mirror(reflecting: ContextUsage(used: 0, size: 0)).children.compactMap(\.label)
-    )
+    let rows = try Self.mergeTableRows()
+    let storedProperties = Set(Self.storedProperties)
 
     #expect(!rows.isEmpty, "The merge table has no rows.")
     for row in rows {
@@ -79,20 +91,16 @@ import Testing
   }
 
   @Test func everyStoredPropertyOfContextUsageHasATableRow() throws {
-    let text = try UsageDecisionFile.text(of: Self.decisionPath)
-    let rows = try UsageDecisionFile.tableRows(in: text, header: Self.tableHeader)
-    let targets = Set(rows.map(\.target))
-    let storedProperties = Mirror(reflecting: ContextUsage(used: 0, size: 0)).children
-      .compactMap(\.label)
+    let targets = Set(try Self.mergeTableRows().map(\.target))
 
-    for property in storedProperties {
+    for property in Self.storedProperties {
       #expect(targets.contains(property), "No row of the merge table fills `\(property)`.")
     }
   }
 }
 
-/// Reads the usage decision file and its merge table.
-private enum UsageDecisionFile {
+/// Parses the merge table of the usage decision file.
+private enum UsageDecisionTable {
   /// One row of the merge table.
   struct Row {
     /// The first cell, without the backticks.
@@ -104,33 +112,12 @@ private enum UsageDecisionFile {
   /// The error when the file has no merge table.
   struct MissingTable: Error {}
 
-  /// The number of path parts between this file and the package root:
-  /// `Tests/AgentViewKitTests/Model/ContextUsageTests.swift`.
-  private static let depthBelowRoot = 4
-
   /// The number of cells in a row of the merge table.
   private static let cellCount = 3
 
   /// The number of lines from the header row to the first body row: the
   /// header row and the separator row.
   private static let linesBeforeBody = 2
-
-  /// The directory that holds `Package.swift`.
-  private static let root: URL = {
-    var directory = URL(filePath: #filePath)
-    for _ in 0..<depthBelowRoot {
-      directory.deleteLastPathComponent()
-    }
-    return directory
-  }()
-
-  /// The text of a file relative to the package root.
-  ///
-  /// - Parameter relativePath: A path such as `Docs/decisions/usage-model.md`.
-  /// - Returns: The file contents, decoded as UTF-8.
-  static func text(of relativePath: String) throws -> String {
-    try String(contentsOf: root.appending(path: relativePath), encoding: .utf8)
-  }
 
   /// The body rows of the table that starts with `header`.
   ///
@@ -142,7 +129,7 @@ private enum UsageDecisionFile {
   ///   - header: The exact header row.
   /// - Returns: The rows, in file order.
   /// - Throws: ``MissingTable`` when the text has no line equal to `header`.
-  static func tableRows(in text: String, header: String) throws -> [Row] {
+  static func rows(in text: String, header: String) throws -> [Row] {
     let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
       .map { $0.trimmingCharacters(in: .whitespaces) }
     guard let headerIndex = lines.firstIndex(of: header) else { throw MissingTable() }

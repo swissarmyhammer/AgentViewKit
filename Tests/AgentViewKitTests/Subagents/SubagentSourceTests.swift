@@ -1,4 +1,5 @@
 import AgentViewKit
+import AgentViewKitTestSupport
 import Foundation
 import Testing
 
@@ -15,7 +16,7 @@ import Testing
   private static let decisionPrefix = "decision:"
 
   @Test func decisionFileHasTheSurveyTable() throws {
-    let text = try SubagentFixtureFiles.text(of: Self.decisionPath)
+    let text = try PackageFiles.text(of: Self.decisionPath)
     let header =
       "| candidate | carries parent id | carries state | carries child thread id | available today |"
     #expect(text.contains(header))
@@ -25,7 +26,7 @@ import Testing
   }
 
   @Test func v1MatchesTheDecisionLine() throws {
-    let text = try SubagentFixtureFiles.text(of: Self.decisionPath)
+    let text = try PackageFiles.text(of: Self.decisionPath)
     let decisionLines = text.split(separator: "\n").filter {
       $0.hasPrefix(Self.decisionPrefix)
     }
@@ -46,7 +47,7 @@ import Testing
   ///
   /// - Returns: The events, in file order.
   private static func fixtureEvents() throws -> [RecordedRouterEvent] {
-    let text = try SubagentFixtureFiles.text(of: fixturePath)
+    let text = try PackageFiles.text(of: fixturePath)
     let decoder = JSONDecoder()
     return try text.split(separator: "\n").filter { !$0.isEmpty }.map {
       try decoder.decode(RecordedRouterEvent.self, from: Data($0.utf8))
@@ -97,28 +98,4 @@ private struct RecordedRouterEvent: Decodable {
   let kind: String
   /// The spawn link. Only the `session` event of a spawned session has it.
   let agentSpawn: AgentSpawn?
-}
-
-/// Finds the files of this package on disk for the subagent tests.
-private enum SubagentFixtureFiles {
-  /// The number of path parts between this file and the package root:
-  /// `Tests/AgentViewKitTests/Subagents/SubagentSourceTests.swift`.
-  private static let depthBelowRoot = 4
-
-  /// The directory that holds `Package.swift`.
-  private static let root: URL = {
-    var directory = URL(filePath: #filePath)
-    for _ in 0..<depthBelowRoot {
-      directory.deleteLastPathComponent()
-    }
-    return directory
-  }()
-
-  /// The text of a file relative to the package root.
-  ///
-  /// - Parameter relativePath: A path such as `Docs/decisions/subagent-source.md`.
-  /// - Returns: The file contents, decoded as UTF-8.
-  static func text(of relativePath: String) throws -> String {
-    try String(contentsOf: root.appending(path: relativePath), encoding: .utf8)
-  }
 }
