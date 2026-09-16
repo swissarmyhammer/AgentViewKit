@@ -5,24 +5,7 @@ import Observation
 ///
 /// `AgentThread.terminals` is keyed by this type. For ACP, this is the
 /// `terminalId`. A ``ToolContent/terminal(id:)`` block holds the same string.
-public nonisolated struct TerminalID: Sendable, Hashable, RawRepresentable, Codable {
-  /// The identifier string.
-  public let rawValue: String
-
-  /// Makes an identifier from its string.
-  ///
-  /// - Parameter rawValue: The identifier string.
-  public init(rawValue: String) {
-    self.rawValue = rawValue
-  }
-
-  /// Makes an identifier from its string.
-  ///
-  /// - Parameter rawValue: The identifier string.
-  public init(_ rawValue: String) {
-    self.init(rawValue: rawValue)
-  }
-}
+public typealias TerminalID = Identifier<TerminalRecord>
 
 /// A terminal that the agent owns, and its output (plan.md §3.2).
 ///

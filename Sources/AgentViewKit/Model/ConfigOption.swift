@@ -2,24 +2,7 @@
 ///
 /// For ACP, this is the `configId`. `AgentThreadActions.setConfigOption`
 /// takes this type.
-public nonisolated struct ConfigOptionID: Sendable, Hashable, RawRepresentable, Codable {
-  /// The identifier string.
-  public let rawValue: String
-
-  /// Makes an identifier from its string.
-  ///
-  /// - Parameter rawValue: The identifier string.
-  public init(rawValue: String) {
-    self.rawValue = rawValue
-  }
-
-  /// Makes an identifier from its string.
-  ///
-  /// - Parameter rawValue: The identifier string.
-  public init(_ rawValue: String) {
-    self.init(rawValue: rawValue)
-  }
-}
+public typealias ConfigOptionID = Identifier<ConfigOption>
 
 /// A setting of the session that the user can change (plan.md §3.2, §3.4).
 ///
@@ -203,6 +186,59 @@ public nonisolated enum ConfigValue: Sendable, Hashable {
 }
 
 // MARK: - Codable
+
+nonisolated extension ConfigValue: Codable {
+  private enum CodingKeys: String, CodingKey {
+    case type
+    case value
+  }
+
+  /// The `type` strings of the cases.
+  private enum ValueType {
+    static let id = "id"
+    static let boolean = "boolean"
+  }
+
+  /// Decodes a config value from its ACP wire form, such as
+  /// `{"type": "id", "value": "auto"}`.
+  ///
+  /// - Parameter decoder: The decoder to read from.
+  /// - Throws: `DecodingError` when a key is missing, when the value has the
+  ///   wrong type, or when the `type` is not `id` or `boolean`. The kit only
+  ///   makes these two value types.
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let type = try container.decode(String.self, forKey: .type)
+    switch type {
+    case ValueType.id:
+      self = .id(try container.decode(String.self, forKey: .value))
+    case ValueType.boolean:
+      self = .boolean(try container.decode(Bool.self, forKey: .value))
+    default:
+      throw DecodingError.dataCorruptedError(
+        forKey: .type,
+        in: container,
+        debugDescription: "The config value type \(type) is not id or boolean."
+      )
+    }
+  }
+
+  /// Encodes the config value in its ACP wire form.
+  ///
+  /// - Parameter encoder: The encoder to write to.
+  /// - Throws: The error of the encoder.
+  public func encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    switch self {
+    case .id(let id):
+      try container.encode(ValueType.id, forKey: .type)
+      try container.encode(id, forKey: .value)
+    case .boolean(let value):
+      try container.encode(ValueType.boolean, forKey: .type)
+      try container.encode(value, forKey: .value)
+    }
+  }
+}
 
 nonisolated extension SelectOption: Codable {
   private enum CodingKeys: String, CodingKey {

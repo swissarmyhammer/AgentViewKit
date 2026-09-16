@@ -3,24 +3,7 @@
 /// `AgentThread.plans` is keyed by this type. An ACP agent sends one plan for
 /// each session, so the ACP adapter uses one fixed identifier. Other sources
 /// can keep more than one plan.
-public nonisolated struct PlanID: Sendable, Hashable, RawRepresentable {
-  /// The identifier string.
-  public let rawValue: String
-
-  /// Makes an identifier from its string.
-  ///
-  /// - Parameter rawValue: The identifier string.
-  public init(rawValue: String) {
-    self.rawValue = rawValue
-  }
-
-  /// Makes an identifier from its string.
-  ///
-  /// - Parameter rawValue: The identifier string.
-  public init(_ rawValue: String) {
-    self.init(rawValue: rawValue)
-  }
-}
+public typealias PlanID = Identifier<Plan>
 
 /// The task list of an agent (plan.md §3.2).
 ///

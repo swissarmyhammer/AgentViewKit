@@ -218,4 +218,42 @@ import Testing
     #expect(ConfigValue.id("auto") != ConfigValue.boolean(true))
     #expect(ConfigValue.id("auto") == ConfigValue.id("auto"))
   }
+
+  @Test func anIDValueEncodesTheACPWireForm() throws {
+    let json = try JSONDecoder().decode(
+      JSONValue.self, from: JSONEncoder().encode(ConfigValue.id("auto")))
+
+    #expect(json == .object(["type": .string("id"), "value": .string("auto")]))
+  }
+
+  @Test func aBooleanValueEncodesTheACPWireForm() throws {
+    let json = try JSONDecoder().decode(
+      JSONValue.self, from: JSONEncoder().encode(ConfigValue.boolean(false)))
+
+    #expect(json == .object(["type": .string("boolean"), "value": .bool(false)]))
+  }
+
+  @Test(arguments: [ConfigValue.id("auto"), .boolean(true), .boolean(false)])
+  func aValueRoundTripsThroughJSON(value: ConfigValue) throws {
+    let data = try JSONEncoder().encode(value)
+
+    #expect(try JSONDecoder().decode(ConfigValue.self, from: data) == value)
+  }
+
+  @Test func aValueWithAnUnknownTypeDoesNotDecode() {
+    let json = #"{"type": "_number", "value": 3}"#
+
+    #expect(throws: DecodingError.self) {
+      try JSONDecoder().decode(ConfigValue.self, from: Data(json.utf8))
+    }
+  }
+
+  // MARK: - Identifier
+
+  @Test func anIdentifierEncodesAsItsString() throws {
+    let data = try JSONEncoder().encode(ConfigOptionID("mode"))
+
+    #expect(String(decoding: data, as: UTF8.self) == #""mode""#)
+    #expect(try JSONDecoder().decode(ConfigOptionID.self, from: data) == ConfigOptionID("mode"))
+  }
 }
