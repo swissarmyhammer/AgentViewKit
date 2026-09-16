@@ -130,6 +130,18 @@ import Testing
         ))
   }
 
+  @Test func aChoiceIsASelectOptionWithElicitationNames() {
+    var choice = Choice(value: "a", title: "A", description: "The first.")
+
+    #expect(choice == SelectOption(id: "a", name: "A", description: "The first."))
+    #expect(choice.id == "a")
+
+    choice.value = "b"
+    choice.title = "B"
+
+    #expect(choice == SelectOption(id: "b", name: "B", description: "The first."))
+  }
+
   // MARK: - Primitive kinds
 
   @Test func aStringGivesATextFieldWithItsConstraints() throws {

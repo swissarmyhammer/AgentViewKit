@@ -262,10 +262,26 @@ public nonisolated enum ElicitationValidator {
 
 /// The RFC 3339 `full-date` and `date-time` checks.
 ///
-/// The checks read the digits and test the calendar ranges. They do not use
-/// a date formatter, so the result does not change with the locale or the
-/// time zone.
+/// The checks read the digits and test them with a fixed Gregorian calendar
+/// in UTC. They do not use a date formatter, so the result does not change
+/// with the locale or the time zone.
 private nonisolated enum RFC3339 {
+  /// The number of hours in a day. An hour or an offset hour is less.
+  private static let hoursPerDay = 24
+
+  /// The number of minutes in an hour. A minute or an offset minute is less.
+  private static let minutesPerHour = 60
+
+  /// The largest second. RFC 3339 allows the second 60 for a leap second.
+  private static let maximumSecond = 60
+
+  /// The Gregorian calendar in UTC that validates the day.
+  private static let calendar: Calendar = {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+    return calendar
+  }()
+
   /// Tells whether `text` is an RFC 3339 `full-date`, for example
   /// `2026-09-16`.
   static func isFullDate(_ text: String) -> Bool {
@@ -282,34 +298,21 @@ private nonisolated enum RFC3339 {
       isDate(year: match.1, month: match.2, day: match.3),
       let hour = Int(match.4), let minute = Int(match.5), let second = Int(match.6)
     else { return false }
-    // RFC 3339 allows the second 60 for a leap second.
-    guard hour < 24, minute < 60, second <= 60 else { return false }
+    guard hour < hoursPerDay, minute < minutesPerHour, second <= maximumSecond else {
+      return false
+    }
     if let offsetHour = match.7.flatMap({ Int($0) }),
       let offsetMinute = match.8.flatMap({ Int($0) })
     {
-      return offsetHour < 24 && offsetMinute < 60
+      return offsetHour < hoursPerDay && offsetMinute < minutesPerHour
     }
     return true
   }
 
   /// Tells whether the digits give a day of the Gregorian calendar.
   private static func isDate(year: Substring, month: Substring, day: Substring) -> Bool {
-    guard let year = Int(year), let month = Int(month), let day = Int(day),
-      (1...12).contains(month), day >= 1
-    else { return false }
-    return day <= daysIn(month: month, year: year)
-  }
-
-  /// The number of days in a month of the Gregorian calendar.
-  private static func daysIn(month: Int, year: Int) -> Int {
-    switch month {
-    case 2:
-      let isLeapYear = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
-      return isLeapYear ? 29 : 28
-    case 4, 6, 9, 11:
-      return 30
-    default:
-      return 31
-    }
+    guard let year = Int(year), let month = Int(month), let day = Int(day) else { return false }
+    let components = DateComponents(year: year, month: month, day: day)
+    return components.isValidDate(in: calendar)
   }
 }

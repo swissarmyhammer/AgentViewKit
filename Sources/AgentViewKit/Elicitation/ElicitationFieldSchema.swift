@@ -136,31 +136,36 @@ extension ElicitationFieldSchema {
 
   /// One choice of a single-choice or multi-choice field (plan.md §13.1).
   ///
-  /// Each choice encoding of the schema gives this type.
-  public nonisolated struct Choice: Sendable, Hashable, Identifiable {
-    /// The string that the answer contains when this choice is selected.
-    public var value: String
+  /// Each choice encoding of the schema gives this type. A choice and a
+  /// config select value have the same shape, so the two use one type. The
+  /// elicitation names ``SelectOption/value`` and ``SelectOption/title`` are
+  /// other names for ``SelectOption/id`` and ``SelectOption/name``.
+  public typealias Choice = SelectOption
+}
 
-    /// The label of the choice. For an untitled choice, this is ``value``.
-    public var title: String
+extension SelectOption {
+  /// Makes a choice of an elicitation field.
+  ///
+  /// - Parameters:
+  ///   - value: The string that the answer contains. This is ``id``.
+  ///   - title: The label of the choice. This is ``name``.
+  ///   - description: The help text of the choice.
+  public nonisolated init(value: String, title: String, description: String? = nil) {
+    self.init(id: value, name: title, description: description)
+  }
 
-    /// The help text of the choice, or `nil` when the schema has none.
-    public var description: String?
+  /// The string that an elicitation answer contains when this choice is
+  /// selected. This is ``id``.
+  public nonisolated var value: String {
+    get { id }
+    set { id = newValue }
+  }
 
-    /// The identifier of the choice. This is ``value``.
-    public var id: String { value }
-
-    /// Makes a choice.
-    ///
-    /// - Parameters:
-    ///   - value: The string that the answer contains.
-    ///   - title: The label of the choice.
-    ///   - description: The help text of the choice.
-    public init(value: String, title: String, description: String? = nil) {
-      self.value = value
-      self.title = title
-      self.description = description
-    }
+  /// The label of an elicitation choice. For an untitled choice, this is
+  /// ``value``. This is ``name``.
+  public nonisolated var title: String {
+    get { name }
+    set { name = newValue }
   }
 }
 
