@@ -9,10 +9,19 @@ comments:
     - commit: b4fa7af
     - review: findings — StreamingCoalescer.swift:20, StreamingMarkdownBalancer.swift:156, StreamingMarkdownBalancer.swift:162 (code-hygiene/magic-numbers-swift)
   timestamp: 2026-09-16T13:59:56.505601+00:00
+- actor: claude-code
+  id: 01m2n8c6v4spav6aatqj9w1ehx
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — named constants `defaultIntervalMilliseconds` (StreamingCoalescer.swift) and `escapeLength` (StreamingMarkdownBalancer.swift). `swiftlint` with `no_magic_numbers` gives no result on Sources/AgentViewKit/Streaming.
+    - test: green — swift test, all suites pass, no new warnings
+    - commit: 55f5434
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; the 3 earlier findings are checked. Task moved to done.
+  timestamp: 2026-09-16T14:01:50.692685+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: '8680'
 title: StreamingMarkdownBalancer and paragraph splitter, pure functions (plan §8)
 ---
 ## What
