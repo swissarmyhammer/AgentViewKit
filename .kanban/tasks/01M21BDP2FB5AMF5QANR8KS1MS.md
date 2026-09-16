@@ -29,11 +29,20 @@ comments:
     - commit: 2d645ce
     - review: findings — AuthorizationViewHostedTests.swift:204 (the literal in `.milliseconds(10)`). Fixed after the review with `pollIntervalMilliseconds`; local swiftlint no_magic_numbers reports 0 violations; swift test green (870).
   timestamp: 2026-09-16T20:32:08.086632+00:00
+- actor: claude-code
+  id: 01m2nyre6cetv4ex4b4jmdn5km
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — `pollIntervalMilliseconds` constant in the test gate
+    - test: green — swift test, 870 passed, only the accepted mlx warning
+    - commit: cc700ed
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; all prior findings checked. Task moved to done.
+  timestamp: 2026-09-16T20:33:00.108379+00:00
 depends_on:
 - 01M21AFDM0RPN9SPB5D35Y2FDR
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: a480
 title: 'AuthorizationView: the in-thread Connect card for an MCP server (plan §12)'
 ---
 ## What
