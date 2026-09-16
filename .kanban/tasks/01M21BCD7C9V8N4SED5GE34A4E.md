@@ -1,8 +1,17 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2n8gc2hzygjyzdjep45f7wq
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Model/JSONValue.swift, Tests/AgentViewKitTests/Model/JSONValueTests.swift (21 tests).
+    - decisions: The conversion properties have the names `boolValue`, `doubleValue`, `intValue`, `stringValue`. `jsonString` also sorts keys, so that its output is stable. Both printers do not escape `/`. A number that is not finite prints as `null`, so the printers do not throw. `intValue` uses `Int(exactly:)`: a fraction, a non-finite number, or a number out of range gives `nil`.
+    - next: test, commit, review.
+  timestamp: 2026-09-16T14:04:07.121622+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: todo
-position_ordinal: ae80
+position_column: doing
+position_ordinal: '8180'
 title: 'JSONValue: the kit-local JSON enum (plan §3.2, §11#1)'
 ---
 ## What
@@ -15,13 +24,13 @@ Create `Sources/AgentViewKit/Model/JSONValue.swift`. The core target must not im
 - Conversions `Bool?`, `Double?`, `Int?`, `String?` as computed properties.
 
 ## Acceptance Criteria
-- [ ] Round-trip of a nested object through `Codable` is equal.
-- [ ] `prettyPrinted` output is stable across runs for the same value.
-- [ ] `JSONValue(json: "{bad")` throws.
+- [x] Round-trip of a nested object through `Codable` is equal.
+- [x] `prettyPrinted` output is stable across runs for the same value.
+- [x] `JSONValue(json: "{bad")` throws.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Model/JSONValueTests.swift`: round-trip, subscripts, conversions, pretty print, parse error.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Model/JSONValueTests.swift`: round-trip, subscripts, conversions, pretty print, parse error.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
