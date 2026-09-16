@@ -149,4 +149,74 @@ struct LinkedLabelsView: View {
     try harness.press(identifier: "row-button")
     #expect(log.events == ["go"])
   }
+
+  @Test func incrementMovesASlider() throws {
+    let level = HostedLevel()
+    let harness = HostedViewHarness(SliderView(level: level))
+    defer { harness.close() }
+    harness.pump()
+
+    try harness.increment(identifier: "level")
+    #expect(level.value > 0)
+  }
+
+  @Test func incrementThrowsForAMissingIdentifier() {
+    let harness = HostedViewHarness(Text("hi"))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(throws: HostedViewHarnessError.noElement(identifier: "missing")) {
+      try harness.increment(identifier: "missing")
+    }
+  }
+
+  @Test func incrementThrowsForAnElementWithNoIncrementAction() {
+    let harness = HostedViewHarness(Text("hi").accessibilityIdentifier("text"))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(throws: HostedViewHarnessError.incrementFailed(identifier: "text")) {
+      try harness.increment(identifier: "text")
+    }
+  }
+
+  @Test func readsWhetherAnElementIsEnabled() {
+    let harness = HostedViewHarness {
+      VStack {
+        Button("On") {}
+          .accessibilityIdentifier("enabled")
+        Button("Off") {}
+          .disabled(true)
+          .accessibilityIdentifier("disabled")
+      }
+    }
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: "enabled")?.isEnabled == true)
+    #expect(harness.element(identifier: "disabled")?.isEnabled == false)
+  }
+}
+
+/// Holds the value of a hosted slider.
+@Observable
+final class HostedLevel {
+  /// The slider value.
+  var value: Double = 0
+}
+
+/// A slider from 0 to 10.
+struct SliderView: View {
+  /// The holder of the value.
+  let level: HostedLevel
+
+  var body: some View {
+    Slider(
+      value: Binding(get: { level.value }, set: { level.value = $0 }),
+      in: 0...10
+    ) {
+      Text("Level")
+    }
+    .accessibilityIdentifier("level")
+  }
 }

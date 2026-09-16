@@ -1,10 +1,25 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2ndt8qsrpc4pwsxk3vgyry6
+  text: |-
+    ### implement — changed
+    - evidence: 3 new source files in Sources/AgentViewKit/Elicitation, HostedViewHarness gets `increment(identifier:)` and `AccessibilityElementSnapshot.isEnabled`, new hosted tests.
+    - decisions:
+      - Each default field has the container identifier `elicitation-field-<name>`. The main control has `elicitation-field-<name>-control`. A choice has `elicitation-field-<name>-choice-<value>`. The errors have `elicitation-field-<name>-errors`. The single-choice field also has `-radio-group` or `-menu`.
+      - The overrides are one `ElicitationFieldOverrides` environment value, keyed by `ElicitationFieldSlot` (six cases). An override gets the container identifier from `ElicitationFieldView`.
+      - A date field with no answer shows a "Set Date" button. A date field with an answer shows the `DatePicker` and a Remove button. This lets an optional date stay empty.
+      - The radio group is a list of plain buttons with the selected trait, so that each choice has its own identifier.
+      - `ElicitationTextField(context:model:)` takes an EditorKit model from the host, as `CodeBlockView` does. The test edits the model to check the write to the binding.
+      - The harness does not increment a stepper. An AppKit stepper runs a blocking animation on a background thread, and that animation stops the main run loop later, so the test process exits early. The stepper test checks the shown answer. The slider test checks the write through the same number binding.
+    - next: commit, then review HEAD~1..HEAD.
+  timestamp: 2026-09-16T15:36:54.265354+00:00
 depends_on:
 - 01M21AA90BQK4DWDV9V1P22DH2
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 - 01M21ABMYXZQRNRDGB3DR6RK73
-position_column: todo
-position_ordinal: b780
+position_column: doing
+position_ordinal: '8180'
 title: Elicitation field views and their typed override modifiers (plan §13.1, §13.2)
 ---
 ## What
@@ -18,14 +33,14 @@ Create `Sources/AgentViewKit/Elicitation/ElicitationFieldContext.swift`, `Elicit
 - Accessibility identifier `elicitation-field-<name>`.
 
 ## Acceptance Criteria
-- [ ] Each kind mounts its default control and writes back through the binding.
-- [ ] Six choices render a menu; five render radios.
-- [ ] At `maxItems` a further check is disabled.
-- [ ] An override for one kind replaces only that kind.
+- [x] Each kind mounts its default control and writes back through the binding.
+- [x] Six choices render a menu; five render radios.
+- [x] At `maxItems` a further check is disabled.
+- [x] An override for one kind replaces only that kind.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Elicitation/ElicitationFieldViewsHostedTests.swift`: the four cases with the harness.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Elicitation/ElicitationFieldViewsHostedTests.swift`: the four cases with the harness.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

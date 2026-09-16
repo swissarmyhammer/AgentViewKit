@@ -14,6 +14,9 @@ public struct AccessibilityElementSnapshot: Equatable, Sendable {
   public let value: String?
   /// The accessibility identifier, or `nil` when the element has none.
   public let identifier: String?
+  /// Whether the element takes user actions. A disabled control gives
+  /// `false`.
+  public let isEnabled: Bool
   /// A copy of each element in `accessibilityLinkedUIElements()`. The copy
   /// of a linked element has no linked elements, so that a cycle of links
   /// stops.
@@ -26,18 +29,21 @@ public struct AccessibilityElementSnapshot: Equatable, Sendable {
   ///   - label: The label.
   ///   - value: The value as text.
   ///   - identifier: The accessibility identifier.
+  ///   - isEnabled: Whether the element takes user actions.
   ///   - linkedElements: The copies of the linked elements.
   public init(
     role: String?,
     label: String?,
     value: String?,
     identifier: String?,
+    isEnabled: Bool = true,
     linkedElements: [AccessibilityElementSnapshot] = []
   ) {
     self.role = role
     self.label = label
     self.value = value
     self.identifier = identifier
+    self.isEnabled = isEnabled
     self.linkedElements = linkedElements
   }
 }
@@ -48,6 +54,8 @@ public enum HostedViewHarnessError: Error, Equatable {
   case noElement(identifier: String)
   /// The element did not do the press action.
   case pressFailed(identifier: String)
+  /// The element did not do the increment action.
+  case incrementFailed(identifier: String)
   /// The harness has no key code for the key.
   case unsupportedKey(String)
 }
@@ -199,6 +207,30 @@ public final class HostedViewHarness<Content: View> {
     }
     guard Self.performPress(on: element) else {
       throw HostedViewHarnessError.pressFailed(identifier: identifier)
+    }
+    pump()
+  }
+
+  /// Does the increment action of the element with `identifier`, then pumps
+  /// the run loop.
+  ///
+  /// A slider does the increment action. Do not use this function on a
+  /// stepper: an AppKit stepper shows the increment with a blocking
+  /// animation on a background thread, and that animation can stop the main
+  /// run loop of the test process after the test. Then the process exits
+  /// before the other tests run.
+  ///
+  /// - Parameter identifier: The accessibility identifier of the element.
+  /// - Throws: ``HostedViewHarnessError/noElement(identifier:)`` when no
+  ///   element has `identifier`, and
+  ///   ``HostedViewHarnessError/incrementFailed(identifier:)`` when the
+  ///   element does not do the action.
+  public func increment(identifier: String) throws {
+    guard let element = liveElement(identifier: identifier) else {
+      throw HostedViewHarnessError.noElement(identifier: identifier)
+    }
+    guard Self.performIncrement(on: element) else {
+      throw HostedViewHarnessError.incrementFailed(identifier: identifier)
     }
     pump()
   }
@@ -367,6 +399,14 @@ public final class HostedViewHarness<Content: View> {
     (element as AnyObject).accessibilityPerformPress?() ?? false
   }
 
+  /// Does the increment action of `element`.
+  ///
+  /// - Parameter element: The element.
+  /// - Returns: `true` when the element did the action.
+  private static func performIncrement(on element: NSObject) -> Bool {
+    (element as AnyObject).accessibilityPerformIncrement?() ?? false
+  }
+
   /// A value copy of `element`.
   ///
   /// - Parameters:
@@ -381,6 +421,7 @@ public final class HostedViewHarness<Content: View> {
     let value = text(of: object.accessibilityValue?() ?? nil)
     let label: String? = object.accessibilityLabel?() ?? nil
     let title: String? = object.accessibilityTitle?() ?? nil
+    let isEnabled: Bool = object.isAccessibilityEnabled?() ?? true
     let links =
       includingLinks
       ? linkedElements(of: element).map { snapshot(of: $0, includingLinks: false) }
@@ -390,6 +431,7 @@ public final class HostedViewHarness<Content: View> {
       label: nonEmpty(label) ?? nonEmpty(title) ?? (role == .staticText ? value : nil),
       value: value,
       identifier: identifier(of: element),
+      isEnabled: isEnabled,
       linkedElements: links
     )
   }
