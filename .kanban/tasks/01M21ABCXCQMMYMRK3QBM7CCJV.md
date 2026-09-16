@@ -1,11 +1,28 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2ngcqs5bbeahxk7pt6yxt4r
+  text: |-
+    Research and design decisions (no user question; these follow plan.md §3.2 and §8):
+    - All dependencies are done. The records (ThreadRecord, ThreadItem), TerminalRecord, the request types, ThreadInfo, ThreadState, Plan, ConfigOption, SlashCommand, and ContextUsage exist in Sources/AgentViewKit/Model.
+    - The package sets defaultIsolation(MainActor). So PatchField, ItemPatch, TerminalPatch, and ThreadInfoPatch are `nonisolated` value types. The code that changes records is in `@MainActor` extensions.
+    - StreamingMessage shell goes in Sources/AgentViewKit/Streaming/StreamingMessage.swift, because task ^cyr6 (StreamingMessage) names that path. The shell has `id`, `text`, and `append(_:)`.
+    - ItemPatch has one case for each ThreadItem case (system, userMessage, assistantMessage, reasoning, toolCall, structured, compaction, error, unknown). A content chunk has its own case: userMessageChunk(ContentBlock), assistantMessageChunk(ContentBlock), reasoningChunk(String) (adds one segment), toolCallChunk(ToolContent). Each chunk appends to the content.
+    - `.cleared` on a field that is not optional sets the empty value: "" or [] for a collection, `.other` for ToolKind, `.pending` for ToolCallStatus, `.null` for a JSONValue payload, `.unknown(message: "")` for ThreadError.Kind.
+    - A patch whose kind is different from the kind of the existing item replaces that item at the same position.
+    - `replace` and a kind change give the new record the revision of the old record plus one, so that a row that compares id and revision sees the change.
+    - `insert(item, after: nil)` and `insert` after an unknown id append at the end. An `insert` of an id that exists replaces that item.
+    - `clear` empties items, index, plans, terminals, the three pending lists, and streaming. It keeps state, configOptions, availableCommands, usage, and info, because these belong to the session.
+    - TerminalPatch has PatchField members for command, cwd, exitStatus, output, and meta, plus `outputChunk: Data` that appends after the output field.
+    - AgentThread has a public `item(id:)` lookup that uses the index. The tests use it to check that the index stays correct.
+  timestamp: 2026-09-16T16:21:56.645994+00:00
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
 - 01M21A9KJGPPJE0X01JE0B9V33
 - 01M21BYFK7KVCKXYXJFCJW7FSM
 - 01M21BD0YVS2J4MD6VXDM317W6
-position_column: todo
-position_ordinal: '8580'
+position_column: doing
+position_ordinal: '8180'
 title: AgentThread and ThreadChange with PatchField upsert semantics (plan §3.2)
 ---
 ## What
@@ -19,18 +36,18 @@ Create `Sources/AgentViewKit/Model/AgentThread.swift`, `ThreadChange.swift`, `Pa
 - `items` stays an array of `ThreadItem`. Keep an `index: [String: Int]` for O(1) patch.
 
 ## Acceptance Criteria
-- [ ] A patch to an existing tool call changes only that record and increments its `revision` by one.
-- [ ] A patch to an unknown id inserts a new record.
-- [ ] `PatchField.cleared` sets the target to nil or empty; `.unchanged` leaves it.
-- [ ] `remove` and `clear` keep `index` consistent.
-- [ ] `setUsage` does not change any record revision.
-- [ ] `appendStreaming` on a new id creates the `StreamingMessage`; `closeStreaming` removes it.
+- [x] A patch to an existing tool call changes only that record and increments its `revision` by one.
+- [x] A patch to an unknown id inserts a new record.
+- [x] `PatchField.cleared` sets the target to nil or empty; `.unchanged` leaves it.
+- [x] `remove` and `clear` keep `index` consistent.
+- [x] `setUsage` does not change any record revision.
+- [x] `appendStreaming` on a new id creates the `StreamingMessage`; `closeStreaming` removes it.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Model/PatchFieldTests.swift`: fold table for the nine combinations.
-- [ ] `Tests/AgentViewKitTests/Model/AgentThreadApplyTests.swift`: one test per `ThreadChange` case, plus the first-sight-creates rule and the revision rule.
-- [ ] `Tests/AgentViewKitTests/Model/AgentThreadObservationTests.swift`: with `withObservationTracking`, a usage update does not fire an observer that read only `items`.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Model/PatchFieldTests.swift`: fold table for the nine combinations.
+- [x] `Tests/AgentViewKitTests/Model/AgentThreadApplyTests.swift`: one test per `ThreadChange` case, plus the first-sight-creates rule and the revision rule.
+- [x] `Tests/AgentViewKitTests/Model/AgentThreadObservationTests.swift`: with `withObservationTracking`, a usage update does not fire an observer that read only `items`.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
