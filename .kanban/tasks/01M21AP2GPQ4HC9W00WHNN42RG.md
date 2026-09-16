@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2p56843cy7t2frwh1a8dgr3
+  text: 'Note from ^2pzwgz2 (TerminalView, done): show the terminal auth process with `TerminalView(record:rowLimit:model:stdin:)` (Sources/AgentViewKit/Terminal/TerminalView.swift). Read the record from `thread.terminals[id]` (ACPThreadActions.runTerminalAuth writes it). Pass `stdin:` to show the single-line input field; the closure gets each line with no newline at the end, so the caller must add "\n" before it writes to the process. The field is disabled after `exitStatus` is set. The footer shows "Exit code N", "Stopped by SIGNAL", or "Exited". Accessibility identifiers are static members of TerminalView (`inputIdentifier`, `footerIdentifier`, `progressIdentifier`).'
+  timestamp: 2026-09-16T22:25:24.099171+00:00
 depends_on:
 - 01M21AFDM0RPN9SPB5D35Y2FDR
 - 01M21AJ767SWK19SZA82PZWGZ2

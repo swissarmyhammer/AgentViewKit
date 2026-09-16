@@ -4,6 +4,10 @@ comments:
   id: 01m2ny8fkfqzcezthbyndry7nk
   text: 'Requirement from ^r8ks1ms (AuthorizationView, done in this batch): `PendingRequestsHost` must show one `AuthorizationView(request:)` for each entry in `thread.pendingAuthorizations`, with `.id(request.id)`, so that each request has its own progress and error state. Wrap the card in the `pending-card-<id>` container. The card has its own inner identifier `authorization-card-<id>`. The card reads `\.threadActions` and `\.connectionStore` from the environment. See Docs/decisions/connection-states.md, section "The in-thread card".'
   timestamp: 2026-09-16T20:24:17.263524+00:00
+- actor: claude-code
+  id: 01m2p56a5ex3mdstw18de8btpk
+  text: 'Note from ^2pzwgz2 (TerminalView, done): for a command subject with a `terminalId`, link to `TerminalView(record: thread.terminals[terminalId])` (Sources/AgentViewKit/Terminal/TerminalView.swift). The view has the accessibility identifier `TerminalView.identifier` ("terminal"). v1 shows the output text with no ANSI colors (EditorKit has no foreground host marks); `ANSIText.attributed(from:)` keeps the colors.'
+  timestamp: 2026-09-16T22:25:26.190292+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AJ767SWK19SZA82PZWGZ2

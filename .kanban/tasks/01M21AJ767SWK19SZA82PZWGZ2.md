@@ -21,11 +21,20 @@ comments:
     - review: findings — 1: ANSIText.swift:491 (code-hygiene/data-driven)
     - next: switch replaced by the table SGR.valueCounts; tests green (835); commit and review again
   timestamp: 2026-09-16T22:24:26.165793+00:00
+- actor: claude-code
+  id: 01m2p564n010cnm8x57d7pkvvs
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — SGR.valueCounts table in ANSIText.swift
+    - test: green — swift test, AgentViewKitTests 835 passed, other targets 20/71/1/91 passed
+    - commit: abac2d3
+    - review: clean — 0 findings, all prior items checked; task moved to done
+  timestamp: 2026-09-16T22:25:20.544963+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: ab80
 title: TerminalView for agent-owned terminals with ANSI handling (plan §9 C, research R7)
 ---
 ## What
