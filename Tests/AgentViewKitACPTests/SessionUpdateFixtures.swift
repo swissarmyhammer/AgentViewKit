@@ -1,3 +1,4 @@
+import AgentViewKitACP
 import Foundation
 import FoundationModelsACP
 
@@ -184,4 +185,22 @@ enum SessionUpdateFixtures {
     case .unknown: "unknown"
     }
   }
+}
+
+/// A pending permission request that a test makes.
+struct TestPermission: PendingPermissionRequestValue {
+  /// The local id of the request.
+  var id: UUID
+
+  /// The request as the agent sent it.
+  var request: RequestPermissionRequest
+}
+
+/// A pending elicitation that a test makes.
+struct TestElicitation: PendingElicitationValue {
+  /// The local id of the elicitation.
+  var id: UUID
+
+  /// The request as the agent sent it.
+  var request: CreateElicitationRequest
 }

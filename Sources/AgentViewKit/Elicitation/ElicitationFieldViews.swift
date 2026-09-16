@@ -536,8 +536,7 @@ struct ElicitationDateCoding {
   /// - Returns: The date, or `nil` when the text is not a valid value.
   func date(from text: String) -> Date? {
     if dateTime {
-      return (try? Date.ISO8601FormatStyle().parse(text))
-        ?? (try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(text))
+      return ISO8601Time.date(from: text)
     }
     guard let match = text.wholeMatch(of: #/(\d{4})-(\d{2})-(\d{2})/#),
       let year = Int(match.1), let month = Int(match.2), let day = Int(match.3)

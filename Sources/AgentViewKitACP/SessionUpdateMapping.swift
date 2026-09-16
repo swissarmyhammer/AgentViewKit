@@ -264,16 +264,10 @@ public enum SessionUpdateMapping {
   private static func outputPatch(
     _ output: FoundationModelsACP.PatchField<TerminalOutput>
   ) -> AgentViewKit.PatchField<Data> {
-    switch output {
-    case .unchanged: return .unchanged
-    case .cleared: return .cleared
-    case .value(let snapshot):
-      guard let bytes = Data(base64Encoded: snapshot.data) else {
-        logger.error("A terminal output snapshot is not valid base64. The output does not change.")
-        return .unchanged
-      }
-      return .value(bytes)
-    }
+    wirePatch(
+      output,
+      failure: "A terminal output snapshot is not valid base64. The output does not change."
+    ) { Data(base64Encoded: $0.data) }
   }
 
   /// The patch of a terminal output chunk.
@@ -391,24 +385,9 @@ public enum SessionUpdateMapping {
   private static func datePatch(
     _ field: FoundationModelsACP.PatchField<String>
   ) -> AgentViewKit.PatchField<Date> {
-    switch field {
-    case .unchanged: return .unchanged
-    case .cleared: return .cleared
-    case .value(let text):
-      guard let date = iso8601Date(text) else {
-        logger.error("The session time \(text, privacy: .public) is not ISO 8601.")
-        return .unchanged
-      }
-      return .value(date)
+    wirePatch(field, failure: "A session time is not ISO 8601. The time does not change.") {
+      ISO8601Time.date(from: $0)
     }
-  }
-
-  /// Reads an ISO 8601 time, with or without fractional seconds.
-  static func iso8601Date(_ text: String) -> Date? {
-    if let date = try? Date(text, strategy: .iso8601) {
-      return date
-    }
-    return try? Date(text, strategy: .iso8601.year().month().day().time(includingFractionalSeconds: true))
   }
 
   // MARK: - Content blocks
@@ -642,6 +621,35 @@ public enum SessionUpdateMapping {
     case .unchanged: .unchanged
     case .cleared: .cleared
     case .value(let value): .value(transform(value))
+    }
+  }
+
+  /// Changes an ACP patch field into a kit patch field with a transform
+  /// that can fail.
+  ///
+  /// When the transform of a value fails, the mapping logs `failure` and the
+  /// patch does not change the stored value.
+  ///
+  /// - Parameters:
+  ///   - field: The ACP patch field.
+  ///   - failure: The log message for a value that the transform cannot read.
+  ///   - transform: Gives the kit value, or `nil` when it cannot read the
+  ///     wire value.
+  /// - Returns: The kit patch field.
+  private static func wirePatch<Wire, Kit>(
+    _ field: FoundationModelsACP.PatchField<Wire>,
+    failure: StaticString,
+    _ transform: (Wire) -> Kit?
+  ) -> AgentViewKit.PatchField<Kit> {
+    switch field {
+    case .unchanged: return .unchanged
+    case .cleared: return .cleared
+    case .value(let value):
+      guard let converted = transform(value) else {
+        logger.error("\(failure.description, privacy: .public)")
+        return .unchanged
+      }
+      return .value(converted)
     }
   }
 

@@ -8,8 +8,11 @@ import Testing
 /// The number of times that ``waitUntil(_:)`` checks its condition.
 private let maximumPolls = 400
 
+/// The time between two checks of ``waitUntil(_:)``, in milliseconds.
+private let pollMilliseconds = 5
+
 /// The time between two checks of ``waitUntil(_:)``.
-private let pollInterval = Duration.milliseconds(5)
+private let pollInterval = Duration.milliseconds(pollMilliseconds)
 
 /// Checks a condition until it is true or the time runs out.
 ///
@@ -44,18 +47,6 @@ private func thoughtChunk(_ text: String, id: String = "t1") -> String {
   {"sessionUpdate": "agent_thought_chunk", "messageId": "\(id)",
    "content": {"type": "text", "text": "\(text)"}}
   """
-}
-
-/// A pending permission request that a test makes.
-private struct TestPermission: PendingPermissionRequestValue {
-  var id: UUID
-  var request: RequestPermissionRequest
-}
-
-/// A pending elicitation that a test makes.
-private struct TestElicitation: PendingElicitationValue {
-  var id: UUID
-  var request: CreateElicitationRequest
 }
 
 /// A permission request with a tool call subject.

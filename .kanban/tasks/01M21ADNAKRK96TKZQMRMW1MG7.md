@@ -16,11 +16,20 @@ comments:
     - A chunk `_meta` (message, thought, tool call, terminal) is written to the record only when the chunk has one.
     - `PendingPermissionRequestValue` and `PendingElicitationValue` protocols exist because the client types have no public initializer. The client types conform to them.
   timestamp: 2026-09-16T17:02:32.679816+00:00
+- actor: claude-code
+  id: 01m2nk19e7wsg7n9z0y137jhh1
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files and Package.swift
+    - test: green — swift test, 59 ACP tests and 521 kit tests passed
+    - commit: 7d4dd0e
+    - review: findings — SessionUpdateMapping.swift:264, SessionUpdateMapping.swift:407, ACPThreadSourceTests.swift:12, ACPThreadSourceTests.swift:50, ACPThreadSourceTests.swift:56, SessionUpdateMappingTests.swift:11
+  timestamp: 2026-09-16T17:08:07.239928+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ACSE9JBXMRD2FQQD4CYR6
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'ACPThreadSource: fold ACP v2 SessionUpdate into ThreadChange (plan §3.3)'
 ---
 ## What
@@ -46,3 +55,17 @@ Create `Sources/AgentViewKitACP/ACPThreadSource.swift` and `Sources/AgentViewKit
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 12:02)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKitACP/SessionUpdateMapping.swift:264` `duplication/duplication` — outputPatch and datePatch duplicate the same error-handling pattern: both switch on a PatchField with three cases (.unchanged, .cleared, .value), attempt a type-specific transformation in the .value case with a guard that returns .unchanged on failure with a logged error. The blocks differ only in their transformation logic (base64 decode vs iso8601 parse) and error messages, making them candidates for extraction into a parameterized helper. Extract a shared helper function (e.g., `wirePatchWithFallback<Wire, Kit>(_ field: PatchField<Wire>, errorMessage: String, transform: (Wire) -> Kit?) -> PatchField<Kit>`) that implements this pattern. Rewrite both outputPatch and datePatch to call it, passing their specific transformation logic and error message.
+- [x] `Sources/AgentViewKitACP/SessionUpdateMapping.swift:407` `reuse/reuse` — iso8601Date() reimplements the same ISO 8601 date parsing with fractional-second fallback that already exists in ElicitationDateCoding.date(from:). Both functions parse ISO 8601 dates and fall back to parsing with fractional seconds support. Extract shared ISO 8601 date parsing to a public utility function (e.g., in a DateParsing struct or similar module) that both SessionUpdateMapping and ElicitationDateCoding can call, rather than maintaining two parallel implementations.
+- [x] `Tests/AgentViewKitACPTests/ACPThreadSourceTests.swift:12` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitACPTests/ACPThreadSourceTests.swift:50` `reuse/reuse` — TestPermission struct is duplicated in SessionUpdateMappingTests.swift:37. Both test files define identical stubs that should be shared in a single location. Define TestPermission once in SessionUpdateFixtures.swift and remove the duplicate definition from ACPThreadSourceTests.swift, allowing both test files to reuse it.
+- [x] `Tests/AgentViewKitACPTests/ACPThreadSourceTests.swift:56` `reuse/reuse` — TestElicitation struct is duplicated in SessionUpdateMappingTests.swift:43. Both test files define identical stubs that should be shared in a single location. Define TestElicitation once in SessionUpdateFixtures.swift and remove the duplicate definition from ACPThreadSourceTests.swift, allowing both test files to reuse it.
+- [x] `Tests/AgentViewKitACPTests/SessionUpdateMappingTests.swift:11` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

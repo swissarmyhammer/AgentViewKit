@@ -7,8 +7,12 @@ import Testing
 /// The id that the tests give to each new unknown record.
 private let unknownID = "unknown-1"
 
+/// The time `2026-09-16T10:00:00Z` of the session info fixture, in seconds
+/// after 1970-01-01T00:00:00Z.
+private let sessionTimeSeconds: TimeInterval = 1_789_552_800
+
 /// The time `2026-09-16T10:00:00Z` of the session info fixture.
-private let sessionTime = Date(timeIntervalSince1970: 1_789_552_800)
+private let sessionTime = Date(timeIntervalSince1970: sessionTimeSeconds)
 
 /// The fractional seconds of the second session info fixture.
 private let halfSecond: TimeInterval = 0.5
@@ -32,18 +36,6 @@ private func thread(applying fixtures: String...) throws -> AgentThread {
 private func mappedBlock(_ json: String) throws -> AgentViewKit.ContentBlock {
   SessionUpdateMapping.contentBlock(
     try SessionUpdateFixtures.decode(FoundationModelsACP.ContentBlock.self, json))
-}
-
-/// A pending permission request that a test makes.
-private struct TestPermission: PendingPermissionRequestValue {
-  var id: UUID
-  var request: RequestPermissionRequest
-}
-
-/// A pending elicitation that a test makes.
-private struct TestElicitation: PendingElicitationValue {
-  var id: UUID
-  var request: CreateElicitationRequest
 }
 
 @MainActor
