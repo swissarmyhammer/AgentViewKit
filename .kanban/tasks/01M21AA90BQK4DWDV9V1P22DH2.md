@@ -10,11 +10,21 @@ comments:
     - review: findings — ElicitationFieldSchema.swift:140 (duplication), ElicitationValidator.swift:286, 290, 298, 306, 307, 308, 309, 310, 312 (magic numbers)
     - decisions: the fields are in name order, because a JSON object does not keep key order. A property with an unknown type gives no field. A default with the wrong JSON type is ignored. A pattern that does not compile is ignored. An empty string or an empty array counts as no answer.
   timestamp: 2026-09-16T15:08:00.965815+00:00
+- actor: claude-code
+  id: 01m2ncbgv6e6tjd6qkyq6wtxpk
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — Choice is now a typealias of SelectOption, with value and title accessors. The RFC 3339 check uses named limits and a Gregorian calendar in UTC.
+    - test: green — swift test, 317 passed, swift format lint clean
+    - commit: ceba091
+    - review: clean — 0 findings, all 10 earlier findings checked. Task moved to done.
+    - note for ^BESSF4MJ0TS2JSHH9WTFM (field views): ElicitationFieldSchema.Choice is SelectOption. Use .value and .title in the elicitation views.
+  timestamp: 2026-09-16T15:11:22.470586+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCD7C9V8N4SED5GE34A4E
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: 8c80
 title: Elicitation schema normalization and validation, pure (plan §13.1)
 ---
 ## What
