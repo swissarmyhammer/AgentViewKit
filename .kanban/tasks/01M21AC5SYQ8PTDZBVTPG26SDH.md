@@ -1,6 +1,12 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2na3a5t8g7vasgm9qpbg72j
+  text: 'Dependency added: ^fetnvp6. The `ExpandedBlocksStore.defaultExpanded` policy uses the type `(ThreadItem) -> Bool`. The type `ThreadItem` is not in the tree. Task ^fetnvp6 (model records) adds it and is not done. This task stays in todo until ^fetnvp6 is done.'
+  timestamp: 2026-09-16T14:31:56.346136+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
+- 01M21A961W19N9FWQ92FETNVP6
 position_column: todo
 position_ordinal: '8880'
 title: ScrollAnchorManager and ExpandedBlocksStore (plan §8, §9 C2)
