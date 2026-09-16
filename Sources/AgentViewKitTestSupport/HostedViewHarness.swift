@@ -312,8 +312,33 @@ public final class HostedViewHarness<Content: View> {
   /// - Parameter element: The parent element.
   /// - Returns: The children that are Objective-C objects.
   private static func children(of element: NSObject) -> [NSObject] {
-    let children: [Any]? = (element as AnyObject).accessibilityChildren?() ?? nil
+    let children: [Any]? =
+      (element as AnyObject).accessibilityChildren?() ?? nil
+      ?? legacyAttribute(NSAccessibility.Attribute.children.rawValue, of: element) as? [Any]
     return (children ?? []).compactMap { $0 as? NSObject }
+  }
+
+  /// The selector of the attribute getter of the informal accessibility
+  /// protocol.
+  ///
+  /// The Swift form of this getter is deprecated. The row and cell elements
+  /// of an `NSOutlineView`, which a SwiftUI `List` uses, answer only this
+  /// getter, so the harness sends the selector.
+  private static var attributeValueSelector: Selector {
+    NSSelectorFromString("accessibilityAttributeValue:")
+  }
+
+  /// The value of the attribute `name` of `element`, read with the getter of
+  /// the informal accessibility protocol.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the attribute, such as `AXChildren`.
+  ///   - element: The element.
+  /// - Returns: The value, or `nil` when the element does not answer the
+  ///   getter or has no value.
+  private static func legacyAttribute(_ name: String, of element: NSObject) -> Any? {
+    guard element.responds(to: attributeValueSelector) else { return nil }
+    return element.perform(attributeValueSelector, with: name)?.takeUnretainedValue()
   }
 
   /// The elements that `element` links to.

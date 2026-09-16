@@ -131,4 +131,22 @@ struct LinkedLabelsView: View {
     let question = try #require(harness.element(identifier: "question"))
     #expect(question.linkedElements.map(\.identifier).contains("answer"))
   }
+
+  @Test func findsAndPressesAnElementInAListRow() throws {
+    let log = HostedEventLog()
+    let harness = HostedViewHarness {
+      List {
+        Text("first")
+          .accessibilityIdentifier("first-row")
+        Button("Go") { log.events.append("go") }
+          .accessibilityIdentifier("row-button")
+      }
+    }
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: "first-row")?.label == "first")
+    try harness.press(identifier: "row-button")
+    #expect(log.events == ["go"])
+  }
 }
