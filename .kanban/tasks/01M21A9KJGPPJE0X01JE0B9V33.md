@@ -19,10 +19,19 @@ comments:
     - review: findings — Sources/AgentViewKitTestSupport/PackageFiles.swift:7, Sources/AgentViewKitTestSupport/PackageFiles.swift:28
     - next (iteration 3, done in the tree): a new target `PackageFileSupport` with no dependency holds `PackageFiles`. It replaces `PackageRoot` in PackageStructureTests and the copy in AgentViewKitTestSupport. `PackageFiles.file(_:)` throws `PathOutsideRoot` for an absolute path, a `..` part, or a path that resolves outside the root. The target is not added to AgentViewKitTestSupport, because ManifestTests requires that target to depend on AgentViewKit only.
   timestamp: 2026-09-16T14:22:28.099498+00:00
+- actor: claude-code
+  id: 01m2n9mtny5b53t6rdehgpbe3m
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — new target `PackageFileSupport` (Package.swift, Sources/PackageFileSupport/PackageFiles.swift); PackageRoot.swift and the AgentViewKitTestSupport copy removed; path checks added with tests.
+    - test: green — swift test, 190 passed (20 + 167 + 1 + 1 + 1)
+    - commit: ad6c7d5
+    - review: clean — 0 findings; every prior item checked. Task moved to done.
+  timestamp: 2026-09-16T14:24:01.726784+00:00
 depends_on:
 - 01M21BCD7C9V8N4SED5GE34A4E
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '8880'
 title: 'Thread-level types: ThreadState, Plan, SlashCommand, ThreadInfo, ContextUsage with the R16 usage merge (plan §3.2, §14)'
 ---
 ## What
