@@ -1,4 +1,17 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nra2jery7f4za09kqh7y0e
+  text: |-
+    ### implement — changed
+    - Decision: the environment has a new key `expandedBlocksStore: ExpandedBlocksStore?`. `AgentThreadView` gives its own store to the rows when the host gives none. `StructuredItemView` and `UnknownItemView` keep the expanded state in that store, keyed by record id. With no store, they keep local state; `isExpanded:` sets the start state. Later tasks (SystemPromptView, ReasoningView, ToolCallView) can read the same key.
+    - Decision: `ItemRow ==` compares the record object, the id, and the revision. A new record object with the same id and revision (remove, then insert) is then a different row.
+    - Decision: each kind reads its override through a private generic view with only its own environment key, so a change to one override does not invalidate rows of other kinds.
+    - Placeholders of the seven other kinds have the identifier `item-placeholder-<id>`.
+    - Shared disclosure: `Sources/AgentViewKit/Items/JSONDisclosure.swift`. A `.contain` element on it made the row identifier hide the inner identifier, so the identifier is on the disclosure itself.
+    - evidence: `swift test` green, 733 tests (566 in AgentViewKitTests).
+    - next: commit, then review.
+  timestamp: 2026-09-16T18:40:17.998374+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ABMYXZQRNRDGB3DR6RK73
@@ -21,15 +34,15 @@ Create `Sources/AgentViewKit/Thread/AgentThreadView.swift`, `ItemRow.swift`, `So
 - Accessibility identifiers: `item-row-<id>`, `structured-item-<schemaName>`, `unknown-item`.
 
 ## Acceptance Criteria
-- [ ] `.toolCallView { … }` replaces the default for tool calls only.
-- [ ] A patch to one record of ten leaves `BodyEvaluationCounter` at one new evaluation for that row and zero for the other nine.
-- [ ] An unregistered `.structured` item renders `structured-item-<schemaName>`; a registered one renders the registration.
-- [ ] `.unknown` renders `unknown-item`.
+- [x] `.toolCallView { … }` replaces the default for tool calls only.
+- [x] A patch to one record of ten leaves `BodyEvaluationCounter` at one new evaluation for that row and zero for the other nine.
+- [x] An unregistered `.structured` item renders `structured-item-<schemaName>`; a registered one renders the registration.
+- [x] `.unknown` renders `unknown-item`.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Thread/AgentThreadViewHostedTests.swift`: mount, override, patch counts.
-- [ ] `Tests/AgentViewKitTests/Items/StructuredAndUnknownItemViewHostedTests.swift`.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Thread/AgentThreadViewHostedTests.swift`: mount, override, patch counts.
+- [x] `Tests/AgentViewKitTests/Items/StructuredAndUnknownItemViewHostedTests.swift`.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

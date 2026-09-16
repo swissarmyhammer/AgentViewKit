@@ -1,4 +1,13 @@
 import Observation
+import SwiftUI
+
+extension EnvironmentValues {
+  /// The store of the expanded items that the item views read.
+  ///
+  /// ``AgentThreadView`` sets a store for its rows. A view with no store
+  /// keeps its expanded state itself.
+  @Entry public var expandedBlocksStore: ExpandedBlocksStore? = nil
+}
 
 /// Keeps which thread items are expanded (plan.md §8, §9 C2).
 ///
