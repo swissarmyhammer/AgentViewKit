@@ -25,11 +25,20 @@ comments:
     - commit: 7d4dd0e
     - review: findings — SessionUpdateMapping.swift:264, SessionUpdateMapping.swift:407, ACPThreadSourceTests.swift:12, ACPThreadSourceTests.swift:50, ACPThreadSourceTests.swift:56, SessionUpdateMappingTests.swift:11
   timestamp: 2026-09-16T17:08:07.239928+00:00
+- actor: claude-code
+  id: 01m2nk8eqrw102wah4tk696wwk
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — added `ISO8601Time` in the kit (the ACP mapping and `ElicitationDateCoding` use it), added one failable `wirePatch(_:failure:_:)` helper, moved `TestPermission` and `TestElicitation` to SessionUpdateFixtures.swift, named the test numbers
+    - test: green — swift test, 59 ACP tests, 524 kit tests (3 new ISO8601TimeTests)
+    - commit: 78c59aa
+    - review: clean — 0 findings, all 6 prior items checked
+  timestamp: 2026-09-16T17:12:02.040940+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ACSE9JBXMRD2FQQD4CYR6
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: '9780'
 title: 'ACPThreadSource: fold ACP v2 SessionUpdate into ThreadChange (plan §3.3)'
 ---
 ## What
