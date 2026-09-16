@@ -27,11 +27,20 @@ comments:
     Decision: `PlanID` had the same duplicated wrapper, so it also moved to `Identifier<Plan>`. The call sites do not change.
     Fix for the Identifier.swift:7 finding (in the next commit): `Identifier` is `CustomStringConvertible`, and its `description` uses the name of `Tag`, for example `TerminalRecord(t1)`.
   timestamp: 2026-09-16T14:56:46.904305+00:00
+- actor: claude-code
+  id: 01m2nbm5mv61v1fjj07pm7xcxb
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — Identifier is CustomStringConvertible and uses Tag; new IdentifierTests.swift
+    - test: green — swift test, 246 + 20 + 3 tests passed, no new warnings
+    - commit: 2fe9fe8
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; all prior findings checked
+  timestamp: 2026-09-16T14:58:37.339290+00:00
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
 - 01M21BCD7C9V8N4SED5GE34A4E
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: 8b80
 title: TerminalRecord and ConfigOption types (plan §3.2, §3.4)
 ---
 ## What
