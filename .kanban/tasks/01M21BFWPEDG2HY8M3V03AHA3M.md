@@ -1,9 +1,20 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nzym958m113zamt4af52cc
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — added Sources/AgentViewKit/Content/CommandOutputView.swift and Sources/AgentViewKit/Code/OwnModelSlot.swift. CodeBlockView and CommandOutputView now share OwnModelSlot and EditorModel.syncReadOnly(to:).
+    - decisions: the default row limit is 200 rows (`CommandOutputView.defaultRowLimit`), and the host can set it with `rowLimit:`. The capped view shows the last rows. Copy writes the full output. The footer value is "Succeeded" or "Failed"; the tint comes from `AgentTheme.StatusColors.color(for: CommandOutputView.ExitOutcome)`. A nil exit code shows no footer.
+    - test: green — `timeout 900 swift test --filter AgentViewKitTests`, 721 tests in 63 suites passed, exit 0
+    - commit: 15ca6f3
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (2 refuted)
+  timestamp: 2026-09-16T20:53:51.525135+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21ACHJYSF8G8R7HY3M70Z7F
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: a680
 title: CommandOutputView for shell and job output blocks (plan §9 F)
 ---
 ## What
