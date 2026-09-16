@@ -17,10 +17,19 @@ comments:
     ### test — green
     - evidence: swift test — 395 tests in 34 suites passed, plus 20 and 1; RequestTypesTests 18 tests passed; no new warnings
   timestamp: 2026-09-16T16:15:38.110069+00:00
+- actor: claude-code
+  id: 01m2ng6cdbt82j2hayrswmdckp
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files
+    - test: green — swift test, 395 + 20 + 1 tests passed
+    - commit: 3c114dd
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; task moved to done
+  timestamp: 2026-09-16T16:18:28.395498+00:00
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '9280'
 title: 'Pending request types: PermissionRequest, ElicitationRequest, AuthorizationRequest, AuthMethod (plan §3.2, §12, §13)'
 ---
 ## What
