@@ -8,6 +8,10 @@ comments:
   id: 01m2p0m0rvznj9yrjj2qj6vp1h
   text: 'Note from ^vznkzkp (MathView): Textual draws each inline math attachment in a `Canvas`, which has no accessibility children. `MarkdownProse` (Sources/AgentViewKit/Content/MarkdownProse.swift) adds `MathSpanAccessibility` in an overlay: one 1x1 element for each math span, with the identifier `math-inline` or `math-block` and the LaTeX source as the label. The paragraph text element does not read the math, and VoiceOver reads the math elements after the text. This task must put each math element at its place in the reading order of the paragraph (linked reading group), and must keep the identifiers and labels. See Docs/decisions/math-engine.md, section "Accessibility".'
   timestamp: 2026-09-16T21:05:32.443620+00:00
+- actor: claude-code
+  id: 01m2p3vd72g7vpx8yvrz8bayam
+  text: 'Note from ^xa2n421 (ConversationView): the thread list is now `ConversationView` (Sources/AgentViewKit/Thread/ConversationView.swift). The linked reading group of the thread must wrap the rows of its `LazyVStack`. The "load-earlier-row" already has the `causesPageTurn` trait and an `accessibilityScrollAction` for the top edge. The `conversation-list` element has the value "N of M items". Keep these when you add the linked groups.'
+  timestamp: 2026-09-16T22:02:00.290889+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21AHYBMNR7CNDZRPMWRTRTY
