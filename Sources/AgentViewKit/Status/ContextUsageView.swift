@@ -31,9 +31,13 @@ public struct ContextUsageView: View {
   /// The fraction where the filled arc of the ring starts.
   static let ringEmptyFraction: CGFloat = 0
 
+  /// The number of degrees in a quarter turn.
+  static let quarterTurnDegrees: Double = 90
+
   /// The rotation that puts the start of the filled arc at the top of the
-  /// ring. A trimmed circle starts at the right side.
-  static let ringStartAngle = Angle.degrees(-90)
+  /// ring. A trimmed circle starts at the right side, so the ring turns back
+  /// by a quarter turn.
+  static let ringStartAngle = Angle.degrees(-quarterTurnDegrees)
 
   /// The fraction of a full context window.
   static let fullFraction: Double = 1

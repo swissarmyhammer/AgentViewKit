@@ -10,6 +10,16 @@ comments:
     - `AgentTheme.MaterialLevel.glass` (internal) maps the level to Liquid Glass. SwiftUI has no thin glass, so thin uses clear.
     - `ContextUsageView(usage: ContextUsage?)` is empty for nil. The ring help tag and the accessibility hint show the token counts.
   timestamp: 2026-09-16T19:36:18.353052+00:00
+- actor: claude-code
+  id: 01m2nvq77dnk17k2q4j8j352nq
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 9 files (3 views, glass map, status colors, 4 test files)
+    - test: green — swift test --filter AgentViewKitTests, 632 tests in 55 suites passed
+    - commit: 728fb56
+    - review: findings — Sources/AgentViewKit/Status/ContextUsageView.swift:36 (code-hygiene/magic-numbers-swift)
+    - correction: the ErrorView task short id is ^apwfm0s, not ^8gn3p as the decisions comment says.
+  timestamp: 2026-09-16T19:39:54.477658+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
@@ -37,3 +47,12 @@ Create `Sources/AgentViewKit/Status/TaskListView.swift`, `StateBanner.swift`, an
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 14:36)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Status/ContextUsageView.swift:36` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

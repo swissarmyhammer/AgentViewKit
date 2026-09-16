@@ -14,6 +14,9 @@ import Testing
   /// A usage with half of the window in use and no other parts.
   static let halfUsage = ContextUsage(used: 500, size: 1000)
 
+  /// A usage with three quarters of the window in use and no other parts.
+  static let threeQuarterUsage = ContextUsage(used: 750, size: 1000)
+
   /// A usage with each part.
   static let fullUsage = ContextUsage(
     used: 1200, size: 4000,
@@ -101,7 +104,7 @@ import Testing
     defer { harness.close() }
     harness.pump()
 
-    let next = ContextUsage(used: 750, size: 1000)
+    let next = Self.threeQuarterUsage
     thread.apply(.setUsage(next))
     let expected = ContextUsageView.percentText(for: next)
     await harness.pump(until: Self.updateWaitSeconds) {
