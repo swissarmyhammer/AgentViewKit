@@ -43,8 +43,8 @@ public final class ScrollAnchorManager {
   /// A list with no item is pinned.
   public private(set) var isPinnedToBottom = true
 
-  /// The identifier that ``saveAnchor()`` kept, or `nil` when no anchor is
-  /// kept.
+  /// The identifier that ``saveAnchor()`` or ``noteJump(to:)`` kept, or
+  /// `nil` when no anchor is kept.
   public private(set) var anchorID: String?
 
   /// The identifiers of the items in view, in the order that the list gave.
@@ -142,6 +142,17 @@ public final class ScrollAnchorManager {
   /// With no visible item, the manager keeps no anchor.
   public func saveAnchor() {
     anchorID = visibleIDs.first
+  }
+
+  /// Keeps `id` as the anchor, after the user picks an item to go to.
+  ///
+  /// The caller scrolls the list to the item. The manager sends no scroll.
+  /// A later ``restoreAnchor()`` keeps the item in view across a list
+  /// update. The thread minimap calls this function.
+  ///
+  /// - Parameter id: The identifier of the item that the user picked.
+  public func noteJump(to id: String) {
+    anchorID = id
   }
 
   /// Scrolls back to the kept anchor, after a list update, and clears it.

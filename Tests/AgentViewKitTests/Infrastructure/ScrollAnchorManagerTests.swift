@@ -233,4 +233,16 @@ import Testing
 
     #expect(manager.anchorID == nil)
   }
+
+  @Test func aJumpKeepsTheItemAsTheAnchorAndSendsNoScroll() {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeManager(recorder: recorder)
+    manager.noteAppended(ids: ["a", "b", "c", "d"])
+    manager.noteVisible(ids: ["a", "b"])
+
+    manager.noteJump(to: "c")
+
+    #expect(manager.anchorID == "c")
+    #expect(recorder.targets.isEmpty)
+  }
 }
