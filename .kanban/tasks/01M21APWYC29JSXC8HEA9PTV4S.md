@@ -1,9 +1,20 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nz7apdtr8ytzkqkv165y63
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — SessionSummary.swift, SessionListModel.swift, SessionListView.swift, ACPSessionList.swift, 2 new test files, ScriptedWireAgent gets resultQueues and bounded(_:)
+    - test: green — swift test: 707 + 91 + 71 + 20 + 1 tests pass; only the accepted mlx warning
+    - commit: bc77a8a
+    - review: findings — Sources/AgentViewKit/Sessions/SessionListView.swift:182
+    - decisions: SessionListModel is a public Observable model, so a host can set the search text or reload. The search field is a TextField in the header, not .searchable, because .searchable needs a toolbar container. The delete action is a row button (not a context menu), because menu items are not visible until the menu opens. ACPSessionList.delete(_:) sends session/delete; the host gives it to onDelete.
+  timestamp: 2026-09-16T20:41:08.045242+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: SessionListView with cursor paging over ACP session/list (plan §9 A)
 ---
 ## What
@@ -25,3 +36,12 @@ Create `Sources/AgentViewKit/Sessions/SessionSummary.swift`, `SessionListView.sw
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 15:38)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Sessions/SessionListView.swift:182` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

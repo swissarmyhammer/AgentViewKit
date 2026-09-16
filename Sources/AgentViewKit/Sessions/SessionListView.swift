@@ -37,6 +37,13 @@ public struct SessionListView: View {
   /// The title of a session that has no title.
   public static let untitledTitle = "Untitled Session"
 
+  /// The space between the title and the time of a row, in points.
+  static let rowLineSpacing: CGFloat = 2
+
+  /// The space between the header, the failure message, and the list, in
+  /// points.
+  static let sectionSpacing: CGFloat = 0
+
   /// The accessibility identifier of the row of a session.
   ///
   /// - Parameter id: The identifier of the session.
@@ -110,7 +117,7 @@ public struct SessionListView: View {
   }
 
   public var body: some View {
-    VStack(spacing: 0) {
+    VStack(spacing: Self.sectionSpacing) {
       header
       if let message = model.failureMessage {
         Text(message)
@@ -179,7 +186,7 @@ public struct SessionListView: View {
       Button {
         onSelect(session.id)
       } label: {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Self.rowLineSpacing) {
           Text(session.title ?? Self.untitledTitle)
             .lineLimit(1)
           if let updatedAt = session.updatedAt {
