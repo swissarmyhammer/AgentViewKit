@@ -26,11 +26,20 @@ comments:
     - discovery: an `@Observable` nested class cannot be `private`, because the macro adds an extension; it is `fileprivate`.
     - next: commit, then review HEAD~1..HEAD
   timestamp: 2026-09-16T15:49:10.380905+00:00
+- actor: claude-code
+  id: 01m2nemv140y544rmn67bprncp
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files
+    - test: green — swift test, 391 tests pass, 0 failures
+    - commit: 38d468d
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (7 attempted, 0 failed); task moved to done
+  timestamp: 2026-09-16T15:51:24.964231+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21A961W19N9FWQ92FETNVP6
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: 8f80
 title: ScrollAnchorManager and ExpandedBlocksStore (plan §8, §9 C2)
 ---
 ## What
