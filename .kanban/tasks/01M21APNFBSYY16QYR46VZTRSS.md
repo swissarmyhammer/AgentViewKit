@@ -4,6 +4,10 @@ comments:
   id: 01m2nx9yy396kdjzpebyhas7mj
   text: 'Note from ^5a3wmgc (ElicitationView): the environment value `EnvironmentValues.focusReporter: (any FocusReporter)?` now exists in Sources/AgentViewKit/Platform/FocusReporter.swift. `ElicitationView` calls `focusMoved(to: "elicitation-form")` on appear. The focus-move work of this task must use this environment value and must not add a second one. PermissionView must call it with its own identifier on appear.'
   timestamp: 2026-09-16T20:07:37.155247+00:00
+- actor: claude-code
+  id: 01m2p0m0rvznj9yrjj2qj6vp1h
+  text: 'Note from ^vznkzkp (MathView): Textual draws each inline math attachment in a `Canvas`, which has no accessibility children. `MarkdownProse` (Sources/AgentViewKit/Content/MarkdownProse.swift) adds `MathSpanAccessibility` in an overlay: one 1x1 element for each math span, with the identifier `math-inline` or `math-block` and the LaTeX source as the label. The paragraph text element does not read the math, and VoiceOver reads the math elements after the text. This task must put each math element at its place in the reading order of the paragraph (linked reading group), and must keep the identifiers and labels. See Docs/decisions/math-engine.md, section "Accessibility".'
+  timestamp: 2026-09-16T21:05:32.443620+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21AHYBMNR7CNDZRPMWRTRTY

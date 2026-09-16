@@ -10,6 +10,7 @@ reads the Textual row and compares it with `Package.swift` and
 | Package | URL | Requirement | Products |
 |---|---|---|---|
 | textual | https://github.com/gonzalezreal/textual | exact 0.5.0 | `Textual` |
+| swiftui-math | https://github.com/gonzalezreal/swiftui-math | exact 0.1.0 | `SwiftUIMath` |
 | EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorComplete`, `EditorDecorations` |
 | FoundationModelsACP | git@github.com:swissarmyhammer/FoundationModelsACP.git | branch main | `FoundationModelsACP` |
 | FoundationModelsACPClient | git@github.com:swissarmyhammer/FoundationModelsACPClient.git | branch main | `FoundationModelsACPClient` |
@@ -25,6 +26,13 @@ reads the Textual row and compares it with `Package.swift` and
 - Textual is a 0.x package. A 0.x minor release can break the API, so the pin is
   `exact`.
 
+## swiftui-math
+
+- `Docs/decisions/math-engine.md` records the choice of the math engine.
+- Textual 0.5.0 depends on the same package with `from: "0.1.0"`. The kit
+  pins it `exact`, because it is a 0.x package and the kit uses its
+  `Textual` SPI.
+
 ## The in-family packages
 
 - Each in-family package uses the SSH URL and `branch: "main"`. This is the form
@@ -36,7 +44,7 @@ reads the Textual row and compares it with `Package.swift` and
 
 | Target | Can import |
 |---|---|
-| `AgentViewKit` | EditorKit products, `Textual` |
+| `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath` |
 | `AgentViewKitFoundationModels` | `AgentViewKit`, the `FoundationModels` framework |
 | `AgentViewKitRouter` | `AgentViewKit`, `FoundationModelsRouter`, `FoundationModelsExtras` |
 | `AgentViewKitACP` | `AgentViewKit`, `FoundationModelsACP`, `FoundationModelsACPClient` |

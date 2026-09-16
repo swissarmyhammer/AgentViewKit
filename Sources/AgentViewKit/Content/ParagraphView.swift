@@ -1,5 +1,4 @@
 import SwiftUI
-import Textual
 
 /// One settled paragraph of a response, rendered through Textual
 /// (plan.md §4.2, §8).
@@ -60,7 +59,7 @@ public struct ParagraphView: View, Equatable {
     #if DEBUG
       BodyEvaluationCounter.note(Self.counterKey(messageID: messageID, paragraphID: paragraph.id))
     #endif
-    return StructuredText(markdown: paragraph.text)
+    return MarkdownProse(text: paragraph.text)
       .environment(
         \.codeBlockID,
         CodeBlockID(messageID: messageID, paragraphID: Self.key(for: paragraph.id))

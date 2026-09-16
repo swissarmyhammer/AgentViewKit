@@ -52,6 +52,12 @@ let textualProducts: [Target.Dependency] = [
   .product(name: "Textual", package: "textual")
 ]
 
+/// The math engine (plan.md §11 decision 7). Docs/decisions/math-engine.md
+/// records the choice and the version.
+let mathEngineProducts: [Target.Dependency] = [
+  .product(name: "SwiftUIMath", package: "swiftui-math")
+]
+
 let package = Package(
   name: "AgentViewKit",
   platforms: [
@@ -73,13 +79,16 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsExtras.git", branch: "main"),
     // Textual is a 0.x package, so the pin is exact.
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
+    // The math engine is a 0.x package, so the pin is exact. Textual 0.5.0
+    // also depends on it, with `from: "0.1.0"`.
+    .package(url: "https://github.com/gonzalezreal/swiftui-math", exact: "0.1.0"),
   ],
   targets: [
     // The model and the views. This target must not import a source runtime.
     // ImportBoundaryTests enforces this.
     .target(
       name: "AgentViewKit",
-      dependencies: editorKitProducts + textualProducts,
+      dependencies: editorKitProducts + textualProducts + mathEngineProducts,
       // The catalog document is the schema name agreement with the Router.
       // StructuredCatalogTests reads it from disk, so the build excludes it.
       exclude: ["Catalog/catalog.md"],

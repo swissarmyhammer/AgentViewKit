@@ -198,7 +198,7 @@ private struct StreamingTail: View {
     switch streaming.tail {
     case .markdown(let text):
       if !text.allSatisfy(\.isWhitespace) {
-        StructuredText(markdown: text)
+        MarkdownProse(text: text)
           .contentContainer(identifier: ResponseView.tailIdentifier)
       }
     case .openFence(let language, let body):
