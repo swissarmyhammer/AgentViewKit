@@ -4,6 +4,10 @@ comments:
   id: 01m2n2jwb34wgpq6x03vj5cadn
   text: 'Note from ^he8kkt1: `Sources/AgentViewKit/Connections/WebAuthSessionFactory.swift` now holds the `WebAuthSession` and `WebAuthSessionFactory` protocols and the `WebAuthSessionCompletion` typealias (`@Sendable (URL?, (any Error)?) -> Void`). `makeSession` takes `url:callbackScheme:completion:`. In this task, add the default factory over `ASWebAuthenticationSession` to that file. `FakeWebAuthSession` (in `AgentViewKitTestSupport`) completes synchronously in `start()` with the scripted URL, with `ASWebAuthenticationSessionError(.canceledLogin)`, or returns `false` for `.failsToStart`.'
   timestamp: 2026-09-16T12:20:37.859702+00:00
+- actor: claude-code
+  id: 01m2n32mwprwpfwea2tfg6643a
+  text: 'Correction from ^he8kkt1 (after review finding `swift/concurrency`): the session API is now async, with no completion handler. `WebAuthSessionFactory.makeSession(url:callbackScheme:) -> any WebAuthSession`. `WebAuthSession` has `prefersEphemeralWebBrowserSession`, `presentationContextProvider`, `start() async throws -> URL`, and `cancel()`. `start()` throws `WebAuthSessionError.failedToStart` when the session does not start, and `ASWebAuthenticationSessionError(.canceledLogin)` when it ends with no callback. The default factory must bridge the completion of `ASWebAuthenticationSession` to `start()`. `FakeWebAuthSession` scripts: `.callback(URL)`, `.cancelled`, `.failsToStart`, `.waitsForCancel`. The earlier note about `start() -> Bool` and a completion is no longer correct.'
+  timestamp: 2026-09-16T12:29:14.518546+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCRF2JZ6W49NKXHE8KKT1

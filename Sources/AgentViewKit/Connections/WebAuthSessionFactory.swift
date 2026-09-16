@@ -1,6 +1,16 @@
 import AuthenticationServices
 import Foundation
 
+/// The errors of a ``WebAuthSession`` that are not errors of
+/// `ASWebAuthenticationSession`.
+///
+/// A session that the user stops throws
+/// `ASWebAuthenticationSessionError(.canceledLogin)`.
+public enum WebAuthSessionError: Error, Equatable, Sendable {
+  /// The session did not start.
+  case failedToStart
+}
+
 /// A web authentication session, with the part of
 /// `ASWebAuthenticationSession` that the kit uses (plan.md §12).
 public protocol WebAuthSession: AnyObject {
@@ -13,27 +23,23 @@ public protocol WebAuthSession: AnyObject {
     get set
   }
 
-  /// Starts the session.
+  /// Starts the session and waits until it ends.
   ///
-  /// - Returns: `true` when the session started.
-  func start() -> Bool
+  /// - Returns: The callback URL.
+  /// - Throws: ``WebAuthSessionError/failedToStart`` when the session does
+  ///   not start, and `ASWebAuthenticationSessionError(.canceledLogin)` when
+  ///   the session ends with no callback.
+  func start() async throws -> URL
 
-  /// Stops the session. The session then calls its completion with the
-  /// cancelled error.
+  /// Stops the session. A ``start()`` that waits then throws the cancelled
+  /// error.
   func cancel()
 }
-
-/// The completion of a ``WebAuthSession``: the callback URL, or an error.
-///
-/// The shape is the same as the completion of `ASWebAuthenticationSession`.
-/// A session that the user stops gives
-/// `ASWebAuthenticationSessionError(.canceledLogin)`.
-public typealias WebAuthSessionCompletion = @Sendable (URL?, (any Error)?) -> Void
 
 /// The object that makes a ``WebAuthSession``.
 ///
 /// The authorization presenter gets a factory, so that a test can give a
-/// fake that completes with a scripted URL or with the cancelled error.
+/// fake that gives a scripted URL or throws the cancelled error.
 public protocol WebAuthSessionFactory: AnyObject {
   /// Makes a session that opens `url` and waits for a callback URL with
   /// `callbackScheme`.
@@ -41,12 +47,6 @@ public protocol WebAuthSessionFactory: AnyObject {
   /// - Parameters:
   ///   - url: The authorization URL to open.
   ///   - callbackScheme: The URL scheme of the callback.
-  ///   - completion: The closure that the session calls one time when it
-  ///     ends.
   /// - Returns: A session that did not start.
-  func makeSession(
-    url: URL,
-    callbackScheme: String,
-    completion: @escaping WebAuthSessionCompletion
-  ) -> any WebAuthSession
+  func makeSession(url: URL, callbackScheme: String) -> any WebAuthSession
 }

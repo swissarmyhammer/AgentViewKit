@@ -9,14 +9,15 @@ import Foundation
 public final class FakeWebAuthSession: WebAuthSessionFactory {
   /// The result that a session gives when it starts.
   public enum Script: Equatable, Sendable {
-    /// The session completes with this callback URL.
+    /// `start()` returns this callback URL.
     case callback(URL)
-    /// The session completes with
-    /// `ASWebAuthenticationSessionError(.canceledLogin)`.
+    /// `start()` throws `ASWebAuthenticationSessionError(.canceledLogin)`.
     case cancelled
-    /// The session does not start. `start()` returns `false`, and the
-    /// session does not call its completion.
+    /// `start()` throws ``WebAuthSessionError/failedToStart``.
     case failsToStart
+    /// `start()` waits until `cancel()`, then throws
+    /// `ASWebAuthenticationSessionError(.canceledLogin)`.
+    case waitsForCancel
   }
 
   /// One recorded call.
@@ -52,15 +53,10 @@ public final class FakeWebAuthSession: WebAuthSessionFactory {
   /// - Parameters:
   ///   - url: The authorization URL.
   ///   - callbackScheme: The URL scheme of the callback.
-  ///   - completion: The closure that the session calls when it ends.
   /// - Returns: A ``Session`` that did not start.
-  public func makeSession(
-    url: URL,
-    callbackScheme: String,
-    completion: @escaping WebAuthSessionCompletion
-  ) -> any WebAuthSession {
+  public func makeSession(url: URL, callbackScheme: String) -> any WebAuthSession {
     calls.append(.makeSession(url: url, callbackScheme: callbackScheme))
-    let session = Session(factory: self, script: script, completion: completion)
+    let session = Session(factory: self, script: script)
     sessions.append(session)
     return session
   }
@@ -79,9 +75,6 @@ public final class FakeWebAuthSession: WebAuthSessionFactory {
   }
 
   /// A session that ``FakeWebAuthSession`` made.
-  ///
-  /// The session calls its completion synchronously, in ``start()`` or in
-  /// ``cancel()``, and only one time.
   public final class Session: WebAuthSession {
     /// The factory that records the calls of the session.
     private weak var factory: FakeWebAuthSession?
@@ -89,62 +82,51 @@ public final class FakeWebAuthSession: WebAuthSessionFactory {
     /// The result that the session gives when it starts.
     private let script: Script
 
-    /// The completion, or `nil` after the session called it.
-    private var completion: WebAuthSessionCompletion?
+    /// The continuation of a ``start()`` that waits for ``cancel()``.
+    private var waitingStart: CheckedContinuation<URL, any Error>?
 
     public var prefersEphemeralWebBrowserSession = false
 
     public weak var presentationContextProvider: (any ASWebAuthenticationPresentationContextProviding)?
+
+    /// Whether a ``start()`` waits for ``cancel()`` now.
+    public var isWaiting: Bool { waitingStart != nil }
 
     /// Makes a session.
     ///
     /// - Parameters:
     ///   - factory: The factory that records the calls.
     ///   - script: The result of the session.
-    ///   - completion: The closure to call when the session ends.
-    fileprivate init(
-      factory: FakeWebAuthSession,
-      script: Script,
-      completion: @escaping WebAuthSessionCompletion
-    ) {
+    fileprivate init(factory: FakeWebAuthSession, script: Script) {
       self.factory = factory
       self.script = script
-      self.completion = completion
     }
 
     /// Records the start, then gives the scripted result.
     ///
-    /// - Returns: `false` for ``Script/failsToStart``, otherwise `true`.
-    public func start() -> Bool {
+    /// - Returns: The scripted callback URL.
+    /// - Throws: The scripted error.
+    public func start() async throws -> URL {
       factory?.record(.start(ephemeral: prefersEphemeralWebBrowserSession))
       switch script {
       case .callback(let url):
-        finish(url: url, error: nil)
-        return true
+        return url
       case .cancelled:
-        finish(url: nil, error: ASWebAuthenticationSessionError(.canceledLogin))
-        return true
+        throw ASWebAuthenticationSessionError(.canceledLogin)
       case .failsToStart:
-        return false
+        throw WebAuthSessionError.failedToStart
+      case .waitsForCancel:
+        return try await withCheckedThrowingContinuation { waitingStart = $0 }
       }
     }
 
-    /// Records the stop, then completes with the cancelled error when the
-    /// session did not complete before.
+    /// Records the stop. A ``start()`` that waits then throws the cancelled
+    /// error.
     public func cancel() {
       factory?.record(.cancel)
-      finish(url: nil, error: ASWebAuthenticationSessionError(.canceledLogin))
-    }
-
-    /// Calls the completion one time.
-    ///
-    /// - Parameters:
-    ///   - url: The callback URL, or `nil`.
-    ///   - error: The error, or `nil`.
-    private func finish(url: URL?, error: (any Error)?) {
-      guard let completion else { return }
-      self.completion = nil
-      completion(url, error)
+      let continuation = waitingStart
+      waitingStart = nil
+      continuation?.resume(throwing: ASWebAuthenticationSessionError(.canceledLogin))
     }
   }
 }

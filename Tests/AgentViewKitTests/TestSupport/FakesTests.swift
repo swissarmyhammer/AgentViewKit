@@ -3,37 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import AuthenticationServices
 import Foundation
-import Synchronization
 import Testing
-
-/// Holds the results that a ``WebAuthSession`` completion gives.
-nonisolated final class CompletionBox: Sendable {
-  /// One call of the completion.
-  struct Result: Sendable {
-    /// The callback URL.
-    let url: URL?
-    /// The error.
-    let error: (any Error)?
-  }
-
-  /// The results, in call order.
-  private let storage = Mutex<[Result]>([])
-
-  /// Records one call of the completion.
-  ///
-  /// - Parameters:
-  ///   - url: The callback URL.
-  ///   - error: The error.
-  func record(_ url: URL?, _ error: (any Error)?) {
-    storage.withLock { $0.append(Result(url: url, error: error)) }
-  }
-
-  /// The callback URL of each call, in order.
-  var urls: [URL?] { storage.withLock { $0.map(\.url) } }
-
-  /// The error of each call, in order.
-  var errors: [(any Error)?] { storage.withLock { $0.map(\.error) } }
-}
 
 @Suite @MainActor struct FakesTests {
   // MARK: - Pasteboard
@@ -99,22 +69,15 @@ nonisolated final class CompletionBox: Sendable {
   static let authorizationURL = URL(string: "https://auth.example.com/authorize")!
   static let callbackURL = URL(string: "agentviewkit://callback?code=1")!
 
-  @Test func fakeWebAuthSessionCompletesWithTheScriptedURL() {
+  @Test func fakeWebAuthSessionReturnsTheScriptedURL() async throws {
     let factory = FakeWebAuthSession(script: .callback(Self.callbackURL))
-    let box = CompletionBox()
     let kitFactory: any WebAuthSessionFactory = factory
 
-    let session = kitFactory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit") {
-      url, error in
-      box.record(url, error)
-    }
+    let session = kitFactory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit")
     session.prefersEphemeralWebBrowserSession = true
-    let started = session.start()
+    let url = try await session.start()
 
-    #expect(started)
-    #expect(box.urls == [Self.callbackURL])
-    #expect(box.errors.count == 1)
-    #expect(box.errors.first.flatMap { $0 } == nil)
+    #expect(url == Self.callbackURL)
     #expect(
       factory.calls == [
         .makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit"),
@@ -123,50 +86,44 @@ nonisolated final class CompletionBox: Sendable {
     #expect(factory.sessions.count == 1)
   }
 
-  @Test func fakeWebAuthSessionThrowsCancelled() throws {
+  @Test func fakeWebAuthSessionThrowsCancelled() async {
     let factory = FakeWebAuthSession(script: .cancelled)
-    let box = CompletionBox()
+    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit")
 
-    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit") {
-      url, error in
-      box.record(url, error)
+    await #expect(throws: ASWebAuthenticationSessionError(.canceledLogin)) {
+      try await session.start()
     }
-    #expect(session.start())
-
-    #expect(box.urls == [nil])
-    let error = try #require(box.errors.first.flatMap { $0 } as? ASWebAuthenticationSessionError)
-    #expect(error.code == .canceledLogin)
     #expect(factory.calls.last == .start(ephemeral: false))
   }
 
-  @Test func fakeWebAuthSessionCanFailToStart() {
+  @Test func fakeWebAuthSessionThrowsFailedToStart() async {
     let factory = FakeWebAuthSession(script: .failsToStart)
-    let box = CompletionBox()
+    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit")
 
-    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit") {
-      url, error in
-      box.record(url, error)
+    await #expect(throws: WebAuthSessionError.failedToStart) {
+      try await session.start()
     }
-
-    #expect(!session.start())
-    #expect(box.urls.isEmpty)
   }
 
-  @Test func fakeWebAuthSessionCancelCompletesOneTime() {
-    let factory = FakeWebAuthSession(script: .failsToStart)
-    let box = CompletionBox()
+  @Test func fakeWebAuthSessionWaitsUntilCancel() async throws {
+    let factory = FakeWebAuthSession(script: .waitsForCancel)
+    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit")
+    let scripted = try #require(factory.sessions.first)
 
-    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit") {
-      url, error in
-      box.record(url, error)
+    let start = Task { try await session.start() }
+    while !scripted.isWaiting {
+      await Task.yield()
     }
     session.cancel()
     session.cancel()
 
-    #expect(box.errors.count == 1)
+    await #expect(throws: ASWebAuthenticationSessionError(.canceledLogin)) {
+      try await start.value
+    }
     #expect(
       factory.calls == [
         .makeSession(url: Self.authorizationURL, callbackScheme: "agentviewkit"),
+        .start(ephemeral: false),
         .cancel,
         .cancel,
       ])

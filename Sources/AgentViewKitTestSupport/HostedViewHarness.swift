@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import SwiftUI
 
 /// A value copy of one accessibility element.
@@ -51,6 +52,49 @@ public enum HostedViewHarnessError: Error, Equatable {
   case unsupportedKey(String)
 }
 
+/// The fixed values of ``HostedViewHarness``.
+///
+/// A generic type cannot hold a stored static property, so the values are
+/// in this separate type.
+private enum HarnessConstants {
+  /// The default time that ``HostedViewHarness/pump(for:)`` runs the run
+  /// loop, in seconds.
+  static let defaultPumpDuration: TimeInterval = 0.05
+
+  /// The default width of the content, in points.
+  static let defaultWidth: CGFloat = 480
+
+  /// The default height of the content, in points.
+  static let defaultHeight: CGFloat = 320
+
+  /// The x and y coordinate of a window that is outside each screen.
+  static let offScreenCoordinate: CGFloat = -20_000
+
+  /// The origin that puts the window outside each screen.
+  static let offScreenOrigin = NSPoint(x: offScreenCoordinate, y: offScreenCoordinate)
+
+  /// The largest depth of the accessibility tree that the harness reads.
+  /// The limit stops a cycle of parent and child links.
+  static let maximumDepth = 64
+
+  /// The virtual key codes of the special keys, keyed by their character.
+  static let specialKeyCodes: [Character: Int] = [
+    KeyEquivalent.return.character: kVK_Return,
+    KeyEquivalent.tab.character: kVK_Tab,
+    KeyEquivalent.space.character: kVK_Space,
+    KeyEquivalent.delete.character: kVK_Delete,
+    KeyEquivalent.escape.character: kVK_Escape,
+    KeyEquivalent.leftArrow.character: kVK_LeftArrow,
+    KeyEquivalent.rightArrow.character: kVK_RightArrow,
+    KeyEquivalent.downArrow.character: kVK_DownArrow,
+    KeyEquivalent.upArrow.character: kVK_UpArrow,
+  ]
+
+  /// The key code that the harness sends with a printable character.
+  /// SwiftUI reads the characters of the event, not its key code.
+  static let printableKeyCode = UInt16(kVK_ANSI_A)
+}
+
 /// Mounts a SwiftUI view in an off-screen window, so that a test can read
 /// and use its accessibility elements.
 ///
@@ -60,10 +104,12 @@ public enum HostedViewHarnessError: Error, Equatable {
 /// so that SwiftUI can update the view, and calls ``close()`` at the end.
 public final class HostedViewHarness<Content: View> {
   /// The default time that ``pump(for:)`` runs the run loop.
-  public static var defaultPumpDuration: TimeInterval { 0.05 }
+  public static var defaultPumpDuration: TimeInterval { HarnessConstants.defaultPumpDuration }
 
   /// The default size of the content.
-  public static var defaultSize: CGSize { CGSize(width: 480, height: 320) }
+  public static var defaultSize: CGSize {
+    CGSize(width: HarnessConstants.defaultWidth, height: HarnessConstants.defaultHeight)
+  }
 
   /// The off-screen window.
   public let window: NSWindow
@@ -86,7 +132,7 @@ public final class HostedViewHarness<Content: View> {
     // ARC owns the window. The default value would release it a second time.
     window.isReleasedWhenClosed = false
     window.contentView = hostingView
-    window.setFrameOrigin(Self.offScreenOrigin)
+    window.setFrameOrigin(HarnessConstants.offScreenOrigin)
     window.makeKeyAndOrderFront(nil)
     hostingView.layoutSubtreeIfNeeded()
   }
@@ -167,7 +213,7 @@ public final class HostedViewHarness<Content: View> {
   /// - Parameter text: The text to type.
   public func type(_ text: String) {
     for character in text {
-      postKey(characters: String(character), keyCode: 0, modifiers: [])
+      postKey(characters: String(character), keyCode: HarnessConstants.printableKeyCode, modifiers: [])
     }
     pump()
   }
@@ -180,7 +226,7 @@ public final class HostedViewHarness<Content: View> {
   ///   - modifiers: The modifier keys to hold.
   /// - Throws: ``HostedViewHarnessError/unsupportedKey(_:)`` for a special
   ///   key that the harness has no key code for.
-  public func sendKey(_ key: KeyEquivalent, modifiers: EventModifiers = []) throws {
+  public func sendKey(_ key: KeyEquivalent, modifiers: SwiftUI.EventModifiers = []) throws {
     let characters = String(key.character)
     guard let keyCode = Self.keyCode(for: key) else {
       throw HostedViewHarnessError.unsupportedKey(characters)
@@ -190,9 +236,6 @@ public final class HostedViewHarness<Content: View> {
   }
 
   // MARK: - Private
-
-  /// The origin that puts the window outside each screen.
-  private static var offScreenOrigin: NSPoint { NSPoint(x: -20_000, y: -20_000) }
 
   /// The application attribute that an assistive client sets to ask for the
   /// full accessibility tree.
@@ -221,10 +264,6 @@ public final class HostedViewHarness<Content: View> {
       setAttributeSelector, with: NSNumber(value: true), with: enhancedUserInterfaceAttribute)
   }
 
-  /// The largest depth of the accessibility tree that the harness reads.
-  /// The limit stops a cycle of parent and child links.
-  private static var maximumDepth: Int { 64 }
-
   /// The live accessibility elements under the hosting view, in depth first
   /// order.
   ///
@@ -252,7 +291,7 @@ public final class HostedViewHarness<Content: View> {
   ///   - depth: The depth of `element` under the hosting view.
   ///   - result: The list to add to.
   private static func collect(_ element: NSObject, depth: Int, into result: inout [NSObject]) {
-    guard depth < maximumDepth else { return }
+    guard depth < HarnessConstants.maximumDepth else { return }
     result.append(element)
     for child in children(of: element) {
       collect(child, depth: depth + 1, into: &result)
@@ -383,41 +422,30 @@ public final class HostedViewHarness<Content: View> {
     }
   }
 
-  /// The virtual key codes of the special keys, keyed by their character.
-  private static var specialKeyCodes: [Character: UInt16] {
-    [
-      KeyEquivalent.return.character: 36,
-      KeyEquivalent.tab.character: 48,
-      KeyEquivalent.space.character: 49,
-      KeyEquivalent.delete.character: 51,
-      KeyEquivalent.escape.character: 53,
-      KeyEquivalent.leftArrow.character: 123,
-      KeyEquivalent.rightArrow.character: 124,
-      KeyEquivalent.downArrow.character: 125,
-      KeyEquivalent.upArrow.character: 126,
-    ]
-  }
-
   /// The virtual key code of `key`.
   ///
+  /// A function key, such as Home or F1, has a character in the Unicode
+  /// private use area. The harness sends only the function keys in
+  /// `HarnessConstants.specialKeyCodes`.
+  ///
   /// - Parameter key: The key.
-  /// - Returns: The code of a special key, zero for a printable character,
-  ///   or `nil` for another special key.
+  /// - Returns: The code of a special key, the printable key code for a
+  ///   printable character, or `nil` for another special key.
   private static func keyCode(for key: KeyEquivalent) -> UInt16? {
-    if let code = specialKeyCodes[key.character] {
-      return code
+    if let code = HarnessConstants.specialKeyCodes[key.character] {
+      return UInt16(code)
     }
     let isFunctionKey = key.character.unicodeScalars.contains {
-      (0xF700...0xF8FF).contains($0.value) || $0.properties.generalCategory == .control
+      [.privateUse, .control].contains($0.properties.generalCategory)
     }
-    return isFunctionKey ? nil : 0
+    return isFunctionKey ? nil : HarnessConstants.printableKeyCode
   }
 
   /// The AppKit flags of SwiftUI `modifiers`.
   ///
   /// - Parameter modifiers: The SwiftUI modifiers.
   /// - Returns: The AppKit flags.
-  private static func modifierFlags(for modifiers: EventModifiers) -> NSEvent.ModifierFlags {
+  private static func modifierFlags(for modifiers: SwiftUI.EventModifiers) -> NSEvent.ModifierFlags {
     var flags: NSEvent.ModifierFlags = []
     if modifiers.contains(.command) { flags.insert(.command) }
     if modifiers.contains(.shift) { flags.insert(.shift) }

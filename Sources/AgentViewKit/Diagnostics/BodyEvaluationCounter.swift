@@ -9,14 +9,20 @@
   /// It exists only in debug builds.
   @MainActor
   public enum BodyEvaluationCounter {
-    /// The number of evaluations for each key.
-    private static var counts: [String: Int] = [:]
+    /// The mutable store of the counts.
+    private final class Storage {
+      /// The number of evaluations for each key.
+      var counts: [String: Int] = [:]
+    }
+
+    /// The one store of the counts.
+    private static let storage = Storage()
 
     /// Adds one evaluation for `key`.
     ///
     /// - Parameter key: The key of the view, such as `row-<id>`.
     public static func note(_ key: String) {
-      counts[key, default: 0] += 1
+      storage.counts[key, default: 0] += 1
     }
 
     /// The number of evaluations for `key` since the last reset.
@@ -24,14 +30,14 @@
     /// - Parameter key: The key of the view.
     /// - Returns: The count, or zero when no view noted `key`.
     public static func count(_ key: String) -> Int {
-      counts[key, default: 0]
+      storage.counts[key, default: 0]
     }
 
     /// Sets the count for `key` to zero.
     ///
     /// - Parameter key: The key to reset.
     public static func reset(_ key: String) {
-      counts[key] = nil
+      storage.counts[key] = nil
     }
 
     /// Sets the count for each key that starts with `prefix` to zero.
@@ -41,7 +47,7 @@
     ///
     /// - Parameter prefix: The key prefix to reset.
     public static func reset(prefix: String) {
-      counts = counts.filter { !$0.key.hasPrefix(prefix) }
+      storage.counts = storage.counts.filter { !$0.key.hasPrefix(prefix) }
     }
   }
 #endif
