@@ -10,12 +10,32 @@ comments:
     - This task depends only on 01M21A8RWGWE533JR6GQ4DNN06. Add the two tasks above to `depends_on`, then start this task again.
     - test: not run. commit: none. review: not run.
   timestamp: 2026-09-16T12:55:52.798676+00:00
+- actor: claude-code
+  id: 01m2nh1c8rdab1yjymb4ygdxc8
+  text: |-
+    Research notes (2026-09-16):
+    - The dependencies are done now: `PermissionOption.Kind` (Model/Requests/PermissionRequest.swift) and `ConfigOption.Category` (Model/ConfigOption.swift) exist.
+    - `PermissionView` does not exist yet. Task 01M21AK7DBCBMDHK82JY5RA063 makes it and reads `PermissionPresentation`. This task makes only the decision file and `PermissionPresentation`.
+    - Claude Code docs: modes `default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`. The Bash prompt adds "Yes, and switch to auto mode" in `default` and `acceptEdits` only, when auto mode is available.
+    - Codex docs: `/permissions` presets "Read Only", "Auto", "Full Access"; prompt "Yes, proceed", "Yes, and don't ask again for commands that start with ...", "No, and tell Codex what to do differently"; `approvals_reviewer = "auto_review"`.
+    - Cursor docs: run modes Auto-review, Allowlist, Run Everything. The docs give no button labels.
+    - No v1 source supplies a directory-scoped grant: ACP has no such kind, the Router has no permission store, and FoundationModelsACPAgent plan.md says it has no remembered allow_always store. Decision: no fifth option in v1. A source-defined kind arrives as `.unknown` and goes last, as a secondary option.
+    - Pattern to follow: Docs/decisions/checkpoints.md with CheckpointCapabilitiesTests and the MarkdownTable helper.
+  timestamp: 2026-09-16T16:33:12.984563+00:00
+- actor: claude-code
+  id: 01m2nh69ej8shfvv9d2gmz09md
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Docs/decisions/permission-ux.md, Sources/AgentViewKit/HumanInTheLoop/PermissionPresentation.swift, Sources/AgentViewKit/Model/ConfigOption.swift (adds `SelectChoices.options`), Tests/AgentViewKitTests/HumanInTheLoop/PermissionPresentationTests.swift, Tests/AgentViewKitTests/Model/ConfigOptionTests.swift. `swift test --filter "PermissionPresentationTests|ConfigOptionTests"`: 39 tests passed.
+    - decisions: order allow_once, allow_always, reject_once, reject_always, then unknown kinds (stable). The kept kinds and unknown kinds are secondary. No fifth option in v1. Switch to auto shows when the first `mode` select has an `auto` choice and the current value is not `auto` or `plan`. `autoModeOption(in:)` gives the option for PermissionView to set.
+    - next: full test run.
+  timestamp: 2026-09-16T16:35:53.938452+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BD0YVS2J4MD6VXDM317W6
 - 01M21BYFK7KVCKXYXJFCJW7FSM
-position_column: todo
-position_ordinal: be80
+position_column: doing
+position_ordinal: '8180'
 title: 'Research R8: permission and mode option sets from Claude Code, Cursor, and Codex, mapped to ACP (plan §14)'
 ---
 ## What
@@ -26,12 +46,12 @@ Settle research R8 from plan.md §14 and record it where the code can check it.
 - Encode the decision: `Sources/AgentViewKit/HumanInTheLoop/PermissionPresentation.swift` with `PermissionPresentation.order(for kinds:)`, `isSecondary(kind)`, and `showsSwitchToAuto(configOptions:)`. `PermissionView` reads these.
 
 ## Acceptance Criteria
-- [ ] `Docs/decisions/permission-ux.md` exists with the survey and the decision table.
-- [ ] `PermissionPresentation` matches the decision table (a test parses the table rows from the file and compares).
+- [x] `Docs/decisions/permission-ux.md` exists with the survey and the decision table.
+- [x] `PermissionPresentation` matches the decision table (a test parses the table rows from the file and compares).
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/HumanInTheLoop/PermissionPresentationTests.swift`: the decision-file match and the three functions.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/HumanInTheLoop/PermissionPresentationTests.swift`: the decision-file match and the three functions.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

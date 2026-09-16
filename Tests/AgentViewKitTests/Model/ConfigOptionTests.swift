@@ -247,4 +247,23 @@ import Testing
       try JSONDecoder().decode(ConfigValue.self, from: Data(json.utf8))
     }
   }
+
+  @Test func flatChoicesGiveTheirOptionsInOrder() {
+    let options = [SelectOption(id: "ask", name: "Ask"), SelectOption(id: "auto", name: "Auto")]
+
+    #expect(SelectChoices.flat(options).options == options)
+  }
+
+  @Test func groupedChoicesGiveTheOptionsOfEachGroupInOrder() {
+    let ask = SelectOption(id: "ask", name: "Ask")
+    let plan = SelectOption(id: "plan", name: "Plan")
+    let auto = SelectOption(id: "auto", name: "Auto")
+    let choices = SelectChoices.grouped([
+      SelectGroup(id: "manual", name: "Manual", options: [ask, plan]),
+      SelectGroup(id: "empty", name: "Empty", options: []),
+      SelectGroup(id: "review", name: "Review", options: [auto]),
+    ])
+
+    #expect(choices.options == [ask, plan, auto])
+  }
 }

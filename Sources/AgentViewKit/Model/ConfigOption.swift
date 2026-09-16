@@ -116,6 +116,15 @@ public nonisolated enum SelectChoices: Sendable, Hashable {
 
   /// A list of values in groups, each with a header.
   case grouped([SelectGroup])
+
+  /// Each value that the user can select, in order. For grouped choices,
+  /// the values of each group follow the values of the group before it.
+  public var options: [SelectOption] {
+    switch self {
+    case .flat(let options): options
+    case .grouped(let groups): groups.flatMap(\.options)
+    }
+  }
 }
 
 /// One value that the user can select (plan.md §3.4).
