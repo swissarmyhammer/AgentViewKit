@@ -12,8 +12,14 @@ import SwiftUI
 ///
 /// A submit sends the text to ``AgentThreadActions/send(_:)`` of the
 /// `threadActions` environment value, clears the text, and then calls
-/// `onSubmit`. A submit does nothing while the text is blank or while the
-/// thread of the `agentThread` environment value runs a turn.
+/// `onSubmit`. A submit does nothing while the text is blank.
+///
+/// While the thread of the `agentThread` environment value runs a turn, a
+/// submit adds the text to the ``SwiftUI/EnvironmentValues/promptQueue``, or
+/// does nothing when there is no queue. When the turn ends, the view sends
+/// the first queued item. A cancelled turn holds the queue. Command-Return
+/// sends the text at once ("send now"). Esc stops the turn and keeps the
+/// queue.
 public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// The text of the prompt.
   @Binding var text: AttributedString
@@ -29,6 +35,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   @Environment(\.agentThread) private var thread
   @Environment(\.threadActions) private var actions
+  @Environment(\.promptQueue) private var queue
   @Environment(\.agentTheme) private var theme
 
   /// Makes a composer with a custom editor and a custom accessory row.
@@ -67,14 +74,20 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     return isBlank ? nil : message
   }
 
-  /// Whether a submit sends the text now.
+  /// Whether the thread runs a turn.
+  private var isRunning: Bool {
+    thread?.state == .running
+  }
+
+  /// Whether a submit sends or queues the text now.
   private var canSubmit: Bool {
-    thread?.state != .running && Self.message(from: text) != nil
+    (!isRunning || queue != nil) && Self.message(from: text) != nil
   }
 
   public var body: some View {
     let context = PromptEditorContext(
       text: $text, placeholder: Self.placeholder, onSubmit: submit,
+      onSendNow: sendNow, onCancel: isRunning ? cancel : nil,
       commands: thread?.availableCommands ?? [])
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       editor(context)
@@ -83,15 +96,54 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
     .environment(\.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submit))
+    .onChange(of: thread?.state) { _, state in
+      guard let state, let input = queue?.dequeueNext(after: state) else { return }
+      send(input)
+    }
   }
 
-  /// Sends the text, clears it, and calls the host closure.
+  /// Sends the text, or adds it to the queue while the thread runs a turn.
+  /// Then clears the text and calls the host closure.
   private func submit() {
-    guard canSubmit, let message = Self.message(from: text) else { return }
-    text = AttributedString()
-    let actions = actions
-    Task { await actions.send(UserInput(text: message)) }
+    guard canSubmit, let input = takeInput() else { return }
+    if isRunning, let queue {
+      queue.enqueue(input)
+    } else {
+      send(input)
+    }
     onSubmit()
+  }
+
+  /// Sends the text at once, also while the thread runs a turn. Then clears
+  /// the text and calls the host closure.
+  private func sendNow() {
+    guard let input = takeInput() else { return }
+    send(input)
+    onSubmit()
+  }
+
+  /// Stops the current turn. The text and the queue do not change.
+  private func cancel() {
+    let actions = actions
+    Task { await actions.cancel() }
+  }
+
+  /// Clears the text and returns it as an input.
+  ///
+  /// - Returns: The input, or `nil` when the text is blank. A blank text does
+  ///   not change.
+  private func takeInput() -> UserInput? {
+    guard let message = Self.message(from: text) else { return nil }
+    text = AttributedString()
+    return UserInput(text: message)
+  }
+
+  /// Sends an input through the thread actions.
+  ///
+  /// - Parameter input: The input to send.
+  private func send(_ input: UserInput) {
+    let actions = actions
+    Task { await actions.send(input) }
   }
 }
 

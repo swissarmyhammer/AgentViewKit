@@ -3,9 +3,11 @@ import SwiftUI
 /// The default editor of ``PromptInputView``: a stock `TextEditor`
 /// (plan.md §7, §9 D).
 ///
-/// Return calls ``PromptEditorContext/onSubmit``. Shift-Return does not
-/// submit, so the text editor inserts a newline. The editor shows the
-/// placeholder of the context while the text is empty.
+/// Return calls ``PromptEditorContext/onSubmit``. Command-Return calls
+/// ``PromptEditorContext/onSendNow``. Shift-Return does not submit, so the
+/// text editor inserts a newline. Esc calls ``PromptEditorContext/onCancel``
+/// while the thread runs a turn. The editor shows the placeholder of the
+/// context while the text is empty.
 public struct StockPromptEditor: View {
   /// The accessibility identifier of the editor.
   public static let identifier = "prompt-editor"
@@ -28,13 +30,19 @@ public struct StockPromptEditor: View {
     self.context = context
   }
 
-  /// Whether a key press submits the prompt.
+  /// The closure that a Return press calls.
   ///
-  /// - Parameter modifiers: The modifier keys of the press.
-  /// - Returns: `false` when the press holds Shift, so that the editor
-  ///   inserts a newline, and `true` otherwise.
-  static func submits(with modifiers: EventModifiers) -> Bool {
-    !modifiers.contains(.shift)
+  /// - Parameters:
+  ///   - modifiers: The modifier keys of the press.
+  ///   - context: The values that the composer gives.
+  /// - Returns: `nil` when the press holds Shift, so that the editor inserts a
+  ///   newline. ``PromptEditorContext/onSendNow`` when the press holds
+  ///   Command. ``PromptEditorContext/onSubmit`` otherwise.
+  static func returnAction(
+    for modifiers: EventModifiers, in context: PromptEditorContext
+  ) -> PromptEditorContext.Submit? {
+    if modifiers.contains(.shift) { return nil }
+    return modifiers.contains(.command) ? context.onSendNow : context.onSubmit
   }
 
   public var body: some View {
@@ -54,8 +62,15 @@ public struct StockPromptEditor: View {
         }
       }
       .onKeyPress(.return, phases: .down) { press in
-        guard Self.submits(with: press.modifiers) else { return .ignored }
-        context.onSubmit()
+        guard let action = Self.returnAction(for: press.modifiers, in: context) else {
+          return .ignored
+        }
+        action()
+        return .handled
+      }
+      .onKeyPress(.escape, phases: .down) { _ in
+        guard let cancel = context.onCancel else { return .ignored }
+        cancel()
         return .handled
       }
       .accessibilityLabel(context.placeholder)

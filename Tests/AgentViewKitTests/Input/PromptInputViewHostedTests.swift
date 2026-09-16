@@ -9,7 +9,7 @@ import Testing
 ///
 /// The view reads the text from ``PromptInputHostedTestModel``, so that a test
 /// can read the text after the composer changes it.
-private struct PromptInputHost: View {
+struct PromptInputHost: View {
   /// The model that holds the text.
   @Bindable var model: PromptInputHostedTestModel
 
