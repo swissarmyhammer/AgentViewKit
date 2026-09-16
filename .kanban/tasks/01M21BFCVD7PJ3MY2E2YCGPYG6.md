@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nw5ee73sp979xthje4p7r6
+  text: 'Note from ^hpprm0t (CheckpointView): that task added `Checkpoint`, `AgentThread.checkpoints`, `ThreadChange.setCheckpoints`, and the `CheckpointActions` protocol only. It did not add a FoundationModels or Router source that rewrites the transcript. The description of this task says that the transcript rewrite "lands with the checkpoint task". That is not true now. This task must add the source-side branch, or a new task must add it. `ThreadChange.clear` removes the checkpoints; a branch swap must not send `.clear`.'
+  timestamp: 2026-09-16T19:47:40.615429+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21AHDHY0H7A92PP2KTRTZEZ
