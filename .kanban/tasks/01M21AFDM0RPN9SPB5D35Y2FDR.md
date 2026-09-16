@@ -1,10 +1,21 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nczm5henqq54jftz3e0y9v
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 4 source files in Sources/AgentViewKit/Connections, a List-row fallback in HostedViewHarness, Docs/decisions/connection-states.md
+    - test: green — swift test: 319 AgentViewKitTests, 20 package tests, 3 adapter tests, 0 warnings in the package files
+    - commit: 031961a
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (7 files attempted)
+    - decisions: the edge table is in Docs/decisions/connection-states.md. A tool toggle has the identifier connection-tool-<connection id>-<tool id>, because two servers can have a tool with the same name. A tool toggle uses the stock check box style, because the switch style has no accessibility label on macOS 27. The harness now reads List row children through the informal accessibility getter; later List views (SessionListView and others) can use this.
+  timestamp: 2026-09-16T15:22:21.233082+00:00
 depends_on:
 - 01M21A9KJGPPJE0X01JE0B9V33
 - 01M21ABMYXZQRNRDGB3DR6RK73
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: 8d80
 title: ConnectionStore, ConnectionsView, ConnectionRow, ConnectionStatusChip (plan §12)
 ---
 ## What
