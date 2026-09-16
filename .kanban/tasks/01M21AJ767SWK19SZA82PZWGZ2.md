@@ -11,6 +11,16 @@ comments:
     - commit: 86dbdc4
     - review: findings — 20: ANSIText.swift:63-77,144,464,476 (magic numbers); TerminalView.swift:230 (duplication, reuse of capRow)
   timestamp: 2026-09-16T22:18:24.810279+00:00
+- actor: claude-code
+  id: 01m2p54fhnwgbejvbenx365q1g
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — shared OutputCapRow and OutputExitLabel (Content/OutputChrome.swift) used by CommandOutputView and TerminalView; ANSIText palette as named hex text, cube levels by formula, named value counts
+    - test: green — swift test, AgentViewKitTests 835 passed, other targets 20/71/1/91 passed
+    - commit: dd58862
+    - review: findings — 1: ANSIText.swift:491 (code-hygiene/data-driven)
+    - next: switch replaced by the table SGR.valueCounts; tests green (835); commit and review again
+  timestamp: 2026-09-16T22:24:26.165793+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
@@ -66,3 +76,12 @@ Create `Sources/AgentViewKit/Terminal/TerminalView.swift` and `ANSIText.swift`, 
 - [x] `Sources/AgentViewKit/Terminal/ANSIText.swift:476` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Sources/AgentViewKit/Terminal/TerminalView.swift:230` `duplication/duplication` — capRow function duplicates CommandOutputView.capRow at 99% similarity. Both display "Showing the last N of M lines" with a "Show all" button using nearly identical HStack, Text, Spacer, and Button layout with identical spacing and styling. This near-verbatim duplication risks the two diverging during maintenance. Extract the cap-display UI pattern into a shared helper function, or have TerminalView reuse CommandOutputView's capRow directly instead of duplicating it.
 - [x] `Sources/AgentViewKit/Terminal/TerminalView.swift:230` `reuse/reuse` — The `capRow` method reimplements row-limit display logic that exists nearly identically in `CommandOutputView`. Both show the same UI pattern ("Showing the last N of M lines" with a "Show All" button) and both operate on `CommandOutputView.VisibleRows`. The code should be shared rather than duplicated. Extract a shared helper function (or add parameters to CommandOutputView.capRow for identifiers) so both views reuse the same row-limit display logic instead of maintaining parallel copies.
+
+## Review Findings (2026-09-16 17:20)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Terminal/ANSIText.swift:491` `code-hygiene/data-driven` — A switch over SGR mode values with arms differing only in constant assignments should be expressed as a table lookup instead of control flow. Replace the switch with a data-driven table lookup: `let modeToCount: [Int: Int] = [SGR.paletteMode: SGR.paletteValueCount, SGR.directMode: SGR.directValueCount]; let count = modeToCount[mode] ?? 0`.

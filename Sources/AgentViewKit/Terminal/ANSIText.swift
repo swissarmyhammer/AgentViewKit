@@ -193,6 +193,8 @@ nonisolated extension ANSIText {
     static let paletteValueCount = 1
     /// The number of values after the direct mode: three channels.
     static let directValueCount = 3
+    /// The number of values after each extended color mode, keyed by mode.
+    static let valueCounts = [paletteMode: paletteValueCount, directMode: directValueCount]
   }
 
   /// The scalars that the parser acts on.
@@ -487,12 +489,7 @@ nonisolated extension ANSIText {
       guard index < codes.endIndex else { return nil }
       let mode = codes[index]
       index += 1
-      let count: Int
-      switch mode {
-      case SGR.paletteMode: count = SGR.paletteValueCount
-      case SGR.directMode: count = SGR.directValueCount
-      default: count = 0
-      }
+      let count = SGR.valueCounts[mode] ?? 0
       guard count > 0, codes.endIndex - index >= count else {
         index = codes.endIndex
         return nil
