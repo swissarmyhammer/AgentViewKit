@@ -2,8 +2,8 @@
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCD7C9V8N4SED5GE34A4E
-position_column: todo
-position_ordinal: '8480'
+position_column: doing
+position_ordinal: '8180'
 title: Elicitation schema normalization and validation, pure (plan §13.1)
 ---
 ## What
