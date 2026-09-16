@@ -1,8 +1,19 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2na1k1a50axx4mvvm24g5qg
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 8 new files in Sources/AgentViewKit/Catalog (StructuredPayload, StructuredCatalog, 6 payloads, catalog.md); PlanEntry and the ContextUsage parts are now Codable; Package.swift excludes catalog.md.
+    - test: green — swift test, 211 tests pass (188 in AgentViewKitTests), no new warnings.
+    - commit: 92c58c3
+    - review: clean — review sha HEAD~1..HEAD, 0 findings.
+    - decisions: (1) A WireValueEnum that is Codable encodes as its wire string; an unknown string decodes to `unknown`, so PlanEntry keeps new ACP values. (2) ContextUsage.Quota encodes as `{"status": "belowLimit", "approaching": bool}` or `{"status": "limitReached"}`; another status is a decode error, because Quota has no unknown case (usage-model decision). (3) StructuredPayload adds `init(content:)`, `jsonValue()`, and `isEqual(to:)`. (4) The AuthorizationRequest conversion stays with the source tasks (^d317w6 has the type). (5) catalog.md also documents PlanEntry, CitationSource, CitationMarker, and the ContextUsage parts; the test checks each with Mirror.
+  timestamp: 2026-09-16T14:30:59.882612+00:00
 depends_on:
 - 01M21A9KJGPPJE0X01JE0B9V33
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '8980'
 title: 'schemaName catalog: Codable payloads for approval, plan, citation, artifact, authorization, usage (plan §3.3, §11#5)'
 ---
 ## What
@@ -19,13 +30,13 @@ Create `Sources/AgentViewKit/Catalog/` with one `Codable & Sendable & Equatable`
 - A `catalog.md` in `Sources/AgentViewKit/Catalog/` lists every name and its payload fields. This is the document the Router agrees to (research R5).
 
 ## Acceptance Criteria
-- [ ] Every payload round-trips through JSON and compares equal.
-- [ ] `decode` of an unknown name returns nil, never throws.
-- [ ] `catalog.md` names every registered schema name and every stored property of every payload; a test compares both lists with `Mirror`.
+- [x] Every payload round-trips through JSON and compares equal.
+- [x] `decode` of an unknown name returns nil, never throws.
+- [x] `catalog.md` names every registered schema name and every stored property of every payload; a test compares both lists with `Mirror`.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Catalog/StructuredCatalogTests.swift`: round-trip per payload, unknown name, and the doc-list match.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Catalog/StructuredCatalogTests.swift`: round-trip per payload, unknown name, and the doc-list match.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
