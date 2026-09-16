@@ -67,6 +67,19 @@ struct LinkedLabelsView: View {
     #expect(harness.element(identifier: "missing") == nil)
   }
 
+  @Test func readsTheElementsOfAMenuButton() {
+    let harness = HostedViewHarness(
+      Menu("Options", systemImage: "gear") {
+        Button("One") {}
+      }
+      .accessibilityIdentifier("options-menu"))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.accessibilityElements().contains { $0.identifier == "options-menu" })
+    #expect(harness.element(identifier: "options-menu") != nil)
+  }
+
   @Test func pressRunsTheButtonAction() throws {
     let log = HostedEventLog()
     let harness = HostedViewHarness {

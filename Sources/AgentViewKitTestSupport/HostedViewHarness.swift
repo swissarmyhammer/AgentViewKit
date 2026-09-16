@@ -196,6 +196,11 @@ public final class HostedViewHarness<Content: View> {
   /// Does the press action of the element with `identifier`, then pumps the
   /// run loop.
   ///
+  /// Do not use this function on a segment of a segmented `Picker`. The
+  /// AppKit segmented control does the press, but it reports a failure, and
+  /// it can stop the test process after the test, as a stepper does. Then the
+  /// process exits before the other tests run.
+  ///
   /// - Parameter identifier: The accessibility identifier of the element.
   /// - Throws: ``HostedViewHarnessError/noElement(identifier:)`` when no
   ///   element has `identifier`, and
@@ -404,8 +409,35 @@ public final class HostedViewHarness<Content: View> {
   /// - Parameter element: The element.
   /// - Returns: The identifier, or `nil` when it is missing or empty.
   private static func identifier(of element: NSObject) -> String? {
-    let identifier: String? = (element as AnyObject).accessibilityIdentifier?()
-    return nonEmpty(identifier)
+    text(of: objectAttribute(identifierSelector, of: element))
+  }
+
+  /// The selector of the accessibility label getter.
+  private static var labelSelector: Selector { NSSelectorFromString("accessibilityLabel") }
+
+  /// The selector of the accessibility title getter.
+  private static var titleSelector: Selector { NSSelectorFromString("accessibilityTitle") }
+
+  /// The selector of the accessibility identifier getter.
+  private static var identifierSelector: Selector {
+    NSSelectorFromString("accessibilityIdentifier")
+  }
+
+  /// The object that a getter of `element` returns, with no cast.
+  ///
+  /// A text getter of some elements, such as the menu button of a SwiftUI
+  /// `Menu`, returns an attributed string. A read through a typed `String`
+  /// getter then stops the process. This function returns the object as it
+  /// is, so that ``text(of:)`` can convert it.
+  ///
+  /// - Parameters:
+  ///   - selector: The selector of the getter.
+  ///   - element: The element.
+  /// - Returns: The object, or `nil` when the element does not answer the
+  ///   getter or returns `nil`.
+  private static func objectAttribute(_ selector: Selector, of element: NSObject) -> Any? {
+    guard element.responds(to: selector) else { return nil }
+    return element.perform(selector)?.takeUnretainedValue()
   }
 
   /// Does the press action of `element`.
@@ -436,8 +468,8 @@ public final class HostedViewHarness<Content: View> {
     let object = element as AnyObject
     let role: NSAccessibility.Role? = object.accessibilityRole?() ?? nil
     let value = text(of: object.accessibilityValue?() ?? nil)
-    let label: String? = object.accessibilityLabel?() ?? nil
-    let title: String? = object.accessibilityTitle?() ?? nil
+    let label = text(of: objectAttribute(labelSelector, of: element))
+    let title = text(of: objectAttribute(titleSelector, of: element))
     let isEnabled: Bool = object.isAccessibilityEnabled?() ?? true
     let links =
       includingLinks

@@ -1,7 +1,13 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2p2011qnfcv3e6ysc8xxqg9
+  text: 'Blocked: this task must make `ToolCallView` route `ToolContent.diff` to `DiffView`. `ToolCallView` is not in the tree. Task ^rmrtrty (01M21AHYBMNR7CNDZRPMWRTRTY) creates it and is in todo. Thus I added ^rmrtrty to depends_on. The graph has no cycle.'
+  timestamp: 2026-09-16T21:29:34.519349+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
+- 01M21AHYBMNR7CNDZRPMWRTRTY
 position_column: todo
 position_ordinal: 9f80
 title: 'DiffView chrome: file list with counts, hunk actions, attach lines to prompt, over an empty DiffRendererSlot (plan §4.1, §9 C, §11#12)'
