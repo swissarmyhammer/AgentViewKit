@@ -608,6 +608,7 @@ import Testing
     let message = try #require(thread.streaming["m1"])
 
     thread.apply(.appendStreaming(id: "m1", text: "lo"))
+    message.flush()
 
     #expect(thread.streaming["m1"] === message)
     #expect(message.text == "Hello")

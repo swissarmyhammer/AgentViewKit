@@ -1,4 +1,5 @@
 import Observation
+import OSLog
 
 /// The model that the thread views bind to (plan.md §3.2).
 ///
@@ -44,10 +45,19 @@ public final class AgentThread {
   public private(set) var pendingAuthorizations: [AuthorizationRequest] = []
 
   /// The messages that still stream, keyed by record id.
+  ///
+  /// A source sends each chunk with ``ThreadChange/appendStreaming(id:text:)``
+  /// and does not patch the record for each chunk. Only the tail row reads
+  /// this table. ``ThreadChange/closeStreaming(id:)`` writes the final text to
+  /// the record.
   public private(set) var streaming: [String: StreamingMessage] = [:]
 
   /// The position of each item in ``items``, keyed by item id.
   @ObservationIgnored private var index: [String: Int] = [:]
+
+  /// The log of the thread.
+  @ObservationIgnored private let logger = Logger(
+    subsystem: "AgentViewKit", category: "AgentThread")
 
   /// Makes an empty thread.
   public init() {}
@@ -85,7 +95,7 @@ public final class AgentThread {
     case .addAuthorization(let request): pendingAuthorizations.upsert(request)
     case .resolveAuthorization(let id): pendingAuthorizations.removeAll(id: id)
     case .appendStreaming(let id, let text): appendStreaming(id: id, text: text)
-    case .closeStreaming(let id): streaming[id] = nil
+    case .closeStreaming(let id): closeStreaming(id: id)
     }
   }
 
@@ -169,12 +179,46 @@ public final class AgentThread {
     terminal.bump()
   }
 
+  /// Gives a chunk to the streaming message of the record. The first chunk
+  /// makes the message and renders at once.
   private func appendStreaming(id: String, text: String) {
     guard let message = streaming[id] else {
       streaming[id] = StreamingMessage(id: id, text: text)
       return
     }
     message.append(text)
+  }
+
+  /// Closes the streaming message of the record, removes it, and writes its
+  /// final text to the record in one patch.
+  private func closeStreaming(id: String) {
+    guard let message = streaming.removeValue(forKey: id) else { return }
+    message.close()
+    guard let patch = finalTextPatch(message.text, for: item(id: id)) else {
+      logger.error(
+        "The record \(id, privacy: .public) has no text field. The streamed text is not kept.")
+      return
+    }
+    self.patch(id: id, with: patch)
+  }
+
+  /// The patch that writes the final streamed text to the text field of the
+  /// record.
+  ///
+  /// - Parameters:
+  ///   - text: The final text of the streaming message.
+  ///   - item: The item of the record, or `nil` when the thread has none.
+  /// - Returns: The patch, or `nil` when the record has no text field. When
+  ///   the thread has no item, the patch makes an assistant message.
+  private func finalTextPatch(_ text: String, for item: ThreadItem?) -> ItemPatch? {
+    let content = PatchField.value([ContentBlock(text: text)])
+    switch item {
+    case .userMessage: return .userMessage(content: content)
+    case .assistantMessage, .none: return .assistantMessage(content: content)
+    case .reasoning: return .reasoning(segments: .value([text]))
+    case .system: return .system(text: .value(text))
+    case .toolCall, .structured, .compaction, .error, .unknown: return nil
+    }
   }
 }
 

@@ -84,7 +84,13 @@ public enum ThreadChange {
   /// When no streaming message has the id, this change makes one.
   case appendStreaming(id: String, text: String)
 
-  /// Removes the streaming message of the record with the id.
+  /// Closes and removes the streaming message of the record with the id.
+  ///
+  /// The final text goes to the text field of the record in one patch: the
+  /// content of a message, the segments of a reasoning record, or the text
+  /// of a system prompt. When the thread has no record with the id, the
+  /// patch makes an assistant message. A record of another kind does not
+  /// change. When no streaming message has the id, this change does nothing.
   case closeStreaming(id: String)
 }
 
