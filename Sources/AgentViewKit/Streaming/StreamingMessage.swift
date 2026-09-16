@@ -112,27 +112,16 @@ public final class StreamingMessage: Identifiable {
 
   /// Splits ``text``, and writes each property whose value changed.
   private func render() {
-    let split = ParagraphSplitter.split(text)
-    var settled = split.settled
+    let settled: [ParagraphSplitter.Paragraph]
     var newTail = StreamingMarkdownBalancer.BalancedTail.markdown("")
     if isOpen {
+      let split = ParagraphSplitter.split(text)
+      settled = split.settled
       newTail = StreamingMarkdownBalancer.balance(tail: split.tail)
-    } else if let last = Self.finalParagraph(tail: split.tail, index: settled.count) {
-      settled.append(last)
+    } else {
+      settled = ParagraphSplitter.paragraphs(text)
     }
     if settled != settledParagraphs { settledParagraphs = settled }
     if newTail != tail { tail = newTail }
-  }
-
-  /// Makes the last paragraph of a closed message from its raw tail.
-  ///
-  /// - Parameters:
-  ///   - tail: The raw tail that ``ParagraphSplitter`` returned.
-  ///   - index: The position of the paragraph in the message.
-  /// - Returns: The paragraph with no line break at the end, or `nil` when
-  ///   the tail has only line breaks.
-  private static func finalParagraph(tail: String, index: Int) -> ParagraphSplitter.Paragraph? {
-    guard let lastCharacter = tail.lastIndex(where: { !$0.isNewline }) else { return nil }
-    return ParagraphSplitter.Paragraph(index: index, text: String(tail[...lastCharacter]))
   }
 }

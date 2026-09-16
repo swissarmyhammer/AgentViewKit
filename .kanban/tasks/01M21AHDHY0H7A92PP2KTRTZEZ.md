@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nxv7wwcdhwamz5cjr4rfyn
+  text: 'Note from ^r061h51: `AssistantMessageView` (and `UserMessageView` for its text) must show the text body with `ResponseView(message: record, streaming: thread.streaming[record.id])` (Sources/AgentViewKit/Content/ResponseView.swift). Read `thread` from the environment or pass the `StreamingMessage` down; do not read `thread.streaming` in the `ItemRow` body, so that a chunk does not evaluate the row. Replace the `item-placeholder-<id>` views for these kinds.'
+  timestamp: 2026-09-16T20:17:03.388830+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BDXGQ5HYN8GCKAEH8GN3P

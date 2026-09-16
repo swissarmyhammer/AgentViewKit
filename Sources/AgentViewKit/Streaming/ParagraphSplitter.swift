@@ -97,6 +97,35 @@ public nonisolated enum ParagraphSplitter {
     return (builder.settled, tail)
   }
 
+  /// Splits the complete text of a message that does not stream.
+  ///
+  /// The function settles the tail as the last paragraph. The last paragraph
+  /// has no line break at its end. A tail that has only line breaks makes no
+  /// paragraph. An open fence becomes a settled paragraph.
+  ///
+  /// - Parameter markdown: The complete message text.
+  /// - Returns: Each paragraph of the message, in message order.
+  public static func paragraphs(_ markdown: String) -> [Paragraph] {
+    let split = split(markdown)
+    var paragraphs = split.settled
+    if let last = finalParagraph(tail: split.tail, index: paragraphs.count) {
+      paragraphs.append(last)
+    }
+    return paragraphs
+  }
+
+  /// Makes the last paragraph of a complete message from its raw tail.
+  ///
+  /// - Parameters:
+  ///   - tail: The raw tail that ``split(_:)`` returned.
+  ///   - index: The position of the paragraph in the message.
+  /// - Returns: The paragraph with no line break at the end, or `nil` when
+  ///   the tail has only line breaks.
+  private static func finalParagraph(tail: String, index: Int) -> Paragraph? {
+    guard let lastCharacter = tail.lastIndex(where: { !$0.isNewline }) else { return nil }
+    return Paragraph(index: index, text: String(tail[...lastCharacter]))
+  }
+
   /// The state of one split.
   private nonisolated struct Builder {
     /// The paragraphs that are settled.

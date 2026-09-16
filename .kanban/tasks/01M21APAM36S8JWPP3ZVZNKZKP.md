@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nxtzpnfrgmcy2bhzckrhqr
+  text: 'Note from ^r061h51: `ResponseView` makes `StructuredText(markdown:)` in two places: `ParagraphView.body` (Sources/AgentViewKit/Content/ParagraphView.swift) and the private `StreamingTail` (Sources/AgentViewKit/Content/ResponseView.swift). Add the `.math` syntax extension in both places, so that settled paragraphs and the streaming tail parse math the same way.'
+  timestamp: 2026-09-16T20:16:54.997308+00:00
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
 position_column: todo

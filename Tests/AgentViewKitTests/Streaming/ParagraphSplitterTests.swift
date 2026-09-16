@@ -121,4 +121,22 @@ import Testing
     #expect(split.settled.map(\.text) == ["```\na\n\nb\n```"])
     #expect(split.tail == "x")
   }
+
+  // MARK: - Complete text
+
+  @Test func paragraphsSettlesTheTailAsTheLastParagraph() {
+    let paragraphs = ParagraphSplitter.paragraphs("one\n\ntwo\n")
+
+    #expect(paragraphs.map(\.text) == ["one", "two"])
+    #expect(paragraphs.map(\.id.index) == [0, 1])
+  }
+
+  @Test func paragraphsDropsATailWithOnlyLineBreaks() {
+    #expect(ParagraphSplitter.paragraphs("one\n\n").map(\.text) == ["one"])
+    #expect(ParagraphSplitter.paragraphs("").isEmpty)
+  }
+
+  @Test func paragraphsSettlesAnOpenFence() {
+    #expect(ParagraphSplitter.paragraphs("```swift\nlet x").map(\.text) == ["```swift\nlet x"])
+  }
 }

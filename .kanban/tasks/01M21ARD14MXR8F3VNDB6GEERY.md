@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nxv1fq2ekszp9z52btkq11
+  text: 'Note from ^r061h51: the body evaluation keys are `ParagraphView.counterKey(messageID:paragraphID:)` (`paragraph-<message id>-<index>-<hash>`) and `ResponseView.tailCounterKey(messageID:)` (`response-tail-<message id>`). Tests/AgentViewKitTests/Content/ResponseViewHostedTests.swift shows how to reset and read them.'
+  timestamp: 2026-09-16T20:16:56.823217+00:00
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
 - 01M21AGTHBZSXFCZHZE5A7FQWQ

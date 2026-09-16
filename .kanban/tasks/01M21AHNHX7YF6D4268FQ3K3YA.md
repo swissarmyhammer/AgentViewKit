@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nxttrhkjtny12q8bcke522
+  text: 'Note from ^r061h51: `ResponseView(message: Message, streaming: StreamingMessage?)` takes a `Message`, not a `Reasoning` record. To stream the reasoning body, give a `Message(id: reasoning.id, blocks: [ContentBlock(text: <segments text>)])` and `thread.streaming[reasoning.id]`, or add an initializer that takes an id and a text. The message id must be the record id, because the code block cache keys and the counter keys use it.'
+  timestamp: 2026-09-16T20:16:49.937911+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AH4QCEFEBPTZ8GR061H51

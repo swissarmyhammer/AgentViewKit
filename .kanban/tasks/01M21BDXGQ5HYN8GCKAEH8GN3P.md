@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nxtxeh8gxk8hghp0rtzha3
+  text: 'Note from ^r061h51: `ResponseView(message:streaming:)` shows all text blocks of the message that are for the user (`ResponseView.markdown(of:)` joins them with a blank line). The `.text` case of `ContentBlockView` must not show each text block in its own `ResponseView` with the same message id: the code block cache keys (`CodeBlockID`) and the counter keys use the message id and the paragraph index, and two views with the same id collide. Show one `ResponseView` for the message, or give each block view a message id of its own, for example `<message id>-<block index>`.'
+  timestamp: 2026-09-16T20:16:52.689863+00:00
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
 - 01M21AM66JDT2YAVFPWSQFHEXD

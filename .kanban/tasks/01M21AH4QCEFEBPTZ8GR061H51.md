@@ -4,8 +4,8 @@ depends_on:
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 - 01M21ACSE9JBXMRD2FQQD4CYR6
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: todo
-position_ordinal: '9380'
+position_column: doing
+position_ordinal: '8180'
 title: 'ResponseView on Textual: settled paragraphs, streaming tail, code fence routing (plan §4.2, §8, §9 B)'
 ---
 ## What
@@ -18,13 +18,13 @@ Create `Sources/AgentViewKit/Content/ResponseView.swift` and `ParagraphView.swif
 - Accessibility identifier `response-paragraph-<index>` and `response-tail`.
 
 ## Acceptance Criteria
-- [ ] A message with three settled paragraphs and a tail mounts four paragraph elements.
-- [ ] Appending to the tail adds one evaluation for `response-tail` and zero for the three settled ids.
-- [ ] A fenced block mounts a `code-block` element.
+- [x] A message with three settled paragraphs and a tail mounts four paragraph elements.
+- [x] Appending to the tail adds one evaluation for `response-tail` and zero for the three settled ids.
+- [x] A fenced block mounts a `code-block` element.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Content/ResponseViewHostedTests.swift`: element counts, evaluation counts, fence routing.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Content/ResponseViewHostedTests.swift`: element counts, evaluation counts, fence routing.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
