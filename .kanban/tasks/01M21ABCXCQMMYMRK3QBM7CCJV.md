@@ -16,13 +16,23 @@ comments:
     - TerminalPatch has PatchField members for command, cwd, exitStatus, output, and meta, plus `outputChunk: Data` that appends after the output field.
     - AgentThread has a public `item(id:)` lookup that uses the index. The tests use it to check that the index stays correct.
   timestamp: 2026-09-16T16:21:56.645994+00:00
+- actor: claude-code
+  id: 01m2ngvt81c9wg0x4sfb23v8m5
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 8 files: Sources/AgentViewKit/Model/{AgentThread,ItemPatch,PatchField,ThreadChange}.swift, Sources/AgentViewKit/Streaming/StreamingMessage.swift, Tests/AgentViewKitTests/Model/{PatchFieldTests,AgentThreadApplyTests,AgentThreadObservationTests}.swift
+    - test: green — swift test: 458 tests in 37 suites, 20 tests in 3 suites, 3 more suites of 1 test each; all pass; no warnings except the accepted mlx-swift build warnings
+    - commit: 606ea6f
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; task moved to done
+    - note for ^qd4cyr6 (StreamingMessage): the shell is at Sources/AgentViewKit/Streaming/StreamingMessage.swift with `id`, `text`, and `append(_:)`. AgentThread uses `append(_:)` for `appendStreaming`. If that task changes the API, it must update AgentThread.appendStreaming and AgentThreadApplyTests.
+  timestamp: 2026-09-16T16:30:10.689872+00:00
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
 - 01M21A9KJGPPJE0X01JE0B9V33
 - 01M21BYFK7KVCKXYXJFCJW7FSM
 - 01M21BD0YVS2J4MD6VXDM317W6
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '9380'
 title: AgentThread and ThreadChange with PatchField upsert semantics (plan §3.2)
 ---
 ## What
