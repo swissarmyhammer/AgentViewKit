@@ -109,6 +109,26 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
       self.cancelled = cancelled
       self.pending = pending
     }
+
+    /// The color of a tool call with `status`.
+    ///
+    /// Each view that tints a tool call by its status uses this function, so
+    /// that the views show the same color for the same status.
+    ///
+    /// - Parameter status: The status of the tool call.
+    /// - Returns: ``running`` for a call that runs, ``completed`` for a
+    ///   completed call, ``failed`` for a failed or lost call, ``cancelled``
+    ///   for a cancelled call, and ``pending`` for a pending call or a status
+    ///   that the kit does not know.
+    public func color(for status: ToolCallStatus) -> Color {
+      switch status {
+      case .inProgress: running
+      case .completed: completed
+      case .failed, .lost: failed
+      case .cancelled: cancelled
+      case .pending, .unknown: pending
+      }
+    }
   }
 
   /// The spacing steps.

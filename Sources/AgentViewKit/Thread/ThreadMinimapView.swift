@@ -302,26 +302,10 @@ public struct ThreadMinimapView: View {
     case .userMessage: theme.accent
     case .assistantMessage: Color.primary
     case .reasoning: Color.secondary
-    case .toolCall(let record): statusTint(record.status)
+    case .toolCall(let record): colors.color(for: record.status)
     case .error: colors.failed
     case .system, .structured, .compaction, .unknown:
       Color.secondary.opacity(Self.quietTickOpacity)
-    }
-  }
-
-  /// The tick color of a tool call with `status`.
-  ///
-  /// - Parameter status: The status of the call.
-  /// - Returns: The status color from the theme.
-  private func statusTint(_ status: ToolCallStatus) -> Color {
-    let colors = theme.statusColors
-    return switch status {
-    case .pending: colors.pending
-    case .inProgress: colors.running
-    case .completed: colors.completed
-    case .failed, .lost: colors.failed
-    case .cancelled: colors.cancelled
-    case .unknown: colors.pending
     }
   }
 }

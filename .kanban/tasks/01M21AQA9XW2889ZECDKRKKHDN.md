@@ -14,10 +14,24 @@ comments:
     - evidence: `timeout 900 swift test --filter AgentViewKitTests`: 611 tests in 51 suites passed, 0 warnings from the package.
     - next: commit, then review HEAD~1..HEAD.
   timestamp: 2026-09-16T19:23:44.056398+00:00
+- actor: claude-code
+  id: 01m2nv1a7s35d16n23whwmfk0p
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ThreadMinimapView.swift, ScrollAnchorManager.swift, two test files
+    - test: green — `timeout 900 swift test --filter AgentViewKitTests`, 611 passed
+    - commit: d8db892
+    - review: findings — Sources/AgentViewKit/Thread/ThreadMinimapView.swift:316 (duplication/duplication)
+
+    ### implement — changed (fix for the finding)
+    - The ToolCallStatus to Color mapping is now `AgentTheme.StatusColors.color(for:)`. ThreadMinimapView calls it. The private `statusTint` function is removed. New test: `Tests/AgentViewKitTests/Theme/StatusColorsTests.swift`.
+    - The other matches (ConnectionStatusChip, SubagentTreeView, Plan, SessionEventMapping, SubagentMapping) do not map ToolCallStatus to Color. They map ConnectionState, SubagentRun state, or wire strings. Thus they cannot call a ToolCallStatus function. The later ToolCallView task must call `color(for:)`.
+    - test: green — 612 tests in 52 suites passed.
+  timestamp: 2026-09-16T19:27:56.665167+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'ThreadMinimapView: scrubbable rail of turns, tool calls, and errors (plan §9 A)'
 ---
 ## What
@@ -39,3 +53,12 @@ Create `Sources/AgentViewKit/Thread/ThreadMinimapView.swift`, per plan.md §9 A.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 14:23)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Thread/ThreadMinimapView.swift:316` `duplication/duplication` — The statusTint function replicates a ToolCallStatus-to-Color mapping that exists in multiple places. Very high similarity (0.92) to ConnectionStatusChip and similar patterns (0.87) in Plan, SessionEventMapping, and SubagentMapping. Extract to a shared utility to prevent drift across multiple implementations. Extract the ToolCallStatus-to-Color mapping to a shared utility function (e.g., on AgentTheme or a dedicated StatusColorMapping helper). Call it from ThreadMinimapView:316-326 and update the four existing similar implementations to use the shared version.
