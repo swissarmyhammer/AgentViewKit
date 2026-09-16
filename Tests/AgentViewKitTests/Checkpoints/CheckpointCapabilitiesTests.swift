@@ -1,5 +1,4 @@
 import AgentViewKit
-import Foundation
 import PackageFileSupport
 import Testing
 
@@ -30,23 +29,12 @@ import Testing
     let wireCall: String
   }
 
-  /// The errors that the table parser can report.
+  /// The errors that the row mapping can report.
   private enum TableError: Error {
-    /// The file has no capability table header.
-    case missingHeader
     /// A row does not have ``CheckpointCapabilitiesTests/columnCount`` cells.
-    case wrongCellCount(String)
+    case wrongCellCount([String])
     /// A yes-or-no cell has a different value.
     case notYesOrNo(String)
-  }
-
-  /// Removes the surrounding spaces and backticks from one cell.
-  ///
-  /// - Parameter cell: The raw cell text.
-  /// - Returns: The cell value.
-  private static func value(of cell: Substring) -> String {
-    cell.trimmingCharacters(in: .whitespaces)
-      .trimmingCharacters(in: CharacterSet(charactersIn: "`"))
   }
 
   /// Reads a `yes` or `no` cell.
@@ -65,19 +53,13 @@ import Testing
   /// Parses the rows of the capability table.
   ///
   /// - Returns: The rows, in file order.
-  /// - Throws: ``TableError`` when the table is not in the expected form.
+  /// - Throws: ``MarkdownTable/MissingTable`` when the file has no capability
+  ///   table, or ``TableError`` when a row is not in the expected form.
   private static func tableRows() throws -> [Row] {
     let text = try PackageFiles.text(of: decisionPath)
-    let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
-    guard let headerIndex = lines.firstIndex(where: { $0 == header }) else {
-      throw TableError.missingHeader
-    }
-    // The line after the header is the separator row.
-    let body = lines[(headerIndex + 2)...].prefix { $0.hasPrefix("|") }
-    return try body.map { line in
-      let cells = line.split(separator: "|").map(value(of:))
+    return try MarkdownTable.rows(in: text, header: header).map { cells in
       guard cells.count == columnCount else {
-        throw TableError.wrongCellCount(String(line))
+        throw TableError.wrongCellCount(cells)
       }
       return Row(
         source: cells[0],

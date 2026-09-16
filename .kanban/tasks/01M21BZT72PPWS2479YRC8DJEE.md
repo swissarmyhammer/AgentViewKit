@@ -11,8 +11,8 @@ comments:
   timestamp: 2026-09-16T15:55:33.107574+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'Research R13: checkpoint sources in the Router and ACP, recorded as the Checkpoint decision (plan §14)'
 ---
 ## What
@@ -32,3 +32,15 @@ Settle research R13 from plan.md §14 and record it where the code can check it.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 10:55)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/checkpoints.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Checkpoints/CheckpointCapabilitiesTests.swift:69` `reuse/reuse` — The tableRows() function reinvents markdown table parsing. Its algorithm (split lines, find header, filter table rows, extract cells) is 0.93 identical to UsageDecisionTable.rows() in ContextUsageTests.swift. The rule mandates that a near-match should be extended rather than copied. Extract a shared markdown table parser helper that accepts text and header, and accepts a cell-to-Row mapper function. Both tests can pass their respective mappers to avoid duplicating the core parse algorithm.

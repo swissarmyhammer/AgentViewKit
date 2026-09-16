@@ -70,11 +70,13 @@ import Testing
   /// The body rows of the merge table in the decision file.
   ///
   /// - Returns: The rows, in file order.
-  /// - Throws: The read error, or ``UsageDecisionTable/MissingTable`` when the
+  /// - Throws: The read error, or ``MarkdownTable/MissingTable`` when the
   ///   file has no merge table.
-  private static func mergeTableRows() throws -> [UsageDecisionTable.Row] {
+  private static func mergeTableRows() throws -> [MergeTableRow] {
     let text = try PackageFiles.text(of: decisionPath)
-    return try UsageDecisionTable.rows(in: text, header: tableHeader)
+    return try MarkdownTable.rows(in: text, header: tableHeader).map { cells in
+      MergeTableRow(source: cells.first ?? "", target: cells.dropFirst().first ?? "")
+    }
   }
 
   @Test func everyTableRowNamesAStoredPropertyOfContextUsage() throws {
@@ -99,50 +101,10 @@ import Testing
   }
 }
 
-/// Parses the merge table of the usage decision file.
-private enum UsageDecisionTable {
-  /// One row of the merge table.
-  struct Row {
-    /// The first cell, without the backticks.
-    let source: String
-    /// The second cell, without the backticks.
-    let target: String
-  }
-
-  /// The error when the file has no merge table.
-  struct MissingTable: Error {}
-
-  /// The number of cells in a row of the merge table.
-  private static let cellCount = 3
-
-  /// The number of lines from the header row to the first body row: the
-  /// header row and the separator row.
-  private static let linesBeforeBody = 2
-
-  /// The body rows of the table that starts with `header`.
-  ///
-  /// The rows start after the separator row and stop at the first line that
-  /// is not a table row.
-  ///
-  /// - Parameters:
-  ///   - text: The Markdown text.
-  ///   - header: The exact header row.
-  /// - Returns: The rows, in file order.
-  /// - Throws: ``MissingTable`` when the text has no line equal to `header`.
-  static func rows(in text: String, header: String) throws -> [Row] {
-    let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
-      .map { $0.trimmingCharacters(in: .whitespaces) }
-    guard let headerIndex = lines.firstIndex(of: header) else { throw MissingTable() }
-    let bodyStart = headerIndex + linesBeforeBody
-    guard bodyStart <= lines.count else { return [] }
-    return lines[bodyStart...]
-      .prefix { $0.hasPrefix("|") }
-      .map { line in
-        let cells = line.split(separator: "|", omittingEmptySubsequences: false)
-          .dropFirst()
-          .prefix(cellCount)
-          .map { $0.trimmingCharacters(in: CharacterSet.whitespaces.union(["`"])) }
-        return Row(source: cells.first ?? "", target: cells.dropFirst().first ?? "")
-      }
-  }
+/// One row of the merge table of the usage decision file.
+private struct MergeTableRow {
+  /// The first cell, without the backticks.
+  let source: String
+  /// The second cell, without the backticks.
+  let target: String
 }
