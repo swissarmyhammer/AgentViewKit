@@ -25,9 +25,8 @@ public nonisolated struct ContentBlock: Sendable, Hashable {
   /// Makes a text block with no annotations.
   ///
   /// - Parameter text: The text of the block.
-  /// - Returns: The text block.
-  public static func text(_ text: String) -> ContentBlock {
-    ContentBlock(content: .text(text))
+  public init(text: String) {
+    self.init(content: .text(text))
   }
 
   /// The type of the content, with no values.

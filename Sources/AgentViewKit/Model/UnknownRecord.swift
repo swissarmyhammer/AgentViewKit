@@ -8,8 +8,8 @@ public final class UnknownRecord: ThreadRecord {
   /// The identifier of the record.
   public nonisolated let id: String
 
-  /// The number of patches on the record.
-  public private(set) var revision = 0
+  /// The number of patches on the record. Call ``bump()`` to change it.
+  public var revision = 0
 
   /// The `_meta` value of the source, unchanged.
   public var meta: JSONValue?
@@ -32,10 +32,5 @@ public final class UnknownRecord: ThreadRecord {
     self.kind = kind
     self.raw = raw
     self.meta = meta
-  }
-
-  /// Increments ``revision`` by one.
-  public func bump() {
-    revision += 1
   }
 }

@@ -3,8 +3,8 @@ import Foundation
 import Testing
 
 @Suite struct ContentBlockTests {
-  /// A text block with the given audience and priority.
-  private static func text(
+  /// Makes a text block with the given audience and priority.
+  private static func makeBlock(
     _ text: String,
     audience: [Audience]? = nil,
     priority: Double? = nil
@@ -18,7 +18,7 @@ import Testing
   // MARK: - Audience
 
   @Test func aBlockWithNoAnnotationsIsVisibleToEachAudience() {
-    let block = ContentBlock.text("Hello")
+    let block = ContentBlock(text: "Hello")
 
     #expect(block.annotations == nil)
     #expect(block.isVisible(to: .user))
@@ -26,34 +26,34 @@ import Testing
   }
 
   @Test func aBlockWithNoAudienceIsVisibleToEachAudience() {
-    let block = Self.text("Hello", priority: 0.5)
+    let block = Self.makeBlock("Hello", priority: 0.5)
 
     #expect(block.isVisible(to: .user))
     #expect(block.isVisible(to: .assistant))
   }
 
   @Test func aBlockForTheAssistantOnlyIsNotVisibleToTheUser() {
-    let block = Self.text("Hidden", audience: [.assistant])
+    let block = Self.makeBlock("Hidden", audience: [.assistant])
 
     #expect(!block.isVisible(to: .user))
     #expect(block.isVisible(to: .assistant))
   }
 
   @Test func aBlockForTheUserIsVisibleToTheUser() {
-    let block = Self.text("Shown", audience: [.user, .assistant])
+    let block = Self.makeBlock("Shown", audience: [.user, .assistant])
 
     #expect(block.isVisible(to: .user))
   }
 
   @Test func aBlockWithAnEmptyAudienceIsVisibleToNoAudience() {
-    let block = Self.text("Nobody", audience: [])
+    let block = Self.makeBlock("Nobody", audience: [])
 
     #expect(!block.isVisible(to: .user))
     #expect(!block.isVisible(to: .assistant))
   }
 
   @Test func aBlockForAnUnknownAudienceIsNotVisibleToTheUser() {
-    let block = Self.text("Other", audience: [.unknown("tool")])
+    let block = Self.makeBlock("Other", audience: [.unknown("tool")])
 
     #expect(!block.isVisible(to: .user))
     #expect(block.isVisible(to: .unknown("tool")))
@@ -61,9 +61,9 @@ import Testing
 
   @Test func theVisibleFilterKeepsTheOrderOfTheVisibleBlocks() {
     let blocks = [
-      Self.text("a"),
-      Self.text("b", audience: [.assistant]),
-      Self.text("c", audience: [.user]),
+      Self.makeBlock("a"),
+      Self.makeBlock("b", audience: [.assistant]),
+      Self.makeBlock("c", audience: [.user]),
     ]
 
     #expect(blocks.visible(to: .user).map(\.content) == [.text("a"), .text("c")])
@@ -83,9 +83,9 @@ import Testing
 
   @Test func thePrioritySortPutsTheHighestPriorityFirst() {
     let blocks = [
-      Self.text("low", priority: 0.1),
-      Self.text("high", priority: 0.9),
-      Self.text("middle", priority: 0.5),
+      Self.makeBlock("low", priority: 0.1),
+      Self.makeBlock("high", priority: 0.9),
+      Self.makeBlock("middle", priority: 0.5),
     ]
 
     #expect(
@@ -95,9 +95,9 @@ import Testing
 
   @Test func thePrioritySortPutsBlocksWithNoPriorityLast() {
     let blocks = [
-      ContentBlock.text("none"),
-      Self.text("zero", priority: 0),
-      Self.text("unset", audience: [.user]),
+      ContentBlock(text: "none"),
+      Self.makeBlock("zero", priority: 0),
+      Self.makeBlock("unset", audience: [.user]),
     ]
 
     #expect(
@@ -107,9 +107,9 @@ import Testing
 
   @Test func thePrioritySortKeepsTheOrderOfEqualPriorities() {
     let blocks = [
-      Self.text("first", priority: 0.5),
-      Self.text("second", priority: 0.5),
-      Self.text("third", priority: 0.5),
+      Self.makeBlock("first", priority: 0.5),
+      Self.makeBlock("second", priority: 0.5),
+      Self.makeBlock("third", priority: 0.5),
     ]
 
     #expect(

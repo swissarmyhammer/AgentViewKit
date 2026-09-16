@@ -12,16 +12,20 @@ public protocol ThreadRecord: AnyObject, Identifiable, Observable where ID == St
   /// The number of patches on the record.
   ///
   /// A new record has revision zero. Two rows are equal when they have the
-  /// same id and the same revision.
-  var revision: Int { get }
+  /// same id and the same revision. To change the revision, call ``bump()``.
+  var revision: Int { get set }
 
   /// The `_meta` value of the source, unchanged.
   ///
   /// An adapter or a host can read extension data from it.
   var meta: JSONValue? { get }
+}
 
+extension ThreadRecord {
   /// Increments ``revision`` by one.
   ///
   /// Call this function after each patch on the record.
-  func bump()
+  public func bump() {
+    revision += 1
+  }
 }

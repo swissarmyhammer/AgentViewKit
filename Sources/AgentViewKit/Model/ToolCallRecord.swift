@@ -10,8 +10,8 @@ public final class ToolCallRecord: ThreadRecord {
   /// The identifier of the record. For ACP, this is the `toolCallId`.
   public nonisolated let id: String
 
-  /// The number of patches on the record.
-  public private(set) var revision = 0
+  /// The number of patches on the record. Call ``bump()`` to change it.
+  public var revision = 0
 
   /// The `_meta` value of the source, unchanged.
   public var meta: JSONValue?
@@ -81,11 +81,6 @@ public final class ToolCallRecord: ThreadRecord {
     self.startedAt = startedAt
     self.endedAt = endedAt
     self.meta = meta
-  }
-
-  /// Increments ``revision`` by one.
-  public func bump() {
-    revision += 1
   }
 }
 

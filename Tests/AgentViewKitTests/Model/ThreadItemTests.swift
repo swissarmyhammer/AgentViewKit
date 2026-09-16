@@ -8,8 +8,11 @@ import Testing
   private static func oneItemForEachCase() -> [(item: ThreadItem, id: String)] {
     [
       (.system(SystemPrompt(id: "system-1", text: "Be brief.")), "system-1"),
-      (.userMessage(Message(id: "user-1", blocks: [.text("Hello")])), "user-1"),
-      (.assistantMessage(Message(id: "assistant-1", blocks: [.text("Hi")])), "assistant-1"),
+      (.userMessage(Message(id: "user-1", blocks: [ContentBlock(text: "Hello")])), "user-1"),
+      (
+        .assistantMessage(Message(id: "assistant-1", blocks: [ContentBlock(text: "Hi")])),
+        "assistant-1"
+      ),
       (.reasoning(Reasoning(id: "reasoning-1", segments: ["Think"])), "reasoning-1"),
       (.toolCall(ToolCallRecord(id: "tool-1", title: "Read file")), "tool-1"),
       (
@@ -115,12 +118,15 @@ import Testing
   @Test func aToolCallRecordKeepsItsContentAndLocations() {
     let started = Date(timeIntervalSince1970: 10)
     let ended = Date(timeIntervalSince1970: 20)
+    let content: [ToolContent] = [
+      .block(ContentBlock(text: "Done")), .diff(patch: "@@ -1 +1 @@"), .terminal(id: "term-1"),
+    ]
     let call = ToolCallRecord(
       id: "tool-1",
       title: "Edit",
       kind: .edit,
       status: .completed,
-      content: [.block(.text("Done")), .diff(patch: "@@ -1 +1 @@"), .terminal(id: "term-1")],
+      content: content,
       locations: [ToolCallLocation(path: "/tmp/a.swift", line: 3)],
       rawInput: .object(["path": .string("/tmp/a.swift")]),
       rawOutput: .string("ok"),
@@ -128,9 +134,7 @@ import Testing
       endedAt: ended
     )
 
-    #expect(
-      call.content == [.block(.text("Done")), .diff(patch: "@@ -1 +1 @@"), .terminal(id: "term-1")]
-    )
+    #expect(call.content == content)
     #expect(call.locations == [ToolCallLocation(path: "/tmp/a.swift", line: 3)])
     #expect(call.rawInput?["path"] == .string("/tmp/a.swift"))
     #expect(call.rawOutput == .string("ok"))
