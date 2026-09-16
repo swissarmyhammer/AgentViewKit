@@ -28,6 +28,16 @@ comments:
     - review: findings — Sources/AgentViewKit/Activity/ShimmerView.swift:57, Sources/AgentViewKit/Activity/ShimmerView.swift:76, Sources/AgentViewKit/Items/ReasoningView.swift:35 (code-hygiene/magic-numbers-swift)
     - fix: the three findings are corrected (named quarter turn, no literal factor, no array index) and checked; test green again.
   timestamp: 2026-09-16T21:24:53.454676+00:00
+- actor: claude-code
+  id: 01m2p1x0vjmqfeqe34hgt5m11t
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — ShimmerView.swift, ReasoningView.swift (iteration 1 findings)
+    - test: green — timeout 1500 swift test, 756 AgentViewKitTests passed
+    - commit: 518e2ed
+    - review: findings — Sources/AgentViewKit/Activity/ShimmerView.swift:66 (reuse/reuse)
+    - fix: `Comparable.clamped(to:)` is not public in Swift 6.4 (swiftc says "'clamped' is inaccessible due to 'package' protection level"). As the finding tells for that case, the function now has a comment that records the Swift version requirement. Checked; test green again.
+  timestamp: 2026-09-16T21:27:56.018266+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AH4QCEFEBPTZ8GR061H51
@@ -66,3 +76,12 @@ Create `Sources/AgentViewKit/Activity/ShimmerView.swift`, `ActivityIndicator.swi
 - [x] `Sources/AgentViewKit/Activity/ShimmerView.swift:57` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Sources/AgentViewKit/Activity/ShimmerView.swift:76` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Sources/AgentViewKit/Items/ReasoningView.swift:35` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+
+## Review Findings (2026-09-16 16:24)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Activity/ShimmerView.swift:66` `reuse/reuse` — The `clamped` function duplicates the capability of Swift's standard library `Comparable.clamped(to:ClosedRange)` method by manually implementing the clamp algorithm with `min(max(...))` instead of calling the standard library function. Use the standard library method: `location.clamped(to: gradientStart...gradientEnd)`. If Swift 5.8+ is not supported, document the Swift version compatibility requirement as a comment in the function.

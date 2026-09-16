@@ -61,6 +61,11 @@ public struct ShimmerView: View {
 
   /// Limits a location to the gradient.
   ///
+  /// The Swift 6.4 standard library has no public `Comparable.clamped(to:)`
+  /// for a value. SwiftUI has one, but its access level is `package`. Thus
+  /// this function uses `min` and `max`. Use the standard function when a
+  /// supported Swift version makes it public.
+  ///
   /// - Parameter location: A location, as a fraction of the label width.
   /// - Returns: The location, from ``gradientStart`` to ``gradientEnd``.
   static func clamped(_ location: Double) -> Double {
