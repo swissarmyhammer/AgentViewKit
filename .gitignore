@@ -3,3 +3,5 @@
 .swiftpm/
 *.xcodeproj
 DerivedData/
+# The per-session state of the ralph Stop hook.
+.ralph/
