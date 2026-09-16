@@ -150,7 +150,7 @@ public nonisolated enum JSONValue: Sendable, Hashable, Codable {
   /// The output has no whitespace and does not escape `/`. A number that is
   /// not finite prints as `null`, because JSON has no literal for it.
   public var jsonString: String {
-    Self.print(self, formatting: [.sortedKeys, .withoutEscapingSlashes])
+    Self.encodedText(of: self, formatting: [.sortedKeys, .withoutEscapingSlashes])
   }
 
   /// The indented JSON text of the value, with sorted object keys.
@@ -158,7 +158,7 @@ public nonisolated enum JSONValue: Sendable, Hashable, Codable {
   /// The output is the same for equal values, so a view or a snapshot test
   /// can show it. A number that is not finite prints as `null`.
   public var prettyPrinted: String {
-    Self.print(self, formatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+    Self.encodedText(of: self, formatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
   }
 
   /// Encodes `value` to JSON text.
@@ -167,7 +167,10 @@ public nonisolated enum JSONValue: Sendable, Hashable, Codable {
   ///   - value: The value to encode.
   ///   - formatting: The output format.
   /// - Returns: The JSON text.
-  private static func print(_ value: JSONValue, formatting: JSONEncoder.OutputFormatting) -> String {
+  private static func encodedText(
+    of value: JSONValue,
+    formatting: JSONEncoder.OutputFormatting
+  ) -> String {
     let encoder = JSONEncoder()
     encoder.outputFormatting = formatting
     // After `finite`, each number is finite. `JSONEncoder` throws only for a
