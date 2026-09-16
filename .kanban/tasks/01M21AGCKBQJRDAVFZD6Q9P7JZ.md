@@ -26,12 +26,22 @@ comments:
     - review: findings — Sources/AgentViewKitACP/SessionUpdateMapping.swift:601
     - next: fixed. `json(_:)` and `wireJSON(_:)` both go through the encoded JSON form now, with no case-by-case copy. ACP tests 85 pass.
   timestamp: 2026-09-16T18:33:03.619191+00:00
+- actor: claude-code
+  id: 01m2nqzqhf635qkspv2v2v7734
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — SessionUpdateMapping.swift (json and wireJSON through the encoded form)
+    - test: green — AgentViewKitACPTests 85
+    - commit: 44b5bb6
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; all prior findings checked
+    - next: none. The task is in done.
+  timestamp: 2026-09-16T18:34:39.023925+00:00
 depends_on:
 - 01M21ADNAKRK96TKZQMRMW1MG7
 - 01M21BDG310SH8A60AFWXKPSDC
 - 01M21CAWYA16NQ5MKZKBBH4DS6
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: 9a80
 title: 'ACP verbs: send, cancel, permission, elicitation, config, connect, login, terminal auth, logout through SwiftUIACPClient (plan §3.4, §12)'
 ---
 ## What
