@@ -397,8 +397,11 @@ final class PromptEditorSession {
   /// The engine, or `nil` before the first completion request.
   private var storedEngine: CompletionEngine?
 
-  /// The commands and the root of the engine.
-  private var engineKey: EngineKey?
+  /// The slash commands that the sources of the engine read.
+  private var engineCommands: [SlashCommand] = []
+
+  /// The file root that the sources of the engine read.
+  private var engineRoot: URL?
 
   /// The closure that gets each committed transaction of the model.
   private var onCommit: ((EditorTransaction) -> Void)?
@@ -418,12 +421,6 @@ final class PromptEditorSession {
 
   deinit {
     commitTask?.cancel()
-  }
-
-  /// The values that the sources of an engine read.
-  private struct EngineKey: Equatable {
-    let commands: [SlashCommand]
-    let root: URL?
   }
 
   /// The model of the editor. The model registers the completion session
@@ -497,8 +494,7 @@ final class PromptEditorSession {
   ///   - root: The file root, or `nil`.
   /// - Returns: The engine.
   func engine(commands: [SlashCommand], root: URL?) -> CompletionEngine {
-    let key = EngineKey(commands: commands, root: root)
-    if let storedEngine, engineKey == key {
+    if let storedEngine, engineCommands == commands, engineRoot == root {
       return storedEngine
     }
     var sources: [any EditorExtensions.CompletionSource] = [SlashCommandSource(commands: commands)]
@@ -507,7 +503,8 @@ final class PromptEditorSession {
     }
     let engine = CompletionEngine(sources: sources)
     storedEngine = engine
-    engineKey = key
+    engineCommands = commands
+    engineRoot = root
     return engine
   }
 }
