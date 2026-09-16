@@ -27,10 +27,19 @@ comments:
     - commit: 93753c4
     - review: findings — MathSpanScanner.swift:116, :242, :269 (code-hygiene/magic-numbers-swift). Fixed with `escapeLength` and `escapeEnd(from:)`; `parts[0]` became `parts.first`. Full suite green after the fix.
   timestamp: 2026-09-16T21:09:50.705663+00:00
+- actor: claude-code
+  id: 01m2p0ysa7fy88ka93zpdr5hwy
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — MathSpanScanner.swift (escapeLength, escapeEnd(from:))
+    - test: green — swift test, 746 + 91 + 71 + 20 + 1 passed
+    - commit: 75d2799
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; all prior items checked. Task moved to done.
+  timestamp: 2026-09-16T21:11:25.255224+00:00
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: a780
 title: MathView on a Core Text engine, wired to Textual math spans (plan §9 B, §11#7, research R9)
 ---
 ## What
