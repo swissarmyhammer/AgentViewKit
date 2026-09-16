@@ -120,8 +120,8 @@ public struct ItemRow: View, Equatable {
         placeholder("Compaction")
       }
     case .error(let record):
-      OverridableItemView(\.errorViewOverride, record: record) { _ in
-        placeholder("Error")
+      OverridableItemView(\.errorViewOverride, record: record) { record in
+        ErrorView(error: record)
       }
     case .unknown(let record):
       OverridableItemView(\.unknownItemViewOverride, record: record) { record in

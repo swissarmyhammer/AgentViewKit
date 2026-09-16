@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nwhmtr9g16hgn62bca5jmj
+  text: 'Note from ^apwfm0s (ErrorView): ConversationView must mount `StateBanner(state:errorID:onShowError:)` with `errorID` set to the id of the newest `.error` item (a `ThreadError`) that relates to the stop reason, and an `onShowError` closure that scrolls to the row of that id (`ItemRow` identifier `item-row-<id>`; the card has identifier `error-<case>`). ConversationView must also pass the host `ErrorActions` through `.errorActions(_:)` when the host gives them. With no actions, an error card shows no button.'
+  timestamp: 2026-09-16T19:54:20.376121+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 position_column: todo
