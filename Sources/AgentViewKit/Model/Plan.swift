@@ -45,8 +45,9 @@ public nonisolated struct Plan: Sendable, Hashable, Identifiable {
 
 /// One task in a ``Plan`` (plan.md §3.2).
 ///
-/// The fields are the fields of an ACP `PlanEntry`.
-public nonisolated struct PlanEntry: Sendable, Hashable {
+/// The fields are the fields of an ACP `PlanEntry`. The JSON form uses the
+/// wire string of ``priority`` and ``status``.
+public nonisolated struct PlanEntry: Sendable, Hashable, Codable {
   /// The text of the task.
   public var content: String
 
@@ -71,7 +72,7 @@ public nonisolated struct PlanEntry: Sendable, Hashable {
   /// The importance of a plan entry.
   ///
   /// The wire values are the ACP `PlanEntryPriority` strings.
-  public enum Priority: WireValueEnum {
+  public enum Priority: WireValueEnum, Codable {
     /// A task of high importance.
     case high
 
@@ -101,7 +102,7 @@ public nonisolated struct PlanEntry: Sendable, Hashable {
   /// The progress of a plan entry.
   ///
   /// The wire values are the ACP v2 `PlanEntryStatus` strings.
-  public enum Status: WireValueEnum {
+  public enum Status: WireValueEnum, Codable {
     /// The work did not start.
     case pending
 

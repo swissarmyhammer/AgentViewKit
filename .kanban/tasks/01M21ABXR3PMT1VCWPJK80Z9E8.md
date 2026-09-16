@@ -1,8 +1,8 @@
 ---
 depends_on:
 - 01M21A9KJGPPJE0X01JE0B9V33
-position_column: todo
-position_ordinal: '8780'
+position_column: doing
+position_ordinal: '8180'
 title: 'schemaName catalog: Codable payloads for approval, plan, citation, artifact, authorization, usage (plan §3.3, §11#5)'
 ---
 ## What

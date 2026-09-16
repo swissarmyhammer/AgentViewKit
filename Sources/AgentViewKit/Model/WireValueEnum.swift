@@ -23,7 +23,7 @@ public nonisolated protocol WireValueEnum: Sendable, Hashable {
   var wireValue: String { get }
 }
 
-extension WireValueEnum {
+nonisolated extension WireValueEnum {
   /// Reads a case from its wire string.
   ///
   /// - Parameter wireValue: A wire string, such as `max_tokens`.
@@ -31,5 +31,29 @@ extension WireValueEnum {
   ///   ``unknown(_:)`` with `wireValue`.
   public init(wireValue: String) {
     self = Self.knownCases.first { $0.wireValue == wireValue } ?? Self.unknown(wireValue)
+  }
+}
+
+/// The JSON form of a wire value enum is its wire string. A string that the
+/// kit does not know decodes to the `unknown` case, so decode never fails
+/// for a string.
+///
+/// The standard library uses the same pattern for `RawRepresentable`: these
+/// implementations replace the synthesized `Codable` form of the enum.
+nonisolated extension WireValueEnum where Self: Codable {
+  /// Decodes a case from its wire string.
+  ///
+  /// - Parameter decoder: The decoder to read from.
+  /// - Throws: `DecodingError` when the value is not a string.
+  public init(from decoder: any Decoder) throws {
+    self.init(wireValue: try String(from: decoder))
+  }
+
+  /// Encodes the wire string of the case.
+  ///
+  /// - Parameter encoder: The encoder to write to.
+  /// - Throws: The error of the encoder.
+  public func encode(to encoder: any Encoder) throws {
+    try wireValue.encode(to: encoder)
   }
 }

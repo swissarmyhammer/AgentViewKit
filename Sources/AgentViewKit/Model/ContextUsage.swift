@@ -63,7 +63,7 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
   }
 
   /// A cumulative cost in one currency.
-  public struct Cost: Sendable, Hashable {
+  public struct Cost: Sendable, Hashable, Codable {
     /// The cost.
     public var amount: Double
 
@@ -82,7 +82,7 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
   }
 
   /// The input token counts.
-  public struct Input: Sendable, Hashable {
+  public struct Input: Sendable, Hashable, Codable {
     /// The number of input tokens.
     public var total: Int
 
@@ -102,7 +102,7 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
   }
 
   /// The output token counts.
-  public struct Output: Sendable, Hashable {
+  public struct Output: Sendable, Hashable, Codable {
     /// The number of output tokens.
     public var total: Int
 
@@ -127,7 +127,10 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
   /// The cases are the cases of the Private Cloud Compute
   /// `QuotaUsage.Status`. The FoundationModels adapter makes this value from
   /// a typed SDK enum, not from a wire string, so it has no `unknown` case.
-  public enum Quota: Sendable, Hashable {
+  ///
+  /// The JSON form is an object with a `status` key, `belowLimit` or
+  /// `limitReached`. The `belowLimit` form also has an `approaching` key.
+  public enum Quota: Sendable, Hashable, Codable {
     /// The use is below the limit.
     ///
     /// - Parameter approaching: `true` when the use is near the limit.
@@ -136,5 +139,47 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
     /// The use is at the limit. The service refuses new requests until the
     /// quota resets.
     case limitReached
+
+    /// The keys of the JSON form.
+    private enum CodingKeys: String, CodingKey {
+      case status
+      case approaching
+    }
+
+    /// The values of the `status` key.
+    private enum Status: String, Codable {
+      case belowLimit
+      case limitReached
+    }
+
+    /// Decodes a quota state from its JSON form.
+    ///
+    /// - Parameter decoder: The decoder to read from.
+    /// - Throws: `DecodingError` when the `status` value is not known, or
+    ///   when a `belowLimit` form has no `approaching` value.
+    public init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      switch try container.decode(Status.self, forKey: .status) {
+      case .belowLimit:
+        self = .belowLimit(approaching: try container.decode(Bool.self, forKey: .approaching))
+      case .limitReached:
+        self = .limitReached
+      }
+    }
+
+    /// Encodes the quota state in its JSON form.
+    ///
+    /// - Parameter encoder: The encoder to write to.
+    /// - Throws: The error of the encoder.
+    public func encode(to encoder: any Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      switch self {
+      case .belowLimit(let approaching):
+        try container.encode(Status.belowLimit, forKey: .status)
+        try container.encode(approaching, forKey: .approaching)
+      case .limitReached:
+        try container.encode(Status.limitReached, forKey: .status)
+      }
+    }
   }
 }
