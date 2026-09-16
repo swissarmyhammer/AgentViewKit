@@ -39,12 +39,16 @@ public struct PromptQueueView: View {
     self.queue = queue
   }
 
+  /// The range of the number of lines that the text field of an item shows.
+  /// Longer text scrolls.
+  static let editLineRange = 1...3
+
   /// The accessibility identifier of the text field of an item.
   ///
   /// - Parameter id: The identifier of the item.
   /// - Returns: The accessibility identifier.
   public static func editIdentifier(_ id: QueuedPromptID) -> String {
-    "prompt-queue-edit-\(id.rawValue)"
+    itemIdentifier("edit", id)
   }
 
   /// The accessibility identifier of the "send now" button of an item.
@@ -52,7 +56,7 @@ public struct PromptQueueView: View {
   /// - Parameter id: The identifier of the item.
   /// - Returns: The accessibility identifier.
   public static func sendNowIdentifier(_ id: QueuedPromptID) -> String {
-    "prompt-queue-send-now-\(id.rawValue)"
+    itemIdentifier("send-now", id)
   }
 
   /// The accessibility identifier of the remove button of an item.
@@ -60,7 +64,17 @@ public struct PromptQueueView: View {
   /// - Parameter id: The identifier of the item.
   /// - Returns: The accessibility identifier.
   public static func removeIdentifier(_ id: QueuedPromptID) -> String {
-    "prompt-queue-remove-\(id.rawValue)"
+    itemIdentifier("remove", id)
+  }
+
+  /// The accessibility identifier of one control of an item.
+  ///
+  /// - Parameters:
+  ///   - control: The name of the control.
+  ///   - id: The identifier of the item.
+  /// - Returns: The accessibility identifier.
+  private static func itemIdentifier(_ control: String, _ id: QueuedPromptID) -> String {
+    "\(identifier)-\(control)-\(id.rawValue)"
   }
 
   /// The accessibility label of the count badge.
@@ -119,7 +133,7 @@ public struct PromptQueueView: View {
       TextField(String(localized: "Queued message"), text: text(of: id), axis: .vertical)
         .textFieldStyle(.plain)
         .font(theme.proseFont)
-        .lineLimit(1...3)
+        .lineLimit(Self.editLineRange)
         .accessibilityIdentifier(Self.editIdentifier(id))
       Button {
         sendNow(id)
