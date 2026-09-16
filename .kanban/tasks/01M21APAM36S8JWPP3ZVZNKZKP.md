@@ -18,10 +18,19 @@ comments:
     - evidence: MathView.swift, MathMarkdownParser.swift, MathSpanScanner.swift, MarkdownProse.swift, Package.swift, 2 decision files, 3 test files.
     - next: test, commit, review.
   timestamp: 2026-09-16T21:05:37.233132+00:00
+- actor: claude-code
+  id: 01m2p0vwzh0bsvkk43sp6wpwcm
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — MathView, MathMarkdownParser, MathSpanScanner, MarkdownProse, decisions, tests
+    - test: green — swift test, 746 + 91 + 71 + 20 + 1 passed
+    - commit: 93753c4
+    - review: findings — MathSpanScanner.swift:116, :242, :269 (code-hygiene/magic-numbers-swift). Fixed with `escapeLength` and `escapeEnd(from:)`; `parts[0]` became `parts.first`. Full suite green after the fix.
+  timestamp: 2026-09-16T21:09:50.705663+00:00
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: MathView on a Core Text engine, wired to Textual math spans (plan §9 B, §11#7, research R9)
 ---
 ## What
@@ -44,3 +53,11 @@ Create `Sources/AgentViewKit/Content/MathView.swift`, per plan.md decision 7. Th
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 16:05)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 10 file(s) reviewed, 7 not reviewed.
+
+- [x] `Sources/AgentViewKit/Content/MathSpanScanner.swift:116` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Content/MathSpanScanner.swift:242` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Content/MathSpanScanner.swift:269` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

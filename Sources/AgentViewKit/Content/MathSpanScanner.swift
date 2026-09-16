@@ -47,6 +47,10 @@ nonisolated enum MathSpanScanner {
   /// The largest indent of a code fence, in spaces.
   static let maximumFenceIndent = 3
 
+  /// The number of characters in an escape: the backslash and the escaped
+  /// character.
+  static let escapeLength = 2
+
   /// Splits `markdown` into text parts and math spans.
   ///
   /// - Parameter markdown: The Markdown text.
@@ -76,7 +80,7 @@ nonisolated enum MathSpanScanner {
     let parts = pieces(in: markdown).filter { piece in
       if case .text(let text) = piece { !text.allSatisfy(\.isWhitespace) } else { true }
     }
-    guard parts.count == 1, case .math(let span, _) = parts[0], span.display else {
+    guard parts.count == 1, case .math(let span, _) = parts.first, span.display else {
       return nil
     }
     return span
@@ -113,7 +117,7 @@ nonisolated enum MathSpanScanner {
         if isLineStart, let end = fenceBlockEnd(from: index) {
           copy(to: end)
         } else if character == MathSpanScanner.backslash {
-          copy(to: text.index(index, offsetBy: 2, limitedBy: text.endIndex) ?? text.endIndex)
+          copy(to: escapeEnd(from: index))
         } else if character == MathSpanScanner.backtick {
           copy(to: codeSpanEnd(from: index))
         } else if character == MathSpanScanner.dollar, let (span, end) = mathSpan(from: index) {
@@ -144,6 +148,16 @@ nonisolated enum MathSpanScanner {
     mutating func copy(to end: String.Index) {
       pending += text[index..<end]
       index = end
+    }
+
+    /// The end of the escape that starts at `position`.
+    ///
+    /// - Parameter position: The position of a backslash.
+    /// - Returns: The position after the escaped character, or the end of the
+    ///   text.
+    func escapeEnd(from position: String.Index) -> String.Index {
+      text.index(position, offsetBy: MathSpanScanner.escapeLength, limitedBy: text.endIndex)
+        ?? text.endIndex
     }
 
     /// The end of the line that holds `position`, after its line break.
@@ -239,7 +253,7 @@ nonisolated enum MathSpanScanner {
       while position < text.endIndex {
         let character = text[position]
         if character == MathSpanScanner.backslash {
-          position = text.index(position, offsetBy: 2, limitedBy: text.endIndex) ?? text.endIndex
+          position = escapeEnd(from: position)
           continue
         }
         let next = text.index(after: position)
@@ -266,7 +280,7 @@ nonisolated enum MathSpanScanner {
         let character = text[position]
         if character == "\n" { return nil }
         if character == MathSpanScanner.backslash {
-          position = text.index(position, offsetBy: 2, limitedBy: text.endIndex) ?? text.endIndex
+          position = escapeEnd(from: position)
           continue
         }
         if character == MathSpanScanner.dollar {
