@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2p6vga0tmq4kytcp9tf1fad
+  text: 'Note from ^h0m4ycm (done): `PromptInputView` does not submit while `thread.state == .running`. Return does nothing and the text stays, and `PromptSubmitAction.isEnabled` is false. The queue must change this rule: while a turn runs, a submit adds the text to the queue. The submit logic is `PromptInputView.submit()` and `canSubmit` in Sources/AgentViewKit/Input/PromptInputView.swift. Hosted tests use `threadViewHarness(size:actions:thread:content:)` and `harness.focusFirstEditableTextView(of:)` from AgentViewKitTestSupport.'
+  timestamp: 2026-09-16T22:54:29.184584+00:00
 depends_on:
 - 01M21AF2MV082PZY3Q6H0M4YCM
 position_column: todo
