@@ -1,11 +1,23 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2ny0ej1g928gxgngq92h08s
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — Sources/AgentViewKit/Content/{ResponseView,ParagraphView,ContentContainer}.swift; ParagraphSplitter.paragraphs(_:) added, StreamingMessage uses it
+    - test: green — timeout 1500 swift test, 686 + 85 + 71 + 20 + 1 passed, 0 failed, no new warnings
+    - commit: 4e8413b
+    - review: clean — review sha HEAD~1..HEAD, 0 findings, 7 files
+    - decisions: (1) With `streaming == nil`, the view shows the text blocks for the user, joined with a blank line, all settled. (2) Counter keys: `paragraph-<message id>-<index>-<hash>` and `response-tail-<message id>`. (3) The open fence tail uses the cache key `CodeBlockID(messageID, "tail")`; the view keeps its own `CodeBlockModelCache` when the environment has none. (4) The tail code drops one line break at its end, so each chunk stays an append. (5) SwiftUI merges a container with one child container into the child; `contentContainer(identifier:)` adds a hidden background, so `response-paragraph-<n>` and `code-block` both stay.
+    - next: none
+  timestamp: 2026-09-16T20:19:54.049471+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 - 01M21ACSE9JBXMRD2FQQD4CYR6
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: a380
 title: 'ResponseView on Textual: settled paragraphs, streaming tail, code fence routing (plan §4.2, §8, §9 B)'
 ---
 ## What
