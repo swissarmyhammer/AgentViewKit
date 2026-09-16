@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The view of a whole thread (plan.md §3.6, §8, §9 A).
 ///
-/// The view shows one ``ItemRow`` for each item of the thread, in a lazy
-/// stack. The body reads only ``AgentThread/items``, and each row reads only
+/// The view shows the thread in a ``ConversationView``: one ``ItemRow`` for
+/// each item, in a lazy stack that follows the bottom. Each row reads only
 /// its own record. Thus a patch to one record evaluates only the row of that
 /// record.
 ///
@@ -30,7 +30,6 @@ public struct AgentThreadView: View {
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
-  @Environment(\.agentTheme) private var theme
 
   /// Makes the view of a thread.
   ///
@@ -40,17 +39,8 @@ public struct AgentThreadView: View {
   }
 
   public var body: some View {
-    ScrollView {
-      LazyVStack(alignment: .leading, spacing: theme.spacing.m) {
-        ForEach(thread.items, id: \.id) { item in
-          ItemRow(item: item)
-            .equatable()
-        }
-      }
-      .padding(theme.rowPadding)
-    }
-    .environment(\.agentThread, thread)
-    .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
-    .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
+    ConversationView(thread: thread)
+      .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
+      .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
   }
 }

@@ -121,6 +121,25 @@ public final class ScrollAnchorManager {
     }
   }
 
+  /// Records a new last item that the list did not append, such as after a
+  /// removal or a clear.
+  ///
+  /// The call does not add to ``newItemsSinceUnpinned``. While pinned, the
+  /// manager requests a scroll to the new end. An empty list is pinned.
+  ///
+  /// - Parameter id: The identifier of the last item, or `nil` for an empty
+  ///   list.
+  public func noteLastItemChanged(to id: String?) {
+    lastItemID = id
+    guard id != nil else {
+      setPinned(true)
+      return
+    }
+    if isPinnedToBottom {
+      requestScrollToBottom()
+    }
+  }
+
   // MARK: - Scroll
 
   /// Requests a scroll to the end of the list.
@@ -133,6 +152,18 @@ public final class ScrollAnchorManager {
       guard !Task.isCancelled else { return }
       self?.sendPendingScroll()
     }
+  }
+
+  /// Pins the list to the bottom and requests a scroll to the end, after the
+  /// user taps the scroll-to-bottom pill.
+  ///
+  /// The call sets ``isPinnedToBottom`` to `true`, sets
+  /// ``newItemsSinceUnpinned`` to zero, and clears the kept anchor. Then it
+  /// calls ``requestScrollToBottom()``.
+  public func pinToBottom() {
+    anchorID = nil
+    setPinned(true)
+    requestScrollToBottom()
   }
 
   // MARK: - Anchor

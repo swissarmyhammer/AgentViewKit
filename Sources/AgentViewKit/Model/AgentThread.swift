@@ -91,6 +91,15 @@ public final class AgentThread {
     index[id].map { items[$0] }
   }
 
+  /// The position of the item with the id in ``items``, or `nil` when the
+  /// thread has no such item.
+  ///
+  /// - Parameter id: The identifier of the item.
+  /// - Returns: The position.
+  public func position(of id: String) -> Int? {
+    index[id]
+  }
+
   /// The subagent run with the id, or `nil` when the thread has no such run.
   ///
   /// - Parameter id: The identifier of the run.

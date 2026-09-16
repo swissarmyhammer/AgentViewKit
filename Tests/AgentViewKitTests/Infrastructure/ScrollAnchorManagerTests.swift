@@ -131,6 +131,69 @@ import Testing
     #expect(manager.newItemsSinceUnpinned == 0)
   }
 
+  @Test func pinToBottomPinsClearsTheCountAndScrolls() async {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeManager(recorder: recorder)
+    manager.noteAppended(ids: ["a", "b"])
+    manager.noteVisible(ids: ["a"])
+    await Self.runScheduledTasks()
+    manager.noteAppended(ids: ["c"])
+    manager.saveAnchor()
+    #expect(!manager.isPinnedToBottom)
+    #expect(manager.newItemsSinceUnpinned == 1)
+
+    manager.pinToBottom()
+    await Self.runScheduledTasks()
+
+    #expect(manager.isPinnedToBottom)
+    #expect(manager.newItemsSinceUnpinned == 0)
+    #expect(manager.anchorID == nil)
+    #expect(recorder.targets == [.bottom, .bottom])
+  }
+
+  @Test func aNewLastItemWhileUnpinnedDoesNotCount() async {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeManager(recorder: recorder)
+    manager.noteAppended(ids: ["a", "b", "c"])
+    manager.noteVisible(ids: ["a"])
+    await Self.runScheduledTasks()
+
+    manager.noteLastItemChanged(to: "b")
+    await Self.runScheduledTasks()
+
+    #expect(!manager.isPinnedToBottom)
+    #expect(manager.newItemsSinceUnpinned == 0)
+    #expect(recorder.targets == [.bottom])
+
+    manager.noteVisible(ids: ["a", "b"])
+    #expect(manager.isPinnedToBottom)
+  }
+
+  @Test func aNewLastItemWhilePinnedScrolls() async {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeManager(recorder: recorder)
+
+    manager.noteLastItemChanged(to: "a")
+    await Self.runScheduledTasks()
+
+    #expect(manager.isPinnedToBottom)
+    #expect(recorder.targets == [.bottom])
+  }
+
+  @Test func noLastItemPinsAndDoesNotScroll() async {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeManager(recorder: recorder)
+    manager.noteAppended(ids: ["a", "b"])
+    manager.noteVisible(ids: ["a"])
+    await Self.runScheduledTasks()
+
+    manager.noteLastItemChanged(to: nil)
+    await Self.runScheduledTasks()
+
+    #expect(manager.isPinnedToBottom)
+    #expect(recorder.targets == [.bottom])
+  }
+
   @Test func anAppendWhilePinnedDoesNotCount() async {
     let recorder = ScrollRecorder()
     let manager = Self.makeManager(recorder: recorder)

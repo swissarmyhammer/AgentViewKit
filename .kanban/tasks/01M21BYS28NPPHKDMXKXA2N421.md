@@ -6,8 +6,8 @@ comments:
   timestamp: 2026-09-16T19:54:20.376121+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: todo
-position_ordinal: c280
+position_column: doing
+position_ordinal: '8180'
 title: 'ConversationView: bottom anchoring, scroll-to-bottom pill, empty state, load earlier (plan §8)'
 ---
 ## What
@@ -20,13 +20,13 @@ Create `Sources/AgentViewKit/Thread/ConversationView.swift` and `ScrollToBottomP
 - Accessibility identifiers: `conversation-list`, `scroll-to-bottom-pill`, `load-earlier-row`.
 
 ## Acceptance Criteria
-- [ ] With 300 items and the default page size, the list shows 200 rows and the load-earlier row; a press shows 300.
-- [ ] An insert while pinned leaves the last id visible; while unpinned the pill reads "1 new".
-- [ ] A press on the pill pins and hides the pill.
+- [x] With 300 items and the default page size, the list shows 200 rows and the load-earlier row; a press shows 300.
+- [x] An insert while pinned leaves the last id visible; while unpinned the pill reads "1 new".
+- [x] A press on the pill pins and hides the pill.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift`: the three cases with the harness and a seeded `ScrollAnchorManager`.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift`: the three cases with the harness and a seeded `ScrollAnchorManager`.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
