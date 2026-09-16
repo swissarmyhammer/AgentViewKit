@@ -12,12 +12,21 @@ comments:
     - `ThreadChange.clear` also removes the subagent runs. A cancelled `runSettled` outcome gives `unknown("cancelled")`.
     - evidence: swift test, 761 tests pass, 0 fail.
   timestamp: 2026-09-16T18:55:15.105037+00:00
+- actor: claude-code
+  id: 01m2nsbnfadqbd4rmnnrw9q869
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — SubagentRun, SubagentTreeView, SubagentMapping, RouterThreadSource transcript path, AgentThread.subagents, ThreadChange.upsertSubagent
+    - test: green — swift test, 761 passed, 0 failed
+    - commit: 095bdc7
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (7 validator runs, 0 failed)
+  timestamp: 2026-09-16T18:58:38.698436+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21C00SPMFVC8JE3YXHTJTAG
 - 01M21ABCXCQMMYMRK3QBM7CCJV
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: 9c80
 title: SubagentTreeView over a SubagentRun model (plan §9 C, §11#15)
 ---
 ## What
