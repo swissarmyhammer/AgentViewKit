@@ -129,6 +129,39 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
       case .pending, .unknown: pending
       }
     }
+
+    /// The color of a plan entry with `status`.
+    ///
+    /// - Parameter status: The status of the plan entry.
+    /// - Returns: ``running`` for an entry in progress, ``completed`` for a
+    ///   completed entry, ``cancelled`` for a cancelled entry, and ``pending``
+    ///   for a pending entry or a status that the kit does not know.
+    public func color(for status: PlanEntry.Status) -> Color {
+      switch status {
+      case .inProgress: running
+      case .completed: completed
+      case .cancelled: cancelled
+      case .pending, .unknown: pending
+      }
+    }
+
+    /// The tint of a plan entry with `priority`.
+    ///
+    /// The status colors have no priority colors, so the tint uses the status
+    /// color that has the same strength: the failure color shows high
+    /// importance, and the pending color shows low importance.
+    ///
+    /// - Parameter priority: The priority of the plan entry.
+    /// - Returns: ``failed`` for a high priority, ``running`` for a medium
+    ///   priority, and ``pending`` for a low priority or a priority that the
+    ///   kit does not know.
+    public func color(for priority: PlanEntry.Priority) -> Color {
+      switch priority {
+      case .high: failed
+      case .medium: running
+      case .low, .unknown: pending
+      }
+    }
   }
 
   /// The spacing steps.

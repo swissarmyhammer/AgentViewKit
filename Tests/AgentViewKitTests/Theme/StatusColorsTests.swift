@@ -19,4 +19,25 @@ import Testing
   func eachToolCallStatusHasItsColor(status: ToolCallStatus, expected: Color) {
     #expect(Self.colors.color(for: status) == expected)
   }
+
+  @Test(arguments: [
+    (PlanEntry.Status.pending, Color.yellow),
+    (.inProgress, .blue),
+    (.completed, .green),
+    (.cancelled, .gray),
+    (.unknown("paused"), .yellow),
+  ])
+  func eachPlanEntryStatusHasItsColor(status: PlanEntry.Status, expected: Color) {
+    #expect(Self.colors.color(for: status) == expected)
+  }
+
+  @Test(arguments: [
+    (PlanEntry.Priority.high, Color.red),
+    (.medium, .blue),
+    (.low, .yellow),
+    (.unknown("urgent"), .yellow),
+  ])
+  func eachPlanEntryPriorityHasItsTint(priority: PlanEntry.Priority, expected: Color) {
+    #expect(Self.colors.color(for: priority) == expected)
+  }
 }

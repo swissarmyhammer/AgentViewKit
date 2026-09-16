@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nvgfqh9e8020xdmvq75m8f
+  text: 'Note from ^hwpnt7d (StateBanner): `StateBanner(state:errorID:onShowError:)` shows a "Show Error" button when the host gives the `ThreadError` id and a closure. The closure gets the error id. When ErrorView exists, the view that mounts StateBanner (AgentThreadView or ConversationView) must give `errorID` (the newest ThreadError that relates to the stop reason) and an `onShowError` closure that scrolls to the ErrorView row of that id.'
+  timestamp: 2026-09-16T19:36:13.809784+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 position_column: todo
