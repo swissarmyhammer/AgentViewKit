@@ -16,12 +16,22 @@ comments:
     - The elicitation id in `meta["elicitationId"]` can be the local id or the wire `elicitationId` of a URL elicitation. The search includes elicitations with no session.
     - New `SessionUpdateMapping.wireJSON(_:)` changes a kit JSON value into an ACP JSON value.
   timestamp: 2026-09-16T18:28:07.680674+00:00
+- actor: claude-code
+  id: 01m2nqwtc32zjcck26paad1zvk
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ACPThreadActions.swift, ProcessLauncher.swift, SessionUpdateMapping.swift, 2 test files
+    - test: green — AgentViewKitTests 556, AgentViewKitRouterTests 61, PackageStructureTests 20, AgentViewKitFoundationModelsTests 1, AgentViewKitACPTests 85 (12 runs)
+    - commit: f3dcd53
+    - review: findings — Sources/AgentViewKitACP/SessionUpdateMapping.swift:601
+    - next: fixed. `json(_:)` and `wireJSON(_:)` both go through the encoded JSON form now, with no case-by-case copy. ACP tests 85 pass.
+  timestamp: 2026-09-16T18:33:03.619191+00:00
 depends_on:
 - 01M21ADNAKRK96TKZQMRMW1MG7
 - 01M21BDG310SH8A60AFWXKPSDC
 - 01M21CAWYA16NQ5MKZKBBH4DS6
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'ACP verbs: send, cancel, permission, elicitation, config, connect, login, terminal auth, logout through SwiftUIACPClient (plan §3.4, §12)'
 ---
 ## What
@@ -50,3 +60,12 @@ Create `Sources/AgentViewKitACP/ACPThreadActions.swift` and `ProcessLauncher.swi
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 13:28)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKitACP/SessionUpdateMapping.swift:601` `duplication/duplication` — The `wireJSON` function (lines 601–611) is a near-verbatim copy of the existing `json` function (lines 589–599), differing only in the direction of type conversion and function/parameter names. Two blocks that differ only by renamed variables or substituted types should be extracted into a single generic or parameterized function to avoid drift and reduce maintenance burden. Extract a generic transformation function that accepts a transform closure, or parameterize the direction of conversion. For example, a function like `static func transformJSON<In, Out>(_ value: In, _ transform: (In) -> Out) -> Out` could accept a direction-specific transform and handle both `json` and `wireJSON` paths. Alternatively, use a generic helper that maps over the JSONValue structure in a single place.

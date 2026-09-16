@@ -587,26 +587,23 @@ public enum SessionUpdateMapping {
   // MARK: - JSON and patch fields
 
   /// Changes an ACP JSON value into a kit JSON value.
+  ///
+  /// The two JSON types have the same JSON form, so the value goes through
+  /// its encoded form. A value that does not encode becomes `null`.
   public static func json(_ value: FoundationModelsACP.JSONValue) -> AgentViewKit.JSONValue {
-    switch value {
-    case .null: .null
-    case .bool(let bool): .bool(bool)
-    case .number(let number): .number(number)
-    case .string(let string): .string(string)
-    case .array(let elements): .array(elements.map(json))
-    case .object(let members): .object(members.mapValues(json))
-    }
+    .encodedOrNull(value)
   }
 
   /// Changes a kit JSON value into an ACP JSON value.
+  ///
+  /// The value goes through its encoded form, as in ``json(_:)``. A value
+  /// that does not encode becomes `null`, and the log records the failure.
   public static func wireJSON(_ value: AgentViewKit.JSONValue) -> FoundationModelsACP.JSONValue {
-    switch value {
-    case .null: .null
-    case .bool(let bool): .bool(bool)
-    case .number(let number): .number(number)
-    case .string(let string): .string(string)
-    case .array(let elements): .array(elements.map(wireJSON))
-    case .object(let members): .object(members.mapValues(wireJSON))
+    do {
+      return try JSONDecoder().decode(FoundationModelsACP.JSONValue.self, from: JSONEncoder().encode(value))
+    } catch {
+      logger.error("A JSON value does not encode for the wire: \(String(describing: error), privacy: .public)")
+      return .null
     }
   }
 
