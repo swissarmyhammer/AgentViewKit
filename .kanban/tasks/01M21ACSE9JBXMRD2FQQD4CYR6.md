@@ -13,12 +13,21 @@ comments:
     - The existing test `appendStreamingOnAnExistingIdAddsTheText` now calls `message.flush()`, because a second chunk now waits for the coalescer.
     - Cross-task note for the source tasks (^ACP, Session, Router) and ResponseView: send chunks with `.appendStreaming`, end with `.closeStreaming`; the tail row reads `thread.streaming[id]`.
   timestamp: 2026-09-16T16:43:34.483438+00:00
+- actor: claude-code
+  id: 01m2nhrfearnmb5hc9zqr8g2cy
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files (StreamingMessage.swift, AgentThread.swift, ThreadChange.swift, StreamingMessageTests.swift, AgentThreadStreamingTests.swift, AgentThreadApplyTests.swift)
+    - test: green — swift test, AgentViewKitTests 504 passed, 0 failures
+    - commit: 6d1f653
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; task moved to done
+  timestamp: 2026-09-16T16:45:49.898992+00:00
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
 - 01M21A9YFZF5JJ00NGJC3P1RWB
 - 01M21ABCXCQMMYMRK3QBM7CCJV
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: '9580'
 title: 'StreamingMessage: the isolated streaming tail observable (plan §8)'
 ---
 ## What
