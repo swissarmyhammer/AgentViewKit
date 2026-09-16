@@ -32,14 +32,23 @@ comments:
     - commit: 05a39c5
     - review: findings — 2 findings — RouterFixtures.swift:141, RouterFixtures.swift:144 (Duration literals); fixed in the working tree for iteration 3
   timestamp: 2026-09-16T18:01:42.731563+00:00
+- actor: claude-code
+  id: 01m2np4vjr7e96297fth7kqmsv
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — RouterFixtures.swift stall seconds are named constants
+    - test: green — swift test, 697 passed, 0 failed; only the accepted mlx-swift warning
+    - commit: ee6204c
+    - review: clean — 0 findings on review sha HEAD~1..HEAD; all prior findings checked
+  timestamp: 2026-09-16T18:02:29.848854+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21ABXR3PMT1VCWPJK80Z9E8
 - 01M21ACSE9JBXMRD2FQQD4CYR6
 - 01M21BDG310SH8A60AFWXKPSDC
 - 01M21CAWYA16NQ5MKZKBBH4DS6
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: '9980'
 title: 'RouterThreadSource: SessionEvent stream, elicitation path, PersistableStructuredSegment conformance (plan §3.3)'
 ---
 ## What
