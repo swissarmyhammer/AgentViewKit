@@ -10,11 +10,20 @@ comments:
     - review: findings — Sources/AgentViewKit/Sessions/SessionListView.swift:182
     - decisions: SessionListModel is a public Observable model, so a host can set the search text or reload. The search field is a TextField in the header, not .searchable, because .searchable needs a toolbar container. The delete action is a row button (not a context menu), because menu items are not visible until the menu opens. ACPSessionList.delete(_:) sends session/delete; the host gives it to onDelete.
   timestamp: 2026-09-16T20:41:08.045242+00:00
+- actor: claude-code
+  id: 01m2nzacg55ecnmawhtzhzswcn
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — SessionListView.swift: rowLineSpacing and sectionSpacing constants
+    - test: green — swift test: 707 + 91 + 71 + 20 + 1 tests pass; only the accepted mlx warning
+    - commit: 3fd2cc1
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (7 validators attempted)
+  timestamp: 2026-09-16T20:42:48.197162+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: a580
 title: SessionListView with cursor paging over ACP session/list (plan §9 A)
 ---
 ## What
