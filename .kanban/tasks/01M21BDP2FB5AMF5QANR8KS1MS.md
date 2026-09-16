@@ -20,6 +20,15 @@ comments:
     - commit: 32cc198
     - review: findings — AuthorizationView.swift:85, :103, :111, :119; AuthorizationViewHostedTests.swift:207
   timestamp: 2026-09-16T20:28:08.715219+00:00
+- actor: claude-code
+  id: 01m2nypvcpswzkw3w4m3xb2scv
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — shared `makeIdentifier` helper for all six identifier builders; named test constants (cardWidth, cardHeight, waitTimeout, pollInterval, expectedCalls)
+    - test: green — swift test, 870 passed, only the accepted mlx warning
+    - commit: 2d645ce
+    - review: findings — AuthorizationViewHostedTests.swift:204 (the literal in `.milliseconds(10)`). Fixed after the review with `pollIntervalMilliseconds`; local swiftlint no_magic_numbers reports 0 violations; swift test green (870).
+  timestamp: 2026-09-16T20:32:08.086632+00:00
 depends_on:
 - 01M21AFDM0RPN9SPB5D35Y2FDR
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
@@ -61,3 +70,12 @@ Create `Sources/AgentViewKit/Connections/AuthorizationView.swift`, per plan.md �
 - [x] `Sources/AgentViewKit/Connections/AuthorizationView.swift:111` `duplication/duplication` — The retryIdentifier method copies the identifier method at lines 77-79. Both do the same work: take a prefix and an ID and build a string. Extract shared code instead. Make a new private static method that takes a prefix value and builds the identifier string. Call this method from all five accessors: identifier, titleIdentifier, connectIdentifier, retryIdentifier, and errorIdentifier.
 - [x] `Sources/AgentViewKit/Connections/AuthorizationView.swift:119` `duplication/duplication` — The errorIdentifier method copies the identifier method at lines 77-79. Both do the same work: take a prefix and an ID and build a string. Extract shared code instead. Make a new private static method that takes a prefix value and builds the identifier string. Call this method from all five accessors: identifier, titleIdentifier, connectIdentifier, retryIdentifier, and errorIdentifier.
 - [x] `Tests/AgentViewKitTests/Connections/AuthorizationViewHostedTests.swift:207` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+
+## Review Findings (2026-09-16 15:29)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Connections/AuthorizationViewHostedTests.swift:204` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

@@ -200,8 +200,11 @@ import Testing
 /// A gate that a test opens to let a waiting closure go on.
 @MainActor
 private final class Gate {
+  /// The time between two checks of the gate, in milliseconds.
+  static let pollIntervalMilliseconds = 10
+
   /// The time between two checks of the gate.
-  static let pollInterval: Duration = .milliseconds(10)
+  static let pollInterval: Duration = .milliseconds(pollIntervalMilliseconds)
 
   /// Whether the gate is open.
   private(set) var isOpen = false
