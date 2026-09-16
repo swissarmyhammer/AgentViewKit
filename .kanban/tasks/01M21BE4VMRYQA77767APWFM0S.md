@@ -25,10 +25,19 @@ comments:
     - commit: e1841b8
     - review: findings — Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:82, Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:158
   timestamp: 2026-09-16T19:59:29.749770+00:00
+- actor: claude-code
+  id: 01m2nwysssh42djj6d0sv0az8z
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ErrorViewHostedTests.swift (refusal with no explanation; Compact and Rephrase tap tests)
+    - test: green — swift test --filter AgentViewKitTests, 655 tests in 58 suites passed
+    - commit: 49a0cc5
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; both prior findings checked
+  timestamp: 2026-09-16T20:01:31.449988+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: a180
 title: 'ErrorView: one block per error kind with an action (plan §9 A2)'
 ---
 ## What
