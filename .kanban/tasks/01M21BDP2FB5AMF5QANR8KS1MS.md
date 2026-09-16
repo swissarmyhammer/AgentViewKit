@@ -11,11 +11,20 @@ comments:
     - On error, a Retry button replaces the Connect button. A CancellationError shows no error.
     - Recorded in Docs/decisions/connection-states.md.
   timestamp: 2026-09-16T20:24:20.354189+00:00
+- actor: claude-code
+  id: 01m2nyfhmb36af23zynh0az3py
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 3 files (AuthorizationView.swift, AuthorizationViewHostedTests.swift, connection-states.md)
+    - test: green — swift test, 870 passed (693 + 85 + 71 + 20 + 1), only the accepted mlx warning
+    - commit: 32cc198
+    - review: findings — AuthorizationView.swift:85, :103, :111, :119; AuthorizationViewHostedTests.swift:207
+  timestamp: 2026-09-16T20:28:08.715219+00:00
 depends_on:
 - 01M21AFDM0RPN9SPB5D35Y2FDR
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'AuthorizationView: the in-thread Connect card for an MCP server (plan §12)'
 ---
 ## What
@@ -36,3 +45,19 @@ Create `Sources/AgentViewKit/Connections/AuthorizationView.swift`, per plan.md �
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 15:24)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 5 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/connection-states.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Connections/AuthorizationView.swift:85` `duplication/duplication` — The titleIdentifier method copies the identifier method at lines 77-79. Both do the same work: take a prefix and an ID and build a string. Extract shared code instead. Make a new private static method that takes a prefix value and builds the identifier string. Call this method from all five accessors: identifier, titleIdentifier, connectIdentifier, retryIdentifier, and errorIdentifier.
+- [x] `Sources/AgentViewKit/Connections/AuthorizationView.swift:103` `duplication/duplication` — The connectIdentifier method copies the identifier method at lines 77-79. Both do the same work: take a prefix and an ID and build a string. Extract shared code instead. Make a new private static method that takes a prefix value and builds the identifier string. Call this method from all five accessors: identifier, titleIdentifier, connectIdentifier, retryIdentifier, and errorIdentifier.
+- [x] `Sources/AgentViewKit/Connections/AuthorizationView.swift:111` `duplication/duplication` — The retryIdentifier method copies the identifier method at lines 77-79. Both do the same work: take a prefix and an ID and build a string. Extract shared code instead. Make a new private static method that takes a prefix value and builds the identifier string. Call this method from all five accessors: identifier, titleIdentifier, connectIdentifier, retryIdentifier, and errorIdentifier.
+- [x] `Sources/AgentViewKit/Connections/AuthorizationView.swift:119` `duplication/duplication` — The errorIdentifier method copies the identifier method at lines 77-79. Both do the same work: take a prefix and an ID and build a string. Extract shared code instead. Make a new private static method that takes a prefix value and builds the identifier string. Call this method from all five accessors: identifier, titleIdentifier, connectIdentifier, retryIdentifier, and errorIdentifier.
+- [x] `Tests/AgentViewKitTests/Connections/AuthorizationViewHostedTests.swift:207` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

@@ -75,7 +75,7 @@ public struct AuthorizationView: View {
   /// - Parameter id: The identifier of the request.
   /// - Returns: `authorization-card-<id>`.
   public static func identifier(for id: AuthorizationRequestID) -> String {
-    identifierPrefix + id.rawValue
+    makeIdentifier(identifierPrefix, id)
   }
 
   /// The accessibility identifier of the title of the card of `id`.
@@ -83,7 +83,7 @@ public struct AuthorizationView: View {
   /// - Parameter id: The identifier of the request.
   /// - Returns: `authorization-title-<id>`.
   public static func titleIdentifier(for id: AuthorizationRequestID) -> String {
-    titleIdentifierPrefix + id.rawValue
+    makeIdentifier(titleIdentifierPrefix, id)
   }
 
   /// The accessibility identifier of the chip of `scope` in the card of `id`.
@@ -93,7 +93,7 @@ public struct AuthorizationView: View {
   ///   - scope: The OAuth scope.
   /// - Returns: `authorization-scope-<id>-<scope>`.
   public static func scopeIdentifier(for id: AuthorizationRequestID, scope: String) -> String {
-    "\(scopeIdentifierPrefix)\(id.rawValue)-\(scope)"
+    makeIdentifier(scopeIdentifierPrefix, id) + "-" + scope
   }
 
   /// The accessibility identifier of the Connect button of the card of `id`.
@@ -101,7 +101,7 @@ public struct AuthorizationView: View {
   /// - Parameter id: The identifier of the request.
   /// - Returns: `authorization-connect-<id>`.
   public static func connectIdentifier(for id: AuthorizationRequestID) -> String {
-    connectIdentifierPrefix + id.rawValue
+    makeIdentifier(connectIdentifierPrefix, id)
   }
 
   /// The accessibility identifier of the Retry button of the card of `id`.
@@ -109,7 +109,7 @@ public struct AuthorizationView: View {
   /// - Parameter id: The identifier of the request.
   /// - Returns: `authorization-retry-<id>`.
   public static func retryIdentifier(for id: AuthorizationRequestID) -> String {
-    retryIdentifierPrefix + id.rawValue
+    makeIdentifier(retryIdentifierPrefix, id)
   }
 
   /// The accessibility identifier of the error text of the card of `id`.
@@ -117,7 +117,18 @@ public struct AuthorizationView: View {
   /// - Parameter id: The identifier of the request.
   /// - Returns: `authorization-error-<id>`.
   public static func errorIdentifier(for id: AuthorizationRequestID) -> String {
-    errorIdentifierPrefix + id.rawValue
+    makeIdentifier(errorIdentifierPrefix, id)
+  }
+
+  /// The accessibility identifier that starts with `prefix` and ends with the
+  /// identifier of the request.
+  ///
+  /// - Parameters:
+  ///   - prefix: The start of the identifier.
+  ///   - id: The identifier of the request.
+  /// - Returns: `<prefix><id>`.
+  private static func makeIdentifier(_ prefix: String, _ id: AuthorizationRequestID) -> String {
+    prefix + id.rawValue
   }
 
   // MARK: State

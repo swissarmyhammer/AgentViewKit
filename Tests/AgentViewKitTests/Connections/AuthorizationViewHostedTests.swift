@@ -17,8 +17,17 @@ import Testing
     authorizationURL: URL(string: "https://github.com/login/oauth/authorize")!
   )
 
+  /// The width of a window that shows the full card, in points.
+  static let cardWidth: CGFloat = 480
+
+  /// The height of a window that shows the full card, in points.
+  static let cardHeight: CGFloat = 320
+
   /// The size of a window that shows the full card.
-  static let cardSize = CGSize(width: 480, height: 320)
+  static let cardSize = CGSize(width: cardWidth, height: cardHeight)
+
+  /// The longest time that a test waits for a change, in seconds.
+  static let waitTimeout: TimeInterval = 2
 
   /// A store with the GitHub server in `state`.
   static func store(state: ConnectionState) -> ConnectionStore {
@@ -72,7 +81,7 @@ import Testing
     harness.pump()
 
     try harness.press(identifier: AuthorizationView.connectIdentifier(for: Self.requestID))
-    await harness.pump(until: 2) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
 
     #expect(actions.calls == [.connect(Self.request)])
   }
@@ -80,7 +89,7 @@ import Testing
   @Test func whileConnectRunsTheButtonShowsProgressAndTheChipShowsAuthenticating() async throws {
     let actions = NoopThreadActions()
     let gate = Gate()
-    actions.onConnect = { _ in await gate.wait(timeout: 2) }
+    actions.onConnect = { _ in await gate.wait(timeout: Self.waitTimeout) }
     let harness = Self.harness(actions: actions, store: Self.store(state: .needsAuth))
     defer {
       gate.open()
@@ -90,7 +99,7 @@ import Testing
 
     let connectID = AuthorizationView.connectIdentifier(for: Self.requestID)
     try harness.press(identifier: connectID)
-    await harness.pump(until: 2) {
+    await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: ConnectionStatusChip.identifier(for: .authenticating)) != nil
     }
 
@@ -103,7 +112,7 @@ import Testing
       harness.element(identifier: ConnectionStatusChip.identifier(for: .authenticating)) != nil)
 
     gate.open()
-    await harness.pump(until: 2) {
+    await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: ConnectionStatusChip.identifier(for: .needsAuth)) != nil
     }
     let idleButton = harness.element(identifier: connectID)
@@ -167,7 +176,7 @@ import Testing
     #expect(harness.element(identifier: retryID) == nil)
 
     try harness.press(identifier: AuthorizationView.connectIdentifier(for: Self.requestID))
-    await harness.pump(until: 2) { harness.element(identifier: retryID) != nil }
+    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: retryID) != nil }
 
     #expect(harness.element(identifier: errorID)?.label == "The token exchange failed.")
     #expect(harness.element(identifier: retryID) != nil)
@@ -175,13 +184,14 @@ import Testing
 
     actions.onConnect = nil
     try harness.press(identifier: retryID)
-    await harness.pump(until: 2) {
-      actions.calls.count == 2
+    let expectedCalls: [NoopThreadActions.Call] = [.connect(Self.request), .connect(Self.request)]
+    await harness.pump(until: Self.waitTimeout) {
+      actions.calls.count == expectedCalls.count
         && harness.element(identifier: AuthorizationView.connectIdentifier(for: Self.requestID))?
           .isEnabled == true
     }
 
-    #expect(actions.calls == [.connect(Self.request), .connect(Self.request)])
+    #expect(actions.calls == expectedCalls)
     #expect(harness.element(identifier: errorID) == nil)
     #expect(harness.element(identifier: AuthorizationView.connectIdentifier(for: Self.requestID)) != nil)
   }
@@ -190,6 +200,9 @@ import Testing
 /// A gate that a test opens to let a waiting closure go on.
 @MainActor
 private final class Gate {
+  /// The time between two checks of the gate.
+  static let pollInterval: Duration = .milliseconds(10)
+
   /// Whether the gate is open.
   private(set) var isOpen = false
 
@@ -204,7 +217,7 @@ private final class Gate {
   func wait(timeout: TimeInterval) async {
     let deadline = Date(timeIntervalSinceNow: timeout)
     while !isOpen, Date() < deadline {
-      try? await Task.sleep(for: .milliseconds(10))
+      try? await Task.sleep(for: Self.pollInterval)
     }
   }
 }
