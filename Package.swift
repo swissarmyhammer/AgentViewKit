@@ -138,7 +138,12 @@ let package = Package(
     ),
     .testTarget(
       name: "AgentViewKitRouterTests",
-      dependencies: ["AgentViewKitRouter", "AgentViewKitTestSupport"],
+      dependencies: [
+        "AgentViewKitRouter",
+        "AgentViewKitTestSupport",
+        .product(name: "FoundationModelsRouter", package: "FoundationModelsRouter"),
+        .product(name: "FoundationModelsExtras", package: "FoundationModelsExtras"),
+      ],
       swiftSettings: mainActorIsolated
     ),
     .testTarget(
