@@ -202,13 +202,8 @@ public final class HostedViewHarness<Content: View> {
   ///   ``HostedViewHarnessError/pressFailed(identifier:)`` when the element
   ///   does not do the action.
   public func press(identifier: String) throws {
-    guard let element = liveElement(identifier: identifier) else {
-      throw HostedViewHarnessError.noElement(identifier: identifier)
-    }
-    guard Self.performPress(on: element) else {
-      throw HostedViewHarnessError.pressFailed(identifier: identifier)
-    }
-    pump()
+    try perform(
+      on: identifier, action: Self.performPress, failure: HostedViewHarnessError.pressFailed)
   }
 
   /// Does the increment action of the element with `identifier`, then pumps
@@ -226,11 +221,33 @@ public final class HostedViewHarness<Content: View> {
   ///   ``HostedViewHarnessError/incrementFailed(identifier:)`` when the
   ///   element does not do the action.
   public func increment(identifier: String) throws {
+    try perform(
+      on: identifier, action: Self.performIncrement,
+      failure: HostedViewHarnessError.incrementFailed)
+  }
+
+  /// Does `action` on the element with `identifier`, then pumps the run
+  /// loop.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the element.
+  ///   - action: The function that does the action and tells whether the
+  ///     element did it.
+  ///   - failure: The function that makes the error for an element that did
+  ///     not do the action.
+  /// - Throws: ``HostedViewHarnessError/noElement(identifier:)`` when no
+  ///   element has `identifier`, and the error of `failure` when the element
+  ///   does not do the action.
+  private func perform(
+    on identifier: String,
+    action: (NSObject) -> Bool,
+    failure: (String) -> HostedViewHarnessError
+  ) throws {
     guard let element = liveElement(identifier: identifier) else {
       throw HostedViewHarnessError.noElement(identifier: identifier)
     }
-    guard Self.performIncrement(on: element) else {
-      throw HostedViewHarnessError.incrementFailed(identifier: identifier)
+    guard action(element) else {
+      throw failure(identifier)
     }
     pump()
   }

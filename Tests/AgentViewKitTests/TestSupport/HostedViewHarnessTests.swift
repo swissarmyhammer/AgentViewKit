@@ -157,7 +157,7 @@ struct LinkedLabelsView: View {
     harness.pump()
 
     try harness.increment(identifier: "level")
-    #expect(level.value > 0)
+    #expect(level.value > SliderView.lowerBound)
   }
 
   @Test func incrementThrowsForAMissingIdentifier() {
@@ -201,19 +201,25 @@ struct LinkedLabelsView: View {
 /// Holds the value of a hosted slider.
 @Observable
 final class HostedLevel {
-  /// The slider value.
-  var value: Double = 0
+  /// The slider value. It starts at the lower bound of ``SliderView``.
+  var value: Double = SliderView.lowerBound
 }
 
-/// A slider from 0 to 10.
+/// A slider from ``lowerBound`` to ``upperBound``.
 struct SliderView: View {
+  /// The smallest value of the slider.
+  static let lowerBound: Double = 0
+
+  /// The largest value of the slider.
+  static let upperBound: Double = 10
+
   /// The holder of the value.
   let level: HostedLevel
 
   var body: some View {
     Slider(
       value: Binding(get: { level.value }, set: { level.value = $0 }),
-      in: 0...10
+      in: Self.lowerBound...Self.upperBound
     ) {
       Text("Level")
     }
