@@ -22,11 +22,20 @@ comments:
     - review: findings — Sources/AgentViewKit/Attachments/AttachmentPreview.swift:227
     Notes: the inspector opens with an AppKit split view animation that does not end in the off-screen harness window, so the press test runs the press with animations off. `QLPreviewView` must have `shouldCloseWithWindow = false`, because a second close in `dismantleNSView` stops the process with a QuickLook assertion. Swift Testing declares a type `Attachment`, so tests write `AgentViewKit.Attachment`.
   timestamp: 2026-09-16T19:15:05.403030+00:00
+- actor: claude-code
+  id: 01m2ntcpb69ymhk73ne26arhn4
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (Sources/AgentViewKit/Attachments/AttachmentPreview.swift)
+    - test: green — timeout 900 swift test, 603 + 85 + 71 + 20 + 1 passed, 0 failed
+    - commit: 58481a3
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; the prior finding is checked. Task moved to done.
+  timestamp: 2026-09-16T19:16:40.934194+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21ACHJYSF8G8R7HY3M70Z7F
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: 9d80
 title: AttachmentView family, UTType resolution, and AttachmentInspector with QuickLook (plan §3.6, §9 F)
 ---
 ## What
