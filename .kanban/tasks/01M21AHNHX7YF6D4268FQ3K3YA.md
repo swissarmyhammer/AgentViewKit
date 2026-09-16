@@ -38,12 +38,21 @@ comments:
     - review: findings — Sources/AgentViewKit/Activity/ShimmerView.swift:66 (reuse/reuse)
     - fix: `Comparable.clamped(to:)` is not public in Swift 6.4 (swiftc says "'clamped' is inaccessible due to 'package' protection level"). As the finding tells for that case, the function now has a comment that records the Swift version requirement. Checked; test green again.
   timestamp: 2026-09-16T21:27:56.018266+00:00
+- actor: claude-code
+  id: 01m2p1y0dbqzt2xrkr7r6cs8e3
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — ShimmerView.swift (iteration 2 finding)
+    - test: green — timeout 1500 swift test, 756 AgentViewKitTests passed
+    - commit: 362c710
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; all prior items checked; task moved to done.
+  timestamp: 2026-09-16T21:28:28.331714+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AH4QCEFEBPTZ8GR061H51
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: a880
 title: ReasoningView, ShimmerView, ActivityIndicator (plan §5, §9 B)
 ---
 ## What
