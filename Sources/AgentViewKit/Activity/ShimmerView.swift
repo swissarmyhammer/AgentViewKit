@@ -49,13 +49,22 @@ public struct ShimmerView: View {
   /// after it, one time in each ``period``.
   ///
   /// - Parameter date: The time.
-  /// - Returns: The center, from `-highlightHalfWidth` to
-  ///   `1 + highlightHalfWidth`.
+  /// - Returns: The center, from `gradientStart - highlightHalfWidth` to
+  ///   `gradientEnd + highlightHalfWidth`.
   static func highlightCenter(at date: Date) -> Double {
     let elapsed = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period)
     let fraction = elapsed / period
-    let travel = gradientEnd - gradientStart + 2 * highlightHalfWidth
-    return gradientStart - highlightHalfWidth + fraction * travel
+    let first = gradientStart - highlightHalfWidth
+    let last = gradientEnd + highlightHalfWidth
+    return first + fraction * (last - first)
+  }
+
+  /// Limits a location to the gradient.
+  ///
+  /// - Parameter location: A location, as a fraction of the label width.
+  /// - Returns: The location, from ``gradientStart`` to ``gradientEnd``.
+  static func clamped(_ location: Double) -> Double {
+    min(max(location, gradientStart), gradientEnd)
   }
 
   /// The gradient that puts the highlight at a center.
@@ -65,15 +74,12 @@ public struct ShimmerView: View {
   /// - Returns: A gradient with the secondary color and a primary color
   ///   highlight.
   static func gradient(center: Double) -> LinearGradient {
-    let locations = [
-      center - highlightHalfWidth, center, center + highlightHalfWidth,
-    ].map { min(max($0, gradientStart), gradientEnd) }
-    return LinearGradient(
+    LinearGradient(
       stops: [
         Gradient.Stop(color: .secondary, location: gradientStart),
-        Gradient.Stop(color: .secondary, location: locations[0]),
-        Gradient.Stop(color: .primary, location: locations[1]),
-        Gradient.Stop(color: .secondary, location: locations[2]),
+        Gradient.Stop(color: .secondary, location: clamped(center - highlightHalfWidth)),
+        Gradient.Stop(color: .primary, location: clamped(center)),
+        Gradient.Stop(color: .secondary, location: clamped(center + highlightHalfWidth)),
         Gradient.Stop(color: .secondary, location: gradientEnd),
       ],
       startPoint: .leading,

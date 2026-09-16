@@ -31,8 +31,12 @@ public struct ReasoningView: View {
   /// The end of the accessibility identifier of the body.
   static let bodySuffix = "-body"
 
-  /// The rotation of the chevron while the block is open.
-  static let expandedChevronAngle = Angle.degrees(90)
+  /// The number of degrees in a quarter turn.
+  static let quarterTurnDegrees: Double = 90
+
+  /// The rotation of the chevron while the block is open: a quarter turn,
+  /// so that the chevron points down.
+  static let expandedChevronAngle = Angle.degrees(quarterTurnDegrees)
 
   /// The record to show.
   let record: Reasoning

@@ -18,12 +18,22 @@ comments:
     - evidence: timeout 1500 swift test — 756 AgentViewKitTests passed, all other suites passed, 0 new warnings.
     - next: commit, then review HEAD~1..HEAD.
   timestamp: 2026-09-16T21:19:14.355905+00:00
+- actor: claude-code
+  id: 01m2p1qejehvwmb31z4pknnsrp
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 10 files (ShimmerView, ActivityIndicator, ReasoningView, Reasoning, AgentThread, ExpandedBlocksStore, ItemRow, AgentThreadView, AgentThreadEnvironment, ReasoningViewHostedTests)
+    - test: green — timeout 1500 swift test, 756 AgentViewKitTests passed, all other suites passed
+    - commit: 5215aa7
+    - review: findings — Sources/AgentViewKit/Activity/ShimmerView.swift:57, Sources/AgentViewKit/Activity/ShimmerView.swift:76, Sources/AgentViewKit/Items/ReasoningView.swift:35 (code-hygiene/magic-numbers-swift)
+    - fix: the three findings are corrected (named quarter turn, no literal factor, no array index) and checked; test green again.
+  timestamp: 2026-09-16T21:24:53.454676+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AH4QCEFEBPTZ8GR061H51
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: ReasoningView, ShimmerView, ActivityIndicator (plan §5, §9 B)
 ---
 ## What
@@ -45,3 +55,14 @@ Create `Sources/AgentViewKit/Activity/ShimmerView.swift`, `ActivityIndicator.swi
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 16:19)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 10 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Activity/ShimmerView.swift:57` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Activity/ShimmerView.swift:76` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Items/ReasoningView.swift:35` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
