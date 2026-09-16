@@ -427,6 +427,41 @@ private struct Harness {
     #expect(launcher.calls.isEmpty)
   }
 
+  @Test func writeTerminalLineWritesTheLineAndANewlineToTheRunningProcess() async throws {
+    let launcher = FakeProcessLauncher(keepsOutputOpen: true)
+    let harness = await Harness(launcher: launcher)
+    defer { harness.agent.stop() }
+    let method = AgentViewKit.AuthMethod.Terminal(id: AuthMethodID("terminal-login"), name: "Terminal")
+    let terminalID = TerminalRecord.authID(for: method.id)
+    let actions = harness.actions
+    let run = Task { try await actions.runTerminalAuth(method) }
+    defer { launcher.processes.first?.finishOutput() }
+    #expect(await waitUntil { harness.thread.terminals[terminalID] != nil })
+
+    try await actions.writeTerminalLine("yes", to: terminalID)
+
+    let process = try #require(launcher.processes.first)
+    #expect(process.writes == [Data("yes\n".utf8)])
+    process.finishOutput()
+    try await harness.bounded { try await run.value }
+    await #expect(throws: ACPThreadActionsError.noRunningTerminal(terminalID)) {
+      try await actions.writeTerminalLine("again", to: terminalID)
+    }
+    #expect(process.writes == [Data("yes\n".utf8)])
+  }
+
+  @Test func writeTerminalLineWithNoRunningProcessThrows() async throws {
+    let launcher = FakeProcessLauncher()
+    let harness = await Harness(launcher: launcher)
+    defer { harness.agent.stop() }
+    let terminalID = TerminalRecord.authID(for: AuthMethodID("terminal-login"))
+
+    await #expect(throws: ACPThreadActionsError.noRunningTerminal(terminalID)) {
+      try await harness.actions.writeTerminalLine("yes", to: terminalID)
+    }
+    #expect(launcher.calls.isEmpty)
+  }
+
   // MARK: - Connect
 
   /// A store with one connection that needs authorization.

@@ -24,6 +24,8 @@ public final class NoopThreadActions: AgentThreadActions {
     case login(AuthMethodID)
     /// ``AgentThreadActions/runTerminalAuth(_:)`` was called.
     case runTerminalAuth(AuthMethod.Terminal)
+    /// ``AgentThreadActions/writeTerminalLine(_:to:)`` was called.
+    case writeTerminalLine(String, TerminalID)
     /// ``AgentThreadActions/logout()`` was called.
     case logout
   }
@@ -61,6 +63,9 @@ public final class NoopThreadActions: AgentThreadActions {
 
   /// Runs after ``runTerminalAuth(_:)``.
   public var onRunTerminalAuth: ThrowingHandler<AuthMethod.Terminal>?
+
+  /// Runs after ``writeTerminalLine(_:to:)``.
+  public var onWriteTerminalLine: ThrowingHandler<(String, TerminalID)>?
 
   /// Runs after ``logout()``.
   public var onLogout: ThrowingHandler<Void>?
@@ -111,6 +116,11 @@ public final class NoopThreadActions: AgentThreadActions {
   public func runTerminalAuth(_ method: AuthMethod.Terminal) async throws {
     calls.append(.runTerminalAuth(method))
     try await onRunTerminalAuth?(method)
+  }
+
+  public func writeTerminalLine(_ line: String, to terminal: TerminalID) async throws {
+    calls.append(.writeTerminalLine(line, terminal))
+    try await onWriteTerminalLine?((line, terminal))
   }
 
   public func logout() async throws {

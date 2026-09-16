@@ -105,3 +105,21 @@ public final class TerminalRecord: Identifiable {
     }
   }
 }
+
+extension TerminalRecord {
+  /// The text before the method id in the id of a terminal auth record.
+  public nonisolated static let authIDPrefix = "auth-"
+
+  /// The id of the record that shows the terminal auth process of a method
+  /// (plan.md §12).
+  ///
+  /// A source that runs `AgentThreadActions.runTerminalAuth(_:)` writes the
+  /// output of the process to the record with this id. `AgentAuthView` finds
+  /// the record with the same id.
+  ///
+  /// - Parameter methodID: The identifier of the terminal method.
+  /// - Returns: `auth-<methodID>`.
+  public nonisolated static func authID(for methodID: AuthMethodID) -> TerminalID {
+    TerminalID(authIDPrefix + methodID.rawValue)
+  }
+}

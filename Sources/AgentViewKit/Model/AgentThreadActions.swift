@@ -60,6 +60,19 @@ public protocol AgentThreadActions: AnyObject {
   /// - Throws: The error of the process.
   func runTerminalAuth(_ method: AuthMethod.Terminal) async throws
 
+  /// Writes a line of user input to the standard input of a running
+  /// terminal auth process (plan.md §12).
+  ///
+  /// `AgentAuthView` calls this verb when the user presses Return in the
+  /// input field of the terminal. The source adds the newline.
+  ///
+  /// - Parameters:
+  ///   - line: The line that the user typed, with no newline at the end.
+  ///   - terminal: The identifier of the terminal record of the process.
+  /// - Throws: An error when no process of `terminal` runs, or when the
+  ///   process cannot accept input.
+  func writeTerminalLine(_ line: String, to terminal: TerminalID) async throws
+
   /// Sends ACP `auth/logout` (plan.md §12).
   ///
   /// - Throws: The error of the logout.
@@ -107,6 +120,10 @@ public final class LoggingThreadActions: AgentThreadActions {
 
   public func runTerminalAuth(_ method: AuthMethod.Terminal) async throws {
     log("runTerminalAuth")
+  }
+
+  public func writeTerminalLine(_ line: String, to terminal: TerminalID) async throws {
+    log("writeTerminalLine")
   }
 
   public func logout() async throws {

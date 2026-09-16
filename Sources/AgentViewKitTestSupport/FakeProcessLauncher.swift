@@ -4,7 +4,8 @@ import Foundation
 /// A ``ProcessLauncher`` that starts no process.
 ///
 /// Each launch gives a ``ScriptedProcess`` that sends the scripted output
-/// chunks and then finishes its output. The launcher and each process write to one call
+/// chunks. The process then finishes its output, unless
+/// ``keepsOutputOpen`` is `true`. The launcher and each process write to one call
 /// list, so a test can read the full order of calls.
 public final class FakeProcessLauncher: ProcessLauncher {
   /// The error that ``launch(program:arguments:environment:)`` throws when
@@ -47,6 +48,12 @@ public final class FakeProcessLauncher: ProcessLauncher {
   /// The error that each later launch throws, or `nil` to launch.
   public var launchError: LaunchError?
 
+  /// Whether the output of each later process stays open after the scripted
+  /// chunks. When it is `true`, the output finishes only at
+  /// ``ScriptedProcess/finishOutput()`` or ``ScriptedProcess/terminate()``.
+  /// A test uses it to write to a process that runs.
+  public var keepsOutputOpen: Bool
+
   /// Each call, in call order.
   public private(set) var calls: [Call] = []
 
@@ -58,9 +65,12 @@ public final class FakeProcessLauncher: ProcessLauncher {
   /// - Parameters:
   ///   - scriptedOutput: The output chunks of each process.
   ///   - scriptedExitStatus: The exit status of each process.
-  public init(scriptedOutput: [Data] = [], scriptedExitStatus: Int32 = 0) {
+  ///   - keepsOutputOpen: Whether the output of each process stays open
+  ///     after the scripted chunks.
+  public init(scriptedOutput: [Data] = [], scriptedExitStatus: Int32 = 0, keepsOutputOpen: Bool = false) {
     self.scriptedOutput = scriptedOutput
     self.scriptedExitStatus = scriptedExitStatus
+    self.keepsOutputOpen = keepsOutputOpen
   }
 
   /// Records the launch, then gives a process with the scripted output.
@@ -77,7 +87,8 @@ public final class FakeProcessLauncher: ProcessLauncher {
     calls.append(.launch(program: program, arguments: arguments, environment: environment))
     if let launchError { throw launchError }
     let process = ScriptedProcess(
-      launcher: self, output: scriptedOutput, exitStatus: scriptedExitStatus)
+      launcher: self, output: scriptedOutput, exitStatus: scriptedExitStatus,
+      keepsOutputOpen: keepsOutputOpen)
     processes.append(process)
     return process
   }
@@ -105,8 +116,8 @@ public final class FakeProcessLauncher: ProcessLauncher {
 
     public let output: AsyncStream<Data>
 
-    /// The scripted exit status. The output finishes before the launch
-    /// returns, so the status is set from the start.
+    /// The scripted exit status. The status is set from the start, also
+    /// while the output stays open.
     public let exitStatus: Int32?
 
     /// The bytes of each write, in call order.
@@ -115,20 +126,31 @@ public final class FakeProcessLauncher: ProcessLauncher {
     /// Whether ``terminate()`` was called.
     public private(set) var isTerminated = false
 
-    /// Makes a process that already buffered all of its output.
+    /// Makes a process that already buffered all of its scripted output.
     ///
     /// - Parameters:
     ///   - launcher: The launcher that records the calls.
     ///   - output: The output chunks.
     ///   - exitStatus: The exit status.
-    fileprivate init(launcher: FakeProcessLauncher, output chunks: [Data], exitStatus: Int32) {
+    ///   - keepsOutputOpen: Whether the output stays open after the chunks.
+    fileprivate init(
+      launcher: FakeProcessLauncher, output chunks: [Data], exitStatus: Int32, keepsOutputOpen: Bool
+    ) {
       self.launcher = launcher
       (output, continuation) = AsyncStream.makeStream(of: Data.self)
       for chunk in chunks {
         continuation.yield(chunk)
       }
-      continuation.finish()
+      if !keepsOutputOpen {
+        continuation.finish()
+      }
       self.exitStatus = exitStatus
+    }
+
+    /// Finishes the output, as a process does when it closes its output.
+    /// This call records no call on the launcher.
+    public func finishOutput() {
+      continuation.finish()
     }
 
     /// Records `data`.

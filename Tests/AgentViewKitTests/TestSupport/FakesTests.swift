@@ -157,6 +157,24 @@ import Testing
       ])
   }
 
+  @Test func fakeProcessLauncherCanKeepTheOutputOpenUntilFinishOutput() async throws {
+    let chunks = [Data("Type yes\n".utf8)]
+    let launcher = FakeProcessLauncher(scriptedOutput: chunks, keepsOutputOpen: true)
+
+    let process = try launcher.launch(program: "/bin/agent", arguments: [], environment: [:])
+    var iterator = process.output.makeAsyncIterator()
+    let first = await iterator.next()
+    try process.write(Data("yes\n".utf8))
+    let scripted = try #require(launcher.processes.first)
+    scripted.finishOutput()
+    let end = await iterator.next()
+
+    #expect(first == chunks.first)
+    #expect(end == nil)
+    #expect(scripted.writes == [Data("yes\n".utf8)])
+    #expect(!scripted.isTerminated)
+  }
+
   @Test func fakeProcessLauncherRecordsWritesAndTerminateInOrder() throws {
     let launcher = FakeProcessLauncher()
 

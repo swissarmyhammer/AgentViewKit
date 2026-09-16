@@ -28,7 +28,8 @@ public enum RouterThreadActionsError: Error, Equatable, Sendable {
 /// - ``connect(_:)`` opens the authorization URL through the
 ///   ``AuthorizationPresenter``, then accepts and completes the elicitation
 ///   that `meta["elicitationId"]` names.
-/// - The permission, config option, login, terminal login, and logout verbs
+/// - The permission, config option, login, terminal login, terminal input,
+///   and logout verbs
 ///   write one `debug` message and return. The Router has no permission gate,
 ///   no config options, and no login methods.
 public final class RouterThreadActions: AgentThreadActions {
@@ -151,6 +152,10 @@ public final class RouterThreadActions: AgentThreadActions {
 
   public func runTerminalAuth(_ method: AuthMethod.Terminal) async throws {
     logUnsupported("runTerminalAuth")
+  }
+
+  public func writeTerminalLine(_ line: String, to terminal: TerminalID) async throws {
+    logUnsupported("writeTerminalLine")
   }
 
   public func logout() async throws {

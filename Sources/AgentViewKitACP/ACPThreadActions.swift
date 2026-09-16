@@ -13,6 +13,10 @@ public enum ACPThreadActionsError: Error, Equatable, Sendable {
   /// The terminal authentication process stopped with a status that is not
   /// zero.
   case terminalAuthFailed(status: Int32)
+
+  /// ``ACPThreadActions/writeTerminalLine(_:to:)`` found no running terminal
+  /// authentication process for the terminal.
+  case noRunningTerminal(TerminalID)
 }
 
 /// The agent program that terminal authentication starts again
@@ -59,7 +63,12 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 /// - ``login(_:)`` sends `auth/login`. ``logout()`` sends `auth/logout`.
 /// - ``runTerminalAuth(_:)`` starts the agent program again with the extra
 ///   arguments and environment of the method, and shows the output in a
-///   ``TerminalRecord``. It never sends `auth/login`.
+///   ``TerminalRecord``. The id of the record is
+///   ``TerminalRecord/authID(for:)`` of the method. It never sends
+///   `auth/login`.
+/// - ``writeTerminalLine(_:to:)`` writes the line and a newline to the
+///   standard input of the terminal authentication process that runs for the
+///   record.
 ///
 /// A verb that does not throw writes a failure to the thread as an error
 /// record.
@@ -73,8 +82,8 @@ public final class ACPThreadActions: AgentThreadActions {
   /// The `meta` key of the callback scheme of an authorization request.
   public static let callbackSchemeMetaKey = "callbackScheme"
 
-  /// The text before the method id in the id of a terminal auth record.
-  public static let terminalAuthIDPrefix = "auth-"
+  /// The text that ``writeTerminalLine(_:to:)`` adds after each line.
+  static let lineTerminator = "\n"
 
   /// The text before the count in the id of an error record.
   public static let errorIDPrefix = "acp-action-error-"
@@ -118,6 +127,10 @@ public final class ACPThreadActions: AgentThreadActions {
 
   /// The agent program that terminal authentication starts, or `nil`.
   private let agentProgram: ACPAgentProgram?
+
+  /// The terminal authentication processes that run, keyed by the id of
+  /// their terminal record.
+  private var terminalProcesses: [TerminalID: any LaunchedProcess] = [:]
 
   /// The URL scheme of the callback when the request gives no scheme.
   private let callbackScheme: String
@@ -281,7 +294,15 @@ public final class ACPThreadActions: AgentThreadActions {
     let arguments = agentProgram.arguments + method.args
     let process = try processLauncher.launch(
       program: agentProgram.path, arguments: arguments, environment: method.env)
-    let terminalID = TerminalID(Self.terminalAuthIDPrefix + method.id.rawValue)
+    let terminalID = TerminalRecord.authID(for: method.id)
+    terminalProcesses[terminalID] = process
+    defer {
+      // A later run of the same method can replace the entry. Remove only
+      // the entry of this run.
+      if terminalProcesses[terminalID] === process {
+        terminalProcesses[terminalID] = nil
+      }
+    }
     let command = ([agentProgram.path] + arguments).joined(separator: " ")
     thread.apply(.upsertTerminal(TerminalPatch(id: terminalID, command: .value(command), output: .value(Data()))))
     for await chunk in process.output {
@@ -292,6 +313,13 @@ public final class ACPThreadActions: AgentThreadActions {
       .upsertTerminal(
         TerminalPatch(id: terminalID, exitStatus: .value(TerminalRecord.ExitStatus(code: Int(status))))))
     guard status == 0 else { throw ACPThreadActionsError.terminalAuthFailed(status: status) }
+  }
+
+  public func writeTerminalLine(_ line: String, to terminal: TerminalID) async throws {
+    guard let process = terminalProcesses[terminal] else {
+      throw ACPThreadActionsError.noRunningTerminal(terminal)
+    }
+    try process.write(Data((line + Self.lineTerminator).utf8))
   }
 
   public func logout() async throws {

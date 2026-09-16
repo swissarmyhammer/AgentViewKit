@@ -99,6 +99,23 @@ struct NoopThreadActionsTests {
     #expect(actions.calls == [.runTerminalAuth(method)])
   }
 
+  @Test func writeTerminalLineRecordsTheLineAndTheTerminal() async throws {
+    let actions = NoopThreadActions()
+    var received: [(String, TerminalID)] = []
+    actions.onWriteTerminalLine = { received.append($0) }
+    let terminal = TerminalRecord.authID(for: AuthMethodID("setup"))
+
+    try await actions.writeTerminalLine("yes", to: terminal)
+
+    #expect(actions.calls == [.writeTerminalLine("yes", terminal)])
+    #expect(received.map(\.0) == ["yes"])
+    #expect(received.map(\.1) == [terminal])
+  }
+
+  @Test func theAuthTerminalIdIsThePrefixAndTheMethodId() {
+    #expect(TerminalRecord.authID(for: AuthMethodID("setup")) == TerminalID("auth-setup"))
+  }
+
   @Test func logoutRecordsTheCall() async throws {
     let actions = NoopThreadActions()
 
