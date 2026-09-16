@@ -20,12 +20,21 @@ comments:
     - decisions: Textual 0.5.0 has no public raw code, so the style reads the private `content` of `CodeBlockProxy` with `Mirror` (the exact pin and a hosted test guard it). The `Pasteboard` protocol keeps `copyText(_:)` from ^he8kkt1. The label uses the trimmed language hint, and "plain text" when the hint is missing or empty. See Docs/decisions/code-block-source.md.
     - next: the three findings are fixed in the tree; commit and review again.
   timestamp: 2026-09-16T13:08:09.438831+00:00
+- actor: claude-code
+  id: 01m2n5ewkgadrw5kpwtwdeem3h
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — makeReadOnly rename, internal view inputs, syncModel method
+    - test: green — swift test, 93 passed
+    - commit: 4da0f6d
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; all prior findings checked; task moved to done
+  timestamp: 2026-09-16T13:10:52.784067+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCRF2JZ6W49NKXHE8KKT1
 - 01M21ABMYXZQRNRDGB3DR6RK73
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: '8580'
 title: CodeBlockView on EditorKit, the Textual CodeBlockStyle hook, per-fence model cache, and the streaming append helper (plan §4.1, §8)
 ---
 ## What
