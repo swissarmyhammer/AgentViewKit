@@ -1,6 +1,6 @@
 import AgentViewKit
-import AgentViewKitTestSupport
 import Foundation
+import PackageFileSupport
 import Testing
 
 /// Checks that the R14 decision in `Docs/decisions/subagent-source.md`, the

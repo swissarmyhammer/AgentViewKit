@@ -1,5 +1,5 @@
-import AgentViewKitTestSupport
 import Foundation
+import PackageFileSupport
 import Testing
 
 @Suite struct PackageFilesTests {
@@ -19,5 +19,18 @@ import Testing
     #expect(throws: (any Error).self) {
       try PackageFiles.text(of: "Docs/decisions/no-such-file.md")
     }
+  }
+
+  @Test(arguments: ["../Package.swift", "Docs/../../Package.swift", "/etc/hosts", "Docs/.."])
+  func fileRejectsAPathOutsideTheRoot(relativePath: String) {
+    #expect(throws: PackageFiles.PathOutsideRoot(relativePath: relativePath)) {
+      try PackageFiles.file(relativePath)
+    }
+  }
+
+  @Test func fileKeepsAPathInsideTheRoot() throws {
+    let url = try PackageFiles.file("Docs/decisions/usage-model.md")
+
+    #expect(url == PackageFiles.root.appending(path: "Docs/decisions/usage-model.md"))
   }
 }

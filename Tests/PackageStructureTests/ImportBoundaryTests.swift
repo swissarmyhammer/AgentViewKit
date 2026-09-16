@@ -1,4 +1,5 @@
 import Foundation
+import PackageFileSupport
 import Testing
 
 /// The import boundaries of plan.md §11 decision 1.
@@ -25,11 +26,13 @@ import Testing
   ]
 
   /// The fixture directory for the scanner tests.
-  static let fixtures = PackageRoot.file("Tests/PackageStructureTests/Fixtures/ImportBoundary")
+  static var fixtures: URL {
+    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ImportBoundary") }
+  }
 
   @Test func acpTargetImportsNoFoundationModelsRuntime() throws {
     let violations = try ImportScanner.violations(
-      in: PackageRoot.file("Sources/AgentViewKitACP"),
+      in: PackageFiles.file("Sources/AgentViewKitACP"),
       forbidden: Self.forbiddenInACP
     )
     #expect(violations.isEmpty, "\(violations)")
@@ -37,14 +40,14 @@ import Testing
 
   @Test func agentViewKitTargetImportsNoSourceRuntime() throws {
     let violations = try ImportScanner.violations(
-      in: PackageRoot.file("Sources/AgentViewKit"),
+      in: PackageFiles.file("Sources/AgentViewKit"),
       forbidden: Self.forbiddenInAgentViewKit
     )
     #expect(violations.isEmpty, "\(violations)")
   }
 
   @Test func scannerReportsEachForbiddenImportInTheFixture() throws {
-    let violatingDirectory = Self.fixtures.appending(path: "Violating")
+    let violatingDirectory = try Self.fixtures.appending(path: "Violating")
     let fixtureFile = "Nested/ImportsRuntimes.swift"
     let violations = try ImportScanner.violations(in: violatingDirectory, forbidden: Self.forbiddenInAgentViewKit)
 

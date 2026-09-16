@@ -1,4 +1,5 @@
 import Foundation
+import PackageFileSupport
 import Testing
 
 /// Checks the package manifest against plan.md §11 decision 1.
@@ -41,7 +42,7 @@ import Testing
   let manifest: String
 
   init() throws {
-    manifest = try PackageRoot.text(of: "Package.swift")
+    manifest = try PackageFiles.text(of: "Package.swift")
   }
 
   @Test func declaresTheFourLibraryProducts() {
@@ -91,7 +92,7 @@ import Testing
 
   @Test func resolvesTextualAtTheDecidedVersion() throws {
     let textual = try Self.textualDecision()
-    let data = try Data(contentsOf: PackageRoot.file("Package.resolved"))
+    let data = try Data(contentsOf: PackageFiles.file("Package.resolved"))
     let resolved = try JSONDecoder().decode(ResolvedFile.self, from: data)
     let pin = try #require(resolved.pins.first { $0.identity == "textual" })
     #expect(pin.state.version == textual.version)
@@ -101,7 +102,7 @@ import Testing
   ///
   /// The row has the form `| textual | <url> | exact <version> | `<product>` |`.
   static func textualDecision() throws -> TextualDecision {
-    let decisions = try PackageRoot.text(of: "Docs/decisions/dependencies.md")
+    let decisions = try PackageFiles.text(of: "Docs/decisions/dependencies.md")
     let row = /\|\s*textual\s*\|\s*(?<url>[^|\s]+)\s*\|\s*exact\s+(?<version>[^|\s]+)\s*\|\s*`(?<product>[^`]+)`\s*\|/
     let match = try #require(decisions.firstMatch(of: row))
     return TextualDecision(

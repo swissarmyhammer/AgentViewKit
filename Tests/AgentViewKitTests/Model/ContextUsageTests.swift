@@ -1,6 +1,6 @@
 import AgentViewKit
-import AgentViewKitTestSupport
 import Foundation
+import PackageFileSupport
 import Testing
 
 @Suite struct ContextUsageTests {

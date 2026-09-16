@@ -114,10 +114,15 @@ let package = Package(
       dependencies: ["AgentViewKit"],
       swiftSettings: mainActorIsolated
     ),
+    // Finds and reads the package files for the tests. This target is not a
+    // product and has no dependency, so that PackageStructureTests can link it
+    // without the kit.
+    .target(name: "PackageFileSupport"),
 
     .testTarget(
       name: "AgentViewKitTests",
-      dependencies: ["AgentViewKit", "AgentViewKitTestSupport"] + editorKitTestSupportProducts,
+      dependencies: ["AgentViewKit", "AgentViewKitTestSupport", "PackageFileSupport"]
+        + editorKitTestSupportProducts,
       // AgentThemeTests reads the token file from disk as data, so the build
       // excludes it.
       exclude: ["Theme/DefaultTokens.json"],
@@ -138,11 +143,12 @@ let package = Package(
       dependencies: ["AgentViewKitACP", "AgentViewKitTestSupport"],
       swiftSettings: mainActorIsolated
     ),
-    // Reads the package files as text. It links no package target. The
-    // fixtures are Swift files that the scanner reads, so the build excludes
-    // them.
+    // Reads the package files as text. It links only PackageFileSupport,
+    // which has no dependency. The fixtures are Swift files that the scanner
+    // reads, so the build excludes them.
     .testTarget(
       name: "PackageStructureTests",
+      dependencies: ["PackageFileSupport"],
       exclude: ["Fixtures"]
     ),
   ],
