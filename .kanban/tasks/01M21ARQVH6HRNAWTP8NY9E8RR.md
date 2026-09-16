@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2nz1r99pnyatmjwrcprc5yt
+  text: 'Note from ^a9ptv4s (SessionListView): the sidebar must make `ACPSessionList(connection:cwd:)` from the ACP connection and give it to `SessionListView(provider:onSelect:onNewSession:onDelete:)`. Give `onDelete: provider.delete` only when the agent sends the `session.delete` capability. `onSelect` must load the selected session (session/load or session/resume) and bind ACPThreadSource to it. The in-memory agent must answer `session/list`, or the sidebar shows the failure message.'
+  timestamp: 2026-09-16T20:38:05.353672+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21AH4QCEFEBPTZ8GR061H51

@@ -17,11 +17,8 @@ private let pollMilliseconds = 5
 /// The time between two checks of ``waitUntil(_:)``.
 private let pollInterval = Duration.milliseconds(pollMilliseconds)
 
-/// The number of seconds that ``Harness/bounded(_:)`` waits.
-private let operationLimitSeconds = 5
-
-/// The time that ``Harness/bounded(_:)`` waits.
-private let operationLimit = Duration.seconds(operationLimitSeconds)
+/// The time that ``AgentProcessLauncherTests`` waits for a process.
+private let operationLimit = ScriptedWireAgent.operationLimit
 
 /// The session of each test.
 private let sessionID = "s1"
@@ -145,22 +142,11 @@ private struct Harness {
   /// The observable state of the session.
   var session: ACPSessionState { client.session(for: SessionId(rawValue: sessionID)) }
 
-  /// Runs `operation` with a time limit.
-  ///
-  /// When the time runs out, the harness records an issue and stops the
-  /// agent. The stop closes the transport, so each request that waits for
-  /// the agent fails, and `operation` ends.
+  /// Runs `operation` with the time limit of the agent.
   ///
   /// - Parameter operation: The operation to run.
   func bounded<Result>(_ operation: () async throws -> Result) async rethrows -> Result {
-    let watchdog = Task { [agent] in
-      try? await Task.sleep(for: operationLimit)
-      guard !Task.isCancelled else { return }
-      Issue.record("The operation did not end in time.")
-      agent.stop()
-    }
-    defer { watchdog.cancel() }
-    return try await operation()
+    try await agent.bounded(operation)
   }
 }
 
