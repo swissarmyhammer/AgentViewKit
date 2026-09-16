@@ -247,13 +247,4 @@ import Testing
       try JSONDecoder().decode(ConfigValue.self, from: Data(json.utf8))
     }
   }
-
-  // MARK: - Identifier
-
-  @Test func anIdentifierEncodesAsItsString() throws {
-    let data = try JSONEncoder().encode(ConfigOptionID("mode"))
-
-    #expect(String(decoding: data, as: UTF8.self) == #""mode""#)
-    #expect(try JSONDecoder().decode(ConfigOptionID.self, from: data) == ConfigOptionID("mode"))
-  }
 }

@@ -15,6 +15,18 @@ comments:
     - `SelectGroup` has an `id` (the ACP `groupId`), so that a view can use it in `ForEach`.
     - `TerminalRecord` does not conform to `ThreadRecord`: `ThreadRecord` requires a `String` id, and `AgentThread.terminals` is keyed by `TerminalID`. It has its own `revision` and `bump()`.
   timestamp: 2026-09-16T14:53:21.392537+00:00
+- actor: claude-code
+  id: 01m2nbgssrk14apgagx439fqrn
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — new Identifier.swift (generic `Identifier<Tag>`; `PlanID`, `TerminalID`, `ConfigOptionID` are now aliases of it), `ConfigValue` Codable in the ACP `{type, value}` form, new tests
+    - test: green — swift test, 244 + 20 + 3 tests passed
+    - commit: e2f7669
+    - review: findings — Sources/AgentViewKit/Model/Identifier.swift:7
+
+    Decision: `PlanID` had the same duplicated wrapper, so it also moved to `Identifier<Plan>`. The call sites do not change.
+    Fix for the Identifier.swift:7 finding (in the next commit): `Identifier` is `CustomStringConvertible`, and its `description` uses the name of `Tag`, for example `TerminalRecord(t1)`.
+  timestamp: 2026-09-16T14:56:46.904305+00:00
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
 - 01M21BCD7C9V8N4SED5GE34A4E
@@ -53,3 +65,12 @@ Create `Sources/AgentViewKit/Model/TerminalRecord.swift` and `Sources/AgentViewK
 - [x] `Sources/AgentViewKit/Model/ConfigOption.swift:5` `duplication/duplication` — ConfigOptionID duplicates TerminalID—both define identical ID wrapper types, differing only in type name. Code duplication forces maintenance of two copies, which can drift. Extract one generic ID type to serve both ConfigOptionID and TerminalID. Remove duplication.
 - [x] `Sources/AgentViewKit/Model/ConfigOption.swift:197` `completeness/inverse-operation-coverage` — ConfigValue is a public type meant to be sent to the API (per docstring: 'AgentThreadActions.setConfigOption takes this type'), but it lacks Codable conformance for encoding and has no encode test. Related types like ConfigOption have comprehensive Codable implementations with round-trip tests; ConfigValue should too. Add Codable conformance to ConfigValue and test round-trip encoding/decoding, similar to ConfigOption. The encode test should verify that both case variants (id and boolean) encode correctly in the ACP v2 wire format.
 - [x] `Sources/AgentViewKit/Model/TerminalRecord.swift:8` `duplication/duplication` — TerminalID duplicates ConfigOptionID—both define identical ID wrapper types, differing only in type name. Code duplication forces maintenance of two copies, which can drift. Extract one generic ID type to serve both ConfigOptionID and TerminalID. Remove duplication.
+
+## Review Findings (2026-09-16 09:54)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Model/Identifier.swift:7` `code-hygiene/dead-code-swift` — generic_type_param `Tag` is unused.
