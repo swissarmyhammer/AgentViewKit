@@ -11,7 +11,7 @@ reads the Textual row and compares it with `Package.swift` and
 |---|---|---|---|
 | textual | https://github.com/gonzalezreal/textual | exact 0.5.0 | `Textual` |
 | swiftui-math | https://github.com/gonzalezreal/swiftui-math | exact 0.1.0 | `SwiftUIMath` |
-| EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorComplete`, `EditorDecorations` |
+| EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorComplete`, `EditorDecorations`, `EditorExtensions` |
 | FoundationModelsACP | git@github.com:swissarmyhammer/FoundationModelsACP.git | branch main | `FoundationModelsACP` |
 | FoundationModelsACPClient | git@github.com:swissarmyhammer/FoundationModelsACPClient.git | branch main | `FoundationModelsACPClient` |
 | FoundationModelsRouter | git@github.com:swissarmyhammer/FoundationModelsRouter.git | branch main | `FoundationModelsRouter` |

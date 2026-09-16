@@ -128,14 +128,27 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     Task { await actions.cancel() }
   }
 
+  /// The files that the text links to, for the attachments of a submit.
+  ///
+  /// An editor marks a file reference, such as an `@file` chip of
+  /// ``EditorKitPromptEditor``, with a `link` attribute that holds a file URL.
+  ///
+  /// - Parameter text: The text of the prompt.
+  /// - Returns: Each linked file URL one time, in text order.
+  static func attachments(in text: AttributedString) -> [URL] {
+    var seen: Set<URL> = []
+    return text.runs.compactMap(\.link).filter { $0.isFileURL && seen.insert($0).inserted }
+  }
+
   /// Clears the text and returns it as an input.
   ///
   /// - Returns: The input, or `nil` when the text is blank. A blank text does
   ///   not change.
   private func takeInput() -> UserInput? {
     guard let message = Self.message(from: text) else { return nil }
+    let attachments = Self.attachments(in: text)
     text = AttributedString()
-    return UserInput(text: message)
+    return UserInput(text: message, attachments: attachments)
   }
 
   /// Sends an input through the thread actions.

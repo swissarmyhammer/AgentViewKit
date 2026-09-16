@@ -39,6 +39,8 @@ let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorCommandsUI", package: "EditorKit"),
   .product(name: "EditorComplete", package: "EditorKit"),
   .product(name: "EditorDecorations", package: "EditorKit"),
+  // The completion source protocol and its value types (plan.md §4.1).
+  .product(name: "EditorExtensions", package: "EditorKit"),
 ]
 
 /// The EditorKit test support product that the model and view tests link.
