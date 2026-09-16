@@ -1,8 +1,8 @@
 ---
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: todo
-position_ordinal: '8380'
+position_column: doing
+position_ordinal: '8180'
 title: StreamingMarkdownBalancer and paragraph splitter, pure functions (plan §8)
 ---
 ## What
