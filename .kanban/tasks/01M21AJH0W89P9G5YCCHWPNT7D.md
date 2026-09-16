@@ -20,11 +20,20 @@ comments:
     - review: findings — Sources/AgentViewKit/Status/ContextUsageView.swift:36 (code-hygiene/magic-numbers-swift)
     - correction: the ErrorView task short id is ^apwfm0s, not ^8gn3p as the decisions comment says.
   timestamp: 2026-09-16T19:39:54.477658+00:00
+- actor: claude-code
+  id: 01m2nvtx69ph0t40zyj9ass906
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ContextUsageView.swift (quarterTurnDegrees), ContextUsageViewHostedTests.swift (threeQuarterUsage)
+    - test: green — swift test --filter AgentViewKitTests, 632 tests in 55 suites passed
+    - commit: 3289325
+    - review: clean — review sha HEAD~1..HEAD, 0 findings; the prior finding is checked
+  timestamp: 2026-09-16T19:41:55.273652+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: 9f80
 title: TaskListView, StateBanner, ContextUsageView (plan §9 A, §9 C)
 ---
 ## What
