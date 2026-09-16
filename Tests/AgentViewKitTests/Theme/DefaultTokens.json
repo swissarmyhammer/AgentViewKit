@@ -1,0 +1,17 @@
+{
+  "spacing": { "xs": 4, "s": 8, "m": 12, "l": 20 },
+  "radii": { "s": 4, "m": 8, "l": 12 },
+  "materialLevel": "regular",
+  "symbolWeight": "regular",
+  "accent": "accentColor",
+  "density": "balanced",
+  "proseFont": { "textStyle": "body", "design": "default" },
+  "codeFont": { "textStyle": "body", "design": "monospaced" },
+  "statusColors": {
+    "running": "blue",
+    "completed": "green",
+    "failed": "red",
+    "cancelled": "gray",
+    "pending": "secondary"
+  }
+}

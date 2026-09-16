@@ -44,10 +44,26 @@ comments:
     - evidence: `swift test` exits 0: 46 tests (PackageStructureTests 15, AgentViewKitTests 28, adapter targets 1 each). `swift build --build-tests`: no warning in Sources, Tests, or Package.swift.
     - next: commit
   timestamp: 2026-09-16T12:29:22.654274+00:00
+- actor: claude-code
+  id: 01m2n35n6808w3vcp5nerx40ch
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (67921aa), 0 findings; all 16 prior findings checked
+    - next: none
+  timestamp: 2026-09-16T12:30:53.128311+00:00
+- actor: claude-code
+  id: 01m2n35p51sydnd1yd6xkwtjqb
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 5 files, all 16 findings fixed
+    - test: green — swift test, 46 passed
+    - commit: 67921aa
+    - review: clean — 0 findings
+  timestamp: 2026-09-16T12:30:54.113752+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: '8280'
 title: 'AgentViewKitTestSupport target: hosted view harness, evaluation counter, fakes for pasteboard, announcer, focus, and auth session'
 ---
 ## What

@@ -1,9 +1,20 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2n3seqf2twt7by723g8vb43
+  text: |-
+    ### finish — dependency added
+    - The task must apply the AgentTheme bridge (`.editorTheme(agentTheme.editorTheme)`). The AgentTheme task ^dr6rk73 did not exist as a dependency.
+    - The orchestrator added ^dr6rk73 to depends_on and moved this task back to todo. No code was changed.
+    - Research note from the stopped run: Textual gives no raw code string in the code block configuration. `CodeBlockProxy` keeps the code in a private `content` property.
+    - next: implement this task after ^dr6rk73 is done.
+  timestamp: 2026-09-16T12:41:41.871855+00:00
 depends_on:
 - 01M21A8RWGWE533JR6GQ4DNN06
 - 01M21BCRF2JZ6W49NKXHE8KKT1
+- 01M21ABMYXZQRNRDGB3DR6RK73
 position_column: todo
-position_ordinal: '8980'
+position_ordinal: c980
 title: CodeBlockView on EditorKit, the Textual CodeBlockStyle hook, per-fence model cache, and the streaming append helper (plan §4.1, §8)
 ---
 ## What

@@ -118,6 +118,9 @@ let package = Package(
     .testTarget(
       name: "AgentViewKitTests",
       dependencies: ["AgentViewKit", "AgentViewKitTestSupport"] + editorKitTestSupportProducts,
+      // AgentThemeTests reads the token file from disk as data, so the build
+      // excludes it.
+      exclude: ["Theme/DefaultTokens.json"],
       swiftSettings: mainActorIsolated
     ),
     .testTarget(
