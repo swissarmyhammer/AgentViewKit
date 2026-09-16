@@ -60,57 +60,11 @@ private struct PromptInputHost: View {
         SelectOption(id: "ask", name: "Ask"), SelectOption(id: "auto", name: "Auto"),
       ])))
 
-  /// A harness that shows `content` with `actions` and `thread`.
-  ///
-  /// - Parameters:
-  ///   - actions: The actions that the composer calls.
-  ///   - thread: The thread of the environment, or `nil`.
-  ///   - content: The composer.
-  /// - Returns: The harness.
-  static func harness(
-    actions: NoopThreadActions, thread: AgentThread? = nil,
-    @ViewBuilder content: () -> some View
-  ) -> HostedViewHarness<some View> {
-    HostedViewHarness(
-      content()
-        .threadActions(actions)
-        .environment(\.agentThread, thread)
-        .transaction { $0.disablesAnimations = true },
-      size: composerSize
-    )
-  }
-
-  /// The first editable text view under `view`.
-  ///
-  /// - Parameter view: The view to search.
-  /// - Returns: The text view, or `nil`.
-  static func firstTextView(in view: NSView) -> NSTextView? {
-    for subview in view.subviews {
-      if let textView = subview as? NSTextView, textView.isEditable {
-        return textView
-      }
-      if let textView = firstTextView(in: subview) {
-        return textView
-      }
-    }
-    return nil
-  }
-
-  /// Gives the focus to the stock editor of `harness`.
-  ///
-  /// - Parameter harness: The harness.
-  /// - Throws: An error when the harness has no editable text view.
-  static func focusEditor(of harness: HostedViewHarness<some View>) throws {
-    let textView = try #require(firstTextView(in: harness.hostingView))
-    harness.window.makeFirstResponder(textView)
-    harness.pump()
-  }
-
   // MARK: - Mount
 
   @Test func theDefaultComposerMountsTheEditorAndTheSubmitButton() {
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: NoopThreadActions()) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: NoopThreadActions()) {
       PromptInputView(text: Bindable(model).text, onSubmit: {})
     }
     defer { harness.close() }
@@ -123,7 +77,7 @@ private struct PromptInputHost: View {
 
   @Test func theSubmitButtonIsDisabledWhileTheTextIsBlank() {
     let model = PromptInputHostedTestModel(text: "  \n")
-    let harness = Self.harness(actions: NoopThreadActions()) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: NoopThreadActions()) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
@@ -136,7 +90,9 @@ private struct PromptInputHost: View {
     let thread = AgentThread()
     thread.apply(.setConfigOptions([Self.modeOption]))
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: NoopThreadActions(), thread: thread) {
+    let harness = threadViewHarness(
+      size: Self.composerSize, actions: NoopThreadActions(), thread: thread
+    ) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
@@ -153,7 +109,7 @@ private struct PromptInputHost: View {
     thread.apply(.setAvailableCommands([command]))
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = Self.harness(actions: actions, thread: thread) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions, thread: thread) {
       PromptInputView(text: Bindable(model).text, onSubmit: {}) { context in
         Button(context.commands.map(\.name).joined()) { context.onSubmit() }
           .accessibilityIdentifier("custom-editor")
@@ -176,13 +132,13 @@ private struct PromptInputHost: View {
   @Test func returnSendsTheTextAndClearsTheEditor() async throws {
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: actions) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
     harness.pump()
 
-    try Self.focusEditor(of: harness)
+    try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     #expect(model.plainText == Self.message)
     try harness.sendKey(.return)
@@ -193,16 +149,16 @@ private struct PromptInputHost: View {
     #expect(model.submitCount == 1)
   }
 
-  @Test func shiftReturnInsertsANewlineAndDoesNotSend() async throws {
+  @Test func shiftReturnInsertsANewlineAndDoesNotSend() throws {
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: actions) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
     harness.pump()
 
-    try Self.focusEditor(of: harness)
+    try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     try harness.sendKey(.return, modifiers: .shift)
     harness.pump()
@@ -215,13 +171,13 @@ private struct PromptInputHost: View {
   @Test func returnWithBlankTextSendsNothing() throws {
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: actions) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
     harness.pump()
 
-    try Self.focusEditor(of: harness)
+    try #require(harness.focusFirstEditableTextView())
     try harness.sendKey(.return)
     harness.pump()
 
@@ -234,7 +190,7 @@ private struct PromptInputHost: View {
   @Test func theSubmitButtonSendsTheText() async throws {
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = Self.harness(actions: actions) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
@@ -253,7 +209,7 @@ private struct PromptInputHost: View {
     thread.apply(.setState(.running))
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = Self.harness(actions: actions, thread: thread) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions, thread: thread) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
@@ -273,13 +229,13 @@ private struct PromptInputHost: View {
     thread.apply(.setState(.running))
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: actions, thread: thread) {
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions, thread: thread) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }
     harness.pump()
 
-    try Self.focusEditor(of: harness)
+    try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     try harness.sendKey(.return)
     harness.pump()
@@ -292,7 +248,9 @@ private struct PromptInputHost: View {
     let thread = AgentThread()
     thread.apply(.setState(.running))
     let model = PromptInputHostedTestModel()
-    let harness = Self.harness(actions: NoopThreadActions(), thread: thread) {
+    let harness = threadViewHarness(
+      size: Self.composerSize, actions: NoopThreadActions(), thread: thread
+    ) {
       PromptInputHost(model: model)
     }
     defer { harness.close() }

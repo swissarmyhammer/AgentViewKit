@@ -47,22 +47,6 @@ import Testing
       output: Data(output.utf8))
   }
 
-  /// The first text field under `view`, in depth first order.
-  ///
-  /// - Parameter view: The root of the search.
-  /// - Returns: The text field, or `nil` when there is none.
-  static func firstTextField(in view: NSView) -> NSTextField? {
-    for subview in view.subviews {
-      if let field = subview as? NSTextField, field.isEditable {
-        return field
-      }
-      if let field = firstTextField(in: subview) {
-        return field
-      }
-    }
-    return nil
-  }
-
   // MARK: - Header
 
   @Test func theHeaderShowsTheCommandAndTheWorkingDirectory() {
@@ -249,9 +233,7 @@ import Testing
     harness.pump()
 
     #expect(harness.element(identifier: TerminalView.inputIdentifier) != nil)
-    let field = try #require(Self.firstTextField(in: harness.hostingView))
-    harness.window.makeFirstResponder(field)
-    harness.pump()
+    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
 
     harness.type(Self.inputLine)
     try harness.sendKey(.return)

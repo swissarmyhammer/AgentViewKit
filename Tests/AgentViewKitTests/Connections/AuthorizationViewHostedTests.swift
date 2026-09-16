@@ -38,13 +38,10 @@ import Testing
   static func harness(
     actions: NoopThreadActions, store: ConnectionStore?
   ) -> HostedViewHarness<some View> {
-    HostedViewHarness(
+    threadViewHarness(size: cardSize, actions: actions) {
       AuthorizationView(request: request)
-        .threadActions(actions)
         .connectionStore(store)
-        .transaction { $0.disablesAnimations = true },
-      size: cardSize
-    )
+    }
   }
 
   /// An error with a fixed description.

@@ -50,13 +50,9 @@ import Testing
   static func harness(
     actions: NoopThreadActions, isAuthenticated: Bool = false, thread: AgentThread? = nil
   ) -> HostedViewHarness<some View> {
-    HostedViewHarness(
+    threadViewHarness(size: cardSize, actions: actions, thread: thread) {
       AgentAuthView(methods: methods, isAuthenticated: isAuthenticated)
-        .threadActions(actions)
-        .environment(\.agentThread, thread)
-        .transaction { $0.disablesAnimations = true },
-      size: cardSize
-    )
+    }
   }
 
   /// An error with a fixed description.
@@ -145,9 +141,7 @@ import Testing
         == "Terminal, \(Self.terminalCommand)")
     #expect(harness.element(identifier: TerminalView.inputIdentifier) != nil)
 
-    let field = try #require(TerminalViewHostedTests.firstTextField(in: harness.hostingView))
-    harness.window.makeFirstResponder(field)
-    harness.pump()
+    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
     harness.type(Self.inputLine)
     try harness.sendKey(.return)
     await harness.pump(until: Self.waitTimeout) { actions.calls.count == 2 }
