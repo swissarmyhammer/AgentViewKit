@@ -223,8 +223,8 @@ private struct PlainTextParser: MarkupParser {
 
 /// Reads the start of a text file for a preview.
 nonisolated enum AttachmentTextLoader {
-  /// The largest number of bytes that a preview reads.
-  static let byteLimit = 256 * 1024
+  /// The largest number of bytes that a preview reads: 256 KiB.
+  static let byteLimit = 262_144
 
   /// Reads at most ``byteLimit`` bytes of a file as UTF-8 text.
   ///

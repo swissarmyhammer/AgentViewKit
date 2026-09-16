@@ -12,11 +12,21 @@ comments:
     - `AgentThreadView` gets the inspector through a public `.attachmentInspector(selection:)` modifier. It uses the `InspectorSelection` of the environment when the host gives one, else its own. The hosted test mounts the modifier directly, because the thread rows still show placeholders for message content.
     - `ArtifactView` shows the action row only when the artifact has a URL. An inline-only artifact has no file to open, reveal, share, save, or preview.
   timestamp: 2026-09-16T19:02:03.413690+00:00
+- actor: claude-code
+  id: 01m2nt9s1v2txypvmvm1c3efqh
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 12 files (Sources/AgentViewKit/Attachments/*, AgentThreadView.swift, Docs/decisions/attachment-types.md, 2 test files, 2 test helpers)
+    - test: green — timeout 900 swift test, 603 + 85 + 71 + 20 + 1 passed, 0 failed
+    - commit: b15f39f
+    - review: findings — Sources/AgentViewKit/Attachments/AttachmentPreview.swift:227
+    Notes: the inspector opens with an AppKit split view animation that does not end in the off-screen harness window, so the press test runs the press with animations off. `QLPreviewView` must have `shouldCloseWithWindow = false`, because a second close in `dismantleNSView` stops the process with a QuickLook assertion. Swift Testing declares a type `Attachment`, so tests write `AgentViewKit.Attachment`.
+  timestamp: 2026-09-16T19:15:05.403030+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21ACHJYSF8G8R7HY3M70Z7F
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: AttachmentView family, UTType resolution, and AttachmentInspector with QuickLook (plan §3.6, §9 F)
 ---
 ## What
@@ -42,3 +52,15 @@ Create `Sources/AgentViewKit/Attachments/Attachment.swift`, `AttachmentView.swif
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 14:11)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/attachment-types.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Attachments/AttachmentPreview.swift:227` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
