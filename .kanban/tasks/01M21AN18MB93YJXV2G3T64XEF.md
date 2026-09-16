@@ -23,6 +23,14 @@ comments:
     - next: when EditorKit ^5ssynck is on EditorKit main, run `swift package update EditorKit`, merge `wip/3t64xef`, delete `TextMateIncludeResolver` if EditorKit resolves `include` itself (then load with `TextMateGrammar(contentsOf:)`), wire `CodeBlockView` to `editorSyntax(textMate:)` for `GrammarBundle.registry` grammars, and run the tests again.
     - The task stays in doing so that the next batch does not pick it again.
   timestamp: 2026-09-16T13:51:08.082216+00:00
+- actor: claude-code
+  id: 01m2nawxwn6gyqx9s9845nnj1a
+  text: |-
+    ### orchestrator — EditorKit status
+    - EditorKit main now has `EditorSlotComposing.editorSyntax(textMate: TextMateGrammar)` and `EditorModel.textMateGrammar` (commits ee0c4bf, 3d66248; origin/main 56b9ce9). A tree-sitter coordinator wins when both are set.
+    - The scanner rewrite (EditorKit ^5ssynck) is not done. The EditorKit owner must decide when it runs. Until then, real tm-grammars files give few keyword captures.
+    - next: when ^5ssynck is on EditorKit main, run `swift package update EditorKit`, merge `wip/3t64xef`, and use `.editorSyntax(textMate:)` in CodeBlockView for a language with no tree-sitter grammar.
+  timestamp: 2026-09-16T14:45:55.733805+00:00
 depends_on:
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 position_column: doing

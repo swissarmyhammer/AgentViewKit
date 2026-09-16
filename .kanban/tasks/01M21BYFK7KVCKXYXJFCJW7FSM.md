@@ -2,8 +2,8 @@
 depends_on:
 - 01M21A961W19N9FWQ92FETNVP6
 - 01M21BCD7C9V8N4SED5GE34A4E
-position_column: todo
-position_ordinal: c180
+position_column: doing
+position_ordinal: '8180'
 title: TerminalRecord and ConfigOption types (plan §3.2, §3.4)
 ---
 ## What
