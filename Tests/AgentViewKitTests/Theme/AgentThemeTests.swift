@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import EditorTheme
 import Foundation
+import PackageFileSupport
 import SwiftUI
 import Testing
 
@@ -47,16 +48,16 @@ private struct ThemeProbeView: View {
     #expect(theme.spacing == tokens.spacing)
     #expect(theme.radii == tokens.radii)
     #expect(theme.materialLevel == tokens.materialLevel)
-    #expect(theme.symbolWeight == (try DefaultTokens.weight(named: tokens.symbolWeight)))
-    #expect(theme.accent == (try DefaultTokens.color(named: tokens.accent)))
+    #expect(theme.symbolWeight == (try ThemeTokenNames.weight(named: tokens.symbolWeight)))
+    #expect(theme.accent == (try ThemeTokenNames.color(named: tokens.accent)))
     #expect(theme.density == tokens.density)
     #expect(theme.proseFont == (try tokens.proseFont.font()))
     #expect(theme.codeFont == (try tokens.codeFont.font()))
-    #expect(theme.statusColors.running == (try DefaultTokens.color(named: tokens.statusColors.running)))
-    #expect(theme.statusColors.completed == (try DefaultTokens.color(named: tokens.statusColors.completed)))
-    #expect(theme.statusColors.failed == (try DefaultTokens.color(named: tokens.statusColors.failed)))
-    #expect(theme.statusColors.cancelled == (try DefaultTokens.color(named: tokens.statusColors.cancelled)))
-    #expect(theme.statusColors.pending == (try DefaultTokens.color(named: tokens.statusColors.pending)))
+    #expect(theme.statusColors.running == (try ThemeTokenNames.color(named: tokens.statusColors.running)))
+    #expect(theme.statusColors.completed == (try ThemeTokenNames.color(named: tokens.statusColors.completed)))
+    #expect(theme.statusColors.failed == (try ThemeTokenNames.color(named: tokens.statusColors.failed)))
+    #expect(theme.statusColors.cancelled == (try ThemeTokenNames.color(named: tokens.statusColors.cancelled)))
+    #expect(theme.statusColors.pending == (try ThemeTokenNames.color(named: tokens.statusColors.pending)))
   }
 
   @Test func spacingAndRadiiIncreaseInOrder() {
@@ -138,15 +139,9 @@ private struct ThemeProbeView: View {
 
 /// The decoded form of `DefaultTokens.json`.
 ///
-/// The file names each color, font, and weight. The static functions of this
-/// type change a name into its SwiftUI value.
+/// The file names each color, font, and weight. ``ThemeTokenNames`` changes a
+/// name into its SwiftUI value.
 private struct DefaultTokens: Decodable {
-  /// The errors that the name lookup gives.
-  enum LookupError: Error, Equatable {
-    /// The file has a name that the lookup does not know.
-    case unknownName(String)
-  }
-
   /// A font in the file: a text style and a design.
   struct FontToken: Decodable {
     /// The name of the `Font.TextStyle`, such as `body`.
@@ -157,15 +152,10 @@ private struct DefaultTokens: Decodable {
     /// The SwiftUI font of the token.
     ///
     /// - Returns: The system font with the style and the design.
-    /// - Throws: ``LookupError/unknownName(_:)`` for a name that is not known.
+    /// - Throws: ``ThemeTokenNames/LookupError/unknownName(_:)`` for a name
+    ///   that is not known.
     func font() throws -> Font {
-      guard let style = DefaultTokens.textStyles[textStyle] else {
-        throw LookupError.unknownName(textStyle)
-      }
-      guard let design = DefaultTokens.designs[design] else {
-        throw LookupError.unknownName(design)
-      }
-      return .system(style, design: design)
+      try ThemeTokenNames.font(textStyle: textStyle, design: design)
     }
   }
 
@@ -188,79 +178,14 @@ private struct DefaultTokens: Decodable {
   let codeFont: FontToken
   let statusColors: StatusColorTokens
 
-  /// The number of path parts between this file and the package root:
-  /// `Tests/AgentViewKitTests/Theme/AgentThemeTests.swift`.
-  private static let depthBelowRoot = 4
-
   /// The token file, relative to the package root.
   private static let relativePath = "Tests/AgentViewKitTests/Theme/DefaultTokens.json"
-
-  /// The colors that the file can name.
-  private static let colors: [String: Color] = [
-    "accentColor": .accentColor,
-    "blue": .blue,
-    "green": .green,
-    "red": .red,
-    "orange": .orange,
-    "gray": .gray,
-    "secondary": .secondary,
-    "purple": .purple,
-  ]
-
-  /// The weights that the file can name.
-  private static let weights: [String: Font.Weight] = [
-    "light": .light,
-    "regular": .regular,
-    "medium": .medium,
-    "semibold": .semibold,
-    "bold": .bold,
-  ]
-
-  /// The text styles that the file can name.
-  private static let textStyles: [String: Font.TextStyle] = [
-    "body": .body,
-    "callout": .callout,
-    "footnote": .footnote,
-    "caption": .caption,
-  ]
-
-  /// The font designs that the file can name.
-  private static let designs: [String: Font.Design] = [
-    "default": .default,
-    "monospaced": .monospaced,
-    "rounded": .rounded,
-    "serif": .serif,
-  ]
 
   /// Reads and decodes the token file.
   ///
   /// - Returns: The decoded tokens.
   static func load() throws -> DefaultTokens {
-    var root = URL(filePath: #filePath)
-    for _ in 0..<depthBelowRoot {
-      root.deleteLastPathComponent()
-    }
-    let data = try Data(contentsOf: root.appending(path: relativePath))
+    let data = try Data(contentsOf: try PackageFiles.file(relativePath))
     return try JSONDecoder().decode(DefaultTokens.self, from: data)
-  }
-
-  /// The color that `name` names.
-  ///
-  /// - Parameter name: A color name from the file.
-  /// - Returns: The SwiftUI color.
-  /// - Throws: ``LookupError/unknownName(_:)`` for a name that is not known.
-  static func color(named name: String) throws -> Color {
-    guard let color = colors[name] else { throw LookupError.unknownName(name) }
-    return color
-  }
-
-  /// The weight that `name` names.
-  ///
-  /// - Parameter name: A weight name from the file.
-  /// - Returns: The font weight.
-  /// - Throws: ``LookupError/unknownName(_:)`` for a name that is not known.
-  static func weight(named name: String) throws -> Font.Weight {
-    guard let weight = weights[name] else { throw LookupError.unknownName(name) }
-    return weight
   }
 }

@@ -1,6 +1,6 @@
 {
-  "spacing": { "xs": 4, "s": 8, "m": 12, "l": 20 },
-  "radii": { "s": 4, "m": 8, "l": 12 },
+  "spacing": { "xs": 4, "s": 8, "m": 12, "l": 16 },
+  "radii": { "s": 6, "m": 8, "l": 10 },
   "materialLevel": "regular",
   "symbolWeight": "regular",
   "accent": "accentColor",

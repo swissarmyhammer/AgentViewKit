@@ -7,8 +7,9 @@ import SwiftUI
 /// that hosts EditorKit applies ``editorTheme`` with `.editorTheme(_:)`, so
 /// that the code colors agree with the chrome.
 ///
-/// `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds the values of
-/// ``default``. Research R12 changes that file and ``default`` together.
+/// `Docs/decisions/visual-audit.md` (research R12) records the values of
+/// ``default``, and `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
+/// the same values. Change the two files and ``default`` together.
 nonisolated public struct AgentTheme: Equatable, Sendable {
   /// The spacing steps, in points, from the smallest to the largest.
   public struct Spacing: Equatable, Sendable, Codable {
@@ -164,7 +165,8 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     self.statusColors = statusColors
   }
 
-  /// The default tokens. `DefaultTokens.json` holds the same values.
+  /// The default tokens. `Docs/decisions/visual-audit.md` and
+  /// `DefaultTokens.json` hold the same values.
   public static let `default` = AgentTheme(
     spacing: Spacing(
       xs: DefaultValues.spacingExtraSmall,
@@ -206,7 +208,8 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     }
   }
 
-  /// The point values of ``default``. `DefaultTokens.json` holds the same
+  /// The point values of ``default``, from the R12 visual audit.
+  /// `Docs/decisions/visual-audit.md` and `DefaultTokens.json` hold the same
   /// values.
   private enum DefaultValues {
     /// The default extra small spacing step.
@@ -216,12 +219,12 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     /// The default medium spacing step.
     static let spacingMedium: CGFloat = 12
     /// The default large spacing step.
-    static let spacingLarge: CGFloat = 20
+    static let spacingLarge: CGFloat = 16
     /// The default small corner radius.
-    static let radiusSmall: CGFloat = 4
+    static let radiusSmall: CGFloat = 6
     /// The default medium corner radius.
     static let radiusMedium: CGFloat = 8
     /// The default large corner radius.
-    static let radiusLarge: CGFloat = 12
+    static let radiusLarge: CGFloat = 10
   }
 }
