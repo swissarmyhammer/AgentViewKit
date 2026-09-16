@@ -2,7 +2,7 @@ import EditorSwiftUI
 
 /// The model that a read-only editor view keeps when the host gives no model.
 ///
-/// ``CodeBlockView`` and ``CommandOutputView`` keep a slot in a `@State`
+/// ``CodeBlockView``, ``CommandOutputView``, and ``TerminalView`` keep a slot in a `@State`
 /// value. The slot makes the model at the first read. A `@State` value that
 /// holds the model directly would make a new model each time SwiftUI makes
 /// the view value again.

@@ -2,8 +2,8 @@
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: todo
-position_ordinal: '9780'
+position_column: doing
+position_ordinal: '8180'
 title: TerminalView for agent-owned terminals with ANSI handling (plan §9 C, research R7)
 ---
 ## What
@@ -14,15 +14,15 @@ Create `Sources/AgentViewKit/Terminal/TerminalView.swift` and `ANSIText.swift`, 
 - An optional `input` mode: when the host passes `stdin: (String) -> Void`, a single-line field appears under the output. The terminal auth flow uses it.
 
 ## Acceptance Criteria
-- [ ] `\u{1B}[31mred\u{1B}[0m` renders "red" in red; a cursor-move sequence produces no text.
-- [ ] Invalid UTF-8 renders with replacement characters and no crash.
-- [ ] The exit status footer shows the code or the signal.
-- [ ] With `stdin` set, typing and Return calls the closure with the line.
+- [x] `\u{1B}[31mred\u{1B}[0m` renders "red" in red; a cursor-move sequence produces no text.
+- [x] Invalid UTF-8 renders with replacement characters and no crash.
+- [x] The exit status footer shows the code or the signal.
+- [x] With `stdin` set, typing and Return calls the closure with the line.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Terminal/ANSITextTests.swift`: SGR colors, strip cases, invalid UTF-8.
-- [ ] `Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift`: header, footer, progress, and the stdin field.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Terminal/ANSITextTests.swift`: SGR colors, strip cases, invalid UTF-8.
+- [x] `Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift`: header, footer, progress, and the stdin field.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
