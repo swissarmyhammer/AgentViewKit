@@ -24,19 +24,47 @@ public nonisolated enum URLDisplay {
     case other(UInt32)
   }
 
-  /// The ranges of the scripts that have letters that look like Latin
-  /// letters, in scalar order.
-  static let scriptRanges: [(range: ClosedRange<UInt32>, script: Script)] = [
-    (0x0041...0x005A, .latin),
-    (0x0061...0x007A, .latin),
-    (0x00C0...0x024F, .latin),
-    (0x0370...0x03FF, .greek),
-    (0x0400...0x052F, .cyrillic),
-    (0x0530...0x058F, .armenian),
-    (0x0590...0x05FF, .hebrew),
-    (0x0600...0x06FF, .arabic),
-    (0x13A0...0x13FF, .cherokee),
-    (0x1E00...0x1EFF, .latin),
+  /// The scalar values of a range of letters.
+  typealias ScalarRange = ClosedRange<UInt32>
+
+  /// The Unicode ranges of the scripts that have letters that look like
+  /// Latin letters.
+  enum Ranges {
+    /// The ASCII capital letters, `A` to `Z`.
+    static let asciiUppercase: ScalarRange = 0x0041...0x005A
+    /// The ASCII small letters, `a` to `z`.
+    static let asciiLowercase: ScalarRange = 0x0061...0x007A
+    /// The letters of the Latin-1 Supplement and Latin Extended-A and -B
+    /// blocks.
+    static let latinExtended: ScalarRange = 0x00C0...0x024F
+    /// The Greek and Coptic block.
+    static let greek: ScalarRange = 0x0370...0x03FF
+    /// The Cyrillic and Cyrillic Supplement blocks.
+    static let cyrillic: ScalarRange = 0x0400...0x052F
+    /// The Armenian block.
+    static let armenian: ScalarRange = 0x0530...0x058F
+    /// The Hebrew block.
+    static let hebrew: ScalarRange = 0x0590...0x05FF
+    /// The Arabic block.
+    static let arabic: ScalarRange = 0x0600...0x06FF
+    /// The Cherokee block.
+    static let cherokee: ScalarRange = 0x13A0...0x13FF
+    /// The Latin Extended Additional block.
+    static let latinExtendedAdditional: ScalarRange = 0x1E00...0x1EFF
+  }
+
+  /// The script of each range in ``Ranges``.
+  static let scriptRanges: [(range: ScalarRange, script: Script)] = [
+    (Ranges.asciiUppercase, .latin),
+    (Ranges.asciiLowercase, .latin),
+    (Ranges.latinExtended, .latin),
+    (Ranges.greek, .greek),
+    (Ranges.cyrillic, .cyrillic),
+    (Ranges.armenian, .armenian),
+    (Ranges.hebrew, .hebrew),
+    (Ranges.arabic, .arabic),
+    (Ranges.cherokee, .cherokee),
+    (Ranges.latinExtendedAdditional, .latin),
   ]
 
   /// The size of the block that ``Script/other(_:)`` uses as a key.
@@ -96,11 +124,7 @@ public nonisolated enum URLDisplay {
   /// - Returns: One script for each group of letters. Digits and marks are
   ///   not letters.
   static func scripts(in text: String) -> Set<Script> {
-    var result: Set<Script> = []
-    for scalar in text.unicodeScalars where scalar.properties.isAlphabetic {
-      result.insert(script(of: scalar.value))
-    }
-    return result
+    Set(text.unicodeScalars.filter(\.properties.isAlphabetic).map { script(of: $0.value) })
   }
 
   /// The script of the letter with the scalar value `value`.
