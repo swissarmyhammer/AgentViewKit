@@ -32,7 +32,7 @@ public struct ElicitationFieldView: View {
   /// - Parameter name: The property name of the field.
   /// - Returns: `elicitation-field-<name>`.
   public static func identifier(for name: String) -> String {
-    identifierPrefix + name
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: name)
   }
 
   /// The accessibility identifier of the main control of the field named

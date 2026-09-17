@@ -97,7 +97,7 @@ public struct ThreadMinimapView: View {
   ///   `assistant`, `reasoning`, `tool-call`, `structured`, `compaction`,
   ///   `error`, or `unknown`.
   public static func tickIdentifier(for item: ThreadItem) -> String {
-    tickIdentifierPrefix + kindName(of: item)
+    AccessibilityIdentifier.make(prefix: tickIdentifierPrefix, value: kindName(of: item))
   }
 
   /// The accessibility value of the rail.

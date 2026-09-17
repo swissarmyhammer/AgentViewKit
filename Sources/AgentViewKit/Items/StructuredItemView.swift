@@ -31,7 +31,7 @@ public struct StructuredItemView: View {
   /// - Parameter schemaName: The schema name of the record.
   /// - Returns: `structured-item-<schemaName>`.
   public static func identifier(for schemaName: String) -> String {
-    identifierPrefix + schemaName
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: schemaName)
   }
 
   public var body: some View {

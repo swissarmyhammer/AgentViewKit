@@ -27,7 +27,7 @@ public struct ConnectionStatusChip: View {
   /// - Returns: `connection-chip-<kind>`, such as
   ///   `connection-chip-needs-auth`.
   public static func identifier(for kind: ConnectionState.Kind) -> String {
-    identifierPrefix + kind.rawValue
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: kind.rawValue)
   }
 
   public var body: some View {

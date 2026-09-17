@@ -36,7 +36,7 @@ public struct PermissionModePicker: View {
   /// - Parameter value: The ``SelectOption/id`` of the value.
   /// - Returns: The identifier, such as `permission-mode-value-auto`.
   public static func segmentIdentifier(for value: String) -> String {
-    segmentIdentifierPrefix + value
+    AccessibilityIdentifier.make(prefix: segmentIdentifierPrefix, value: value)
   }
 
   /// The option that the view shows.

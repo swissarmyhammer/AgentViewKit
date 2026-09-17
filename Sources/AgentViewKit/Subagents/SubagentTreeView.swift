@@ -64,7 +64,7 @@ public struct SubagentTreeView: View {
   /// - Parameter id: The identifier of the run.
   /// - Returns: `subagent-row-<id>`.
   public static func rowIdentifier(for id: SubagentRunID) -> String {
-    rowIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: rowIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the Stop button of `id`.
@@ -72,7 +72,7 @@ public struct SubagentTreeView: View {
   /// - Parameter id: The identifier of the run.
   /// - Returns: `subagent-stop-<id>`.
   public static func stopIdentifier(for id: SubagentRunID) -> String {
-    stopIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: stopIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the Open button of `id`.
@@ -80,7 +80,7 @@ public struct SubagentTreeView: View {
   /// - Parameter id: The identifier of the run.
   /// - Returns: `subagent-open-<id>`.
   public static func openIdentifier(for id: SubagentRunID) -> String {
-    openIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: openIdentifierPrefix, value: id.rawValue)
   }
 
   /// The ``BodyEvaluationCounter`` key of the row of `id`.

@@ -128,7 +128,7 @@ public struct AgentAuthView: View {
   /// - Parameter id: The identifier of the method.
   /// - Returns: `agent-auth-row-<id>`.
   public static func rowIdentifier(for id: AuthMethodID) -> String {
-    rowIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: rowIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the Sign In button of `id`.
@@ -136,7 +136,7 @@ public struct AgentAuthView: View {
   /// - Parameter id: The identifier of the agent method.
   /// - Returns: `agent-auth-sign-in-<id>`.
   public static func signInIdentifier(for id: AuthMethodID) -> String {
-    signInIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: signInIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the Run button of `id`.
@@ -144,7 +144,7 @@ public struct AgentAuthView: View {
   /// - Parameter id: The identifier of the terminal method.
   /// - Returns: `agent-auth-run-<id>`.
   public static func runIdentifier(for id: AuthMethodID) -> String {
-    runIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: runIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the error text of the row of `id`.
@@ -152,7 +152,7 @@ public struct AgentAuthView: View {
   /// - Parameter id: The identifier of the method.
   /// - Returns: `agent-auth-error-<id>`.
   public static func errorIdentifier(for id: AuthMethodID) -> String {
-    errorIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: errorIdentifierPrefix, value: id.rawValue)
   }
 
   // MARK: Model

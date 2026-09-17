@@ -65,7 +65,7 @@ public struct ResponseView: View {
   /// - Parameter index: The position of the paragraph in the message.
   /// - Returns: `response-paragraph-<index>`.
   public static func paragraphIdentifier(index: Int) -> String {
-    paragraphIdentifierPrefix + String(index)
+    AccessibilityIdentifier.make(prefix: paragraphIdentifierPrefix, value: String(index))
   }
 
   /// The ``BodyEvaluationCounter`` key of the streaming tail of a message.

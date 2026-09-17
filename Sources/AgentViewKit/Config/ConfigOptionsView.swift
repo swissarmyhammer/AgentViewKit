@@ -116,7 +116,7 @@ public struct ConfigOptionsView: View {
   /// - Parameter id: The identifier of the option.
   /// - Returns: The identifier, such as `config-option-model`.
   public static func controlIdentifier(for id: ConfigOptionID) -> String {
-    controlIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: controlIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the picker of a choice group in
@@ -160,7 +160,7 @@ public struct ConfigOptionsView: View {
   /// - Parameter section: The section.
   /// - Returns: The identifier, such as `config-section-model`.
   public static func sectionIdentifier(for section: CategorySection) -> String {
-    sectionIdentifierPrefix + section.id
+    AccessibilityIdentifier.make(prefix: sectionIdentifierPrefix, value: section.id)
   }
 
   // MARK: - Grouping

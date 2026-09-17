@@ -46,7 +46,7 @@ public struct ConnectionRow: View {
   /// - Parameter id: The identifier of the connection.
   /// - Returns: `connection-row-<id>`.
   public static func identifier(for id: ConnectionID) -> String {
-    identifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the toggle of `tool` in the row of `id`.
@@ -64,7 +64,7 @@ public struct ConnectionRow: View {
   /// - Parameter id: The identifier of the connection.
   /// - Returns: `connection-connect-<id>`.
   public static func connectIdentifier(for id: ConnectionID) -> String {
-    connectIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: connectIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the Disconnect button in the row of
@@ -73,7 +73,7 @@ public struct ConnectionRow: View {
   /// - Parameter id: The identifier of the connection.
   /// - Returns: `connection-disconnect-<id>`.
   public static func disconnectIdentifier(for id: ConnectionID) -> String {
-    disconnectIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: disconnectIdentifierPrefix, value: id.rawValue)
   }
 
   public var body: some View {

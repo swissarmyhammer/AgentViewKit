@@ -87,7 +87,7 @@ public struct AttachmentView: View {
   /// - Parameter renderer: The renderer.
   /// - Returns: The identifier.
   public static func identifier(for renderer: Renderer) -> String {
-    identifierPrefix + renderer.rawValue
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: renderer.rawValue)
   }
 
   public var body: some View {

@@ -50,7 +50,7 @@ public struct TaskListView: View {
   /// - Parameter id: The identifier of the plan.
   /// - Returns: `task-plan-<id>`.
   public static func planIdentifier(for id: PlanID) -> String {
-    planIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: planIdentifierPrefix, value: id.rawValue)
   }
 
   /// The ``BodyEvaluationCounter`` key that the section of the plan `id`

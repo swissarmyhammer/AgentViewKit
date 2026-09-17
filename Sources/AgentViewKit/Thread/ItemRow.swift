@@ -35,7 +35,7 @@ public struct ItemRow: View, Equatable {
   /// - Parameter id: The identifier of the item.
   /// - Returns: `item-row-<id>`.
   public static func identifier(for id: String) -> String {
-    identifierPrefix + id
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
   }
 
   /// The accessibility identifier of the placeholder view of `id`.
@@ -45,7 +45,7 @@ public struct ItemRow: View, Equatable {
   /// - Parameter id: The identifier of the item.
   /// - Returns: `item-placeholder-<id>`.
   public static func placeholderIdentifier(for id: String) -> String {
-    placeholderIdentifierPrefix + id
+    AccessibilityIdentifier.make(prefix: placeholderIdentifierPrefix, value: id)
   }
 
   /// The ``BodyEvaluationCounter`` key of the row of `id`.
@@ -82,7 +82,8 @@ public struct ItemRow: View, Equatable {
     // The row reads the revision, so that each patch of the record evaluates
     // this body one time.
     _ = item.record.revision
-    return content
+    return
+      content
       .frame(maxWidth: .infinity, alignment: .leading)
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier(Self.identifier(for: item.id))

@@ -128,7 +128,7 @@ public struct AuthorizationView: View {
   ///   - id: The identifier of the request.
   /// - Returns: `<prefix><id>`.
   private static func makeIdentifier(_ prefix: String, _ id: AuthorizationRequestID) -> String {
-    prefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: prefix, value: id.rawValue)
   }
 
   // MARK: State

@@ -73,7 +73,7 @@ public struct ErrorView: View {
   /// - Parameter kind: The type of the error.
   /// - Returns: `error-<case>`, for example `error-timeout`.
   public static func identifier(for kind: ThreadError.Kind) -> String {
-    identifierPrefix + caseName(of: kind)
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: caseName(of: kind))
   }
 
   /// The accessibility identifier of the button of `action`.
@@ -81,7 +81,7 @@ public struct ErrorView: View {
   /// - Parameter action: A button of the card.
   /// - Returns: `error-action-<action>`, for example `error-action-retry`.
   public static func actionIdentifier(for action: Action) -> String {
-    actionIdentifierPrefix + action.rawValue
+    AccessibilityIdentifier.make(prefix: actionIdentifierPrefix, value: action.rawValue)
   }
 
   /// The name of the case of `kind`, with no values.

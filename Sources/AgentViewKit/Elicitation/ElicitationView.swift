@@ -39,7 +39,7 @@ public struct ElicitationView: View {
   /// - Parameter name: The property name of the field.
   /// - Returns: `elicitation-tab-<name>`.
   public static func tabIdentifier(for name: String) -> String {
-    tabIdentifierPrefix + name
+    AccessibilityIdentifier.make(prefix: tabIdentifierPrefix, value: name)
   }
 
   /// The request that the form answers.

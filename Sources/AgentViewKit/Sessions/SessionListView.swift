@@ -49,7 +49,7 @@ public struct SessionListView: View {
   /// - Parameter id: The identifier of the session.
   /// - Returns: The identifier, such as `session-row-s1`.
   public static func rowIdentifier(for id: SessionID) -> String {
-    rowIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: rowIdentifierPrefix, value: id.rawValue)
   }
 
   /// The accessibility identifier of the delete button of a session.
@@ -57,7 +57,7 @@ public struct SessionListView: View {
   /// - Parameter id: The identifier of the session.
   /// - Returns: The identifier, such as `session-delete-s1`.
   public static func deleteIdentifier(for id: SessionID) -> String {
-    deleteIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: deleteIdentifierPrefix, value: id.rawValue)
   }
 
   /// The theme that gives the color of the failure message.

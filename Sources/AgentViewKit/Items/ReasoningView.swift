@@ -71,7 +71,7 @@ public struct ReasoningView: View {
   /// - Parameter id: The identifier of the record.
   /// - Returns: `reasoning-<id>`.
   public static func identifier(for id: String) -> String {
-    identifierPrefix + id
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
   }
 
   /// The accessibility identifier of the title of a complete block.
