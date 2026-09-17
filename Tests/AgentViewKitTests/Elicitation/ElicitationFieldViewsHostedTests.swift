@@ -48,7 +48,7 @@ struct HostedTextField: View {
   }
 }
 
-@Suite(.serialized) @MainActor struct ElicitationFieldViewsHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ElicitationFieldViewsHostedTests {
   /// The size of a hosted field.
   static let fieldSize = CGSize(width: 480, height: 400)
 

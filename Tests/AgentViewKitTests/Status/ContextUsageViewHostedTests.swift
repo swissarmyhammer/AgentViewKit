@@ -3,7 +3,7 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct ContextUsageViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ContextUsageViewHostedTests {
   /// The locale of the text checks, so that the numbers do not change with
   /// the locale of the test machine.
   static let locale = Locale(identifier: "en_US")

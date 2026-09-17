@@ -5,7 +5,7 @@ import Foundation
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct AuthorizationViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct AuthorizationViewHostedTests {
   static let requestID = AuthorizationRequestID("auth-1")
   static let githubID = ConnectionID("github")
 

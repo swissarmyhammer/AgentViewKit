@@ -4,7 +4,7 @@
   import SwiftUI
   import Testing
 
-  @Suite(.serialized) @MainActor struct ConversationViewHostedTests {
+  @Suite(.serialized, .hostedSerially) @MainActor struct ConversationViewHostedTests {
     /// The number of items in the thread of the page tests.
     static let longItemCount = 300
 

@@ -3,7 +3,7 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct StateBannerHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct StateBannerHostedTests {
   /// The longest time that a test waits for a host closure, in seconds.
   static let callWaitSeconds: TimeInterval = 1
 

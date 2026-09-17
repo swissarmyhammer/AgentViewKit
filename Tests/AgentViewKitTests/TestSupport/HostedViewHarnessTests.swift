@@ -47,7 +47,7 @@ struct LinkedLabelsView: View {
   }
 }
 
-@Suite(.serialized) @MainActor struct HostedViewHarnessTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct HostedViewHarnessTests {
   @Test func readsTheLabelOfMountedText() {
     let harness = HostedViewHarness(Text("hi"))
     defer { harness.close() }

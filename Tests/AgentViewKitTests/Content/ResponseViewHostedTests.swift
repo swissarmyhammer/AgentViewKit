@@ -6,7 +6,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``ResponseView`` and ``ParagraphView``.
-@Suite(.serialized) @MainActor struct ResponseViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ResponseViewHostedTests {
   /// The size of the host window. It is tall enough for each paragraph.
   static let hostSize = CGSize(width: 480, height: 640)
 

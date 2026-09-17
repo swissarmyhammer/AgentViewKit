@@ -6,7 +6,7 @@ import Foundation
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct TerminalViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct TerminalViewHostedTests {
   /// The command in the header.
   static let command = "npm test"
   /// The working directory in the header.

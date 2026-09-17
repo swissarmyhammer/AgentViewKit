@@ -24,7 +24,7 @@
     }
   }
 
-  @Suite @MainActor struct BodyEvaluationCounterTests {
+  @Suite(.hostedSerially) @MainActor struct BodyEvaluationCounterTests {
     @Test func noteIncrementsAndResetClears() {
       let key = "counter-unit-row-1"
       BodyEvaluationCounter.reset(key)

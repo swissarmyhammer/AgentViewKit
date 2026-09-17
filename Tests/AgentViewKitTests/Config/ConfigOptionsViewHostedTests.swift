@@ -6,7 +6,7 @@ import Testing
 
 /// Hosted tests of ``ConfigOptionsView`` and ``PermissionModePicker``
 /// through a ``NoopThreadActions``.
-@Suite(.serialized) @MainActor struct ConfigOptionsViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ConfigOptionsViewHostedTests {
   /// The longest time that a test waits for a call or an update, in seconds.
   static let waitSeconds: TimeInterval = 1
 

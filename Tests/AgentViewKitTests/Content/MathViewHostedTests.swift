@@ -5,7 +5,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``MathView`` and of the math spans in ``ResponseView``.
-@Suite(.serialized) @MainActor struct MathViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct MathViewHostedTests {
   /// The size of the host window. It is large enough for each expression.
   static let hostSize = CGSize(width: 480, height: 320)
 

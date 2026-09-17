@@ -3,7 +3,7 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct StructuredAndUnknownItemViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct StructuredAndUnknownItemViewHostedTests {
   /// The schema name that the tests use.
   static let schemaName = "Demo.Chart"
 

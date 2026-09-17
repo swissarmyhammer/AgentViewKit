@@ -5,7 +5,7 @@ import Foundation
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct AgentAuthViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct AgentAuthViewHostedTests {
   /// The agent method in the tests.
   static let agentMethod = AuthMethod.Agent(
     id: AuthMethodID("agent-login"), name: "Sign in with the agent",

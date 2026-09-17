@@ -5,7 +5,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``ElicitationView``.
-@Suite(.serialized) @MainActor struct ElicitationViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ElicitationViewHostedTests {
   /// The longest time that a test waits for an action call, in seconds.
   static let callWaitSeconds: TimeInterval = 1
 

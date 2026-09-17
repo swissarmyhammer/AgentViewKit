@@ -4,7 +4,7 @@ import Foundation
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct ReasoningViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ReasoningViewHostedTests {
   /// The longest time that a test waits for the view to change, in seconds.
   static let waitTimeout: TimeInterval = 5
 

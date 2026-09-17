@@ -5,7 +5,7 @@ import AuthenticationServices
 import Foundation
 import Testing
 
-@Suite @MainActor struct AuthorizationPresenterTests {
+@Suite(.hostedSerially) @MainActor struct AuthorizationPresenterTests {
   static let authorizationURL = URL(string: "https://auth.example.com/authorize")!
   static let callbackURL = URL(string: "agentviewkit://callback?code=1")!
   static let callbackScheme = "agentviewkit"

@@ -3,7 +3,7 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct TaskListViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct TaskListViewHostedTests {
   /// The size of a list that shows each entry.
   static let listSize = CGSize(width: 480, height: 640)
 

@@ -5,7 +5,7 @@
   import SwiftUI
   import Testing
 
-  @Suite(.serialized) @MainActor struct ThreadMinimapViewHostedTests {
+  @Suite(.serialized, .hostedSerially) @MainActor struct ThreadMinimapViewHostedTests {
     /// The number of items in each thread of these tests.
     static let itemCount = 20
 

@@ -4,7 +4,7 @@ import EditorSwiftUI
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct CommandOutputViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct CommandOutputViewHostedTests {
   /// The number of lines in the long output.
   static let longLineCount = 500
   /// The row limit of the capped view in the tests.

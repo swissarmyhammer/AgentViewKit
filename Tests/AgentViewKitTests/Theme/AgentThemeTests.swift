@@ -21,7 +21,7 @@ private struct ThemeProbeView: View {
   }
 }
 
-@Suite(.serialized) @MainActor struct AgentThemeTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct AgentThemeTests {
   /// The text that ``ThemeProbeView`` writes for `theme`.
   ///
   /// - Parameter theme: The theme that the probe reads.

@@ -6,7 +6,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``PermissionView`` and ``PendingRequestsHost``.
-@Suite(.serialized) @MainActor struct PermissionViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewHostedTests {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 2
 

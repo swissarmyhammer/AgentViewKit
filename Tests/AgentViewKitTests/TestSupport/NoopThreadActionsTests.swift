@@ -6,7 +6,7 @@ import Testing
 
 /// Tests for ``NoopThreadActions`` and the `threadActions` environment value
 /// (plan.md §3.4).
-@MainActor
+@Suite(.hostedSerially) @MainActor
 struct NoopThreadActionsTests {
   /// The error that a verb closure throws.
   struct ScriptedError: Error, Equatable {}

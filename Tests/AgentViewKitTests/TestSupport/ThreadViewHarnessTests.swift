@@ -23,7 +23,7 @@ private struct EnvironmentProbeView: View {
   }
 }
 
-@Suite(.serialized) @MainActor struct ThreadViewHarnessTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ThreadViewHarnessTests {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 

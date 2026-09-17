@@ -4,7 +4,7 @@ import AppKit
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct ConnectionsViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ConnectionsViewHostedTests {
   static let githubID = ConnectionID("github")
   static let linearID = ConnectionID("linear")
   static let searchID = ToolToggleID("search")

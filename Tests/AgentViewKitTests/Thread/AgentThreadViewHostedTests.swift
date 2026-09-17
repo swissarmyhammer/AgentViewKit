@@ -4,7 +4,7 @@
   import SwiftUI
   import Testing
 
-  @Suite(.serialized) @MainActor struct AgentThreadViewHostedTests {
+  @Suite(.serialized, .hostedSerially) @MainActor struct AgentThreadViewHostedTests {
     /// The number of items in the thread of the patch test.
     static let patchItemCount = 10
 

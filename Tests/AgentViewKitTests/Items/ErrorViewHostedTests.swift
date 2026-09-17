@@ -5,7 +5,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``ErrorView`` and ``ErrorActions``.
-@Suite(.serialized) @MainActor struct ErrorViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct ErrorViewHostedTests {
   /// The longest time that a test waits for an action closure, in seconds.
   static let callWaitSeconds: TimeInterval = 1
 

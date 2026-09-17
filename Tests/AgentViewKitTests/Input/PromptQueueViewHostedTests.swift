@@ -5,7 +5,7 @@ import Foundation
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct PromptQueueViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct PromptQueueViewHostedTests {
   /// The text that the tests type.
   static let message = "Hello"
 

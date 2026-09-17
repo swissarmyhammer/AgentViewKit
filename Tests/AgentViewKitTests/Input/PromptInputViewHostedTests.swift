@@ -41,7 +41,7 @@ struct PromptInputHost: View {
   }
 }
 
-@Suite(.serialized) @MainActor struct PromptInputViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct PromptInputViewHostedTests {
   /// The text that the tests type.
   static let message = "Hello"
 

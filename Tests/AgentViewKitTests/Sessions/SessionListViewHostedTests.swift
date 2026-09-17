@@ -51,7 +51,7 @@ private final class TwoPageProvider: SessionListProvider {
   }
 }
 
-@Suite(.serialized) @MainActor struct SessionListViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct SessionListViewHostedTests {
   /// The size of a list that shows each row.
   static let listSize = CGSize(width: 480, height: 640)
 

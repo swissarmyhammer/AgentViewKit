@@ -21,7 +21,7 @@ struct EditorKitPromptInputHost: View {
   }
 }
 
-@Suite(.serialized) @MainActor struct EditorKitPromptEditorHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct EditorKitPromptEditorHostedTests {
   /// The text that the tests type.
   static let message = "Hello"
 

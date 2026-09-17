@@ -133,7 +133,7 @@ func marker(_ identifier: String) -> some View {
   Text(identifier).accessibilityIdentifier(identifier)
 }
 
-@Suite(.serialized) @MainActor struct RegistryResolutionTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct RegistryResolutionTests {
   /// Mounts `content`, pumps the run loop, and gives the harness.
   static func mount<Content: View>(_ content: Content) -> HostedViewHarness<Content> {
     let harness = HostedViewHarness(content)

@@ -6,7 +6,7 @@ import SwiftUI
 import Testing
 import UniformTypeIdentifiers
 
-@Suite(.serialized) @MainActor struct AttachmentInspectorHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorHostedTests {
   /// The size of a view that shows the attachment and the inspector.
   static let hostSize = CGSize(width: 900, height: 600)
 

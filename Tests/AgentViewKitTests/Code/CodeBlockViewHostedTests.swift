@@ -6,7 +6,7 @@ import SwiftUI
 import Testing
 import Textual
 
-@Suite(.serialized) @MainActor struct CodeBlockViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct CodeBlockViewHostedTests {
   static let swiftCode = "let x = 1\nprint(x)"
 
   // MARK: - Identifier and label

@@ -5,7 +5,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``CheckpointView`` through a ``RecordingCheckpointActions``.
-@Suite(.serialized) @MainActor struct CheckpointViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct CheckpointViewHostedTests {
   /// The longest time that a test waits for a restore call, in seconds.
   static let callWaitSeconds: TimeInterval = 1
 

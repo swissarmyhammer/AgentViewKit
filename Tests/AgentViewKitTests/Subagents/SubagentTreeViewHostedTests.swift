@@ -4,7 +4,7 @@ import AppKit
 import SwiftUI
 import Testing
 
-@Suite(.serialized) @MainActor struct SubagentTreeViewHostedTests {
+@Suite(.serialized, .hostedSerially) @MainActor struct SubagentTreeViewHostedTests {
   /// The size of a tree that shows each row.
   static let treeSize = CGSize(width: 480, height: 640)
 
