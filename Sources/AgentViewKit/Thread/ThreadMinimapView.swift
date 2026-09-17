@@ -93,11 +93,10 @@ public struct ThreadMinimapView: View {
   /// The accessibility identifier of the tick of `item`.
   ///
   /// - Parameter item: The item.
-  /// - Returns: `minimap-tick-<kind>`, where the kind is `system`, `user`,
-  ///   `assistant`, `reasoning`, `tool-call`, `structured`, `compaction`,
-  ///   `error`, or `unknown`.
+  /// - Returns: `minimap-tick-<kind>`, where the kind is the
+  ///   ``ThreadItem/kindName`` of the item.
   public static func tickIdentifier(for item: ThreadItem) -> String {
-    AccessibilityIdentifier.make(prefix: tickIdentifierPrefix, value: kindName(of: item))
+    AccessibilityIdentifier.make(prefix: tickIdentifierPrefix, value: item.kindName)
   }
 
   /// The accessibility value of the rail.
@@ -182,7 +181,7 @@ public struct ThreadMinimapView: View {
           Color.clear
             .frame(maxHeight: .infinity)
             .accessibilityElement()
-            .accessibilityLabel(Text(Self.kindName(of: item)))
+            .accessibilityLabel(Text(item.kindName))
             .accessibilityIdentifier(Self.tickIdentifier(for: item))
         }
       }
@@ -272,24 +271,6 @@ public struct ThreadMinimapView: View {
       let last = items.lastIndex(where: { visible.contains($0.id) })
     else { return nil }
     return first...last
-  }
-
-  /// The name of the kind of `item`.
-  ///
-  /// - Parameter item: The item.
-  /// - Returns: The kind name that ``tickIdentifier(for:)`` uses.
-  private static func kindName(of item: ThreadItem) -> String {
-    switch item {
-    case .system: "system"
-    case .userMessage: "user"
-    case .assistantMessage: "assistant"
-    case .reasoning: "reasoning"
-    case .toolCall: "tool-call"
-    case .structured: "structured"
-    case .compaction: "compaction"
-    case .error: "error"
-    case .unknown: "unknown"
-    }
   }
 
   /// The tick color of `item`, from the theme.

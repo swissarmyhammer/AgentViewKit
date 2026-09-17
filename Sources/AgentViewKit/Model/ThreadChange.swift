@@ -30,6 +30,18 @@ public enum ThreadChange {
   /// Removes the item with the id. An unknown id changes nothing.
   case remove(id: String)
 
+  /// Removes the items with the ids and puts the marker in their place, in
+  /// one write to ``AgentThread/items`` (Docs/decisions/compaction-ux.md).
+  ///
+  /// The marker goes at the position of the first removed item. The change
+  /// writes the ids of the removed items, in thread order, to
+  /// ``CompactionMarker/removedItemIDs``, and the count of each kind to
+  /// ``CompactionMarker/removedKinds``. Unknown ids change nothing. When no
+  /// id is known, the marker goes at the end. When an item with the id of the
+  /// marker is in the thread, the change removes that item too, and the
+  /// marker gets the revision of that item plus one.
+  case compact(marker: CompactionMarker, removing: [String])
+
   /// Removes all items, plans, terminals, subagent runs, pending requests,
   /// checkpoints, and streaming messages.
   ///

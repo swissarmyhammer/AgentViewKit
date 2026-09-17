@@ -50,4 +50,24 @@ public enum ThreadItem: Identifiable {
   public var id: String {
     record.id
   }
+
+  /// The stable name of the kind of the item.
+  ///
+  /// ``ThreadMinimapView`` puts this name in its tick identifiers, and
+  /// ``CompactionMarker/removedKinds`` uses it as a key. The values are
+  /// `system`, `user`, `assistant`, `reasoning`, `tool-call`, `structured`,
+  /// `compaction`, `error`, and `unknown`.
+  public var kindName: String {
+    switch self {
+    case .system: "system"
+    case .userMessage: "user"
+    case .assistantMessage: "assistant"
+    case .reasoning: "reasoning"
+    case .toolCall: "tool-call"
+    case .structured: "structured"
+    case .compaction: "compaction"
+    case .error: "error"
+    case .unknown: "unknown"
+    }
+  }
 }

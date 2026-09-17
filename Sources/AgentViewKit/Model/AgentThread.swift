@@ -130,6 +130,7 @@ public final class AgentThread {
     case .patch(let id, let patch): self.patch(id: id, with: patch)
     case .replace(let item): replace(item)
     case .remove(let id): remove(id: id)
+    case .compact(let marker, let ids): compact(marker: marker, removing: ids)
     case .clear: clear()
     case .setState(let state): self.state = state
     case .setPlan(let plan): plans[plan.id] = plan
@@ -202,6 +203,45 @@ public final class AgentThread {
     guard let position = index.removeValue(forKey: id) else { return }
     items.remove(at: position)
     reindex(from: position)
+    noteLastItem()
+  }
+
+  /// Removes the items with the ids and puts the marker at the position of
+  /// the first removed item, with one write to ``items``.
+  ///
+  /// An item with the id of the marker is removed too, but it is not a
+  /// removed item of the marker. When no id is known, the marker takes the
+  /// position of that item, or goes at the end.
+  private func compact(marker: CompactionMarker, removing ids: [String]) {
+    let removing = Set(ids)
+    var kept: [ThreadItem] = []
+    var removedIDs: [String] = []
+    var removedKinds: [String: Int] = [:]
+    var firstRemovedPosition: Int?
+    var replacedPosition: Int?
+    var replacedRevision: Int?
+    for item in items {
+      if item.id == marker.id {
+        replacedPosition = kept.endIndex
+        replacedRevision = item.record.revision
+      } else if removing.contains(item.id) {
+        firstRemovedPosition = firstRemovedPosition ?? kept.endIndex
+        removedIDs.append(item.id)
+        removedKinds[item.kindName, default: 0] += 1
+      } else {
+        kept.append(item)
+      }
+    }
+    marker.removedItemIDs = removedIDs
+    marker.removedKinds = removedKinds
+    if let replacedRevision {
+      marker.revision = replacedRevision + 1
+    }
+    let position = firstRemovedPosition ?? replacedPosition ?? kept.endIndex
+    kept.insert(.compaction(marker), at: position)
+    items = kept
+    index = [:]
+    reindex(from: 0)
     noteLastItem()
   }
 

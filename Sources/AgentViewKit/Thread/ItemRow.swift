@@ -40,7 +40,8 @@ public struct ItemRow: View, Equatable {
 
   /// The accessibility identifier of the placeholder view of `id`.
   ///
-  /// A later task replaces each placeholder with the default view of its kind.
+  /// Each item kind now has a default view, so no row shows a placeholder.
+  /// Tests use this identifier to check that no placeholder comes back.
   ///
   /// - Parameter id: The identifier of the item.
   /// - Returns: `item-placeholder-<id>`.
@@ -117,8 +118,8 @@ public struct ItemRow: View, Equatable {
         RegisteredStructuredItemView(record: record)
       }
     case .compaction(let record):
-      OverridableItemView(\.compactionViewOverride, record: record) { _ in
-        placeholder("Compaction")
+      OverridableItemView(\.compactionViewOverride, record: record) { record in
+        CompactionMarkerView(record: record)
       }
     case .error(let record):
       OverridableItemView(\.errorViewOverride, record: record) { record in
@@ -129,16 +130,6 @@ public struct ItemRow: View, Equatable {
         UnknownItemView(record: record)
       }
     }
-  }
-
-  /// A labelled text that stands in for the default view of a kind.
-  ///
-  /// - Parameter label: The name of the item kind.
-  /// - Returns: The placeholder view.
-  private func placeholder(_ label: LocalizedStringKey) -> some View {
-    Text(label)
-      .foregroundStyle(.secondary)
-      .accessibilityIdentifier(Self.placeholderIdentifier(for: item.id))
   }
 }
 

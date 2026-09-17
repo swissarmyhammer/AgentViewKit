@@ -2,8 +2,8 @@
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21ABCXCQMMYMRK3QBM7CCJV
-position_column: todo
-position_ordinal: c080
+position_column: doing
+position_ordinal: '8180'
 title: 'Research R17: compaction UX, encoded in CompactionMarkerView (plan §9 A2, §14)'
 ---
 ## What
