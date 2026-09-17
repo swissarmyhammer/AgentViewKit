@@ -106,7 +106,7 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
       defer { harness.close() }
 
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) != nil)
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
     }
 
@@ -115,7 +115,7 @@
       defer { harness.close() }
 
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) != nil)
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) == nil)
+      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
     }
 
     // MARK: - File list
@@ -237,7 +237,7 @@
       defer { harness.close() }
       harness.pump()
 
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) != nil)
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
       try harness.press(identifier: DiffView.acceptIdentifier(for: 0))
 

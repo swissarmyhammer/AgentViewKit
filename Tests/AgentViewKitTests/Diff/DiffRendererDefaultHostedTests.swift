@@ -65,8 +65,17 @@
       let harness = Self.mount(DiffView(patch: Self.patch))
       defer { harness.close() }
 
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) != nil)
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
       #expect(harness.element(identifier: DiffView.unreadablePatchIdentifier) == nil)
+    }
+
+    @Test func theInlineLayoutHasNoColumns() {
+      let harness = Self.mount(DiffView(patch: Self.patch).diffLayout(.inline))
+      defer { harness.close() }
+
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn).isEmpty)
+      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn).isEmpty)
     }
 
     @Test func anOverrideReplacesTheEditorKitRenderer() {
@@ -76,14 +85,16 @@
       defer { harness.close() }
 
       #expect(harness.element(identifier: "custom-renderer") != nil)
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) == nil)
+      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
     }
 
-    @Test func theSideBySideLayoutShowsTheEditorKitRenderer() {
+    @Test func theSideBySideLayoutShowsTheEditorKitColumns() {
       let harness = Self.mount(DiffView(patch: Self.patch).diffLayout(.sideBySide))
       defer { harness.close() }
 
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) != nil)
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn).isEmpty)
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn).isEmpty)
     }
 
     @Test func anUnreadablePatchShowsTheLineOfTheParseError() {
@@ -92,7 +103,7 @@
 
       let row = harness.element(identifier: DiffView.unreadablePatchIdentifier)
       #expect(row?.label == "Cannot read the patch at line 3")
-      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) == nil)
+      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
     }
 
     // MARK: - Layout setting

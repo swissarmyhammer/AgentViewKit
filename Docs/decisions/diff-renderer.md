@@ -9,8 +9,9 @@ This file records how `DiffView` gets its default renderer from EditorKit.
 
 - EditorKit shipped the unified diff feature (the spec is
   `../EditorKit/diff_plan.md`) on its `main` branch. The package resolves
-  EditorKit at commit `f521c2d` ("chore(kanban): record the close of task
-  ^zb2mg68"). That commit has the `EditorDiff` product.
+  EditorKit at commit `38d05a4` ("chore(kanban): record the close of task
+  ^0tg00ms"). The `EditorDiff` product came in commit `f521c2d`. The
+  `DiffView` accessibility identifiers came in commit `11ad7d1`.
 - The feature has two parts:
   - `EditorDiff` is the kernel: `UnifiedDiff.parse(_:)`, `FileDiff`, `Hunk`,
     `DiffDocument`, and `UnifiedDiffError`.
@@ -50,9 +51,13 @@ This file records how `DiffView` gets its default renderer from EditorKit.
 
 ## The accessibility identifier
 
-- The EditorKit `DiffView` sets no accessibility identifier. The kit puts
-  `DiffView.editorRendererIdentifier` (`diff-editor-renderer`) on it, in a
-  container element. The hosted tests find the EditorKit view with this
-  identifier.
-- Follow-up: when EditorKit gives its `DiffView` an identifier, the tests can
-  use that identifier.
+- The EditorKit `DiffView` puts its own identifiers on its AppKit views
+  (EditorKit 38d05a4): `DiffView.accessibilityIdentifier` (`editor.diff`) on
+  the root in both layouts, and `DiffView.oldColumnAccessibilityIdentifier`
+  (`editor.diff.old`) and `DiffView.newColumnAccessibilityIdentifier`
+  (`editor.diff.new`) on the two columns of the side-by-side layout.
+- These identifiers are on `NSView`s, not on SwiftUI accessibility elements.
+  The hosted tests find them with
+  `HostedViewHarness.views(withAccessibilityIdentifier:)`, which walks the
+  `NSView` tree.
+- The kit identifier `diff-editor-renderer` is removed. No code needs it.

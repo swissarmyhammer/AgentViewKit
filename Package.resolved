@@ -1,5 +1,5 @@
 {
-  "originHash" : "41c805c6bb23b4bfe56259d127ef97bc6ed8262888deb37a6a91d35437968bbd",
+  "originHash" : "521a8aa03fa7d08c5f9c38ab35553624a5bb2fe06964ad88889d345996310b2f",
   "pins" : [
     {
       "identity" : "editorkit",
@@ -7,7 +7,7 @@
       "location" : "git@github.com:swissarmyhammer/EditorKit.git",
       "state" : {
         "branch" : "main",
-        "revision" : "f521c2d33c59d04b1e7d6357b60d484ad570ec74"
+        "revision" : "38d05a481560ec3a586fa629029404e9ab0ec127"
       }
     },
     {

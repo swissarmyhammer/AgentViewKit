@@ -42,7 +42,25 @@ extension HostedViewHarness {
   ///   each editable text field and text view.
   /// - Returns: The view, or `nil` when there is none.
   public func firstEditableTextView<Found: NSView>(of type: Found.Type = NSView.self) -> Found? {
-    Self.firstEditableTextView(of: type, in: hostingView)
+    Self.descendants(of: hostingView).lazy
+      .filter(Self.isEditableText)
+      .compactMap { $0 as? Found }
+      .first
+  }
+
+  /// Each `NSView` under the hosting view whose accessibility identifier is
+  /// `identifier`, in depth first order.
+  ///
+  /// An AppKit view in a representable can set its identifier with
+  /// `NSView.setAccessibilityIdentifier(_:)`. That view is not always an
+  /// element in the accessibility tree, so ``element(identifier:)`` cannot
+  /// find it. For example, the EditorKit `DiffView` puts `editor.diff` on
+  /// its AppKit views.
+  ///
+  /// - Parameter identifier: The accessibility identifier to find.
+  /// - Returns: Each view with `identifier`, or an empty array.
+  public func views(withAccessibilityIdentifier identifier: String) -> [NSView] {
+    Self.descendants(of: hostingView).filter { $0.accessibilityIdentifier() == identifier }
   }
 
   /// Makes ``firstEditableTextView(of:)`` the first responder of the
@@ -59,24 +77,13 @@ extension HostedViewHarness {
     return isFocused
   }
 
-  /// The first editable text field or text view of `type` under `view`.
+  /// Each view under `view`, in depth first order. The list does not have
+  /// `view`.
   ///
-  /// - Parameters:
-  ///   - type: The class of the view to find.
-  ///   - view: The root of the search.
-  /// - Returns: The view, or `nil` when there is none.
-  private static func firstEditableTextView<Found: NSView>(
-    of type: Found.Type, in view: NSView
-  ) -> Found? {
-    for subview in view.subviews {
-      if let found = subview as? Found, isEditableText(subview) {
-        return found
-      }
-      if let found = firstEditableTextView(of: type, in: subview) {
-        return found
-      }
-    }
-    return nil
+  /// - Parameter view: The root of the search.
+  /// - Returns: The flattened list of views.
+  private static func descendants(of view: NSView) -> [NSView] {
+    view.subviews.flatMap { [$0] + descendants(of: $0) }
   }
 
   /// Whether `view` is an editable text field or text view.

@@ -39,10 +39,6 @@ extension View {
 }
 
 extension DiffView {
-  /// The accessibility identifier of the EditorKit diff view that the kit
-  /// installs as the default renderer.
-  public static let editorRendererIdentifier = "diff-editor-renderer"
-
   /// The accessibility identifier of the row that shows when EditorKit cannot
   /// read the patch.
   public static let unreadablePatchIdentifier = "diff-patch-unreadable"
@@ -55,6 +51,11 @@ extension DiffView {
 /// selected file. It applies the ``SwiftUI/EnvironmentValues/diffLayout`` and
 /// the EditorKit theme of the ``AgentTheme``. When EditorKit cannot read the
 /// patch, a row shows the line where the parse stopped.
+///
+/// The renderer adds no accessibility identifier. The EditorKit `DiffView`
+/// puts its own identifiers on its AppKit views: `editor.diff` on the root,
+/// and `editor.diff.old` and `editor.diff.new` on the two columns of the
+/// side-by-side layout.
 struct EditorKitDiffRenderer: View {
   /// The full patch text.
   let patch: String
@@ -71,8 +72,6 @@ struct EditorKitDiffRenderer: View {
       EditorSwiftUI.DiffView(patch: diff)
         .diffLayout(layout.documentLayout)
         .editorTheme(theme.editorTheme)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(DiffView.editorRendererIdentifier)
     case .failure(let error):
       let text = String(localized: "Cannot read the patch at line \(Self.line(of: error))")
       Label(text, systemImage: "exclamationmark.triangle")

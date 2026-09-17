@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: c780
+position_column: doing
+position_ordinal: '8180'
 title: 'DiffView: use the EditorKit DiffView accessibility identifiers'
 ---
 EditorKit main (commit 11ad7d1, origin 38d05a4) now gives the EditorSwiftUI `DiffView` public accessibility identifiers:

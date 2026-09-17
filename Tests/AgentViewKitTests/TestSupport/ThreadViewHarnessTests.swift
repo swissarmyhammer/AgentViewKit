@@ -111,4 +111,22 @@ private struct EnvironmentProbeView: View {
 
     #expect(harness.firstEditableTextView() == nil)
   }
+
+  @Test func viewsWithAnIdentifierFindsEachNestedAppKitView() {
+    let harness = HostedViewHarness(Text("Label"))
+    defer { harness.close() }
+    let outer = NSView(frame: NSRect(x: 0, y: 0, width: 100, height: 40))
+    outer.setAccessibilityIdentifier("marked")
+    let inner = NSView(frame: NSRect(x: 0, y: 0, width: 50, height: 20))
+    inner.setAccessibilityIdentifier("marked")
+    let other = NSView(frame: NSRect(x: 0, y: 20, width: 50, height: 20))
+    other.setAccessibilityIdentifier("other")
+    outer.addSubview(inner)
+    outer.addSubview(other)
+    harness.hostingView.addSubview(outer)
+
+    #expect(harness.views(withAccessibilityIdentifier: "marked") == [outer, inner])
+    #expect(harness.views(withAccessibilityIdentifier: "other") == [other])
+    #expect(harness.views(withAccessibilityIdentifier: "missing").isEmpty)
+  }
 }
