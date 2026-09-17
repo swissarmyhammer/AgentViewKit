@@ -7,6 +7,12 @@ import Speech
 ///
 /// The host app must have the `NSMicrophoneUsageDescription` and
 /// `NSSpeechRecognitionUsageDescription` keys in its `Info.plist`.
+///
+/// The class is isolated to the main actor, so it meets the `Sendable`
+/// requirement of ``SpeechTranscriber``. The microphone tap and the
+/// recognition handler run on their own threads and touch only `Sendable`
+/// values.
+@MainActor
 public final class SystemSpeechTranscriber: AgentViewKit.SpeechTranscriber {
   /// The stream type of the events of a session.
   private typealias Events = AsyncThrowingStream<SpeechTranscriptionEvent, any Error>

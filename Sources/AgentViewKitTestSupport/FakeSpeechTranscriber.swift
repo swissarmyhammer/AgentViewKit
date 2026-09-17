@@ -6,6 +6,10 @@ import Foundation
 /// The fake does not touch the microphone or the permission prompts of the
 /// system. A test feeds each event of a session with ``feed(_:)`` and
 /// ``feed(level:)``, and reads the recorded calls.
+///
+/// The class is isolated to the main actor, so it meets the `Sendable`
+/// requirement of ``SpeechTranscriber``.
+@MainActor
 public final class FakeSpeechTranscriber: SpeechTranscriber {
   /// One recorded call.
   public enum Call: Equatable, Sendable {

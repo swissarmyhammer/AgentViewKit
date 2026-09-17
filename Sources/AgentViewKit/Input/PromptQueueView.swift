@@ -176,7 +176,6 @@ public struct PromptQueueView: View {
   /// - Parameter id: The identifier of the item.
   private func sendNow(_ id: QueuedPromptID) {
     guard let input = queue.take(id) else { return }
-    let actions = actions
-    Task { await actions.send(input) }
+    actions.startSend(input)
   }
 }
