@@ -258,6 +258,7 @@ public struct ConversationView<EmptyState: View>: View {
         .scrollTargetLayout()
       }
       .padding(theme.rowPadding)
+      .lazyResponseParagraphs()
     }
     .accessibilityLabel(Text("Conversation"))
     .accessibilityValue(

@@ -38,6 +38,9 @@ public final class StreamingMessage: Identifiable {
   /// The time from the first chunk of a batch to the flush of the batch.
   @ObservationIgnored private let interval: Duration
 
+  /// The place where the next split of ``text`` starts.
+  @ObservationIgnored private var resumption = ParagraphSplitter.Resumption.start
+
   /// The coalescer that collects the chunks and calls ``didFlush(_:)``.
   @ObservationIgnored private lazy var coalescer = StreamingCoalescer(interval: interval) {
     [weak self] batch in
@@ -88,6 +91,7 @@ public final class StreamingMessage: Identifiable {
   public func replace(_ text: String) {
     flush()
     self.text = text
+    resumption = .start
     render()
   }
 
@@ -111,17 +115,27 @@ public final class StreamingMessage: Identifiable {
   }
 
   /// Splits ``text``, and writes each property whose value changed.
+  ///
+  /// While the message is open, the split starts at ``resumption``. Thus a
+  /// chunk reads only the text after the settled paragraphs, and the cost of
+  /// a chunk does not grow with the message (research R1,
+  /// `Benchmarks/README.md`).
   private func render() {
-    let settled: [ParagraphSplitter.Paragraph]
-    var newTail = StreamingMarkdownBalancer.BalancedTail.markdown("")
-    if isOpen {
-      let split = ParagraphSplitter.split(text)
-      settled = split.settled
-      newTail = StreamingMarkdownBalancer.balance(tail: split.tail)
-    } else {
-      settled = ParagraphSplitter.paragraphs(text)
+    guard isOpen else {
+      resumption = .start
+      let settled = ParagraphSplitter.paragraphs(text)
+      if settled != settledParagraphs { settledParagraphs = settled }
+      if tail != .markdown("") { tail = .markdown("") }
+      return
     }
-    if settled != settledParagraphs { settledParagraphs = settled }
+    let split = ParagraphSplitter.split(text, resumingAt: resumption)
+    if resumption.settledCount == 0 {
+      if split.settled != settledParagraphs { settledParagraphs = split.settled }
+    } else if !split.settled.isEmpty {
+      settledParagraphs.append(contentsOf: split.settled)
+    }
+    resumption = split.resumption
+    let newTail = StreamingMarkdownBalancer.balance(tail: split.tail)
     if newTail != tail { tail = newTail }
   }
 }

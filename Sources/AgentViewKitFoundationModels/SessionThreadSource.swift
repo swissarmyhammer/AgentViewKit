@@ -72,6 +72,16 @@ public final class SessionThreadSource {
   /// The open stream, or `nil` when no response streams.
   private var openStream: OpenStream?
 
+  /// Whether ``stream(_:)`` runs a turn.
+  ///
+  /// The transcript of the session changes with each chunk of a response.
+  /// The observation can see a response entry before its first snapshot
+  /// opens the stream. While a turn streams, the observation therefore does
+  /// not replace a response entry that the thread has. Thus a chunk does not
+  /// change ``AgentViewKit/AgentThread/items`` (research R4,
+  /// `Benchmarks/README.md`).
+  private var isStreamingTurn = false
+
   /// The number of errors that the source added.
   private var errorCount = 0
 
@@ -177,6 +187,7 @@ public final class SessionThreadSource {
   /// - Parameter prompt: The text of the prompt.
   public func stream(_ prompt: String) async {
     let baseline = TokenCounts(session.usage)
+    isStreamingTurn = true
     let responseStream = session.streamResponse(to: prompt)
     setState(.running)
     defer { setState(.idle(nil)) }
@@ -187,18 +198,24 @@ public final class SessionThreadSource {
           tokens: baseline + TokenCounts(snapshot.usage))
       }
       let response = try await responseStream.collect()
-      closeStream()
+      endStreamingTurn()
       update(from: session.transcript, replacing: response.transcriptEntries)
       publishUsage(tokens: TokenCounts(session.usage))
       measureContext(of: session.transcript)
     } catch is CancellationError {
       logger.debug("A FoundationModels turn was cancelled.")
-      closeStream()
+      endStreamingTurn()
       update(from: session.transcript)
     } catch {
-      closeStream()
+      endStreamingTurn()
       report(error)
     }
+  }
+
+  /// Ends the streaming turn, and closes the open stream.
+  private func endStreamingTurn() {
+    isStreamingTurn = false
+    closeStream()
   }
 
   /// Applies one snapshot of a stream.
@@ -213,10 +230,7 @@ public final class SessionThreadSource {
     tokens: TokenCounts
   ) {
     publishUsage(tokens: tokens)
-    let responseID = entries.last { entry in
-      if case .response = entry { return true }
-      return false
-    }?.id
+    let responseID = entries.last(where: Self.isResponse)?.id
     guard let responseID else { return }
     let text = Self.text(of: rawContent)
     if openStream?.id != responseID {
@@ -328,8 +342,10 @@ public final class SessionThreadSource {
     for (position, entry) in entries.enumerated() {
       let applied = appliedEntries[entry.id]
       let state = AppliedEntry(entry: entry, context: context, itemIDs: applied?.itemIDs ?? [])
-      let isStreaming = openStream?.id == entry.id
-      guard applied?.matches(state) != true, !(isStreaming && applied != nil) else {
+      let isStreaming = openStream?.id == entry.id || (isStreamingTurn && Self.isResponse(entry))
+      // The streaming check comes first: it is cheap, and it skips the
+      // compare of a response text that grows with each chunk.
+      guard !(isStreaming && applied != nil), applied?.matches(state) != true else {
         anchor = applied?.itemIDs.last ?? anchor
         continue
       }
@@ -338,6 +354,15 @@ public final class SessionThreadSource {
       changed = true
     }
     return changed
+  }
+
+  /// Whether an entry is a response entry.
+  ///
+  /// - Parameter entry: The entry.
+  /// - Returns: `true` for a response entry.
+  private static func isResponse(_ entry: Transcript.Entry) -> Bool {
+    if case .response = entry { return true }
+    return false
   }
 
   /// Removes the items of each applied entry that the transcript no longer

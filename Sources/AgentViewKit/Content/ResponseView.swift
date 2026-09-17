@@ -128,10 +128,41 @@ public struct ResponseView: View {
   }
 }
 
+extension EnvironmentValues {
+  /// Whether each ``ResponseView`` in this subtree puts its settled
+  /// paragraphs in a lazy stack (research R1, `Benchmarks/README.md`).
+  ///
+  /// A chunk changes the height of the streaming tail. In a `VStack`, each
+  /// height change places each settled paragraph again, so the cost of a
+  /// chunk grows with the message. A `LazyVStack` places only the paragraphs
+  /// that are on screen, so the cost of a chunk stays the same. A lazy stack
+  /// shows its content only in a scroll view. ``ConversationView`` sets the
+  /// value for its rows. Set the value with
+  /// ``SwiftUI/View/lazyResponseParagraphs(_:)`` for a response in another
+  /// scroll view.
+  @Entry public var lazyResponseParagraphs = false
+}
+
+extension View {
+  /// Tells each ``ResponseView`` in this subtree whether to put its settled
+  /// paragraphs in a lazy stack.
+  ///
+  /// Apply the value `true` only in a scroll view.
+  ///
+  /// - Parameter isLazy: Whether the settled paragraphs are in a lazy stack.
+  /// - Returns: A view that gives the value to its subtree.
+  public func lazyResponseParagraphs(_ isLazy: Bool = true) -> some View {
+    environment(\.lazyResponseParagraphs, isLazy)
+  }
+}
+
 /// The settled paragraphs of a stream.
 ///
 /// The view reads only ``StreamingMessage/settledParagraphs``. Thus a chunk
 /// that changes only the tail does not evaluate this body.
+///
+/// The paragraphs are one child of the response stack. In a scroll view, they
+/// are in a lazy stack (``SwiftUI/EnvironmentValues/lazyResponseParagraphs``).
 private struct SettledParagraphs: View {
   /// The id of the message.
   let messageID: String
@@ -139,8 +170,16 @@ private struct SettledParagraphs: View {
   /// The stream of the message.
   let streaming: StreamingMessage
 
+  @Environment(\.agentTheme) private var theme
+  @Environment(\.lazyResponseParagraphs) private var isLazy
+
   var body: some View {
-    ParagraphList(messageID: messageID, paragraphs: streaming.settledParagraphs)
+    let paragraphs = ParagraphList(messageID: messageID, paragraphs: streaming.settledParagraphs)
+    if isLazy {
+      LazyVStack(alignment: .leading, spacing: theme.spacing.m) { paragraphs }
+    } else {
+      VStack(alignment: .leading, spacing: theme.spacing.m) { paragraphs }
+    }
   }
 }
 

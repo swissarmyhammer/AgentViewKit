@@ -7,8 +7,8 @@ comments:
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
 - 01M21AGTHBZSXFCZHZE5A7FQWQ
-position_column: todo
-position_ordinal: ac80
+position_column: doing
+position_ordinal: '8180'
 title: 'Benchmarks: Textual streaming cost and observation granularity with committed baselines (plan §8, research R1 and R4)'
 ---
 ## What

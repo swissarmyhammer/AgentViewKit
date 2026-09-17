@@ -139,4 +139,84 @@ import Testing
   @Test func paragraphsSettlesAnOpenFence() {
     #expect(ParagraphSplitter.paragraphs("```swift\nlet x").map(\.text) == ["```swift\nlet x"])
   }
+
+  // MARK: - Resumed split
+
+  /// A message with prose, a list, fences with blank lines, CRLF line
+  /// breaks, and a fence that starts with no blank line before it.
+  static let resumedSample = [
+    "# Title\n\nSome **bold** text\nand a second line.\n\n",
+    "- one\n- two\n\n```swift\nlet a = 1\n\n\nlet b = 2\n```\nafter the fence\n\n",
+    "Windows\r\nline breaks\r\n\r\nand a lone\rbreak.\n\n   \n",
+    "text before a fence\n~~~\nbody\n~~~\n\nlast paragraph",
+  ].joined()
+
+  /// The chunk lengths, in characters, of the resumed splits.
+  nonisolated static let resumedChunkLengths = [1, 3, 7, 16]
+
+  /// Splits `text` in chunks with a resumption, and checks each split
+  /// against a full split of the same text.
+  ///
+  /// - Parameters:
+  ///   - text: The message.
+  ///   - chunkLength: The number of characters in each chunk.
+  static func expectResumedSplitsMatchFullSplits(of text: String, chunkLength: Int) {
+    let characters = Array(text)
+    let ends = Array(stride(from: chunkLength, to: characters.count, by: chunkLength)) + [characters.count]
+    var resumption = ParagraphSplitter.Resumption.start
+    var settled: [ParagraphSplitter.Paragraph] = []
+    for end in ends {
+      let prefix = String(characters[..<end])
+      let resumed = ParagraphSplitter.split(prefix, resumingAt: resumption)
+      let full = ParagraphSplitter.split(prefix)
+      settled += resumed.settled
+      resumption = resumed.resumption
+      #expect(settled == full.settled, "The settled paragraphs differ at \(end) of \(chunkLength).")
+      #expect(resumed.tail == full.tail, "The tail differs at \(end) of \(chunkLength).")
+      #expect(resumption.settledCount == settled.count)
+    }
+  }
+
+  @Test(arguments: resumedChunkLengths)
+  func aResumedSplitGivesTheParagraphsOfAFullSplit(chunkLength: Int) {
+    Self.expectResumedSplitsMatchFullSplits(of: Self.resumedSample, chunkLength: chunkLength)
+  }
+
+  @Test func aSplitFromTheStartIsAFullSplit() {
+    let resumed = ParagraphSplitter.split(Self.resumedSample, resumingAt: .start)
+    let full = ParagraphSplitter.split(Self.resumedSample)
+
+    #expect(resumed.settled == full.settled)
+    #expect(resumed.tail == full.tail)
+  }
+
+  @Test func theResumptionStartsAtTheOpenParagraph() {
+    let split = ParagraphSplitter.split("one\n\ntwo", resumingAt: .start)
+
+    #expect(split.resumption == ParagraphSplitter.Resumption(utf8Offset: "one\n\n".utf8.count, settledCount: 1))
+  }
+
+  @Test func theResumptionStartsAtTheLastLineWhenNoParagraphIsOpen() {
+    let split = ParagraphSplitter.split("one\n\n", resumingAt: .start)
+
+    #expect(split.resumption == ParagraphSplitter.Resumption(utf8Offset: "one\n\n".utf8.count, settledCount: 1))
+    #expect(split.tail == "")
+  }
+
+  @Test func aResumedSplitDoesNotReadTheSettledText() {
+    let resumption = ParagraphSplitter.Resumption(utf8Offset: "ignored\n\n".utf8.count, settledCount: 1)
+
+    let split = ParagraphSplitter.split("IGNORED\n\nnext\n\nopen", resumingAt: resumption)
+
+    #expect(split.settled == [ParagraphSplitter.Paragraph(index: 1, text: "next")])
+    #expect(split.tail == "open")
+  }
+
+  @Test func aCarriageReturnAtTheEndOfAChunkJoinsTheNextLineFeed() {
+    let first = ParagraphSplitter.split("one\r", resumingAt: .start)
+    let second = ParagraphSplitter.split("one\r\ntwo\r\n\r\nthree", resumingAt: first.resumption)
+
+    #expect((first.settled + second.settled).map(\.text) == ["one\ntwo"])
+    #expect(second.tail == "three")
+  }
 }

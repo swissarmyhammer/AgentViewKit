@@ -76,6 +76,37 @@ public nonisolated enum ParagraphSplitter {
     }
   }
 
+  /// The place where the split of a longer form of the same message can
+  /// start (plan.md §8, research R1).
+  ///
+  /// A stream only adds text at the end of a message, and a settled
+  /// paragraph does not change. Thus a split of a longer text can start at
+  /// the first line that is not settled, and read only the text from that
+  /// line. The splitter state at that line is the state at the start of a
+  /// message.
+  public nonisolated struct Resumption: Hashable, Sendable {
+    /// The start of a message: no settled paragraph.
+    public static let start = Resumption(utf8Offset: 0, settledCount: 0)
+
+    /// The UTF-8 offset in the message of the first line that is not
+    /// settled.
+    public let utf8Offset: Int
+
+    /// The number of paragraphs before that line.
+    public let settledCount: Int
+
+    /// Makes a resumption from its parts.
+    ///
+    /// - Parameters:
+    ///   - utf8Offset: The UTF-8 offset of the first line that is not
+    ///     settled.
+    ///   - settledCount: The number of paragraphs before that line.
+    public init(utf8Offset: Int, settledCount: Int) {
+      self.utf8Offset = utf8Offset
+      self.settledCount = settledCount
+    }
+  }
+
   /// Splits `markdown` into settled paragraphs and the tail.
   ///
   /// - Parameter markdown: The full message text that the stream has now.
@@ -83,18 +114,50 @@ public nonisolated enum ParagraphSplitter {
   ///   tail is the raw text of the last paragraph, with its line breaks. It is
   ///   empty when no paragraph is open.
   public static func split(_ markdown: String) -> (settled: [Paragraph], tail: String) {
-    let text = MarkdownFence.normalizeLineBreaks(markdown)
+    let split = split(markdown, resumingAt: .start)
+    return (split.settled, split.tail)
+  }
+
+  /// Splits the text of `markdown` that starts at `resumption`.
+  ///
+  /// The function reads only the text from the resumption. The cost of a
+  /// split thus does not grow with the settled part of the message.
+  ///
+  /// - Parameters:
+  ///   - markdown: The full message text that the stream has now. The text
+  ///     before the resumption must be the text of the split that gave the
+  ///     resumption.
+  ///   - resumption: The resumption of an earlier split of the message, or
+  ///     ``Resumption/start``.
+  /// - Returns: The paragraphs that settled after the resumption, the tail,
+  ///   and the resumption for the next split. The index of each paragraph
+  ///   counts the paragraphs before the resumption.
+  public static func split(
+    _ markdown: String, resumingAt resumption: Resumption
+  ) -> (settled: [Paragraph], tail: String, resumption: Resumption) {
+    let utf8 = markdown.utf8
+    let offset = min(resumption.utf8Offset, utf8.count)
+    let rest = markdown[utf8.index(utf8.startIndex, offsetBy: offset)...]
+    let text = MarkdownFence.normalizeLineBreaks(String(rest))
     var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
     // The text after the last line break is a line that is not complete yet.
     // `split` always returns one element or more.
     let partialLine = lines.removeLast()
-    var builder = Builder()
+    var builder = Builder(firstIndex: resumption.settledCount)
     for line in lines {
       builder.add(completeLine: line)
     }
     builder.add(partialLine: partialLine)
     let tail = builder.tailStart.map { String(text[$0...]) } ?? ""
-    return (builder.settled, tail)
+    // The normalized text has the same characters as `rest`: a CRLF pair is
+    // one character, and it becomes one LF character.
+    let unsettledStart = builder.tailStart ?? partialLine.startIndex
+    let characterOffset = text.distance(from: text.startIndex, to: unsettledStart)
+    let restStart = rest.index(rest.startIndex, offsetBy: characterOffset)
+    let next = Resumption(
+      utf8Offset: utf8.distance(from: utf8.startIndex, to: restStart),
+      settledCount: resumption.settledCount + builder.settled.count)
+    return (builder.settled, tail, next)
   }
 
   /// Splits the complete text of a message that does not stream.
@@ -128,6 +191,8 @@ public nonisolated enum ParagraphSplitter {
 
   /// The state of one split.
   private nonisolated struct Builder {
+    /// The index of the first paragraph that the builder settles.
+    let firstIndex: Int
     /// The paragraphs that are settled.
     var settled: [Paragraph] = []
     /// The start of the open paragraph in the message, or `nil` when no
@@ -184,7 +249,8 @@ public nonisolated enum ParagraphSplitter {
     /// Settles the open paragraph, if there is one.
     private mutating func settle() {
       if !lines.isEmpty {
-        settled.append(Paragraph(index: settled.count, text: lines.joined(separator: "\n")))
+        settled.append(
+          Paragraph(index: firstIndex + settled.count, text: lines.joined(separator: "\n")))
       }
       lines = []
       tailStart = nil

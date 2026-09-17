@@ -1,0 +1,7 @@
+{
+  "Body evaluations per chunk" : 1,
+  "Paragraphs parsed per chunk" : 1,
+  "instructions" : 29573119,
+  "throughput" : 653,
+  "wallClock" : 3299327
+}
