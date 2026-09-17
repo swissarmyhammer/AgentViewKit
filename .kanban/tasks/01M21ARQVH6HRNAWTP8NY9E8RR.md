@@ -8,6 +8,18 @@ comments:
   id: 01m2p34mvv60ppz5hpx0va8hfd
   text: 'Requirement from ^8xcmw7e (done): the settings sheet must show `ConfigOptionsView(options: thread.configOptions, style: .form)`, and the toolbar can show `ConfigOptionsView(options: thread.configOptions)` (menu style). Both views take the options list; read the thread in the host view so that the views update when the source replaces the list.'
   timestamp: 2026-09-16T21:49:34.459615+00:00
+- actor: claude-code
+  id: 01m2q1390s5jx1g627005f4wy7
+  text: |-
+    ### finish iteration 1 — stuck
+
+    - implement: done on the branch `wip/ny9e8rr` (commit 95117cc). `Sources/DemoSupport` (non-product target) holds `ScriptedWireAgent` (moved from the ACP tests; the time limit `bounded(_:)` stays in the tests), `InMemoryDemoAgent`, `ACPDemoSession`, and `DemoLaunchOptions`. `SessionUpdateMapping.authMethod(_:)` is new. `Examples/AgentViewKitDemo` has the app, the ACP tab (sidebar, thread, status views, composer, config menu), the settings sheet (`ConnectionsView`, `AgentAuthView`, form `ConfigOptionsView`), and `Tests/ACPTabEndToEndTests.swift`. `Examples/Scripts/xcodeproj_generator.rb` and `Scripts/test-examples.sh` are new.
+    - test: `timeout 1500 swift test` passes: AgentViewKitTests 1137, AgentViewKitACPTests 120 (was 102), AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. `xcodebuild -scheme AgentViewKitDemo build` and `build-for-testing` pass. The app starts with `--in-memory-agent`. The UI tests do not start: "The test runner failed to initialize for UI testing. (Underlying Error: Authentication canceled. System authentication is running.)". `automationmodetool` says: "Automation Mode is disabled. This device requires user authentication to enable Automation Mode."
+    - commit: 95117cc on `wip/ny9e8rr`, not on main.
+    - review: not run, because the test step is red.
+
+    Blocker: ^3w1hxha. A person must turn on UI Automation Mode (`sudo automationmodetool enable-automationmode-without-authentication`, or approve the prompt one time). Then run `timeout 900 Scripts/test-examples.sh` on `wip/ny9e8rr`, merge the branch, and continue with the review.
+  timestamp: 2026-09-17T06:33:06.841260+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21AH4QCEFEBPTZ8GR061H51
@@ -21,8 +33,9 @@ depends_on:
 - 01M21AJH0W89P9G5YCCHWPNT7D
 - 01M21APWYC29JSXC8HEA9PTV4S
 - 01M21AJZC6XH6BVT0A38XCMW7E
+- 01M2Q1262EB4YH609KZ3W1HXHA
 position_column: todo
-position_ordinal: ad80
+position_ordinal: c680
 title: 'Demo app: ACP tab, sidebar, settings sheet, and the in-memory agent end-to-end test (plan §1, §9)'
 ---
 ## What
