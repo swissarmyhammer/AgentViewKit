@@ -1,4 +1,5 @@
 import AgentViewKit
+import AgentViewKitTestSupport
 import Observation
 import Testing
 

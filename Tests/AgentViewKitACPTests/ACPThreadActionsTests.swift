@@ -8,15 +8,6 @@ import Testing
 
 @testable import AgentViewKitACP
 
-/// The number of times that ``waitUntil(_:)`` checks its condition.
-private let maximumPolls = 400
-
-/// The time between two checks of ``waitUntil(_:)``, in milliseconds.
-private let pollMilliseconds = 5
-
-/// The time between two checks of ``waitUntil(_:)``.
-private let pollInterval = Duration.milliseconds(pollMilliseconds)
-
 /// The time that ``AgentProcessLauncherTests`` waits for a process.
 private let operationLimit = ScriptedWireAgent.operationLimit
 
@@ -31,19 +22,6 @@ private let agentPath = "/usr/local/bin/agent"
 
 /// The exit status of a failed terminal authentication.
 private let failedStatus: Int32 = 3
-
-/// Checks a condition until it is true or the time runs out.
-///
-/// - Parameter condition: The condition to check.
-/// - Returns: The last value of the condition.
-private func waitUntil(_ condition: () -> Bool) async -> Bool {
-  var polls = 0
-  while !condition(), polls < maximumPolls {
-    try? await Task.sleep(for: pollInterval)
-    polls += 1
-  }
-  return condition()
-}
 
 /// Decodes JSON text into a kit JSON value.
 private func json(_ text: String) throws -> AgentViewKit.JSONValue {

@@ -2,8 +2,8 @@
 depends_on:
 - 01M21ADYPYG3D8P53AAJQZZ61D
 - 01M21ACSE9JBXMRD2FQQD4CYR6
-position_column: todo
-position_ordinal: '9280'
+position_column: doing
+position_ordinal: '8180'
 title: 'SessionThreadSource: live LanguageModelSession observation, streaming tail, usage, errors (plan §3.3)'
 ---
 ## What
