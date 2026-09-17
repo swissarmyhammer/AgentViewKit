@@ -135,7 +135,7 @@ During `streamResponse`, the tail comes from `ResponseStream.Snapshot` and goes 
 | `elicitation/create`, `elicitation/complete` | append to or resolve `pendingElicitations` |
 | unknown | append `.unknown` |
 
-The SDK in `../FoundationModelsACP` targets ACP v2 alpha. Upstream stable is v1. Research R6 decides whether a v1 adapter ships too.
+The SDK in `../FoundationModelsACP` targets ACP v2 alpha. Upstream stable is v1. Research R6 decided v2 only, with no v1 adapter (`Docs/decisions/acp-version.md`).
 
 **Custom content from FoundationModels sources** rides in `.structure` segments keyed by `schemaName`. The kit defines a catalog for what the SDK does not model: approval, plan, citation, artifact, authorization, usage. Each payload is `Codable` and conforms to the Router's `PersistableStructuredSegment` shape. The names are agreed with `RouterSegmentSchemaNames` so that persisted transcripts round-trip. This catalog is the only extension mechanism for transcript-backed sources. Research R5 (§14) settles who injects each.
 
@@ -410,7 +410,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 17. **Reasoning binds to first-class data.** `Transcript.Entry.reasoning` for FoundationModels; `agent_thought` for ACP.
 18. **OAuth and connections (§12):** in-thread gate plus settings surface; the kit presents, the runtime authorizes. App sign-in is the host's job. ACP agent auth is a separate view.
 19. **Elicitation (§13):** form mode as a schema-driven form; URL mode as a consent card. Both in v1.
-20. **ACP version:** the adapter targets the v2 SDK in `../FoundationModelsACP`. Research R6 decides on a v1 adapter.
+20. **ACP version:** v2 only. The adapter targets the v2 SDK in `../FoundationModelsACP` and accepts only protocol version `2`. `SupportedProtocolVersions` holds the list, and `ACPThreadSource` refuses each other version with one error record that names both versions. There is no v1 adapter, because the wire package has no v1 surface. Claude Code, Codex, Gemini CLI, Zed, and Xcode 27 speak v1 today. Research R6 records the survey and the reasons in `Docs/decisions/acp-version.md`.
 
 ## 12. Authorization and connections
 
@@ -516,7 +516,7 @@ Ordered by design impact. Each item names the question and the method.
 - **R3. EditorKit unified-diff feature.** Write the feature spec for EditorKit: input is unified diff text; output is inline and side-by-side, with gutter marks, line colors, and hunk folding, on EditorKit decorations. Prototype it on the EditorKit decoration and gutter APIs. This work lands in EditorKit's plan, and the kit consumes it.
 - **R4. Observation granularity.** Measure invalidation when a view reads `session.transcript` during `streamResponse`. Test `SessionPropertyValues.history` and `Snapshot.transcriptEntries` as the tail source.
 - **R5. Runtime contract.** Write the runtime contract, or point at `SessionProjection` and `SessionEvent`. Agree the `schemaName` catalog with the Router. Decide who injects approval, plan, citation, artifact, and authorization.
-- **R6. ACP version.** List which agents speak v1 and which speak v2 today. Decide on a v1 adapter.
+- **R6. ACP version.** List which agents speak v1 and which speak v2 today. Decide on a v1 adapter. Decided: v2 only (`Docs/decisions/acp-version.md`).
 - **R7. Terminal output.** Pick an ANSI and VT parser, or strip escapes. Check licenses.
 - **R8. Permission and mode UX.** Map Claude Code, Cursor, and Codex option sets onto ACP options and config options.
 - **R9. Math engine.** Test Textual `.math`, SwiftMath, and iosMath on inline and block spans in a streaming paragraph.

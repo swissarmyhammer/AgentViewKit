@@ -17,8 +17,15 @@ import Observation
 /// The source also copies the pending permission requests of the session
 /// and the pending elicitations of the client into the pending lists of the
 /// thread.
+///
+/// The source refuses a session whose protocol version is not in
+/// ``SupportedProtocolVersions`` (`Docs/decisions/acp-version.md`).
 @MainActor
 public final class ACPThreadSource {
+  /// The id of the error record that refuses an unsupported protocol
+  /// version.
+  public static let protocolVersionErrorID = "acp-protocol-version"
+
   /// The thread that the source fills.
   public let thread: AgentThread
 
@@ -26,12 +33,17 @@ public final class ACPThreadSource {
   /// server.
   public let agentName: String
 
-  /// The updates that ``run()`` reads, or `nil` after ``run()`` starts.
+  /// The updates that ``run()`` reads, or `nil` after ``run()`` starts or
+  /// after the source refuses the protocol version.
   private var updates: AsyncStream<SessionUpdate>?
 
   /// The streams that are open, keyed by record id, with the content that
   /// the record had when its stream opened.
   private var openStreams: [String: StreamPrefix] = [:]
+
+  /// Whether the source refused the session because of its protocol
+  /// version.
+  private var refused = false
 
   /// Makes a source.
   ///
@@ -58,6 +70,73 @@ public final class ACPThreadSource {
     }
     closeAllStreams()
   }
+
+  // MARK: - Protocol version
+
+  /// Sends `initialize` and checks the protocol version of the answer.
+  ///
+  /// When the agent answers with a version that
+  /// ``SupportedProtocolVersions`` does not contain, the source refuses the
+  /// session. The wire package also throws `ProtocolVersionMismatchError`
+  /// when the answer is not the sent version. The source refuses the session
+  /// for that error too. See ``acceptProtocolVersion(_:requested:)`` for the
+  /// refusal.
+  ///
+  /// - Parameters:
+  ///   - connection: The connection to the agent.
+  ///   - request: The `initialize` request.
+  /// - Returns: The answer of the agent, or `nil` when the source refused
+  ///   the session.
+  /// - Throws: Each error of the connection other than
+  ///   `ProtocolVersionMismatchError`.
+  public func initialize(
+    over connection: ClientSideConnection, request: InitializeRequest
+  ) async throws -> InitializeResponse? {
+    let response: InitializeResponse
+    do {
+      response = try await connection.initialize(request)
+    } catch let mismatch as ProtocolVersionMismatchError {
+      refuse(received: mismatch.received, requested: mismatch.sent)
+      return nil
+    }
+    guard acceptProtocolVersion(response.protocolVersion, requested: request.protocolVersion) else {
+      return nil
+    }
+    return response
+  }
+
+  /// Checks the protocol version that the agent answered with, for a host
+  /// that sends `initialize` itself.
+  ///
+  /// When ``SupportedProtocolVersions`` does not contain `negotiated`, the
+  /// source refuses the session: it adds one `.error` record that names both
+  /// versions, and ``run()`` reads no update. A second refusal adds no
+  /// record.
+  ///
+  /// - Parameters:
+  ///   - negotiated: The version in the `initialize` answer.
+  ///   - requested: The version in the `initialize` request.
+  /// - Returns: `true` when the kit accepts `negotiated`.
+  @discardableResult
+  public func acceptProtocolVersion(_ negotiated: ProtocolVersion, requested: ProtocolVersion) -> Bool {
+    guard SupportedProtocolVersions.contains(negotiated) else {
+      refuse(received: negotiated, requested: requested)
+      return false
+    }
+    return true
+  }
+
+  /// Refuses the session: drops the update stream and adds the error record
+  /// one time.
+  private func refuse(received: ProtocolVersion, requested: ProtocolVersion) {
+    updates = nil
+    guard !refused else { return }
+    refused = true
+    let message = SupportedProtocolVersions.refusalMessage(received: received, requested: requested)
+    thread.apply(.patch(id: Self.protocolVersionErrorID, .error(kind: .value(.unknown(message: message)))))
+  }
+
+  // MARK: - Updates
 
   /// Applies one session update to the thread.
   ///

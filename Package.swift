@@ -164,6 +164,8 @@ let package = Package(
       dependencies: [
         "AgentViewKitACP",
         "AgentViewKitTestSupport",
+        // ProtocolVersionTests reads the ACP version decision from disk.
+        "PackageFileSupport",
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],
