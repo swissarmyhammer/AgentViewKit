@@ -47,10 +47,10 @@ public struct BranchNavigator: View {
   }
 
   /// The SF Symbol of the Regenerate button.
-  static let regenerateSymbol = "arrow.trianglehead.2.clockwise"
+  private static let regenerateSymbol = "arrow.trianglehead.2.clockwise"
 
   /// The identifier of the assistant message of the control.
-  let messageID: String
+  private let messageID: String
 
   @Environment(\.agentThread) private var thread
   @Environment(\.threadActions) private var actions
@@ -131,7 +131,7 @@ public struct BranchNavigator: View {
   ///
   /// - Parameter set: The branch set.
   /// - Returns: The one-based position and the count, such as "1 / 2".
-  static func positionText(of set: BranchSet) -> String {
+  internal static func positionText(of set: BranchSet) -> String {
     "\(set.selectedIndex + 1) / \(set.count)"
   }
 
@@ -140,7 +140,7 @@ public struct BranchNavigator: View {
   /// - Parameter set: The branch set.
   /// - Returns: The one-based position and the count, such as
   ///   "Branch 1 of 2".
-  static func positionLabel(of set: BranchSet) -> String {
+  private static func positionLabel(of set: BranchSet) -> String {
     String(localized: "Branch \(set.selectedIndex + 1) of \(set.count)")
   }
 
@@ -150,7 +150,7 @@ public struct BranchNavigator: View {
   ///   - id: The identifier of the message.
   ///   - thread: The thread.
   /// - Returns: `true` when no assistant message follows the message.
-  static func isLastAssistantMessage(_ id: String, in thread: AgentThread) -> Bool {
+  private static func isLastAssistantMessage(_ id: String, in thread: AgentThread) -> Bool {
     let last = thread.items.last { item in
       if case .assistantMessage = item { return true }
       return false
@@ -166,7 +166,7 @@ public struct BranchNavigator: View {
   ///   - thread: The thread of the message.
   /// - Returns: The input of the user message, or `nil` when no user message
   ///   is before the message.
-  static func startBranch(after id: String, in thread: AgentThread) -> UserInput? {
+  internal static func startBranch(after id: String, in thread: AgentThread) -> UserInput? {
     guard let user = MessageActions.lastUserMessage(before: id, in: thread) else { return nil }
     thread.apply(.addBranch(afterUserMessage: user.id, items: []))
     if let count = thread.branches[user.id]?.count {

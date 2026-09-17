@@ -59,7 +59,9 @@ extension AgentThread {
   /// - Parameters:
   ///   - userMessageID: The identifier of the user message.
   ///   - newItems: The items of the new alternative.
-  func addBranch(afterUserMessage userMessageID: String, items newItems: [ThreadItem]) {
+  internal func addBranch(
+    afterUserMessage userMessageID: String, items newItems: [ThreadItem]
+  ) {
     guard let tail = trailingItems(afterUserMessage: userMessageID) else {
       logger.error(
         "No user message has the id \(userMessageID, privacy: .private). The branch is not added.")
@@ -81,7 +83,7 @@ extension AgentThread {
   ///   - userMessageID: The identifier of the user message.
   ///   - index: The position of the alternative to show. When the thread
   ///     shows this alternative, nothing changes.
-  func selectBranch(afterUserMessage userMessageID: String, index: Int) {
+  internal func selectBranch(afterUserMessage userMessageID: String, index: Int) {
     guard var set = branches[userMessageID], set.alternatives.indices.contains(index),
       let tail = trailingItems(afterUserMessage: userMessageID)
     else {

@@ -81,7 +81,7 @@ public final class AgentThread {
   @ObservationIgnored private var subagentIndex: [SubagentRunID: SubagentRun] = [:]
 
   /// The log of the thread.
-  @ObservationIgnored let logger = Logger(
+  @ObservationIgnored internal let logger = Logger(
     subsystem: "AgentViewKit", category: "AgentThread")
 
   /// Makes an empty thread.
@@ -273,7 +273,7 @@ public final class AgentThread {
   /// - Parameters:
   ///   - id: The identifier of the item that stays last before `tail`.
   ///   - tail: The new items after that item.
-  func replaceItems(after id: String, with tail: [ThreadItem]) {
+  internal func replaceItems(after id: String, with tail: [ThreadItem]) {
     guard let position = index[id] else { return }
     for item in items[(position + 1)...] {
       index[item.id] = nil

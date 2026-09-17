@@ -4,11 +4,20 @@ comments:
   id: 01m2nw5ee73sp979xthje4p7r6
   text: 'Note from ^hpprm0t (CheckpointView): that task added `Checkpoint`, `AgentThread.checkpoints`, `ThreadChange.setCheckpoints`, and the `CheckpointActions` protocol only. It did not add a FoundationModels or Router source that rewrites the transcript. The description of this task says that the transcript rewrite "lands with the checkpoint task". That is not true now. This task must add the source-side branch, or a new task must add it. `ThreadChange.clear` removes the checkpoints; a branch swap must not send `.clear`.'
   timestamp: 2026-09-16T19:47:40.615429+00:00
+- actor: claude-code
+  id: 01m2q81a9p2fcwfnjqmmz3gwm9
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: added the local branch model (Branches.swift, AgentThread.branches, ThreadChange.addBranch and .selectBranch) and BranchNavigator. Decision: the kit keeps branches local; the source-side branch is the new task ^5y246w4.
+    - test: swift test exit 0. AgentViewKitTests 1261, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. No new warnings.
+    - commit: 284bc00
+    - review: 1 finding (swift/access-control on BranchNavigator.swift:50).
+  timestamp: 2026-09-17T08:34:22.646592+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21AHDHY0H7A92PP2KTRTZEZ
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'BranchNavigator: regenerate and branch paging with a branch model on AgentThread (plan §9 A)'
 ---
 ## What
@@ -19,14 +28,18 @@ Create `Sources/AgentViewKit/Model/Branches.swift` and `Sources/AgentViewKit/Ite
 - Sources: the ACP source has no branch wire; the kit keeps branches local. The FoundationModels source can branch by `Transcript` rewrite; that lands with the checkpoint task.
 
 ## Acceptance Criteria
-- [ ] Adding a branch and selecting index 1 swaps the trailing items.
-- [ ] The navigator is absent without a branch set and shows "1 / 2" with one alternative.
-- [ ] Regenerate calls `send` with the prior user input.
+- [x] Adding a branch and selecting index 1 swaps the trailing items.
+- [x] The navigator is absent without a branch set and shows "1 / 2" with one alternative.
+- [x] Regenerate calls `send` with the prior user input.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Model/BranchesTests.swift`: add and select.
-- [ ] `Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift`: presence, label, regenerate through `NoopThreadActions`.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Model/BranchesTests.swift`: add and select.
+- [x] `Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift`: presence, label, regenerate through `NoopThreadActions`.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-17 03:28)
+
+- [x] `Sources/AgentViewKit/Items/BranchNavigator.swift:50` `swift/access-control` — The static constant `regenerateSymbol` lacks an explicit access modifier. On a public struct, internal members need explicit marking to clarify they are not part of the public API. This is inconsistent with the adjacent `private let logger` on line 59, which is explicitly marked. Change line 50 to `private static let regenerateSymbol = "arrow.trianglehead.2.clockwise"`.
