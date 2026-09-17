@@ -2,7 +2,13 @@ import SwiftUI
 
 /// One row of an ``ActivityTimeline``: a reasoning span, a tool call, a
 /// terminal of a tool call, or an error (plan.md §9 C).
-public nonisolated struct ActivityEntry: Identifiable, Sendable, Hashable {
+///
+/// The row button of an entry has the identifier from
+/// ``PrefixedAccessibilityIdentifier/identifier(for:)``, with the entry id:
+/// `activity-entry-<id>`.
+public nonisolated struct ActivityEntry: Identifiable, Sendable, Hashable,
+  PrefixedAccessibilityIdentifier
+{
   /// The type of an entry.
   public enum Kind: Sendable, Hashable {
     /// A ``Reasoning`` item.
@@ -23,6 +29,12 @@ public nonisolated struct ActivityEntry: Identifiable, Sendable, Hashable {
   /// The part of a terminal entry id between the call id and the terminal
   /// id.
   public static let terminalInfix = "-terminal-"
+
+  /// The start of the accessibility identifier of each row button.
+  public static let identifierPrefix = "activity-entry-"
+
+  /// The end of the accessibility identifier of an expanded view.
+  static let detailSuffix = "-detail"
 
   /// The identifier of the entry. For an item, this is the item id.
   public let id: String
@@ -64,6 +76,14 @@ public nonisolated struct ActivityEntry: Identifiable, Sendable, Hashable {
   /// - Returns: `<callID>-terminal-<terminalID>`.
   public static func terminalEntryID(callID: String, terminalID: String) -> String {
     callID + terminalInfix + terminalID
+  }
+
+  /// The accessibility identifier of the expanded view of an entry.
+  ///
+  /// - Parameter id: The identifier of the entry.
+  /// - Returns: `activity-entry-<id>-detail`.
+  public static func detailIdentifier(for id: String) -> String {
+    identifier(for: id) + detailSuffix
   }
 
   /// The entries of `items`.
@@ -167,17 +187,13 @@ public struct ActivityTimeline: View {
   /// The accessibility identifier of the empty state.
   public static let emptyStateIdentifier = "activity-timeline-empty"
 
-  /// The start of the accessibility identifier of each turn section.
-  public static let turnIdentifierPrefix = "activity-turn-"
+  /// The end of the accessibility identifier of a turn section, after the
+  /// identifier of its summary row.
+  static let sectionSuffix = "-section"
 
-  /// The start of the accessibility identifier of each row button.
-  public static let entryIdentifierPrefix = "activity-entry-"
-
-  /// The end of the accessibility identifier of a turn toggle.
+  /// The end of the accessibility identifier of a turn toggle, after the
+  /// identifier of its summary row.
   static let toggleSuffix = "-toggle"
-
-  /// The end of the accessibility identifier of an expanded view.
-  static let detailSuffix = "-detail"
 
   /// The SF Symbol name of the empty state.
   static let emptySymbolName = "clock"
@@ -187,9 +203,6 @@ public struct ActivityTimeline: View {
 
   /// The open state of each turn that the user changed, keyed by turn id.
   @State private var turnDecisions: [String: Bool] = [:]
-
-  /// The ids of the expanded rows.
-  @State private var expandedEntries: Set<String> = []
 
   @Environment(\.agentTheme) private var theme
 
@@ -205,33 +218,17 @@ public struct ActivityTimeline: View {
   /// The accessibility identifier of the section of the turn with `id`.
   ///
   /// - Parameter id: The identifier of the turn.
-  /// - Returns: `activity-turn-<id>`.
+  /// - Returns: `turn-summary-<id>-section`.
   public static func turnIdentifier(for id: String) -> String {
-    AccessibilityIdentifier.make(prefix: turnIdentifierPrefix, value: id)
+    TurnSummaryRow.identifier(for: id) + sectionSuffix
   }
 
   /// The accessibility identifier of the button that opens or closes a turn.
   ///
   /// - Parameter id: The identifier of the turn.
-  /// - Returns: `activity-turn-<id>-toggle`.
+  /// - Returns: `turn-summary-<id>-toggle`.
   public static func turnToggleIdentifier(for id: String) -> String {
-    turnIdentifier(for: id) + toggleSuffix
-  }
-
-  /// The accessibility identifier of the row button of an entry.
-  ///
-  /// - Parameter id: The identifier of the entry.
-  /// - Returns: `activity-entry-<id>`.
-  public static func entryIdentifier(for id: String) -> String {
-    AccessibilityIdentifier.make(prefix: entryIdentifierPrefix, value: id)
-  }
-
-  /// The accessibility identifier of the expanded view of an entry.
-  ///
-  /// - Parameter id: The identifier of the entry.
-  /// - Returns: `activity-entry-<id>-detail`.
-  public static func detailIdentifier(for id: String) -> String {
-    entryIdentifier(for: id) + detailSuffix
+    TurnSummaryRow.identifier(for: id) + toggleSuffix
   }
 
   // MARK: - Body
@@ -255,7 +252,6 @@ public struct ActivityTimeline: View {
                 thread: thread,
                 turnID: turnID,
                 isExpanded: turnDecisions[turnID] ?? (turnID == turnIDs.last),
-                expandedEntries: $expandedEntries,
                 onToggle: { isExpanded in turnDecisions[turnID] = !isExpanded }
               )
             }
@@ -272,7 +268,8 @@ public struct ActivityTimeline: View {
 /// One turn of an ``ActivityTimeline``: the summary header and the rows.
 ///
 /// This view, and not the timeline, reads the records of the turn. A turn
-/// with no entry shows nothing.
+/// with no entry shows nothing. The view keeps the expanded rows of the turn,
+/// also while the turn is closed.
 private struct ActivityTurnSection: View {
   /// The thread.
   let thread: AgentThread
@@ -283,11 +280,11 @@ private struct ActivityTurnSection: View {
   /// `true` while the turn is open.
   let isExpanded: Bool
 
-  /// The ids of the expanded rows.
-  @Binding var expandedEntries: Set<String>
-
   /// The function that gets the open state before a press on the header.
   let onToggle: (Bool) -> Void
+
+  /// The ids of the expanded rows of the turn.
+  @State private var expandedEntries: Set<String> = []
 
   @Environment(\.agentTheme) private var theme
 
@@ -456,15 +453,17 @@ private struct ActivityEntryRow: View {
       .accessibilityLabel(title)
       .accessibilityValue(Text(duration ?? ""))
       .accessibilityHint(isExpanded ? Text("Hides the details") : Text("Shows the details"))
-      .accessibilityIdentifier(ActivityTimeline.entryIdentifier(for: entry.id))
+      .accessibilityIdentifier(ActivityEntry.identifier(for: entry.id))
       if isExpanded {
         detail
-          .contentContainer(identifier: ActivityTimeline.detailIdentifier(for: entry.id))
+          .contentContainer(identifier: ActivityEntry.detailIdentifier(for: entry.id))
       }
     }
   }
 
   /// The bar of the row in its track, or an empty track with no bar.
+  ///
+  /// The track and the bar are capsules.
   ///
   /// - Parameter range: The part of the span that the bar fills, or `nil`.
   /// - Returns: The bar view.
@@ -472,15 +471,15 @@ private struct ActivityEntryRow: View {
     let tint = tint
     return Canvas { context, size in
       let track = CGRect(origin: .zero, size: size)
-      let radius = size.height / 2
       context.fill(
-        Path(roundedRect: track, cornerRadius: radius),
+        Capsule().path(in: track),
         with: .color(Color.secondary.opacity(Self.trackOpacity)))
       guard let range else { return }
       let x = size.width * range.lowerBound
       let width = max(size.width * (range.upperBound - range.lowerBound), Self.minimumBarWidth)
-      let rect = CGRect(x: min(x, size.width - width), y: 0, width: width, height: size.height)
-      context.fill(Path(roundedRect: rect, cornerRadius: radius), with: .color(tint))
+      let rect = CGRect(
+        x: min(x, size.width - width), y: track.minY, width: width, height: size.height)
+      context.fill(Capsule().path(in: rect), with: .color(tint))
     }
     .frame(width: Self.trackWidth, height: Self.barHeight)
     .accessibilityHidden(true)

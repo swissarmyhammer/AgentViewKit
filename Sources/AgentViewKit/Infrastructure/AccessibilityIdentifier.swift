@@ -14,3 +14,24 @@ nonisolated enum AccessibilityIdentifier {
     prefix + value
   }
 }
+
+/// A type whose repeated elements have the accessibility identifier
+/// `<identifierPrefix><value>`.
+///
+/// A conforming type gets ``identifier(for:)``, so that each type does not
+/// write the same builder again.
+public nonisolated protocol PrefixedAccessibilityIdentifier {
+  /// The fixed start of the accessibility identifier of each element.
+  static var identifierPrefix: String { get }
+}
+
+extension PrefixedAccessibilityIdentifier {
+  /// The accessibility identifier of the element with `value`.
+  ///
+  /// - Parameter value: The value of the element, such as the identifier of
+  ///   a record.
+  /// - Returns: `<identifierPrefix><value>`.
+  public nonisolated static func identifier(for value: String) -> String {
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: value)
+  }
+}

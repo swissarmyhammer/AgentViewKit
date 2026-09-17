@@ -337,10 +337,11 @@ public nonisolated struct TurnSummary: Identifiable, Sendable, Hashable {
 /// (plan.md §9 C).
 ///
 /// The row is one static text element with the identifier from
-/// ``identifier(for:)``.
-public struct TurnSummaryRow: View {
+/// ``PrefixedAccessibilityIdentifier/identifier(for:)``, with the turn id:
+/// `turn-summary-<id>`.
+public struct TurnSummaryRow: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of each row.
-  public static let identifierPrefix = "turn-summary-"
+  public nonisolated static let identifierPrefix = "turn-summary-"
 
   /// The SF Symbol name of the row.
   static let symbolName = "clock"
@@ -355,14 +356,6 @@ public struct TurnSummaryRow: View {
   /// - Parameter turn: The summary to show.
   public init(turn: TurnSummary) {
     self.turn = turn
-  }
-
-  /// The accessibility identifier of the row of the turn with `id`.
-  ///
-  /// - Parameter id: The identifier of the turn.
-  /// - Returns: `turn-summary-<id>`.
-  public static func identifier(for id: String) -> String {
-    AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
   }
 
   public var body: some View {

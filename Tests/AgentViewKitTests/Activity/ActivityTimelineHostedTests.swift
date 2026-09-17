@@ -48,6 +48,20 @@
       return thread
     }
 
+    /// Makes a harness that shows the timeline of `thread` with no
+    /// animations.
+    ///
+    /// - Parameter thread: The thread to show.
+    /// - Returns: The harness, after one pump.
+    static func mountTimeline(_ thread: AgentThread) -> HostedViewHarness<some View> {
+      let harness = HostedViewHarness(size: tallSize) {
+        ActivityTimeline(thread: thread)
+          .transaction { $0.disablesAnimations = true }
+      }
+      harness.pump()
+      return harness
+    }
+
     /// The ids of the entry rows that the harness shows, in view order.
     ///
     /// - Parameters:
@@ -59,52 +73,52 @@
     ) -> [String] {
       let identifiers = harness.accessibilityElements().compactMap(\.identifier)
       return identifiers.compactMap { identifier in
-        ids.first { ActivityTimeline.entryIdentifier(for: $0) == identifier }
+        ids.first { ActivityEntry.identifier(for: $0) == identifier }
       }
     }
 
     // MARK: - Rows
 
     @Test func timedRowsShowInTimeOrderWithTheirDurations() {
-      let thread = Self.makeThread([
-        .userMessage(ThreadFixtures.message(id: "u1")),
-        .toolCall(Self.call("late", from: 1, to: 3)),
-        .toolCall(Self.call("early", from: 0, to: 1)),
-      ])
-      let harness = HostedViewHarness(size: Self.tallSize) { ActivityTimeline(thread: thread) }
+      let harness = Self.mountTimeline(
+        Self.makeThread([
+          .userMessage(ThreadFixtures.message(id: "u1")),
+          .toolCall(Self.call("late", from: 1, to: 3)),
+          .toolCall(Self.call("early", from: 0, to: 1)),
+        ]))
       defer { harness.close() }
-      harness.pump()
 
       #expect(harness.element(identifier: ActivityTimeline.identifier) != nil)
-      #expect(harness.element(identifier: TurnSummaryRow.identifier(for: "u1"))?.label == "Worked 3 s, 2 tools")
+      let summary = harness.element(identifier: TurnSummaryRow.identifier(for: "u1"))
+      #expect(summary?.label == "Worked 3 s, 2 tools")
       #expect(Self.shownEntries(in: harness, of: ["late", "early"]) == ["early", "late"])
-      let late = harness.element(identifier: ActivityTimeline.entryIdentifier(for: "late"))
+      let late = harness.element(identifier: ActivityEntry.identifier(for: "late"))
       #expect(late?.label == "Run late")
       #expect(late?.value == "2.0 s")
     }
 
     @Test func rowsWithoutTimesShowInOrderWithNoDuration() {
-      let thread = Self.makeThread([
-        .toolCall(Self.call("first", from: nil, to: nil)),
-        .error(ThreadError(id: "oops", kind: .timeout)),
-        .toolCall(Self.call("second", from: 0, to: 1)),
-      ])
-      let harness = HostedViewHarness(size: Self.tallSize) { ActivityTimeline(thread: thread) }
+      let harness = Self.mountTimeline(
+        Self.makeThread([
+          .toolCall(Self.call("first", from: nil, to: nil)),
+          .error(ThreadError(id: "oops", kind: .timeout)),
+          .toolCall(Self.call("second", from: 0, to: 1)),
+        ]))
       defer { harness.close() }
-      harness.pump()
 
-      #expect(Self.shownEntries(in: harness, of: ["first", "oops", "second"]) == ["first", "oops", "second"])
-      let first = harness.element(identifier: ActivityTimeline.entryIdentifier(for: "first"))
+      let order = ["first", "oops", "second"]
+      #expect(Self.shownEntries(in: harness, of: order) == order)
+      let first = harness.element(identifier: ActivityEntry.identifier(for: "first"))
       #expect(first != nil)
       #expect(first?.value == nil || first?.value == "")
       // Only the second call has times, so the turn lasts one second.
-      #expect(harness.element(identifier: TurnSummaryRow.identifier(for: "first"))?.label == "Worked 1 s, 2 tools")
+      let summary = harness.element(identifier: TurnSummaryRow.identifier(for: "first"))
+      #expect(summary?.label == "Worked 1 s, 2 tools")
     }
 
     @Test func anEmptyThreadShowsTheEmptyState() {
-      let harness = HostedViewHarness { ActivityTimeline(thread: AgentThread()) }
+      let harness = Self.mountTimeline(AgentThread())
       defer { harness.close() }
-      harness.pump()
 
       #expect(harness.element(identifier: ActivityTimeline.emptyStateIdentifier) != nil)
     }
@@ -112,23 +126,20 @@
     // MARK: - Expand
 
     @Test func aClickOnABarExpandsTheToolCallView() async throws {
-      let thread = Self.makeThread([.toolCall(Self.call("tool", from: 0, to: 2))])
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ActivityTimeline(thread: thread)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let harness = Self.mountTimeline(
+        Self.makeThread([.toolCall(Self.call("tool", from: 0, to: 2))]))
       defer { harness.close() }
-      harness.pump()
-      let detailID = ActivityTimeline.detailIdentifier(for: "tool")
+      let rowID = ActivityEntry.identifier(for: "tool")
+      let detailID = ActivityEntry.detailIdentifier(for: "tool")
       #expect(harness.element(identifier: ToolCallView.identifier(for: "tool")) == nil)
 
-      try harness.press(identifier: ActivityTimeline.entryIdentifier(for: "tool"))
+      try harness.press(identifier: rowID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: detailID) != nil }
 
       #expect(harness.element(identifier: detailID) != nil)
       #expect(harness.element(identifier: ToolCallView.identifier(for: "tool")) != nil)
 
-      try harness.press(identifier: ActivityTimeline.entryIdentifier(for: "tool"))
+      try harness.press(identifier: rowID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: detailID) == nil }
 
       #expect(harness.element(identifier: detailID) == nil)
@@ -138,20 +149,16 @@
       let reasoning = Reasoning(
         id: "think", segments: ["Plan the work."], startedAt: Self.start,
         endedAt: Self.start.addingTimeInterval(4))
-      let thread = Self.makeThread([.reasoning(reasoning)])
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ActivityTimeline(thread: thread)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let harness = Self.mountTimeline(Self.makeThread([.reasoning(reasoning)]))
       defer { harness.close() }
-      harness.pump()
       let reasoningID = ReasoningView.identifier(for: "think")
 
-      try harness.press(identifier: ActivityTimeline.entryIdentifier(for: "think"))
+      try harness.press(identifier: ActivityEntry.identifier(for: "think"))
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: reasoningID) != nil }
 
       #expect(harness.element(identifier: reasoningID) != nil)
-      #expect(harness.element(identifier: ReasoningView.titleIdentifier(for: "think"))?.label == "Thought for 4 s")
+      let title = harness.element(identifier: ReasoningView.titleIdentifier(for: "think"))
+      #expect(title?.label == "Thought for 4 s")
     }
 
     @Test func aClickOnATerminalRowExpandsTheTerminalView() async throws {
@@ -162,16 +169,13 @@
         .insert(
           .toolCall(Self.call("build", from: 0, to: 1, content: [.terminal(id: Self.terminalID)])),
           after: nil))
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ActivityTimeline(thread: thread)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let harness = Self.mountTimeline(thread)
       defer { harness.close() }
-      harness.pump()
       let entryID = ActivityEntry.terminalEntryID(callID: "build", terminalID: Self.terminalID)
-      #expect(harness.element(identifier: ActivityTimeline.entryIdentifier(for: entryID))?.label == "make")
+      let rowID = ActivityEntry.identifier(for: entryID)
+      #expect(harness.element(identifier: rowID)?.label == "make")
 
-      try harness.press(identifier: ActivityTimeline.entryIdentifier(for: entryID))
+      try harness.press(identifier: rowID)
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: TerminalView.identifier) != nil
       }
@@ -180,36 +184,33 @@
     }
 
     @Test func onlyTheLastTurnIsOpenAndAPressOpensAnother() async throws {
-      let thread = Self.makeThread([
-        .userMessage(ThreadFixtures.message(id: "u1")),
-        .toolCall(Self.call("old", from: 0, to: 1)),
-        .userMessage(ThreadFixtures.message(id: "u2")),
-        .toolCall(Self.call("new", from: 2, to: 3)),
-      ])
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ActivityTimeline(thread: thread)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let harness = Self.mountTimeline(
+        Self.makeThread([
+          .userMessage(ThreadFixtures.message(id: "u1")),
+          .toolCall(Self.call("old", from: 0, to: 1)),
+          .userMessage(ThreadFixtures.message(id: "u2")),
+          .toolCall(Self.call("new", from: 2, to: 3)),
+        ]))
       defer { harness.close() }
-      harness.pump()
-      let oldRow = ActivityTimeline.entryIdentifier(for: "old")
+      let oldRow = ActivityEntry.identifier(for: "old")
+      let toggleID = ActivityTimeline.turnToggleIdentifier(for: "u1")
       #expect(harness.element(identifier: oldRow) == nil)
-      #expect(harness.element(identifier: ActivityTimeline.entryIdentifier(for: "new")) != nil)
-      #expect(harness.element(identifier: ActivityTimeline.turnToggleIdentifier(for: "u1"))?.value == "Collapsed")
+      #expect(harness.element(identifier: ActivityEntry.identifier(for: "new")) != nil)
+      #expect(harness.element(identifier: toggleID)?.value == "Collapsed")
 
-      try harness.press(identifier: ActivityTimeline.turnToggleIdentifier(for: "u1"))
+      try harness.press(identifier: toggleID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: oldRow) != nil }
 
       #expect(harness.element(identifier: oldRow) != nil)
-      #expect(harness.element(identifier: ActivityTimeline.turnToggleIdentifier(for: "u1"))?.value == "Expanded")
+      #expect(harness.element(identifier: toggleID)?.value == "Expanded")
+      #expect(harness.element(identifier: ActivityTimeline.turnIdentifier(for: "u1")) != nil)
     }
 
     @Test func aStatusPatchUpdatesTheSummary() async {
       let call = ToolCallRecord(id: "live", title: "Live", status: .inProgress, startedAt: Self.start)
       let thread = Self.makeThread([.userMessage(ThreadFixtures.message(id: "u1")), .toolCall(call)])
-      let harness = HostedViewHarness(size: Self.tallSize) { ActivityTimeline(thread: thread) }
+      let harness = Self.mountTimeline(thread)
       defer { harness.close() }
-      harness.pump()
       let summaryID = TurnSummaryRow.identifier(for: "u1")
       #expect(harness.element(identifier: summaryID)?.label == "Worked, 1 tool")
 
@@ -237,15 +238,16 @@
       defer { harness.close() }
       harness.pump()
 
+      let summaryID = TurnSummaryRow.identifier(for: "u1")
       let identifiers = harness.accessibilityElements().compactMap(\.identifier)
-      let summary = identifiers.firstIndex(of: TurnSummaryRow.identifier(for: "u1"))
+      let summary = identifiers.firstIndex(of: summaryID)
       let work = identifiers.firstIndex(of: ItemRow.identifier(for: "work"))
       #expect(summary != nil)
       #expect(work != nil)
       if let summary, let work {
         #expect(summary < work)
       }
-      #expect(harness.element(identifier: TurnSummaryRow.identifier(for: "u1"))?.label == "Worked 2 s, 1 tool")
+      #expect(harness.element(identifier: summaryID)?.label == "Worked 2 s, 1 tool")
       #expect(harness.element(identifier: TurnSummaryRow.identifier(for: "u2")) == nil)
       #expect(harness.element(identifier: ItemRow.identifier(for: "a2")) != nil)
     }
