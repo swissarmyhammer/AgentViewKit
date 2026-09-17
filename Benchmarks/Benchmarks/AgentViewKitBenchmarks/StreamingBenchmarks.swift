@@ -32,8 +32,19 @@
 
 import AgentViewKit
 import Benchmark
+import OSLog
 import SwiftUI
 import Textual
+
+/// The measured chunks of each streaming scenario.
+nonisolated enum StreamingIterations {
+  /// The measured chunks with the paragraph split.
+  static let splitOn = 400
+
+  /// The measured chunks with no paragraph split. A chunk with no split costs
+  /// much more, so that scenario measures fewer chunks.
+  static let splitOff = 60
+}
 
 /// The two ways to render a streamed message.
 enum StreamingMode: CaseIterable, Sendable {
@@ -51,12 +62,11 @@ enum StreamingMode: CaseIterable, Sendable {
     }
   }
 
-  /// The measured chunks of the scenario. A chunk with no split costs much
-  /// more, so that scenario measures fewer chunks.
+  /// The measured chunks of the scenario.
   var iterations: Int {
     switch self {
-    case .splitOn: 400
-    case .splitOff: 60
+    case .splitOn: StreamingIterations.splitOn
+    case .splitOff: StreamingIterations.splitOff
     }
   }
 }
@@ -117,8 +127,14 @@ final class StreamingWorkbench {
   /// The id of the streamed message.
   static let messageID = "benchmark-response"
 
+  /// The width of the host window, in points.
+  static let hostWidth: CGFloat = 640
+
+  /// The height of the host window, in points.
+  static let hostHeight: CGFloat = 800
+
   /// The size of the host window.
-  static let hostSize = CGSize(width: 640, height: 800)
+  static let hostSize = CGSize(width: hostWidth, height: hostHeight)
 
   /// The gate: the p90 cost of one chunk with the split on, in milliseconds.
   static let splitOnP90LimitMilliseconds = 4.0
@@ -126,17 +142,26 @@ final class StreamingWorkbench {
   /// The percentile that the cost gate reads.
   static let gatedPercentile = 0.9
 
+  /// One microsecond, the unit of the cost clock.
+  static let costUnit = Duration.microseconds(1)
+
   /// The number of microseconds in one millisecond.
   static let microsecondsPerMillisecond = 1_000.0
 
   /// The number of the tail paragraph: the tail is one paragraph.
   static let tailParagraphCount = 1
 
+  /// The number of chunks that one sample measures.
+  static let measuredChunksPerSample = 1
+
+  /// The log of the benchmark results.
+  static let logger = Logger(subsystem: "AgentViewKitBenchmarks", category: "Streaming")
+
   /// The render mode of the scenario.
   private var mode = StreamingMode.splitOn
 
   /// The chunks between two measured chunks.
-  private var strideLength = 1
+  private var strideLength = StreamingWorkbench.measuredChunksPerSample
 
   /// The position of the next chunk.
   private var cursor = 0
@@ -173,7 +198,7 @@ final class StreamingWorkbench {
   ///     the warm-up chunks.
   func open(mode: StreamingMode, samples: Int) {
     self.mode = mode
-    strideLength = max(1, StreamingCorpus.chunks.count / samples)
+    strideLength = max(Self.measuredChunksPerSample, StreamingCorpus.chunks.count / samples)
     cursor = 0
     costs = []
     message = StreamingMessage(id: Self.messageID)
@@ -193,9 +218,12 @@ final class StreamingWorkbench {
     host = nil
     guard mode == .splitOn, !costs.isEmpty else { return }
     let sorted = costs.sorted()
-    let index = min(sorted.count - 1, Int(Double(sorted.count) * Self.gatedPercentile))
+    let index = min(
+      sorted.index(before: sorted.endIndex), Int(Double(sorted.count) * Self.gatedPercentile))
     let p90 = sorted[index]
-    print("\(mode.scenarioName): p90 chunk cost \(p90) ms over \(sorted.count) chunks.")
+    Self.logger.info(
+      "\(self.mode.scenarioName, privacy: .public): p90 chunk cost \(p90) ms over \(sorted.count) chunks."
+    )
     guard p90 < Self.splitOnP90LimitMilliseconds else {
       throw BenchmarkGateFailure(
         description: "The p90 chunk cost is \(p90) ms. The limit is \(Self.splitOnP90LimitMilliseconds) ms.")
@@ -210,7 +238,8 @@ final class StreamingWorkbench {
       message.replace("")
       cursor = 0
     }
-    let skipped = StreamingCorpus.chunks[cursor..<(cursor + strideLength - 1)]
+    let skipped = StreamingCorpus.chunks[
+      cursor..<(cursor + strideLength - Self.measuredChunksPerSample)]
     cursor += skipped.count
     message.append(skipped.joined())
     message.flush()
@@ -228,7 +257,7 @@ final class StreamingWorkbench {
     message.flush()
     host?.render()
     costs.append(Self.milliseconds(clock.now - start))
-    cursor += 1
+    cursor += Self.measuredChunksPerSample
   }
 
   /// Reads the counts of the measured chunk, and checks the count gates.
@@ -264,7 +293,7 @@ final class StreamingWorkbench {
   /// - Parameter duration: The duration.
   /// - Returns: The duration, in milliseconds.
   private static func milliseconds(_ duration: Duration) -> Double {
-    Double(duration / .microseconds(1)) / microsecondsPerMillisecond
+    Double(duration / costUnit) / microsecondsPerMillisecond
   }
 }
 

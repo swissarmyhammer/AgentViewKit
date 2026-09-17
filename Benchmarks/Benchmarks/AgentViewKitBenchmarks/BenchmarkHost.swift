@@ -16,14 +16,27 @@
 import AppKit
 import SwiftUI
 
+/// The fixed values of ``BenchmarkHost`` and ``EvaluationProbe``.
+///
+/// A generic type cannot hold a stored static property, so the values are in
+/// this separate type.
+private enum HostConstants {
+  /// The largest number of run loop passes in one render.
+  static let maximumRunLoopPasses = 64
+
+  /// The time that one run loop pass waits for work, in seconds: no wait.
+  static let runLoopWait: CFTimeInterval = 0
+
+  /// The x and y coordinate of a window that is outside each screen.
+  static let offScreenCoordinate: CGFloat = -20_000
+
+  /// The width and the height of a probe view: no size.
+  static let probeSize: CGFloat = 0
+}
+
 /// An off-screen window that renders a SwiftUI view.
 @MainActor
 final class BenchmarkHost<Content: View> {
-  /// The largest number of run loop passes in one render.
-  private static var maximumRunLoopPasses: Int { 64 }
-
-  /// The x and y coordinate of a window that is outside each screen.
-  private static var offScreenCoordinate: CGFloat { -20_000 }
 
   /// The off-screen window.
   private let window: NSWindow
@@ -48,7 +61,8 @@ final class BenchmarkHost<Content: View> {
     // ARC owns the window. The default value would release it a second time.
     window.isReleasedWhenClosed = false
     window.contentView = hostingView
-    window.setFrameOrigin(NSPoint(x: Self.offScreenCoordinate, y: Self.offScreenCoordinate))
+    window.setFrameOrigin(
+      NSPoint(x: HostConstants.offScreenCoordinate, y: HostConstants.offScreenCoordinate))
     window.orderFront(nil)
     render()
   }
@@ -58,8 +72,9 @@ final class BenchmarkHost<Content: View> {
   /// The function runs the main run loop with no wait until the loop has no
   /// more work, so that SwiftUI applies each pending change.
   func render() {
-    for _ in 0..<Self.maximumRunLoopPasses {
-      guard CFRunLoopRunInMode(.defaultMode, 0, true) == .handledSource else { break }
+    for _ in 0..<HostConstants.maximumRunLoopPasses {
+      let result = CFRunLoopRunInMode(.defaultMode, HostConstants.runLoopWait, true)
+      guard result == .handledSource else { break }
     }
     hostingView.layoutSubtreeIfNeeded()
     hostingView.displayIfNeeded()
@@ -107,6 +122,6 @@ struct EvaluationProbe<Model: AnyObject>: View {
   var body: some View {
     count.note()
     _ = model[keyPath: property]
-    return Color.clear.frame(width: 0, height: 0)
+    return Color.clear.frame(width: HostConstants.probeSize, height: HostConstants.probeSize)
   }
 }
