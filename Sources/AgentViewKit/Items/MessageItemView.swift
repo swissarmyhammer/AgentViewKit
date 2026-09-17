@@ -1,4 +1,5 @@
 import SwiftUI
+import Textual
 
 extension EnvironmentValues {
   /// The footer of each message item: the `messageFooter` slot
@@ -35,6 +36,9 @@ extension View {
 /// - When the message streams, the text shows in one ``ResponseView`` with
 ///   the stream of the thread, and each block that is not text shows in a
 ///   ``ContentBlockView`` below it.
+///
+/// The text of the message is selectable, one message at a time
+/// (``MessageActions/selectionMode``).
 ///
 /// This view, and not the row, reads the thread. Thus a chunk evaluates only
 /// this view, and the row stays equal. In a scroll view that is not a
@@ -78,6 +82,9 @@ struct MessageItemView: View {
         footer(message)
       }
     }
+    // The text of one message is selectable. A selection does not go into
+    // the next message (Docs/decisions/text-selection.md).
+    .textual.textSelection(.enabled)
     .contentContainer(identifier: role.messageIdentifier(for: message.id))
     .accessibilityLabel(role.accessibilityLabel)
     // The row is a container with this view as its one child. The second

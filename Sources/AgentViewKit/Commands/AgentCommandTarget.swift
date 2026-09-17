@@ -7,7 +7,8 @@ import SwiftUI
 ///
 /// ``PromptInputView`` registers a hook in the ``AgentCommandTarget`` of its
 /// scope, so that ``AgentCommandVerb/send`` submits the composer and
-/// ``AgentCommandVerb/focusComposer`` focuses its editor.
+/// ``AgentCommandVerb/focusComposer`` focuses its editor. ``MessageActions``
+/// loads the text of a message into the composer through the hook.
 struct AgentComposerHook {
   /// The identity of the view that registered the hook.
   let owner: ObjectIdentifier
@@ -17,6 +18,9 @@ struct AgentComposerHook {
 
   /// Submits the text of the composer.
   let submit: @MainActor () -> Void
+
+  /// Replaces the text of the composer with the argument.
+  let load: @MainActor (String) -> Void
 
   /// Moves the focus to the editor of the composer. Returns `true` when the
   /// focus moved.

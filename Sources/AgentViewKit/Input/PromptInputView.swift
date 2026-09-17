@@ -127,7 +127,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
         .background {
           if let commandTarget {
             ComposerCommandProbe(
-              target: commandTarget, canSubmit: { canSubmit }, submit: submit)
+              target: commandTarget, canSubmit: { canSubmit }, submit: submit, load: load)
           }
         }
       accessory()
@@ -168,6 +168,13 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       send(input)
     }
     onSubmit()
+  }
+
+  /// Replaces the text of the prompt. The attachment list does not change.
+  ///
+  /// - Parameter message: The new text.
+  private func load(_ message: String) {
+    text = AttributedString(message)
   }
 
   /// Sends the text at once, also while the thread runs a turn. Then clears

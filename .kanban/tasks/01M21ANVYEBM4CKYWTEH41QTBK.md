@@ -11,8 +11,8 @@ comments:
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: todo
-position_ordinal: a280
+position_column: doing
+position_ordinal: '8180'
 title: 'MessageActions: copy, copy thread, export Markdown, retry, edit; per-message selection (plan §9 A, §11#8, research R10)'
 ---
 ## What

@@ -210,7 +210,7 @@ final class CallCounter {
     let fixture = Self.fixture { target in
       target.composer = AgentComposerHook(
         owner: ObjectIdentifier(target), canSubmit: { true }, submit: { submits.count += 1 },
-        focus: { true })
+        load: { _ in }, focus: { true })
     }
 
     #expect(fixture.system.perform(AgentCommandVerb.send.id))
@@ -377,7 +377,7 @@ final class CallCounter {
     let focuses = CallCounter()
     let fixture = Self.fixture { target in
       target.composer = AgentComposerHook(
-        owner: ObjectIdentifier(target), canSubmit: { false }, submit: {},
+        owner: ObjectIdentifier(target), canSubmit: { false }, submit: {}, load: { _ in },
         focus: {
           focuses.count += 1
           return true

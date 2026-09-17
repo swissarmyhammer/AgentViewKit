@@ -263,6 +263,9 @@ struct ComposerCommandProbe: NSViewRepresentable {
   /// Submits the text of the composer.
   let submit: @MainActor () -> Void
 
+  /// Replaces the text of the composer with the argument.
+  let load: @MainActor (String) -> Void
+
   /// The values that the teardown needs.
   final class Coordinator {
     /// The target that the probe registered in.
@@ -311,7 +314,7 @@ struct ComposerCommandProbe: NSViewRepresentable {
       coordinator.target = target
     }
     target.composer = AgentComposerHook(
-      owner: ObjectIdentifier(probe), canSubmit: canSubmit, submit: submit,
+      owner: ObjectIdentifier(probe), canSubmit: canSubmit, submit: submit, load: load,
       focus: { [weak probe] in probe?.requestFocus() ?? false })
   }
 }
