@@ -152,6 +152,9 @@ extension View {
 ///
 /// When the thread has no item, the view shows the `emptyState` slot.
 ///
+/// Above the first agent item of each turn that has work, the view shows a
+/// ``TurnSummaryRow``. See ``TurnSummary/anchors(in:)``.
+///
 /// Below the list, a ``StateBanner`` tells when the thread needs attention.
 /// Its Show Error button scrolls to the newest related error, as
 /// ``ConversationLayout/relatedErrorID(in:state:)`` finds it. The error
@@ -244,6 +247,7 @@ public struct ConversationView<EmptyState: View>: View {
       count: items.count, pageSize: pageSize, pageCount: pageCount)
     let shown = items.suffix(shownCount)
     let anchors = anchors
+    let turnAnchors = TurnSummary.anchors(in: items)
     return ScrollView {
       VStack(alignment: .leading, spacing: theme.spacing.m) {
         if shown.startIndex > items.startIndex {
@@ -251,8 +255,16 @@ public struct ConversationView<EmptyState: View>: View {
         }
         LazyVStack(alignment: .leading, spacing: theme.spacing.m) {
           ForEach(shown, id: \.id) { item in
-            ItemRow(item: item)
-              .equatable()
+            if let turnID = turnAnchors[item.id] {
+              VStack(alignment: .leading, spacing: theme.spacing.xs) {
+                ThreadTurnSummary(thread: thread, turnID: turnID)
+                ItemRow(item: item)
+                  .equatable()
+              }
+            } else {
+              ItemRow(item: item)
+                .equatable()
+            }
           }
         }
         .scrollTargetLayout()

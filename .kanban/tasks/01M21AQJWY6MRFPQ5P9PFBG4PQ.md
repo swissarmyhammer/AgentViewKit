@@ -13,8 +13,8 @@ depends_on:
 - 01M21AHYBMNR7CNDZRPMWRTRTY
 - 01M21AHNHX7YF6D4268FQ3K3YA
 - 01M21AJ767SWK19SZA82PZWGZ2
-position_column: todo
-position_ordinal: a980
+position_column: doing
+position_ordinal: '8180'
 title: 'ActivityTimeline: interleaved tool calls, reasoning, and terminals with host timestamps (plan §9 C)'
 ---
 ## What
