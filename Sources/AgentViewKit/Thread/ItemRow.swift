@@ -109,8 +109,8 @@ public struct ItemRow: View, Equatable {
         ThreadReasoningView(record: record)
       }
     case .toolCall(let record):
-      OverridableItemView(\.toolCallViewOverride, record: record) { _ in
-        placeholder("Tool call")
+      OverridableItemView(\.toolCallViewOverride, record: record) { record in
+        ToolCallView(record: record)
       }
     case .structured(let record):
       OverridableItemView(\.structuredItemViewOverride, record: record) { record in
