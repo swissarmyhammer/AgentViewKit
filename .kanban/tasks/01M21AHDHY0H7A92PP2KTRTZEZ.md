@@ -12,12 +12,21 @@ comments:
   id: 01m2pytk89vevb6p99xnvnmcfs
   text: 'Note from ^pfbg4pq: ConversationView now shows a TurnSummaryRow ("Worked N s, K tools, +A −R") above the first agent item of each turn that has work (TurnSummary.anchors(in:), ThreadTurnSummary). The row wraps that item in a VStack in the ForEach. AssistantMessageView must not show the summary again.'
   timestamp: 2026-09-17T05:53:25.257080+00:00
+- actor: claude-code
+  id: 01m2q1p3wq1ksa65q3ecp653wh
+  text: |-
+    ### finish iteration 1 — done
+    - implement: added SystemPromptView, UserMessageView, AssistantMessageView, MessageHeader (with MessageRole), and the shared MessageItemView with the `messageFooter` environment slot and the `.messageFooter { message in }` modifier. ItemRow uses the new views. A streaming message shows its text through ResponseView with `thread.streaming[id]`, and its other blocks through ContentBlockView.
+    - test: `swift test` passed. AgentViewKitTests 1148, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. `Scripts/check-benchmarks.sh` passed.
+    - commit: 4667f23
+    - review: `review sha HEAD~1..HEAD`, 0 findings. Moved to done.
+  timestamp: 2026-09-17T06:43:24.183829+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BDXGQ5HYN8GCKAEH8GN3P
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: c180
 title: 'Message item views: SystemPromptView, UserMessageView, AssistantMessageView (plan §9 A2)'
 ---
 ## What
@@ -30,13 +39,17 @@ Create `Sources/AgentViewKit/Items/SystemPromptView.swift`, `UserMessageView.swi
 - Accessibility identifiers: `system-prompt`, `user-message-<id>`, `assistant-message-<id>`. Labels: "Instructions", "You said", "Assistant said".
 
 ## Acceptance Criteria
-- [ ] Each view mounts for its record with its identifier and label.
-- [ ] `system-prompt` is collapsed by default; a press expands it and the text becomes an element.
-- [ ] A message with two blocks mounts two `content-block-*` elements in order.
+- [x] Each view mounts for its record with its identifier and label.
+- [x] `system-prompt` is collapsed by default; a press expands it and the text becomes an element.
+- [x] A message with two blocks mounts two `content-block-*` elements in order.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Items/MessageViewsHostedTests.swift`: one mount per view, the disclosure toggle, the block order.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Items/MessageViewsHostedTests.swift`: one mount per view, the disclosure toggle, the block order.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-17 01:38)
+
+Scope: `review sha HEAD~1..HEAD` (commit 4667f23). 8 files reviewed. 0 findings. 1 candidate refuted.
