@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import Foundation
 import PackageFileSupport
 import Testing
@@ -13,9 +14,9 @@ import Testing
   /// The name of the trait that each hosted suite must have.
   static let traitMarker = ".hostedSerially"
 
-  /// The folder of the test files of this target, relative to the package
-  /// root.
-  static let testsFolder = "Tests/AgentViewKitTests"
+  /// The folders of the test targets that mount views, relative to the
+  /// package root.
+  static let testsFolders = ["Tests/AgentViewKitTests", "Tests/AgentViewKitFoundationModelsTests"]
 
   /// This file. It holds the markers as text, so the scan skips it.
   static var thisFile: URL { URL(filePath: #filePath).standardizedFileURL }
@@ -74,7 +75,8 @@ import Testing
   }
 
   @Test func eachHostedTestFileHasTheSerialTrait() throws {
-    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(Self.testsFolder))
+    let files = try Self.testsFolders
+      .flatMap { try PackageFiles.swiftFiles(in: PackageFiles.file($0)) }
       .filter { $0.standardizedFileURL != Self.thisFile }
     try #require(!files.isEmpty)
 

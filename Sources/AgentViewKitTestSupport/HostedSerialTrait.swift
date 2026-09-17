@@ -4,15 +4,22 @@ import Testing
 ///
 /// A test that holds the lock keeps it until its body returns or throws.
 /// The other tests wait in the sequence that they asked for the lock.
-actor HostedTestLock {
+///
+/// Each test target of the package runs in the same test process. This type
+/// is in the test support target, so the hosted tests of each test target use
+/// the same ``shared`` lock.
+public actor HostedTestLock {
   /// The lock that all hosted tests of this process use.
-  static let shared = HostedTestLock()
+  public static let shared = HostedTestLock()
 
   /// Whether a test holds the lock.
   private var isHeld = false
 
   /// The tests that wait for the lock, in the sequence that they asked.
   private var waiters: [CheckedContinuation<Void, Never>] = []
+
+  /// Makes a free lock.
+  public init() {}
 
   /// Waits until the lock is free, then holds it.
   func acquire() async {
@@ -37,7 +44,7 @@ actor HostedTestLock {
   ///
   /// - Parameter body: The work to run.
   /// - Throws: The error that `body` throws.
-  nonisolated func run(_ body: @Sendable () async throws -> Void) async throws {
+  public nonisolated func run(_ body: @Sendable () async throws -> Void) async throws {
     await acquire()
     do {
       try await body()
@@ -59,9 +66,12 @@ actor HostedTestLock {
 /// work of the other test. Then a test that needs the focus, such as a
 /// completion list test, fails on some runs. With this trait, hosted tests
 /// run one at a time, and the other tests still run in parallel.
-struct HostedSerialTrait: SuiteTrait, TestTrait, TestScoping {
+public struct HostedSerialTrait: SuiteTrait, TestTrait, TestScoping {
   /// The trait applies to each test in the suite and in its child suites.
-  var isRecursive: Bool { true }
+  public var isRecursive: Bool { true }
+
+  /// Makes the trait.
+  public init() {}
 
   /// Runs `function` while the test holds the lock.
   ///
@@ -70,7 +80,7 @@ struct HostedSerialTrait: SuiteTrait, TestTrait, TestScoping {
   ///   - testCase: The test case to run.
   ///   - function: The body of the test.
   /// - Throws: The error that `function` throws.
-  func provideScope(
+  public func provideScope(
     for test: Test,
     testCase: Test.Case?,
     performing function: @Sendable () async throws -> Void
@@ -81,5 +91,5 @@ struct HostedSerialTrait: SuiteTrait, TestTrait, TestScoping {
 
 extension Trait where Self == HostedSerialTrait {
   /// Runs each test of the suite while no other hosted test runs.
-  static var hostedSerially: Self { Self() }
+  public static var hostedSerially: Self { Self() }
 }
