@@ -37,6 +37,9 @@ final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
   static let segmentKind = "agentThread"
 
+  /// The radix of the thread identity in the focus segment: hexadecimal.
+  static let segmentIdentityRadix = 16
+
   /// The thread that the commands act on.
   var thread: AgentThread?
 
@@ -72,7 +75,8 @@ final class AgentCommandTarget {
   /// - Parameter thread: The thread.
   /// - Returns: The segment `agentThread:<identity>`.
   static func segment(for thread: AgentThread) -> FocusSegment {
-    let identity = String(UInt(bitPattern: ObjectIdentifier(thread)), radix: 16)
+    let identity = String(
+      UInt(bitPattern: ObjectIdentifier(thread)), radix: segmentIdentityRadix)
     return FocusSegment(kind: segmentKind, id: identity)
   }
 
