@@ -1,4 +1,16 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2pk29yr6r3kaerv5n963yew
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: SessionThreadSource, ContextWindow, SessionErrorMapping; FakeLanguageModel, FakeTools, source, observation, and error mapping tests; ChangeFlag and waitUntil moved to AgentViewKitTestSupport.
+    - test: timeout 1500 swift test, green: AgentViewKitTests 995, AgentViewKitACPTests 93, AgentViewKitRouterTests 71, PackageFileSupportTests 22, AgentViewKitFoundationModelsTests 34.
+    - commit: c99de54
+    - review: 1 finding (magic-numbers-swift, SessionThreadSourceTests.swift:48).
+
+    SDK facts found with probes: session.transcript changes during a stream; a stream snapshot comes one event late; session.usage is cumulative and Snapshot.usage is per response; the default error policy removes the prompt from the transcript.
+  timestamp: 2026-09-17T02:27:54.968741+00:00
 depends_on:
 - 01M21ADYPYG3D8P53AAJQZZ61D
 - 01M21ACSE9JBXMRD2FQQD4CYR6
@@ -15,16 +27,19 @@ Create `Sources/AgentViewKitFoundationModels/SessionThreadSource.swift`, per pla
 - Without profile hooks, the source stamps `startedAt` with the time it first observes an entry and `endedAt` when the matching output appears.
 
 ## Acceptance Criteria
-- [ ] After `respond` completes on a session with a fake `LanguageModel`, the thread has the new user and assistant items with the transcript ids.
-- [ ] During a stream, `thread.streaming[id]` grows and the record content is set on close.
-- [ ] A thrown `LanguageModelError.contextSizeExceeded` becomes an `.error` item with both counts.
-- [ ] A tool call record has `startedAt <= endedAt` after the tool output lands.
+- [x] After `respond` completes on a session with a fake `LanguageModel`, the thread has the new user and assistant items with the transcript ids.
+- [x] During a stream, `thread.streaming[id]` grows and the record content is set on close.
+- [x] A thrown `LanguageModelError.contextSizeExceeded` becomes an `.error` item with both counts.
+- [x] A tool call record has `startedAt <= endedAt` after the tool output lands.
 
 ## Tests
-- [ ] `Tests/AgentViewKitFoundationModelsTests/FakeLanguageModel.swift`: a fake built on the macOS 27 `LanguageModelExecutor` protocol that scripts text, reasoning, and a tool call.
-- [ ] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceTests.swift`: assert the thread after each step.
-- [ ] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceObservationTests.swift`: a chunk invalidates only the streaming observer, not the items observer.
-- [ ] `swift test --filter AgentViewKitFoundationModelsTests` exits 0.
+- [x] `Tests/AgentViewKitFoundationModelsTests/FakeLanguageModel.swift`: a fake built on the macOS 27 `LanguageModelExecutor` protocol that scripts text, reasoning, and a tool call.
+- [x] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceTests.swift`: assert the thread after each step.
+- [x] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceObservationTests.swift`: a chunk invalidates only the streaming observer, not the items observer.
+- [x] `swift test --filter AgentViewKitFoundationModelsTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-16 21:23)
+- [ ] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceTests.swift:48` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

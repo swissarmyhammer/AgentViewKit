@@ -45,7 +45,10 @@ enum SourceSamples {
   nonisolated static let tokensPerEntry = 10
 
   /// The cost that the usage test puts on the thread before the stream.
-  static let cost = ContextUsage.Cost(amount: 1.5, currency: "USD")
+  static let cost = ContextUsage.Cost(amount: costAmount, currency: "USD")
+
+  /// The amount of ``cost``.
+  static let costAmount = 1.5
 
   /// The events of a gated stream: the chunk groups with a gate after each
   /// group but the last.

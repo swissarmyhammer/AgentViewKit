@@ -9,7 +9,16 @@ import Testing
   static let debugText = "The model stopped."
 
   /// The reset time of the rate limit sample.
-  static let resetDate = Date(timeIntervalSince1970: 60)
+  static let resetDate = Date(timeIntervalSince1970: resetSeconds)
+
+  /// The reset time of the rate limit sample, in seconds after 1970.
+  static let resetSeconds: TimeInterval = 60
+
+  /// The context size of the context size sample.
+  static let contextSize = 10
+
+  /// The token count of the context size sample.
+  static let tokenCount = 20
 
   /// An error that is not a `LanguageModelError`.
   struct OtherError: Error, CustomStringConvertible {
@@ -18,9 +27,11 @@ import Testing
 
   @Test func contextSizeExceededKeepsBothCounts() {
     let error = LanguageModelError.contextSizeExceeded(
-      .init(contextSize: 10, tokenCount: 20, debugDescription: Self.debugText))
+      .init(contextSize: Self.contextSize, tokenCount: Self.tokenCount, debugDescription: Self.debugText))
 
-    #expect(SessionErrorMapping.kind(for: error) == .contextSizeExceeded(contextSize: 10, tokenCount: 20))
+    #expect(
+      SessionErrorMapping.kind(for: error)
+        == .contextSizeExceeded(contextSize: Self.contextSize, tokenCount: Self.tokenCount))
   }
 
   @Test func rateLimitedKeepsTheResetDate() {
