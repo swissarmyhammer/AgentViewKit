@@ -18,8 +18,8 @@ import SwiftUI
 /// identity, for example with `.id(request.id)`, so that a new request
 /// starts with new answers.
 ///
-/// A URL mode request has no fields. Show it with the URL consent view
-/// (plan.md §13.3).
+/// A URL mode request has no fields. Show it with
+/// ``ElicitationURLConsentView`` (plan.md §13.3).
 public struct ElicitationView: View {
   /// The accessibility identifier of the form.
   public static let formIdentifier = "elicitation-form"
@@ -180,11 +180,7 @@ public struct ElicitationView: View {
   ///
   /// - Parameter result: The answer of the user.
   private func respond(_ result: ElicitationResult) {
-    let actions = actions
-    let request = request
-    Task {
-      await actions.respond(to: request, result)
-    }
+    actions.startRespond(to: request, result)
   }
 }
 

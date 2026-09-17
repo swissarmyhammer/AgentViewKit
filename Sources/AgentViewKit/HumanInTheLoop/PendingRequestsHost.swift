@@ -7,8 +7,9 @@ import SwiftUI
 ///
 /// 1. A ``PermissionView`` for each entry in
 ///    ``AgentThread/pendingPermissions``.
-/// 2. An ``ElicitationView`` for each entry in
-///    ``AgentThread/pendingElicitations``.
+/// 2. For each entry in ``AgentThread/pendingElicitations``, an
+///    ``ElicitationView`` for a form mode request, or an
+///    ``ElicitationURLConsentView`` for a URL mode request.
 /// 3. An ``AuthorizationView`` for each entry in
 ///    ``AgentThread/pendingAuthorizations``.
 ///
@@ -90,7 +91,7 @@ public struct PendingRequestsHost: View {
           .contentContainer(identifier: Self.identifier(for: request.id.rawValue))
       }
       ForEach(thread.pendingElicitations) { request in
-        ElicitationView(request: request)
+        elicitationCard(request)
           .contentContainer(identifier: Self.identifier(for: request.id.rawValue))
       }
       ForEach(thread.pendingAuthorizations) { request in
@@ -104,6 +105,21 @@ public struct PendingRequestsHost: View {
       if let target = Self.focusTarget(old: old, new: new) {
         focusReporter?.focusMoved(to: target)
       }
+    }
+  }
+
+  /// The card of an elicitation request.
+  ///
+  /// - Parameter request: The request.
+  /// - Returns: An ``ElicitationView`` for a form mode request, or an
+  ///   ``ElicitationURLConsentView`` for a URL mode request.
+  @ViewBuilder
+  private func elicitationCard(_ request: ElicitationRequest) -> some View {
+    switch request.mode {
+    case .form:
+      ElicitationView(request: request)
+    case .url:
+      ElicitationURLConsentView(request: request)
     }
   }
 }
