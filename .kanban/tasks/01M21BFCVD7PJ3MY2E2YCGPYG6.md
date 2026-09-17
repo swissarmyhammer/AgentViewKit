@@ -13,6 +13,15 @@ comments:
     - commit: 284bc00
     - review: 1 finding (swift/access-control on BranchNavigator.swift:50).
   timestamp: 2026-09-17T08:34:22.646592+00:00
+- actor: claude-code
+  id: 01m2q8da9m9r9m9tg82gx1mwrr
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: gave each new member in BranchNavigator.swift, Branches.swift and AgentThread.swift an explicit access modifier (fix for the 03:28 finding).
+    - test: swift test exit 0. AgentViewKitTests 1261, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. No new warnings.
+    - commit: 6545e16
+    - review: 1 new finding (swift/access-control on BranchNavigator.swift:53, input property `messageID` must be `internal`). Fixed: `internal let messageID`; tests pass again (same counts).
+  timestamp: 2026-09-17T08:40:55.860824+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21AHDHY0H7A92PP2KTRTZEZ
@@ -43,3 +52,7 @@ Create `Sources/AgentViewKit/Model/Branches.swift` and `Sources/AgentViewKit/Ite
 ## Review Findings (2026-09-17 03:28)
 
 - [x] `Sources/AgentViewKit/Items/BranchNavigator.swift:50` `swift/access-control` — The static constant `regenerateSymbol` lacks an explicit access modifier. On a public struct, internal members need explicit marking to clarify they are not part of the public API. This is inconsistent with the adjacent `private let logger` on line 59, which is explicitly marked. Change line 50 to `private static let regenerateSymbol = "arrow.trianglehead.2.clockwise"`.
+
+## Review Findings (2026-09-17 03:36)
+
+- [x] `Sources/AgentViewKit/Items/BranchNavigator.swift:53` `swift/access-control` — Input property `messageID` should be `internal`, not `private`. SwiftUI views should keep input properties (those passed via `init` parameters) at `internal` access level and reserve `private` for dynamic properties like `@State` and `@Environment`. Making an input property `private` forces an unnecessary hand-written `init` that merely assigns the parameter to the property. Change `private let messageID: String` to `internal let messageID: String` or remove the access modifier entirely to use the default `internal`.

@@ -50,7 +50,7 @@ public struct BranchNavigator: View {
   private static let regenerateSymbol = "arrow.trianglehead.2.clockwise"
 
   /// The identifier of the assistant message of the control.
-  private let messageID: String
+  internal let messageID: String
 
   @Environment(\.agentThread) private var thread
   @Environment(\.threadActions) private var actions
