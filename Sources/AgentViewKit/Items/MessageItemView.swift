@@ -90,6 +90,10 @@ struct MessageItemView: View {
       }
     }
     .citationScope()
+    // Each paragraph of the message is in one linked reading group, also
+    // when the paragraphs are in more than one text block (plan.md §6).
+    .environment(\.accessibilityMessageGroupID, message.id)
+    .accessibilityReadingScope()
     // The text of one message is selectable. A selection does not go into
     // the next message (Docs/decisions/text-selection.md).
     .textual.textSelection(.enabled)

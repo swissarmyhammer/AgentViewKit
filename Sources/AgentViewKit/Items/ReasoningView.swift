@@ -110,6 +110,23 @@ public struct ReasoningView: View {
     return String(localized: "Thought for \(seconds) s")
   }
 
+  /// The label that VoiceOver reads for a block (plan.md §6).
+  ///
+  /// - Parameters:
+  ///   - isInProgress: Whether the agent still reasons.
+  ///   - duration: The time of the reasoning, or `nil` when it is not known.
+  /// - Returns: "Reasoning, in progress" while in progress, "Reasoning, N
+  ///   seconds" with N rounded to whole seconds when complete, or
+  ///   "Reasoning" when complete with no known time.
+  public static func accessibilityLabel(isInProgress: Bool, duration: TimeInterval?) -> String {
+    if isInProgress {
+      return String(localized: "Reasoning, in progress")
+    }
+    guard let duration else { return String(localized: "Reasoning") }
+    let seconds = Int(duration.rounded())
+    return String(localized: "Reasoning, \(seconds) seconds")
+  }
+
   public var body: some View {
     let store = environmentStore ?? ownStore
     let expanded = isExpanded(in: store)
@@ -122,6 +139,8 @@ public struct ReasoningView: View {
       }
     }
     .contentContainer(identifier: Self.identifier(for: record.id))
+    .accessibilityLabel(
+      Self.accessibilityLabel(isInProgress: isInProgress, duration: record.duration))
     // The row is a container with this block as its one child. The second
     // hidden child keeps SwiftUI from merging the block into the row, so
     // the block keeps its identifier. See `contentContainer(identifier:)`.

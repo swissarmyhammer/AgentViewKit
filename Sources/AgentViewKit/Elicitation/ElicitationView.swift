@@ -55,7 +55,8 @@ public struct ElicitationView: View {
   @FocusState private var isFocused: Bool
 
   @Environment(\.threadActions) private var actions
-  @Environment(\.focusReporter) private var focusReporter
+  /// The action that moves the VoiceOver focus and tells the host.
+  private let moveFocus = AccessibilityFocusMove()
   @Environment(\.elicitationHeaderOverride) private var headerOverride
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
@@ -108,9 +109,10 @@ public struct ElicitationView: View {
     .onExitCommand { respond(.cancel) }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.formIdentifier)
+    .accessibilityFocusTarget(Self.formIdentifier)
     .onAppear {
       isFocused = true
-      focusReporter?.focusMoved(to: Self.formIdentifier)
+      moveFocus(to: Self.formIdentifier)
     }
   }
 

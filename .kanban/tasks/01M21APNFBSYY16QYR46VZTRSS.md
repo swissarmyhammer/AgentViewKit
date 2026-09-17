@@ -21,8 +21,8 @@ depends_on:
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 - 01M21AMHZJF4YSR0ZFYVV6B45Q
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: todo
-position_ordinal: a580
+position_column: doing
+position_ordinal: '8180'
 title: 'Accessibility: linked reading groups, VoiceOver boundary announcements, focus moves, Reduce Motion, Dynamic Type (plan §6, research R11)'
 ---
 ## What

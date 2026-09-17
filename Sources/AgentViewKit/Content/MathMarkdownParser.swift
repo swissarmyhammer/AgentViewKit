@@ -88,6 +88,42 @@ public struct MathMarkdownParser: MarkupParser {
   }
 
   public func attributedString(for input: String) throws -> AttributedString {
+    try parse(input) { span, source, run in
+      Self.replacement(for: span, source: source, isCode: run.isCode, attributes: run.attributes)
+    }
+  }
+
+  /// The text that VoiceOver reads for a Markdown text with math
+  /// (plan.md §6).
+  ///
+  /// Textual draws each math span in a canvas, so the text element of the
+  /// paragraph does not read the math. This text has each span at its place
+  /// in the text, as its LaTeX source.
+  ///
+  /// - Parameter input: The Markdown text.
+  /// - Returns: The plain text with the LaTeX source of each span, or `nil`
+  ///   when the text has no span that the engine can typeset or the parse
+  ///   fails.
+  public func spokenText(for input: String) -> String? {
+    guard !mathSpans(in: input).isEmpty else { return nil }
+    let spoken = try? parse(input) { span, source, run in
+      AttributedString(run.isCode ? source : span.latex, attributes: run.attributes)
+    }
+    return spoken.map { String($0.characters) }
+  }
+
+  /// Parses `input` with a marker in place of each math span, then replaces
+  /// each marker.
+  ///
+  /// - Parameters:
+  ///   - input: The Markdown text.
+  ///   - replace: The function that makes the text of one span from the
+  ///     span, its source with delimiters, and the run of the marker.
+  /// - Returns: The parsed text.
+  private func parse(
+    _ input: String,
+    replacingSpansWith replace: (Span, String, MarkedRun) -> AttributedString
+  ) throws -> AttributedString {
     let pieces = MathSpanScanner.pieces(in: input)
     var sources: [(span: Span, source: String)] = []
     var masked = ""
@@ -108,7 +144,7 @@ public struct MathMarkdownParser: MarkupParser {
         return AttributedString(Self.marker(index: index), attributes: run.attributes)
       }
       let (span, source) = sources[index]
-      return Self.replacement(for: span, source: source, isCode: run.isCode, attributes: run.attributes)
+      return replace(span, source, run)
     }
   }
 

@@ -24,6 +24,17 @@ import SwiftUI
 /// The view registers the agent commands of its thread (``AgentCommandVerb``)
 /// with the keys of ``AgentKeymap``. See
 /// ``SwiftUI/View/agentCommandScope(thread:)``.
+///
+/// The view is accessible by default (plan.md §6, ``ThreadAccessibility``):
+///
+/// - It owns the namespace of the linked reading groups of its messages and
+///   rows (``SwiftUI/View/accessibilityReadingScope()``).
+/// - It tells the ``SwiftUI/EnvironmentValues/announcer`` when a turn
+///   stops, when a tool call gets its result, and when a request needs the
+///   user. A streaming chunk gives no announcement.
+/// - It gives an ``AccessibilityFocusMover`` to its subtree
+///   (``SwiftUI/View/accessibilityFocusScope()``), so that a new request
+///   card takes the VoiceOver focus.
 public struct AgentThreadView: View {
   /// The thread to show.
   let thread: AgentThread
@@ -54,6 +65,9 @@ public struct AgentThreadView: View {
       ConversationView(thread: thread, anchors: anchors)
       PendingRequestsHost(thread: thread)
     }
+    .background { ThreadAnnouncementObserver(thread: thread) }
+    .accessibilityReadingScope()
+    .accessibilityFocusScope()
     .agentCommandScope(thread: thread, anchors: anchors)
     .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
     .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)

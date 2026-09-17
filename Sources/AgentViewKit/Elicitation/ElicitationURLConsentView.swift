@@ -89,7 +89,8 @@ public struct ElicitationURLConsentView: View {
 
   @Environment(\.threadActions) private var actions
   @Environment(\.authorizationPresenter) private var presenter
-  @Environment(\.focusReporter) private var focusReporter
+  /// The action that moves the VoiceOver focus and tells the host.
+  private let moveFocus = AccessibilityFocusMove()
   @Environment(\.agentTheme) private var theme
 
   /// Makes the consent card of `request`.
@@ -130,9 +131,10 @@ public struct ElicitationURLConsentView: View {
     .onExitCommand(perform: cancel)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
+    .accessibilityFocusTarget(Self.identifier)
     .onAppear {
       isFocused = true
-      focusReporter?.focusMoved(to: Self.identifier)
+      moveFocus(to: Self.identifier)
     }
     .onDisappear {
       browserTask?.cancel()

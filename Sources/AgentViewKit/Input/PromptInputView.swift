@@ -124,6 +124,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
         AttachmentChips(attachments: attachments)
       }
       editor(context)
+        // A resolved request moves the VoiceOver focus back to the editor
+        // (`PendingRequestsHost.focusTarget(old:new:)`).
+        .accessibilityFocusTarget(StockPromptEditor.identifier)
         .background {
           if let commandTarget {
             ComposerCommandProbe(

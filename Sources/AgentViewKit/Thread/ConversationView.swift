@@ -258,12 +258,10 @@ public struct ConversationView<EmptyState: View>: View {
             if let turnID = turnAnchors[item.id] {
               VStack(alignment: .leading, spacing: theme.spacing.xs) {
                 ThreadTurnSummary(thread: thread, turnID: turnID)
-                ItemRow(item: item)
-                  .equatable()
+                threadRow(item)
               }
             } else {
-              ItemRow(item: item)
-                .equatable()
+              threadRow(item)
             }
           }
         }
@@ -297,6 +295,20 @@ public struct ConversationView<EmptyState: View>: View {
       anchors.onScroll = { target in scroll(to: target) }
       anchors.noteLastItemChanged(to: thread.lastItemID)
     }
+    .accessibilityReadingScope()
+  }
+
+  /// The row of one item, in the linked reading group of the thread.
+  ///
+  /// VoiceOver reads from one row into the next row
+  /// (``ThreadAccessibility/threadGroupID``).
+  ///
+  /// - Parameter item: The item.
+  /// - Returns: The row.
+  private func threadRow(_ item: ThreadItem) -> some View {
+    ItemRow(item: item)
+      .equatable()
+      .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
   }
 
   /// The row at the top of the list that shows one more page.

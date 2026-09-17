@@ -94,6 +94,9 @@ public struct PermissionView: View {
   @Environment(\.agentTheme) private var theme
   @Environment(\.agentCommandTarget) private var commandTarget
 
+  /// The action that moves the VoiceOver focus and tells the host.
+  private let moveFocus = AccessibilityFocusMove()
+
   /// Makes the card of `request`.
   ///
   /// - Parameter request: The request to answer.
@@ -127,6 +130,8 @@ public struct PermissionView: View {
     .accessibilityElement(children: .contain)
     .accessibilityLabel(request.title)
     .accessibilityIdentifier(Self.identifier)
+    .accessibilityFocusTarget(Self.identifier)
+    .onAppear { moveFocus(to: Self.identifier) }
   }
 
   /// The title and the description.

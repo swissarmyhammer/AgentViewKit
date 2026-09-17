@@ -27,6 +27,11 @@ import Textual
 /// paragraph. The paragraph index of a marker counts the paragraphs of
 /// ``markdown(of:)``. The streaming tail shows no pill, because its text is
 /// not final.
+///
+/// The settled paragraphs and the tail are in one linked reading group
+/// (plan.md §6). In a message, the group is the group of the message. The
+/// view applies ``SwiftUI/View/accessibilityReadingScope()``, so the group
+/// works also outside an ``AgentThreadView``.
 public struct ResponseView: View {
   /// The start of the accessibility identifier of each settled paragraph.
   public static let paragraphIdentifierPrefix = "response-paragraph-"
@@ -132,6 +137,7 @@ public struct ResponseView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .environment(\.codeBlockModelCache, environmentCache ?? ownCache)
     .textual.codeBlockStyle(EditorKitCodeBlockStyle())
+    .accessibilityReadingScope()
   }
 }
 
@@ -246,12 +252,14 @@ private struct StreamingTail: View {
   let streaming: StreamingMessage
 
   @Environment(\.codeBlockModelCache) private var cache
+  @Environment(\.accessibilityMessageGroupID) private var messageGroupID
 
   var body: some View {
     #if DEBUG
       BodyEvaluationCounter.note(ResponseView.tailCounterKey(messageID: messageID))
     #endif
-    return content
+    // The tail is in the reading group of the settled paragraphs.
+    return content.accessibilityReadingGroup(messageGroupID ?? messageID)
   }
 
   /// The view of the tail, or nothing when the tail is empty.

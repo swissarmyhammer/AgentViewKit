@@ -113,7 +113,7 @@ parse and the kit view. The measurement test is not kept.
 - The block `MathView` and the standalone `MathView` are their own
   elements with the same identifier and label. The element of the source
   fallback also has the source as its value.
-- Follow-up for the accessibility task ^6vztrss (linked reading groups,
-  plan.md §6): the paragraph text element does not read the math, and the
-  math elements come after the text. A reading group that puts each math
-  element at its place in the text is work for that task.
+- The accessibility task ^6vztrss (plan.md §6) puts the math in the reading
+  order: a paragraph with math is one text element whose label has the LaTeX
+  source of each span at its place (`MathMarkdownParser.spokenText(for:)`).
+  The math elements stay after the text. See `accessibility.md`.

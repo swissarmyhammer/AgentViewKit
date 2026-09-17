@@ -8,6 +8,9 @@ import SwiftUI
 /// pills. Apply `.equatable()` to the view, so that a new chunk in the
 /// streaming tail does not evaluate the body again.
 ///
+/// The paragraph is in the linked reading group of its message
+/// (plan.md §6), so VoiceOver reads from one paragraph into the next.
+///
 /// The view gives its code block identity to the environment. Thus
 /// ``EditorKitCodeBlockStyle`` gets the cached model of a fenced block from
 /// the ``CodeBlockModelCache`` of the environment.
@@ -26,6 +29,10 @@ public struct ParagraphView: View, Equatable {
 
   /// The citation pills of the paragraph.
   let citations: [CitationPlacement]
+
+  /// The linked reading group of the message that holds the view, or `nil`
+  /// to use the group of ``messageID``.
+  @Environment(\.accessibilityMessageGroupID) private var messageGroupID
 
   /// Makes the view of one settled paragraph.
   ///
@@ -46,6 +53,22 @@ public struct ParagraphView: View, Equatable {
     self.messageID = messageID
     self.paragraph = paragraph
     self.citations = citations
+  }
+
+  /// Tells whether two views show the same paragraph of the same message
+  /// with the same citation pills.
+  ///
+  /// The comparison does not include the environment. SwiftUI evaluates the
+  /// body again when an environment value that the body reads changes.
+  ///
+  /// - Parameters:
+  ///   - lhs: A paragraph view.
+  ///   - rhs: A paragraph view.
+  /// - Returns: `true` when the message id, the paragraph, and the citation
+  ///   pills are equal.
+  public static func == (lhs: ParagraphView, rhs: ParagraphView) -> Bool {
+    lhs.messageID == rhs.messageID && lhs.paragraph == rhs.paragraph
+      && lhs.citations == rhs.citations
   }
 
   /// The text form of a paragraph id: the index and the hexadecimal text
@@ -79,5 +102,6 @@ public struct ParagraphView: View, Equatable {
         CodeBlockID(messageID: messageID, paragraphID: Self.key(for: paragraph.id))
       )
       .contentContainer(identifier: ResponseView.paragraphIdentifier(index: paragraph.id.index))
+      .accessibilityReadingGroup(messageGroupID ?? messageID)
   }
 }

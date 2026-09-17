@@ -302,16 +302,18 @@ import Testing
     #expect(reporter.moves.isEmpty)
 
     thread.apply(.addPermission(Self.request))
-    await harness.pump(until: Self.waitTimeout) { !reporter.moves.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { reporter.moves.count >= 2 }
 
-    #expect(reporter.moves == [cardIdentifier])
+    // The host reports the card container, and the card reports itself.
+    #expect(Set(reporter.moves) == [cardIdentifier, PermissionView.identifier])
     #expect(harness.element(identifier: cardIdentifier) != nil)
     #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
+    let movesBeforeAnswer = reporter.moves.count
     thread.apply(.resolvePermission(PermissionRequestID(Self.requestID)))
-    await harness.pump(until: Self.waitTimeout) { reporter.moves.count >= 2 }
+    await harness.pump(until: Self.waitTimeout) { reporter.moves.count > movesBeforeAnswer }
 
-    #expect(reporter.moves == [cardIdentifier, StockPromptEditor.identifier])
+    #expect(reporter.moves.dropFirst(movesBeforeAnswer) == [StockPromptEditor.identifier])
     #expect(harness.element(identifier: cardIdentifier) == nil)
   }
 
