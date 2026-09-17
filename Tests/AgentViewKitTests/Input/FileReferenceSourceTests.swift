@@ -238,7 +238,7 @@ struct TemporaryFileRoot: ~Copyable {
     let web = text.range(of: "web")!
     text[web].link = URL(string: "https://example.com")
 
-    #expect(PromptInputView<StockPromptEditor, DefaultPromptAccessory>.attachments(in: text) == [file])
+    #expect(PromptInputView<StockPromptEditor, DefaultPromptAccessory>.attachmentURLs([], in: text) == [file])
   }
 
   // MARK: - Triggers

@@ -14,6 +14,14 @@ import SwiftUI
 /// `threadActions` environment value, clears the text, and then calls
 /// `onSubmit`. A submit does nothing while the text is blank.
 ///
+/// The composer has a list of attachments. While the list is not empty, an
+/// ``AttachmentChips`` row shows above the editor. A dropped file, a dropped
+/// image, and a pasted image go into the list
+/// (``SwiftUI/View/attachmentDropDestination(_:)``). A submit sends the
+/// files of the list, then the files that the text links to, each file one
+/// time, and clears the list. When the host gives no `attachments` binding,
+/// the composer keeps the list itself.
+///
 /// While the thread of the `agentThread` environment value runs a turn, a
 /// submit adds the text to the ``SwiftUI/EnvironmentValues/promptQueue``, or
 /// does nothing when there is no queue. When the turn ends, the view sends
@@ -28,6 +36,12 @@ import SwiftUI
 public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// The text of the prompt.
   @Binding var text: AttributedString
+
+  /// The attachments of the host, or `nil` when the composer keeps them.
+  let hostAttachments: Binding<[Attachment]>?
+
+  /// The attachments while the host gives no binding.
+  @State private var ownAttachments: [Attachment] = []
 
   /// The host closure that runs after each submit.
   let onSubmit: PromptEditorContext.Submit
@@ -48,6 +62,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   ///
   /// - Parameters:
   ///   - text: The text of the prompt.
+  ///   - attachments: The files to send with the next prompt, or `nil` to
+  ///     let the composer keep them.
   ///   - onSubmit: The host closure that runs after each submit.
   ///   - editor: The builder of the editor. It gets the context of the
   ///     composer.
@@ -55,11 +71,13 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   ///     submit action from ``SwiftUI/EnvironmentValues/promptSubmitAction``.
   public init(
     text: Binding<AttributedString>,
+    attachments: Binding<[Attachment]>? = nil,
     onSubmit: @escaping PromptEditorContext.Submit,
     @ViewBuilder editor: @escaping (PromptEditorContext) -> Editor,
     @ViewBuilder accessory: @escaping () -> Accessory
   ) {
     _text = text
+    hostAttachments = attachments
     self.onSubmit = onSubmit
     self.editor = editor
     self.accessory = accessory
@@ -80,6 +98,11 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     return isBlank ? nil : message
   }
 
+  /// The attachments of the host, or the attachments that the composer keeps.
+  private var attachments: Binding<[Attachment]> {
+    hostAttachments ?? $ownAttachments
+  }
+
   /// Whether the thread runs a turn.
   private var isRunning: Bool {
     thread?.state == .running
@@ -96,6 +119,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       onSendNow: sendNow, onCancel: isRunning ? cancelCommand : nil,
       commands: thread?.availableCommands ?? [])
     VStack(alignment: .leading, spacing: theme.spacing.s) {
+      if !attachments.wrappedValue.isEmpty {
+        AttachmentChips(attachments: attachments)
+      }
       editor(context)
         .background {
           if let commandTarget {
@@ -107,6 +133,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     }
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+    .attachmentDropDestination(attachments)
     .environment(
       \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
     .environment(\.promptText, $text)
@@ -155,27 +182,32 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     actions.startCancel()
   }
 
-  /// The files that the text links to, for the attachments of a submit.
+  /// The files of a submit: the attachment list, then the files that the
+  /// text links to.
   ///
   /// An editor marks a file reference, such as an `@file` chip of
   /// ``EditorKitPromptEditor``, with a `link` attribute that holds a file URL.
   ///
-  /// - Parameter text: The text of the prompt.
-  /// - Returns: Each linked file URL one time, in text order.
-  static func attachments(in text: AttributedString) -> [URL] {
+  /// - Parameters:
+  ///   - attachments: The attachment list of the composer.
+  ///   - text: The text of the prompt.
+  /// - Returns: Each file URL one time, in list order and then in text order.
+  static func attachmentURLs(_ attachments: [Attachment], in text: AttributedString) -> [URL] {
     var seen: Set<URL> = []
-    return text.runs.compactMap(\.link).filter { $0.isFileURL && seen.insert($0).inserted }
+    let linked = text.runs.compactMap(\.link).filter(\.isFileURL)
+    return (attachments.map(\.url) + linked).filter { seen.insert($0).inserted }
   }
 
-  /// Clears the text and returns it as an input.
+  /// Clears the text and the attachment list, and returns them as an input.
   ///
-  /// - Returns: The input, or `nil` when the text is blank. A blank text does
-  ///   not change.
+  /// - Returns: The input, or `nil` when the text is blank. A blank text and
+  ///   its attachment list do not change.
   private func takeInput() -> UserInput? {
     guard let message = Self.message(from: text) else { return nil }
-    let attachments = Self.attachments(in: text)
+    let urls = Self.attachmentURLs(attachments.wrappedValue, in: text)
     text = AttributedString()
-    return UserInput(text: message, attachments: attachments)
+    attachments.wrappedValue = []
+    return UserInput(text: message, attachments: urls)
   }
 
   /// Sends an input through the thread actions.
@@ -191,10 +223,16 @@ extension PromptInputView where Editor == StockPromptEditor, Accessory == Defaul
   ///
   /// - Parameters:
   ///   - text: The text of the prompt.
+  ///   - attachments: The files to send with the next prompt, or `nil` to
+  ///     let the composer keep them.
   ///   - onSubmit: The host closure that runs after each submit.
-  public init(text: Binding<AttributedString>, onSubmit: @escaping PromptEditorContext.Submit) {
+  public init(
+    text: Binding<AttributedString>,
+    attachments: Binding<[Attachment]>? = nil,
+    onSubmit: @escaping PromptEditorContext.Submit
+  ) {
     self.init(
-      text: text, onSubmit: onSubmit,
+      text: text, attachments: attachments, onSubmit: onSubmit,
       editor: { StockPromptEditor(context: $0) },
       accessory: { DefaultPromptAccessory() })
   }
@@ -208,16 +246,19 @@ extension PromptInputView where Accessory == DefaultPromptAccessory {
   ///
   /// - Parameters:
   ///   - text: The text of the prompt.
+  ///   - attachments: The files to send with the next prompt, or `nil` to
+  ///     let the composer keep them.
   ///   - onSubmit: The host closure that runs after each submit.
   ///   - editor: The builder of the editor. It gets the context of the
   ///     composer.
   public init(
     text: Binding<AttributedString>,
+    attachments: Binding<[Attachment]>? = nil,
     onSubmit: @escaping PromptEditorContext.Submit,
     @ViewBuilder editor: @escaping (PromptEditorContext) -> Editor
   ) {
     self.init(
-      text: text, onSubmit: onSubmit, editor: editor,
+      text: text, attachments: attachments, onSubmit: onSubmit, editor: editor,
       accessory: { DefaultPromptAccessory() })
   }
 }

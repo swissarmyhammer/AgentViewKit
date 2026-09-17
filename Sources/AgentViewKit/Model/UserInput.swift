@@ -7,9 +7,11 @@ public nonisolated struct UserInput: Sendable, Hashable {
   /// The text of the input.
   public var text: String
 
-  /// The files that the user attached, in order.
+  /// The locations of the files that the user attached, in order.
   ///
-  /// The attachments task changes this type to the `Attachment` value type.
+  /// The list holds URLs, as the `attachment(URL)` content block does
+  /// (plan.md §3.2). ``PromptInputView`` sends the URL of each ``Attachment``
+  /// of its list.
   public var attachments: [URL]
 
   /// Makes a user input.
