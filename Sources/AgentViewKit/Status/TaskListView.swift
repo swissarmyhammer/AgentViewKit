@@ -75,11 +75,11 @@ public struct TaskListView: View {
   ///   string.
   public static func statusLabel(_ status: PlanEntry.Status) -> String {
     switch status {
-    case .pending: String(localized: "Pending")
-    case .inProgress: String(localized: "In progress")
-    case .completed: String(localized: "Completed")
-    case .cancelled: String(localized: "Cancelled")
-    case .unknown(let wireValue): String(localized: "Unknown status: \(wireValue)")
+    case .pending: WorkStatusLabel.pending
+    case .inProgress: WorkStatusLabel.inProgress
+    case .completed: WorkStatusLabel.completed
+    case .cancelled: WorkStatusLabel.cancelled
+    case .unknown(let wireValue): WorkStatusLabel.unknown(wireValue)
     }
   }
 

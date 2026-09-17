@@ -137,12 +137,22 @@ public struct ToolCallView: View {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
   }
 
+  /// The accessibility identifier of a part of the call of `id`.
+  ///
+  /// - Parameters:
+  ///   - id: The identifier of the record.
+  ///   - suffix: The end of the identifier, such as ``toggleSuffix``.
+  /// - Returns: `tool-call-<id><suffix>`.
+  static func suffixedIdentifier(for id: String, suffix: String) -> String {
+    identifier(for: id) + suffix
+  }
+
   /// The accessibility identifier of the row button that expands the call.
   ///
   /// - Parameter id: The identifier of the record.
   /// - Returns: `tool-call-<id>-toggle`.
   public static func toggleIdentifier(for id: String) -> String {
-    identifier(for: id) + toggleSuffix
+    suffixedIdentifier(for: id, suffix: toggleSuffix)
   }
 
   /// The accessibility identifier of the expanded body.
@@ -150,7 +160,7 @@ public struct ToolCallView: View {
   /// - Parameter id: The identifier of the record.
   /// - Returns: `tool-call-<id>-body`.
   public static func bodyIdentifier(for id: String) -> String {
-    identifier(for: id) + bodySuffix
+    suffixedIdentifier(for: id, suffix: bodySuffix)
   }
 
   /// The accessibility identifier of the location chips.
@@ -158,7 +168,7 @@ public struct ToolCallView: View {
   /// - Parameter id: The identifier of the record.
   /// - Returns: `tool-call-<id>-locations`.
   public static func locationsIdentifier(for id: String) -> String {
-    identifier(for: id) + locationsSuffix
+    suffixedIdentifier(for: id, suffix: locationsSuffix)
   }
 
   /// The accessibility identifier of the raw input.
@@ -166,7 +176,7 @@ public struct ToolCallView: View {
   /// - Parameter id: The identifier of the record.
   /// - Returns: `tool-call-<id>-input`.
   public static func inputIdentifier(for id: String) -> String {
-    identifier(for: id) + inputSuffix
+    suffixedIdentifier(for: id, suffix: inputSuffix)
   }
 
   /// The accessibility identifier of the raw output.
@@ -174,7 +184,7 @@ public struct ToolCallView: View {
   /// - Parameter id: The identifier of the record.
   /// - Returns: `tool-call-<id>-output`.
   public static func outputIdentifier(for id: String) -> String {
-    identifier(for: id) + outputSuffix
+    suffixedIdentifier(for: id, suffix: outputSuffix)
   }
 
   /// The accessibility identifier of one part of the content.
@@ -184,7 +194,7 @@ public struct ToolCallView: View {
   ///   - index: The position of the part in ``ToolCallRecord/content``.
   /// - Returns: `tool-call-<id>-content-<index>`.
   public static func contentIdentifier(for id: String, index: Int) -> String {
-    identifier(for: id) + contentInfix + String(index)
+    suffixedIdentifier(for: id, suffix: contentInfix + String(index))
   }
 
   /// The ``BodyEvaluationCounter`` key of the row of `id`.
@@ -210,7 +220,7 @@ public struct ToolCallView: View {
   /// - Parameters:
   ///   - title: The title of the call.
   ///   - status: The progress of the call.
-  /// - Returns: "<title>, <status>", such as "Read README.md, Running".
+  /// - Returns: "<title>, <status>", such as "Read README.md, In progress".
   public static func accessibilityLabel(title: String, status: ToolCallStatus) -> String {
     String(localized: "\(displayTitle(title)), \(ToolStatusSymbol.label(for: status))")
   }

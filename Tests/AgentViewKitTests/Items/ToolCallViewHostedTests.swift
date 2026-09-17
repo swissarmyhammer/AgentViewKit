@@ -13,7 +13,7 @@
     static let tallSize = CGSize(width: 520, height: 1_400)
 
     /// The label of the fixture call while it runs.
-    static let runningLabel = "Read README.md, Running"
+    static let runningLabel = "Read README.md, In progress"
 
     /// The label of the fixture call after it completes.
     static let completedLabel = "Read README.md, Completed"
@@ -30,7 +30,7 @@
     ///   - id: The identifier of the call.
     ///   - status: The progress of the call.
     /// - Returns: The thread and the call.
-    static func callThread(id: String, status: ToolCallStatus) -> (AgentThread, ToolCallRecord) {
+    static func makeCallThread(id: String, status: ToolCallStatus) -> (AgentThread, ToolCallRecord) {
       let thread = AgentThread()
       let call = ThreadFixtures.toolCall(id: id, status: status)
       thread.apply(.insert(.toolCall(call), after: nil))
@@ -41,7 +41,7 @@
     ///
     /// - Parameter id: The identifier of the call.
     /// - Returns: The store.
-    static func expandedStore(_ id: String) -> ExpandedBlocksStore {
+    static func makeExpandedStore(_ id: String) -> ExpandedBlocksStore {
       let store = ExpandedBlocksStore()
       store.expand(id)
       return store
@@ -63,7 +63,7 @@
 
     @Test func theLabelChangesWithTheStatus() async {
       let id = "label-call"
-      let (thread, call) = Self.callThread(id: id, status: .inProgress)
+      let (thread, call) = Self.makeCallThread(id: id, status: .inProgress)
       let harness = HostedViewHarness { ToolCallView(record: call) }
       defer { harness.close() }
       harness.pump()
@@ -79,7 +79,7 @@
 
     @Test func theThreadViewShowsTheToolCallView() {
       let id = "thread-call"
-      let (thread, _) = Self.callThread(id: id, status: .completed)
+      let (thread, _) = Self.makeCallThread(id: id, status: .completed)
       let harness = HostedViewHarness(AgentThreadView(thread: thread))
       defer { harness.close() }
       harness.pump()
@@ -92,8 +92,8 @@
 
     @Test func aStatusPatchEvaluatesTheRowAndNotTheExpandedBody() {
       let id = "patch-count-call"
-      let (thread, call) = Self.callThread(id: id, status: .inProgress)
-      let store = Self.expandedStore(id)
+      let (thread, call) = Self.makeCallThread(id: id, status: .inProgress)
+      let store = Self.makeExpandedStore(id)
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
           .environment(\.expandedBlocksStore, store)
@@ -165,7 +165,7 @@
         rawOutput: .object(["exitCode": .number(0)]))
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.expandedStore(id))
+          .environment(\.expandedBlocksStore, Self.makeExpandedStore(id))
       }
       defer { harness.close() }
       harness.pump()
@@ -186,7 +186,7 @@
       thread.apply(.insert(.toolCall(call), after: nil))
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.expandedStore(id))
+          .environment(\.expandedBlocksStore, Self.makeExpandedStore(id))
           .environment(\.agentThread, thread)
       }
       defer { harness.close() }
@@ -209,7 +209,7 @@
         ])
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.expandedStore(id))
+          .environment(\.expandedBlocksStore, Self.makeExpandedStore(id))
       }
       defer { harness.close() }
       harness.pump()

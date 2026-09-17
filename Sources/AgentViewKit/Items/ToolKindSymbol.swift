@@ -30,7 +30,8 @@ public nonisolated enum ToolKindSymbol {
 ///
 /// ``ToolCallView`` shows the symbol at the end of the row, and VoiceOver
 /// reads the label. Each status has a different symbol and a different
-/// label. All unknown statuses share one symbol and one label.
+/// label. All unknown statuses share one symbol, and each label of an
+/// unknown status has its wire string.
 public nonisolated enum ToolStatusSymbol {
   /// The SF Symbol name of a call with `status`.
   ///
@@ -50,17 +51,21 @@ public nonisolated enum ToolStatusSymbol {
 
   /// The text that tells the status of a call.
   ///
+  /// The steps that a plan entry also has use the names of
+  /// ``WorkStatusLabel``.
+  ///
   /// - Parameter status: The progress of the call.
-  /// - Returns: The label, such as "Running".
+  /// - Returns: The label, such as "In progress". An unknown status gives its
+  ///   wire string.
   public static func label(for status: ToolCallStatus) -> String {
     switch status {
-    case .pending: String(localized: "Pending")
-    case .inProgress: String(localized: "Running")
-    case .completed: String(localized: "Completed")
-    case .failed: String(localized: "Failed")
-    case .cancelled: String(localized: "Cancelled")
+    case .pending: WorkStatusLabel.pending
+    case .inProgress: WorkStatusLabel.inProgress
+    case .completed: WorkStatusLabel.completed
+    case .failed: WorkStatusLabel.failed
+    case .cancelled: WorkStatusLabel.cancelled
     case .lost: String(localized: "Result lost")
-    case .unknown: String(localized: "Unknown status")
+    case .unknown(let wireValue): WorkStatusLabel.unknown(wireValue)
     }
   }
 

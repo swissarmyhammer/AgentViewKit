@@ -49,15 +49,28 @@ import Testing
   @Test func theStatusLabelsAreTheExpectedText() {
     let expected: [(ToolCallStatus, String)] = [
       (.pending, "Pending"),
-      (.inProgress, "Running"),
+      (.inProgress, "In progress"),
       (.completed, "Completed"),
       (.failed, "Failed"),
       (.cancelled, "Cancelled"),
       (.lost, "Result lost"),
-      (.unknown("custom_status"), "Unknown status"),
+      (.unknown("custom_status"), "Unknown status: custom_status"),
     ]
     for (status, label) in expected {
       #expect(ToolStatusSymbol.label(for: status) == label)
+    }
+  }
+
+  @Test func aToolCallAndAPlanEntryShareTheNameOfEachCommonStatus() {
+    let pairs: [(ToolCallStatus, PlanEntry.Status)] = [
+      (.pending, .pending),
+      (.inProgress, .inProgress),
+      (.completed, .completed),
+      (.cancelled, .cancelled),
+      (.unknown("other"), .unknown("other")),
+    ]
+    for (toolStatus, planStatus) in pairs {
+      #expect(ToolStatusSymbol.label(for: toolStatus) == TaskListView.statusLabel(planStatus))
     }
   }
 
@@ -71,7 +84,7 @@ import Testing
   @Test func theAccessibilityLabelIsTheTitleAndTheStatus() {
     #expect(
       ToolCallView.accessibilityLabel(title: "Read README.md", status: .inProgress)
-        == "Read README.md, Running")
+        == "Read README.md, In progress")
     #expect(ToolCallView.accessibilityLabel(title: "", status: .lost) == "Tool call, Result lost")
   }
 
