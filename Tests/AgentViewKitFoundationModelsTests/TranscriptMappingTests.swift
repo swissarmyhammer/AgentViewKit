@@ -3,7 +3,9 @@ import AgentViewKitFoundationModels
 import CoreGraphics
 import Foundation
 import FoundationModels
+import ImageIO
 import Testing
+import UniformTypeIdentifiers
 
 /// The transcripts that the mapping tests read.
 enum TranscriptSamples {
@@ -31,6 +33,9 @@ enum TranscriptSamples {
   /// The name of the tool.
   static let toolName = "readFile"
 
+  /// The label of the image attachment.
+  static let imageLabel = "Screenshot"
+
   /// The text of the instructions.
   static let instructionsText = "You are a helpful agent."
 
@@ -46,8 +51,11 @@ enum TranscriptSamples {
   /// The text of the response.
   static let responseText = "The file says hello."
 
-  /// The arguments of the tool call, as JSON.
-  static let argumentsJSON = #"{"path":"README.md"}"#
+  /// The path argument of the tool call.
+  static let pathArgument = "README.md"
+
+  /// The arguments of the tool call, as a kit value.
+  static let arguments = AgentViewKit.JSONValue.object(["path": .string(pathArgument)])
 
   /// The width and the height of the sample image, in pixels.
   static let imageSide = 2
@@ -58,11 +66,11 @@ enum TranscriptSamples {
   /// The number of bytes in each pixel of the sample image.
   static let bytesPerPixel = 4
 
-  /// The number of items that ``fullTranscript(includesOutput:)`` gives.
-  static let fullItemCount = 5
+  /// The kinds of the items of ``fullTranscript(includesOutput:)``, in order.
+  static let fullItemKinds = ["system", "userMessage", "reasoning", "toolCall", "assistantMessage"]
 
-  /// The signature of the PNG file format.
-  static let pngSignature = Data([0x89, 0x50, 0x4E, 0x47])
+  /// The ids of the items of ``fullTranscript(includesOutput:)``, in order.
+  static let fullItemIDs = [instructionsID, promptID, reasoningID, toolCallID, responseID]
 
   /// A small opaque image.
   static func image() throws -> CGImage {
@@ -72,14 +80,14 @@ enum TranscriptSamples {
         bytesPerRow: imageSide * bytesPerPixel, space: CGColorSpaceCreateDeviceRGB(),
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
     context.setFillColor(CGColor.black)
-    context.fill(CGRect(x: 0, y: 0, width: imageSide, height: imageSide))
+    context.fill(CGRect(origin: .zero, size: CGSize(width: imageSide, height: imageSide)))
     return try #require(context.makeImage())
   }
 
   /// A tool call with the sample arguments.
   static func toolCall() throws -> Transcript.ToolCall {
     Transcript.ToolCall(
-      id: toolCallID, toolName: toolName, arguments: try GeneratedContent(json: argumentsJSON))
+      id: toolCallID, toolName: toolName, arguments: try TranscriptMapping.generatedContent(from: arguments))
   }
 
   /// A transcript with instructions, a prompt with an image, a reasoning
@@ -89,7 +97,7 @@ enum TranscriptSamples {
   ///   tool call.
   /// - Returns: The transcript.
   static func fullTranscript(includesOutput: Bool = true) throws -> Transcript {
-    var entries: [Transcript.Entry] = [
+    let before: [Transcript.Entry] = [
       .instructions(
         Transcript.Instructions(
           id: instructionsID, segments: [.text(.init(content: instructionsText))], toolDefinitions: [])),
@@ -98,31 +106,28 @@ enum TranscriptSamples {
           id: promptID,
           segments: [
             .text(.init(content: promptText)),
-            .attachment(.init(content: .image(.init(try image())), label: "Screenshot")),
+            .attachment(.init(content: .image(.init(try image())), label: imageLabel)),
           ])),
       .reasoning(
         Transcript.Reasoning(id: reasoningID, segments: [.text(.init(content: reasoningText))])),
       .toolCalls(Transcript.ToolCalls(id: toolCallsID, [try toolCall()])),
     ]
-    if includesOutput {
-      entries.append(
-        .toolOutput(
-          Transcript.ToolOutput(
-            id: toolCallID, toolName: toolName, segments: [.text(.init(content: outputText))])))
-    }
-    entries.append(
-      .response(
-        Transcript.Response(id: responseID, segments: [.text(.init(content: responseText))])))
-    return Transcript(entries: entries)
+    let output: [Transcript.Entry] = [
+      .toolOutput(
+        Transcript.ToolOutput(id: toolCallID, toolName: toolName, segments: [.text(.init(content: outputText))]))
+    ]
+    let response: Transcript.Entry = .response(
+      Transcript.Response(id: responseID, segments: [.text(.init(content: responseText))]))
+    return Transcript(entries: before + (includesOutput ? output : []) + [response])
   }
 
   /// A transcript with one prompt that holds a structured segment.
   ///
   /// - Parameters:
   ///   - schemaName: The schema name of the segment.
-  ///   - json: The JSON body of the segment.
+  ///   - body: The JSON body of the segment.
   /// - Returns: The transcript.
-  static func structuredTranscript(schemaName: String, json: String) throws -> Transcript {
+  static func structuredTranscript(schemaName: String, body: AgentViewKit.JSONValue) throws -> Transcript {
     Transcript(entries: [
       .prompt(
         Transcript.Prompt(
@@ -131,7 +136,8 @@ enum TranscriptSamples {
             .text(.init(content: promptText)),
             .structure(
               Transcript.StructuredSegment(
-                id: structuredID, schemaName: schemaName, content: try GeneratedContent(json: json))),
+                id: structuredID, schemaName: schemaName,
+                content: try TranscriptMapping.generatedContent(from: body))),
           ]))
     ])
   }
@@ -152,59 +158,93 @@ private func kindName(_ item: ThreadItem) -> String {
   }
 }
 
+/// The item with an id.
+///
+/// - Parameters:
+///   - id: The id of the item.
+///   - items: The items to search.
+/// - Returns: The item.
+/// - Throws: ``MappingTestError/noItem`` when no item has `id`.
+private func item(_ id: String, in items: [ThreadItem]) throws -> ThreadItem {
+  guard let item = items.first(where: { $0.id == id }) else { throw MappingTestError.noItem }
+  return item
+}
+
 @Suite @MainActor struct TranscriptMappingTests {
   /// The sample approval payload.
   static let approval = ApprovalPayload(
     id: "approval-1", title: "Delete the build folder", description: "The agent wants to delete it.",
     options: ["Allow", "Deny"])
 
+  /// The schema name that the catalog does not know.
+  static let unknownSchemaName = "Host.Chart"
+
+  /// The points of the unknown chart body.
+  static let chartPoints: [Double] = [1, 2]
+
+  /// The body of the unknown chart segment.
+  static let chartBody = AgentViewKit.JSONValue.object(["points": .array(chartPoints.map { .number($0) })])
+
+  /// An approval body in which the id has the wrong type.
+  static let badApprovalBody = AgentViewKit.JSONValue.object(["id": .bool(true)])
+
   @Test func aFullTranscriptMapsToFiveItemsInOrder() throws {
     let items = TranscriptMapping.items(for: try TranscriptSamples.fullTranscript())
 
-    #expect(items.map(kindName) == ["system", "userMessage", "reasoning", "toolCall", "assistantMessage"])
-    #expect(
-      items.map(\.id) == [
-        TranscriptSamples.instructionsID, TranscriptSamples.promptID, TranscriptSamples.reasoningID,
-        TranscriptSamples.toolCallID, TranscriptSamples.responseID,
-      ])
+    #expect(items.map(kindName) == TranscriptSamples.fullItemKinds)
+    #expect(items.map(\.id) == TranscriptSamples.fullItemIDs)
   }
 
   @Test func eachRecordHoldsTheContentOfItsEntry() throws {
     let items = TranscriptMapping.items(for: try TranscriptSamples.fullTranscript())
-    try #require(items.count == TranscriptSamples.fullItemCount)
 
-    guard case .system(let system) = items[0] else { throw MappingTestError.wrongKind }
+    guard case .system(let system) = try item(TranscriptSamples.instructionsID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
     #expect(system.text == TranscriptSamples.instructionsText)
 
-    guard case .userMessage(let prompt) = items[1] else { throw MappingTestError.wrongKind }
+    guard case .reasoning(let reasoning) = try item(TranscriptSamples.reasoningID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
+    #expect(reasoning.text == TranscriptSamples.reasoningText)
+
+    guard case .assistantMessage(let response) = try item(TranscriptSamples.responseID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
+    #expect(response.blocks == [ContentBlock(text: TranscriptSamples.responseText)])
+  }
+
+  @Test func aPromptImageBecomesAPNGImageBlock() throws {
+    let items = TranscriptMapping.items(for: try TranscriptSamples.fullTranscript())
+    guard case .userMessage(let prompt) = try item(TranscriptSamples.promptID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
+
     #expect(prompt.blocks.map(\.kind) == [.text, .image])
     #expect(prompt.blocks.first?.content == .text(TranscriptSamples.promptText))
     guard case .image(let image) = prompt.blocks.last?.content else { throw MappingTestError.wrongKind }
-    #expect(image.mimeType == "image/png")
-    #expect(image.data.starts(with: TranscriptSamples.pngSignature))
-
-    guard case .reasoning(let reasoning) = items[2] else { throw MappingTestError.wrongKind }
-    #expect(reasoning.text == TranscriptSamples.reasoningText)
-
-    guard case .assistantMessage(let response) = items[4] else { throw MappingTestError.wrongKind }
-    #expect(response.blocks == [ContentBlock(text: TranscriptSamples.responseText)])
+    #expect(image.mimeType == UTType.png.preferredMIMEType)
+    let source = try #require(CGImageSourceCreateWithData(image.data as CFData, nil))
+    #expect(CGImageSourceGetType(source) as String? == UTType.png.identifier)
+    let decoded = try #require(CGImageSourceCreateImageAtIndex(source, .zero, nil))
+    #expect(decoded.width == TranscriptSamples.imageSide)
   }
 
   @Test func aPairedToolCallIsCompletedWithItsOutput() throws {
     let items = TranscriptMapping.items(for: try TranscriptSamples.fullTranscript())
-    guard case .toolCall(let call) = items.first(where: { $0.id == TranscriptSamples.toolCallID }) else {
+    guard case .toolCall(let call) = try item(TranscriptSamples.toolCallID, in: items) else {
       throw MappingTestError.wrongKind
     }
 
     #expect(call.title == TranscriptSamples.toolName)
     #expect(call.status == .completed)
-    #expect(call.rawInput == .object(["path": .string("README.md")]))
+    #expect(call.rawInput == TranscriptSamples.arguments)
     #expect(call.content == [.block(ContentBlock(text: TranscriptSamples.outputText))])
   }
 
   @Test func anUnpairedToolCallIsInProgress() throws {
     let items = TranscriptMapping.items(for: try TranscriptSamples.fullTranscript(includesOutput: false))
-    guard case .toolCall(let call) = items.first(where: { $0.id == TranscriptSamples.toolCallID }) else {
+    guard case .toolCall(let call) = try item(TranscriptSamples.toolCallID, in: items) else {
       throw MappingTestError.wrongKind
     }
 
@@ -212,7 +252,7 @@ private func kindName(_ item: ThreadItem) -> String {
     #expect(call.content.isEmpty)
   }
 
-  @Test func anOutputWithNoCallIsACompletedToolCall() {
+  @Test func anOutputWithNoCallIsACompletedToolCall() throws {
     let transcript = Transcript(entries: [
       .toolOutput(
         Transcript.ToolOutput(
@@ -221,9 +261,9 @@ private func kindName(_ item: ThreadItem) -> String {
     ])
     let items = TranscriptMapping.items(for: transcript)
 
-    guard case .toolCall(let call)? = items.first, items.count == 1 else {
-      Issue.record("The output gives \(items.map(kindName)).")
-      return
+    #expect(items.map(kindName) == ["toolCall"])
+    guard case .toolCall(let call) = try item(TranscriptSamples.toolCallID, in: items) else {
+      throw MappingTestError.wrongKind
     }
     #expect(call.status == .completed)
     #expect(call.title == TranscriptSamples.toolName)
@@ -232,7 +272,7 @@ private func kindName(_ item: ThreadItem) -> String {
   @Test func aCatalogSegmentDecodesToTheTypedPayload() throws {
     let segment = Transcript.StructuredSegment(
       id: TranscriptSamples.structuredID, schemaName: ApprovalPayload.schemaName,
-      content: try GeneratedContent(json: Self.approval.jsonValue().jsonString))
+      content: try TranscriptMapping.generatedContent(from: Self.approval.jsonValue()))
 
     guard case .block(let block) = TranscriptMapping.structuredContent(for: segment) else {
       throw MappingTestError.wrongKind
@@ -246,33 +286,36 @@ private func kindName(_ item: ThreadItem) -> String {
 
   @Test func aCatalogSegmentStaysInItsMessage() throws {
     let transcript = try TranscriptSamples.structuredTranscript(
-      schemaName: ApprovalPayload.schemaName, json: Self.approval.jsonValue().jsonString)
+      schemaName: ApprovalPayload.schemaName, body: Self.approval.jsonValue())
     let items = TranscriptMapping.items(for: transcript)
 
-    guard case .userMessage(let message)? = items.first, items.count == 1 else {
-      Issue.record("The transcript gives \(items.map(kindName)).")
-      return
+    #expect(items.map(kindName) == ["userMessage"])
+    guard case .userMessage(let message) = try item(TranscriptSamples.promptID, in: items) else {
+      throw MappingTestError.wrongKind
     }
     #expect(message.blocks.map(\.kind) == [.text, .structured])
   }
 
   @Test func anUnknownSchemaNameBecomesAStructuredRecord() throws {
-    let schemaName = "Host.Chart"
-    let transcript = try TranscriptSamples.structuredTranscript(schemaName: schemaName, json: #"{"points":[1,2]}"#)
+    let transcript = try TranscriptSamples.structuredTranscript(
+      schemaName: Self.unknownSchemaName, body: Self.chartBody)
     let items = TranscriptMapping.items(for: transcript)
 
     #expect(items.map(kindName) == ["userMessage", "structured"])
-    guard case .structured(let record) = items.last else { throw MappingTestError.wrongKind }
-    #expect(record.id == TranscriptSamples.structuredID)
-    #expect(record.schemaName == schemaName)
-    #expect(record.payload == .object(["points": .array([.number(1), .number(2)])]))
-    guard case .userMessage(let message) = items.first else { throw MappingTestError.wrongKind }
+    guard case .structured(let record) = try item(TranscriptSamples.structuredID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
+    #expect(record.schemaName == Self.unknownSchemaName)
+    #expect(record.payload == Self.chartBody)
+    guard case .userMessage(let message) = try item(TranscriptSamples.promptID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
     #expect(message.blocks.map(\.kind) == [.text])
   }
 
   @Test func aCatalogNameWithABadBodyBecomesAStructuredRecord() throws {
     let transcript = try TranscriptSamples.structuredTranscript(
-      schemaName: ApprovalPayload.schemaName, json: #"{"id":true}"#)
+      schemaName: ApprovalPayload.schemaName, body: Self.badApprovalBody)
     let items = TranscriptMapping.items(for: transcript)
 
     #expect(items.map(kindName) == ["userMessage", "structured"])
@@ -287,13 +330,15 @@ private func kindName(_ item: ThreadItem) -> String {
     ])
     let items = TranscriptMapping.items(for: transcript)
 
-    guard case .userMessage(let message)? = items.first else { throw MappingTestError.wrongKind }
+    guard case .userMessage(let message) = try item(TranscriptSamples.promptID, in: items) else {
+      throw MappingTestError.wrongKind
+    }
     #expect(message.meta == .object(["source": .string("voice")]))
   }
 
   @Test func jsonValuesRoundTripThroughGeneratedContent() throws {
     let value = AgentViewKit.JSONValue.object([
-      "name": .string("chart"), "count": .number(2), "flags": .array([.bool(true), .null]),
+      "name": .string("chart"), "points": Self.chartBody, "flags": .array([.bool(true), .null]),
     ])
 
     let content = try TranscriptMapping.generatedContent(from: value)
@@ -301,7 +346,11 @@ private func kindName(_ item: ThreadItem) -> String {
   }
 }
 
-/// The error that a mapping test throws when an item has the wrong kind.
+/// The error that a mapping test throws when the items are not as expected.
 enum MappingTestError: Error {
+  /// An item has the wrong kind.
   case wrongKind
+
+  /// No item has the expected id.
+  case noItem
 }

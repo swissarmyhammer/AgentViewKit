@@ -66,15 +66,16 @@ public enum TranscriptMapping {
     for transcript: Transcript,
     catalog: StructuredCatalog = .standard
   ) -> [ThreadItem] {
-    var outputs: [String: Transcript.ToolOutput] = [:]
-    var callIDs: Set<String> = []
-    for entry in transcript {
-      switch entry {
-      case .toolOutput(let output): outputs[output.id] = output
-      case .toolCalls(let calls): callIDs.formUnion(calls.map(\.id))
-      default: break
-      }
+    let outputList = transcript.compactMap { entry -> Transcript.ToolOutput? in
+      guard case .toolOutput(let output) = entry else { return nil }
+      return output
     }
+    let outputs = Dictionary(outputList.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+    let callIDs = Set(
+      transcript.flatMap { entry -> [String] in
+        guard case .toolCalls(let calls) = entry else { return [] }
+        return calls.map(\.id)
+      })
     return transcript.flatMap { entry in
       items(for: entry, outputs: outputs, callIDs: callIDs, catalog: catalog)
     }
@@ -143,29 +144,35 @@ public enum TranscriptMapping {
     catalog: StructuredCatalog,
     makeItem: (Message) -> ThreadItem
   ) -> [ThreadItem] {
-    var blocks: [ContentBlock] = []
-    var records: [StructuredRecord] = []
-    for segment in segments {
+    let contents = segments.map { segment in
       guard case .structure(let structured) = segment else {
-        blocks.append(contentBlock(for: segment))
-        continue
+        return StructuredContent.block(contentBlock(for: segment))
       }
-      switch structuredContent(for: structured, catalog: catalog) {
-      case .block(let block): blocks.append(block)
-      case .record(let record): records.append(record)
-      }
+      return structuredContent(for: structured, catalog: catalog)
     }
-    let message = makeItem(Message(id: id, blocks: blocks, meta: meta))
-    return [message] + records.map(ThreadItem.structured)
+    let message = makeItem(Message(id: id, blocks: contents.compactMap(\.block), meta: meta))
+    return [message] + contents.compactMap(\.record).map(ThreadItem.structured)
   }
 
-  /// The result of the mapping of one structured segment.
+  /// The result of the mapping of one segment of a message.
   public enum StructuredContent {
-    /// A structured block with the payload of a catalog type.
+    /// A block that stays in the message.
     case block(ContentBlock)
 
-    /// A record for a segment that the catalog does not claim.
+    /// A record for a structured segment that the catalog does not claim.
     case record(StructuredRecord)
+
+    /// The block of the result, or `nil` for a record.
+    var block: ContentBlock? {
+      guard case .block(let block) = self else { return nil }
+      return block
+    }
+
+    /// The record of the result, or `nil` for a block.
+    var record: StructuredRecord? {
+      guard case .record(let record) = self else { return nil }
+      return record
+    }
   }
 
   /// Changes a structured segment into a block or a record.
