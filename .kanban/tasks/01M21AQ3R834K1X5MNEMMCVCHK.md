@@ -9,12 +9,21 @@ comments:
     - commit: 623cd33 feat(citations): add SourcesView and InlineCitation (^mmcvchk)
     - review: `review sha HEAD~1..HEAD` gave 9 findings (swift/immutability x5, reuse/reuse x1, duplication/duplication x1, code-hygiene/magic-numbers-swift x2). The task goes back to implement.
   timestamp: 2026-09-17T07:50:53.148911+00:00
+- actor: claude-code
+  id: 01m2q60qdb7kpkpzfc1hfpqphk
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: fixed all 9 findings. Added `TextMarker` (Sources/AgentViewKit/Content/TextMarker.swift) as the shared marker split and run rewrite of MathMarkdownParser and CitationMarkdownParser. Removed the mutable accumulators in CitationProse.swift. Named the padding side count in InlineCitationMetrics.
+    - test: `timeout 1500 swift test` passed. AgentViewKitTests 1212, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. `Scripts/check-benchmarks.sh` passed.
+    - commit: c81f260 refactor(citations): share the marker split with the math parser (^mmcvchk)
+    - review: `review sha HEAD~1..HEAD` gave 0 findings. All prior items are checked. The task goes to done.
+  timestamp: 2026-09-17T07:59:06.155215+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21ABXR3PMT1VCWPJK80Z9E8
 - 01M21AH4QCEFEBPTZ8GR061H51
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: c580
 title: SourcesView and InlineCitation from the citation payload (plan §9 C)
 ---
 ## What
@@ -58,3 +67,9 @@ Create `Sources/AgentViewKit/Citations/SourcesView.swift` and `InlineCitation.sw
 - [x] `Sources/AgentViewKit/Citations/CitationProse.swift:186` `duplication/duplication` — Attributed-string run processing duplicates MathMarkdownParser.attributedString (0.95 similarity). Both iterate parsed runs, check for markers, skip code blocks, split into parts, and rebuild with attachments. Differences are only marker characters and attachment factories — this is one function with arguments. Extract a shared parameterized processor accepting marker-checking and attachment-building closures, so the run-iteration loop and code-block logic are maintained in one place and cannot diverge.
 - [x] `Sources/AgentViewKit/Citations/InlineCitation.swift:217` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Sources/AgentViewKit/Citations/InlineCitation.swift:218` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+
+## Review Findings (2026-09-17 02:56)
+
+> Scope: `review sha HEAD~1..HEAD` (commit c81f260). 5 files reviewed. 2 `.kanban/` files not reviewed (ignore rule).
+
+No findings. All prior items are checked.
