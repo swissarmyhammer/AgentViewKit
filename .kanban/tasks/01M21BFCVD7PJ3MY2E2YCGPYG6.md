@@ -22,6 +22,15 @@ comments:
     - commit: 6545e16
     - review: 1 new finding (swift/access-control on BranchNavigator.swift:53, input property `messageID` must be `internal`). Fixed: `internal let messageID`; tests pass again (same counts).
   timestamp: 2026-09-17T08:40:55.860824+00:00
+- actor: claude-code
+  id: 01m2q8m5wf1hv3pxs55cmd4w8z
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: `messageID` changed to `internal let` (fix for the 03:36 finding).
+    - test: swift test exit 0. AgentViewKitTests 1261, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. No new warnings.
+    - commit: 4a57bfa
+    - review: 1 new finding (swift/access-control on BranchNavigator.swift:53, an input property must have no explicit `internal`). This finding is different from the 03:36 finding, which permitted both forms. Fixed: `let messageID: String`. The other internal members keep the explicit modifier (03:28 rule). Tests pass again (same counts).
+  timestamp: 2026-09-17T08:44:40.719625+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21AHDHY0H7A92PP2KTRTZEZ
@@ -56,3 +65,7 @@ Create `Sources/AgentViewKit/Model/Branches.swift` and `Sources/AgentViewKit/Ite
 ## Review Findings (2026-09-17 03:36)
 
 - [x] `Sources/AgentViewKit/Items/BranchNavigator.swift:53` `swift/access-control` — Input property `messageID` should be `internal`, not `private`. SwiftUI views should keep input properties (those passed via `init` parameters) at `internal` access level and reserve `private` for dynamic properties like `@State` and `@Environment`. Making an input property `private` forces an unnecessary hand-written `init` that merely assigns the parameter to the property. Change `private let messageID: String` to `internal let messageID: String` or remove the access modifier entirely to use the default `internal`.
+
+## Review Findings (2026-09-17 03:41)
+
+- [x] `Sources/AgentViewKit/Items/BranchNavigator.swift:53` `swift/access-control` — SwiftUI view input properties should be implicitly internal, not explicitly marked with the `internal` modifier. The explicit keyword is redundant and violates the idiomatic form for SwiftUI views. Change `internal let messageID: String` to `let messageID: String` to follow SwiftUI idiom.
