@@ -202,19 +202,16 @@ private struct ThreadReasoningView: View {
   }
 }
 
-/// Shows the registration of the schema name of a structured record, or
-/// ``StructuredItemView`` when the name has no registration (plan.md §3.6).
+/// Shows the structured value of a record through
+/// ``RegisteredStructuredView``.
+///
+/// This body reads the record, so that a change to the record evaluates only
+/// this view.
 private struct RegisteredStructuredItemView: View {
   /// The record to show.
   let record: StructuredRecord
 
-  @Environment(\.structuredItemRegistry) private var registry
-
   var body: some View {
-    if let renderer = registry.resolve(schemaName: record.schemaName) {
-      renderer(StructuredItemContent(record: record))
-    } else {
-      StructuredItemView(record: record)
-    }
+    RegisteredStructuredView(content: StructuredItemContent(record: record), id: record.id)
   }
 }

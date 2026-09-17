@@ -4,8 +4,8 @@ import SwiftUI
 import Textual
 import UniformTypeIdentifiers
 
-/// The sizes of the default attachment views.
-private enum PreviewLayout {
+/// The sizes of the default attachment and content block views.
+enum PreviewLayout {
   /// The largest height of an image or a document thumbnail, in points.
   static let maximumPreviewHeight: CGFloat = 240
 
@@ -244,7 +244,9 @@ nonisolated enum AttachmentTextLoader {
 // MARK: - Media
 
 /// An AVKit player for an audio or a movie file.
-private struct MediaPlayerPreview: View {
+///
+/// ``AudioPlayerView`` uses this view for a sound block.
+struct MediaPlayerPreview: View {
   /// The media file.
   let url: URL
 

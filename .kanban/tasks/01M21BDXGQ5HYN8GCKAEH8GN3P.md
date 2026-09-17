@@ -7,8 +7,8 @@ comments:
 depends_on:
 - 01M21AH4QCEFEBPTZ8GR061H51
 - 01M21AM66JDT2YAVFPWSQFHEXD
-position_column: todo
-position_ordinal: b480
+position_column: doing
+position_ordinal: '8180'
 title: 'ContentBlockView family: image, audio, resource link, resource, attachment, structured, unknown (plan §9 A2)'
 ---
 ## What

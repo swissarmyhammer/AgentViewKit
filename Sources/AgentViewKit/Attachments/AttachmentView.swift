@@ -110,7 +110,10 @@ public struct AttachmentView: View {
 }
 
 /// Runs an action on a tap and on the default accessibility action.
-private struct SelectOnTap: ViewModifier {
+///
+/// ``AttachmentView`` and ``ImageView`` use this modifier to select a file in
+/// the inspector.
+struct SelectOnTap: ViewModifier {
   /// The action to run.
   let action: () -> Void
 
