@@ -79,7 +79,7 @@ public struct TaskListView: View {
     case .inProgress: WorkStatusLabel.inProgress
     case .completed: WorkStatusLabel.completed
     case .cancelled: WorkStatusLabel.cancelled
-    case .unknown(let wireValue): WorkStatusLabel.unknown(wireValue)
+    case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
     }
   }
 

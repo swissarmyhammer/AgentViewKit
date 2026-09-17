@@ -51,8 +51,8 @@ public nonisolated enum ToolStatusSymbol {
 
   /// The text that tells the status of a call.
   ///
-  /// The steps that a plan entry also has use the names of
-  /// ``WorkStatusLabel``.
+  /// A status that a plan entry also has uses the same name as in
+  /// ``TaskListView/statusLabel(_:)``.
   ///
   /// - Parameter status: The progress of the call.
   /// - Returns: The label, such as "In progress". An unknown status gives its
@@ -65,7 +65,7 @@ public nonisolated enum ToolStatusSymbol {
     case .failed: WorkStatusLabel.failed
     case .cancelled: WorkStatusLabel.cancelled
     case .lost: String(localized: "Result lost")
-    case .unknown(let wireValue): WorkStatusLabel.unknown(wireValue)
+    case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
     }
   }
 

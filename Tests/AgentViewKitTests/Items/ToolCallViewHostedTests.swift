@@ -41,7 +41,7 @@
     ///
     /// - Parameter id: The identifier of the call.
     /// - Returns: The store.
-    static func makeExpandedStore(_ id: String) -> ExpandedBlocksStore {
+    static func makeExpandedStore(for id: String) -> ExpandedBlocksStore {
       let store = ExpandedBlocksStore()
       store.expand(id)
       return store
@@ -93,7 +93,7 @@
     @Test func aStatusPatchEvaluatesTheRowAndNotTheExpandedBody() {
       let id = "patch-count-call"
       let (thread, call) = Self.makeCallThread(id: id, status: .inProgress)
-      let store = Self.makeExpandedStore(id)
+      let store = Self.makeExpandedStore(for: id)
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
           .environment(\.expandedBlocksStore, store)
@@ -165,7 +165,7 @@
         rawOutput: .object(["exitCode": .number(0)]))
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.makeExpandedStore(id))
+          .environment(\.expandedBlocksStore, Self.makeExpandedStore(for: id))
       }
       defer { harness.close() }
       harness.pump()
@@ -186,7 +186,7 @@
       thread.apply(.insert(.toolCall(call), after: nil))
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.makeExpandedStore(id))
+          .environment(\.expandedBlocksStore, Self.makeExpandedStore(for: id))
           .environment(\.agentThread, thread)
       }
       defer { harness.close() }
@@ -209,7 +209,7 @@
         ])
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.makeExpandedStore(id))
+          .environment(\.expandedBlocksStore, Self.makeExpandedStore(for: id))
       }
       defer { harness.close() }
       harness.pump()
