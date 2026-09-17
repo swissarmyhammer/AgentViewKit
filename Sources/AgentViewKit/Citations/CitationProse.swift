@@ -28,13 +28,13 @@ nonisolated extension CitationPayload {
   /// - Parameter blocks: The blocks of a message.
   /// - Returns: The payload, or `nil` when no citation block decodes.
   static func first(in blocks: [ContentBlock]) -> CitationPayload? {
-    for block in blocks where block.isCitation && block.isVisible(to: .user) {
-      guard case .structured(_, let payload) = block.content else { continue }
-      if let citation = try? CitationPayload(content: payload) {
-        return citation
+    blocks.lazy
+      .filter { block in block.isCitation && block.isVisible(to: .user) }
+      .compactMap { block -> CitationPayload? in
+        guard case .structured(_, let payload) = block.content else { return nil }
+        return try? CitationPayload(content: payload)
       }
-    }
-    return nil
+      .first
   }
 
   /// The pills of each paragraph, keyed by the paragraph index.
@@ -45,17 +45,16 @@ nonisolated extension CitationPayload {
   ///
   /// - Returns: The placements of each paragraph that has a pill.
   func placementsByParagraph() -> [Int: [CitationPlacement]] {
-    var numbers: [String: Int] = [:]
-    for (position, source) in sources.enumerated() where numbers[source.id] == nil {
-      numbers[source.id] = position + 1
+    let numbers = Dictionary(
+      sources.enumerated().map { position, source in (source.id, position + 1) },
+      uniquingKeysWith: { first, _ in first }
+    )
+    let placed = markers.compactMap { marker -> (paragraph: Int, placement: CitationPlacement)? in
+      numbers[marker.sourceID].map { number in
+        (marker.paragraphIndex, CitationPlacement(offset: marker.offset, number: number))
+      }
     }
-    var result: [Int: [CitationPlacement]] = [:]
-    for marker in markers {
-      guard let number = numbers[marker.sourceID] else { continue }
-      result[marker.paragraphIndex, default: []].append(
-        CitationPlacement(offset: marker.offset, number: number))
-    }
-    return result
+    return Dictionary(grouping: placed, by: \.paragraph).mapValues { group in group.map(\.placement) }
   }
 }
 
@@ -75,20 +74,19 @@ nonisolated enum CitationMarkers {
   /// The character that ends a marker.
   static let end: Character = "\u{E003}"
 
-  /// One part of a text: plain text or a marker.
-  enum Part: Equatable {
-    /// Text with no marker.
-    case text(String)
-    /// The marker of the source with the one-based number.
-    case marker(Int)
-  }
+  /// The citation markers.
+  static let textMarker = TextMarker(start: start, end: end)
+
+  /// One part of a text: plain text, or the marker of the source with the
+  /// one-based number.
+  typealias Part = MarkedTextPart
 
   /// The marker of a source.
   ///
   /// - Parameter number: The one-based number of the source.
   /// - Returns: The marker text.
   static func marker(number: Int) -> String {
-    String(start) + String(number) + String(end)
+    textMarker.marker(number)
   }
 
   /// Puts a marker in a paragraph text at each placement.
@@ -111,17 +109,12 @@ nonisolated enum CitationMarkers {
     let ordered = placements.enumerated()
       .map { (offset: min(max($0.element.offset, 0), count), order: $0.offset, number: $0.element.number) }
       .sorted { ($0.offset, $0.order) < ($1.offset, $1.order) }
-    var output = ""
-    var position = text.startIndex
-    var consumed = 0
-    for placement in ordered {
-      let next = text.index(position, offsetBy: placement.offset - consumed)
-      output += text[position..<next]
-      output += marker(number: placement.number)
-      position = next
-      consumed = placement.offset
-    }
-    output += text[position...]
+    // The cut points split the text into one more segment than markers. Each
+    // segment but the last is followed by one marker.
+    let cuts = ([0] + ordered.map(\.offset) + [count]).map { text.index(text.startIndex, offsetBy: $0) }
+    let segments = zip(cuts, cuts.dropFirst()).map { lower, upper in String(text[lower..<upper]) }
+    let markers = ordered.map { marker(number: $0.number) } + [""]
+    let output = zip(segments, markers).map { segment, marker in segment + marker }.joined()
     return (output, ordered.map(\.number))
   }
 
@@ -131,31 +124,7 @@ nonisolated enum CitationMarkers {
   /// - Returns: The parts, in text order. A start character with no valid
   ///   marker after it stays in the text.
   static func parts(of text: String) -> [Part] {
-    var parts: [Part] = []
-    var rest = Substring(text)
-    var plain = ""
-    while let startIndex = rest.firstIndex(of: start) {
-      let afterStart = rest.index(after: startIndex)
-      guard let endIndex = rest[afterStart...].firstIndex(of: end),
-        let number = Int(rest[afterStart..<endIndex])
-      else {
-        plain += rest[...startIndex]
-        rest = rest[afterStart...]
-        continue
-      }
-      plain += rest[..<startIndex]
-      if !plain.isEmpty {
-        parts.append(.text(plain))
-        plain = ""
-      }
-      parts.append(.marker(number))
-      rest = rest[rest.index(after: endIndex)...]
-    }
-    plain += rest
-    if !plain.isEmpty {
-      parts.append(.text(plain))
-    }
-    return parts
+    textMarker.parts(of: text)
   }
 
   /// Tells whether a text has a code fence line.
@@ -187,29 +156,9 @@ struct CitationMarkdownParser<Base: MarkupParser>: MarkupParser {
     let parsed = try base.attributedString(for: input)
     guard input.contains(CitationMarkers.start) else { return parsed }
 
-    var output = AttributedString()
-    for run in parsed.runs {
-      let piece = parsed[run.range]
-      let text = String(piece.characters)
-      guard text.contains(CitationMarkers.start) else {
-        output.append(piece)
-        continue
-      }
-      let isCodeBlock =
-        run.presentationIntent?.components.contains { component in
-          if case .codeBlock = component.kind { true } else { false }
-        } == true
-      for part in CitationMarkers.parts(of: text) {
-        switch part {
-        case .text(let plain):
-          output.append(AttributedString(plain, attributes: run.attributes))
-        case .marker(let number):
-          guard !isCodeBlock else { continue }
-          output.append(Self.pill(number: number, attributes: run.attributes))
-        }
-      }
+    return CitationMarkers.textMarker.replacingMarkers(in: parsed) { number, run in
+      run.isCodeBlock ? AttributedString() : Self.pill(number: number, attributes: run.attributes)
     }
-    return output
   }
 
   /// The attributed text of one pill.

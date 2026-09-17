@@ -63,6 +63,9 @@ public struct MathMarkdownParser: MarkupParser {
   /// The character that ends a span marker.
   nonisolated static let markerEnd: Character = "\u{E001}"
 
+  /// The span markers.
+  nonisolated static let spanMarker = TextMarker(start: markerStart, end: markerEnd)
+
   /// The text that Textual shows in place of an attachment.
   static let attachmentCharacter = "\u{FFFC}"
 
@@ -81,7 +84,7 @@ public struct MathMarkdownParser: MarkupParser {
   /// - Parameter index: The position of the span in the list of spans.
   /// - Returns: The marker text.
   nonisolated static func marker(index: Int) -> String {
-    String(markerStart) + String(index) + String(markerEnd)
+    spanMarker.marker(index)
   }
 
   public func attributedString(for input: String) throws -> AttributedString {
@@ -100,34 +103,13 @@ public struct MathMarkdownParser: MarkupParser {
     let parsed = try base.attributedString(for: masked)
     guard !sources.isEmpty else { return parsed }
 
-    var output = AttributedString()
-    for run in parsed.runs {
-      let piece = parsed[run.range]
-      let text = String(piece.characters)
-      guard text.contains(Self.markerStart) else {
-        output.append(piece)
-        continue
+    return Self.spanMarker.replacingMarkers(in: parsed) { index, run in
+      guard sources.indices.contains(index) else {
+        return AttributedString(Self.marker(index: index), attributes: run.attributes)
       }
-      let isCode = run.inlinePresentationIntent?.contains(.code) == true
-        || run.presentationIntent?.components.contains { component in
-          if case .codeBlock = component.kind { true } else { false }
-        } == true
-      for part in Self.markerParts(of: text) {
-        switch part {
-        case .text(let plain):
-          output.append(AttributedString(plain, attributes: run.attributes))
-        case .marker(let index):
-          guard sources.indices.contains(index) else {
-            output.append(AttributedString(Self.marker(index: index), attributes: run.attributes))
-            continue
-          }
-          let (span, source) = sources[index]
-          output.append(
-            Self.replacement(for: span, source: source, isCode: isCode, attributes: run.attributes))
-        }
-      }
+      let (span, source) = sources[index]
+      return Self.replacement(for: span, source: source, isCode: run.isCode, attributes: run.attributes)
     }
-    return output
   }
 
   /// The math spans that the parser routes to ``MathView``, in text order.
@@ -139,40 +121,6 @@ public struct MathMarkdownParser: MarkupParser {
     MathSpanScanner.spans(in: input).filter {
       MathView.canTypeset($0.latex, display: $0.display)
     }
-  }
-
-  /// One part of a run text: plain text or a span marker.
-  private enum MarkerPart {
-    /// Text with no marker.
-    case text(String)
-    /// The marker of the span at the index.
-    case marker(Int)
-  }
-
-  /// Splits a run text at its span markers.
-  ///
-  /// - Parameter text: The run text.
-  /// - Returns: The parts, in text order.
-  private static func markerParts(of text: String) -> [MarkerPart] {
-    var parts: [MarkerPart] = []
-    var rest = Substring(text)
-    while let start = rest.firstIndex(of: markerStart) {
-      let afterStart = rest.index(after: start)
-      guard let end = rest[afterStart...].firstIndex(of: markerEnd),
-        let index = Int(rest[afterStart..<end])
-      else {
-        break
-      }
-      if start > rest.startIndex {
-        parts.append(.text(String(rest[..<start])))
-      }
-      parts.append(.marker(index))
-      rest = rest[rest.index(after: end)...]
-    }
-    if !rest.isEmpty {
-      parts.append(.text(String(rest)))
-    }
-    return parts
   }
 
   /// The attributed text that takes the place of one span marker.

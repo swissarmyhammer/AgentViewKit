@@ -193,6 +193,10 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
   /// The weight of the digits.
   static let weight = NSFont.Weight.semibold
 
+  /// The count of sides that get each padding: left and right, or top and
+  /// bottom.
+  static let paddedSides: CGFloat = 2
+
   /// The size of the digits, in points.
   let digitFontSize: CGFloat
 
@@ -214,8 +218,9 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
     let font = NSFont.monospacedDigitSystemFont(ofSize: digitFontSize, weight: Self.weight)
     let digitsWidth = (String(index) as NSString).size(withAttributes: [.font: font]).width
     let verticalPadding = digitFontSize * Self.verticalPaddingScale
-    let height = (font.ascender - font.descender + verticalPadding * 2).rounded(.up)
-    let width = (digitsWidth + digitFontSize * Self.horizontalPaddingScale * 2).rounded(.up)
+    let horizontalPadding = digitFontSize * Self.horizontalPaddingScale
+    let height = (font.ascender - font.descender + verticalPadding * Self.paddedSides).rounded(.up)
+    let width = (digitsWidth + horizontalPadding * Self.paddedSides).rounded(.up)
     self.digitFontSize = digitFontSize
     self.size = CGSize(width: max(width, height), height: height)
     self.baselineOffset = font.descender - verticalPadding

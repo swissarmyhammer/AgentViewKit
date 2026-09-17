@@ -108,6 +108,14 @@ import Textual
     #expect(CitationMarkers.parts(of: "plain") == [.text("plain")])
   }
 
+  @Test func aStartWithNoValidMarkerStaysInTheText() {
+    let broken = "a" + String(CitationMarkers.start) + "x"
+    let text = broken + CitationMarkers.marker(number: 4) + "b"
+
+    #expect(CitationMarkers.parts(of: text) == [.text(broken), .marker(4), .text("b")])
+    #expect(CitationMarkers.parts(of: "") == [])
+  }
+
   // MARK: - Parser
 
   @Test func theParserMakesEachMarkerAPillWithTheCitationLink() throws {
