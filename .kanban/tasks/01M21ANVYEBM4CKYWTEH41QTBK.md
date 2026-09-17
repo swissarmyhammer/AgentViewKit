@@ -17,11 +17,20 @@ comments:
     - commit: 2a1117b
     - review: 2 findings (duplication and reuse of `exportDidFinish` in MessageActions.swift:253, the same as AttachmentActions.swift:94).
   timestamp: 2026-09-17T07:02:59.079917+00:00
+- actor: claude-code
+  id: 01m2q30rabc23epxfr96cpt5t8
+  text: |-
+    ### finish iteration 2 — done
+    - implement: FileExportLog and ExportOnlyDocument (Sources/AgentViewKit/Platform/FileExport.swift). AttachmentActions and MessageActions use them. The two prior findings are checked.
+    - test: `swift test` passed. AgentViewKitTests 1168, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44.
+    - commit: 4478362
+    - review: `review sha HEAD~1..HEAD` gave 0 findings (2026-09-17 02:05). All prior items are checked.
+  timestamp: 2026-09-17T07:06:41.355785+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: c280
 title: 'MessageActions: copy, copy thread, export Markdown, retry, edit; per-message selection (plan §9 A, §11#8, research R10)'
 ---
 ## What
