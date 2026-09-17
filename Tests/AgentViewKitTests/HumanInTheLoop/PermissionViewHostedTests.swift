@@ -19,9 +19,6 @@ import Testing
   /// The identifier of the terminal of the command request.
   static let terminalID = TerminalID("terminal-1")
 
-  /// The identifier of the mode option.
-  static let modeID = ConfigOptionID("mode")
-
   /// The comment that the reject tests type.
   static let comment = "Use the test file."
 
@@ -41,19 +38,10 @@ import Testing
     )
   }
 
-  /// A mode option with the auto choice.
-  ///
-  /// - Parameter current: The id of the selected value.
-  /// - Returns: The option.
-  static func modeOption(current: String) -> ConfigOption {
-    ConfigOption(
-      id: modeID, name: "Mode", category: .mode,
-      kind: .select(
-        current: current,
-        choices: .flat([
-          SelectOption(id: "default", name: "Default"),
-          SelectOption(id: PermissionPresentation.autoModeID, name: "Auto"),
-        ])))
+  /// The config options of a session in the `ask` mode, with an `auto`
+  /// choice. The mode option comes from ``ConfigOptionsViewHostedTests``.
+  static var askModeOptions: [ConfigOption] {
+    [ConfigOptionsViewHostedTests.modeOption(current: "ask")]
   }
 
   /// Mounts a card with a thread in the environment.
@@ -234,7 +222,7 @@ import Testing
 
   @Test func switchToAutoIsHiddenWithNoAllowOnceOption() {
     let thread = AgentThread()
-    thread.apply(.setConfigOptions([Self.modeOption(current: "default")]))
+    thread.apply(.setConfigOptions(Self.askModeOptions))
     var request = Self.request
     request.options.removeAll { $0.kind == .allowOnce }
     let harness = Self.mount(request, actions: NoopThreadActions(), thread: thread)
@@ -246,7 +234,7 @@ import Testing
   @Test func switchToAutoAllowsThenSetsTheMode() async throws {
     let actions = NoopThreadActions()
     let thread = AgentThread()
-    thread.apply(.setConfigOptions([Self.modeOption(current: "default")]))
+    thread.apply(.setConfigOptions(Self.askModeOptions))
     let harness = Self.mount(Self.request, actions: actions, thread: thread)
     defer { harness.close() }
 
@@ -256,7 +244,7 @@ import Testing
     #expect(
       actions.calls == [
         .respondToPermission(Self.request, Self.selected(Self.optionID(.allowOnce))),
-        .setConfigOption(Self.modeID, PermissionPresentation.autoModeValue),
+        .setConfigOption(ConfigOptionsViewHostedTests.modeID, PermissionPresentation.autoModeValue),
       ])
   }
 

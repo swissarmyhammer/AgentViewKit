@@ -67,7 +67,7 @@ public struct PermissionView: View {
   /// - Parameter id: The identifier of the option.
   /// - Returns: `permission-option-<id>`.
   public static func optionIdentifier(for id: PermissionOptionID) -> String {
-    optionIdentifierPrefix + id.rawValue
+    AccessibilityIdentifier.make(prefix: optionIdentifierPrefix, value: id.rawValue)
   }
 
   /// The request to answer.

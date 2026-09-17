@@ -44,7 +44,7 @@ public struct PendingRequestsHost: View {
   /// - Parameter requestID: The raw identifier of the request.
   /// - Returns: `pending-card-<requestID>`.
   public static func identifier(for requestID: String) -> String {
-    identifierPrefix + requestID
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: requestID)
   }
 
   /// The raw identifiers of the pending requests of `thread`, in the order

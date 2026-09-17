@@ -44,14 +44,14 @@ public nonisolated enum PermissionPresentation {
   /// Puts the kinds of the options of a request in the order that the card
   /// shows them.
   ///
-  /// The sort is stable: kinds with the same position, such as two unknown
-  /// kinds, keep the order of the request. The result keeps each repeated
-  /// kind.
+  /// The sort of the Swift standard library is stable, so kinds with the
+  /// same position, such as two unknown kinds, keep the order of the
+  /// request. The result keeps each repeated kind.
   ///
   /// - Parameter kinds: The kinds, in the order of the request.
   /// - Returns: The same kinds, sorted by ``position(of:)``.
   public static func order(for kinds: [PermissionOption.Kind]) -> [PermissionOption.Kind] {
-    stableSort(kinds) { $0 }
+    kinds.sorted { position(of: $0) < position(of: $1) }
   }
 
   /// Puts the options of a request in the order that the card shows them.
@@ -64,26 +64,7 @@ public nonisolated enum PermissionPresentation {
   /// - Returns: The same options, sorted by the ``position(of:)`` of their
   ///   kinds.
   public static func order(of options: [PermissionOption]) -> [PermissionOption] {
-    stableSort(options, by: \.kind)
-  }
-
-  /// Sorts elements by the position of their kinds, and keeps the order of
-  /// elements with the same position.
-  ///
-  /// - Parameters:
-  ///   - elements: The elements, in the order of the request.
-  ///   - kind: The function that gives the kind of an element.
-  /// - Returns: The sorted elements.
-  private static func stableSort<Element>(
-    _ elements: [Element], by kind: (Element) -> PermissionOption.Kind
-  ) -> [Element] {
-    elements.enumerated()
-      .sorted { lhs, rhs in
-        (position(of: kind(lhs.element)), lhs.offset) < (
-          position(of: kind(rhs.element)), rhs.offset
-        )
-      }
-      .map(\.element)
+    options.sorted { position(of: $0.kind) < position(of: $1.kind) }
   }
 
   /// Tells if the card shows an option with less visual weight.
