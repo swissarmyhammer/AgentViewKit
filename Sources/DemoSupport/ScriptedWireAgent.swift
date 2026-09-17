@@ -1,7 +1,6 @@
 import AgentViewKit
 import Foundation
 import FoundationModelsACP
-import Testing
 
 /// The byte that ends each JSON-RPC frame on the wire.
 private let frameEnd = UInt8(ascii: "\n")
@@ -13,33 +12,41 @@ private let internalErrorCode = -32603
 /// records them.
 ///
 /// The agent answers each request with the scripted result for its method,
-/// or with `{}`. A method in ``failingMethods`` gets an error. The agent can
-/// also send a raw request to the client.
-final class ScriptedWireAgent {
-  /// The number of seconds that ``bounded(_:)`` waits.
-  static let operationLimitSeconds = 5
-
-  /// The time that ``bounded(_:)`` waits.
-  static let operationLimit = Duration.seconds(operationLimitSeconds)
+/// or with `{}`. A method in ``failingMethods`` gets an error. After the
+/// answer, the agent sends the frames that ``followUps`` gives for the
+/// method. The agent can also send a raw frame to the client.
+///
+/// The ACP tests and the demo app use this agent. The demo app binds it with
+/// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
+/// its end-to-end test needs no agent binary.
+public final class ScriptedWireAgent {
+  /// Gives the frames that the agent sends after it answers one request.
+  ///
+  /// The first argument is the request frame. The second argument is the
+  /// number of requests with the same method, this request included.
+  public typealias FollowUp = (AgentViewKit.JSONValue, Int) -> [String]
 
   /// The transport end of the agent.
   private let transport: InMemoryTransport
 
   /// The result JSON text of each method.
-  var results: [String: String] = [:]
+  public var results: [String: String] = [:]
 
   /// The result JSON texts of each method, in answer order.
   ///
   /// The agent answers each request with the first text of the queue of its
   /// method and removes that text. When the queue is empty, the agent uses
   /// ``results``.
-  var resultQueues: [String: [String]] = [:]
+  public var resultQueues: [String: [String]] = [:]
 
   /// The methods that get an error.
-  var failingMethods: Set<String> = []
+  public var failingMethods: Set<String> = []
+
+  /// The frames to send after the answer to a request, keyed by method.
+  public var followUps: [String: FollowUp] = [:]
 
   /// Each frame from the client, in arrival order.
-  private(set) var received: [AgentViewKit.JSONValue] = []
+  public private(set) var received: [AgentViewKit.JSONValue] = []
 
   /// The task that reads the frames.
   private var reader: Task<Void, Never>?
@@ -47,12 +54,12 @@ final class ScriptedWireAgent {
   /// Makes an agent on `transport`.
   ///
   /// - Parameter transport: The transport end of the agent.
-  init(transport: InMemoryTransport) {
+  public init(transport: InMemoryTransport) {
     self.transport = transport
   }
 
   /// Starts to read the frames of the client.
-  func start() {
+  public func start() {
     let bytes = transport.bytes
     reader = Task { [weak self] in
       var buffer = Data()
@@ -72,7 +79,7 @@ final class ScriptedWireAgent {
   }
 
   /// Stops the reader and closes the transport.
-  func stop() {
+  public func stop() {
     reader?.cancel()
     transport.close()
   }
@@ -84,47 +91,41 @@ final class ScriptedWireAgent {
   /// the frame is one line.
   ///
   /// - Parameter json: The frame.
-  func send(_ json: String) async throws {
+  /// - Throws: The error of the transport.
+  public func send(_ json: String) async throws {
     let line = json.replacingOccurrences(of: "\n", with: " ")
     try await transport.write(Data((line + "\n").utf8))
   }
 
-  /// Runs `operation` with a time limit.
-  ///
-  /// When the time runs out, the function records an issue and stops the
-  /// agent. The stop closes the transport, so each request that waits for
-  /// the agent fails, and `operation` ends.
-  ///
-  /// - Parameter operation: The operation to run.
-  /// - Returns: The result of `operation`.
-  func bounded<Result>(_ operation: () async throws -> Result) async rethrows -> Result {
-    let watchdog = Task { [self] in
-      try? await Task.sleep(for: Self.operationLimit)
-      guard !Task.isCancelled else { return }
-      Issue.record("The operation did not end in time.")
-      stop()
-    }
-    defer { watchdog.cancel() }
-    return try await operation()
-  }
-
   /// The frames with `method`, in arrival order.
-  func messages(method: String) -> [AgentViewKit.JSONValue] {
+  ///
+  /// - Parameter method: The JSON-RPC method.
+  /// - Returns: The frames.
+  public func messages(method: String) -> [AgentViewKit.JSONValue] {
     received.filter { $0["method"]?.stringValue == method }
   }
 
   /// The position of the first frame with `method`, or `nil`.
-  func index(ofMethod method: String) -> Int? {
+  ///
+  /// - Parameter method: The JSON-RPC method.
+  /// - Returns: The position in ``received``.
+  public func index(ofMethod method: String) -> Int? {
     received.firstIndex { $0["method"]?.stringValue == method }
   }
 
   /// The position of the response to the request with `id`, or `nil`.
-  func index(ofResponseTo id: Double) -> Int? {
+  ///
+  /// - Parameter id: The JSON-RPC id of the request of the agent.
+  /// - Returns: The position in ``received``.
+  public func index(ofResponseTo id: Double) -> Int? {
     received.firstIndex { $0["method"] == nil && $0["id"] == .number(id) }
   }
 
   /// The response to the request with `id`, or `nil`.
-  func response(to id: Double) -> AgentViewKit.JSONValue? {
+  ///
+  /// - Parameter id: The JSON-RPC id of the request of the agent.
+  /// - Returns: The response frame.
+  public func response(to id: Double) -> AgentViewKit.JSONValue? {
     index(ofResponseTo: id).map { received[$0] }
   }
 
@@ -142,7 +143,8 @@ final class ScriptedWireAgent {
     return results[method] ?? "{}"
   }
 
-  /// Records one frame, and answers it when it is a request.
+  /// Records one frame, answers it when it is a request, and then sends the
+  /// follow-up frames of its method.
   private func handle(_ line: Data) async {
     guard let frame = try? JSONDecoder().decode(AgentViewKit.JSONValue.self, from: line) else { return }
     received.append(frame)
@@ -155,5 +157,9 @@ final class ScriptedWireAgent {
         #"{"jsonrpc":"2.0","id":\#(idText),"result":\#(nextResult(for: method))}"#
       }
     try? await send(reply)
+    guard let followUp = followUps[method] else { return }
+    for followUpFrame in followUp(frame, messages(method: method).count) {
+      try? await send(followUpFrame)
+    }
   }
 }

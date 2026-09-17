@@ -131,6 +131,21 @@ let package = Package(
       dependencies: ["AgentViewKit"],
       swiftSettings: mainActorIsolated
     ),
+    // The scripted in-memory ACP agent and the ACP session model of the demo
+    // app. The ACP tests link this target. The demo app
+    // (Examples/AgentViewKitDemo) compiles its sources into the app. The
+    // target is not a product, because the package has exactly four library
+    // products (plan.md §11 decision 1).
+    .target(
+      name: "DemoSupport",
+      dependencies: [
+        "AgentViewKit",
+        "AgentViewKitACP",
+        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
+      ],
+      swiftSettings: mainActorIsolated
+    ),
     // Finds and reads the package files for the tests. This target is not a
     // product and has no dependency, so that PackageStructureTests can link it
     // without the kit.
@@ -167,6 +182,8 @@ let package = Package(
       dependencies: [
         "AgentViewKitACP",
         "AgentViewKitTestSupport",
+        // The scripted wire agent and the in-memory demo agent.
+        "DemoSupport",
         // ProtocolVersionTests reads the ACP version decision from disk.
         "PackageFileSupport",
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),

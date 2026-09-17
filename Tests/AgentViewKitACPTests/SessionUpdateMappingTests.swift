@@ -635,4 +635,40 @@ private func mappedBlock(_ json: String) throws -> AgentViewKit.ContentBlock {
       SessionUpdateMapping.elicitationRequest(
         TestElicitation(id: UUID(), request: request), server: "Agent") == nil)
   }
+
+  // MARK: - Authentication methods
+
+  @Test func authMethodMapsAnAgentMethod() throws {
+    let method = try SessionUpdateFixtures.decode(
+      FoundationModelsACP.AuthMethod.self,
+      #"{"type": "agent", "methodId": "login", "name": "Sign in", "description": "Use the browser."}"#)
+
+    #expect(
+      SessionUpdateMapping.authMethod(method)
+        == .agent(
+          AgentViewKit.AuthMethod.Agent(id: AuthMethodID("login"), name: "Sign in", description: "Use the browser.")))
+  }
+
+  @Test func authMethodMapsATerminalMethodWithArgsAndEnv() throws {
+    let method = try SessionUpdateFixtures.decode(
+      FoundationModelsACP.AuthMethod.self,
+      #"""
+      {"type": "terminal", "methodId": "tty", "name": "Terminal", "args": ["--login"],
+       "env": [{"name": "MODE", "value": "login"}]}
+      """#)
+
+    #expect(
+      SessionUpdateMapping.authMethod(method)
+        == .terminal(
+          AgentViewKit.AuthMethod.Terminal(
+            id: AuthMethodID("tty"), name: "Terminal", args: ["--login"], env: ["MODE": "login"])))
+  }
+
+  @Test func authMethodKeepsTheTypeOfAnUnknownMethod() throws {
+    let method = try SessionUpdateFixtures.decode(
+      FoundationModelsACP.AuthMethod.self,
+      #"{"type": "passkey", "methodId": "key", "name": "Passkey"}"#)
+
+    #expect(SessionUpdateMapping.authMethod(method) == .unknown("passkey"))
+  }
 }
