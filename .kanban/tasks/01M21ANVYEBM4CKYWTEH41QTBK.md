@@ -8,11 +8,20 @@ comments:
   id: 01m2q1p59z1wag8z8ckrj81913
   text: 'Note from ^ktrtzez: the message footer slot is in Sources/AgentViewKit/Items/MessageItemView.swift. Fill it with `.messageFooter { message in MessageActions(...) }` (environment key `messageFooter`, type `ItemViewRenderer<Message>?`). UserMessageView and AssistantMessageView show the footer below the content blocks. `MessageRole` (MessageHeader.swift) tells the sender.'
   timestamp: 2026-09-17T06:43:25.631480+00:00
+- actor: claude-code
+  id: 01m2q2sz875jcb8mg8r4xja0yr
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: MessageActions, ThreadExporter, the composer `load` hook, per-message Textual selection in MessageItemView, and Docs/decisions/text-selection.md (R10 probe result: perMessage).
+    - test: `swift test` passed. AgentViewKitTests 1168, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44.
+    - commit: 2a1117b
+    - review: 2 findings (duplication and reuse of `exportDidFinish` in MessageActions.swift:253, the same as AttachmentActions.swift:94).
+  timestamp: 2026-09-17T07:02:59.079917+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: review
+position_ordinal: '80'
 title: 'MessageActions: copy, copy thread, export Markdown, retry, edit; per-message selection (plan §9 A, §11#8, research R10)'
 ---
 ## What
@@ -23,15 +32,20 @@ Create `Sources/AgentViewKit/Items/MessageActions.swift` and `ThreadExporter.swi
 - Research R10, per-message selection: run a hosted probe that applies `.textSelection(.enabled)` on two message rows and drags across both. Record the result in `Docs/decisions/text-selection.md` with a `mode:` line (`perMessage` or `crossMessage`). `MessageActions.selectionMode` returns the mode the kit uses. The probe is research output, not a criterion.
 
 ## Acceptance Criteria
-- [ ] A press on `message-copy` writes the message Markdown to the `FakePasteboard`.
-- [ ] Export produces a Markdown document equal to the golden file for the fixture thread.
-- [ ] `message-retry` calls `send` with the last user input; `message-edit` sets the composer text.
-- [ ] `MessageActions.selectionMode` equals the `mode:` line in `Docs/decisions/text-selection.md` (a test parses it).
+- [x] A press on `message-copy` writes the message Markdown to the `FakePasteboard`.
+- [x] Export produces a Markdown document equal to the golden file for the fixture thread.
+- [x] `message-retry` calls `send` with the last user input; `message-edit` sets the composer text.
+- [x] `MessageActions.selectionMode` equals the `mode:` line in `Docs/decisions/text-selection.md` (a test parses it).
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Items/ThreadExporterTests.swift`: a golden Markdown file for a fixture thread.
-- [ ] `Tests/AgentViewKitTests/Items/MessageActionsHostedTests.swift`: the four actions through `FakePasteboard` and `NoopThreadActions`; the decision-file match.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Items/ThreadExporterTests.swift`: a golden Markdown file for a fixture thread.
+- [x] `Tests/AgentViewKitTests/Items/MessageActionsHostedTests.swift`: the four actions through `FakePasteboard` and `NoopThreadActions`; the decision-file match.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-17 01:53)
+
+- [x] `Sources/AgentViewKit/Items/MessageActions.swift:253` `duplication/duplication` — The `exportDidFinish` method is 0.99 identical to existing code in `AttachmentActions.swift:94`. This near-verbatim copy should be refactored to call or reuse the existing implementation rather than duplicating error-handling logic that could drift out of sync. Extract a shared `handleExportFailure(_:logger:)` utility function, or call the existing `AttachmentActions.exportDidFinish` implementation if it is reusable. Avoid the copy that will require maintenance in two places.
+- [x] `Sources/AgentViewKit/Items/MessageActions.swift:253` `reuse/reuse` — exportDidFinish() reimplements error logging that already exists in AttachmentActions.exportDidFinish with 0.99 similarity. The same error-handling and logging logic should be extracted to a shared utility rather than duplicated. Extract exportDidFinish() to a shared utility function, or have MessageActions call the existing AttachmentActions implementation.

@@ -71,7 +71,7 @@ struct AttachmentActions: View {
       document: AttachmentDocument(url: attachment.url),
       contentType: attachment.type,
       defaultFilename: attachment.name,
-      onCompletion: exportDidFinish
+      onCompletion: { FileExportLog.record($0, of: attachment.name, to: logger) }
     )
     .quickLookPreview($quickLookURL)
   }
@@ -88,18 +88,10 @@ struct AttachmentActions: View {
   private func didTapReveal() {
     NSWorkspace.shared.activateFileViewerSelecting([attachment.url])
   }
-
-  /// Records a failed save.
-  ///
-  /// - Parameter result: The result of the file exporter.
-  private func exportDidFinish(_ result: Result<URL, any Error>) {
-    guard case .failure(let error) = result else { return }
-    logger.error("The save of \(attachment.name, privacy: .private) failed: \(error)")
-  }
 }
 
 /// A document that writes a copy of a file, for the file exporter.
-nonisolated struct AttachmentDocument: FileDocument {
+nonisolated struct AttachmentDocument: ExportOnlyDocument {
   /// The exporter does not read documents, so any data type is readable.
   static let readableContentTypes: [UTType] = [.data]
 
@@ -111,15 +103,6 @@ nonisolated struct AttachmentDocument: FileDocument {
   /// - Parameter url: The file to copy.
   init(url: URL) {
     self.url = url
-  }
-
-  /// The exporter never reads a document, so this initializer always
-  /// fails.
-  ///
-  /// - Parameter configuration: The read configuration.
-  /// - Throws: `CocoaError.featureUnsupported`.
-  init(configuration: ReadConfiguration) throws {
-    throw CocoaError(.featureUnsupported)
   }
 
   /// Reads the file into a file wrapper for the write.

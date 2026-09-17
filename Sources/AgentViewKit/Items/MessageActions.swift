@@ -131,7 +131,7 @@ public struct MessageActions: View {
       document: exportDocument,
       contentType: MarkdownDocument.contentType,
       defaultFilename: Self.exportFilename,
-      onCompletion: exportDidFinish
+      onCompletion: { FileExportLog.record($0, of: Self.exportFilename, to: logger) }
     )
   }
 
@@ -246,18 +246,10 @@ public struct MessageActions: View {
       logger.error("Edit found no composer for \(message.id, privacy: .private).")
     }
   }
-
-  /// Records a failed save.
-  ///
-  /// - Parameter result: The result of the file exporter.
-  private func exportDidFinish(_ result: Result<URL, any Error>) {
-    guard case .failure(let error) = result else { return }
-    logger.error("The export of the thread failed: \(error)")
-  }
 }
 
 /// A Markdown document for the file exporter.
-nonisolated struct MarkdownDocument: FileDocument {
+nonisolated struct MarkdownDocument: ExportOnlyDocument {
   /// The type of the document.
   static let contentType = UTType.markdown
 
@@ -272,15 +264,6 @@ nonisolated struct MarkdownDocument: FileDocument {
   /// - Parameter text: The Markdown text.
   init(text: String) {
     self.text = text
-  }
-
-  /// The exporter never reads a document, so this initializer always
-  /// fails.
-  ///
-  /// - Parameter configuration: The read configuration.
-  /// - Throws: `CocoaError.featureUnsupported`.
-  init(configuration: ReadConfiguration) throws {
-    throw CocoaError(.featureUnsupported)
   }
 
   /// Writes the text as UTF-8.
