@@ -89,8 +89,10 @@ public nonisolated struct DiffAttachment: Sendable, Hashable {
 extension EnvironmentValues {
   /// The function that renders a diff in a ``DiffView``.
   ///
-  /// The kit has no default renderer. EditorKit supplies one. When the value
-  /// is `nil`, ``DiffView`` shows a "Diff renderer not installed" row.
+  /// When the value is `nil`, ``DiffView`` uses the EditorKit diff view
+  /// (plan.md §4.1, decision 12). That view shows the selected file in the
+  /// ``diffLayout``, with the EditorKit theme of the ``agentTheme``. A host
+  /// replaces it with ``SwiftUI/View/diffRenderer(_:)``.
   @Entry public var diffRenderer: DiffRenderer? = nil
 
   /// The review actions of each ``DiffView`` that does not have its own.

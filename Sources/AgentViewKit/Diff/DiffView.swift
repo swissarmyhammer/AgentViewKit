@@ -7,10 +7,11 @@ import SwiftUI
 /// - A list of the files of the patch, with the added and removed line
 ///   counts. The list is on the left, or on top when the view is narrow. A
 ///   press on a file selects it.
-/// - The renderer that ``SwiftUI/View/diffRenderer(_:)`` installs, with the
-///   full patch and the path of the selected file. With no renderer, a
-///   "Diff renderer not installed" row shows. The kit does not render diffs.
-///   EditorKit supplies the renderer.
+/// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
+///   full patch and the path of the selected file. The default renderer is
+///   the EditorKit diff view, in the ``SwiftUI/EnvironmentValues/diffLayout``.
+///   The kit does not render diffs itself. A host replaces the renderer with
+///   ``SwiftUI/View/diffRenderer(_:)``.
 /// - An Accept and a Reject button for each hunk of the selected file.
 /// - An "Attach to prompt" button. It gives the lines that the renderer
 ///   selects in the ``SwiftUI/EnvironmentValues/diffLineSelection``, or all
@@ -25,10 +26,6 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
 
   /// The accessibility identifier of the view.
   public static let containerIdentifier = "diff-view"
-
-  /// The accessibility identifier of the row that shows when there is no
-  /// renderer.
-  public static let missingRendererIdentifier = "diff-renderer-missing"
 
   /// The accessibility identifier of the "Attach to prompt" button.
   public static let attachIdentifier = "diff-attach"
@@ -222,7 +219,8 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     .environment(\.diffLineSelection, selection)
   }
 
-  /// The installed renderer, or the row that tells that there is none.
+  /// The renderer of the environment, or the EditorKit renderer when the
+  /// environment has none, with the selected file.
   ///
   /// - Parameter file: The selected file.
   /// - Returns: The rendered diff.
@@ -231,12 +229,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     if let renderer {
       renderer(patch, file?.path)
     } else {
-      let text = String(localized: "Diff renderer not installed")
-      Label(text, systemImage: "doc.text.magnifyingglass")
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(text)
-        .accessibilityIdentifier(Self.missingRendererIdentifier)
+      EditorKitDiffRenderer(patch: patch, file: file?.path)
     }
   }
 

@@ -27,6 +27,7 @@ import Testing
     "EditorComplete",
     "EditorDecorations",
     "EditorExtensions",
+    "EditorDiff",
   ]
 
   /// The Textual row of `Docs/decisions/dependencies.md`.
@@ -52,10 +53,14 @@ import Testing
     #expect(names.count == Self.libraryProducts.count)
   }
 
-  @Test func usesTheTenEditorKitProducts() {
+  @Test func usesTheElevenEditorKitProducts() {
     let names = manifest.matches(of: /\.product\(\s*name:\s*"(?<name>[^"]+)",\s*package:\s*"EditorKit"\s*\)/)
       .map { String($0.output.name) }
     #expect(Set(names) == Self.editorKitProducts)
+  }
+
+  @Test func linksTheEditorDiffProductToTheKit() {
+    #expect(manifest.contains(#".product(name: "EditorDiff", package: "EditorKit")"#))
   }
 
   @Test func declaresTheTestSupportTargetOnTheKitOnly() {

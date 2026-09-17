@@ -6,8 +6,8 @@ comments:
   timestamp: 2026-09-17T06:04:24.013851+00:00
 depends_on:
 - 01M21AMHZJF4YSR0ZFYVV6B45Q
-position_column: todo
-position_ordinal: c580
+position_column: doing
+position_ordinal: '8180'
 title: 'Research R3 follow-through: adopt EditorKit''s EditorDiff product as the DiffRendererSlot default (plan §4.1, §11#12, §14)'
 ---
 ## What

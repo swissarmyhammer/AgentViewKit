@@ -102,22 +102,20 @@
 
     // MARK: - Slot
 
-    @Test func withNoRendererThePlaceholderShows() {
+    @Test func withNoRendererTheEditorKitRendererShows() {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
       defer { harness.close() }
 
-      #expect(harness.element(identifier: DiffView.missingRendererIdentifier) != nil)
-      let labels = harness.accessibilityElements().compactMap(\.label)
-      #expect(labels.contains("Diff renderer not installed"))
+      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) != nil)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
     }
 
-    @Test func anInstalledRendererReplacesThePlaceholder() {
+    @Test func anInstalledRendererReplacesTheEditorKitRenderer() {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true)
       defer { harness.close() }
 
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) != nil)
-      #expect(harness.element(identifier: DiffView.missingRendererIdentifier) == nil)
+      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) == nil)
     }
 
     // MARK: - File list
@@ -239,7 +237,7 @@
       defer { harness.close() }
       harness.pump()
 
-      #expect(harness.element(identifier: DiffView.missingRendererIdentifier) != nil)
+      #expect(harness.element(identifier: DiffView.editorRendererIdentifier) != nil)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
       try harness.press(identifier: DiffView.acceptIdentifier(for: 0))
 

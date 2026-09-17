@@ -41,6 +41,9 @@ let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorDecorations", package: "EditorKit"),
   // The completion source protocol and its value types (plan.md §4.1).
   .product(name: "EditorExtensions", package: "EditorKit"),
+  // The unified diff parser under the default diff renderer (plan.md §4.1,
+  // decision 12). The view of the renderer is in `EditorSwiftUI`.
+  .product(name: "EditorDiff", package: "EditorKit"),
 ]
 
 /// The EditorKit test support product that the model and view tests link.
