@@ -136,7 +136,10 @@ Permission presets (the `/permissions` command):
 
 ### Option order and weight
 
-`PermissionPresentation.order(for:)` sorts the options by `position`.
+`PermissionPresentation.order(for:)` sorts the kinds by `position`.
+`PermissionPresentation.order(of:)` sorts the options with the same rule, and
+`PermissionView` shows its buttons in that order. The order of the request
+does not decide the order of the buttons.
 `PermissionPresentation.isSecondary(_:)` gives the `secondary` column.
 
 | kind | position | secondary |

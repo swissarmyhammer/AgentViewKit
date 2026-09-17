@@ -7,6 +7,9 @@ import SwiftUI
 /// its own record. Thus a patch to one record evaluates only the row of that
 /// record.
 ///
+/// Below the conversation, a ``PendingRequestsHost`` shows one card for each
+/// pending permission, elicitation, and authorization request of the thread.
+///
 /// To replace the view of an item kind, use a typed modifier such as
 /// ``SwiftUI/View/toolCallView(_:)``. To replace the view of a schema name,
 /// use ``SwiftUI/View/structuredItem(_:_:)``.
@@ -39,8 +42,11 @@ public struct AgentThreadView: View {
   }
 
   public var body: some View {
-    ConversationView(thread: thread)
-      .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
-      .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
+    VStack(spacing: 0) {
+      ConversationView(thread: thread)
+      PendingRequestsHost(thread: thread)
+    }
+    .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
+    .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
   }
 }
