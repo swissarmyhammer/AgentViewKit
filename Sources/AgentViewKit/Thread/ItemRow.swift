@@ -93,16 +93,16 @@ public struct ItemRow: View, Equatable {
   @ViewBuilder private var content: some View {
     switch item {
     case .system(let record):
-      OverridableItemView(\.systemPromptViewOverride, record: record) { _ in
-        placeholder("Instructions")
+      OverridableItemView(\.systemPromptViewOverride, record: record) { record in
+        SystemPromptView(record: record)
       }
     case .userMessage(let record):
-      OverridableItemView(\.userMessageViewOverride, record: record) { _ in
-        placeholder("User message")
+      OverridableItemView(\.userMessageViewOverride, record: record) { record in
+        UserMessageView(message: record)
       }
     case .assistantMessage(let record):
-      OverridableItemView(\.assistantMessageViewOverride, record: record) { _ in
-        placeholder("Assistant message")
+      OverridableItemView(\.assistantMessageViewOverride, record: record) { record in
+        AssistantMessageView(message: record)
       }
     case .reasoning(let record):
       OverridableItemView(\.reasoningViewOverride, record: record) { record in

@@ -66,7 +66,7 @@
       #expect(custom.first?.label == "Custom Read README.md")
       #expect(harness.element(identifier: ItemRow.identifier(for: "override-message")) != nil)
       #expect(
-        harness.element(identifier: ItemRow.placeholderIdentifier(for: "override-message")) != nil)
+        harness.element(identifier: AssistantMessageView.identifier(for: "override-message")) != nil)
       #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: "override-call")) == nil)
     }
 

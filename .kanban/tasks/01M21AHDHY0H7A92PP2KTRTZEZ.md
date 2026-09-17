@@ -16,8 +16,8 @@ depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BDXGQ5HYN8GCKAEH8GN3P
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: todo
-position_ordinal: '9480'
+position_column: doing
+position_ordinal: '8180'
 title: 'Message item views: SystemPromptView, UserMessageView, AssistantMessageView (plan §9 A2)'
 ---
 ## What
