@@ -22,9 +22,14 @@ import Observation
 /// change ``AgentViewKit/AgentThread/items``. At the end, the source closes
 /// the stream and applies the final entries of the response.
 ///
-/// The SDK gives no times. The source stamps the start time of a tool call
-/// when it first sees the call, and the end time when it first sees the
-/// output of the call.
+/// The SDK gives no times. With ``SessionProfileHooks``, the source uses the
+/// times of the `DynamicProfile` hooks for the tool calls and the reasoning.
+/// Without hooks, the source stamps the start time of a tool call when it
+/// first sees the call, and the end time when it first sees the output of
+/// the call.
+///
+/// When the task of ``stream(_:)`` is cancelled, the source applies the
+/// transcript that the session keeps, and adds no error item.
 ///
 /// Known limit: `ThreadChange` cannot put an item before the first item. A
 /// new entry at the start of a transcript that already has items goes after
@@ -47,6 +52,10 @@ public final class SessionThreadSource {
 
   /// The host clock. It gives the start and the end times of the tool calls.
   private let clock: () -> Date
+
+  /// The hooks that give the host times, or `nil` when the host does not own
+  /// the profile.
+  private let hooks: SessionProfileHooks?
 
   /// Whether the source observes the session.
   private var isObserving = false
@@ -85,19 +94,25 @@ public final class SessionThreadSource {
   ///   - contextWindow: The measure of the context window of the model of
   ///     the session. Without a measure, the usage has `used` and `size`
   ///     equal to zero.
-  ///   - clock: The host clock for the times of the tool calls.
+  ///   - clock: The host clock for the times of the tool calls when the
+  ///     hooks give no time.
+  ///   - hooks: The hooks that are in the profile of the session, or `nil`
+  ///     when the host does not own the profile.
   public init(
     session: LanguageModelSession,
     thread: AgentThread = AgentThread(),
     catalog: StructuredCatalog = .standard,
     contextWindow: ContextWindow? = nil,
-    clock: @escaping () -> Date = Date.init
+    clock: @escaping () -> Date = Date.init,
+    hooks: SessionProfileHooks? = nil
   ) {
     self.session = session
     self.thread = thread
     self.catalog = catalog
     self.contextWindow = contextWindow
     self.clock = clock
+    self.hooks = hooks
+    hooks?.source = self
   }
 
   // MARK: - Observation
@@ -155,7 +170,9 @@ public final class SessionThreadSource {
   /// Each text delta of the response goes to the streaming message of the
   /// response entry. When the stream ends, the source closes the streaming
   /// message and applies the final entries of the response. When the session
-  /// throws, the source adds an error item.
+  /// throws, the source adds an error item. When the task is cancelled, the
+  /// source applies the transcript that the session keeps, with no error
+  /// item.
   ///
   /// - Parameter prompt: The text of the prompt.
   public func stream(_ prompt: String) async {
@@ -174,6 +191,10 @@ public final class SessionThreadSource {
       update(from: session.transcript, replacing: response.transcriptEntries)
       publishUsage(tokens: TokenCounts(session.usage))
       measureContext(of: session.transcript)
+    } catch is CancellationError {
+      logger.debug("A FoundationModels turn was cancelled.")
+      closeStream()
+      update(from: session.transcript)
     } catch {
       closeStream()
       report(error)
@@ -352,7 +373,7 @@ public final class SessionThreadSource {
   ) -> String? {
     let items = TranscriptMapping.items(
       for: entry, outputs: context.outputs, callIDs: context.callIDs, catalog: catalog)
-    items.forEach(stampToolCall)
+    items.forEach(stampTimes)
     let itemIDs = items.map(\.id)
     for staleID in previous?.itemIDs ?? [] where !itemIDs.contains(staleID) {
       thread.apply(.remove(id: staleID))
@@ -370,20 +391,44 @@ public final class SessionThreadSource {
     return itemIDs.last
   }
 
-  /// Writes the host times and the failed status to a tool call item.
+  /// Copies the times that a hook stamped to the item with the id, when the
+  /// thread has that item.
   ///
-  /// - Parameter item: A mapped item. Other kinds do not change.
-  private func stampToolCall(_ item: ThreadItem) {
-    guard case .toolCall(let record) = item else { return }
-    let times = stamp(callID: record.id, isComplete: record.status == .completed)
-    record.startedAt = times.startedAt
-    record.endedAt = times.endedAt
-    if failedCallIDs.contains(record.id) {
-      record.status = .failed
+  /// ``SessionProfileHooks`` calls this function after each hook. When the
+  /// thread does not have the item yet, the source uses the times when it
+  /// maps the entry.
+  ///
+  /// - Parameter id: The id of the entry or the tool call.
+  func showHookTimes(id: String) {
+    guard let item = thread.item(id: id) else { return }
+    stampTimes(item)
+  }
+
+  /// Writes the host times to a tool call item or a reasoning item, and the
+  /// failed status to a tool call item.
+  ///
+  /// - Parameter item: An item. Other kinds do not change.
+  private func stampTimes(_ item: ThreadItem) {
+    switch item {
+    case .toolCall(let record):
+      let times = stamp(callID: record.id, isComplete: record.status == .completed)
+      record.startedAt = times.startedAt
+      record.endedAt = times.endedAt
+      if failedCallIDs.contains(record.id) {
+        record.status = .failed
+      }
+    case .reasoning(let record):
+      guard let times = hooks?.times(for: record.id) else { return }
+      record.startedAt = times.startedAt
+      record.endedAt = times.endedAt
+    default:
+      return
     }
   }
 
   /// Records the host times of a tool call.
+  ///
+  /// A time that a hook stamped replaces the time that the source observed.
   ///
   /// - Parameters:
   ///   - callID: The id of the call.
@@ -398,7 +443,8 @@ public final class SessionThreadSource {
       times.endedAt = now
     }
     callTimes[callID] = times
-    return times
+    guard let hookTimes = hooks?.times(for: callID) else { return times }
+    return CallTimes(startedAt: hookTimes.startedAt, endedAt: hookTimes.endedAt ?? times.endedAt)
   }
 
   // MARK: - Usage

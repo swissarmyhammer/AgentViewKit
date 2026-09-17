@@ -27,7 +27,7 @@ enum SourceSamples {
 
   /// The chunks of the gated stream. The fake waits at the gate after the
   /// chunks of each group.
-  static let chunkGroups = [["A ", "B ", "C "], ["D ", "E "], ["F"]]
+  static let chunkGroups = [["A ", "B "], ["C ", "D "], ["E ", "F "], ["G"]]
 
   /// The full text of the gated stream.
   static let streamedText = chunkGroups.joined().joined()
@@ -57,6 +57,29 @@ enum SourceSamples {
       let chunks = group.map { FakeEvent.text(entryID: responseID, text: $0) }
       return position < chunkGroups.count - 1 ? chunks + [.waitForGate] : chunks
     }
+  }
+
+  /// Waits until a gated stream shows its first text.
+  ///
+  /// A stream snapshot comes one event late, so the text of the last chunk
+  /// before a gate stays back until the next chunk. The function waits for
+  /// the response entry in the transcript, opens the first gate, and then
+  /// waits for the text. After this function, the stream has one gate fewer.
+  ///
+  /// - Parameters:
+  ///   - session: The session of the stream.
+  ///   - thread: The thread that the stream fills.
+  ///   - gate: The gate of the fake model of the session.
+  /// - Returns: `true` when the streaming message has text.
+  static func openFirstGateAndWaitForText(
+    session: LanguageModelSession,
+    thread: AgentThread,
+    gate: FakeGate
+  ) async -> Bool {
+    let started = await waitUntil { session.transcript.last?.id == responseID }
+    gate.open()
+    let streamed = await waitUntil { streamedText(in: thread)?.isEmpty == false }
+    return started && streamed
   }
 
   /// A turn with one tool call and then a text answer.
@@ -185,7 +208,7 @@ enum SourceSamples {
     let thread = source.thread
     let run = Task { await source.stream(SourceSamples.prompt) }
 
-    #expect(await waitUntil { SourceSamples.streamedText(in: thread)?.isEmpty == false })
+    #expect(await SourceSamples.openFirstGateAndWaitForText(session: session, thread: thread, gate: gate))
     let first = try #require(SourceSamples.streamedText(in: thread))
     #expect(thread.state == .running)
     gate.open()

@@ -11,11 +11,20 @@ comments:
 
     SDK facts found with probes: session.transcript changes during a stream; a stream snapshot comes one event late; session.usage is cumulative and Snapshot.usage is per response; the default error policy removes the prompt from the transcript.
   timestamp: 2026-09-17T02:27:54.968741+00:00
+- actor: claude-code
+  id: 01m2pk6aqbhtykb7ny7mgv46qn
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: named constants for the test numbers in SessionThreadSourceTests and SessionErrorMappingTests.
+    - test: timeout 1500 swift test, green: AgentViewKitTests 995, AgentViewKitACPTests 93, AgentViewKitRouterTests 71, PackageFileSupportTests 22, AgentViewKitFoundationModelsTests 34.
+    - commit: ec2eab7
+    - review: review sha HEAD~1..HEAD, 0 findings; the prior finding is checked.
+  timestamp: 2026-09-17T02:30:06.827381+00:00
 depends_on:
 - 01M21ADYPYG3D8P53AAJQZZ61D
 - 01M21ACSE9JBXMRD2FQQD4CYR6
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: b680
 title: 'SessionThreadSource: live LanguageModelSession observation, streaming tail, usage, errors (plan §3.3)'
 ---
 ## What
@@ -42,4 +51,7 @@ Create `Sources/AgentViewKitFoundationModels/SessionThreadSource.swift`, per pla
 - Use `/tdd` — write failing tests first, then implement to make them pass.
 
 ## Review Findings (2026-09-16 21:23)
-- [ ] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceTests.swift:48` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitFoundationModelsTests/SessionThreadSourceTests.swift:48` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+
+## Review Findings (2026-09-16 21:29)
+No new findings.

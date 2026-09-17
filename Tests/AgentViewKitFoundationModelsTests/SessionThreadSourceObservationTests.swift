@@ -14,7 +14,7 @@ import Testing
     let thread = source.thread
     source.start()
     let run = Task { await source.stream(SourceSamples.prompt) }
-    #expect(await waitUntil { SourceSamples.streamedText(in: thread)?.isEmpty == false })
+    #expect(await SourceSamples.openFirstGateAndWaitForText(session: session, thread: thread, gate: gate))
     let message = try #require(thread.streaming[SourceSamples.responseID])
     let first = message.text
     let itemsChanged = ChangeFlag.observing { _ = thread.items }
