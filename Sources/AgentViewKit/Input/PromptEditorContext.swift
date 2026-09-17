@@ -108,4 +108,33 @@ extension EnvironmentValues {
   ///
   /// The default is disabled and does nothing.
   @Entry public var promptSubmitAction = PromptSubmitAction(isEnabled: false) {}
+
+  /// The text of the nearest ``PromptInputView``: the same binding as
+  /// ``PromptEditorContext/text``.
+  ///
+  /// ``PromptInputView`` puts this value in the environment of its editor and
+  /// its accessory. ``SuggestionsView`` and ``SpeechInputButton`` write the
+  /// composer text through it. The value is `nil` outside a composer.
+  @Entry public var promptText: Binding<AttributedString>? = nil
+
+  /// The follow-up prompts that ``DefaultPromptAccessory`` shows in a
+  /// ``SuggestionsView``.
+  ///
+  /// The default is empty, and an empty list hides the view. Set the value
+  /// with ``SwiftUI/View/promptSuggestions(_:)``.
+  @Entry public var promptSuggestions: [String] = []
+}
+
+extension View {
+  /// Sets the follow-up prompts that ``DefaultPromptAccessory`` shows for
+  /// this view and each view in it.
+  ///
+  /// Give the prompts for the empty state, or the follow-ups after a turn.
+  ///
+  /// - Parameter suggestions: The prompts to show. An empty list hides the
+  ///   ``SuggestionsView``.
+  /// - Returns: A view that gives `suggestions` to its subtree.
+  public func promptSuggestions(_ suggestions: [String]) -> some View {
+    environment(\.promptSuggestions, suggestions)
+  }
 }

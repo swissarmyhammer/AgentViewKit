@@ -96,6 +96,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
     .environment(\.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submit))
+    .environment(\.promptText, $text)
     .onChange(of: thread?.state) { _, state in
       guard let state, let input = queue?.dequeueNext(after: state) else { return }
       send(input)

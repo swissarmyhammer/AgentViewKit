@@ -2,16 +2,23 @@ import SwiftUI
 
 /// The default accessory row of ``PromptInputView`` (plan.md §9 D).
 ///
-/// The row shows the ``PermissionModePicker`` of the thread and the submit
-/// button in the `.glassProminent` style. While the thread runs a turn, a
-/// Stop button replaces the submit button and calls
-/// ``AgentThreadActions/cancel()``.
+/// The row shows the ``PermissionModePicker`` of the thread, the
+/// ``ToolToggles`` of the ambient ``ConnectionStore``, the
+/// ``SpeechInputButton``, and the submit button in the `.glassProminent`
+/// style. While the thread runs a turn, a Stop button replaces the submit
+/// button and calls ``AgentThreadActions/cancel()``. While the thread does
+/// not run a turn, a ``SuggestionsView`` above the row shows the prompts of
+/// ``SwiftUI/EnvironmentValues/promptSuggestions``.
+///
+/// Each slot is hidden when its data is absent: the suggestions when the
+/// list is empty, the tool toggles when the store has no tool, and the mic
+/// when ``SwiftUI/EnvironmentValues/speechTranscriber`` is `nil`.
 ///
 /// The row reads the thread from ``SwiftUI/EnvironmentValues/agentThread``,
 /// the actions from ``SwiftUI/EnvironmentValues/threadActions``, and the
 /// submit action from ``SwiftUI/EnvironmentValues/promptSubmitAction``. The
-/// attachment chips, the suggestions, the mic, and the tool toggles come in
-/// their own tasks. This row has no controls for them yet.
+/// attachment chips come in their own task. This row has no control for them
+/// yet.
 public struct DefaultPromptAccessory: View {
   /// The accessibility identifier of the submit button.
   public static let submitIdentifier = "prompt-submit"
@@ -22,21 +29,34 @@ public struct DefaultPromptAccessory: View {
   @Environment(\.agentThread) private var thread
   @Environment(\.threadActions) private var actions
   @Environment(\.promptSubmitAction) private var submit
+  @Environment(\.promptSuggestions) private var suggestions
   @Environment(\.agentTheme) private var theme
 
   /// Makes the accessory row.
   public init() {}
 
+  /// Whether the thread runs a turn.
+  private var isRunning: Bool {
+    thread?.state == .running
+  }
+
   public var body: some View {
-    HStack(spacing: theme.spacing.s) {
-      PermissionModePicker(options: thread?.configOptions ?? [])
-        .labelsHidden()
-        .fixedSize()
-      Spacer(minLength: theme.spacing.s)
-      if thread?.state == .running {
-        stopButton
-      } else {
-        submitButton
+    VStack(alignment: .leading, spacing: theme.spacing.s) {
+      if !isRunning {
+        SuggestionsView(suggestions: suggestions)
+      }
+      HStack(spacing: theme.spacing.s) {
+        PermissionModePicker(options: thread?.configOptions ?? [])
+          .labelsHidden()
+          .fixedSize()
+        ToolToggles()
+        Spacer(minLength: theme.spacing.s)
+        SpeechInputButton()
+        if isRunning {
+          stopButton
+        } else {
+          submitButton
+        }
       }
     }
   }
