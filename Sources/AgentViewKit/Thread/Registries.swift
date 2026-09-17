@@ -110,6 +110,8 @@ public nonisolated struct StructuredItemContent: Sendable, Hashable {
 ///
 /// Register a view with ``SwiftUI/View/structuredItem(_:_:)``. A name with
 /// no registration resolves to `nil`, and the caller shows the JSON view.
+/// The environment starts with ``standard``, which shows the citation
+/// payload in a ``SourcesView``.
 public typealias StructuredItemRegistry = KeyedViewRegistry<String, StructuredItemContent>
 
 extension KeyedViewRegistry where Key == String, Value == StructuredItemContent {
@@ -179,8 +181,9 @@ extension KeyedViewRegistry where Key == UTType, Value == URL {
 // MARK: - Environment
 
 extension EnvironmentValues {
-  /// The structured item views that the thread view reads.
-  @Entry public var structuredItemRegistry = StructuredItemRegistry()
+  /// The structured item views that the thread view reads. The default is
+  /// ``StructuredItemRegistry/standard``.
+  @Entry public var structuredItemRegistry = StructuredItemRegistry.standard
 
   /// The content block views that the message views read.
   @Entry public var contentBlockRegistry = ContentBlockRegistry()

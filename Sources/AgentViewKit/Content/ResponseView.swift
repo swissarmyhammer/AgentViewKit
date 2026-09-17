@@ -21,6 +21,12 @@ import Textual
 ///
 /// The view shows only the text blocks that are for the user. The other
 /// content blocks have their own views.
+///
+/// When the message has a ``CitationPayload`` block, each settled paragraph
+/// shows an ``InlineCitation`` pill at each ``CitationMarker`` of the
+/// paragraph. The paragraph index of a marker counts the paragraphs of
+/// ``markdown(of:)``. The streaming tail shows no pill, because its text is
+/// not final.
 public struct ResponseView: View {
   /// The start of the accessibility identifier of each settled paragraph.
   public static let paragraphIdentifierPrefix = "response-paragraph-"
@@ -114,12 +120,13 @@ public struct ResponseView: View {
   }
 
   public var body: some View {
+    let citations = CitationPayload.first(in: message.blocks)?.placementsByParagraph() ?? [:]
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       if let streaming {
-        SettledParagraphs(messageID: message.id, streaming: streaming)
+        SettledParagraphs(messageID: message.id, streaming: streaming, citations: citations)
         StreamingTail(messageID: message.id, streaming: streaming)
       } else {
-        MessageParagraphs(message: message)
+        MessageParagraphs(message: message, citations: citations)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -170,11 +177,15 @@ private struct SettledParagraphs: View {
   /// The stream of the message.
   let streaming: StreamingMessage
 
+  /// The citation pills of each paragraph, keyed by the paragraph index.
+  let citations: [Int: [CitationPlacement]]
+
   @Environment(\.agentTheme) private var theme
   @Environment(\.lazyResponseParagraphs) private var isLazy
 
   var body: some View {
-    let paragraphs = ParagraphList(messageID: messageID, paragraphs: streaming.settledParagraphs)
+    let paragraphs = ParagraphList(
+      messageID: messageID, paragraphs: streaming.settledParagraphs, citations: citations)
     if isLazy {
       LazyVStack(alignment: .leading, spacing: theme.spacing.m) { paragraphs }
     } else {
@@ -188,10 +199,14 @@ private struct MessageParagraphs: View {
   /// The message to show.
   let message: Message
 
+  /// The citation pills of each paragraph, keyed by the paragraph index.
+  let citations: [Int: [CitationPlacement]]
+
   var body: some View {
     ParagraphList(
       messageID: message.id,
-      paragraphs: ParagraphSplitter.paragraphs(ResponseView.markdown(of: message)))
+      paragraphs: ParagraphSplitter.paragraphs(ResponseView.markdown(of: message)),
+      citations: citations)
   }
 }
 
@@ -203,10 +218,17 @@ private struct ParagraphList: View {
   /// The paragraphs to show, in message order.
   let paragraphs: [ParagraphSplitter.Paragraph]
 
+  /// The citation pills of each paragraph, keyed by the paragraph index.
+  let citations: [Int: [CitationPlacement]]
+
   var body: some View {
     ForEach(paragraphs) { paragraph in
-      ParagraphView(messageID: messageID, paragraph: paragraph)
-        .equatable()
+      ParagraphView(
+        messageID: messageID,
+        paragraph: paragraph,
+        citations: citations[paragraph.id.index] ?? []
+      )
+      .equatable()
     }
   }
 }

@@ -11,7 +11,8 @@ import Testing
 /// Records each URL that an `OpenURLAction` gets.
 ///
 /// The action handler can run off the main actor, so the list uses a lock.
-private nonisolated final class OpenedURLRecorder: Sendable {
+/// Other hosted suites, such as `SourcesViewHostedTests`, use it too.
+nonisolated final class OpenedURLRecorder: Sendable {
   /// The opened URLs, in order, behind a lock.
   private let storage = Mutex<[URL]>([])
 

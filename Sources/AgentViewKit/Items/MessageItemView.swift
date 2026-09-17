@@ -31,11 +31,17 @@ extension View {
 /// The view shows a ``MessageHeader``, the content blocks, and the
 /// ``SwiftUI/EnvironmentValues/messageFooter`` slot.
 ///
-/// - When the message does not stream, each block shows in a
-///   ``ContentBlockView``, in message order.
-/// - When the message streams, the text shows in one ``ResponseView`` with
-///   the stream of the thread, and each block that is not text shows in a
-///   ``ContentBlockView`` below it.
+/// - When the message does not stream and has no citation block, each block
+///   shows in a ``ContentBlockView``, in message order.
+/// - When the message streams or has a ``CitationPayload`` block, the text
+///   shows in one ``ResponseView``, and each block that is not text shows in
+///   a ``ContentBlockView`` below it. The response view gets the stream of
+///   the thread, and it puts the citation pills in the text.
+///
+/// Each citation block shows below the other blocks, so the
+/// ``SourcesView`` is the footer of the content. The view applies
+/// ``SwiftUI/View/citationScope()``, so a pill of the message highlights a
+/// row of the sources of the same message.
 ///
 /// The text of the message is selectable, one message at a time
 /// (``MessageActions/selectionMode``).
@@ -70,18 +76,20 @@ struct MessageItemView: View {
 
   var body: some View {
     let streaming = thread?.streaming[message.id]
+    let ordered = orderedBlocks
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       MessageHeader(role: role, date: date)
-      if let streaming {
+      if streaming != nil || ordered.contains(where: \.element.isCitation) {
         ResponseView(message: message, streaming: streaming)
-        blockViews(blocks.filter { $0.element.kind != .text })
+        blockViews(ordered.filter { $0.element.kind != .text })
       } else {
-        blockViews(blocks)
+        blockViews(ordered)
       }
       if let footer {
         footer(message)
       }
     }
+    .citationScope()
     // The text of one message is selectable. A selection does not go into
     // the next message (Docs/decisions/text-selection.md).
     .textual.textSelection(.enabled)
@@ -93,9 +101,11 @@ struct MessageItemView: View {
     .background { Color.clear.accessibilityHidden(true) }
   }
 
-  /// The blocks of the message with their positions.
-  private var blocks: [EnumeratedSequence<[ContentBlock]>.Element] {
-    Array(message.blocks.enumerated())
+  /// The blocks of the message with their positions. The citation blocks are
+  /// last, and each group keeps the message order.
+  private var orderedBlocks: [EnumeratedSequence<[ContentBlock]>.Element] {
+    let enumerated = Array(message.blocks.enumerated())
+    return enumerated.filter { !$0.element.isCitation } + enumerated.filter(\.element.isCitation)
   }
 
   /// One ``ContentBlockView`` for each block, keyed by its position.
