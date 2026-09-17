@@ -52,7 +52,9 @@ extension View {
 ///
 /// - A block shows through ``ContentBlockView``. The text of an `execute`
 ///   call that has no terminal shows through ``CommandOutputView``.
-/// - A diff shows as a `diff` code block until `DiffView` is available.
+/// - A diff shows through ``DiffView``, with the renderer of
+///   ``SwiftUI/View/diffRenderer(_:)`` and the actions of
+///   ``SwiftUI/View/diffActions(_:)``.
 /// - A terminal shows through ``TerminalView``, with the record from the
 ///   ``SwiftUI/EnvironmentValues/agentThread``. A terminal that the thread
 ///   does not have shows a label with its id.
@@ -93,9 +95,6 @@ public struct ToolCallView: View {
   /// The part of the accessibility identifier of a content part before its
   /// index.
   static let contentInfix = "-content-"
-
-  /// The language of the code block that shows a diff.
-  static let diffLanguage = "diff"
 
   /// The language of the code blocks that show the raw input and output.
   static let jsonLanguage = "json"
@@ -475,8 +474,7 @@ private struct ToolCallBody: View {
         ContentBlockView(block: block, id: partID)
       }
     case .diff(let patch):
-      // `DiffView` replaces this code block when it is available.
-      CodeBlockView(code: patch, language: ToolCallView.diffLanguage)
+      DiffView(patch: patch)
     case .terminal(let terminalID):
       if let terminal = thread?.terminals[TerminalID(terminalID)] {
         TerminalView(record: terminal)

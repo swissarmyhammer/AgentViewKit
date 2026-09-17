@@ -8,6 +8,10 @@ comments:
   id: 01m2prq652jn4d6461js894vhn
   text: 'Note from ^b6geery: a ResponseView in a scroll view must put its settled paragraphs in a lazy stack, or the cost of a streamed chunk grows with the message (Benchmarks/README.md, R1). ConversationView sets `.lazyResponseParagraphs()` for its rows. An AssistantMessageView in another scroll view must apply `.lazyResponseParagraphs()` itself. Do not apply it outside a scroll view: a lazy stack there shows nothing.'
   timestamp: 2026-09-17T04:06:42.082576+00:00
+- actor: claude-code
+  id: 01m2pytk89vevb6p99xnvnmcfs
+  text: 'Note from ^pfbg4pq: ConversationView now shows a TurnSummaryRow ("Worked N s, K tools, +A −R") above the first agent item of each turn that has work (TurnSummary.anchors(in:), ThreadTurnSummary). The row wraps that item in a VStack in the ForEach. AssistantMessageView must not show the summary again.'
+  timestamp: 2026-09-17T05:53:25.257080+00:00
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21BDXGQ5HYN8GCKAEH8GN3P

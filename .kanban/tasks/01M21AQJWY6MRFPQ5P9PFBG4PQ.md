@@ -17,13 +17,22 @@ comments:
     - commit: ec851e7 feat(activity): add ActivityTimeline, TurnSummary, and the thread turn summary row (^pfbg4pq)
     - review: findings. 4 findings (dead-code expandedEntries, identifier duplication x2, magic numbers at ActivityTimeline.swift:475).
   timestamp: 2026-09-17T05:45:00.783512+00:00
+- actor: claude-code
+  id: 01m2pythhxbxzth27bs4ctpcy6
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed. Added the PrefixedAccessibilityIdentifier protocol (TurnSummaryRow and ActivityEntry use it). The turn section and toggle identifiers derive from TurnSummaryRow. Expanded rows are state of each turn section. Bars are capsule paths. All 4 findings of iteration 1 are checked.
+    - test: green. AgentViewKitTests 1107, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageFileSupportTests 22, AgentViewKitFoundationModelsTests 44.
+    - commit: 5690ee3 refactor(activity): share prefixed identifiers, keep row state per turn, draw capsule bars (^pfbg4pq)
+    - review: clean. review sha HEAD~1..HEAD gave 0 findings.
+  timestamp: 2026-09-17T05:53:23.517997+00:00
 depends_on:
 - 01M21AGTHBZSXFCZHZE5A7FQWQ
 - 01M21AHYBMNR7CNDZRPMWRTRTY
 - 01M21AHNHX7YF6D4268FQ3K3YA
 - 01M21AJ767SWK19SZA82PZWGZ2
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: be80
 title: 'ActivityTimeline: interleaved tool calls, reasoning, and terminals with host timestamps (plan §9 C)'
 ---
 ## What

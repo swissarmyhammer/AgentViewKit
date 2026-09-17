@@ -215,7 +215,9 @@
       harness.pump()
 
       #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: id, index: 0)) != nil)
-      #expect(harness.element(identifier: CodeBlockView.identifier) != nil)
+      #expect(harness.element(identifier: DiffView.containerIdentifier) != nil)
+      #expect(harness.element(identifier: DiffView.identifier(for: "x")) != nil)
+      #expect(harness.element(identifier: CodeBlockView.identifier) == nil)
       #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
     }
 
