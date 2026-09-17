@@ -33,4 +33,21 @@ import Testing
 
     #expect(url == PackageFiles.root.appending(path: "Docs/decisions/usage-model.md"))
   }
+
+  @Test func swiftFilesListsOnlySwiftFilesInSubdirectoriesToo() throws {
+    let sources = try PackageFiles.file("Sources")
+
+    let names = try PackageFiles.swiftFiles(in: sources).map(\.lastPathComponent)
+
+    #expect(names.contains("PackageFiles.swift"))
+    #expect(names.allSatisfy { $0.hasSuffix(".swift") })
+  }
+
+  @Test func swiftFilesThrowsForAMissingDirectory() throws {
+    let missing = try PackageFiles.file("Sources/NoSuchDirectory")
+
+    #expect(throws: CocoaError.self) {
+      try PackageFiles.swiftFiles(in: missing)
+    }
+  }
 }

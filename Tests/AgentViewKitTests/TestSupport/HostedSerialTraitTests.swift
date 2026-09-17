@@ -1,4 +1,5 @@
 import Foundation
+import PackageFileSupport
 import Testing
 
 /// Tests for ``HostedTestLock`` and ``HostedSerialTrait``.
@@ -12,12 +13,12 @@ import Testing
   /// The name of the trait that each hosted suite must have.
   static let traitMarker = ".hostedSerially"
 
-  /// The folder of the test files of this target.
-  static var testsFolder: URL {
-    URL(fileURLWithPath: #filePath)
-      .deletingLastPathComponent()
-      .deletingLastPathComponent()
-  }
+  /// The folder of the test files of this target, relative to the package
+  /// root.
+  static let testsFolder = "Tests/AgentViewKitTests"
+
+  /// This file. It holds the markers as text, so the scan skips it.
+  static var thisFile: URL { URL(filePath: #filePath).standardizedFileURL }
 
   /// The number of bodies that run at the same time in the lock test.
   static let concurrentBodies = 8
@@ -73,34 +74,19 @@ import Testing
   }
 
   @Test func eachHostedTestFileHasTheSerialTrait() throws {
-    let files = try Self.swiftFiles(in: Self.testsFolder)
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(Self.testsFolder))
+      .filter { $0.standardizedFileURL != Self.thisFile }
     try #require(!files.isEmpty)
 
-    var missing: [String] = []
-    for file in files {
+    let missing = try files.compactMap { file -> String? in
       let text = try String(contentsOf: file, encoding: .utf8)
       let isHosted = Self.hostingMarkers.contains { text.contains($0) }
       guard text.contains(Self.testMarker), isHosted, !text.contains(Self.traitMarker) else {
-        continue
+        return nil
       }
-      missing.append(file.lastPathComponent)
+      return file.lastPathComponent
     }
 
     #expect(missing.isEmpty, "These hosted test files need \(Self.traitMarker): \(missing)")
-  }
-
-  /// The Swift files under `folder`, other than this file.
-  ///
-  /// - Parameter folder: The folder to read.
-  /// - Returns: The file URLs.
-  /// - Throws: An error when the folder cannot be read.
-  static func swiftFiles(in folder: URL) throws -> [URL] {
-    let thisFile = URL(fileURLWithPath: #filePath).standardizedFileURL
-    guard let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil)
-    else {
-      throw CocoaError(.fileReadNoSuchFile)
-    }
-    return enumerator.compactMap { $0 as? URL }
-      .filter { $0.pathExtension == "swift" && $0.standardizedFileURL != thisFile }
   }
 }

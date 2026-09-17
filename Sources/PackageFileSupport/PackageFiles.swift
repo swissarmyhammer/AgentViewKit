@@ -63,4 +63,28 @@ public enum PackageFiles {
   public static func text(of relativePath: String) throws -> String {
     try String(contentsOf: file(relativePath), encoding: .utf8)
   }
+
+  /// The file extension of a Swift source file.
+  private static let swiftExtension = "swift"
+
+  /// The Swift files below a directory, in its subdirectories too.
+  ///
+  /// A directory that does not exist is an error. A wrong path must fail the
+  /// test, not scan zero files and pass.
+  ///
+  /// - Parameter directory: The directory to read.
+  /// - Returns: The URL of each Swift file below `directory`.
+  /// - Throws: `CocoaError(.fileReadNoSuchFile)` when `directory` is not an
+  ///   existing directory.
+  public static func swiftFiles(in directory: URL) throws -> [URL] {
+    var isDirectory: ObjCBool = false
+    let path = directory.path(percentEncoded: false)
+    let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
+    guard exists, isDirectory.boolValue,
+      let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
+    else {
+      throw CocoaError(.fileReadNoSuchFile, userInfo: [NSFilePathErrorKey: path])
+    }
+    return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == swiftExtension }
+  }
 }

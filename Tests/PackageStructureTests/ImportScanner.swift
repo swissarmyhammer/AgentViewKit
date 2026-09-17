@@ -1,4 +1,5 @@
 import Foundation
+import PackageFileSupport
 
 /// One forbidden `import` that the scanner found in a Swift source file.
 struct ImportViolation: Equatable, CustomStringConvertible {
@@ -31,9 +32,6 @@ enum ImportScanner {
     "typealias", "struct", "class", "enum", "protocol", "let", "var", "func",
   ]
 
-  /// The file extension of the files that the scanner reads.
-  private static let swiftExtension = "swift"
-
   /// Finds each forbidden import in the Swift files below a directory.
   ///
   /// - Parameters:
@@ -41,7 +39,7 @@ enum ImportScanner {
   ///   - forbidden: The module names that the files must not import.
   /// - Returns: The violations, sorted by file and then by line.
   static func violations(in directory: URL, forbidden: Set<String>) throws -> [ImportViolation] {
-    let files = try swiftFiles(in: directory)
+    let files = try PackageFiles.swiftFiles(in: directory)
     let rootDepth = directory.standardizedFileURL.pathComponents.count
     return try files.flatMap { file in
       let relative = file.standardizedFileURL.pathComponents.dropFirst(rootDepth).joined(separator: "/")
@@ -82,20 +80,5 @@ enum ImportScanner {
     }
     let path = declaration.dropFirst().first { !skippedWords.contains($0) }
     return path?.split(separator: ".").first.map(String.init)
-  }
-
-  /// The Swift files below a directory.
-  ///
-  /// A directory that does not exist is an error. A wrong path must fail the
-  /// test, not scan zero files and pass.
-  private static func swiftFiles(in directory: URL) throws -> [URL] {
-    var isDirectory: ObjCBool = false
-    let exists = FileManager.default.fileExists(atPath: directory.path(percentEncoded: false), isDirectory: &isDirectory)
-    guard exists, isDirectory.boolValue,
-      let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
-    else {
-      throw CocoaError(.fileReadNoSuchFile, userInfo: [NSFilePathErrorKey: directory.path(percentEncoded: false)])
-    }
-    return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == swiftExtension }
   }
 }
