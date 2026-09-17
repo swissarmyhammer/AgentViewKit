@@ -216,16 +216,20 @@ public final class RouterThreadSource {
   // MARK: - Streams
 
   /// Sends a fragment to the stream of its kind. The first fragment opens the
-  /// stream and closes the stream of the other kind.
+  /// stream and closes the stream of the other kind. When the row of the open
+  /// stream is in a hidden branch, the fragment opens a new stream.
   ///
   /// - Parameters:
   ///   - event: A text or reasoning fragment.
   ///   - kind: The kind of the row that the fragment goes to.
   private func applyFragment(_ event: SessionEvent, kind: StreamKind) {
+    if let open = openStreams[kind], thread.isInHiddenBranch(open) {
+      closeStream(kind: kind)
+    }
     let id = openStreams[kind] ?? openStream(kind: kind)
     let changes = SessionEventMapping.changes(for: event, textID: id, reasoningID: id)
     for change in changes {
-      thread.apply(change)
+      applyVisible(change)
     }
   }
 
@@ -264,7 +268,8 @@ public final class RouterThreadSource {
   /// Gives the durable entry id to the oldest provisional row of the kind.
   ///
   /// The row keeps its position and its content. A `.toolCalls` entry
-  /// changes nothing, because each tool call row has the id of its call.
+  /// changes nothing, because each tool call row has the id of its call. A
+  /// provisional row in a hidden branch does not get a durable id.
   ///
   /// - Parameters:
   ///   - id: The durable entry id.
@@ -276,7 +281,10 @@ public final class RouterThreadSource {
     case .reasoning: streamKind = .reasoning
     case .toolCalls: return
     }
-    guard var rows = provisionalRows[streamKind], !rows.isEmpty else {
+    var rows = provisionalRows[streamKind] ?? []
+    rows.removeAll(where: thread.isInHiddenBranch)
+    guard !rows.isEmpty else {
+      provisionalRows[streamKind] = rows
       logger.debug("The recorded entry \(id, privacy: .public) has no provisional row.")
       return
     }
@@ -320,7 +328,36 @@ public final class RouterThreadSource {
   /// - Parameter event: The session event.
   private func applyChanges(of event: SessionEvent) {
     for change in SessionEventMapping.changes(for: event) {
-      thread.apply(change)
+      applyVisible(change)
+    }
+  }
+
+  /// Applies a change, except a change to an item in a branch that the
+  /// thread does not show (`Docs/decisions/branches.md`).
+  ///
+  /// Such a change puts the item back in the thread, after the items of the
+  /// shown branch.
+  ///
+  /// - Parameter change: The change.
+  private func applyVisible(_ change: ThreadChange) {
+    if let id = Self.itemID(of: change), thread.isInHiddenBranch(id) {
+      logger.debug("The item \(id, privacy: .public) is in a hidden branch. The change is not applied.")
+      return
+    }
+    thread.apply(change)
+  }
+
+  /// The id of the item that a change puts in the thread.
+  ///
+  /// - Parameter change: The change.
+  /// - Returns: The id for an insert, a patch, a replace, or a stream chunk.
+  ///   Otherwise `nil`. The thread itself keeps a closed stream of a hidden
+  ///   item out of ``AgentThread/items``.
+  private static func itemID(of change: ThreadChange) -> String? {
+    switch change {
+    case .insert(let item, _), .replace(let item): item.id
+    case .patch(let id, _), .appendStreaming(let id, _): id
+    default: nil
     }
   }
 }

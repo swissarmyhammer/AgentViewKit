@@ -64,7 +64,8 @@ public final class SessionThreadActions: AgentThreadActions {
     }
     turn?.cancel()
     let source = source
-    let task = Task { await source.stream(input.text) }
+    let regenerated = source.thread.regeneratedUserMessage(for: input)?.id
+    let task = Task { await source.stream(input.text, regenerating: regenerated) }
     turn = task
     await task.value
   }

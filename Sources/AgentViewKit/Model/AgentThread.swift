@@ -331,9 +331,18 @@ public final class AgentThread {
 
   /// Closes the streaming message of the record, removes it, and writes its
   /// final text to the record in one patch.
+  ///
+  /// When the record is in a branch that the thread does not show, the text
+  /// goes to that record, and ``items`` does not change.
   private func closeStreaming(id: String) {
     guard let message = streaming.removeValue(forKey: id) else { return }
     message.close()
+    if item(id: id) == nil, let hidden = hiddenBranchItem(id: id) {
+      if let patch = finalTextPatch(message.text, for: hidden), patch.applyFields(to: hidden) {
+        hidden.record.bump()
+      }
+      return
+    }
     guard let patch = finalTextPatch(message.text, for: item(id: id)) else {
       logger.error(
         "The record \(id, privacy: .public) has no text field. The streamed text is not kept.")

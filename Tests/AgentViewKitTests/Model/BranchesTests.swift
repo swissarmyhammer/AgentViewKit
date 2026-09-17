@@ -188,4 +188,47 @@ import Testing
 
     #expect(thread.branchUserMessageID(forAssistantMessage: "a0") == nil)
   }
+
+  // MARK: - Source support
+
+  @Test func onlyAnItemOfAnAlternativeThatTheThreadDoesNotShowIsHidden() {
+    let thread = makeThread()
+    thread.apply(.addBranch(afterUserMessage: Self.secondUser, items: [answer("b2")]))
+    #expect(!thread.isInHiddenBranch("a2"))
+    #expect(thread.isInHiddenBranch("b2"))
+
+    thread.apply(.selectBranch(afterUserMessage: Self.secondUser, index: 1))
+
+    #expect(thread.isInHiddenBranch("a2"))
+    #expect(!thread.isInHiddenBranch("b2"))
+    #expect(!thread.isInHiddenBranch("u1"))
+    #expect(!thread.isInHiddenBranch("missing"))
+  }
+
+  @Test func anItemThatASourceRemovedFromTheShownBranchIsNotHidden() {
+    let thread = makeThread()
+    thread.apply(.addBranch(afterUserMessage: Self.secondUser, items: [answer("b2")]))
+
+    thread.apply(.remove(id: "a2"))
+
+    #expect(!thread.isInHiddenBranch("a2"))
+  }
+
+  @Test func aThreadThatEndsWithAnEmptyBranchHasARegeneratedUserMessage() {
+    let thread = makeThread()
+    thread.apply(.addBranch(afterUserMessage: Self.secondUser, items: []))
+    thread.apply(.selectBranch(afterUserMessage: Self.secondUser, index: 1))
+
+    #expect(thread.regeneratedUserMessage(for: UserInput(text: "Second"))?.id == Self.secondUser)
+    #expect(thread.regeneratedUserMessage(for: UserInput(text: "Other")) == nil)
+  }
+
+  @Test func aNewSendHasNoRegeneratedUserMessage() {
+    let thread = makeThread()
+    #expect(thread.regeneratedUserMessage(for: UserInput(text: "Second")) == nil)
+
+    thread.apply(.remove(id: "a2"))
+
+    #expect(thread.regeneratedUserMessage(for: UserInput(text: "Second")) == nil)
+  }
 }

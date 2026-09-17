@@ -75,6 +75,67 @@ private func authorizationRequest(meta: AgentViewKit.JSONValue?) -> Authorizatio
     #expect(thread.state == .running)
   }
 
+  /// Sends "Hello", records the answer and one tool call, and then does what
+  /// Regenerate does: it records the answer as a branch and shows a new empty
+  /// branch.
+  ///
+  /// - Parameter harness: The harness of the test.
+  private func sendAndStartBranch(_ harness: Harness) async {
+    harness.session.promptScript = [.textDelta("Hi")]
+    await harness.actions.send(UserInput(text: "Hello"))
+    harness.source.apply(.toolCall(id: "c1", name: "read", argumentsJSON: "{}"))
+    harness.source.apply(.entryRecorded(id: "e1", kind: .response))
+    let thread = harness.source.thread
+    thread.apply(.addBranch(afterUserMessage: "user-1", items: []))
+    thread.apply(.selectBranch(afterUserMessage: "user-1", index: 1))
+  }
+
+  @Test func regenerateSendsThePromptAgainWithOneUserMessage() async throws {
+    let harness = Harness()
+    await sendAndStartBranch(harness)
+    harness.session.promptScript = [.textDelta("Again")]
+
+    await harness.actions.send(UserInput(text: "Hello"))
+
+    #expect(harness.session.calls == [.promptEvents("Hello"), .promptEvents("Hello")])
+    let thread = harness.source.thread
+    #expect(thread.items.map(\.id) == ["user-1", "provisional-2"])
+    let set = try #require(thread.branches["user-1"])
+    #expect(set.alternatives.map { $0.map(\.id) } == [["e1", "c1"], []])
+  }
+
+  @Test func anEventForAnItemOfAHiddenBranchDoesNotPutTheItemBack() async throws {
+    let harness = Harness()
+    await sendAndStartBranch(harness)
+
+    harness.source.apply(.toolStatus(id: "c1", status: .completed, summary: "ok", output: nil))
+    harness.source.apply(.entryRecorded(id: "e2", kind: .response))
+    harness.source.apply(.turnEnded(RouterFixtures.usage))
+
+    let thread = harness.source.thread
+    #expect(thread.items.map(\.id) == ["user-1"])
+    #expect(thread.isInHiddenBranch("c1"))
+  }
+
+  @Test func aStreamOfAHiddenRowClosesIntoThatRow() async throws {
+    let harness = Harness()
+    harness.session.promptScript = [.textDelta("Hi")]
+    await harness.actions.send(UserInput(text: "Hello"))
+    let thread = harness.source.thread
+    thread.apply(.addBranch(afterUserMessage: "user-1", items: []))
+    thread.apply(.selectBranch(afterUserMessage: "user-1", index: 1))
+
+    harness.source.apply(.turnEnded(RouterFixtures.usage))
+
+    #expect(thread.items.map(\.id) == ["user-1"])
+    #expect(thread.streaming.isEmpty)
+    guard case .assistantMessage(let message)? = thread.branches["user-1"]?.alternatives.first?.first else {
+      Issue.record("Expected the hidden answer")
+      return
+    }
+    #expect(message.blocks == [ContentBlock(text: "Hi")])
+  }
+
   @Test func sendReportsAFailedTurnAsAnError() async throws {
     let harness = Harness()
     harness.session.promptError = PromptFailure()

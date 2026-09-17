@@ -31,6 +31,15 @@ import Observation
 /// When the task of ``stream(_:)`` is cancelled, the source applies the
 /// transcript that the session keeps, and adds no error item.
 ///
+/// Branches (`Docs/decisions/branches.md`): the source does not apply a
+/// change to an item in a hidden branch. When the thread has a
+/// ``AgentViewKit/BranchSet``, ``stream(_:)`` first writes the entries of the
+/// shown items to `session.transcript`. After Regenerate, it also removes
+/// the prompt of the regenerated user message from the transcript, and shows
+/// the new prompt entry of the session as that user message. Thus the model
+/// does not see the old answer, and the thread has one user message for the
+/// turn.
+///
 /// Known limit: `ThreadChange` cannot put an item before the first item. A
 /// new entry at the start of a transcript that already has items goes after
 /// the last item.
@@ -62,6 +71,20 @@ public final class SessionThreadSource {
 
   /// The state of each entry that the source applied, keyed by entry id.
   private var appliedEntries: [String: AppliedEntry] = [:]
+
+  /// The state of each entry that the source applied at some time, keyed by
+  /// entry id.
+  ///
+  /// The source keeps an entry after the transcript drops it. Thus it can
+  /// write the entry back when the thread shows the items of the entry again.
+  private var knownEntries: [String: AppliedEntry] = [:]
+
+  /// The thread id of each prompt entry that a Regenerate turn made, keyed by
+  /// the id that the session gave the entry.
+  private var promptAliases: [String: String] = [:]
+
+  /// The Regenerate turn that runs now, or `nil`.
+  private var regeneration: Regeneration?
 
   /// The host times of each tool call, keyed by call id.
   private var callTimes: [String: CallTimes] = [:]
@@ -184,8 +207,23 @@ public final class SessionThreadSource {
   /// source applies the transcript that the session keeps, with no error
   /// item.
   ///
+  /// When the thread ends with a user message that has a
+  /// ``AgentViewKit/BranchSet`` and the same text, the turn answers that
+  /// message again (``AgentViewKit/AgentThread/regeneratedUserMessage(for:)``).
+  ///
   /// - Parameter prompt: The text of the prompt.
   public func stream(_ prompt: String) async {
+    await stream(prompt, regenerating: thread.regeneratedUserMessage(for: UserInput(text: prompt))?.id)
+  }
+
+  /// Sends a prompt to the session and streams the response into the thread.
+  ///
+  /// - Parameters:
+  ///   - prompt: The text of the prompt.
+  ///   - userMessageID: The id of the user message that the turn answers
+  ///     again, or `nil` for a new user message.
+  func stream(_ prompt: String, regenerating userMessageID: String?) async {
+    alignTranscript(regenerating: userMessageID)
     let baseline = TokenCounts(session.usage)
     isStreamingTurn = true
     let responseStream = session.streamResponse(to: prompt)
@@ -212,10 +250,122 @@ public final class SessionThreadSource {
     }
   }
 
-  /// Ends the streaming turn, and closes the open stream.
+  /// Ends the streaming turn, closes the open stream, and ends the
+  /// Regenerate turn.
   private func endStreamingTurn() {
     isStreamingTurn = false
     closeStream()
+    finishRegeneration()
+  }
+
+  // MARK: - Branches
+
+  /// Writes the entries of the items that the thread shows to the transcript
+  /// of the session.
+  ///
+  /// The source does this only when the thread has a branch set, because
+  /// only a branch swap makes the thread differ from the transcript. For a
+  /// Regenerate turn, the prompt of the user message does not go to the
+  /// transcript, because the session adds the prompt again.
+  ///
+  /// - Parameter userMessageID: The id of the user message that the turn
+  ///   answers again, or `nil`.
+  private func alignTranscript(regenerating userMessageID: String?) {
+    guard !thread.branches.isEmpty else { return }
+    guard !session.isResponding else {
+      logger.error("The session responds. The source cannot write the entries of the shown branch.")
+      return
+    }
+    var shown = shownEntries()
+    if let userMessageID, let last = shown.last, last.entry.id == userMessageID, case .prompt = last.entry {
+      shown.removeLast()
+      regeneration = Regeneration(prompt: last)
+    }
+    appliedEntries = Dictionary(shown.map { ($0.entry.id, $0) }, uniquingKeysWith: { _, last in last })
+    if let regeneration {
+      appliedEntries[regeneration.prompt.entry.id] = regeneration.prompt
+    }
+    let entries = shown.map(\.entry)
+    let isAligned = entries.map(\.id) == session.transcript.map(\.id)
+    promptAliases = [:]
+    guard !isAligned else { return }
+    session.transcript = Transcript(entries: entries)
+  }
+
+  /// The state of each entry whose items the thread shows, in the order of
+  /// the items.
+  ///
+  /// The tool output entries of a tool calls entry come after that entry.
+  ///
+  /// - Returns: The states.
+  private func shownEntries() -> [AppliedEntry] {
+    var owners: [String: String] = [:]
+    for (entryID, state) in knownEntries {
+      for itemID in state.itemIDs {
+        if case .toolOutput = state.entry, owners[itemID] != nil { continue }
+        owners[itemID] = entryID
+      }
+    }
+    var seen: Set<String> = []
+    var shown: [AppliedEntry] = []
+    for item in thread.items {
+      guard let entryID = owners[item.id], let state = knownEntries[entryID], seen.insert(entryID).inserted
+      else { continue }
+      shown.append(state)
+      guard case .toolCalls(let calls) = state.entry else { continue }
+      for call in calls {
+        guard let output = knownEntries[call.id], case .toolOutput = output.entry, seen.insert(call.id).inserted
+        else { continue }
+        shown.append(output)
+      }
+    }
+    return shown
+  }
+
+  /// Gives the id of the regenerated user message to the new prompt entry of
+  /// the Regenerate turn.
+  ///
+  /// The new prompt entry is the first prompt entry that the source does not
+  /// know.
+  ///
+  /// - Parameter transcript: The transcript of the session.
+  private func adoptRegeneratedPrompt(in transcript: Transcript) {
+    guard var regeneration, !regeneration.isAdopted else { return }
+    let newPrompt = transcript.first { entry in
+      guard case .prompt = entry else { return false }
+      return knownEntries[entry.id] == nil && promptAliases[entry.id] == nil
+    }
+    guard let newPrompt else { return }
+    promptAliases[newPrompt.id] = regeneration.prompt.entry.id
+    regeneration.isAdopted = true
+    self.regeneration = regeneration
+  }
+
+  /// The entry with the thread id of a prompt that a Regenerate turn made.
+  ///
+  /// - Parameter entry: An entry of the transcript.
+  /// - Returns: The entry with the id of the user message, or the same entry.
+  private func aliased(_ entry: Transcript.Entry) -> Transcript.Entry {
+    guard case .prompt(var prompt) = entry, let id = promptAliases[prompt.id] else { return entry }
+    prompt.id = id
+    return .prompt(prompt)
+  }
+
+  /// Ends the Regenerate turn.
+  ///
+  /// When the session removed the new prompt, for example with the
+  /// `.revertTranscript` policy, the source writes the old prompt back.
+  /// Thus the transcript agrees with the thread, which shows the user message.
+  private func finishRegeneration() {
+    guard let regeneration else { return }
+    self.regeneration = nil
+    let promptID = regeneration.prompt.entry.id
+    guard !session.transcript.contains(where: { aliased($0).id == promptID }) else { return }
+    guard !session.isResponding else {
+      logger.error("The session responds. The source cannot write back the regenerated prompt.")
+      return
+    }
+    session.transcript = Transcript(entries: Array(session.transcript) + [regeneration.prompt.entry])
   }
 
   /// Applies one snapshot of a stream.
@@ -332,15 +482,23 @@ public final class SessionThreadSource {
     from transcript: Transcript,
     replacing finalEntries: ArraySlice<Transcript.Entry> = []
   ) -> Bool {
+    adoptRegeneratedPrompt(in: transcript)
     let overrides = Dictionary(finalEntries.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
-    let entries = transcript.map { overrides[$0.id] ?? $0 }
+    let entries = transcript.map { aliased(overrides[$0.id] ?? $0) }
     let context = MappingContext(entries)
     let lastKnown = entries.lastIndex { appliedEntries[$0.id] != nil }
-    let removed = removeMissingEntries(keeping: Set(entries.map(\.id)))
+    var kept = Set(entries.map(\.id))
+    if let regeneration {
+      kept.insert(regeneration.prompt.entry.id)
+    }
+    let removed = removeMissingEntries(keeping: kept)
     var anchor: String?
     var changed = removed
     for (position, entry) in entries.enumerated() {
       let applied = appliedEntries[entry.id]
+      if let applied, applied.itemIDs.contains(where: thread.isInHiddenBranch) {
+        continue
+      }
       let state = AppliedEntry(entry: entry, context: context, itemIDs: applied?.itemIDs ?? [])
       let isStreaming = openStream?.id == entry.id || (isStreamingTurn && Self.isResponse(entry))
       // The streaming check comes first: it is cheap, and it skips the
@@ -412,7 +570,9 @@ public final class SessionThreadSource {
       thread.apply(.insert(item, after: isNew && placement == .end ? nil : last))
       last = item.id
     }
-    appliedEntries[entry.id] = AppliedEntry(entry: entry, context: context, itemIDs: itemIDs)
+    let state = AppliedEntry(entry: entry, context: context, itemIDs: itemIDs)
+    appliedEntries[entry.id] = state
+    knownEntries[entry.id] = state
     return itemIDs.last
   }
 
@@ -611,6 +771,17 @@ private enum Placement: Equatable {
   /// After the item with the id, or at the end when the id is `nil`. The
   /// entry comes before an applied entry.
   case after(String?)
+}
+
+/// A Regenerate turn that runs.
+private struct Regeneration {
+  /// The state of the prompt entry of the regenerated user message. Its id
+  /// is the id of the user message.
+  let prompt: AppliedEntry
+
+  /// Whether the new prompt entry of the session has the id of the user
+  /// message.
+  var isAdopted = false
 }
 
 /// The host times of a tool call.

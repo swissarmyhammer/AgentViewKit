@@ -26,8 +26,9 @@ import SwiftUI
 /// With no thread, or with no part to show, the control shows nothing. While
 /// the thread runs a turn, the buttons are disabled.
 ///
-/// The kit keeps the branches local (plan.md §9 A). A source does not know
-/// that the thread shows a different branch.
+/// The kit keeps the branches local (plan.md §9 A). The FoundationModels and
+/// Router sources read the shown branch from the thread
+/// (`Docs/decisions/branches.md`).
 public struct BranchNavigator: View {
   /// One part of the control.
   public enum Control: String, CaseIterable, Sendable {

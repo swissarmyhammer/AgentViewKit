@@ -11,6 +11,9 @@
 /// live items goes into that entry at the next swap or add.
 ///
 /// The kit keeps the branches local. No source sends them (plan.md §9 A).
+/// A source uses ``AgentThread/isInHiddenBranch(_:)`` and
+/// ``AgentThread/regeneratedUserMessage(for:)`` to stay in step with the
+/// shown branch (`Docs/decisions/branches.md`).
 @MainActor
 public struct BranchSet {
   /// The alternatives, in the order that they were added. The first entry is
@@ -95,6 +98,50 @@ extension AgentThread {
     set.selectedIndex = index
     branches[userMessageID] = set
     replaceItems(after: userMessageID, with: set.alternatives[index])
+  }
+
+  /// Tells if the item with the id is in a branch that the thread does not
+  /// show.
+  ///
+  /// A source does not apply a change to such an item, because the change
+  /// puts the item back in ``items`` (`Docs/decisions/branches.md`).
+  ///
+  /// - Parameter id: The identifier of the item.
+  /// - Returns: `true` when ``items`` has no item with the id, and an
+  ///   alternative that the thread does not show has one.
+  public func isInHiddenBranch(_ id: String) -> Bool {
+    item(id: id) == nil && hiddenBranchItem(id: id) != nil
+  }
+
+  /// The item with the id in an alternative that the thread does not show.
+  ///
+  /// - Parameter id: The identifier of the item.
+  /// - Returns: The item, or `nil` when no such alternative has it.
+  internal func hiddenBranchItem(id: String) -> ThreadItem? {
+    for set in branches.values {
+      for (index, alternative) in set.alternatives.enumerated() where index != set.selectedIndex {
+        if let item = alternative.first(where: { $0.id == id }) {
+          return item
+        }
+      }
+    }
+    return nil
+  }
+
+  /// The user message that a send of `input` answers again after Regenerate.
+  ///
+  /// ``BranchNavigator`` shows a new empty branch after the user message, and
+  /// then sends the input of the message again. A source that gets this send
+  /// does not add a second user message (`Docs/decisions/branches.md`).
+  ///
+  /// - Parameter input: The input of the send.
+  /// - Returns: The last item of the thread, when it is a user message with a
+  ///   ``BranchSet`` and the same input. Otherwise `nil`.
+  public func regeneratedUserMessage(for input: UserInput) -> Message? {
+    guard case .userMessage(let message)? = items.last, branches[message.id] != nil,
+      MessageActions.input(of: message) == input
+    else { return nil }
+    return message
   }
 
   /// The items after the user message, to the end of the thread.

@@ -20,6 +20,11 @@ public enum RouterThreadActionsError: Error, Equatable, Sendable {
 /// - ``send(_:)`` adds the message of the user and starts a turn through
 ///   `RoutedSession.streamEvents(to:)`. The text fragments of the turn go to
 ///   the source. The session stream gives the other events of the turn.
+///   After Regenerate, the thread has the user message
+///   (``AgentThread/regeneratedUserMessage(for:)``), so the verb does not add
+///   it again. The Router has no public call that removes the old answer
+///   from the session, so the new turn keeps the old answer in its context
+///   (`Docs/decisions/branches.md`).
 /// - ``cancel()`` calls `RoutedSession.cancelCurrentTurn()`.
 /// - ``respond(to:_:)-(ElicitationRequest,_)`` sends the answer through
 ///   `RoutedSession.respond(elicitationId:response:)`. For a URL request, an
@@ -89,7 +94,11 @@ public final class RouterThreadActions: AgentThreadActions {
     if !input.attachments.isEmpty {
       logger.debug("The Router prompt takes text only. The attachments show in the thread but are not sent.")
     }
-    source.addUserMessage(input)
+    if thread.regeneratedUserMessage(for: input) != nil {
+      logger.debug("Regenerate: the Router keeps the old answer in the context of the turn.")
+    } else {
+      source.addUserMessage(input)
+    }
     thread.apply(.setState(.running))
     let events = await session.promptEvents(for: input.text)
     do {
