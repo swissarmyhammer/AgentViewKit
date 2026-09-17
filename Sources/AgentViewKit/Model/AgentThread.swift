@@ -55,6 +55,10 @@ public final class AgentThread {
   /// shows them as a slider.
   public private(set) var checkpoints: [Checkpoint] = []
 
+  /// The branch sets of the thread, keyed by the id of the user message that
+  /// the alternatives follow. ``BranchNavigator`` pages through them.
+  public internal(set) var branches: [String: BranchSet] = [:]
+
   /// The messages that still stream, keyed by record id.
   ///
   /// A source sends each chunk with ``ThreadChange/appendStreaming(id:text:)``
@@ -77,7 +81,7 @@ public final class AgentThread {
   @ObservationIgnored private var subagentIndex: [SubagentRunID: SubagentRun] = [:]
 
   /// The log of the thread.
-  @ObservationIgnored private let logger = Logger(
+  @ObservationIgnored let logger = Logger(
     subsystem: "AgentViewKit", category: "AgentThread")
 
   /// Makes an empty thread.
@@ -148,6 +152,8 @@ public final class AgentThread {
     case .addAuthorization(let request): pendingAuthorizations.upsert(request)
     case .resolveAuthorization(let id): pendingAuthorizations.removeAll(id: id)
     case .setCheckpoints(let checkpoints): self.checkpoints = checkpoints
+    case .addBranch(let id, let items): addBranch(afterUserMessage: id, items: items)
+    case .selectBranch(let id, let index): selectBranch(afterUserMessage: id, index: index)
     case .appendStreaming(let id, let text): appendStreaming(id: id, text: text)
     case .closeStreaming(let id): closeStreaming(id: id)
     }
@@ -256,7 +262,24 @@ public final class AgentThread {
     pendingElicitations = []
     pendingAuthorizations = []
     checkpoints = []
+    branches = [:]
     streaming = [:]
+    noteLastItem()
+  }
+
+  /// Replaces the items after the item with the id by `tail`, in one write to
+  /// ``items``. An unknown id changes nothing.
+  ///
+  /// - Parameters:
+  ///   - id: The identifier of the item that stays last before `tail`.
+  ///   - tail: The new items after that item.
+  func replaceItems(after id: String, with tail: [ThreadItem]) {
+    guard let position = index[id] else { return }
+    for item in items[(position + 1)...] {
+      index[item.id] = nil
+    }
+    items = Array(items[...position]) + tail
+    reindex(from: position + 1)
     noteLastItem()
   }
 

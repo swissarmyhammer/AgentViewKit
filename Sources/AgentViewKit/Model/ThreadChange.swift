@@ -43,7 +43,7 @@ public enum ThreadChange {
   case compact(marker: CompactionMarker, removing: [String])
 
   /// Removes all items, plans, terminals, subagent runs, pending requests,
-  /// checkpoints, and streaming messages.
+  /// checkpoints, branch sets, and streaming messages.
   ///
   /// The state, the config options, the commands, the usage, and the info
   /// do not change, because they belong to the session.
@@ -101,6 +101,22 @@ public enum ThreadChange {
   ///
   /// The source sends the full list, in turn order, after each change.
   case setCheckpoints([Checkpoint])
+
+  /// Adds `items` as a new alternative after the user message with the id
+  /// (plan.md §9 A). The thread does not show the new alternative.
+  ///
+  /// The first add for a user message makes its ``BranchSet``: the items
+  /// after the message become the first alternative. When no user message
+  /// has the id, this change does nothing.
+  case addBranch(afterUserMessage: String, items: [ThreadItem])
+
+  /// Shows the alternative at `index` after the user message with the id
+  /// (plan.md §9 A).
+  ///
+  /// The items after the message go into the entry of the shown alternative,
+  /// and the items of the alternative at `index` replace them. The
+  /// checkpoints do not change. An unknown id or index changes nothing.
+  case selectBranch(afterUserMessage: String, index: Int)
 
   /// Adds text to the streaming message of the record with the id.
   ///

@@ -7,8 +7,8 @@ comments:
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21AHDHY0H7A92PP2KTRTZEZ
-position_column: todo
-position_ordinal: b980
+position_column: doing
+position_ordinal: '8180'
 title: 'BranchNavigator: regenerate and branch paging with a branch model on AgentThread (plan §9 A)'
 ---
 ## What
