@@ -1,4 +1,9 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2psybytc6ybfztt21jfyjtz
+  text: 'Note from ^czf33yz: `AgentCommandVerb.copyThread` (Sources/AgentViewKit/Commands) already copies the thread as plain text through `AgentCommandTarget.plainText(of:)`. The text has a role line ("User:" or "Assistant:") and the user-visible text blocks of each message. Other items are omitted. Use or replace this function for "copy thread", so that the command and the MessageActions button give the same text. A button can run the command with `commandTarget?.perform(.copyThread)`.'
+  timestamp: 2026-09-17T04:28:05.978735+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21BCRF2JZ6W49NKXHE8KKT1
