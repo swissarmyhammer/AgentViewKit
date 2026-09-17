@@ -31,11 +31,20 @@ comments:
     - commit: 4a57bfa
     - review: 1 new finding (swift/access-control on BranchNavigator.swift:53, an input property must have no explicit `internal`). This finding is different from the 03:36 finding, which permitted both forms. Fixed: `let messageID: String`. The other internal members keep the explicit modifier (03:28 rule). Tests pass again (same counts).
   timestamp: 2026-09-17T08:44:40.719625+00:00
+- actor: claude-code
+  id: 01m2q8ptawpsjb0r9m0dky7rtr
+  text: |-
+    ### finish iteration 4 — clean
+    - implement: no change after the 03:41 fix.
+    - test: swift test exit 0. AgentViewKitTests 1261, AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. No new warnings.
+    - commit: feb4274
+    - review: 0 findings (2026-09-17 03:44). All prior items checked. Task moves to done.
+  timestamp: 2026-09-17T08:46:07.196476+00:00
 depends_on:
 - 01M21ABCXCQMMYMRK3QBM7CCJV
 - 01M21AHDHY0H7A92PP2KTRTZEZ
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: c780
 title: 'BranchNavigator: regenerate and branch paging with a branch model on AgentThread (plan §9 A)'
 ---
 ## What
