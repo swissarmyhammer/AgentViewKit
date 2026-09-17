@@ -35,8 +35,21 @@ public final class SystemSpeechTranscriber: AgentViewKit.SpeechTranscriber {
   /// The number of audio frames in one tap buffer.
   private static let bufferSize: AVAudioFrameCount = 1024
 
-  /// The lowest input level in decibels. A quieter input shows as level `0`.
+  /// The bus of the input node that the tap reads.
+  private static let inputBus: AVAudioNodeBus = 0
+
+  /// The channel of a buffer that the level reads.
+  private nonisolated static let levelChannel = 0
+
+  /// The lowest input level in decibels. A quieter input shows as the lowest
+  /// level.
   private nonisolated static let silenceDecibels: Float = -50
+
+  /// The factor that turns the log of an amplitude ratio into decibels.
+  private nonisolated static let decibelsPerAmplitudeDecade: Float = 20
+
+  /// The range of a reported input level.
+  private nonisolated static let levelRange: ClosedRange<Float> = 0...1
 
   /// Makes a transcriber.
   ///
@@ -68,7 +81,7 @@ public final class SystemSpeechTranscriber: AgentViewKit.SpeechTranscriber {
     self.request = request
     self.continuation = continuation
     self.audioSink = audioSink
-    feeder = Task {
+    feeder = Task { @MainActor in
       for await buffer in audio {
         request.append(AVAudioPCMBuffer(copying: buffer))
         continuation.yield(.level(Self.level(of: buffer)))
@@ -77,7 +90,8 @@ public final class SystemSpeechTranscriber: AgentViewKit.SpeechTranscriber {
     do {
       let input = engine.inputNode
       try input.installAudioTap(
-        onBus: 0, bufferSize: Self.bufferSize, format: input.outputFormat(forBus: 0)
+        onBus: Self.inputBus, bufferSize: Self.bufferSize,
+        format: input.outputFormat(forBus: Self.inputBus)
       ) { buffer, _ in
         audioSink.yield(buffer)
       }
@@ -94,7 +108,7 @@ public final class SystemSpeechTranscriber: AgentViewKit.SpeechTranscriber {
 
   public func stop() {
     engine.stop()
-    engine.inputNode.removeTap(onBus: 0)
+    engine.inputNode.removeTap(onBus: Self.inputBus)
     audioSink?.finish()
     feeder?.cancel()
     request?.endAudio()
@@ -130,19 +144,24 @@ public final class SystemSpeechTranscriber: AgentViewKit.SpeechTranscriber {
   /// The input level of an audio buffer.
   ///
   /// - Parameter buffer: The buffer.
-  /// - Returns: The root mean square level of the first channel, from `0` at
-  ///   ``silenceDecibels`` to `1` at 0 dB. A buffer with no float samples
-  ///   gives `0`.
+  /// - Returns: The root mean square level of ``levelChannel``, from the
+  ///   lower bound of ``levelRange`` at ``silenceDecibels`` to the upper
+  ///   bound at 0 dB. A buffer with no float samples, or with silence only,
+  ///   gives the lower bound.
   private nonisolated static func level(of buffer: AVReadOnlyAudioPCMBuffer) -> Double {
-    guard case .float(let samples) = buffer.channelData(0), !samples.isEmpty else { return 0 }
-    var sum: Float = 0
+    let lowest = Double(levelRange.lowerBound)
+    guard case .float(let samples) = buffer.channelData(levelChannel), !samples.isEmpty else {
+      return lowest
+    }
+    var sum: Float = .zero
     for index in samples.indices {
       sum += samples[index] * samples[index]
     }
     let rms = (sum / Float(samples.count)).squareRoot()
-    guard rms > 0 else { return 0 }
-    let decibels = 20 * log10(rms)
-    return Double(min(max(1 - decibels / silenceDecibels, 0), 1))
+    guard rms > .zero else { return lowest }
+    let decibels = decibelsPerAmplitudeDecade * log10(rms)
+    let level = (silenceDecibels - decibels) / silenceDecibels
+    return Double(min(max(level, levelRange.lowerBound), levelRange.upperBound))
   }
 }
 

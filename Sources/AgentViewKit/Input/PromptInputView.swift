@@ -126,7 +126,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// Stops the current turn. The text and the queue do not change.
   private func cancel() {
     let actions = actions
-    Task { await actions.cancel() }
+    Task { @MainActor in await actions.cancel() }
   }
 
   /// The files that the text links to, for the attachments of a submit.
@@ -157,7 +157,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// - Parameter input: The input to send.
   private func send(_ input: UserInput) {
     let actions = actions
-    Task { await actions.send(input) }
+    Task { @MainActor in await actions.send(input) }
   }
 }
 

@@ -16,7 +16,10 @@ public nonisolated enum SpeechTranscriptionEvent: Sendable, Hashable {
 /// ``SystemSpeechTranscriber`` wraps `SFSpeechRecognizer`. A test gives a
 /// fake, so that a test does not touch the microphone or the permission
 /// prompts of the system.
-public protocol SpeechTranscriber: AnyObject {
+///
+/// A transcriber crosses task boundaries, so it must be `Sendable`. A
+/// main-actor class meets this requirement.
+public protocol SpeechTranscriber: AnyObject, Sendable {
   /// Asks the user for permission to use the microphone and speech
   /// recognition.
   ///

@@ -81,7 +81,7 @@ public struct DefaultPromptAccessory: View {
   private var stopButton: some View {
     Button {
       let actions = actions
-      Task { await actions.cancel() }
+      Task { @MainActor in await actions.cancel() }
     } label: {
       Label(String(localized: "Stop"), systemImage: "stop.fill")
         .labelStyle(.iconOnly)

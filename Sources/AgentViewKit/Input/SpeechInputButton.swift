@@ -31,7 +31,7 @@ public struct SpeechInputButton: View {
   @Environment(\.agentTheme) private var theme
 
   @State private var phase = Phase.idle
-  @State private var level: Double = 0
+  @State private var level: Double = .zero
   @State private var session: Task<Void, Never>?
 
   /// The log of the button.
@@ -119,7 +119,7 @@ public struct SpeechInputButton: View {
       return
     }
     phase = .recording
-    session = Task {
+    session = Task { @MainActor in
       await record(transcriber: transcriber, text: text)
     }
   }
@@ -133,7 +133,7 @@ public struct SpeechInputButton: View {
     session = nil
     transcriber.stop()
     phase = .idle
-    level = 0
+    level = .zero
   }
 
   /// Asks for permission, then writes each transcript into the composer text
@@ -163,7 +163,7 @@ public struct SpeechInputButton: View {
     }
     guard !Task.isCancelled else { return }
     phase = .idle
-    level = 0
+    level = .zero
     session = nil
   }
 }
