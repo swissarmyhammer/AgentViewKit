@@ -1,8 +1,8 @@
-import AppKit
 import EditorComplete
 import EditorCore
 import EditorExtensions
 import EditorSwiftUI
+import EditorText
 import SwiftUI
 
 /// The EditorKit editor of ``PromptInputView`` (plan.md §4.1, §9 D).
@@ -68,15 +68,13 @@ public struct EditorKitPromptEditor: View {
   public var body: some View {
     let model = session.model
     let completion = model.state.value(CompletionSessionField.self)
-    // The session calls the newest view value, so that each commit and each
-    // key press reads the newest context and file root.
-    let _ = session.follow(
-      onCommit: { transaction in didCommit(transaction, in: model) },
-      onSubmit: { modifiers in submit(model: model, modifiers: modifiers) })
+    // The session calls the newest view value, so that each commit reads the
+    // newest context and file root.
+    let _ = session.follow(onCommit: { transaction in didCommit(transaction, in: model) })
     EditorView(
       model: model,
       onEscapeKey: cancel,
-      onReturnKey: { submit(model: model) }
+      onReturnKey: { modifiers in submit(model: model, modifiers: modifiers) }
     )
     .editorSizingMode(.intrinsic)
     .editorPlaceholder(context.placeholder)
@@ -94,11 +92,10 @@ public struct EditorKitPromptEditor: View {
           .alignmentGuide(.top) { $0[.bottom] }
       }
     }
-    .onKeyPress(.return, phases: .down) { press in
-      // SwiftUI sees the press before the text view does.
-      session.pressReturn(with: press.modifiers) ? .handled : .ignored
-    }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
+      // SwiftUI can report a pushed text after the model took newer input,
+      // for example a Shift-Return newline. That text is not a change.
+      guard !session.isNewestPush(text) else { return }
       pull(text, into: model)
     }
   }
@@ -127,16 +124,17 @@ public struct EditorKitPromptEditor: View {
 
   /// Submits the prompt for a Return press.
   ///
+  /// The Return hook of the editor calls this function. An open completion
+  /// list gets the press before the hook.
+  ///
   /// - Parameters:
   ///   - model: The model of the editor.
-  ///   - modifiers: The modifier keys of the press, or `nil` to read them
-  ///     from the session or from the current event.
+  ///   - modifiers: The modifier keys of the press.
   /// - Returns: `false` for Shift-Return, so that the editor inserts a
   ///   newline. `true` otherwise.
-  private func submit(model: EditorModel, modifiers: EventModifiers? = nil) -> Bool {
-    let modifiers =
-      modifiers ?? session.takeReturnModifiers() ?? Self.modifiers(of: NSApp.currentEvent)
-    guard let action = StockPromptEditor.returnAction(for: modifiers, in: context) else {
+  private func submit(model: EditorModel, modifiers: ReturnKeyModifiers) -> Bool {
+    guard let action = StockPromptEditor.returnAction(for: Self.eventModifiers(of: modifiers), in: context)
+    else {
       return false
     }
     push(model.text, references: references)
@@ -157,19 +155,17 @@ public struct EditorKitPromptEditor: View {
     return true
   }
 
-  /// The SwiftUI modifiers of a key event.
+  /// The SwiftUI modifiers of the modifier keys of a Return press.
   ///
-  /// The editor reads the current event when SwiftUI did not report the
-  /// press first.
-  ///
-  /// - Parameter event: The event, or `nil`.
-  /// - Returns: The Shift and Command modifiers of the event.
-  static func modifiers(of event: NSEvent?) -> EventModifiers {
-    guard let flags = event?.modifierFlags else { return [] }
-    var modifiers: EventModifiers = []
-    if flags.contains(.shift) { modifiers.insert(.shift) }
-    if flags.contains(.command) { modifiers.insert(.command) }
-    return modifiers
+  /// - Parameter modifiers: The modifier keys that the editor gives.
+  /// - Returns: The same modifier keys as SwiftUI modifiers.
+  static func eventModifiers(of modifiers: ReturnKeyModifiers) -> EventModifiers {
+    let pairs: [(ReturnKeyModifiers, EventModifiers)] = [
+      (.shift, .shift), (.control, .control), (.option, .option), (.command, .command),
+    ]
+    return pairs.reduce(into: []) { result, pair in
+      if modifiers.contains(pair.0) { result.insert(pair.1) }
+    }
   }
 
   // MARK: - Commits
@@ -308,6 +304,7 @@ public struct EditorKitPromptEditor: View {
   private func push(_ text: String, references: Set<String>) {
     let attributed = Self.attributedText(text, references: references, root: fileRoot)
     if context.text.wrappedValue != attributed {
+      session.didPush(attributed)
       context.text.wrappedValue = attributed
     }
   }
@@ -319,6 +316,7 @@ public struct EditorKitPromptEditor: View {
   ///   - text: The text of the prompt.
   ///   - model: The model of the editor.
   private func pull(_ text: AttributedString, into model: EditorModel) {
+    session.didPull()
     let plain = String(text.characters)
     guard plain != model.text else { return }
     model.replaceAll(plain)
@@ -406,13 +404,9 @@ final class PromptEditorSession {
   /// The closure that gets each committed transaction of the model.
   private var onCommit: ((EditorTransaction) -> Void)?
 
-  /// The modifier keys of the newest Return press, until the Return seam of
-  /// the editor takes them.
-  private var returnModifiers: EventModifiers?
-
-  /// The closure that submits the prompt for a Return press with the given
-  /// modifier keys.
-  private var onSubmit: ((EventModifiers) -> Bool)?
+  /// The newest text that the editor gave to the text of the prompt, until
+  /// the editor takes a text from the prompt.
+  private var pushedText: AttributedString?
 
   /// The task that reads the committed transactions of the model.
   ///
@@ -440,50 +434,36 @@ final class PromptEditorSession {
     return model
   }
 
-  /// Follows a Return press that SwiftUI reports before the text view.
+  /// Sets the commit closure of the newest view value.
   ///
-  /// The text view does not send Command-Return to its Return seam, so the
-  /// session submits the prompt for it. For each other press, the session
-  /// keeps the modifier keys for the Return seam, which has none.
+  /// The commit task of the session lives longer than one view value, so it
+  /// calls the closure that this function sets.
   ///
-  /// - Parameter modifiers: The modifier keys of the press.
-  /// - Returns: `true` when the session takes the press to submit the prompt.
-  func pressReturn(with modifiers: EventModifiers) -> Bool {
-    guard modifiers.contains(.command) else {
-      returnModifiers = modifiers
-      return false
-    }
-    // A binding read in a SwiftUI key press handler gives the value of the
-    // last view update. The submit runs after the handler, so that it reads
-    // the newest text.
-    Task { [weak self] in
-      _ = self?.onSubmit?(modifiers)
-    }
-    return true
-  }
-
-  /// Takes the modifier keys of the newest Return press.
-  ///
-  /// - Returns: The modifiers, or `nil` when no press is waiting.
-  func takeReturnModifiers() -> EventModifiers? {
-    defer { returnModifiers = nil }
-    return returnModifiers
-  }
-
-  /// Sets the closures of the newest view value.
-  ///
-  /// SwiftUI can keep a key press closure of an older view value. That
-  /// closure calls the session, and the session calls these closures.
-  ///
-  /// - Parameters:
-  ///   - onCommit: The closure that gets each committed transaction.
-  ///   - onSubmit: The closure that submits the prompt for a Return press.
-  func follow(
-    onCommit: @escaping (EditorTransaction) -> Void,
-    onSubmit: @escaping (EventModifiers) -> Bool
-  ) {
+  /// - Parameter onCommit: The closure that gets each committed transaction.
+  func follow(onCommit: @escaping (EditorTransaction) -> Void) {
     self.onCommit = onCommit
-    self.onSubmit = onSubmit
+  }
+
+  /// Records a text that the editor gave to the text of the prompt.
+  ///
+  /// - Parameter text: The text.
+  func didPush(_ text: AttributedString) {
+    pushedText = text
+  }
+
+  /// Forgets the newest pushed text, because the editor takes a text from
+  /// the prompt.
+  func didPull() {
+    pushedText = nil
+  }
+
+  /// Whether a text of the prompt is the newest text that the editor gave.
+  ///
+  /// - Parameter text: The text of the prompt.
+  /// - Returns: `true` when the editor gave `text` and took no text from the
+  ///   prompt after that.
+  func isNewestPush(_ text: AttributedString) -> Bool {
+    text == pushedText
   }
 
   /// The completion engine for `commands` and `root`. The session makes a new

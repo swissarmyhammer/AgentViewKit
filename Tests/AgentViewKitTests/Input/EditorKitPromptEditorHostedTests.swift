@@ -58,6 +58,19 @@ struct EditorKitPromptInputHost: View {
     return harness
   }
 
+  /// Sends a Return key-down event straight to the text view of the editor,
+  /// as AppKit does after SwiftUI lets the press go.
+  ///
+  /// - Parameters:
+  ///   - modifiers: The modifier keys to hold.
+  ///   - harness: The harness that shows the editor.
+  static func pressReturn(
+    modifiers: EventModifiers = [], in harness: HostedViewHarness<some View>
+  ) throws {
+    let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
+    try harness.sendKeyDown(.return, modifiers: modifiers, to: editor)
+  }
+
   /// The labels of the rows of the completion list.
   static func completionLabels(in harness: HostedViewHarness<some View>) -> [String] {
     harness.accessibilityElements()
@@ -87,7 +100,7 @@ struct EditorKitPromptInputHost: View {
 
     harness.type(Self.message)
     await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
-    try harness.sendKey(.return)
+    try Self.pressReturn(in: harness)
     await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
 
     #expect(actions.calls == [.send(UserInput(text: Self.message))])
@@ -105,7 +118,8 @@ struct EditorKitPromptInputHost: View {
     defer { harness.close() }
 
     harness.type(Self.message)
-    try harness.sendKey(.return, modifiers: .shift)
+    await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
+    try Self.pressReturn(modifiers: .shift, in: harness)
     await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message + "\n" }
 
     #expect(actions.calls.isEmpty)
@@ -122,11 +136,12 @@ struct EditorKitPromptInputHost: View {
 
     harness.type(Self.message)
     await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
-    try harness.sendKey(.return, modifiers: .command)
+    try Self.pressReturn(modifiers: .command, in: harness)
     await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
 
     #expect(actions.calls == [.send(UserInput(text: Self.message))])
     #expect(model.plainText.isEmpty)
+    #expect(model.submitCount == 1)
   }
 
   @Test func escapeStopsTheRunningTurn() async throws {

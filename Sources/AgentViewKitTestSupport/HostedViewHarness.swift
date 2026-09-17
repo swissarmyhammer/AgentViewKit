@@ -289,6 +289,33 @@ public final class HostedViewHarness<Content: View> {
     pump()
   }
 
+  /// Sends a key-down event for `key` with `modifiers` straight to the
+  /// `keyDown(with:)` method of `view`, then pumps the run loop.
+  ///
+  /// The event does not go through the window, so SwiftUI key press
+  /// handlers do not see it. Use this function to test the key handling of
+  /// an AppKit text view.
+  ///
+  /// - Parameters:
+  ///   - key: The key to send.
+  ///   - modifiers: The modifier keys to hold.
+  ///   - view: The view that gets the event.
+  /// - Throws: ``HostedViewHarnessError/unsupportedKey(_:)`` for a special
+  ///   key that the harness has no key code for.
+  public func sendKeyDown(
+    _ key: KeyEquivalent, modifiers: SwiftUI.EventModifiers = [], to view: NSView
+  ) throws {
+    let characters = String(key.character)
+    guard let keyCode = Self.keyCode(for: key),
+      let event = keyEvent(
+        .keyDown, characters: characters, keyCode: keyCode, modifiers: Self.modifierFlags(for: modifiers))
+    else {
+      throw HostedViewHarnessError.unsupportedKey(characters)
+    }
+    view.keyDown(with: event)
+    pump()
+  }
+
   // MARK: - Private
 
   /// The application attribute that an assistive client sets to ask for the
@@ -531,22 +558,35 @@ public final class HostedViewHarness<Content: View> {
   ///   - modifiers: The modifier flags.
   private func postKey(characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags) {
     for type in [NSEvent.EventType.keyDown, .keyUp] {
-      let event = NSEvent.keyEvent(
-        with: type,
-        location: .zero,
-        modifierFlags: modifiers,
-        timestamp: ProcessInfo.processInfo.systemUptime,
-        windowNumber: window.windowNumber,
-        context: nil,
-        characters: characters,
-        charactersIgnoringModifiers: characters,
-        isARepeat: false,
-        keyCode: keyCode
-      )
-      if let event {
+      if let event = keyEvent(type, characters: characters, keyCode: keyCode, modifiers: modifiers) {
         window.sendEvent(event)
       }
     }
+  }
+
+  /// Makes a key event for the window.
+  ///
+  /// - Parameters:
+  ///   - type: The type of the event, key-down or key-up.
+  ///   - characters: The characters of the key.
+  ///   - keyCode: The virtual key code.
+  ///   - modifiers: The modifier flags.
+  /// - Returns: The event, or `nil` when AppKit cannot make it.
+  private func keyEvent(
+    _ type: NSEvent.EventType, characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags
+  ) -> NSEvent? {
+    NSEvent.keyEvent(
+      with: type,
+      location: .zero,
+      modifierFlags: modifiers,
+      timestamp: ProcessInfo.processInfo.systemUptime,
+      windowNumber: window.windowNumber,
+      context: nil,
+      characters: characters,
+      charactersIgnoringModifiers: characters,
+      isARepeat: false,
+      keyCode: keyCode
+    )
   }
 
   /// The virtual key code of `key`.
