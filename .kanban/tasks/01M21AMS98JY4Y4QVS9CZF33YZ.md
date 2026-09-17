@@ -2,8 +2,8 @@
 depends_on:
 - 01M21AEPX6A1KRH0TQ0D4QV9CP
 - 01M21AF2MV082PZY3Q6H0M4YCM
-position_column: todo
-position_ordinal: a080
+position_column: doing
+position_ordinal: '8180'
 title: 'AgentCommands: the kit verbs as EditorKit commands with a default keymap (plan §4.1, §11#14)'
 ---
 ## What

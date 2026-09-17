@@ -20,6 +20,11 @@ import SwiftUI
 /// the first queued item. A cancelled turn holds the queue. Command-Return
 /// sends the text at once ("send now"). Esc stops the turn and keeps the
 /// queue.
+///
+/// In an agent command scope (``SwiftUI/View/agentCommandScope(thread:)``),
+/// a submit runs ``AgentCommandVerb/send`` and Esc runs
+/// ``AgentCommandVerb/cancel``. The scope can then submit the composer and
+/// focus its editor (``AgentCommandVerb/focusComposer``).
 public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// The text of the prompt.
   @Binding var text: AttributedString
@@ -37,6 +42,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.threadActions) private var actions
   @Environment(\.promptQueue) private var queue
   @Environment(\.agentTheme) private var theme
+  @Environment(\.agentCommandTarget) private var commandTarget
 
   /// Makes a composer with a custom editor and a custom accessory row.
   ///
@@ -86,21 +92,42 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   public var body: some View {
     let context = PromptEditorContext(
-      text: $text, placeholder: Self.placeholder, onSubmit: submit,
-      onSendNow: sendNow, onCancel: isRunning ? cancel : nil,
+      text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
+      onSendNow: sendNow, onCancel: isRunning ? cancelCommand : nil,
       commands: thread?.availableCommands ?? [])
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       editor(context)
+        .background {
+          if let commandTarget {
+            ComposerCommandProbe(
+              target: commandTarget, canSubmit: { canSubmit }, submit: submit)
+          }
+        }
       accessory()
     }
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
-    .environment(\.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submit))
+    .environment(
+      \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
     .environment(\.promptText, $text)
     .onChange(of: thread?.state) { _, state in
       guard let state, let input = queue?.dequeueNext(after: state) else { return }
       send(input)
     }
+  }
+
+  /// Submits the text through ``AgentCommandVerb/send`` of the command scope,
+  /// or directly when the composer is in no scope.
+  private func submitCommand() {
+    guard commandTarget?.perform(.send) != true else { return }
+    submit()
+  }
+
+  /// Stops the turn through ``AgentCommandVerb/cancel`` of the command
+  /// scope, or directly when the composer is in no scope.
+  private func cancelCommand() {
+    guard commandTarget?.perform(.cancel) != true else { return }
+    cancel()
   }
 
   /// Sends the text, or adds it to the queue while the thread runs a turn.

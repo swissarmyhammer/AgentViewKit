@@ -20,6 +20,10 @@ import SwiftUI
 /// A tap on an attachment in a row shows the file in a trailing inspector.
 /// See ``SwiftUI/View/attachmentInspector(selection:)``. When the environment
 /// has an ``InspectorSelection``, the view uses that selection.
+///
+/// The view registers the agent commands of its thread (``AgentCommandVerb``)
+/// with the keys of ``AgentKeymap``. See
+/// ``SwiftUI/View/agentCommandScope(thread:)``.
 public struct AgentThreadView: View {
   /// The thread to show.
   let thread: AgentThread
@@ -30,6 +34,10 @@ public struct AgentThreadView: View {
   /// The inspector selection that the view makes when the environment has
   /// none.
   @State private var ownInspectorSelection = InspectorSelection()
+
+  /// The scroll anchors of the list. The agent commands use them to jump
+  /// and to scroll.
+  @State private var anchors = ScrollAnchorManager()
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
@@ -43,9 +51,10 @@ public struct AgentThreadView: View {
 
   public var body: some View {
     VStack(spacing: 0) {
-      ConversationView(thread: thread)
+      ConversationView(thread: thread, anchors: anchors)
       PendingRequestsHost(thread: thread)
     }
+    .agentCommandScope(thread: thread, anchors: anchors)
     .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
     .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
   }

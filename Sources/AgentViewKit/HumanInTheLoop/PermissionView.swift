@@ -92,6 +92,7 @@ public struct PermissionView: View {
   @Environment(\.threadActions) private var actions
   @Environment(\.agentThread) private var thread
   @Environment(\.agentTheme) private var theme
+  @Environment(\.agentCommandTarget) private var commandTarget
 
   /// Makes the card of `request`.
   ///
@@ -293,7 +294,7 @@ public struct PermissionView: View {
     case .rejectOnce, .rejectAlways:
       selectedReject = option
     case .allowOnce, .allowAlways, .unknown:
-      send(PermissionDecision(outcome: .selected(option.id)))
+      sendSelection(option, comment: nil)
     }
   }
 
@@ -302,7 +303,30 @@ public struct PermissionView: View {
   /// - Parameter option: The reject option.
   private func sendReject(_ option: PermissionOption) {
     let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-    send(PermissionDecision(outcome: .selected(option.id), comment: text.isEmpty ? nil : text))
+    sendSelection(option, comment: text.isEmpty ? nil : text)
+  }
+
+  /// Answers with `option`.
+  ///
+  /// In an agent command scope, the answer runs
+  /// ``AgentCommandVerb/approvePending`` or ``AgentCommandVerb/rejectPending``
+  /// with the request and the option in the payload. When no command runs,
+  /// the card sends the answer directly.
+  ///
+  /// - Parameters:
+  ///   - option: The option that the user selected.
+  ///   - comment: The comment of the user, or `nil`.
+  private func sendSelection(_ option: PermissionOption, comment: String?) {
+    guard !isAnswered else { return }
+    let verb: AgentCommandVerb =
+      AgentCommandTarget.isReject(option.kind) ? .rejectPending : .approvePending
+    let payload = AgentCommandPayload.permission(
+      request: request.id, option: option.id, comment: comment)
+    if commandTarget?.perform(verb, payload: payload) == true {
+      isAnswered = true
+      return
+    }
+    send(PermissionDecision(outcome: .selected(option.id), comment: comment))
   }
 
   /// Answers with `allow`, then sets the mode option to auto.
