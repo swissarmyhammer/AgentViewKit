@@ -12,6 +12,15 @@ comments:
   id: 01m2p3vd72g7vpx8yvrz8bayam
   text: 'Note from ^xa2n421 (ConversationView): the thread list is now `ConversationView` (Sources/AgentViewKit/Thread/ConversationView.swift). The linked reading group of the thread must wrap the rows of its `LazyVStack`. The "load-earlier-row" already has the `causesPageTurn` trait and an `accessibilityScrollAction` for the top edge. The `conversation-list` element has the value "N of M items". Keep these when you add the linked groups.'
   timestamp: 2026-09-16T22:02:00.290889+00:00
+- actor: claude-code
+  id: 01m2q79n1dmqedzp93v6emezcx
+  text: |-
+    ### finish iteration 1 — done
+    - implement: added ThreadAccessibility.swift (reading groups, announcement observer, AccessibilityFocusMover), the `announcer` environment value with VoiceOverAnnouncer, the reasoning label, and spoken math text. PermissionView now reports its own identifier on appear, as the ^5a3wmgc note asks. Decisions are in Docs/decisions/accessibility.md and dynamic-type.md.
+    - test: `timeout 1500 swift test` exit 0. AgentViewKitTests 1239 (was 1212), AgentViewKitACPTests 102, AgentViewKitRouterTests 71, PackageStructureTests 23, AgentViewKitFoundationModelsTests 44. No new warnings. `Scripts/check-benchmarks.sh` passed.
+    - commit: 66a0c72 (local).
+    - review: `review sha HEAD~1..HEAD`, 0 findings. Moved to done.
+  timestamp: 2026-09-17T08:21:27.213161+00:00
 depends_on:
 - 01M21AHDHY0H7A92PP2KTRTZEZ
 - 01M21AHYBMNR7CNDZRPMWRTRTY
@@ -21,8 +30,8 @@ depends_on:
 - 01M21ACHJYSF8G8R7HY3M70Z7F
 - 01M21AMHZJF4YSR0ZFYVV6B45Q
 - 01M21BCRF2JZ6W49NKXHE8KKT1
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: c680
 title: 'Accessibility: linked reading groups, VoiceOver boundary announcements, focus moves, Reduce Motion, Dynamic Type (plan §6, research R11)'
 ---
 ## What
@@ -36,15 +45,21 @@ Create `Sources/AgentViewKit/Accessibility/ThreadAccessibility.swift` and `Annou
 - Labels: tool calls "<title>, <status>"; reasoning "Reasoning, in progress" or "Reasoning, N seconds"; diffs "<language> diff, +A −R".
 
 ## Acceptance Criteria
-- [ ] Each `response-paragraph-*` element in one message lists the other paragraphs of that message in `linkedElements`.
-- [ ] Ten streaming chunks produce zero `RecordingAnnouncer` calls; a turn completion produces one; an action required produces one with high priority.
-- [ ] `RecordingFocusReporter` records the permission card identifier on add and `prompt-editor` after the answer.
-- [ ] With `\.accessibilityReduceMotion` true in the hosted environment, `ShimmerView` reports `isAnimating == false`.
-- [ ] `Docs/decisions/dynamic-type.md` exists with the two measured line heights.
+- [x] Each `response-paragraph-*` element in one message lists the other paragraphs of that message in `linkedElements`.
+- [x] Ten streaming chunks produce zero `RecordingAnnouncer` calls; a turn completion produces one; an action required produces one with high priority.
+- [x] `RecordingFocusReporter` records the permission card identifier on add and `prompt-editor` after the answer.
+- [x] With `\.accessibilityReduceMotion` true in the hosted environment, `ShimmerView` reports `isAnimating == false`.
+- [x] `Docs/decisions/dynamic-type.md` exists with the two measured line heights.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift`: groups, announcements, focus, reduce motion, through the injected fakes.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift`: groups, announcements, focus, reduce motion, through the injected fakes.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-17 03:15)
+
+Scope: `review sha HEAD~1..HEAD` (commit 66a0c72). 19 files reviewed, 14 validator runs, 0 findings. The `.kanban/` files and the three decision files have no validator.
+
+No findings.
