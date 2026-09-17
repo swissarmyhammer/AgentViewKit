@@ -100,7 +100,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   /// The attachments of the host, or the attachments that the composer keeps.
   private var attachments: Binding<[Attachment]> {
-    hostAttachments ?? $ownAttachments
+    hostAttachments
+      ?? Binding(get: { ownAttachments }, set: { ownAttachments = $0 })
   }
 
   /// Whether the thread runs a turn.
