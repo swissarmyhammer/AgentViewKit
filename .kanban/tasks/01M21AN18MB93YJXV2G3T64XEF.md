@@ -31,10 +31,21 @@ comments:
     - The scanner rewrite (EditorKit ^5ssynck) is not done. The EditorKit owner must decide when it runs. Until then, real tm-grammars files give few keyword captures.
     - next: when ^5ssynck is on EditorKit main, run `swift package update EditorKit`, merge `wip/3t64xef`, and use `.editorSyntax(textMate:)` in CodeBlockView for a language with no tree-sitter grammar.
   timestamp: 2026-09-16T14:45:55.733805+00:00
+- actor: claude-code
+  id: 01m2tcevrad36km9ytktnesvbb
+  text: |-
+    ### finish iteration 2 — done
+    - implement: EditorKit main is now at 235cbb7, which has TextMateRegex (ICU), TextMateGrammar (JSON decode, repository, include resolution) and TextMateTokenizer (rule selection, region stack). The blocker of iteration 1 is gone. Work: cherry-picked `wip/3t64xef` onto main, deleted `TextMateIncludeResolver` (EditorKit resolves `include` itself), `GrammarBundle.grammar(at:)` now calls `TextMateGrammar(data:)`, and `CodeBlockView` colors a language with no tree-sitter grammar through `.editorSyntax(textMate:)`.
+    - decision: the acceptance criterion said "assert a `.keyword` capture exists". Ten of the twelve grammars give a `keyword` capture for their sample. TOML and HTML have no keyword scope at all, so each sample now names the capture that its grammar gives: `constant.builtin` for the TOML boolean, `tag` for the HTML element. The description records this.
+    - test: green. `swift test`: AgentViewKitTests 1280 (1265 before, +14 GrammarBundleTests, +1 CodeBlockViewHostedTests), AgentViewKitACPTests 102, AgentViewKitRouterTests 74, PackageStructureTests 23, AgentViewKitFoundationModelsTests 48. Only the accepted mlx warning.
+    - commit: 2f9df8a (the EditorKit pin at 235cbb7) and 1dd1f21 (GrammarBundle).
+    - review: `review sha HEAD~1..HEAD` gave zero findings. Seven validators ran; the thirteen grammar resource files have no validator.
+    - The branch `wip/3t64xef` is no longer needed.
+  timestamp: 2026-09-18T13:49:24.106725+00:00
 depends_on:
 - 01M21ACHJYSF8G8R7HY3M70Z7F
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: c980
 title: 'GrammarBundle: TextMate grammars for the top agent languages, registered with EditorKit (plan §4.1, §11#13, research R2)'
 ---
 ## What
@@ -46,14 +57,17 @@ Create `Sources/AgentViewKit/Grammars/GrammarBundle.swift` and the resource fold
 - `CodeBlockView` calls `register()` on first use.
 
 ## Acceptance Criteria
-- [ ] Every listed language registers and a sample file highlights at least one token (assert a `.keyword` capture exists).
-- [ ] `languageID(forFenceTag: "ts")` returns the TypeScript id.
-- [ ] `LICENSES.md` lists every grammar and a test asserts the list matches the resource folder.
-- [ ] The resource bundle adds less than 2 MB.
+- [x] Every listed language registers and a sample file highlights at least one token. Ten languages give a `keyword` capture. TOML and HTML have no keyword scope, so their samples name the capture that their grammar gives (`constant.builtin` and `tag`).
+- [x] `languageID(forFenceTag: "ts")` returns the TypeScript id.
+- [x] `LICENSES.md` lists every grammar and a test asserts the list matches the resource folder.
+- [x] The resource bundle adds less than 2 MB (1.1 MB).
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Grammars/GrammarBundleTests.swift`: registration, tag mapping, license list, bundle size.
-- [ ] `swift test --filter AgentViewKitTests` exits 0.
+- [x] `Tests/AgentViewKitTests/Grammars/GrammarBundleTests.swift`: registration, tag mapping, license list, bundle size.
+- [x] `swift test --filter AgentViewKitTests` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-18)
+- [x] `review sha HEAD~1..HEAD`: zero findings. Seven validators ran on the five Swift and manifest files. The thirteen resource files have no validator.
