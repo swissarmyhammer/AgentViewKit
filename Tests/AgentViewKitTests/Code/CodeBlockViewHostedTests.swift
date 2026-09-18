@@ -70,6 +70,18 @@ import Textual
     harness.pump()
 
     #expect(model.syntax == nil)
+    #expect(model.textMateGrammar == nil)
+  }
+
+  @Test func aLanguageWithATextMateGrammarAttachesThatGrammar() {
+    let code = "export const x = 1;"
+    let model = EditorModel(code)
+    let harness = HostedViewHarness(CodeBlockView(code: code, language: "ts", model: model))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(model.syntax == nil)
+    #expect(model.textMateGrammar?.scopeName == "source.ts")
   }
 
   // MARK: - Model

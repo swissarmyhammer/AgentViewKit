@@ -7,7 +7,9 @@ import SwiftUI
 /// The view shows a header with the filename or the language and a Copy
 /// button. Below the header, an EditorKit editor shows the code with line
 /// numbers. The editor grows to the height of the code. When EditorKit has a
-/// grammar for the language, the editor colors the code.
+/// tree-sitter grammar for the language, the editor colors the code with it.
+/// If not, and ``GrammarBundle`` ships a TextMate grammar for the language,
+/// the editor colors the code with that grammar.
 ///
 /// The Copy button writes the code to the pasteboard of the environment.
 /// See `EnvironmentValues.pasteboard`.
@@ -125,17 +127,31 @@ public struct CodeBlockView: View {
       .editorGutter(LineNumbers())
     if let grammarID {
       view.editorSyntax(grammarID)
+    } else if let textMateGrammar {
+      view.editorSyntax(textMate: textMateGrammar)
     } else {
       view
     }
   }
 
-  /// The id of the EditorKit grammar of ``language``, or `nil` when
-  /// EditorKit has no grammar for it.
+  /// The id of the EditorKit tree-sitter grammar of ``language``, or `nil`
+  /// when EditorKit has no grammar for it.
   private var grammarID: LanguageID? {
     guard let language else { return nil }
     let id = LanguageID(language)
     return GrammarRegistry.grammar(for: id) == nil ? nil : id
+  }
+
+  /// The TextMate grammar that ``GrammarBundle`` ships for ``language``, or
+  /// `nil` when the kit ships none.
+  ///
+  /// This is the second choice: a tree-sitter grammar gives better colors, so
+  /// the view reads ``grammarID`` first.
+  private var textMateGrammar: TextMateGrammar? {
+    guard let language, let id = GrammarBundle.languageID(forFenceTag: language) else {
+      return nil
+    }
+    return GrammarBundle.registry.grammar(for: id)
   }
 
   /// `text` with no whitespace at the start or the end, or `nil` when no

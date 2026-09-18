@@ -97,6 +97,8 @@ let package = Package(
       // The catalog document is the schema name agreement with the Router.
       // StructuredCatalogTests reads it from disk, so the build excludes it.
       exclude: ["Catalog/catalog.md"],
+      // The TextMate grammars of GrammarBundle, and their licenses.
+      resources: [.copy("Resources/Grammars")],
       swiftSettings: mainActorIsolated
     ),
     .target(
