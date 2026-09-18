@@ -1,4 +1,11 @@
 ---
+comments:
+- actor: claude-code
+  id: 01m2tnmvx348nv6wsmv5cbt9sc
+  text: |-
+    ### decision — ACP version in the README
+    The kit speaks only ACP v2 (`SupportedProtocolVersions`, `Docs/decisions/acp-version.md`). All agents that are available now (Claude Code, Codex, Gemini, Zed) speak v1, so `ACPThreadSource` refuses them. The user decided to stay v2 only. The README must say this limit clearly, and it must say that the demo uses the in-memory agent.
+  timestamp: 2026-09-18T16:29:58.051467+00:00
 depends_on:
 - 01M21ARQVH6HRNAWTP8NY9E8RR
 position_column: todo

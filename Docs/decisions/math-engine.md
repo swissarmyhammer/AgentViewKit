@@ -7,7 +7,9 @@ This file records the math engine of `MathView` and how `ResponseView` routes
 math spans to it. `Tests/AgentViewKitTests/Content/MathEngineDecisionTests.swift`
 reads the `engine:`, `url:`, and `version:` lines. It compares them with
 `MathView.engineName`, `Package.swift`, and `Package.resolved`. Keep the form of
-these three lines.
+these three lines. The same tests read the `review:` line and the section "The
+SPI symbols". They fail when a source file of the kit uses an engine symbol
+that the section does not name.
 
 engine: `swiftui-math`
 url: `https://github.com/gonzalezreal/swiftui-math`
@@ -33,6 +35,39 @@ version: `0.1.0`
 
 Decision: the kit uses swiftui-math directly, pinned `exact` because it is a
 0.x package. `MathView` shows a `Math` view.
+
+## The SPI symbols
+
+`MathView` measures the math with the `Textual` SPI of the engine. An SPI is
+not public API. A new version of the engine can change an SPI symbol, or
+remove it, with no warning and with no change of the major version. Thus
+`Package.swift` pins the engine with `exact: "0.1.0"`, and not with a range.
+`Package.resolved` holds the same version.
+
+Two files of the kit write `@_spi(Textual) import SwiftUIMath`:
+`Sources/AgentViewKit/Content/MathView.swift` and
+`Sources/AgentViewKit/Content/MathMarkdownParser.swift`. They use these SPI
+symbols:
+
+| SPI symbol | where the kit uses it |
+|---|---|
+| `Math.typographicBounds(for:fitting:font:style:)` | `MathView.bounds(of:display:fontSize:fitting:)` calls it. It is the one call that tells whether the engine parsed the source. |
+| `Math.TypographicBounds` | The result type of that call. It is also the result type of `MathView.bounds(of:display:fontSize:fitting:)` and of `MathSpanAttachment.bounds(fitting:in:)`. |
+| `Math.TypographicBounds.width` | `MathView.canTypeset(_:display:)` reads it. A width of zero means that the engine did not parse the source. |
+| `Math.TypographicBounds.descent` | `MathSpanAttachment.baselineOffset(in:)` reads it, to put the attachment on the text baseline. |
+| `Math.TypographicBounds.size` | `MathSpanAttachment.sizeThatFits(_:in:)` reads it. |
+
+The kit uses no other SPI symbol. `Math.TypographicBounds.origin` and
+`Math.TypographicBounds.ascent` are also SPI, but the kit does not read them.
+
+These engine symbols are public API: the `Math` view, `Math.Font`,
+`Math.Font.Name.latinModern`, `Math.TypesettingStyle`, `mathFont(_:)`,
+`mathTypesettingStyle(_:)`, and `mathRenderingMode(_:)`. A change in one of
+them gives a compile error, thus the build finds it.
+
+review: before the pin moves in `Package.swift` and in `Package.resolved`, a
+person must read the SPI of the new version of the engine, compare it with the
+table above, and record the result in this file.
 
 ## Measurements
 
@@ -97,7 +132,7 @@ parse and the kit view. The measurement test is not kept.
   zero width when the parse fails. It is marked `@_spi(Textual)`. The kit
   imports it with `@_spi(Textual) import SwiftUIMath`. The `exact` pin keeps
   the SPI stable. `theEngineTypesetsOnlyValidSource` fails when the SPI
-  changes.
+  changes. See "The SPI symbols" for the full list.
 - `MathView` with source that does not parse shows the source in a
   monospaced font. In a paragraph, the span becomes inline code with the
   source. The kit never shows a blank.
