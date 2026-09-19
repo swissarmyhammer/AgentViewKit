@@ -172,11 +172,11 @@ struct NoopThreadActionsTests {
 
   // MARK: - Environment
 
-  @Test func theDefaultEnvironmentValueIsTheLoggingActions() {
-    #expect(EnvironmentValues().threadActions is LoggingThreadActions)
+  @Test func theEnvironmentValueHasNoActionsByDefault() {
+    #expect(EnvironmentValues().threadActions == nil)
   }
 
-  @Test func theDefaultActionsDoNothingAndDoNotThrow() async throws {
+  @Test func theLoggingActionsDoNothingAndDoNotThrow() async throws {
     let actions = LoggingThreadActions()
 
     await actions.send(UserInput(text: "Hello"))
@@ -245,6 +245,7 @@ private struct ActionsProbe: View {
 
   var body: some View {
     Button("Stop") {
+      guard let actions else { return }
       Task { await actions.cancel() }
     }
     .accessibilityIdentifier(Self.stopIdentifier)

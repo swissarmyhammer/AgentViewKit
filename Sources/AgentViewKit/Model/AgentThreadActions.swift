@@ -79,10 +79,12 @@ public protocol AgentThreadActions: AnyObject {
   func logout() async throws
 }
 
-/// The actions that a view gets when no ancestor sets actions.
+/// Actions that only write a log line.
 ///
-/// Each verb does nothing and writes one `debug` message to the log, so that
-/// a developer can see that the host did not set actions. No verb throws.
+/// Each verb does nothing and writes one `debug` message to the log. No verb
+/// throws. These actions are not a default. A host selects them when it shows
+/// a thread that no source drives, such as a transcript that it read from
+/// disk. See `Docs/decisions/required-thread-actions.md`.
 public final class LoggingThreadActions: AgentThreadActions {
   /// The log of the actions.
   private let logger = Logger(subsystem: "AgentViewKit", category: "LoggingThreadActions")
@@ -130,20 +132,23 @@ public final class LoggingThreadActions: AgentThreadActions {
     log("logout")
   }
 
-  /// Writes that the host did not set actions for `verb`.
+  /// Writes that a view called `verb` on the logging actions.
   ///
   /// - Parameter verb: The name of the verb that a view called.
   private func log(_ verb: String) {
     logger.debug(
-      "\(verb, privacy: .public) was called, but no threadActions are set. Nothing occurs.")
+      "\(verb, privacy: .public) was called on LoggingThreadActions. Nothing occurs.")
   }
 }
 
 extension EnvironmentValues {
   /// The actions that the views of this subtree call (plan.md §3.4).
   ///
-  /// The default is a ``LoggingThreadActions``, which does nothing.
-  @Entry public var threadActions: any AgentThreadActions = LoggingThreadActions()
+  /// The default is `nil`, because there is no safe default: actions that do
+  /// nothing are a quiet failure. ``AgentThreadView`` takes the actions in its
+  /// initializer and sets this value for its subtree, so a host cannot forget
+  /// them. See `Docs/decisions/required-thread-actions.md`.
+  @Entry public var threadActions: (any AgentThreadActions)?
 }
 
 extension View {

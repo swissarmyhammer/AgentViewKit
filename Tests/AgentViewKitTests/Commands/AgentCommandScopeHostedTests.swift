@@ -42,8 +42,9 @@ import Testing
   @Test func aMountedThreadViewRegistersTheTenCommands() {
     let thread = Self.messageThread()
     let system = CommandSystem()
-    let harness = threadViewHarness(size: Self.windowSize, actions: NoopThreadActions()) {
-      AgentThreadView(thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
+      AgentThreadView(thread: thread, actions: actions)
         .commandSystem(system)
     }
     defer { harness.close() }
@@ -60,8 +61,9 @@ import Testing
   @Test func aThreadViewInAScopeForItsThreadAddsItsPartsToThatScope() {
     let thread = Self.messageThread()
     let system = CommandSystem()
-    let harness = threadViewHarness(size: Self.windowSize, actions: NoopThreadActions()) {
-      AgentThreadView(thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
+      AgentThreadView(thread: thread, actions: actions)
         .agentCommandScope(thread: thread)
         .commandSystem(system)
     }
@@ -82,7 +84,7 @@ import Testing
     let model = PromptInputHostedTestModel()
     let harness = threadViewHarness(size: Self.windowSize, actions: actions, thread: thread) {
       VStack {
-        AgentThreadView(thread: thread)
+        AgentThreadView(thread: thread, actions: actions)
         PromptInputHost(model: model)
       }
       .agentCommandScope(thread: thread)
@@ -125,9 +127,10 @@ import Testing
     let thread = Self.messageThread()
     let system = CommandSystem()
     let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.windowSize, actions: NoopThreadActions()) {
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
       VStack {
-        AgentThreadView(thread: thread)
+        AgentThreadView(thread: thread, actions: actions)
         PromptInputHost(model: model)
       }
       .agentCommandScope(thread: thread)
@@ -151,7 +154,7 @@ import Testing
     thread.apply(.addPermission(request))
     let actions = NoopThreadActions()
     let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
-      AgentThreadView(thread: thread)
+      AgentThreadView(thread: thread, actions: actions)
     }
     defer { harness.close() }
     harness.pump()
@@ -167,8 +170,9 @@ import Testing
     let thread = Self.messageThread()
     let system = CommandSystem()
     let model = ScopeVisibilityModel()
-    let harness = threadViewHarness(size: Self.windowSize, actions: NoopThreadActions()) {
-      ScopeVisibilityHost(model: model, thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
+      ScopeVisibilityHost(model: model, thread: thread, actions: actions)
         .commandSystem(system)
     }
     defer { harness.close() }
@@ -197,9 +201,12 @@ struct ScopeVisibilityHost: View {
   /// The thread of the view.
   let thread: AgentThread
 
+  /// The actions that the thread view gives to its subtree.
+  let actions: any AgentThreadActions
+
   var body: some View {
     if model.isShown {
-      AgentThreadView(thread: thread)
+      AgentThreadView(thread: thread, actions: actions)
     } else {
       Color.clear
     }

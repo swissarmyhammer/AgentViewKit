@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 /// Put the row in the footer slot of the message views:
 ///
 /// ```swift
-/// AgentThreadView(thread: thread)
+/// AgentThreadView(thread: thread, actions: actions)
 ///   .messageFooter { message in MessageActions(message: message) }
 /// ```
 ///
@@ -231,7 +231,7 @@ public struct MessageActions: View {
       logger.error("Retry found no user message before \(message.id, privacy: .private).")
       return
     }
-    actions.startSend(Self.input(of: user))
+    actions?.startSend(Self.input(of: user))
   }
 
   /// Puts the text of this message in the composer.

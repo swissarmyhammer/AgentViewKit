@@ -7,7 +7,7 @@ import SwiftUI
 /// Put the control in the footer slot of the message views:
 ///
 /// ```swift
-/// AgentThreadView(thread: thread)
+/// AgentThreadView(thread: thread, actions: actions)
 ///   .messageFooter { message in BranchNavigator(messageID: message.id) }
 /// ```
 ///
@@ -184,6 +184,6 @@ public struct BranchNavigator: View {
       logger.error("Regenerate found no user message before \(messageID, privacy: .private).")
       return
     }
-    actions.startSend(input)
+    actions?.startSend(input)
   }
 }

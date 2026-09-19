@@ -126,7 +126,7 @@ import UniformTypeIdentifiers
     let attachment = try Self.attachment(named: "notes.md", in: directory)
     let selection = InspectorSelection(attachment: attachment)
     let harness = HostedViewHarness(
-      AgentThreadView(thread: AgentThread())
+      AgentThreadView(thread: AgentThread(), actions: NoopThreadActions())
         .environment(\.inspectorSelection, selection),
       size: Self.hostSize)
     defer { harness.close() }

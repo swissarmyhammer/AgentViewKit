@@ -105,7 +105,8 @@ private struct OpenURLButton: View {
   @Test func aMessageWithTwoSourcesRendersAFooterWithTwoRows() async throws {
     let message = try Self.citedMessage(id: "cited-rows")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message)), size: Self.hostSize)
+      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
+      size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: SourcesView.rowIdentifier(index: 2)) != nil
@@ -125,7 +126,8 @@ private struct OpenURLButton: View {
   @Test func theFooterIsBelowTheTextWhenTheBlockComesFirst() async throws {
     let message = try Self.citedMessage(id: "cited-order", citationFirst: true)
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message)), size: Self.hostSize)
+      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
+      size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: SourcesView.identifier) != nil
@@ -166,7 +168,8 @@ private struct OpenURLButton: View {
   @Test func eachCitedParagraphShowsItsPill() async throws {
     let message = try Self.citedMessage(id: "cited-pills")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message)), size: Self.hostSize)
+      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
+      size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -179,7 +182,8 @@ private struct OpenURLButton: View {
   @Test func aTapOnPillTwoHighlightsRowTwo() async throws {
     let message = try Self.citedMessage(id: "cited-tap")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message)), size: Self.hostSize)
+      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
+      size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -197,7 +201,8 @@ private struct OpenURLButton: View {
     let message = try Self.citedMessage(id: "cited-stream")
     let thread = Self.thread(with: message)
     thread.apply(.appendStreaming(id: message.id, text: Self.text + "\n\nMore"))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread), size: Self.hostSize)
+    let harness = HostedViewHarness(
+      AgentThreadView(thread: thread, actions: NoopThreadActions()), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -315,7 +320,8 @@ private struct OpenURLButton: View {
   @Test func anUnregisteredCitationLikePayloadFallsBackToStructuredItemView() async throws {
     let message = try Self.citedMessage(id: "cited-other", schemaName: Self.otherSchemaName)
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message)), size: Self.hostSize)
+      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
+      size: Self.hostSize)
     defer { harness.close() }
     let identifier = StructuredItemView.identifier(for: Self.otherSchemaName)
     await harness.pump(until: Self.waitSeconds) { harness.element(identifier: identifier) != nil }
@@ -340,7 +346,7 @@ private struct OpenURLButton: View {
   @Test func aHostRegistrationReplacesTheSourcesView() async throws {
     let message = try Self.citedMessage(id: "cited-host")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message))
+      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions())
         .structuredItem(CitationPayload.schemaName) { _ in
           Text("Host sources").accessibilityIdentifier(Self.hostViewIdentifier)
         },

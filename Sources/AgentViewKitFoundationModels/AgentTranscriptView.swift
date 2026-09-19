@@ -10,12 +10,20 @@ import SwiftUI
 /// the transcript after the first body does not change the thread. To show a
 /// different transcript, give the view a different identity, for example
 /// with `.id(_:)`.
+///
+/// A snapshot has no source that drives it, but the cards of the thread still
+/// need actions. Thus the host gives the actions, as for ``AgentThreadView``.
+/// The default is ``LoggingThreadActions``, because a snapshot answers no
+/// request.
 public struct AgentTranscriptView: View {
   /// The transcript to show.
   let transcript: Transcript
 
   /// The catalog that decodes the structured segments.
   let catalog: StructuredCatalog
+
+  /// The actions that the views of the thread call.
+  let actions: any AgentThreadActions
 
   /// The store that keeps the thread for the identity of the view.
   @State private var store = SnapshotStore()
@@ -25,13 +33,20 @@ public struct AgentTranscriptView: View {
   /// - Parameters:
   ///   - transcript: The transcript to show.
   ///   - catalog: The catalog that decodes the structured segments.
-  public init(transcript: Transcript, catalog: StructuredCatalog = .standard) {
+  ///   - actions: The actions that the views of the thread call. The default
+  ///     only writes a log line, which fits a snapshot.
+  public init(
+    transcript: Transcript,
+    catalog: StructuredCatalog = .standard,
+    actions: any AgentThreadActions = LoggingThreadActions()
+  ) {
     self.transcript = transcript
     self.catalog = catalog
+    self.actions = actions
   }
 
   public var body: some View {
-    AgentThreadView(thread: store.thread(for: transcript, catalog: catalog))
+    AgentThreadView(thread: store.thread(for: transcript, catalog: catalog), actions: actions)
   }
 
   /// Makes a thread that holds the items of a transcript.

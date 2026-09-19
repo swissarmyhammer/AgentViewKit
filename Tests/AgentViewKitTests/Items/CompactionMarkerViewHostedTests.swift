@@ -43,7 +43,7 @@ import Testing
 
   @Test func anItemRowShowsTheMarkerWithTheCountInItsLabel() async {
     let (thread, _) = Self.compactedThread()
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: CompactionMarkerView.identifier) != nil
@@ -99,7 +99,7 @@ import Testing
 
   @Test func aSummaryPatchChangesTheShownSummary() async {
     let (thread, _) = Self.compactedThread(summary: nil)
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: CompactionMarkerView.identifier) != nil

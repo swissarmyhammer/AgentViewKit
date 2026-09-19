@@ -341,10 +341,9 @@ public struct AgentAuthView: View {
     _ operation: Operation,
     _ verb: @escaping @MainActor (any AgentThreadActions) async throws -> Void
   ) {
-    guard !running.contains(operation) else { return }
+    guard !running.contains(operation), let actions else { return }
     running.insert(operation)
     errors[operation] = nil
-    let actions = actions
     Task {
       do {
         try await verb(actions)
@@ -367,7 +366,7 @@ public struct AgentAuthView: View {
   ///   - terminal: The identifier of the terminal record.
   ///   - methodID: The identifier of the terminal method.
   private func write(_ line: String, to terminal: TerminalID, for methodID: AuthMethodID) {
-    let actions = actions
+    guard let actions else { return }
     Task {
       do {
         try await actions.writeTerminalLine(line, to: terminal)

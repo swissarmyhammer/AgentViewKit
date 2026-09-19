@@ -234,7 +234,9 @@
         .userMessage(ThreadFixtures.message(id: "u2")),
         .assistantMessage(ThreadFixtures.message(id: "a2")),
       ])
-      let harness = HostedViewHarness(size: Self.tallSize) { AgentThreadView(thread: thread) }
+      let harness = HostedViewHarness(size: Self.tallSize) {
+        AgentThreadView(thread: thread, actions: NoopThreadActions())
+      }
       defer { harness.close() }
       harness.pump()
 

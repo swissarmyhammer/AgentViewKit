@@ -111,10 +111,11 @@ import Testing
     let thread = AgentThread()
     thread.apply(.insert(.userMessage(ThreadFixtures.message(id: Self.user)), after: nil))
     let pasteboard = FakePasteboard()
+    let actions = NoopThreadActions()
     let harness = threadViewHarness(
-      size: Self.windowSize, actions: NoopThreadActions(), thread: thread
+      size: Self.windowSize, actions: actions, thread: thread
     ) {
-      AgentThreadView(thread: thread)
+      AgentThreadView(thread: thread, actions: actions)
         .messageFooter { MessageActions(message: $0) }
         .environment(\.pasteboard, pasteboard)
     }

@@ -41,8 +41,9 @@ import Testing
     announcer: RecordingAnnouncer = RecordingAnnouncer(),
     reporter: RecordingFocusReporter = RecordingFocusReporter()
   ) -> HostedViewHarness<some View> {
-    let harness = threadViewHarness(size: hostSize, actions: NoopThreadActions()) {
-      AgentThreadView(thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: hostSize, actions: actions) {
+      AgentThreadView(thread: thread, actions: actions)
         .environment(\.announcer, announcer)
         .environment(\.focusReporter, reporter)
     }
@@ -200,8 +201,9 @@ import Testing
   @Test func theThreadViewMovesTheFocusOfTheMoverOfTheHost() async {
     let thread = AgentThread()
     let mover = AccessibilityFocusMover()
-    let harness = threadViewHarness(size: Self.hostSize, actions: NoopThreadActions()) {
-      AgentThreadView(thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
+      AgentThreadView(thread: thread, actions: actions)
         .environment(\.accessibilityFocusMover, mover)
     }
     defer { harness.close() }
@@ -224,8 +226,9 @@ import Testing
 
   @Test func reduceMotionStopsTheShimmerInAThread() async {
     let (thread, _) = Self.runningReasoningThread()
-    let harness = threadViewHarness(size: Self.hostSize, actions: NoopThreadActions()) {
-      AgentThreadView(thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
+      AgentThreadView(thread: thread, actions: actions)
         .environment(\._accessibilityReduceMotion, true)
     }
     defer { harness.close() }
@@ -238,8 +241,9 @@ import Testing
 
   @Test func withNoReduceMotionTheShimmerAnimatesInAThread() async {
     let (thread, _) = Self.runningReasoningThread()
-    let harness = threadViewHarness(size: Self.hostSize, actions: NoopThreadActions()) {
-      AgentThreadView(thread: thread)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
+      AgentThreadView(thread: thread, actions: actions)
         .environment(\._accessibilityReduceMotion, false)
     }
     defer { harness.close() }

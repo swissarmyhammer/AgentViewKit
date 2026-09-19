@@ -80,7 +80,7 @@ public struct DefaultPromptAccessory: View {
   /// The button that stops the current turn.
   private var stopButton: some View {
     Button {
-      actions.startCancel()
+      actions?.startCancel()
     } label: {
       Label(String(localized: "Stop"), systemImage: "stop.fill")
         .labelStyle(.iconOnly)

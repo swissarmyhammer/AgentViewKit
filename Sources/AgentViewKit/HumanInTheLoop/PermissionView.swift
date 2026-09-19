@@ -362,9 +362,8 @@ public struct PermissionView: View {
   private func answer(
     _ work: @escaping @MainActor (any AgentThreadActions, PermissionRequest) async -> Void
   ) {
-    guard !isAnswered else { return }
+    guard !isAnswered, let actions else { return }
     isAnswered = true
-    let actions = actions
     let request = request
     Task {
       await work(actions, request)

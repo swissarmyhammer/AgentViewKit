@@ -155,8 +155,9 @@ struct AgentCommandMount: NSViewRepresentable {
     let path: FocusPath
     /// The thread of the scope.
     let thread: AgentThread
-    /// The actions that the commands call.
-    let actions: any AgentThreadActions
+    /// The actions that the commands call, or `nil` when no
+    /// ``AgentThreadView`` gave them.
+    let actions: (any AgentThreadActions)?
     /// The pasteboard of the copy command.
     let pasteboard: any Pasteboard
   }

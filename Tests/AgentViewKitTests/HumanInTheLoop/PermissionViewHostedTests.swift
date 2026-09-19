@@ -342,7 +342,8 @@ import Testing
   @Test func theThreadViewShowsThePendingCards() {
     let thread = AgentThread()
     thread.apply(.addPermission(Self.request))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread), size: Self.cardSize)
+    let harness = HostedViewHarness(
+      AgentThreadView(thread: thread, actions: NoopThreadActions()), size: Self.cardSize)
     defer { harness.close() }
     harness.pump()
 

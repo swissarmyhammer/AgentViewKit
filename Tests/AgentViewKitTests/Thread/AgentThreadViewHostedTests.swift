@@ -14,6 +14,12 @@
     /// A size that shows each row of the patch thread.
     static let tallSize = CGSize(width: 480, height: 1_600)
 
+    /// A size that shows a pending request card.
+    static let cardSize = CGSize(width: 640, height: 480)
+
+    /// The longest time that a test waits for a change, in seconds.
+    static let waitTimeout: TimeInterval = 5
+
     /// The accessibility identifier of the custom tool call view.
     static let customToolCallIdentifier = "custom-tool-call"
 
@@ -35,7 +41,8 @@
 
     @Test func eachItemMountsARowWithItsIdentifier() {
       let thread = Self.messageThread(prefix: "mount-item-", count: 3)
-      let harness = HostedViewHarness(AgentThreadView(thread: thread))
+      let harness = HostedViewHarness(
+        AgentThreadView(thread: thread, actions: NoopThreadActions()))
       defer { harness.close() }
       harness.pump()
 
@@ -44,13 +51,35 @@
       }
     }
 
+    @Test func theActionsOfTheInitializerReachTheCardsOfTheThread() async throws {
+      let thread = AgentThread()
+      let request = ThreadFixtures.permissionRequest()
+      thread.apply(.addPermission(request))
+      let actions = NoopThreadActions()
+      // The host sets no `threadActions` on the environment, so only the
+      // initializer can give the actions to the card of the request.
+      let harness = HostedViewHarness(
+        AgentThreadView(thread: thread, actions: actions), size: Self.cardSize)
+      defer { harness.close() }
+      harness.pump()
+      let allow = PermissionOptionID(PermissionOption.Kind.allowOnce.wireValue)
+
+      try harness.press(identifier: PermissionView.optionIdentifier(for: allow))
+      await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+
+      #expect(
+        actions.calls == [
+          .respondToPermission(request, PermissionDecision(outcome: .selected(allow)))
+        ])
+    }
+
     @Test func theToolCallOverrideReplacesOnlyTheToolCallView() {
       let thread = AgentThread()
       thread.apply(
         .insert(.toolCall(ThreadFixtures.toolCall(id: "override-call", status: .completed)), after: nil))
       thread.apply(
         .insert(.assistantMessage(ThreadFixtures.message(id: "override-message")), after: nil))
-      let view = AgentThreadView(thread: thread)
+      let view = AgentThreadView(thread: thread, actions: NoopThreadActions())
         .toolCallView { call in
           Text("Custom \(call.title)")
             .accessibilityIdentifier(Self.customToolCallIdentifier)
@@ -73,7 +102,8 @@
     @Test func aPatchToOneRecordEvaluatesOnlyItsRow() {
       let prefix = "patch-count-item-"
       let thread = Self.messageThread(prefix: prefix, count: Self.patchItemCount)
-      let harness = HostedViewHarness(AgentThreadView(thread: thread), size: Self.tallSize)
+      let harness = HostedViewHarness(
+        AgentThreadView(thread: thread, actions: NoopThreadActions()), size: Self.tallSize)
       defer { harness.close() }
       harness.pump()
       let counterPrefix = ItemRow.counterKey(for: prefix)

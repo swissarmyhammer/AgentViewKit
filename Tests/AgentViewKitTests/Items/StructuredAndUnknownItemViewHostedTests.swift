@@ -42,7 +42,7 @@ import Testing
 
   @Test func anUnregisteredStructuredItemShowsTheJSONView() {
     let thread = Self.thread(with: .structured(Self.structuredRecord(id: "structured-default")))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 
@@ -53,7 +53,7 @@ import Testing
 
   @Test func aRegisteredStructuredItemShowsTheRegistration() {
     let thread = Self.thread(with: .structured(Self.structuredRecord(id: "structured-registered")))
-    let view = AgentThreadView(thread: thread)
+    let view = AgentThreadView(thread: thread, actions: NoopThreadActions())
       .structuredItem(Self.schemaName) { content in
         Text("Chart \(content.payload["title"]?.stringValue ?? "")")
           .accessibilityIdentifier(Self.registeredIdentifier)
@@ -68,7 +68,7 @@ import Testing
 
   @Test func anUnknownItemShowsTheRawView() {
     let thread = Self.thread(with: .unknown(Self.unknownRecord(id: "unknown-default")))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 

@@ -394,19 +394,20 @@ struct ConfigOptionControl: View {
 /// - Parameters:
 ///   - id: The identifier of the option.
 ///   - current: The value that the source gives.
-///   - actions: The actions that get the new value.
+///   - actions: The actions that get the new value, or `nil` when no
+///     ``AgentThreadView`` gave actions to this view.
 ///   - send: The function that makes the config value of a new value.
 /// - Returns: The binding.
 func configOptionBinding<Value: Equatable>(
   id: ConfigOptionID,
   current: Value,
-  actions: any AgentThreadActions,
+  actions: (any AgentThreadActions)?,
   send: @escaping (Value) -> ConfigValue
 ) -> Binding<Value> {
   Binding(
     get: { current },
     set: { newValue in
-      guard newValue != current else { return }
+      guard newValue != current, let actions else { return }
       Task {
         await actions.setConfigOption(id, send(newValue))
       }

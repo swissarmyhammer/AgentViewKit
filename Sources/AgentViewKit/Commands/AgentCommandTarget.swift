@@ -47,8 +47,8 @@ final class AgentCommandTarget {
   /// The thread that the commands act on.
   var thread: AgentThread?
 
-  /// The actions that the commands call.
-  var actions: any AgentThreadActions = LoggingThreadActions()
+  /// The actions that the commands call, or `nil` when no scope gave them.
+  var actions: (any AgentThreadActions)?
 
   /// The pasteboard that ``AgentCommandVerb/copyThread`` writes to.
   var pasteboard: any Pasteboard = NSPasteboard.general
@@ -174,7 +174,7 @@ final class AgentCommandTarget {
     guard let thread, availability(of: verb, payload: payload).isAvailable else { return false }
     switch verb {
     case .send: send(payload: payload)
-    case .cancel: actions.startCancel()
+    case .cancel: actions?.startCancel()
     case .approvePending: respond(payload: payload, rejects: false)
     case .rejectPending: respond(payload: payload, rejects: true)
     case .jumpToNext: jump(forward: true)
@@ -209,7 +209,7 @@ final class AgentCommandTarget {
       composer?.submit()
       return
     }
-    actions.startSend(UserInput(text: text))
+    actions?.startSend(UserInput(text: text))
   }
 
   // MARK: - Permission
@@ -258,7 +258,7 @@ final class AgentCommandTarget {
     guard let answer = answer(payload: payload, rejects: rejects) else { return }
     let comment = AgentCommandPayload.string(AgentCommandPayload.commentKey, in: payload)
     let decision = PermissionDecision(outcome: .selected(answer.option.id), comment: comment)
-    let actions = actions
+    guard let actions else { return }
     Task { await actions.respond(to: answer.request, decision) }
   }
 

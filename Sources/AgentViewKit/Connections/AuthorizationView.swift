@@ -250,9 +250,8 @@ public struct AuthorizationView: View {
   /// A cancelled call goes back to ``Phase/idle``. Each other thrown error
   /// goes to ``Phase/failed(_:)`` with the text of the error.
   private func connect() {
-    guard phase != .connecting else { return }
+    guard phase != .connecting, let actions else { return }
     phase = .connecting
-    let actions = actions
     let request = request
     Task {
       do {

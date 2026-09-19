@@ -41,7 +41,8 @@ import Testing
 
   @Test func theSystemPromptMountsWithItsIdentifierAndLabel() {
     let record = SystemPrompt(id: "system-mount", text: Self.instructions)
-    let harness = HostedViewHarness(AgentThreadView(thread: Self.thread(with: .system(record))))
+    let harness = HostedViewHarness(
+      AgentThreadView(thread: Self.thread(with: .system(record)), actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 
@@ -53,7 +54,8 @@ import Testing
   @Test func aUserMessageMountsWithItsIdentifierAndLabel() {
     let message = ThreadFixtures.message(id: "user-mount", text: "Hello.")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: .userMessage(message))))
+      AgentThreadView(
+        thread: Self.thread(with: .userMessage(message)), actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 
@@ -66,7 +68,8 @@ import Testing
   @Test func anAssistantMessageMountsWithItsIdentifierAndLabel() {
     let message = ThreadFixtures.message(id: "assistant-mount", text: "Hi.")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: .assistantMessage(message))))
+      AgentThreadView(
+        thread: Self.thread(with: .assistantMessage(message)), actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 
@@ -111,7 +114,8 @@ import Testing
 
   @Test func theSystemPromptIsCollapsedAndAPressExpandsIt() async throws {
     let record = SystemPrompt(id: "system-toggle", text: Self.instructions)
-    let harness = HostedViewHarness(AgentThreadView(thread: Self.thread(with: .system(record))))
+    let harness = HostedViewHarness(
+      AgentThreadView(thread: Self.thread(with: .system(record)), actions: NoopThreadActions()))
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: SystemPromptView.toggleIdentifier) != nil
@@ -152,7 +156,8 @@ import Testing
   @Test func aMessageWithTwoBlocksMountsTwoBlockViewsInOrder() {
     let message = Self.twoBlockMessage(id: "two-blocks")
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: .assistantMessage(message))))
+      AgentThreadView(
+        thread: Self.thread(with: .assistantMessage(message)), actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 
@@ -169,7 +174,7 @@ import Testing
     let message = Self.twoBlockMessage(id: "streaming-blocks")
     let thread = Self.thread(with: .userMessage(message))
     thread.apply(.appendStreaming(id: message.id, text: "Streamed text"))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: ResponseView.tailIdentifier) != nil

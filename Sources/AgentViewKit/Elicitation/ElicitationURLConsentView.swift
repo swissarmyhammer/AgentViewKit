@@ -246,7 +246,7 @@ public struct ElicitationURLConsentView: View {
   ///
   /// - Parameter result: The answer of the user.
   private func respond(_ result: ElicitationResult) {
-    actions.startRespond(to: request, result)
+    actions?.startRespond(to: request, result)
   }
 }
 

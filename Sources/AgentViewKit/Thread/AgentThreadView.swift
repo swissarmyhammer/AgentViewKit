@@ -10,6 +10,13 @@ import SwiftUI
 /// Below the conversation, a ``PendingRequestsHost`` shows one card for each
 /// pending permission, elicitation, and authorization request of the thread.
 ///
+/// The host gives the ``AgentThreadActions`` in the initializer. There is no
+/// default, because actions that do nothing are a quiet failure. The view
+/// gives the actions to its subtree through
+/// ``SwiftUI/EnvironmentValues/threadActions``, so each card and each control
+/// in the thread calls the actions of the host. For a thread that no source
+/// drives, pass ``LoggingThreadActions``.
+///
 /// To replace the view of an item kind, use a typed modifier such as
 /// ``SwiftUI/View/toolCallView(_:)``. To replace the view of a schema name,
 /// use ``SwiftUI/View/structuredItem(_:_:)``.
@@ -39,6 +46,9 @@ public struct AgentThreadView: View {
   /// The thread to show.
   let thread: AgentThread
 
+  /// The actions that the views of the thread call.
+  let actions: any AgentThreadActions
+
   /// The store that the view makes when the environment has none.
   @State private var ownExpandedBlocks = ExpandedBlocksStore()
 
@@ -55,9 +65,13 @@ public struct AgentThreadView: View {
 
   /// Makes the view of a thread.
   ///
-  /// - Parameter thread: The thread to show.
-  public init(thread: AgentThread) {
+  /// - Parameters:
+  ///   - thread: The thread to show.
+  ///   - actions: The actions that the views of the thread call. A thread
+  ///     that no source drives takes ``LoggingThreadActions``.
+  public init(thread: AgentThread, actions: any AgentThreadActions) {
     self.thread = thread
+    self.actions = actions
   }
 
   public var body: some View {
@@ -71,5 +85,8 @@ public struct AgentThreadView: View {
     .agentCommandScope(thread: thread, anchors: anchors)
     .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
     .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
+    // The actions are the outermost value, so that each modifier above, and
+    // the agent command scope, reads the actions of the initializer.
+    .threadActions(actions)
   }
 }

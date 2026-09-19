@@ -190,7 +190,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   /// Stops the current turn. The text and the queue do not change.
   private func cancel() {
-    actions.startCancel()
+    actions?.startCancel()
   }
 
   /// The files of a submit: the attachment list, then the files that the
@@ -225,7 +225,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   ///
   /// - Parameter input: The input to send.
   private func send(_ input: UserInput) {
-    actions.startSend(input)
+    actions?.startSend(input)
   }
 }
 

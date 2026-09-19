@@ -204,7 +204,7 @@ import Testing
   @Test func anErrorItemRowShowsTheErrorView() {
     let thread = AgentThread()
     thread.apply(.insert(.error(ThreadError(id: "error-1", kind: .timeout)), after: nil))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 

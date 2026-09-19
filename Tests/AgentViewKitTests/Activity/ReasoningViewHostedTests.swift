@@ -85,7 +85,7 @@ import Testing
 
   @Test func theLastReasoningShimmersWhileRunningAndThenShowsItsDuration() async {
     let (thread, reasoning) = Self.thinkingThread()
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: ShimmerView.identifier) != nil
@@ -109,7 +109,7 @@ import Testing
 
   @Test func aUserExpansionSurvivesTheCollapseOnCompletion() async throws {
     let (thread, reasoning) = Self.thinkingThread()
-    let harness = HostedViewHarness(AgentThreadView(thread: thread))
+    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     let toggleID = ReasoningView.toggleIdentifier(for: Self.reasoningID)
     let bodyID = ReasoningView.bodyIdentifier(for: Self.reasoningID)

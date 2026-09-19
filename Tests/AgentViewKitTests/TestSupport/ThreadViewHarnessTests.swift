@@ -15,7 +15,7 @@ private struct EnvironmentProbeView: View {
       Text(thread == nil ? "no thread" : "thread")
         .accessibilityIdentifier("probe-thread")
       Button("Cancel") {
-        let actions = actions
+        guard let actions else { return }
         Task { await actions.cancel() }
       }
       .accessibilityIdentifier("probe-cancel")

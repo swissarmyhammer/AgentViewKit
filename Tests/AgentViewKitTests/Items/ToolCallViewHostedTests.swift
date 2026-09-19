@@ -80,7 +80,7 @@
     @Test func theThreadViewShowsTheToolCallView() {
       let id = "thread-call"
       let (thread, _) = Self.makeCallThread(id: id, status: .completed)
-      let harness = HostedViewHarness(AgentThreadView(thread: thread))
+      let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
       defer { harness.close() }
       harness.pump()
 
