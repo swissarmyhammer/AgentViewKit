@@ -20,6 +20,15 @@ comments:
 
     Blocker: ^3w1hxha. A person must turn on UI Automation Mode (`sudo automationmodetool enable-automationmode-without-authentication`, or approve the prompt one time). Then run `timeout 900 Scripts/test-examples.sh` on `wip/ny9e8rr`, merge the branch, and continue with the review.
   timestamp: 2026-09-17T06:33:06.841260+00:00
+- actor: claude-code
+  id: 01m2x22dw8egb9yeekxypq680w
+  text: |-
+    ### note — breaking changes on main since the branch
+    When you merge `wip/ny9e8rr`, change these in the demo:
+    - `AgentThreadView(thread:)` no longer exists. Use `AgentThreadView(thread:actions:)` (^33tg6p6, Docs/decisions/required-thread-actions.md). The `threadActions` environment default is `nil`.
+    - EditorKit is pinned at 235cbb7, and code blocks use the TextMate grammars (^3t64xef). Call `GrammarBundle.register()` at launch if the demo must not wait on the first code block.
+    - The README task ^3swhtbj must say that the kit speaks ACP v2 only and that the demo uses the in-memory agent.
+  timestamp: 2026-09-19T14:45:34.216713+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21AH4QCEFEBPTZ8GR061H51
