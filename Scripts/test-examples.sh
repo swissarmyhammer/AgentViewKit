@@ -48,6 +48,25 @@ require_xcodeproj_gem() {
     fi
 }
 
+# Runs a command with a time limit, in seconds.
+#
+# macOS ships no `timeout` command. A machine with coreutils has `timeout` or `gtimeout`.
+# A machine with neither uses `perl`: `alarm` sets a timer that survives `exec`, and the
+# SIGALRM that it sends stops the command. `perl` ships with macOS.
+#
+# Arguments: the time limit in seconds, then the command and its arguments.
+run_with_limit() {
+    local limit="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$limit" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$limit" "$@"
+    else
+        perl -e 'alarm shift @ARGV; exec @ARGV or die "exec failed: $!\n"' -- "$limit" "$@"
+    fi
+}
+
 # Runs `xcodebuild` with a time limit.
 #
 # EditorKit and Textual use Swift macros. A build with no person to approve them must skip
@@ -57,7 +76,7 @@ require_xcodeproj_gem() {
 run_xcodebuild() {
     local limit="$1"
     shift
-    timeout "$limit" xcodebuild -skipMacroValidation -skipPackagePluginValidation "$@"
+    run_with_limit "$limit" xcodebuild -skipMacroValidation -skipPackagePluginValidation "$@"
 }
 
 # Makes the project of one example again, builds it, and runs its UI tests.

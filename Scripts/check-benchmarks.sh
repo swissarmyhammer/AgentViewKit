@@ -33,12 +33,28 @@ readonly BENCHMARK_PACKAGE="$REPO_ROOT/Benchmarks"
 # The committed baseline that each check compares with.
 readonly BASELINE="main"
 readonly REPORT="$REPO_ROOT/.build/benchmark-check.log"
+# The output of the build of the package. The script prints it on a failure.
+readonly BUILD_LOG="$REPO_ROOT/.build/benchmark-build.log"
 # The report lines of a scenario that stopped with an error.
 readonly RUNTIME_FAILURE_PATTERN="failed during runtime|failed with|teardown failed|benchmarkCrashed"
 
 main() {
     mkdir -p "$(dirname "$REPORT")"
 
+    # The benchmark tool hides the build output. When the build fails, it says
+    # only "Benchmark failed to run due to build error". So the script builds
+    # the package first, with its output visible, and the error shows.
+    echo "==> build the Benchmarks package"
+    local build_status=0
+    swift build --package-path "$BENCHMARK_PACKAGE" > "$BUILD_LOG" 2>&1 || build_status=$?
+    if [ "$build_status" -ne 0 ]; then
+        cat "$BUILD_LOG"
+        echo
+        echo "Benchmark gate FAILED: the Benchmarks package does not build."
+        return 1
+    fi
+
+    echo "==> check each scenario against the '$BASELINE' baseline"
     local status=0
     swift package --package-path "$BENCHMARK_PACKAGE" --disable-sandbox \
         benchmark baseline check "$BASELINE" \

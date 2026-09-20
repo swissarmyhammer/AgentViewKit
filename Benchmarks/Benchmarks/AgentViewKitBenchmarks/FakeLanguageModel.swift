@@ -1,1 +1,1 @@
-../../../Tests/AgentViewKitFoundationModelsTests/FakeLanguageModel.swift
+../../../Sources/DemoSupport/FakeLanguageModel.swift
