@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import AuthenticationServices
+import DemoSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient

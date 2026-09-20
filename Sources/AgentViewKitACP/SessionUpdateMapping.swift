@@ -368,6 +368,25 @@ public enum SessionUpdateMapping {
     }
   }
 
+  /// Changes one ACP authentication method into a kit authentication method.
+  ///
+  /// The kit type decodes the ACP wire form, so the method goes through its
+  /// JSON form.
+  ///
+  /// - Parameter method: A method from the `initialize` answer.
+  /// - Returns: The kit method, or `nil` when the method does not encode or
+  ///   the kit cannot decode it. A method type that the kit does not know
+  ///   gives ``AgentViewKit/AuthMethod/unknown(_:)``.
+  public static func authMethod(_ method: FoundationModelsACP.AuthMethod) -> AgentViewKit.AuthMethod? {
+    do {
+      let data = try JSONEncoder().encode(method)
+      return try JSONDecoder().decode(AgentViewKit.AuthMethod.self, from: data)
+    } catch {
+      logger.error("An authentication method does not decode: \(error, privacy: .public)")
+      return nil
+    }
+  }
+
   /// The patch of a session info update.
   ///
   /// A time that is not ISO 8601 does not change the stored time.
