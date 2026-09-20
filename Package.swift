@@ -210,6 +210,28 @@ let package = Package(
       dependencies: ["PackageFileSupport"],
       exclude: ["Fixtures"]
     ),
+    // The compiled snippets of README.md (plan.md §1). Each `// readme:compile`
+    // block of the README is a file in `Examples/ReadmeSnippets/Snippets/`,
+    // that `Scripts/extract-readme-snippets.sh` writes. This target compiles
+    // the files against the products that a host imports, so a snippet that
+    // does not compile fails the build. `ReadmeSnippetTests` in
+    // PackageStructureTests holds the README and the files equal. It is a
+    // test target, and not in `Sources/`, so that no product links the
+    // snippets. It has no default isolation, so that the snippets compile in
+    // a host with the language default.
+    .testTarget(
+      name: "ReadmeSnippetsTests",
+      dependencies: [
+        "AgentViewKit",
+        "AgentViewKitACP",
+        "AgentViewKitFoundationModels",
+        "AgentViewKitRouter",
+        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
+        .product(name: "FoundationModelsRouter", package: "FoundationModelsRouter"),
+      ],
+      path: "Examples/ReadmeSnippets"
+    ),
   ],
   swiftLanguageModes: [.v6]
 )

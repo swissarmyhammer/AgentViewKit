@@ -8,8 +8,8 @@ comments:
   timestamp: 2026-09-18T16:29:58.051467+00:00
 depends_on:
 - 01M21ARQVH6HRNAWTP8NY9E8RR
-position_column: todo
-position_ordinal: bc80
+position_column: doing
+position_ordinal: '80'
 title: README and compiled README snippets (plan §1, §9)
 ---
 ## What
