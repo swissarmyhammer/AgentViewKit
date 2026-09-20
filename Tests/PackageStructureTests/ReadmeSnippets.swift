@@ -45,23 +45,24 @@ enum ReadmeSnippets {
   /// - Parameter markdown: The Markdown text.
   /// - Returns: The lines of each block, joined with newlines, in text order.
   static func swiftBlocks(in markdown: String) -> [String] {
-    var blocks: [String] = []
-    var block: [String] = []
-    var isInBlock = false
-    for line in markdown.components(separatedBy: "\n") {
-      if !isInBlock {
-        isInBlock = line == openFence
-        continue
-      }
-      if line == closeFence {
-        blocks.append(block.joined(separator: "\n"))
-        block = []
-        isInBlock = false
-      } else {
-        block.append(line)
+    // The scan keeps the closed blocks, and the lines of the open block or
+    // `nil` outside a block.
+    let scan = markdown.components(separatedBy: "\n").reduce(
+      into: (closed: [String](), open: [String]?.none)
+    ) { scan, line in
+      switch (scan.open, line) {
+      case (nil, openFence):
+        scan.open = []
+      case (nil, _):
+        break
+      case (let block?, closeFence):
+        scan.closed.append(block.joined(separator: "\n"))
+        scan.open = nil
+      case (let block?, _):
+        scan.open = block + [line]
       }
     }
-    return blocks
+    return scan.closed
   }
 
   /// The snippets of a Markdown text: the Swift blocks whose first line
@@ -100,12 +101,10 @@ enum ReadmeSnippets {
   /// The text of each snippet file on disk, keyed by the file name without
   /// `.swift`.
   static func snippetFiles() throws -> [String: String] {
-    let directory = try PackageFiles.file(snippetsPath)
-    let files = try PackageFiles.swiftFiles(in: directory)
-    var texts: [String: String] = [:]
-    for file in files {
-      texts[file.deletingPathExtension().lastPathComponent] = try String(contentsOf: file, encoding: .utf8)
-    }
-    return texts
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(snippetsPath))
+    return Dictionary(
+      uniqueKeysWithValues: try files.map { file in
+        (file.deletingPathExtension().lastPathComponent, try String(contentsOf: file, encoding: .utf8))
+      })
   }
 }
