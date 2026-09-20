@@ -5,6 +5,8 @@ import Foundation
 import FoundationModels
 import Testing
 
+@testable import DemoSupport
+
 /// The values and the helpers of the actions and hooks tests.
 enum ActionSamples {
   /// The id of the reasoning entry that the fake model makes.

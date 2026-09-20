@@ -133,16 +133,18 @@ let package = Package(
       dependencies: ["AgentViewKit"],
       swiftSettings: mainActorIsolated
     ),
-    // The scripted in-memory ACP agent and the ACP session model of the demo
-    // app. The ACP tests link this target. The demo app
-    // (Examples/AgentViewKitDemo) compiles its sources into the app. The
-    // target is not a product, because the package has exactly four library
-    // products (plan.md §11 decision 1).
+    // The scripted in-memory ACP agent, the ACP session model, the fake
+    // language model, the FoundationModels session model, and the launch
+    // options of the demo app. The ACP tests and the FoundationModels tests
+    // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
+    // sources into the app. The target is not a product, because the package
+    // has exactly four library products (plan.md §11 decision 1).
     .target(
       name: "DemoSupport",
       dependencies: [
         "AgentViewKit",
         "AgentViewKitACP",
+        "AgentViewKitFoundationModels",
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],
@@ -165,7 +167,13 @@ let package = Package(
     ),
     .testTarget(
       name: "AgentViewKitFoundationModelsTests",
-      dependencies: ["AgentViewKitFoundationModels", "AgentViewKitTestSupport"],
+      dependencies: [
+        "AgentViewKitFoundationModels",
+        "AgentViewKitTestSupport",
+        // The fake language model and the FoundationModels session model of
+        // the demo app.
+        "DemoSupport",
+      ],
       swiftSettings: mainActorIsolated
     ),
     .testTarget(

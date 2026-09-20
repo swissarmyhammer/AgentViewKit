@@ -3,8 +3,8 @@ depends_on:
 - 01M21ARQVH6HRNAWTP8NY9E8RR
 - 01M21AGTHBZSXFCZHZE5A7FQWQ
 - 01M21BF3845VTY0NRCX33FXW2B
-position_column: todo
-position_ordinal: c480
+position_column: doing
+position_ordinal: '80'
 title: Demo app FoundationModels tab, availability gate, and fake-model launch argument (plan §1)
 ---
 ## What

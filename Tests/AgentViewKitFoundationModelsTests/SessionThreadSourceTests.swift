@@ -5,6 +5,8 @@ import Foundation
 import FoundationModels
 import Testing
 
+@testable import DemoSupport
+
 /// The values and the helpers of the source tests.
 enum SourceSamples {
   /// The id of the response entry that the fake model makes.

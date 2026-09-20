@@ -4,6 +4,8 @@ import AgentViewKitTestSupport
 import FoundationModels
 import Testing
 
+@testable import DemoSupport
+
 @Suite @MainActor struct SessionThreadSourceObservationTests {
   /// The number of text chunks in the long stream.
   static let longChunkCount = 1_000

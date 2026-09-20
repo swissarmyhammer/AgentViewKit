@@ -81,6 +81,10 @@ nonisolated final class FakeGate: Sendable, Hashable {
 /// A `LanguageModel` that sends scripted events through the macOS 27
 /// `LanguageModelExecutor` protocol.
 ///
+/// The FoundationModels tests run their sessions on this model. The demo app
+/// binds it with `--fake-language-model` (``FoundationModelsDemoSession``),
+/// so that its end-to-end test runs on a machine without the system model.
+///
 /// Each item of ``rounds`` is the events of one model call. The executor
 /// counts the tool calls entries after the last prompt of the transcript, and
 /// sends the round with that position. So a script with a tool call in round

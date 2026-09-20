@@ -5,6 +5,8 @@ import Foundation
 import FoundationModels
 import Testing
 
+@testable import DemoSupport
+
 /// Tests of ``SessionThreadSource`` with local branches
 /// (`Docs/decisions/branches.md`).
 @Suite @MainActor struct SessionThreadSourceBranchTests {
