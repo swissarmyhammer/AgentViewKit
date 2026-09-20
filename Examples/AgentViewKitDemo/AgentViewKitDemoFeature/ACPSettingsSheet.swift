@@ -16,6 +16,15 @@ struct ACPSettingsSheet: View {
   /// The minimum height of the connection list.
   static let connectionsHeight: CGFloat = 120
 
+  /// The space between the groups of the sheet.
+  static let groupSpacing: CGFloat = 20
+
+  /// The minimum width of the sheet.
+  static let minimumWidth: CGFloat = 420
+
+  /// The minimum height of the sheet.
+  static let minimumHeight: CGFloat = 480
+
   /// The ACP session of the tab.
   let session: ACPDemoSession
 
@@ -27,7 +36,7 @@ struct ACPSettingsSheet: View {
   var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: Self.groupSpacing) {
           GroupBox("Connections") {
             ConnectionsView()
               .frame(minHeight: Self.connectionsHeight)
@@ -53,6 +62,6 @@ struct ACPSettingsSheet: View {
         }
       }
     }
-    .frame(minWidth: 420, minHeight: 480)
+    .frame(minWidth: Self.minimumWidth, minHeight: Self.minimumHeight)
   }
 }

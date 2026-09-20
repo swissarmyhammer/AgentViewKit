@@ -25,6 +25,12 @@ struct ACPTabView: View {
   /// The accessibility identifier of the progress view of a connection.
   static let connectingIdentifier = "demo-acp-connecting"
 
+  /// The minimum width of the sidebar column.
+  static let sidebarMinimumWidth: CGFloat = 200
+
+  /// The ideal width of the sidebar column.
+  static let sidebarIdealWidth: CGFloat = 240
+
   /// The launch options of the app.
   let options: DemoLaunchOptions
 
@@ -48,7 +54,7 @@ struct ACPTabView: View {
   var body: some View {
     NavigationSplitView {
       sidebar
-        .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+        .navigationSplitViewColumnWidth(min: Self.sidebarMinimumWidth, ideal: Self.sidebarIdealWidth)
     } detail: {
       detail
     }

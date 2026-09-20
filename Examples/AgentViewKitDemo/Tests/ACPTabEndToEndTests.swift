@@ -50,20 +50,19 @@ final class ACPTabEndToEndTests: XCTestCase {
   /// The number of seconds that a test waits for an element.
   private static let timeout: TimeInterval = 20
 
-  /// The app under test.
-  private var app: XCUIApplication!
+  /// The app under test. XCTest makes one test instance for each test
+  /// method, so each test has its own app.
+  private let app = XCUIApplication()
 
   override func setUp() async throws {
     try await super.setUp()
     continueAfterFailure = false
-    app = XCUIApplication()
     app.launchArguments = [Self.inMemoryAgentArgument]
     app.launch()
   }
 
   override func tearDown() async throws {
     app.terminate()
-    app = nil
     try await super.tearDown()
   }
 
