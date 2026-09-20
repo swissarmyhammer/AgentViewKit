@@ -1,0 +1,120 @@
+# AgentViewKit CI. The shared `swift-ci` reusable workflow builds and tests the
+# package on the self-hosted macOS runner of the org. That workflow lives in
+# the swissarmyhammer/workflows repository, and EditorKit uses the same
+# pattern. The runner runs macOS 27 or newer. No job uses a GitHub-hosted
+# `macos-*` runner, because those runners used up the Actions minutes of the
+# org (see the EditorKit workflow for the history).
+#
+# Jobs:
+#   - ci: the shared build and test job. It runs `swift build --build-tests`
+#     and `swift test` with the Xcode and Swift toolchain of the runner.
+#   - benchmarks: the performance gate. `Scripts/check-benchmarks.sh` runs the
+#     `Benchmarks/` package against its committed baseline and fails on a
+#     regression past the threshold. The script is the whole gate, so a
+#     developer runs the identical check locally.
+#   - readme: the README gate. `Scripts/check-readme.sh` writes the snippets of
+#     README.md again, compares them with the committed files, and builds the
+#     `ReadmeSnippetsTests` target.
+#   - examples: the demo gate. `Scripts/test-examples.sh` makes the Xcode
+#     project of each example again, builds it, and runs its UI tests.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: swissarmyhammer/workflows/.github/workflows/swift-ci.yaml@main
+
+  # The performance gate. `Scripts/check-benchmarks.sh` holds the whole gate:
+  # the run with `--disable-sandbox`, the comparison with the committed
+  # baseline in `Benchmarks/`, and the threshold policy. `needs: ci` makes the
+  # gate run only after the build and the tests are green.
+  #
+  # The benchmarks host SwiftUI views, so the runner needs a window server: the
+  # service user of the runner must have a logged-in session.
+  benchmarks:
+    name: Benchmarks (regression gate)
+    needs: ci
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run every benchmark and fail on a regression past threshold
+        run: ./Scripts/check-benchmarks.sh
+
+  # The README gate (plan.md §1). `Scripts/check-readme.sh` holds the whole
+  # gate. A README snippet that is not in `Examples/ReadmeSnippets/Snippets`,
+  # or one that does not compile, fails the job.
+  readme:
+    name: README gate
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compare and compile the README snippets
+        run: ./Scripts/check-readme.sh
+
+  # The demo gate (plan.md §1). `Scripts/test-examples.sh` holds the whole
+  # gate: the project generation, the build, and the UI tests of each example.
+  #
+  # THE UI TESTS NEED TWO THINGS ON THE RUNNER. The tests drive the app through
+  # XCUIApplication. The runner service user must have a logged-in session, and
+  # macOS UI Automation Mode must be on for that user:
+  #   sudo automationmodetool enable-automationmode-without-authentication
+  # A person runs that command one time on the runner. Without it the test
+  # step waits for a permission prompt that nobody answers, and the time limit
+  # of the script stops it.
+  #
+  # The project generators call the `xcodeproj` gem. A gem is per user, so the
+  # step below installs it into the user gem directory when the runner has
+  # none. The install runs one time per runner.
+  #
+  # On failure the `.xcresult` bundles upload as `examples-<name>-results`.
+  examples:
+    name: Examples (${{ matrix.example }})
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [AgentViewKitDemo]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Toolchain versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          ruby --version
+
+      - name: Install the xcodeproj gem when the runner has none
+        run: |
+          if ruby -e 'require "xcodeproj"' 2>/dev/null; then
+            echo "The xcodeproj gem is available."
+          else
+            echo "The xcodeproj gem is absent. Installing it; this runs one time per runner."
+            gem install --user-install xcodeproj
+            ruby -e 'require "xcodeproj"'
+            echo "The xcodeproj gem is now available."
+          fi
+
+      - name: Make the project again, build the application, and run its UI tests
+        run: ./Scripts/test-examples.sh ${{ matrix.example }}
+
+      - name: Upload the result bundles
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: examples-${{ matrix.example }}-results
+          path: .build/examples/${{ matrix.example }}
+          if-no-files-found: ignore
