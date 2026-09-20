@@ -17,12 +17,15 @@
 // gate must catch.
 //
 // The custom count metrics (body evaluations, paragraphs parsed, observer
-// invalidations, tail updates) do not change with the machine:
+// invalidations, the tail updates of the snapshot source) do not change with
+// the machine:
 //
 //   - A LARGE count uses the relative instruction tolerance.
 //   - A SMALL count (a few changes for each chunk or stream) moves by one
 //     when two observation changes fall into one main actor pass. A change
 //     from 2 to 3 is +50 %, so a small count uses an absolute tolerance.
+//   - A RECORDED count has no threshold. The tail updates of the two
+//     comparison sources change with the machine (see `tailUpdates(gated:)`).
 //
 
 import Benchmark
@@ -93,8 +96,32 @@ enum BenchmarkPolicy {
   }
 
   /// The tail updates that a tail source gives for one stream.
-  static var tailUpdates: CountMetric {
-    largeCount("Tail updates per stream")
+  ///
+  /// The snapshot source, the one that the kit uses, gives one update for
+  /// each chunk, so its count does not change with the machine and the gate
+  /// reads it. The two comparison sources of research R4
+  /// (`SessionPropertyValues.history` and `session.transcript`) give one
+  /// update for each observation tick of the SDK. That count describes the
+  /// SDK and the machine, not the kit: the CI runner gave 3 times the count
+  /// of the machine that recorded the baseline. So those scenarios record
+  /// the count with `gated: false`, as the policy records throughput.
+  ///
+  /// - Parameter gated: Whether the gate reads the count.
+  /// - Returns: The metric, with the relative count tolerance or none.
+  static func tailUpdates(gated: Bool) -> CountMetric {
+    gated
+      ? largeCount("Tail updates per stream")
+      : recordedCount("Tail updates per stream")
+  }
+
+  /// A count metric that the gate does not read.
+  ///
+  /// - Parameter name: The name of the metric.
+  /// - Returns: The metric, with no threshold.
+  private static func recordedCount(_ name: String) -> CountMetric {
+    CountMetric(
+      metric: .custom(name, polarity: .prefersSmaller, useScalingFactor: false),
+      thresholds: .none)
   }
 
   /// A small count metric, with the absolute tolerance.

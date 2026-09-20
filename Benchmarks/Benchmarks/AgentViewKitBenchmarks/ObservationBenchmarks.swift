@@ -206,23 +206,31 @@ enum TailSource: CaseIterable, Sendable {
     case .sessionTranscript: "Tail source, session.transcript"
     }
   }
+
+  /// Whether the gate reads the tail update count of the source. Only the
+  /// snapshot source, the one that the kit uses, has a count that does not
+  /// change with the machine (see ``BenchmarkPolicy/tailUpdates(gated:)``).
+  var isTailCountGated: Bool {
+    self == .snapshotEntries
+  }
 }
 
 /// Registers the scenario of one tail source.
 ///
 /// - Parameter source: The tail source.
 private func registerTailSourceBenchmark(_ source: TailSource) {
+  let tailUpdates = BenchmarkPolicy.tailUpdates(gated: source.isTailCountGated)
   Benchmark(
     source.scenarioName,
     configuration: BenchmarkPolicy.configuration(
-      iterations: ObservationCorpus.iterations, countMetrics: [BenchmarkPolicy.tailUpdates])
+      iterations: ObservationCorpus.iterations, countMetrics: [tailUpdates])
   ) { benchmark in
     let run = await TailRun(source: source)
     benchmark.startMeasurement()
     await run.stream()
     benchmark.stopMeasurement()
     let updates = try await run.finish()
-    benchmark.measurement(BenchmarkPolicy.tailUpdates.metric, updates)
+    benchmark.measurement(tailUpdates.metric, updates)
   }
 }
 

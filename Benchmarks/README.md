@@ -75,10 +75,11 @@ in release mode. Thus the benchmarks count probe views.
 evaluate again.
 
 `FakeLanguageModel.swift` and `ChangeCounter.swift` in
-`Benchmarks/AgentViewKitBenchmarks/` are symbolic links to the files of the
-tests and of `AgentViewKitTestSupport`. A package can use only the products of
-another package, so this package compiles the same files. Edit the files in
-the root package.
+`Benchmarks/AgentViewKitBenchmarks/` are symbolic links to the files in
+`DemoSupport` and in `AgentViewKitTestSupport`. A package can use only the
+products of another package, so this package compiles the same files. Edit
+the files in the root package. `BenchmarkSymlinkTests` in
+`PackageStructureTests` fails when a link points at a file that moved.
 
 ## The gates
 
@@ -199,7 +200,12 @@ of `../EditorKit/Benchmarks`:
 - **Instructions**: the primary gate. Tolerance **25 %** at p50 and p90.
 - **Wall clock**: the secondary gate. Tolerance **75 %** at p50 and p90.
 - **Throughput**: recorded, not gated.
-- **Large counts** (paragraphs parsed, tail updates): tolerance **25 %**.
+- **Large counts** (paragraphs parsed, the tail updates of the snapshot
+  source): tolerance **25 %**.
+- **The tail updates of the two comparison sources** (`history` and
+  `session.transcript`): recorded, not gated. That count is one update for
+  each observation tick of the SDK, so it changes with the machine: the CI
+  runner gave 3 times the count of the recording machine.
 - **Small counts** (body evaluations, items and streaming invalidations): an
   absolute tolerance of **2**, because a change of one main actor pass moves
   a count of 3 by one.
