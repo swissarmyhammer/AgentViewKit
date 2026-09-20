@@ -37,9 +37,6 @@ struct ACPTabView: View {
   /// Whether the settings sheet shows.
   @State private var showsSettings = false
 
-  /// The actions that the views get before the first session binds.
-  private let placeholderActions = EnvironmentValues().threadActions
-
   /// Makes the tab.
   ///
   /// - Parameter options: The launch options of the app.
@@ -67,11 +64,13 @@ struct ACPTabView: View {
     .sheet(isPresented: $showsSettings) {
       ACPSettingsSheet(session: session, agentCommand: options.agentCommand)
         .environment(\.agentThread, session.thread)
-        .threadActions(session.actions ?? placeholderActions)
+        .environment(\.threadActions, session.actions)
         .connectionStore(session.connectionStore)
     }
     .environment(\.agentThread, session.thread)
-    .threadActions(session.actions ?? placeholderActions)
+    // The actions are `nil` before the first session binds. A view that
+    // reads no actions does nothing (Docs/decisions/required-thread-actions.md).
+    .environment(\.threadActions, session.actions)
     .connectionStore(session.connectionStore)
     .task {
       await session.start(options: options)
@@ -118,15 +117,30 @@ struct ACPTabView: View {
 
   // MARK: - Detail
 
+  /// The bound thread with its status views and the composer, or the
+  /// connection state before the first session binds.
+  @ViewBuilder private var detail: some View {
+    if let actions = session.actions {
+      boundThread(actions: actions)
+        .navigationTitle(session.agentName)
+    } else {
+      phaseView
+        .navigationTitle(session.agentName)
+    }
+  }
+
   /// The bound thread with its status views and the composer.
-  private var detail: some View {
+  ///
+  /// - Parameter actions: The actions of the bound session.
+  /// - Returns: The detail view of the thread.
+  private func boundThread(actions: ACPThreadActions) -> some View {
     let thread = session.thread
     return VStack(spacing: 0) {
       if case .failed = session.phase {
         phaseView
       }
       StateBanner(state: thread.state)
-      AgentThreadView(thread: thread)
+      AgentThreadView(thread: thread, actions: actions)
       TaskListView(plans: thread.plans)
       ContextUsageView(usage: thread.usage)
         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -135,7 +149,6 @@ struct ACPTabView: View {
         .padding()
     }
     .id(ObjectIdentifier(thread))
-    .navigationTitle(session.agentName)
   }
 
   /// The view of a connection that is not ready.
