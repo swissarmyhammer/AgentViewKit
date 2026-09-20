@@ -29,6 +29,26 @@ comments:
     - EditorKit is pinned at 235cbb7, and code blocks use the TextMate grammars (^3t64xef). Call `GrammarBundle.register()` at launch if the demo must not wait on the first code block.
     - The README task ^3swhtbj must say that the kit speaks ACP v2 only and that the demo uses the in-memory agent.
   timestamp: 2026-09-19T14:45:34.216713+00:00
+- actor: claude-code
+  id: 01m2ze75h6s7q10s8c9p541xjn
+  text: |-
+    ### finish iteration 2 — findings
+
+    - implement: merged `wip/ny9e8rr` (95117cc) into `main` with `git merge --no-ff` (739c29d, no conflict). The compile fix is cee7d41: the ACP tab detail shows the thread only after the session binds and calls `AgentThreadView(thread:actions:)`; the environment takes `session.actions` as the optional `threadActions` value; the app calls `GrammarBundle.register()` at launch. EditorKit stays at 235cbb7 (the generator copies `Package.resolved`).
+    - test: `timeout 900 Scripts/test-examples.sh` passed (2 UI tests, exit 0). `timeout 1500 swift test` passed: AgentViewKitTests 1284, AgentViewKitACPTests 120 (was 102), AgentViewKitRouterTests 74, PackageStructureTests 23, AgentViewKitFoundationModelsTests 48. Only the accepted mlx-swift warning.
+    - commit: 739c29d (merge), cee7d41 (fix).
+    - review: `review sha HEAD~2..HEAD` (the merge and the fix) gave 4 findings: 3 magic numbers (ACPSettingsSheet, ACPTabView) and 1 implicitly unwrapped optional (ACPTabEndToEndTests). Recorded on the task.
+  timestamp: 2026-09-20T12:56:21.286241+00:00
+- actor: claude-code
+  id: 01m2ze78tt1xvf6e3ka6kq3fqd
+  text: |-
+    ### finish iteration 3 — clean
+
+    - implement: fixed the 4 findings in 218c00d: named constants `groupSpacing`, `minimumWidth`, `minimumHeight` (ACPSettingsSheet), `sidebarMinimumWidth`, `sidebarIdealWidth` (ACPTabView); the UI test holds the app in a `let`.
+    - test: `timeout 900 Scripts/test-examples.sh` passed again (2 UI tests, exit 0). The package sources did not change, so the `swift test` counts of iteration 2 stand.
+    - commit: 218c00d.
+    - review: `review sha HEAD~3..HEAD` (the merge with the branch commit, the compile fix, and the review fix) gave 0 findings. All prior items are checked. Task moved to done.
+  timestamp: 2026-09-20T12:56:24.666141+00:00
 depends_on:
 - 01M21AGCKBQJRDAVFZD6Q9P7JZ
 - 01M21AH4QCEFEBPTZ8GR061H51
@@ -43,8 +63,8 @@ depends_on:
 - 01M21APWYC29JSXC8HEA9PTV4S
 - 01M21AJZC6XH6BVT0A38XCMW7E
 - 01M2Q1262EB4YH609KZ3W1HXHA
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: cd80
 title: 'Demo app: ACP tab, sidebar, settings sheet, and the in-memory agent end-to-end test (plan §1, §9)'
 ---
 ## What
@@ -56,13 +76,19 @@ Create `Examples/AgentViewKitDemo/`, a macOS app with an `xcodeproj` generated t
 - `Scripts/test-examples.sh`: generates the project, builds, and runs the UI tests.
 
 ## Acceptance Criteria
-- [ ] The app builds with `xcodebuild -scheme AgentViewKitDemo build`.
-- [ ] With `--in-memory-agent`, a send of "hello" produces an assistant message element in the thread.
-- [ ] The settings sheet mounts `ConnectionsView` and `AgentAuthView`.
+- [x] The app builds with `xcodebuild -scheme AgentViewKitDemo build`.
+- [x] With `--in-memory-agent`, a send of "hello" produces an assistant message element in the thread.
+- [x] The settings sheet mounts `ConnectionsView` and `AgentAuthView`.
 
 ## Tests
-- [ ] `Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift`: the send-and-receive flow and the settings sheet through `XCUIApplication`.
-- [ ] `Scripts/test-examples.sh` exits 0.
+- [x] `Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift`: the send-and-receive flow and the settings sheet through `XCUIApplication`.
+- [x] `Scripts/test-examples.sh` exits 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-09-20 07:42, `review sha HEAD~2..HEAD`: the merge and the compile fix)
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPSettingsSheet.swift:30` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants. Fixed in 218c00d: `groupSpacing`.
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPSettingsSheet.swift:56` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants. Fixed in 218c00d: `minimumWidth` and `minimumHeight`.
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:51` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants. Fixed in 218c00d: `sidebarMinimumWidth` and `sidebarIdealWidth`.
+- [x] `Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift:54` `code-hygiene/disallowed-constructs-swift` — implicitly_unwrapped_optional: Implicitly unwrapped optionals should be avoided when possible. Fixed in 218c00d: the app is a `let`.
