@@ -15,10 +15,19 @@ comments:
     - commit: 5a870e9 docs(readme): add the README with compiled snippets, the §9 coverage test, and the README gate (^3swhtbj).
     - review: 2 findings, both `swift/immutability` in Tests/PackageStructureTests/ReadmeSnippets.swift (mutable accumulators in `swiftBlocks`). Recorded in the description. Fix in iteration 2.
   timestamp: 2026-09-20T13:44:35.689490+00:00
+- actor: claude-code
+  id: 01m2zh4c2v632gc88j98tzqd00
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: removed the mutable accumulators in Tests/PackageStructureTests/ReadmeSnippets.swift (`swiftBlocks` with `reduce(into:)`, `snippetFiles` with a `map` into `Dictionary(uniqueKeysWithValues:)`).
+    - test: `swift test` green. AgentViewKitTests 1284, AgentViewKitACPTests 120, AgentViewKitRouterTests 74, AgentViewKitFoundationModelsTests 59, PackageStructureTests 42, ReadmeSnippetsTests 1. No new warnings.
+    - commit: 9547775 refactor(tests): build the README snippet scan and the file map without mutable accumulators (^3swhtbj).
+    - review: `review sha HEAD~1..HEAD` zero findings. Both prior items checked. Task to done.
+  timestamp: 2026-09-20T13:47:15.419744+00:00
 depends_on:
 - 01M21ARQVH6HRNAWTP8NY9E8RR
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: cf80
 title: README and compiled README snippets (plan §1, §9)
 ---
 ## What
@@ -43,5 +52,9 @@ Create `README.md` at the repo root and `Examples/ReadmeSnippets/` compiled by a
 
 > Scope: `review sha HEAD~1..HEAD` (5a870e9). 11 file(s) reviewed, 3 not reviewed (`.kanban/` by the ignore rule, `README.md` with no validator).
 
-- [ ] `Tests/PackageStructureTests/ReadmeSnippets.swift:48` `swift/immutability` — Collection is built with a mutable `var` accumulator rather than `map` or `compactMap`. The accumulator is mutable for the whole loop, forcing readers to trace every line of the body to understand the final result. Rewrite using functional operations like `map`, `filter`, or `reduce` to make the transformation explicit and immutable from the start.
-- [ ] `Tests/PackageStructureTests/ReadmeSnippets.swift:49` `swift/immutability` — Collection is built with a mutable `var` accumulator rather than `map` or `compactMap`. The accumulator is mutable for the whole loop, forcing readers to trace every line of the body to understand the final result. Rewrite using functional operations to make the transformation explicit and immutable from the start.
+- [x] `Tests/PackageStructureTests/ReadmeSnippets.swift:48` `swift/immutability` — Collection is built with a mutable `var` accumulator rather than `map` or `compactMap`. The accumulator is mutable for the whole loop, forcing readers to trace every line of the body to understand the final result. Rewrite using functional operations like `map`, `filter`, or `reduce` to make the transformation explicit and immutable from the start. Fixed in 9547775: `swiftBlocks` folds the lines with `reduce(into:)`.
+- [x] `Tests/PackageStructureTests/ReadmeSnippets.swift:49` `swift/immutability` — Collection is built with a mutable `var` accumulator rather than `map` or `compactMap`. The accumulator is mutable for the whole loop, forcing readers to trace every line of the body to understand the final result. Rewrite using functional operations to make the transformation explicit and immutable from the start. Fixed in 9547775. The same cause in `snippetFiles` is also removed: the dictionary comes from a `map`.
+
+## Review Findings (2026-09-20 08:44)
+
+> Scope: `review sha HEAD~1..HEAD` (9547775). 1 file reviewed, 2 not reviewed (`.kanban/` by the ignore rule). Zero findings.
