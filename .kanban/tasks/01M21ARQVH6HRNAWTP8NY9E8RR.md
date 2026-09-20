@@ -43,8 +43,8 @@ depends_on:
 - 01M21APWYC29JSXC8HEA9PTV4S
 - 01M21AJZC6XH6BVT0A38XCMW7E
 - 01M2Q1262EB4YH609KZ3W1HXHA
-position_column: todo
-position_ordinal: c680
+position_column: doing
+position_ordinal: '80'
 title: 'Demo app: ACP tab, sidebar, settings sheet, and the in-memory agent end-to-end test (plan §1, §9)'
 ---
 ## What
