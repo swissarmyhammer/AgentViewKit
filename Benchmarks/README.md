@@ -202,10 +202,13 @@ of `../EditorKit/Benchmarks`:
 - **Throughput**: recorded, not gated.
 - **Large counts** (paragraphs parsed, the tail updates of the snapshot
   source): tolerance **25 %**.
-- **The tail updates of the two comparison sources** (`history` and
-  `session.transcript`): recorded, not gated. That count is one update for
-  each observation tick of the SDK, so it changes with the machine: the CI
-  runner gave 3 times the count of the recording machine.
+- **The two comparison scenarios** (`Tail source, SessionPropertyValues.history`
+  and `Tail source, session.transcript`): recorded, not gated, in every
+  metric. Each of them does one unit of work for each observation tick of
+  the SDK, so its count, its instructions, and its wall clock change with the
+  machine: the CI runner gave 3 times the count of the recording machine. A
+  change in the kit cannot move these numbers; they are the reference of the
+  R4 decision.
 - **Small counts** (body evaluations, items and streaming invalidations): an
   absolute tolerance of **2**, because a change of one main actor pass moves
   a count of 3 by one.

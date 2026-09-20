@@ -103,8 +103,9 @@ enum BenchmarkPolicy {
   /// (`SessionPropertyValues.history` and `session.transcript`) give one
   /// update for each observation tick of the SDK. That count describes the
   /// SDK and the machine, not the kit: the CI runner gave 3 times the count
-  /// of the machine that recorded the baseline. So those scenarios record
-  /// the count with `gated: false`, as the policy records throughput.
+  /// of the machine that recorded the baseline, and 3 times the work with
+  /// it. So those scenarios record the count with `gated: false`, as the
+  /// policy records throughput, and their configuration is not gated.
   ///
   /// - Parameter gated: Whether the gate reads the count.
   /// - Returns: The metric, with the relative count tolerance or none.
@@ -162,9 +163,13 @@ enum BenchmarkPolicy {
   /// - Parameters:
   ///   - iterations: The measured iterations.
   ///   - countMetrics: The custom count metrics that the benchmark records.
+  ///   - gated: Whether the gate reads the metrics. A scenario that measures
+  ///     a reference path, not a path of the kit, records its metrics with
+  ///     `gated: false`: each of its numbers changes with the machine, and a
+  ///     change in the kit cannot move them (see ``tailUpdates(gated:)``).
   /// - Returns: The shared policy with the iteration count and the metrics.
   static func configuration(
-    iterations: Int, countMetrics: [CountMetric]
+    iterations: Int, countMetrics: [CountMetric], gated: Bool = true
   ) -> Benchmark.Configuration {
     let timeMetrics: [BenchmarkMetric] = [.wallClock, .instructions, .throughput]
     let timeThresholds: [BenchmarkMetric: BenchmarkThresholds] = [
@@ -174,12 +179,13 @@ enum BenchmarkPolicy {
     ]
     let countThresholds = Dictionary(
       uniqueKeysWithValues: countMetrics.map { ($0.metric, $0.thresholds) })
+    let gatedThresholds = timeThresholds.merging(countThresholds) { time, _ in time }
     return Benchmark.Configuration(
       metrics: timeMetrics + countMetrics.map(\.metric),
       warmupIterations: warmupIterations,
       maxDuration: maxDuration,
       maxIterations: iterations,
-      thresholds: timeThresholds.merging(countThresholds) { time, _ in time }
+      thresholds: gated ? gatedThresholds : gatedThresholds.mapValues { _ in .none }
     )
   }
 

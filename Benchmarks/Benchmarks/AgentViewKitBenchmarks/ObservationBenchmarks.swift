@@ -207,10 +207,13 @@ enum TailSource: CaseIterable, Sendable {
     }
   }
 
-  /// Whether the gate reads the tail update count of the source. Only the
-  /// snapshot source, the one that the kit uses, has a count that does not
-  /// change with the machine (see ``BenchmarkPolicy/tailUpdates(gated:)``).
-  var isTailCountGated: Bool {
+  /// Whether the gate reads the metrics of the source. Only the snapshot
+  /// source, the one that the kit uses, does work that does not change with
+  /// the machine. The two comparison sources do one unit of work for each
+  /// observation tick of the SDK, so their count, their instructions, and
+  /// their wall clock all change with the machine (see
+  /// ``BenchmarkPolicy/tailUpdates(gated:)``).
+  var isGated: Bool {
     self == .snapshotEntries
   }
 }
@@ -219,11 +222,12 @@ enum TailSource: CaseIterable, Sendable {
 ///
 /// - Parameter source: The tail source.
 private func registerTailSourceBenchmark(_ source: TailSource) {
-  let tailUpdates = BenchmarkPolicy.tailUpdates(gated: source.isTailCountGated)
+  let tailUpdates = BenchmarkPolicy.tailUpdates(gated: source.isGated)
   Benchmark(
     source.scenarioName,
     configuration: BenchmarkPolicy.configuration(
-      iterations: ObservationCorpus.iterations, countMetrics: [tailUpdates])
+      iterations: ObservationCorpus.iterations, countMetrics: [tailUpdates],
+      gated: source.isGated)
   ) { benchmark in
     let run = await TailRun(source: source)
     benchmark.startMeasurement()
