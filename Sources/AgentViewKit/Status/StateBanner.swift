@@ -5,8 +5,14 @@ import SwiftUI
 ///
 /// Pass ``AgentThread/state`` as `state`. The bar shows for
 /// ``ThreadState/requiresAction`` and for an idle thread that stopped with
-/// ``StopReason/maxTokens``, ``StopReason/maxTurnRequests``, or
-/// ``StopReason/refusal``. For each other state the view is empty.
+/// ``StopReason/maxTokens``, ``StopReason/maxTurnRequests``,
+/// ``StopReason/refusal``, or ``StopReason/unknown(_:)``. An unknown stop
+/// reason shows the text from ``extensionStopReasonMessages``, or a general
+/// text with the raw value (update.md §9.2). For each other state the view is
+/// empty.
+///
+/// The bar has the identifier ``bannerIdentifier``. The text of the bar has
+/// the ``Message/identifier`` of its message.
 ///
 /// When the host gives the identifier of the related error and an
 /// `onShowError` closure, the bar shows a Show Error button. The host uses the
@@ -28,6 +34,10 @@ public struct StateBanner: View {
 
     /// The SF Symbol name of the bar.
     public let symbolName: String
+
+    /// The accessibility identifier of the text of the bar. Each message has
+    /// a different identifier.
+    public let identifier: String
   }
 
   /// The run state of the thread.
@@ -65,30 +75,36 @@ public struct StateBanner: View {
   /// - Returns: The text, or `nil` when the bar does not show for `state`.
   public static func message(for state: ThreadState) -> Message? {
     switch state {
-    case .running, .idle(nil), .idle(.endTurn), .idle(.cancelled), .idle(.unknown):
+    case .running, .idle(nil), .idle(.endTurn), .idle(.cancelled):
       nil
+    case .idle(.unknown(let wireValue)):
+      message(forUnknownStopReason: wireValue)
     case .requiresAction:
       Message(
         title: String(localized: "The agent needs your input"),
         explanation: String(localized: "Answer the request to let the agent continue."),
-        symbolName: "hand.raised.fill")
+        symbolName: "hand.raised.fill",
+        identifier: "state-banner-requires-action")
     case .idle(.maxTokens):
       Message(
         title: String(localized: "The response is incomplete"),
         explanation: String(
           localized: "The model used its maximum number of output tokens. Ask it to continue."),
-        symbolName: "text.badge.xmark")
+        symbolName: "text.badge.xmark",
+        identifier: "state-banner-max-tokens")
     case .idle(.maxTurnRequests):
       Message(
         title: String(localized: "The turn stopped"),
         explanation: String(
           localized: "The turn used its maximum number of model requests. Send a message to continue."),
-        symbolName: "arrow.trianglehead.2.clockwise.rotate.90")
+        symbolName: "arrow.trianglehead.2.clockwise.rotate.90",
+        identifier: "state-banner-max-turn-requests")
     case .idle(.refusal):
       Message(
         title: String(localized: "The model refused to continue"),
         explanation: String(localized: "Change the request and send it again."),
-        symbolName: "exclamationmark.bubble.fill")
+        symbolName: "exclamationmark.bubble.fill",
+        identifier: "state-banner-refusal")
     }
   }
 
@@ -108,6 +124,7 @@ public struct StateBanner: View {
             .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(message.identifier)
         Spacer(minLength: theme.spacing.s)
         if let errorID, let onShowError {
           Button("Show Error") { onShowError(errorID) }

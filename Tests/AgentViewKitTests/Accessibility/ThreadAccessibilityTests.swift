@@ -16,9 +16,12 @@ import Testing
         == "Response complete")
     #expect(
       ThreadAccessibility.turnAnnouncement(old: .running, new: .idle(nil)) == "Response complete")
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: .requiresAction, new: .idle(.unknown("other")))
-        == "Response complete")
+  }
+
+  @Test func anUnknownStopReasonAnnouncesTheTitleOfItsBanner() throws {
+    let state = ThreadState.idle(.unknown("other"))
+    let banner = try #require(StateBanner.message(for: state))
+    #expect(ThreadAccessibility.turnAnnouncement(old: .requiresAction, new: state) == banner.title)
   }
 
   @Test func aCancelledTurnAnnouncesTheCancel() {

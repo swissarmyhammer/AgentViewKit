@@ -13,7 +13,7 @@ import Testing
     (.idle(nil), false),
     (.idle(.endTurn), false),
     (.idle(.cancelled), false),
-    (.idle(.unknown("paused")), false),
+    (.idle(.unknown("paused")), true),
     (.requiresAction, true),
     (.idle(.maxTokens), true),
     (.idle(.maxTurnRequests), true),

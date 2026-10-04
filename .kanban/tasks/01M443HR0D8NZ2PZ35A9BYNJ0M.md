@@ -33,6 +33,16 @@ comments:
     - evidence: 4 files — Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoRootView.swift (edit), Examples/AgentViewKitDemo/Tests/DemoTestValues.swift (edit), Examples/AgentViewKitDemo/AgentViewKitDemoFeature/FoundationModelsTabView.swift (deleted), Examples/AgentViewKitDemo/Tests/FoundationModelsTabEndToEndTests.swift (deleted). `Scripts/test-examples.sh AgentViewKitDemo`: BUILD SUCCEEDED; UI test failed at launch because the screen is locked (CGSSessionScreenIsLocked = true); exit 1.
     - next: unlock the screen of the build machine, run `Scripts/test-examples.sh AgentViewKitDemo` again, and expect exit 0. Then `/review`.
   timestamp: 2026-10-04T22:17:46.786772+00:00
+- actor: claude-code
+  id: 01m44fy1mwpa98pdp7r2c1ajj1
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — the FoundationModels tab is removed and the demo build passes; the ACPTabEndToEndTests UI test cannot start because the screen is locked (CGSSessionScreenIsLocked = true)
+    - test: not run
+    - commit: 81f9c52
+    - review: not run
+    - next: unlock the screen, run Scripts/test-examples.sh AgentViewKitDemo, then run /finish 9bynj0m
+  timestamp: 2026-10-04T22:18:13.532538+00:00
 depends_on:
 - 01M443H1PVEMMXJ3E2VK9MXMEM
 position_column: doing
