@@ -17,7 +17,7 @@ The views bind to the observable models of FoundationModelsACPClient:
 
 The direct dependencies are:
 
-- **FoundationModelsACPClient**. It will hold `ConnectionModel` and
+- **FoundationModelsACPClient**. It holds `ConnectionModel` and
   `SessionModel`, and it brings the ACP v2 types of FoundationModelsACP. The
   kit also lists the `FoundationModelsACP` product, because
   `ClientSideConnection`, `InMemoryTransport` and the schema types are in that
@@ -68,7 +68,7 @@ ACP packages hold them as client-side state.
 |---|---|---|
 | D1 | The direct dependencies are FoundationModelsACPClient (with FoundationModelsACP) and EditorKit. | Decided by the owner. |
 | D2 | Keep Textual (Markdown) and swiftui-math (math) as UI dependencies. | **Decided by the owner, 2026-10-02.** |
-| D3 | The views bind to `ConnectionModel` and `SessionModel` (working names) in FoundationModelsACPClient. The kit removes its own session state: `AgentThread`, `ThreadItem`, `ThreadChange`, the records, `ACPThreadSource`, `SessionUpdateMapping` and `ACPSessionList`. | Agreed, 2026-10-02. **The client models are not built yet.** |
+| D3 | The views bind to `ConnectionModel` and `SessionModel` in FoundationModelsACPClient. The kit removes its own session state: `AgentThread`, `ThreadItem`, `ThreadChange`, the records, `ACPThreadSource`, `SessionUpdateMapping` and `ACPSessionList`. | Agreed, 2026-10-02. **The client models are built** (local commit `a65af8a`, 2026-10-04). Sections 4.2 and 4.3 use their real names. |
 | D4 | One library product: merge `AgentViewKit` and `AgentViewKitACP` into one target. | **Decided by the owner, 2026-10-02.** |
 | D5 | Remove branches, checkpoints, subagents and compaction markers now. Add them again when ACP gives a producer. | **Decided by the owner, 2026-10-02.** |
 | D6 | Do not send trace context (`_meta.traceparent`) now. | **Decided by the owner, 2026-10-02.** |
@@ -90,9 +90,10 @@ ACP packages hold them as client-side state.
 | Removal of `ACPSessionState`, the old client `SessionEntry` and `SwiftUIACPClient` | FoundationModelsACPClient | **Done** in the same commit `a65af8a`. |
 | Removal of `ClientSideConnection.updates(for:)` and `SessionUpdateAggregator` | FoundationModelsACP | **Done**, `main` at `27419fa` (2026-10-04). The replacement is `subscribe(to:)`. Its `updates` stream gives `SessionStreamEvent`: `.update(SessionUpdate)` and `.requestFinished(id:method:outcome:)`. With the client models, the kit does not need it. |
 
-**Before the kit binds to the client models, read their real API in
-FoundationModelsACPClient (or ask its session).** The names in sections 4.2
-and 4.3 are from the design, and they can be different in the code.
+**Sections 4.2 and 4.3 use the real names of the client models at
+`a65af8a`** (checked on 2026-10-04). If a later client commit changes a name,
+read the real API in FoundationModelsACPClient (or ask its session), and
+change this plan first.
 
 **The migration is now required, not optional.** The kit follows
 `branch: "main"` of both packages. When the commits above are pushed, the
@@ -111,66 +112,148 @@ Contacts for questions:
 | The model API (`ConnectionModel`, `SessionModel`, `TranscriptEntry`) | FoundationModelsACPClient (`foundationmodelsacpclient-ae`) |
 | Wire types, the update buffer, the merge engine | FoundationModelsACP (`foundationmodelsacp-c7`) |
 
-### 4.2 What the session model gives (design)
+### 4.2 What the session model gives
 
-- `SessionModel` is a `@MainActor @Observable` class. It wraps
-  `SessionMergeEngine` of FoundationModelsACP. SwiftUI uses it directly.
-- **Fine granularity.** Each transcript entry is its own `@Observable`
-  object (`TranscriptEntry`): user message, agent message, thought, tool call,
-  terminal, plan, unknown, local pending message, local error. A streamed
-  chunk changes only its own entry. Thus only that row draws again.
-- **Row identity.** Each `TranscriptEntry` has its own stable `id`. The `id`
-  does not change when a local pending message gets its `messageId`. Local and
-  error entries have no `SessionEntry.ID`. **The views use `TranscriptEntry.id`
-  as the row identity**, not `SessionEntry.ID` and not `MessageId`. Note: a
-  thought and an agent message with the same `MessageId` are two entries.
-- **Last-value state:** `availableCommands`, `configOptions`, `usage`,
-  `agentState` and `sessionInfo` (title and `updatedAt`, folded as a patch).
-  - `agentState` is `StateUpdate?`: `.running`, `.idle(IdleStateUpdate)` with
-    `stopReason: StopReason?`, `.requiresAction`, and
-    `.unknown(String, JSONValue)`.
-- **Pending requests (D7):** `pendingPermissions` and `pendingElicitations`
-  for the session, with reply methods: select a permission option; accept,
-  decline or cancel an elicitation.
-- **Prompt helper.** It adds a local pending user message before it sends
-  `session/prompt`. `PendingPromptCorrelator` links the entry to the
-  `messageId` of the `PromptResponse` or of the echoed `user_message`, in
-  each order. If the request fails, it adds a local error entry with the
-  JSON-RPC code, message and data.
+Checked against FoundationModelsACPClient `a65af8a` on 2026-10-04.
 
-### 4.3 What the connection model gives (design)
+- `SessionModel` is a `@MainActor` `@Observable` class. It gives each
+  update to the `SessionMergeEngine` of FoundationModelsACP, and keeps no
+  merge rule of its own. SwiftUI uses it directly. Its identity is
+  `sessionId`.
+- **Fine granularity.** `transcript` is an array of `TranscriptEntry`, in
+  the order of first appearance. `TranscriptEntry` is an enum. Each case
+  holds one `@Observable` entry object:
 
-`ConnectionModel` is a `@MainActor @Observable` class. It holds:
+  | Case | Entry object | Main properties |
+  |---|---|---|
+  | `.userMessage` | `UserMessageEntry` | `content`, `messageId`, `sendState` |
+  | `.agentMessage` | `AgentMessageEntry` | `content`, `messageId` |
+  | `.thought` | `ThoughtEntry` | `content`, `messageId` |
+  | `.toolCall` | `ToolCallEntry` | `name`, `title`, `content`, `ToolCallEntry.linkedElicitationIDs` |
+  | `.terminal` | `TerminalEntry` | `bytes`, and the computed `text` |
+  | `.plan` | `PlanTranscriptEntry` | `planId`, `entries` |
+  | `.unknown` | `UnknownEntry` | the type string and the raw JSON |
+  | `.compaction` | `CompactionEntry` | the compaction status and its summary (unstable ACP) |
+  | `.error` | `ErrorEntry` | `code`, `message`, `data` |
 
-- The session factory: `newSession(_ request: NewSessionRequest) async throws
-  -> SessionModel` and `resumeSession(_ request: ResumeSessionRequest)`. They
-  take the generated request types, so `cwd`, `additionalDirectories`,
-  `mcpServers`, `_meta` and future fields pass through unchanged. They
-  subscribe to the update stream at the correct time, so no update is lost.
-  It keeps the open `SessionModel` objects by session ID.
-- The session list: `sessions: [SessionInfo]`, `refreshSessions(cwd:)`,
-  `loadMoreSessions()` and `hasMoreSessions`. A refresh starts again at the
-  first page. A `session_info_update` of an open session also changes its
+  Each entry object also has `meta`. A streamed chunk changes only its own
+  entry object. Thus only that row draws again.
+- **Chunk buffer.** The model keeps `agent_message_chunk` and
+  `agent_thought_chunk` updates in a buffer. It applies the buffer at display
+  rate (`defaultCoalescingCadence`, 33 ms), so the entry of a streamed message
+  changes one time for each flush. Each other update applies the buffer
+  first, so the order stays the arrival order. `flushPendingChunks()` applies
+  the buffer at once. `updateTap()` gives each raw `SessionUpdate` at its
+  arrival, with no delay from the buffer, for a consumer that is not a view.
+- **Row identity.** `TranscriptEntry.id` is a `TranscriptEntry.ID`: `.wire`
+  with the `SessionEntry.ID` for an entry from the wire, or `.local` with a
+  `UUID` for an entry that the client made. The identity does not change when
+  a local user message gets its `messageId`. **The views use
+  `TranscriptEntry.id` as the row identity**, not `SessionEntry.ID` and not
+  `MessageId`. Note: a thought and an agent message with the same `MessageId`
+  are two entries.
+- **Last-value state:** `availableCommands` (an optional array of
+  `AvailableCommand`), `configOptions` (an optional array of
+  `SessionConfigOption`), `usage` (an optional `UsageUpdate`), `agentState`
+  and `sessionInfo` (a `SessionInfoUpdate` with the title and `updatedAt`,
+  folded as a patch).
+  - `agentState` is an optional `StateUpdate`: `.running`, `.idle` with an
+    `IdleStateUpdate` that has an optional `stopReason`, `.requiresAction`,
+    and `.unknown` with the wire string and the raw `JSONValue`.
+- **Notices (unstable ACP):** `notices` is an array of `SessionNotice`, in
+  arrival order. A notice is not in the transcript, and no replay gives it
+  again. `dismissNotice(_:)` removes one notice. The start of a resume and the
+  close remove all notices.
+- **Stream state:** `hasMissedUpdates`, `isReplaying`, `history` (a
+  `SessionHistory`: `.live` or `.retained(replayFrom:)`) and `isClosed`. Only
+  the connection model changes them.
+- **Pending requests (D7):** `pendingPermissions` (an array of
+  `PendingPermissionRequest`) and `pendingElicitations` (an array of
+  `PendingElicitation`) for the session. The reply methods are
+  `selectPermission(_:option:)`, `cancelPermission(_:)`,
+  `acceptElicitation(_:content:)`, `declineElicitation(_:)` and
+  `cancelElicitation(_:)`. `cancelAllPending()` cancels each pending request.
+  A session elicitation with a `toolCallId` is linked to its tool call entry,
+  in `ToolCallEntry.linkedElicitationIDs`, while it is pending.
+- **Prompt helper.** `prompt(_:meta:)` adds a local `UserMessageEntry` with
+  the `sendState` `.pending` before it sends `session/prompt`.
+  `PendingPromptCorrelator` links the entry to the `messageId` of the
+  `PromptResponse` or of the echoed `user_message`, in each order. The entry
+  then gets `.sent`, and keeps its object and its identity. The echo adds no
+  second entry. If the request fails, the entry gets `.failed`, the model adds
+  a local `ErrorEntry` with the JSON-RPC code, message and data, and the call
+  throws the error again.
+- **Other requests.** `cancel(meta:)` sends `session/cancel`.
+  `setConfigOption(_:)` sends `session/set_config_option`.
+  `appendError(code:message:data:)` adds a local `ErrorEntry` for a request
+  that the model did not send, for example a login.
+
+### 4.3 What the connection model gives
+
+Checked against FoundationModelsACPClient `a65af8a` on 2026-10-04.
+
+`ConnectionModel` is a `@MainActor` `@Observable` class.
+`init(coalescingCadence:clock:logger:)` makes a model with no connection. It
+holds:
+
+- **The connection.** `connect(over:logger:bufferLimits:client:)` connects
+  over a transport and returns the `ClientSideConnection`. `bufferLimits` is
+  a `SessionUpdateBufferLimits`. The `client` closure gets the router `Client`
+  of the model, and a host can put its own `Client` in front of it. The model
+  never connects again on its own. After a close, the host calls the method
+  again with a new transport. Each call forgets the `initialize` answer and
+  the auth state of the last connection.
+- **The connection state.** `state` is a `ConnectionState`: `.disconnected`
+  (the start value), `.connecting`, `.connected` and `.failed` with the
+  error. Two states are equal when they have the same case. When the
+  connection closes, the model closes each open `SessionModel` (each gets
+  `isClosed`, and its pending requests are cancelled) and empties
+  `openSessions`.
+- **Initialize and auth.** `initialize(_:)` sends `initialize` and keeps the
+  answer in `initializeResponse`. `agentCapabilities` and `authMethods` read
+  that answer. `authState` is an `AuthState`: `.unknown`, `.notRequired`,
+  `.required`, `.authenticated` or `.failed`. `login(_:)` and `logout(_:)`
+  change it.
+- **Capability flags.** `canListSessions`, `canResumeSessions` and
+  `canCloseSessions` are true when the `initialize` answer has a `session`
+  capability object. `canDeleteSessions` is true when that object has
+  `delete`. `canLogout` is true when an auth method is not a `terminal`
+  method. Each flag is false before `initialize(_:)` succeeds. A call to a
+  method that the agent does not support throws
+  `ConnectionModelError.unsupported(method:)` and sends no request.
+  `newSession(_:)` has no flag.
+- **The session factory.** `newSession(_:)` takes a `NewSessionRequest`, and
+  `resumeSession(_:)` takes a `ResumeSessionRequest`. Each returns a
+  `SessionModel`. They take the generated request types, so `cwd`,
+  `additionalDirectories`, `mcpServers`, `_meta` and future fields pass
+  through unchanged. They subscribe to the update stream at the correct time,
+  so no update is lost. The response seeds `availableCommands` and
+  `configOptions`. A resume of an open session uses the same model again. The
+  resumes of one session run one after the other.
+- **The open set.** `openSessions` is a dictionary from `SessionId` to
+  `SessionModel`. `session(for:)` gives the model of one open session, or
+  `nil`. Note: `sessions` is the session list, not the open set.
+- **The session list.** `sessions` is an array of `SessionInfo`.
+  `refreshSessions(cwd:)` replaces the list with the first page.
+  `loadMoreSessions()` adds the next page, and `hasMoreSessions` tells if
+  there is one. A `session_info_update` of an open session also changes its
   item in `sessions`.
-- `close(_ session: SessionModel)`: sends `session/close`, removes the model
-  from the open set, and stops its stream. The model stays readable, with
-  `isClosed = true`. Note: `ClientSideConnection.closeSession` clears the
-  update buffer, but it does not end the subscriptions. Thus `ConnectionModel`
-  must stop the stream itself.
-- `deleteSession(_ id: SessionId)`: closes the session first if it is open,
-  then removes it from `sessions`.
-- `pendingElicitations` for request-scoped elicitations (requests that the
-  client sent outside a session, for example `auth/login`). Each item keeps
-  its `requestId`. When the client request completes or fails, its
-  elicitations are removed.
-- The `initialize` result, the agent capabilities, and the auth state.
-- `state: ConnectionState`: `.connecting`, `.connected`, `.disconnected`,
-  `.failed(Error)`. On `.disconnected` or `.failed`, each open `SessionModel`
-  is closed, and its pending requests are cancelled.
-- Capability flags from the `initialize` result, for example
-  `canListSessions`, `canDeleteSessions`, `canResumeSessions`. A call to a
-  method that the agent does not support throws a clear error and sends no
-  request.
+- **Close.** `close(_:)` sends `session/close`. When the agent accepts it,
+  the model of the session goes out of `openSessions` (the open set), its
+  stream stops, and it gets `isClosed`. The closed model stays readable. When
+  the agent refuses the close, the model stays open. Note:
+  `ClientSideConnection.closeSession` clears the update buffer, but it does
+  not end the subscriptions. Thus the session model stops its stream itself.
+- **Delete.** `deleteSession(_:)` takes a `SessionId`. It closes the session
+  first with `close(_:)` if it is open, then sends `session/delete`, then
+  removes the item from `sessions`.
+- **Request-scoped elicitations.** `pendingElicitations` is an array of
+  `PendingElicitation` for requests that the client sent outside a session,
+  for example `auth/login`. Each item has its `requestId` and its
+  `requestMethod`. The reply methods are `acceptElicitation(_:content:)`,
+  `declineElicitation(_:)` and `cancelElicitation(_:)`. The end of the client
+  request, the close of the connection and a new connection each cancel its
+  elicitations.
 
 ### 4.4 Rules that are built in FoundationModelsACP
 
@@ -181,7 +264,7 @@ Contacts for questions:
 | `_meta` | Each entry keeps its `_meta`, folded with the same patch rules as the wire field. |
 | Commands "not reported" | `availableCommands` is nil until a list is reported. A new or resume response with no list, **or with an empty list**, leaves it nil. Only an `available_commands_update` with `[]` sets it to `[]` ("no commands"). |
 | Plans | A plan entry with a `planId` is replaced by `planId` and keeps the position where it first appeared. A plan update with no `planId` always adds a new entry. |
-| Terminals | `AccumulatedTerminal` keeps the decoded bytes as `output: Data`. A chunk appends bytes. An `output` snapshot replaces them. The computed `text` (UTF-8, with replacement of bytes that are not valid) is planned in the client `TranscriptEntry`, not in FoundationModelsACP. |
+| Terminals | `AccumulatedTerminal` keeps the decoded bytes as `output: Data`. A chunk appends bytes. An `output` snapshot replaces them. The computed `text` (UTF-8, with replacement of bytes that are not valid) is in the client `TerminalEntry`, not in FoundationModelsACP. |
 | Update buffer | `ClientSideConnection.subscribe(to:)` returns `SessionUpdateSubscription { updates, hasMissedUpdates }`. The router buffers updates for a session that has no subscriber: at most 1024 updates for each session and at most 64 sessions (`bufferLimits` can change them). When a buffer is full, the router discards it and the new update, marks the session as overflowed, and writes a warning. The 65th session evicts the oldest. The buffer is cleared on `session/close` and on connection close. |
 | Resume replay | Subscribe before `session/resume`. Then the replay goes directly to the subscriber and does not use the buffer. |
 | `updates(for:)` | It no longer drops updates, but it is **deprecated**. Use `subscribe(to:)`, or the `ConnectionModel` factory. |
@@ -473,9 +556,9 @@ After each step, run `swift build` and `swift test`. Run the CI gates.
 
 ## 12. Risks and unknown items
 
-- The client models are complete but not pushed yet (2026-10-04). Their
-  real names and shape can be different from sections 4.2 and 4.3. Step 6
-  checks this.
+- The client models are complete but not pushed yet (2026-10-04). Sections
+  4.2 and 4.3 agree with the local commit `a65af8a`. A change before the push
+  can make them different again. Step 6 checks this again before the pin move.
 - The old client API is removed in both packages. A package update before
   the migration breaks the build (section 4.1).
 - Nobody built AgentViewKit against the new pins. A static check found no

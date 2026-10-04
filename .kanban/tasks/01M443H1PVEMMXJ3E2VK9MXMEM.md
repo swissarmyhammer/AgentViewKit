@@ -32,8 +32,24 @@ comments:
     - evidence: Package.swift, README.md, Tests/PackageStructureTests/ManifestTests.swift, Tests/PackageStructureTests/ImportBoundaryTests.swift, Tests/PackageStructureTests/Fixtures/ImportBoundary/Violating/Nested/ImportsRuntimes.swift, Package.resolved (resolved again); deleted Sources/AgentViewKitRouter/ (7 files), Tests/AgentViewKitRouterTests/ (7 files), Examples/ReadmeSnippets/Snippets/RouterQuickStart.swift. Commands: `swift test --filter ManifestTests` (RED 4 failed, then GREEN 12 passed), `swift test --filter ImportBoundaryTests` (RED, then GREEN 7 passed), `swift build --build-tests` (complete, 0 warnings), `swift test` (1511 tests passed, 0 failed), `swift test --filter PackageStructureTests` (47 passed), `Scripts/check-readme.sh` (passed).
     - next: review
   timestamp: 2026-10-04T21:39:57.038320+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m44e0gt3e7shcw0efg8xyxx0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (3e3704d). 0 findings, 0 confirmed, 0 refuted. 7 validators ran, 0 failed. 19 files reviewed. The .kanban/ files were not reviewed because an ignore rule excludes them. Package.resolved, README.md and update.md were not reviewed because no validator matches them. For the deleted Router files, the Swift code-hygiene tool rules found no file to read.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-04T21:44:37.443255+00:00
+- actor: claude-code
+  id: 01m44e0pz9hwvnz6gfhb6980h7
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — Package.swift, README.md, Package.resolved, 3 test files; deleted Router sources, tests and snippet
+    - test: green — swift test, 1511 passed
+    - commit: 3e3704d
+    - review: clean — 0 findings
+  timestamp: 2026-10-04T21:44:43.753844+00:00
+position_column: done
+position_ordinal: d080
 title: Remove the AgentViewKitRouter target
 ---
 ## What

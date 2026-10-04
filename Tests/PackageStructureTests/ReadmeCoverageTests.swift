@@ -37,21 +37,26 @@ import Testing
     let heading: String
   }
 
-  /// The lines of a Markdown text from the line `heading` to the next
-  /// heading of the same level.
+  /// The lines of a Markdown text from the line `heading` to the next line
+  /// that starts with `endPrefix`.
   ///
   /// - Parameters:
   ///   - heading: The heading line, such as `## Components`.
   ///   - markdown: The Markdown text.
-  /// - Returns: The lines after the heading, before the next `## ` line.
+  ///   - endPrefix: The prefix of the line that ends the section. The default
+  ///     is ``sectionPrefix``, the next heading of level 2.
+  /// - Returns: The lines after the heading, before the next line that starts
+  ///   with `endPrefix`.
   /// - Throws: ``MissingSection`` when no line is `heading`.
-  static func section(_ heading: String, of markdown: String) throws -> [String] {
+  static func section(_ heading: String, of markdown: String, endingAt endPrefix: String = sectionPrefix) throws
+    -> [String]
+  {
     let lines = markdown.components(separatedBy: "\n")
     guard let start = lines.firstIndex(of: heading) else {
       throw MissingSection(heading: heading)
     }
     let body = lines[(start + 1)...]
-    return Array(body.prefix { !$0.hasPrefix(sectionPrefix) })
+    return Array(body.prefix { !$0.hasPrefix(endPrefix) })
   }
 
   /// The component names of the bullets of some lines.
@@ -104,6 +109,12 @@ import Testing
     let markdown = "# Title\n\n## One\n- `A`: a\n### Sub\n- `B`: b\n\n## Two\n- `C`: c\n"
 
     #expect(try Self.section("## One", of: markdown) == ["- `A`: a", "### Sub", "- `B`: b", ""])
+  }
+
+  @Test func sectionEndsAtTheGivenPrefix() throws {
+    let markdown = "## One\n### One.1\n- `A`: a\n### One.2\n- `B`: b\n"
+
+    #expect(try Self.section("### One.1", of: markdown, endingAt: "#") == ["- `A`: a"])
   }
 
   @Test func sectionThrowsForAMissingHeading() {
