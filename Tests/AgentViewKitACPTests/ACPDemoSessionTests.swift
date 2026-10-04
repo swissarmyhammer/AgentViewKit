@@ -47,6 +47,12 @@ private func assistantMessage(_ id: String, in thread: AgentThread) -> Message? 
   if case .assistantMessage(let message)? = thread.item(id: id) { message } else { nil }
 }
 
+/// The message of the user message record `id`, or `nil`.
+@MainActor
+private func userMessage(_ id: String, in thread: AgentThread) -> Message? {
+  if case .userMessage(let message)? = thread.item(id: id) { message } else { nil }
+}
+
 @MainActor
 @Suite struct ACPDemoSessionTests {
   @Test func connectBindsTheNewSessionWithTheValuesOfTheAgent() async {
@@ -90,7 +96,10 @@ private func assistantMessage(_ id: String, in thread: AgentThread) -> Message? 
     let reply = try #require(assistantMessage(replyID, in: thread))
     #expect(reply.blocks == [AgentViewKit.ContentBlock(text: InMemoryDemoAgent.replyText(to: "hello"))])
     #expect(thread.streaming[replyID] == nil)
-    #expect(thread.items.map(\.id) == [InMemoryDemoAgent.userMessageID(turn: 1), replyID])
+    let userMessageID = try #require(thread.items.first?.id)
+    #expect(UUID(uuidString: userMessageID) != nil)
+    #expect(thread.items.map(\.id) == [userMessageID, replyID])
+    #expect(userMessage(userMessageID, in: thread)?.blocks == [AgentViewKit.ContentBlock(text: "hello")])
     #expect(thread.plans[PlanID(InMemoryDemoAgent.planID)]?.entries.count == 2)
     #expect(thread.usage?.used == InMemoryDemoAgent.tokensPerTurn)
     #expect(thread.usage?.size == InMemoryDemoAgent.contextSize)
@@ -278,7 +287,7 @@ private func assistantMessage(_ id: String, in thread: AgentThread) -> Message? 
       ])
     ])
 
-    #expect(InMemoryDemoAgent.promptText(of: request) == "hello")
-    #expect(InMemoryDemoAgent.promptText(of: .object([:])).isEmpty)
+    #expect(ScriptedWireAgent.promptText(of: request) == "hello")
+    #expect(ScriptedWireAgent.promptText(of: .object([:])).isEmpty)
   }
 }

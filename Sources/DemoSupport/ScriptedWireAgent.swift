@@ -8,13 +8,20 @@ private let frameEnd = UInt8(ascii: "\n")
 /// The JSON-RPC error code that a scripted failure sends.
 private let internalErrorCode = -32603
 
+/// The method of a prompt request.
+private let promptMethod = "session/prompt"
+
 /// An ACP agent that reads the raw JSON-RPC frames of the client and
 /// records them.
 ///
 /// The agent answers each request with the scripted result for its method,
-/// or with `{}`. A method in ``failingMethods`` gets an error. After the
-/// answer, the agent sends the frames that ``followUps`` gives for the
-/// method. The agent can also send a raw frame to the client.
+/// or with `{}`. A method in ``failingMethods`` gets an error. The result of
+/// each `session/prompt` request gets a new `messageId` (a UUID string), and
+/// the agent echoes the prompt text in a `user_message_chunk` update with the
+/// same `messageId`. ``promptEchoOrder`` tells if the echo comes before or
+/// after the result. After the answer, the agent sends the frames that
+/// ``followUps`` gives for the method. The agent can also send a raw frame to
+/// the client.
 ///
 /// The ACP tests and the demo app use this agent. The demo app binds it with
 /// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
@@ -25,6 +32,19 @@ public final class ScriptedWireAgent {
   /// The first argument is the request frame. The second argument is the
   /// number of requests with the same method, this request included.
   public typealias FollowUp = (AgentViewKit.JSONValue, Int) -> [String]
+
+  /// The position of the echoed user message of a prompt, relative to the
+  /// prompt result.
+  public enum PromptEchoOrder: Sendable {
+    /// The agent sends the echo, and then the result.
+    case beforeResult
+
+    /// The agent sends the result, and then the echo.
+    case afterResult
+  }
+
+  /// The position of the echoed user message of each prompt.
+  public var promptEchoOrder = PromptEchoOrder.beforeResult
 
   /// The transport end of the agent.
   private let transport: InMemoryTransport
@@ -150,16 +170,106 @@ public final class ScriptedWireAgent {
     received.append(frame)
     guard let method = frame["method"]?.stringValue, let id = frame["id"] else { return }
     let idText = String(decoding: (try? JSONEncoder().encode(id)) ?? Data(), as: UTF8.self)
-    let reply =
-      if failingMethods.contains(method) {
-        #"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(internalErrorCode),"message":"failed"}}"#
-      } else {
-        #"{"jsonrpc":"2.0","id":\#(idText),"result":\#(nextResult(for: method))}"#
-      }
-    try? await send(reply)
+    if failingMethods.contains(method) {
+      try? await send(#"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(internalErrorCode),"message":"failed"}}"#)
+    } else if method == promptMethod {
+      await answerPrompt(frame, idText: idText)
+    } else {
+      try? await send(Self.resultFrame(idText: idText, result: nextResult(for: method)))
+    }
     guard let followUp = followUps[method] else { return }
     for followUpFrame in followUp(frame, messages(method: method).count) {
       try? await send(followUpFrame)
     }
+  }
+
+  // MARK: - Prompt
+
+  /// Answers a `session/prompt` request.
+  ///
+  /// The result gets a new `messageId`. The agent echoes the prompt text in a
+  /// `user_message_chunk` update with the same `messageId`, before or after
+  /// the result as ``promptEchoOrder`` tells.
+  ///
+  /// - Parameters:
+  ///   - request: The request frame.
+  ///   - idText: The JSON text of the id of the request.
+  private func answerPrompt(_ request: AgentViewKit.JSONValue, idText: String) async {
+    let messageID = AgentViewKit.JSONValue.string(UUID().uuidString)
+    let result = Self.resultFrame(idText: idText, result: promptResult(messageID: messageID))
+    let echo = Self.echoFrame(of: request, messageID: messageID)
+    let frames =
+      switch promptEchoOrder {
+      case .beforeResult: [echo, result]
+      case .afterResult: [result, echo]
+      }
+    for frame in frames {
+      try? await send(frame)
+    }
+  }
+
+  /// The result JSON text of the next answer to `session/prompt`: the
+  /// scripted result object with `messageId` added.
+  ///
+  /// A scripted result that is not a JSON object gives an object with
+  /// `messageId` only.
+  ///
+  /// - Parameter messageID: The ID of the user message of the prompt.
+  /// - Returns: The JSON text of the result.
+  private func promptResult(messageID: AgentViewKit.JSONValue) -> String {
+    let scripted = Data(nextResult(for: promptMethod).utf8)
+    var fields = (try? JSONDecoder().decode([String: AgentViewKit.JSONValue].self, from: scripted)) ?? [:]
+    fields["messageId"] = messageID
+    return AgentViewKit.JSONValue.object(fields).jsonString
+  }
+
+  /// A JSON-RPC response frame with a result.
+  ///
+  /// - Parameters:
+  ///   - idText: The JSON text of the id of the request.
+  ///   - result: The JSON text of the result.
+  /// - Returns: The frame.
+  private static func resultFrame(idText: String, result: String) -> String {
+    #"{"jsonrpc":"2.0","id":\#(idText),"result":\#(result)}"#
+  }
+
+  /// The `session/update` frame that echoes the text of a prompt as a
+  /// `user_message_chunk`.
+  ///
+  /// - Parameters:
+  ///   - request: The `session/prompt` request frame.
+  ///   - messageID: The ID of the user message of the prompt.
+  /// - Returns: The frame.
+  private static func echoFrame(of request: AgentViewKit.JSONValue, messageID: AgentViewKit.JSONValue) -> String {
+    let update = AgentViewKit.JSONValue.object([
+      "sessionUpdate": .string("user_message_chunk"),
+      "messageId": messageID,
+      "content": textBlock(promptText(of: request)),
+    ])
+    let sessionId = request["params"]?["sessionId"] ?? .null
+    return AgentViewKit.JSONValue.object([
+      "jsonrpc": .string("2.0"),
+      "method": .string("session/update"),
+      "params": .object(["sessionId": sessionId, "update": update]),
+    ]).jsonString
+  }
+
+  /// The text of a `session/prompt` request: the text of each `text` block.
+  ///
+  /// - Parameter request: The request frame.
+  /// - Returns: The joined text.
+  static func promptText(of request: AgentViewKit.JSONValue) -> String {
+    guard case .array(let blocks)? = request["params"]?["prompt"] else { return "" }
+    return blocks.compactMap { block in
+      block["type"]?.stringValue == "text" ? block["text"]?.stringValue : nil
+    }.joined()
+  }
+
+  /// A `text` content block.
+  ///
+  /// - Parameter text: The text of the block.
+  /// - Returns: The block.
+  static func textBlock(_ text: String) -> AgentViewKit.JSONValue {
+    .object(["type": .string("text"), "text": .string(text)])
   }
 }

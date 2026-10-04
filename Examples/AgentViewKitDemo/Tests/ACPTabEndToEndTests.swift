@@ -17,8 +17,9 @@ final class ACPTabEndToEndTests: XCTestCase {
   /// The identifier of the row of the first reply of the in-memory agent.
   private static let firstReplyRow = "item-row-demo-reply-1"
 
-  /// The identifier of the row of the first echoed user message.
-  private static let firstUserRow = "item-row-demo-user-1"
+  /// The start of the identifier of each thread row. The echoed user message
+  /// has a new UUID for each prompt, so the test finds its row by this start.
+  private static let itemRowPrefix = "item-row-"
 
   /// The identifier of the row of the in-memory session in the sidebar.
   private static let sessionRow = "session-row-demo-session"
@@ -80,7 +81,10 @@ final class ACPTabEndToEndTests: XCTestCase {
     XCTAssertTrue(
       app.element(Self.firstReplyRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
       "The thread shows no reply.")
-    XCTAssertTrue(app.element(Self.firstUserRow).exists, "The thread shows no user message.")
+    let userRow = app.descendants(matching: .any).matching(
+      NSPredicate(format: "identifier BEGINSWITH %@ AND identifier != %@", Self.itemRowPrefix, Self.firstReplyRow)
+    ).firstMatch
+    XCTAssertTrue(userRow.exists, "The thread shows no user message.")
   }
 
   func testTheSettingsSheetShowsTheConnectionsAndTheAgentAuthentication() throws {

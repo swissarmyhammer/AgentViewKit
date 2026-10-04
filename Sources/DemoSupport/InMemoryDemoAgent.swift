@@ -14,10 +14,11 @@ import FoundationModelsACP
 ///   and one agent authentication method.
 /// - `session/new` and `session/resume` with a mode option.
 /// - `session/list` with one session.
-/// - `session/prompt` with `{}`. Then it sends the `session/update`
-///   notifications of one turn: the user message, a running state, the reply
-///   in two chunks, the whole reply, a plan, the context usage, and an idle
-///   state.
+/// - `session/prompt` with a new `messageId`. Before the result, it echoes
+///   the prompt text in a `user_message_chunk` with the same `messageId`
+///   (``ScriptedWireAgent``). After the result, it sends the `session/update`
+///   notifications of one turn: a running state, the reply in two chunks, the
+///   whole reply, a plan, the context usage, and an idle state.
 public enum InMemoryDemoAgent {
   /// The launch argument that makes the demo app bind this agent.
   public static let launchArgument = "--in-memory-agent"
@@ -46,9 +47,6 @@ public enum InMemoryDemoAgent {
   /// The start of the id of each reply.
   static let replyIDPrefix = "demo-reply-"
 
-  /// The start of the id of each echoed user message.
-  static let userMessageIDPrefix = "demo-user-"
-
   /// The id of the plan of each turn.
   static let planID = "demo-plan"
 
@@ -67,14 +65,6 @@ public enum InMemoryDemoAgent {
   /// - Returns: `demo-reply-<turn>`.
   public static func replyID(turn: Int) -> String {
     replyIDPrefix + String(turn)
-  }
-
-  /// The id of the echoed user message of a turn.
-  ///
-  /// - Parameter turn: The number of the turn, from 1.
-  /// - Returns: `demo-user-<turn>`.
-  public static func userMessageID(turn: Int) -> String {
-    userMessageIDPrefix + String(turn)
   }
 
   /// The text of the reply to a prompt.
@@ -165,18 +155,7 @@ public enum InMemoryDemoAgent {
 
   // MARK: - Turn
 
-  /// The text of a `session/prompt` request: the text of each `text` block.
-  ///
-  /// - Parameter request: The request frame.
-  /// - Returns: The joined text.
-  static func promptText(of request: AgentViewKit.JSONValue) -> String {
-    guard case .array(let blocks)? = request["params"]?["prompt"] else { return "" }
-    return blocks.compactMap { block in
-      block["type"]?.stringValue == "text" ? block["text"]?.stringValue : nil
-    }.joined()
-  }
-
-  /// The notification frames of one turn.
+  /// The notification frames of one turn, after the prompt result.
   ///
   /// - Parameters:
   ///   - request: The `session/prompt` request frame.
@@ -184,30 +163,24 @@ public enum InMemoryDemoAgent {
   /// - Returns: The frames, in send order.
   static func turnFrames(for request: AgentViewKit.JSONValue, turn: Int) -> [String] {
     let sessionId = request["params"]?["sessionId"] ?? .string(sessionID)
-    let prompt = promptText(of: request)
-    let reply = replyText(to: prompt)
+    let reply = replyText(to: ScriptedWireAgent.promptText(of: request))
     let replyID = AgentViewKit.JSONValue.string(replyID(turn: turn))
     let updates: [AgentViewKit.JSONValue] =
       [
-        .object([
-          "sessionUpdate": .string("user_message"),
-          "messageId": .string(userMessageID(turn: turn)),
-          "content": .array([textBlock(prompt)]),
-        ]),
-        .object(["sessionUpdate": .string("state_update"), "state": .string("running")]),
+        .object(["sessionUpdate": .string("state_update"), "state": .string("running")])
       ]
       + chunks(of: reply).map { chunk in
         .object([
           "sessionUpdate": .string("agent_message_chunk"),
           "messageId": replyID,
-          "content": textBlock(chunk),
+          "content": ScriptedWireAgent.textBlock(chunk),
         ])
       }
       + [
         .object([
           "sessionUpdate": .string("agent_message"),
           "messageId": replyID,
-          "content": .array([textBlock(reply)]),
+          "content": .array([ScriptedWireAgent.textBlock(reply)]),
         ]),
         .object([
           "sessionUpdate": .string("plan_update"),
@@ -238,11 +211,6 @@ public enum InMemoryDemoAgent {
         "params": .object(["sessionId": sessionId, "update": update]),
       ]).jsonString
     }
-  }
-
-  /// A `text` content block.
-  private static func textBlock(_ text: String) -> AgentViewKit.JSONValue {
-    .object(["type": .string("text"), "text": .string(text)])
   }
 
   /// A plan entry with the `medium` priority.
