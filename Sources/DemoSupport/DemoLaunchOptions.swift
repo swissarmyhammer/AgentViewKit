@@ -13,8 +13,9 @@ public enum DemoTab: Sendable, Hashable, CaseIterable {
 ///
 /// - `--in-memory-agent`: the ACP tab binds ``InMemoryDemoAgent`` and starts
 ///   no process. The end-to-end test uses this argument.
-/// - `--agent-command <path>`: the ACP tab starts this agent program. The
-///   default is ``defaultAgentCommand``.
+/// - `--agent-command <path>`: the ACP tab starts this agent program, with
+///   the arguments of ``agentArguments(for:)``. The default is
+///   ``defaultAgentCommand``.
 /// - `--cwd <path>`: the working directory of each session. The default is
 ///   the home directory.
 /// - `--fake-language-model`: the FoundationModels tab binds
@@ -53,9 +54,17 @@ public struct DemoLaunchOptions: Equatable, Sendable {
   /// The display name of an agent that the demo app starts as a process.
   public static let processAgentName = "ACP Agent"
 
+  /// The name of the agent program of FoundationModelsACPAgent.
+  static let acpAgentProgramName = "acp-agent"
+
+  /// The subcommand that makes `acp-agent` serve ACP on stdin and stdout.
+  /// The default subcommand of `acp-agent` is `run`, which does not speak
+  /// ACP.
+  static let acpSubcommand = "acp"
+
   /// The path of the `acp-agent` binary below the directory of the sibling
   /// checkouts.
-  static let siblingAgentPath = "FoundationModelsACPAgent/.build/release/acp-agent"
+  static let siblingAgentPath = "FoundationModelsACPAgent/.build/release/\(acpAgentProgramName)"
 
   /// The `acp-agent` binary of the sibling FoundationModelsACPAgent checkout.
   ///
@@ -110,6 +119,18 @@ public struct DemoLaunchOptions: Equatable, Sendable {
         continue
       }
     }
+  }
+
+  /// The arguments that the demo app gives to the agent program `command`.
+  ///
+  /// An `acp-agent` program, by name or by a path that ends in `acp-agent`,
+  /// gets the `acp` subcommand. Another program gets no arguments.
+  ///
+  /// - Parameter command: The name or the path of the agent program.
+  /// - Returns: The arguments of the agent program.
+  public static func agentArguments(for command: String) -> [String] {
+    let programName = URL(filePath: command).lastPathComponent
+    return programName == acpAgentProgramName ? [acpSubcommand] : []
   }
 
   /// The display name of the agent that the options start.

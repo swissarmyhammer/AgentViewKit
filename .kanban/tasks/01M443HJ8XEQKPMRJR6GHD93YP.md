@@ -32,10 +32,26 @@ comments:
     - evidence: 16 paths — Tests/PackageStructureTests/BenchmarkBoundaryTests.swift (new), Tests/PackageStructureTests/BenchmarkSymlinkTests.swift, Benchmarks/Package.swift, Benchmarks/Package.resolved, Benchmarks/README.md, Benchmarks/Benchmarks/AgentViewKitBenchmarks/{Main,BenchmarkPolicy}.swift, deleted {ObservationBenchmarks,FakeLanguageModel,ChangeCounter}.swift, 4 deleted Benchmarks/Baselines/*.p90.json, Benchmarks/.benchmarkBaselines/AgentViewKitBenchmarks/main/results.json, Scripts/check-benchmarks.sh, Sources/AgentViewKitTestSupport/ChangeCounter.swift. `swift test`: 1528 tests passed, 0 warnings. `Scripts/check-benchmarks.sh`: exit 0 on the last run (3 earlier runs failed the 4 ms p90 gate under machine load; HEAD failed the same way).
     - next: /review
   timestamp: 2026-10-04T23:24:39.403442+00:00
+- actor: claude-code
+  id: 01m44m0vcsrdp4m7kfb388kpc8
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 332dfa8). 0 findings, 0 confirmed, 0 refuted. 10 files reviewed. 7 files had no matching validator (baseline JSON files, Package.resolved, README.md). The engine declined some rule items only for the three deleted Swift files.
+    - next: task moved to done
+  timestamp: 2026-10-04T23:29:39.737898+00:00
+- actor: claude-code
+  id: 01m44m0wt6t0htwv2phx2rs1kz
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — removed the FoundationModels benchmark scenarios, links and baselines; BenchmarkBoundaryTests (new); BenchmarkSymlinkTests, BenchmarkPolicy, docs
+    - test: green — swift test, 1528 passed
+    - commit: 332dfa8
+    - review: clean — 0 findings
+  timestamp: 2026-10-04T23:29:41.190778+00:00
 depends_on:
 - 01M443H1PVEMMXJ3E2VK9MXMEM
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: d380
 title: Remove the FoundationModels benchmarks and their baselines
 ---
 ## What

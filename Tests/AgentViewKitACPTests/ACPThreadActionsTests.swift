@@ -100,7 +100,7 @@ private struct Harness {
     presenter: AuthorizationPresenter = AuthorizationPresenter(factory: FakeWebAuthSession(script: .cancelled)),
     launcher: FakeProcessLauncher = FakeProcessLauncher(),
     store: ConnectionStore? = nil,
-    agentProgram: ACPAgentProgram? = ACPAgentProgram(path: agentPath, arguments: ["--acp"])
+    agentProgram: ACPAgentProgram? = ACPAgentProgram(path: agentPath, arguments: ["acp"])
   ) async {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
     let connection = await client.connect(over: clientEnd)
@@ -370,11 +370,11 @@ private struct Harness {
 
     #expect(
       launcher.calls == [
-        .launch(program: agentPath, arguments: ["--acp", "--login"], environment: ["MODE": "login"])
+        .launch(program: agentPath, arguments: ["acp", "--login"], environment: ["MODE": "login"])
       ])
     let terminal = try #require(harness.thread.terminals[TerminalID("auth-terminal-login")])
     #expect(terminal.output == Data("Open the URL\nDone\n".utf8))
-    #expect(terminal.command == "\(agentPath) --acp --login")
+    #expect(terminal.command == "\(agentPath) acp --login")
     #expect(terminal.exitStatus == TerminalRecord.ExitStatus(code: 0))
     await harness.bounded { await harness.actions.cancel() }
     #expect(await waitUntil { !harness.agent.messages(method: "session/cancel").isEmpty })

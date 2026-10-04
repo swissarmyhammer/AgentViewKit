@@ -330,7 +330,7 @@ The launch arguments are in
 [`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):
 
 - `--in-memory-agent`: the ACP tab binds the in-memory agent, and starts no process.
-- `--agent-command <path>`: the ACP tab starts this agent program. The default is the `acp-agent` build of the sibling FoundationModelsACPAgent checkout.
+- `--agent-command <path>`: the ACP tab starts this agent program. The default is the `acp-agent` build of the sibling FoundationModelsACPAgent checkout. The app starts an `acp-agent` program with the `acp` subcommand, because the default subcommand of `acp-agent` does not speak ACP. The app starts other programs with no arguments.
 - `--cwd <path>`: the working directory of each session. The default is the home directory.
 - `--fake-language-model`: the FoundationModels tab binds a fake model with a scripted reply, and the app opens on that tab.
 - `--force-model-unavailable`: the FoundationModels tab shows the model as not available, and the app opens on that tab.

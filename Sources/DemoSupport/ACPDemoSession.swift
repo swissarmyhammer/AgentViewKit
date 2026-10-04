@@ -121,7 +121,8 @@ public final class ACPDemoSession {
   ///
   /// With ``DemoLaunchOptions/usesInMemoryAgent``, the model starts
   /// ``InMemoryDemoAgent`` in this process. Otherwise it starts
-  /// ``DemoLaunchOptions/agentCommand`` as an `AgentProcess`. A program that
+  /// ``DemoLaunchOptions/agentCommand`` as an `AgentProcess`, with the
+  /// arguments of ``DemoLaunchOptions/agentArguments(for:)``. A program that
   /// does not start moves ``phase`` to ``Phase/failed(_:)``.
   ///
   /// - Parameter options: The launch options of the demo app.
@@ -134,7 +135,10 @@ public final class ACPDemoSession {
       return
     }
     do {
-      let process = try AgentProcess(command: options.agentCommand)
+      let process = try AgentProcess(
+        command: options.agentCommand,
+        arguments: DemoLaunchOptions.agentArguments(for: options.agentCommand)
+      )
       self.process = process
       await connect(over: process.transport, agentProgram: ACPAgentProgram(path: options.agentCommand))
     } catch {
