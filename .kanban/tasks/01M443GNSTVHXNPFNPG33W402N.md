@@ -32,8 +32,24 @@ comments:
     - correction: the previous comment names the plan rewrite task as ^bg95wws. The correct short id is ^g95wwbs.
     - next: /review
   timestamp: 2026-10-04T22:24:21.694260+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m44ggjj279k3fws58tysqh8n
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 57f25b8), 0 findings, 0 confirmed, 0 refuted. 5 files reviewed. 4 .kanban files not reviewed (.reviewignore). No prior Review Findings sections.
+    - next: task moved to done.
+  timestamp: 2026-10-04T22:28:20.674066+00:00
+- actor: claude-code
+  id: 01m44ggm2sac8nwftgbg1avesf
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — StateBanner.swift, StateBanner+StopReasons.swift (new), StateBannerStopReasonTests.swift (new), StateBannerHostedTests.swift, ThreadAccessibilityTests.swift
+    - test: green — swift test, 1527 passed
+    - commit: 57f25b8
+    - review: clean — 0 findings
+  timestamp: 2026-10-04T22:28:22.233609+00:00
+position_column: done
+position_ordinal: d280
 title: Show a banner for each extension stop reason in StateBanner
 ---
 ## What

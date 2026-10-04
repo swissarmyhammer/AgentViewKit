@@ -2,10 +2,13 @@ import Foundation
 import PackageFileSupport
 import Testing
 
-/// The benchmark target compiles some sources of the main package through
-/// symbolic links (plan.md §8). A file that moves leaves a link that points
+/// The benchmark target can compile a source of the main package through a
+/// symbolic link (plan.md §8). A file that moves leaves a link that points
 /// at nothing, and then the `Benchmarks/` package does not build. The
 /// benchmark tool hides that error, so this test finds it in `swift test`.
+///
+/// The target has no link now: the links went with the FoundationModels
+/// benchmarks. The test stays for a link that a later benchmark adds.
 struct BenchmarkSymlinkTests {
   /// The directory of the benchmark target, relative to the package root.
   static let benchmarkSources = "Benchmarks/Benchmarks/AgentViewKitBenchmarks"
@@ -27,10 +30,6 @@ struct BenchmarkSymlinkTests {
         .standardizedFileURL
       return (link: entry, target: target)
     }
-  }
-
-  @Test func theBenchmarkTargetHasLinks() throws {
-    #expect(!(try Self.links()).isEmpty)
   }
 
   @Test func eachLinkOfTheBenchmarkTargetPointsAtAFile() throws {

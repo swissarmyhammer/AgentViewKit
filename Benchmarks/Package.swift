@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 //
-// AgentViewKitBenchmarks: the streaming and observation benchmarks of
-// plan.md §8 and research R1 and R4, in a separate SwiftPM package.
+// AgentViewKitBenchmarks: the streaming benchmarks of plan.md §8 and
+// research R1, in a separate SwiftPM package.
 //
 // This package is separate from the root package, as in
 // `../EditorKit/Benchmarks`. It depends on AgentViewKit by path. Thus:
@@ -45,20 +45,8 @@ let package = Package(
       dependencies: [
         .product(name: "Benchmark", package: "benchmark"),
         .product(name: "AgentViewKit", package: "AgentViewKit"),
-        .product(name: "AgentViewKitFoundationModels", package: "AgentViewKit"),
         .product(name: "Textual", package: "textual"),
       ],
-      // Two files in this directory are symbolic links:
-      //
-      //   - `FakeLanguageModel.swift` to
-      //     `Tests/AgentViewKitFoundationModelsTests/FakeLanguageModel.swift`.
-      //   - `ChangeCounter.swift` to
-      //     `Sources/AgentViewKitTestSupport/ChangeCounter.swift`.
-      //
-      // A package can use only the products of another package, and a test
-      // target or the test support target is not a product. Thus this target
-      // compiles the same files, and the benchmarks use the same fake model
-      // and the same change counter as the tests.
       path: "Benchmarks/AgentViewKitBenchmarks",
       plugins: [
         .plugin(name: "BenchmarkPlugin", package: "benchmark")

@@ -1,8 +1,7 @@
 # AgentViewKit benchmarks
 
 This package measures the streaming paths of plan.md §8. It gives the numbers
-for research R1 (the cost of Textual when a response streams) and research R4
-(the observation granularity of a FoundationModels stream). It records the
+for research R1 (the cost of Textual when a response streams). It records the
 numbers as a committed baseline, and `Scripts/check-benchmarks.sh` fails when a
 change makes a path slower than the baseline permits.
 
@@ -40,10 +39,12 @@ silicon, 32 cores, Darwin 27, Swift 6.4, release build).
 | --- | --- |
 | Streaming chunk, paragraph split on | One chunk of a 2,000-line message through `ResponseView`: the append, the coalescer flush, the split, and one render of the hosted view |
 | Streaming chunk, paragraph split off | The same chunk through one Textual `StructuredText` of the full message |
-| Observation, SessionThreadSource over 1,000 chunks | One stream of 1,000 chunks from a fake `LanguageModel` through `SessionThreadSource`, with an observer of `thread.items` and an observer of the streaming message |
-| Tail source, Snapshot.transcriptEntries | The same stream with no source. The reader takes the response text from each `ResponseStream.Snapshot` |
-| Tail source, SessionPropertyValues.history | The reader takes the response text from `session.properties.history` at each observation change |
-| Tail source, session.transcript | The reader takes the response text from `session.transcript` at each observation change |
+
+The package has no observation benchmark now. The observation benchmarks of
+research R4 measured a FoundationModels stream through `SessionThreadSource`.
+The kit is an ACP client kit, so these benchmarks and their baselines went
+with the FoundationModels adapter (update.md §7 item 2). A later task adds an
+observation benchmark for the transcript view over `SessionModel`.
 
 ### The streaming corpus
 
@@ -64,9 +65,6 @@ the message, at the same places on each run.
 | --- | --- |
 | Body evaluations per chunk | The body evaluations of probe views that read the same observed values as the views of the kit: `settledParagraphs` and `tail` with the split, `text` with no split |
 | Paragraphs parsed per chunk | The paragraphs that Textual parses for the chunk: the new settled paragraphs and the tail with the split, each paragraph with no split |
-| Items invalidations per stream | The changes of an observer of `thread.items` |
-| Streaming invalidations per stream | The changes of an observer of `thread.streaming[id]` |
-| Tail updates per stream | The updates that one tail source gives |
 
 `BodyEvaluationCounter` exists only in debug builds, and the benchmarks build
 in release mode. Thus the benchmarks count probe views.
@@ -74,12 +72,15 @@ in release mode. Thus the benchmarks count probe views.
 `ParagraphView` in a debug build, and proves that a settled paragraph does not
 evaluate again.
 
-`FakeLanguageModel.swift` and `ChangeCounter.swift` in
-`Benchmarks/AgentViewKitBenchmarks/` are symbolic links to the files in
-`DemoSupport` and in `AgentViewKitTestSupport`. A package can use only the
-products of another package, so this package compiles the same files. Edit
-the files in the root package. `BenchmarkSymlinkTests` in
-`PackageStructureTests` fails when a link points at a file that moved.
+A package can use only the products of another package. To compile a file of
+a test target or of the test support target, put a symbolic link to the file
+in `Benchmarks/AgentViewKitBenchmarks/`, and edit the file in the root
+package. `BenchmarkSymlinkTests` in `PackageStructureTests` fails when a link
+points at a file that moved. The target has no link now.
+
+`BenchmarkBoundaryTests` in `PackageStructureTests` fails when a benchmark
+source imports FoundationModels or `AgentViewKitFoundationModels`, or when
+`Package.swift` links the `AgentViewKitFoundationModels` product.
 
 ## The gates
 
@@ -91,8 +92,6 @@ fails. `Scripts/check-benchmarks.sh` fails on such an error.
 | Streaming chunk, paragraph split on | The p90 cost of one chunk is less than **4 ms** |
 | Streaming chunk, paragraph split on | A chunk that settles no paragraph does not evaluate the settled paragraph list |
 | Both streaming scenarios | Each chunk that changes the text evaluates the view of the text (the render did the update) |
-| Observation, SessionThreadSource | The items observer changes at most **2 times for each transcript entry** (the insert and the final replace), for any number of chunks |
-| All observation scenarios | The reader gets the full response text |
 
 ## R1: Textual streaming cost
 
@@ -144,9 +143,14 @@ the largest part of the cost.
 
 ## R4: observation granularity
 
+This section is a record. The R4 scenarios and their baselines are removed
+(see "The scenarios"), so the gate does not read these numbers. The decision
+applies to `SessionThreadSource` while the FoundationModels adapter is in the
+package.
+
 ### The numbers
 
-The baseline run, for one stream of 1,000 chunks:
+The last baseline run, for one stream of 1,000 chunks:
 
 | Tail source | p90 tail updates | p90 wall clock |
 | --- | --- | --- |
@@ -187,11 +191,6 @@ The baseline run, for one stream of 1,000 chunks:
   reads `thread.items`, which changes only at entry boundaries, and the tail
   row reads `thread.streaming[id]`.
 
-A note for later work: the full `SessionThreadSource` stream costs about
-110 ms at p90, against 14 ms for the snapshots alone. The observation path
-maps the full transcript at each change. The cost does not reach the views,
-but a future change can make the observation path incremental.
-
 ## The gate policy
 
 `BenchmarkPolicy.swift` holds each number of the policy, which is the policy
@@ -200,18 +199,9 @@ of `../EditorKit/Benchmarks`:
 - **Instructions**: the primary gate. Tolerance **25 %** at p50 and p90.
 - **Wall clock**: the secondary gate. Tolerance **75 %** at p50 and p90.
 - **Throughput**: recorded, not gated.
-- **Large counts** (paragraphs parsed, the tail updates of the snapshot
-  source): tolerance **25 %**.
-- **The two comparison scenarios** (`Tail source, SessionPropertyValues.history`
-  and `Tail source, session.transcript`): recorded, not gated, in every
-  metric. Each of them does one unit of work for each observation tick of
-  the SDK, so its count, its instructions, and its wall clock change with the
-  machine: the CI runner gave 3 times the count of the recording machine. A
-  change in the kit cannot move these numbers; they are the reference of the
-  R4 decision.
-- **Small counts** (body evaluations, items and streaming invalidations): an
-  absolute tolerance of **2**, because a change of one main actor pass moves
-  a count of 3 by one.
+- **Large counts** (paragraphs parsed): tolerance **25 %**.
+- **Small counts** (body evaluations): an absolute tolerance of **2**,
+  because a change of one main actor pass moves a count of 3 by one.
 
 ## The baseline-update flow
 

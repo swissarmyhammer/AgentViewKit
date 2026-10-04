@@ -16,16 +16,13 @@
 // than 1. Thus no tolerance can become larger than the regression that the
 // gate must catch.
 //
-// The custom count metrics (body evaluations, paragraphs parsed, observer
-// invalidations, the tail updates of the snapshot source) do not change with
-// the machine:
+// The custom count metrics (body evaluations, paragraphs parsed) do not
+// change with the machine:
 //
 //   - A LARGE count uses the relative instruction tolerance.
-//   - A SMALL count (a few changes for each chunk or stream) moves by one
-//     when two observation changes fall into one main actor pass. A change
-//     from 2 to 3 is +50 %, so a small count uses an absolute tolerance.
-//   - A RECORDED count has no threshold. The tail updates of the two
-//     comparison sources change with the machine (see `tailUpdates(gated:)`).
+//   - A SMALL count (a few changes for each chunk) moves by one when two
+//     observation changes fall into one main actor pass. A change from 2 to
+//     3 is +50 %, so a small count uses an absolute tolerance.
 //
 
 import Benchmark
@@ -84,47 +81,6 @@ enum BenchmarkPolicy {
     largeCount("Paragraphs parsed per chunk")
   }
 
-  /// The invalidations of an observer of `thread.items` for one stream.
-  static var itemsInvalidations: CountMetric {
-    smallCount("Items invalidations per stream")
-  }
-
-  /// The invalidations of an observer of the streaming message for one
-  /// stream.
-  static var streamingInvalidations: CountMetric {
-    smallCount("Streaming invalidations per stream")
-  }
-
-  /// The tail updates that a tail source gives for one stream.
-  ///
-  /// The snapshot source, the one that the kit uses, gives one update for
-  /// each chunk, so its count does not change with the machine and the gate
-  /// reads it. The two comparison sources of research R4
-  /// (`SessionPropertyValues.history` and `session.transcript`) give one
-  /// update for each observation tick of the SDK. That count describes the
-  /// SDK and the machine, not the kit: the CI runner gave 3 times the count
-  /// of the machine that recorded the baseline, and 3 times the work with
-  /// it. So those scenarios record the count with `gated: false`, as the
-  /// policy records throughput, and their configuration is not gated.
-  ///
-  /// - Parameter gated: Whether the gate reads the count.
-  /// - Returns: The metric, with the relative count tolerance or none.
-  static func tailUpdates(gated: Bool) -> CountMetric {
-    gated
-      ? largeCount("Tail updates per stream")
-      : recordedCount("Tail updates per stream")
-  }
-
-  /// A count metric that the gate does not read.
-  ///
-  /// - Parameter name: The name of the metric.
-  /// - Returns: The metric, with no threshold.
-  private static func recordedCount(_ name: String) -> CountMetric {
-    CountMetric(
-      metric: .custom(name, polarity: .prefersSmaller, useScalingFactor: false),
-      thresholds: .none)
-  }
-
   /// A small count metric, with the absolute tolerance.
   ///
   /// - Parameter name: The name of the metric.
@@ -163,13 +119,9 @@ enum BenchmarkPolicy {
   /// - Parameters:
   ///   - iterations: The measured iterations.
   ///   - countMetrics: The custom count metrics that the benchmark records.
-  ///   - gated: Whether the gate reads the metrics. A scenario that measures
-  ///     a reference path, not a path of the kit, records its metrics with
-  ///     `gated: false`: each of its numbers changes with the machine, and a
-  ///     change in the kit cannot move them (see ``tailUpdates(gated:)``).
   /// - Returns: The shared policy with the iteration count and the metrics.
   static func configuration(
-    iterations: Int, countMetrics: [CountMetric], gated: Bool = true
+    iterations: Int, countMetrics: [CountMetric]
   ) -> Benchmark.Configuration {
     let timeMetrics: [BenchmarkMetric] = [.wallClock, .instructions, .throughput]
     let timeThresholds: [BenchmarkMetric: BenchmarkThresholds] = [
@@ -179,13 +131,12 @@ enum BenchmarkPolicy {
     ]
     let countThresholds = Dictionary(
       uniqueKeysWithValues: countMetrics.map { ($0.metric, $0.thresholds) })
-    let gatedThresholds = timeThresholds.merging(countThresholds) { time, _ in time }
     return Benchmark.Configuration(
       metrics: timeMetrics + countMetrics.map(\.metric),
       warmupIterations: warmupIterations,
       maxDuration: maxDuration,
       maxIterations: iterations,
-      thresholds: gated ? gatedThresholds : gatedThresholds.mapValues { _ in .none }
+      thresholds: timeThresholds.merging(countThresholds) { time, _ in time }
     )
   }
 

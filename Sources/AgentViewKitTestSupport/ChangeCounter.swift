@@ -6,10 +6,6 @@ import Observation
 /// again, in a new main actor task. As in SwiftUI, the changes before that
 /// read count as one change. ``ChangeFlag`` tells only whether one change
 /// came.
-///
-/// The benchmark package compiles this file through a symbolic link
-/// (`Benchmarks/README.md`). Thus the file imports only Observation, and
-/// the type states its actor.
 @MainActor
 public final class ChangeCounter {
   /// The changes since the start.
