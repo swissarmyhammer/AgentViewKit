@@ -7,10 +7,12 @@
 //
 //   - AgentViewKit                  the model and the views
 //   - AgentViewKitFoundationModels  SessionThreadSource, imports FoundationModels
-//   - AgentViewKitRouter            RouterThreadSource, imports FoundationModelsRouter
-//                                   and FoundationModelsExtras
 //   - AgentViewKitACP               ACPThreadSource, imports FoundationModelsACP and
 //                                   FoundationModelsACPClient
+//
+// The kit is an ACP client kit. It does not depend on FoundationModelsRouter
+// or FoundationModelsExtras. A Router agent reaches the kit through
+// FoundationModelsACPAgent and ACP (update.md §1).
 //
 // PackageStructureTests reads this file as text. Spell each library product
 // and each dependency product in full, as `.library(name:` and
@@ -71,7 +73,6 @@ let package = Package(
   products: [
     .library(name: "AgentViewKit", targets: ["AgentViewKit"]),
     .library(name: "AgentViewKitFoundationModels", targets: ["AgentViewKitFoundationModels"]),
-    .library(name: "AgentViewKitRouter", targets: ["AgentViewKitRouter"]),
     .library(name: "AgentViewKitACP", targets: ["AgentViewKitACP"]),
   ],
   dependencies: [
@@ -80,8 +81,6 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/EditorKit.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACP.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPClient.git", branch: "main"),
-    .package(url: "git@github.com:swissarmyhammer/FoundationModelsRouter.git", branch: "main"),
-    .package(url: "git@github.com:swissarmyhammer/FoundationModelsExtras.git", branch: "main"),
     // Textual is a 0.x package, so the pin is exact.
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
     // The math engine is a 0.x package, so the pin is exact. Textual 0.5.0
@@ -104,15 +103,6 @@ let package = Package(
     .target(
       name: "AgentViewKitFoundationModels",
       dependencies: ["AgentViewKit"],
-      swiftSettings: mainActorIsolated
-    ),
-    .target(
-      name: "AgentViewKitRouter",
-      dependencies: [
-        "AgentViewKit",
-        .product(name: "FoundationModelsRouter", package: "FoundationModelsRouter"),
-        .product(name: "FoundationModelsExtras", package: "FoundationModelsExtras"),
-      ],
       swiftSettings: mainActorIsolated
     ),
     // This target must not import FoundationModels, FoundationModelsRouter, or
@@ -138,7 +128,7 @@ let package = Package(
     // options of the demo app. The ACP tests and the FoundationModels tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
     // sources into the app. The target is not a product, because the package
-    // has exactly four library products (plan.md §11 decision 1).
+    // has exactly three library products (plan.md §11 decision 1).
     .target(
       name: "DemoSupport",
       dependencies: [
@@ -173,18 +163,6 @@ let package = Package(
         // The fake language model and the FoundationModels session model of
         // the demo app.
         "DemoSupport",
-      ],
-      swiftSettings: mainActorIsolated
-    ),
-    .testTarget(
-      name: "AgentViewKitRouterTests",
-      dependencies: [
-        "AgentViewKitRouter",
-        "AgentViewKitTestSupport",
-        // SubagentAdapterTests reads the subagent fixture from disk.
-        "PackageFileSupport",
-        .product(name: "FoundationModelsRouter", package: "FoundationModelsRouter"),
-        .product(name: "FoundationModelsExtras", package: "FoundationModelsExtras"),
       ],
       swiftSettings: mainActorIsolated
     ),
@@ -225,10 +203,8 @@ let package = Package(
         "AgentViewKit",
         "AgentViewKitACP",
         "AgentViewKitFoundationModels",
-        "AgentViewKitRouter",
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
-        .product(name: "FoundationModelsRouter", package: "FoundationModelsRouter"),
       ],
       path: "Examples/ReadmeSnippets"
     ),

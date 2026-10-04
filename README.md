@@ -6,8 +6,9 @@ AgentViewKit gives the surfaces that an agent UI needs: streaming responses,
 reasoning, tool calls, terminals, diffs, plans, citations, permissions,
 elicitation, artifacts, config options, and context usage. The views bind to
 one observable model, `AgentThread`. A source adapter fills the model from a
-runtime. The kit has three sources: an ACP v2 agent, a FoundationModels
-`LanguageModelSession`, and a FoundationModelsRouter session.
+runtime. The kit has two sources: an ACP v2 agent and a FoundationModels
+`LanguageModelSession`. A FoundationModelsRouter agent reaches the kit as an
+ACP agent, through FoundationModelsACPAgent.
 
 There are two levels of use. `AgentThreadView(thread:actions:)` shows the
 whole surface. The primitives below it give full control.
@@ -29,17 +30,16 @@ Then link the kit, and the product of each source that your app uses:
     .product(name: "AgentViewKit", package: "AgentViewKit"),
     .product(name: "AgentViewKitACP", package: "AgentViewKit"),
     .product(name: "AgentViewKitFoundationModels", package: "AgentViewKit"),
-    .product(name: "AgentViewKitRouter", package: "AgentViewKit"),
   ]
 )
 ```
 
 The package needs the Swift 6.2 tools, the Swift 6 language mode, and macOS 27
 or later. There is no back-deployment. The in-family dependencies (EditorKit,
-FoundationModelsACP, FoundationModelsACPClient, FoundationModelsRouter, and
-FoundationModelsExtras) also come from their `main` branches, over SSH.
+FoundationModelsACP, and FoundationModelsACPClient) also come from their `main`
+branches, over SSH.
 
-## Three quick starts
+## Two quick starts
 
 Each block below that starts with `// readme:compile <Name>` is the file
 `<Name>.swift` in [`Examples/ReadmeSnippets/Snippets/`](Examples/ReadmeSnippets/Snippets).
@@ -157,43 +157,6 @@ The source maps the transcript of the session: the instructions, the prompts,
 the responses, the reasoning, and the tool calls. A response streams into the
 thread one paragraph at a time. `AgentTranscriptView(transcript:)` shows a
 persisted `Transcript` value one time, and does not update.
-
-### 3. A Router session
-
-`RouterThreadSource` reads the session events of a FoundationModelsRouter
-`RoutedSession` and fills the thread. `RouterThreadActions` starts each turn,
-cancels it, and answers the elicitations.
-
-```swift
-// readme:compile RouterQuickStart
-import AgentViewKit
-import AgentViewKitRouter
-import FoundationModelsRouter
-import SwiftUI
-
-/// Binds a Router session to a thread.
-@MainActor
-final class RouterQuickStart {
-  let source: RouterThreadSource
-  let actions: RouterThreadActions
-  private let run: Task<Void, Never>
-
-  init(session: any RoutedSession) {
-    let source = RouterThreadSource(session: session)
-    self.source = source
-    actions = RouterThreadActions(source: source)
-    run = Task { await source.run() }
-  }
-}
-
-struct RouterThread: View {
-  let model: RouterQuickStart
-
-  var body: some View {
-    AgentThreadView(thread: model.source.thread, actions: model.actions)
-  }
-}
-```
 
 ## The host app
 

@@ -11,9 +11,21 @@ import Testing
   static let libraryProducts: Set<String> = [
     "AgentViewKit",
     "AgentViewKitFoundationModels",
-    "AgentViewKitRouter",
     "AgentViewKitACP",
   ]
+
+  /// The packages that the kit does not depend on directly (update.md §1).
+  ///
+  /// A Router agent reaches the kit through FoundationModelsACPAgent and ACP.
+  /// FoundationModelsExtras stays in the package graph only as a dependency of
+  /// FoundationModelsACPClient.
+  static let removedPackages: Set<String> = [
+    "FoundationModelsRouter",
+    "FoundationModelsExtras",
+  ]
+
+  /// The name prefix of the removed Router target and its test target.
+  static let removedTargetPrefix = "AgentViewKitRouter"
 
   /// The EditorKit products that the package uses.
   static let editorKitProducts: Set<String> = [
@@ -47,7 +59,7 @@ import Testing
     manifest = try PackageFiles.text(of: "Package.swift")
   }
 
-  @Test func declaresTheFourLibraryProducts() {
+  @Test func declaresTheThreeLibraryProducts() {
     let names = manifest.matches(of: /\.library\(\s*name:\s*"(?<name>[^"]+)"/).map { String($0.output.name) }
     #expect(Set(names) == Self.libraryProducts)
     #expect(names.count == Self.libraryProducts.count)
@@ -69,7 +81,7 @@ import Testing
   }
 
   @Test func linksTheTestSupportTargetFromEachKitTestTarget() throws {
-    for testTarget in ["AgentViewKitTests", "AgentViewKitFoundationModelsTests", "AgentViewKitRouterTests", "AgentViewKitACPTests"] {
+    for testTarget in ["AgentViewKitTests", "AgentViewKitFoundationModelsTests", "AgentViewKitACPTests"] {
       let declaration = try Regex(
         #"\.testTarget\(\s*name:\s*"\#(testTarget)",\s*dependencies:\s*\[[^\]]*"AgentViewKitTestSupport"[^\]]*\]"#
       )
@@ -78,12 +90,32 @@ import Testing
   }
 
   @Test func pinsTheSiblingPackagesToMain() {
-    for sibling in ["EditorKit", "FoundationModelsACP", "FoundationModelsACPClient", "FoundationModelsRouter", "FoundationModelsExtras"] {
+    for sibling in ["EditorKit", "FoundationModelsACP", "FoundationModelsACPClient"] {
       #expect(
         manifest.contains(#".package(url: "git@github.com:swissarmyhammer/\#(sibling).git", branch: "main")"#),
         "\(sibling) is not pinned to main"
       )
     }
+  }
+
+  @Test func declaresNoRouterOrExtrasPackage() {
+    let packages = Set(
+      manifest.matches(of: /\.package\(\s*url:\s*"[^"]*\/(?<name>[^"\/]+?)(?:\.git)?"/).map { String($0.output.name) }
+    )
+    #expect(packages.contains("EditorKit"), "The scan found no sibling package: \(packages)")
+    #expect(packages.isDisjoint(with: Self.removedPackages), "\(packages)")
+  }
+
+  @Test func linksNoRouterOrExtrasProduct() {
+    let packages = Set(manifest.matches(of: /package:\s*"(?<name>[^"]+)"/).map { String($0.output.name) })
+    #expect(packages.contains("EditorKit"), "The scan found no product dependency: \(packages)")
+    #expect(packages.isDisjoint(with: Self.removedPackages), "\(packages)")
+  }
+
+  @Test func declaresNoRouterTarget() {
+    let names = manifest.matches(of: /"(?<name>[^"\n]+)"/).map { String($0.output.name) }
+    #expect(names.contains("AgentViewKit"), "The scan found no quoted name")
+    #expect(!names.contains { $0.hasPrefix(Self.removedTargetPrefix) }, "\(names)")
   }
 
   @Test func setsTheMacOS27FloorAndNoOtherPlatform() {

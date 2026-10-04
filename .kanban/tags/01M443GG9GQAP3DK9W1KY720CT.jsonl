@@ -1,0 +1,1 @@
+{"id":"01M443GG9GHW91XTXXF8Y6W6B7","timestamp":"2026-10-04T18:41:06.864562Z","op":"create","item_id":"01M443GG9GQAP3DK9W1KY720CT","forward_patch":"--- original\n+++ modified\n@@ -0,0 +1,2 @@\n+color: bfd4f2\n+tag_name: acp-client\n","reverse_patch":"--- original\n+++ modified\n@@ -1,2 +0,0 @@\n-color: bfd4f2\n-tag_name: acp-client\n","transaction_id":null}

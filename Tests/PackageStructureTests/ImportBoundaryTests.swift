@@ -55,8 +55,8 @@ import Testing
       violations.map(\.module) == [
         "FoundationModels",
         "FoundationModelsACP",
-        "FoundationModelsRouter",
-        "FoundationModelsExtras",
+        "FoundationModelsACPClient",
+        "FoundationModels",
         "FoundationModelsACPClient",
       ]
     )
