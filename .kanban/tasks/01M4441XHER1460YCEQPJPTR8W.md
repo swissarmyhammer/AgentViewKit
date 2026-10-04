@@ -43,8 +43,17 @@ comments:
     - evidence: 3 files — update.md, Tests/PackageStructureTests/UpdatePlanNamesTests.swift (new), Tests/PackageStructureTests/ReadmeCoverageTests.swift; `swift test --filter PackageStructureTests` 56 passed; full `swift test` all suites passed, 0 warnings
     - next: /review
   timestamp: 2026-10-04T21:53:39.213509+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m44ewh8d2yyfdp2gdz3p18ad
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — update.md, UpdatePlanNamesTests.swift (new), ReadmeCoverageTests.swift
+    - test: green — swift test, 1520 passed
+    - commit: 28556a2
+    - review: clean — 0 findings
+  timestamp: 2026-10-04T21:59:55.405321+00:00
+position_column: done
+position_ordinal: d180
 title: Check update.md sections 4.2 and 4.3 against the real client model API
 ---
 ## What

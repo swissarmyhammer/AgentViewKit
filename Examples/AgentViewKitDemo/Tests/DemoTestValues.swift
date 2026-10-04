@@ -23,12 +23,4 @@ extension XCUIApplication {
   func element(_ identifier: String) -> XCUIElement {
     descendants(matching: .any).matching(identifier: identifier).firstMatch
   }
-
-  /// The first element of any type whose identifier starts with `prefix`.
-  ///
-  /// - Parameter prefix: The start of the accessibility identifier.
-  /// - Returns: The element.
-  func element(withIdentifierPrefix prefix: String) -> XCUIElement {
-    descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix)).firstMatch
-  }
 }

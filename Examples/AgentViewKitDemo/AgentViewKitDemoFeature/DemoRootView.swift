@@ -23,9 +23,6 @@ struct DemoRootView: View {
       Tab("ACP", systemImage: "point.3.connected.trianglepath.dotted", value: .acp) {
         ACPTabView(options: options)
       }
-      Tab("FoundationModels", systemImage: "apple.intelligence", value: .foundationModels) {
-        FoundationModelsTabView(options: options)
-      }
     }
   }
 }
