@@ -78,9 +78,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// and that did not return yet.
   @State private var promptsInFlight = 0
 
-  @Environment(\.agentThread) private var thread
-  @Environment(\.sessionModel) private var session
-  @Environment(\.threadActions) private var actions
+  /// The turn verbs of the session model or of the thread actions.
+  @EnvironmentComposerTurn private var turn
   @Environment(\.promptQueue) private var queue
   @Environment(\.agentTheme) private var theme
   @Environment(\.agentCommandTarget) private var commandTarget
@@ -131,11 +130,6 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       ?? Binding(get: { ownAttachments }, set: { ownAttachments = $0 })
   }
 
-  /// The turn verbs of the session model or of the thread actions.
-  private var turn: ComposerTurn {
-    ComposerTurn(session: session, thread: thread, actions: actions)
-  }
-
   /// Whether the agent runs a turn.
   private var isRunning: Bool {
     turn.isRunning
@@ -156,7 +150,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     let context = PromptEditorContext(
       text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
       onSendNow: sendNow, onCancel: isRunning ? cancelCommand : nil,
-      commands: thread?.availableCommands ?? [])
+      commands: turn.thread?.availableCommands ?? [])
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       if !attachments.wrappedValue.isEmpty {
         AttachmentChips(attachments: attachments)
@@ -179,8 +173,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     .environment(
       \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
     .environment(\.promptText, $text)
-    .onChange(of: thread?.state) { _, state in threadStateDidChange(state) }
-    .onChange(of: session?.agentState) { sendNextQueuedPrompt() }
+    .onChange(of: turn.thread?.state) { _, state in threadStateDidChange(state) }
+    .onChange(of: turn.session?.agentState) { sendNextQueuedPrompt() }
   }
 
   /// Sends the first queued item when the thread finished its turn. A
@@ -189,7 +183,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   ///
   /// - Parameter state: The new state of the thread, or `nil`.
   private func threadStateDidChange(_ state: ThreadState?) {
-    guard session == nil, let state, let input = queue?.dequeueNext(after: state) else { return }
+    guard turn.session == nil, let state, let input = queue?.dequeueNext(after: state) else { return }
     send(input)
   }
 
@@ -197,7 +191,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// sent prompt waits for its return and the agent state lets the queue go
   /// on (``PromptQueue/dequeueNext(afterAgentState:)``).
   private func sendNextQueuedPrompt() {
-    guard let session, promptsInFlight == 0,
+    guard let session = turn.session, promptsInFlight == 0,
       let input = queue?.dequeueNext(afterAgentState: session.agentState)
     else { return }
     send(input)
@@ -291,8 +285,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   ///
   /// - Parameter input: The input to send.
   private func send(_ input: UserInput) {
-    guard session != nil else {
-      actions?.startSend(input)
+    guard turn.session != nil else {
+      turn.actions?.startSend(input)
       return
     }
     promptsInFlight += 1

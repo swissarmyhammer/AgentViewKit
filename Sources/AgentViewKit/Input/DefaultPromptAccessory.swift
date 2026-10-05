@@ -31,20 +31,14 @@ public struct DefaultPromptAccessory: View {
   /// The accessibility identifier of the Stop button.
   public static let stopIdentifier = "prompt-stop"
 
-  @Environment(\.agentThread) private var thread
-  @Environment(\.sessionModel) private var session
-  @Environment(\.threadActions) private var actions
+  /// The turn verbs of the session model or of the thread actions.
+  @EnvironmentComposerTurn private var turn
   @Environment(\.promptSubmitAction) private var submit
   @Environment(\.promptSuggestions) private var suggestions
   @Environment(\.agentTheme) private var theme
 
   /// Makes the accessory row.
   public init() {}
-
-  /// The turn verbs of the session model or of the thread actions.
-  private var turn: ComposerTurn {
-    ComposerTurn(session: session, thread: thread, actions: actions)
-  }
 
   /// Whether the agent runs a turn.
   private var isRunning: Bool {
@@ -57,7 +51,7 @@ public struct DefaultPromptAccessory: View {
         SuggestionsView(suggestions: suggestions)
       }
       HStack(spacing: theme.spacing.s) {
-        PermissionModePicker(options: thread?.configOptions ?? [])
+        PermissionModePicker(options: turn.thread?.configOptions ?? [])
           .labelsHidden()
           .fixedSize()
         ToolToggles()

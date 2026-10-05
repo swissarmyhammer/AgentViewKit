@@ -32,8 +32,8 @@ public struct PromptQueueView: View {
   /// The queue that the view shows and changes.
   let queue: PromptQueue
 
-  @Environment(\.sessionModel) private var session
-  @Environment(\.threadActions) private var actions
+  /// The turn verbs of the session model or of the thread actions.
+  @EnvironmentComposerTurn private var turn
   @Environment(\.agentTheme) private var theme
 
   /// Makes the view.
@@ -180,6 +180,6 @@ public struct PromptQueueView: View {
   /// - Parameter id: The identifier of the item.
   private func sendNow(_ id: QueuedPromptID) {
     guard let input = queue.take(id) else { return }
-    ComposerTurn(session: session, thread: nil, actions: actions).startPrompt(with: input)
+    turn.startPrompt(with: input)
   }
 }

@@ -2,6 +2,7 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import OSLog
+import SwiftUI
 import UniformTypeIdentifiers
 
 /// The calls that start a thread action from a synchronous view callback,
@@ -157,5 +158,30 @@ struct ComposerTurn {
       return
     }
     session.startCancel()
+  }
+}
+
+/// The ``ComposerTurn`` of the environment of a composer view.
+///
+/// The wrapper reads the session model
+/// (``SwiftUI/EnvironmentValues/sessionModel``), the thread
+/// (``SwiftUI/EnvironmentValues/agentThread``), and the thread actions
+/// (``SwiftUI/EnvironmentValues/threadActions``), and gives the turn of these
+/// three values. Each composer view gets its turn here, so that the views make
+/// the turn in one place:
+///
+/// ```swift
+/// @EnvironmentComposerTurn private var turn
+/// ```
+@propertyWrapper
+struct EnvironmentComposerTurn: DynamicProperty {
+  @Environment(\.sessionModel) private var session
+  @Environment(\.agentThread) private var thread
+  @Environment(\.threadActions) private var actions
+
+  /// The turn of the session model, the thread and the thread actions of the
+  /// environment.
+  var wrappedValue: ComposerTurn {
+    ComposerTurn(session: session, thread: thread, actions: actions)
   }
 }
