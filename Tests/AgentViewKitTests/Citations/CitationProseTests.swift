@@ -43,25 +43,6 @@ import Textual
     #expect(payload.placementsByParagraph().isEmpty)
   }
 
-  @Test func theFirstCitationBlockGivesThePayload() throws {
-    let other = ContentBlock(content: .structured(schemaName: "Other", payload: .null))
-    let citation = ContentBlock(
-      content: .structured(schemaName: CitationPayload.schemaName, payload: try Self.payload.jsonValue()))
-
-    #expect(CitationPayload.first(in: [ContentBlock(text: "t"), other, citation]) == Self.payload)
-    #expect(CitationPayload.first(in: [ContentBlock(text: "t"), other]) == nil)
-    #expect(citation.isCitation)
-    #expect(!other.isCitation)
-  }
-
-  @Test func aCitationBlockThatDoesNotDecodeGivesNoPayload() {
-    let broken = ContentBlock(
-      content: .structured(schemaName: CitationPayload.schemaName, payload: .string("no")))
-
-    #expect(CitationPayload.first(in: [broken]) == nil)
-    #expect(broken.isCitation)
-  }
-
   // MARK: - Markers
 
   @Test func theMarkersGoInAtTheOffsetsAndKeepTheirOrderAtOneOffset() {

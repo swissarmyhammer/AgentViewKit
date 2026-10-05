@@ -18,8 +18,7 @@ import SwiftUI
 /// drives, pass ``LoggingThreadActions``.
 ///
 /// To replace the view of an item kind, use a typed modifier such as
-/// ``SwiftUI/View/toolCallView(_:)``. To replace the view of a schema name,
-/// use ``SwiftUI/View/structuredItem(_:_:)``.
+/// ``SwiftUI/View/toolCallView(_:)``.
 ///
 /// The view gives an ``ExpandedBlocksStore`` to its rows. When the
 /// environment has a store, the view uses that store.

@@ -94,7 +94,7 @@ private struct CitationScope: ViewModifier {
 /// of the source and scrolls it into view.
 ///
 /// ``ResponseView`` puts a pill in the prose at each ``CitationMarker`` of the
-/// ``CitationPayload`` of the message. There, Textual draws the pill, the pill
+/// ``CitationPayload`` that it gets. There, Textual draws the pill, the pill
 /// opens ``url(index:)``, and ``SwiftUI/View/citationScope()`` gets the link.
 ///
 /// The pill is an accessibility button with the label "Source <index>" and

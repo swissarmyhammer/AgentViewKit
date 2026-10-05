@@ -30,10 +30,26 @@ comments:
     - evidence: 23 paths — deleted Sources/AgentViewKit/Model/SystemPrompt.swift, Sources/AgentViewKit/Items/SystemPromptView.swift; changed README.md, Sources/AgentViewKit/{Activity/TurnSummary,Commands/AgentCommandTarget,Items/ThreadExporter,Model/AgentThread,Model/ItemPatch,Model/ThreadChange,Model/ThreadItem,Thread/ItemRow,Thread/ItemViewOverrides,Thread/ThreadMinimapView}.swift, Tests/AgentViewKitTests/{Items/MessageViewsHostedTests,Items/ThreadExporterTests,Model/AgentThreadApplyTests,Model/AgentThreadStreamingTests,Model/ThreadItemTests,TestSupport/ThreadFixturesTests,Thread/RegistryResolutionTests}.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. Commands: `swift test --filter RemovedVocabularyTests` (RED 1 failure, then GREEN 3/3); `Scripts/check-readme.sh` (passed); `swift test` (1 + 65 + 1204 + 128 tests passed, 0 warnings); `Scripts/test-examples.sh AgentViewKitDemo` (2 UI tests passed, TEST SUCCEEDED).
     - next: /review
   timestamp: 2026-10-05T13:37:27.037163+00:00
+- actor: claude-code
+  id: 01m464w1nmkd6wqsy8dv4smdab
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — removed SystemPrompt, SystemPromptView and the .system cases; TurnSummary, README, tests; 23 paths
+    - test: green — swift test, 1398 passed; README and demo UI gates passed
+    - commit: 9aa8f6b
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T13:43:22.548927+00:00
+- actor: claude-code
+  id: 01m464w3ewgywk7va9yf76jy8b
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 9aa8f6b). 0 findings, 0 confirmed, 0 refuted. 20 files reviewed. Not reviewed: 4 .kanban files (from .reviewignore) and README.md (no validator matches this file).
+    - next: none. The task is in done.
+  timestamp: 2026-10-05T13:43:24.380088+00:00
 depends_on:
 - 01M443K9H9357ZZAZQE6SD6TV0
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: dc80
 title: 'Remove the system prompt item: .system, SystemPrompt and SystemPromptView'
 ---
 ## What

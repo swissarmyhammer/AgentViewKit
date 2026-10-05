@@ -25,13 +25,6 @@ extension EnvironmentValues {
   /// The override of the ``ThreadItem/toolCall(_:)`` view.
   @Entry public var toolCallViewOverride: ItemViewRenderer<ToolCallRecord>? = nil
 
-  /// The override of the ``ThreadItem/structured(_:)`` view.
-  ///
-  /// This override replaces the view of each structured item. To replace the
-  /// view of one schema name only, use
-  /// ``SwiftUI/View/structuredItem(_:_:)``.
-  @Entry public var structuredItemViewOverride: ItemViewRenderer<StructuredRecord>? = nil
-
   /// The override of the ``ThreadItem/error(_:)`` view.
   @Entry public var errorViewOverride: ItemViewRenderer<ThreadError>? = nil
 
@@ -78,16 +71,6 @@ extension View {
     @ViewBuilder _ content: @escaping @MainActor (ToolCallRecord) -> Content
   ) -> some View {
     itemViewOverride(\.toolCallViewOverride, content)
-  }
-
-  /// Replaces the view of each structured item in this view.
-  ///
-  /// - Parameter content: The function that makes the view of a record.
-  /// - Returns: A view that gives the override to its subtree.
-  public func structuredItemView<Content: View>(
-    @ViewBuilder _ content: @escaping @MainActor (StructuredRecord) -> Content
-  ) -> some View {
-    itemViewOverride(\.structuredItemViewOverride, content)
   }
 
   /// Replaces the view of each error item in this view.

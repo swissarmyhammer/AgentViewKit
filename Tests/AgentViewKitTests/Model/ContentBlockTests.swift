@@ -138,7 +138,6 @@ import Testing
       (.resource(EmbeddedResource(uri: "file:///a.txt", contents: .text("a"))), .resource),
       (.resource(EmbeddedResource(uri: "file:///a.bin", contents: .blob(Data([3])))), .resource),
       (.attachment(URL(filePath: "/tmp/a.pdf")), .attachment),
-      (.structured(schemaName: "Chart", payload: .null), .structured),
       (.unknown(kind: "video", raw: .null), .unknown),
     ]
 

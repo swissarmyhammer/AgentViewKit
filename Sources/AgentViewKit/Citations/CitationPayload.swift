@@ -3,9 +3,9 @@ import Foundation
 /// The sources of a response and the places in the response that cite them
 /// (plan.md §3.3, §9 C).
 ///
-/// The schema name is `AgentViewKit.CitationPayload`. `SourcesView` shows the
-/// sources. `InlineCitation` shows each marker.
-public nonisolated struct CitationPayload: StructuredPayload, Hashable {
+/// ``SourcesView`` shows the sources. ``ResponseView`` shows an
+/// ``InlineCitation`` pill at each marker.
+public nonisolated struct CitationPayload: Codable, Sendable, Hashable {
   /// The cited sources, in display order.
   public var sources: [CitationSource]
 

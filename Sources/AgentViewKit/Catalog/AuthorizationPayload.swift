@@ -3,10 +3,9 @@ import Foundation
 /// A request to connect to an MCP server that needs authorization
 /// (plan.md §3.3, §12).
 ///
-/// The schema name is `AgentViewKit.AuthorizationPayload`. A source turns the
-/// payload into an `AuthorizationRequest` and puts ``elicitationId`` in its
-/// `meta`.
-public nonisolated struct AuthorizationPayload: StructuredPayload, Hashable, Identifiable {
+/// A source turns the payload into an `AuthorizationRequest` and puts
+/// ``elicitationId`` in its `meta`.
+public nonisolated struct AuthorizationPayload: Codable, Sendable, Hashable, Identifiable {
   /// The identifier of the request.
   public var id: String
 

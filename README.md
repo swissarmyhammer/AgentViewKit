@@ -153,8 +153,7 @@ struct HostThread: View {
       // One typed modifier for each item kind. The closure gets the record.
       .toolCallView { call in Text(call.title) }
       .reasoningView { _ in EmptyView() }
-      // The open-ended kinds take a key: a schema name, a block kind, or a type.
-      .structuredItem("MyApp.Chart") { content in Text(content.schemaName) }
+      // The open-ended kinds take a key: a block kind or a type.
       .contentBlockView(for: .resourceLink) { block in
         if case .resourceLink(let link) = block.content { Text(link.name) }
       }
@@ -177,7 +176,6 @@ record. An inner modifier wins over an outer modifier for the same kind.
 | `.assistantMessageView { message in }` | `Message` |
 | `.reasoningView { reasoning in }` | `Reasoning` |
 | `.toolCallView { call in }` | `ToolCallRecord` |
-| `.structuredItemView { record in }` | `StructuredRecord`, for each structured item |
 | `.errorView { error in }` | `ThreadError` |
 | `.unknownItemView { record in }` | `UnknownRecord` |
 
@@ -185,15 +183,13 @@ The open-ended kinds take a key:
 
 | Modifier | The closure gets |
 |---|---|
-| `.structuredItem("Name") { content in }` | `StructuredItemContent`, for one schema name, as a thread item and as a block in a message |
 | `.contentBlockView(for: .kind) { block in }` | `ContentBlock`, for one block kind |
 | `.attachmentView(for: .pdf) { url in }` | `URL`, for one uniform type and its subtypes |
 | `.messageFooter { message in }` | `Message`, for the footer slot of each message |
 | `.diffRenderer { patch, file in }` | the patch and the file, in place of the EditorKit diff view |
 
-A schema name with no registration shows a collapsible pretty-printed
-`JSONValue`. A uniform type with no registration falls to the nearest
-supertype, and then to the file chip. Nothing is dropped.
+A uniform type with no registration falls to the nearest supertype, and then
+to the file chip. Nothing is dropped.
 
 ## Components
 

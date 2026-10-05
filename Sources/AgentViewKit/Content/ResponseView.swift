@@ -22,9 +22,8 @@ import Textual
 /// The view shows only the text blocks that are for the user. The other
 /// content blocks have their own views.
 ///
-/// When the message has a ``CitationPayload`` block, each settled paragraph
-/// shows an ``InlineCitation`` pill at each ``CitationMarker`` of the
-/// paragraph. The paragraph index of a marker counts the paragraphs of
+/// When the view has a ``CitationPayload``, each settled paragraph shows an
+/// ``InlineCitation`` pill at each ``CitationMarker`` of the paragraph. The paragraph index of a marker counts the paragraphs of
 /// ``markdown(of:)``. The streaming tail shows no pill, because its text is
 /// not final.
 ///
@@ -54,6 +53,10 @@ public struct ResponseView: View {
   /// The stream of the message, or `nil` when the message does not stream.
   let streaming: StreamingMessage?
 
+  /// The sources of the message and the places that cite them, or `nil`
+  /// when the message has no citations.
+  let citations: CitationPayload?
+
   @Environment(\.codeBlockModelCache) private var environmentCache
   @Environment(\.agentTheme) private var theme
 
@@ -66,9 +69,14 @@ public struct ResponseView: View {
   ///   - message: The message to show.
   ///   - streaming: The stream of the message, or `nil` when the message
   ///     does not stream. Give `thread.streaming[message.id]`.
-  public init(message: Message, streaming: StreamingMessage?) {
+  ///   - citations: The sources of the message and the places that cite
+  ///     them, or `nil` when the message has no citations. Show the sources
+  ///     in a ``SourcesView``, and put the two views in one
+  ///     ``SwiftUI/View/citationScope()``.
+  public init(message: Message, streaming: StreamingMessage?, citations: CitationPayload? = nil) {
     self.message = message
     self.streaming = streaming
+    self.citations = citations
   }
 
   /// The accessibility identifier of the settled paragraph at `index`.
@@ -125,13 +133,13 @@ public struct ResponseView: View {
   }
 
   public var body: some View {
-    let citations = CitationPayload.first(in: message.blocks)?.placementsByParagraph() ?? [:]
+    let placements = citations?.placementsByParagraph() ?? [:]
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       if let streaming {
-        SettledParagraphs(messageID: message.id, streaming: streaming, citations: citations)
+        SettledParagraphs(messageID: message.id, streaming: streaming, citations: placements)
         StreamingTail(messageID: message.id, streaming: streaming)
       } else {
-        MessageParagraphs(message: message, citations: citations)
+        MessageParagraphs(message: message, citations: placements)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)

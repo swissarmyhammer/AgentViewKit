@@ -12,8 +12,6 @@ import SwiftUI
 /// ``SwiftUI/View/citationScope()`` selects a source, the footer opens, the
 /// row of the source shows the highlight, and the row scrolls into view.
 ///
-/// The ``StructuredItemRegistry/standard`` registry shows each structured
-/// value with the schema name `AgentViewKit.CitationPayload` in this view.
 /// The footer is an accessibility container with the identifier `sources`.
 /// Each row is a container with the identifier `sources-row-<index>`. The
 /// number of a row is an element with the label "Source <index>" and the
@@ -190,40 +188,5 @@ private struct ScrollIntoView: NSViewRepresentable {
   final class Coordinator {
     /// The last request that the view did, or `nil`.
     var lastRequest: Int?
-  }
-}
-
-// MARK: - Registry
-
-extension KeyedViewRegistry where Key == String, Value == StructuredItemContent {
-  /// The default structured item registry of the kit (plan.md §9 C).
-  ///
-  /// The registry shows each `AgentViewKit.CitationPayload` value in a
-  /// ``SourcesView``. A value that does not decode shows in a
-  /// ``StructuredItemView``. The environment starts with this registry, and a
-  /// ``SwiftUI/View/structuredItem(_:_:)`` registration for the same name
-  /// replaces it.
-  public static var standard: StructuredItemRegistry {
-    var registry = StructuredItemRegistry()
-    registry.register(CitationPayload.schemaName) { content in
-      AnyView(CitationContentView(content: content))
-    }
-    return registry
-  }
-}
-
-/// The view of a structured citation value: a ``SourcesView``, or a
-/// ``StructuredItemView`` when the value does not decode.
-private struct CitationContentView: View {
-  /// The structured value.
-  let content: StructuredItemContent
-
-  var body: some View {
-    if let payload = try? CitationPayload(content: content.payload) {
-      SourcesView(payload: payload)
-    } else {
-      StructuredItemView(
-        content: content, id: content.schemaName + ":" + content.payload.jsonString)
-    }
   }
 }

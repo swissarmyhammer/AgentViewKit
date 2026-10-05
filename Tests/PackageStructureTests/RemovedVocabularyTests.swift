@@ -39,6 +39,11 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "CompactionMarker", "CompactionMarkerView", "compactionView", "compactionViewOverride",
     // The system prompt item.
     "SystemPrompt", "SystemPromptView", "systemPromptView", "systemPromptViewOverride",
+    // The structured item and the schemaName catalog.
+    "StructuredRecord", "StructuredCatalog", "StructuredPayload", "StructuredItemView",
+    "StructuredItemContent", "StructuredItemRegistry", "RegisteredStructuredView",
+    "structuredItem", "structuredItemRegistry", "structuredItemView", "structuredItemViewOverride",
+    "ApprovalPayload", "PlanPayload", "UsagePayload",
   ]
 
   /// Finds each use of a removed symbol on one line of a Swift file.

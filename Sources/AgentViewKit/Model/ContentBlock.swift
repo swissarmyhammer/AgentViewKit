@@ -38,7 +38,6 @@ public nonisolated struct ContentBlock: Sendable, Hashable {
     case .resourceLink: .resourceLink
     case .resource: .resource
     case .attachment: .attachment
-    case .structured: .structured
     case .unknown: .unknown
     }
   }
@@ -76,13 +75,6 @@ public nonisolated struct ContentBlock: Sendable, Hashable {
     /// A local file.
     case attachment(URL)
 
-    /// A structured value, keyed by its schema name.
-    ///
-    /// - Parameters:
-    ///   - schemaName: The schema name of the value.
-    ///   - payload: The value.
-    case structured(schemaName: String, payload: JSONValue)
-
     /// Content that the kit does not know.
     ///
     /// - Parameters:
@@ -112,9 +104,6 @@ public nonisolated struct ContentBlock: Sendable, Hashable {
 
     /// A ``Content/attachment(_:)`` block.
     case attachment
-
-    /// A ``Content/structured(schemaName:payload:)`` block.
-    case structured
 
     /// A ``Content/unknown(kind:raw:)`` block.
     case unknown

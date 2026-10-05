@@ -2,10 +2,9 @@ import SwiftUI
 
 /// A collapsible block with a title and a monospaced JSON text (plan.md §9 A2).
 ///
-/// ``StructuredItemView`` and ``UnknownItemView`` use this view. The expanded
-/// state is in the ``ExpandedBlocksStore`` of the environment, keyed by the
-/// record id. When the environment has no store, the view uses a store of its
-/// own.
+/// ``UnknownItemView`` uses this view. The expanded state is in the
+/// ``ExpandedBlocksStore`` of the environment, keyed by the record id. When
+/// the environment has no store, the view uses a store of its own.
 struct JSONDisclosure: View {
   /// The identifier of the record. The store keys the state by this value.
   let id: String

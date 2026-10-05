@@ -12,31 +12,7 @@ nonisolated struct CitationPlacement: Hashable, Sendable {
   let number: Int
 }
 
-nonisolated extension ContentBlock {
-  /// Whether the block is a structured block with the citation schema name.
-  var isCitation: Bool {
-    if case .structured(let schemaName, _) = content {
-      return schemaName == CitationPayload.schemaName
-    }
-    return false
-  }
-}
-
 nonisolated extension CitationPayload {
-  /// The payload of the first citation block that decodes.
-  ///
-  /// - Parameter blocks: The blocks of a message.
-  /// - Returns: The payload, or `nil` when no citation block decodes.
-  static func first(in blocks: [ContentBlock]) -> CitationPayload? {
-    blocks.lazy
-      .filter { block in block.isCitation && block.isVisible(to: .user) }
-      .compactMap { block -> CitationPayload? in
-        guard case .structured(_, let payload) = block.content else { return nil }
-        return try? CitationPayload(content: payload)
-      }
-      .first
-  }
-
   /// The pills of each paragraph, keyed by the paragraph index.
   ///
   /// The number of a pill is the position of its source in ``sources`` plus

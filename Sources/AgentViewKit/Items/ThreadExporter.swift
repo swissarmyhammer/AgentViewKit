@@ -14,8 +14,6 @@ import Foundation
 /// - A reasoning item: the text as a quoted block.
 /// - A tool call: a fenced JSON summary with the title, the kind, the status,
 ///   the locations, the input, and the output.
-/// - A structured item: a fenced JSON value with the schema name and the
-///   payload.
 ///
 /// The document omits the errors and the unknown items.
 public enum ThreadExporter {
@@ -38,9 +36,8 @@ public enum ThreadExporter {
 
   /// The Markdown of one message.
   ///
-  /// The text is each text block that is for the user, and each structured
-  /// block as a fenced JSON value, in message order. A blank line separates
-  /// two blocks. The text omits the other blocks.
+  /// The text is each text block that is for the user, in message order. A
+  /// blank line separates two blocks. The text omits the other blocks.
   ///
   /// - Parameter message: The message.
   /// - Returns: The Markdown, or an empty string when the message has no
@@ -50,8 +47,6 @@ public enum ThreadExporter {
       switch block.content {
       case .text(let text):
         text
-      case .structured(let schemaName, let payload):
-        fenced(structuredValue(schemaName: schemaName, payload: payload).prettyPrinted)
       case .image, .audio, .resourceLink, .resource, .attachment, .unknown:
         nil
       }
@@ -87,9 +82,6 @@ public enum ThreadExporter {
       quoted(reasoning.text)
     case .toolCall(let call):
       fenced(toolCallSummary(call).prettyPrinted)
-    case .structured(let record):
-      fenced(
-        structuredValue(schemaName: record.schemaName, payload: record.payload).prettyPrinted)
     case .error, .unknown:
       nil
     }
@@ -181,15 +173,5 @@ public enum ThreadExporter {
   private static func locationText(_ location: ToolCallLocation) -> String {
     guard let line = location.line else { return location.path }
     return "\(location.path):\(line)"
-  }
-
-  /// The JSON value of a structured segment.
-  ///
-  /// - Parameters:
-  ///   - schemaName: The schema name of the segment.
-  ///   - payload: The content of the segment.
-  /// - Returns: An object with the keys `schemaName` and `payload`.
-  static func structuredValue(schemaName: String, payload: JSONValue) -> JSONValue {
-    .object(["schemaName": .string(schemaName), "payload": payload])
   }
 }

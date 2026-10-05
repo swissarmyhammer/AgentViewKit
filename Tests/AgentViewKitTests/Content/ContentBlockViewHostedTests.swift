@@ -83,23 +83,6 @@ nonisolated final class OpenedURLRecorder: Sendable {
     #expect(labels.contains { $0.contains(Self.blockText) })
   }
 
-  @Test func aStructuredBlockWithARegisteredSchemaNameShowsTheRegistration() {
-    let block = ContentBlock(
-      content: .structured(schemaName: "Demo.Chart", payload: .object(["title": .string("Sales")])))
-    let harness = HostedViewHarness(
-      ContentBlockView(block: block, id: Self.blockID)
-        .structuredItem("Demo.Chart") { content in
-          Text("Chart \(content.payload["title"]?.stringValue ?? "")")
-            .accessibilityIdentifier(Self.customLinkIdentifier)
-        },
-      size: Self.hostSize)
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: Self.customLinkIdentifier)?.label == "Chart Sales")
-    #expect(harness.element(identifier: StructuredItemView.identifier(for: "Demo.Chart")) == nil)
-  }
-
   @Test func anUnknownBlockShowsItsKindInTheRawView() {
     let block = ContentBlock(content: .unknown(kind: "future_block", raw: .object([:])))
     let harness = HostedViewHarness(
@@ -294,8 +277,6 @@ nonisolated final class OpenedURLRecorder: Sendable {
     case .attachment:
       ContentBlock(
         content: .attachment(try directory.file(named: "blob.bin", contents: Data(blockText.utf8))))
-    case .structured:
-      ContentBlock(content: .structured(schemaName: "Demo.Chart", payload: .object(["title": .string("Sales")])))
     case .unknown:
       ContentBlock(content: .unknown(kind: "future_block", raw: .string(blockText)))
     }

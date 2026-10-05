@@ -2,9 +2,9 @@ import Foundation
 
 /// A file or document that the agent made (plan.md §3.3).
 ///
-/// The schema name is `AgentViewKit.ArtifactPayload`. The payload has a
-/// ``url``, an ``inlineText``, or both.
-public nonisolated struct ArtifactPayload: StructuredPayload, Hashable, Identifiable {
+/// The payload has a ``url``, an ``inlineText``, or both. ``ArtifactView``
+/// shows it.
+public nonisolated struct ArtifactPayload: Codable, Sendable, Hashable, Identifiable {
   /// The identifier of the artifact.
   public var id: String
 

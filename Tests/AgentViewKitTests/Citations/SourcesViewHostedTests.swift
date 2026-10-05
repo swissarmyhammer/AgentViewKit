@@ -32,13 +32,6 @@ private struct OpenURLButton: View {
   /// The text of the cited message: two paragraphs.
   static let text = "First claim.\n\nSecond claim."
 
-  /// The schema name of a payload that has the citation shape but no
-  /// registration.
-  static let otherSchemaName = "Demo.Citation"
-
-  /// The accessibility identifier of a host view.
-  static let hostViewIdentifier = "host-sources"
-
   /// The height of the tall spacer in the scroll test, in points.
   static let spacerHeight: CGFloat = 3_000
 
@@ -60,33 +53,27 @@ private struct OpenURLButton: View {
 
   // MARK: - Helpers
 
-  /// Makes a message with the text and a structured block of the payload.
+  /// Makes a message with one text block of the text.
   ///
-  /// - Parameters:
-  ///   - id: The identifier of the message.
-  ///   - schemaName: The schema name of the structured block.
-  ///   - citationFirst: Whether the structured block comes before the text.
+  /// - Parameter id: The identifier of the message.
   /// - Returns: The message.
-  /// - Throws: The error of the payload encode.
-  static func citedMessage(
-    id: String,
-    schemaName: String = CitationPayload.schemaName,
-    citationFirst: Bool = false
-  ) throws -> Message {
-    let citation = ContentBlock(
-      content: .structured(schemaName: schemaName, payload: try payload.jsonValue()))
-    let text = ContentBlock(text: text)
-    return Message(id: id, blocks: citationFirst ? [citation, text] : [text, citation])
+  static func message(id: String) -> Message {
+    Message(id: id, blocks: [ContentBlock(text: text)])
   }
 
-  /// Makes a thread with one assistant message.
+  /// Makes a response with the citations of the payload, and the footer of
+  /// the payload below it, in one citation scope.
   ///
-  /// - Parameter message: The message.
-  /// - Returns: The thread.
-  static func thread(with message: Message) -> AgentThread {
-    let thread = AgentThread()
-    thread.apply(.insert(.assistantMessage(message), after: nil))
-    return thread
+  /// - Parameters:
+  ///   - message: The message of the response.
+  ///   - streaming: The stream of the message, or `nil`.
+  /// - Returns: The view.
+  static func citedResponse(message: Message, streaming: StreamingMessage? = nil) -> some View {
+    VStack {
+      ResponseView(message: message, streaming: streaming, citations: payload)
+      SourcesView(payload: payload)
+    }
+    .citationScope()
   }
 
   /// Tells whether a row shows the highlight.
@@ -102,15 +89,10 @@ private struct OpenURLButton: View {
 
   // MARK: - Footer
 
-  @Test func aMessageWithTwoSourcesRendersAFooterWithTwoRows() async throws {
-    let message = try Self.citedMessage(id: "cited-rows")
-    let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
-      size: Self.hostSize)
+  @Test func aFooterWithTwoSourcesHasTwoRows() {
+    let harness = HostedViewHarness(SourcesView(payload: Self.payload), size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: SourcesView.rowIdentifier(index: 2)) != nil
-    }
+    harness.pump()
 
     #expect(harness.element(identifier: SourcesView.identifier) != nil)
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 1)) != nil)
@@ -121,22 +103,6 @@ private struct OpenURLButton: View {
     #expect(labels.contains("Alpha Guide"))
     #expect(labels.contains("Beta Notes"))
     #expect(labels.contains { $0.contains("About alpha.") })
-  }
-
-  @Test func theFooterIsBelowTheTextWhenTheBlockComesFirst() async throws {
-    let message = try Self.citedMessage(id: "cited-order", citationFirst: true)
-    let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
-      size: Self.hostSize)
-    defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: SourcesView.identifier) != nil
-    }
-
-    let identifiers = harness.accessibilityElements().compactMap(\.identifier)
-    let paragraph = try #require(identifiers.firstIndex(of: ResponseView.paragraphIdentifier(index: 1)))
-    let sources = try #require(identifiers.firstIndex(of: SourcesView.identifier))
-    #expect(paragraph < sources)
   }
 
   @Test func aPressOnARowOpensItsSource() throws {
@@ -165,11 +131,9 @@ private struct OpenURLButton: View {
 
   // MARK: - Pills
 
-  @Test func eachCitedParagraphShowsItsPill() async throws {
-    let message = try Self.citedMessage(id: "cited-pills")
+  @Test func eachCitedParagraphShowsItsPill() async {
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
-      size: Self.hostSize)
+      Self.citedResponse(message: Self.message(id: "cited-pills")), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -179,11 +143,21 @@ private struct OpenURLButton: View {
     #expect(harness.element(identifier: InlineCitation.identifier(index: 2))?.label == "Source 2")
   }
 
-  @Test func aTapOnPillTwoHighlightsRowTwo() async throws {
-    let message = try Self.citedMessage(id: "cited-tap")
+  @Test func aResponseWithNoCitationsShowsNoPill() async {
     let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
-      size: Self.hostSize)
+      ResponseView(message: Self.message(id: "uncited"), streaming: nil), size: Self.hostSize)
+    defer { harness.close() }
+    await harness.pump(until: Self.waitSeconds) {
+      harness.element(identifier: ResponseView.paragraphIdentifier(index: 1)) != nil
+    }
+
+    #expect(harness.element(identifier: ResponseView.paragraphIdentifier(index: 1)) != nil)
+    #expect(harness.element(identifier: InlineCitation.identifier(index: 1)) == nil)
+  }
+
+  @Test func aTapOnPillTwoHighlightsRowTwo() async throws {
+    let harness = HostedViewHarness(
+      Self.citedResponse(message: Self.message(id: "cited-tap")), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -198,11 +172,13 @@ private struct OpenURLButton: View {
   }
 
   @Test func aStreamingMessageShowsThePillsOfItsSettledParagraphs() async throws {
-    let message = try Self.citedMessage(id: "cited-stream")
-    let thread = Self.thread(with: message)
+    let message = Self.message(id: "cited-stream")
+    let thread = AgentThread()
+    thread.apply(.insert(.assistantMessage(message), after: nil))
     thread.apply(.appendStreaming(id: message.id, text: Self.text + "\n\nMore"))
+    let streaming = try #require(thread.streaming[message.id])
     let harness = HostedViewHarness(
-      AgentThreadView(thread: thread, actions: NoopThreadActions()), size: Self.hostSize)
+      Self.citedResponse(message: message, streaming: streaming), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -305,59 +281,6 @@ private struct OpenURLButton: View {
     try harness.press(identifier: OpenURLButton.identifier)
 
     #expect(recorder.urls == [url])
-  }
-
-  // MARK: - Registry
-
-  @Test func theStandardRegistryHasOnlyTheCitationName() {
-    let registry = StructuredItemRegistry.standard
-
-    #expect(registry.resolve(schemaName: CitationPayload.schemaName) != nil)
-    #expect(registry.resolve(schemaName: Self.otherSchemaName) == nil)
-    #expect(Array(registry.keys) == [CitationPayload.schemaName])
-  }
-
-  @Test func anUnregisteredCitationLikePayloadFallsBackToStructuredItemView() async throws {
-    let message = try Self.citedMessage(id: "cited-other", schemaName: Self.otherSchemaName)
-    let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions()),
-      size: Self.hostSize)
-    defer { harness.close() }
-    let identifier = StructuredItemView.identifier(for: Self.otherSchemaName)
-    await harness.pump(until: Self.waitSeconds) { harness.element(identifier: identifier) != nil }
-
-    #expect(harness.element(identifier: identifier) != nil)
-    #expect(harness.element(identifier: SourcesView.identifier) == nil)
-    #expect(harness.element(identifier: InlineCitation.identifier(index: 1)) == nil)
-  }
-
-  @Test func aCitationPayloadThatDoesNotDecodeFallsBackToStructuredItemView() {
-    let block = ContentBlock(
-      content: .structured(schemaName: CitationPayload.schemaName, payload: .string("broken")))
-    let harness = HostedViewHarness(
-      ContentBlockView(block: block, id: "broken-0"), size: Self.hostSize)
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: StructuredItemView.identifier(for: CitationPayload.schemaName)) != nil)
-    #expect(harness.element(identifier: SourcesView.identifier) == nil)
-  }
-
-  @Test func aHostRegistrationReplacesTheSourcesView() async throws {
-    let message = try Self.citedMessage(id: "cited-host")
-    let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: message), actions: NoopThreadActions())
-        .structuredItem(CitationPayload.schemaName) { _ in
-          Text("Host sources").accessibilityIdentifier(Self.hostViewIdentifier)
-        },
-      size: Self.hostSize)
-    defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: Self.hostViewIdentifier) != nil
-    }
-
-    #expect(harness.element(identifier: Self.hostViewIdentifier) != nil)
-    #expect(harness.element(identifier: SourcesView.identifier) == nil)
   }
 
   // MARK: - Scroll

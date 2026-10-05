@@ -27,8 +27,7 @@ struct HostThread: View {
       // One typed modifier for each item kind. The closure gets the record.
       .toolCallView { call in Text(call.title) }
       .reasoningView { _ in EmptyView() }
-      // The open-ended kinds take a key: a schema name, a block kind, or a type.
-      .structuredItem("MyApp.Chart") { content in Text(content.schemaName) }
+      // The open-ended kinds take a key: a block kind or a type.
       .contentBlockView(for: .resourceLink) { block in
         if case .resourceLink(let link) = block.content { Text(link.name) }
       }

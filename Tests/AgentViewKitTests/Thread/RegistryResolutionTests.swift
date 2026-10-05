@@ -11,7 +11,6 @@ enum OverrideKind: String, CaseIterable, Sendable {
   case assistantMessage
   case reasoning
   case toolCall
-  case structuredItem
   case error
   case unknownItem
 }
@@ -28,7 +27,6 @@ extension View {
     case .assistantMessage: assistantMessageView { _ in EmptyView() }
     case .reasoning: reasoningView { _ in EmptyView() }
     case .toolCall: toolCallView { _ in EmptyView() }
-    case .structuredItem: structuredItemView { _ in EmptyView() }
     case .error: errorView { _ in EmptyView() }
     case .unknownItem: unknownItemView { _ in EmptyView() }
     }
@@ -44,7 +42,6 @@ struct OverrideKeysReader: View {
   @Environment(\.assistantMessageViewOverride) private var assistantMessage
   @Environment(\.reasoningViewOverride) private var reasoning
   @Environment(\.toolCallViewOverride) private var toolCall
-  @Environment(\.structuredItemViewOverride) private var structuredItem
   @Environment(\.errorViewOverride) private var error
   @Environment(\.unknownItemViewOverride) private var unknownItem
 
@@ -55,7 +52,6 @@ struct OverrideKeysReader: View {
       (.assistantMessage, assistantMessage != nil),
       (.reasoning, reasoning != nil),
       (.toolCall, toolCall != nil),
-      (.structuredItem, structuredItem != nil),
       (.error, error != nil),
       (.unknownItem, unknownItem != nil),
     ]
@@ -65,22 +61,6 @@ struct OverrideKeysReader: View {
   var body: some View {
     Text("keys:" + setKinds.joined(separator: ","))
       .accessibilityIdentifier(Self.identifier)
-  }
-}
-
-/// Shows the view that the structured item registry resolves for a name.
-struct StructuredRegistryReader: View {
-  /// The schema name to resolve.
-  let schemaName: String
-
-  @Environment(\.structuredItemRegistry) private var registry
-
-  var body: some View {
-    if let renderer = registry.resolve(schemaName: schemaName) {
-      renderer(StructuredItemContent(schemaName: schemaName, payload: .null))
-    } else {
-      Text("none").accessibilityIdentifier("none")
-    }
   }
 }
 
@@ -133,65 +113,23 @@ func marker(_ identifier: String) -> some View {
     return harness
   }
 
-  // MARK: - Structured item registry
+  // MARK: - Content block registry
 
-  @Test func structuredRegistryLastWriterWins() {
-    var registry = StructuredItemRegistry()
+  @Test func contentBlockRegistryLastWriterWins() {
+    var registry = ContentBlockRegistry()
     var calls: [String] = []
-    registry.register("x") { _ in
+    registry.register(.text) { _ in
       calls.append("first")
       return AnyView(EmptyView())
     }
-    registry.register("x") { _ in
+    registry.register(.text) { _ in
       calls.append("second")
       return AnyView(EmptyView())
     }
-    let renderer = registry.resolve(schemaName: "x")
-    _ = renderer?(StructuredItemContent(schemaName: "x", payload: .null))
+    let renderer = registry.resolve(kind: .text)
+    _ = renderer?(ContentBlock(text: "t"))
     #expect(calls == ["second"])
   }
-
-  @Test func structuredRegistryUnknownNameIsNil() {
-    var registry = StructuredItemRegistry()
-    registry.register("x") { _ in AnyView(EmptyView()) }
-    #expect(registry.resolve(schemaName: "y") == nil)
-  }
-
-  @Test func innerStructuredItemWinsOverOuter() {
-    let harness = Self.mount(
-      StructuredRegistryReader(schemaName: "x")
-        .structuredItem("x") { _ in marker("inner") }
-        .structuredItem("x") { _ in marker("outer") }
-    )
-    defer { harness.close() }
-    #expect(harness.element(identifier: "inner") != nil)
-    #expect(harness.element(identifier: "outer") == nil)
-  }
-
-  @Test func outerStructuredItemStaysForOtherNames() {
-    let harness = Self.mount(
-      StructuredRegistryReader(schemaName: "y")
-        .structuredItem("x") { _ in marker("inner") }
-        .structuredItem("y") { _ in marker("outer") }
-    )
-    defer { harness.close() }
-    #expect(harness.element(identifier: "outer") != nil)
-    #expect(harness.element(identifier: "inner") == nil)
-  }
-
-  @Test func structuredContentComesFromRecordAndBlock() {
-    let record = StructuredRecord(id: "r", schemaName: "x", payload: .bool(true))
-    #expect(
-      StructuredItemContent(record: record)
-        == StructuredItemContent(schemaName: "x", payload: .bool(true)))
-    let block = ContentBlock(content: .structured(schemaName: "x", payload: .bool(true)))
-    #expect(
-      StructuredItemContent(block: block)
-        == StructuredItemContent(schemaName: "x", payload: .bool(true)))
-    #expect(StructuredItemContent(block: ContentBlock(text: "t")) == nil)
-  }
-
-  // MARK: - Content block registry
 
   @Test func contentBlockViewResolvesByKind() {
     let link = ContentBlock(content: .resourceLink(ResourceLink(name: "n", uri: "u")))

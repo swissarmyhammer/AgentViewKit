@@ -14,8 +14,6 @@ import SwiftUI
 /// - resource: the text through Textual, or an ``AttachmentChip`` for binary
 ///   contents.
 /// - attachment: an ``AttachmentView``.
-/// - structured: the registration of the schema name, or a
-///   ``StructuredItemView``. See ``SwiftUI/View/structuredItem(_:_:)``.
 /// - unknown: an ``UnknownItemView``.
 ///
 /// Each default view is an accessibility container with the identifier
@@ -39,8 +37,7 @@ public struct ContentBlockView: View {
   ///   - block: The block to show.
   ///   - id: The id of the block view, unique in the thread, such as
   ///     `<message id>-<block index>`. The text view keys its code blocks by
-  ///     this id, and the structured and unknown views key their expanded
-  ///     state by it.
+  ///     this id, and the unknown view keys its expanded state by it.
   public init(block: ContentBlock, id: String) {
     self.block = block
     self.id = id
@@ -80,9 +77,6 @@ public struct ContentBlockView: View {
       ResourceBlockView(resource: resource)
     case .attachment(let url):
       AttachmentView(Attachment(url: url))
-    case .structured(let schemaName, let payload):
-      RegisteredStructuredView(
-        content: StructuredItemContent(schemaName: schemaName, payload: payload), id: id)
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: id)
     }

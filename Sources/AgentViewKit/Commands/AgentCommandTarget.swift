@@ -331,7 +331,7 @@ final class AgentCommandTarget {
         section(role: String(localized: "User"), message: message)
       case .assistantMessage(let message):
         section(role: String(localized: "Assistant"), message: message)
-      case .reasoning, .toolCall, .structured, .error, .unknown:
+      case .reasoning, .toolCall, .error, .unknown:
         nil
       }
     }

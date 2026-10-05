@@ -76,20 +76,6 @@ public nonisolated enum ItemPatch: Sendable, Hashable {
   /// Adds one part to the end of the output of a ``ToolCallRecord``.
   case toolCallChunk(ToolContent)
 
-  /// Changes a ``StructuredRecord``.
-  ///
-  /// ``PatchField/cleared`` sets `payload` to ``JSONValue/null``.
-  ///
-  /// - Parameters:
-  ///   - schemaName: The schema name of the segment.
-  ///   - payload: The content of the segment.
-  ///   - meta: The `_meta` value of the source.
-  case structured(
-    schemaName: PatchField<String> = .unchanged,
-    payload: PatchField<JSONValue> = .unchanged,
-    meta: PatchField<JSONValue> = .unchanged
-  )
-
   /// Changes a ``ThreadError``.
   ///
   /// ``PatchField/cleared`` sets `kind` to
@@ -191,12 +177,6 @@ extension ItemPatch {
       }
     case .toolCallChunk(let content):
       update(item.record as? ToolCallRecord) { $0.content.append(content) }
-    case .structured(let schemaName, let payload, let meta):
-      update(item.record as? StructuredRecord) { record in
-        record.schemaName = schemaName.applied(to: record.schemaName)
-        record.payload = payload.applied(to: record.payload, clearedValue: ClearedValue.json)
-        record.meta = meta.applied(to: record.meta)
-      }
     case .error(let kind, let meta):
       update(item.record as? ThreadError) { record in
         record.kind = kind.applied(to: record.kind, clearedValue: ClearedValue.errorKind)
@@ -222,8 +202,6 @@ extension ItemPatch {
       .reasoning(Reasoning(id: id, segments: []))
     case .toolCall, .toolCallChunk:
       .toolCall(ToolCallRecord(id: id, title: ""))
-    case .structured:
-      .structured(StructuredRecord(id: id, schemaName: "", payload: ClearedValue.json))
     case .error:
       .error(ThreadError(id: id, kind: ClearedValue.errorKind))
     case .unknown:

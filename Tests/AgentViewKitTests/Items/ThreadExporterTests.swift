@@ -13,16 +13,6 @@ import Testing
   static let hiddenBlock = ContentBlock(
     content: .text("Hidden."), annotations: Annotations(audience: [.assistant]))
 
-  /// A structured block with one string property.
-  static let chartBlock = ContentBlock(
-    content: .structured(schemaName: chartSchema, payload: chartPayload))
-
-  /// The schema name of the chart fixtures.
-  static let chartSchema = "AgentViewKit.Chart"
-
-  /// The payload of the chart fixtures.
-  static let chartPayload = JSONValue.object(["title": .string("Sales")])
-
   /// Makes a thread with one item of each kind that the export shows, and
   /// items that the export omits.
   ///
@@ -43,8 +33,6 @@ import Testing
         Reasoning(
           id: "reasoning-1", segments: ["I must read the file first.\n\n", "Then I answer."])),
       .toolCall(ThreadFixtures.toolCall(id: "call-1", status: .completed)),
-      .structured(
-        StructuredRecord(id: "chart-1", schemaName: chartSchema, payload: chartPayload)),
       .unknown(UnknownRecord(id: "unknown-1", kind: "future_item", raw: .object([:]))),
       .assistantMessage(assistant),
     ]
@@ -64,23 +52,11 @@ import Testing
     #expect(ThreadExporter.markdown(for: AgentThread()).isEmpty)
   }
 
-  @Test func theMessageMarkdownHasTheTextAndTheStructuredBlocks() {
+  @Test func theMessageMarkdownHasTheTextBlocksForTheUser() {
     let message = Message(
-      id: "message", blocks: [ContentBlock(text: "Shown."), Self.hiddenBlock, Self.chartBlock])
+      id: "message", blocks: [ContentBlock(text: "Shown."), Self.hiddenBlock, ContentBlock(text: "Also.")])
 
-    let expected = """
-      Shown.
-
-      ```json
-      {
-        "payload" : {
-          "title" : "Sales"
-        },
-        "schemaName" : "AgentViewKit.Chart"
-      }
-      ```
-      """
-    #expect(ThreadExporter.markdown(for: message) == expected)
+    #expect(ThreadExporter.markdown(for: message) == "Shown.\n\nAlso.")
   }
 
   @Test func aMessageWithNoShownBlockHasNoSection() {

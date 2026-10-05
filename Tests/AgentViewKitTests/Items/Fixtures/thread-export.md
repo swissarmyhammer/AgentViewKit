@@ -20,15 +20,6 @@ Read the README.
 }
 ```
 
-```json
-{
-  "payload" : {
-    "title" : "Sales"
-  },
-  "schemaName" : "AgentViewKit.Chart"
-}
-```
-
 ## Assistant
 
 The README tells how to build.

@@ -102,7 +102,7 @@ struct ThreadFixturesTests {
     case .assistantMessage: "assistant"
     case .reasoning: "reasoning"
     case .toolCall: "toolCall"
-    case .structured, .error, .unknown: "other"
+    case .error, .unknown: "other"
     }
   }
 }

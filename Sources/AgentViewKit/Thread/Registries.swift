@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// A table of view functions, keyed by a value (plan.md §3.6).
 ///
 /// A registration for a key replaces the prior registration for the same
-/// key. Thus the last writer wins. The three keyed registries of the kit use
+/// key. Thus the last writer wins. The two keyed registries of the kit use
 /// this table.
 public struct KeyedViewRegistry<Key: Hashable & Sendable, Value>: Sendable {
   /// A function that makes the view of one value.
@@ -61,66 +61,6 @@ extension View {
     transformEnvironment(registry) { registry in
       registry.register(key) { value in AnyView(content(value)) }
     }
-  }
-}
-
-// MARK: - Structured item registry
-
-/// A structured value and its schema name (plan.md §3.6).
-///
-/// A structured thread item and a structured content block give the same
-/// value. Thus one registration shows a schema name in both places.
-public nonisolated struct StructuredItemContent: Sendable, Hashable {
-  /// The schema name of the value, such as `AgentViewKit.Chart`.
-  public var schemaName: String
-
-  /// The value.
-  public var payload: JSONValue
-
-  /// Makes structured content.
-  ///
-  /// - Parameters:
-  ///   - schemaName: The schema name of the value.
-  ///   - payload: The value.
-  public init(schemaName: String, payload: JSONValue) {
-    self.schemaName = schemaName
-    self.payload = payload
-  }
-
-  /// Makes structured content from the current values of a record.
-  ///
-  /// - Parameter record: The structured thread item.
-  @MainActor
-  public init(record: StructuredRecord) {
-    self.init(schemaName: record.schemaName, payload: record.payload)
-  }
-
-  /// Makes structured content from a structured content block.
-  ///
-  /// - Parameter block: The content block.
-  /// - Returns: `nil` when the block is not
-  ///   ``ContentBlock/Content/structured(schemaName:payload:)``.
-  public init?(block: ContentBlock) {
-    guard case .structured(let schemaName, let payload) = block.content else { return nil }
-    self.init(schemaName: schemaName, payload: payload)
-  }
-}
-
-/// The views of structured values, keyed by schema name (plan.md §3.6).
-///
-/// Register a view with ``SwiftUI/View/structuredItem(_:_:)``. A name with
-/// no registration resolves to `nil`, and the caller shows the JSON view.
-/// The environment starts with ``standard``, which shows the citation
-/// payload in a ``SourcesView``.
-public typealias StructuredItemRegistry = KeyedViewRegistry<String, StructuredItemContent>
-
-extension KeyedViewRegistry where Key == String, Value == StructuredItemContent {
-  /// The view function of a schema name.
-  ///
-  /// - Parameter schemaName: The schema name to find.
-  /// - Returns: The innermost registration for `schemaName`, or `nil`.
-  public func resolve(schemaName: String) -> Renderer? {
-    renderer(for: schemaName)
   }
 }
 
@@ -181,10 +121,6 @@ extension KeyedViewRegistry where Key == UTType, Value == URL {
 // MARK: - Environment
 
 extension EnvironmentValues {
-  /// The structured item views that the thread view reads. The default is
-  /// ``StructuredItemRegistry/standard``.
-  @Entry public var structuredItemRegistry = StructuredItemRegistry.standard
-
   /// The content block views that the message views read.
   @Entry public var contentBlockRegistry = ContentBlockRegistry()
 
@@ -193,24 +129,6 @@ extension EnvironmentValues {
 }
 
 extension View {
-  /// Replaces the view of each structured value with `schemaName` in this
-  /// view.
-  ///
-  /// The registration applies to a structured thread item and to a
-  /// structured content block in a message. An inner registration for the
-  /// same name wins.
-  ///
-  /// - Parameters:
-  ///   - schemaName: The schema name, such as `AgentViewKit.Chart`.
-  ///   - content: The function that makes the view of a value.
-  /// - Returns: A view that gives the registration to its subtree.
-  public func structuredItem<Content: View>(
-    _ schemaName: String,
-    @ViewBuilder _ content: @escaping @MainActor (StructuredItemContent) -> Content
-  ) -> some View {
-    register(in: \.structuredItemRegistry, schemaName, content)
-  }
-
   /// Replaces the view of each content block of `kind` in this view.
   ///
   /// - Parameters:

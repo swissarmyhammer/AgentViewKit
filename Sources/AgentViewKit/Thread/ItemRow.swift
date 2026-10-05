@@ -109,10 +109,6 @@ public struct ItemRow: View, Equatable {
       OverridableItemView(\.toolCallViewOverride, record: record) { record in
         ToolCallView(record: record)
       }
-    case .structured(let record):
-      OverridableItemView(\.structuredItemViewOverride, record: record) { record in
-        RegisteredStructuredItemView(record: record)
-      }
     case .error(let record):
       OverridableItemView(\.errorViewOverride, record: record) { record in
         ErrorView(error: record)
@@ -182,19 +178,5 @@ private struct ThreadReasoningView: View {
       isInProgress: thread?.isLastWhileRunning(record.id) ?? false,
       streaming: thread?.streaming[record.id]
     )
-  }
-}
-
-/// Shows the structured value of a record through
-/// ``RegisteredStructuredView``.
-///
-/// This body reads the record, so that a change to the record evaluates only
-/// this view.
-private struct RegisteredStructuredItemView: View {
-  /// The record to show.
-  let record: StructuredRecord
-
-  var body: some View {
-    RegisteredStructuredView(content: StructuredItemContent(record: record), id: record.id)
   }
 }

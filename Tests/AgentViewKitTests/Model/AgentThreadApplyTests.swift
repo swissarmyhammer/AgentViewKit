@@ -264,17 +264,6 @@ import Testing
     #expect(reasoning.revision == 2)
   }
 
-  @Test func aStructuredPatchChangesThePayload() {
-    let record = StructuredRecord(id: "x1", schemaName: "AgentViewKit.Chart", payload: .null)
-    let thread = makeThread([.structured(record)])
-
-    thread.apply(.patch(id: "x1", .structured(payload: .value(.number(2)))))
-    thread.apply(.patch(id: "x1", .structured(schemaName: .cleared)))
-
-    #expect(record.payload == .number(2))
-    #expect(record.schemaName.isEmpty)
-  }
-
   @Test func anErrorPatchChangesTheKind() {
     let error = ThreadError(id: "e1", kind: .timeout)
     let thread = makeThread([.error(error)])

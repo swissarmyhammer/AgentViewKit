@@ -14,10 +14,6 @@ import Testing
       ),
       (.reasoning(Reasoning(id: "reasoning-1", segments: ["Think"])), "reasoning-1"),
       (.toolCall(ToolCallRecord(id: "tool-1", title: "Read file")), "tool-1"),
-      (
-        .structured(StructuredRecord(id: "structured-1", schemaName: "Chart", payload: .null)),
-        "structured-1"
-      ),
       (.error(ThreadError(id: "error-1", kind: .timeout)), "error-1"),
       (.unknown(UnknownRecord(id: "unknown-1", kind: "new_kind", raw: .null)), "unknown-1"),
     ]
@@ -28,7 +24,7 @@ import Testing
   @Test func theItemIdIsTheRecordIdForEachCase() {
     let items = Self.oneItemForEachCase()
 
-    #expect(items.count == 7)
+    #expect(items.count == 6)
     for (item, id) in items {
       #expect(item.id == id)
       #expect(item.record.id == id)
@@ -158,10 +154,9 @@ import Testing
 
   @Test func eachRecordTypeConformsToThreadRecord() {
     let types: [any ThreadRecord.Type] = [
-      Message.self, Reasoning.self, ToolCallRecord.self, StructuredRecord.self,
-      ThreadError.self, UnknownRecord.self,
+      Message.self, Reasoning.self, ToolCallRecord.self, ThreadError.self, UnknownRecord.self,
     ]
 
-    #expect(types.count == 6)
+    #expect(types.count == 5)
   }
 }

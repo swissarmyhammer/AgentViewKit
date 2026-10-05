@@ -16,9 +16,6 @@ public enum ThreadItem: Identifiable {
   /// A tool call and its result.
   case toolCall(ToolCallRecord)
 
-  /// A structured segment that no mapping claimed, keyed by its schema name.
-  case structured(StructuredRecord)
-
   /// An error that the user must see.
   case error(ThreadError)
 
@@ -32,7 +29,6 @@ public enum ThreadItem: Identifiable {
     case .assistantMessage(let record): record
     case .reasoning(let record): record
     case .toolCall(let record): record
-    case .structured(let record): record
     case .error(let record): record
     case .unknown(let record): record
     }
@@ -46,15 +42,14 @@ public enum ThreadItem: Identifiable {
   /// The stable name of the kind of the item.
   ///
   /// ``ThreadMinimapView`` puts this name in its tick identifiers. The
-  /// values are `user`, `assistant`, `reasoning`, `tool-call`, `structured`,
-  /// `error`, and `unknown`.
+  /// values are `user`, `assistant`, `reasoning`, `tool-call`, `error`, and
+  /// `unknown`.
   public var kindName: String {
     switch self {
     case .userMessage: "user"
     case .assistantMessage: "assistant"
     case .reasoning: "reasoning"
     case .toolCall: "tool-call"
-    case .structured: "structured"
     case .error: "error"
     case .unknown: "unknown"
     }

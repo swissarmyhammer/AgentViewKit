@@ -179,7 +179,7 @@ public struct MessageActions: View {
       switch block.content {
       case .text(let text): texts.append(text)
       case .attachment(let url): attachments.append(url)
-      case .image, .audio, .resourceLink, .resource, .structured, .unknown: break
+      case .image, .audio, .resourceLink, .resource, .unknown: break
       }
     }
     return UserInput(text: texts.joined(separator: "\n\n"), attachments: attachments)

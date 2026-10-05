@@ -31,17 +31,11 @@ extension View {
 /// The view shows a ``MessageHeader``, the content blocks, and the
 /// ``SwiftUI/EnvironmentValues/messageFooter`` slot.
 ///
-/// - When the message does not stream and has no citation block, each block
-///   shows in a ``ContentBlockView``, in message order.
-/// - When the message streams or has a ``CitationPayload`` block, the text
-///   shows in one ``ResponseView``, and each block that is not text shows in
-///   a ``ContentBlockView`` below it. The response view gets the stream of
-///   the thread, and it puts the citation pills in the text.
-///
-/// Each citation block shows below the other blocks, so the
-/// ``SourcesView`` is the footer of the content. The view applies
-/// ``SwiftUI/View/citationScope()``, so a pill of the message highlights a
-/// row of the sources of the same message.
+/// - When the message does not stream, each block shows in a
+///   ``ContentBlockView``, in message order.
+/// - When the message streams, the text shows in one ``ResponseView``, and
+///   each block that is not text shows in a ``ContentBlockView`` below it.
+///   The response view gets the stream of the thread.
 ///
 /// The text of the message is selectable, one message at a time
 /// (``MessageActions/selectionMode``).
@@ -76,20 +70,19 @@ struct MessageItemView: View {
 
   var body: some View {
     let streaming = thread?.streaming[message.id]
-    let ordered = orderedBlocks
+    let blocks = Array(message.blocks.enumerated())
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       MessageHeader(role: role, date: date)
-      if streaming != nil || ordered.contains(where: \.element.isCitation) {
+      if let streaming {
         ResponseView(message: message, streaming: streaming)
-        blockViews(ordered.filter { $0.element.kind != .text })
+        blockViews(blocks.filter { $0.element.kind != .text })
       } else {
-        blockViews(ordered)
+        blockViews(blocks)
       }
       if let footer {
         footer(message)
       }
     }
-    .citationScope()
     // Each paragraph of the message is in one linked reading group, also
     // when the paragraphs are in more than one text block (plan.md §6).
     .environment(\.accessibilityMessageGroupID, message.id)
@@ -103,13 +96,6 @@ struct MessageItemView: View {
     // hidden child keeps SwiftUI from merging this view into the row, so
     // this view keeps its identifier. See `contentContainer(identifier:)`.
     .background { Color.clear.accessibilityHidden(true) }
-  }
-
-  /// The blocks of the message with their positions. The citation blocks are
-  /// last, and each group keeps the message order.
-  private var orderedBlocks: [EnumeratedSequence<[ContentBlock]>.Element] {
-    let enumerated = Array(message.blocks.enumerated())
-    return enumerated.filter { !$0.element.isCitation } + enumerated.filter(\.element.isCitation)
   }
 
   /// One ``ContentBlockView`` for each block, keyed by its position.
