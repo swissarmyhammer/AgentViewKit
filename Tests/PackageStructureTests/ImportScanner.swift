@@ -1,5 +1,4 @@
 import Foundation
-import PackageFileSupport
 
 /// One forbidden `import` that the scanner found in a Swift source file.
 struct ImportViolation: Equatable, CustomStringConvertible {
@@ -39,32 +38,24 @@ enum ImportScanner {
   ///   - forbidden: The module names that the files must not import.
   /// - Returns: The violations, sorted by file and then by line.
   static func violations(in directory: URL, forbidden: Set<String>) throws -> [ImportViolation] {
-    let files = try PackageFiles.swiftFiles(in: directory)
-    let rootDepth = directory.standardizedFileURL.pathComponents.count
-    return try files.flatMap { file in
-      let relative = file.standardizedFileURL.pathComponents.dropFirst(rootDepth).joined(separator: "/")
-      let text = try String(contentsOf: file, encoding: .utf8)
-      return violations(inSource: text, file: relative, forbidden: forbidden)
+    try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: directory) { line in
+      violations(on: line, forbidden: forbidden)
     }
     .sorted { ($0.file, $0.line) < ($1.file, $1.line) }
   }
 
-  /// Finds each forbidden import in the text of one Swift file.
+  /// Finds the forbidden import on one line of a Swift file.
   ///
   /// - Parameters:
-  ///   - source: The text of the file.
-  ///   - file: The name to write into each violation.
+  ///   - line: The line.
   ///   - forbidden: The module names that the file must not import.
-  /// - Returns: The violations, in line order.
-  static func violations(inSource source: String, file: String, forbidden: Set<String>) -> [ImportViolation] {
-    source.split(separator: "\n", omittingEmptySubsequences: false)
-      .enumerated()
-      .compactMap { offset, line in
-        guard let module = importedModule(in: line), forbidden.contains(module) else {
-          return nil
-        }
-        return ImportViolation(file: file, line: offset + 1, module: module)
-      }
+  /// - Returns: One violation when the line imports a forbidden module.
+  ///   Otherwise, no violation.
+  static func violations(on line: SourceLine, forbidden: Set<String>) -> [ImportViolation] {
+    guard let module = importedModule(in: line.text), forbidden.contains(module) else {
+      return []
+    }
+    return [ImportViolation(file: line.file, line: line.number, module: module)]
   }
 
   /// The name of the module that one line imports.

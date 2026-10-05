@@ -30,6 +30,38 @@ comments:
     - commands: `swift test` passed (1 + 61 + 1265 + 128 tests, 0 warnings). `Scripts/check-readme.sh` passed. `Scripts/test-examples.sh AgentViewKitDemo` passed (2 UI tests). `Scripts/check-benchmarks.sh` failed on timing only: "The p90 chunk cost is 4.15 ms. The limit is 4.0 ms." Load averages during the run: 8.09 at start, 9.46 at end (uptime). This change does not touch the streaming chunk path.
     - next: /review. Open item for the documents task: the README "Components" bullet and the plan.md §9 line for `BranchNavigator`, and Docs/decisions/branches.md.
   timestamp: 2026-10-05T12:45:56.027867+00:00
+- actor: claude-code
+  id: 01m461yc96ceys4c0xfrkbeee4
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit c7e5dd8). 1 finding, 1 confirmed, 0 refuted. Tests/PackageStructureTests/RemovedVocabularyTests.swift:43 `reuse/reuse` — the `uses` function reinvents the line-scanning pattern from ImportScanner.violations(inSource:file:forbidden:).
+    - next: /implement the finding in the dated `## Review Findings (2026-10-05 07:48)` section. The task stays in review.
+  timestamp: 2026-10-05T12:52:13.222366+00:00
+- actor: claude-code
+  id: 01m461ye3c4ch84fjvys0zbg77
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — deleted Branches, BranchNavigator and their tests; ThreadChange, AgentThread, README, HostApp; RemovedVocabularyTests (new)
+    - test: green — swift test, 1455 passed; README and demo UI gates passed; benchmark timing gate failed under load (p90 4.15 ms, limit 4.0 ms)
+    - commit: c7e5dd8
+    - review: findings — Tests/PackageStructureTests/RemovedVocabularyTests.swift:43
+  timestamp: 2026-10-05T12:52:15.084118+00:00
+- actor: claude-code
+  id: 01m46265nx5fxnbqp91hztvffr
+  text: |-
+    Review finding `reuse/reuse` corrected (TDD).
+    - RED: new `Tests/PackageStructureTests/SourceLineScannerTests.swift` (4 tests). The build failed because `SourceLineScanner` and `SourceLine` did not exist.
+    - GREEN: new `Tests/PackageStructureTests/SourceLineScanner.swift`. `SourceLine` holds file, line number and text. `SourceLineScanner.matches(inSource:file:match:)` is the one line traversal (split, enumerate, number from 1). `SourceLineScanner.matches(inSwiftFilesBelow:relativeTo:match:)` is the one directory traversal (find Swift files, relative name, read text).
+    - REFACTOR: `ImportScanner.violations(in:forbidden:)` now calls the shared scanner. `violations(inSource:file:forbidden:)` is replaced by the per-line matcher `violations(on:forbidden:)`. `ImportScanner.swift` does not import `PackageFileSupport` now. `RemovedVocabularyTests.uses(of:inSource:file:)` is replaced by the per-line matcher `uses(of:on:)`. `sourcesUseNoRemovedSymbol` uses the shared directory scan with `relativeTo: PackageFiles.root`, so the file names stay `Sources/...`. The two existing `uses` tests keep their assertions.
+    - Not changed, on purpose: `ImportBoundaryTests.scannerReportsEachForbiddenImportInTheFixture` splits a fixture file into lines to check each violation. That is an existing test, and it reads lines by number, not by a scan.
+  timestamp: 2026-10-05T12:56:28.605552+00:00
+- actor: claude-code
+  id: 01m46267zk36pxfvbz1hged368
+  text: |-
+    ### implement — changed
+    - evidence: 4 files. Added: Tests/PackageStructureTests/SourceLineScanner.swift, Tests/PackageStructureTests/SourceLineScannerTests.swift. Changed: Tests/PackageStructureTests/ImportScanner.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. Commands: `swift test --filter PackageStructureTests` passed (65 tests, 0 warnings). `swift test` passed (1 + 65 + 1265 + 128 = 1459 tests, 0 warnings).
+    - next: /review. The finding `Tests/PackageStructureTests/RemovedVocabularyTests.swift:43` `reuse/reuse` is `- [x]`. The task stays in doing.
+  timestamp: 2026-10-05T12:56:30.963324+00:00
 depends_on:
 - 01M443HB3E33J2VKEYYF9NN7AX
 position_column: doing
@@ -54,3 +86,75 @@ Only the FoundationModels source used branches. The owner decided to remove them
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-05 07:48)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 9 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Items/BranchNavigator.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Model/Branches.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Tests/AgentViewKitTests/Model/BranchesTests.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Items/BranchNavigator.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Model/Branches.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Tests/AgentViewKitTests/Model/BranchesTests.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Items/BranchNavigator.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Model/Branches.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Tests/AgentViewKitTests/Model/BranchesTests.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Items/BranchNavigator.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Model/Branches.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Tests/AgentViewKitTests/Model/BranchesTests.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Items/BranchNavigator.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Model/Branches.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Tests/AgentViewKitTests/Items/BranchNavigatorHostedTests.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Tests/AgentViewKitTests/Model/BranchesTests.swift, so its declarations are unread
+
+- [x] `Tests/PackageStructureTests/RemovedVocabularyTests.swift:43` `reuse/reuse` — The `uses` function reinvents the line-scanning pattern from ImportScanner.violations(inSource:file:forbidden:). Both split source by newline, enumerate lines with offset, filter/map based on a predicate per line, and return results with file/line metadata. The matching logic differs (imports vs symbols), but the traversal pattern is identical and should be parameterized rather than duplicated. Extract a generic line-scanner utility that accepts a predicate function, or extend ImportScanner to support multiple match types beyond imports. Both can then call the shared scanning function with their respective matching logic.

@@ -33,21 +33,16 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "BranchNavigator", "addBranch", "selectBranch",
   ]
 
-  /// Finds each use of a removed symbol in the text of one Swift file.
+  /// Finds each use of a removed symbol on one line of a Swift file.
   ///
   /// - Parameters:
   ///   - symbols: The removed symbols.
-  ///   - source: The text of the file.
-  ///   - file: The name to write into each use.
-  /// - Returns: The uses, in line order, and in symbol order on one line.
-  static func uses(of symbols: [String], inSource source: String, file: String) -> [RemovedSymbolUse] {
-    source.split(separator: "\n", omittingEmptySubsequences: false)
-      .enumerated()
-      .flatMap { offset, line in
-        symbols
-          .filter { line.contains(wholeWord($0)) }
-          .map { RemovedSymbolUse(file: file, line: offset + 1, symbol: $0) }
-      }
+  ///   - line: The line.
+  /// - Returns: The uses, in symbol order.
+  static func uses(of symbols: [String], on line: SourceLine) -> [RemovedSymbolUse] {
+    symbols
+      .filter { line.text.contains(wholeWord($0)) }
+      .map { RemovedSymbolUse(file: line.file, line: line.number, symbol: $0) }
   }
 
   /// The pattern that matches a symbol only as a whole word.
@@ -67,25 +62,27 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   @Test func usesFindsAWholeWordOnItsLine() {
     let source = "let a = 1\nthread.apply(.addBranch(afterUserMessage: id, items: []))"
 
-    let found = Self.uses(of: ["addBranch"], inSource: source, file: "A.swift")
+    let found = SourceLineScanner.matches(inSource: source, file: "A.swift") { line in
+      Self.uses(of: ["addBranch"], on: line)
+    }
 
     #expect(found == [RemovedSymbolUse(file: "A.swift", line: 2, symbol: "addBranch")])
   }
 
   @Test func usesSkipsALongerWord() {
-    let found = Self.uses(of: ["addBranch"], inSource: "addBranches(); preaddBranch()", file: "A.swift")
+    let line = SourceLine(file: "A.swift", number: 1, text: "addBranches(); preaddBranch()")
+
+    let found = Self.uses(of: ["addBranch"], on: line)
 
     #expect(found.isEmpty)
   }
 
   @Test func sourcesUseNoRemovedSymbol() throws {
-    let root = PackageFiles.root.standardizedFileURL.pathComponents.count
-    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(Self.sourcesPath))
-
-    let found = try files.flatMap { url in
-      let relative = url.standardizedFileURL.pathComponents.dropFirst(root).joined(separator: "/")
-      let text = try String(contentsOf: url, encoding: .utf8)
-      return Self.uses(of: Self.removedSymbols, inSource: text, file: relative)
+    let found = try SourceLineScanner.matches(
+      inSwiftFilesBelow: PackageFiles.file(Self.sourcesPath),
+      relativeTo: PackageFiles.root
+    ) { line in
+      Self.uses(of: Self.removedSymbols, on: line)
     }
 
     #expect(found.isEmpty, "\(found)")
