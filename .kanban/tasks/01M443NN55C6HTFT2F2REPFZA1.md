@@ -32,10 +32,26 @@ comments:
     - evidence: 19 files. Changed: Package.swift, Sources/AgentViewKit/Items/{AssistantMessageView,MessageItemView,ReasoningView,UserMessageView}.swift, Sources/AgentViewKit/Thread/{AgentThreadView,ConversationView,ItemRow}.swift, Tests/PackageStructureTests/ManifestTests.swift. New: Sources/AgentViewKit/Items/TranscriptMessageView.swift, Sources/AgentViewKit/Streaming/EntryTextStream.swift, Sources/AgentViewKit/Thread/{ConversationSource,SessionTranscriptEnvironment,TranscriptEntryKind,TranscriptRowKey}.swift, Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/Thread/{SessionTranscriptViewHostedTests,TranscriptRowKeyTests}.swift, Tests/AgentViewKitTests/TestSupport/ScriptedSessionTests.swift. `swift test`: 1294 tests in 113 suites passed, plus 77 and 1. `Scripts/check-readme.sh`: passed. `Scripts/test-examples.sh AgentViewKitDemo`: passed. Only warnings: the `DeprecatedDeclaration` warnings of the unchanged callers of `AgentThreadView(thread:actions:)`, which the card orders.
     - next: /review. Task stays in doing.
   timestamp: 2026-10-05T20:00:49.728233+00:00
+- actor: claude-code
+  id: 01m46wb0n3v209yhq0v3n92qcb
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 17a7900). 0 findings, 0 confirmed, 2 refuted, 7 validators attempted, 0 failed. 20 files reviewed; 6 .kanban/ files not reviewed (.reviewignore). No earlier Review Findings sections.
+    - next: task moved to done.
+  timestamp: 2026-10-05T20:33:30.275688+00:00
+- actor: claude-code
+  id: 01m46wb2aqv3hkbcqf2a324865
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AgentThreadView(session:actions:) on SessionModel; ForEach on TranscriptEntry.id; entry initializers for the message and thought views; TranscriptRowKey; EntryTextStream; ScriptedSession; old initializer deprecated; 19 files
+    - test: green — swift test, 1294 + 77 passed; 30 expected deprecation warnings; ACP time limit 5 s to 60 s (stall recorded as ^pbgn012)
+    - commit: 17a7900
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T20:33:31.991688+00:00
 depends_on:
 - 01M443NCQ6B4040Y9X0SBNCN28
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: e680
 title: 'Bind the transcript rows to SessionModel: ForEach on TranscriptEntry.id, message and thought rows'
 ---
 ## What
