@@ -29,53 +29,20 @@ import Testing
     #expect(ContextUsage(used: 10, size: 0).fraction == 0)
   }
 
-  // MARK: - Fill
+  // MARK: - Fields
 
-  /// The tokens in use of the fill tests.
-  private static let usedTokens = 400
-
-  /// The part of the window that ``usedTokens`` fills.
-  nonisolated private static let quarterFill = 0.25
-
-  /// The window size that ``usedTokens`` and ``quarterFill`` give.
-  private static let windowSize = 1_600
-
-  @Test func fillGivesTheSizeOfTheWindow() {
-    let usage = ContextUsage(used: Self.usedTokens, fill: Self.quarterFill)
-
-    #expect(usage == ContextUsage(used: Self.usedTokens, size: Self.windowSize))
-    #expect(usage.fraction == Self.quarterFill)
+  @Test func theStoredPropertiesAreTheFieldsOfAUsageUpdate() {
+    #expect(Self.storedProperties == ["used", "size", "cost"])
   }
 
-  @Test(arguments: [0, -Self.quarterFill, .nan, .infinity])
-  func aFillThatIsNotPositiveAndFiniteGivesAZeroSize(fill: Double) {
-    #expect(ContextUsage(used: Self.usedTokens, fill: fill) == ContextUsage(used: Self.usedTokens, size: 0))
-  }
-
-  @Test func theOptionalPartsDefaultToNil() {
-    let usage = ContextUsage(used: 1, size: 2)
-
-    #expect(usage.cost == nil)
-    #expect(usage.input == nil)
-    #expect(usage.output == nil)
-    #expect(usage.quota == nil)
-  }
-
-  @Test func theOptionalPartsKeepTheirValues() {
+  @Test func theValuesOfAUsageUpdateStayInTheUsage() {
     let usage = ContextUsage(
-      used: 1,
-      size: 2,
-      cost: .init(amount: 0.5, currency: "USD"),
-      input: .init(total: 10, cached: 4),
-      output: .init(total: 7, reasoning: 3),
-      quota: .belowLimit(approaching: true)
-    )
+      used: 1_200, size: 200_000, cost: ContextUsage.Cost(amount: 0.25, currency: "USD"))
 
-    #expect(usage.cost == ContextUsage.Cost(amount: 0.5, currency: "USD"))
-    #expect(usage.input == ContextUsage.Input(total: 10, cached: 4))
-    #expect(usage.output == ContextUsage.Output(total: 7, reasoning: 3))
-    #expect(usage.quota == .belowLimit(approaching: true))
-    #expect(usage.quota != .limitReached)
+    #expect(usage.used == 1_200)
+    #expect(usage.size == 200_000)
+    #expect(usage.cost == ContextUsage.Cost(amount: 0.25, currency: "USD"))
+    #expect(ContextUsage(used: 1, size: 2).cost == nil)
   }
 
   // MARK: - Decision table

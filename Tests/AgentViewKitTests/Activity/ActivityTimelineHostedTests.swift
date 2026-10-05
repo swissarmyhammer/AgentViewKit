@@ -101,7 +101,7 @@
       let harness = Self.mountTimeline(
         Self.makeThread([
           .toolCall(Self.call("first", from: nil, to: nil)),
-          .error(ThreadError(id: "oops", kind: .timeout)),
+          .error(ThreadError(id: "oops", kind: .unknown(message: "x"))),
           .toolCall(Self.call("second", from: 0, to: 1)),
         ]))
       defer { harness.close() }

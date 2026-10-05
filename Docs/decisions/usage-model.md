@@ -6,31 +6,18 @@ plan: plan.md §3.2, §14 (R16)
 
 ## Question
 
-Three sources give usage data. How does the kit merge them into one
-`ContextUsage` value?
+Which usage data does the kit keep in one `ContextUsage` value?
 
-- FoundationModels `LanguageModelSession.Usage` (macOS 27). The session gives
-  it as `LanguageModelSession.usage`. A stream gives it as
-  `ResponseStream.Snapshot.usage`. A response gives it as
-  `LanguageModelSession.Response.usage`.
-- Private Cloud Compute `PrivateCloudComputeLanguageModel.QuotaUsage`
-  (macOS 27). The model gives it as `quotaUsage`.
-- ACP v2 `SessionUpdate.usage_update` (`UsageUpdate` with `Cost`).
+The source is the ACP v2 `SessionUpdate.usage_update` (`UsageUpdate` with
+`Cost`).
+
+The first version of this record also merged the FoundationModels
+`LanguageModelSession.Usage` and the Private Cloud Compute `QuotaUsage`. The
+kit is now an ACP client kit, so those sources and their fields are gone
+(update.md §6).
 
 ## Sources read
 
-- `FoundationModels.swiftmodule/arm64e-apple-macos.swiftinterface` in the
-  macOS 27 SDK of Xcode.
-  - `LanguageModelSession.Usage`: `input` (`totalTokenCount`,
-    `cachedTokenCount`), `output` (`totalTokenCount`, `reasoningTokenCount`),
-    `metadata`, and the computed `totalTokenCount`.
-  - `SystemLanguageModel.contextSize` and
-    `PrivateCloudComputeLanguageModel.contextSize`.
-  - `SystemLanguageModel.tokenCount(for:)` for a collection of
-    `Transcript.Entry`.
-  - `PrivateCloudComputeLanguageModel.QuotaUsage`: `status`
-    (`belowLimit(BelowLimit)` with `isApproachingLimit`, or
-    `limitReached(LimitReached)`), `limitIncreaseSuggestion`, and `resetDate`.
 - `FoundationModelsACP` generated models: `UsageUpdate` (`size`, `used`,
   `cost`, `_meta`) and `Cost` (`amount`, `currency`, `_meta`).
 
@@ -47,34 +34,16 @@ row.
 | ACP `UsageUpdate.size` | `size` | The size of the context window in tokens. |
 | ACP `UsageUpdate.cost.amount` | `cost` | Goes to `Cost.amount`. The cost is cumulative for the session. |
 | ACP `UsageUpdate.cost.currency` | `cost` | Goes to `Cost.currency`, an ISO 4217 code. |
-| FM `tokenCount(for: session.transcript)` | `used` | The FoundationModels adapter counts the transcript entries, because `Usage` holds cumulative counts and not the context fill. |
-| FM `SystemLanguageModel.contextSize` | `size` | For the on-device model. |
-| FM `PrivateCloudComputeLanguageModel.contextSize` | `size` | For the Private Cloud Compute model. |
-| FM `Usage.input.totalTokenCount` | `input` | Goes to `Input.total`. |
-| FM `Usage.input.cachedTokenCount` | `input` | Goes to `Input.cached`. |
-| FM `Usage.output.totalTokenCount` | `output` | Goes to `Output.total`. |
-| FM `Usage.output.reasoningTokenCount` | `output` | Goes to `Output.reasoning`. |
-| PCC `QuotaUsage.status` `belowLimit` | `quota` | Goes to `.belowLimit(approaching:)` with `BelowLimit.isApproachingLimit`. |
-| PCC `QuotaUsage.status` `limitReached` | `quota` | Goes to `.limitReached`. |
 
 ## Fields that the kit does not merge
 
-- FM `Usage.metadata` and ACP `_meta`: extension data with no fixed keys. A
-  host that needs them reads the source directly.
-- FM `Usage.totalTokenCount`: the sum of the input and output totals. A view
-  can compute it from `input` and `output`.
-- PCC `QuotaUsage.resetDate` and `limitIncreaseSuggestion`: the
-  `LanguageModelError.rateLimited` and `QuotaLimitReached` errors also carry
-  these values. The kit shows them on the error item (plan.md §9 A2), not in
-  the usage view.
+- ACP `_meta`: extension data with no fixed keys. A host that needs it reads
+  the source directly.
 
 ## Decision
 
-- `ContextUsage` has two required fields, `used` and `size`, and four
-  optional parts, `cost`, `input`, `output`, and `quota`.
-- Each source fills only the parts that it has. An ACP thread has no `input`,
-  `output`, or `quota`. A FoundationModels thread has no `cost`.
-- A new value from a source replaces the parts that the source fills and
-  keeps the other parts.
+- `ContextUsage` has two required fields, `used` and `size`, and one optional
+  part, `cost`.
+- A source that gives no cost leaves `cost` as `nil`.
 - `fraction` is `used / size`, clamped to `0...1`. It is `0` when `size` is
   `0`.

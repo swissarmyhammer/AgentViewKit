@@ -11,19 +11,15 @@ import Testing
   /// The longest time that a test waits for the view to update, in seconds.
   static let updateWaitSeconds: TimeInterval = 1
 
-  /// A usage with half of the window in use and no other parts.
+  /// A usage with half of the window in use and no cost.
   static let halfUsage = ContextUsage(used: 500, size: 1000)
 
-  /// A usage with three quarters of the window in use and no other parts.
+  /// A usage with three quarters of the window in use and no cost.
   static let threeQuarterUsage = ContextUsage(used: 750, size: 1000)
 
-  /// A usage with each part.
-  static let fullUsage = ContextUsage(
-    used: 1200, size: 4000,
-    cost: ContextUsage.Cost(amount: 1.25, currency: "USD"),
-    input: ContextUsage.Input(total: 900, cached: 300),
-    output: ContextUsage.Output(total: 300, reasoning: 100),
-    quota: .belowLimit(approaching: true))
+  /// A usage with a cost.
+  static let costUsage = ContextUsage(
+    used: 1200, size: 4000, cost: ContextUsage.Cost(amount: 1.25, currency: "USD"))
 
   /// A view that shows the usage of a thread, so that a change to the thread
   /// updates the view.
@@ -46,47 +42,26 @@ import Testing
     let element = harness.element(identifier: ContextUsageView.percentIdentifier)
     #expect(element?.value == ContextUsageView.percentText(for: Self.halfUsage))
     #expect(harness.element(identifier: ContextUsageView.costIdentifier) == nil)
-    #expect(harness.element(identifier: ContextUsageView.quotaIdentifier) == nil)
   }
 
-  @Test func aUsageWithEachPartShowsTheCostAndTheQuota() throws {
-    let cost = try #require(Self.fullUsage.cost)
-    let harness = HostedViewHarness(ContextUsageView(usage: Self.fullUsage))
+  @Test func aUsageWithACostShowsTheCost() throws {
+    let cost = try #require(Self.costUsage.cost)
+    let harness = HostedViewHarness(ContextUsageView(usage: Self.costUsage))
     defer { harness.close() }
     harness.pump()
 
     #expect(harness.element(identifier: ContextUsageView.percentIdentifier)?.value
-      == ContextUsageView.percentText(for: Self.fullUsage))
+      == ContextUsageView.percentText(for: Self.costUsage))
     #expect(harness.element(identifier: ContextUsageView.costIdentifier)?.label
       == ContextUsageView.costText(for: cost))
-    #expect(harness.element(identifier: ContextUsageView.quotaIdentifier)?.label
-      == ContextUsageView.quotaText(for: .belowLimit(approaching: true)))
   }
 
   @Test func theTextsUseTheLocale() throws {
-    let cost = try #require(Self.fullUsage.cost)
-    #expect(ContextUsageView.percentText(for: Self.fullUsage, locale: Self.locale) == "30%")
+    let cost = try #require(Self.costUsage.cost)
+    #expect(ContextUsageView.percentText(for: Self.costUsage, locale: Self.locale) == "30%")
     #expect(ContextUsageView.costText(for: cost, locale: Self.locale) == "$1.25")
     #expect(
-      ContextUsageView.detailLines(for: Self.fullUsage, locale: Self.locale) == [
-        "1,200 of 4,000 tokens",
-        "Input: 900 tokens, 300 cached",
-        "Output: 300 tokens, 100 reasoning",
-      ])
-  }
-
-  @Test func theDetailsOmitTheCountsThatTheSourceDoesNotGive() {
-    #expect(
-      ContextUsageView.detailLines(for: Self.halfUsage, locale: Self.locale) == [
-        "500 of 1,000 tokens"
-      ])
-  }
-
-  @Test func eachQuotaStateHasADistinctText() {
-    let states: [ContextUsage.Quota] = [
-      .belowLimit(approaching: false), .belowLimit(approaching: true), .limitReached,
-    ]
-    #expect(Set(states.map(ContextUsageView.quotaText)).count == states.count)
+      ContextUsageView.detailText(for: Self.costUsage, locale: Self.locale) == "1,200 of 4,000 tokens")
   }
 
   @Test func aNilUsageShowsNothing() {

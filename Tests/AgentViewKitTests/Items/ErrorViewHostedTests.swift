@@ -9,17 +9,8 @@ import Testing
   /// The longest time that a test waits for an action closure, in seconds.
   static let callWaitSeconds: TimeInterval = 1
 
-  /// The number of tokens that the context of the test model can hold.
-  nonisolated static let contextSize = 4_096
-
-  /// The number of tokens in the test request that is too large.
-  nonisolated static let tokenCount = 5_000
-
   /// The JSON-RPC code of the test ACP error.
   nonisolated static let acpCode = -32_603
-
-  /// The reset time of the test rate limit, in seconds after 1970.
-  nonisolated static let resetSeconds: TimeInterval = 1_800_000_000
 
   /// Records the calls of each error action.
   final class ActionCalls {
@@ -38,7 +29,7 @@ import Testing
           self.calls[action, default: []].append(error.id)
         }
       }
-      return ErrorActions(retry: record(.retry), rephrase: record(.rephrase))
+      return ErrorActions(rephrase: record(.rephrase))
     }
   }
 
@@ -59,32 +50,11 @@ import Testing
   /// Each error kind.
   nonisolated static let cases: [Case] = [
     Case(
-      kind: .contextSizeExceeded(contextSize: contextSize, tokenCount: tokenCount),
-      identifier: "error-contextSizeExceeded", buttonTitle: nil,
-      detailParts: [contextSize.formatted(), tokenCount.formatted()]),
-    Case(
-      kind: .rateLimited(resetAt: Date(timeIntervalSince1970: resetSeconds)),
-      identifier: "error-rateLimited", buttonTitle: "Retry",
-      detailParts: [
-        Date(timeIntervalSince1970: resetSeconds).formatted(date: .abbreviated, time: .shortened)
-      ]),
-    Case(
-      kind: .rateLimited(resetAt: nil), identifier: "error-rateLimited", buttonTitle: "Retry",
-      detailParts: []),
-    Case(
-      kind: .guardrailViolation(explanation: "The request names a weapon."),
-      identifier: "error-guardrailViolation", buttonTitle: "Rephrase",
-      detailParts: ["The request names a weapon."]),
-    Case(
-      kind: .guardrailViolation(explanation: nil), identifier: "error-guardrailViolation",
-      buttonTitle: "Rephrase", detailParts: []),
-    Case(
       kind: .refusal(explanation: "I cannot help with that."), identifier: "error-refusal",
       buttonTitle: "Rephrase", detailParts: ["I cannot help with that."]),
     Case(
       kind: .refusal(explanation: nil), identifier: "error-refusal", buttonTitle: "Rephrase",
       detailParts: []),
-    Case(kind: .timeout, identifier: "error-timeout", buttonTitle: "Retry", detailParts: []),
     Case(
       kind: .acp(code: acpCode, message: "Internal error"), identifier: "error-acp",
       buttonTitle: nil, detailParts: [String(acpCode), "Internal error"]),
@@ -137,26 +107,27 @@ import Testing
     #expect(titles.count == kinds.count)
   }
 
-  @Test func theActionsAreRetryAndRephrase() {
-    #expect(ErrorView.Action.allCases.map(\.rawValue) == ["retry", "rephrase"])
+  @Test func theOnlyActionIsRephrase() {
+    #expect(ErrorView.Action.allCases.map(\.rawValue) == ["rephrase"])
   }
 
-  @Test func aNilRetryActionHidesTheRetryButton() {
-    let error = ThreadError(id: "error-1", kind: .timeout)
-    let harness = Self.mount(error, actions: ActionCalls().actions(omitting: [.retry]))
+  @Test func aNilRephraseActionHidesTheRephraseButton() {
+    let error = ThreadError(id: "error-1", kind: .refusal(explanation: nil))
+    let harness = Self.mount(error, actions: ActionCalls().actions(omitting: [.rephrase]))
     defer { harness.close() }
 
-    #expect(harness.element(identifier: "error-timeout") != nil)
-    #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .retry)) == nil)
+    #expect(harness.element(identifier: "error-refusal") != nil)
+    #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .rephrase)) == nil)
   }
 
   @Test func theDefaultActionsShowNoButton() {
-    let harness = HostedViewHarness(ErrorView(error: ThreadError(id: "error-1", kind: .timeout)))
+    let harness = HostedViewHarness(
+      ErrorView(error: ThreadError(id: "error-1", kind: .refusal(explanation: nil))))
     defer { harness.close() }
     harness.pump()
 
-    #expect(harness.element(identifier: "error-timeout") != nil)
-    #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .retry)) == nil)
+    #expect(harness.element(identifier: "error-refusal") != nil)
+    #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .rephrase)) == nil)
   }
 
   /// Taps the button of `action` on a card of `kind`, and tells whether the
@@ -176,34 +147,30 @@ import Testing
     #expect(calls.calls == [action: ["error-7"]])
   }
 
-  @Test func tappingRetryCallsTheClosureOnce() async throws {
-    try await expectOneCall(of: .retry, on: .timeout)
-  }
-
   @Test func tappingRephraseCallsTheClosureOnce() async throws {
     try await expectOneCall(of: .rephrase, on: .refusal(explanation: nil))
   }
 
   @Test func aPatchOfTheKindChangesTheCard() {
-    let error = ThreadError(id: "error-1", kind: .timeout)
+    let error = ThreadError(id: "error-1", kind: .refusal(explanation: nil))
     let harness = Self.mount(error, actions: ActionCalls().actions())
     defer { harness.close() }
 
     error.kind = .unknown(message: "The disk is full.")
     harness.pump()
 
-    #expect(harness.element(identifier: "error-timeout") == nil)
+    #expect(harness.element(identifier: "error-refusal") == nil)
     #expect(harness.element(identifier: "error-unknown") != nil)
   }
 
   @Test func anErrorItemRowShowsTheErrorView() {
     let thread = AgentThread()
-    thread.apply(.insert(.error(ThreadError(id: "error-1", kind: .timeout)), after: nil))
+    thread.apply(.insert(.error(ThreadError(id: "error-1", kind: .refusal(explanation: nil))), after: nil))
     let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
     defer { harness.close() }
     harness.pump()
 
-    #expect(harness.element(identifier: "error-timeout") != nil)
+    #expect(harness.element(identifier: "error-refusal") != nil)
     #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: "error-1")) == nil)
   }
 }

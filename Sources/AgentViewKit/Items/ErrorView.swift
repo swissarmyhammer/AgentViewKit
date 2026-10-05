@@ -8,10 +8,7 @@ import SwiftUI
 ///
 /// | Kind | Detail | Action |
 /// |------|--------|--------|
-/// | `contextSizeExceeded` | Both token counts | None |
-/// | `rateLimited` | The reset time | Retry |
-/// | `guardrailViolation`, `refusal` | The explanation | Rephrase |
-/// | `timeout` | A fixed text | Retry |
+/// | `refusal` | The explanation | Rephrase |
 /// | `acp` | The code and the message | None |
 /// | `unknown` | The message | None |
 public struct ErrorView: View {
@@ -23,15 +20,12 @@ public struct ErrorView: View {
 
   /// A button of the error card.
   public enum Action: String, CaseIterable, Hashable, Sendable {
-    /// Sends the request again.
-    case retry
     /// Lets the user change the request.
     case rephrase
 
     /// The title of the button.
     public var title: String {
       switch self {
-      case .retry: String(localized: "Retry")
       case .rephrase: String(localized: "Rephrase")
       }
     }
@@ -68,7 +62,7 @@ public struct ErrorView: View {
   /// The accessibility identifier of the card of `kind`.
   ///
   /// - Parameter kind: The type of the error.
-  /// - Returns: `error-<case>`, for example `error-timeout`.
+  /// - Returns: `error-<case>`, for example `error-refusal`.
   public static func identifier(for kind: ThreadError.Kind) -> String {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: caseName(of: kind))
   }
@@ -76,7 +70,7 @@ public struct ErrorView: View {
   /// The accessibility identifier of the button of `action`.
   ///
   /// - Parameter action: A button of the card.
-  /// - Returns: `error-action-<action>`, for example `error-action-retry`.
+  /// - Returns: `error-action-<action>`, for example `error-action-rephrase`.
   public static func actionIdentifier(for action: Action) -> String {
     AccessibilityIdentifier.make(prefix: actionIdentifierPrefix, value: action.rawValue)
   }
@@ -84,14 +78,10 @@ public struct ErrorView: View {
   /// The name of the case of `kind`, with no values.
   ///
   /// - Parameter kind: The type of the error.
-  /// - Returns: The case name, for example `rateLimited`.
+  /// - Returns: The case name, for example `refusal`.
   static func caseName(of kind: ThreadError.Kind) -> String {
     switch kind {
-    case .contextSizeExceeded: "contextSizeExceeded"
-    case .rateLimited: "rateLimited"
-    case .guardrailViolation: "guardrailViolation"
     case .refusal: "refusal"
-    case .timeout: "timeout"
     case .acp: "acp"
     case .unknown: "unknown"
     }
@@ -103,43 +93,12 @@ public struct ErrorView: View {
   /// - Returns: The title, the detail, the symbol, and the action.
   public static func content(for kind: ThreadError.Kind) -> Content {
     switch kind {
-    case .contextSizeExceeded(let contextSize, let tokenCount):
-      Content(
-        title: String(localized: "The conversation is too long"),
-        detail: String(
-          localized:
-            "The request has \(tokenCount.formatted()) tokens, but the context can hold \(contextSize.formatted()) tokens."
-        ),
-        symbolName: "text.line.last.and.arrowtriangle.forward",
-        action: nil)
-    case .rateLimited(let resetAt):
-      Content(
-        title: String(localized: "The rate limit is reached"),
-        detail: resetAt.map {
-          String(
-            localized:
-              "You can send again at \($0.formatted(date: .abbreviated, time: .shortened)).")
-        } ?? String(localized: "Wait some time, then send again."),
-        symbolName: "hourglass",
-        action: .retry)
-    case .guardrailViolation(let explanation):
-      Content(
-        title: String(localized: "A safety guardrail stopped the request"),
-        detail: explanation ?? String(localized: "Change the request and send it again."),
-        symbolName: "exclamationmark.shield.fill",
-        action: .rephrase)
     case .refusal(let explanation):
       Content(
         title: String(localized: "The model refused the request"),
         detail: explanation ?? String(localized: "Change the request and send it again."),
         symbolName: "exclamationmark.bubble.fill",
         action: .rephrase)
-    case .timeout:
-      Content(
-        title: String(localized: "The request took too long"),
-        detail: String(localized: "The agent did not answer in time. Send the request again."),
-        symbolName: "clock.badge.exclamationmark",
-        action: .retry)
     case .acp(let code, let message):
       Content(
         title: String(localized: "The agent sent an error"),

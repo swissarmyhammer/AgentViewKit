@@ -247,16 +247,17 @@
 
     @Test func theHostErrorActionsReachTheErrorCards() async {
       let thread = AgentThread()
-      thread.apply(.insert(.error(ThreadError(id: Self.errorID, kind: .timeout)), after: nil))
+      thread.apply(
+        .insert(.error(ThreadError(id: Self.errorID, kind: .refusal(explanation: nil))), after: nil))
       let view = ConversationView(thread: thread)
-        .errorActions(ErrorActions(retry: { _ in }))
+        .errorActions(ErrorActions(rephrase: { _ in }))
       let harness = HostedViewHarness(view)
       defer { harness.close() }
       harness.pump()
 
-      let retry = ErrorView.actionIdentifier(for: .retry)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: retry) != nil }
-      #expect(harness.element(identifier: retry) != nil)
+      let rephrase = ErrorView.actionIdentifier(for: .rephrase)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: rephrase) != nil }
+      #expect(harness.element(identifier: rephrase) != nil)
     }
   }
 #endif

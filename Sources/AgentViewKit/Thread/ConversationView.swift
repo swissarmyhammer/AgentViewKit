@@ -69,8 +69,7 @@ public enum ConversationLayout {
   ///
   /// | State | Related error kinds |
   /// |-------|---------------------|
-  /// | `idle(.refusal)` | `refusal`, `guardrailViolation` |
-  /// | `idle(.maxTokens)` | `contextSizeExceeded` |
+  /// | `idle(.refusal)` | `refusal` |
   /// | Each other state | None |
   ///
   /// - Parameters:
@@ -96,14 +95,7 @@ public enum ConversationLayout {
     switch state {
     case .idle(.refusal):
       { kind in
-        switch kind {
-        case .refusal, .guardrailViolation: true
-        default: false
-        }
-      }
-    case .idle(.maxTokens):
-      { kind in
-        if case .contextSizeExceeded = kind { return true }
+        if case .refusal = kind { return true }
         return false
       }
     default:

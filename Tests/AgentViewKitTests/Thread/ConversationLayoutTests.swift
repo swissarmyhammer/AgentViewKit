@@ -76,32 +76,25 @@ import Testing
     }
   }
 
-  @Test func aRefusalFindsTheNewestRefusalOrGuardrailError() {
+  @Test func aRefusalFindsTheNewestRefusalError() {
     let items = Self.errorItems([
-      .refusal(explanation: nil), .guardrailViolation(explanation: nil), .timeout,
+      .refusal(explanation: nil), .refusal(explanation: "No."), .unknown(message: "The disk is full."),
     ])
 
     #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.refusal)) == "error-1")
   }
 
-  @Test func maxTokensFindsTheContextSizeError() {
-    let items = Self.errorItems([
-      .contextSizeExceeded(contextSize: 10, tokenCount: 20), .refusal(explanation: nil),
-    ])
-
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.maxTokens)) == "error-0")
-  }
-
   @Test func aStateWithNoRelatedKindFindsNoError() {
-    let items = Self.errorItems([.refusal(explanation: nil), .timeout])
+    let items = Self.errorItems([.refusal(explanation: nil), .unknown(message: "The disk is full.")])
 
+    #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.maxTokens)) == nil)
     #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.maxTurnRequests)) == nil)
     #expect(ConversationLayout.relatedErrorID(in: items, state: .requiresAction) == nil)
     #expect(ConversationLayout.relatedErrorID(in: items, state: .running) == nil)
   }
 
   @Test func noMatchingErrorFindsNothing() {
-    let items = Self.errorItems([.timeout])
+    let items = Self.errorItems([.unknown(message: "The disk is full.")])
 
     #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.refusal)) == nil)
   }

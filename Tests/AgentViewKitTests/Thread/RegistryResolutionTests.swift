@@ -247,7 +247,7 @@ func marker(_ identifier: String) -> some View {
   }
 
   @Test func typedModifierPassesTheRecord() {
-    let record = ThreadError(id: "e1", kind: .timeout)
+    let record = ThreadError(id: "e1", kind: .unknown(message: "x"))
     let harness = Self.mount(
       ErrorOverrideReader(record: record)
         .errorView { error in marker("error-" + error.id) }

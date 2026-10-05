@@ -258,7 +258,7 @@ import Testing
   }
 
   @Test func anErrorPatchChangesTheKind() {
-    let error = ThreadError(id: "e1", kind: .timeout)
+    let error = ThreadError(id: "e1", kind: .unknown(message: "x"))
     let thread = makeThread([.error(error)])
 
     thread.apply(.patch(id: "e1", .error(kind: .value(.refusal(explanation: "No")))))

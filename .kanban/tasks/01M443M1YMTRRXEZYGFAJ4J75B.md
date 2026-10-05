@@ -32,10 +32,26 @@ comments:
     - evidence: 25 files (8 Sources files changed, 3 Sources files deleted, 7 test files changed, 1 test file deleted, plus `Sources/DemoSupport/ACPDemoSession.swift`). `swift test --filter RemovedVocabularyTests` red, then green; `swift test` passed: 1 + 66 + 1157 + 124 tests, 0 failures, 0 warnings; `Scripts/test-examples.sh AgentViewKitDemo` passed (2 UI tests). README not changed, so `Scripts/check-readme.sh` was not needed.
     - next: /review
   timestamp: 2026-10-05T15:32:06.139825+00:00
+- actor: claude-code
+  id: 01m46bed4s0njkc4ez5jgwkv1z
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit c551903): 0 findings, 0 confirmed, 0 refuted; 21 files reviewed, 4 .kanban files not reviewed (.reviewignore). The declined items are for the four files that the commit deleted. The task has no earlier Review Findings sections.
+    - next: task moved to done
+  timestamp: 2026-10-05T15:38:15.577223+00:00
+- actor: claude-code
+  id: 01m46beercffz6xagnb6bjcebb
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — removed addAuthorization, resolveAuthorization, removePlan, pendingAuthorizations, AuthorizationPayload, AuthorizationRequest, AuthorizationView and connect(_:); fixed the word boundary in RemovedVocabularyTests; 25 files
+    - test: green — swift test, 1348 passed; README and demo UI gates passed
+    - commit: c551903
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T15:38:17.228310+00:00
 depends_on:
 - 01M443KTS93HHQJREBRF279MDW
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: de80
 title: Remove addAuthorization, the authorization payload and removePlan
 ---
 ## What

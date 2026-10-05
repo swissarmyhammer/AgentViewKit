@@ -1,23 +1,18 @@
 import SwiftUI
 
-/// The context window use of a thread, with its token counts, cost, and quota
-/// (plan.md §9 C, research R16).
+/// The context window use of a thread, with its cost (plan.md §9 C, research
+/// R16).
 ///
 /// Pass ``AgentThread/usage`` as `usage`. When `usage` is `nil`, the view is
 /// empty. The view shows a ring with the part of the context window in use
 /// and the percentage. The help tag of the ring shows the tokens in use of
-/// the window size and the input, cached, output, and reasoning token counts
-/// that the source gives. A cost label shows only when the source gives a
-/// cost, and a quota label shows only when the source gives a quota state.
+/// the window size. A cost label shows only when the source gives a cost.
 public struct ContextUsageView: View {
   /// The accessibility identifier of the percentage element.
   public static let percentIdentifier = "context-usage-percent"
 
   /// The accessibility identifier of the cost label.
   public static let costIdentifier = "context-usage-cost"
-
-  /// The accessibility identifier of the quota label.
-  public static let quotaIdentifier = "context-usage-quota"
 
   /// The number of fraction digits of the percentage.
   static let percentFractionDigits = 0
@@ -68,31 +63,17 @@ public struct ContextUsageView: View {
       .percent.precision(.fractionLength(percentFractionDigits)).locale(locale))
   }
 
-  /// The lines of the help tag of the ring.
+  /// The text of the help tag of the ring.
   ///
   /// - Parameters:
   ///   - usage: The usage.
   ///   - locale: The locale of the number format.
-  /// - Returns: The tokens in use of the window size, then one line for the
-  ///   input counts and one line for the output counts when the source gives
-  ///   them.
-  public static func detailLines(for usage: ContextUsage, locale: Locale = .current) -> [String] {
-    func count(_ value: Int) -> String {
-      value.formatted(.number.locale(locale))
-    }
-    var lines = [
-      String(localized: "\(count(usage.used)) of \(count(usage.size)) tokens")
-    ]
-    if let input = usage.input {
-      lines.append(
-        String(localized: "Input: \(count(input.total)) tokens, \(count(input.cached)) cached"))
-    }
-    if let output = usage.output {
-      lines.append(
-        String(
-          localized: "Output: \(count(output.total)) tokens, \(count(output.reasoning)) reasoning"))
-    }
-    return lines
+  /// - Returns: The tokens in use of the window size, such as
+  ///   `1,200 of 4,000 tokens`.
+  public static func detailText(for usage: ContextUsage, locale: Locale = .current) -> String {
+    let used = usage.used.formatted(.number.locale(locale))
+    let size = usage.size.formatted(.number.locale(locale))
+    return String(localized: "\(used) of \(size) tokens")
   }
 
   /// The text of the cost label.
@@ -105,35 +86,23 @@ public struct ContextUsageView: View {
     cost.amount.formatted(.currency(code: cost.currency).locale(locale))
   }
 
-  /// The text of the quota label.
-  ///
-  /// - Parameter quota: The quota state.
-  /// - Returns: The name of the quota state.
-  public static func quotaText(for quota: ContextUsage.Quota) -> String {
-    switch quota {
-    case .belowLimit(approaching: false): String(localized: "Within quota")
-    case .belowLimit(approaching: true): String(localized: "Near quota limit")
-    case .limitReached: String(localized: "Quota limit reached")
-    }
-  }
-
   // MARK: - Body
 
   public var body: some View {
     if let usage {
       let percent = Self.percentText(for: usage)
-      let details = Self.detailLines(for: usage)
+      let detail = Self.detailText(for: usage)
       HStack(spacing: theme.spacing.s) {
         HStack(spacing: theme.spacing.xs) {
           ring(for: usage)
           Text(percent)
             .monospacedDigit()
         }
-        .help(details.joined(separator: "\n"))
+        .help(detail)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Context used")
         .accessibilityValue(percent)
-        .accessibilityHint(details.joined(separator: ", "))
+        .accessibilityHint(detail)
         // An element with no role does not give its value. The trait gives the
         // static text role.
         .accessibilityAddTraits(.isStaticText)
@@ -143,12 +112,6 @@ public struct ContextUsageView: View {
             .monospacedDigit()
             .foregroundStyle(.secondary)
             .accessibilityIdentifier(Self.costIdentifier)
-        }
-        if let quota = usage.quota {
-          Label(Self.quotaText(for: quota), systemImage: quotaSymbol(for: quota))
-            .foregroundStyle(quotaColor(for: quota))
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier(Self.quotaIdentifier)
         }
       }
       .font(.caption)
@@ -180,29 +143,5 @@ public struct ContextUsageView: View {
   /// - Returns: The color.
   private func ringColor(for usage: ContextUsage) -> Color {
     usage.fraction >= Self.fullFraction ? theme.statusColors.failed : theme.statusColors.running
-  }
-
-  /// The SF Symbol name of a quota state.
-  ///
-  /// - Parameter quota: The quota state.
-  /// - Returns: The symbol name.
-  private func quotaSymbol(for quota: ContextUsage.Quota) -> String {
-    switch quota {
-    case .belowLimit(approaching: false): "gauge.with.dots.needle.33percent"
-    case .belowLimit(approaching: true): "gauge.with.dots.needle.67percent"
-    case .limitReached: "gauge.with.dots.needle.100percent"
-    }
-  }
-
-  /// The color of a quota state.
-  ///
-  /// - Parameter quota: The quota state.
-  /// - Returns: The color.
-  private func quotaColor(for quota: ContextUsage.Quota) -> Color {
-    switch quota {
-    case .belowLimit(approaching: false): theme.statusColors.completed
-    case .belowLimit(approaching: true): theme.statusColors.running
-    case .limitReached: theme.statusColors.failed
-    }
   }
 }

@@ -206,7 +206,7 @@ import Testing
   }
 
   @Test func entriesWithMissingTimesKeepTheThreadOrder() {
-    let error = ThreadError(id: "e1", kind: .timeout)
+    let error = ThreadError(id: "e1", kind: .unknown(message: "x"))
     let items = [
       Self.call("c1", from: 4, to: 5), .error(error), Self.call("c2", from: 0, to: 1),
     ]

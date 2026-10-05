@@ -9,20 +9,14 @@ public struct ErrorActions {
   /// button.
   public typealias Handler = @MainActor (ThreadError) -> Void
 
-  /// The closure that sends the request again, or `nil` for no Retry button.
-  public var retry: Handler?
-
   /// The closure that lets the user change the request, or `nil` for no
   /// Rephrase button.
   public var rephrase: Handler?
 
   /// Makes a set of error actions.
   ///
-  /// - Parameters:
-  ///   - retry: The closure that sends the request again.
-  ///   - rephrase: The closure that lets the user change the request.
-  public init(retry: Handler? = nil, rephrase: Handler? = nil) {
-    self.retry = retry
+  /// - Parameter rephrase: The closure that lets the user change the request.
+  public init(rephrase: Handler? = nil) {
     self.rephrase = rephrase
   }
 
@@ -32,7 +26,6 @@ public struct ErrorActions {
   /// - Returns: The closure, or `nil` when the host did not give it.
   public func handler(for action: ErrorView.Action) -> Handler? {
     switch action {
-    case .retry: retry
     case .rephrase: rephrase
     }
   }

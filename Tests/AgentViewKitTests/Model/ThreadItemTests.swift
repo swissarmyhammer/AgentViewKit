@@ -14,7 +14,7 @@ import Testing
       ),
       (.reasoning(Reasoning(id: "reasoning-1", segments: ["Think"])), "reasoning-1"),
       (.toolCall(ToolCallRecord(id: "tool-1", title: "Read file")), "tool-1"),
-      (.error(ThreadError(id: "error-1", kind: .timeout)), "error-1"),
+      (.error(ThreadError(id: "error-1", kind: .unknown(message: "x"))), "error-1"),
       (.unknown(UnknownRecord(id: "unknown-1", kind: "new_kind", raw: .null)), "unknown-1"),
     ]
   }
@@ -138,11 +138,8 @@ import Testing
 
   @Test func aThreadErrorKeepsItsKind() {
     let kinds: [ThreadError.Kind] = [
-      .contextSizeExceeded(contextSize: 4096, tokenCount: 5000),
-      .rateLimited(resetAt: Date(timeIntervalSince1970: 0)),
-      .guardrailViolation(explanation: "blocked"),
       .refusal(explanation: nil),
-      .timeout,
+      .refusal(explanation: "blocked"),
       .acp(code: -32603, message: "Internal error"),
       .unknown(message: "x"),
     ]
