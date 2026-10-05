@@ -21,6 +21,17 @@ public nonisolated enum DiffSummary {
     ///
     /// - Parameter from: The old path of the file.
     case renamed(from: String)
+
+    /// The change copies a file to a new path. Only a structured ACP diff
+    /// gives this operation. See ``DiffSummary/files(of:)``.
+    ///
+    /// - Parameter from: The path of the file that the change copies.
+    case copied(from: String)
+
+    /// A change that the kit does not know, with its wire name. Only a
+    /// structured ACP diff gives this operation. See
+    /// ``DiffSummary/files(of:)``.
+    case unknown(String)
   }
 
   /// One hunk of a file: the `@@` header and the lines after it.

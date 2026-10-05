@@ -96,6 +96,22 @@ struct AttachmentRegistryReader: View {
   }
 }
 
+/// Shows whether the tool call registry resolves a tool name.
+struct ToolCallRegistryReader: View {
+  /// The accessibility identifier of the text.
+  static let identifier = "tool-call-registry"
+
+  /// The tool name to resolve, or `nil` for a call with no name.
+  let name: String?
+
+  @Environment(\.toolCallRegistry) private var registry
+
+  var body: some View {
+    Text(registry.resolve(name: name) == nil ? "none" : "found")
+      .accessibilityIdentifier(Self.identifier)
+  }
+}
+
 /// Shows a text with an accessibility identifier.
 ///
 /// - Parameter identifier: The text and the identifier.
@@ -227,6 +243,32 @@ func marker(_ identifier: String) -> some View {
     )
     defer { harness.close() }
     #expect(harness.element(identifier: "none") != nil)
+  }
+
+  // MARK: - Tool call registry
+
+  @Test(arguments: [
+    ("read_file", true),
+    ("write_file", false),
+    (nil, false),
+  ] as [(String?, Bool)])
+  func toolCallRegistryResolvesOnlyTheRegisteredName(name: String?, resolves: Bool) {
+    var registry = ToolCallRegistry()
+    registry.register("read_file") { _ in AnyView(EmptyView()) }
+    #expect((registry.resolve(name: name) != nil) == resolves)
+  }
+
+  @Test(arguments: [
+    ("read_file", "found"),
+    ("write_file", "none"),
+  ])
+  func toolCallViewNamedRegistersOnlyItsNameInTheEnvironment(name: String, expected: String) {
+    let harness = Self.mount(
+      ToolCallRegistryReader(name: name)
+        .toolCallView(named: "read_file") { _ in marker("read") }
+    )
+    defer { harness.close() }
+    #expect(harness.element(identifier: ToolCallRegistryReader.identifier)?.label == expected)
   }
 
   // MARK: - Typed item modifiers

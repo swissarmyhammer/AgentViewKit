@@ -23,8 +23,24 @@ comments:
     - evidence: full `swift test` 2 runs after the change: 1295 tests in 114 suites passed each time, 0 warnings in the test output. The slowest ACP test took 1.9 and 1.5 seconds.
     - next: /review
   timestamp: 2026-10-05T21:09:50.578710+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m46ynk3g9ex7xfbtme21rgct
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b5244ea), 0 findings, 0 confirmed, 0 refuted. 2 files reviewed. 4 .kanban files not reviewed because of .reviewignore.
+    - next: none. The task is in done.
+  timestamp: 2026-10-05T21:14:14.000335+00:00
+- actor: claude-code
+  id: 01m46ynm8h8x44thm8jrkdsfss
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ACP test time limit back to 5 seconds; guard test ScriptedWireAgentBoundedTests (new); no stall found in this repository's code
+    - test: green — swift test, 1295 passed
+    - commit: b5244ea
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T21:14:15.185210+00:00
+position_column: done
+position_ordinal: e780
 title: Find the main-actor stall at the start of the full swift test run
 ---
 ## What

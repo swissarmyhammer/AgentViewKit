@@ -283,7 +283,7 @@ public struct ThreadMinimapView: View {
     case .userMessage: theme.accent
     case .assistantMessage: Color.primary
     case .reasoning: Color.secondary
-    case .toolCall(let record): colors.color(for: record.status)
+    case .toolCall(let record): colors.color(for: record.status.acpStatus)
     case .error: colors.failed
     case .unknown:
       Color.secondary.opacity(Self.quietTickOpacity)

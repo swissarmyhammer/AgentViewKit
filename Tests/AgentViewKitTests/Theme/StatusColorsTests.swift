@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -8,36 +9,36 @@ import Testing
     running: .blue, completed: .green, failed: .red, cancelled: .gray, pending: .yellow)
 
   @Test(arguments: [
-    (ToolCallStatus.pending, Color.yellow),
+    (FoundationModelsACP.ToolCallStatus.pending, Color.yellow),
     (.inProgress, .blue),
     (.completed, .green),
     (.failed, .red),
     (.cancelled, .gray),
-    (.lost, .red),
+    (.unknown("_lost"), .red),
     (.unknown("paused"), .yellow),
   ])
-  func eachToolCallStatusHasItsColor(status: ToolCallStatus, expected: Color) {
+  func eachToolCallStatusHasItsColor(status: FoundationModelsACP.ToolCallStatus, expected: Color) {
     #expect(Self.colors.color(for: status) == expected)
   }
 
   @Test(arguments: [
-    (PlanEntry.Status.pending, Color.yellow),
+    (AgentViewKit.PlanEntry.Status.pending, Color.yellow),
     (.inProgress, .blue),
     (.completed, .green),
     (.cancelled, .gray),
     (.unknown("paused"), .yellow),
   ])
-  func eachPlanEntryStatusHasItsColor(status: PlanEntry.Status, expected: Color) {
+  func eachPlanEntryStatusHasItsColor(status: AgentViewKit.PlanEntry.Status, expected: Color) {
     #expect(Self.colors.color(for: status) == expected)
   }
 
   @Test(arguments: [
-    (PlanEntry.Priority.high, Color.red),
+    (AgentViewKit.PlanEntry.Priority.high, Color.red),
     (.medium, .blue),
     (.low, .yellow),
     (.unknown("urgent"), .yellow),
   ])
-  func eachPlanEntryPriorityHasItsTint(priority: PlanEntry.Priority, expected: Color) {
+  func eachPlanEntryPriorityHasItsTint(priority: AgentViewKit.PlanEntry.Priority, expected: Color) {
     #expect(Self.colors.color(for: priority) == expected)
   }
 }

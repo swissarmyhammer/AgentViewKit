@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import SwiftUI
 
 /// The review chrome around a diff renderer (plan.md §4.1, §9 C, decision 12).
@@ -20,6 +21,10 @@ import SwiftUI
 /// The actions call host functions. When the initializer gets no function,
 /// the view uses the ``SwiftUI/EnvironmentValues/diffActions``. A button
 /// whose function is `nil` does not show.
+///
+/// A structured ACP diff with no `git_patch` text has no lines to render. The
+/// view then shows the file of each change with its operation, and a note.
+/// See ``init(diff:onAccept:onReject:onAttach:)``.
 public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of each file row.
   public static let identifierPrefix = "diff-file-"
@@ -29,6 +34,9 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
 
   /// The accessibility identifier of the "Attach to prompt" button.
   public static let attachIdentifier = "diff-attach"
+
+  /// The accessibility identifier of the note of a diff with no patch text.
+  public static let noPatchIdentifier = "diff-no-patch"
 
   /// The start of the accessibility identifier of each Accept button.
   static let acceptPrefix = "diff-accept-"
@@ -43,10 +51,10 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// is narrower, the file list goes on top.
   static let rendererMinWidth: CGFloat = 320
 
-  /// The patch text.
-  let patch: String
+  /// The patch text, or `nil` for a structured diff with no patch text.
+  let patch: String?
 
-  /// The files of the patch.
+  /// The files of the patch, or of the structured changes.
   let files: [DiffSummary.FileSummary]
 
   /// The actions of the initializer, or `nil` to use the environment.
@@ -78,12 +86,67 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     onReject: DiffActions.HunkAction? = nil,
     onAttach: DiffActions.AttachAction? = nil
   ) {
+    self.init(
+      patch: patch, files: DiffSummary.parse(gitPatch: patch),
+      actions: Self.ownActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach))
+  }
+
+  /// Makes the diff view of an ACP diff (update.md §9.4).
+  ///
+  /// A diff with `git_patch` text shows that patch, as
+  /// ``init(patch:onAccept:onReject:onAttach:)`` does. A diff with no
+  /// `git_patch` text shows the file of each structured change, with its
+  /// operation, and a note that the agent sent no patch text. See
+  /// ``DiffSummary/files(of:)``. Such a diff has no hunks, so it shows no
+  /// renderer and no action.
+  ///
+  /// - Parameters:
+  ///   - diff: The ACP diff.
+  ///   - onAccept: The function that accepts a hunk, or `nil`.
+  ///   - onReject: The function that rejects a hunk, or `nil`.
+  ///   - onAttach: The function that attaches lines to the prompt, or `nil`.
+  ///   When all three are `nil`, the view uses the actions of the
+  ///   environment.
+  public init(
+    diff: FoundationModelsACP.Diff,
+    onAccept: DiffActions.HunkAction? = nil,
+    onReject: DiffActions.HunkAction? = nil,
+    onAttach: DiffActions.AttachAction? = nil
+  ) {
+    let actions = Self.ownActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach)
+    if let patch = diff.patch, patch.format == .gitPatch {
+      self.init(patch: patch.text, files: DiffSummary.parse(gitPatch: patch.text), actions: actions)
+    } else {
+      self.init(patch: nil, files: DiffSummary.files(of: diff.changes), actions: actions)
+    }
+  }
+
+  /// Makes a diff view from its parts.
+  ///
+  /// - Parameters:
+  ///   - patch: The patch text, or `nil` for a diff with no patch text.
+  ///   - files: The files of the diff.
+  ///   - actions: The actions of the initializer, or `nil`.
+  private init(patch: String?, files: [DiffSummary.FileSummary], actions: DiffActions?) {
     self.patch = patch
-    files = DiffSummary.parse(gitPatch: patch)
-    let hasOwnActions = onAccept != nil || onReject != nil || onAttach != nil
-    ownActions =
-      hasOwnActions
-      ? DiffActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach) : nil
+    self.files = files
+    ownActions = actions
+  }
+
+  /// The actions of an initializer.
+  ///
+  /// - Parameters:
+  ///   - onAccept: The function that accepts a hunk, or `nil`.
+  ///   - onReject: The function that rejects a hunk, or `nil`.
+  ///   - onAttach: The function that attaches lines to the prompt, or `nil`.
+  /// - Returns: The actions, or `nil` when all three are `nil`.
+  private static func ownActions(
+    onAccept: DiffActions.HunkAction?,
+    onReject: DiffActions.HunkAction?,
+    onAttach: DiffActions.AttachAction?
+  ) -> DiffActions? {
+    guard onAccept != nil || onReject != nil || onAttach != nil else { return nil }
+    return DiffActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach)
   }
 
   // MARK: - Identifiers
@@ -114,6 +177,8 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     case .deleted: "minus.square"
     case .modified: "pencil"
     case .renamed: "arrow.right.square"
+    case .copied: "plus.square.on.square"
+    case .unknown: "questionmark.square"
     }
   }
 
@@ -170,10 +235,12 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
           .lineLimit(1)
           .truncationMode(.middle)
         Spacer(minLength: theme.spacing.s)
-        Text(verbatim: "+\(file.added)")
-          .foregroundStyle(theme.statusColors.completed)
-        Text(verbatim: "\u{2212}\(file.removed)")
-          .foregroundStyle(theme.statusColors.failed)
+        if patch != nil {
+          Text(verbatim: "+\(file.added)")
+            .foregroundStyle(theme.statusColors.completed)
+          Text(verbatim: "\u{2212}\(file.removed)")
+            .foregroundStyle(theme.statusColors.failed)
+        }
       }
       .font(.caption)
       .monospacedDigit()
@@ -186,13 +253,14 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     }
     .buttonStyle(.plain)
     .help(file.path)
-    .accessibilityLabel(file.accessibilityLabel)
+    .accessibilityLabel(patch == nil ? file.changeAccessibilityLabel : file.accessibilityLabel)
     .accessibilityValue(file.path)
     .accessibilityAddTraits(isSelected ? .isSelected : [])
     .accessibilityIdentifier(Self.identifier(for: file.path))
   }
 
-  /// The renderer, the hunk actions, and the attach button.
+  /// The renderer, the hunk actions, and the attach button, or the note of a
+  /// diff with no patch text.
   ///
   /// - Parameters:
   ///   - file: The selected file, or `nil` when the patch has no file.
@@ -200,32 +268,52 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// - Returns: The detail view.
   private func detail(file: DiffSummary.FileSummary?, actions: DiffActions) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
-      rendered(file: file)
-      if let file {
-        ForEach(Array(file.hunks.enumerated()), id: \.offset) { index, hunk in
-          hunkRow(hunk, index: index, file: file, actions: actions)
-        }
-        if let onAttach = actions.onAttach {
-          Button {
-            let lines = selection.lines.isEmpty ? file.changedLines : selection.lines
-            onAttach(DiffAttachment(file: file.path, lines: lines))
-          } label: {
-            Label(String(localized: "Attach to prompt"), systemImage: "paperclip")
+      if let patch {
+        rendered(patch: patch, file: file)
+        if let file {
+          ForEach(Array(file.hunks.enumerated()), id: \.offset) { index, hunk in
+            hunkRow(hunk, index: index, file: file, actions: actions)
           }
-          .accessibilityIdentifier(Self.attachIdentifier)
+          attachButton(file: file, actions: actions)
         }
+      } else {
+        Text("The agent sent no patch text for these changes.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .accessibilityIdentifier(Self.noPatchIdentifier)
       }
     }
     .environment(\.diffLineSelection, selection)
   }
 
+  /// The "Attach to prompt" button of the selected file.
+  ///
+  /// - Parameters:
+  ///   - file: The selected file.
+  ///   - actions: The host functions of the actions.
+  /// - Returns: The button, or no view when there is no attach action.
+  @ViewBuilder
+  private func attachButton(file: DiffSummary.FileSummary, actions: DiffActions) -> some View {
+    if let onAttach = actions.onAttach {
+      Button {
+        let lines = selection.lines.isEmpty ? file.changedLines : selection.lines
+        onAttach(DiffAttachment(file: file.path, lines: lines))
+      } label: {
+        Label(String(localized: "Attach to prompt"), systemImage: "paperclip")
+      }
+      .accessibilityIdentifier(Self.attachIdentifier)
+    }
+  }
+
   /// The renderer of the environment, or the EditorKit renderer when the
   /// environment has none, with the selected file.
   ///
-  /// - Parameter file: The selected file.
+  /// - Parameters:
+  ///   - patch: The patch text.
+  ///   - file: The selected file.
   /// - Returns: The rendered diff.
   @ViewBuilder
-  private func rendered(file: DiffSummary.FileSummary?) -> some View {
+  private func rendered(patch: String, file: DiffSummary.FileSummary?) -> some View {
     if let renderer {
       renderer(patch, file?.path)
     } else {

@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModelsACP
 import Observation
 
 /// A tool call and its result (plan.md §3.2).
@@ -145,6 +146,16 @@ public nonisolated enum ToolKind: WireValueEnum, Codable {
   }
 }
 
+nonisolated extension ToolKind {
+  /// The ACP kind with the same wire value.
+  ///
+  /// The views use the ACP kind (update.md §4.7). A record of the kit model
+  /// gives its kind to a view through this value.
+  var acpKind: FoundationModelsACP.ToolKind {
+    FoundationModelsACP.ToolKind(wireValue: wireValue)
+  }
+}
+
 /// The progress of a tool call (plan.md §3.2).
 ///
 /// The wire values are the ACP v2 `ToolCallStatus` strings. An ACP agent
@@ -189,6 +200,17 @@ public nonisolated enum ToolCallStatus: WireValueEnum, Codable {
     case .lost: "_lost"
     case .unknown(let wireValue): wireValue
     }
+  }
+}
+
+nonisolated extension ToolCallStatus {
+  /// The ACP status with the same wire value.
+  ///
+  /// The views use the ACP status (update.md §4.7). ``lost`` gives the ACP
+  /// value `unknown("_lost")`. A record of the kit model gives its status to
+  /// a view through this value.
+  var acpStatus: FoundationModelsACP.ToolCallStatus {
+    FoundationModelsACP.ToolCallStatus(wireValue: wireValue)
   }
 }
 

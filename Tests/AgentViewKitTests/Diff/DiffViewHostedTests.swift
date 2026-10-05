@@ -2,6 +2,7 @@
   import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
+  import FoundationModelsACP
   import SwiftUI
   import Testing
 
@@ -215,6 +216,38 @@
       #expect(harness.element(identifier: DiffView.acceptIdentifier(for: 0)) == nil)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
       #expect(harness.element(identifier: DiffView.attachIdentifier) == nil)
+    }
+
+    // MARK: - Structured diff
+
+    /// An ACP diff with one added file and no patch text.
+    static let structuredDiff = FoundationModelsACP.Diff(changes: [
+      DiffChange(operation: .add(DiffPathChange(path: AbsolutePath(rawValue: "/p/new.swift"))))
+    ])
+
+    @Test func aDiffWithNoPatchTextShowsTheFileOfEachChange() {
+      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(diff: Self.structuredDiff) }
+      defer { harness.close() }
+      harness.pump()
+
+      let file = harness.element(identifier: DiffView.identifier(for: "/p/new.swift"))
+      #expect(file?.label == "Added Swift file")
+      #expect(harness.element(identifier: DiffView.noPatchIdentifier) != nil)
+      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(harness.element(identifier: DiffView.attachIdentifier) == nil)
+    }
+
+    @Test func aDiffWithGitPatchTextShowsThePatch() {
+      let diff = FoundationModelsACP.Diff(
+        changes: [], patch: DiffPatch(format: .gitPatch, text: Self.patch))
+      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(diff: diff) }
+      defer { harness.close() }
+      harness.pump()
+
+      let first = harness.element(identifier: DiffView.identifier(for: Self.firstPath))
+      #expect(first?.label == "Swift diff, +2 \u{2212}1")
+      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(harness.element(identifier: DiffView.noPatchIdentifier) == nil)
     }
 
     @Test func environmentActionsReachADiffInAToolCall() throws {

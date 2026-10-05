@@ -50,7 +50,7 @@ import Testing
       let new = [Progress(id: "a", title: "Read file", status: status)]
       #expect(
         ThreadAccessibility.toolResultAnnouncements(old: old, new: new) == [
-          ToolCallView.accessibilityLabel(title: "Read file", status: status)
+          ToolCallView.accessibilityLabel(title: "Read file", status: status.acpStatus)
         ])
     }
   }

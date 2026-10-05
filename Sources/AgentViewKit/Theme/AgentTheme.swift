@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import SwiftUI
 
 /// The design tokens of the kit (plan.md §5, §11 decision 11).
@@ -115,16 +116,17 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     /// Each view that tints a tool call by its status uses this function, so
     /// that the views show the same color for the same status.
     ///
-    /// - Parameter status: The status of the tool call.
+    /// - Parameter status: The ACP status of the tool call.
     /// - Returns: ``running`` for a call that runs, ``completed`` for a
-    ///   completed call, ``failed`` for a failed or lost call, ``cancelled``
-    ///   for a cancelled call, and ``pending`` for a pending call or a status
-    ///   that the kit does not know.
-    public func color(for status: ToolCallStatus) -> Color {
+    ///   completed call, ``failed`` for a failed call or a call whose result
+    ///   is lost (``ToolStatusSymbol/lostWireValue``), ``cancelled`` for a
+    ///   cancelled call, and ``pending`` for a pending call or a status that
+    ///   the kit does not know.
+    public func color(for status: FoundationModelsACP.ToolCallStatus) -> Color {
       switch status {
       case .inProgress: running
       case .completed: completed
-      case .failed, .lost: failed
+      case .failed, .unknown(ToolStatusSymbol.lostWireValue): failed
       case .cancelled: cancelled
       case .pending, .unknown: pending
       }

@@ -91,7 +91,7 @@ public struct PendingRequestsHost: View {
         card(for: request.id.rawValue) { PermissionView(request: request) }
       }
       ForEach(thread.pendingElicitations) { request in
-        card(for: request.id.rawValue) { elicitationCard(request) }
+        card(for: request.id.rawValue) { ElicitationCard(request: request) }
       }
     }
     .padding(ids.isEmpty ? 0 : theme.spacing.m)
@@ -117,20 +117,5 @@ public struct PendingRequestsHost: View {
     return content()
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
-  }
-
-  /// The card of an elicitation request.
-  ///
-  /// - Parameter request: The request.
-  /// - Returns: An ``ElicitationView`` for a form mode request, or an
-  ///   ``ElicitationURLConsentView`` for a URL mode request.
-  @ViewBuilder
-  private func elicitationCard(_ request: ElicitationRequest) -> some View {
-    switch request.mode {
-    case .form:
-      ElicitationView(request: request)
-    case .url:
-      ElicitationURLConsentView(request: request)
-    }
   }
 }

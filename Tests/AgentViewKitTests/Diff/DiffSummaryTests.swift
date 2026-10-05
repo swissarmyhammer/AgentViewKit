@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import Testing
 
 @Suite struct DiffSummaryTests {
@@ -166,5 +167,48 @@ import Testing
     let file = DiffSummary.parse(gitPatch: Self.addPatch)[0]
 
     #expect(file.accessibilityLabel == "Python diff, +2 \u{2212}0")
+  }
+
+  // MARK: - Structured changes
+
+  /// An ACP absolute path.
+  ///
+  /// - Parameter path: The path text.
+  /// - Returns: The ACP path.
+  static func absolute(_ path: String) -> AbsolutePath {
+    AbsolutePath(rawValue: path)
+  }
+
+  /// The structured changes of an ACP diff, one of each known operation and
+  /// two of an unknown operation: one with a path and one with none.
+  static let structuredChanges: [DiffChange] = [
+    DiffChange(operation: .add(DiffPathChange(path: absolute("/p/new.swift")))),
+    DiffChange(operation: .delete(DiffPathChange(path: absolute("/p/old.md")))),
+    DiffChange(operation: .modify(DiffPathChange(path: absolute("/p/main.py")))),
+    DiffChange(operation: .move(DiffPathPairChange(oldPath: absolute("/p/a.rs"), path: absolute("/p/b.rs")))),
+    DiffChange(operation: .copy(DiffPathPairChange(oldPath: absolute("/p/c.go"), path: absolute("/p/d.go")))),
+    DiffChange(operation: .unknown("chmod", .object(["path": .string("/p/run.sh")]))),
+    DiffChange(operation: .unknown("chmod", .object([:]))),
+  ]
+
+  @Test func eachStructuredChangeGivesOneSummaryWithItsPathAndOperation() {
+    let files = DiffSummary.files(of: Self.structuredChanges)
+
+    #expect(files.map(\.path) == ["/p/new.swift", "/p/old.md", "/p/main.py", "/p/b.rs", "/p/d.go", "/p/run.sh"])
+    #expect(
+      files.map(\.operation) == [
+        .added, .deleted, .modified, .renamed(from: "/p/a.rs"), .copied(from: "/p/c.go"), .unknown("chmod"),
+      ])
+    #expect(files.allSatisfy { $0.hunks.isEmpty })
+  }
+
+  @Test func theChangeLabelHasTheOperationAndTheLanguage() {
+    let labels = DiffSummary.files(of: Self.structuredChanges).map(\.changeAccessibilityLabel)
+
+    #expect(
+      labels == [
+        "Added Swift file", "Deleted Markdown file", "Modified Python file", "Renamed Rust file",
+        "Copied Go file", "Changed Shell file",
+      ])
   }
 }

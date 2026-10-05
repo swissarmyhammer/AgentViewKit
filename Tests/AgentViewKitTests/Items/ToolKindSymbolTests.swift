@@ -1,15 +1,25 @@
 import AppKit
 import Foundation
+import FoundationModelsACP
 import Testing
 
 @testable import AgentViewKit
 
 @Suite @MainActor struct ToolKindSymbolTests {
-  /// Each kind, with one unknown kind.
-  nonisolated static let kinds = ToolKind.knownCases + [.unknown("custom_kind")]
+  /// The ACP wire value of a call whose result is lost.
+  nonisolated static let lostWireValue = "_lost"
 
-  /// Each status, with one unknown status.
-  nonisolated static let statuses = ToolCallStatus.knownCases + [.unknown("custom_status")]
+  /// Each ACP kind, with one unknown kind.
+  nonisolated static let kinds: [FoundationModelsACP.ToolKind] = [
+    .read, .edit, .delete, .move, .search, .execute, .think, .fetch, .switchMode, .other,
+    .unknown("custom_kind"),
+  ]
+
+  /// Each ACP status, with the lost status and one other unknown status.
+  nonisolated static let statuses: [FoundationModelsACP.ToolCallStatus] = [
+    .pending, .inProgress, .completed, .failed, .cancelled, .unknown(lostWireValue),
+    .unknown("custom_status"),
+  ]
 
   /// The start time of the duration tests.
   static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
@@ -22,13 +32,18 @@ import Testing
   }
 
   @Test(arguments: kinds)
-  func eachKindSymbolIsASystemSymbol(kind: ToolKind) {
+  func eachKindSymbolIsASystemSymbol(kind: FoundationModelsACP.ToolKind) {
     let name = ToolKindSymbol.name(for: kind)
     #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name)")
   }
 
   @Test func allUnknownKindsShareOneSymbol() {
     #expect(ToolKindSymbol.name(for: .unknown("a")) == ToolKindSymbol.name(for: .unknown("b")))
+  }
+
+  @Test func eachKitKindBridgesToTheACPKindWithTheSameWireValue() {
+    let kitKinds = AgentViewKit.ToolKind.knownCases + [.unknown("custom_kind")]
+    #expect(kitKinds.map(\.acpKind) == Self.kinds)
   }
 
   // MARK: - Statuses
@@ -41,19 +56,19 @@ import Testing
   }
 
   @Test(arguments: statuses)
-  func eachStatusSymbolIsASystemSymbol(status: ToolCallStatus) {
+  func eachStatusSymbolIsASystemSymbol(status: FoundationModelsACP.ToolCallStatus) {
     let name = ToolStatusSymbol.name(for: status)
     #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name)")
   }
 
   @Test func theStatusLabelsAreTheExpectedText() {
-    let expected: [(ToolCallStatus, String)] = [
+    let expected: [(FoundationModelsACP.ToolCallStatus, String)] = [
       (.pending, "Pending"),
       (.inProgress, "In progress"),
       (.completed, "Completed"),
       (.failed, "Failed"),
       (.cancelled, "Cancelled"),
-      (.lost, "Result lost"),
+      (.unknown(Self.lostWireValue), "Result lost"),
       (.unknown("custom_status"), "Unknown status: custom_status"),
     ]
     for (status, label) in expected {
@@ -61,8 +76,13 @@ import Testing
     }
   }
 
+  @Test func eachKitStatusBridgesToTheACPStatusWithTheSameWireValue() {
+    let kitStatuses = AgentViewKit.ToolCallStatus.knownCases + [.unknown("custom_status")]
+    #expect(kitStatuses.map(\.acpStatus) == Self.statuses)
+  }
+
   @Test func aToolCallAndAPlanEntryShareTheNameOfEachCommonStatus() {
-    let pairs: [(ToolCallStatus, PlanEntry.Status)] = [
+    let pairs: [(FoundationModelsACP.ToolCallStatus, AgentViewKit.PlanEntry.Status)] = [
       (.pending, .pending),
       (.inProgress, .inProgress),
       (.completed, .completed),
@@ -85,7 +105,9 @@ import Testing
     #expect(
       ToolCallView.accessibilityLabel(title: "Read README.md", status: .inProgress)
         == "Read README.md, In progress")
-    #expect(ToolCallView.accessibilityLabel(title: "", status: .lost) == "Tool call, Result lost")
+    #expect(
+      ToolCallView.accessibilityLabel(title: "", status: .unknown(Self.lostWireValue))
+        == "Tool call, Result lost")
   }
 
   @Test func theDurationNeedsBothTimes() {

@@ -10,8 +10,9 @@ import SwiftUI
 /// default view of the kind.
 ///
 /// A row of a `TranscriptEntry` switches over the entry case. A user message,
-/// an agent message and a thought show in ``UserMessageView``,
-/// ``AssistantMessageView`` and ``ReasoningView``. Each other entry kind shows
+/// an agent message, a thought and a tool call show in ``UserMessageView``,
+/// ``AssistantMessageView``, ``ReasoningView`` and ``ToolCallView``. Each
+/// other entry kind shows
 /// an ``UnknownItemView`` with the kind name until its own view binds it. The
 /// row itself reads nothing of the entry: the item view reads the content, so
 /// a streamed chunk evaluates the item view and not the row.
@@ -161,8 +162,9 @@ public struct ItemRow: View, Equatable {
 
   /// The view of a transcript entry.
   ///
-  /// A user message, an agent message and a thought show in their item
-  /// views, which read the entry object. Each other entry kind shows an
+  /// A user message, an agent message, a thought and a tool call show in
+  /// their item views, which read the entry object. Each other entry kind
+  /// shows an
   /// ``UnknownItemView`` with the kind name, until the view of that kind binds
   /// to its entry object.
   ///
@@ -176,7 +178,9 @@ public struct ItemRow: View, Equatable {
       AssistantMessageView(entry: message)
     case .thought(let thought):
       ReasoningView(entry: thought)
-    case .toolCall, .terminal, .plan, .unknown, .compaction, .error:
+    case .toolCall(let toolCall):
+      ToolCallView(entry: toolCall)
+    case .terminal, .plan, .unknown, .compaction, .error:
       UnknownItemView(kind: entry.kindName, raw: .null, id: entry.rowKey)
     }
   }

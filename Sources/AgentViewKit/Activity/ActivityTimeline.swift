@@ -515,7 +515,7 @@ private struct ActivityEntryRow: View {
       return Self.terminalSymbolName
     }
     switch item {
-    case .toolCall(let record): return ToolKindSymbol.name(for: record.kind)
+    case .toolCall(let record): return ToolKindSymbol.name(for: record.kind.acpKind)
     case .error(let record): return ErrorView.content(for: record.kind).symbolName
     default: return Self.reasoningSymbolName
     }
@@ -524,7 +524,7 @@ private struct ActivityEntryRow: View {
   /// The color of the symbol and the bar.
   private var tint: Color {
     switch item {
-    case .toolCall(let record): theme.statusColors.color(for: record.status)
+    case .toolCall(let record): theme.statusColors.color(for: record.status.acpStatus)
     case .error: theme.statusColors.failed
     default: Color.secondary
     }

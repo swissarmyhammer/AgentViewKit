@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -6,7 +7,7 @@ import UniformTypeIdentifiers
 /// A table of view functions, keyed by a value (plan.md §3.6).
 ///
 /// A registration for a key replaces the prior registration for the same
-/// key. Thus the last writer wins. The two keyed registries of the kit use
+/// key. Thus the last writer wins. The three keyed registries of the kit use
 /// this table.
 public struct KeyedViewRegistry<Key: Hashable & Sendable, Value>: Sendable {
   /// A function that makes the view of one value.
@@ -118,6 +119,30 @@ extension KeyedViewRegistry where Key == UTType, Value == URL {
   }
 }
 
+// MARK: - Tool call registry
+
+/// The body views of tool calls, keyed by the program name of the tool
+/// (update.md §5 `ToolCallUpdate.name`).
+///
+/// Register a view with ``SwiftUI/View/toolCallView(named:_:)``. The view
+/// function gets the `ToolCallEntry` of the call. ``ToolCallView`` shows the
+/// registered view in place of its default body, and keeps its row with the
+/// `title` as the label. A call with no name, or with a name that has no
+/// registration, shows the default body.
+public typealias ToolCallRegistry = KeyedViewRegistry<String, ToolCallEntry>
+
+extension KeyedViewRegistry where Key == String, Value == ToolCallEntry {
+  /// The view function of a tool name.
+  ///
+  /// - Parameter name: The program name of the tool, or `nil` for a call
+  ///   with no name.
+  /// - Returns: The innermost registration for `name`, or `nil` when `name`
+  ///   is `nil` or has no registration.
+  public func resolve(name: String?) -> Renderer? {
+    name.flatMap { renderer(for: $0) }
+  }
+}
+
 // MARK: - Environment
 
 extension EnvironmentValues {
@@ -126,6 +151,9 @@ extension EnvironmentValues {
 
   /// The attachment views that the attachment views read.
   @Entry public var attachmentRegistry = AttachmentRegistry()
+
+  /// The tool call body views that ``ToolCallView`` reads.
+  @Entry public var toolCallRegistry = ToolCallRegistry()
 }
 
 extension View {
@@ -154,5 +182,23 @@ extension View {
     @ViewBuilder _ content: @escaping @MainActor (URL) -> Content
   ) -> some View {
     register(in: \.attachmentRegistry, type, content)
+  }
+
+  /// Replaces the body of each tool call with the program name `name` in
+  /// this view.
+  ///
+  /// The row of the call stays: it shows the `title` of the call as its
+  /// label, with the kind symbol and the status. The registered view shows
+  /// when the call is expanded.
+  ///
+  /// - Parameters:
+  ///   - name: The program name of the tool, such as `read_file`.
+  ///   - content: The function that makes the body of a call.
+  /// - Returns: A view that gives the registration to its subtree.
+  public func toolCallView<Content: View>(
+    named name: String,
+    @ViewBuilder _ content: @escaping @MainActor (ToolCallEntry) -> Content
+  ) -> some View {
+    register(in: \.toolCallRegistry, name, content)
   }
 }

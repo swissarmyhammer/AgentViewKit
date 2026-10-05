@@ -1,3 +1,6 @@
+import FoundationModelsACP
+import FoundationModelsACPClient
+import OSLog
 import SwiftUI
 
 /// A function that gives the connection state of the server that a tool call
@@ -30,10 +33,15 @@ extension View {
   }
 }
 
-/// A tool call as a compact row that expands (plan.md §5, §9 C).
+/// A tool call as a compact row that expands (plan.md §5, §9 C; update.md
+/// §4.7 "Tool call view").
 ///
-/// The row shows the symbol of the ``ToolKind``, the title, the duration
-/// when the record has both times, and a status symbol:
+/// The view shows a ``ToolCallRecord`` of an ``AgentThread``, or a
+/// `ToolCallEntry` of a `SessionModel`. It uses the ACP kind and status
+/// types for both. See ``ToolKindSymbol`` and ``ToolStatusSymbol``.
+///
+/// The row shows the symbol of the kind, the `title` as the label, the
+/// duration when the record has both times, and a status symbol:
 ///
 /// - A pending or running call shows a `ProgressView` and a status symbol
 ///   with the variable color effect.
@@ -42,30 +50,41 @@ extension View {
 /// - A failed, cancelled, lost, or unknown call shows its own symbol and
 ///   label. See ``ToolStatusSymbol``.
 ///
-/// When the host gives a connection state for the call, the row also shows
+/// When the host gives a connection state for a record, the row also shows
 /// a ``ConnectionStatusChip``. See
 /// ``SwiftUI/View/toolCallConnectionState(_:)``.
 ///
 /// A press on the row expands the call. The expanded body shows the
 /// locations as path chips, the raw input and the raw output as JSON in a
-/// ``CodeBlockView``, and each ``ToolContent``:
+/// ``CodeBlockView``, and each part of the content:
 ///
 /// - A block shows through ``ContentBlockView``. The text of an `execute`
 ///   call that has no terminal shows through ``CommandOutputView``.
 /// - A diff shows through ``DiffView``, with the renderer of
 ///   ``SwiftUI/View/diffRenderer(_:)`` and the actions of
-///   ``SwiftUI/View/diffActions(_:)``.
+///   ``SwiftUI/View/diffActions(_:)``. A structured ACP diff with no
+///   `git_patch` text shows the file of each change.
 /// - A terminal shows through ``TerminalView``, with the record from the
 ///   ``SwiftUI/EnvironmentValues/agentThread``. A terminal that the thread
 ///   does not have shows a label with its id.
 /// - Unknown content shows through ``UnknownItemView``.
 ///
-/// The user decision is in the ``ExpandedBlocksStore`` of the environment,
-/// keyed by the record id. A call with no decision uses the
-/// ``ExpandedBlocksStore/defaultExpanded`` policy of the store. When the
-/// environment has no store, the view uses a store of its own.
+/// An entry whose `name` has a registration in the
+/// ``SwiftUI/EnvironmentValues/toolCallRegistry`` shows the registered view
+/// in place of the default body. See ``SwiftUI/View/toolCallView(named:_:)``.
 ///
-/// The row reads the status, and the body does not. Thus a status patch
+/// Under the row of an entry, the view shows a card for each pending
+/// elicitation of the ``SwiftUI/EnvironmentValues/sessionModel`` that is
+/// linked to the call (`ToolCallEntry.linkedElicitationIDs`). The cards show
+/// also while the call is collapsed, because they wait for the user.
+///
+/// The user decision is in the ``ExpandedBlocksStore`` of the environment,
+/// keyed by the record id or the row key of the entry. A record with no
+/// decision uses the ``ExpandedBlocksStore/defaultExpanded`` policy of the
+/// store, and an entry with no decision is collapsed. When the environment
+/// has no store, the view uses a store of its own.
+///
+/// The row reads the status, and the body does not. Thus a status change
 /// evaluates the row and not the expanded body.
 public struct ToolCallView: View {
   /// The start of the accessibility identifier of each call.
@@ -96,6 +115,13 @@ public struct ToolCallView: View {
   /// index.
   static let contentInfix = "-content-"
 
+  /// The end of the accessibility identifier of the linked elicitations.
+  static let elicitationsSuffix = "-elicitations"
+
+  /// The display name of the server of a linked elicitation. The agent asks
+  /// for the input, and a `SessionModel` does not know the agent name.
+  static let elicitationServer = String(localized: "The agent")
+
   /// The language of the code blocks that show the raw input and output.
   static let jsonLanguage = "json"
 
@@ -108,8 +134,8 @@ public struct ToolCallView: View {
   /// The number of seconds below which the duration shows one decimal.
   static let decimalDurationLimit: TimeInterval = 10
 
-  /// The record to show.
-  let record: ToolCallRecord
+  /// The tool call to show.
+  let source: ToolCallSource
 
   /// The store that the view uses when the environment has no store.
   @State private var ownStore = ExpandedBlocksStore()
@@ -123,14 +149,26 @@ public struct ToolCallView: View {
   ///
   /// - Parameter record: The tool call to show.
   public init(record: ToolCallRecord) {
-    self.record = record
+    self.source = .record(record)
+  }
+
+  /// Makes the tool call view of a tool call entry of a session transcript
+  /// (update.md §4.7).
+  ///
+  /// The view shows the `title` of the entry as its label. The identifiers
+  /// and the counter keys of the view use the row key of the entry. See
+  /// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey``.
+  ///
+  /// - Parameter entry: The tool call to show.
+  public init(entry: ToolCallEntry) {
+    self.source = .entry(entry)
   }
 
   // MARK: - Identifiers
 
   /// The accessibility identifier of the call of `id`.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The record id, or the row key of the entry.
   /// - Returns: `tool-call-<id>`.
   public static func identifier(for id: String) -> String {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
@@ -212,15 +250,26 @@ public struct ToolCallView: View {
     bodyCounterPrefix + id
   }
 
+  /// The accessibility identifier of the cards of the elicitations that are
+  /// linked to the call of `id`.
+  ///
+  /// - Parameter id: The row key of the entry.
+  /// - Returns: `tool-call-<id>-elicitations`.
+  public static func elicitationsIdentifier(for id: String) -> String {
+    suffixedIdentifier(for: id, suffix: elicitationsSuffix)
+  }
+
   // MARK: - Text
 
   /// The label that VoiceOver reads for a call.
   ///
   /// - Parameters:
   ///   - title: The title of the call.
-  ///   - status: The progress of the call.
+  ///   - status: The ACP progress of the call.
   /// - Returns: "<title>, <status>", such as "Read README.md, In progress".
-  public static func accessibilityLabel(title: String, status: ToolCallStatus) -> String {
+  public static func accessibilityLabel(
+    title: String, status: FoundationModelsACP.ToolCallStatus
+  ) -> String {
     String(localized: "\(displayTitle(title)), \(ToolStatusSymbol.label(for: status))")
   }
 
@@ -284,20 +333,24 @@ public struct ToolCallView: View {
   // MARK: - Body
 
   public var body: some View {
+    let id = source.id
     #if DEBUG
-      BodyEvaluationCounter.note(Self.rowCounterKey(for: record.id))
+      BodyEvaluationCounter.note(Self.rowCounterKey(for: id))
     #endif
     let store = environmentStore ?? ownStore
-    let expanded = isExpanded(in: store)
-    let label = Self.accessibilityLabel(title: record.title, status: record.status)
+    let expanded = source.isExpanded(in: store)
+    let label = Self.accessibilityLabel(title: source.title, status: source.status)
     return VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      header(store: store, expanded: expanded, label: label)
+      header(id: id, store: store, expanded: expanded, label: label)
+      if case .entry(let entry) = source {
+        LinkedElicitations(entry: entry)
+      }
       if expanded {
-        ToolCallBody(record: record)
-          .contentContainer(identifier: Self.bodyIdentifier(for: record.id))
+        ToolCallBody(source: source)
+          .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
     }
-    .contentContainer(identifier: Self.identifier(for: record.id))
+    .contentContainer(identifier: Self.identifier(for: id))
     .accessibilityLabel(label)
     // The row is a container with this call as its one child. The second
     // hidden child keeps SwiftUI from merging the call into the row, so the
@@ -305,24 +358,18 @@ public struct ToolCallView: View {
     .background { Color.clear.accessibilityHidden(true) }
   }
 
-  /// Tells if the call is expanded.
-  ///
-  /// - Parameter store: The store of the user decisions.
-  /// - Returns: The user decision, or the store policy when there is none.
-  private func isExpanded(in store: ExpandedBlocksStore) -> Bool {
-    store.decision(for: record.id) ?? store.defaultExpanded(.toolCall(record))
-  }
-
   /// The row: the button that expands the call, and the connection chip.
   ///
   /// - Parameters:
+  ///   - id: The text identity of the call.
   ///   - store: The store of the user decisions.
   ///   - expanded: `true` while the call is expanded.
   ///   - label: The label that VoiceOver reads for the call.
   /// - Returns: The row view.
-  private func header(store: ExpandedBlocksStore, expanded: Bool, label: String) -> some View {
-    let id = record.id
-    return HStack(spacing: theme.spacing.s) {
+  private func header(
+    id: String, store: ExpandedBlocksStore, expanded: Bool, label: String
+  ) -> some View {
+    HStack(spacing: theme.spacing.s) {
       Button {
         if expanded {
           store.collapse(id)
@@ -336,7 +383,7 @@ public struct ToolCallView: View {
       .accessibilityLabel(label)
       .accessibilityValue(expanded ? Text("Expanded") : Text("Collapsed"))
       .accessibilityIdentifier(Self.toggleIdentifier(for: id))
-      if let state = connectionState?(record) {
+      if case .record(let record) = source, let state = connectionState?(record) {
         ConnectionStatusChip(state: state)
       }
     }
@@ -348,15 +395,15 @@ public struct ToolCallView: View {
   /// - Returns: The content of the button.
   private func rowContent(expanded: Bool) -> some View {
     HStack(spacing: theme.spacing.s) {
-      Image(systemName: ToolKindSymbol.name(for: record.kind))
+      Image(systemName: ToolKindSymbol.name(for: source.kind))
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
-      Text(Self.displayTitle(record.title))
+      Text(Self.displayTitle(source.title))
         .font(theme.proseFont)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      if let duration = Self.durationText(from: record.startedAt, to: record.endedAt) {
+      if let duration = Self.durationText(from: source.startedAt, to: source.endedAt) {
         Text(duration)
           .font(.caption)
           .monospacedDigit()
@@ -373,7 +420,7 @@ public struct ToolCallView: View {
 
   /// The progress indicator and the status symbol.
   private var statusGlyph: some View {
-    let status = record.status
+    let status = source.status
     let isLive = ToolStatusSymbol.isLive(status)
     return HStack(spacing: theme.spacing.xs) {
       if isLive {
@@ -394,28 +441,48 @@ public struct ToolCallView: View {
 /// The expanded body of a ``ToolCallView``.
 ///
 /// The body reads the content, the locations, the raw input, the raw
-/// output, and the kind of the record. It does not read the status, so a
-/// status patch does not evaluate it.
+/// output, and the kind of the call. It does not read the status, so a
+/// status change does not evaluate it. An entry whose `name` has a
+/// registration in the ``SwiftUI/EnvironmentValues/toolCallRegistry`` shows
+/// the registered view in place of the default body.
 private struct ToolCallBody: View {
-  /// The record to show.
-  let record: ToolCallRecord
+  /// The tool call to show.
+  let source: ToolCallSource
 
+  @Environment(\.toolCallRegistry) private var registry
   @Environment(\.agentThread) private var thread
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
+    let id = source.id
     #if DEBUG
-      BodyEvaluationCounter.note(ToolCallView.bodyCounterKey(for: record.id))
+      BodyEvaluationCounter.note(ToolCallView.bodyCounterKey(for: id))
     #endif
-    let id = record.id
-    let parts = record.content
-    let showsCommandOutput = record.kind == .execute && !parts.contains(where: Self.isTerminal)
+    return Group {
+      if case .entry(let entry) = source, let renderer = registry.resolve(name: entry.name) {
+        renderer(entry)
+      } else {
+        defaultBody(id: id)
+      }
+    }
+    .padding(.leading, theme.spacing.l)
+  }
+
+  /// The default body: the locations, the raw input, each part of the
+  /// content, and the raw output.
+  ///
+  /// - Parameter id: The text identity of the call.
+  /// - Returns: The body view.
+  private func defaultBody(id: String) -> some View {
+    let parts = source.parts
+    let locations = source.locations
+    let showsCommandOutput = source.kind == .execute && !parts.contains(where: \.isTerminal)
     return VStack(alignment: .leading, spacing: theme.spacing.s) {
-      if !record.locations.isEmpty {
-        LocationChips(locations: record.locations)
+      if !locations.isEmpty {
+        LocationChips(locations: locations)
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
       }
-      if let rawInput = record.rawInput {
+      if let rawInput = source.rawInput {
         jsonBlock(rawInput, title: String(localized: "Input"))
           .contentContainer(identifier: ToolCallView.inputIdentifier(for: id))
       }
@@ -423,23 +490,11 @@ private struct ToolCallBody: View {
         partView(part, index: index, showsCommandOutput: showsCommandOutput)
           .contentContainer(identifier: ToolCallView.contentIdentifier(for: id, index: index))
       }
-      if let rawOutput = record.rawOutput {
+      if let rawOutput = source.rawOutput {
         jsonBlock(rawOutput, title: String(localized: "Output"))
           .contentContainer(identifier: ToolCallView.outputIdentifier(for: id))
       }
     }
-    .padding(.leading, theme.spacing.l)
-  }
-
-  /// Tells whether a part refers to a terminal.
-  ///
-  /// - Parameter part: A part of the content.
-  /// - Returns: `true` for ``ToolContent/terminal(id:)``.
-  private static func isTerminal(_ part: ToolContent) -> Bool {
-    if case .terminal = part {
-      return true
-    }
-    return false
   }
 
   /// A JSON value as a code block. The header shows the title.
@@ -461,20 +516,22 @@ private struct ToolCallBody: View {
   ///     ``CommandOutputView``.
   /// - Returns: The view of the part.
   @ViewBuilder
-  private func partView(_ part: ToolContent, index: Int, showsCommandOutput: Bool) -> some View {
-    let partID = ToolCallView.contentIdentifier(for: record.id, index: index)
+  private func partView(_ part: ToolCallPart, index: Int, showsCommandOutput: Bool) -> some View {
+    let partID = ToolCallView.contentIdentifier(for: source.id, index: index)
     switch part {
     case .block(let block):
       if showsCommandOutput, case .text(let text) = block.content {
         CommandOutputView(
-          command: ToolCallView.command(from: record.rawInput),
+          command: ToolCallView.command(from: source.rawInput),
           output: text,
-          exitCode: ToolCallView.exitCode(from: record.rawOutput))
+          exitCode: ToolCallView.exitCode(from: source.rawOutput))
       } else {
         ContentBlockView(block: block, id: partID)
       }
-    case .diff(let patch):
+    case .patch(let patch):
       DiffView(patch: patch)
+    case .diff(let diff):
+      DiffView(diff: diff)
     case .terminal(let terminalID):
       if let terminal = thread?.terminals[TerminalID(terminalID)] {
         TerminalView(record: terminal)
@@ -484,6 +541,58 @@ private struct ToolCallBody: View {
       }
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: partID)
+    }
+  }
+}
+
+/// The cards of the pending elicitations that are linked to a tool call entry
+/// (update.md §4.2 "Pending requests", §4.7 "Tool call view").
+///
+/// The view reads `ToolCallEntry.linkedElicitationIDs` and finds each one in
+/// the `pendingElicitations` of the ``SwiftUI/EnvironmentValues/sessionModel``.
+/// It shows one ``ElicitationCard`` for each, in link order. With no session
+/// model in the environment, or with no linked elicitation, it shows nothing.
+private struct LinkedElicitations: View {
+  /// The log of a link that the session model has no pending request for.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "ToolCallView")
+
+  /// The tool call entry.
+  let entry: ToolCallEntry
+
+  @Environment(\.sessionModel) private var session
+  @Environment(\.agentTheme) private var theme
+
+  var body: some View {
+    let requests = session.map { Self.requests(linkedTo: entry, in: $0) } ?? []
+    if !requests.isEmpty {
+      VStack(alignment: .leading, spacing: theme.spacing.s) {
+        ForEach(requests) { request in
+          ElicitationCard(request: request)
+        }
+      }
+      .contentContainer(identifier: ToolCallView.elicitationsIdentifier(for: entry.id.rowKey))
+    }
+  }
+
+  /// The kit requests of the pending elicitations that are linked to `entry`.
+  ///
+  /// The session model keeps each link only while its elicitation is
+  /// pending, so each link has a pending request. A link with no pending
+  /// request stops a debug build, and the log records it in a release build.
+  ///
+  /// - Parameters:
+  ///   - entry: The tool call entry.
+  ///   - session: The session model of the entry.
+  /// - Returns: The requests, in link order.
+  private static func requests(linkedTo entry: ToolCallEntry, in session: SessionModel) -> [ElicitationRequest] {
+    let pending = session.pendingElicitations
+    return entry.linkedElicitationIDs.compactMap { id in
+      guard let elicitation = pending.first(where: { $0.id == id }) else {
+        assertionFailure("The tool call links an elicitation that is not pending.")
+        logger.error("A tool call links an elicitation that is not pending. The row does not show it.")
+        return nil
+      }
+      return SessionUpdateMapping.elicitationRequest(elicitation, server: ToolCallView.elicitationServer)
     }
   }
 }

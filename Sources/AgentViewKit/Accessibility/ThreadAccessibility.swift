@@ -102,7 +102,7 @@ public enum ThreadAccessibility {
       guard let before = oldStatus[call.id], !hasResult(before), hasResult(call.status) else {
         return nil
       }
-      return ToolCallView.accessibilityLabel(title: call.title, status: call.status)
+      return ToolCallView.accessibilityLabel(title: call.title, status: call.status.acpStatus)
     }
   }
 

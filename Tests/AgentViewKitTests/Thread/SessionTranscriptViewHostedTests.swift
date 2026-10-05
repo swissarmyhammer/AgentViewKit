@@ -124,7 +124,7 @@
       #expect(Self.rowKeys(in: harness) == [firstEntry.id.rowKey])
     }
 
-    @Test func aToolCallEntryShowsTheUnknownItemViewWithItsKind() async throws {
+    @Test func aToolCallEntryShowsTheToolCallView() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
@@ -132,11 +132,12 @@
       defer { harness.close() }
 
       try await session.sendUpdate(
-        #"{"sessionUpdate":"tool_call_update","toolCallId":"placeholder-c","status":"pending","title":"Read"}"#)
+        #"{"sessionUpdate":"tool_call_update","toolCallId":"row-c","status":"pending","title":"Read"}"#)
       await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 1 }
 
-      let unknown = try #require(harness.element(identifier: UnknownItemView.identifier))
-      #expect(unknown.label?.contains("tool_call") == true, "\(String(describing: unknown.label))")
+      let key = try #require(session.model.transcript.first?.rowKey)
+      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == "Read, Pending")
+      #expect(harness.element(identifier: UnknownItemView.identifier) == nil)
     }
 
     @Test func theChunksOfOneMessageShowAsOneParagraph() async throws {
