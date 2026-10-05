@@ -34,7 +34,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   public static let errorIdentifier = "compaction-error"
 
   /// The SF Symbol name of the row.
-  static let symbolName = "arrow.down.right.and.arrow.up.left"
+  private static let symbolName = "arrow.down.right.and.arrow.up.left"
 
   /// The compaction entry to show.
   let entry: CompactionEntry
@@ -49,7 +49,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   }
 
   /// The title of each row.
-  static var title: String {
+  private static var title: String {
     String(localized: "Context compaction")
   }
 
@@ -59,7 +59,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// - Returns: The name of the status. The status of an entry with no
   ///   `compaction_update` gives "No status yet", and a status that the kit
   ///   does not know gives its wire value.
-  static func statusLabel(for status: Unstable.CompactionStatus) -> String {
+  private static func statusLabel(for status: Unstable.CompactionStatus) -> String {
     switch status {
     case .inProgress: WorkStatusLabel.inProgress
     case .completed: WorkStatusLabel.completed

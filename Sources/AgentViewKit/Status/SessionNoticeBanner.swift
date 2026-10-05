@@ -56,43 +56,6 @@ public struct SessionNoticeBanner: View {
     AccessibilityIdentifier.make(prefix: dismissIdentifierPrefix, value: id.uuidString)
   }
 
-  /// The name of a severity.
-  ///
-  /// - Parameter severity: The severity of a notice.
-  /// - Returns: The name of the severity. A severity that the kit does not
-  ///   know gives its wire value.
-  static func severityLabel(_ severity: Unstable.NoticeSeverity) -> String {
-    switch severity {
-    case .info: String(localized: "Information")
-    case .warning: String(localized: "Warning")
-    case .error: String(localized: "Error")
-    case .unknown(let wireValue): String(localized: "Unknown severity: \(wireValue)")
-    }
-  }
-
-  /// The SF Symbol name of a severity.
-  ///
-  /// - Parameter severity: The severity of a notice.
-  /// - Returns: The symbol name.
-  static func symbolName(for severity: Unstable.NoticeSeverity) -> String {
-    switch severity {
-    case .info, .unknown: "info.circle.fill"
-    case .warning: "exclamationmark.triangle.fill"
-    case .error: "xmark.octagon.fill"
-    }
-  }
-
-  /// The accessibility label of the banner of a notice.
-  ///
-  /// - Parameter notice: The notice.
-  /// - Returns: The severity, the title and the description, separated by
-  ///   commas. A notice with no description gives no description part.
-  static func label(for notice: SessionNotice) -> String {
-    [severityLabel(notice.severity), notice.title, notice.description]
-      .compactMap(\.self)
-      .joined(separator: ", ")
-  }
-
   public var body: some View {
     let notices = session.notices
     if !notices.isEmpty {
@@ -116,13 +79,50 @@ private struct NoticeBanner: View {
 
   @Environment(\.agentTheme) private var theme
 
+  /// The name of a severity.
+  ///
+  /// - Parameter severity: The severity of a notice.
+  /// - Returns: The name of the severity. A severity that the kit does not
+  ///   know gives its wire value.
+  private static func severityLabel(_ severity: Unstable.NoticeSeverity) -> String {
+    switch severity {
+    case .info: String(localized: "Information")
+    case .warning: String(localized: "Warning")
+    case .error: String(localized: "Error")
+    case .unknown(let wireValue): String(localized: "Unknown severity: \(wireValue)")
+    }
+  }
+
+  /// The SF Symbol name of a severity.
+  ///
+  /// - Parameter severity: The severity of a notice.
+  /// - Returns: The symbol name.
+  private static func symbolName(for severity: Unstable.NoticeSeverity) -> String {
+    switch severity {
+    case .info, .unknown: "info.circle.fill"
+    case .warning: "exclamationmark.triangle.fill"
+    case .error: "xmark.octagon.fill"
+    }
+  }
+
+  /// The accessibility label of the banner of a notice.
+  ///
+  /// - Parameter notice: The notice.
+  /// - Returns: The severity, the title and the description, separated by
+  ///   commas. A notice with no description gives no description part.
+  private static func label(for notice: SessionNotice) -> String {
+    [severityLabel(notice.severity), notice.title, notice.description]
+      .compactMap(\.self)
+      .joined(separator: ", ")
+  }
+
   var body: some View {
     HStack(alignment: .top, spacing: theme.spacing.m) {
-      Image(systemName: SessionNoticeBanner.symbolName(for: notice.severity))
+      Image(systemName: Self.symbolName(for: notice.severity))
         .symbolRenderingMode(.hierarchical)
         .foregroundStyle(theme.statusColors.color(for: notice.severity))
         .fontWeight(theme.symbolWeight)
-        .help(SessionNoticeBanner.severityLabel(notice.severity))
+        .help(Self.severityLabel(notice.severity))
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(notice.title)
@@ -136,7 +136,7 @@ private struct NoticeBanner: View {
       }
       // The text is the element of the banner, and the button is its sibling.
       .accessibilityElement(children: .ignore)
-      .accessibilityLabel(SessionNoticeBanner.label(for: notice))
+      .accessibilityLabel(Self.label(for: notice))
       .accessibilityIdentifier(SessionNoticeBanner.identifier(for: notice.id))
       Spacer(minLength: theme.spacing.s)
       Button(String(localized: "Dismiss"), systemImage: "xmark", action: dismiss)

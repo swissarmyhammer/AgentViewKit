@@ -30,6 +30,39 @@ comments:
     - evidence: Sources/AgentViewKit/Items/CompactionEntryView.swift (new), Sources/AgentViewKit/Status/SessionNoticeBanner.swift (new), Sources/AgentViewKit/Thread/ItemRow.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Thread/TranscriptEntryKind.swift, Sources/AgentViewKit/Theme/AgentTheme.swift, Tests/AgentViewKitTests/Items/CompactionAndNoticeHostedTests.swift (new), Tests/AgentViewKitTests/Theme/StatusColorsTests.swift; `swift test` 1324 tests passed.
     - next: /review
   timestamp: 2026-10-05T22:45:42.576537+00:00
+- actor: claude-code
+  id: 01m4749zkkvmc2r6hnj8ztnd4b
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — CompactionEntryView (new), SessionNoticeBanner (new), ItemRow, AgentThreadView, StatusColors for compaction status and notice severity
+    - test: green — swift test, 1324 passed
+    - commit: 800d5d3
+    - review: findings — Sources/AgentViewKit/Items/CompactionEntryView.swift:52, Sources/AgentViewKit/Items/CompactionEntryView.swift:62, Sources/AgentViewKit/Status/SessionNoticeBanner.swift:64, Sources/AgentViewKit/Status/SessionNoticeBanner.swift:77, Sources/AgentViewKit/Status/SessionNoticeBanner.swift:90
+  timestamp: 2026-10-05T22:52:45.043571+00:00
+- actor: claude-code
+  id: 01m474a24jq6djew785aryegpv
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (800d5d3); 5 findings, 5 confirmed, 1 refuted; all swift/access-control — CompactionEntryView.swift:52, CompactionEntryView.swift:62, SessionNoticeBanner.swift:64, SessionNoticeBanner.swift:77, SessionNoticeBanner.swift:90.
+    - note: SessionNoticeBanner.severityLabel, symbolName and label have callers in the separate struct NoticeBanner in the same file. Plain `private` on SessionNoticeBanner does not let NoticeBanner call them. The fix must give the narrowest scope that compiles (for example `fileprivate`, or move the helpers into NoticeBanner).
+    - next: /implement the findings on ^dva3erh
+  timestamp: 2026-10-05T22:52:47.634568+00:00
+- actor: claude-code
+  id: 01m474he7pp05628wdz2kvr089
+  text: |-
+    Review findings fixed (5 of 5, all swift/access-control).
+    - CompactionEntryView: `title` and `statusLabel(for:)` are now `private static`. The same cause was also on `symbolName`, which only the view uses, so it is also `private static` now.
+    - SessionNoticeBanner: `severityLabel(_:)`, `symbolName(for:)` and `label(for:)` had their only callers in the private struct `NoticeBanner`. They moved into `NoticeBanner` as `private static`, and the calls use `Self.`. This is a smaller scope than `fileprivate`.
+    - No test called these helpers. `CompactionAndNoticeHostedTests` already checks the results through the accessibility labels of the views ("Context compaction, Completed", "Warning, <title>, <description>"), so no test change was necessary.
+    - `swift build --build-tests`: build complete. Full `swift test`: 1324 tests in 117 suites passed. The only warning is the known mlx-swift SwiftPM warning "missing creator for mutated node".
+  timestamp: 2026-10-05T22:56:49.398802+00:00
+- actor: claude-code
+  id: 01m474hfetzb2crz15nxzvkm4h
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Items/CompactionEntryView.swift, Sources/AgentViewKit/Status/SessionNoticeBanner.swift; `swift build --build-tests` complete; `swift test` 1324 tests in 117 suites passed.
+    - next: /review
+  timestamp: 2026-10-05T22:56:50.650837+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
 position_column: doing
@@ -53,3 +86,16 @@ The built client model has two parts that update.md does not list: `CompactionEn
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-05 17:48)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Items/CompactionEntryView.swift:52` `swift/access-control` — Static helper `title` is only used internally within the view body (lines 104, 113) and should be marked `private` to make its scope explicit. Change `static var title` to `private static var title`.
+- [x] `Sources/AgentViewKit/Items/CompactionEntryView.swift:62` `swift/access-control` — Static helper function `statusLabel` is only used internally within the view body (line 96) and should be marked `private` to make its scope explicit. Change `static func statusLabel` to `private static func statusLabel`.
+- [x] `Sources/AgentViewKit/Status/SessionNoticeBanner.swift:64` `swift/access-control` — Static helper function `severityLabel` is only used internally within the view body (line 91 in banner's accessibility label) and should be marked `private` to make its scope explicit. Change `static func severityLabel` to `private static func severityLabel`.
+- [x] `Sources/AgentViewKit/Status/SessionNoticeBanner.swift:77` `swift/access-control` — Static helper function `symbolName` is only used internally within the view body (line 121) and should be marked `private` to make its scope explicit. Change `static func symbolName` to `private static func symbolName`.
+- [x] `Sources/AgentViewKit/Status/SessionNoticeBanner.swift:90` `swift/access-control` — Static helper function `label` is only used internally within the view body (line 139) and should be marked `private` to make its scope explicit. Change `static func label` to `private static func label`.
