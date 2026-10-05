@@ -95,10 +95,6 @@ import Testing
     let thread = AgentThread()
     let permission = ThreadFixtures.permissionRequest(id: "p")
     let elicitation = ThreadFixtures.formElicitationRequest(id: "e")
-    let authorization = AuthorizationRequest(
-      id: AuthorizationRequestID("z"), serverName: "GitHub", scopes: [],
-      authorizationURL: URL(string: "https://example.com")!)
-    thread.apply(.addAuthorization(authorization))
     thread.apply(.addElicitation(elicitation))
     thread.apply(.addPermission(permission))
 
@@ -106,7 +102,6 @@ import Testing
       ThreadAccessibility.pendingRequests(of: thread) == [
         Summary(id: "p", title: permission.title),
         Summary(id: "e", title: elicitation.message),
-        Summary(id: "z", title: "Connect GitHub"),
       ])
   }
 

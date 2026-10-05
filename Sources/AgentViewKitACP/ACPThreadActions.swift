@@ -56,10 +56,6 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 ///   the pending elicitation of the client.
 /// - ``setConfigOption(_:_:)`` sends `session/set_config_option` and puts the
 ///   full option list of the response on the thread.
-/// - ``connect(_:)`` moves the connection of the server through
-///   `authenticating`, opens the authorization URL, accepts the elicitation
-///   that `meta["elicitationId"]` names, and moves the connection to
-///   `connected`.
 /// - ``login(_:)`` sends `auth/login`. ``logout()`` sends `auth/logout`.
 /// - ``runTerminalAuth(_:)`` starts the agent program again with the extra
 ///   arguments and environment of the method, and shows the output in a
@@ -73,15 +69,6 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 /// A verb that does not throw writes a failure to the thread as an error
 /// record.
 public final class ACPThreadActions: AgentThreadActions {
-  /// The URL scheme of the callback when the request gives no scheme.
-  public static let defaultCallbackScheme = "agentviewkit"
-
-  /// The `meta` key of the elicitation id of an authorization request.
-  public static let elicitationIdMetaKey = "elicitationId"
-
-  /// The `meta` key of the callback scheme of an authorization request.
-  public static let callbackSchemeMetaKey = "callbackScheme"
-
   /// The text that ``writeTerminalLine(_:to:)`` adds after each line.
   static let lineTerminator = "\n"
 
@@ -115,15 +102,8 @@ public final class ACPThreadActions: AgentThreadActions {
   /// The id of the session of the thread.
   private let sessionId: SessionId
 
-  /// The presenter that opens each authorization URL.
-  private let presenter: AuthorizationPresenter
-
   /// The launcher that starts the terminal authentication process.
   private let processLauncher: any ProcessLauncher
-
-  /// The store of the server connections, or `nil` when the host shows no
-  /// connections.
-  private let connectionStore: ConnectionStore?
 
   /// The agent program that terminal authentication starts, or `nil`.
   private let agentProgram: ACPAgentProgram?
@@ -131,12 +111,6 @@ public final class ACPThreadActions: AgentThreadActions {
   /// The terminal authentication processes that run, keyed by the id of
   /// their terminal record.
   private var terminalProcesses: [TerminalID: any LaunchedProcess] = [:]
-
-  /// The URL scheme of the callback when the request gives no scheme.
-  private let callbackScheme: String
-
-  /// Whether the browser must not share cookies with other sessions.
-  private let ephemeral: Bool
 
   /// The number of error records that the actions wrote.
   private var errorCount = 0
@@ -151,38 +125,24 @@ public final class ACPThreadActions: AgentThreadActions {
   ///   - client: The client that holds the pending requests.
   ///   - connection: The connection that sends the requests to the agent.
   ///   - sessionId: The id of the session of the thread.
-  ///   - presenter: The presenter that opens each authorization URL.
   ///   - processLauncher: The launcher that starts the terminal
   ///     authentication process.
-  ///   - connectionStore: The store of the server connections.
   ///   - agentProgram: The agent program that terminal authentication
   ///     starts.
-  ///   - callbackScheme: The URL scheme of the callback when the request
-  ///     gives no scheme in `meta["callbackScheme"]`.
-  ///   - ephemeral: Whether the browser must not share cookies with other
-  ///     sessions.
   public init(
     thread: AgentThread,
     client: SwiftUIACPClient,
     connection: ClientSideConnection,
     sessionId: SessionId,
-    presenter: AuthorizationPresenter = AuthorizationPresenter(),
     processLauncher: any ProcessLauncher = AgentProcessLauncher(),
-    connectionStore: ConnectionStore? = nil,
-    agentProgram: ACPAgentProgram? = nil,
-    callbackScheme: String = ACPThreadActions.defaultCallbackScheme,
-    ephemeral: Bool = false
+    agentProgram: ACPAgentProgram? = nil
   ) {
     self.thread = thread
     self.client = client
     self.connection = connection
     self.sessionId = sessionId
-    self.presenter = presenter
     self.processLauncher = processLauncher
-    self.connectionStore = connectionStore
     self.agentProgram = agentProgram
-    self.callbackScheme = callbackScheme
-    self.ephemeral = ephemeral
   }
 
   // MARK: - Turn
@@ -260,31 +220,6 @@ public final class ACPThreadActions: AgentThreadActions {
 
   // MARK: - Authorization
 
-  public func connect(_ request: AuthorizationRequest) async throws {
-    let connectionID = ConnectionID(request.serverName)
-    connectionStore?.transition(connectionID, to: .authenticating)
-    let scheme = request.meta?[Self.callbackSchemeMetaKey]?.stringValue ?? callbackScheme
-    do {
-      _ = try await presenter.present(
-        url: request.authorizationURL, callbackScheme: scheme, ephemeral: ephemeral)
-    } catch AuthorizationPresenterError.cancelled {
-      connectionStore?.transition(connectionID, to: .needsAuth)
-      throw AuthorizationPresenterError.cancelled
-    } catch {
-      connectionStore?.transition(connectionID, to: .error(error.localizedDescription))
-      throw error
-    }
-    if let elicitationId = request.meta?[Self.elicitationIdMetaKey]?.stringValue {
-      if let id = pendingElicitationID(matching: elicitationId) {
-        client.acceptElicitation(id)
-      } else {
-        logger.error("No pending elicitation \(elicitationId, privacy: .public) for the connection.")
-      }
-    }
-    connectionStore?.transition(connectionID, to: .connected)
-    thread.apply(.resolveAuthorization(request.id))
-  }
-
   public func login(_ methodId: AuthMethodID) async throws {
     _ = try await connection.loginAuth(LoginAuthRequest(methodId: AuthMethodId(rawValue: methodId.rawValue)))
   }
@@ -361,12 +296,10 @@ public final class ACPThreadActions: AgentThreadActions {
   /// The search includes the elicitations with no session, because a
   /// connection can complete an elicitation of a request.
   ///
-  /// - Parameter id: The local id as a string, or the wire `elicitationId`
-  ///   of a URL elicitation.
+  /// - Parameter id: The local id as a string.
   /// - Returns: The local id, or `nil` when no pending elicitation matches.
   private func pendingElicitationID(matching id: String) -> UUID? {
-    let pending = client.pendingElicitations
-    return (pending.first { $0.id.uuidString == id } ?? pending.first { $0.elicitationId?.rawValue == id })?.id
+    client.pendingElicitations.first { $0.id.uuidString == id }?.id
   }
 
   /// Writes a failed verb to the log and to the thread as an error record.

@@ -320,22 +320,14 @@ import Testing
   @Test func theHostShowsOneCardForEachPendingRequest() {
     let thread = AgentThread()
     let elicitation = ThreadFixtures.formElicitationRequest(id: "elicitation-1")
-    let authorization = AuthorizationRequest(
-      id: AuthorizationRequestID("authorization-1"),
-      serverName: "GitHub",
-      scopes: ["repo"],
-      authorizationURL: URL(string: "https://github.com/login/oauth/authorize")!
-    )
     thread.apply(.addPermission(Self.request))
     thread.apply(.addElicitation(elicitation))
-    thread.apply(.addAuthorization(authorization))
     let harness = Self.mountHost(thread, reporter: RecordingFocusReporter())
     defer { harness.close() }
 
-    for id in [Self.requestID, "elicitation-1", "authorization-1"] {
+    for id in [Self.requestID, "elicitation-1"] {
       #expect(harness.element(identifier: PendingRequestsHost.identifier(for: id)) != nil)
     }
-    #expect(harness.element(identifier: AuthorizationView.identifier(for: authorization.id)) != nil)
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }
 

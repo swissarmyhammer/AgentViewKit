@@ -10,8 +10,6 @@ import SwiftUI
 /// 2. For each entry in ``AgentThread/pendingElicitations``, an
 ///    ``ElicitationView`` for a form mode request, or an
 ///    ``ElicitationURLConsentView`` for a URL mode request.
-/// 3. An ``AuthorizationView`` for each entry in
-///    ``AgentThread/pendingAuthorizations``.
 ///
 /// Each card is in a container with the identifier `pending-card-<id>`. The
 /// `ForEach` of each list gives each card the identity of its request, so
@@ -56,12 +54,11 @@ public struct PendingRequestsHost: View {
   /// of the cards.
   ///
   /// - Parameter thread: The thread.
-  /// - Returns: The identifiers of the permission, elicitation, and
-  ///   authorization requests.
+  /// - Returns: The identifiers of the permission requests, then of the
+  ///   elicitation requests.
   static func requestIDs(of thread: AgentThread) -> [String] {
     thread.pendingPermissions.map(\.id.rawValue)
       + thread.pendingElicitations.map(\.id.rawValue)
-      + thread.pendingAuthorizations.map(\.id.rawValue)
   }
 
   /// The accessibility identifier of the view that gets the focus after the
@@ -95,9 +92,6 @@ public struct PendingRequestsHost: View {
       }
       ForEach(thread.pendingElicitations) { request in
         card(for: request.id.rawValue) { elicitationCard(request) }
-      }
-      ForEach(thread.pendingAuthorizations) { request in
-        card(for: request.id.rawValue) { AuthorizationView(request: request) }
       }
     }
     .padding(ids.isEmpty ? 0 : theme.spacing.m)

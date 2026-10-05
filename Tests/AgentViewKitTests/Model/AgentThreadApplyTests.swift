@@ -61,13 +61,6 @@ import Testing
     mode: .url(URL(filePath: "/tmp"), elicitationId: "el-1")
   )
 
-  private static let authorization = AuthorizationRequest(
-    id: AuthorizationRequestID("auth-1"),
-    serverName: "github",
-    scopes: ["repo"],
-    authorizationURL: URL(filePath: "/tmp/auth")
-  )
-
   // MARK: - insert
 
   @Test func insertWithNoAnchorAppendsTheItem() {
@@ -349,7 +342,6 @@ import Testing
     thread.apply(.upsertTerminal(TerminalPatch(id: TerminalID("term-1"))))
     thread.apply(.addPermission(Self.permission))
     thread.apply(.addElicitation(Self.elicitation))
-    thread.apply(.addAuthorization(Self.authorization))
     thread.apply(.appendStreaming(id: "a", text: "x"))
     thread.apply(.setState(.running))
 
@@ -361,7 +353,6 @@ import Testing
     #expect(thread.terminals.isEmpty)
     #expect(thread.pendingPermissions.isEmpty)
     #expect(thread.pendingElicitations.isEmpty)
-    #expect(thread.pendingAuthorizations.isEmpty)
     #expect(thread.streaming.isEmpty)
     #expect(thread.state == .running)
   }
@@ -398,15 +389,6 @@ import Testing
     thread.apply(.setPlan(second))
 
     #expect(thread.plans == [PlanID("p1"): second])
-  }
-
-  @Test func removePlanTakesOutThePlan() {
-    let thread = AgentThread()
-    thread.apply(.setPlan(Plan(id: PlanID("p1"), entries: [])))
-
-    thread.apply(.removePlan(PlanID("p1")))
-
-    #expect(thread.plans.isEmpty)
   }
 
   @Test func upsertTerminalCreatesARecordOnFirstSight() throws {
@@ -542,23 +524,6 @@ import Testing
     thread.apply(.resolveElicitation(Self.elicitation.id))
 
     #expect(thread.pendingElicitations.isEmpty)
-  }
-
-  @Test func addAuthorizationAppendsTheRequest() {
-    let thread = AgentThread()
-
-    thread.apply(.addAuthorization(Self.authorization))
-
-    #expect(thread.pendingAuthorizations == [Self.authorization])
-  }
-
-  @Test func resolveAuthorizationRemovesTheRequest() {
-    let thread = AgentThread()
-    thread.apply(.addAuthorization(Self.authorization))
-
-    thread.apply(.resolveAuthorization(Self.authorization.id))
-
-    #expect(thread.pendingAuthorizations.isEmpty)
   }
 
   // MARK: - Streaming

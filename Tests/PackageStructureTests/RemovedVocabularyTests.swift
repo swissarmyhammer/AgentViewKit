@@ -44,6 +44,9 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "StructuredItemContent", "StructuredItemRegistry", "RegisteredStructuredView",
     "structuredItem", "structuredItemRegistry", "structuredItemView", "structuredItemViewOverride",
     "ApprovalPayload", "PlanPayload", "UsagePayload",
+    // The authorization request of the thread, and the plan removal.
+    "AuthorizationPayload", "AuthorizationRequest", "AuthorizationRequestID", "AuthorizationView",
+    "addAuthorization", "pendingAuthorizations", "resolveAuthorization", "removePlan",
   ]
 
   /// Finds each use of a removed symbol on one line of a Swift file.
@@ -62,6 +65,10 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   ///
   /// A `Regex` is not `Sendable`, so each call makes the value again.
   ///
+  /// The pattern uses simple word boundaries. The default boundaries follow
+  /// Unicode word segmentation, which does not break at a `.` between two
+  /// letters. Thus `thread.pendingAuthorizations` would not match.
+  ///
   /// - Parameter symbol: The symbol.
   /// - Returns: The pattern.
   static func wholeWord(_ symbol: String) -> Regex<Substring> {
@@ -70,6 +77,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
       symbol
       Anchor.wordBoundary
     }
+    .wordBoundaryKind(.simple)
   }
 
   @Test func usesFindsAWholeWordOnItsLine() {
@@ -80,6 +88,14 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     }
 
     #expect(found == [RemovedSymbolUse(file: "A.swift", line: 2, symbol: "addBranch")])
+  }
+
+  @Test func usesFindsAWordAfterAMemberDot() {
+    let line = SourceLine(file: "A.swift", number: 1, text: "thread.pendingAuthorizations.map(\\.id)")
+
+    let found = Self.uses(of: ["pendingAuthorizations"], on: line)
+
+    #expect(found == [RemovedSymbolUse(file: "A.swift", line: 1, symbol: "pendingAuthorizations")])
   }
 
   @Test func usesSkipsALongerWord() {

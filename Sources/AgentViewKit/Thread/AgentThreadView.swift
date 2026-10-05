@@ -8,7 +8,7 @@ import SwiftUI
 /// record.
 ///
 /// Below the conversation, a ``PendingRequestsHost`` shows one card for each
-/// pending permission, elicitation, and authorization request of the thread.
+/// pending permission request and elicitation request of the thread.
 ///
 /// The host gives the ``AgentThreadActions`` in the initializer. There is no
 /// default, because actions that do nothing are a quiet failure. The view

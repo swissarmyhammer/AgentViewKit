@@ -30,10 +30,26 @@ comments:
     - evidence: `swift test` (1168 tests; 2 count failures in ThreadItemTests fixed, then `swift test --filter ThreadItemTests` passed), `swift test --filter 'RemovedVocabularyTests|SourcesViewHostedTests|CitationProseTests'` passed, `Scripts/check-readme.sh` passed, `Scripts/test-examples.sh AgentViewKitDemo` passed (TEST SUCCEEDED). No warnings.
     - next: /review
   timestamp: 2026-10-05T15:13:58.180747+00:00
+- actor: claude-code
+  id: 01m46ag3zqd24pqdpe8bjxege2
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit fff2032). 48 files reviewed, 0 findings, 0 confirmed, 0 refuted, 21 validator runs, 0 failed. Some code-hygiene Swift rules did not examine 12 files, because the commit deleted those files.
+    - next: the task is in done.
+  timestamp: 2026-10-05T15:21:43.159024+00:00
+- actor: claude-code
+  id: 01m46ag5efxpqjpcek5nydcnxq
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — removed the structured item, StructuredItemView, the structured registry and the schemaName catalog; moved CitationPayload and ArtifactPayload; ResponseView citations parameter; 53 files
+    - test: green — swift test, 1362 passed; README and demo UI gates passed
+    - commit: fff2032
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T15:21:44.655160+00:00
 depends_on:
 - 01M443KJWH20B6MFWXZWFXQJ6G
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: dd80
 title: Remove the structured item and the schemaName catalog
 ---
 ## What

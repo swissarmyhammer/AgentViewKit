@@ -41,12 +41,6 @@ public protocol AgentThreadActions: AnyObject {
   ///   - value: The new value.
   func setConfigOption(_ id: ConfigOptionID, _ value: ConfigValue) async
 
-  /// Starts the OAuth handoff for an MCP server (plan.md §12).
-  ///
-  /// - Parameter request: The authorization request.
-  /// - Throws: The error of the handoff.
-  func connect(_ request: AuthorizationRequest) async throws
-
   /// Sends ACP `auth/login` for an agent method (plan.md §12).
   ///
   /// - Parameter methodId: The identifier of the agent method.
@@ -110,10 +104,6 @@ public final class LoggingThreadActions: AgentThreadActions {
 
   public func setConfigOption(_ id: ConfigOptionID, _ value: ConfigValue) async {
     log("setConfigOption")
-  }
-
-  public func connect(_ request: AuthorizationRequest) async throws {
-    log("connect")
   }
 
   public func login(_ methodId: AuthMethodID) async throws {

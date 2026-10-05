@@ -12,7 +12,6 @@ struct NoopThreadActionsTests {
   struct ScriptedError: Error, Equatable {}
 
   static let fileURL = URL(fileURLWithPath: "/tmp/notes.txt")
-  static let authorizationURL = URL(string: "https://auth.example.com/authorize")!
 
   // MARK: - Verbs
 
@@ -61,19 +60,6 @@ struct NoopThreadActionsTests {
     await actions.setConfigOption(id, value)
 
     #expect(actions.calls == [.setConfigOption(id, value)])
-  }
-
-  @Test func connectRecordsTheRequest() async throws {
-    let actions = NoopThreadActions()
-    let request = AuthorizationRequest(
-      id: AuthorizationRequestID("auth-1"),
-      serverName: "Files",
-      authorizationURL: Self.authorizationURL
-    )
-
-    try await actions.connect(request)
-
-    #expect(actions.calls == [.connect(request)])
   }
 
   @Test func loginRecordsTheMethodId() async throws {
@@ -181,12 +167,6 @@ struct NoopThreadActionsTests {
 
     await actions.send(UserInput(text: "Hello"))
     await actions.cancel()
-    try await actions.connect(
-      AuthorizationRequest(
-        id: AuthorizationRequestID("auth-1"),
-        serverName: "Files",
-        authorizationURL: Self.authorizationURL
-      ))
     try await actions.login(AuthMethodID("oauth"))
     try await actions.logout()
   }

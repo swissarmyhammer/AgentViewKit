@@ -1,6 +1,5 @@
 import AgentViewKit
 import AgentViewKitTestSupport
-import AuthenticationServices
 import DemoSupport
 import Foundation
 import FoundationModelsACP
@@ -47,46 +46,12 @@ private let formElicitationParams = #"""
    "requestedSchema": {"type": "object", "properties": {"name": {"type": "string"}}}}
   """#
 
-/// A URL elicitation of the session with the wire id `e1`.
-private let urlElicitationParams = #"""
-  {"sessionId": "s1", "message": "Sign in", "mode": "url",
-   "url": "https://example.com/auth", "elicitationId": "e1"}
-  """#
-
 /// The response of `session/set_config_option`.
 private let configOptionsResult = #"""
   {"configOptions": [{"configId": "mode", "name": "Mode", "type": "select", "currentValue": "code",
                       "options": [{"value": "plan", "name": "Plan"}, {"value": "code", "name": "Code"}]},
                      {"configId": "web", "name": "Web", "type": "boolean", "currentValue": true}]}
   """#
-
-/// A web authentication factory that records the connection state when
-/// each session is made. It makes the sessions with a
-/// ``FakeWebAuthSession``.
-private final class StateRecordingFactory: WebAuthSessionFactory {
-  /// The factory that makes the sessions.
-  let fake: FakeWebAuthSession
-
-  /// The store to read.
-  let store: ConnectionStore
-
-  /// The connection to read.
-  let connectionID: ConnectionID
-
-  /// The state of the connection when each session was made.
-  private(set) var states: [AgentViewKit.ConnectionState?] = []
-
-  init(fake: FakeWebAuthSession, store: ConnectionStore, connectionID: ConnectionID) {
-    self.fake = fake
-    self.store = store
-    self.connectionID = connectionID
-  }
-
-  func makeSession(url: URL, callbackScheme: String) -> any WebAuthSession {
-    states.append(store.connection(connectionID)?.state)
-    return fake.makeSession(url: url, callbackScheme: callbackScheme)
-  }
-}
 
 /// The objects of one test: the client, the scripted agent, and the actions.
 private struct Harness {
@@ -97,9 +62,7 @@ private struct Harness {
 
   /// Connects a client to a scripted agent and makes the actions.
   init(
-    presenter: AuthorizationPresenter = AuthorizationPresenter(factory: FakeWebAuthSession(script: .cancelled)),
     launcher: FakeProcessLauncher = FakeProcessLauncher(),
-    store: ConnectionStore? = nil,
     agentProgram: ACPAgentProgram? = ACPAgentProgram(path: agentPath, arguments: ["acp"])
   ) async {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
@@ -111,9 +74,7 @@ private struct Harness {
       client: client,
       connection: connection,
       sessionId: SessionId(rawValue: sessionID),
-      presenter: presenter,
       processLauncher: launcher,
-      connectionStore: store,
       agentProgram: agentProgram
     )
   }
@@ -439,77 +400,6 @@ private struct Harness {
       try await harness.actions.writeTerminalLine("yes", to: terminalID)
     }
     #expect(launcher.calls.isEmpty)
-  }
-
-  // MARK: - Connect
-
-  /// A store with one connection that needs authorization.
-  private func makeStore() -> ConnectionStore {
-    ConnectionStore(connections: [Connection(id: ConnectionID("github"), name: "GitHub", state: .needsAuth)])
-  }
-
-  /// An authorization request for the `github` server with `meta`.
-  private func authorizationRequest(meta: AgentViewKit.JSONValue?) -> AuthorizationRequest {
-    AuthorizationRequest(
-      id: AuthorizationRequestID("auth-1"), serverName: "github",
-      authorizationURL: URL(string: "https://example.com/authorize")!, meta: meta)
-  }
-
-  @Test func connectMovesThroughAuthenticatingAndAcceptsTheElicitation() async throws {
-    let store = makeStore()
-    let fake = FakeWebAuthSession(script: .callback(URL(string: "agentviewkit://done")!))
-    let factory = StateRecordingFactory(fake: fake, store: store, connectionID: ConnectionID("github"))
-    let harness = await Harness(presenter: AuthorizationPresenter(factory: factory), store: store)
-    defer { harness.agent.stop() }
-    _ = try await pendingElicitation(harness, params: urlElicitationParams)
-    let request = authorizationRequest(meta: .object(["elicitationId": .string("e1")]))
-    harness.thread.apply(.addAuthorization(request))
-
-    try await harness.bounded { try await harness.actions.connect(request) }
-
-    #expect(factory.states == [.authenticating])
-    #expect(fake.calls.first == .makeSession(url: request.authorizationURL, callbackScheme: "agentviewkit"))
-    #expect(store.connection(ConnectionID("github"))?.state == .connected)
-    #expect(harness.thread.pendingAuthorizations.isEmpty)
-    #expect(await waitUntil { harness.agent.response(to: agentRequestID) != nil })
-    let response = try #require(harness.agent.response(to: agentRequestID))
-    #expect(response["result"] == (try json(#"{"action": "accept"}"#)))
-    #expect(harness.client.pendingElicitations.isEmpty)
-  }
-
-  @Test func connectUsesTheCallbackSchemeOfTheMeta() async throws {
-    let fake = FakeWebAuthSession(script: .callback(URL(string: "custom://done")!))
-    let harness = await Harness(presenter: AuthorizationPresenter(factory: fake))
-    defer { harness.agent.stop() }
-    let request = authorizationRequest(meta: .object(["callbackScheme": .string("custom")]))
-
-    try await harness.bounded { try await harness.actions.connect(request) }
-
-    #expect(fake.calls.first == .makeSession(url: request.authorizationURL, callbackScheme: "custom"))
-  }
-
-  @Test func connectThatFailsMovesToErrorAndThrows() async throws {
-    let store = makeStore()
-    let fake = FakeWebAuthSession(script: .failsToStart)
-    let harness = await Harness(presenter: AuthorizationPresenter(factory: fake), store: store)
-    defer { harness.agent.stop() }
-
-    await #expect(throws: AuthorizationPresenterError.failedToStart) {
-      try await harness.bounded { try await harness.actions.connect(authorizationRequest(meta: nil)) }
-    }
-    #expect(store.connection(ConnectionID("github"))?.state.kind == .error)
-  }
-
-  @Test func connectThatTheUserCancelsMovesBackToNeedsAuth() async throws {
-    let store = makeStore()
-    let fake = FakeWebAuthSession(script: .cancelled)
-    let harness = await Harness(presenter: AuthorizationPresenter(factory: fake), store: store)
-    defer { harness.agent.stop() }
-
-    await #expect(throws: AuthorizationPresenterError.cancelled) {
-      try await harness.bounded { try await harness.actions.connect(authorizationRequest(meta: nil)) }
-    }
-    #expect(store.connection(ConnectionID("github"))?.state == .needsAuth)
   }
 }
 

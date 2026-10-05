@@ -43,9 +43,6 @@ public enum ThreadChange {
   /// Puts the plan in ``AgentThread/plans``, keyed by its id.
   case setPlan(Plan)
 
-  /// Removes the plan with the id.
-  case removePlan(PlanID)
-
   /// Changes the terminal with the id of the patch, or makes it.
   case upsertTerminal(TerminalPatch)
 
@@ -72,12 +69,6 @@ public enum ThreadChange {
 
   /// Removes the elicitation request with the id.
   case resolveElicitation(ElicitationRequestID)
-
-  /// Adds an authorization request. A request with the same id is replaced.
-  case addAuthorization(AuthorizationRequest)
-
-  /// Removes the authorization request with the id.
-  case resolveAuthorization(AuthorizationRequestID)
 
   /// Adds text to the streaming message of the record with the id.
   ///

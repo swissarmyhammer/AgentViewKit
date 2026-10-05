@@ -247,7 +247,6 @@ public final class ACPDemoSession {
       client: client,
       connection: connection,
       sessionId: wireID,
-      connectionStore: connectionStore,
       agentProgram: agentProgram
     )
     self.thread = thread

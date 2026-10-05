@@ -18,8 +18,6 @@ public final class NoopThreadActions: AgentThreadActions {
     case respondToElicitation(ElicitationRequest, ElicitationResult)
     /// ``AgentThreadActions/setConfigOption(_:_:)`` was called.
     case setConfigOption(ConfigOptionID, ConfigValue)
-    /// ``AgentThreadActions/connect(_:)`` was called.
-    case connect(AuthorizationRequest)
     /// ``AgentThreadActions/login(_:)`` was called.
     case login(AuthMethodID)
     /// ``AgentThreadActions/runTerminalAuth(_:)`` was called.
@@ -54,9 +52,6 @@ public final class NoopThreadActions: AgentThreadActions {
 
   /// Runs after ``setConfigOption(_:_:)``.
   public var onSetConfigOption: Handler<(ConfigOptionID, ConfigValue)>?
-
-  /// Runs after ``connect(_:)``.
-  public var onConnect: ThrowingHandler<AuthorizationRequest>?
 
   /// Runs after ``login(_:)``.
   public var onLogin: ThrowingHandler<AuthMethodID>?
@@ -101,11 +96,6 @@ public final class NoopThreadActions: AgentThreadActions {
   public func setConfigOption(_ id: ConfigOptionID, _ value: ConfigValue) async {
     calls.append(.setConfigOption(id, value))
     await onSetConfigOption?((id, value))
-  }
-
-  public func connect(_ request: AuthorizationRequest) async throws {
-    calls.append(.connect(request))
-    try await onConnect?(request)
   }
 
   public func login(_ methodId: AuthMethodID) async throws {

@@ -41,9 +41,6 @@ public final class AgentThread {
   /// The elicitation requests that wait for the user, in order.
   public private(set) var pendingElicitations: [ElicitationRequest] = []
 
-  /// The authorization requests that wait for the user, in order.
-  public private(set) var pendingAuthorizations: [AuthorizationRequest] = []
-
   /// The messages that still stream, keyed by record id.
   ///
   /// A source sends each chunk with ``ThreadChange/appendStreaming(id:text:)``
@@ -111,7 +108,6 @@ public final class AgentThread {
     case .clear: clear()
     case .setState(let state): self.state = state
     case .setPlan(let plan): plans[plan.id] = plan
-    case .removePlan(let id): plans[id] = nil
     case .upsertTerminal(let patch): upsertTerminal(patch)
     case .setConfigOptions(let options): configOptions = options
     case .setAvailableCommands(let commands): availableCommands = commands
@@ -121,8 +117,6 @@ public final class AgentThread {
     case .resolvePermission(let id): pendingPermissions.removeAll(id: id)
     case .addElicitation(let request): pendingElicitations.upsert(request)
     case .resolveElicitation(let id): pendingElicitations.removeAll(id: id)
-    case .addAuthorization(let request): pendingAuthorizations.upsert(request)
-    case .resolveAuthorization(let id): pendingAuthorizations.removeAll(id: id)
     case .appendStreaming(let id, let text): appendStreaming(id: id, text: text)
     case .closeStreaming(let id): closeStreaming(id: id)
     }
@@ -188,7 +182,6 @@ public final class AgentThread {
     terminals = [:]
     pendingPermissions = []
     pendingElicitations = []
-    pendingAuthorizations = []
     streaming = [:]
     noteLastItem()
   }

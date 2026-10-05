@@ -111,16 +111,16 @@ import Testing
     #expect(BodyEvaluationCounter.count(stateKey) == 1)
   }
 
-  @Test func removingAPlanShowsTheEmptyState() async {
+  @Test func clearingTheThreadShowsTheEmptyState() async {
     let thread = AgentThread()
-    let plan = Self.fourEntryPlan(id: "remove")
+    let plan = Self.fourEntryPlan(id: "clear")
     thread.apply(.setPlan(plan))
     let harness = HostedViewHarness(ThreadTaskList(thread: thread), size: Self.listSize)
     defer { harness.close() }
     harness.pump()
     #expect(harness.element(identifier: TaskListView.emptyIdentifier) == nil)
 
-    thread.apply(.removePlan(plan.id))
+    thread.apply(.clear)
     await harness.pump(until: Self.updateWaitSeconds) {
       harness.element(identifier: TaskListView.emptyIdentifier) != nil
     }

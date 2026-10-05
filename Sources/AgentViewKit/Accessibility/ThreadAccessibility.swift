@@ -128,16 +128,12 @@ public enum ThreadAccessibility {
   /// cards of ``PendingRequestsHost``.
   ///
   /// - Parameter thread: The thread.
-  /// - Returns: The permission title, the elicitation message, or the
-  ///   server name of each request.
+  /// - Returns: The permission title or the elicitation message of each
+  ///   request.
   public static func pendingRequests(of thread: AgentThread) -> [PendingRequestSummary] {
     thread.pendingPermissions.map { PendingRequestSummary(id: $0.id.rawValue, title: $0.title) }
       + thread.pendingElicitations.map {
         PendingRequestSummary(id: $0.id.rawValue, title: $0.message)
-      }
-      + thread.pendingAuthorizations.map {
-        PendingRequestSummary(
-          id: $0.id.rawValue, title: String(localized: "Connect \($0.serverName)"))
       }
   }
 

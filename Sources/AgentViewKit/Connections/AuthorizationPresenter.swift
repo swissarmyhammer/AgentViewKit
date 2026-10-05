@@ -20,7 +20,8 @@ public enum AuthorizationPresenterError: Error, Equatable, Sendable {
 /// PKCE, the token exchange, and token storage are the work of the runtime.
 ///
 /// Call ``present(url:callbackScheme:ephemeral:)`` from a user action only,
-/// for example from the action of a Connect button.
+/// for example from the Open in Browser button of
+/// ``ElicitationURLConsentView``.
 public final class AuthorizationPresenter {
   /// The object that makes each session.
   private let factory: any WebAuthSessionFactory
