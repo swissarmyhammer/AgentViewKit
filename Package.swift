@@ -101,11 +101,12 @@ let package = Package(
       resources: [.copy("Resources/Grammars")],
       swiftSettings: mainActorIsolated
     ),
-    // The hosted view harness and the recording fakes. This target is not a
-    // product. Each test target that links a package target links it too.
+    // The hosted view harness, the recording fakes, and the session model
+    // over the scripted agent of `DemoSupport`. This target is not a product.
+    // Each test target that links a package target links it too.
     .target(
       name: "AgentViewKitTestSupport",
-      dependencies: ["AgentViewKit"],
+      dependencies: ["AgentViewKit", "DemoSupport"] + acpProducts,
       swiftSettings: mainActorIsolated
     ),
     // The scripted in-memory ACP agent, the ACP session model, and the launch

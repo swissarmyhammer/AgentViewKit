@@ -55,6 +55,31 @@ struct MessageItemView: View {
   let date: Date?
 
   @Environment(\.agentThread) private var thread
+
+  var body: some View {
+    MessageBodyView(
+      message: message, role: role, date: date, streaming: thread?.streaming[message.id])
+  }
+}
+
+/// The layout of one message: the header, the content blocks, and the
+/// footer slot.
+///
+/// The caller gives the stream of the message. ``MessageItemView`` reads it
+/// from the thread, and a transcript entry view keeps a stream of its own.
+struct MessageBodyView: View {
+  /// The message to show.
+  let message: Message
+
+  /// The sender of the message.
+  let role: MessageRole
+
+  /// The time of the message, or `nil` when it is not known.
+  let date: Date?
+
+  /// The stream of the message, or `nil` when the message does not stream.
+  let streaming: StreamingMessage?
+
   @Environment(\.messageFooter) private var footer
   @Environment(\.agentTheme) private var theme
 
@@ -69,7 +94,6 @@ struct MessageItemView: View {
   }
 
   var body: some View {
-    let streaming = thread?.streaming[message.id]
     let blocks = Array(message.blocks.enumerated())
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       MessageHeader(role: role, date: date)

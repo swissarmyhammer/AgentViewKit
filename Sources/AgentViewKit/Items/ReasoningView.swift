@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The reasoning of the agent, as a collapsible block (plan.md §5, §9 B).
@@ -18,6 +19,14 @@ import SwiftUI
 /// ``AgentThreadView`` finds the in-progress state from the thread: a
 /// reasoning item is in progress when it is the last item and the thread
 /// runs (plan.md §3.5). See ``AgentThread/isLastWhileRunning(_:)``.
+///
+/// The view also shows a `ThoughtEntry` of a `SessionModel` (update.md §4.2).
+/// A thought is in progress while it is the last entry of the transcript and
+/// the agent runs, and its text then streams through the streaming tail of the
+/// entry (``EntryTextStream``). The view of an entry reads the content of the
+/// entry, so a streamed chunk evaluates only this view. A thought and an agent
+/// message with the same `messageId` are two entries, so they show in two
+/// rows.
 public struct ReasoningView: View {
   /// The start of the accessibility identifier of each block.
   public static let identifierPrefix = "reasoning-"
@@ -38,20 +47,17 @@ public struct ReasoningView: View {
   /// so that the chevron points down.
   static let expandedChevronAngle = Angle.degrees(quarterTurnDegrees)
 
-  /// The record to show.
-  let record: Reasoning
+  /// The reasoning that the view shows.
+  private enum Source {
+    /// A reasoning record, with its in-progress state and its stream.
+    case record(Reasoning, isInProgress: Bool, streaming: StreamingMessage?)
 
-  /// `true` while the agent still writes the reasoning.
-  let isInProgress: Bool
+    /// A thought entry of a session transcript.
+    case entry(ThoughtEntry)
+  }
 
-  /// The stream of the reasoning, or `nil` when it does not stream.
-  let streaming: StreamingMessage?
-
-  /// The store that the view uses when the environment has no store.
-  @State private var ownStore = ExpandedBlocksStore()
-
-  @Environment(\.expandedBlocksStore) private var environmentStore
-  @Environment(\.agentTheme) private var theme
+  /// The reasoning to show.
+  private let source: Source
 
   /// Makes a reasoning block.
   ///
@@ -61,9 +67,19 @@ public struct ReasoningView: View {
   ///   - streaming: The stream of the reasoning, or `nil` when it does not
   ///     stream. Give `thread.streaming[record.id]`.
   public init(record: Reasoning, isInProgress: Bool, streaming: StreamingMessage? = nil) {
-    self.record = record
-    self.isInProgress = isInProgress
-    self.streaming = streaming
+    self.source = .record(record, isInProgress: isInProgress, streaming: streaming)
+  }
+
+  /// Makes the reasoning block of a thought entry of a session transcript.
+  ///
+  /// The block reads the in-progress state from the
+  /// ``SwiftUI/EnvironmentValues/sessionModel``: the thought is in progress
+  /// while it is the last entry and the agent runs. With no session model in
+  /// the environment, the thought is complete.
+  ///
+  /// - Parameter entry: The thought to show.
+  public init(entry: ThoughtEntry) {
+    self.source = .entry(entry)
   }
 
   /// The accessibility identifier of the block of `id`.
@@ -128,6 +144,53 @@ public struct ReasoningView: View {
   }
 
   public var body: some View {
+    switch source {
+    case .record(let record, let isInProgress, let streaming):
+      ReasoningBlock(record: record, isInProgress: isInProgress, streaming: streaming)
+    case .entry(let entry):
+      ThoughtEntryBlock(entry: entry)
+    }
+  }
+}
+
+/// The reasoning block of one thought entry of a session transcript.
+///
+/// The view reads the content of the entry, so a streamed chunk evaluates
+/// only this view. The text blocks of the thought are the segments of the
+/// reasoning, and the row key of the entry is the id of the reasoning.
+private struct ThoughtEntryBlock: View {
+  /// The thought to show.
+  let entry: ThoughtEntry
+
+  var body: some View {
+    let segments = entry.content.compactMap { block -> String? in
+      if case .text(let text) = block { text.text } else { nil }
+    }
+    let record = Reasoning(id: entry.id.rowKey, segments: segments)
+    EntryTextStream(id: entry.id, text: record.text, canStream: true) { stream, isLive in
+      ReasoningBlock(record: record, isInProgress: isLive, streaming: stream)
+    }
+  }
+}
+
+/// The collapsible block of one reasoning record. See ``ReasoningView``.
+private struct ReasoningBlock: View {
+  /// The record to show.
+  let record: Reasoning
+
+  /// `true` while the agent still writes the reasoning.
+  let isInProgress: Bool
+
+  /// The stream of the reasoning, or `nil` when it does not stream.
+  let streaming: StreamingMessage?
+
+  /// The store that the view uses when the environment has no store.
+  @State private var ownStore = ExpandedBlocksStore()
+
+  @Environment(\.expandedBlocksStore) private var environmentStore
+  @Environment(\.agentTheme) private var theme
+
+  var body: some View {
     let store = environmentStore ?? ownStore
     let expanded = isExpanded(in: store)
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
@@ -135,12 +198,12 @@ public struct ReasoningView: View {
       if expanded {
         ResponseView(message: bodyMessage, streaming: streaming)
           .foregroundStyle(.secondary)
-          .contentContainer(identifier: Self.bodyIdentifier(for: record.id))
+          .contentContainer(identifier: ReasoningView.bodyIdentifier(for: record.id))
       }
     }
-    .contentContainer(identifier: Self.identifier(for: record.id))
+    .contentContainer(identifier: ReasoningView.identifier(for: record.id))
     .accessibilityLabel(
-      Self.accessibilityLabel(isInProgress: isInProgress, duration: record.duration))
+      ReasoningView.accessibilityLabel(isInProgress: isInProgress, duration: record.duration))
     // The row is a container with this block as its one child. The second
     // hidden child keeps SwiftUI from merging the block into the row, so
     // the block keeps its identifier. See `contentContainer(identifier:)`.
@@ -188,13 +251,13 @@ public struct ReasoningView: View {
       Button(action: toggle) {
         Image(systemName: "chevron.right")
           .fontWeight(theme.symbolWeight)
-          .rotationEffect(expanded ? Self.expandedChevronAngle : .zero)
+          .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
       }
       .buttonStyle(.borderless)
       .accessibilityLabel(
         expanded ? Text("Hide reasoning") : Text("Show reasoning")
       )
-      .accessibilityIdentifier(Self.toggleIdentifier(for: id))
+      .accessibilityIdentifier(ReasoningView.toggleIdentifier(for: id))
     }
     .contentShape(Rectangle())
     .onTapGesture(perform: toggle)
@@ -205,9 +268,9 @@ public struct ReasoningView: View {
     if isInProgress {
       ShimmerView(text: ActivityIndicator.thinkingText)
     } else {
-      Text(Self.completedTitle(duration: record.duration))
+      Text(ReasoningView.completedTitle(duration: record.duration))
         .foregroundStyle(.secondary)
-        .accessibilityIdentifier(Self.titleIdentifier(for: record.id))
+        .accessibilityIdentifier(ReasoningView.titleIdentifier(for: record.id))
     }
   }
 }

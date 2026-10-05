@@ -34,8 +34,24 @@ comments:
     - evidence: Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift, Tests/AgentViewKitTests/Infrastructure/ScrollAnchorManagerTests.swift, Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift; `swift test --filter aJumpCancelsTheRequestedScrollToTheBottom` (red, then green); 6 parallel bundle processes `--filter ConversationViewHostedTests --repetitions 20 --repeat-until fail` (pass); full `swift test` 2 times (1280 tests pass)
     - next: /review
   timestamp: 2026-10-05T19:28:39.573519+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m46rvj5gn3t8pd6c4j4akzzh
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ecb960e); 0 findings, 0 confirmed, 0 refuted; 3 files reviewed, 4 .kanban files not reviewed because .reviewignore excludes them
+    - next: none — task moved to done
+  timestamp: 2026-10-05T19:32:38.192429+00:00
+- actor: claude-code
+  id: 01m46rvkdwfefnyk15jp99f0vk
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ScrollAnchorManager.noteJump(to:) cancels the pending scroll to the bottom; new ScrollAnchorManagerTests case; ConversationViewHostedTests scrollToTop helper
+    - test: green — swift test, 1280 passed
+    - commit: ecb960e
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T19:32:39.484632+00:00
+position_column: done
+position_ordinal: e580
 title: Make ConversationViewHostedTests.anInsertWhileUnpinnedShowsOneNewInThePill stable in the full suite run
 ---
 ## What

@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The default view of an assistant message item (plan.md §9 A2).
@@ -8,6 +9,12 @@ import SwiftUI
 /// streams, the text shows through ``ResponseView`` with the stream of the
 /// thread of the environment.
 ///
+/// The view shows a thread message or an `AgentMessageEntry` of a
+/// `SessionModel` (update.md §4.2). The view of an entry reads the content of
+/// the entry, so a streamed chunk evaluates only this view. While the entry
+/// is the last entry and the agent runs, its text shows through the streaming
+/// tail of the entry (``EntryTextStream``).
+///
 /// ``ConversationView`` shows the turn summary above the first agent item of
 /// a turn. Thus this view does not show the summary.
 ///
@@ -17,8 +24,17 @@ public struct AssistantMessageView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of each assistant message.
   public static var identifierPrefix: String { MessageRole.assistant.messageIdentifierPrefix }
 
+  /// The message that the view shows.
+  private enum Source {
+    /// A message of a thread.
+    case message(Message)
+
+    /// An agent message entry of a session transcript.
+    case entry(AgentMessageEntry)
+  }
+
   /// The message to show.
-  let message: Message
+  private let source: Source
 
   /// The time of the message, or `nil` when it is not known.
   let date: Date?
@@ -29,11 +45,26 @@ public struct AssistantMessageView: View, PrefixedAccessibilityIdentifier {
   ///   - message: The message to show.
   ///   - date: The time of the message, or `nil` when it is not known.
   public init(message: Message, date: Date? = nil) {
-    self.message = message
+    self.source = .message(message)
+    self.date = date
+  }
+
+  /// Makes the view of an agent message entry of a session transcript.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry to show.
+  ///   - date: The time of the message, or `nil` when it is not known.
+  public init(entry: AgentMessageEntry, date: Date? = nil) {
+    self.source = .entry(entry)
     self.date = date
   }
 
   public var body: some View {
-    MessageItemView(message: message, role: .assistant, date: date)
+    switch source {
+    case .message(let message):
+      MessageItemView(message: message, role: .assistant, date: date)
+    case .entry(let entry):
+      TranscriptMessageView(id: entry.id, content: entry.content, role: .assistant, date: date, canStream: true)
+    }
   }
 }

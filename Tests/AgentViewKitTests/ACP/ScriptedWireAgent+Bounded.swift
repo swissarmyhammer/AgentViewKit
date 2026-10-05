@@ -4,7 +4,12 @@ import Testing
 /// The time limit of the ACP tests that talk to a ``ScriptedWireAgent``.
 extension ScriptedWireAgent {
   /// The number of seconds that ``bounded(_:)`` waits.
-  static let operationLimitSeconds = 5
+  ///
+  /// The limit stops a hang. It does not measure speed. In a run of the whole
+  /// suite, the hosted tests keep the main actor busy for many seconds, and
+  /// an ACP test waits for the main actor during that time. A short limit
+  /// then fails a test that does not hang.
+  static let operationLimitSeconds = 60
 
   /// The time that ``bounded(_:)`` waits.
   static let operationLimit = Duration.seconds(operationLimitSeconds)

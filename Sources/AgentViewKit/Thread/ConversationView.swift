@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The fixed values and the pure functions of ``ConversationView``.
@@ -156,9 +157,17 @@ extension View {
 ///
 /// The view sets ``ScrollAnchorManager/onScroll`` of the manager, so that a
 /// ``ThreadMinimapView`` with no proxy can scroll the list.
+///
+/// The view also shows the transcript of a `SessionModel` (update.md §4.2,
+/// §4.7). A `ForEach` keyed on `TranscriptEntry.id` makes one ``ItemRow`` for
+/// each entry, so a row keeps its identity when a pending user message gets
+/// its `messageId`. The scroll anchors use the
+/// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of each entry. The
+/// turn summaries and the state banner read an ``AgentThread``, so a session
+/// list does not show them.
 public struct ConversationView<EmptyState: View>: View {
-  /// The thread to show.
-  let thread: AgentThread
+  /// The model to show.
+  let source: ConversationSource
 
   /// The manager that the host gave, or `nil`.
   let hostAnchors: ScrollAnchorManager?
@@ -198,7 +207,25 @@ public struct ConversationView<EmptyState: View>: View {
     anchors: ScrollAnchorManager? = nil,
     @ViewBuilder emptyState: () -> EmptyState
   ) {
-    self.thread = thread
+    self.source = .thread(thread)
+    self.hostAnchors = anchors
+    self.emptyState = emptyState()
+  }
+
+  /// Makes the list of the transcript of a session model with a custom empty
+  /// state.
+  ///
+  /// - Parameters:
+  ///   - session: The session model whose transcript the view shows.
+  ///   - anchors: The manager that keeps the scroll position. With `nil`,
+  ///     the view makes its own manager.
+  ///   - emptyState: The view that shows when the transcript has no entry.
+  public init(
+    session: SessionModel,
+    anchors: ScrollAnchorManager? = nil,
+    @ViewBuilder emptyState: () -> EmptyState
+  ) {
+    self.source = .session(session)
     self.hostAnchors = anchors
     self.emptyState = emptyState()
   }
@@ -209,18 +236,20 @@ public struct ConversationView<EmptyState: View>: View {
   }
 
   public var body: some View {
-    let items = thread.items
     VStack(spacing: 0) {
-      if items.isEmpty {
+      if source.rowCount == 0 {
         emptyState
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
-        list(items: items)
+        list
       }
-      ConversationBanner(thread: thread, onShowError: showItem)
+      if let thread = source.thread {
+        ConversationBanner(thread: thread, onShowError: showItem)
+      }
     }
-    .environment(\.agentThread, thread)
-    .onChange(of: thread.lastItemID) { old, new in
+    .environment(\.agentThread, source.thread)
+    .environment(\.sessionModel, source.session)
+    .onChange(of: source.lastRowKey) { old, new in
       noteLastItem(old: old, new: new)
     }
     .onChange(of: pageCount) {
@@ -230,32 +259,20 @@ public struct ConversationView<EmptyState: View>: View {
 
   // MARK: - List
 
-  /// The scrolled list of the last pages of `items`.
-  ///
-  /// - Parameter items: The items of the thread, not empty.
-  /// - Returns: The list view.
-  private func list(items: [ThreadItem]) -> some View {
+  /// The scrolled list of the last pages of the rows. The source has at
+  /// least one row.
+  private var list: some View {
+    let count = source.rowCount
     let shownCount = ConversationLayout.shownCount(
-      count: items.count, pageSize: pageSize, pageCount: pageCount)
-    let shown = items.suffix(shownCount)
+      count: count, pageSize: pageSize, pageCount: pageCount)
     let anchors = anchors
-    let turnAnchors = TurnSummary.anchors(in: items)
     return ScrollView {
       VStack(alignment: .leading, spacing: theme.spacing.m) {
-        if shown.startIndex > items.startIndex {
+        if shownCount < count {
           loadEarlierRow
         }
         LazyVStack(alignment: .leading, spacing: theme.spacing.m) {
-          ForEach(shown, id: \.id) { item in
-            if let turnID = turnAnchors[item.id] {
-              VStack(alignment: .leading, spacing: theme.spacing.xs) {
-                ThreadTurnSummary(thread: thread, turnID: turnID)
-                threadRow(item)
-              }
-            } else {
-              threadRow(item)
-            }
-          }
+          rows(shownCount: shownCount)
         }
         .scrollTargetLayout()
       }
@@ -264,7 +281,7 @@ public struct ConversationView<EmptyState: View>: View {
     }
     .accessibilityLabel(Text("Conversation"))
     .accessibilityValue(
-      Text(ConversationLayout.listValue(shown: shownCount, count: items.count))
+      Text(ConversationLayout.listValue(shown: shownCount, count: count))
     )
     .accessibilityIdentifier(ConversationLayout.listIdentifier)
     .defaultScrollAnchor(.bottom)
@@ -285,20 +302,61 @@ public struct ConversationView<EmptyState: View>: View {
     }
     .onAppear {
       anchors.onScroll = { target in scroll(to: target) }
-      anchors.noteLastItemChanged(to: thread.lastItemID)
+      anchors.noteLastItemChanged(to: source.lastRowKey)
     }
     .accessibilityReadingScope()
   }
 
-  /// The row of one item, in the linked reading group of the thread.
+  /// The rows of the last `shownCount` items or entries.
+  ///
+  /// - Parameter shownCount: The number of rows that the list shows.
+  /// - Returns: One row for each shown item or entry.
+  @ViewBuilder private func rows(shownCount: Int) -> some View {
+    switch source {
+    case .thread(let thread):
+      threadRows(thread, shownCount: shownCount)
+    case .session(let session):
+      // The row identity is `TranscriptEntry.id` (update.md §4.7). The
+      // scroll target of each row is its text key, because the scroll
+      // anchors use text.
+      ForEach(session.transcript.suffix(shownCount), id: \.id) { entry in
+        readingRow(ItemRow(entry: entry))
+          .id(entry.rowKey)
+      }
+    }
+  }
+
+  /// The rows of the last `shownCount` items of a thread, with the turn
+  /// summary above the first agent item of each turn that has work.
+  ///
+  /// - Parameters:
+  ///   - thread: The thread.
+  ///   - shownCount: The number of rows that the list shows.
+  /// - Returns: One row for each shown item.
+  private func threadRows(_ thread: AgentThread, shownCount: Int) -> some View {
+    let items = thread.items
+    let turnAnchors = TurnSummary.anchors(in: items)
+    return ForEach(items.suffix(shownCount), id: \.id) { item in
+      if let turnID = turnAnchors[item.id] {
+        VStack(alignment: .leading, spacing: theme.spacing.xs) {
+          ThreadTurnSummary(thread: thread, turnID: turnID)
+          readingRow(ItemRow(item: item))
+        }
+      } else {
+        readingRow(ItemRow(item: item))
+      }
+    }
+  }
+
+  /// One row, in the linked reading group of the thread.
   ///
   /// VoiceOver reads from one row into the next row
   /// (``ThreadAccessibility/threadGroupID``).
   ///
-  /// - Parameter item: The item.
+  /// - Parameter row: The row of an item or of an entry.
   /// - Returns: The row.
-  private func threadRow(_ item: ThreadItem) -> some View {
-    ItemRow(item: item)
+  private func readingRow(_ row: ItemRow) -> some View {
+    row
       .equatable()
       .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
   }
@@ -342,12 +400,12 @@ public struct ConversationView<EmptyState: View>: View {
   private func scroll(to target: ScrollAnchorTarget) {
     switch target {
     case .bottom:
-      guard let lastID = thread.lastItemID else { return }
+      guard let lastID = source.lastRowKey else { return }
       position.scrollTo(id: lastID, anchor: .bottom)
     case .item(let id):
-      if let itemPosition = thread.position(of: id) {
+      if let itemPosition = source.position(of: id) {
         let needed = ConversationLayout.pageCount(
-          toShow: itemPosition, count: thread.items.count, pageSize: pageSize)
+          toShow: itemPosition, count: source.rowCount, pageSize: pageSize)
         pageCount = max(pageCount, needed)
       }
       position.scrollTo(id: id, anchor: .top)
@@ -364,7 +422,11 @@ public struct ConversationView<EmptyState: View>: View {
     if let isNearBottom {
       self.isNearBottom = isNearBottom
     }
-    let sorted = ids.sorted { (thread.position(of: $0) ?? 0) < (thread.position(of: $1) ?? 0) }
+    // Each id gets its position one time, and the sort compares the stored
+    // positions.
+    let sorted = ids.map { (id: $0, position: source.position(of: $0) ?? 0) }
+      .sorted { $0.position < $1.position }
+      .map(\.id)
     anchors.noteVisible(
       ids: sorted, distanceFromBottom: self.isNearBottom ? 0 : .greatestFiniteMagnitude)
   }
@@ -379,20 +441,20 @@ public struct ConversationView<EmptyState: View>: View {
       anchors.noteLastItemChanged(to: nil)
       return
     }
-    let items = thread.items
+    let keys = source.rowKeys
     // With no old last item, each item is new. An old last item that the
     // thread removed gives no start: the change is not an append.
     let start: Int?
     if let old {
-      start = thread.position(of: old).map { $0 + 1 }
+      start = source.position(of: old).map { $0 + 1 }
     } else {
-      start = items.startIndex
+      start = keys.startIndex
     }
-    guard let start, start < items.endIndex else {
+    guard let start, start < keys.endIndex else {
       anchors.noteLastItemChanged(to: new)
       return
     }
-    anchors.noteAppended(ids: items[start...].map(\.id))
+    anchors.noteAppended(ids: Array(keys[start...]))
   }
 }
 
@@ -405,6 +467,17 @@ extension ConversationView where EmptyState == ConversationEmptyState {
   ///     the view makes its own manager.
   public init(thread: AgentThread, anchors: ScrollAnchorManager? = nil) {
     self.init(thread: thread, anchors: anchors) { ConversationEmptyState() }
+  }
+
+  /// Makes the list of the transcript of a session model with the default
+  /// empty state.
+  ///
+  /// - Parameters:
+  ///   - session: The session model whose transcript the view shows.
+  ///   - anchors: The manager that keeps the scroll position. With `nil`,
+  ///     the view makes its own manager.
+  public init(session: SessionModel, anchors: ScrollAnchorManager? = nil) {
+    self.init(session: session, anchors: anchors) { ConversationEmptyState() }
   }
 }
 

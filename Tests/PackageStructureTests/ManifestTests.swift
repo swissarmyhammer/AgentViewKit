@@ -86,8 +86,12 @@ import Testing
     #expect(manifest.contains(#".product(name: "EditorDiff", package: "EditorKit")"#))
   }
 
-  @Test func declaresTheTestSupportTargetOnTheKitOnly() {
-    let target = /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit"\]/
+  /// The test support target links the kit, and the scripted agent of
+  /// `DemoSupport` with the ACP products, for its session helper. It links no
+  /// other target.
+  @Test func declaresTheTestSupportTargetOnTheKitAndTheScriptedAgent() {
+    let target =
+      /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit",\s*"DemoSupport"\]\s*\+\s*acpProducts,/
     #expect(manifest.contains(target))
   }
 
