@@ -1,11 +1,23 @@
+import FoundationModelsACPClient
 import SwiftUI
 
-/// The task lists of the agent, one checklist for each plan (plan.md §9 C).
+/// The task lists of the agent, one checklist for each plan (plan.md §9 C;
+/// update.md §4.7 "Plan view").
 ///
-/// Pass ``AgentThread/plans`` as `plans`. The view shows the plans in the
-/// order of their identifiers. Each plan is one section, and the section
-/// identity is the plan identifier. When the agent replaces a plan, the
-/// section stays and its entries change in place.
+/// The view shows the plans of an ``AgentThread``, or one
+/// `PlanTranscriptEntry` of a `SessionModel` at its position in the
+/// transcript.
+///
+/// For ``AgentThread/plans``, the view shows the plans in the order of their
+/// identifiers. Each plan is one section, and the section identity is the plan
+/// identifier. When the agent replaces a plan, the section stays and its
+/// entries change in place.
+///
+/// For a `PlanTranscriptEntry`, the view shows the header and the entries of
+/// the plan, with no list. The client model keeps a plan with a `planId` at
+/// the position where it first appeared, and a plan with no `planId` is a new
+/// entry (update.md §4.4). Content that the kit does not know shows with its
+/// type, and its JSON shows when the user expands it.
 ///
 /// Each entry shows a status symbol, the text of the task, and a priority
 /// tint. An entry in progress shows a `ProgressView`. A cancelled entry shows
@@ -20,17 +32,38 @@ public struct TaskListView: View {
   /// The start of the accessibility identifier of each plan header.
   public static let planIdentifierPrefix = "task-plan-"
 
+  /// The start of the accessibility identifier of the unknown content of a
+  /// plan entry of a `SessionModel`.
+  public static let unknownContentIdentifierPrefix = "task-plan-unknown-"
+
   /// The accessibility identifier of the empty state.
   public static let emptyIdentifier = "task-list-empty"
 
-  /// The plans to show, keyed by identifier.
-  let plans: [PlanID: Plan]
+  /// The plans that the view shows.
+  private enum Source {
+    /// The plans of an ``AgentThread``, keyed by identifier.
+    case plans([PlanID: Plan])
+
+    /// One plan entry of the transcript of a `SessionModel`.
+    case entry(PlanTranscriptEntry)
+  }
+
+  /// The plans to show.
+  private let source: Source
 
   /// Makes the task list.
   ///
   /// - Parameter plans: The plans to show, such as ``AgentThread/plans``.
   public init(plans: [PlanID: Plan]) {
-    self.plans = plans
+    self.source = .plans(plans)
+  }
+
+  /// Makes the task list of one plan entry of a `SessionModel`, for the row
+  /// of the entry in the transcript.
+  ///
+  /// - Parameter entry: The plan entry to show.
+  public init(entry: PlanTranscriptEntry) {
+    self.source = .entry(entry)
   }
 
   // MARK: - Identifiers
@@ -42,7 +75,19 @@ public struct TaskListView: View {
   ///   - index: The position of the entry in the plan, from `0`.
   /// - Returns: `task-entry-<id>-<index>`.
   public static func entryIdentifier(plan id: PlanID, index: Int) -> String {
-    "\(entryIdentifierPrefix)\(id.rawValue)-\(index)"
+    entryIdentifier(row: id.rawValue, index: index)
+  }
+
+  /// The accessibility identifier of the entry at `index` in the plan of the
+  /// row `key`.
+  ///
+  /// - Parameters:
+  ///   - key: The identifier of the plan, or the row key of a plan entry of a
+  ///     `SessionModel`.
+  ///   - index: The position of the entry in the plan, from `0`.
+  /// - Returns: `task-entry-<key>-<index>`.
+  public static func entryIdentifier(row key: String, index: Int) -> String {
+    "\(entryIdentifierPrefix)\(key)-\(index)"
   }
 
   /// The accessibility identifier of the header of the plan `id`.
@@ -50,7 +95,25 @@ public struct TaskListView: View {
   /// - Parameter id: The identifier of the plan.
   /// - Returns: `task-plan-<id>`.
   public static func planIdentifier(for id: PlanID) -> String {
-    AccessibilityIdentifier.make(prefix: planIdentifierPrefix, value: id.rawValue)
+    planIdentifier(row: id.rawValue)
+  }
+
+  /// The accessibility identifier of the header of the plan of the row `key`.
+  ///
+  /// - Parameter key: The identifier of the plan, or the row key of a plan
+  ///   entry of a `SessionModel`.
+  /// - Returns: `task-plan-<key>`.
+  public static func planIdentifier(row key: String) -> String {
+    AccessibilityIdentifier.make(prefix: planIdentifierPrefix, value: key)
+  }
+
+  /// The accessibility identifier of the unknown content of the plan entry of
+  /// the row `key`.
+  ///
+  /// - Parameter key: The row key of a plan entry of a `SessionModel`.
+  /// - Returns: `task-plan-unknown-<key>`.
+  public static func unknownContentIdentifier(row key: String) -> String {
+    AccessibilityIdentifier.make(prefix: unknownContentIdentifierPrefix, value: key)
   }
 
   /// The ``BodyEvaluationCounter`` key that the section of the plan `id`
@@ -112,8 +175,17 @@ public struct TaskListView: View {
   /// - Returns: The number of completed entries of the total, such as
   ///   `2 of 5 done`.
   public static func headerText(for plan: Plan) -> String {
-    let done = plan.entries.count { $0.status == .completed }
-    return String(localized: "\(done) of \(plan.entries.count) done")
+    headerText(for: plan.entries)
+  }
+
+  /// The header text of the entries of a plan.
+  ///
+  /// - Parameter entries: The entries of the plan.
+  /// - Returns: The number of completed entries of the total, such as
+  ///   `2 of 5 done`.
+  public static func headerText(for entries: [PlanEntry]) -> String {
+    let done = entries.count { $0.status == .completed }
+    return String(localized: "\(done) of \(entries.count) done")
   }
 
   /// The plans in the order that the view shows them: by identifier.
@@ -127,6 +199,19 @@ public struct TaskListView: View {
   // MARK: - Body
 
   public var body: some View {
+    switch source {
+    case .plans(let plans):
+      planList(plans)
+    case .entry(let entry):
+      TranscriptPlanView(entry: entry)
+    }
+  }
+
+  /// The list of the plans of a thread, or the empty state.
+  ///
+  /// - Parameter plans: The plans, keyed by identifier.
+  /// - Returns: The list.
+  @ViewBuilder private func planList(_ plans: [PlanID: Plan]) -> some View {
     if plans.isEmpty {
       ContentUnavailableView(
         "No Tasks",
@@ -182,6 +267,41 @@ private struct PlanSection: View {
   private var entryRows: [(identifier: String, entry: PlanEntry)] {
     plan.entries.enumerated().map { index, entry in
       (TaskListView.entryIdentifier(plan: plan.id, index: index), entry)
+    }
+  }
+}
+
+/// One plan entry of a `SessionModel` in ``TaskListView``, at its position in
+/// the transcript.
+///
+/// The view reads the entry object, so a new plan update for the same
+/// `planId` changes this view in place.
+private struct TranscriptPlanView: View {
+  /// The plan entry to show.
+  let entry: PlanTranscriptEntry
+
+  @Environment(\.agentTheme) private var theme
+
+  var body: some View {
+    let key = entry.id.rowKey
+    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+      if let unknown = entry.unknownContent {
+        JSONDisclosure(
+          id: key,
+          title: String(localized: "Unknown plan content: \(unknown.type)"),
+          json: SessionUpdateMapping.json(unknown.payload).prettyPrinted,
+          identifier: TaskListView.unknownContentIdentifier(row: key),
+          isExpanded: false)
+      } else {
+        let entries = entry.entries.map(SessionUpdateMapping.planEntry)
+        Text(TaskListView.headerText(for: entries))
+          .font(.headline)
+          .accessibilityIdentifier(TaskListView.planIdentifier(row: key))
+        ForEach(Array(entries.enumerated()), id: \.offset) { index, item in
+          PlanEntryRow(entry: item)
+            .accessibilityIdentifier(TaskListView.entryIdentifier(row: key, index: index))
+        }
+      }
     }
   }
 }

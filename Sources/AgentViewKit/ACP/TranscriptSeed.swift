@@ -131,8 +131,10 @@ enum TranscriptSeed {
       ))
   }
 
-  /// The whole terminal update of a terminal entry. The output is a
-  /// snapshot of the bytes of the entry.
+  /// The whole terminal update of a terminal entry, with no output.
+  ///
+  /// The kit does not decode terminal output (update.md §4.4, §4.5), so the
+  /// seed does not encode the bytes of the entry again.
   ///
   /// - Parameter terminal: The terminal entry.
   /// - Returns: The update, or `nil` when the entry has no terminal id.
@@ -146,7 +148,6 @@ enum TranscriptSeed {
         command: patch(terminal.command),
         cwd: patch(terminal.cwd),
         exitStatus: patch(terminal.exitStatus),
-        output: .value(TerminalOutput(data: terminal.bytes.base64EncodedString())),
         meta: patch(terminal.meta)
       ))
   }

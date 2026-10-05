@@ -1,14 +1,19 @@
 import EditorSwiftUI
+import FoundationModelsACPClient
 import SwiftUI
 
-/// A terminal that the agent owns, with its output (plan.md §9 C).
+/// A terminal that the agent owns, with its output (plan.md §9 C; update.md
+/// §4.7 "Terminal view").
 ///
-/// The view shows a ``TerminalRecord``. It reads the record, so a patch on the
-/// record updates the view. The view has these parts:
+/// The view shows a `TerminalEntry` of a `SessionModel`, or a
+/// ``TerminalRecord``. It reads the object, so a change to the object updates
+/// the view. For an entry, the view shows the computed `text` of the entry: a
+/// chunk adds text, and an `output` snapshot replaces it. The kit does not
+/// decode the output of an entry. The view has these parts:
 ///
 /// - A header with the command in the code font and the working directory.
 /// - The output in a read-only EditorKit editor that grows to the height of
-///   its text. ``ANSIText`` converts the output bytes: the editor shows the
+///   its text. ``ANSIText`` removes the escape sequences: the editor shows the
 ///   text with no escape sequences. When the output has more rows than the
 ///   row limit, the editor shows only the last rows, and a Show All button
 ///   shows all rows.
@@ -66,9 +71,18 @@ public struct TerminalView: View {
     ///
     /// - Parameter status: The exit status of the terminal.
     public init(_ status: TerminalRecord.ExitStatus) {
-      if let signal = status.signal {
+      self.init(code: status.code, signal: status.signal)
+    }
+
+    /// Makes the summary of an exit. A signal has priority over a code.
+    ///
+    /// - Parameters:
+    ///   - code: The exit code of the process, or `nil` when it is not known.
+    ///   - signal: The name of the signal that stopped the process, or `nil`.
+    public init(code: Int?, signal: String?) {
+      if let signal {
         self = .signal(signal)
-      } else if let code = status.code {
+      } else if let code {
         self = .code(code)
       } else {
         self = .unknown
@@ -109,7 +123,7 @@ public struct TerminalView: View {
   }
 
   /// The terminal to show.
-  let record: TerminalRecord
+  let source: TerminalSource
   /// The number of rows that show before the user selects Show All.
   let rowLimit: Int
   /// The closure that takes a line of input, or `nil` for no input row.
@@ -126,7 +140,7 @@ public struct TerminalView: View {
 
   @Environment(\.agentTheme) private var theme
 
-  /// Makes the view.
+  /// Makes the view of a terminal record.
   ///
   /// - Parameters:
   ///   - record: The terminal to show.
@@ -143,16 +157,48 @@ public struct TerminalView: View {
     model: EditorModel? = nil,
     stdin: ((String) -> Void)? = nil
   ) {
-    self.record = record
+    self.init(source: .record(record), rowLimit: rowLimit, model: model, stdin: stdin)
+  }
+
+  /// Makes the view of a terminal entry of a `SessionModel` (update.md §4.7
+  /// "Terminal view").
+  ///
+  /// The view shows the computed `text` of the entry.
+  ///
+  /// - Parameters:
+  ///   - entry: The terminal entry to show.
+  ///   - rowLimit: The number of rows that show before the user selects Show
+  ///     All.
+  ///   - model: The model of the editor, or `nil` to keep an own model. The
+  ///     view makes the model read-only and sets its text.
+  public init(
+    entry: TerminalEntry,
+    rowLimit: Int = TerminalView.defaultRowLimit,
+    model: EditorModel? = nil
+  ) {
+    self.init(source: .entry(entry), rowLimit: rowLimit, model: model, stdin: nil)
+  }
+
+  /// Makes the view of a terminal source.
+  ///
+  /// - Parameters:
+  ///   - source: The terminal to show.
+  ///   - rowLimit: The number of rows that show before the user selects Show
+  ///     All.
+  ///   - model: The model of the editor, or `nil` to keep an own model.
+  ///   - stdin: The closure that takes a line of input, or `nil`.
+  private init(
+    source: TerminalSource, rowLimit: Int, model: EditorModel?, stdin: ((String) -> Void)?
+  ) {
+    self.source = source
     self.rowLimit = rowLimit
     self.suppliedModel = model
     self.stdin = stdin
   }
 
   public var body: some View {
-    let output = String(ANSIText.attributed(from: record.output).characters)
     let rows = CommandOutputView.VisibleRows(
-      output: output, limit: showsAll ? Int.max : rowLimit)
+      output: source.output, limit: showsAll ? Int.max : rowLimit)
     let model = suppliedModel ?? ownModel.model(text: rows.text)
     VStack(alignment: .leading, spacing: 0) {
       header
@@ -187,7 +233,7 @@ public struct TerminalView: View {
 
   /// The label that VoiceOver reads for the view.
   var accessibilityLabel: String {
-    if let command = record.command {
+    if let command = source.command {
       String(localized: "Terminal, \(command)")
     } else {
       String(localized: "Terminal")
@@ -200,14 +246,14 @@ public struct TerminalView: View {
       Image(systemName: "terminal")
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
-      Text(record.command ?? String(localized: "Terminal"))
+      Text(source.command ?? String(localized: "Terminal"))
         .font(theme.codeFont)
-        .foregroundStyle(record.command == nil ? .secondary : .primary)
+        .foregroundStyle(source.command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)
         .accessibilityIdentifier(Self.commandIdentifier)
       Spacer(minLength: theme.spacing.s)
-      if let cwd = record.cwd {
+      if let cwd = source.cwd {
         Text(cwd)
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -249,7 +295,7 @@ public struct TerminalView: View {
       TextField(String(localized: "Terminal input"), text: $inputLine)
         .textFieldStyle(.plain)
         .font(theme.codeFont)
-        .disabled(record.exitStatus != nil)
+        .disabled(source.exitSummary != nil)
         .onSubmit {
           stdin(inputLine)
           inputLine = ""
@@ -263,8 +309,7 @@ public struct TerminalView: View {
   /// The footer: a progress indicator while the command runs, and the exit
   /// status after it exits.
   @ViewBuilder private var footer: some View {
-    if let status = record.exitStatus {
-      let summary = ExitSummary(status)
+    if let summary = source.exitSummary {
       OutputExitLabel(
         text: summary.label, symbolName: summary.symbolName, outcome: summary.outcome,
         identifier: Self.footerIdentifier)

@@ -278,28 +278,18 @@ private func mappedBlock(_ json: String) throws -> AgentViewKit.ContentBlock {
     #expect(terminal.command == "ls")
     #expect(terminal.cwd == "/tmp")
     #expect(terminal.exitStatus == TerminalRecord.ExitStatus(code: 0, signal: nil))
-    #expect(terminal.output == Data("hi".utf8))
     #expect(terminal.meta == .object(["tty": .bool(true)]))
   }
 
-  @Test func terminalOutputChunkAddsBytes() throws {
+  /// The kit does not decode terminal output: `TerminalEntry.text` of the
+  /// client model gives it (update.md §4.4, §4.5).
+  @Test func terminalOutputIsNotDecoded() throws {
     let thread = try thread(
       applying: SessionUpdateFixtures.terminalUpdate, SessionUpdateFixtures.terminalOutputChunk)
 
     let terminal = try #require(thread.terminals[TerminalID("term1")])
-    #expect(terminal.output == Data("hi!".utf8))
+    #expect(terminal.output.isEmpty)
     #expect(terminal.command == "ls")
-  }
-
-  @Test func terminalOutputThatIsNotBase64ChangesNothing() throws {
-    let thread = try thread(
-      applying: SessionUpdateFixtures.terminalUpdate,
-      #"{"sessionUpdate": "terminal_output_chunk", "terminalId": "term1", "data": "%%%"}"#,
-      #"{"sessionUpdate": "terminal_update", "terminalId": "term1", "output": {"data": "%%%"}}"#
-    )
-
-    let terminal = try #require(thread.terminals[TerminalID("term1")])
-    #expect(terminal.output == Data("hi".utf8))
   }
 
   // MARK: - Session state

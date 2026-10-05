@@ -37,10 +37,26 @@ comments:
     - files: Sources/AgentViewKit/Items/ToolCallView.swift, Items/ToolCallSource.swift (new), Items/ToolKindSymbol.swift, Model/ToolCallRecord.swift, Theme/AgentTheme.swift, Thread/Registries.swift, Thread/ItemRow.swift, Diff/DiffView.swift, Diff/DiffSummary.swift, Diff/DiffSummary+Changes.swift (new), Elicitation/ElicitationCard.swift (new), HumanInTheLoop/PendingRequestsHost.swift, Activity/ActivityTimeline.swift, Thread/ThreadMinimapView.swift, Accessibility/ThreadAccessibility.swift; Tests: Items/ToolCallEntryViewHostedTests.swift (new), Items/ToolKindSymbolTests.swift, Theme/StatusColorsTests.swift, Thread/RegistryResolutionTests.swift, Thread/SessionTranscriptViewHostedTests.swift, Diff/DiffSummaryTests.swift, Diff/DiffViewHostedTests.swift, Accessibility/ThreadAccessibilityTests.swift
     - next: /review
   timestamp: 2026-10-05T21:36:57.755116+00:00
+- actor: claude-code
+  id: 01m470jzf918ch6mcztqyew1a2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (31e9d9b): 0 findings, 0 confirmed, 0 refuted; 21 validator passes attempted, 0 failed; 23 files reviewed, 4 .kanban files not reviewed because of .reviewignore.
+    - next: none. The task is in done.
+  timestamp: 2026-10-05T21:47:45.513838+00:00
+- actor: claude-code
+  id: 01m470k0pvzrzc0hs4xxdqbf58
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ToolCallView(entry:), ToolCallSource, ACP kind and status symbols, toolCallView(named:), structured diffs, ElicitationCard for linked elicitations
+    - test: green — swift test, 1308 passed
+    - commit: 31e9d9b
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T21:47:46.779232+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: e880
 title: 'Bind the tool call and diff views to ToolCallEntry: name for the registry, title as label, structured diffs, linked elicitation'
 ---
 ## What

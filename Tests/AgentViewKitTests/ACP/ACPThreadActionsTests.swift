@@ -22,6 +22,18 @@ private let agentPath = "/usr/local/bin/agent"
 /// The exit status of a failed terminal authentication.
 private let failedStatus: Int32 = 3
 
+/// The JSON-RPC code of each error that the scripted agent sends.
+private let internalErrorCode = -32603
+
+/// The JSON-RPC codes of the error entries of the transcript of `session`, in
+/// order.
+@MainActor
+private func errorCodes(of session: SessionModel) -> [Int] {
+  session.transcript.compactMap { entry in
+    if case .error(let error) = entry { error.code.wireValue } else { nil }
+  }
+}
+
 /// Decodes JSON text into a kit JSON value.
 private func json(_ text: String) throws -> AgentViewKit.JSONValue {
   try JSONDecoder().decode(AgentViewKit.JSONValue.self, from: Data(text.utf8))
@@ -141,23 +153,17 @@ private struct Harness {
     #expect(harness.thread.items.isEmpty)
   }
 
-  @Test func sendThatFailsAddsAnErrorRecord() async throws {
+  /// The session model records a failed prompt itself, so the actions add no
+  /// second error entry and write no error record to the thread.
+  @Test func sendThatFailsShowsOneErrorEntryOfTheSession() async throws {
     let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.failingMethods = ["session/prompt"]
 
     await harness.bounded { await harness.actions.send(UserInput(text: "Hi")) }
 
-    let item = harness.thread.item(id: ACPThreadActions.errorIDPrefix + "1")
-    guard case .error(let record)? = item else {
-      Issue.record("Expected an error record, got \(String(describing: item)).")
-      return
-    }
-    guard case .unknown(let message) = record.kind else {
-      Issue.record("Expected an unknown error kind, got \(record.kind).")
-      return
-    }
-    #expect(message.contains("failed"))
+    #expect(errorCodes(of: harness.session) == [internalErrorCode])
+    #expect(harness.thread.items.allSatisfy { if case .error = $0 { false } else { true } })
   }
 
   @Test func cancelSendsSessionCancel() async throws {
@@ -284,14 +290,15 @@ private struct Harness {
     #expect(harness.thread.items.isEmpty)
   }
 
-  @Test func setConfigOptionThatFailsAddsAnErrorRecord() async throws {
+  @Test func setConfigOptionThatFailsAddsAnErrorEntryToTheSession() async throws {
     let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.failingMethods = ["session/set_config_option"]
 
     await harness.bounded { await harness.actions.setConfigOption(ConfigOptionID("mode"), .id("code")) }
 
-    #expect(harness.thread.item(id: ACPThreadActions.errorIDPrefix + "1") != nil)
+    #expect(errorCodes(of: harness.session) == [internalErrorCode])
+    #expect(harness.thread.items.isEmpty)
   }
 
   @Test func setConfigOptionSendsABooleanValue() async throws {
@@ -318,7 +325,7 @@ private struct Harness {
     #expect(message["params"] == .object(["methodId": .string("agent-login")]))
   }
 
-  @Test func loginThatFailsThrows() async throws {
+  @Test func loginThatFailsThrowsAndAddsAnErrorEntryToTheSession() async throws {
     let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.failingMethods = ["auth/login"]
@@ -326,6 +333,18 @@ private struct Harness {
     await #expect(throws: (any Error).self) {
       try await harness.bounded { try await harness.actions.login(AuthMethodID("agent-login")) }
     }
+    #expect(errorCodes(of: harness.session) == [internalErrorCode])
+  }
+
+  @Test func logoutThatFailsThrowsAndAddsAnErrorEntryToTheSession() async throws {
+    let harness = try await Harness()
+    defer { harness.agent.stop() }
+    harness.agent.failingMethods = ["auth/logout"]
+
+    await #expect(throws: (any Error).self) {
+      try await harness.bounded { try await harness.actions.logout() }
+    }
+    #expect(errorCodes(of: harness.session) == [internalErrorCode])
   }
 
   @Test func logoutSendsAuthLogout() async throws {

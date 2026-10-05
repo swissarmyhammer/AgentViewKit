@@ -1,11 +1,13 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The default view of an item or a content block that the adapter did not
-/// know (plan.md §9 A2).
+/// know (plan.md §9 A2; update.md §4.4 "Unknown updates stay visible").
 ///
 /// The view is a collapsible block. Its title holds the raw kind, and its
 /// body is the raw value as pretty-printed JSON. The kit shows the value and
-/// does not drop it.
+/// does not drop it. For an `UnknownEntry` of a `SessionModel`, the kind is
+/// the type string of the session update, and the body is its raw JSON.
 public struct UnknownItemView: View {
   /// The accessibility identifier of the view.
   public static let identifier = "unknown-item"
@@ -14,6 +16,10 @@ public struct UnknownItemView: View {
   private enum Source {
     /// An unknown thread item. The body reads its current values.
     case record(UnknownRecord)
+
+    /// An unknown entry of the transcript of a `SessionModel`. The body
+    /// reads its current values.
+    case entry(UnknownEntry)
 
     /// An unknown value, with the id that keys its expanded state.
     case value(kind: String, raw: JSONValue, id: String)
@@ -33,6 +39,20 @@ public struct UnknownItemView: View {
   ///     ``ExpandedBlocksStore``. The default is collapsed.
   public init(record: UnknownRecord, isExpanded: Bool = false) {
     self.source = .record(record)
+    self.isExpanded = isExpanded
+  }
+
+  /// Makes the view of an unknown entry of a `SessionModel`.
+  ///
+  /// The title shows the type string of the update, and the body shows its
+  /// raw JSON. The row key of the entry keys the expanded state.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry to show.
+  ///   - isExpanded: The start state when the environment has no
+  ///     ``ExpandedBlocksStore``. The default is collapsed.
+  public init(entry: UnknownEntry, isExpanded: Bool = false) {
+    self.source = .entry(entry)
     self.isExpanded = isExpanded
   }
 
@@ -66,6 +86,8 @@ public struct UnknownItemView: View {
     switch source {
     case .record(let record):
       (record.id, record.kind, record.raw)
+    case .entry(let entry):
+      (entry.id.rowKey, entry.type, SessionUpdateMapping.json(entry.raw))
     case .value(let kind, let raw, let id):
       (id, kind, raw)
     }

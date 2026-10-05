@@ -1,6 +1,8 @@
+import FoundationModelsACPClient
 import SwiftUI
 
-/// The default view of a ``ThreadError`` item (plan.md §9 A2).
+/// The default view of a ``ThreadError`` item or of an `ErrorEntry` of a
+/// `SessionModel` (plan.md §9 A2; update.md §4.7 "Error rows").
 ///
 /// The view is a glass card with a symbol, a title, a detail, and at most one
 /// action button. The button shows only when the host gives its closure in
@@ -11,12 +13,19 @@ import SwiftUI
 /// | `refusal` | The explanation | Rephrase |
 /// | `acp` | The code and the message | None |
 /// | `unknown` | The message | None |
+///
+/// An `ErrorEntry` shows as the `acp` kind, with its JSON-RPC code and its
+/// message. When the entry has `data`, the card also shows the data as JSON.
+/// The model keeps the errors: the kit keeps no error list.
 public struct ErrorView: View {
   /// The start of the accessibility identifier of each card.
   public static let identifierPrefix = "error-"
 
   /// The start of the accessibility identifier of each action button.
   public static let actionIdentifierPrefix = "error-action-"
+
+  /// The accessibility identifier of the JSON data of an error entry.
+  public static let dataIdentifier = "error-data"
 
   /// A button of the error card.
   public enum Action: String, CaseIterable, Hashable, Sendable {
@@ -46,8 +55,33 @@ public struct ErrorView: View {
     public let action: Action?
   }
 
+  /// The error that the card shows.
+  private enum Source {
+    /// An error item of an ``AgentThread``.
+    case record(ThreadError)
+
+    /// An error entry of the transcript of a `SessionModel`.
+    case entry(ErrorEntry)
+
+    /// The type of the error and its values.
+    var kind: ThreadError.Kind {
+      switch self {
+      case .record(let error): error.kind
+      case .entry(let entry): .acp(code: entry.code.wireValue, message: entry.message)
+      }
+    }
+
+    /// The JSON-RPC data of the error as pretty-printed JSON, or `nil`.
+    var data: String? {
+      switch self {
+      case .record: nil
+      case .entry(let entry): entry.data.map { SessionUpdateMapping.json($0).prettyPrinted }
+      }
+    }
+  }
+
   /// The error to show.
-  let error: ThreadError
+  private let source: Source
 
   @Environment(\.errorActions) private var actions
   @Environment(\.agentTheme) private var theme
@@ -56,7 +90,17 @@ public struct ErrorView: View {
   ///
   /// - Parameter error: The error to show.
   public init(error: ThreadError) {
-    self.error = error
+    self.source = .record(error)
+  }
+
+  /// Makes the card of an error entry of a `SessionModel`.
+  ///
+  /// The card shows the JSON-RPC code, the message and the data of the
+  /// entry. It shows no action.
+  ///
+  /// - Parameter entry: The error entry to show.
+  public init(entry: ErrorEntry) {
+    self.source = .entry(entry)
   }
 
   /// The accessibility identifier of the card of `kind`.
@@ -115,36 +159,54 @@ public struct ErrorView: View {
   }
 
   public var body: some View {
-    let kind = error.kind
+    let kind = source.kind
     let content = Self.content(for: kind)
-    HStack(alignment: .top, spacing: theme.spacing.m) {
-      Image(systemName: content.symbolName)
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(theme.statusColors.failed)
-        .fontWeight(theme.symbolWeight)
-        .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
-        Text(content.title)
-          .font(.headline)
-        Text(content.detail)
-          .font(.callout)
+    VStack(alignment: .leading, spacing: theme.spacing.s) {
+      HStack(alignment: .top, spacing: theme.spacing.m) {
+        Image(systemName: content.symbolName)
+          .symbolRenderingMode(.hierarchical)
+          .foregroundStyle(theme.statusColors.failed)
+          .fontWeight(theme.symbolWeight)
+          .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: theme.spacing.xs) {
+          Text(content.title)
+            .font(.headline)
+          Text(content.detail)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+        }
+        // The text is the element of the card, and the button is its sibling.
+        // A container element here merges into the element of an `ItemRow`
+        // and loses its identifier.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(content.title), \(content.detail)")
+        .accessibilityIdentifier(Self.identifier(for: kind))
+        Spacer(minLength: theme.spacing.s)
+        actionButton(content.action)
+      }
+      if let data = source.data {
+        Text(data)
+          .font(theme.codeFont)
           .foregroundStyle(.secondary)
           .textSelection(.enabled)
-      }
-      // The text is the element of the card, and the button is its sibling.
-      // A container element here merges into the element of an `ItemRow`
-      // and loses its identifier.
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel("\(content.title), \(content.detail)")
-      .accessibilityIdentifier(Self.identifier(for: kind))
-      Spacer(minLength: theme.spacing.s)
-      if let action = content.action, let handler = actions.handler(for: action) {
-        Button(action.title) { handler(error) }
-          .buttonStyle(.glass)
-          .accessibilityIdentifier(Self.actionIdentifier(for: action))
+          .accessibilityIdentifier(Self.dataIdentifier)
       }
     }
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+  }
+
+  /// The button of `action`, when the host gives its closure and the card
+  /// shows an error item.
+  ///
+  /// - Parameter action: The action of the card, or `nil`.
+  /// - Returns: The button, or nothing.
+  @ViewBuilder private func actionButton(_ action: Action?) -> some View {
+    if let action, case .record(let error) = source, let handler = actions.handler(for: action) {
+      Button(action.title) { handler(error) }
+        .buttonStyle(.glass)
+        .accessibilityIdentifier(Self.actionIdentifier(for: action))
+    }
   }
 }

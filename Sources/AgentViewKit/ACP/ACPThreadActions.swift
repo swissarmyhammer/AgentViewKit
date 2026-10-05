@@ -69,14 +69,14 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 ///   standard input of the terminal authentication process that runs for the
 ///   record.
 ///
-/// A verb that does not throw writes a failure to the thread as an error
-/// record.
+/// The kit keeps no error list (update.md §4.7 "Error rows"). A failed
+/// `session/prompt` shows the error entry that `SessionModel.prompt(_:meta:)`
+/// adds. Each other failed request adds an error entry to the session model
+/// with `SessionModel.appendError(code:message:data:)`. A verb that throws
+/// also throws the error again.
 public final class ACPThreadActions: AgentThreadActions {
   /// The text that ``writeTerminalLine(_:to:)`` adds after each line.
   static let lineTerminator = "\n"
-
-  /// The text before the count in the id of an error record.
-  public static let errorIDPrefix = "acp-action-error-"
 
   /// The number of milliseconds in ``commentDelay``.
   static let commentDelayMilliseconds = 50
@@ -113,9 +113,6 @@ public final class ACPThreadActions: AgentThreadActions {
   /// their terminal record.
   private var terminalProcesses: [TerminalID: any LaunchedProcess] = [:]
 
-  /// The number of error records that the actions wrote.
-  private var errorCount = 0
-
   /// The log of the actions.
   private let logger = Logger(subsystem: "AgentViewKit", category: "ACPThreadActions")
 
@@ -149,7 +146,8 @@ public final class ACPThreadActions: AgentThreadActions {
     do {
       _ = try await session.prompt(Self.promptBlocks(for: input))
     } catch {
-      report(error, verb: "session/prompt")
+      // The session model already added the error entry of the prompt.
+      log(error, verb: "session/prompt")
     }
   }
 
@@ -216,7 +214,12 @@ public final class ACPThreadActions: AgentThreadActions {
   // MARK: - Authorization
 
   public func login(_ methodId: AuthMethodID) async throws {
-    try await connection.login(LoginAuthRequest(methodId: AuthMethodId(rawValue: methodId.rawValue)))
+    do {
+      try await connection.login(LoginAuthRequest(methodId: AuthMethodId(rawValue: methodId.rawValue)))
+    } catch {
+      report(error, verb: "auth/login")
+      throw error
+    }
   }
 
   public func runTerminalAuth(_ method: AgentViewKit.AuthMethod.Terminal) async throws {
@@ -253,7 +256,12 @@ public final class ACPThreadActions: AgentThreadActions {
   }
 
   public func logout() async throws {
-    try await connection.logout(LogoutAuthRequest())
+    do {
+      try await connection.logout(LogoutAuthRequest())
+    } catch {
+      report(error, verb: "auth/logout")
+      throw error
+    }
   }
 
   // MARK: - Helpers
@@ -294,16 +302,23 @@ public final class ACPThreadActions: AgentThreadActions {
     session.pendingElicitations.first { $0.id.uuidString == id }?.id
   }
 
-  /// Writes a failed verb to the log and to the thread as an error record.
+  /// Writes a failed verb to the log and adds its error entry to the session
+  /// model.
   ///
   /// - Parameters:
   ///   - error: The failure.
   ///   - verb: The wire method that failed.
   private func report(_ error: any Error, verb: String) {
-    errorCount += 1
-    let message = String(describing: error)
-    logger.error("\(verb, privacy: .public) failed: \(message, privacy: .public)")
-    thread.apply(
-      .patch(id: Self.errorIDPrefix + String(errorCount), .error(kind: .value(.unknown(message: message)))))
+    log(error, verb: verb)
+    session.appendError(reporting: error)
+  }
+
+  /// Writes a failed verb to the log.
+  ///
+  /// - Parameters:
+  ///   - error: The failure.
+  ///   - verb: The wire method that failed.
+  private func log(_ error: any Error, verb: String) {
+    logger.error("\(verb, privacy: .public) failed: \(String(describing: error), privacy: .public)")
   }
 }

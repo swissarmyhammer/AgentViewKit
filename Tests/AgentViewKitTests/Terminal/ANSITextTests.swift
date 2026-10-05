@@ -147,6 +147,17 @@ import Testing
     #expect(ANSIText.standardColors.count == 16)
   }
 
+  /// `TerminalEntry.text` is already decoded text, so the parser reads a
+  /// string with no byte decode (update.md §4.4).
+  @Test func textThatIsAlreadyDecodedGivesTheSameRunsAsItsBytes() {
+    let text = "\(Self.escape)[31mred\(Self.escape)[0m plain"
+
+    let fromText = ANSIText.attributed(from: text)
+
+    #expect(String(fromText.characters) == "red plain")
+    #expect(fromText == Self.attributed(text))
+  }
+
   // MARK: - Strip
 
   @Test(arguments: [

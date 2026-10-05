@@ -87,7 +87,20 @@ public nonisolated enum ANSIText {
   ///   `backgroundColor`. A bold run has the `stronglyEmphasized` inline
   ///   presentation intent.
   public static func attributed(from data: Data) -> AttributedString {
-    var parser = Parser(scalars: Array(String(decoding: data, as: UTF8.self).unicodeScalars))
+    attributed(from: String(decoding: data, as: UTF8.self))
+  }
+
+  /// Converts the output text of a terminal to attributed text.
+  ///
+  /// Use this function for text that is already decoded, such as the
+  /// computed `text` of a `TerminalEntry` (update.md §4.4). The function does
+  /// not decode bytes.
+  ///
+  /// - Parameter text: The output text, with its escape sequences.
+  /// - Returns: The text with the SGR styles as attributes, and with no
+  ///   escape sequences, as ``attributed(from:)-(Data)`` gives it.
+  public static func attributed(from text: String) -> AttributedString {
+    var parser = Parser(scalars: Array(text.unicodeScalars))
     parser.run()
     return parser.output.attributedString
   }

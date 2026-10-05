@@ -251,7 +251,9 @@ public enum SessionUpdateMapping {
 
   /// The patch of a terminal update.
   ///
-  /// Output that is not valid base64 does not change the stored output.
+  /// The kit does not decode terminal output (update.md §4.4, §4.5). The
+  /// computed `text` of the `TerminalEntry` of the client model gives the
+  /// output, so the patch leaves the output of the record unchanged.
   private static func terminalPatch(_ update: TerminalUpdate) -> TerminalPatch {
     TerminalPatch(
       id: TerminalID(update.terminalId.rawValue),
@@ -260,32 +262,17 @@ public enum SessionUpdateMapping {
       exitStatus: wirePatch(update.exitStatus) {
         TerminalRecord.ExitStatus(code: $0.exitCode, signal: $0.signal)
       },
-      output: outputPatch(update.output),
       meta: jsonPatch(update.meta)
     )
   }
 
-  /// The output patch of a terminal update.
-  private static func outputPatch(
-    _ output: FoundationModelsACP.PatchField<TerminalOutput>
-  ) -> AgentViewKit.PatchField<Data> {
-    wirePatch(
-      output,
-      failure: "A terminal output snapshot is not valid base64. The output does not change."
-    ) { Data(base64Encoded: $0.data) }
-  }
-
   /// The patch of a terminal output chunk.
   ///
-  /// A chunk that is not valid base64 adds no bytes.
+  /// The kit does not decode terminal output (update.md §4.4, §4.5), so the
+  /// patch adds no bytes. It keeps the terminal and the `_meta` of the chunk.
   private static func terminalChunkPatch(_ chunk: TerminalOutputChunk) -> TerminalPatch {
-    let bytes = Data(base64Encoded: chunk.data)
-    if bytes == nil {
-      logger.error("A terminal output chunk is not valid base64. The chunk adds no bytes.")
-    }
-    return TerminalPatch(
+    TerminalPatch(
       id: TerminalID(chunk.terminalId.rawValue),
-      outputChunk: bytes ?? Data(),
       meta: chunk.meta.map { .value(json($0)) } ?? .unchanged
     )
   }
@@ -317,21 +304,27 @@ public enum SessionUpdateMapping {
     switch update.plan {
     case .items(let items):
       return .setPlan(
-        Plan(
-          id: PlanID(items.planId.rawValue),
-          entries: items.entries.map { entry in
-            AgentViewKit.PlanEntry(
-              content: entry.content,
-              priority: AgentViewKit.PlanEntry.Priority(wireValue: entry.priority.wireValue),
-              status: AgentViewKit.PlanEntry.Status(wireValue: entry.status.wireValue)
-            )
-          }
-        )
+        Plan(id: PlanID(items.planId.rawValue), entries: items.entries.map(planEntry))
       )
     case .unknown(let kind, let raw):
       return unknownInsert(
         id: makeUnknownID(), kind: "\(planUpdateKind)/\(kind)", raw: json(raw))
     }
+  }
+
+  /// Changes one ACP plan entry into a kit plan entry.
+  ///
+  /// The priority and the status keep a wire value that the kit does not
+  /// know in their `unknown` case.
+  ///
+  /// - Parameter entry: The ACP plan entry.
+  /// - Returns: The kit plan entry.
+  static func planEntry(_ entry: FoundationModelsACP.PlanEntry) -> AgentViewKit.PlanEntry {
+    AgentViewKit.PlanEntry(
+      content: entry.content,
+      priority: AgentViewKit.PlanEntry.Priority(wireValue: entry.priority.wireValue),
+      status: AgentViewKit.PlanEntry.Status(wireValue: entry.status.wireValue)
+    )
   }
 
   /// Changes one ACP command into a kit slash command.

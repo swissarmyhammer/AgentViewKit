@@ -369,7 +369,8 @@ private let unknownElicitationJSON = #"{"sessionId": "s1", "message": "Pick", "m
     #expect(reasoning(thread.item(id: "t1"))?.segments == ["Plan", "Act"])
     #expect(assistantMessage(thread.item(id: "m1"))?.blocks == [AgentViewKit.ContentBlock(text: "Done.")])
     #expect(toolCall(thread.item(id: "c1"))?.title == "Read file")
-    #expect(thread.terminals[TerminalID("term1")]?.output == Data("hi".utf8))
+    // The kit does not decode terminal output. `TerminalEntry.text` gives it.
+    #expect(thread.terminals[TerminalID("term1")]?.output.isEmpty == true)
     #expect(thread.plans[PlanID("p1")] != nil)
     #expect(unknownKinds(of: thread) == ["mood_update", "compaction_update"])
     #expect(thread.streaming.isEmpty)
