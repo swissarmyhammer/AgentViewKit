@@ -31,6 +31,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   static let removedSymbols = [
     // Branches.
     "BranchNavigator", "addBranch", "selectBranch",
+    // Checkpoints.
+    "CheckpointCapabilities", "CheckpointView", "setCheckpoints",
   ]
 
   /// Finds each use of a removed symbol on one line of a Swift file.

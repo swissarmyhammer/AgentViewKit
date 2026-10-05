@@ -51,10 +51,6 @@ public final class AgentThread {
   /// The authorization requests that wait for the user, in order.
   public private(set) var pendingAuthorizations: [AuthorizationRequest] = []
 
-  /// The restore points of the thread, in turn order. ``CheckpointView``
-  /// shows them as a slider.
-  public private(set) var checkpoints: [Checkpoint] = []
-
   /// The messages that still stream, keyed by record id.
   ///
   /// A source sends each chunk with ``ThreadChange/appendStreaming(id:text:)``
@@ -147,7 +143,6 @@ public final class AgentThread {
     case .resolveElicitation(let id): pendingElicitations.removeAll(id: id)
     case .addAuthorization(let request): pendingAuthorizations.upsert(request)
     case .resolveAuthorization(let id): pendingAuthorizations.removeAll(id: id)
-    case .setCheckpoints(let checkpoints): self.checkpoints = checkpoints
     case .appendStreaming(let id, let text): appendStreaming(id: id, text: text)
     case .closeStreaming(let id): closeStreaming(id: id)
     }
@@ -255,7 +250,6 @@ public final class AgentThread {
     pendingPermissions = []
     pendingElicitations = []
     pendingAuthorizations = []
-    checkpoints = []
     streaming = [:]
     noteLastItem()
   }

@@ -43,7 +43,7 @@ public enum ThreadChange {
   case compact(marker: CompactionMarker, removing: [String])
 
   /// Removes all items, plans, terminals, subagent runs, pending requests,
-  /// checkpoints, and streaming messages.
+  /// and streaming messages.
   ///
   /// The state, the config options, the commands, the usage, and the info
   /// do not change, because they belong to the session.
@@ -96,11 +96,6 @@ public enum ThreadChange {
 
   /// Removes the authorization request with the id.
   case resolveAuthorization(AuthorizationRequestID)
-
-  /// Replaces the restore points of the thread (plan.md §9 E).
-  ///
-  /// The source sends the full list, in turn order, after each change.
-  case setCheckpoints([Checkpoint])
 
   /// Adds text to the streaming message of the record with the id.
   ///

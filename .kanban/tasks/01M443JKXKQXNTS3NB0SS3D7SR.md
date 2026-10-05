@@ -62,10 +62,26 @@ comments:
     - evidence: 4 files. Added: Tests/PackageStructureTests/SourceLineScanner.swift, Tests/PackageStructureTests/SourceLineScannerTests.swift. Changed: Tests/PackageStructureTests/ImportScanner.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. Commands: `swift test --filter PackageStructureTests` passed (65 tests, 0 warnings). `swift test` passed (1 + 65 + 1265 + 128 = 1459 tests, 0 warnings).
     - next: /review. The finding `Tests/PackageStructureTests/RemovedVocabularyTests.swift:43` `reuse/reuse` is `- [x]`. The task stays in doing.
   timestamp: 2026-10-05T12:56:30.963324+00:00
+- actor: claude-code
+  id: 01m462dz387e67w1k4g8pgjh14
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 1224c36). 0 findings, 0 confirmed, 0 refuted. 4 files reviewed. All prior review items are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-05T13:00:44.008013+00:00
+- actor: claude-code
+  id: 01m462e09ccnvpwqapggdjvj0f
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — SourceLineScanner (new), SourceLineScannerTests (new), ImportScanner, RemovedVocabularyTests
+    - test: green — swift test, 1459 passed
+    - commit: 1224c36
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T13:00:45.228233+00:00
 depends_on:
 - 01M443HB3E33J2VKEYYF9NN7AX
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: d880
 title: 'Remove branches: addBranch, selectBranch, Branches and BranchNavigator'
 ---
 ## What
