@@ -1,5 +1,7 @@
 # Source-side branches
 
+Not current. See `Docs/decisions/acp-client-kit.md`.
+
 Status: decided. Source: plan.md §9 A, `Docs/decisions/checkpoints.md`.
 
 The kit keeps the branches of a thread local (`AgentThread.branches`,

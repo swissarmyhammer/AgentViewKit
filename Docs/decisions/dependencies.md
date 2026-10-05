@@ -1,11 +1,14 @@
 # Dependencies
 
-Status: decided. Source: plan.md §4 and §11 decision 1.
+Status: decided. Source: plan.md §4, update.md §1 and §3, and
+`Docs/decisions/acp-client-kit.md`.
 
-This file records each package dependency, its version requirement, and the
-products that AgentViewKit uses. `Tests/PackageStructureTests/ManifestTests.swift`
+This file records each direct package dependency, its version requirement,
+and the products that AgentViewKit uses. `Tests/PackageStructureTests/ManifestTests.swift`
 reads the Textual row and compares it with `Package.swift` and
 `Package.resolved`. Keep the form of that row.
+`Tests/PackageStructureTests/DecisionRecordTests.swift` reads the first cell
+of each row, and compares the set with the direct dependencies of the kit.
 
 | Package | URL | Requirement | Products |
 |---|---|---|---|
@@ -14,8 +17,18 @@ reads the Textual row and compares it with `Package.swift` and
 | EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorComplete`, `EditorDecorations`, `EditorExtensions`, `EditorDiff` |
 | FoundationModelsACP | git@github.com:swissarmyhammer/FoundationModelsACP.git | branch main | `FoundationModelsACP` |
 | FoundationModelsACPClient | git@github.com:swissarmyhammer/FoundationModelsACPClient.git | branch main | `FoundationModelsACPClient` |
-| FoundationModelsRouter | git@github.com:swissarmyhammer/FoundationModelsRouter.git | branch main | `FoundationModelsRouter` |
-| FoundationModelsExtras | git@github.com:swissarmyhammer/FoundationModelsExtras.git | branch main | `FoundationModelsExtras` |
+
+## The ACP packages
+
+- FoundationModelsACPClient holds `ConnectionModel` and `SessionModel`. The
+  views bind to these models (`Docs/decisions/acp-client-kit.md`).
+- The kit also lists the `FoundationModelsACP` product, because
+  `ClientSideConnection`, `InMemoryTransport` and the ACP v2 schema types are
+  in that package.
+- FoundationModels, FoundationModelsRouter and FoundationModelsExtras are not
+  direct dependencies. FoundationModelsExtras stays in the package graph only
+  because the library target of FoundationModelsACPClient depends on it. The
+  kit does not import it.
 
 ## Textual
 
@@ -45,8 +58,9 @@ reads the Textual row and compares it with `Package.swift` and
 | Target | Can import |
 |---|---|
 | `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `FoundationModelsACP`, `FoundationModelsACPClient` |
-| `AgentViewKitFoundationModels` | `AgentViewKit`, the `FoundationModels` framework |
-| `AgentViewKitRouter` | `AgentViewKit`, `FoundationModelsRouter`, `FoundationModelsExtras` |
+
+`AgentViewKit` is the one library target and the one library product
+(update.md §3, D4).
 
 `Tests/PackageStructureTests/ImportBoundaryTests.swift` enforces the
 forbidden list: no target in `Sources/` imports `FoundationModels`,

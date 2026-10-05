@@ -1,5 +1,7 @@
 # Subagent data source (R14)
 
+Not current. See `Docs/decisions/acp-client-kit.md`.
+
 Status: decided. Source: plan.md §9 C, §11 decision 15, and §14 R14.
 
 This file records which data source supplies `SubagentRun` values for

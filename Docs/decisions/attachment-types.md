@@ -11,25 +11,28 @@ the same change to the code. Keep the header and the form of the rows. Put the
 type identifier and the renderer name in backticks. Do not use a `|` character
 in a cell.
 
+The Router is not a data source of the kit (`Docs/decisions/acp-client-kit.md`),
+so the table does not name it.
+
 ## Default renderers
 
 | UTType | source support | default renderer |
 |---|---|---|
-| `public.png` | FoundationModels: image segment; ACP: image block; Router: image segment | `image` |
-| `public.jpeg` | FoundationModels: image segment; ACP: image block; Router: image segment | `image` |
-| `public.heic` | FoundationModels: image segment; ACP: image block; Router: image segment | `image` |
-| `com.adobe.pdf` | FoundationModels: no; ACP: blob resource or resource link; Router: no | `pdf` |
-| `public.plain-text` | FoundationModels: no; ACP: text resource or resource link; Router: no | `text` |
-| `net.daringfireball.markdown` | FoundationModels: no; ACP: text resource or resource link; Router: no | `text` |
-| `public.swift-source` | FoundationModels: no; ACP: text resource or resource link; Router: no | `code` |
-| `public.python-script` | FoundationModels: no; ACP: text resource or resource link; Router: no | `code` |
-| `public.mp3` | FoundationModels: no; ACP: audio block; Router: no | `audio` |
-| `com.microsoft.waveform-audio` | FoundationModels: no; ACP: audio block; Router: no | `audio` |
-| `public.mpeg-4` | FoundationModels: no; ACP: blob resource or resource link; Router: no | `movie` |
-| `com.apple.quicktime-movie` | FoundationModels: no; ACP: blob resource or resource link; Router: no | `movie` |
-| `public.json` | FoundationModels: no; ACP: text resource or resource link; Router: no | `chip` |
-| `public.zip-archive` | FoundationModels: no; ACP: resource link; Router: no | `chip` |
-| `public.data` | FoundationModels: no; ACP: resource link; Router: no | `chip` |
+| `public.png` | FoundationModels: image segment; ACP: image block | `image` |
+| `public.jpeg` | FoundationModels: image segment; ACP: image block | `image` |
+| `public.heic` | FoundationModels: image segment; ACP: image block | `image` |
+| `com.adobe.pdf` | FoundationModels: no; ACP: blob resource or resource link | `pdf` |
+| `public.plain-text` | FoundationModels: no; ACP: text resource or resource link | `text` |
+| `net.daringfireball.markdown` | FoundationModels: no; ACP: text resource or resource link | `text` |
+| `public.swift-source` | FoundationModels: no; ACP: text resource or resource link | `code` |
+| `public.python-script` | FoundationModels: no; ACP: text resource or resource link | `code` |
+| `public.mp3` | FoundationModels: no; ACP: audio block | `audio` |
+| `com.microsoft.waveform-audio` | FoundationModels: no; ACP: audio block | `audio` |
+| `public.mpeg-4` | FoundationModels: no; ACP: blob resource or resource link | `movie` |
+| `com.apple.quicktime-movie` | FoundationModels: no; ACP: blob resource or resource link | `movie` |
+| `public.json` | FoundationModels: no; ACP: text resource or resource link | `chip` |
+| `public.zip-archive` | FoundationModels: no; ACP: resource link | `chip` |
+| `public.data` | FoundationModels: no; ACP: resource link | `chip` |
 
 Renderer names:
 
@@ -67,15 +70,3 @@ for its type and each subtype.
 - A resource link block is always permitted. The agent reads the file itself.
 - Thus a client sends a text file as a text resource, a binary file as a blob
   resource or as a resource link, and other files as a resource link.
-
-### FoundationModelsRouter
-
-- `RoutedSession.enqueue(prompt:)` takes a `Transcript.Prompt`. Thus the
-  Router accepts what FoundationModels accepts: image segments.
-- `TranscriptEntryMapper` persists an attachment segment only as an image URL.
-  An attachment segment with no URL rebuilds as a text segment with its label.
-- `ToolCallAttachment` records are structured records, keyed by schema name,
-  that a tool attaches to its call. The Router never renders them to the
-  model. They are not prompt attachments.
-- For a file that is not an image, the host must put the text in the prompt,
-  or give the path to a tool that reads the file.

@@ -118,9 +118,9 @@ let package = Package(
       dependencies: ["AgentViewKit"] + acpProducts,
       swiftSettings: mainActorIsolated
     ),
-    // Finds and reads the package files for the tests. This target is not a
-    // product and has no dependency, so that PackageStructureTests can link it
-    // without the kit.
+    // Finds and reads the package files for the tests, and reads the Markdown
+    // tables of the decision records. This target is not a product and has no
+    // dependency, so that PackageStructureTests can link it without the kit.
     .target(name: "PackageFileSupport"),
 
     .testTarget(
@@ -131,7 +131,8 @@ let package = Package(
         // The scripted wire agent and the in-memory demo agent of the ACP
         // tests.
         "DemoSupport",
-        // ProtocolVersionTests reads the ACP version decision from disk.
+        // ProtocolVersionTests reads the ACP version decision from disk, and
+        // the decision table tests read their tables with MarkdownTable.
         "PackageFileSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,

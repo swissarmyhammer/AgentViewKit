@@ -1,5 +1,7 @@
 # Compaction UX
 
+Not current. See `Docs/decisions/acp-client-kit.md`.
+
 Status: decided. Source: plan.md §9 A2, §14 research R17.
 Task ^5vec7bq. Date: 2026-09-17.
 

@@ -1,5 +1,7 @@
 # Usage model (R16)
 
+Not current. See `Docs/decisions/acp-client-kit.md`.
+
 status: accepted
 date: 2026-09-16
 plan: plan.md §3.2, §14 (R16)

@@ -3,10 +3,14 @@ import Foundation
 /// Reads the body rows of one Markdown table in a decision file.
 ///
 /// The decision tests use this parser to compare a table in `Docs/decisions/`
-/// with the code. Each test maps the cells of a row to its own row type.
-enum MarkdownTable {
+/// with the code or with the package files. Each test maps the cells of a row
+/// to its own row type.
+public enum MarkdownTable {
   /// The error when the text has no line equal to the header row.
-  struct MissingTable: Error {}
+  public struct MissingTable: Error {
+    /// Makes the error.
+    public init() {}
+  }
 
   /// The number of lines from the header row to the first body row: the
   /// header row and the separator row.
@@ -23,7 +27,7 @@ enum MarkdownTable {
   ///   - header: The exact header row.
   /// - Returns: The cells of each row, in file order.
   /// - Throws: ``MissingTable`` when the text has no line equal to `header`.
-  static func rows(in text: String, header: String) throws -> [[String]] {
+  public static func rows(in text: String, header: String) throws -> [[String]] {
     let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
       .map { $0.trimmingCharacters(in: .whitespaces) }
     guard let headerIndex = lines.firstIndex(of: header) else { throw MissingTable() }

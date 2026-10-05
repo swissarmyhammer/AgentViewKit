@@ -1,5 +1,7 @@
 # Checkpoint sources (R13)
 
+Not current. See `Docs/decisions/acp-client-kit.md`.
+
 Status: decided. Source: plan.md §9 E and §14 R13.
 
 This file records what each data source can restore from a checkpoint, and
