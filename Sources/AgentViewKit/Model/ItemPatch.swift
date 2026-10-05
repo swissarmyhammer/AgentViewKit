@@ -7,13 +7,6 @@
 /// ``AgentThread`` applies a patch to the record with the same id. When no
 /// record has the id, the patch makes a new record of its kind.
 public nonisolated enum ItemPatch: Sendable, Hashable {
-  /// Changes a ``SystemPrompt``.
-  ///
-  /// - Parameters:
-  ///   - text: The text of the instructions.
-  ///   - meta: The `_meta` value of the source.
-  case system(text: PatchField<String> = .unchanged, meta: PatchField<JSONValue> = .unchanged)
-
   /// Changes a message from the user.
   ///
   /// - Parameters:
@@ -166,11 +159,6 @@ extension ItemPatch {
   @discardableResult
   func applyFields(to item: ThreadItem) -> Bool {
     switch self {
-    case .system(let text, let meta):
-      update(item.record as? SystemPrompt) { record in
-        record.text = text.applied(to: record.text)
-        record.meta = meta.applied(to: record.meta)
-      }
     case .userMessage(let content, let meta):
       applyMessage(content: content, meta: meta, to: item.userMessage)
     case .userMessageChunk(let block):
@@ -226,8 +214,6 @@ extension ItemPatch {
   /// Makes an item of the kind of the patch, with empty fields.
   private func emptyItem(id: String) -> ThreadItem {
     switch self {
-    case .system:
-      .system(SystemPrompt(id: id, text: ""))
     case .userMessage, .userMessageChunk:
       .userMessage(Message(id: id, blocks: []))
     case .assistantMessage, .assistantMessageChunk:

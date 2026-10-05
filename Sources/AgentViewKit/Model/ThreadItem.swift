@@ -4,9 +4,6 @@
 /// item that an adapter does not know is ``unknown(_:)``. The kit shows it and
 /// does not drop it.
 public enum ThreadItem: Identifiable {
-  /// The instructions of the session. The kit hides this item by default.
-  case system(SystemPrompt)
-
   /// A message from the user.
   case userMessage(Message)
 
@@ -31,7 +28,6 @@ public enum ThreadItem: Identifiable {
   /// The record that the case holds.
   public var record: any ThreadRecord {
     switch self {
-    case .system(let record): record
     case .userMessage(let record): record
     case .assistantMessage(let record): record
     case .reasoning(let record): record
@@ -50,11 +46,10 @@ public enum ThreadItem: Identifiable {
   /// The stable name of the kind of the item.
   ///
   /// ``ThreadMinimapView`` puts this name in its tick identifiers. The
-  /// values are `system`, `user`, `assistant`, `reasoning`, `tool-call`,
-  /// `structured`, `error`, and `unknown`.
+  /// values are `user`, `assistant`, `reasoning`, `tool-call`, `structured`,
+  /// `error`, and `unknown`.
   public var kindName: String {
     switch self {
-    case .system: "system"
     case .userMessage: "user"
     case .assistantMessage: "assistant"
     case .reasoning: "reasoning"

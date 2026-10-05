@@ -38,7 +38,6 @@ import Testing
         ContentBlock(text: "Run `swift build`."),
       ])
     let items: [ThreadItem] = [
-      .system(SystemPrompt(id: "system-1", text: "Answer in one line.")),
       .userMessage(ThreadFixtures.message(id: "user-1", text: "Read the README.")),
       .reasoning(
         Reasoning(

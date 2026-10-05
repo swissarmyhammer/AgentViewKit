@@ -93,10 +93,6 @@ public struct ItemRow: View, Equatable {
   /// The view of the item: the override of its kind, or the default view.
   @ViewBuilder private var content: some View {
     switch item {
-    case .system(let record):
-      OverridableItemView(\.systemPromptViewOverride, record: record) { record in
-        SystemPromptView(record: record)
-      }
     case .userMessage(let record):
       OverridableItemView(\.userMessageViewOverride, record: record) { record in
         UserMessageView(message: record)

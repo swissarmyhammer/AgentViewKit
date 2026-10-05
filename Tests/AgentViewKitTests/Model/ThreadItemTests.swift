@@ -7,7 +7,6 @@ import Testing
   /// Makes one item for each case of ``ThreadItem``, each with a different id.
   private static func oneItemForEachCase() -> [(item: ThreadItem, id: String)] {
     [
-      (.system(SystemPrompt(id: "system-1", text: "Be brief.")), "system-1"),
       (.userMessage(Message(id: "user-1", blocks: [ContentBlock(text: "Hello")])), "user-1"),
       (
         .assistantMessage(Message(id: "assistant-1", blocks: [ContentBlock(text: "Hi")])),
@@ -29,7 +28,7 @@ import Testing
   @Test func theItemIdIsTheRecordIdForEachCase() {
     let items = Self.oneItemForEachCase()
 
-    #expect(items.count == 8)
+    #expect(items.count == 7)
     for (item, id) in items {
       #expect(item.id == id)
       #expect(item.record.id == id)
@@ -159,10 +158,10 @@ import Testing
 
   @Test func eachRecordTypeConformsToThreadRecord() {
     let types: [any ThreadRecord.Type] = [
-      SystemPrompt.self, Message.self, Reasoning.self, ToolCallRecord.self,
-      StructuredRecord.self, ThreadError.self, UnknownRecord.self,
+      Message.self, Reasoning.self, ToolCallRecord.self, StructuredRecord.self,
+      ThreadError.self, UnknownRecord.self,
     ]
 
-    #expect(types.count == 7)
+    #expect(types.count == 6)
   }
 }

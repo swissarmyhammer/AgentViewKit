@@ -264,15 +264,6 @@ import Testing
     #expect(reasoning.revision == 2)
   }
 
-  @Test func aSystemPatchChangesTheText() {
-    let prompt = SystemPrompt(id: "s1", text: "Old")
-    let thread = makeThread([.system(prompt)])
-
-    thread.apply(.patch(id: "s1", .system(text: .value("New"))))
-
-    #expect(prompt.text == "New")
-  }
-
   @Test func aStructuredPatchChangesThePayload() {
     let record = StructuredRecord(id: "x1", schemaName: "AgentViewKit.Chart", payload: .null)
     let thread = makeThread([.structured(record)])

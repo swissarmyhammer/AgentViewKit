@@ -173,7 +173,6 @@ record. An inner modifier wins over an outer modifier for the same kind.
 
 | Modifier | The closure gets |
 |---|---|
-| `.systemPromptView { prompt in }` | `SystemPrompt` |
 | `.userMessageView { message in }` | `Message` |
 | `.assistantMessageView { message in }` | `Message` |
 | `.reasoningView { reasoning in }` | `Reasoning` |

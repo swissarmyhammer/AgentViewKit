@@ -54,15 +54,6 @@ import Testing
     #expect(reasoning.segments == ["Thinking."])
   }
 
-  @Test func closeWritesTheFinalTextToTheSystemPrompt() {
-    let prompt = SystemPrompt(id: "s1", text: "")
-    let thread = makeThread(.system(prompt))
-
-    stream(["Be", " brief."], id: "s1", to: thread)
-
-    #expect(prompt.text == "Be brief.")
-  }
-
   @Test func closeMakesAnAssistantMessageWhenNoRecordHasTheId() throws {
     let thread = AgentThread()
 

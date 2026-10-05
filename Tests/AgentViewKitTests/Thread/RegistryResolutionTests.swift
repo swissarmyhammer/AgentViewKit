@@ -7,7 +7,6 @@ import UniformTypeIdentifiers
 
 /// The item kinds that have a typed override modifier.
 enum OverrideKind: String, CaseIterable, Sendable {
-  case systemPrompt
   case userMessage
   case assistantMessage
   case reasoning
@@ -25,7 +24,6 @@ extension View {
   @ViewBuilder
   func applyOverride(_ kind: OverrideKind) -> some View {
     switch kind {
-    case .systemPrompt: systemPromptView { _ in EmptyView() }
     case .userMessage: userMessageView { _ in EmptyView() }
     case .assistantMessage: assistantMessageView { _ in EmptyView() }
     case .reasoning: reasoningView { _ in EmptyView() }
@@ -42,7 +40,6 @@ struct OverrideKeysReader: View {
   /// The accessibility identifier of the text.
   static let identifier = "override-keys"
 
-  @Environment(\.systemPromptViewOverride) private var systemPrompt
   @Environment(\.userMessageViewOverride) private var userMessage
   @Environment(\.assistantMessageViewOverride) private var assistantMessage
   @Environment(\.reasoningViewOverride) private var reasoning
@@ -54,7 +51,6 @@ struct OverrideKeysReader: View {
   /// The names of the kinds that have an override, sorted.
   private var setKinds: [String] {
     let flags: [(OverrideKind, Bool)] = [
-      (.systemPrompt, systemPrompt != nil),
       (.userMessage, userMessage != nil),
       (.assistantMessage, assistantMessage != nil),
       (.reasoning, reasoning != nil),

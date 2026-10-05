@@ -231,12 +231,9 @@ public nonisolated struct TurnSummary: Identifiable, Sendable, Hashable {
   /// Tells whether `item` is an item of the agent.
   ///
   /// - Parameter item: The item.
-  /// - Returns: `false` for a user message and for the system prompt.
+  /// - Returns: `false` for a user message.
   static func isAgentItem(_ item: ThreadItem) -> Bool {
-    switch item {
-    case .userMessage, .system: false
-    default: true
-    }
+    !isTurnStart(item)
   }
 
   /// The summaries of the turns of `items`.

@@ -13,9 +13,6 @@ public typealias ItemViewRenderer<Record> = @MainActor (Record) -> AnyView
 /// ``SwiftUI/View/toolCallView(_:)``. A key with no override is `nil`, and
 /// the thread view then shows the default view of the kind.
 extension EnvironmentValues {
-  /// The override of the ``ThreadItem/system(_:)`` view.
-  @Entry public var systemPromptViewOverride: ItemViewRenderer<SystemPrompt>? = nil
-
   /// The override of the ``ThreadItem/userMessage(_:)`` view.
   @Entry public var userMessageViewOverride: ItemViewRenderer<Message>? = nil
 
@@ -43,16 +40,6 @@ extension EnvironmentValues {
 }
 
 extension View {
-  /// Replaces the view of each system prompt item in this view.
-  ///
-  /// - Parameter content: The function that makes the view of a record.
-  /// - Returns: A view that gives the override to its subtree.
-  public func systemPromptView<Content: View>(
-    @ViewBuilder _ content: @escaping @MainActor (SystemPrompt) -> Content
-  ) -> some View {
-    itemViewOverride(\.systemPromptViewOverride, content)
-  }
-
   /// Replaces the view of each user message item in this view.
   ///
   /// - Parameter content: The function that makes the view of a record.

@@ -255,7 +255,6 @@ public final class AgentThread {
     case .userMessage: return .userMessage(content: content)
     case .assistantMessage, .none: return .assistantMessage(content: content)
     case .reasoning: return .reasoning(segments: .value([text]))
-    case .system: return .system(text: .value(text))
     case .toolCall, .structured, .error, .unknown: return nil
     }
   }

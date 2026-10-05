@@ -8,9 +8,6 @@ import Testing
   /// The longest time that a test waits for the view to change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
-  /// The text of the system prompt.
-  static let instructions = "Answer in one line."
-
   /// The accessibility identifier of the custom footer.
   static let footerIdentifier = "custom-footer"
 
@@ -38,18 +35,6 @@ import Testing
   }
 
   // MARK: - Mount
-
-  @Test func theSystemPromptMountsWithItsIdentifierAndLabel() {
-    let record = SystemPrompt(id: "system-mount", text: Self.instructions)
-    let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: .system(record)), actions: NoopThreadActions()))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(SystemPromptView.identifier == "system-prompt")
-    #expect(harness.element(identifier: SystemPromptView.identifier)?.label == "Instructions")
-    #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: record.id)) == nil)
-  }
 
   @Test func aUserMessageMountsWithItsIdentifierAndLabel() {
     let message = ThreadFixtures.message(id: "user-mount", text: "Hello.")
@@ -108,47 +93,6 @@ import Testing
     #expect(
       MessageHeader.relativeText(for: earlier, now: now)
         == formatter.localizedString(for: earlier, relativeTo: now))
-  }
-
-  // MARK: - Disclosure
-
-  @Test func theSystemPromptIsCollapsedAndAPressExpandsIt() async throws {
-    let record = SystemPrompt(id: "system-toggle", text: Self.instructions)
-    let harness = HostedViewHarness(
-      AgentThreadView(thread: Self.thread(with: .system(record)), actions: NoopThreadActions()))
-    defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SystemPromptView.toggleIdentifier) != nil
-    }
-
-    #expect(harness.element(identifier: SystemPromptView.bodyIdentifier) == nil)
-    #expect(!harness.accessibilityElements().contains { $0.label == Self.instructions })
-
-    try harness.press(identifier: SystemPromptView.toggleIdentifier)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SystemPromptView.bodyIdentifier) != nil
-    }
-
-    #expect(harness.element(identifier: SystemPromptView.bodyIdentifier) != nil)
-    #expect(harness.accessibilityElements().contains { $0.label == Self.instructions })
-
-    try harness.press(identifier: SystemPromptView.toggleIdentifier)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SystemPromptView.bodyIdentifier) == nil
-    }
-    #expect(harness.element(identifier: SystemPromptView.bodyIdentifier) == nil)
-  }
-
-  @Test func theStoreOfTheEnvironmentKeepsTheSystemPromptExpanded() {
-    let record = SystemPrompt(id: "system-store", text: Self.instructions)
-    let store = ExpandedBlocksStore()
-    store.expand(record.id)
-    let harness = HostedViewHarness(
-      SystemPromptView(record: record).environment(\.expandedBlocksStore, store))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: SystemPromptView.bodyIdentifier) != nil)
   }
 
   // MARK: - Blocks

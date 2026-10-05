@@ -17,7 +17,7 @@ import Foundation
 /// - A structured item: a fenced JSON value with the schema name and the
 ///   payload.
 ///
-/// The document omits the system prompt, the errors, and the unknown items.
+/// The document omits the errors and the unknown items.
 public enum ThreadExporter {
   /// The language of each fenced JSON block.
   static let jsonLanguage = "json"
@@ -90,7 +90,7 @@ public enum ThreadExporter {
     case .structured(let record):
       fenced(
         structuredValue(schemaName: record.schemaName, payload: record.payload).prettyPrinted)
-    case .system, .error, .unknown:
+    case .error, .unknown:
       nil
     }
   }

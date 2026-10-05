@@ -37,6 +37,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "SubagentRun", "SubagentSource", "SubagentTreeView", "upsertSubagent",
     // Compaction markers.
     "CompactionMarker", "CompactionMarkerView", "compactionView", "compactionViewOverride",
+    // The system prompt item.
+    "SystemPrompt", "SystemPromptView", "systemPromptView", "systemPromptViewOverride",
   ]
 
   /// Finds each use of a removed symbol on one line of a Swift file.
