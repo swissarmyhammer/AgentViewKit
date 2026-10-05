@@ -160,7 +160,7 @@ struct HostThread: View {
       }
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message.
-      .messageFooter { message in BranchNavigator(messageID: message.id) }
+      .messageFooter { message in MessageActions(message: message) }
   }
 }
 ```

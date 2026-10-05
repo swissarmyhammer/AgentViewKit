@@ -29,12 +29,28 @@ comments:
     - evidence: deleted Sources/AgentViewKitFoundationModels/ (8 files), Tests/AgentViewKitFoundationModelsTests/ (10 files), Sources/DemoSupport/FoundationModelsDemoSession.swift, FakeLanguageModel.swift, DemoTools.swift, Examples/ReadmeSnippets/Snippets/FoundationModelsQuickStart.swift; modified Package.swift, README.md, Sources/DemoSupport/DemoLaunchOptions.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoRootView.swift, Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb, Tests/PackageStructureTests/ManifestTests.swift, Tests/PackageStructureTests/ImportBoundaryTests.swift, Tests/AgentViewKitTests/TestSupport/HostedSerialTraitTests.swift. Commands: swift build --build-tests (clean), swift test (all pass), Scripts/check-readme.sh (pass), Scripts/test-examples.sh AgentViewKitDemo (pass), Scripts/check-benchmarks.sh (fail on p90 timing under load average 10 to 14).
     - next: /review. Run check-benchmarks.sh again on an idle machine.
   timestamp: 2026-10-05T12:29:22.582509+00:00
+- actor: claude-code
+  id: 01m4611m5bxz8zr9k6q3zkdb51
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 9d8a6a0). 0 findings, 0 confirmed, 0 refuted. 29 files reviewed. README.md had no matching validator. The .kanban/ files were excluded by .reviewignore.
+    - next: the task is in done.
+  timestamp: 2026-10-05T12:36:31.019639+00:00
+- actor: claude-code
+  id: 01m4611p4psyergwaehe410390
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — removed the AgentViewKitFoundationModels target, its tests, the FoundationModels demo support and quick start; Package.swift, README.md, DemoLaunchOptions, DemoRootView, generate_xcodeproj.rb, ManifestTests, ImportBoundaryTests, HostedSerialTraitTests
+    - test: green — swift test passed; README and demo UI gates passed; benchmark timing gate failed under load (p90 6.2 ms, limit 4.0 ms, load about 10), not caused by this change
+    - commit: 9d8a6a0
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T12:36:33.046851+00:00
 depends_on:
 - 01M443H1PVEMMXJ3E2VK9MXMEM
 - 01M443HJ8XEQKPMRJR6GHD93YP
 - 01M443HR0D8NZ2PZ35A9BYNJ0M
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: d680
 title: Remove the AgentViewKitFoundationModels target and the FoundationModels demo support
 ---
 ## What
