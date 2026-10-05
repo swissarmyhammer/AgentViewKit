@@ -11,12 +11,12 @@ import SwiftUI
 ///
 /// A row of a `TranscriptEntry` switches over the entry case. A user message,
 /// an agent message, a thought, a tool call, a terminal, a plan, an unknown
-/// update and an error show in ``UserMessageView``, ``AssistantMessageView``,
-/// ``ReasoningView``, ``ToolCallView``, ``TerminalView``, ``TaskListView``,
-/// ``UnknownItemView`` and ``ErrorView``. A compaction entry shows an
-/// ``UnknownItemView`` with the kind name until its own view binds it. The
-/// row itself reads nothing of the entry: the item view reads the content, so
-/// a streamed chunk evaluates the item view and not the row.
+/// update, a compaction and an error show in ``UserMessageView``,
+/// ``AssistantMessageView``, ``ReasoningView``, ``ToolCallView``,
+/// ``TerminalView``, ``TaskListView``, ``UnknownItemView``,
+/// ``CompactionEntryView`` and ``ErrorView``. The row itself reads nothing of
+/// the entry: the item view reads the content, so a streamed chunk evaluates
+/// the item view and not the row.
 ///
 /// Two rows are equal when they show the same record object with the same id
 /// and the same revision, or the same entry object. Apply `.equatable()` to
@@ -163,9 +163,7 @@ public struct ItemRow: View, Equatable {
 
   /// The view of a transcript entry.
   ///
-  /// Each entry kind shows in its item view, which reads the entry object. A
-  /// compaction entry shows an ``UnknownItemView`` with the kind name, until
-  /// the view of that kind binds to its entry object.
+  /// Each entry kind shows in its item view, which reads the entry object.
   ///
   /// - Parameter entry: The entry to show.
   /// - Returns: The view of the entry.
@@ -187,8 +185,8 @@ public struct ItemRow: View, Equatable {
       UnknownItemView(entry: unknown)
     case .error(let error):
       ErrorView(entry: error)
-    case .compaction:
-      UnknownItemView(kind: entry.kindName, raw: .null, id: entry.rowKey)
+    case .compaction(let compaction):
+      CompactionEntryView(entry: compaction)
     }
   }
 

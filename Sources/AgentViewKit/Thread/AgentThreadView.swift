@@ -46,9 +46,11 @@ import SwiftUI
 /// ``init(session:actions:)`` shows the transcript of a `SessionModel`
 /// (update.md §4.2, §4.7). The conversation keys each row on
 /// `TranscriptEntry.id`, and each item view reads its own entry object, so a
-/// streamed chunk draws only the row of its entry. The pending requests, the
-/// announcements and the agent commands read an ``AgentThread``, so a view of
-/// a session model does not show them.
+/// streamed chunk draws only the row of its entry. Above the conversation, a
+/// ``SessionNoticeBanner`` shows one banner for each notice of the session
+/// model; the banner view, and not this view, reads the notices. The pending
+/// requests, the announcements and the agent commands read an
+/// ``AgentThread``, so a view of a session model does not show them.
 public struct AgentThreadView: View {
   /// The model that the view shows.
   private enum Source {
@@ -128,7 +130,10 @@ public struct AgentThreadView: View {
       .background { ThreadAnnouncementObserver(thread: thread) }
       .agentCommandScope(thread: thread, anchors: anchors)
     case .session(let session):
-      ConversationView(session: session, anchors: anchors)
+      VStack(spacing: 0) {
+        SessionNoticeBanner(session: session)
+        ConversationView(session: session, anchors: anchors)
+      }
     }
   }
 }

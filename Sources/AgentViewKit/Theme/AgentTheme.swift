@@ -82,7 +82,8 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     case detailed
   }
 
-  /// The colors that show the status of a tool call, a plan entry, or a run.
+  /// The colors that show the status of a tool call, a plan entry, a
+  /// compaction, or a run, and the tint of a priority or a notice severity.
   public struct StatusColors: Equatable, Sendable {
     /// The color of work that runs now.
     public var running: Color
@@ -147,6 +148,24 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
       }
     }
 
+    /// The color of a context compaction with `status`.
+    ///
+    /// - Parameter status: The status of the compaction (unstable ACP).
+    /// - Returns: ``running`` for a compaction in progress, ``completed`` for
+    ///   a completed compaction, ``failed`` for a failed compaction,
+    ///   ``cancelled`` for a cancelled compaction, and ``pending`` for a
+    ///   compaction with no reported status or with a status that the kit
+    ///   does not know.
+    public func color(for status: Unstable.CompactionStatus) -> Color {
+      switch status {
+      case .inProgress: running
+      case .completed: completed
+      case .failed: failed
+      case .cancelled: cancelled
+      case .unknown: pending
+      }
+    }
+
     /// The tint of a plan entry with `priority`.
     ///
     /// The status colors have no priority colors, so the tint uses the status
@@ -162,6 +181,23 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
       case .high: failed
       case .medium: running
       case .low, .unknown: pending
+      }
+    }
+
+    /// The tint of a session notice with `severity`.
+    ///
+    /// The status colors have no severity colors, so the tint uses the status
+    /// color that has the same strength, as the priority tint does.
+    ///
+    /// - Parameter severity: The severity of the notice (unstable ACP).
+    /// - Returns: ``failed`` for an error, ``running`` for a warning, and
+    ///   ``pending`` for information or a severity that the kit does not
+    ///   know.
+    public func color(for severity: Unstable.NoticeSeverity) -> Color {
+      switch severity {
+      case .error: failed
+      case .warning: running
+      case .info, .unknown: pending
       }
     }
   }

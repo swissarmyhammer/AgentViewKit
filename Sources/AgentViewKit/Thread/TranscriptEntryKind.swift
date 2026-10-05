@@ -18,20 +18,4 @@ extension TranscriptEntry {
     case .error(let object): object
     }
   }
-
-  /// The name of the kind of the entry, as the `sessionUpdate` tag of ACP
-  /// spells it. The placeholder view of a kind with no view shows it.
-  var kindName: String {
-    switch self {
-    case .userMessage: "user_message"
-    case .agentMessage: "agent_message"
-    case .thought: "agent_thought"
-    case .toolCall: "tool_call"
-    case .terminal: "terminal"
-    case .plan: "plan"
-    case .unknown: "unknown"
-    case .compaction: "compaction"
-    case .error: "error"
-    }
-  }
 }

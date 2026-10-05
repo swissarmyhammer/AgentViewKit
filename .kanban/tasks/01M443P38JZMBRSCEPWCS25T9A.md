@@ -76,10 +76,26 @@ comments:
     - evidence: 2 files — Sources/AgentViewKit/Items/ErrorView.swift, Sources/AgentViewKit/Status/TaskListView.swift. swift build --build-tests: build complete (deprecation warning in ErrorViewHostedTests from ^repfza1 that is not from this change, and the mlx-swift "missing creator" warning). swift test: 1316 tests in 116 suites passed, 77 tests in 12 suites passed, exit 0. 2 of 2 findings checked.
     - next: /review
   timestamp: 2026-10-05T22:31:37.155398+00:00
+- actor: claude-code
+  id: 01m473a87nzwvgwky8ym2ty9b6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (814acc6): 0 findings, 0 confirmed, 0 refuted; 2 files reviewed, 2 .kanban files not reviewed (.reviewignore). All prior review items are checked.
+    - next: none; the task is in done
+  timestamp: 2026-10-05T22:35:25.301076+00:00
+- actor: claude-code
+  id: 01m473a92xea1yfkjsh25ted7q
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — source input of ErrorView and TaskListView is internal
+    - test: green — swift test, 1316 passed
+    - commit: 814acc6
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T22:35:26.173896+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: e980
 title: Bind the terminal, plan, unknown and error rows to their TranscriptEntry objects
 ---
 ## What
