@@ -33,8 +33,24 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/ACP/ACPDemoSessionTests.swift. RED 1 failure in 1600 filtered repetitions (8 x 200); GREEN 0 failures in 1600. Full `swift test`: runs 1 and 3 pass; run 2 failed only in ConversationViewHostedTests.anInsertWhileUnpinnedShowsOneNewInThePill, which has no relation to this change and is now task ^5kcr5z8.
     - next: /review
   timestamp: 2026-10-05T19:03:13.551235+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m46qd9xp2jygfqz942167n8r
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ACPDemoSessionTests waits for the end of each turn (waitForTheEndOfTurn); race repeated 1 of 1600, then 0 of 1600
+    - test: green — swift test, 1279 passed
+    - commit: a403b17
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T19:07:22.422256+00:00
+- actor: claude-code
+  id: 01m46qdbcrv3nfr10yvgad6nsg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (a403b17). 1 file reviewed, 6 .kanban files not reviewed because of .reviewignore. 0 findings, 0 confirmed, 0 refuted. The task has no earlier review findings.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-05T19:07:23.928209+00:00
+position_column: done
+position_ordinal: e480
 title: Make ACPDemoSessionTests.eachTurnGivesANewReply stable in the full suite run
 ---
 ## What

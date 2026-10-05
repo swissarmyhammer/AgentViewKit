@@ -178,12 +178,16 @@ public final class ScrollAnchorManager {
   /// Keeps `id` as the anchor, after the user picks an item to go to.
   ///
   /// The caller scrolls the list to the item. The manager sends no scroll.
-  /// A later ``restoreAnchor()`` keeps the item in view across a list
-  /// update. The thread minimap calls this function.
+  /// The call cancels a scroll to the bottom that ``requestScrollToBottom()``
+  /// requested and did not send yet, so that this scroll does not move the
+  /// list away from the item. A later ``restoreAnchor()`` keeps the item in
+  /// view across a list update. The thread minimap calls this function.
   ///
   /// - Parameter id: The identifier of the item that the user picked.
   public func noteJump(to id: String) {
     anchorID = id
+    pendingScroll?.cancel()
+    pendingScroll = nil
   }
 
   /// Scrolls back to the kept anchor, after a list update, and clears it.

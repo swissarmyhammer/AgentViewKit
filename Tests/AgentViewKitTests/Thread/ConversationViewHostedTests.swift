@@ -65,6 +65,12 @@
     /// Scrolls the conversation to its first item and waits until the manager
     /// is not pinned.
     ///
+    /// The helper jumps as the thread minimap does with no proxy: it calls
+    /// ``ScrollAnchorManager/noteJump(to:)`` before it sends the scroll. The
+    /// jump cancels the scroll to the bottom that the mount can leave pending.
+    /// Without the jump, that late scroll can move the list back to the
+    /// bottom, and the manager then stays pinned.
+    ///
     /// - Parameters:
     ///   - thread: The thread of the conversation.
     ///   - anchors: The manager of the conversation.
@@ -73,6 +79,7 @@
       thread: AgentThread, anchors: ScrollAnchorManager, harness: HostedViewHarness<Content>
     ) async {
       if let firstID = thread.items.first?.id {
+        anchors.noteJump(to: firstID)
         anchors.onScroll(.item(firstID))
       }
       await harness.pump(until: waitTimeout) { !anchors.isPinnedToBottom }

@@ -308,4 +308,16 @@ import Testing
     #expect(manager.anchorID == "c")
     #expect(recorder.targets.isEmpty)
   }
+
+  @Test func aJumpCancelsTheRequestedScrollToTheBottom() async {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeManager(recorder: recorder)
+    manager.noteLastItemChanged(to: "d")
+
+    manager.noteJump(to: "a")
+    await Self.runScheduledTasks()
+
+    #expect(manager.anchorID == "a")
+    #expect(recorder.targets.isEmpty)
+  }
 }

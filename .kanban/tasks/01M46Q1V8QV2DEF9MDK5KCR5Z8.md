@@ -1,8 +1,41 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: a880
+comments:
+- actor: claude-code
+  id: 01m46qg6sbn8spgmazxcfm9jtf
+  text: |-
+    Research:
+    - The test `scrollToTop` helper calls `anchors.onScroll(.item(firstID))`. In `ConversationView`, that closure calls `position.scrollTo(id:anchor: .top)`. Then the helper waits until `!anchors.isPinnedToBottom`.
+    - The failed run shows that the manager stayed pinned for the full 5 s wait. The `#expect(!anchors.isPinnedToBottom)` runs directly after the wait, with no pump between them.
+    - Possible cause: `onAppear` of the list calls `anchors.noteLastItemChanged(to:)`. While pinned, that call sends `requestScrollToBottom()`, which sends `.bottom` from a `Task` on a later main-actor tick. If `mountScrolledConversation` returns before that task runs, the late `.bottom` scroll replaces the scroll to the top. This is a hypothesis; I must show it first.
+  timestamp: 2026-10-05T19:08:57.515048+00:00
+- actor: claude-code
+  id: 01m46rm6yjz6vhyqfwfp4eadgw
+  text: |-
+    Cause found and fixed. The cause is in the manager (`ScrollAnchorManager`), and the test helper did not use the real jump path.
+
+    What I saw:
+    - I added temporary log lines (now removed) to `ScrollAnchorManager.sendPendingScroll()` and to the test. In 9 of 9 full-bundle runs (3 `swift test`, 6 parallel test-bundle processes), the `.bottom` scroll that the list requests in `onAppear` (`noteLastItemChanged` -> `requestScrollToBottom`) was sent AFTER the test sent its scroll to the first item. Thus a late scroll to the bottom always competes with the scroll to the top. When SwiftUI applies both position changes in one update, the bottom scroll wins, the list stays at the bottom, and the manager stays pinned for the full 5 s wait. That gives the 4 failures of the card.
+    - The assertion failure itself did not repeat in 120 runs of the single test (`--filter ... --maximum-repetitions 30`, 4 processes) or in 9 full runs. Note: parallel `swift test` processes wait on the `.build` lock, so they run one after the other. To get real parallel processes, run the bundle with `swiftpm-testing-helper` and `DYLD_FRAMEWORK_PATH` / `DYLD_LIBRARY_PATH` set to the Xcode platform paths.
+    - The repeatable failure is the manager contract: a jump did not cancel a requested scroll to the bottom. The same defect affects the real callers (thread minimap with no proxy, `AgentCommandTarget` jump, the Show Error button): during a stream while pinned, a pending bottom scroll can move the list away from the item the user picked.
+
+    Change:
+    - `ScrollAnchorManager.noteJump(to:)` now cancels the pending scroll to the bottom (doc comment updated).
+    - New unit test `ScrollAnchorManagerTests.aJumpCancelsTheRequestedScrollToTheBottom` (RED: recorder got `[.bottom]`; GREEN after the fix).
+    - `ConversationViewHostedTests.scrollToTop` now calls `anchors.noteJump(to:)` before `anchors.onScroll(.item(_:))`, as the minimap does. No sleeps.
+
+    Verification: 6 parallel processes x 20 repetitions of `ConversationViewHostedTests` (120 runs of the target test) passed; 6 parallel full-bundle runs passed; full `swift test` passed 2 times (1280 tests). The only warning is the mlx-swift `missing creator for mutated node` build warning.
+  timestamp: 2026-10-05T19:28:37.330728+00:00
+- actor: claude-code
+  id: 01m46rm94npdzzpa3whfkqznkj
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift, Tests/AgentViewKitTests/Infrastructure/ScrollAnchorManagerTests.swift, Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift; `swift test --filter aJumpCancelsTheRequestedScrollToTheBottom` (red, then green); 6 parallel bundle processes `--filter ConversationViewHostedTests --repetitions 20 --repeat-until fail` (pass); full `swift test` 2 times (1280 tests pass)
+    - next: /review
+  timestamp: 2026-10-05T19:28:39.573519+00:00
+position_column: doing
+position_ordinal: '80'
 title: Make ConversationViewHostedTests.anInsertWhileUnpinnedShowsOneNewInThePill stable in the full suite run
 ---
 ## What
@@ -16,12 +49,12 @@ The failures, all in one run:
 
 Probable cause: the test scrolls up to unpin the view, but the view was pinned again (or never unpinned) before the insert. Thus the insert scrolled the view to the bottom. Find the real cause before a change.
 
-- [ ] Show the failure in a way you can repeat (run the test many times with `--filter`, `--maximum-repetitions` and parallel processes).
-- [ ] Make the test wait for a real condition (for example, the unpinned state) before the insert. Do not add sleeps.
+- [x] Show the failure in a way you can repeat (run the test many times with `--filter`, `--maximum-repetitions` and parallel processes).
+- [x] Make the test wait for a real condition (for example, the unpinned state) before the insert. Do not add sleeps.
 
 ## Acceptance Criteria
-- [ ] The repeated run of the test passes.
-- [ ] `swift test` passes.
+- [x] The repeated run of the test passes.
+- [x] `swift test` passes.
 
 ## Workflow
 - Use `/tdd`.
