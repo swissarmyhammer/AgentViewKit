@@ -40,7 +40,7 @@ public struct TaskListView: View {
   public static let emptyIdentifier = "task-list-empty"
 
   /// The plans that the view shows.
-  private enum Source {
+  enum Source {
     /// The plans of an ``AgentThread``, keyed by identifier.
     case plans([PlanID: Plan])
 
@@ -49,7 +49,7 @@ public struct TaskListView: View {
   }
 
   /// The plans to show.
-  private let source: Source
+  let source: Source
 
   /// Makes the task list.
   ///

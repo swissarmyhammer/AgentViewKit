@@ -44,6 +44,38 @@ comments:
     - files: Sources/AgentViewKit/Terminal/TerminalView.swift, Terminal/TerminalSource.swift (new), Terminal/ANSIText.swift, Status/TaskListView.swift, Items/UnknownItemView.swift, Items/ErrorView.swift, Thread/ItemRow.swift, ACP/SessionUpdateMapping.swift, ACP/TranscriptSeed.swift, ACP/ACPThreadActions.swift, ACP/SessionModel+ReportedError.swift (new); Tests: Items/SessionEntryRowsHostedTests.swift (new), ACP/ACPThreadActionsTests.swift, ACP/SessionUpdateMappingTests.swift, ACP/ACPThreadSourceTests.swift, Terminal/ANSITextTests.swift
     - next: /review
   timestamp: 2026-10-05T22:13:39.976624+00:00
+- actor: claude-code
+  id: 01m472vxwk67zfke9v4gnzzxmd
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (3d396e3): 2 findings, 2 confirmed, 0 refuted — Sources/AgentViewKit/Items/ErrorView.swift:84 swift/access-control, Sources/AgentViewKit/Status/TaskListView.swift:52 swift/access-control
+    - next: /implement to correct the 2 open items in "Review Findings (2026-10-05 17:18)"
+  timestamp: 2026-10-05T22:27:35.955048+00:00
+- actor: claude-code
+  id: 01m472vzf7b9rzqwywwfcv8gcz
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — TerminalView, TaskListView, UnknownItemView and ErrorView show their entries; terminal decode removed; ACPThreadActions errors go through SessionModel; 16 files
+    - test: green — swift test, 1316 passed; demo UI gate passed
+    - commit: 3d396e3
+    - review: findings — Sources/AgentViewKit/Items/ErrorView.swift:84, Sources/AgentViewKit/Status/TaskListView.swift:52
+  timestamp: 2026-10-05T22:27:37.575162+00:00
+- actor: claude-code
+  id: 01m473374ja4e0jrhe79kdj57c
+  text: |-
+    Review findings corrected (swift/access-control).
+    - ErrorView and TaskListView: `private let source: Source` is now `let source: Source`. The nested `Source` enum of each view was `private`, so it is now `internal` too. Without this change, the code does not compile.
+    - I examined each other view input property that commit 3d396e3 added. `TerminalView.source` (type `TerminalSource`, internal) and `TranscriptPlanView.entry` are already internal. The commit added no stored property to `UnknownItemView`. The `@Environment` properties stay `private`, because they are dynamic properties.
+    - No test for this change: an access level is not behavior. The full build and test suite are the check.
+    - Discovery: `swift build --build-tests` shows a deprecation warning in Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift for `AgentThreadView(thread:actions:)`. The warning is not from this change. Commit 17a7900 (^repfza1) deprecated the initializer on purpose, and many hosted tests use it. The compiler shows the warning only when it recompiles the file. Here it recompiled the file because ErrorView changed. ^h1116ab removes the initializer.
+  timestamp: 2026-10-05T22:31:34.802302+00:00
+- actor: claude-code
+  id: 01m47339e32tp4rs5h4z9jsmek
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Sources/AgentViewKit/Items/ErrorView.swift, Sources/AgentViewKit/Status/TaskListView.swift. swift build --build-tests: build complete (deprecation warning in ErrorViewHostedTests from ^repfza1 that is not from this change, and the mlx-swift "missing creator" warning). swift test: 1316 tests in 116 suites passed, 77 tests in 12 suites passed, exit 0. 2 of 2 findings checked.
+    - next: /review
+  timestamp: 2026-10-05T22:31:37.155398+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
 position_column: doing
@@ -70,3 +102,13 @@ Source: update.md §4.4 (plans, terminals, unknown updates), §4.7 ("Error rows"
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-05 17:18)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Items/ErrorView.swift:84` `swift/access-control` — SwiftUI view input properties should be `internal`, not `private`. The `source` property is constructed from init parameters (error or entry) and affects view rendering, making it an input property that should follow the pattern of internal accessibility. Remove `private` modifier from `source` property: change `private let source: Source` to `let source: Source` to maintain consistency with the access-control rule for SwiftUI view input properties.
+- [x] `Sources/AgentViewKit/Status/TaskListView.swift:52` `swift/access-control` — SwiftUI view input properties should be `internal`, not `private`. The `source` property is constructed from init parameters and affects view rendering, making it an input property that should follow the pattern of internal accessibility. Remove `private` modifier from `source` property: change `private let source: Source` to `let source: Source` to maintain consistency with the access-control rule for SwiftUI view input properties.

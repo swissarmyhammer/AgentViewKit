@@ -56,7 +56,7 @@ public struct ErrorView: View {
   }
 
   /// The error that the card shows.
-  private enum Source {
+  enum Source {
     /// An error item of an ``AgentThread``.
     case record(ThreadError)
 
@@ -81,7 +81,7 @@ public struct ErrorView: View {
   }
 
   /// The error to show.
-  private let source: Source
+  let source: Source
 
   @Environment(\.errorActions) private var actions
   @Environment(\.agentTheme) private var theme
