@@ -22,10 +22,26 @@ comments:
     - evidence: deleted Sources/AgentViewKit/Checkpoints/{Checkpoint,CheckpointActions,CheckpointCapabilities,CheckpointView}.swift, Sources/AgentViewKitTestSupport/RecordingCheckpointActions.swift, Tests/AgentViewKitTests/Checkpoints/{CheckpointTests,CheckpointCapabilitiesTests,CheckpointViewHostedTests}.swift; edited Sources/AgentViewKit/Model/ThreadChange.swift, Sources/AgentViewKit/Model/AgentThread.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. `swift test` exit 0 (1245 + 128 + 65 + 1 tests pass, 0 warnings). `Scripts/test-examples.sh AgentViewKitDemo` passed (2 UI tests), with load averages 7.53 before and 10.33 after.
     - next: /review
   timestamp: 2026-10-05T13:04:48.385186+00:00
+- actor: claude-code
+  id: 01m462w1axz0g5xyx5ew0sz00e
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (cb62aa5) — 0 findings (findings 0, confirmed 0, refuted 0; 7 validators attempted, 0 failed). 11 files reviewed. 4 .kanban files not reviewed because of .reviewignore. The Swift tool rules did not read the 8 deleted files, because those files do not exist after the commit.
+    - next: none — the task moved to done.
+  timestamp: 2026-10-05T13:08:25.053205+00:00
+- actor: claude-code
+  id: 01m462w2x2v9nxgrabe49cnkfr
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — deleted the Checkpoints sources, RecordingCheckpointActions and the checkpoint tests; ThreadChange, AgentThread, RemovedVocabularyTests
+    - test: green — swift test passed (1, 65, 1245, 128); demo UI gate passed
+    - commit: cb62aa5
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T13:08:26.658650+00:00
 depends_on:
 - 01M443JKXKQXNTS3NB0SS3D7SR
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: d980
 title: 'Remove checkpoints: setCheckpoints, Checkpoint, CheckpointCapabilities and CheckpointView'
 ---
 ## What

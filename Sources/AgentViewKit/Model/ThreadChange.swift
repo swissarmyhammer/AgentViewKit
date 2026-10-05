@@ -42,8 +42,8 @@ public enum ThreadChange {
   /// marker gets the revision of that item plus one.
   case compact(marker: CompactionMarker, removing: [String])
 
-  /// Removes all items, plans, terminals, subagent runs, pending requests,
-  /// and streaming messages.
+  /// Removes all items, plans, terminals, pending requests, and streaming
+  /// messages.
   ///
   /// The state, the config options, the commands, the usage, and the info
   /// do not change, because they belong to the session.
@@ -60,12 +60,6 @@ public enum ThreadChange {
 
   /// Changes the terminal with the id of the patch, or makes it.
   case upsertTerminal(TerminalPatch)
-
-  /// Changes the subagent run with the id of the patch, or makes it at the
-  /// end of ``AgentThread/subagents``.
-  ///
-  /// A known run changes in place, and its revision increments by one.
-  case upsertSubagent(SubagentPatch)
 
   /// Replaces the config options.
   case setConfigOptions([ConfigOption])

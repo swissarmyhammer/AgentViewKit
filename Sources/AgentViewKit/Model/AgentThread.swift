@@ -23,13 +23,6 @@ public final class AgentThread {
   /// The terminals that the agent owns, keyed by id.
   public private(set) var terminals: [TerminalID: TerminalRecord] = [:]
 
-  /// The subagent runs that the agent started, in the order that the source
-  /// first sent them. ``SubagentTreeView`` shows them as a tree.
-  ///
-  /// A patch to a known run changes the run in place and does not write this
-  /// array, so only the row of that run becomes invalid.
-  public private(set) var subagents: [SubagentRun] = []
-
   /// The session options: mode, model, thought level, and switches.
   public private(set) var configOptions: [ConfigOption] = []
 
@@ -69,9 +62,6 @@ public final class AgentThread {
   /// The position of each item in ``items``, keyed by item id.
   @ObservationIgnored private var index: [String: Int] = [:]
 
-  /// The subagent runs, keyed by run id.
-  @ObservationIgnored private var subagentIndex: [SubagentRunID: SubagentRun] = [:]
-
   /// The log of the thread.
   @ObservationIgnored private let logger = Logger(
     subsystem: "AgentViewKit", category: "AgentThread")
@@ -94,14 +84,6 @@ public final class AgentThread {
   /// - Returns: The position.
   public func position(of id: String) -> Int? {
     index[id]
-  }
-
-  /// The subagent run with the id, or `nil` when the thread has no such run.
-  ///
-  /// - Parameter id: The identifier of the run.
-  /// - Returns: The run.
-  public func subagent(id: SubagentRunID) -> SubagentRun? {
-    subagentIndex[id]
   }
 
   /// Tells if the item is the last item while the thread runs a turn
@@ -132,7 +114,6 @@ public final class AgentThread {
     case .setPlan(let plan): plans[plan.id] = plan
     case .removePlan(let id): plans[id] = nil
     case .upsertTerminal(let patch): upsertTerminal(patch)
-    case .upsertSubagent(let patch): upsertSubagent(patch)
     case .setConfigOptions(let options): configOptions = options
     case .setAvailableCommands(let commands): availableCommands = commands
     case .setUsage(let usage): self.usage = usage
@@ -245,8 +226,6 @@ public final class AgentThread {
     index = [:]
     plans = [:]
     terminals = [:]
-    subagents = []
-    subagentIndex = [:]
     pendingPermissions = []
     pendingElicitations = []
     pendingAuthorizations = []
@@ -277,17 +256,6 @@ public final class AgentThread {
     }
     patch.applyFields(to: terminal)
     terminal.bump()
-  }
-
-  private func upsertSubagent(_ patch: SubagentPatch) {
-    guard let run = subagentIndex[patch.id] else {
-      let run = patch.makeRun()
-      subagentIndex[patch.id] = run
-      subagents.append(run)
-      return
-    }
-    patch.applyFields(to: run)
-    run.bump()
   }
 
   /// Gives a chunk to the streaming message of the record. The first chunk
