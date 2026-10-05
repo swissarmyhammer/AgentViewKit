@@ -28,17 +28,18 @@ private let secondPageResult = #"""
   """#
 
 /// The objects of one test: the scripted agent and the provider.
+@MainActor
 private struct Harness {
-  let client = SwiftUIACPClient()
+  let model = ConnectionModel()
   let agent: ScriptedWireAgent
   let provider: ACPSessionList
 
-  /// Connects a client to a scripted agent and makes the provider.
+  /// Connects a connection model to a scripted agent and makes the provider.
   ///
   /// - Parameter cwd: The working directory filter of the provider.
   init(cwd: String? = projectPath) async {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
-    let connection = await client.connect(over: clientEnd)
+    let connection = await model.connect(over: clientEnd)
     agent = ScriptedWireAgent(transport: agentEnd)
     agent.start()
     provider = ACPSessionList(connection: connection, cwd: cwd)

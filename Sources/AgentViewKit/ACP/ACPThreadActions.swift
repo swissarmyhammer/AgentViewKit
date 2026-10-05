@@ -41,21 +41,25 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 
 /// The verbs of a thread that an ACP v2 session fills (plan.md §3.4, §12).
 ///
+/// The verbs send each request through the client models: the
+/// `SessionModel` of the thread and the `ConnectionModel` of the agent.
 /// Each verb has one behavior:
 ///
-/// - ``send(_:)`` sends `session/prompt`. The text is a `text` block. An
-///   image attachment is an `image` block with base64 data. Each other
-///   attachment is a `resource_link` block.
-/// - ``cancel()`` sends `session/cancel`.
+/// - ``send(_:)`` sends `session/prompt` with `SessionModel.prompt(_:meta:)`.
+///   The text is a `text` block. An image attachment is an `image` block with
+///   base64 data. Each other attachment is a `resource_link` block.
+/// - ``cancel()`` sends `session/cancel` with `SessionModel.cancel(meta:)`.
 /// - ``respond(to:_:)-(PermissionRequest,_)`` answers the pending permission
-///   request of the session. When the decision has a comment, the verb then
-///   sends the comment as the next prompt, because the wire has no comment
-///   field.
+///   request of the session model. When the decision has a comment, the verb
+///   then sends the comment as the next prompt, because the wire has no
+///   comment field.
 /// - ``respond(to:_:)-(ElicitationRequest,_)`` accepts, declines, or cancels
-///   the pending elicitation of the client.
-/// - ``setConfigOption(_:_:)`` sends `session/set_config_option` and puts the
-///   full option list of the response on the thread.
-/// - ``login(_:)`` sends `auth/login`. ``logout()`` sends `auth/logout`.
+///   the pending elicitation of the session model.
+/// - ``setConfigOption(_:_:)`` sends `session/set_config_option`. The agent
+///   reports the new options in a `config_option_update`, which the source
+///   puts on the thread.
+/// - ``login(_:)`` sends `auth/login`. ``logout()`` sends `auth/logout`. The
+///   connection model keeps the auth state.
 /// - ``runTerminalAuth(_:)`` starts the agent program again with the extra
 ///   arguments and environment of the method, and shows the output in a
 ///   ``TerminalRecord``. The id of the record is
@@ -92,14 +96,12 @@ public final class ACPThreadActions: AgentThreadActions {
   /// The thread that the actions change.
   public let thread: AgentThread
 
-  /// The client that holds the pending requests.
-  private let client: SwiftUIACPClient
+  /// The model of the session of the thread. It sends the session requests
+  /// and holds the pending requests.
+  private let session: SessionModel
 
-  /// The connection that sends the requests to the agent.
-  private let connection: ClientSideConnection
-
-  /// The id of the session of the thread.
-  private let sessionId: SessionId
+  /// The connection model of the agent. It sends the auth requests.
+  private let connection: ConnectionModel
 
   /// The launcher that starts the terminal authentication process.
   private let processLauncher: any ProcessLauncher
@@ -121,25 +123,22 @@ public final class ACPThreadActions: AgentThreadActions {
   ///
   /// - Parameters:
   ///   - thread: The thread that the actions change.
-  ///   - client: The client that holds the pending requests.
-  ///   - connection: The connection that sends the requests to the agent.
-  ///   - sessionId: The id of the session of the thread.
+  ///   - session: The model of the session of the thread.
+  ///   - connection: The connection model of the agent.
   ///   - processLauncher: The launcher that starts the terminal
   ///     authentication process.
   ///   - agentProgram: The agent program that terminal authentication
   ///     starts.
   public init(
     thread: AgentThread,
-    client: SwiftUIACPClient,
-    connection: ClientSideConnection,
-    sessionId: SessionId,
+    session: SessionModel,
+    connection: ConnectionModel,
     processLauncher: any ProcessLauncher = AgentProcessLauncher(),
     agentProgram: ACPAgentProgram? = nil
   ) {
     self.thread = thread
-    self.client = client
+    self.session = session
     self.connection = connection
-    self.sessionId = sessionId
     self.processLauncher = processLauncher
     self.agentProgram = agentProgram
   }
@@ -147,9 +146,8 @@ public final class ACPThreadActions: AgentThreadActions {
   // MARK: - Turn
 
   public func send(_ input: UserInput) async {
-    let request = PromptRequest(prompt: Self.promptBlocks(for: input), sessionId: sessionId)
     do {
-      _ = try await connection.prompt(request)
+      _ = try await session.prompt(Self.promptBlocks(for: input))
     } catch {
       report(error, verb: "session/prompt")
     }
@@ -157,7 +155,7 @@ public final class ACPThreadActions: AgentThreadActions {
 
   public func cancel() async {
     do {
-      try await connection.sessionCancel(CancelSessionNotification(sessionId: sessionId))
+      try await session.cancel()
     } catch {
       report(error, verb: "session/cancel")
     }
@@ -166,15 +164,14 @@ public final class ACPThreadActions: AgentThreadActions {
   // MARK: - Requests
 
   public func respond(to request: PermissionRequest, _ decision: PermissionDecision) async {
-    let session = client.session(for: sessionId)
-    if let pending = session.pendingPermissionRequests.first(where: {
+    if let pending = session.pendingPermissions.first(where: {
       $0.id.uuidString == request.id.rawValue
     }) {
       switch decision.outcome {
       case .selected(let optionId):
-        session.answerPermissionRequest(pending.id, with: PermissionOptionId(rawValue: optionId.rawValue))
+        session.selectPermission(pending.id, option: PermissionOptionId(rawValue: optionId.rawValue))
       case .cancelled:
-        session.cancelPermissionRequest(pending.id)
+        session.cancelPermission(pending.id)
       }
     } else {
       logger.error("No pending permission request \(request.id.rawValue, privacy: .public).")
@@ -189,11 +186,11 @@ public final class ACPThreadActions: AgentThreadActions {
     if let id = pendingElicitationID(matching: request.id.rawValue) {
       switch result {
       case .accept(let content):
-        client.acceptElicitation(id, content: content.map(SessionUpdateMapping.wireJSON))
+        session.acceptElicitation(id, content: content.map(SessionUpdateMapping.wireJSON))
       case .decline:
-        client.declineElicitation(id)
+        session.declineElicitation(id)
       case .cancel:
-        client.cancelElicitation(id)
+        session.cancelElicitation(id)
       }
     } else {
       logger.error("No pending elicitation \(request.id.rawValue, privacy: .public).")
@@ -208,10 +205,9 @@ public final class ACPThreadActions: AgentThreadActions {
       case .boolean(let bool): .boolean(bool)
       }
     let request = SetSessionConfigOptionRequest(
-      configId: SessionConfigId(rawValue: id.rawValue), sessionId: sessionId, value: wireValue)
+      configId: SessionConfigId(rawValue: id.rawValue), sessionId: session.sessionId, value: wireValue)
     do {
-      let response = try await connection.setSessionConfigOption(request)
-      thread.apply(.setConfigOptions(response.configOptions.map(SessionUpdateMapping.configOption)))
+      try await session.setConfigOption(request)
     } catch {
       report(error, verb: "session/set_config_option")
     }
@@ -220,7 +216,7 @@ public final class ACPThreadActions: AgentThreadActions {
   // MARK: - Authorization
 
   public func login(_ methodId: AuthMethodID) async throws {
-    _ = try await connection.loginAuth(LoginAuthRequest(methodId: AuthMethodId(rawValue: methodId.rawValue)))
+    try await connection.login(LoginAuthRequest(methodId: AuthMethodId(rawValue: methodId.rawValue)))
   }
 
   public func runTerminalAuth(_ method: AgentViewKit.AuthMethod.Terminal) async throws {
@@ -257,7 +253,7 @@ public final class ACPThreadActions: AgentThreadActions {
   }
 
   public func logout() async throws {
-    _ = try await connection.logoutAuth(LogoutAuthRequest())
+    try await connection.logout(LogoutAuthRequest())
   }
 
   // MARK: - Helpers
@@ -290,15 +286,12 @@ public final class ACPThreadActions: AgentThreadActions {
     )
   }
 
-  /// The local id of the pending elicitation that `id` names.
-  ///
-  /// The search includes the elicitations with no session, because a
-  /// connection can complete an elicitation of a request.
+  /// The local id of the pending elicitation of the session that `id` names.
   ///
   /// - Parameter id: The local id as a string.
   /// - Returns: The local id, or `nil` when no pending elicitation matches.
   private func pendingElicitationID(matching id: String) -> UUID? {
-    client.pendingElicitations.first { $0.id.uuidString == id }?.id
+    session.pendingElicitations.first { $0.id.uuidString == id }?.id
   }
 
   /// Writes a failed verb to the log and to the thread as an error record.

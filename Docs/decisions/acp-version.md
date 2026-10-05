@@ -19,9 +19,10 @@ supported: `2`
   (2026-08-20). The Rust schema crate `agent-client-protocol-schema` 1.7.0
   (2026-08-20) has `ProtocolVersion::LATEST = V1`. `V2` is available only
   behind the `unstable_protocol_v2` feature.
-- v2 is a draft. The latest v2 schema is `schema-v2.0.0-alpha.3`
-  (2026-08-20). The migration guide tells each side to keep v1 and to add v2
-  behind version negotiation and feature flags.
+- v2 is a draft. The migration guide tells each side to keep v1 and to add v2
+  behind version negotiation and feature flags. The kit builds against
+  `schema-v2.0.0-alpha.7`: FoundationModelsACP `fe0d82d` (update.md §5). The
+  earlier pin was `schema-v2.0.0-alpha.3`.
 - When a client sends `2` and the agent answers `1`, the client continues
   with v1 or disconnects.
 
@@ -84,14 +85,27 @@ Do this decision again when one of these events occurs:
 - A surveyed agent starts to speak v2.
 - Upstream marks v2 as stable.
 
+## Schema alpha.7
+
+The protocol version integer stays `2`. The schema changes from alpha.3 to
+alpha.7 change these parts of the wire:
+
+| change | effect on the kit |
+|---|---|
+| `PromptResponse.messageId` is required. It is the id of the user message that the agent added. The agent echoes that message in a `user_message` update with the same id, before or after the response. | A prompt result with no `messageId` does not decode. The scripted demo agents send a `messageId` and echo the user message. |
+| `ToolCallUpdate.name` is new and optional, with patch rules. It is the program name of the tool. `title` stays the label for people. | The tool call views select the registry entry by `name` and show `title` as the label (a later view task). |
+| `NewSessionResponse.availableCommands` and `ResumeSessionResponse.availableCommands` are new and optional. | `ConnectionModel` seeds the commands of the session model from the response. `ACPThreadSource` seeds the thread from the session model. |
+| `ResumeSessionRequest.replayFrom` means the retained history. No value means no replay. `{"type": "start"}` means all retained history. | A resume sends `replayFrom: .start`. The agent decides how much history it retains, so the replayed history can be partial. |
+
 ## Adapter
 
 - `SupportedProtocolVersions.values`
   (`Sources/AgentViewKit/ACP/SupportedProtocolVersions.swift`) lists the
   integers that the kit accepts.
-- `ACPThreadSource.initialize(over:request:)` sends `initialize`. When the
-  agent answers with a version that is not in the list, or when the wire
-  package throws `ProtocolVersionMismatchError`, the source adds one `.error`
-  record that names the two versions, and `run()` reads no update.
+- `ACPThreadSource.initialize(over:request:)` sends `initialize` through the
+  `ConnectionModel` of FoundationModelsACPClient. When the agent answers with
+  a version that is not in the list, or when the wire package throws
+  `ProtocolVersionMismatchError`, the source adds one `.error` record that
+  names the two versions, and `run()` reads no update.
 - `ACPThreadSource.acceptProtocolVersion(_:requested:)` does the same check
   for a host that sends `initialize` itself.

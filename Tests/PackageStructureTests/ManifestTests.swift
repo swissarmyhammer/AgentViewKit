@@ -187,11 +187,17 @@ import Testing
 /// The part of `Package.resolved` that the tests read.
 struct ResolvedFile: Decodable {
   /// One resolved package.
-  struct Pin: Decodable {
+  struct Pin: Decodable, Equatable {
     /// The resolved state of one package.
-    struct State: Decodable {
+    struct State: Decodable, Equatable {
       /// The version tag, or `nil` for a branch or revision pin.
       let version: String?
+
+      /// The branch that the manifest follows, or `nil` for a version pin.
+      let branch: String?
+
+      /// The resolved commit.
+      let revision: String
     }
 
     /// The package identity, such as `textual`.

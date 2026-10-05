@@ -22,11 +22,27 @@ comments:
     - Not done here, by the card: `acp-version.md` (task ^sbncn28). README not changed, so `Scripts/check-readme.sh` was not run. The README line that names "the branches" decision belongs to the README rewrite task.
     - next: /review
   timestamp: 2026-10-05T17:02:44.655883+00:00
+- actor: claude-code
+  id: 01m46gh4z3hbz8b88y8sf661bm
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 7a5a31f) — 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). The task had no earlier `## Review Findings` sections. No validator matched the eight `Docs/decisions/*.md` files. The engine did not read `Tests/AgentViewKitTests/Helpers/MarkdownTable.swift`, because this commit removed that file (it moved to `Sources/PackageFileSupport/MarkdownTable.swift`).
+    - next: none — task moved to done.
+  timestamp: 2026-10-05T17:07:08.387331+00:00
+- actor: claude-code
+  id: 01m46gh6c85gpb4n5yg9zbxthn
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — acp-client-kit.md (new); dependencies.md, attachment-types.md; five records marked not current; DecisionRecordTests (new); MarkdownTable moved to PackageFileSupport
+    - test: green — swift test, 1274 passed (one earlier run had the race recorded as ^xbr8qmh)
+    - commit: 7a5a31f
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T17:07:09.832823+00:00
 depends_on:
 - 01M443JA9M77PZH4YN3ED04XQ2
 - 01M443M8BHM2BDPPZ2FVDA5TFV
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: e280
 title: Write the decision record "AgentViewKit is an ACP client kit" and update the dependency and ACP version records
 ---
 ## What

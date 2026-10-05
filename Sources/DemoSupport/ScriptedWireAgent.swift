@@ -19,15 +19,17 @@ private let promptMethod = "session/prompt"
 /// each `session/prompt` request gets a new `messageId` (a UUID string), and
 /// the agent echoes the prompt text in a `user_message_chunk` update with the
 /// same `messageId`. ``promptEchoOrder`` tells if the echo comes before or
-/// after the result. After the answer, the agent sends the frames that
-/// ``followUps`` gives for the method. The agent can also send a raw frame to
-/// the client.
+/// after the result. Before the answer, the agent sends the frames that
+/// ``leadIns`` gives for the method. After the answer, the agent sends the
+/// frames that ``followUps`` gives for the method. The agent can also send a
+/// raw frame to the client.
 ///
 /// The ACP tests and the demo app use this agent. The demo app binds it with
 /// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
 /// its end-to-end test needs no agent binary.
 public final class ScriptedWireAgent {
-  /// Gives the frames that the agent sends after it answers one request.
+  /// Gives the frames that the agent sends before or after it answers one
+  /// request.
   ///
   /// The first argument is the request frame. The second argument is the
   /// number of requests with the same method, this request included.
@@ -64,6 +66,11 @@ public final class ScriptedWireAgent {
 
   /// The frames to send after the answer to a request, keyed by method.
   public var followUps: [String: FollowUp] = [:]
+
+  /// The frames to send before the answer to a request, keyed by method.
+  ///
+  /// For example, the replay of a `session/resume` comes before its answer.
+  public var leadIns: [String: FollowUp] = [:]
 
   /// Each frame from the client, in arrival order.
   public private(set) var received: [AgentViewKit.JSONValue] = []
@@ -163,13 +170,14 @@ public final class ScriptedWireAgent {
     return results[method] ?? "{}"
   }
 
-  /// Records one frame, answers it when it is a request, and then sends the
-  /// follow-up frames of its method.
+  /// Records one frame. When it is a request, sends the lead-in frames of its
+  /// method, answers it, and then sends the follow-up frames of its method.
   private func handle(_ line: Data) async {
     guard let frame = try? JSONDecoder().decode(AgentViewKit.JSONValue.self, from: line) else { return }
     received.append(frame)
     guard let method = frame["method"]?.stringValue, let id = frame["id"] else { return }
     let idText = String(decoding: (try? JSONEncoder().encode(id)) ?? Data(), as: UTF8.self)
+    await send(leadIns[method], for: frame, method: method)
     if failingMethods.contains(method) {
       try? await send(#"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(internalErrorCode),"message":"failed"}}"#)
     } else if method == promptMethod {
@@ -177,9 +185,19 @@ public final class ScriptedWireAgent {
     } else {
       try? await send(Self.resultFrame(idText: idText, result: nextResult(for: method)))
     }
-    guard let followUp = followUps[method] else { return }
-    for followUpFrame in followUp(frame, messages(method: method).count) {
-      try? await send(followUpFrame)
+    await send(followUps[method], for: frame, method: method)
+  }
+
+  /// Sends the frames that a lead-in or a follow-up gives for one request.
+  ///
+  /// - Parameters:
+  ///   - frames: The lead-in or the follow-up, or `nil` for no frame.
+  ///   - request: The request frame.
+  ///   - method: The method of the request.
+  private func send(_ frames: FollowUp?, for request: AgentViewKit.JSONValue, method: String) async {
+    guard let frames else { return }
+    for frame in frames(request, messages(method: method).count) {
+      try? await send(frame)
     }
   }
 

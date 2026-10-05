@@ -48,9 +48,11 @@ code that we build. See [The README gate](#the-readme-gate).
 
 ### An ACP agent
 
-`ACPThreadSource` reads the `session/update` stream of one session and fills
-the thread. `ACPThreadActions` sends the prompts, the cancel, and the answers
-to the agent.
+`ConnectionModel` of FoundationModelsACPClient connects to the agent and opens
+the session. `ACPThreadSource` fills the thread from the `SessionModel` of the
+session: first from the state of the model, then from each `session/update`.
+`ACPThreadActions` sends the prompts, the cancel, and the answers to the agent
+through the two models.
 
 ```swift
 // readme:compile ACPQuickStart
@@ -67,31 +69,27 @@ final class ACPQuickStart {
   let thread = AgentThread()
   private(set) var actions: ACPThreadActions?
 
-  @ObservationIgnored private let client = SwiftUIACPClient()
+  @ObservationIgnored private let connection = ConnectionModel()
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
 
   func connect(over transport: any ACPTransport, cwd: String) async throws {
-    let connection = await client.connect(over: transport)
+    _ = await connection.connect(over: transport)
     let request = InitializeRequest(
       info: Implementation(name: "MyApp", version: "1.0.0"),
       protocolVersion: ACPClient.supportedProtocolVersion,
       capabilities: ACPClient.advertisedCapabilities)
     // An agent that speaks ACP v1 makes this call throw. The kit speaks v2 only.
     let response = try await connection.initialize(request)
-    let session = try await connection.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)))
-    let sessionId = session.sessionId
 
-    let source = ACPThreadSource(
-      thread: thread, updates: connection.updates(for: sessionId), agentName: "Agent")
+    let source = try await ACPThreadSource.openNewSession(
+      NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)), on: connection, thread: thread, agentName: "Agent")
     source.acceptProtocolVersion(response.protocolVersion, requested: request.protocolVersion)
+    guard let session = source.session else { return }
     tasks = [
       Task { await source.run() },
-      Task {
-        await source.mirrorPendingRequests(
-          of: client.session(for: sessionId), client: client, sessionId: sessionId)
-      },
+      Task { await source.mirrorPendingRequests(of: session) },
     ]
-    actions = ACPThreadActions(thread: thread, client: client, connection: connection, sessionId: sessionId)
+    actions = ACPThreadActions(thread: thread, session: session, connection: connection)
   }
 }
 

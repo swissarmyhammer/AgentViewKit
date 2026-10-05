@@ -152,6 +152,7 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
     let resume = harness.agent.messages(method: "session/resume").first
     #expect(resume?["params"]?["sessionId"] == .string("other"))
     #expect(resume?["params"]?["cwd"] == .string(demoCwd))
+    #expect(resume?["params"]?["replayFrom"] == .object(["type": .string("start")]))
   }
 
   @Test func selectingTheBoundSessionSendsNothing() async {

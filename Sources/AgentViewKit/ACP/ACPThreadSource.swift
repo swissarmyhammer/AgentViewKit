@@ -5,17 +5,20 @@ import Observation
 
 /// Fills an ``AgentThread`` from an ACP v2 session (plan.md §3.3).
 ///
-/// The source reads the `session/update` stream of one session, changes each
-/// update with ``SessionUpdateMapping``, and applies the changes to the
-/// thread. A text chunk of a message or a thought goes to
+/// `ConnectionModel` opens the session (``openNewSession(_:on:thread:agentName:)``
+/// and ``resumeSession(_:cwd:on:thread:agentName:)``) and gives its
+/// `SessionModel`. The source first seeds the thread from the state of the
+/// model, so that the updates that arrived before the source, for example the
+/// replay of a resume, show. Then it reads `SessionModel.updateTap()`,
+/// changes each update with ``SessionUpdateMapping``, and applies the changes
+/// to the thread. A text chunk of a message or a thought goes to
 /// ``AgentThread/streaming``, so that only the tail row renders again for
 /// each chunk. The source closes a stream when a whole-message update for
 /// the same id arrives, when a stream for another id starts, when the state
 /// changes, and when the update stream ends.
 ///
-/// The source also copies the pending permission requests of the session
-/// and the pending elicitations of the client into the pending lists of the
-/// thread.
+/// The source also copies the pending permission requests and the pending
+/// elicitations of the session model into the pending lists of the thread.
 ///
 /// The source refuses a session whose protocol version is not in
 /// ``SupportedProtocolVersions`` (`Docs/decisions/acp-version.md`).
@@ -32,6 +35,10 @@ public final class ACPThreadSource {
   /// server.
   public let agentName: String
 
+  /// The model of the session, or `nil` for a source that reads a stream
+  /// that the host gives.
+  public let session: SessionModel?
+
   /// The updates that ``run()`` reads, or `nil` after ``run()`` starts or
   /// after the source refuses the protocol version.
   private var updates: AsyncStream<SessionUpdate>?
@@ -44,17 +51,83 @@ public final class ACPThreadSource {
   /// version.
   private var refused = false
 
-  /// Makes a source.
+  /// Makes a source that reads a stream that the host gives.
   ///
   /// - Parameters:
   ///   - thread: The thread to fill.
-  ///   - updates: The update stream of the session, from
-  ///     `ClientSideConnection.updates(for:)`.
+  ///   - updates: The update stream of the session.
   ///   - agentName: The display name of the agent.
   public init(thread: AgentThread, updates: AsyncStream<SessionUpdate>, agentName: String) {
     self.thread = thread
     self.updates = updates
     self.agentName = agentName
+    session = nil
+  }
+
+  /// Makes a source that fills the thread from a session model.
+  ///
+  /// The source flushes the chunk buffer of the model, seeds the thread from
+  /// the transcript and the last-value state of the model, and then takes a
+  /// new `updateTap()` of the model. The seed and the tap run on the main
+  /// actor with no suspension between them, so the thread misses no update
+  /// and gets no update two times.
+  ///
+  /// - Parameters:
+  ///   - thread: The thread to fill.
+  ///   - session: The model of the session.
+  ///   - agentName: The display name of the agent.
+  public init(thread: AgentThread, session: SessionModel, agentName: String) {
+    self.thread = thread
+    self.agentName = agentName
+    self.session = session
+    session.flushPendingChunks()
+    seed(from: session)
+    updates = session.updateTap()
+  }
+
+  /// Opens a new session with `ConnectionModel.newSession(_:)` and makes its
+  /// source.
+  ///
+  /// - Parameters:
+  ///   - request: The `session/new` request.
+  ///   - connection: The connection model.
+  ///   - thread: The thread to fill.
+  ///   - agentName: The display name of the agent.
+  /// - Returns: The source of the new session. Call ``run()`` to read its
+  ///   updates.
+  /// - Throws: The error of the connection model.
+  public static func openNewSession(
+    _ request: NewSessionRequest, on connection: ConnectionModel, thread: AgentThread, agentName: String
+  ) async throws -> ACPThreadSource {
+    let session = try await connection.newSession(request)
+    return ACPThreadSource(thread: thread, session: session, agentName: agentName)
+  }
+
+  /// Resumes a session with `ConnectionModel.resumeSession(_:)` and makes
+  /// its source.
+  ///
+  /// The request asks for all retained history (`replayFrom: .start`). The
+  /// connection model returns after the replay, so the source seeds the
+  /// thread with the replayed entries. The agent decides how much history it
+  /// retains, so the history can be partial.
+  ///
+  /// - Parameters:
+  ///   - sessionId: The id of the session.
+  ///   - cwd: The working directory of the session.
+  ///   - connection: The connection model.
+  ///   - thread: The thread to fill.
+  ///   - agentName: The display name of the agent.
+  /// - Returns: The source of the session. Call ``run()`` to read its updates.
+  /// - Throws: The error of the connection model, for example
+  ///   `ConnectionModelError.unsupported(method:)` when the agent cannot
+  ///   resume a session.
+  public static func resumeSession(
+    _ sessionId: SessionId, cwd: AbsolutePath, on connection: ConnectionModel, thread: AgentThread,
+    agentName: String
+  ) async throws -> ACPThreadSource {
+    let request = ResumeSessionRequest(cwd: cwd, sessionId: sessionId, replayFrom: .start(ReplayFromStart()))
+    let session = try await connection.resumeSession(request)
+    return ACPThreadSource(thread: thread, session: session, agentName: agentName)
   }
 
   /// Applies each update of the stream until the stream ends, then closes
@@ -82,14 +155,15 @@ public final class ACPThreadSource {
   /// refusal.
   ///
   /// - Parameters:
-  ///   - connection: The connection to the agent.
+  ///   - connection: The connection model of the agent. It keeps the answer
+  ///     and its capability flags.
   ///   - request: The `initialize` request.
   /// - Returns: The answer of the agent, or `nil` when the source refused
   ///   the session.
   /// - Throws: Each error of the connection other than
   ///   `ProtocolVersionMismatchError`.
   public func initialize(
-    over connection: ClientSideConnection, request: InitializeRequest
+    over connection: ConnectionModel, request: InitializeRequest
   ) async throws -> InitializeResponse? {
     let response: InitializeResponse
     do {
@@ -210,25 +284,17 @@ public final class ACPThreadSource {
     }
   }
 
-  /// Copies the pending requests of a session into the thread each time
-  /// that they change, until the task is cancelled.
+  /// Copies the pending requests of a session model into the thread each
+  /// time that they change, until the task is cancelled.
   ///
-  /// The source copies the permission requests of `session` and the
-  /// elicitations that `client` holds for `sessionId`. An elicitation with
-  /// no session is not for this thread.
+  /// The source copies `SessionModel.pendingPermissions` and
+  /// `SessionModel.pendingElicitations`. A request-scoped elicitation has no
+  /// session, so `ConnectionModel` holds it, and it is not for this thread.
   ///
-  /// - Parameters:
-  ///   - session: The observable state of the session.
-  ///   - client: The client that holds the pending elicitations.
-  ///   - sessionId: The id of the session.
-  public func mirrorPendingRequests(
-    of session: ACPSessionState, client: SwiftUIACPClient, sessionId: SessionId
-  ) async {
+  /// - Parameter session: The model of the session.
+  public func mirrorPendingRequests(of session: SessionModel) async {
     let changes = Observations { @MainActor in
-      PendingRequests(
-        permissions: session.pendingPermissionRequests,
-        elicitations: client.pendingElicitations(for: sessionId)
-      )
+      PendingRequests(permissions: session.pendingPermissions, elicitations: session.pendingElicitations)
     }
     for await requests in changes {
       mirrorPermissions(requests.permissions)
@@ -292,6 +358,23 @@ public final class ACPThreadSource {
   private func applyChanges(of update: SessionUpdate) {
     for change in SessionUpdateMapping.changes(for: update) {
       thread.apply(change)
+    }
+  }
+
+  // MARK: - Seed
+
+  /// Applies the state of a session model to the thread: each transcript
+  /// entry, then each last-value state (``TranscriptSeed``).
+  ///
+  /// - Parameter session: The model of the session, with no buffered chunk.
+  private func seed(from session: SessionModel) {
+    for step in TranscriptSeed.steps(for: session) {
+      switch step {
+      case .update(let update):
+        apply(update)
+      case .error(let id, let kind):
+        thread.apply(.patch(id: id, .error(kind: .value(kind))))
+      }
     }
   }
 }

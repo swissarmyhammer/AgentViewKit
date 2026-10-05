@@ -52,34 +52,50 @@ private let configOptionsResult = #"""
                      {"configId": "web", "name": "Web", "type": "boolean", "currentValue": true}]}
   """#
 
-/// The objects of one test: the client, the scripted agent, and the actions.
+/// An `initialize` result with protocol version 2 and one agent auth method,
+/// so that the connection model can send `auth/logout`.
+private let initializeResult = #"""
+  {"info": {"name": "agent", "version": "1.0.0"}, "protocolVersion": 2,
+   "authMethods": [{"type": "agent", "methodId": "agent-login", "name": "Sign in"}]}
+  """#
+
+/// The objects of one test: the connection model, the scripted agent, the
+/// session model, and the actions.
+@MainActor
 private struct Harness {
   let thread = AgentThread()
-  let client = SwiftUIACPClient()
+  let connection = ConnectionModel(coalescingCadence: .zero)
   let agent: ScriptedWireAgent
+  let session: SessionModel
   let actions: ACPThreadActions
 
-  /// Connects a client to a scripted agent and makes the actions.
+  /// Connects the connection model to a scripted agent, opens a session, and
+  /// makes the actions.
   init(
     launcher: FakeProcessLauncher = FakeProcessLauncher(),
     agentProgram: ACPAgentProgram? = ACPAgentProgram(path: agentPath, arguments: ["acp"])
-  ) async {
+  ) async throws {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
-    let connection = await client.connect(over: clientEnd)
-    agent = ScriptedWireAgent(transport: agentEnd)
+    let connection = connection
+    _ = await connection.connect(over: clientEnd)
+    let agent = ScriptedWireAgent(transport: agentEnd)
+    agent.results["initialize"] = initializeResult
+    agent.results["session/new"] = #"{"sessionId": "\#(sessionID)"}"#
     agent.start()
+    self.agent = agent
+    session = try await agent.bounded {
+      _ = try await connection.initialize(
+        InitializeRequest(info: Implementation(name: "AgentViewKitTests", version: "1.0.0"), protocolVersion: .v2))
+      return try await connection.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: "/tmp")))
+    }
     actions = ACPThreadActions(
       thread: thread,
-      client: client,
+      session: session,
       connection: connection,
-      sessionId: SessionId(rawValue: sessionID),
       processLauncher: launcher,
       agentProgram: agentProgram
     )
   }
-
-  /// The observable state of the session.
-  var session: ACPSessionState { client.session(for: SessionId(rawValue: sessionID)) }
 
   /// Runs `operation` with the time limit of the agent.
   ///
@@ -94,7 +110,7 @@ private struct Harness {
   // MARK: - Turn
 
   @Test func sendSendsAPromptWithTextImageAndResourceLinkBlocks() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -126,7 +142,7 @@ private struct Harness {
   }
 
   @Test func sendThatFailsAddsAnErrorRecord() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.failingMethods = ["session/prompt"]
 
@@ -145,7 +161,7 @@ private struct Harness {
   }
 
   @Test func cancelSendsSessionCancel() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
 
     await harness.bounded { await harness.actions.cancel() }
@@ -161,15 +177,15 @@ private struct Harness {
   /// Sends the permission request and gives its kit request.
   private func pendingPermission(_ harness: Harness) async throws -> PermissionRequest {
     try await harness.agent.send(agentRequest("session/request_permission", params: permissionParams))
-    #expect(await waitUntil { !harness.session.pendingPermissionRequests.isEmpty })
-    let pending = try #require(harness.session.pendingPermissionRequests.first)
+    #expect(await waitUntil { !harness.session.pendingPermissions.isEmpty })
+    let pending = try #require(harness.session.pendingPermissions.first)
     let request = SessionUpdateMapping.permissionRequest(pending)
     harness.thread.apply(.addPermission(request))
     return request
   }
 
   @Test func permissionSelectionSendsTheSelectedOption() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     let request = try await pendingPermission(harness)
 
@@ -183,7 +199,7 @@ private struct Harness {
   }
 
   @Test func permissionCancelSendsTheCancelledOutcome() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     let request = try await pendingPermission(harness)
 
@@ -196,7 +212,7 @@ private struct Harness {
   }
 
   @Test func rejectionWithACommentSendsTheAnswerThenAPrompt() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     let request = try await pendingPermission(harness)
     let comment = "Write the tests first."
@@ -220,8 +236,8 @@ private struct Harness {
     -> AgentViewKit.ElicitationRequest
   {
     try await harness.agent.send(agentRequest("elicitation/create", params: params))
-    #expect(await waitUntil { !harness.client.pendingElicitations.isEmpty })
-    let pending = try #require(harness.client.pendingElicitations.first)
+    #expect(await waitUntil { !harness.session.pendingElicitations.isEmpty })
+    let pending = try #require(harness.session.pendingElicitations.first)
     let request = try #require(SessionUpdateMapping.elicitationRequest(pending, server: "Agent"))
     harness.thread.apply(.addElicitation(request))
     return request
@@ -233,7 +249,7 @@ private struct Harness {
     (ElicitationResult.cancel, #"{"action": "cancel"}"#),
   ])
   func elicitationResultSendsTheAction(result: ElicitationResult, expected: String) async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     let request = try await pendingElicitation(harness, params: formElicitationParams)
 
@@ -243,17 +259,18 @@ private struct Harness {
     let response = try #require(harness.agent.response(to: agentRequestID))
     #expect(response["result"] == (try json(expected)))
     #expect(harness.thread.pendingElicitations.isEmpty)
-    #expect(harness.client.pendingElicitations.isEmpty)
+    #expect(harness.session.pendingElicitations.isEmpty)
   }
 
   // MARK: - Config
 
-  @Test func setConfigOptionSendsTheValueAndReplacesTheOptions() async throws {
-    let harness = await Harness()
+  /// The agent reports the new values in a `config_option_update`, which the
+  /// source applies to the thread (`SessionModel.setConfigOption(_:)`). Thus
+  /// the verb only sends the request.
+  @Test func setConfigOptionSendsTheValue() async throws {
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.results["session/set_config_option"] = configOptionsResult
-    harness.thread.apply(
-      .setConfigOptions([ConfigOption(id: ConfigOptionID("old"), name: "Old", kind: .boolean(current: false))]))
 
     await harness.bounded { await harness.actions.setConfigOption(ConfigOptionID("mode"), .id("code")) }
 
@@ -264,19 +281,21 @@ private struct Harness {
           "sessionId": .string(sessionID), "configId": .string("mode"),
           "type": .string("id"), "value": .string("code"),
         ]))
-    #expect(
-      harness.thread.configOptions == [
-        ConfigOption(
-          id: ConfigOptionID("mode"), name: "Mode",
-          kind: .select(
-            current: "code",
-            choices: .flat([SelectOption(id: "plan", name: "Plan"), SelectOption(id: "code", name: "Code")]))),
-        ConfigOption(id: ConfigOptionID("web"), name: "Web", kind: .boolean(current: true)),
-      ])
+    #expect(harness.thread.items.isEmpty)
+  }
+
+  @Test func setConfigOptionThatFailsAddsAnErrorRecord() async throws {
+    let harness = try await Harness()
+    defer { harness.agent.stop() }
+    harness.agent.failingMethods = ["session/set_config_option"]
+
+    await harness.bounded { await harness.actions.setConfigOption(ConfigOptionID("mode"), .id("code")) }
+
+    #expect(harness.thread.item(id: ACPThreadActions.errorIDPrefix + "1") != nil)
   }
 
   @Test func setConfigOptionSendsABooleanValue() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.results["session/set_config_option"] = configOptionsResult
 
@@ -290,7 +309,7 @@ private struct Harness {
   // MARK: - Auth
 
   @Test func loginSendsAuthLogin() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
 
     try await harness.bounded { try await harness.actions.login(AuthMethodID("agent-login")) }
@@ -300,7 +319,7 @@ private struct Harness {
   }
 
   @Test func loginThatFailsThrows() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
     harness.agent.failingMethods = ["auth/login"]
 
@@ -310,7 +329,7 @@ private struct Harness {
   }
 
   @Test func logoutSendsAuthLogout() async throws {
-    let harness = await Harness()
+    let harness = try await Harness()
     defer { harness.agent.stop() }
 
     try await harness.bounded { try await harness.actions.logout() }
@@ -321,7 +340,7 @@ private struct Harness {
 
   @Test func runTerminalAuthLaunchesTheAgentAndShowsTheOutput() async throws {
     let launcher = FakeProcessLauncher(scriptedOutput: [Data("Open the URL\n".utf8), Data("Done\n".utf8)])
-    let harness = await Harness(launcher: launcher)
+    let harness = try await Harness(launcher: launcher)
     defer { harness.agent.stop() }
     let method = AgentViewKit.AuthMethod.Terminal(
       id: AuthMethodID("terminal-login"), name: "Terminal", args: ["--login"], env: ["MODE": "login"])
@@ -343,7 +362,7 @@ private struct Harness {
 
   @Test func runTerminalAuthWithAFailedStatusThrows() async throws {
     let launcher = FakeProcessLauncher(scriptedOutput: [], scriptedExitStatus: failedStatus)
-    let harness = await Harness(launcher: launcher)
+    let harness = try await Harness(launcher: launcher)
     defer { harness.agent.stop() }
     let method = AgentViewKit.AuthMethod.Terminal(id: AuthMethodID("terminal-login"), name: "Terminal")
 
@@ -356,7 +375,7 @@ private struct Harness {
 
   @Test func runTerminalAuthWithNoAgentProgramThrows() async throws {
     let launcher = FakeProcessLauncher()
-    let harness = await Harness(launcher: launcher, agentProgram: nil)
+    let harness = try await Harness(launcher: launcher, agentProgram: nil)
     defer { harness.agent.stop() }
     let method = AgentViewKit.AuthMethod.Terminal(id: AuthMethodID("terminal-login"), name: "Terminal")
 
@@ -368,7 +387,7 @@ private struct Harness {
 
   @Test func writeTerminalLineWritesTheLineAndANewlineToTheRunningProcess() async throws {
     let launcher = FakeProcessLauncher(keepsOutputOpen: true)
-    let harness = await Harness(launcher: launcher)
+    let harness = try await Harness(launcher: launcher)
     defer { harness.agent.stop() }
     let method = AgentViewKit.AuthMethod.Terminal(id: AuthMethodID("terminal-login"), name: "Terminal")
     let terminalID = TerminalRecord.authID(for: method.id)
@@ -391,7 +410,7 @@ private struct Harness {
 
   @Test func writeTerminalLineWithNoRunningProcessThrows() async throws {
     let launcher = FakeProcessLauncher()
-    let harness = await Harness(launcher: launcher)
+    let harness = try await Harness(launcher: launcher)
     defer { harness.agent.stop() }
     let terminalID = TerminalRecord.authID(for: AuthMethodID("terminal-login"))
 

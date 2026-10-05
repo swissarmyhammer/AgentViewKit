@@ -16,19 +16,20 @@ private func initializeRequest(version: ProtocolVersion = .v2) -> InitializeRequ
   InitializeRequest(info: Implementation(name: "AgentViewKitTests", version: "1.0.0"), protocolVersion: version)
 }
 
-/// The objects of one test: the scripted agent and a source on a new thread.
+/// The objects of one test: the scripted agent, the connection model, and a
+/// source on a new thread.
+@MainActor
 private struct Harness {
   let agent: ScriptedWireAgent
-  let connection: ClientSideConnection
+  let connection = ConnectionModel()
   let source: ACPThreadSource
 
   /// Makes a harness whose source reads `updates`.
   ///
   /// - Parameter updates: The session updates that the source can read.
   init(updates: AsyncStream<SessionUpdate> = AsyncStream { $0.finish() }) async {
-    let client = SwiftUIACPClient()
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
-    connection = await client.connect(over: clientEnd)
+    _ = await connection.connect(over: clientEnd)
     agent = ScriptedWireAgent(transport: agentEnd)
     agent.start()
     source = ACPThreadSource(thread: AgentThread(), updates: updates, agentName: "Agent")
@@ -120,6 +121,7 @@ private struct Harness {
     }
 
     #expect(response?.protocolVersion == .v2)
+    #expect(harness.connection.initializeResponse == response)
     #expect(harness.source.thread.items.isEmpty)
     #expect(harness.agent.messages(method: "initialize").first?["params"]?["protocolVersion"] == .number(2))
   }

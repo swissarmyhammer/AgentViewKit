@@ -6,10 +6,11 @@ import Observation
 
 /// The ACP session of the demo app's ACP tab.
 ///
-/// The model connects a ``SwiftUIACPClient`` over a transport, sends
+/// The model connects a `ConnectionModel` over a transport, sends
 /// `initialize` and `session/new`, and binds an ``ACPThreadSource`` and an
 /// ``ACPThreadActions`` to one ``AgentThread``. A selection in the session
-/// sidebar resumes the selected session on a new thread.
+/// sidebar resumes the selected session on a new thread, with the retained
+/// history of the agent.
 ///
 /// The model also keeps the values of the settings sheet: the
 /// ``ConnectionStore`` with one connection for the agent, and the
@@ -61,10 +62,11 @@ public final class ACPDemoSession {
   /// The store with the connection of the agent.
   public let connectionStore: ConnectionStore
 
-  /// The client that holds the observable ACP state.
-  @ObservationIgnored private let client = SwiftUIACPClient()
+  /// The connection model that holds the observable ACP state.
+  @ObservationIgnored private let connectionModel = ConnectionModel()
 
-  /// The connection to the agent, or `nil` before the connection.
+  /// The connection to the agent, or `nil` before the connection. The
+  /// session list pages over it.
   @ObservationIgnored private var connection: ClientSideConnection?
 
   /// The agent program that terminal authentication starts, or `nil`.
@@ -157,13 +159,13 @@ public final class ACPDemoSession {
   public func connect(over transport: any ACPTransport, agentProgram: ACPAgentProgram? = nil) async {
     phase = .connecting
     self.agentProgram = agentProgram
-    let connection = await client.connect(over: transport)
+    let connection = await connectionModel.connect(over: transport)
     self.connection = connection
     do {
-      let response = try await connection.initialize(Self.initializeRequest)
+      let response = try await connectionModel.initialize(Self.initializeRequest)
       negotiatedVersion = response.protocolVersion
-      authMethods = (response.authMethods ?? []).compactMap(SessionUpdateMapping.authMethod)
-      canDeleteSessions = response.capabilities.session?.delete != nil
+      authMethods = connectionModel.authMethods.compactMap(SessionUpdateMapping.authMethod)
+      canDeleteSessions = connectionModel.canDeleteSessions
       sessionList = ACPSessionList(connection: connection, cwd: cwd)
       connectionStore.transition(Self.agentConnectionID, to: .connected)
       try await openNewSession()
@@ -182,17 +184,17 @@ public final class ACPDemoSession {
     }
   }
 
-  /// Resumes the session `id` and binds it to a new thread.
+  /// Resumes the session `id` with its retained history and binds it to a
+  /// new thread.
   ///
   /// - Parameter id: The id of the session to resume.
   public func selectSession(_ id: SessionID) async {
-    guard let connection, id != sessionID else { return }
-    let wireID = SessionId(rawValue: id.rawValue)
+    guard connection != nil, id != sessionID else { return }
     do {
-      let updates = connection.updates(for: wireID)
-      let response = try await connection.resumeSession(
-        ResumeSessionRequest(cwd: AbsolutePath(rawValue: cwd), sessionId: wireID))
-      bind(wireID, updates: updates, configOptions: response.configOptions ?? [])
+      let source = try await ACPThreadSource.resumeSession(
+        SessionId(rawValue: id.rawValue), cwd: AbsolutePath(rawValue: cwd), on: connectionModel,
+        thread: AgentThread(), agentName: agentName)
+      bind(source)
     } catch {
       fail(error)
     }
@@ -213,43 +215,34 @@ public final class ACPDemoSession {
 
   /// Sends `session/new` and binds the new session.
   private func openNewSession() async throws {
-    guard let connection else { return }
-    let response = try await connection.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)))
-    let updates = connection.updates(for: response.sessionId)
-    bind(response.sessionId, updates: updates, configOptions: response.configOptions ?? [])
+    guard connection != nil else { return }
+    let source = try await ACPThreadSource.openNewSession(
+      NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)), on: connectionModel, thread: AgentThread(),
+      agentName: agentName)
+    bind(source)
   }
 
-  /// Binds a session to a new thread.
+  /// Binds the session of a source and its thread.
   ///
-  /// - Parameters:
-  ///   - wireID: The id of the session.
-  ///   - updates: The update stream of the session.
-  ///   - configOptions: The config options that the agent gave for the
-  ///     session.
-  private func bind(_ wireID: SessionId, updates: AsyncStream<SessionUpdate>, configOptions: [SessionConfigOption]) {
-    guard let connection else { return }
+  /// - Parameter source: The source of the session. The connection model
+  ///   made its session model.
+  private func bind(_ source: ACPThreadSource) {
+    guard let session = source.session else { return }
     stopBinding()
-    let thread = AgentThread()
-    let source = ACPThreadSource(thread: thread, updates: updates, agentName: agentName)
     let requested = Self.initializeRequest.protocolVersion
     source.acceptProtocolVersion(negotiatedVersion ?? requested, requested: requested)
-    for change in SessionUpdateMapping.changes(for: .configOptionUpdate(ConfigOptionUpdate(configOptions: configOptions))) {
-      thread.apply(change)
-    }
-    let client = client
     bindingTasks = [
       Task { await source.run() },
-      Task { await source.mirrorPendingRequests(of: client.session(for: wireID), client: client, sessionId: wireID) },
+      Task { await source.mirrorPendingRequests(of: session) },
     ]
     actions = ACPThreadActions(
-      thread: thread,
-      client: client,
-      connection: connection,
-      sessionId: wireID,
+      thread: source.thread,
+      session: session,
+      connection: connectionModel,
       agentProgram: agentProgram
     )
-    self.thread = thread
-    sessionID = SessionID(wireID.rawValue)
+    thread = source.thread
+    sessionID = SessionID(session.sessionId.rawValue)
   }
 
   /// Cancels the tasks that fill the bound thread.

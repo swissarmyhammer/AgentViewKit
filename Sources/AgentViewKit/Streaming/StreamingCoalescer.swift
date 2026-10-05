@@ -4,8 +4,8 @@
 /// A source can get many chunks in a few milliseconds. When each chunk
 /// changes the streaming tail, the tail row renders one time for each chunk.
 /// The coalescer keeps the chunks, and calls its flush closure at most one time
-/// for each interval. The default interval is 33 ms, the `ACPSessionState`
-/// cadence.
+/// for each interval. The default interval is 33 ms, the
+/// `SessionModel.defaultCoalescingCadence` of FoundationModelsACPClient.
 ///
 /// The first chunk after a flush starts the interval. When the interval ends,
 /// the coalescer flushes each chunk that it got in the interval, in order, as

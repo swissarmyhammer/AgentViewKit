@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import DemoSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -56,11 +57,6 @@ private let unknownElicitationJSON = #"{"sessionId": "s1", "message": "Pick", "m
     for fixture in fixtures {
       source.apply(try SessionUpdateFixtures.decode(fixture))
     }
-  }
-
-  /// The message of an assistant message item, or `nil` for another item.
-  private func assistantMessage(_ item: ThreadItem?) -> Message? {
-    if case .assistantMessage(let message) = item { message } else { nil }
   }
 
   // MARK: - Streams
@@ -283,30 +279,24 @@ private let unknownElicitationJSON = #"{"sessionId": "s1", "message": "Pick", "m
     #expect(source.thread.pendingElicitations.isEmpty)
   }
 
-  @Test func mirrorPendingRequestsFollowsTheSessionAndTheClient() async throws {
-    let source = makeSource()
-    let client = SwiftUIACPClient()
-    let sessionId = SessionId(rawValue: "s1")
-    let session = client.session(for: sessionId)
-    let permission = try SessionUpdateFixtures.decode(
-      RequestPermissionRequest.self, toolCallPermissionJSON)
-    let elicitation = try SessionUpdateFixtures.decode(
-      CreateElicitationRequest.self, urlElicitationJSON)
-    let mirror = Task { await source.mirrorPendingRequests(of: session, client: client, sessionId: sessionId) }
-    let permissionCall = Task { await session.awaitPermissionDecision(for: permission) }
-    let elicitationCall = Task { try await client.createElicitation(elicitation) }
+  @Test func mirrorPendingRequestsFollowsTheSessionModel() async throws {
+    let harness = try await WireHarness()
+    defer { harness.agent.stop() }
+    let source = try await harness.openNewSession()
+    let session = try #require(source.session)
+    let mirror = Task { await source.mirrorPendingRequests(of: session) }
 
+    try await harness.agent.send(agentRequest("session/request_permission", id: 100, params: toolCallPermissionJSON))
+    try await harness.agent.send(agentRequest("elicitation/create", id: 101, params: urlElicitationJSON))
     let added = await waitUntil {
       source.thread.pendingPermissions.count == 1 && source.thread.pendingElicitations.count == 1
     }
     #expect(added)
 
-    let pendingPermission = try #require(session.pendingPermissionRequests.first)
-    session.answerPermissionRequest(pendingPermission.id, with: PermissionOptionId(rawValue: "yes"))
-    let pendingElicitation = try #require(client.pendingElicitations.first)
-    client.declineElicitation(pendingElicitation.id)
-    _ = await permissionCall.value
-    _ = try await elicitationCall.value
+    let pendingPermission = try #require(session.pendingPermissions.first)
+    session.selectPermission(pendingPermission.id, option: PermissionOptionId(rawValue: "yes"))
+    let pendingElicitation = try #require(session.pendingElicitations.first)
+    session.declineElicitation(pendingElicitation.id)
 
     let resolved = await waitUntil {
       source.thread.pendingPermissions.isEmpty && source.thread.pendingElicitations.isEmpty
@@ -314,5 +304,222 @@ private let unknownElicitationJSON = #"{"sessionId": "s1", "message": "Pick", "m
     #expect(resolved)
     mirror.cancel()
     await mirror.value
+  }
+
+  // MARK: - Session model
+
+  @Test func aPromptShowsTheUserMessageAndTheAgentMessage() async throws {
+    let harness = try await WireHarness { agent in
+      agent.followUps["session/prompt"] = { _, _ in
+        [SessionUpdateFixtures.agentMessage, SessionUpdateFixtures.stateIdle].map(updateFrame)
+      }
+    }
+    defer { harness.agent.stop() }
+    let source = try await harness.openNewSession()
+    let session = try #require(source.session)
+    let run = Task { await source.run() }
+
+    let response = try await harness.agent.bounded {
+      try await session.prompt([.text(FoundationModelsACP.TextContent(text: "Hi"))])
+    }
+
+    let shown = await waitUntil { source.thread.state == .idle(.maxTokens) }
+    #expect(shown)
+    #expect(source.thread.items.map(\.id) == [response.messageId.rawValue, "m1"])
+    #expect(userMessage(source.thread.items.first)?.blocks == [AgentViewKit.ContentBlock(text: "Hi")])
+    #expect(
+      assistantMessage(source.thread.item(id: "m1"))?.blocks == [AgentViewKit.ContentBlock(text: "Done.")])
+    harness.agent.stop()
+    await harness.agent.bounded { await run.value }
+  }
+
+  @Test func aNewSessionSeedsTheConfigOptionsAndTheCommandsOfTheResponse() async throws {
+    let harness = try await WireHarness { agent in
+      agent.results["session/new"] = newSessionWithOptionsResult
+    }
+    defer { harness.agent.stop() }
+
+    let source = try await harness.openNewSession()
+
+    #expect(source.thread.configOptions.map(\.id) == [ConfigOptionID("mode")])
+    #expect(source.thread.availableCommands.map(\.name) == ["review"])
+  }
+
+  @Test func aResumeShowsTheReplayedEntries() async throws {
+    let replay = [
+      SessionUpdateFixtures.userMessage, SessionUpdateFixtures.agentThought, SessionUpdateFixtures.agentMessage,
+      SessionUpdateFixtures.toolCallUpdate, SessionUpdateFixtures.terminalUpdate, SessionUpdateFixtures.planUpdate,
+      SessionUpdateFixtures.unknownUpdate, compactionUpdate,
+    ]
+    let harness = try await WireHarness { agent in
+      agent.leadIns["session/resume"] = { _, _ in replay.map(updateFrame) }
+    }
+    defer { harness.agent.stop() }
+
+    let source = try await harness.agent.bounded {
+      try await ACPThreadSource.resumeSession(
+        SessionId(rawValue: sessionID), cwd: AbsolutePath(rawValue: sessionCwd), on: harness.connection,
+        thread: AgentThread(), agentName: "Agent")
+    }
+
+    let thread = source.thread
+    #expect(Array(thread.items.map(\.id).prefix(replayedItemIDs.count)) == replayedItemIDs)
+    #expect(userMessage(thread.item(id: "u1"))?.blocks == [AgentViewKit.ContentBlock(text: "Fix it.")])
+    #expect(userMessage(thread.item(id: "u1"))?.meta == .object(["edited": .bool(true)]))
+    #expect(reasoning(thread.item(id: "t1"))?.segments == ["Plan", "Act"])
+    #expect(assistantMessage(thread.item(id: "m1"))?.blocks == [AgentViewKit.ContentBlock(text: "Done.")])
+    #expect(toolCall(thread.item(id: "c1"))?.title == "Read file")
+    #expect(thread.terminals[TerminalID("term1")]?.output == Data("hi".utf8))
+    #expect(thread.plans[PlanID("p1")] != nil)
+    #expect(unknownKinds(of: thread) == ["mood_update", "compaction_update"])
+    #expect(thread.streaming.isEmpty)
+    let resume = try #require(harness.agent.messages(method: "session/resume").first)
+    #expect(resume["params"]?["replayFrom"] == .object(["type": .string("start")]))
+  }
+
+  @Test func aSourceOverAnOpenSessionShowsTheErrorOfAFailedPrompt() async throws {
+    let harness = try await WireHarness { agent in
+      agent.failingMethods = ["session/prompt"]
+    }
+    defer { harness.agent.stop() }
+    let session = try #require(try await harness.openNewSession().session)
+    _ = try? await harness.agent.bounded {
+      try await session.prompt([.text(FoundationModelsACP.TextContent(text: "Hi"))])
+    }
+
+    let source = ACPThreadSource(thread: AgentThread(), session: session, agentName: "Agent")
+
+    let errors = source.thread.items.compactMap { item in
+      if case .error(let error) = item { error.kind } else { nil }
+    }
+    #expect(errors == [.acp(code: internalErrorCode, message: "failed")])
+  }
+}
+
+// MARK: - Wire harness
+
+/// The id of the session of the wire tests.
+private let sessionID = "s1"
+
+/// The working directory of the session of the wire tests.
+private let sessionCwd = "/tmp/source"
+
+/// The JSON-RPC error code that a scripted failure of the agent sends.
+private let internalErrorCode = -32603
+
+/// The ids of the items that the replay of ``ACPThreadSourceTests`` adds, in
+/// order. The unknown updates get generated ids, so they are not in the list.
+private let replayedItemIDs = ["u1", "t1", "m1", "c1"]
+
+/// An `initialize` result with protocol version 2 and the session
+/// capabilities, so that the connection model can resume a session.
+private let initializeResult = #"""
+  {"info": {"name": "agent", "version": "1.0.0"}, "protocolVersion": 2,
+   "capabilities": {"session": {}}}
+  """#
+
+/// A `session/new` result with a config option and a command.
+private let newSessionWithOptionsResult = #"""
+  {"sessionId": "s1",
+   "configOptions": [{"configId": "mode", "name": "Mode", "type": "select", "currentValue": "ask",
+                      "options": [{"value": "ask", "name": "Ask"}]}],
+   "availableCommands": [{"name": "review", "description": "Review the code"}]}
+  """#
+
+/// A compaction update, which the stable schema reads as an unknown update.
+private let compactionUpdate = #"""
+  {"sessionUpdate": "compaction_update", "compactionId": "k1", "status": "completed"}
+  """#
+
+/// A `session/update` frame of the session with one update.
+///
+/// - Parameter update: The JSON text of the update.
+/// - Returns: The frame.
+private func updateFrame(_ update: String) -> String {
+  #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#
+}
+
+/// A JSON-RPC request from the agent.
+///
+/// - Parameters:
+///   - method: The method of the request.
+///   - id: The JSON-RPC id of the request.
+///   - params: The JSON text of the parameters.
+/// - Returns: The frame.
+private func agentRequest(_ method: String, id: Int, params: String) -> String {
+  #"{"jsonrpc":"2.0","id":\#(id),"method":"\#(method)","params":\#(params)}"#
+}
+
+/// The objects of a test over the scripted agent: the agent and the
+/// connection model, after `initialize`.
+@MainActor
+private struct WireHarness {
+  /// The scripted agent.
+  let agent: ScriptedWireAgent
+
+  /// The connection model of the client, with no chunk delay.
+  let connection = ConnectionModel(coalescingCadence: .zero)
+
+  /// Connects the model to a scripted agent and sends `initialize`.
+  ///
+  /// - Parameter configure: Changes the agent before it starts.
+  init(configure: (ScriptedWireAgent) -> Void = { _ in }) async throws {
+    let (clientEnd, agentEnd) = InMemoryTransport.pair()
+    agent = ScriptedWireAgent(transport: agentEnd)
+    agent.results["initialize"] = initializeResult
+    agent.results["session/new"] = #"{"sessionId": "\#(sessionID)"}"#
+    configure(agent)
+    agent.start()
+    let connection = connection
+    _ = await connection.connect(over: clientEnd)
+    _ = try await agent.bounded {
+      try await connection.initialize(
+        InitializeRequest(info: Implementation(name: "AgentViewKitTests", version: "1.0.0"), protocolVersion: .v2))
+    }
+  }
+
+  /// Opens a new session on a new thread.
+  ///
+  /// - Returns: The source of the session.
+  func openNewSession() async throws -> ACPThreadSource {
+    try await agent.bounded {
+      try await ACPThreadSource.openNewSession(
+        NewSessionRequest(cwd: AbsolutePath(rawValue: sessionCwd)), on: connection, thread: AgentThread(),
+        agentName: "Agent")
+    }
+  }
+}
+
+// MARK: - Item helpers
+
+/// The message of a user message item, or `nil` for another item.
+@MainActor
+private func userMessage(_ item: ThreadItem?) -> Message? {
+  if case .userMessage(let message) = item { message } else { nil }
+}
+
+/// The message of an assistant message item, or `nil` for another item.
+@MainActor
+private func assistantMessage(_ item: ThreadItem?) -> Message? {
+  if case .assistantMessage(let message) = item { message } else { nil }
+}
+
+/// The record of a reasoning item, or `nil` for another item.
+@MainActor
+private func reasoning(_ item: ThreadItem?) -> Reasoning? {
+  if case .reasoning(let reasoning) = item { reasoning } else { nil }
+}
+
+/// The record of a tool call item, or `nil` for another item.
+@MainActor
+private func toolCall(_ item: ThreadItem?) -> ToolCallRecord? {
+  if case .toolCall(let call) = item { call } else { nil }
+}
+
+/// The kinds of the unknown items of a thread, in order.
+@MainActor
+private func unknownKinds(of thread: AgentThread) -> [String] {
+  thread.items.compactMap { item in
+    if case .unknown(let unknown) = item { unknown.kind } else { nil }
   }
 }
