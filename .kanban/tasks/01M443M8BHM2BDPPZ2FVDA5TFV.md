@@ -38,10 +38,26 @@ comments:
     - evidence: 17 files — Sources/AgentViewKit/Model/ContextUsage.swift, Sources/AgentViewKit/Model/ThreadError.swift, Sources/AgentViewKit/Items/ErrorView.swift, Sources/AgentViewKit/Items/ErrorActions.swift, Sources/AgentViewKit/Status/ContextUsageView.swift, Sources/AgentViewKit/Thread/ConversationView.swift, Docs/decisions/usage-model.md, Tests/PackageStructureTests/RemovedVocabularyTests.swift, Tests/AgentViewKitTests/{Model/ContextUsageTests, Items/ErrorViewHostedTests, Status/ContextUsageViewHostedTests, Thread/ConversationLayoutTests, Thread/ConversationViewHostedTests, Thread/RegistryResolutionTests, Model/ThreadItemTests, Model/AgentThreadApplyTests, Activity/TurnSummaryTests, Activity/ActivityTimelineHostedTests}.swift; `swift test` passed (1151 + 69 + 124 + 1 tests, 0 failures, 0 warnings)
     - next: /review
   timestamp: 2026-10-05T15:47:26.058705+00:00
+- actor: claude-code
+  id: 01m46cany6v5fvcgsc8f9frxg3
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ContextUsage keeps used, size and cost; ThreadError.Kind keeps refusal, acp and unknown; Retry action removed; usage-model.md; RemovedInitializer scan; 18 files
+    - test: green — swift test, 1345 passed; README gate passed
+    - commit: 0fff37a
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T15:53:42.086289+00:00
+- actor: claude-code
+  id: 01m46caq74eyq9r082wx101bd1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0fff37a). 17 files reviewed. 0 findings, 0 confirmed, 0 refuted. Not reviewed: 4 .kanban files (ignore rule), Docs/decisions/usage-model.md (no validator matches this file).
+    - next: none. The task is in done.
+  timestamp: 2026-10-05T15:53:43.396017+00:00
 depends_on:
 - 01M443M1YMTRRXEZYGFAJ4J75B
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: df80
 title: Remove the Router and FoundationModels parts of ContextUsage and ThreadError.Kind
 ---
 ## What

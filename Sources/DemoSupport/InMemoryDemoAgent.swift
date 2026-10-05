@@ -173,14 +173,14 @@ public enum InMemoryDemoAgent {
         .object([
           "sessionUpdate": .string("agent_message_chunk"),
           "messageId": replyID,
-          "content": ScriptedWireAgent.textBlock(chunk),
+          "content": ScriptedWireAgent.textBlock(text: chunk),
         ])
       }
       + [
         .object([
           "sessionUpdate": .string("agent_message"),
           "messageId": replyID,
-          "content": .array([ScriptedWireAgent.textBlock(reply)]),
+          "content": .array([ScriptedWireAgent.textBlock(text: reply)]),
         ]),
         .object([
           "sessionUpdate": .string("plan_update"),

@@ -77,8 +77,38 @@ comments:
     - review: not run
     - next: a person corrects the swift/idioms rule for Data or drops the finding, then runs /finish hvdgxxj
   timestamp: 2026-10-04T23:53:24.365055+00:00
+- actor: claude-code
+  id: 01m46eejgrxpyh528sxg9xdh7j
+  text: |-
+    ### review — findings
+    - evidence: review sha 6433186^..6433186, 6 findings (6 confirmed, 0 refuted). The dropped swift/idioms `Data()` finding did not occur again. Sources/DemoSupport/ScriptedWireAgent.swift:197, Sources/DemoSupport/ScriptedWireAgent.swift:272, Tests/AgentViewKitACPTests/ACPDemoSessionTests.swift:52, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:42, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:82, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:113 — all `swift/fluent-usage`: label the unlabeled first parameter.
+    - next: /implement the findings in the 2026-10-05 11:23 `## Review Findings` section. Remove the cause from each whole file, then test, commit and review again.
+  timestamp: 2026-10-05T16:30:46.808012+00:00
+- actor: claude-code
+  id: 01m46eemace9n667vxdvrx90vr
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: no-change — the owner dropped the Data finding (does not compile)
+    - test: green — swift test, 1536 passed (earlier run)
+    - commit: 6433186 (code)
+    - review: findings — Sources/DemoSupport/ScriptedWireAgent.swift:197, Sources/DemoSupport/ScriptedWireAgent.swift:272, Tests/AgentViewKitACPTests/ACPDemoSessionTests.swift:52, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:42, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:82, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:113
+  timestamp: 2026-10-05T16:30:48.652039+00:00
+- actor: claude-code
+  id: 01m46ensj7a68mdpyvw58zzh0e
+  text: |-
+    Fixed the 6 swift/fluent-usage findings of the 2026-10-05 11:23 review. Each first parameter now has a label: answerPrompt(request:idText:), textBlock(text:), userMessage(id:in:), RawClient.request(method:id:params:), isResponse(frame:to:), PromptFrames.init(frames:promptID:). All call sites are updated: ScriptedWireAgent (answerPrompt, echoFrame), InMemoryDemoAgent (two textBlock calls), ACPDemoSessionTests, and DemoAgentMessageIdTests (two request calls, five isResponse calls, three PromptFrames calls).
+    Cause scan: in the lines that commit 6433186 added, these 6 functions are the only ones with an unlabeled first parameter. startScriptedAgent(_ configure:) has a trailing-closure parameter, and the commit did not change other functions such as assistantMessage(_:in:) and planEntry(_:status:), so they stay out of scope.
+    Note: parallel `replace_all` edits on one file lost some replacements. Do file edits on one file one at a time.
+  timestamp: 2026-10-05T16:34:43.399452+00:00
+- actor: claude-code
+  id: 01m46envsg7hzhkgpvsz52stf8
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/DemoSupport/ScriptedWireAgent.swift, Sources/DemoSupport/InMemoryDemoAgent.swift, Tests/AgentViewKitACPTests/ACPDemoSessionTests.swift, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift. `swift test --filter AgentViewKitACPTests`: 124 tests in 10 suites pass. `swift test`: all runs pass (1, 69, 1151, 124 tests), 0 failures, no warnings. All 6 findings are now `- [x]`.
+    - next: /test, /commit, then /review. The task stays in doing.
+  timestamp: 2026-10-05T16:34:45.680689+00:00
 position_column: doing
-position_ordinal: '8180'
+position_ordinal: '80'
 title: Send messageId in the prompt result of the scripted demo agents, and echo the user message
 ---
 ## What
@@ -108,4 +138,18 @@ Do this before the pin move. The alpha.3 decoder ignores the extra field, so the
 > 4 file(s) not reviewed — excluded by an ignore rule:
 > - `.kanban/ (from .reviewignore)` — 4 file(s)
 
-- [ ] `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:66` `swift/idioms` — Empty-collection variables use a literal with a type annotation, not a call. Data is ExpressibleByArrayLiteral and should use `[]` syntax. Change `var buffer = Data()` to `var buffer: Data = []`.
+- [x] `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:66` `swift/idioms` — Empty-collection variables use a literal with a type annotation, not a call. Data is ExpressibleByArrayLiteral and should use `[]` syntax. Change `var buffer = Data()` to `var buffer: Data = []`. — dropped by the owner on 2026-10-05: the change does not compile.
+
+## Review Findings (2026-10-05 11:23)
+
+> Scope: `review sha 6433186^..6433186` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/DemoSupport/ScriptedWireAgent.swift:197` `swift/fluent-usage` — The first parameter of this action method is unlabeled, but it is not a value-preserving conversion. When reading the call site `answerPrompt(frame, idText: idText)` at line 176, it is unclear that `frame` is the request being answered. Label the parameter to clarify the intent. Change `private func answerPrompt(_ request:...)` to `private func answerPrompt(request:...)` so the call reads as `answerPrompt(request: frame, idText: idText)`.
+- [x] `Sources/DemoSupport/ScriptedWireAgent.swift:272` `swift/fluent-usage` — The first parameter of this static factory function is unlabeled, but it is not a value-preserving conversion. The call `textBlock(promptText(...))` does not clarify that the parameter is text content; the reader must consult the function signature. Change `static func textBlock(_ text: String)` to `static func textBlock(text: String)` so calls read as `textBlock(text: promptText(of: request))`.
+- [x] `Tests/AgentViewKitACPTests/ACPDemoSessionTests.swift:52` `swift/fluent-usage` — The first parameter of this query method is unlabeled, but it is not a value-preserving conversion. At the call site (line 102), `userMessage(userMessageID, in: thread)` does not clarify what `userMessageID` represents without consulting the function signature. Label the parameter to match the fluent-usage rule. Change `private func userMessage(_ id: String, in thread:...)` to `private func userMessage(id: String, in thread:...)` so calls read as `userMessage(id: userMessageID, in: thread)`.
+- [x] `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:42` `swift/fluent-usage` — The first parameter of this function is unlabeled, but it is not a value-preserving conversion. The method name `request` with an unlabeled first parameter makes call sites ambiguous; the reader must refer to the function signature to understand what `request("session/prompt", ...)` means. Label the parameter to clarify. Change `func request(_ method: String, id: Double, params: AgentViewKit.JSONValue)` to `func request(method: String, id: Double, params: AgentViewKit.JSONValue)` so the call site reads as `request(method: "session/prompt", id: id, params: params)`.
+- [x] `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:82` `swift/fluent-usage` — The first parameter of this predicate function is unlabeled, but it is not a value-preserving conversion. At call sites like `isResponse($0, to: promptID)`, the reader cannot tell what `$0` represents without knowing the function signature. Label the parameter to make the intent clear. Change `func isResponse(_ frame: AgentViewKit.JSONValue, to id: Double)` to `func isResponse(frame: AgentViewKit.JSONValue, to id: Double)` so calls read as `isResponse(frame: $0, to: promptID)`.
+- [x] `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:113` `swift/fluent-usage` — The first parameter of this initializer is unlabeled, but it is not a value-preserving conversion. At the call site (line 151), `PromptFrames(frames, promptID:...)` does not clarify what the first argument is. Label the parameter to make the intent explicit. Change `init(_ frames: [AgentViewKit.JSONValue], promptID: Double)` to `init(frames: [AgentViewKit.JSONValue], promptID: Double)` so calls read as `PromptFrames(frames: frames, promptID: ...)`.

@@ -173,7 +173,7 @@ public final class ScriptedWireAgent {
     if failingMethods.contains(method) {
       try? await send(#"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(internalErrorCode),"message":"failed"}}"#)
     } else if method == promptMethod {
-      await answerPrompt(frame, idText: idText)
+      await answerPrompt(request: frame, idText: idText)
     } else {
       try? await send(Self.resultFrame(idText: idText, result: nextResult(for: method)))
     }
@@ -194,7 +194,7 @@ public final class ScriptedWireAgent {
   /// - Parameters:
   ///   - request: The request frame.
   ///   - idText: The JSON text of the id of the request.
-  private func answerPrompt(_ request: AgentViewKit.JSONValue, idText: String) async {
+  private func answerPrompt(request: AgentViewKit.JSONValue, idText: String) async {
     let messageID = AgentViewKit.JSONValue.string(UUID().uuidString)
     let result = Self.resultFrame(idText: idText, result: promptResult(messageID: messageID))
     let echo = Self.echoFrame(of: request, messageID: messageID)
@@ -244,7 +244,7 @@ public final class ScriptedWireAgent {
     let update = AgentViewKit.JSONValue.object([
       "sessionUpdate": .string("user_message_chunk"),
       "messageId": messageID,
-      "content": textBlock(promptText(of: request)),
+      "content": textBlock(text: promptText(of: request)),
     ])
     let sessionId = request["params"]?["sessionId"] ?? .null
     return AgentViewKit.JSONValue.object([
@@ -269,7 +269,7 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter text: The text of the block.
   /// - Returns: The block.
-  static func textBlock(_ text: String) -> AgentViewKit.JSONValue {
+  static func textBlock(text: String) -> AgentViewKit.JSONValue {
     .object(["type": .string("text"), "text": .string(text)])
   }
 }

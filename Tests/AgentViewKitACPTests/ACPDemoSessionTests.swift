@@ -49,7 +49,7 @@ private func assistantMessage(_ id: String, in thread: AgentThread) -> Message? 
 
 /// The message of the user message record `id`, or `nil`.
 @MainActor
-private func userMessage(_ id: String, in thread: AgentThread) -> Message? {
+private func userMessage(id: String, in thread: AgentThread) -> Message? {
   if case .userMessage(let message)? = thread.item(id: id) { message } else { nil }
 }
 
@@ -99,7 +99,7 @@ private func userMessage(_ id: String, in thread: AgentThread) -> Message? {
     let userMessageID = try #require(thread.items.first?.id)
     #expect(UUID(uuidString: userMessageID) != nil)
     #expect(thread.items.map(\.id) == [userMessageID, replyID])
-    #expect(userMessage(userMessageID, in: thread)?.blocks == [AgentViewKit.ContentBlock(text: "hello")])
+    #expect(userMessage(id: userMessageID, in: thread)?.blocks == [AgentViewKit.ContentBlock(text: "hello")])
     #expect(thread.plans[PlanID(InMemoryDemoAgent.planID)]?.entries.count == 2)
     #expect(thread.usage?.used == InMemoryDemoAgent.tokensPerTurn)
     #expect(thread.usage?.size == InMemoryDemoAgent.contextSize)

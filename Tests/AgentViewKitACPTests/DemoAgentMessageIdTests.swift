@@ -39,7 +39,7 @@ private struct RawClient {
   ///   - method: The JSON-RPC method.
   ///   - id: The JSON-RPC id.
   ///   - params: The parameters.
-  func request(_ method: String, id: Double, params: AgentViewKit.JSONValue) async throws {
+  func request(method: String, id: Double, params: AgentViewKit.JSONValue) async throws {
     let frame = AgentViewKit.JSONValue.object([
       "jsonrpc": .string("2.0"), "id": .number(id), "method": .string(method), "params": params,
     ])
@@ -54,7 +54,7 @@ private struct RawClient {
       "sessionId": .string(sessionID),
       "prompt": .array([.object(["type": .string("text"), "text": .string(promptText)])]),
     ])
-    try await request("session/prompt", id: id, params: params)
+    try await request(method: "session/prompt", id: id, params: params)
   }
 
   /// Reads the frames of the agent until a frame matches `isLast`.
@@ -79,7 +79,7 @@ private struct RawClient {
 }
 
 /// Tells if `frame` is the response to the request with `id`.
-private func isResponse(_ frame: AgentViewKit.JSONValue, to id: Double) -> Bool {
+private func isResponse(frame: AgentViewKit.JSONValue, to id: Double) -> Bool {
   frame["method"] == nil && frame["id"] == .number(id)
 }
 
@@ -110,9 +110,9 @@ private struct PromptFrames {
   /// - Parameters:
   ///   - frames: The frames in arrival order.
   ///   - promptID: The JSON-RPC id of the prompt.
-  init(_ frames: [AgentViewKit.JSONValue], promptID: Double) throws {
+  init(frames: [AgentViewKit.JSONValue], promptID: Double) throws {
     self.frames = frames
-    responseIndex = try #require(frames.firstIndex { isResponse($0, to: promptID) })
+    responseIndex = try #require(frames.firstIndex { isResponse(frame: $0, to: promptID) })
     echoIndexes = frames.indices.filter { userMessageEcho(in: frames[$0]) != nil }
   }
 
@@ -146,9 +146,9 @@ private func startScriptedAgent(
 private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async throws -> PromptFrames {
   try await agent.bounded {
     try await client.prompt(id: firstPromptID)
-    try await client.request(markerMethod, id: markerRequestID, params: .object([:]))
-    let frames = try await client.frames { isResponse($0, to: markerRequestID) }
-    return try PromptFrames(frames, promptID: firstPromptID)
+    try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
+    let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
+    return try PromptFrames(frames: frames, promptID: firstPromptID)
   }
 }
 
@@ -198,9 +198,9 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let ids = try await agent.bounded {
       try await client.prompt(id: firstPromptID)
       try await client.prompt(id: secondPromptID)
-      let frames = try await client.frames { isResponse($0, to: secondPromptID) }
+      let frames = try await client.frames { isResponse(frame: $0, to: secondPromptID) }
       return [firstPromptID, secondPromptID].map { id in
-        frames.first { isResponse($0, to: id) }?["result"]?["messageId"]?.stringValue
+        frames.first { isResponse(frame: $0, to: id) }?["result"]?["messageId"]?.stringValue
       }
     }
 
@@ -219,7 +219,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let prompt = try await agent.bounded {
       try await client.prompt(id: firstPromptID)
       let frames = try await client.frames { $0["params"]?["update"]?["state"] == .string("idle") }
-      return try PromptFrames(frames, promptID: firstPromptID)
+      return try PromptFrames(frames: frames, promptID: firstPromptID)
     }
 
     let messageID = try #require(prompt.resultMessageID)
