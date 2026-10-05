@@ -91,7 +91,7 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
 
     await harness.agent.bounded { await actions.send(UserInput(text: "hello")) }
 
-    #expect(await waitUntil { thread.state == .idle(.endTurn) && assistantMessage(replyID, in: thread) != nil })
+    #expect(await waitForTheEndOfTurn(1, in: thread))
     let reply = try #require(assistantMessage(replyID, in: thread))
     #expect(reply.blocks == [AgentViewKit.ContentBlock(text: InMemoryDemoAgent.replyText(to: "hello"))])
     #expect(thread.streaming[replyID] == nil)
@@ -112,9 +112,9 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
     let thread = harness.session.thread
 
     await harness.agent.bounded { await actions.send(UserInput(text: "one")) }
-    #expect(await waitUntil { assistantMessage(InMemoryDemoAgent.replyID(turn: 1), in: thread) != nil })
+    #expect(await waitForTheEndOfTurn(1, in: thread))
     await harness.agent.bounded { await actions.send(UserInput(text: "two")) }
-    #expect(await waitUntil { assistantMessage(InMemoryDemoAgent.replyID(turn: 2), in: thread) != nil })
+    #expect(await waitForTheEndOfTurn(2, in: thread))
 
     let second = try #require(assistantMessage(InMemoryDemoAgent.replyID(turn: 2), in: thread))
     #expect(second.blocks == [AgentViewKit.ContentBlock(text: InMemoryDemoAgent.replyText(to: "two"))])
@@ -289,5 +289,24 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
 
     #expect(ScriptedWireAgent.promptText(of: request) == "hello")
     #expect(ScriptedWireAgent.promptText(of: .object([:])).isEmpty)
+  }
+
+  // MARK: - Helpers
+
+  /// Waits until a turn ends: the reply record of the turn exists and the
+  /// thread is idle with the `endTurn` stop reason.
+  ///
+  /// The agent sends the running state before the first chunk of the reply,
+  /// and the idle state after the full reply. Thus the reply record together
+  /// with the idle state is the end of this turn, not the end of an earlier
+  /// turn, and the record then holds the full text.
+  ///
+  /// - Parameters:
+  ///   - turn: The number of the turn, from 1.
+  ///   - thread: The thread of the session.
+  /// - Returns: `true` when the turn ended before the time limit.
+  private func waitForTheEndOfTurn(_ turn: Int, in thread: AgentThread) async -> Bool {
+    let replyID = InMemoryDemoAgent.replyID(turn: turn)
+    return await waitUntil { thread.state == .idle(.endTurn) && assistantMessage(replyID, in: thread) != nil }
   }
 }
