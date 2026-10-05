@@ -1,4 +1,5 @@
 import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The design tokens of the kit (plan.md §5, §11 decision 11).
@@ -83,7 +84,8 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   }
 
   /// The colors that show the status of a tool call, a plan entry, a
-  /// compaction, or a run, and the tint of a priority or a notice severity.
+  /// compaction, a sent user message, or a run, and the tint of a priority or
+  /// a notice severity.
   public struct StatusColors: Equatable, Sendable {
     /// The color of work that runs now.
     public var running: Color
@@ -163,6 +165,20 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
       case .failed: failed
       case .cancelled: cancelled
       case .unknown: pending
+      }
+    }
+
+    /// The color of a user message with the send state `state`.
+    ///
+    /// - Parameter state: The send state of a `UserMessageEntry`.
+    /// - Returns: ``pending`` for a message that the agent did not link yet,
+    ///   ``completed`` for a sent message, and ``failed`` for a message whose
+    ///   prompt failed.
+    public func color(for state: SendState) -> Color {
+      switch state {
+      case .pending: pending
+      case .sent: completed
+      case .failed: failed
       }
     }
 

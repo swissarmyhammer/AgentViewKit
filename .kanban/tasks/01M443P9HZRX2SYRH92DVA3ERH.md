@@ -63,10 +63,26 @@ comments:
     - evidence: Sources/AgentViewKit/Items/CompactionEntryView.swift, Sources/AgentViewKit/Status/SessionNoticeBanner.swift; `swift build --build-tests` complete; `swift test` 1324 tests in 117 suites passed.
     - next: /review
   timestamp: 2026-10-05T22:56:50.650837+00:00
+- actor: claude-code
+  id: 01m474sganyh9ek2v3xa7qy87c
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — static helpers of CompactionEntryView are private; notice helpers moved into NoticeBanner as private
+    - test: green — swift test, 1324 passed
+    - commit: ad9c60b
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T23:01:13.685246+00:00
+- actor: claude-code
+  id: 01m474shqyw7cfev3yw0eqz9c3
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ad9c60b); 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. 2 source files reviewed; 2 .kanban files excluded by .reviewignore. All 5 prior items are checked.
+    - next: none — task moved to done
+  timestamp: 2026-10-05T23:01:15.134334+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ea80
 title: Show CompactionEntry rows and SessionNotice banners from the client model
 ---
 ## What

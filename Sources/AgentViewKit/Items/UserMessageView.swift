@@ -56,12 +56,74 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     self.date = date
   }
 
+  /// The end of the accessibility identifier of the send state of an entry.
+  private static let sendStateSuffix = "-send-state"
+
+  /// The accessibility identifier of the send state of a user message entry.
+  ///
+  /// - Parameter id: The row key of the entry.
+  /// - Returns: `user-message-<id>-send-state`.
+  public static func sendStateIdentifier(for id: String) -> String {
+    identifier(for: id) + sendStateSuffix
+  }
+
+  @Environment(\.agentTheme) private var theme
+
   public var body: some View {
     switch source {
     case .message(let message):
       MessageItemView(message: message, role: .user, date: date)
     case .entry(let entry):
-      TranscriptMessageView(id: entry.id, content: entry.content, role: .user, date: date, canStream: false)
+      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+        TranscriptMessageView(id: entry.id, content: entry.content, role: .user, date: date, canStream: false)
+        SendStateLabel(state: entry.sendState)
+          .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
+      }
+    }
+  }
+
+  /// The send state of a user message entry: pending, sent, or failed
+  /// (update.md §4.2 "Prompt helper").
+  ///
+  /// The label is one accessibility element. Its label is the title of the
+  /// state.
+  private struct SendStateLabel: View {
+    /// The send state to show.
+    let state: SendState
+
+    @Environment(\.agentTheme) private var theme
+
+    /// The text of a send state.
+    ///
+    /// - Parameter state: The send state.
+    /// - Returns: "Sending", "Sent", or "Not sent".
+    static func title(of state: SendState) -> String {
+      switch state {
+      case .pending: String(localized: "Sending")
+      case .sent: String(localized: "Sent")
+      case .failed: String(localized: "Not sent")
+      }
+    }
+
+    /// The SF Symbol of a send state.
+    ///
+    /// - Parameter state: The send state.
+    /// - Returns: A clock, a check mark, or a warning sign.
+    static func symbol(of state: SendState) -> String {
+      switch state {
+      case .pending: "clock"
+      case .sent: "checkmark"
+      case .failed: "exclamationmark.triangle"
+      }
+    }
+
+    var body: some View {
+      Label(Self.title(of: state), systemImage: Self.symbol(of: state))
+        .font(.caption)
+        .fontWeight(theme.symbolWeight)
+        .foregroundStyle(theme.statusColors.color(for: state))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.title(of: state))
     }
   }
 }

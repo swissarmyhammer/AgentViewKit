@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModelsACP
 import Observation
 import SwiftUI
 
@@ -54,8 +55,11 @@ extension View {
 /// ``PromptInputView`` adds a message with ``enqueue(_:)`` while a turn runs.
 /// When the turn ends, the composer gets the first item from
 /// ``dequeueNext(after:)`` and sends it through
-/// ``AgentThreadActions/send(_:)``. ``PromptQueueView`` shows the items and
-/// lets the user reorder, edit, drop, and send them.
+/// ``AgentThreadActions/send(_:)``. A composer over a `SessionModel` gets the
+/// first item from ``dequeueNext(afterAgentState:)`` only after its current
+/// prompt returns, and sends it with `SessionModel.prompt(_:meta:)`.
+/// ``PromptQueueView`` shows the items and lets the user reorder, edit, drop,
+/// and send them.
 @MainActor
 @Observable
 public final class PromptQueue {
@@ -178,6 +182,26 @@ public final class PromptQueue {
   public func dequeueNext(after state: ThreadState) -> UserInput? {
     guard case .idle(let reason) = state, reason != .cancelled else { return nil }
     return dequeueNext()
+  }
+
+  /// Removes and returns the first item when the agent state of a
+  /// `SessionModel` shows no turn that runs (update.md §4.2).
+  ///
+  /// An idle state with a stop reason that is not `cancelled` lets the queue
+  /// go on. No state (`nil`) also lets the queue go on, because an agent need
+  /// not report its state. A cancelled turn holds the queue, as
+  /// ``dequeueNext(after:)`` does. A running state, a state that requires an
+  /// action, and an unknown state hold the queue.
+  ///
+  /// - Parameter state: The `agentState` of the session model.
+  /// - Returns: The input to send, or `nil` when the state holds the queue or
+  ///   when the queue is empty.
+  public func dequeueNext(afterAgentState state: StateUpdate?) -> UserInput? {
+    switch state {
+    case nil: return dequeueNext()
+    case .idle(let idle) where idle.stopReason != .cancelled: return dequeueNext()
+    case .idle, .running, .requiresAction, .unknown: return nil
+    }
   }
 
   /// Whether an input has only white space in its text.

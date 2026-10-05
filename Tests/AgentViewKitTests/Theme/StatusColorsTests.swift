@@ -1,5 +1,6 @@
 import AgentViewKit
 import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -42,6 +43,15 @@ import Testing
   ])
   func eachCompactionStatusHasItsColor(status: Unstable.CompactionStatus, expected: Color) {
     #expect(Self.colors.color(for: status) == expected)
+  }
+
+  @Test(arguments: [
+    (SendState.pending, Color.yellow),
+    (.sent, .green),
+    (.failed, .red),
+  ])
+  func eachSendStateHasItsColor(state: SendState, expected: Color) {
+    #expect(Self.colors.color(for: state) == expected)
   }
 
   @Test(arguments: [

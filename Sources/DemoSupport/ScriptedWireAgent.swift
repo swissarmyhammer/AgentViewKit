@@ -22,7 +22,8 @@ private let promptMethod = "session/prompt"
 /// after the result. Before the answer, the agent sends the frames that
 /// ``leadIns`` gives for the method. After the answer, the agent sends the
 /// frames that ``followUps`` gives for the method. The agent can also send a
-/// raw frame to the client.
+/// raw frame to the client. When ``holdsPromptAnswers`` is `true`, the agent
+/// holds each prompt answer until ``releasePromptAnswer()``.
 ///
 /// The ACP tests and the demo app use this agent. The demo app binds it with
 /// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
@@ -47,6 +48,19 @@ public final class ScriptedWireAgent {
 
   /// The position of the echoed user message of each prompt.
   public var promptEchoOrder = PromptEchoOrder.beforeResult
+
+  /// Whether the agent holds the answer to each `session/prompt` request
+  /// until ``releasePromptAnswer()``.
+  ///
+  /// While the agent holds an answer, it sends no frame and reads no frame.
+  /// A test uses this to see the client state before the answer.
+  public var holdsPromptAnswers = false
+
+  /// The number of releases that came before the agent held an answer.
+  private var earlyPromptReleases = 0
+
+  /// The continuation of the held prompt answer, or `nil`.
+  private var heldPromptAnswer: CheckedContinuation<Void, Never>?
 
   /// The transport end of the agent.
   private let transport: InMemoryTransport
@@ -105,10 +119,25 @@ public final class ScriptedWireAgent {
     }
   }
 
-  /// Stops the reader and closes the transport.
+  /// Stops the reader and closes the transport. A held prompt answer goes
+  /// out to the closed transport, so the reader ends.
   public func stop() {
     reader?.cancel()
     transport.close()
+    releasePromptAnswer()
+  }
+
+  /// Lets the agent send one held prompt answer.
+  ///
+  /// When the agent holds no answer, the release applies to the next answer
+  /// that the agent holds.
+  public func releasePromptAnswer() {
+    guard let heldPromptAnswer else {
+      earlyPromptReleases += 1
+      return
+    }
+    self.heldPromptAnswer = nil
+    heldPromptAnswer.resume()
   }
 
   /// Sends a raw JSON-RPC frame to the client.
@@ -205,14 +234,18 @@ public final class ScriptedWireAgent {
 
   /// Answers a `session/prompt` request.
   ///
-  /// The result gets a new `messageId`. The agent echoes the prompt text in a
-  /// `user_message_chunk` update with the same `messageId`, before or after
-  /// the result as ``promptEchoOrder`` tells.
+  /// When ``holdsPromptAnswers`` is `true`, the agent first waits for
+  /// ``releasePromptAnswer()``. The result gets a new `messageId`. The agent
+  /// echoes the prompt text in a `user_message_chunk` update with the same
+  /// `messageId`, before or after the result as ``promptEchoOrder`` tells.
   ///
   /// - Parameters:
   ///   - request: The request frame.
   ///   - idText: The JSON text of the id of the request.
   private func answerPrompt(request: AgentViewKit.JSONValue, idText: String) async {
+    if holdsPromptAnswers {
+      await waitForPromptRelease()
+    }
     let messageID = AgentViewKit.JSONValue.string(UUID().uuidString)
     let result = Self.resultFrame(idText: idText, result: promptResult(messageID: messageID))
     let echo = Self.echoFrame(of: request, messageID: messageID)
@@ -224,6 +257,16 @@ public final class ScriptedWireAgent {
     for frame in frames {
       try? await send(frame)
     }
+  }
+
+  /// Waits until ``releasePromptAnswer()`` lets the held answer go out. A
+  /// release that came before returns at once.
+  private func waitForPromptRelease() async {
+    guard earlyPromptReleases == 0 else {
+      earlyPromptReleases -= 1
+      return
+    }
+    await withCheckedContinuation { heldPromptAnswer = $0 }
   }
 
   /// The result JSON text of the next answer to `session/prompt`: the

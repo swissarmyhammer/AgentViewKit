@@ -12,6 +12,12 @@ extension EnvironmentValues {
 }
 
 extension SessionModel {
+  /// Whether the agent runs a turn: `agentState` is `.running`.
+  var isRunning: Bool {
+    guard case .running = agentState else { return false }
+    return true
+  }
+
   /// Tells whether an entry is the last entry of the transcript while the
   /// agent runs.
   ///
@@ -22,7 +28,6 @@ extension SessionModel {
   /// - Parameter id: The identity of the entry.
   /// - Returns: `true` when the entry is last and `agentState` is `.running`.
   func isLastWhileRunning(_ id: TranscriptEntry.ID) -> Bool {
-    guard case .running = agentState else { return false }
-    return transcript.last?.id == id
+    isRunning && transcript.last?.id == id
   }
 }

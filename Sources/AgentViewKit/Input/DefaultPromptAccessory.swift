@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The default accessory row of ``PromptInputView`` (plan.md §9 D).
@@ -16,7 +17,11 @@ import SwiftUI
 ///
 /// The row reads the thread from ``SwiftUI/EnvironmentValues/agentThread``,
 /// the actions from ``SwiftUI/EnvironmentValues/threadActions``, and the
-/// submit action from ``SwiftUI/EnvironmentValues/promptSubmitAction``. The
+/// submit action from ``SwiftUI/EnvironmentValues/promptSubmitAction``. When
+/// the environment has a session model
+/// (``SwiftUI/EnvironmentValues/sessionModel``), the Stop button shows while
+/// its `agentState` is `running`, and it sends `session/cancel` with
+/// `SessionModel.cancel(meta:)` (update.md §4.2 "Other requests"). The
 /// attachment chips come in their own task. This row has no control for them
 /// yet.
 public struct DefaultPromptAccessory: View {
@@ -27,6 +32,7 @@ public struct DefaultPromptAccessory: View {
   public static let stopIdentifier = "prompt-stop"
 
   @Environment(\.agentThread) private var thread
+  @Environment(\.sessionModel) private var session
   @Environment(\.threadActions) private var actions
   @Environment(\.promptSubmitAction) private var submit
   @Environment(\.promptSuggestions) private var suggestions
@@ -35,9 +41,14 @@ public struct DefaultPromptAccessory: View {
   /// Makes the accessory row.
   public init() {}
 
-  /// Whether the thread runs a turn.
+  /// The turn verbs of the session model or of the thread actions.
+  private var turn: ComposerTurn {
+    ComposerTurn(session: session, thread: thread, actions: actions)
+  }
+
+  /// Whether the agent runs a turn.
   private var isRunning: Bool {
-    thread?.state == .running
+    turn.isRunning
   }
 
   public var body: some View {
@@ -80,7 +91,7 @@ public struct DefaultPromptAccessory: View {
   /// The button that stops the current turn.
   private var stopButton: some View {
     Button {
-      actions?.startCancel()
+      turn.startCancel()
     } label: {
       Label(String(localized: "Stop"), systemImage: "stop.fill")
         .labelStyle(.iconOnly)

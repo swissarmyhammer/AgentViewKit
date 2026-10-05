@@ -2,7 +2,6 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import OSLog
-import UniformTypeIdentifiers
 
 /// The errors of ``ACPThreadActions``.
 public enum ACPThreadActionsError: Error, Equatable, Sendable {
@@ -90,9 +89,6 @@ public final class ACPThreadActions: AgentThreadActions {
   /// Then the answer is on the transport before the comment prompt.
   static let commentDelay = Duration.milliseconds(commentDelayMilliseconds)
 
-  /// The MIME type of an attachment with no known type.
-  static let defaultMimeType = "application/octet-stream"
-
   /// The thread that the actions change.
   public let thread: AgentThread
 
@@ -143,12 +139,9 @@ public final class ACPThreadActions: AgentThreadActions {
   // MARK: - Turn
 
   public func send(_ input: UserInput) async {
-    do {
-      _ = try await session.prompt(Self.promptBlocks(for: input))
-    } catch {
-      // The session model already added the error entry of the prompt.
-      log(error, verb: "session/prompt")
-    }
+    // The session model adds the error entry of a failed prompt, and the
+    // helper writes the failure to the log.
+    await session.sendPrompt(with: input)
   }
 
   public func cancel() async {
@@ -265,34 +258,6 @@ public final class ACPThreadActions: AgentThreadActions {
   }
 
   // MARK: - Helpers
-
-  /// The prompt blocks of a user input.
-  ///
-  /// - Parameter input: The text and the attachments.
-  /// - Returns: A `text` block, then one block for each attachment. An image
-  ///   file that the actions can read is an `image` block. Each other
-  ///   attachment is a `resource_link` block.
-  static func promptBlocks(for input: UserInput) -> [FoundationModelsACP.ContentBlock] {
-    [.text(FoundationModelsACP.TextContent(text: input.text))] + input.attachments.map(attachmentBlock)
-  }
-
-  /// The prompt block of one attachment.
-  private static func attachmentBlock(_ url: URL) -> FoundationModelsACP.ContentBlock {
-    let type = UTType(filenameExtension: url.pathExtension)
-    let mimeType = type?.preferredMIMEType
-    if let type, type.conforms(to: .image), let mimeType, let data = try? Data(contentsOf: url) {
-      return .image(
-        FoundationModelsACP.ImageContent(
-          data: data.base64EncodedString(), mimeType: MediaType(rawValue: mimeType), uri: url.absoluteString))
-    }
-    return .resourceLink(
-      FoundationModelsACP.ResourceLink(
-        name: url.lastPathComponent,
-        uri: url.absoluteString,
-        mimeType: MediaType(rawValue: mimeType ?? defaultMimeType)
-      )
-    )
-  }
 
   /// The local id of the pending elicitation of the session that `id` names.
   ///

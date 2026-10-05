@@ -1,4 +1,5 @@
 import AgentViewKit
+import AgentViewKitTestSupport
 import DemoSupport
 import Foundation
 import FoundationModelsACP
@@ -26,6 +27,13 @@ private let markerRequestID = 3.0
 
 /// The method of the marker request. The scripted agent answers it with `{}`.
 private let markerMethod = "session/marker"
+
+/// The number of milliseconds in ``heldReadPause``.
+private let heldReadPauseMilliseconds = 50
+
+/// The time that the hold test waits before it examines that the agent did
+/// not read the marker request.
+private let heldReadPause = Duration.milliseconds(heldReadPauseMilliseconds)
 
 /// The client end of an agent. It writes raw request frames and reads the raw
 /// frames of the agent.
@@ -206,6 +214,37 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
 
     #expect(ids.allSatisfy { $0 != nil })
     #expect(ids[0] != ids[1])
+  }
+
+  @Test func aHeldPromptAnswerStopsTheAgentUntilTheRelease() async throws {
+    let (agent, client) = startScriptedAgent { $0.holdsPromptAnswers = true }
+    defer { agent.stop() }
+
+    let prompt = try await agent.bounded {
+      try await client.prompt(id: firstPromptID)
+      try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
+      #expect(await waitUntil { !agent.messages(method: "session/prompt").isEmpty })
+      // A held answer stops the reader of the agent, so the marker request
+      // stays unread. Without the hold, the agent reads it within the pause.
+      try await Task.sleep(for: heldReadPause)
+      #expect(agent.messages(method: markerMethod).isEmpty)
+      agent.releasePromptAnswer()
+      let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
+      return try PromptFrames(frames: frames, promptID: firstPromptID)
+    }
+
+    #expect(prompt.resultMessageID != nil)
+    #expect(prompt.echo != nil)
+  }
+
+  @Test func aReleaseBeforeThePromptLetsTheNextAnswerGoOutAtOnce() async throws {
+    let (agent, client) = startScriptedAgent { $0.holdsPromptAnswers = true }
+    defer { agent.stop() }
+    agent.releasePromptAnswer()
+
+    let prompt = try await promptFrames(of: agent, client: client)
+
+    #expect(prompt.resultMessageID != nil)
   }
 
   // MARK: - InMemoryDemoAgent

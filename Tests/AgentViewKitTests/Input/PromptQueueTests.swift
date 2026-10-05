@@ -1,5 +1,6 @@
 import AgentViewKit
 import Foundation
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -164,6 +165,30 @@ import Testing
     let queue = Self.queue("a")
 
     #expect(queue.dequeueNext(after: state) == nil)
+    #expect(Self.texts(of: queue) == ["a"])
+  }
+
+  // MARK: - Agent state of a session model
+
+  @Test func anIdleAgentStateOrNoAgentStateDequeuesTheFirstItem() {
+    let queue = Self.queue("a", "b", "c")
+
+    #expect(queue.dequeueNext(afterAgentState: .idle(IdleStateUpdate(stopReason: .endTurn))) == UserInput(text: "a"))
+    #expect(queue.dequeueNext(afterAgentState: .idle(IdleStateUpdate())) == UserInput(text: "b"))
+    #expect(queue.dequeueNext(afterAgentState: nil) == UserInput(text: "c"))
+    #expect(queue.isEmpty)
+  }
+
+  @Test(arguments: [
+    StateUpdate.running(RunningStateUpdate()),
+    .requiresAction(RequiresActionStateUpdate()),
+    .idle(IdleStateUpdate(stopReason: .cancelled)),
+    .unknown("_paused", .object([:])),
+  ])
+  func anAgentStateThatIsNotAFinishedTurnKeepsTheQueue(state: StateUpdate) {
+    let queue = Self.queue("a")
+
+    #expect(queue.dequeueNext(afterAgentState: state) == nil)
     #expect(Self.texts(of: queue) == ["a"])
   }
 }

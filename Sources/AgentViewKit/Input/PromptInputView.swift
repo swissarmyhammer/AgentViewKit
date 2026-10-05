@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The composer of a thread (plan.md §7, §9 D).
@@ -29,6 +30,27 @@ import SwiftUI
 /// sends the text at once ("send now"). Esc stops the turn and keeps the
 /// queue.
 ///
+/// When the environment has a session model
+/// (``SwiftUI/EnvironmentValues/sessionModel``), the composer uses it in
+/// place of the thread and the thread actions (update.md §4.2 "Prompt
+/// helper", §4.7 "Composer"). A submit sends `session/prompt` with
+/// `SessionModel.prompt(_:meta:)`. The model shows the user message at once
+/// with the send state `pending`, so the composer adds no row of its own.
+/// Esc and the Stop button send `session/cancel` with
+/// `SessionModel.cancel(meta:)`. The turn runs while `agentState` is
+/// `running`. A submit also goes to the queue while a sent prompt has not
+/// returned, and the view sends the next queued item only after the current
+/// prompt returns and the agent does not run. Give the model to the composer
+/// with `.environment(\.sessionModel, model)`:
+///
+/// ```swift
+/// VStack {
+///   AgentThreadView(session: model, actions: actions)
+///   PromptInputView(text: $draft) {}
+/// }
+/// .environment(\.sessionModel, model)
+/// ```
+///
 /// In an agent command scope (``SwiftUI/View/agentCommandScope(thread:)``),
 /// a submit runs ``AgentCommandVerb/send`` and Esc runs
 /// ``AgentCommandVerb/cancel``. The scope can then submit the composer and
@@ -52,7 +74,12 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// The builder of the accessory row.
   let accessory: () -> Accessory
 
+  /// The number of prompts that the composer sent through the session model
+  /// and that did not return yet.
+  @State private var promptsInFlight = 0
+
   @Environment(\.agentThread) private var thread
+  @Environment(\.sessionModel) private var session
   @Environment(\.threadActions) private var actions
   @Environment(\.promptQueue) private var queue
   @Environment(\.agentTheme) private var theme
@@ -104,14 +131,25 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       ?? Binding(get: { ownAttachments }, set: { ownAttachments = $0 })
   }
 
-  /// Whether the thread runs a turn.
+  /// The turn verbs of the session model or of the thread actions.
+  private var turn: ComposerTurn {
+    ComposerTurn(session: session, thread: thread, actions: actions)
+  }
+
+  /// Whether the agent runs a turn.
   private var isRunning: Bool {
-    thread?.state == .running
+    turn.isRunning
+  }
+
+  /// Whether a submit goes to the queue: the agent runs a turn, or a prompt
+  /// that the composer sent through the session model did not return yet.
+  private var isBusy: Bool {
+    isRunning || promptsInFlight > 0
   }
 
   /// Whether a submit sends or queues the text now.
   private var canSubmit: Bool {
-    (!isRunning || queue != nil) && Self.message(from: text) != nil
+    (!isBusy || queue != nil) && Self.message(from: text) != nil
   }
 
   public var body: some View {
@@ -141,10 +179,35 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     .environment(
       \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
     .environment(\.promptText, $text)
-    .onChange(of: thread?.state) { _, state in
-      guard let state, let input = queue?.dequeueNext(after: state) else { return }
-      send(input)
-    }
+    .onChange(of: thread?.state) { _, state in threadStateDidChange(state) }
+    .onChange(of: session?.agentState) { sendNextQueuedPrompt() }
+  }
+
+  /// Sends the first queued item when the thread finished its turn. A
+  /// composer over a session model reads the agent state of the model, and
+  /// not the thread.
+  ///
+  /// - Parameter state: The new state of the thread, or `nil`.
+  private func threadStateDidChange(_ state: ThreadState?) {
+    guard session == nil, let state, let input = queue?.dequeueNext(after: state) else { return }
+    send(input)
+  }
+
+  /// Sends the first queued item of a composer over a session model, when no
+  /// sent prompt waits for its return and the agent state lets the queue go
+  /// on (``PromptQueue/dequeueNext(afterAgentState:)``).
+  private func sendNextQueuedPrompt() {
+    guard let session, promptsInFlight == 0,
+      let input = queue?.dequeueNext(afterAgentState: session.agentState)
+    else { return }
+    send(input)
+  }
+
+  /// Counts a returned prompt of the session model, then sends the next
+  /// queued item.
+  private func promptDidReturn() {
+    promptsInFlight -= 1
+    sendNextQueuedPrompt()
   }
 
   /// Submits the text through ``AgentCommandVerb/send`` of the command scope,
@@ -165,7 +228,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// Then clears the text and calls the host closure.
   private func submit() {
     guard canSubmit, let input = takeInput() else { return }
-    if isRunning, let queue {
+    if isBusy, let queue {
       queue.enqueue(input)
     } else {
       send(input)
@@ -190,7 +253,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   /// Stops the current turn. The text and the queue do not change.
   private func cancel() {
-    actions?.startCancel()
+    turn.startCancel()
   }
 
   /// The files of a submit: the attachment list, then the files that the
@@ -221,11 +284,19 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     return UserInput(text: message, attachments: urls)
   }
 
-  /// Sends an input through the thread actions.
+  /// Sends an input through the session model, or through the thread
+  /// actions when the environment has no session model.
+  ///
+  /// A prompt of the session model counts as in flight until it returns.
   ///
   /// - Parameter input: The input to send.
   private func send(_ input: UserInput) {
-    actions?.startSend(input)
+    guard session != nil else {
+      actions?.startSend(input)
+      return
+    }
+    promptsInFlight += 1
+    turn.startPrompt(with: input, then: promptDidReturn)
   }
 }
 

@@ -1,3 +1,4 @@
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The list of the messages that wait while the thread runs a turn
@@ -16,9 +17,11 @@ import SwiftUI
 ///
 /// The view shows a count badge and one row for each item. A drag reorders
 /// the rows. Each row has a text field for an inline edit, a "send now"
-/// button that sends the item at once through
-/// ``AgentThreadActions/send(_:)``, and a remove button. The view is hidden
-/// while the queue is empty.
+/// button that sends the item at once, and a remove button. The view is
+/// hidden while the queue is empty. "Send now" sends with
+/// `SessionModel.prompt(_:meta:)` when the environment has a session model
+/// (``SwiftUI/EnvironmentValues/sessionModel``), and else through
+/// ``AgentThreadActions/send(_:)``.
 public struct PromptQueueView: View {
   /// The accessibility identifier of the view.
   public static let identifier = "prompt-queue"
@@ -29,6 +32,7 @@ public struct PromptQueueView: View {
   /// The queue that the view shows and changes.
   let queue: PromptQueue
 
+  @Environment(\.sessionModel) private var session
   @Environment(\.threadActions) private var actions
   @Environment(\.agentTheme) private var theme
 
@@ -176,6 +180,6 @@ public struct PromptQueueView: View {
   /// - Parameter id: The identifier of the item.
   private func sendNow(_ id: QueuedPromptID) {
     guard let input = queue.take(id) else { return }
-    actions?.startSend(input)
+    ComposerTurn(session: session, thread: nil, actions: actions).startPrompt(with: input)
   }
 }
