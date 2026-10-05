@@ -20,10 +20,26 @@ comments:
     - evidence: deleted Sources/AgentViewKit/Subagents/ (3 files), Tests/AgentViewKitTests/Subagents/ (3 files), Tests/Fixtures/subagent/router-agent-spawn.jsonl; edited Sources/AgentViewKit/Model/AgentThread.swift, Sources/AgentViewKit/Model/ThreadChange.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. `swift test --filter RemovedVocabularyTests` red, then green. `swift test`: 1222 tests in 105 suites passed, plus the other test bundles, 0 failures, 0 compiler warnings. `Scripts/test-examples.sh AgentViewKitDemo`: PASS.
     - next: /review
   timestamp: 2026-10-05T13:12:53.359058+00:00
+- actor: claude-code
+  id: 01m463ajynf820z961vka6rc5t
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1f527c3). 0 findings, 0 confirmed, 0 refuted. 9 files reviewed. The engine did not review the 4 .kanban files (ignore rule) and Tests/Fixtures/subagent/router-agent-spawn.jsonl (no validator matches). The Swift tool rules declined the 6 deleted Swift files because these files do not exist now.
+    - next: none. The task is in done.
+  timestamp: 2026-10-05T13:16:21.845037+00:00
+- actor: claude-code
+  id: 01m463amack5e5kgg0f949dztx
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — deleted the Subagents sources, tests and fixture; AgentThread, ThreadChange, RemovedVocabularyTests
+    - test: green — swift test passed (1222, 65, 128, 1); demo UI gate passed
+    - commit: 1f527c3
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T13:16:23.244639+00:00
 depends_on:
 - 01M443JSSJ6J6T21ASTAQBCY5S
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: da80
 title: 'Remove subagents: upsertSubagent, SubagentRun, SubagentSource and SubagentTreeView'
 ---
 ## What

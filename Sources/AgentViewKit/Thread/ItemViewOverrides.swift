@@ -35,9 +35,6 @@ extension EnvironmentValues {
   /// ``SwiftUI/View/structuredItem(_:_:)``.
   @Entry public var structuredItemViewOverride: ItemViewRenderer<StructuredRecord>? = nil
 
-  /// The override of the ``ThreadItem/compaction(_:)`` view.
-  @Entry public var compactionViewOverride: ItemViewRenderer<CompactionMarker>? = nil
-
   /// The override of the ``ThreadItem/error(_:)`` view.
   @Entry public var errorViewOverride: ItemViewRenderer<ThreadError>? = nil
 
@@ -104,16 +101,6 @@ extension View {
     @ViewBuilder _ content: @escaping @MainActor (StructuredRecord) -> Content
   ) -> some View {
     itemViewOverride(\.structuredItemViewOverride, content)
-  }
-
-  /// Replaces the view of each compaction item in this view.
-  ///
-  /// - Parameter content: The function that makes the view of a record.
-  /// - Returns: A view that gives the override to its subtree.
-  public func compactionView<Content: View>(
-    @ViewBuilder _ content: @escaping @MainActor (CompactionMarker) -> Content
-  ) -> some View {
-    itemViewOverride(\.compactionViewOverride, content)
   }
 
   /// Replaces the view of each error item in this view.

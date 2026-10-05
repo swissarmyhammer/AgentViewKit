@@ -8,7 +8,7 @@ import SwiftUI
 ///
 /// | Kind | Detail | Action |
 /// |------|--------|--------|
-/// | `contextSizeExceeded` | Both token counts | Compact |
+/// | `contextSizeExceeded` | Both token counts | None |
 /// | `rateLimited` | The reset time | Retry |
 /// | `guardrailViolation`, `refusal` | The explanation | Rephrase |
 /// | `timeout` | A fixed text | Retry |
@@ -23,8 +23,6 @@ public struct ErrorView: View {
 
   /// A button of the error card.
   public enum Action: String, CaseIterable, Hashable, Sendable {
-    /// Compacts the thread.
-    case compact
     /// Sends the request again.
     case retry
     /// Lets the user change the request.
@@ -33,7 +31,6 @@ public struct ErrorView: View {
     /// The title of the button.
     public var title: String {
       switch self {
-      case .compact: String(localized: "Compact")
       case .retry: String(localized: "Retry")
       case .rephrase: String(localized: "Rephrase")
       }
@@ -111,10 +108,10 @@ public struct ErrorView: View {
         title: String(localized: "The conversation is too long"),
         detail: String(
           localized:
-            "The request has \(tokenCount.formatted()) tokens, but the context can hold \(contextSize.formatted()) tokens. Compact the conversation to continue."
+            "The request has \(tokenCount.formatted()) tokens, but the context can hold \(contextSize.formatted()) tokens."
         ),
         symbolName: "text.line.last.and.arrowtriangle.forward",
-        action: .compact)
+        action: nil)
     case .rateLimited(let resetAt):
       Content(
         title: String(localized: "The rate limit is reached"),

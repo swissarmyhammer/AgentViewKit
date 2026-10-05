@@ -19,7 +19,6 @@ import Testing
         .structured(StructuredRecord(id: "structured-1", schemaName: "Chart", payload: .null)),
         "structured-1"
       ),
-      (.compaction(CompactionMarker(id: "compaction-1", summary: "Earlier work")), "compaction-1"),
       (.error(ThreadError(id: "error-1", kind: .timeout)), "error-1"),
       (.unknown(UnknownRecord(id: "unknown-1", kind: "new_kind", raw: .null)), "unknown-1"),
     ]
@@ -30,7 +29,7 @@ import Testing
   @Test func theItemIdIsTheRecordIdForEachCase() {
     let items = Self.oneItemForEachCase()
 
-    #expect(items.count == 9)
+    #expect(items.count == 8)
     for (item, id) in items {
       #expect(item.id == id)
       #expect(item.record.id == id)
@@ -161,9 +160,9 @@ import Testing
   @Test func eachRecordTypeConformsToThreadRecord() {
     let types: [any ThreadRecord.Type] = [
       SystemPrompt.self, Message.self, Reasoning.self, ToolCallRecord.self,
-      StructuredRecord.self, CompactionMarker.self, ThreadError.self, UnknownRecord.self,
+      StructuredRecord.self, ThreadError.self, UnknownRecord.self,
     ]
 
-    #expect(types.count == 8)
+    #expect(types.count == 7)
   }
 }

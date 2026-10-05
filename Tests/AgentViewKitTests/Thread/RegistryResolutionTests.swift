@@ -13,7 +13,6 @@ enum OverrideKind: String, CaseIterable, Sendable {
   case reasoning
   case toolCall
   case structuredItem
-  case compaction
   case error
   case unknownItem
 }
@@ -32,7 +31,6 @@ extension View {
     case .reasoning: reasoningView { _ in EmptyView() }
     case .toolCall: toolCallView { _ in EmptyView() }
     case .structuredItem: structuredItemView { _ in EmptyView() }
-    case .compaction: compactionView { _ in EmptyView() }
     case .error: errorView { _ in EmptyView() }
     case .unknownItem: unknownItemView { _ in EmptyView() }
     }
@@ -50,7 +48,6 @@ struct OverrideKeysReader: View {
   @Environment(\.reasoningViewOverride) private var reasoning
   @Environment(\.toolCallViewOverride) private var toolCall
   @Environment(\.structuredItemViewOverride) private var structuredItem
-  @Environment(\.compactionViewOverride) private var compaction
   @Environment(\.errorViewOverride) private var error
   @Environment(\.unknownItemViewOverride) private var unknownItem
 
@@ -63,7 +60,6 @@ struct OverrideKeysReader: View {
       (.reasoning, reasoning != nil),
       (.toolCall, toolCall != nil),
       (.structuredItem, structuredItem != nil),
-      (.compaction, compaction != nil),
       (.error, error != nil),
       (.unknownItem, unknownItem != nil),
     ]

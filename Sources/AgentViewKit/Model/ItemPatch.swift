@@ -97,16 +97,6 @@ public nonisolated enum ItemPatch: Sendable, Hashable {
     meta: PatchField<JSONValue> = .unchanged
   )
 
-  /// Changes a ``CompactionMarker``.
-  ///
-  /// - Parameters:
-  ///   - summary: The summary that replaced the earlier items.
-  ///   - meta: The `_meta` value of the source.
-  case compaction(
-    summary: PatchField<String> = .unchanged,
-    meta: PatchField<JSONValue> = .unchanged
-  )
-
   /// Changes a ``ThreadError``.
   ///
   /// ``PatchField/cleared`` sets `kind` to
@@ -219,11 +209,6 @@ extension ItemPatch {
         record.payload = payload.applied(to: record.payload, clearedValue: ClearedValue.json)
         record.meta = meta.applied(to: record.meta)
       }
-    case .compaction(let summary, let meta):
-      update(item.record as? CompactionMarker) { record in
-        record.summary = summary.applied(to: record.summary)
-        record.meta = meta.applied(to: record.meta)
-      }
     case .error(let kind, let meta):
       update(item.record as? ThreadError) { record in
         record.kind = kind.applied(to: record.kind, clearedValue: ClearedValue.errorKind)
@@ -253,8 +238,6 @@ extension ItemPatch {
       .toolCall(ToolCallRecord(id: id, title: ""))
     case .structured:
       .structured(StructuredRecord(id: id, schemaName: "", payload: ClearedValue.json))
-    case .compaction:
-      .compaction(CompactionMarker(id: id, summary: nil))
     case .error:
       .error(ThreadError(id: id, kind: ClearedValue.errorKind))
     case .unknown:

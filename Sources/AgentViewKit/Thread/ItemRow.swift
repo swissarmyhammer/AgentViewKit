@@ -117,10 +117,6 @@ public struct ItemRow: View, Equatable {
       OverridableItemView(\.structuredItemViewOverride, record: record) { record in
         RegisteredStructuredItemView(record: record)
       }
-    case .compaction(let record):
-      OverridableItemView(\.compactionViewOverride, record: record) { record in
-        CompactionMarkerView(record: record)
-      }
     case .error(let record):
       OverridableItemView(\.errorViewOverride, record: record) { record in
         ErrorView(error: record)

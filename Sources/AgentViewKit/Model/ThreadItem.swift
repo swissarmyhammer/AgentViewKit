@@ -22,9 +22,6 @@ public enum ThreadItem: Identifiable {
   /// A structured segment that no mapping claimed, keyed by its schema name.
   case structured(StructuredRecord)
 
-  /// The point where the source rewrote the thread to make it shorter.
-  case compaction(CompactionMarker)
-
   /// An error that the user must see.
   case error(ThreadError)
 
@@ -40,7 +37,6 @@ public enum ThreadItem: Identifiable {
     case .reasoning(let record): record
     case .toolCall(let record): record
     case .structured(let record): record
-    case .compaction(let record): record
     case .error(let record): record
     case .unknown(let record): record
     }
@@ -53,10 +49,9 @@ public enum ThreadItem: Identifiable {
 
   /// The stable name of the kind of the item.
   ///
-  /// ``ThreadMinimapView`` puts this name in its tick identifiers, and
-  /// ``CompactionMarker/removedKinds`` uses it as a key. The values are
-  /// `system`, `user`, `assistant`, `reasoning`, `tool-call`, `structured`,
-  /// `compaction`, `error`, and `unknown`.
+  /// ``ThreadMinimapView`` puts this name in its tick identifiers. The
+  /// values are `system`, `user`, `assistant`, `reasoning`, `tool-call`,
+  /// `structured`, `error`, and `unknown`.
   public var kindName: String {
     switch self {
     case .system: "system"
@@ -65,7 +60,6 @@ public enum ThreadItem: Identifiable {
     case .reasoning: "reasoning"
     case .toolCall: "tool-call"
     case .structured: "structured"
-    case .compaction: "compaction"
     case .error: "error"
     case .unknown: "unknown"
     }

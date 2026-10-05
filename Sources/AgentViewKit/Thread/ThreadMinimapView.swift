@@ -285,7 +285,7 @@ public struct ThreadMinimapView: View {
     case .reasoning: Color.secondary
     case .toolCall(let record): colors.color(for: record.status)
     case .error: colors.failed
-    case .system, .structured, .compaction, .unknown:
+    case .system, .structured, .unknown:
       Color.secondary.opacity(Self.quietTickOpacity)
     }
   }

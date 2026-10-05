@@ -35,6 +35,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "CheckpointCapabilities", "CheckpointView", "setCheckpoints",
     // Subagents.
     "SubagentRun", "SubagentSource", "SubagentTreeView", "upsertSubagent",
+    // Compaction markers.
+    "CompactionMarker", "CompactionMarkerView", "compactionView", "compactionViewOverride",
   ]
 
   /// Finds each use of a removed symbol on one line of a Swift file.

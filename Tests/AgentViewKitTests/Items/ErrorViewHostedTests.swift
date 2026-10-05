@@ -38,8 +38,7 @@ import Testing
           self.calls[action, default: []].append(error.id)
         }
       }
-      return ErrorActions(
-        compact: record(.compact), retry: record(.retry), rephrase: record(.rephrase))
+      return ErrorActions(retry: record(.retry), rephrase: record(.rephrase))
     }
   }
 
@@ -61,7 +60,7 @@ import Testing
   nonisolated static let cases: [Case] = [
     Case(
       kind: .contextSizeExceeded(contextSize: contextSize, tokenCount: tokenCount),
-      identifier: "error-contextSizeExceeded", buttonTitle: "Compact",
+      identifier: "error-contextSizeExceeded", buttonTitle: nil,
       detailParts: [contextSize.formatted(), tokenCount.formatted()]),
     Case(
       kind: .rateLimited(resetAt: Date(timeIntervalSince1970: resetSeconds)),
@@ -138,15 +137,17 @@ import Testing
     #expect(titles.count == kinds.count)
   }
 
-  @Test func aNilCompactActionHidesTheCompactButton() {
-    let error = ThreadError(
-      id: "error-1",
-      kind: .contextSizeExceeded(contextSize: Self.contextSize, tokenCount: Self.tokenCount))
-    let harness = Self.mount(error, actions: ActionCalls().actions(omitting: [.compact]))
+  @Test func theActionsAreRetryAndRephrase() {
+    #expect(ErrorView.Action.allCases.map(\.rawValue) == ["retry", "rephrase"])
+  }
+
+  @Test func aNilRetryActionHidesTheRetryButton() {
+    let error = ThreadError(id: "error-1", kind: .timeout)
+    let harness = Self.mount(error, actions: ActionCalls().actions(omitting: [.retry]))
     defer { harness.close() }
 
-    #expect(harness.element(identifier: "error-contextSizeExceeded") != nil)
-    #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .compact)) == nil)
+    #expect(harness.element(identifier: "error-timeout") != nil)
+    #expect(harness.element(identifier: ErrorView.actionIdentifier(for: .retry)) == nil)
   }
 
   @Test func theDefaultActionsShowNoButton() {
@@ -177,12 +178,6 @@ import Testing
 
   @Test func tappingRetryCallsTheClosureOnce() async throws {
     try await expectOneCall(of: .retry, on: .timeout)
-  }
-
-  @Test func tappingCompactCallsTheClosureOnce() async throws {
-    try await expectOneCall(
-      of: .compact,
-      on: .contextSizeExceeded(contextSize: Self.contextSize, tokenCount: Self.tokenCount))
   }
 
   @Test func tappingRephraseCallsTheClosureOnce() async throws {

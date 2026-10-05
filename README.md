@@ -179,7 +179,6 @@ record. An inner modifier wins over an outer modifier for the same kind.
 | `.reasoningView { reasoning in }` | `Reasoning` |
 | `.toolCallView { call in }` | `ToolCallRecord` |
 | `.structuredItemView { record in }` | `StructuredRecord`, for each structured item |
-| `.compactionView { marker in }` | `CompactionMarker` |
 | `.errorView { error in }` | `ThreadError` |
 | `.unknownItemView { record in }` | `UnknownRecord` |
 

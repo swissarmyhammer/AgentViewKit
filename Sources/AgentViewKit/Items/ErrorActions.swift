@@ -9,9 +9,6 @@ public struct ErrorActions {
   /// button.
   public typealias Handler = @MainActor (ThreadError) -> Void
 
-  /// The closure that compacts the thread, or `nil` for no Compact button.
-  public var compact: Handler?
-
   /// The closure that sends the request again, or `nil` for no Retry button.
   public var retry: Handler?
 
@@ -22,11 +19,9 @@ public struct ErrorActions {
   /// Makes a set of error actions.
   ///
   /// - Parameters:
-  ///   - compact: The closure that compacts the thread.
   ///   - retry: The closure that sends the request again.
   ///   - rephrase: The closure that lets the user change the request.
-  public init(compact: Handler? = nil, retry: Handler? = nil, rephrase: Handler? = nil) {
-    self.compact = compact
+  public init(retry: Handler? = nil, rephrase: Handler? = nil) {
     self.retry = retry
     self.rephrase = rephrase
   }
@@ -37,7 +32,6 @@ public struct ErrorActions {
   /// - Returns: The closure, or `nil` when the host did not give it.
   public func handler(for action: ErrorView.Action) -> Handler? {
     switch action {
-    case .compact: compact
     case .retry: retry
     case .rephrase: rephrase
     }

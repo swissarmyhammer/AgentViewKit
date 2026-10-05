@@ -284,15 +284,6 @@ import Testing
     #expect(record.schemaName.isEmpty)
   }
 
-  @Test func aCompactionPatchClearsTheSummary() {
-    let marker = CompactionMarker(id: "c1", summary: "Short")
-    let thread = makeThread([.compaction(marker)])
-
-    thread.apply(.patch(id: "c1", .compaction(summary: .cleared)))
-
-    #expect(marker.summary == nil)
-  }
-
   @Test func anErrorPatchChangesTheKind() {
     let error = ThreadError(id: "e1", kind: .timeout)
     let thread = makeThread([.error(error)])
