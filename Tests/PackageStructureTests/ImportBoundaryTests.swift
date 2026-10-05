@@ -2,23 +2,30 @@ import Foundation
 import PackageFileSupport
 import Testing
 
-/// The import boundaries of plan.md §11 decision 1.
+/// The import boundaries of the ACP client kit (update.md §1, §3 D4).
 ///
-/// The ACP target must not import the FoundationModels framework or the
-/// FoundationModels family packages that are not ACP. The model and view
-/// target must not import a source runtime at all. No target in `Sources/`
-/// imports the FoundationModels framework, because the kit is an ACP client
-/// kit.
+/// The kit is one target that links the ACP packages. No target in
+/// `Sources/` imports the FoundationModels framework or the FoundationModels
+/// family packages that are not ACP. A FoundationModels agent and a Router
+/// agent reach the kit through FoundationModelsACPAgent and ACP. No Swift file
+/// imports the merged `AgentViewKitACP` module.
 @Suite struct ImportBoundaryTests {
-  /// The modules that `Sources/AgentViewKitACP` must not import.
-  static let forbiddenInACP: Set<String> = [
+  /// The modules that no target in `Sources/` can import.
+  static let forbiddenInSources: Set<String> = [
     "FoundationModels",
     "FoundationModelsRouter",
     "FoundationModelsExtras",
   ]
 
-  /// The modules that `Sources/AgentViewKit` must not import.
-  static let forbiddenInAgentViewKit: Set<String> = [
+  /// The module that the `AgentViewKit` target now holds (update.md §3, D4).
+  static let mergedModule = "AgentViewKitACP"
+
+  /// The package directories that hold Swift files.
+  static let swiftDirectories = ["Sources", "Tests", "Examples"]
+
+  /// The modules that the violating fixture imports, and that the scanner
+  /// tests forbid.
+  static let fixtureForbidden: Set<String> = [
     "FoundationModels",
     "FoundationModelsACP",
     "FoundationModelsACPClient",
@@ -26,36 +33,12 @@ import Testing
     "FoundationModelsExtras",
   ]
 
-  /// The modules that no target in `Sources/` can import (update.md §1).
-  ///
-  /// The kit is an ACP client kit. A FoundationModels agent reaches the kit
-  /// through FoundationModelsACPAgent and ACP.
-  static let forbiddenInSources: Set<String> = [
-    "FoundationModels"
-  ]
-
   /// The fixture directory for the scanner tests.
   static var fixtures: URL {
     get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ImportBoundary") }
   }
 
-  @Test func acpTargetImportsNoFoundationModelsRuntime() throws {
-    let violations = try ImportScanner.violations(
-      in: PackageFiles.file("Sources/AgentViewKitACP"),
-      forbidden: Self.forbiddenInACP
-    )
-    #expect(violations.isEmpty, "\(violations)")
-  }
-
-  @Test func agentViewKitTargetImportsNoSourceRuntime() throws {
-    let violations = try ImportScanner.violations(
-      in: PackageFiles.file("Sources/AgentViewKit"),
-      forbidden: Self.forbiddenInAgentViewKit
-    )
-    #expect(violations.isEmpty, "\(violations)")
-  }
-
-  @Test func noSourceTargetImportsFoundationModels() throws {
+  @Test func noSourceTargetImportsAFoundationModelsRuntime() throws {
     let violations = try ImportScanner.violations(
       in: PackageFiles.file("Sources"),
       forbidden: Self.forbiddenInSources
@@ -63,10 +46,19 @@ import Testing
     #expect(violations.isEmpty, "\(violations)")
   }
 
+  @Test(arguments: swiftDirectories)
+  func noFileImportsTheMergedACPModule(directory: String) throws {
+    let violations = try ImportScanner.violations(
+      in: PackageFiles.file(directory),
+      forbidden: [Self.mergedModule]
+    )
+    #expect(violations.isEmpty, "\(violations)")
+  }
+
   @Test func scannerReportsEachForbiddenImportInTheFixture() throws {
     let violatingDirectory = try Self.fixtures.appending(path: "Violating")
     let fixtureFile = "Nested/ImportsRuntimes.swift"
-    let violations = try ImportScanner.violations(in: violatingDirectory, forbidden: Self.forbiddenInAgentViewKit)
+    let violations = try ImportScanner.violations(in: violatingDirectory, forbidden: Self.fixtureForbidden)
 
     #expect(
       violations.map(\.module) == [
@@ -91,7 +83,7 @@ import Testing
   @Test func scannerAcceptsTheCleanFixture() throws {
     let violations = try ImportScanner.violations(
       in: Self.fixtures.appending(path: "Clean"),
-      forbidden: Self.forbiddenInACP
+      forbidden: Self.forbiddenInSources
     )
     #expect(violations.isEmpty, "\(violations)")
   }
@@ -100,7 +92,7 @@ import Testing
     #expect(throws: CocoaError.self) {
       try ImportScanner.violations(
         in: Self.fixtures.appending(path: "NoSuchDirectory"),
-        forbidden: Self.forbiddenInACP
+        forbidden: Self.forbiddenInSources
       )
     }
   }

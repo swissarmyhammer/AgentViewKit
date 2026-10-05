@@ -13,9 +13,9 @@
 
 require_relative '../../Scripts/xcodeproj_generator'
 
-# The AgentViewKit products that the app links. `AgentViewKit` gives the views and the model.
-# `AgentViewKitACP` gives `ACPThreadSource`, `ACPThreadActions`, and `ACPSessionList`.
-PACKAGE_PRODUCTS = %w[AgentViewKit AgentViewKitACP].freeze
+# The AgentViewKit product that the app links. `AgentViewKit` gives the views, the model, and
+# the ACP adapter: `ACPThreadSource`, `ACPThreadActions`, and `ACPSessionList`.
+PACKAGE_PRODUCTS = %w[AgentViewKit].freeze
 
 # The package target that compiles into the app: the in-memory agent, the ACP session model,
 # and the launch options. It is not a product, so the app compiles its files.

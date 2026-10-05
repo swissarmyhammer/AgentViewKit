@@ -3,8 +3,8 @@
 Status: decided. Source: plan.md §3.3, §11 decision 20, and §14 R6.
 
 This file records the ACP versions that agents and clients speak today, and
-the versions that `AgentViewKitACP` accepts.
-`Tests/AgentViewKitACPTests/ProtocolVersionTests.swift` reads the
+the versions that the ACP adapter of `AgentViewKit` accepts.
+`Tests/AgentViewKitTests/ACP/ProtocolVersionTests.swift` reads the
 `supported:` line and compares it with
 `SupportedProtocolVersions.values`. Keep the form of the `supported:` line: a
 list of integers in backticks, with a comma between two integers.
@@ -87,7 +87,7 @@ Do this decision again when one of these events occurs:
 ## Adapter
 
 - `SupportedProtocolVersions.values`
-  (`Sources/AgentViewKitACP/SupportedProtocolVersions.swift`) lists the
+  (`Sources/AgentViewKit/ACP/SupportedProtocolVersions.swift`) lists the
   integers that the kit accepts.
 - `ACPThreadSource.initialize(over:request:)` sends `initialize`. When the
   agent answers with a version that is not in the list, or when the wire

@@ -7,10 +7,13 @@ import Testing
 /// The test reads `Package.swift` as text. The manifest spells each library
 /// product and each dependency product in full, so the text is the contract.
 @Suite struct ManifestTests {
-  /// The library products of the package.
-  static let libraryProducts: Set<String> = [
-    "AgentViewKit",
-    "AgentViewKitACP",
+  /// The one library product of the package (update.md §3, D4).
+  static let libraryProduct = "AgentViewKit"
+
+  /// The ACP products that the `AgentViewKit` target links.
+  static let acpProducts: Set<String> = [
+    "FoundationModelsACP",
+    "FoundationModelsACPClient",
   ]
 
   /// The packages that the kit does not depend on directly (update.md §1).
@@ -23,8 +26,12 @@ import Testing
     "FoundationModelsExtras",
   ]
 
-  /// The name prefix of the removed Router target and its test target.
-  static let removedTargetPrefix = "AgentViewKitRouter"
+  /// The name prefixes of the removed targets and their test targets: the
+  /// Router target, and the ACP target that the kit target now holds.
+  static let removedTargetPrefixes = ["AgentViewKitRouter", "AgentViewKitACP"]
+
+  /// The EditorKit product that only the tests link.
+  static let editorKitTestSupportProduct = "EditorCommandsTestSupport"
 
   /// The EditorKit products that the package uses.
   static let editorKitProducts: Set<String> = [
@@ -58,10 +65,15 @@ import Testing
     manifest = try PackageFiles.text(of: "Package.swift")
   }
 
-  @Test func declaresTheTwoLibraryProducts() {
+  @Test func declaresTheOneLibraryProduct() {
     let names = manifest.matches(of: /\.library\(\s*name:\s*"(?<name>[^"]+)"/).map { String($0.output.name) }
-    #expect(Set(names) == Self.libraryProducts)
-    #expect(names.count == Self.libraryProducts.count)
+    #expect(names == [Self.libraryProduct])
+  }
+
+  @Test func linksTheACPAndEditorKitProductsToTheKitTarget() throws {
+    let products = try kitTargetProducts()
+    let expected = Self.acpProducts.union(Self.editorKitProducts.subtracting([Self.editorKitTestSupportProduct]))
+    #expect(products.isSuperset(of: expected), "\(products)")
   }
 
   @Test func usesTheElevenEditorKitProducts() {
@@ -79,13 +91,10 @@ import Testing
     #expect(manifest.contains(target))
   }
 
-  @Test func linksTheTestSupportTargetFromEachKitTestTarget() throws {
-    for testTarget in ["AgentViewKitTests", "AgentViewKitACPTests"] {
-      let declaration = try Regex(
-        #"\.testTarget\(\s*name:\s*"\#(testTarget)",\s*dependencies:\s*\[[^\]]*"AgentViewKitTestSupport"[^\]]*\]"#
-      )
-      #expect(manifest.contains(declaration), "\(testTarget) does not link AgentViewKitTestSupport")
-    }
+  @Test func linksTheTestSupportTargetFromTheKitTestTarget() {
+    let declaration =
+      /\.testTarget\(\s*name:\s*"AgentViewKitTests",\s*dependencies:\s*\[[^\]]*"AgentViewKitTestSupport"[^\]]*\]/
+    #expect(manifest.contains(declaration))
   }
 
   @Test func pinsTheSiblingPackagesToMain() {
@@ -111,10 +120,12 @@ import Testing
     #expect(packages.isDisjoint(with: Self.removedPackages), "\(packages)")
   }
 
-  @Test func declaresNoRouterTarget() {
+  @Test func declaresNoRemovedTarget() {
     let names = manifest.matches(of: /"(?<name>[^"\n]+)"/).map { String($0.output.name) }
     #expect(names.contains("AgentViewKit"), "The scan found no quoted name")
-    #expect(!names.contains { $0.hasPrefix(Self.removedTargetPrefix) }, "\(names)")
+    for prefix in Self.removedTargetPrefixes {
+      #expect(!names.contains { $0.hasPrefix(prefix) }, "\(prefix): \(names)")
+    }
   }
 
   @Test func setsTheMacOS27FloorAndNoOtherPlatform() {
@@ -133,6 +144,29 @@ import Testing
     let resolved = try JSONDecoder().decode(ResolvedFile.self, from: data)
     let pin = try #require(resolved.pins.first { $0.identity == "textual" })
     #expect(pin.state.version == textual.version)
+  }
+
+  /// The dependency products of the `AgentViewKit` target.
+  ///
+  /// The target lists its dependencies as a sum of named arrays, such as
+  /// `editorKitProducts + acpProducts`. The function reads the declaration of
+  /// each array and returns the product names in it.
+  func kitTargetProducts() throws -> Set<String> {
+    let target = /\.target\(\s*name:\s*"AgentViewKit",\s*dependencies:\s*(?<arrays>[^,\n]+),/
+    let match = try #require(manifest.firstMatch(of: target))
+    let arrayNames = match.output.arrays.split(separator: "+").map { $0.trimmingCharacters(in: .whitespaces) }
+    return try Set(arrayNames.flatMap { try products(inArrayNamed: $0) })
+  }
+
+  /// The product names in one dependency array of the manifest.
+  ///
+  /// - Parameter name: The name of a `let <name>: [Target.Dependency]` array.
+  /// - Returns: The name of each `.product(name:package:)` in the array.
+  func products(inArrayNamed name: String) throws -> [String] {
+    let declaration = try Regex(#"let \#(name): \[Target\.Dependency\] = \[(?<body>[^\]]*)\]"#)
+    let match = try #require(manifest.firstMatch(of: declaration), "No array named \(name)")
+    let body = try #require(match["body"]?.substring)
+    return body.matches(of: /\.product\(\s*name:\s*"(?<name>[^"]+)"/).map { String($0.output.name) }
   }
 
   /// Reads the Textual row from `Docs/decisions/dependencies.md`.

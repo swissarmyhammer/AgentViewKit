@@ -44,10 +44,10 @@ reads the Textual row and compares it with `Package.swift` and
 
 | Target | Can import |
 |---|---|
-| `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath` |
+| `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `FoundationModelsACP`, `FoundationModelsACPClient` |
 | `AgentViewKitFoundationModels` | `AgentViewKit`, the `FoundationModels` framework |
 | `AgentViewKitRouter` | `AgentViewKit`, `FoundationModelsRouter`, `FoundationModelsExtras` |
-| `AgentViewKitACP` | `AgentViewKit`, `FoundationModelsACP`, `FoundationModelsACPClient` |
 
-`Tests/PackageStructureTests/ImportBoundaryTests.swift` enforces the two
-forbidden lists of plan.md §11 decision 1.
+`Tests/PackageStructureTests/ImportBoundaryTests.swift` enforces the
+forbidden list: no target in `Sources/` imports `FoundationModels`,
+`FoundationModelsRouter` or `FoundationModelsExtras` (update.md §3, D4).

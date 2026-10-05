@@ -1,4 +1,3 @@
-import AgentViewKit
 import AgentViewKitTestSupport
 import DemoSupport
 import Foundation
@@ -6,7 +5,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import AgentViewKitACP
+@testable import AgentViewKit
 
 /// The time that ``AgentProcessLauncherTests`` waits for a process.
 private let operationLimit = ScriptedWireAgent.operationLimit

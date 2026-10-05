@@ -5,9 +5,8 @@ public typealias SessionID = Identifier<SessionSummary>
 
 /// One session in a session list (plan.md §9 A).
 ///
-/// The type does not know the source runtime. An adapter target makes each
-/// summary from the session data of its runtime, such as an ACP
-/// `SessionInfo` from `session/list`.
+/// The type does not know the source runtime. The ACP adapter makes each
+/// summary from an ACP `SessionInfo` from `session/list`.
 public nonisolated struct SessionSummary: Sendable, Hashable, Identifiable {
   /// The identifier of the session.
   public var id: SessionID

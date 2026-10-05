@@ -1,5 +1,5 @@
-/// A marker for the `AgentViewKit` module, which holds the thread model and
-/// the views.
+/// A marker for the `AgentViewKit` module, which holds the thread model, the
+/// views, and the ACP adapter (`ACPThreadSource` and its helpers in `ACP/`).
 ///
 /// This placeholder gives the target one public symbol so that the package
 /// builds. The model and view types replace it in later work.

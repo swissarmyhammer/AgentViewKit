@@ -1,5 +1,4 @@
 import AgentViewKit
-import AgentViewKitACP
 import SwiftUI
 
 /// The ACP tab of the demo app.

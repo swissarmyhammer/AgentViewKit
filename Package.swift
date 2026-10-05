@@ -2,12 +2,10 @@
 //
 // AgentViewKit: a SwiftUI agent UI component library (plan.md).
 //
-// plan.md §11 decision 1: one library target for the model and the views, and
-// one adapter target for ACP.
-//
-//   - AgentViewKit     the model and the views
-//   - AgentViewKitACP  ACPThreadSource, imports FoundationModelsACP and
-//                      FoundationModelsACPClient
+// update.md §3, D4: one library product and one library target. The
+// `AgentViewKit` target holds the model, the views, and the ACP adapter
+// (`ACPThreadSource` in `Sources/AgentViewKit/ACP/`). It links
+// FoundationModelsACP and FoundationModelsACPClient directly.
 //
 // The kit is an ACP client kit. It does not depend on FoundationModels,
 // FoundationModelsRouter or FoundationModelsExtras. A FoundationModels agent
@@ -25,8 +23,8 @@ import PackageDescription
 /// The library targets default each declaration to `@MainActor` (SE-0466).
 ///
 /// This is the EditorKit rule for UI targets. `AgentThread` is `@MainActor`
-/// (plan.md §3.2), and each adapter target writes into it, so the adapter
-/// targets use the same default.
+/// (plan.md §3.2), and the ACP adapter writes into it, so the targets that
+/// are not UI use the same default.
 let mainActorIsolated: [SwiftSetting] = [.defaultIsolation(MainActor.self)]
 
 // MARK: - Dependency products
@@ -46,6 +44,13 @@ let editorKitProducts: [Target.Dependency] = [
   // The unified diff parser under the default diff renderer (plan.md §4.1,
   // decision 12). The view of the renderer is in `EditorSwiftUI`.
   .product(name: "EditorDiff", package: "EditorKit"),
+]
+
+/// The ACP products: the wire types and the client connection. The kit
+/// target links them directly (update.md §3, D4).
+let acpProducts: [Target.Dependency] = [
+  .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+  .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 
 /// The EditorKit test support product that the model and view tests link.
@@ -72,7 +77,6 @@ let package = Package(
   ],
   products: [
     .library(name: "AgentViewKit", targets: ["AgentViewKit"]),
-    .library(name: "AgentViewKitACP", targets: ["AgentViewKitACP"]),
   ],
   dependencies: [
     // The in-family packages use the SSH URL and `branch: "main"`, as each
@@ -87,24 +91,14 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/swiftui-math", exact: "0.1.0"),
   ],
   targets: [
-    // The model and the views. This target must not import a source runtime.
+    // The model, the views, and the ACP adapter. No target imports
+    // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
     // ImportBoundaryTests enforces this.
     .target(
       name: "AgentViewKit",
-      dependencies: editorKitProducts + textualProducts + mathEngineProducts,
+      dependencies: editorKitProducts + acpProducts + textualProducts + mathEngineProducts,
       // The TextMate grammars of GrammarBundle, and their licenses.
       resources: [.copy("Resources/Grammars")],
-      swiftSettings: mainActorIsolated
-    ),
-    // This target must not import FoundationModels, FoundationModelsRouter, or
-    // FoundationModelsExtras. ImportBoundaryTests enforces this.
-    .target(
-      name: "AgentViewKitACP",
-      dependencies: [
-        "AgentViewKit",
-        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
-        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
-      ],
       swiftSettings: mainActorIsolated
     ),
     // The hosted view harness and the recording fakes. This target is not a
@@ -117,16 +111,11 @@ let package = Package(
     // The scripted in-memory ACP agent, the ACP session model, and the launch
     // options of the demo app. The ACP tests link this target. The demo app
     // (Examples/AgentViewKitDemo) compiles its sources into the app. The
-    // target is not a product, because the package has exactly two library
-    // products (plan.md §11 decision 1).
+    // target is not a product, because the package has exactly one library
+    // product (update.md §3, D4).
     .target(
       name: "DemoSupport",
-      dependencies: [
-        "AgentViewKit",
-        "AgentViewKitACP",
-        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
-        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
-      ],
+      dependencies: ["AgentViewKit"] + acpProducts,
       swiftSettings: mainActorIsolated
     ),
     // Finds and reads the package files for the tests. This target is not a
@@ -136,26 +125,20 @@ let package = Package(
 
     .testTarget(
       name: "AgentViewKitTests",
-      dependencies: ["AgentViewKit", "AgentViewKitTestSupport", "PackageFileSupport"]
-        + editorKitTestSupportProducts,
+      dependencies: [
+        "AgentViewKit",
+        "AgentViewKitTestSupport",
+        // The scripted wire agent and the in-memory demo agent of the ACP
+        // tests.
+        "DemoSupport",
+        // ProtocolVersionTests reads the ACP version decision from disk.
+        "PackageFileSupport",
+      ]
+        + acpProducts + editorKitTestSupportProducts,
       // AgentThemeTests reads the token file from disk as data, and
       // ThreadExporterTests reads the golden export file from disk, so the
       // build excludes them.
       exclude: ["Theme/DefaultTokens.json", "Items/Fixtures"],
-      swiftSettings: mainActorIsolated
-    ),
-    .testTarget(
-      name: "AgentViewKitACPTests",
-      dependencies: [
-        "AgentViewKitACP",
-        "AgentViewKitTestSupport",
-        // The scripted wire agent and the in-memory demo agent.
-        "DemoSupport",
-        // ProtocolVersionTests reads the ACP version decision from disk.
-        "PackageFileSupport",
-        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
-        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
-      ],
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links only PackageFileSupport,
@@ -177,12 +160,7 @@ let package = Package(
     // a host with the language default.
     .testTarget(
       name: "ReadmeSnippetsTests",
-      dependencies: [
-        "AgentViewKit",
-        "AgentViewKitACP",
-        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
-        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
-      ],
+      dependencies: ["AgentViewKit"] + acpProducts,
       path: "Examples/ReadmeSnippets"
     ),
   ],

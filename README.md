@@ -21,14 +21,14 @@ The package is pre-1.0 and has no tag. Depend on the `main` branch:
 .package(url: "git@github.com:swissarmyhammer/AgentViewKit.git", branch: "main")
 ```
 
-Then link the kit and its ACP product:
+Then link the kit. The one product holds the views, the model, and the ACP
+adapter:
 
 ```swift
 .target(
   name: "MyApp",
   dependencies: [
     .product(name: "AgentViewKit", package: "AgentViewKit"),
-    .product(name: "AgentViewKitACP", package: "AgentViewKit"),
   ]
 )
 ```
@@ -55,7 +55,6 @@ to the agent.
 ```swift
 // readme:compile ACPQuickStart
 import AgentViewKit
-import AgentViewKitACP
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Observation

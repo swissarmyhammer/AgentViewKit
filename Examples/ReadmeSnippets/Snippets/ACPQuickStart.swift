@@ -1,6 +1,5 @@
 // readme:compile ACPQuickStart
 import AgentViewKit
-import AgentViewKitACP
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Observation

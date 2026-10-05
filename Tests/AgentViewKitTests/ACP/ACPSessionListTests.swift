@@ -1,11 +1,10 @@
-import AgentViewKit
 import DemoSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import AgentViewKitACP
+@testable import AgentViewKit
 
 /// The working directory filter of the tests.
 private let projectPath = "/Users/dev/project"

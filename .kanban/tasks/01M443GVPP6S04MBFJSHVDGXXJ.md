@@ -107,8 +107,24 @@ comments:
     - evidence: 4 files — Sources/DemoSupport/ScriptedWireAgent.swift, Sources/DemoSupport/InMemoryDemoAgent.swift, Tests/AgentViewKitACPTests/ACPDemoSessionTests.swift, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift. `swift test --filter AgentViewKitACPTests`: 124 tests in 10 suites pass. `swift test`: all runs pass (1, 69, 1151, 124 tests), 0 failures, no warnings. All 6 findings are now `- [x]`.
     - next: /test, /commit, then /review. The task stays in doing.
   timestamp: 2026-10-05T16:34:45.680689+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m46eybkpm65zhw809jqdtfv7
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 118652e), 0 findings (0 confirmed, 0 refuted). 4 files reviewed. The dropped swift/idioms `Data()` finding did not occur again. All prior Review Findings items are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-05T16:39:24.022966+00:00
+- actor: claude-code
+  id: 01m46eycsyan4rbxanswqm4h06
+  text: |-
+    ### finish iteration 4 — clean
+    - implement: changed — labeled the first parameter of answerPrompt, textBlock, userMessage, request, isResponse and PromptFrames.init; 4 files
+    - test: green — swift test, 1345 passed
+    - commit: 118652e
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T16:39:25.246458+00:00
+position_column: done
+position_ordinal: e080
 title: Send messageId in the prompt result of the scripted demo agents, and echo the user message
 ---
 ## What

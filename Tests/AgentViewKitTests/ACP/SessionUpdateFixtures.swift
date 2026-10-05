@@ -1,4 +1,4 @@
-import AgentViewKitACP
+import AgentViewKit
 import Foundation
 import FoundationModelsACP
 
