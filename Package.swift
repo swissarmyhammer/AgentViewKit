@@ -3,16 +3,16 @@
 // AgentViewKit: a SwiftUI agent UI component library (plan.md).
 //
 // plan.md §11 decision 1: one library target for the model and the views, and
-// one adapter target for each source runtime.
+// one adapter target for ACP.
 //
-//   - AgentViewKit                  the model and the views
-//   - AgentViewKitFoundationModels  SessionThreadSource, imports FoundationModels
-//   - AgentViewKitACP               ACPThreadSource, imports FoundationModelsACP and
-//                                   FoundationModelsACPClient
+//   - AgentViewKit     the model and the views
+//   - AgentViewKitACP  ACPThreadSource, imports FoundationModelsACP and
+//                      FoundationModelsACPClient
 //
-// The kit is an ACP client kit. It does not depend on FoundationModelsRouter
-// or FoundationModelsExtras. A Router agent reaches the kit through
-// FoundationModelsACPAgent and ACP (update.md §1).
+// The kit is an ACP client kit. It does not depend on FoundationModels,
+// FoundationModelsRouter or FoundationModelsExtras. A FoundationModels agent
+// and a Router agent reach the kit through FoundationModelsACPAgent and ACP
+// (update.md §1).
 //
 // PackageStructureTests reads this file as text. Spell each library product
 // and each dependency product in full, as `.library(name:` and
@@ -72,7 +72,6 @@ let package = Package(
   ],
   products: [
     .library(name: "AgentViewKit", targets: ["AgentViewKit"]),
-    .library(name: "AgentViewKitFoundationModels", targets: ["AgentViewKitFoundationModels"]),
     .library(name: "AgentViewKitACP", targets: ["AgentViewKitACP"]),
   ],
   dependencies: [
@@ -100,11 +99,6 @@ let package = Package(
       resources: [.copy("Resources/Grammars")],
       swiftSettings: mainActorIsolated
     ),
-    .target(
-      name: "AgentViewKitFoundationModels",
-      dependencies: ["AgentViewKit"],
-      swiftSettings: mainActorIsolated
-    ),
     // This target must not import FoundationModels, FoundationModelsRouter, or
     // FoundationModelsExtras. ImportBoundaryTests enforces this.
     .target(
@@ -123,18 +117,16 @@ let package = Package(
       dependencies: ["AgentViewKit"],
       swiftSettings: mainActorIsolated
     ),
-    // The scripted in-memory ACP agent, the ACP session model, the fake
-    // language model, the FoundationModels session model, and the launch
-    // options of the demo app. The ACP tests and the FoundationModels tests
-    // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
-    // sources into the app. The target is not a product, because the package
-    // has exactly three library products (plan.md §11 decision 1).
+    // The scripted in-memory ACP agent, the ACP session model, and the launch
+    // options of the demo app. The ACP tests link this target. The demo app
+    // (Examples/AgentViewKitDemo) compiles its sources into the app. The
+    // target is not a product, because the package has exactly two library
+    // products (plan.md §11 decision 1).
     .target(
       name: "DemoSupport",
       dependencies: [
         "AgentViewKit",
         "AgentViewKitACP",
-        "AgentViewKitFoundationModels",
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],
@@ -153,17 +145,6 @@ let package = Package(
       // ThreadExporterTests reads the golden export file from disk, so the
       // build excludes them.
       exclude: ["Theme/DefaultTokens.json", "Items/Fixtures"],
-      swiftSettings: mainActorIsolated
-    ),
-    .testTarget(
-      name: "AgentViewKitFoundationModelsTests",
-      dependencies: [
-        "AgentViewKitFoundationModels",
-        "AgentViewKitTestSupport",
-        // The fake language model and the FoundationModels session model of
-        // the demo app.
-        "DemoSupport",
-      ],
       swiftSettings: mainActorIsolated
     ),
     .testTarget(
@@ -202,7 +183,6 @@ let package = Package(
       dependencies: [
         "AgentViewKit",
         "AgentViewKitACP",
-        "AgentViewKitFoundationModels",
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],

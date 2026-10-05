@@ -6,8 +6,9 @@ import Testing
 ///
 /// The ACP target must not import the FoundationModels framework or the
 /// FoundationModels family packages that are not ACP. The model and view
-/// target must not import a source runtime at all. Each source runtime lives
-/// in its own adapter target.
+/// target must not import a source runtime at all. No target in `Sources/`
+/// imports the FoundationModels framework, because the kit is an ACP client
+/// kit.
 @Suite struct ImportBoundaryTests {
   /// The modules that `Sources/AgentViewKitACP` must not import.
   static let forbiddenInACP: Set<String> = [
@@ -23,6 +24,14 @@ import Testing
     "FoundationModelsACPClient",
     "FoundationModelsRouter",
     "FoundationModelsExtras",
+  ]
+
+  /// The modules that no target in `Sources/` can import (update.md §1).
+  ///
+  /// The kit is an ACP client kit. A FoundationModels agent reaches the kit
+  /// through FoundationModelsACPAgent and ACP.
+  static let forbiddenInSources: Set<String> = [
+    "FoundationModels"
   ]
 
   /// The fixture directory for the scanner tests.
@@ -42,6 +51,14 @@ import Testing
     let violations = try ImportScanner.violations(
       in: PackageFiles.file("Sources/AgentViewKit"),
       forbidden: Self.forbiddenInAgentViewKit
+    )
+    #expect(violations.isEmpty, "\(violations)")
+  }
+
+  @Test func noSourceTargetImportsFoundationModels() throws {
+    let violations = try ImportScanner.violations(
+      in: PackageFiles.file("Sources"),
+      forbidden: Self.forbiddenInSources
     )
     #expect(violations.isEmpty, "\(violations)")
   }

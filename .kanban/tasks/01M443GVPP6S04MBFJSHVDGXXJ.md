@@ -29,6 +29,54 @@ comments:
     - evidence: 5 files — Sources/DemoSupport/ScriptedWireAgent.swift, Sources/DemoSupport/InMemoryDemoAgent.swift, Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift (new), Tests/AgentViewKitACPTests/ACPDemoSessionTests.swift, Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift. `swift test --filter AgentViewKitACPTests`: 128 tests pass. `swift test`: all runs pass (1, 57, 1291, 59, 128 tests), no warnings. `xcodebuild build-for-testing` of AgentViewKitDemo: TEST BUILD SUCCEEDED. The demo UI test did not run (the screen is locked).
     - next: /review. Run Scripts/test-examples.sh when the screen is unlocked.
   timestamp: 2026-10-04T23:45:19.239239+00:00
+- actor: claude-code
+  id: 01m44n9kghza2sq5ezn2xqgkye
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 6433186), 1 finding (1 confirmed, 0 refuted) — Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:66 `swift/idioms` — Empty-collection variables use a literal with a type annotation, not a call. Data is ExpressibleByArrayLiteral and should use `[]` syntax. Change `var buffer = Data()` to `var buffer: Data = []`.
+    - next: /implement the finding in the 2026-10-04 18:47 `## Review Findings` section. Remove the cause from the whole file, then test, commit and review again.
+  timestamp: 2026-10-04T23:51:55.153397+00:00
+- actor: claude-code
+  id: 01m44n9n7mx0rpnqn4n4b6ndsq
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ScriptedWireAgent.swift, InMemoryDemoAgent.swift, DemoAgentMessageIdTests.swift (new), ACPDemoSessionTests.swift, ACPTabEndToEndTests.swift
+    - test: green — swift test, 1536 passed (demo UI test not run, screen locked)
+    - commit: 6433186
+    - review: findings — Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:66
+  timestamp: 2026-10-04T23:51:56.916266+00:00
+- actor: claude-code
+  id: 01m44nbvhtg1tbwz06pgdbrtpp
+  text: |-
+    BLOCKER — true conflict: the finding requires code that cannot compile.
+
+    Finding: `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:66` `swift/idioms` — Empty-collection variables use a literal with a type annotation, not a call. Data is ExpressibleByArrayLiteral and should use `[]` syntax. Change `var buffer = Data()` to `var buffer: Data = []`.
+
+    What I did:
+    - I changed line 66 to `var buffer: Data = []`. `swift test --filter AgentViewKitACPTests` failed to compile: `DemoAgentMessageIdTests.swift:66:24: error: cannot convert value of type '[Any]' to specified type 'Data'`.
+    - To make sure that no other `Data` type hides Foundation.Data, I compiled a separate scratch file with `swiftc -swift-version 6` (Xcode 27 toolchain, macOS 27 SDK). `var empty: Foundation.Data = []` and `let bytes: Foundation.Data = [1, 2]` both fail with "cannot convert value of type '[Any]' / '[Int]' to specified type 'Data'". Thus, in this SDK, Foundation.Data does not conform to ExpressibleByArrayLiteral. The premise of the finding is not correct.
+    - I searched the whole file for the same pattern. Line 66 is the only empty collection that a call makes. Lines 70 and 71 (`Data(buffer[...])`) convert slices, and they are not empty values.
+    - I reverted the edit. The file is the same as HEAD. `swift test --filter AgentViewKitACPTests`: 128 tests in 10 suites pass.
+
+    A person must decide: correct the `swift/idioms` rule (Data is not ExpressibleByArrayLiteral), or drop this finding. The finding item stays open. I did not edit the validator.
+  timestamp: 2026-10-04T23:53:08.922549+00:00
+- actor: claude-code
+  id: 01m44nbye3c5rhgcpn5zn3p8sn
+  text: |-
+    ### implement — stuck
+    - evidence: no files changed (the edit to Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift was reverted). `swift test --filter AgentViewKitACPTests` with `var buffer: Data = []`: compile error "cannot convert value of type '[Any]' to specified type 'Data'". The scratch `swiftc` check shows that Foundation.Data is not ExpressibleByArrayLiteral. After the revert: 128 tests in 10 suites pass.
+    - next: a person corrects the `swift/idioms` rule or drops the finding. The task stays in doing.
+  timestamp: 2026-10-04T23:53:11.875679+00:00
+- actor: claude-code
+  id: 01m44ncamdgsegx57rvjnqgnxk
+  text: |-
+    ### finish iteration 2 — stuck
+    - implement: stuck — the swift/idioms finding asks for `var buffer: Data = []`; this does not compile ("cannot convert value of type '[Any]' to specified type 'Data'"), because Data is not ExpressibleByArrayLiteral in this SDK. This is a true conflict. The edit is reverted.
+    - test: not run
+    - commit: none
+    - review: not run
+    - next: a person corrects the swift/idioms rule for Data or drops the finding, then runs /finish hvdgxxj
+  timestamp: 2026-10-04T23:53:24.365055+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Send messageId in the prompt result of the scripted demo agents, and echo the user message
@@ -52,3 +100,12 @@ Do this before the pin move. The alpha.3 decoder ignores the extra field, so the
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #acp-client
+
+## Review Findings (2026-10-04 18:47)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [ ] `Tests/AgentViewKitACPTests/DemoAgentMessageIdTests.swift:66` `swift/idioms` — Empty-collection variables use a literal with a type annotation, not a call. Data is ExpressibleByArrayLiteral and should use `[]` syntax. Change `var buffer = Data()` to `var buffer: Data = []`.

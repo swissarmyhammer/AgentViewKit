@@ -43,10 +43,42 @@ comments:
     - review: not run
     - next: unlock the screen, run Scripts/test-examples.sh AgentViewKitDemo, then run /finish 9bynj0m
   timestamp: 2026-10-04T22:18:13.532538+00:00
+- actor: claude-code
+  id: 01m45z6aj1mkkym5vap9vv219f
+  text: |-
+    The screen is unlocked now. `ioreg -n Root -d1` shows `kCGSSessionOnConsoleKey = Yes` and no `CGSSessionScreenIsLocked` key.
+
+    `Scripts/test-examples.sh AgentViewKitDemo` exits with 0 (95 s). Result: `** BUILD SUCCEEDED **`, `** TEST SUCCEEDED **`, "The example gate passed." `ACPTabEndToEndTests` ran 2 tests with 0 failures: `testASendOfHelloShowsTheReplyOfTheAgent` and `testTheSettingsSheetShowsTheConnectionsAndTheAgentAuthentication`. No code change was necessary.
+
+    Note: the output has two lines from the Xcode build tool `appintentsmetadataprocessor`: "warning: Metadata extraction skipped, no AppIntents.framework dependency found". They are not compiler warnings in the project source. The tool writes this line for each app that does not link AppIntents.
+  timestamp: 2026-10-05T12:04:07.873719+00:00
+- actor: claude-code
+  id: 01m45z6c7x059bme86f698fe9b
+  text: |-
+    ### implement — no-change
+    - evidence: no source file changed in this pass (the change is in commit 81f9c52). `Scripts/test-examples.sh AgentViewKitDemo`: BUILD SUCCEEDED, TEST SUCCEEDED, ACPTabEndToEndTests 2 tests 0 failures, exit 0. All subtasks are checked.
+    - next: `/review`.
+  timestamp: 2026-10-05T12:04:09.597236+00:00
+- actor: claude-code
+  id: 01m45zd55tfmmh2tdkgnmpdsb4
+  text: |-
+    ### review — clean
+    - evidence: `review sha 81f9c52^..81f9c52` — 0 findings (confirmed 0, refuted 0). Some Swift tool rules did not examine the two deleted files, because the files do not exist after the commit.
+    - next: none; the task is in done.
+  timestamp: 2026-10-05T12:07:51.738310+00:00
+- actor: claude-code
+  id: 01m45zd6s222dbfyjtw4we9z99
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: no-change — the screen is unlocked; Scripts/test-examples.sh AgentViewKitDemo passed (ACPTabEndToEndTests 2 tests, 0 failures)
+    - test: green — swift test, 1536 passed
+    - commit: 81f9c52 (code); no new code commit
+    - review: clean — 0 findings
+  timestamp: 2026-10-05T12:07:53.378336+00:00
 depends_on:
 - 01M443H1PVEMMXJ3E2VK9MXMEM
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: d580
 title: Remove the FoundationModels tab from the demo app
 ---
 ## What
@@ -58,11 +90,11 @@ The demo app has a FoundationModels tab. Remove it before the target removal, so
 
 ## Acceptance Criteria
 - [x] No file in `Examples/AgentViewKitDemo/` refers to the FoundationModels tab.
-- [ ] `Scripts/test-examples.sh AgentViewKitDemo` builds the app and the ACP end-to-end test passes.
+- [x] `Scripts/test-examples.sh AgentViewKitDemo` builds the app and the ACP end-to-end test passes.
 
 ## Tests
-- [ ] `Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift` passes with no change.
-- [ ] `Scripts/test-examples.sh AgentViewKitDemo` exits with 0.
+- [x] `Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift` passes with no change.
+- [x] `Scripts/test-examples.sh AgentViewKitDemo` exits with 0.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

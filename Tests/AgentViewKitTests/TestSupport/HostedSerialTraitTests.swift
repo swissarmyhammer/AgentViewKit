@@ -16,7 +16,7 @@ import Testing
 
   /// The folders of the test targets that mount views, relative to the
   /// package root.
-  static let testsFolders = ["Tests/AgentViewKitTests", "Tests/AgentViewKitFoundationModelsTests"]
+  static let testsFolders = ["Tests/AgentViewKitTests"]
 
   /// This file. It holds the markers as text, so the scan skips it.
   static var thisFile: URL { URL(filePath: #filePath).standardizedFileURL }

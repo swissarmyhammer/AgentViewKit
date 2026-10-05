@@ -6,9 +6,9 @@ AgentViewKit gives the surfaces that an agent UI needs: streaming responses,
 reasoning, tool calls, terminals, diffs, plans, citations, permissions,
 elicitation, artifacts, config options, and context usage. The views bind to
 one observable model, `AgentThread`. A source adapter fills the model from a
-runtime. The kit has two sources: an ACP v2 agent and a FoundationModels
-`LanguageModelSession`. A FoundationModelsRouter agent reaches the kit as an
-ACP agent, through FoundationModelsACPAgent.
+runtime. The kit has one source: an ACP v2 agent. A FoundationModels agent and
+a FoundationModelsRouter agent reach the kit as an ACP agent, through
+FoundationModelsACPAgent.
 
 There are two levels of use. `AgentThreadView(thread:actions:)` shows the
 whole surface. The primitives below it give full control.
@@ -21,7 +21,7 @@ The package is pre-1.0 and has no tag. Depend on the `main` branch:
 .package(url: "git@github.com:swissarmyhammer/AgentViewKit.git", branch: "main")
 ```
 
-Then link the kit, and the product of each source that your app uses:
+Then link the kit and its ACP product:
 
 ```swift
 .target(
@@ -29,7 +29,6 @@ Then link the kit, and the product of each source that your app uses:
   dependencies: [
     .product(name: "AgentViewKit", package: "AgentViewKit"),
     .product(name: "AgentViewKitACP", package: "AgentViewKit"),
-    .product(name: "AgentViewKitFoundationModels", package: "AgentViewKit"),
   ]
 )
 ```
@@ -39,7 +38,7 @@ or later. There is no back-deployment. The in-family dependencies (EditorKit,
 FoundationModelsACP, and FoundationModelsACPClient) also come from their `main`
 branches, over SSH.
 
-## Two quick starts
+## Quick start
 
 Each block below that starts with `// readme:compile <Name>` is the file
 `<Name>.swift` in [`Examples/ReadmeSnippets/Snippets/`](Examples/ReadmeSnippets/Snippets).
@@ -47,7 +46,7 @@ Each block below that starts with `// readme:compile <Name>` is the file
 test holds the README and the files equal. Thus the code that you copy is the
 code that we build. See [The README gate](#the-readme-gate).
 
-### 1. An ACP agent
+### An ACP agent
 
 `ACPThreadSource` reads the `session/update` stream of one session and fills
 the thread. `ACPThreadActions` sends the prompts, the cancel, and the answers
@@ -117,46 +116,6 @@ The kit refuses such an agent: `initialize` throws, or `ACPThreadSource` adds
 one error record that names the two versions, and the thread gets no update.
 The first agent of the kit is FoundationModelsACPAgent, which speaks version
 2. The demo app uses an in-memory agent that speaks version 2.
-
-### 2. A FoundationModels session
-
-`SessionThreadSource` observes a live `LanguageModelSession` and fills the
-thread. `SessionThreadActions` starts and cancels each turn.
-
-```swift
-// readme:compile FoundationModelsQuickStart
-import AgentViewKit
-import AgentViewKitFoundationModels
-import FoundationModels
-import SwiftUI
-
-/// Binds a live `LanguageModelSession` to a thread.
-@MainActor
-final class FoundationModelsQuickStart {
-  let source: SessionThreadSource
-  let actions: SessionThreadActions
-
-  init() {
-    let session = LanguageModelSession(instructions: "You are the assistant of MyApp.")
-    source = SessionThreadSource(session: session)
-    actions = SessionThreadActions(source: source)
-    source.start()
-  }
-}
-
-struct FoundationModelsThread: View {
-  let model: FoundationModelsQuickStart
-
-  var body: some View {
-    AgentThreadView(thread: model.source.thread, actions: model.actions)
-  }
-}
-```
-
-The source maps the transcript of the session: the instructions, the prompts,
-the responses, the reasoning, and the tool calls. A response streams into the
-thread one paragraph at a time. `AgentTranscriptView(transcript:)` shows a
-persisted `Transcript` value one time, and does not update.
 
 ## The host app
 
@@ -322,9 +281,8 @@ two lists equal.
 ## The demo app
 
 [`Examples/AgentViewKitDemo`](Examples/AgentViewKitDemo) is a macOS app with
-two tabs. The ACP tab connects to an ACP agent, shows its sessions in a
-sidebar, and shows the thread after the session binds. The FoundationModels
-tab binds a `LanguageModelSession` on the system model, with two demo tools.
+one tab. The ACP tab connects to an ACP agent, shows its sessions in a
+sidebar, and shows the thread after the session binds.
 
 The launch arguments are in
 [`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):
@@ -332,8 +290,6 @@ The launch arguments are in
 - `--in-memory-agent`: the ACP tab binds the in-memory agent, and starts no process.
 - `--agent-command <path>`: the ACP tab starts this agent program. The default is the `acp-agent` build of the sibling FoundationModelsACPAgent checkout. The app starts an `acp-agent` program with the `acp` subcommand, because the default subcommand of `acp-agent` does not speak ACP. The app starts other programs with no arguments.
 - `--cwd <path>`: the working directory of each session. The default is the home directory.
-- `--fake-language-model`: the FoundationModels tab binds a fake model with a scripted reply, and the app opens on that tab.
-- `--force-model-unavailable`: the FoundationModels tab shows the model as not available, and the app opens on that tab.
 
 The demo UI tests are in
 [`Examples/AgentViewKitDemo/Tests/`](Examples/AgentViewKitDemo/Tests). Run

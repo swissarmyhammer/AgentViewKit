@@ -10,7 +10,6 @@ import Testing
   /// The library products of the package.
   static let libraryProducts: Set<String> = [
     "AgentViewKit",
-    "AgentViewKitFoundationModels",
     "AgentViewKitACP",
   ]
 
@@ -59,7 +58,7 @@ import Testing
     manifest = try PackageFiles.text(of: "Package.swift")
   }
 
-  @Test func declaresTheThreeLibraryProducts() {
+  @Test func declaresTheTwoLibraryProducts() {
     let names = manifest.matches(of: /\.library\(\s*name:\s*"(?<name>[^"]+)"/).map { String($0.output.name) }
     #expect(Set(names) == Self.libraryProducts)
     #expect(names.count == Self.libraryProducts.count)
@@ -81,7 +80,7 @@ import Testing
   }
 
   @Test func linksTheTestSupportTargetFromEachKitTestTarget() throws {
-    for testTarget in ["AgentViewKitTests", "AgentViewKitFoundationModelsTests", "AgentViewKitACPTests"] {
+    for testTarget in ["AgentViewKitTests", "AgentViewKitACPTests"] {
       let declaration = try Regex(
         #"\.testTarget\(\s*name:\s*"\#(testTarget)",\s*dependencies:\s*\[[^\]]*"AgentViewKitTestSupport"[^\]]*\]"#
       )
