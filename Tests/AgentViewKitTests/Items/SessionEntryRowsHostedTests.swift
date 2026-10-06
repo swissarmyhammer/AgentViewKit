@@ -8,7 +8,7 @@
   import SwiftUI
   import Testing
 
-  /// The rows of the terminal, plan, unknown and error entries of a
+  /// The rows of the thought, terminal, plan, unknown and error entries of a
   /// `SessionModel` (update.md §4.4, §4.7 "Error rows", "Terminal view",
   /// "Plan view").
   @Suite(.serialized, .hostedSerially) @MainActor struct SessionEntryRowsHostedTests {
@@ -38,6 +38,12 @@
 
     /// The member name in the data of the appended error.
     static let errorDataField = "missingField"
+
+    /// The `messageId` of the thought of the tests.
+    static let thoughtID = "rows-t"
+
+    /// The text of the thought of the tests.
+    static let thoughtText = "Thinking."
 
     /// The base64 form of the UTF-8 bytes of `text`.
     ///
@@ -95,12 +101,63 @@
       }
     }
 
+    /// Expects that the open reasoning block of the thought of the tests
+    /// shows the text of the thought and the look of a complete thought: the
+    /// complete title and the complete label, with no progress state.
+    ///
+    /// - Parameters:
+    ///   - key: The row key of the thought.
+    ///   - harness: The harness that shows the thread.
+    static func expectCompleteThought<Content: View>(key: String, in harness: HostedViewHarness<Content>) {
+      #expect(SessionTranscriptViewHostedTests.showsParagraphs(of: thoughtText, in: harness))
+      #expect(harness.element(identifier: ReasoningView.titleIdentifier(for: key)) != nil)
+      #expect(
+        harness.element(identifier: ReasoningView.identifier(for: key))?.label
+          == ReasoningView.accessibilityLabel(isInProgress: false, duration: nil))
+    }
+
     /// The labels of the accessibility elements of `harness`.
     ///
     /// - Parameter harness: The harness that shows the thread.
     /// - Returns: Each label.
     static func labels<Content: View>(in harness: HostedViewHarness<Content>) -> [String] {
       harness.accessibilityElements().compactMap(\.label)
+    }
+
+    // MARK: - Thought
+
+    @Test func aThoughtShowsItsTextWhileRunningAndAfterIdleWithNoProgressState() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+      let model = session.model
+
+      try await session.sendUpdate(SessionTranscriptViewHostedTests.runningState)
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
+      await harness.pump(until: Self.waitTimeout) {
+        SessionTranscriptViewHostedTests.rowKeys(in: harness).count == 1
+      }
+      let key = try #require(model.transcript.first?.rowKey)
+      store.expand(key)
+      await harness.pump(until: Self.waitTimeout) {
+        SessionTranscriptViewHostedTests.showsParagraphs(of: Self.thoughtText, in: harness)
+      }
+      #expect(ComposerSessionModelHostedTests.isRunning(model))
+      Self.expectCompleteThought(key: key, in: harness)
+
+      try await session.sendUpdate(SessionTranscriptViewHostedTests.idleState)
+      await harness.pump(until: Self.waitTimeout) { !ComposerSessionModelHostedTests.isRunning(model) }
+      harness.pump()
+
+      Self.expectCompleteThought(key: key, in: harness)
+    }
+
+    @Test func aThoughtChunkEvaluatesOnlyTheRowOfItsThought() async throws {
+      try await SessionTranscriptViewHostedTests.expectAChunkEvaluatesOnlyTheRowOfItsEntry(
+        kind: "agent_thought_chunk")
     }
 
     // MARK: - Terminal

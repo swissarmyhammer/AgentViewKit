@@ -6,9 +6,18 @@ import SwiftUI
 /// transcript entry of a `SessionModel` (update.md §4.2).
 ///
 /// The view shows the content of the entry as one message, keyed by the
-/// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of the entry. While
-/// the entry streams, the text shows through the stream of an
-/// ``EntryTextStream``.
+/// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of the entry.
+///
+/// The view shows the text as the session model holds it in the entry. It
+/// keeps no copy of the text and no stream, and it does not find from
+/// `agentState` whether the entry streams. Each evaluation splits the text of
+/// the entry into paragraphs again (``ParagraphSplitter``). A paragraph that
+/// did not change keeps its view, so a chunk evaluates only the last
+/// paragraph.
+///
+/// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
+/// ``BodyEvaluationCounter``, because it is the view that the content of the
+/// entry evaluates again.
 struct TranscriptMessageView: View {
   /// The identity of the entry.
   let id: TranscriptEntry.ID
@@ -22,15 +31,13 @@ struct TranscriptMessageView: View {
   /// The time of the message, or `nil` when it is not known.
   let date: Date?
 
-  /// Whether the entry can stream. An agent message can, and a user message
-  /// cannot.
-  let canStream: Bool
-
   var body: some View {
-    let message = Message(id: id.rowKey, blocks: Self.messageBlocks(of: content))
-    EntryTextStream(id: id, text: ResponseView.markdown(of: message), canStream: canStream) { stream, _ in
-      MessageBodyView(message: message, role: role, date: date, streaming: stream)
-    }
+    let key = id.rowKey
+    #if DEBUG
+      BodyEvaluationCounter.note(ItemRow.contentCounterKey(for: key))
+    #endif
+    return MessageBodyView(
+      message: Message(id: key, blocks: Self.messageBlocks(of: content)), role: role, date: date, streaming: nil)
   }
 
   /// The kit blocks of the content of an entry.

@@ -11,9 +11,10 @@ import SwiftUI
 ///
 /// The view shows a thread message or an `AgentMessageEntry` of a
 /// `SessionModel` (update.md §4.2). The view of an entry reads the content of
-/// the entry, so a streamed chunk evaluates only this view. While the entry
-/// is the last entry and the agent runs, its text shows through the streaming
-/// tail of the entry (``EntryTextStream``).
+/// the entry, so a streamed chunk evaluates only this view. The view shows the
+/// text as the entry holds it, with the same look while the agent runs and
+/// after it stops. Only the views that read `agentState` show that the agent
+/// works.
 ///
 /// ``ConversationView`` shows the turn summary above the first agent item of
 /// a turn. Thus this view does not show the summary.
@@ -64,7 +65,7 @@ public struct AssistantMessageView: View, PrefixedAccessibilityIdentifier {
     case .message(let message):
       MessageItemView(message: message, role: .assistant, date: date)
     case .entry(let entry):
-      TranscriptMessageView(id: entry.id, content: entry.content, role: .assistant, date: date, canStream: true)
+      TranscriptMessageView(id: entry.id, content: entry.content, role: .assistant, date: date)
     }
   }
 }

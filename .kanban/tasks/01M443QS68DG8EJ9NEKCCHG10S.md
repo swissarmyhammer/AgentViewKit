@@ -49,11 +49,27 @@ comments:
   id: 01m49gcfjd18pg0g7283ax08pk
   text: 'Correction to the implementation comment: the task "Remove the kit copies of the ACP value types" is ^71k836q, not "^9vvaejb". That task removes the kit `AuthMethod` and says that no view converts a model value to a kit value, so it must also remove the `SessionUpdateMapping.authMethod(_:)` call in the Run button of `AgentAuthView`.'
   timestamp: 2026-10-06T21:02:18.701405+00:00
+- actor: claude-code
+  id: 01m49gs0w7y6pntj3xf8x01hvm
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1ac4f55). 10 files reviewed, 14 .kanban files not reviewed (.reviewignore). counts: findings 0, confirmed 0, refuted 0, failed 0. No prior Review Findings sections. Task moved to done.
+    - next: none
+  timestamp: 2026-10-06T21:09:09.639587+00:00
+- actor: claude-code
+  id: 01m49gs2mz651de95w7q0w81m9
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AgentConnectionBanner, AgentInfoHeader and AgentLoginPrompt (new); AgentAuthView(connection:thread:) reads authMethods, authState and canLogout; 10 files. Model gaps sent to the client session (auth required, auth failures, terminal sign-in); kit follow-up is ^83200vg.
+    - test: green — swift test, 1327 passed; demo UI gate passed
+    - commit: 1ac4f55
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T21:09:11.455960+00:00
 depends_on:
 - 01M443NCQ6B4040Y9X0SBNCN28
 - 01M443NN55C6HTFT2F2REPFZA1
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f580
 title: 'Bind the connection banner and auth views to ConnectionModel: state, agent info, login on error -32000'
 ---
 ## What

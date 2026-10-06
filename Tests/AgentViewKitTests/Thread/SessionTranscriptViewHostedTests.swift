@@ -15,10 +15,10 @@
     /// A size that shows each row of the tests.
     static let tallSize = CGSize(width: 480, height: 1_200)
 
-    /// The number of agent messages in the chunk test.
+    /// The number of entries in the chunk test.
     static let chunkMessageCount = 3
 
-    /// The position of the agent message that the chunk test changes.
+    /// The position of the entry that the chunk test changes.
     static let chunkedPosition = 1
 
     /// The `session/update` value that tells that the agent runs.
@@ -27,15 +27,45 @@
     /// The `session/update` value that tells that the agent is idle.
     static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
 
+    /// The text chunks that the stream test sends to one agent message, in
+    /// order. Each chunk after the first starts a new paragraph.
+    static let streamedChunks = ["One.", "\n\nTwo.", "\n\nThree."]
+
+    /// The `messageId` of the agent message of the stream test.
+    static let streamedMessageID = "stream-m"
+
     /// A `session/update` value with one text chunk.
     ///
     /// - Parameters:
     ///   - kind: The `sessionUpdate` tag, such as `agent_message_chunk`.
     ///   - messageID: The `messageId` of the chunk.
-    ///   - text: The text of the chunk.
+    ///   - text: The text of the chunk. Each line break becomes the JSON
+    ///     escape `\n`.
     /// - Returns: The JSON text of the update.
     static func chunk(_ kind: String, messageID: String, text: String) -> String {
-      #"{"sessionUpdate":"\#(kind)","messageId":"\#(messageID)","content":{"type":"text","text":"\#(text)"}}"#
+      let escaped = text.replacingOccurrences(of: "\n", with: #"\n"#)
+      return #"{"sessionUpdate":"\#(kind)","messageId":"\#(messageID)","content":{"type":"text","text":"\#(escaped)"}}"#
+    }
+
+    /// Tells whether `harness` shows `text` as the paragraphs that a pure
+    /// call of `ParagraphSplitter` makes of it.
+    ///
+    /// The harness must show one paragraph element for each paragraph, and
+    /// no more, and a text element with the text of each paragraph.
+    ///
+    /// - Parameters:
+    ///   - text: The whole text of an entry.
+    ///   - harness: The harness that shows the thread.
+    /// - Returns: `true` when the harness shows each paragraph of `text`.
+    static func showsParagraphs<Content: View>(of text: String, in harness: HostedViewHarness<Content>) -> Bool {
+      let paragraphs = ParagraphSplitter.paragraphs(text)
+      let elements = harness.accessibilityElements()
+      let identifiers = elements.compactMap(\.identifier).filter {
+        $0.hasPrefix(ResponseView.paragraphIdentifierPrefix)
+      }
+      let labels = Set(elements.compactMap(\.label))
+      return identifiers == paragraphs.map { ResponseView.paragraphIdentifier(index: $0.id.index) }
+        && paragraphs.allSatisfy { labels.contains($0.text) }
     }
 
     /// The row keys of the rows that `harness` shows, in view order.
@@ -69,17 +99,59 @@
       if case .userMessage(let message) = entry { message } else { nil }
     }
 
-    /// The text of the agent message entry at `position` of `model`.
+    /// The text of the agent message entry or the thought entry at
+    /// `position` of `model`.
     ///
     /// - Parameters:
     ///   - model: The session model.
     ///   - position: The position of the entry in the transcript.
-    /// - Returns: The text, or `nil` when the entry is not an agent message.
-    static func agentText(of model: SessionModel, at position: Int) -> String? {
-      guard model.transcript.indices.contains(position),
-        case .agentMessage(let entry) = model.transcript[position]
-      else { return nil }
-      return text(of: entry.content)
+    /// - Returns: The text, or `nil` when the entry is not an agent message
+    ///   or a thought.
+    static func entryText(of model: SessionModel, at position: Int) -> String? {
+      guard model.transcript.indices.contains(position) else { return nil }
+      let entry = model.transcript[position]
+      if case .agentMessage(let message) = entry { return text(of: message.content) }
+      if case .thought(let thought) = entry { return text(of: thought.content) }
+      return nil
+    }
+
+    /// Sends one chunk to each of ``chunkMessageCount`` entries of one kind,
+    /// then one more chunk to the entry at ``chunkedPosition``, and expects
+    /// that the last chunk evaluates the content of that row only.
+    ///
+    /// - Parameter kind: The `sessionUpdate` tag of the chunks, such as
+    ///   `agent_message_chunk` or `agent_thought_chunk`.
+    static func expectAChunkEvaluatesOnlyTheRowOfItsEntry(kind: String) async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = HostedViewHarness(
+        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: tallSize)
+      defer { harness.close() }
+      let model = session.model
+      for position in 0..<chunkMessageCount {
+        try await session.sendUpdate(chunk(kind, messageID: "chunk-m\(position)", text: "Message \(position)."))
+      }
+      await harness.pump(until: waitTimeout) { rowKeys(in: harness).count == chunkMessageCount }
+      let keys = model.transcript.map(\.id.rowKey)
+      for key in keys {
+        #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) >= 1)
+        BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
+        BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
+      }
+
+      try await session.sendUpdate(chunk(kind, messageID: "chunk-m\(chunkedPosition)", text: " More."))
+      await harness.pump(until: waitTimeout) {
+        entryText(of: model, at: chunkedPosition) == "Message \(chunkedPosition). More."
+      }
+      harness.pump()
+
+      for (position, key) in keys.enumerated() {
+        let expected = position == chunkedPosition ? 1 : 0
+        #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) == expected, "\(key)")
+        #expect(BodyEvaluationCounter.count(ItemRow.counterKey(for: key)) == 0, "\(key)")
+        BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
+        BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
+      }
     }
 
     @Test func aUserMessageAThoughtAndAnAgentMessageShowThreeRowsInOrder() async throws {
@@ -150,7 +222,7 @@
 
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "Hello "))
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "world."))
-      await harness.pump(until: Self.waitTimeout) { Self.agentText(of: model, at: 0) == "Hello world." }
+      await harness.pump(until: Self.waitTimeout) { Self.entryText(of: model, at: 0) == "Hello world." }
       harness.pump()
 
       let paragraphs = harness.accessibilityElements().filter {
@@ -174,82 +246,38 @@
       #expect(anchors.visibleIDs == session.model.transcript.map(\.rowKey))
     }
 
-    @Test func theLastAgentMessageShowsTheStreamingTailWhileTheAgentRuns() async throws {
-      let session = try await ScriptedSession.open()
-      defer { session.close() }
-      let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
-      defer { harness.close() }
-
-      try await session.sendUpdate(Self.runningState)
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "tail-m", text: "Partial **bold"))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ResponseView.tailIdentifier) != nil
-      }
-      #expect(harness.element(identifier: ResponseView.tailIdentifier) != nil)
-
-      try await session.sendUpdate(Self.idleState)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ResponseView.tailIdentifier) == nil
-      }
-      #expect(harness.element(identifier: ResponseView.tailIdentifier) == nil)
-      #expect(harness.element(identifier: ResponseView.paragraphIdentifier(index: 0)) != nil)
-    }
-
-    @Test func theLastThoughtIsInProgressWhileTheAgentRuns() async throws {
-      let session = try await ScriptedSession.open()
-      defer { session.close() }
-      let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
-      defer { harness.close() }
-
-      try await session.sendUpdate(Self.runningState)
-      try await session.sendUpdate(Self.chunk("agent_thought_chunk", messageID: "progress-t", text: "Thinking."))
-      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 1 }
-      let key = try #require(session.model.transcript.first?.rowKey)
-      #expect(harness.element(identifier: ReasoningView.bodyIdentifier(for: key)) != nil)
-      #expect(harness.element(identifier: ReasoningView.titleIdentifier(for: key)) == nil)
-
-      try await session.sendUpdate(Self.idleState)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ReasoningView.titleIdentifier(for: key)) != nil
-      }
-      #expect(harness.element(identifier: ReasoningView.titleIdentifier(for: key)) != nil)
-    }
-
-    @Test func aChunkEvaluatesOnlyTheRowOfItsEntry() async throws {
+    @Test func eachAppliedChunkShowsTheWholeEntryTextAndIdleChangesNothing() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
         AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
       defer { harness.close() }
       let model = session.model
-      for position in 0..<Self.chunkMessageCount {
-        try await session.sendUpdate(
-          Self.chunk("agent_message_chunk", messageID: "chunk-m\(position)", text: "Message \(position)."))
-      }
-      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == Self.chunkMessageCount }
-      let keys = model.transcript.map(\.id.rowKey)
-      for key in keys {
-        #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) >= 1)
-        BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
-        BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
-      }
 
-      try await session.sendUpdate(
-        Self.chunk("agent_message_chunk", messageID: "chunk-m\(Self.chunkedPosition)", text: " More."))
-      await harness.pump(until: Self.waitTimeout) {
-        Self.agentText(of: model, at: Self.chunkedPosition) == "Message \(Self.chunkedPosition). More."
+      try await session.sendUpdate(Self.runningState)
+      for (index, chunk) in Self.streamedChunks.enumerated() {
+        try await session.sendUpdate(
+          Self.chunk("agent_message_chunk", messageID: Self.streamedMessageID, text: chunk))
+        model.flushPendingChunks()
+        let sent = Self.streamedChunks[...index].joined()
+        await harness.pump(until: Self.waitTimeout) { Self.entryText(of: model, at: 0) == sent }
+        let text = try #require(Self.entryText(of: model, at: 0))
+        await harness.pump(until: Self.waitTimeout) { Self.showsParagraphs(of: text, in: harness) }
+        #expect(Self.showsParagraphs(of: text, in: harness), "\(text)")
+        #expect(harness.element(identifier: ResponseView.tailIdentifier) == nil)
       }
+      #expect(ComposerSessionModelHostedTests.isRunning(model))
+
+      try await session.sendUpdate(Self.idleState)
+      await harness.pump(until: Self.waitTimeout) { !ComposerSessionModelHostedTests.isRunning(model) }
       harness.pump()
 
-      for (position, key) in keys.enumerated() {
-        let expected = position == Self.chunkedPosition ? 1 : 0
-        #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) == expected, "\(key)")
-        #expect(BodyEvaluationCounter.count(ItemRow.counterKey(for: key)) == 0, "\(key)")
-        BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
-        BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
-      }
+      #expect(Self.showsParagraphs(of: Self.streamedChunks.joined(), in: harness))
+      #expect(harness.element(identifier: ResponseView.tailIdentifier) == nil)
+    }
+
+    @Test func aChunkEvaluatesOnlyTheRowOfItsEntry() async throws {
+      try await Self.expectAChunkEvaluatesOnlyTheRowOfItsEntry(kind: "agent_message_chunk")
     }
   }
 #endif

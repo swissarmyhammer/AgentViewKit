@@ -66,7 +66,8 @@ struct MessageItemView: View {
 /// footer slot.
 ///
 /// The caller gives the stream of the message. ``MessageItemView`` reads it
-/// from the thread, and a transcript entry view keeps a stream of its own.
+/// from the thread. A transcript entry view gives no stream, because it shows
+/// the text of the entry as the session model holds it.
 struct MessageBodyView: View {
   /// The message to show.
   let message: Message

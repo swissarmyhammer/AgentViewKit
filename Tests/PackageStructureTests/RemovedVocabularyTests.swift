@@ -51,6 +51,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "contextSizeExceeded", "guardrailViolation",
     // The prompt queue of the composer.
     "PromptQueue", "PromptQueueView",
+    // The kit stream copy of the text of a transcript entry.
+    "EntryTextStream", "canStream",
   ]
 
   /// The usage initializer from the fill of the context window.

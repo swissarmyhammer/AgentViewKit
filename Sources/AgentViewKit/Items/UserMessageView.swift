@@ -75,7 +75,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
       MessageItemView(message: message, role: .user, date: date)
     case .entry(let entry):
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
-        TranscriptMessageView(id: entry.id, content: entry.content, role: .user, date: date, canStream: false)
+        TranscriptMessageView(id: entry.id, content: entry.content, role: .user, date: date)
         SendStateLabel(state: entry.sendState)
           .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
       }

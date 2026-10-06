@@ -21,10 +21,11 @@ import SwiftUI
 /// runs (plan.md §3.5). See ``AgentThread/isLastWhileRunning(_:)``.
 ///
 /// The view also shows a `ThoughtEntry` of a `SessionModel` (update.md §4.2).
-/// A thought is in progress while it is the last entry of the transcript and
-/// the agent runs, and its text then streams through the streaming tail of the
-/// entry (``EntryTextStream``). The view of an entry reads the content of the
-/// entry, so a streamed chunk evaluates only this view. A thought and an agent
+/// The block of a thought entry always has the complete look: the session
+/// model does not tell whether a thought is in progress, so the view shows
+/// the text as the entry holds it. Only the views that read `agentState` show
+/// that the agent works. The view of an entry reads the content of the entry,
+/// so a streamed chunk evaluates only this view. A thought and an agent
 /// message with the same `messageId` are two entries, so they show in two
 /// rows.
 public struct ReasoningView: View {
@@ -72,10 +73,7 @@ public struct ReasoningView: View {
 
   /// Makes the reasoning block of a thought entry of a session transcript.
   ///
-  /// The block reads the in-progress state from the
-  /// ``SwiftUI/EnvironmentValues/sessionModel``: the thought is in progress
-  /// while it is the last entry and the agent runs. With no session model in
-  /// the environment, the thought is complete.
+  /// The block has the complete look, also while the agent runs.
   ///
   /// - Parameter entry: The thought to show.
   public init(entry: ThoughtEntry) {
@@ -157,19 +155,25 @@ public struct ReasoningView: View {
 ///
 /// The view reads the content of the entry, so a streamed chunk evaluates
 /// only this view. The text blocks of the thought are the segments of the
-/// reasoning, and the row key of the entry is the id of the reasoning.
+/// reasoning, and the row key of the entry is the id of the reasoning. The
+/// view keeps no copy of the text and no stream.
+///
+/// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
+/// ``BodyEvaluationCounter``, because it is the view that the content of the
+/// entry evaluates again.
 private struct ThoughtEntryBlock: View {
   /// The thought to show.
   let entry: ThoughtEntry
 
   var body: some View {
+    let key = entry.id.rowKey
+    #if DEBUG
+      BodyEvaluationCounter.note(ItemRow.contentCounterKey(for: key))
+    #endif
     let segments = entry.content.compactMap { block -> String? in
       if case .text(let text) = block { text.text } else { nil }
     }
-    let record = Reasoning(id: entry.id.rowKey, segments: segments)
-    EntryTextStream(id: entry.id, text: record.text, canStream: true) { stream, isLive in
-      ReasoningBlock(record: record, isInProgress: isLive, streaming: stream)
-    }
+    return ReasoningBlock(record: Reasoning(id: key, segments: segments), isInProgress: false, streaming: nil)
   }
 }
 
