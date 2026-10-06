@@ -30,17 +30,9 @@ public struct ContentBlockView: View {
   /// The start of the accessibility identifier of each default view.
   public static let identifierPrefix = "content-block-"
 
-  /// The block that the view shows.
-  enum Source {
-    /// A kit block of a thread message.
-    case record(ContentBlock)
-
-    /// An ACP block that a transcript entry holds.
-    case wire(FoundationModelsACP.ContentBlock)
-  }
-
-  /// The block to show.
-  let source: Source
+  /// The block to show: a kit block of a thread message, or an ACP block
+  /// that a transcript entry holds.
+  let source: BlockSource<ContentBlock, FoundationModelsACP.ContentBlock>
 
   /// The id of the block view.
   let id: String

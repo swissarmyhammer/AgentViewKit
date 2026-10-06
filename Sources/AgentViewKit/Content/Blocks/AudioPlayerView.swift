@@ -19,17 +19,9 @@ public struct AudioPlayerView: View {
   /// The file name stem of a sound.
   private static let fileStem = "audio"
 
-  /// The sound that the view plays.
-  enum Source: Hashable {
-    /// A kit sound of a thread message.
-    case record(AudioContent)
-
-    /// An ACP sound that a transcript entry holds.
-    case wire(FoundationModelsACP.AudioContent)
-  }
-
-  /// The sound to play.
-  let source: Source
+  /// The sound to play: a kit sound of a thread message, or an ACP sound
+  /// that a transcript entry holds.
+  let source: BlockSource<AudioContent, FoundationModelsACP.AudioContent>
 
   /// The state of the file write.
   @State private var file: PreviewLoadState<URL> = .loading

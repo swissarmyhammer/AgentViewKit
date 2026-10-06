@@ -21,17 +21,9 @@ public struct LinkView: View {
   /// The largest width of the card, in points.
   private static let maximumCardWidth: CGFloat = 400
 
-  /// The link that the view shows.
-  enum Source {
-    /// A kit link of a thread message.
-    case record(ResourceLink)
-
-    /// An ACP link that a transcript entry holds.
-    case wire(FoundationModelsACP.ResourceLink)
-  }
-
-  /// The link to show.
-  let source: Source
+  /// The link to show: a kit link of a thread message, or an ACP link that
+  /// a transcript entry holds.
+  let source: BlockSource<ResourceLink, FoundationModelsACP.ResourceLink>
 
   /// The loaded first icon of the link, or `nil`.
   @State private var icon: NSImage?

@@ -34,6 +34,39 @@ comments:
     - evidence: Sources/AgentViewKit/Content/{EntryContentView.swift (new), ContentBlockView.swift, ResponseView.swift}, Sources/AgentViewKit/Content/Blocks/{TextBlockView.swift, ImageView.swift, AudioPlayerView.swift, LinkView.swift, ResourceBlockView.swift, EmbeddedResource+Members.swift (new)}, Sources/AgentViewKit/Items/{TranscriptMessageView.swift, MessageItemView.swift, ReasoningView.swift, ThoughtEntryBlock.swift (new), CompactionEntryView.swift, UnknownItemView.swift}, Sources/AgentViewKit/ACP/SessionUpdateMapping.swift; Tests: Helpers/WireBlockJSON.swift (new), Content/WireContentBlockViewHostedTests.swift (new), Content/EntryContentViewTests.swift (new), Items/MessageViewsHostedTests.swift, Items/SessionEntryRowsHostedTests.swift, Thread/SessionTranscriptViewHostedTests.swift. RED: `swift build --build-tests` failed on missing `EntryContentView`. GREEN: filtered run of the 4 suites, then `swift test`: 1349 tests in 126 suites passed, no new warnings.
     - next: /review
   timestamp: 2026-10-06T22:54:04.844273+00:00
+- actor: claude-code
+  id: 01m49qgjzjjgan6a7hmqbjvx9r
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (c93c308); counts: 1 finding, 1 confirmed, 4 refuted. Sources/AgentViewKit/Content/Blocks/ResourceBlockView.swift:26 duplication/duplication — the Source enum follows the same pattern as AudioPlayerView and others; extract to a shared generic.
+    - next: /implement the open item in the Review Findings section of 2026-10-06 17:58
+  timestamp: 2026-10-06T23:06:53.298054+00:00
+- actor: claude-code
+  id: 01m49qgms7pfkdbw0t4bq2grzq
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — EntryContentView (new) and ContentBlockView(block:id:) show ACP content blocks; message, thought and compaction rows make no kit Message, Reasoning or ContentBlock; ThoughtEntryBlock (new); 21 files
+    - test: green — swift test, 1349 passed
+    - commit: c93c308
+    - review: findings — Sources/AgentViewKit/Content/Blocks/ResourceBlockView.swift:26
+  timestamp: 2026-10-06T23:06:55.143970+00:00
+- actor: claude-code
+  id: 01m49qye1ekkrnygv26hs0yzcw
+  text: |-
+    Review finding fixed: the duplicate `Source` enum.
+    - New `Sources/AgentViewKit/Content/BlockSource.swift`: `enum BlockSource<Record, Wire>` with `case record(Record)` and `case wire(Wire)`. It is `Equatable` and `Hashable` when both type arguments are. `AudioPlayerView` keys its task on the source, so it needs `Hashable`.
+    - `ContentBlockView`, `ImageView`, `AudioPlayerView`, `LinkView` and `ResourceBlockView` now store `let source: BlockSource<...>`. Their private `Source` enums are gone. The inits and the body logic did not change.
+    - `ResourceBlockView` keeps the id only on the ACP path. Its `Wire` type argument is the labeled pair `(resource: FoundationModelsACP.EmbeddedResource, id: String)`. A third generic parameter, or an `id` on each `wire` case, did not fit: `ImageView`, `AudioPlayerView` and `LinkView` have no id.
+    - New `Tests/AgentViewKitTests/Content/BlockSourceTests.swift`. RED: the build failed because `BlockSource` did not exist. GREEN: 2 tests passed.
+    Discovery: `SessionEntryRowsHostedTests.anAppendedErrorShowsItsData` failed again in a filtered run of 6 suites, and passed in the full run. This change does not touch it. It is the same unstable test as in the earlier comment.
+  timestamp: 2026-10-06T23:14:26.990033+00:00
+- actor: claude-code
+  id: 01m49qygk4yyza0czp4tecz2yw
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Content/BlockSource.swift (new), Sources/AgentViewKit/Content/ContentBlockView.swift, Sources/AgentViewKit/Content/Blocks/{ImageView.swift, AudioPlayerView.swift, LinkView.swift, ResourceBlockView.swift}, Tests/AgentViewKitTests/Content/BlockSourceTests.swift (new). Commands: `swift build --build-tests` (RED, missing BlockSource); `swift test --filter BlockSourceTests` (2 passed); filtered run of 6 affected suites (51 tests, 1 known unstable failure in anAppendedErrorShowsItsData); `swift test`: 1351 tests in 127 suites passed. No new warnings.
+    - next: /review
+  timestamp: 2026-10-06T23:14:29.604121+00:00
 depends_on:
 - 01M48MQDWDPN98ZSWQ4N7S44FW
 - 01M443P9HZRX2SYRH92DVA3ERH
@@ -67,3 +100,12 @@ These are new code on the bridge. The removal of the ACP adapter deletes `Sessio
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 17:58)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 22 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Sources/AgentViewKit/Content/Blocks/ResourceBlockView.swift:26` `duplication/duplication` — Source enum follows the same pattern as AudioPlayerView and others, with an additional `id: String` parameter on the wire case. This is still part of the same generic duplication across five views. Extract to shared generic. ResourceBlockView's wire case differs (includes id), so the generic must support that: either parameterize it as `enum Source<Record, Wire, WireExtra>` or keep `id` as an associated value on the wire case: `case wire(Wire, id: String)`.

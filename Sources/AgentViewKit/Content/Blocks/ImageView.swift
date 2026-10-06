@@ -24,17 +24,9 @@ public struct ImageView: View {
   /// The file name stem of an image with no file name in its URI.
   private static let fileStem = "image"
 
-  /// The image that the view shows.
-  enum Source {
-    /// A kit image of a thread message.
-    case record(ImageContent)
-
-    /// An ACP image that a transcript entry holds.
-    case wire(FoundationModelsACP.ImageContent)
-  }
-
-  /// The image to show.
-  let source: Source
+  /// The image to show: a kit image of a thread message, or an ACP image
+  /// that a transcript entry holds.
+  let source: BlockSource<ImageContent, FoundationModelsACP.ImageContent>
 
   @Environment(\.inspectorSelection) private var selection
 

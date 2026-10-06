@@ -22,18 +22,10 @@ struct ResourceBlockView: View {
   /// The file name stem of a resource with no file name in its URI.
   private static let fileStem = "resource"
 
-  /// The resource that the view shows.
-  enum Source {
-    /// A kit resource of a thread message.
-    case record(EmbeddedResource)
-
-    /// An ACP resource that a transcript entry holds, with the id that keys
-    /// the expanded state of its raw view.
-    case wire(FoundationModelsACP.EmbeddedResource, id: String)
-  }
-
-  /// The resource to show.
-  let source: Source
+  /// The resource to show: a kit resource of a thread message, or an ACP
+  /// resource that a transcript entry holds, with the id that keys the
+  /// expanded state of its raw view.
+  let source: BlockSource<EmbeddedResource, (resource: FoundationModelsACP.EmbeddedResource, id: String)>
 
   /// Makes the view of a kit resource.
   ///
@@ -49,7 +41,7 @@ struct ResourceBlockView: View {
   ///   - id: The id of the block view. It keys the expanded state of the raw
   ///     view of a resource that the view cannot read.
   init(resource: FoundationModelsACP.EmbeddedResource, id: String) {
-    self.source = .wire(resource, id: id)
+    self.source = .wire((resource: resource, id: id))
   }
 
   var body: some View {
@@ -61,8 +53,8 @@ struct ResourceBlockView: View {
       case .blob(let data):
         Self.blobChip(data: data, uri: resource.uri, mimeType: resource.mimeType)
       }
-    case .wire(let resource, let id):
-      Self.wireView(of: resource, id: id)
+    case .wire(let wire):
+      Self.wireView(of: wire.resource, id: wire.id)
     }
   }
 
