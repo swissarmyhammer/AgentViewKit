@@ -27,15 +27,6 @@ public nonisolated struct ContextUsage: Sendable, Hashable {
     self.cost = cost
   }
 
-  /// The part of the context window that is in use, from `0` to `1`.
-  ///
-  /// The value is ``used`` divided by ``size``, clamped to `0...1`. When
-  /// ``size`` is `0` or less, the value is `0`.
-  public var fraction: Double {
-    guard size > 0 else { return 0 }
-    return min(max(Double(used) / Double(size), 0), 1)
-  }
-
   /// A cumulative cost in one currency.
   public struct Cost: Sendable, Hashable, Codable {
     /// The cost.

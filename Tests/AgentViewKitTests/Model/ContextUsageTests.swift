@@ -4,31 +4,6 @@ import PackageFileSupport
 import Testing
 
 @Suite struct ContextUsageTests {
-  // MARK: - Fraction
-
-  @Test func fractionIsUsedDividedBySize() {
-    let usage = ContextUsage(used: 250, size: 1_000)
-
-    #expect(usage.fraction == 0.25)
-  }
-
-  @Test func fractionClampsToOne() {
-    let usage = ContextUsage(used: 1_500, size: 1_000)
-
-    #expect(usage.fraction == 1)
-  }
-
-  @Test func fractionClampsToZero() {
-    let usage = ContextUsage(used: -10, size: 1_000)
-
-    #expect(usage.fraction == 0)
-  }
-
-  @Test func zeroSizeGivesZero() {
-    #expect(ContextUsage(used: 0, size: 0).fraction == 0)
-    #expect(ContextUsage(used: 10, size: 0).fraction == 0)
-  }
-
   // MARK: - Fields
 
   @Test func theStoredPropertiesAreTheFieldsOfAUsageUpdate() {

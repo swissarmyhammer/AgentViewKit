@@ -8,8 +8,8 @@ import SwiftUI
 /// shows:
 ///
 /// - a sidebar with the ``SessionListView`` of the agent,
-/// - the ``StateBanner``, the ``AgentThreadView``, the ``TaskListView``, and
-///   the ``ContextUsageView`` of the bound thread,
+/// - the ``StateBanner``, the ``AgentThreadView`` and the ``TaskListView`` of
+///   the bound thread, and the ``ContextUsageView`` of its session model,
 /// - a ``PromptInputView``, whose default accessory row has the
 ///   ``PermissionModePicker``,
 /// - a toolbar with the ``ConfigOptionsView`` menu and a button that opens
@@ -140,9 +140,11 @@ struct ACPTabView: View {
       AgentThreadView(thread: thread, actions: actions)
         .environment(\.sessionModel, session.sessionModel)
       TaskListView(plans: thread.plans)
-      ContextUsageView(usage: thread.usage)
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal)
+      if let model = session.sessionModel {
+        ContextUsageView(session: model)
+          .frame(maxWidth: .infinity, alignment: .trailing)
+          .padding(.horizontal)
+      }
       PromptInputView(text: $draft) {}
         .padding()
     }

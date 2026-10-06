@@ -47,5 +47,6 @@ row.
 - `ContextUsage` has two required fields, `used` and `size`, and one optional
   part, `cost`.
 - A source that gives no cost leaves `cost` as `nil`.
-- `fraction` is `used / size`, clamped to `0...1`. It is `0` when `size` is
-  `0`.
+- `ContextUsage` has no `fraction`. `ContextUsageView` reads
+  `SessionModel.usage` directly, and its `UsageRingView` makes the ring and
+  the percentage from `used` and `size`.
