@@ -64,11 +64,27 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift. swiftlint no_magic_numbers 0 findings; `swift test --filter PromptCapabilitiesTests` 8 passed; `swift test` 1313 passed, 0 failed. Both review findings set to [x].
     - next: /review
   timestamp: 2026-10-06T18:29:11.778215+00:00
+- actor: claude-code
+  id: 01m497wkmvjwxcnpwfj25pmxzm
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8ffd55e), 0 findings (1 file reviewed, 0 confirmed, 0 refuted). All prior findings are checked. Task moved to done.
+    - next: none
+  timestamp: 2026-10-06T18:33:49.979581+00:00
+- actor: claude-code
+  id: 01m497wmcwgedb89rfvz5rhe8e
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — named constants in PromptCapabilitiesTests
+    - test: green — swift test, 1313 passed
+    - commit: 8ffd55e
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T18:33:50.748434+00:00
 depends_on:
 - 01M443PGJC9H955A0M1QSS6FR3
 - 01M48MQ0BVDHNY798PTF3VYEQH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f280
 title: Examine promptCapabilities before the composer sends image and embedded resource blocks
 ---
 ## What

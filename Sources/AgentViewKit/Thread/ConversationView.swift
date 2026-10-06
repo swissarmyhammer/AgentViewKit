@@ -162,9 +162,11 @@ extension View {
 /// §4.7). A `ForEach` keyed on `TranscriptEntry.id` makes one ``ItemRow`` for
 /// each entry, so a row keeps its identity when a pending user message gets
 /// its `messageId`. The scroll anchors use the
-/// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of each entry. The
-/// turn summaries and the state banner read an ``AgentThread``, so a session
-/// list does not show them.
+/// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of each entry.
+/// Below the list, ``StateBanner/init(session:onShowError:)`` shows the
+/// `agentState` of the model. Its Show Error button scrolls to the last
+/// `ErrorEntry` of the transcript. The turn summaries read an
+/// ``AgentThread``, so a session list does not show them.
 public struct ConversationView<EmptyState: View>: View {
   /// The model to show.
   let source: ConversationSource
@@ -245,6 +247,12 @@ public struct ConversationView<EmptyState: View>: View {
       }
       if let thread = source.thread {
         ConversationBanner(thread: thread, onShowError: showItem)
+      }
+      if let session = source.session {
+        // The banner reads `agentState` in its own body, so a change of the
+        // state evaluates only the banner and not the list.
+        StateBanner(session: session) { showItem($0.rowKey) }
+          .padding(theme.spacing.m)
       }
     }
     .environment(\.agentThread, source.thread)

@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -46,14 +47,18 @@ import SwiftUI
 ///   (``SwiftUI/View/accessibilityFocusScope()``), so that a new request
 ///   card takes the VoiceOver focus.
 ///
-/// ``init(session:connection:actions:)`` shows the transcript of a `SessionModel`
-/// (update.md §4.2, §4.7). The conversation keys each row on
-/// `TranscriptEntry.id`, and each item view reads its own entry object, so a
-/// streamed chunk draws only the row of its entry. Above the conversation, a
-/// ``SessionNoticeBanner`` shows one banner for each notice of the session
-/// model; the banner view, and not this view, reads the notices. The
-/// announcements and the agent commands read an ``AgentThread``, so a view of
-/// a session model does not show them.
+/// ``init(session:connection:workingDirectory:actions:)`` shows the
+/// transcript of a `SessionModel` (update.md §4.2, §4.7). The conversation
+/// keys each row on `TranscriptEntry.id`, and each item view reads its own
+/// entry object, so a streamed chunk draws only the row of its entry. Above
+/// the conversation, a ``SessionNoticeBanner`` shows one banner for each
+/// notice of the session model, and a ``SessionStreamBanner`` shows the
+/// stream state: the replay marker, the partial-history note, the
+/// missed-updates banner with its Reload button, and the closed state. Below
+/// the conversation, a ``StateBanner`` shows the agent state. Each banner
+/// view, and not this view, reads its part of the model. The announcements
+/// and the agent commands read an ``AgentThread``, so a view of a session
+/// model does not show them.
 public struct AgentThreadView: View {
   /// The model that the view shows.
   private enum Source {
@@ -68,8 +73,13 @@ public struct AgentThreadView: View {
   private let source: Source
 
   /// The connection model that closes the session when the view goes away,
-  /// or `nil`.
+  /// and that the Reload button of the missed-updates banner resumes the
+  /// session on, or `nil`.
   let connection: ConnectionModel?
+
+  /// The working directory of the session, which the Reload button of the
+  /// missed-updates banner sends, or `nil`.
+  let workingDirectory: AbsolutePath?
 
   /// The actions that the views of the thread call.
   let actions: any AgentThreadActions
@@ -97,11 +107,13 @@ public struct AgentThreadView: View {
   ///     that no source drives takes ``LoggingThreadActions``.
   @available(
     *, deprecated,
-    message: "Use init(session:connection:actions:). The removal of the ACP adapter removes this initializer."
+    message:
+      "Use init(session:connection:workingDirectory:actions:). The removal of the ACP adapter removes this initializer."
   )
   public init(thread: AgentThread, actions: any AgentThreadActions) {
     self.source = .thread(thread)
     self.connection = nil
+    self.workingDirectory = nil
     self.actions = actions
   }
 
@@ -113,14 +125,27 @@ public struct AgentThreadView: View {
   /// the session is not closed. A close that fails adds an error entry to
   /// the transcript of the session.
   ///
+  /// When the host also gives the working directory of the session, the
+  /// missed-updates banner of ``SessionStreamBanner`` shows its Reload
+  /// button. The session model does not hold the working directory, and
+  /// `session/resume` needs it.
+  ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
+  ///   - workingDirectory: The working directory of the session, the `cwd`
+  ///     of its `session/new` request, or `nil` for no Reload button.
   ///   - actions: The actions that the views of the thread call.
-  public init(session: SessionModel, connection: ConnectionModel? = nil, actions: any AgentThreadActions) {
+  public init(
+    session: SessionModel,
+    connection: ConnectionModel? = nil,
+    workingDirectory: AbsolutePath? = nil,
+    actions: any AgentThreadActions
+  ) {
     self.source = .session(session)
     self.connection = connection
+    self.workingDirectory = workingDirectory
     self.actions = actions
   }
 
@@ -153,6 +178,7 @@ public struct AgentThreadView: View {
     case .session(let session):
       VStack(spacing: 0) {
         SessionNoticeBanner(session: session)
+        SessionStreamBanner(session: session, connection: connection, workingDirectory: workingDirectory)
         ConversationView(session: session, anchors: anchors)
         PendingRequestsHost(session: session)
       }

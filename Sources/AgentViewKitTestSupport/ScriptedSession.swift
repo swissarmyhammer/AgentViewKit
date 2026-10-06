@@ -5,8 +5,9 @@ import FoundationModelsACPClient
 /// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
 /// tests (update.md §4.2).
 ///
-/// ``open(configure:)`` connects a `ConnectionModel` to the agent over an
-/// `InMemoryTransport` pair, sends `initialize`, and opens one new session.
+/// ``open(bufferLimits:configure:)`` connects a `ConnectionModel` to the agent
+/// over an `InMemoryTransport` pair, sends `initialize`, and opens one new
+/// session.
 /// The connection model has a coalescing cadence of zero, so each chunk
 /// changes its entry at once. A test sends `session/update` frames with
 /// ``sendUpdate(_:)`` and reads the transcript of ``model``.
@@ -24,7 +25,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with prompt capabilities.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(configure:)``:
+  /// ``open(bufferLimits:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -79,11 +80,16 @@ public final class ScriptedSession {
   /// Connects a connection model to a new scripted agent, and opens one
   /// session.
   ///
-  /// - Parameter configure: Changes the agent before it starts, for example
-  ///   its results or its prompt echo order.
+  /// - Parameters:
+  ///   - bufferLimits: The limits of the update buffer of the connection. A
+  ///     test gives small limits to make the buffer overflow, so that the
+  ///     session model gets `hasMissedUpdates`.
+  ///   - configure: Changes the agent before it starts, for example its
+  ///     results or its prompt echo order.
   /// - Returns: The helper with the open session.
   /// - Throws: The error of `initialize` or of `session/new`.
   public static func open(
+    bufferLimits: SessionUpdateBufferLimits = .default,
     configure: (ScriptedWireAgent) -> Void = { _ in }
   ) async throws -> ScriptedSession {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
@@ -93,7 +99,7 @@ public final class ScriptedSession {
     configure(agent)
     agent.start()
     let connection = ConnectionModel(coalescingCadence: .zero)
-    _ = await connection.connect(over: clientEnd)
+    _ = await connection.connect(over: clientEnd, bufferLimits: bufferLimits)
     _ = try await connection.initialize(
       InitializeRequest(
         info: Implementation(name: "AgentViewKitTestSupport", version: "1.0.0"), protocolVersion: .v2))

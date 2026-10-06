@@ -114,6 +114,15 @@ struct ComposerTurn {
     return session.isRunning
   }
 
+  /// Whether the session model of the environment is closed, so the
+  /// composer sends nothing (update.md §4.7 "Closed thread").
+  ///
+  /// The value reads `SessionModel.isClosed` directly. With no session
+  /// model, the value is `false`.
+  var isSessionClosed: Bool {
+    session?.isClosed == true
+  }
+
   /// Starts a main-actor task that sends `input` at once, also while the
   /// agent runs a turn.
   ///

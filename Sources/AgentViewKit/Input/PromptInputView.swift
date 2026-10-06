@@ -39,7 +39,9 @@ import SwiftUI
 /// `SessionModel.cancel(meta:)`. The composer reads `agentState` only to show
 /// the Stop control. The editor gets `SessionModel.availableCommands` as
 /// ``PromptEditorContext/commands``. With no session model, the editor gets
-/// `nil`: no command menu.
+/// `nil`: no command menu. While `SessionModel.isClosed` is true, the
+/// composer is disabled and a submit sends nothing (update.md §4.7 "Closed
+/// thread"). The composer reads `isClosed` directly and keeps no copy.
 ///
 /// The blocks of a prompt and the attachment chips follow the prompt
 /// capabilities of the connection model of the environment
@@ -134,9 +136,10 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       ?? Binding(get: { ownAttachments }, set: { ownAttachments = $0 })
   }
 
-  /// Whether a submit sends the text now: the text is not blank.
+  /// Whether a submit sends the text now: the text is not blank, and the
+  /// session model of the environment is not closed.
   private var canSubmit: Bool {
-    Self.message(from: text) != nil
+    Self.message(from: text) != nil && !turn.isSessionClosed
   }
 
   public var body: some View {
@@ -162,6 +165,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     }
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+    .disabled(turn.isSessionClosed)
     .attachmentDropDestination(attachments)
     .environment(
       \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
@@ -185,7 +189,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// Sends the text at once, also while the agent runs a turn. Then clears
   /// the text and calls the host closure.
   private func submit() {
-    guard let input = takeInput() else { return }
+    guard canSubmit, let input = takeInput() else { return }
     turn.startPrompt(with: input)
     onSubmit()
   }
