@@ -257,7 +257,7 @@ struct ComposerCommandProbe: NSViewRepresentable {
   /// The target of the scope.
   let target: AgentCommandTarget
 
-  /// Tells if a submit sends or queues the text now.
+  /// Tells if a submit sends the text now.
   let canSubmit: @MainActor () -> Bool
 
   /// Submits the text of the composer.

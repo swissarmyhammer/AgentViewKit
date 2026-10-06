@@ -19,24 +19,24 @@ public struct PromptEditorContext {
 
   /// The closure that submits the prompt.
   ///
-  /// The closure sends the text to the agent and clears the text. While the
-  /// thread runs a turn, the closure adds the text to the
-  /// ``SwiftUI/EnvironmentValues/promptQueue``, or does nothing when there is
-  /// no queue. It does nothing while the text is blank.
+  /// The closure sends the text to the agent at once, also while the agent
+  /// runs a turn, and clears the text. It does nothing while the text is
+  /// blank.
   public let onSubmit: Submit
 
-  /// The closure that sends the prompt at once, also while the thread runs a
-  /// turn ("send now").
+  /// The closure that sends the prompt at once ("send now").
   ///
   /// The closure sends the text to the agent and clears the text. It does
-  /// nothing while the text is blank.
+  /// nothing while the text is blank. ``PromptInputView`` gives the same
+  /// closure as ``onSubmit``, because each submit sends at once.
   public let onSendNow: Submit
 
-  /// The closure that stops the current turn, or `nil` while the thread does
+  /// The closure that stops the current turn, or `nil` while the agent does
   /// not run a turn.
   ///
-  /// The closure calls ``AgentThreadActions/cancel()``. The text and the
-  /// queue do not change.
+  /// The closure calls ``AgentThreadActions/cancel()``, or
+  /// `SessionModel.cancel(meta:)` with a session model. The text does not
+  /// change.
   public let onCancel: Submit?
 
   /// The slash commands of the thread, for the slash completion source.
@@ -52,7 +52,7 @@ public struct PromptEditorContext {
   ///   - onSendNow: The closure that sends the prompt at once. The default
   ///     is `onSubmit`.
   ///   - onCancel: The closure that stops the current turn, or `nil` while
-  ///     the thread does not run a turn.
+  ///     the agent does not run a turn.
   ///   - commands: The slash commands of the thread.
   public init(
     text: Binding<AttributedString>,
@@ -79,8 +79,7 @@ public struct PromptEditorContext {
 /// function, as ``DefaultPromptAccessory`` does.
 public struct PromptSubmitAction {
   /// Whether a call submits the prompt. The value is `false` while the text
-  /// is blank, and while the thread runs a turn with no
-  /// ``SwiftUI/EnvironmentValues/promptQueue``.
+  /// is blank.
   public let isEnabled: Bool
 
   /// The closure that submits the prompt.

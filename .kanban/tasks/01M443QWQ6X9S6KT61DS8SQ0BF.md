@@ -30,11 +30,27 @@ comments:
     - evidence: Sources/AgentViewKit/Status/UsageRingView.swift (new), Sources/AgentViewKit/Status/ContextUsageView.swift, Sources/AgentViewKit/Model/ContextUsage.swift, Docs/decisions/usage-model.md, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift, Tests/AgentViewKitTests/Status/ContextUsageSessionModelHostedTests.swift (new), Tests/AgentViewKitTests/Status/UsageRingViewTests.swift (new), Tests/AgentViewKitTests/Model/ContextUsageTests.swift, Tests/AgentViewKitTests/Status/ContextUsageViewHostedTests.swift (deleted). Commands: swift test --filter (13 passed), swift test (1323/1324, 1 unrelated race failure, ^et6e0ps), Scripts/test-examples.sh AgentViewKitDemo (passed).
     - next: /test, then /review.
   timestamp: 2026-10-06T14:50:05.277883+00:00
+- actor: claude-code
+  id: 01m48vddd606wjkn8cvdgp126b
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8f29995): 0 findings (findings 0, confirmed 0, refuted 0; 7 validators ran, 0 failed). No prior Review Findings sections.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-06T14:55:49.158925+00:00
+- actor: claude-code
+  id: 01m48vdepvppjj8n225dmgja76
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ContextUsageView(session:) reads session.usage; UsageRingView (new); ContextUsage.fraction and the old view tests removed
+    - test: green — swift test, 1324 passed
+    - commit: 8f29995
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T14:55:50.491754+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
 - 01M443M8BHM2BDPPZ2FVDA5TFV
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ee80
 title: Bind ContextUsageView to the usage of SessionModel
 ---
 ## What
@@ -52,7 +68,7 @@ Source: update.md §4.2 (last-value state `usage`), §4.5 (kit `ContextUsage` re
 
 ## Tests
 - [x] `Tests/AgentViewKitTests/Status/ContextUsageSessionModelHostedTests.swift`: the scripted agent sends a `usage_update`, and the test asserts the shown text; a second update changes the text; with and without cost; with no update the view is hidden.
-- [ ] `swift test` passes. (2026-10-06 run: 1,323 of 1,324 tests passed. The one failure is the race in `PendingRequestsSessionModelHostedTests.thePermissionResponseFrameComesBeforeTheNextPromptFrame`, which this card does not touch. ^et6e0ps tracks it.)
+- [x] `swift test` passes. (2026-10-06 run: 1,323 of 1,324 tests passed. The one failure is the race in `PendingRequestsSessionModelHostedTests.thePermissionResponseFrameComesBeforeTheNextPromptFrame`, which this card does not touch. ^et6e0ps tracks it.) — the test step ran swift test green (1324 passed); the unstable frame-order test is ^et6e0ps.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

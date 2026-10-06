@@ -49,6 +49,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "addAuthorization", "pendingAuthorizations", "resolveAuthorization", "removePlan",
     // The error kinds that only FoundationModels made.
     "contextSizeExceeded", "guardrailViolation",
+    // The prompt queue of the composer.
+    "PromptQueue", "PromptQueueView",
   ]
 
   /// The usage initializer from the fill of the context window.

@@ -101,10 +101,11 @@ extension SessionModel {
 /// The turn verbs of a composer view (update.md §4.7 "Composer").
 ///
 /// When the environment has a session model, each verb goes through it: a
-/// send calls `SessionModel.prompt(_:meta:)`, a stop calls
-/// `SessionModel.cancel(meta:)`, and the turn runs while `agentState` is
-/// `running`. Else each verb goes through the thread actions, and the state
-/// of the thread tells whether the turn runs.
+/// send calls `SessionModel.prompt(_:meta:)` at once, and a stop calls
+/// `SessionModel.cancel(meta:)`. A composer reads `agentState` only to show
+/// the Stop control. Else each verb goes through the thread actions, and the
+/// state of the thread tells whether the turn runs. No verb waits for a
+/// prompt to return before it does a different step.
 struct ComposerTurn {
   /// The session model of the environment, or `nil`.
   let session: SessionModel?
@@ -115,30 +116,28 @@ struct ComposerTurn {
   /// The thread actions of the environment, or `nil`.
   let actions: (any AgentThreadActions)?
 
-  /// Whether the agent runs a turn.
+  /// Whether the agent runs a turn, for the Stop control.
+  ///
+  /// With a session model, the value reads `SessionModel.agentState`
+  /// directly. Else it reads the state of the thread.
   var isRunning: Bool {
     guard let session else { return thread?.state == .running }
     return session.isRunning
   }
 
-  /// Starts a main-actor task that sends `input`, then calls `onReturn`.
+  /// Starts a main-actor task that sends `input` at once, also while the
+  /// agent runs a turn.
   ///
-  /// With a session model, `onReturn` runs after the prompt returns or
-  /// fails. With the thread actions, it runs after
-  /// ``AgentThreadActions/send(_:)`` returns.
+  /// With a session model, the task calls `SessionModel.prompt(_:meta:)`.
+  /// Else it calls ``AgentThreadActions/send(_:)``.
   ///
-  /// - Parameters:
-  ///   - input: The text and the attachments.
-  ///   - onReturn: The closure that runs after the send.
-  func startPrompt(with input: UserInput, then onReturn: @escaping @MainActor () -> Void = {}) {
-    Task { @MainActor in
-      if let session {
-        await session.sendPrompt(with: input)
-      } else {
-        await actions?.send(input)
-      }
-      onReturn()
+  /// - Parameter input: The text and the attachments.
+  func startPrompt(with input: UserInput) {
+    guard let session else {
+      actions?.startSend(input)
+      return
     }
+    Task { @MainActor in await session.sendPrompt(with: input) }
   }
 
   /// Starts a main-actor task that stops the current turn.

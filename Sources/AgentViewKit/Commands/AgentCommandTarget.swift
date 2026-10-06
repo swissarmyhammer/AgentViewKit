@@ -13,7 +13,7 @@ struct AgentComposerHook {
   /// The identity of the view that registered the hook.
   let owner: ObjectIdentifier
 
-  /// Tells if a submit sends or queues the text now.
+  /// Tells if a submit sends the text now.
   let canSubmit: @MainActor () -> Bool
 
   /// Submits the text of the composer.

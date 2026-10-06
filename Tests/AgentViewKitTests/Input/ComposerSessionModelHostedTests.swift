@@ -38,6 +38,9 @@
     /// The `session/update` value that tells that the agent runs.
     static let runningState = #"{"sessionUpdate":"state_update","state":"running"}"#
 
+    /// The `session/update` value that tells that the agent is idle.
+    static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
+
     /// The `messageId` of the agent message that marks the end of the frames
     /// of a prompt.
     static let markerMessageID = "composer-marker"
@@ -57,10 +60,9 @@
     /// - Parameters:
     ///   - session: The scripted session.
     ///   - draft: The model that holds the text of the composer.
-    ///   - queue: The queue of the composer, or `nil`.
     /// - Returns: The harness.
     static func mount(
-      session: ScriptedSession, draft: PromptInputHostedTestModel, queue: PromptQueue? = nil
+      session: ScriptedSession, draft: PromptInputHostedTestModel
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
@@ -68,7 +70,6 @@
           PromptInputHost(model: draft)
         }
         .environment(\.sessionModel, session.model)
-        .promptQueue(queue)
         .transaction { $0.disablesAnimations = true }
       }
     }
@@ -81,6 +82,14 @@
       model.transcript.compactMap { entry in
         if case .userMessage(let message) = entry { message } else { nil }
       }
+    }
+
+    /// Tells whether the agent state of a session model is `running`.
+    ///
+    /// - Parameter model: The session model.
+    /// - Returns: `true` when `agentState` is `.running`.
+    static func isRunning(_ model: SessionModel) -> Bool {
+      if case .running = model.agentState { true } else { false }
     }
 
     /// The label of the send state of a user message in the view.
@@ -155,7 +164,89 @@
       #expect(harness.element(identifier: errorIdentifier) != nil)
     }
 
+    // MARK: - Send while the agent runs
+
+    @Test func aSubmitWhileTheAgentRunsSendsAPromptFrameAtOnce() async throws {
+      let session = try await ScriptedSession.open { $0.heldMethods = [Self.promptMethod] }
+      defer { session.close() }
+      let draft = PromptInputHostedTestModel(text: Self.firstMessage)
+      let harness = Self.mount(session: session, draft: draft)
+      defer { harness.close() }
+      let model = session.model
+      try await Self.startRunning(session, in: harness)
+
+      try Self.submitWithReturn(in: harness)
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+      let entry = try #require(Self.userMessages(of: model).first)
+      await harness.pump(until: Self.waitTimeout) { Self.sendStateLabel(of: entry, in: harness) != nil }
+
+      #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage])
+      #expect(entry.sendState == .pending)
+      #expect(Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.pending])
+      #expect(draft.plainText.isEmpty)
+    }
+
+    @Test func aSecondSubmitWhileTheAgentRunsSendsASecondPromptFrameAtOnce() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let draft = PromptInputHostedTestModel(text: Self.firstMessage)
+      let harness = Self.mount(session: session, draft: draft)
+      defer { harness.close() }
+      let model = session.model
+      try await Self.startRunning(session, in: harness)
+
+      try Self.submitWithReturn(in: harness)
+      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: Self.promptMethod).count == 1 }
+      draft.text = AttributedString(Self.secondMessage)
+      harness.pump()
+      try Self.submitWithReturn(in: harness)
+      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: Self.promptMethod).count == 2 }
+
+      #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage, Self.secondMessage])
+      #expect(Self.isRunning(model))
+      #expect(Self.userMessages(of: model).count == 2)
+    }
+
+    @Test func aChangeOfTheAgentStateSendsNoFrame() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let draft = PromptInputHostedTestModel()
+      let harness = Self.mount(session: session, draft: draft)
+      defer { harness.close() }
+      let framesBefore = session.agent.received.count
+
+      try await Self.startRunning(session, in: harness)
+      try await session.sendUpdate(Self.idleState)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil
+      }
+
+      #expect(session.agent.received.count == framesBefore)
+    }
+
     // MARK: - Stop
+
+    @Test func theStopButtonShowsWhileTheAgentRunsAndGoesAwayWhenItIsIdle() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let draft = PromptInputHostedTestModel()
+      let harness = Self.mount(session: session, draft: draft)
+      defer { harness.close() }
+
+      #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
+      try await Self.startRunning(session, in: harness)
+
+      #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil)
+      #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) == nil)
+
+      try await session.sendUpdate(Self.idleState)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil
+      }
+
+      #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
+      #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
+    }
 
     @Test func theStopButtonSendsSessionCancel() async throws {
       let session = try await ScriptedSession.open()
@@ -164,10 +255,7 @@
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
 
-      try await session.sendUpdate(Self.runningState)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil
-      }
+      try await Self.startRunning(session, in: harness)
       try harness.press(identifier: DefaultPromptAccessory.stopIdentifier)
       await harness.pump(until: Self.waitTimeout) {
         !session.agent.messages(method: Self.cancelMethod).isEmpty
@@ -178,56 +266,45 @@
       #expect(cancels.first?["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
     }
 
-    // MARK: - Queue
-
-    @Test func theQueueSendsTheNextPromptOnlyAfterTheCurrentPromptReturns() async throws {
-      let session = try await ScriptedSession.open { $0.heldMethods = [Self.promptMethod] }
-      defer { session.close() }
-      let draft = PromptInputHostedTestModel(text: Self.firstMessage)
-      let queue = PromptQueue()
-      let harness = Self.mount(session: session, draft: draft, queue: queue)
-      defer { harness.close() }
-      let model = session.model
-
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { Self.userMessages(of: model).count == 1 }
-      draft.text = AttributedString(Self.secondMessage)
-      harness.pump()
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      harness.pump()
-
-      #expect(queue.items.map(\.input.text) == [Self.secondMessage])
-      #expect(Self.userMessages(of: model).count == 1)
-
-      session.agent.releaseHeldAnswer()
-      await harness.pump(until: Self.waitTimeout) { Self.userMessages(of: model).count == 2 }
-      session.agent.releaseHeldAnswer()
-
-      #expect(queue.isEmpty)
-      #expect(Self.userMessages(of: model).count == 2)
-    }
-
-    @Test func sendNowInTheQueueViewSendsTheItemThroughTheSessionModel() async throws {
-      let session = try await ScriptedSession.open()
-      defer { session.close() }
-      let queue = PromptQueue()
-      let id = queue.enqueue(UserInput(text: Self.secondMessage))
-      let harness = HostedViewHarness(size: Self.size) {
-        PromptQueueView(queue: queue)
-          .environment(\.sessionModel, session.model)
-      }
-      defer { harness.close() }
-      let model = session.model
-
-      try harness.press(identifier: PromptQueueView.sendNowIdentifier(id))
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
-
-      #expect(queue.isEmpty)
-      #expect(session.agent.messages(method: Self.promptMethod).count == 1)
-      #expect(Self.userMessages(of: model).count == 1)
-    }
-
     // MARK: - Helpers
+
+    /// Sends the running state of the agent, and waits until the composer
+    /// shows the Stop button.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - harness: The harness that shows the composer.
+    /// - Throws: The error of the transport.
+    static func startRunning<Content: View>(
+      _ session: ScriptedSession, in harness: HostedViewHarness<Content>
+    ) async throws {
+      try await session.sendUpdate(runningState)
+      await harness.pump(until: waitTimeout) {
+        harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil
+      }
+    }
+
+    /// Submits the text of the composer with the Return key of the editor.
+    ///
+    /// While the agent runs, the Stop button replaces the submit button. Thus
+    /// a submit goes through the editor.
+    ///
+    /// - Parameter harness: The harness that shows the composer.
+    /// - Throws: An error when the window cannot get the key event.
+    static func submitWithReturn<Content: View>(in harness: HostedViewHarness<Content>) throws {
+      try #require(harness.focusFirstEditableTextView())
+      try harness.sendKey(.return)
+      harness.pump()
+    }
+
+    /// The text of the first prompt block of each `session/prompt` frame, in
+    /// arrival order.
+    ///
+    /// - Parameter agent: The scripted agent.
+    /// - Returns: The texts.
+    static func promptTexts(of agent: ScriptedWireAgent) -> [String] {
+      agent.messages(method: promptMethod).compactMap { $0["params"]?["prompt"]?[0]?["text"]?.stringValue }
+    }
 
     /// A `session/update` frame of the session of a request.
     ///

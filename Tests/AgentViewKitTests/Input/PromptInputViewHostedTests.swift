@@ -224,7 +224,7 @@ struct PromptInputHost: View {
     #expect(model.plainText == Self.message)
   }
 
-  @Test func returnWhileTheThreadRunsSendsNothing() throws {
+  @Test func returnWhileTheThreadRunsSendsTheTextAtOnce() async throws {
     let thread = AgentThread()
     thread.apply(.setState(.running))
     let actions = NoopThreadActions()
@@ -238,10 +238,11 @@ struct PromptInputHost: View {
     try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     try harness.sendKey(.return)
-    harness.pump()
+    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
 
-    #expect(actions.calls.isEmpty)
-    #expect(model.plainText == Self.message)
+    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    #expect(model.plainText.isEmpty)
+    #expect(model.submitCount == 1)
   }
 
   @Test func theStopButtonGoesBackToSubmitWhenTheTurnEnds() {
