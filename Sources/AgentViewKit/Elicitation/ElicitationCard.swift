@@ -23,7 +23,7 @@ struct ElicitationCard: View {
   /// - Returns: The request with the local id of the elicitation and the
   ///   server name ``agentServer``, or `nil` for a mode that the kit does
   ///   not know.
-  static func request(for pending: PendingElicitation) -> ElicitationRequest? {
+  static func makeRequest(for pending: PendingElicitation) -> ElicitationRequest? {
     SessionUpdateMapping.elicitationRequest(pending, server: agentServer)
   }
 

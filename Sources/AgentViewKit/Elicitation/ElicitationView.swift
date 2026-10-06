@@ -107,7 +107,7 @@ public struct ElicitationView: View {
     .focusable()
     .focusEffectDisabled()
     .focused($isFocused)
-    .onExitCommand { respond(.cancel) }
+    .onExitCommand { replies.send(.cancel, to: request) }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.formIdentifier)
     .accessibilityFocusTarget(Self.formIdentifier)
@@ -147,8 +147,8 @@ public struct ElicitationView: View {
     let context = ElicitationFooterContext(
       canSubmit: ElicitationValidator.isComplete(values: values, schemas: fields),
       submit: submit,
-      decline: { respond(.decline) },
-      cancel: { respond(.cancel) }
+      decline: { replies.send(.decline, to: request) },
+      cancel: { replies.send(.cancel, to: request) }
     )
     if let footerOverride {
       footerOverride(context)
@@ -176,14 +176,7 @@ public struct ElicitationView: View {
   /// Sends the answers when each field passes validation.
   private func submit() {
     guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
-    respond(.accept(.object(values)))
-  }
-
-  /// Sends `result` to the client model that holds the request.
-  ///
-  /// - Parameter result: The answer of the user.
-  private func respond(_ result: ElicitationResult) {
-    replies?.reply(to: request, result)
+    replies.send(.accept(.object(values)), to: request)
   }
 }
 

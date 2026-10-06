@@ -28,6 +28,7 @@ The views bind to the client models, so the kit keeps no session state. Source: 
 - [ ] No file in `Sources/`, `Tests/`, `Examples/` or `README.md` uses `AgentThread`, `ThreadItem`, `ThreadChange`, `ItemPatch`, `StreamingMessage`, `StreamingCoalescer` or `ComposerTurn`.
 - [ ] Each `@Observable` class in `Sources/AgentViewKit/` holds view state only (open state, scroll position, focus, selection, composer draft); none holds a value that `ConnectionModel`, `SessionModel` or a `TranscriptEntry` object holds.
 - [ ] `swift test`, `Scripts/check-readme.sh` and `Scripts/test-examples.sh AgentViewKitDemo` pass.
+- [ ] No code in the kit keeps a list of pending requests: `AgentThread.pendingPermissions` and `pendingElicitations` are gone, and `ThreadAccessibility` and `AgentCommandTarget` read the pending requests of `SessionModel` (moved from ^6a6x9x9).
 
 ## Tests
 - [ ] `RemovedVocabularyTests` fails before the removal and passes after it.

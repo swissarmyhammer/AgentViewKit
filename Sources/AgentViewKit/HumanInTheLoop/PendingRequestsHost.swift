@@ -135,7 +135,7 @@ public struct PendingRequestsHost: View {
       case .session(let session): session.pendingElicitations
       case .connection(let connection): connection.pendingElicitations
       }
-    return pending.compactMap(ElicitationCard.request(for:))
+    return pending.compactMap(ElicitationCard.makeRequest(for:))
   }
 
   /// The model that takes the answer to each permission card.

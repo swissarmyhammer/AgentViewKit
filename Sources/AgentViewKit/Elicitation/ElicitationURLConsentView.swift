@@ -206,7 +206,7 @@ public struct ElicitationURLConsentView: View {
   private func open() {
     guard phase == .idle, Self.url(of: request) != nil else { return }
     openBrowser()
-    respond(.accept(nil))
+    replies.send(.accept(nil), to: request)
     phase = .waiting
   }
 
@@ -231,7 +231,7 @@ public struct ElicitationURLConsentView: View {
 
   /// Sends ``ElicitationResult/decline``.
   private func decline() {
-    respond(.decline)
+    replies.send(.decline, to: request)
   }
 
   /// Stops the browser session of the card and sends
@@ -239,14 +239,7 @@ public struct ElicitationURLConsentView: View {
   private func cancel() {
     browserTask?.cancel()
     browserTask = nil
-    respond(.cancel)
-  }
-
-  /// Sends `result` to the client model that holds the request.
-  ///
-  /// - Parameter result: The answer of the user.
-  private func respond(_ result: ElicitationResult) {
-    replies?.reply(to: request, result)
+    replies.send(.cancel, to: request)
   }
 }
 

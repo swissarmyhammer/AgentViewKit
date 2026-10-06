@@ -38,6 +38,22 @@ protocol ElicitationReplying: AnyObject {
   func reply(to request: ElicitationRequest, _ result: ElicitationResult)
 }
 
+extension Optional where Wrapped == any ElicitationReplying {
+  /// Sends the answer of the user to the model, or sends nothing when no
+  /// model is set.
+  ///
+  /// ``ElicitationView`` and ``ElicitationURLConsentView`` send each answer
+  /// through this function, so both cards forward an answer in one way.
+  ///
+  /// - Parameters:
+  ///   - result: The answer of the user.
+  ///   - request: The request that the card shows.
+  @MainActor
+  func send(_ result: ElicitationResult, to request: ElicitationRequest) {
+    self?.reply(to: request, result)
+  }
+}
+
 /// A client model that holds pending elicitations and has the three reply
 /// methods of the client models.
 @MainActor

@@ -589,7 +589,7 @@ private struct LinkedElicitations: View {
         logger.error("A tool call links an elicitation that is not pending. The row does not show it.")
         return nil
       }
-      return ElicitationCard.request(for: elicitation)
+      return ElicitationCard.makeRequest(for: elicitation)
     }
   }
 }
