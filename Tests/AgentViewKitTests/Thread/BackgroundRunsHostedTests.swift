@@ -4,6 +4,7 @@
   import Foundation
   import FoundationModelsACP
   import FoundationModelsACPClient
+  import PackageFileSupport
   import SwiftUI
   import Testing
 
@@ -102,14 +103,6 @@
       return ToolCallView.accessibilityLabel(title: title, status: status)
     }
 
-    /// The label of the state banner in `harness`.
-    ///
-    /// - Parameter harness: The harness that shows the thread.
-    /// - Returns: The label, or `nil` when the banner does not show.
-    static func stateBannerLabel<Content: View>(in harness: HostedViewHarness<Content>) -> String? {
-      harness.element(identifier: StateBanner.bannerIdentifier)?.label
-    }
-
     /// Tells whether `harness` shows the transcript and the state of `model`:
     /// one row for each entry in transcript order, an assistant message view
     /// for each agent message, the title and the status of each tool call,
@@ -129,7 +122,7 @@
           harness.element(identifier: ToolCallView.identifier(for: entry.rowKey))?.label == expectedLabel(of: toolCall)
         } ?? true
       }
-      let bannerMatches = stateBannerLabel(in: harness) == model.agentState.map { StateBanner.message(for: $0).title }
+      let bannerMatches = harness.stateBannerLabel == model.agentState.map { StateBanner.message(for: $0).title }
       return rowsMatch && messagesMatch && toolCallsMatch && bannerMatches
     }
 
@@ -167,7 +160,7 @@
         #expect(Self.showsTheModel(model, in: harness), "\(step.change)")
         let isIdleStep = step.change == .agentRunning(false)
         #expect(ComposerSessionModelHostedTests.isRunning(model) == !isIdleStep, "\(step.change)")
-        #expect((Self.stateBannerLabel(in: harness) == Self.runningTitle) == !isIdleStep, "\(step.change)")
+        #expect((harness.stateBannerLabel == Self.runningTitle) == !isIdleStep, "\(step.change)")
       }
     }
 
@@ -198,22 +191,12 @@
     }
 
     @Test func noKitSourceDeclaresATurnOrAWaitState() throws {
-      let sourceDirectory = URL(filePath: #filePath)
-        .deletingLastPathComponent()
-        .appending(path: "../../../Sources/AgentViewKit")
-        .standardizedFileURL
-      let enumerator = try #require(FileManager.default.enumerator(at: sourceDirectory, includingPropertiesForKeys: nil))
-      let files = enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
+      let files = try PackageFiles.swiftFiles(in: PackageFiles.file("Sources/AgentViewKit"))
       let names = Self.turnStateNames.joined(separator: "|")
       let declaration = try Regex(#"\b(let|var)\s+(\#(names))\w*\b"#)
       #expect(!files.isEmpty)
 
-      let declarations = try files.flatMap { file in
-        try String(contentsOf: file, encoding: .utf8)
-          .split(separator: "\n")
-          .filter { $0.contains(declaration) }
-          .map { "\(file.lastPathComponent): \($0)" }
-      }
+      let declarations = try SourceLines.matching(declaration, in: files)
 
       #expect(declarations.isEmpty, "A kit source keeps a turn or a wait state: \(declarations)")
     }

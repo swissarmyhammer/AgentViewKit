@@ -98,14 +98,6 @@
       }
     }
 
-    /// The label of the state banner in `harness`.
-    ///
-    /// - Parameter harness: The harness that shows the thread.
-    /// - Returns: The label, or `nil` when the banner does not show.
-    static func stateBannerLabel<Content: View>(in harness: HostedViewHarness<Content>) -> String? {
-      harness.element(identifier: StateBanner.bannerIdentifier)?.label
-    }
-
     /// Tells whether the text of a stream banner shows in `harness`.
     ///
     /// - Parameters:
@@ -133,13 +125,13 @@
       let harness = Self.mount(session, draft: PromptInputHostedTestModel())
       defer { harness.close() }
       harness.pump()
-      #expect(Self.stateBannerLabel(in: harness) == nil)
+      #expect(harness.stateBannerLabel == nil)
 
       for (update, title) in Self.stateTitles {
         try await session.sendUpdate(update)
-        await harness.pump(until: Self.waitTimeout) { Self.stateBannerLabel(in: harness) == title }
+        await harness.pump(until: Self.waitTimeout) { harness.stateBannerLabel == title }
 
-        #expect(Self.stateBannerLabel(in: harness) == title, "The banner is wrong after \(update).")
+        #expect(harness.stateBannerLabel == title, "The banner is wrong after \(update).")
       }
     }
 
@@ -258,12 +250,7 @@
       let declaration = try Regex(#"\b(let|var)\s+(\#(names))\b"#)
       #expect(!files.isEmpty)
 
-      let copies = try files.flatMap { file in
-        try String(contentsOf: file, encoding: .utf8)
-          .split(separator: "\n")
-          .filter { $0.contains(declaration) }
-          .map { "\(file.lastPathComponent): \($0)" }
-      }
+      let copies = try SourceLines.matching(declaration, in: files)
 
       #expect(copies.isEmpty, "A status source keeps a copy of the stream state: \(copies)")
     }

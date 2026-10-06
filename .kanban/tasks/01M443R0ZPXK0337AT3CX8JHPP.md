@@ -30,6 +30,38 @@ comments:
     - evidence: 3 files — Sources/AgentViewKitTestSupport/BackgroundRunScript.swift (new), Sources/AgentViewKitTestSupport/ScriptedSession.swift (send(update:), import Foundation), Tests/AgentViewKitTests/Thread/BackgroundRunsHostedTests.swift (new); `swift test --filter BackgroundRunsHostedTests` (RED: compile failure; GREEN: 3 pass); `swift test` (1331 tests in 124 suites pass, only the mlx-swift warning)
     - next: /review
   timestamp: 2026-10-06T21:46:19.699333+00:00
+- actor: claude-code
+  id: 01m49khrmme9rtp0dpvryxjpjm
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (d91c714); 1 finding (1 confirmed, 0 refuted) — Tests/AgentViewKitTests/Thread/BackgroundRunsHostedTests.swift:109 reuse/reuse: `stateBannerLabel` is identical to the function in SessionStateBannersHostedTests.swift; move it to a shared test helper.
+    - next: /implement the open item in the "Review Findings (2026-10-06 16:50)" section
+  timestamp: 2026-10-06T21:57:37.556251+00:00
+- actor: claude-code
+  id: 01m49kht11g0bcg0jwy5s8m1j1
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — BackgroundRunScript (new), ScriptedSession.send(update:), BackgroundRunsHostedTests (new); no kit source change, the model gives the rows and agentState
+    - test: green — swift test, 1331 passed
+    - commit: d91c714
+    - review: findings — Tests/AgentViewKitTests/Thread/BackgroundRunsHostedTests.swift:109
+  timestamp: 2026-10-06T21:57:38.977391+00:00
+- actor: claude-code
+  id: 01m49m23ftj9vtzva5wx33jr4k
+  text: |-
+    Review finding fixed: `stateBannerLabel` copy.
+    - The project keeps shared hosted-test helpers as `HostedViewHarness` extensions in Tests/AgentViewKitTests/Helpers/ (example: HarnessWaiting.swift). The new file Tests/AgentViewKitTests/Helpers/HarnessStateBanner.swift adds `HostedViewHarness.stateBannerLabel` (a computed property). BackgroundRunsHostedTests and SessionStateBannersHostedTests now use `harness.stateBannerLabel`. Both static copies are deleted.
+    - The same cause was also in `noKitSourceDeclaresATurnOrAWaitState`. (1) It wrote its own enumerator and Swift-file filter, which is a copy of `PackageFiles.swiftFiles(in:)`. It now calls `PackageFiles.swiftFiles(in: PackageFiles.file("Sources/AgentViewKit"))` (import PackageFileSupport), as DiffRendererDefaultHostedTests does. (2) Its line scan (flatMap, split, filter, map) was the same as the scan in `SessionStateBannersHostedTests.noStatusSourceDeclaresACopyOfTheStreamState`. The new file Tests/AgentViewKitTests/Helpers/SourceLines.swift holds `SourceLines.matching(_:in:)`, and both tests use it.
+    - I did not change how `noStatusSourceDeclaresACopyOfTheStreamState` lists its files (it uses contentsOfDirectory with no recursion). That is existing code, and PackageFiles.swiftFiles goes into subdirectories, so a change can change what the test does.
+    - Discovery: a fresh compile of the test target shows `init(thread:actions:)` deprecation warnings in AgentThreadViewHostedTests, ThreadAccessibilityHostedTests and other existing test files. Commit 17a7900 added that deprecation, and the todo task "Remove the ACP adapter" removes it. The full `swift test` run did not show them because it used the incremental build. They are not in the files of this change.
+  timestamp: 2026-10-06T22:06:32.954543+00:00
+- actor: claude-code
+  id: 01m49m27d1hzechz4et87mgnbe
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Tests/AgentViewKitTests/Helpers/HarnessStateBanner.swift (new), Tests/AgentViewKitTests/Helpers/SourceLines.swift (new), Tests/AgentViewKitTests/Thread/BackgroundRunsHostedTests.swift, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift; `swift test --filter 'BackgroundRunsHostedTests|SessionStateBannersHostedTests'` (9 tests in 2 suites pass); `swift test` (1331 tests in 124 suites pass, only the mlx-swift `missing creator for mutated node` warning); finding at BackgroundRunsHostedTests.swift:109 is `- [x]`
+    - next: /review
+  timestamp: 2026-10-06T22:06:36.961790+00:00
 depends_on:
 - 01M443QAWWDY730CX0EDPG4T4Z
 - 01M443NW9A12NWXYHJFYTTTA85
@@ -57,3 +89,12 @@ Owner rule (2026-10-06): the views bind directly to the observable model of Foun
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 16:50)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Thread/BackgroundRunsHostedTests.swift:109` `reuse/reuse` — The `stateBannerLabel` function is identical (1.00 similarity) to an existing function in SessionStateBannersHostedTests.swift that serves the same purpose. This represents direct code duplication where a shared utility could be reused instead of copied. Extract this test helper function to a shared test utilities module (e.g., TestHelpers or a common test support file), or refactor both test suites to use a common implementation. This eliminates duplication and ensures both tests benefit from any future fixes or improvements to the helper.
