@@ -5,7 +5,7 @@ import SwiftUI
 extension EnvironmentValues {
   /// The session model whose transcript the item views show (update.md §4.2).
   ///
-  /// ``AgentThreadView/init(session:actions:)`` sets its model for its rows.
+  /// ``AgentThreadView/init(session:connection:actions:)`` sets its model for its rows.
   /// A row view reads the model to find whether its entry still streams. The
   /// value is `nil` outside a thread view over a session model.
   @Entry public var sessionModel: SessionModel? = nil

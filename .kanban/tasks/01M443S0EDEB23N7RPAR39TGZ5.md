@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m48rjexnqcrjzxpyzqcsa5q8
+  text: 'Note from ^rdk4w45: `ACPDemoSession` now has a public `connectionModel`, `sessionID: SessionId?` and `open(_ session: SessionModel)`. `selectSession(_:)`, `sessionList` and `canDeleteSessions` are removed. `ACPTabView` shows `SessionListView(connection:cwd:onOpen:onNewSession:)`. The detail still uses the deprecated `AgentThreadView(thread:actions:)`, so the demo sends no `session/close`. When this card moves the detail to `AgentThreadView(session:connection:actions:)`, the close works.'
+  timestamp: 2026-10-06T14:06:08.821325+00:00
 depends_on:
 - 01M443NW9A12NWXYHJFYTTTA85
 - 01M443P38JZMBRSCEPWCS25T9A

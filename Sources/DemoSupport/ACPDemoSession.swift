@@ -8,9 +8,10 @@ import Observation
 ///
 /// The model connects a `ConnectionModel` over a transport, sends
 /// `initialize` and `session/new`, and binds an ``ACPThreadSource`` and an
-/// ``ACPThreadActions`` to one ``AgentThread``. A selection in the session
-/// sidebar resumes the selected session on a new thread, with the retained
-/// history of the agent.
+/// ``ACPThreadActions`` to one ``AgentThread``. The session sidebar shows the
+/// session list of ``connectionModel``. It resumes a selected session with
+/// the retained history of the agent, and ``open(_:)`` binds that session on
+/// a new thread.
 ///
 /// The model also keeps the values of the settings sheet: the
 /// ``ConnectionStore`` with one connection for the agent, and the
@@ -51,14 +52,8 @@ public final class ACPDemoSession {
   /// holds the pending requests that the thread view shows.
   public private(set) var sessionModel: SessionModel?
 
-  /// The session pages of the agent, or `nil` before the connection.
-  public private(set) var sessionList: ACPSessionList?
-
   /// The id of the bound session, or `nil`.
-  public private(set) var sessionID: SessionID?
-
-  /// Whether the agent sends the `session/delete` capability.
-  public private(set) var canDeleteSessions = false
+  public private(set) var sessionID: SessionId?
 
   /// The authentication methods that the agent gave at `initialize`.
   public private(set) var authMethods: [AgentViewKit.AuthMethod] = []
@@ -66,11 +61,11 @@ public final class ACPDemoSession {
   /// The store with the connection of the agent.
   public let connectionStore: ConnectionStore
 
-  /// The connection model that holds the observable ACP state.
-  @ObservationIgnored private let connectionModel = ConnectionModel()
+  /// The connection model that holds the observable ACP state. The session
+  /// sidebar shows its session list and its capability flags.
+  @ObservationIgnored public let connectionModel = ConnectionModel()
 
-  /// The connection to the agent, or `nil` before the connection. The
-  /// session list pages over it.
+  /// The connection to the agent, or `nil` before the connection.
   @ObservationIgnored private var connection: ClientSideConnection?
 
   /// The agent program that terminal authentication starts, or `nil`.
@@ -169,8 +164,6 @@ public final class ACPDemoSession {
       let response = try await connectionModel.initialize(Self.initializeRequest)
       negotiatedVersion = response.protocolVersion
       authMethods = connectionModel.authMethods.compactMap(SessionUpdateMapping.authMethod)
-      canDeleteSessions = connectionModel.canDeleteSessions
-      sessionList = ACPSessionList(connection: connection, cwd: cwd)
       connectionStore.transition(Self.agentConnectionID, to: .connected)
       try await openNewSession()
       phase = .ready
@@ -188,20 +181,16 @@ public final class ACPDemoSession {
     }
   }
 
-  /// Resumes the session `id` with its retained history and binds it to a
-  /// new thread.
+  /// Binds a session model that the session sidebar resumed to a new
+  /// thread.
   ///
-  /// - Parameter id: The id of the session to resume.
-  public func selectSession(_ id: SessionID) async {
-    guard connection != nil, id != sessionID else { return }
-    do {
-      let source = try await ACPThreadSource.resumeSession(
-        SessionId(rawValue: id.rawValue), cwd: AbsolutePath(rawValue: cwd), on: connectionModel,
-        thread: AgentThread(), agentName: agentName)
-      bind(source)
-    } catch {
-      fail(error)
-    }
+  /// The sidebar resumes the session with ``connectionModel`` and all its
+  /// retained history, so the new thread starts with the replayed
+  /// transcript.
+  ///
+  /// - Parameter session: The model of the resumed session.
+  public func open(_ session: SessionModel) {
+    bind(ACPThreadSource(thread: AgentThread(), session: session, agentName: agentName))
   }
 
   /// Closes the connection, stops the tasks of the bound thread, and stops
@@ -244,7 +233,7 @@ public final class ACPDemoSession {
     )
     thread = source.thread
     sessionModel = session
-    sessionID = SessionID(session.sessionId.rawValue)
+    sessionID = session.sessionId
   }
 
   /// Cancels the tasks that fill the bound thread.

@@ -17,6 +17,7 @@ Make the documents agree with the built kit. Source: update.md §10 items 1, 3 a
 - [ ] Change `Docs/decisions/required-thread-actions.md`, `accessibility.md` and `permission-ux.md` where they refer to `AgentThread`, the Router, the kit pending requests or kit turn tracking.
 - [ ] Change `Docs/decisions/connection-states.md`: the agent connection states are `ConnectionModel.state`.
 - [ ] `README.md`: describe AgentViewKit as the SwiftUI kit for an ACP client that binds to the observable models; list the dependencies; point to the two quick starts. Run `Scripts/check-readme.sh`.
+- [ ] Remove the `PromptQueueView` line from the README Components list and from plan.md §9 (the owner deleted the queue on 2026-10-06).
 - [ ] Delete `update.md` when all its items are on the board or done.
 
 ## Acceptance Criteria

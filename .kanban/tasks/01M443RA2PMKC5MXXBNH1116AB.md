@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m48rj3dq5z3z54yrj30jwj59
+  text: 'Note from ^rdk4w45: `ACPSessionList` and `ACPSessionListTests` are already removed. The session picker binds to `ConnectionModel.sessions`, so this card has no session list file to remove. `ACPThreadSource.resumeSession(_:cwd:on:thread:agentName:)` now has only its test as a caller.'
+  timestamp: 2026-10-06T14:05:57.047344+00:00
 depends_on:
 - 01M443S0EDEB23N7RPAR39TGZ5
 - 01M443RTQWKFHNWK4SH96PTE46

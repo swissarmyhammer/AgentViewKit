@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import SwiftUI
 
 /// The ACP tab of the demo app.
@@ -84,40 +85,31 @@ struct ACPTabView: View {
 
   // MARK: - Sidebar
 
-  /// The session list of the agent, or the connection state.
+  /// The session list of the agent after `initialize`, or the connection
+  /// state.
   @ViewBuilder private var sidebar: some View {
-    if let list = session.sessionList {
-      sessionList(list)
+    if session.connectionModel.initializeResponse != nil {
+      sessionList
     } else {
       phaseView
     }
   }
 
-  /// The session list of `list`.
+  /// The session list of the connection model.
   ///
-  /// A selection resumes the session, and the New Session button opens a
-  /// session. The list offers a delete only when the agent sends the
-  /// `session/delete` capability.
-  ///
-  /// - Parameter list: The session pages of the agent.
-  /// - Returns: The list view.
-  private func sessionList(_ list: ACPSessionList) -> some View {
+  /// The list resumes a selected session, and the demo session binds it. The
+  /// New Session button opens a session. The list shows each action only
+  /// when the agent sends its capability.
+  private var sessionList: some View {
     let session = session
-    var onDelete: ((SessionID) async throws -> Void)?
-    if session.canDeleteSessions {
-      onDelete = { id in try await list.delete(id) }
-    }
     return SessionListView(
-      provider: list,
-      onSelect: { id in
-        Task { await session.selectSession(id) }
-      },
+      connection: session.connectionModel,
+      cwd: AbsolutePath(rawValue: session.cwd),
+      onOpen: { model in session.open(model) },
       onNewSession: {
         Task { await session.newSession() }
-      },
-      onDelete: onDelete
+      }
     )
-    .id(ObjectIdentifier(list))
   }
 
   // MARK: - Detail

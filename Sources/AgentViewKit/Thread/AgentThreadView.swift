@@ -46,7 +46,7 @@ import SwiftUI
 ///   (``SwiftUI/View/accessibilityFocusScope()``), so that a new request
 ///   card takes the VoiceOver focus.
 ///
-/// ``init(session:actions:)`` shows the transcript of a `SessionModel`
+/// ``init(session:connection:actions:)`` shows the transcript of a `SessionModel`
 /// (update.md §4.2, §4.7). The conversation keys each row on
 /// `TranscriptEntry.id`, and each item view reads its own entry object, so a
 /// streamed chunk draws only the row of its entry. Above the conversation, a
@@ -66,6 +66,10 @@ public struct AgentThreadView: View {
 
   /// The model to show.
   private let source: Source
+
+  /// The connection model that closes the session when the view goes away,
+  /// or `nil`.
+  let connection: ConnectionModel?
 
   /// The actions that the views of the thread call.
   let actions: any AgentThreadActions
@@ -93,20 +97,30 @@ public struct AgentThreadView: View {
   ///     that no source drives takes ``LoggingThreadActions``.
   @available(
     *, deprecated,
-    message: "Use init(session:actions:). The removal of the ACP adapter removes this initializer."
+    message: "Use init(session:connection:actions:). The removal of the ACP adapter removes this initializer."
   )
   public init(thread: AgentThread, actions: any AgentThreadActions) {
     self.source = .thread(thread)
+    self.connection = nil
     self.actions = actions
   }
 
   /// Makes the view of the transcript of a session model.
   ///
+  /// When the host gives the connection model of the session, the view
+  /// closes the session when the view goes away (update.md §8 item 2): it
+  /// calls `ConnectionModel.close(_:)` when `canCloseSessions` is true and
+  /// the session is not closed. A close that fails adds an error entry to
+  /// the transcript of the session.
+  ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
+  ///   - connection: The connection model that opened the session, or `nil`
+  ///     when the host closes the session itself.
   ///   - actions: The actions that the views of the thread call.
-  public init(session: SessionModel, actions: any AgentThreadActions) {
+  public init(session: SessionModel, connection: ConnectionModel? = nil, actions: any AgentThreadActions) {
     self.source = .session(session)
+    self.connection = connection
     self.actions = actions
   }
 
@@ -142,6 +156,30 @@ public struct AgentThreadView: View {
         ConversationView(session: session, anchors: anchors)
         PendingRequestsHost(session: session)
       }
+      .onDisappear { closeWhenSupported(session) }
+    }
+  }
+
+  /// Starts the close of a session when the host gave the connection model,
+  /// the agent serves `session/close`, and the session is not closed.
+  ///
+  /// - Parameter session: The session of the view.
+  private func closeWhenSupported(_ session: SessionModel) {
+    guard let connection, connection.canCloseSessions, !session.isClosed else { return }
+    Task { await Self.close(session, on: connection) }
+  }
+
+  /// Sends `session/close` for a session. A close that fails adds an error
+  /// entry to the transcript of the session, which then stays open.
+  ///
+  /// - Parameters:
+  ///   - session: The session to close.
+  ///   - connection: The connection model of the session.
+  private static func close(_ session: SessionModel, on connection: ConnectionModel) async {
+    do {
+      try await connection.close(session)
+    } catch {
+      session.appendError(reporting: error)
     }
   }
 }

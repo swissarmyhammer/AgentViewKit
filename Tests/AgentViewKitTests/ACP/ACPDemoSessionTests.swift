@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
 import FoundationModelsACP
+import FoundationModelsACPClient
 import Testing
 
 @testable import DemoSupport
@@ -62,10 +63,9 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
 
     let session = harness.session
     #expect(session.phase == .ready)
-    #expect(session.sessionID == SessionID(InMemoryDemoAgent.sessionID))
-    #expect(session.canDeleteSessions)
+    #expect(session.sessionID == SessionId(rawValue: InMemoryDemoAgent.sessionID))
+    #expect(session.connectionModel.canDeleteSessions)
     #expect(session.actions != nil)
-    #expect(session.sessionList?.cwd == demoCwd)
     #expect(
       session.authMethods == [
         .agent(
@@ -121,50 +121,39 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
     #expect(thread.items.count == 4)
   }
 
-  @Test func theSessionListGivesTheDemoSession() async throws {
+  @Test func theSessionListOfTheConnectionModelGivesTheDemoSession() async throws {
     let harness = Harness()
     defer { harness.agent.stop() }
     await harness.connect()
-    let list = try #require(harness.session.sessionList)
+    let connection = harness.session.connectionModel
 
-    let page = try await harness.agent.bounded { try await list.page(after: nil) }
+    try await harness.agent.bounded { try await connection.refreshSessions() }
 
     #expect(
-      page.sessions == [
-        SessionSummary(
-          id: SessionID(InMemoryDemoAgent.sessionID), title: InMemoryDemoAgent.sessionTitle,
-          cwd: InMemoryDemoAgent.sessionCwd)
+      connection.sessions == [
+        SessionInfo(
+          cwd: AbsolutePath(rawValue: InMemoryDemoAgent.sessionCwd),
+          sessionId: SessionId(rawValue: InMemoryDemoAgent.sessionID), title: InMemoryDemoAgent.sessionTitle)
       ])
-    #expect(page.next == nil)
+    #expect(!connection.hasMoreSessions)
   }
 
-  @Test func selectSessionResumesTheSessionOnANewThread() async {
+  @Test func openBindsAResumedSessionOnANewThread() async throws {
     let harness = Harness()
     defer { harness.agent.stop() }
     await harness.connect()
     let firstThread = harness.session.thread
+    let request = ResumeSessionRequest(
+      cwd: AbsolutePath(rawValue: demoCwd), sessionId: SessionId(rawValue: "other"),
+      replayFrom: .start(ReplayFromStart()))
+    let resumed = try await harness.agent.bounded { try await harness.session.connectionModel.resumeSession(request) }
 
-    await harness.agent.bounded { await harness.session.selectSession(SessionID("other")) }
+    harness.session.open(resumed)
 
-    #expect(harness.session.sessionID == SessionID("other"))
+    #expect(harness.session.sessionID == SessionId(rawValue: "other"))
+    #expect(harness.session.sessionModel === resumed)
     #expect(harness.session.thread !== firstThread)
     #expect(harness.session.thread.configOptions.count == 1)
-    let resume = harness.agent.messages(method: "session/resume").first
-    #expect(resume?["params"]?["sessionId"] == .string("other"))
-    #expect(resume?["params"]?["cwd"] == .string(demoCwd))
-    #expect(resume?["params"]?["replayFrom"] == .object(["type": .string("start")]))
-  }
-
-  @Test func selectingTheBoundSessionSendsNothing() async {
-    let harness = Harness()
-    defer { harness.agent.stop() }
-    await harness.connect()
-    let thread = harness.session.thread
-
-    await harness.session.selectSession(SessionID(InMemoryDemoAgent.sessionID))
-
-    #expect(harness.session.thread === thread)
-    #expect(harness.agent.messages(method: "session/resume").isEmpty)
   }
 
   @Test func newSessionBindsANewThread() async {
@@ -224,7 +213,7 @@ private func userMessage(id: String, in thread: AgentThread) -> Message? {
 
     #expect(session.agentName == InMemoryDemoAgent.name)
     #expect(session.phase == .ready)
-    #expect(session.sessionID == SessionID(InMemoryDemoAgent.sessionID))
+    #expect(session.sessionID == SessionId(rawValue: InMemoryDemoAgent.sessionID))
     await session.disconnect()
     #expect(session.phase == .idle)
   }
