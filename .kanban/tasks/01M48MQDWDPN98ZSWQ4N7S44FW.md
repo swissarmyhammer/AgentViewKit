@@ -40,10 +40,26 @@ comments:
     - evidence: 10 files. Deleted Sources/AgentViewKit/Streaming/EntryTextStream.swift. Changed Sources/AgentViewKit/Items/TranscriptMessageView.swift, Sources/AgentViewKit/Items/ReasoningView.swift, Sources/AgentViewKit/Items/AssistantMessageView.swift, Sources/AgentViewKit/Items/UserMessageView.swift, Sources/AgentViewKit/Items/MessageItemView.swift, Sources/AgentViewKit/Thread/SessionTranscriptEnvironment.swift, Tests/AgentViewKitTests/Thread/SessionTranscriptViewHostedTests.swift, Tests/AgentViewKitTests/Items/SessionEntryRowsHostedTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. `swift test`: 1328 tests in 123 suites passed, only expected warnings.
     - next: /review (task stays in doing).
   timestamp: 2026-10-06T21:26:15.328770+00:00
+- actor: claude-code
+  id: 01m49j87578g6z1zffew0e8ahx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (885beef), 10 files reviewed, 0 findings (1 candidate refuted). The task has no earlier Review Findings sections.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-06T21:34:56.167107+00:00
+- actor: claude-code
+  id: 01m49j8821t6twb6htb1j7qtcy
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — message and thought rows read the entry text directly; EntryTextStream deleted; SessionModel.isLastWhileRunning removed; no streaming look (owner decision 2026-10-06)
+    - test: green — swift test, 1328 passed
+    - commit: 885beef
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T21:34:57.089735+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f680
 title: 'Show the entry text with no kit stream copy: remove EntryTextStream, isLastWhileRunning and the second coalescer'
 ---
 ## What

@@ -1,4 +1,5 @@
 import DemoSupport
+import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -148,6 +149,16 @@ public final class ScriptedSession {
     let sessionID = model.sessionId.rawValue
     try await agent.send(
       #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#)
+  }
+
+  /// Sends one typed `session/update` value of the session from the agent.
+  ///
+  /// - Parameter update: The update, such as a step of
+  ///   ``BackgroundRunScript``.
+  /// - Throws: The error of the encoder or of the transport.
+  public func send(update: SessionUpdate) async throws {
+    let json = String(decoding: try JSONEncoder().encode(update), as: UTF8.self)
+    try await sendUpdate(json)
   }
 
   /// The params of a permission request of the session, with the
