@@ -31,6 +31,39 @@ comments:
     - evidence: new Sources/AgentViewKit/Input/PromptContent.swift, Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift; changed ThreadActionTasks.swift, AttachmentChips.swift, PromptInputView.swift, SessionTranscriptEnvironment.swift, ACPThreadActions.swift, PendingRequestReplies.swift, ScriptedSession.swift, ComposerSessionModelHostedTests.swift, AttachmentChipsHostedTests.swift, ACPThreadActionsTests.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift. `swift test` green (1313 + 77 tests), `Scripts/test-examples.sh AgentViewKitDemo` passed.
     - next: /review
   timestamp: 2026-10-06T18:17:12.405699+00:00
+- actor: claude-code
+  id: 01m497bwvd2s16vtsd82ymg337
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — PromptContent (new) builds the prompt from ConnectionModel promptCapabilities at the time of use; \.connectionModel environment entry; not-accepted chip mark; 13 files
+    - test: green — swift test, 1313 passed; demo UI gate passed
+    - commit: ecd1999
+    - review: findings — Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift:11, Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift:17
+  timestamp: 2026-10-06T18:24:42.349991+00:00
+- actor: claude-code
+  id: 01m497bz3fa6hjdm02qt56exbc
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (ecd1999), 2 findings — Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift:11 `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.; Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift:17 `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+    - next: /implement — replace the magic numbers in PromptCapabilitiesTests.swift with named constants in the full file, then /review again.
+  timestamp: 2026-10-06T18:24:44.655624+00:00
+- actor: claude-code
+  id: 01m497m29wt5r3n784fbq4dps7
+  text: |-
+    Review findings fixed (magic numbers in PromptCapabilitiesTests.swift).
+    - RED: swiftlint 0.65.1 `no_magic_numbers` with `allowed_numbers: [0, 1, -1, 100]` (the rule config) reported 9 literals in the two `Data([...])` array literals.
+    - Fix: `AttachedFiles` now has named `static let` constants with doc comments: `pngSignatureFirstByte` (0x89), `pngSignatureLetters` ("PNG"), `zipHeaderLetters` ("PK"), `zipHeaderThirdByte` (0x03), `zipHeaderFourthByte` (0x04), `notUTF8Byte` (0xFF). `imageBytes` and `archiveBytes` are built from them. The bytes are the same as before.
+    - Discovery: swiftlint does not report a literal that is the direct value of a `static let`, but it reports each literal inside an array literal argument, also in a `static let`. A string `.utf8` view gives the ASCII bytes with no number literal.
+    - Note: `Tests/AgentViewKitTests/ACP/ACPThreadActionsTests.swift` has the same `Data([0x89, 0x50, 0x4E, 0x47])` line, but that file is not in this task scope and is not part of the findings, so it did not change.
+    - Gates: swiftlint on the file reports 0 findings; `swift test --filter PromptCapabilitiesTests` 8 tests pass; `swift test` 1313 tests in 121 suites pass, 0 failures (only the known mlx-swift build warning).
+  timestamp: 2026-10-06T18:29:10.076826+00:00
+- actor: claude-code
+  id: 01m497m3z2nkw6ky8hgvdfv6ys
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift. swiftlint no_magic_numbers 0 findings; `swift test --filter PromptCapabilitiesTests` 8 passed; `swift test` 1313 passed, 0 failed. Both review findings set to [x].
+    - next: /review
+  timestamp: 2026-10-06T18:29:11.778215+00:00
 depends_on:
 - 01M443PGJC9H955A0M1QSS6FR3
 - 01M48MQ0BVDHNY798PTF3VYEQH
@@ -58,3 +91,13 @@ At present, image blocks go out always, and embedded `resource` blocks never go 
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 13:20)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 13 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift:11` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Input/PromptCapabilitiesTests.swift:17` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

@@ -6,15 +6,35 @@ import Testing
 
 /// The attached files of one test, in a new temporary directory.
 private struct AttachedFiles {
+  /// The first byte of the PNG signature. It is not an ASCII byte.
+  static let pngSignatureFirstByte: UInt8 = 0x89
+
+  /// The ASCII letters that follow the first byte of the PNG signature.
+  static let pngSignatureLetters = "PNG"
+
+  /// The ASCII letters that start the local file header of a ZIP file.
+  static let zipHeaderLetters = "PK"
+
+  /// The third byte of the local file header signature of a ZIP file.
+  static let zipHeaderThirdByte: UInt8 = 0x03
+
+  /// The fourth byte of the local file header signature of a ZIP file.
+  static let zipHeaderFourthByte: UInt8 = 0x04
+
+  /// A byte that is not valid in UTF-8 text. It makes the content build send
+  /// the archive file as a `blob`, not as `text`.
+  static let notUTF8Byte: UInt8 = 0xFF
+
   /// The bytes of the image file. The content build reads the type from the
   /// file name extension, so the bytes do not have to be a full image.
-  static let imageBytes = Data([0x89, 0x50, 0x4E, 0x47])
+  static let imageBytes = Data([pngSignatureFirstByte] + Array(pngSignatureLetters.utf8))
 
   /// The text of the text file.
   static let notesText = "Line one\nLine two\n"
 
   /// The bytes of the file that is not text and not an image.
-  static let archiveBytes = Data([0x50, 0x4B, 0x03, 0x04, 0xFF])
+  static let archiveBytes = Data(
+    Array(zipHeaderLetters.utf8) + [zipHeaderThirdByte, zipHeaderFourthByte, notUTF8Byte])
 
   /// The directory that holds the files.
   let directory: URL
