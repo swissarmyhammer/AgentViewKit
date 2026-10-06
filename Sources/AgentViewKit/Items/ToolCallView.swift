@@ -299,14 +299,16 @@ public struct ToolCallView: View {
   /// - Returns: The string value of the first command key, or the string
   ///   items of an array value joined with spaces. `nil` when there is no
   ///   command.
-  static func command(from rawInput: JSONValue?) -> String? {
+  static func command(from rawInput: FoundationModelsACP.JSONValue?) -> String? {
     guard case .object(let fields)? = rawInput else { return nil }
     for key in commandKeys {
       switch fields[key] {
       case .string(let command)?:
         return command
       case .array(let parts)?:
-        let words = parts.compactMap(\.stringValue)
+        let words = parts.compactMap { part in
+          if case .string(let word) = part { word } else { nil }
+        }
         if !words.isEmpty {
           return words.joined(separator: " ")
         }
@@ -321,9 +323,11 @@ public struct ToolCallView: View {
   ///
   /// - Parameter rawOutput: The raw output of the call.
   /// - Returns: The integer value of the first exit code key, or `nil`.
-  static func exitCode(from rawOutput: JSONValue?) -> Int? {
+  static func exitCode(from rawOutput: FoundationModelsACP.JSONValue?) -> Int? {
     guard case .object(let fields)? = rawOutput else { return nil }
-    return exitCodeKeys.lazy.compactMap { fields[$0]?.intValue }.first
+    return exitCodeKeys.lazy.compactMap { key in
+      if case .number(let code)? = fields[key] { Int(exactly: code) } else { nil }
+    }.first
   }
 
   // MARK: - Body
@@ -499,7 +503,7 @@ private struct ToolCallBody: View {
   ///   - value: The value to show.
   ///   - title: The text in the header of the block.
   /// - Returns: The code block.
-  private func jsonBlock(_ value: JSONValue, title: String) -> some View {
+  private func jsonBlock(_ value: FoundationModelsACP.JSONValue, title: String) -> some View {
     CodeBlockView(code: value.prettyPrinted, language: ToolCallView.jsonLanguage, filename: title)
   }
 
@@ -516,13 +520,13 @@ private struct ToolCallBody: View {
     let partID = ToolCallView.contentIdentifier(for: source.id, index: index)
     switch part {
     case .block(let block):
-      if showsCommandOutput, case .text(let text) = block.content {
+      if showsCommandOutput, let text = Self.text(of: block) {
         CommandOutputView(
           command: ToolCallView.command(from: source.rawInput),
           output: text,
           exitCode: ToolCallView.exitCode(from: source.rawOutput))
       } else {
-        ContentBlockView(block: block, id: partID)
+        ContentBlockView(source: block, id: partID)
       }
     case .patch(let patch):
       DiffView(patch: patch)
@@ -536,7 +540,22 @@ private struct ToolCallBody: View {
           .foregroundStyle(.secondary)
       }
     case .unknown(let kind, let raw):
-      UnknownItemView(kind: kind, raw: raw, id: partID)
+      UnknownItemView(kind: kind, wireValue: raw, id: partID)
+    }
+  }
+
+  /// The text of a text block of the content.
+  ///
+  /// - Parameter block: A kit block of a record, or the ACP block of an entry.
+  /// - Returns: The text, or `nil` for a block that is not text.
+  private static func text(
+    of block: BlockSource<ContentBlock, FoundationModelsACP.ContentBlock>
+  ) -> String? {
+    switch block {
+    case .record(let record):
+      if case .text(let text) = record.content { text } else { nil }
+    case .wire(let wire):
+      if case .text(let text) = wire { text.text } else { nil }
     }
   }
 }

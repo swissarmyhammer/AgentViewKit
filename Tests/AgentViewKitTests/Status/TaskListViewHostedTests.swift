@@ -1,5 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import enum FoundationModelsACP.PlanEntryPriority
+import enum FoundationModelsACP.PlanEntryStatus
 import SwiftUI
 import Testing
 
@@ -57,9 +59,9 @@ import Testing
   }
 
   @Test func eachStatusAndPriorityHasADistinctLabel() {
-    let statuses = PlanEntry.Status.knownCases + [.unknown("paused")]
+    let statuses: [PlanEntryStatus] = [.pending, .inProgress, .completed, .cancelled, .unknown("paused")]
     #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
-    let priorities = PlanEntry.Priority.knownCases + [.unknown("urgent")]
+    let priorities: [PlanEntryPriority] = [.high, .medium, .low, .unknown("urgent")]
     #expect(Set(priorities.map(TaskListView.priorityLabel)).count == priorities.count)
   }
 

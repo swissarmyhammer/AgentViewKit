@@ -82,7 +82,7 @@ import Testing
   }
 
   @Test func aToolCallAndAPlanEntryShareTheNameOfEachCommonStatus() {
-    let pairs: [(FoundationModelsACP.ToolCallStatus, AgentViewKit.PlanEntry.Status)] = [
+    let pairs: [(FoundationModelsACP.ToolCallStatus, FoundationModelsACP.PlanEntryStatus)] = [
       (.pending, .pending),
       (.inProgress, .inProgress),
       (.completed, .completed),

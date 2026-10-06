@@ -65,6 +65,17 @@ public struct ContentBlockView: View {
     self.id = id
   }
 
+  /// Makes the view of a block that is a kit block of a thread message or an
+  /// ACP block of a transcript entry, such as a content part of a tool call.
+  ///
+  /// - Parameters:
+  ///   - source: The block to show, as the record or the entry holds it.
+  ///   - id: The id of the block view, unique in the thread.
+  init(source: BlockSource<ContentBlock, FoundationModelsACP.ContentBlock>, id: String) {
+    self.source = source
+    self.id = id
+  }
+
   /// The accessibility identifier of the default view of a kind.
   ///
   /// - Parameter kind: The block kind.

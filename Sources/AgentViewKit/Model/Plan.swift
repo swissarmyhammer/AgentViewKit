@@ -1,3 +1,5 @@
+import FoundationModelsACP
+
 /// The identifier of a ``Plan`` in a thread (plan.md §3.2).
 ///
 /// `AgentThread.plans` is keyed by this type. An ACP agent sends one plan for
@@ -114,5 +116,19 @@ public nonisolated struct PlanEntry: Sendable, Hashable, Codable {
       case .unknown(let wireValue): wireValue
       }
     }
+  }
+}
+
+nonisolated extension PlanEntry {
+  /// The ACP plan entry with the same text, priority and status.
+  ///
+  /// The views show the ACP plan entries of the transcript entries
+  /// (update.md §4.7 "Plan view"). A plan of the kit model gives its entries
+  /// to a view through this value.
+  var acpEntry: FoundationModelsACP.PlanEntry {
+    FoundationModelsACP.PlanEntry(
+      content: content,
+      priority: FoundationModelsACP.PlanEntryPriority(wireValue: priority.wireValue),
+      status: FoundationModelsACP.PlanEntryStatus(wireValue: status.wireValue))
   }
 }

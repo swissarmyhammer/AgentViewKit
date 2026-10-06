@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -133,10 +134,10 @@ public struct TaskListView: View {
   /// The name of a status, for the entry label and the help tag of the
   /// status symbol.
   ///
-  /// - Parameter status: The status of an entry.
+  /// - Parameter status: The ACP status of an entry.
   /// - Returns: The name of the status. An unknown status gives its wire
   ///   string.
-  public static func statusLabel(_ status: PlanEntry.Status) -> String {
+  public static func statusLabel(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
     switch status {
     case .pending: WorkStatusLabel.pending
     case .inProgress: WorkStatusLabel.inProgress
@@ -149,10 +150,10 @@ public struct TaskListView: View {
   /// The name of a priority, for the entry label and the help tag of the
   /// priority tint.
   ///
-  /// - Parameter priority: The priority of an entry.
+  /// - Parameter priority: The ACP priority of an entry.
   /// - Returns: The name of the priority. An unknown priority gives its wire
   ///   string.
-  public static func priorityLabel(_ priority: PlanEntry.Priority) -> String {
+  public static func priorityLabel(_ priority: FoundationModelsACP.PlanEntryPriority) -> String {
     switch priority {
     case .high: String(localized: "High priority")
     case .medium: String(localized: "Medium priority")
@@ -161,12 +162,22 @@ public struct TaskListView: View {
     }
   }
 
-  /// The accessibility label of an entry.
+  /// The accessibility label of an ACP plan entry.
+  ///
+  /// - Parameter entry: The entry, as the plan entry of a `SessionModel`
+  ///   holds it.
+  /// - Returns: The text, the status, and the priority, separated by commas.
+  public static func entryLabel(_ entry: FoundationModelsACP.PlanEntry) -> String {
+    "\(entry.content), \(statusLabel(entry.status)), \(priorityLabel(entry.priority))"
+  }
+
+  /// The accessibility label of an entry of a thread plan.
   ///
   /// - Parameter entry: The entry.
-  /// - Returns: The text, the status, and the priority, separated by commas.
+  /// - Returns: The label of the ACP entry with the same text, status and
+  ///   priority.
   public static func entryLabel(_ entry: PlanEntry) -> String {
-    "\(entry.content), \(statusLabel(entry.status)), \(priorityLabel(entry.priority))"
+    entryLabel(entry.acpEntry)
   }
 
   /// The header text of a plan.
@@ -175,15 +186,16 @@ public struct TaskListView: View {
   /// - Returns: The number of completed entries of the total, such as
   ///   `2 of 5 done`.
   public static func headerText(for plan: Plan) -> String {
-    headerText(for: plan.entries)
+    headerText(for: plan.entries.map(\.acpEntry))
   }
 
-  /// The header text of the entries of a plan.
+  /// The header text of the ACP entries of a plan.
   ///
-  /// - Parameter entries: The entries of the plan.
+  /// - Parameter entries: The entries of the plan, as the plan entry of a
+  ///   `SessionModel` holds them.
   /// - Returns: The number of completed entries of the total, such as
   ///   `2 of 5 done`.
-  public static func headerText(for entries: [PlanEntry]) -> String {
+  public static func headerText(for entries: [FoundationModelsACP.PlanEntry]) -> String {
     let done = entries.count { $0.status == .completed }
     return String(localized: "\(done) of \(entries.count) done")
   }
@@ -263,10 +275,11 @@ private struct PlanSection: View {
     .onAppear { identityProbe.noteAppear() }
   }
 
-  /// The entries of the plan, each with its accessibility identifier.
-  private var entryRows: [(identifier: String, entry: PlanEntry)] {
+  /// The entries of the plan as ACP entries, each with its accessibility
+  /// identifier.
+  private var entryRows: [(identifier: String, entry: FoundationModelsACP.PlanEntry)] {
     plan.entries.enumerated().map { index, entry in
-      (TaskListView.entryIdentifier(plan: plan.id, index: index), entry)
+      (TaskListView.entryIdentifier(plan: plan.id, index: index), entry.acpEntry)
     }
   }
 }
@@ -289,15 +302,14 @@ private struct TranscriptPlanView: View {
         JSONDisclosure(
           id: key,
           title: String(localized: "Unknown plan content: \(unknown.type)"),
-          json: SessionUpdateMapping.json(unknown.payload).prettyPrinted,
+          json: unknown.payload.prettyPrinted,
           identifier: TaskListView.unknownContentIdentifier(row: key),
           isExpanded: false)
       } else {
-        let entries = entry.entries.map(SessionUpdateMapping.planEntry)
-        Text(TaskListView.headerText(for: entries))
+        Text(TaskListView.headerText(for: entry.entries))
           .font(.headline)
           .accessibilityIdentifier(TaskListView.planIdentifier(row: key))
-        ForEach(Array(entries.enumerated()), id: \.offset) { index, item in
+        ForEach(Array(entry.entries.enumerated()), id: \.offset) { index, item in
           PlanEntryRow(entry: item)
             .accessibilityIdentifier(TaskListView.entryIdentifier(row: key, index: index))
         }
@@ -339,8 +351,8 @@ private final class SectionIdentityProbe {
 
 /// One entry in ``TaskListView``.
 private struct PlanEntryRow: View {
-  /// The entry to show.
-  let entry: PlanEntry
+  /// The ACP entry to show.
+  let entry: FoundationModelsACP.PlanEntry
 
   @Environment(\.agentTheme) private var theme
 

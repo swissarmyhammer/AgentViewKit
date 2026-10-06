@@ -23,13 +23,13 @@ import Testing
   }
 
   @Test(arguments: [
-    (AgentViewKit.PlanEntry.Status.pending, Color.yellow),
+    (FoundationModelsACP.PlanEntryStatus.pending, Color.yellow),
     (.inProgress, .blue),
     (.completed, .green),
     (.cancelled, .gray),
     (.unknown("paused"), .yellow),
   ])
-  func eachPlanEntryStatusHasItsColor(status: AgentViewKit.PlanEntry.Status, expected: Color) {
+  func eachPlanEntryStatusHasItsColor(status: FoundationModelsACP.PlanEntryStatus, expected: Color) {
     #expect(Self.colors.color(for: status) == expected)
   }
 
@@ -65,12 +65,12 @@ import Testing
   }
 
   @Test(arguments: [
-    (AgentViewKit.PlanEntry.Priority.high, Color.red),
+    (FoundationModelsACP.PlanEntryPriority.high, Color.red),
     (.medium, .blue),
     (.low, .yellow),
     (.unknown("urgent"), .yellow),
   ])
-  func eachPlanEntryPriorityHasItsTint(priority: AgentViewKit.PlanEntry.Priority, expected: Color) {
+  func eachPlanEntryPriorityHasItsTint(priority: FoundationModelsACP.PlanEntryPriority, expected: Color) {
     #expect(Self.colors.color(for: priority) == expected)
   }
 }

@@ -39,6 +39,19 @@
     /// The member name in the data of the appended error.
     static let errorDataField = "missingField"
 
+    /// The sources of the views that show the ACP values of the tool call,
+    /// error, unknown and plan entries.
+    static let entryValueViewSources = [
+      "Sources/AgentViewKit/Items/ToolCallSource.swift",
+      "Sources/AgentViewKit/Items/ToolCallView.swift",
+      "Sources/AgentViewKit/Items/ErrorView.swift",
+      "Sources/AgentViewKit/Items/UnknownItemView.swift",
+      "Sources/AgentViewKit/Status/TaskListView.swift",
+    ]
+
+    /// The label of the second plan entry, which no plan update changes.
+    static let shipEntryLabel = "Ship, Pending, Low priority"
+
     /// The `messageId` of the thought of the tests.
     static let thoughtID = "rows-t"
 
@@ -287,6 +300,29 @@
           == "Read, Completed, High priority")
     }
 
+    @Test func aPlanUpdateChangesTheStatusOfOneRow() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThread(session)
+      defer { harness.close() }
+      let planKey = TranscriptEntry.ID.wire(.plan(PlanId(rawValue: Self.planID))).rowKey
+      let firstRow = TaskListView.entryIdentifier(row: planKey, index: 0)
+      let secondRow = TaskListView.entryIdentifier(row: planKey, index: 1)
+      let running = "Read, In progress, High priority"
+      let completed = "Read, Completed, High priority"
+
+      try await session.sendUpdate(Self.planUpdate(firstStatus: "in_progress"))
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: firstRow)?.label == running }
+      #expect(harness.element(identifier: firstRow)?.label == running)
+      #expect(harness.element(identifier: secondRow)?.label == Self.shipEntryLabel)
+
+      try await session.sendUpdate(Self.planUpdate(firstStatus: "completed"))
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: firstRow)?.label == completed }
+
+      #expect(harness.element(identifier: firstRow)?.label == completed)
+      #expect(harness.element(identifier: secondRow)?.label == Self.shipEntryLabel)
+    }
+
     @Test func eachPlanWithNoPlanIdIsANewRowThatShowsTheContentType() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
@@ -329,6 +365,33 @@
         Self.labels(in: harness).contains { $0.contains(Self.unknownNote) }
       }
       #expect(Self.labels(in: harness).contains { $0.contains(Self.unknownNote) })
+    }
+
+    @Test func anUnknownEntryShowsItsRawJSONAsIndentedJSONText() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+      let member = #""note" : "\#(Self.unknownNote)""#
+
+      try await session.sendUpdate(#"{"sessionUpdate": "\#(Self.unknownType)", "note": "\#(Self.unknownNote)"}"#)
+      await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
+      let key = try #require(session.model.transcript.first?.rowKey)
+      store.expand(key)
+      await harness.pump(until: Self.waitTimeout) { Self.labels(in: harness).contains { $0.contains(member) } }
+
+      #expect(Self.labels(in: harness).contains { $0.contains(member) })
+    }
+
+    // MARK: - Sources
+
+    @Test func theEntryValueViewsMakeNoKitCopyOfTheEntryValues() throws {
+      let copy = try Regex("SessionUpdateMapping")
+
+      let copies = try SourceLines.matching(copy, inPackageFiles: Self.entryValueViewSources)
+
+      #expect(copies.isEmpty, "An entry view copies the ACP values of the entry into kit values: \(copies)")
     }
 
     // MARK: - Error

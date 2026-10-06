@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -71,11 +72,12 @@ public struct ErrorView: View {
       }
     }
 
-    /// The JSON-RPC data of the error as pretty-printed JSON, or `nil`.
+    /// The JSON-RPC data of the error as pretty-printed JSON, or `nil`. The
+    /// text comes from the ACP value of the entry.
     var data: String? {
       switch self {
       case .record: nil
-      case .entry(let entry): entry.data.map { SessionUpdateMapping.json($0).prettyPrinted }
+      case .entry(let entry): entry.data?.prettyPrinted
       }
     }
   }

@@ -86,19 +86,22 @@ enum ToolCallSource {
     }
   }
 
-  /// The input that the agent sent to the tool.
-  var rawInput: AgentViewKit.JSONValue? {
+  /// The input that the agent sent to the tool, as an ACP value. An entry
+  /// gives its own value, and a record gives its value through
+  /// ``JSONValue/acpValue``.
+  var rawInput: FoundationModelsACP.JSONValue? {
     switch self {
-    case .record(let record): record.rawInput
-    case .entry(let entry): entry.rawInput.map(SessionUpdateMapping.json)
+    case .record(let record): record.rawInput?.acpValue
+    case .entry(let entry): entry.rawInput
     }
   }
 
-  /// The output that the tool sent back.
-  var rawOutput: AgentViewKit.JSONValue? {
+  /// The output that the tool sent back, as an ACP value. An entry gives its
+  /// own value, and a record gives its value through ``JSONValue/acpValue``.
+  var rawOutput: FoundationModelsACP.JSONValue? {
     switch self {
-    case .record(let record): record.rawOutput
-    case .entry(let entry): entry.rawOutput.map(SessionUpdateMapping.json)
+    case .record(let record): record.rawOutput?.acpValue
+    case .entry(let entry): entry.rawOutput
     }
   }
 
@@ -126,9 +129,13 @@ enum ToolCallSource {
 }
 
 /// One part of the output of a tool call, from a record or from an entry.
+///
+/// A part of an entry holds the ACP values of the entry. A part of a record
+/// gives its JSON value as an ACP value, so the views read one JSON type.
 enum ToolCallPart {
-  /// A content block, such as text or an image.
-  case block(AgentViewKit.ContentBlock)
+  /// A content block, such as text or an image: a kit block of a record, or
+  /// the ACP block of an entry.
+  case block(BlockSource<AgentViewKit.ContentBlock, FoundationModelsACP.ContentBlock>)
 
   /// A change to files, as unified diff text. Only a record gives it.
   case patch(String)
@@ -145,30 +152,31 @@ enum ToolCallPart {
   ///
   /// - Parameters:
   ///   - kind: The type name that the source gave.
-  ///   - raw: The content as the source gave it.
-  case unknown(kind: String, raw: AgentViewKit.JSONValue)
+  ///   - raw: The content as the source gave it, as an ACP value.
+  case unknown(kind: String, raw: FoundationModelsACP.JSONValue)
 
   /// Makes the part of one content part of a record.
   ///
   /// - Parameter content: The content part of the record.
   init(content: ToolContent) {
     switch content {
-    case .block(let block): self = .block(block)
+    case .block(let block): self = .block(.record(block))
     case .diff(let patch): self = .patch(patch)
     case .terminal(let id): self = .terminal(id: id)
-    case .unknown(let kind, let raw): self = .unknown(kind: kind, raw: raw)
+    case .unknown(let kind, let raw): self = .unknown(kind: kind, raw: raw.acpValue)
     }
   }
 
-  /// Makes the part of one ACP content part of an entry.
+  /// Makes the part of one ACP content part of an entry. The part holds the
+  /// ACP values of the entry.
   ///
   /// - Parameter content: The content part of the entry.
   init(content: ToolCallContent) {
     switch content {
-    case .content(let wrapped): self = .block(SessionUpdateMapping.contentBlock(wrapped.content))
+    case .content(let wrapped): self = .block(.wire(wrapped.content))
     case .diff(let diff): self = .diff(diff)
     case .terminal(let terminal): self = .terminal(id: terminal.terminalId.rawValue)
-    case .unknown(let kind, let raw): self = .unknown(kind: kind, raw: SessionUpdateMapping.json(raw))
+    case .unknown(let kind, let raw): self = .unknown(kind: kind, raw: raw)
     }
   }
 

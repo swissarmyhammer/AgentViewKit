@@ -1,7 +1,5 @@
-import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
-import OSLog
 import SwiftUI
 
 /// The default view of an item or a content block that the adapter did not
@@ -112,37 +110,11 @@ public struct UnknownItemView: View {
     case .record(let record):
       (record.id, record.kind, record.raw.prettyPrinted)
     case .entry(let entry):
-      (entry.id.rowKey, entry.type, SessionUpdateMapping.json(entry.raw).prettyPrinted)
+      (entry.id.rowKey, entry.type, entry.raw.prettyPrinted)
     case .value(let kind, let raw, let id):
       (id, kind, raw.prettyPrinted)
     case .wireValue(let kind, let raw, let id):
-      (id, kind, Self.prettyPrintedText(of: raw))
+      (id, kind, raw.prettyPrinted)
     }
   }
-
-  /// The JSON text of an ACP value, with sorted keys and indents.
-  ///
-  /// A value from the wire always encodes. A value with a number that is not
-  /// finite does not encode: that is a fault of the code that made it, so the
-  /// view stops a debug build, records the fault, and shows `null`.
-  ///
-  /// - Parameter value: The ACP value.
-  /// - Returns: The JSON text.
-  private static func prettyPrintedText(of value: FoundationModelsACP.JSONValue) -> String {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-    do {
-      return String(decoding: try encoder.encode(value), as: UTF8.self)
-    } catch {
-      assertionFailure("An ACP JSON value does not encode: \(error)")
-      logger.error("An ACP JSON value does not encode, so the view shows null: \(error, privacy: .public)")
-      return nullText
-    }
-  }
-
-  /// The JSON text of `null`.
-  private static let nullText = "null"
-
-  /// The log of the view.
-  private static let logger = Logger(subsystem: "AgentViewKit", category: "UnknownItemView")
 }

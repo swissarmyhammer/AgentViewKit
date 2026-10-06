@@ -67,11 +67,27 @@ comments:
     - evidence: Sources/AgentViewKit/Content/BlockSource.swift (new), Sources/AgentViewKit/Content/ContentBlockView.swift, Sources/AgentViewKit/Content/Blocks/{ImageView.swift, AudioPlayerView.swift, LinkView.swift, ResourceBlockView.swift}, Tests/AgentViewKitTests/Content/BlockSourceTests.swift (new). Commands: `swift build --build-tests` (RED, missing BlockSource); `swift test --filter BlockSourceTests` (2 passed); filtered run of 6 affected suites (51 tests, 1 known unstable failure in anAppendedErrorShowsItsData); `swift test`: 1351 tests in 127 suites passed. No new warnings.
     - next: /review
   timestamp: 2026-10-06T23:14:29.604121+00:00
+- actor: claude-code
+  id: 01m49rf68045rze1mrw4ah46wh
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e592154); counts: 0 findings, 0 confirmed, 0 refuted; 7 files reviewed. All prior Review Findings items are checked. Task moved to done.
+    - next: none
+  timestamp: 2026-10-06T23:23:36.064055+00:00
+- actor: claude-code
+  id: 01m49rf79fggrph8x7n1gzneft
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — BlockSource<Record, Wire> (new) shared by ContentBlockView, ImageView, AudioPlayerView, LinkView and ResourceBlockView; BlockSourceTests (new)
+    - test: green — swift test, 1351 passed
+    - commit: e592154
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T23:23:37.135509+00:00
 depends_on:
 - 01M48MQDWDPN98ZSWQ4N7S44FW
 - 01M443P9HZRX2SYRH92DVA3ERH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f880
 title: Show message, thought and compaction entries from the ACP content blocks, with no kit Message, Reasoning or ContentBlock copy
 ---
 ## What

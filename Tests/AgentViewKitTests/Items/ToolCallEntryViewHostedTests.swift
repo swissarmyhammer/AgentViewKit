@@ -40,6 +40,40 @@
       "locations": [{"path": "/project/README.md"}]
       """#
 
+    /// The path in the raw input of the raw value tests.
+    static let inputPath = "/project/input.txt"
+
+    /// The raw output of the raw value tests before the later update.
+    static let firstOutput = "first output"
+
+    /// The raw output of the raw value tests after the later update.
+    static let secondOutput = "second output"
+
+    /// The text of the text content part of the raw value tests.
+    static let partText = "The text part."
+
+    /// The fields of a completed call with a raw input, a raw output and one
+    /// text content part.
+    static let rawValueFields = #"""
+      "title": "Read input.txt", "kind": "read", "status": "completed",
+      "rawInput": {"path": "\#(inputPath)"},
+      "rawOutput": {"result": "\#(firstOutput)"},
+      "content": [{"type": "content", "content": {"type": "text", "text": "\#(partText)"}}]
+      """#
+
+    /// Tells whether an accessibility element shows `text` in its label or its
+    /// value.
+    ///
+    /// - Parameters:
+    ///   - text: The text to find.
+    ///   - harness: The harness that shows the thread.
+    /// - Returns: `true` when an element shows the text.
+    static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>) -> Bool {
+      harness.accessibilityElements().contains { element in
+        element.label?.contains(text) == true || element.value?.contains(text) == true
+      }
+    }
+
     /// A `tool_call_update` value for the call of `id`.
     ///
     /// - Parameters:
@@ -172,6 +206,47 @@
       }
 
       #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
+    }
+
+    // MARK: - Raw values and content
+
+    @Test func theBodyShowsTheRawInputTheTextPartAndTheRawOutputOfTheEntry() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+
+      let key = try await Self.showExpandedCall(
+        Self.toolCallUpdate(id: "raw-c", fields: Self.rawValueFields), id: "raw-c",
+        in: session, harness: harness, store: store)
+      await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.firstOutput, in: harness) }
+
+      #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: key)) != nil)
+      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
+      #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: key)) != nil)
+      #expect(Self.showsText(Self.inputPath, in: harness))
+      #expect(Self.showsText(Self.partText, in: harness))
+      #expect(Self.showsText(Self.firstOutput, in: harness))
+    }
+
+    @Test func aLaterRawOutputUpdateChangesTheShownOutput() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+      _ = try await Self.showExpandedCall(
+        Self.toolCallUpdate(id: "output-c", fields: Self.rawValueFields), id: "output-c",
+        in: session, harness: harness, store: store)
+      await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.firstOutput, in: harness) }
+
+      try await session.sendUpdate(
+        Self.toolCallUpdate(id: "output-c", fields: #""rawOutput": {"result": "\#(Self.secondOutput)"}"#))
+      await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.secondOutput, in: harness) }
+
+      #expect(Self.showsText(Self.secondOutput, in: harness))
+      #expect(!Self.showsText(Self.firstOutput, in: harness))
     }
 
     // MARK: - Diff

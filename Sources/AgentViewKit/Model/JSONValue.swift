@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModelsACP
 import OSLog
 
 /// A JSON value that the core target owns (plan.md §3.2, §11#1).
@@ -211,6 +212,23 @@ public nonisolated enum JSONValue: Sendable, Hashable, Codable {
       preconditionFailure("JSONEncoder failed on a JSONValue with finite numbers.")
     }
     return String(decoding: data, as: UTF8.self)
+  }
+
+  /// The ACP JSON value with the same JSON form.
+  ///
+  /// The views show the ACP JSON values of the transcript entries. A record
+  /// of the kit model gives its JSON values to a view through this value, as
+  /// it gives its kind and its status. A number that is not finite gives
+  /// `null`, as in ``prettyPrinted``.
+  var acpValue: FoundationModelsACP.JSONValue {
+    switch self {
+    case .null: .null
+    case .bool(let value): .bool(value)
+    case .number(let value): value.isFinite ? .number(value) : .null
+    case .string(let value): .string(value)
+    case .array(let elements): .array(elements.map(\.acpValue))
+    case .object(let members): .object(members.mapValues(\.acpValue))
+    }
   }
 
   /// A copy of the value in which each number that is not finite is ``null``.
