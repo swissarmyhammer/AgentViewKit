@@ -118,10 +118,6 @@ public struct ToolCallView: View {
   /// The end of the accessibility identifier of the linked elicitations.
   static let elicitationsSuffix = "-elicitations"
 
-  /// The display name of the server of a linked elicitation. The agent asks
-  /// for the input, and a `SessionModel` does not know the agent name.
-  static let elicitationServer = String(localized: "The agent")
-
   /// The language of the code blocks that show the raw input and output.
   static let jsonLanguage = "json"
 
@@ -571,6 +567,7 @@ private struct LinkedElicitations: View {
         }
       }
       .contentContainer(identifier: ToolCallView.elicitationsIdentifier(for: entry.id.rowKey))
+      .environment(\.elicitationReplies, session)
     }
   }
 
@@ -592,7 +589,7 @@ private struct LinkedElicitations: View {
         logger.error("A tool call links an elicitation that is not pending. The row does not show it.")
         return nil
       }
-      return SessionUpdateMapping.elicitationRequest(elicitation, server: ToolCallView.elicitationServer)
+      return ElicitationCard.request(for: elicitation)
     }
   }
 }

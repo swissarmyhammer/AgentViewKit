@@ -177,20 +177,26 @@ import Testing
 
   // MARK: - Focus
 
-  @Test func theFocusMovesToTheCardThenBackToThePromptEditor() async {
-    let thread = AgentThread()
+  @Test func theFocusMovesToTheCardThenBackToThePromptEditor() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let reporter = RecordingFocusReporter()
-    let harness = Self.mount(thread, reporter: reporter)
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
+      AgentThreadView(session: session.model, actions: actions)
+        .environment(\.focusReporter, reporter)
+    }
     defer { harness.close() }
-    let cardIdentifier = PendingRequestsHost.identifier(for: Self.requestID)
+    harness.pump()
 
-    thread.apply(.addPermission(ThreadFixtures.permissionRequest(id: Self.requestID)))
+    let id = try #require(
+      try await session.sendPermissionRequest(id: 1, pumping: harness, timeout: Self.waitTimeout))
     await harness.pump(until: Self.waitTimeout) { reporter.moves.count >= 2 }
 
-    #expect(reporter.moves.contains(cardIdentifier))
+    #expect(reporter.moves.contains(PendingRequestsHost.identifier(for: id.uuidString)))
     #expect(reporter.moves.contains(PermissionView.identifier))
 
-    thread.apply(.resolvePermission(PermissionRequestID(Self.requestID)))
+    session.model.cancelPermission(id)
     await harness.pump(until: Self.waitTimeout) {
       reporter.moves.last == StockPromptEditor.identifier
     }
@@ -198,23 +204,25 @@ import Testing
     #expect(reporter.moves.last == StockPromptEditor.identifier)
   }
 
-  @Test func theThreadViewMovesTheFocusOfTheMoverOfTheHost() async {
-    let thread = AgentThread()
+  @Test func theThreadViewMovesTheFocusOfTheMoverOfTheHost() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let mover = AccessibilityFocusMover()
     let actions = NoopThreadActions()
     let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
+      AgentThreadView(session: session.model, actions: actions)
         .environment(\.accessibilityFocusMover, mover)
     }
     defer { harness.close() }
     harness.pump()
     #expect(mover.lastMove == nil)
 
-    thread.apply(.addPermission(ThreadFixtures.permissionRequest(id: Self.requestID)))
+    let id = try #require(
+      try await session.sendPermissionRequest(id: 1, pumping: harness, timeout: Self.waitTimeout))
     await harness.pump(until: Self.waitTimeout) { mover.lastMove != nil }
     #expect(mover.lastMove != nil)
 
-    thread.apply(.resolvePermission(PermissionRequestID(Self.requestID)))
+    session.model.cancelPermission(id)
     await harness.pump(until: Self.waitTimeout) {
       mover.lastMove?.identifier == StockPromptEditor.identifier
     }

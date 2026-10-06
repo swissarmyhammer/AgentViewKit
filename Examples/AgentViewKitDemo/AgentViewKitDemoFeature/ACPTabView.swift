@@ -146,6 +146,7 @@ struct ACPTabView: View {
       }
       StateBanner(state: thread.state)
       AgentThreadView(thread: thread, actions: actions)
+        .environment(\.sessionModel, session.sessionModel)
       TaskListView(plans: thread.plans)
       ContextUsageView(usage: thread.usage)
         .frame(maxWidth: .infinity, alignment: .trailing)

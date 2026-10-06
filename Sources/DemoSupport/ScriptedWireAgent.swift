@@ -22,8 +22,8 @@ private let promptMethod = "session/prompt"
 /// after the result. Before the answer, the agent sends the frames that
 /// ``leadIns`` gives for the method. After the answer, the agent sends the
 /// frames that ``followUps`` gives for the method. The agent can also send a
-/// raw frame to the client. When ``holdsPromptAnswers`` is `true`, the agent
-/// holds each prompt answer until ``releasePromptAnswer()``.
+/// raw frame to the client. The agent holds the answer to each request with
+/// a method in ``heldMethods`` until ``releaseHeldAnswer()``.
 ///
 /// The ACP tests and the demo app use this agent. The demo app binds it with
 /// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
@@ -49,18 +49,19 @@ public final class ScriptedWireAgent {
   /// The position of the echoed user message of each prompt.
   public var promptEchoOrder = PromptEchoOrder.beforeResult
 
-  /// Whether the agent holds the answer to each `session/prompt` request
-  /// until ``releasePromptAnswer()``.
+  /// The methods whose answers the agent holds until ``releaseHeldAnswer()``.
   ///
-  /// While the agent holds an answer, it sends no frame and reads no frame.
-  /// A test uses this to see the client state before the answer.
-  public var holdsPromptAnswers = false
+  /// The agent sends the lead-in frames of a held request, and then holds
+  /// its answer. While the agent holds an answer, it sends no frame and reads
+  /// no frame. A test uses this to see the client state while the request is
+  /// in flight.
+  public var heldMethods: Set<String> = []
 
   /// The number of releases that came before the agent held an answer.
-  private var earlyPromptReleases = 0
+  private var earlyReleases = 0
 
-  /// The continuation of the held prompt answer, or `nil`.
-  private var heldPromptAnswer: CheckedContinuation<Void, Never>?
+  /// The continuation of the held answer, or `nil`.
+  private var heldAnswer: CheckedContinuation<Void, Never>?
 
   /// The transport end of the agent.
   private let transport: InMemoryTransport
@@ -119,25 +120,25 @@ public final class ScriptedWireAgent {
     }
   }
 
-  /// Stops the reader and closes the transport. A held prompt answer goes
-  /// out to the closed transport, so the reader ends.
+  /// Stops the reader and closes the transport. A held answer goes out to
+  /// the closed transport, so the reader ends.
   public func stop() {
     reader?.cancel()
     transport.close()
-    releasePromptAnswer()
+    releaseHeldAnswer()
   }
 
-  /// Lets the agent send one held prompt answer.
+  /// Lets the agent send one held answer.
   ///
   /// When the agent holds no answer, the release applies to the next answer
   /// that the agent holds.
-  public func releasePromptAnswer() {
-    guard let heldPromptAnswer else {
-      earlyPromptReleases += 1
+  public func releaseHeldAnswer() {
+    guard let heldAnswer else {
+      earlyReleases += 1
       return
     }
-    self.heldPromptAnswer = nil
-    heldPromptAnswer.resume()
+    self.heldAnswer = nil
+    heldAnswer.resume()
   }
 
   /// Sends a raw JSON-RPC frame to the client.
@@ -200,13 +201,17 @@ public final class ScriptedWireAgent {
   }
 
   /// Records one frame. When it is a request, sends the lead-in frames of its
-  /// method, answers it, and then sends the follow-up frames of its method.
+  /// method, holds the answer when ``heldMethods`` has the method, answers
+  /// it, and then sends the follow-up frames of its method.
   private func handle(_ line: Data) async {
     guard let frame = try? JSONDecoder().decode(AgentViewKit.JSONValue.self, from: line) else { return }
     received.append(frame)
     guard let method = frame["method"]?.stringValue, let id = frame["id"] else { return }
     let idText = String(decoding: (try? JSONEncoder().encode(id)) ?? Data(), as: UTF8.self)
     await send(leadIns[method], for: frame, method: method)
+    if heldMethods.contains(method) {
+      await waitForRelease()
+    }
     if failingMethods.contains(method) {
       try? await send(#"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(internalErrorCode),"message":"failed"}}"#)
     } else if method == promptMethod {
@@ -234,18 +239,14 @@ public final class ScriptedWireAgent {
 
   /// Answers a `session/prompt` request.
   ///
-  /// When ``holdsPromptAnswers`` is `true`, the agent first waits for
-  /// ``releasePromptAnswer()``. The result gets a new `messageId`. The agent
-  /// echoes the prompt text in a `user_message_chunk` update with the same
-  /// `messageId`, before or after the result as ``promptEchoOrder`` tells.
+  /// The result gets a new `messageId`. The agent echoes the prompt text in a
+  /// `user_message_chunk` update with the same `messageId`, before or after
+  /// the result as ``promptEchoOrder`` tells.
   ///
   /// - Parameters:
   ///   - request: The request frame.
   ///   - idText: The JSON text of the id of the request.
   private func answerPrompt(request: AgentViewKit.JSONValue, idText: String) async {
-    if holdsPromptAnswers {
-      await waitForPromptRelease()
-    }
     let messageID = AgentViewKit.JSONValue.string(UUID().uuidString)
     let result = Self.resultFrame(idText: idText, result: promptResult(messageID: messageID))
     let echo = Self.echoFrame(of: request, messageID: messageID)
@@ -259,14 +260,14 @@ public final class ScriptedWireAgent {
     }
   }
 
-  /// Waits until ``releasePromptAnswer()`` lets the held answer go out. A
+  /// Waits until ``releaseHeldAnswer()`` lets the held answer go out. A
   /// release that came before returns at once.
-  private func waitForPromptRelease() async {
-    guard earlyPromptReleases == 0 else {
-      earlyPromptReleases -= 1
+  private func waitForRelease() async {
+    guard earlyReleases == 0 else {
+      earlyReleases -= 1
       return
     }
-    await withCheckedContinuation { heldPromptAnswer = $0 }
+    await withCheckedContinuation { heldAnswer = $0 }
   }
 
   /// The result JSON text of the next answer to `session/prompt`: the
@@ -319,7 +320,7 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter request: The request frame.
   /// - Returns: The joined text.
-  static func promptText(of request: AgentViewKit.JSONValue) -> String {
+  public static func promptText(of request: AgentViewKit.JSONValue) -> String {
     guard case .array(let blocks)? = request["params"]?["prompt"] else { return "" }
     return blocks.compactMap { block in
       block["type"]?.stringValue == "text" ? block["text"]?.stringValue : nil

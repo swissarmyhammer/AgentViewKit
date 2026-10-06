@@ -48,12 +48,11 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 ///   The text is a `text` block. An image attachment is an `image` block with
 ///   base64 data. Each other attachment is a `resource_link` block.
 /// - ``cancel()`` sends `session/cancel` with `SessionModel.cancel(meta:)`.
-/// - ``respond(to:_:)-(PermissionRequest,_)`` answers the pending permission
-///   request of the session model. When the decision has a comment, the verb
-///   then sends the comment as the next prompt, because the wire has no
-///   comment field.
-/// - ``respond(to:_:)-(ElicitationRequest,_)`` accepts, declines, or cancels
-///   the pending elicitation of the session model.
+/// - ``respond(to:_:)-(PermissionRequest,_)`` and
+///   ``respond(to:_:)-(ElicitationRequest,_)`` send nothing. The client
+///   models hold the pending requests, and the cards of
+///   ``PendingRequestsHost`` call the reply methods of those models
+///   (update.md §3 D7, §4.6 item 3).
 /// - ``setConfigOption(_:_:)`` sends `session/set_config_option`. The agent
 ///   reports the new options in a `config_option_update`, which the source
 ///   puts on the thread.
@@ -76,18 +75,6 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 public final class ACPThreadActions: AgentThreadActions {
   /// The text that ``writeTerminalLine(_:to:)`` adds after each line.
   static let lineTerminator = "\n"
-
-  /// The number of milliseconds in ``commentDelay``.
-  static let commentDelayMilliseconds = 50
-
-  /// The time that ``respond(to:_:)-(PermissionRequest,_)`` waits between
-  /// the answer and the comment prompt.
-  ///
-  /// The connection writes the answer in its own task after the pending
-  /// request resumes. The client side of the connection has no public hook
-  /// that runs after the answer is written, so the verb waits this time.
-  /// Then the answer is on the transport before the comment prompt.
-  static let commentDelay = Duration.milliseconds(commentDelayMilliseconds)
 
   /// The thread that the actions change.
   public let thread: AgentThread
@@ -155,38 +142,11 @@ public final class ACPThreadActions: AgentThreadActions {
   // MARK: - Requests
 
   public func respond(to request: PermissionRequest, _ decision: PermissionDecision) async {
-    if let pending = session.pendingPermissions.first(where: {
-      $0.id.uuidString == request.id.rawValue
-    }) {
-      switch decision.outcome {
-      case .selected(let optionId):
-        session.selectPermission(pending.id, option: PermissionOptionId(rawValue: optionId.rawValue))
-      case .cancelled:
-        session.cancelPermission(pending.id)
-      }
-    } else {
-      logger.error("No pending permission request \(request.id.rawValue, privacy: .public).")
-    }
-    thread.apply(.resolvePermission(request.id))
-    guard let comment = decision.comment, !comment.isEmpty else { return }
-    try? await Task.sleep(for: Self.commentDelay)
-    await send(UserInput(text: comment))
+    logUnsupportedReply(to: request.id.rawValue)
   }
 
   public func respond(to request: AgentViewKit.ElicitationRequest, _ result: ElicitationResult) async {
-    if let id = pendingElicitationID(matching: request.id.rawValue) {
-      switch result {
-      case .accept(let content):
-        session.acceptElicitation(id, content: content.map(SessionUpdateMapping.wireJSON))
-      case .decline:
-        session.declineElicitation(id)
-      case .cancel:
-        session.cancelElicitation(id)
-      }
-    } else {
-      logger.error("No pending elicitation \(request.id.rawValue, privacy: .public).")
-    }
-    thread.apply(.resolveElicitation(request.id))
+    logUnsupportedReply(to: request.id.rawValue)
   }
 
   public func setConfigOption(_ id: ConfigOptionID, _ value: ConfigValue) async {
@@ -259,12 +219,17 @@ public final class ACPThreadActions: AgentThreadActions {
 
   // MARK: - Helpers
 
-  /// The local id of the pending elicitation of the session that `id` names.
+  /// Writes to the log that a card sent its answer to the actions.
   ///
-  /// - Parameter id: The local id as a string.
-  /// - Returns: The local id, or `nil` when no pending elicitation matches.
-  private func pendingElicitationID(matching id: String) -> UUID? {
-    session.pendingElicitations.first { $0.id.uuidString == id }?.id
+  /// The session model holds the pending requests and takes the answers
+  /// (update.md §3 D7). ``PendingRequestsHost`` gives the model to its cards,
+  /// so an answer here comes from a card that the host did not show.
+  ///
+  /// - Parameter requestID: The raw id of the request.
+  private func logUnsupportedReply(to requestID: String) {
+    assertionFailure("The answer to request \(requestID) did not go to the session model.")
+    logger.error(
+      "The answer to request \(requestID, privacy: .public) did not go to the session model. It does not go out.")
   }
 
   /// Writes a failed verb to the log and adds its error entry to the session

@@ -29,9 +29,12 @@ import SwiftUI
 /// mode option to ``PermissionPresentation/autoModeValue``. This is the order
 /// of `Docs/decisions/permission-ux.md`.
 ///
-/// Each answer goes to
-/// ``AgentThreadActions/respond(to:_:)-(PermissionRequest,_)`` of the
-/// `threadActions` environment value. The card sends one answer only.
+/// Each answer goes to the session model in
+/// ``SwiftUI/EnvironmentValues/permissionReplies``, which calls
+/// `selectPermission(_:option:)` or `cancelPermission(_:)`. A comment then
+/// goes out as the next prompt. The card sends one answer only. The
+/// "switch to auto" button sets the mode through the `threadActions`
+/// environment value.
 ///
 /// The view keeps the selected reject option and the comment in state. Give
 /// each request its own view identity, for example with `.id(request.id)`.
@@ -89,10 +92,10 @@ public struct PermissionView: View {
   /// Whether the card has the keyboard focus.
   @FocusState private var isFocused: Bool
 
+  @Environment(\.permissionReplies) private var replies
   @Environment(\.threadActions) private var actions
   @Environment(\.agentThread) private var thread
   @Environment(\.agentTheme) private var theme
-  @Environment(\.agentCommandTarget) private var commandTarget
 
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
@@ -313,60 +316,42 @@ public struct PermissionView: View {
 
   /// Answers with `option`.
   ///
-  /// In an agent command scope, the answer runs
-  /// ``AgentCommandVerb/approvePending`` or ``AgentCommandVerb/rejectPending``
-  /// with the request and the option in the payload. When no command runs,
-  /// the card sends the answer directly.
-  ///
   /// - Parameters:
   ///   - option: The option that the user selected.
   ///   - comment: The comment of the user, or `nil`.
   private func sendSelection(_ option: PermissionOption, comment: String?) {
-    guard !isAnswered else { return }
-    let verb: AgentCommandVerb =
-      AgentCommandTarget.isReject(option.kind) ? .rejectPending : .approvePending
-    let payload = AgentCommandPayload.permission(
-      request: request.id, option: option.id, comment: comment)
-    if commandTarget?.perform(verb, payload: payload) == true {
-      isAnswered = true
-      return
-    }
     send(PermissionDecision(outcome: .selected(option.id), comment: comment))
   }
 
-  /// Answers with `allow`, then sets the mode option to auto.
+  /// Answers with `allow`, then sets the mode option to auto through the
+  /// thread actions.
   ///
   /// - Parameters:
   ///   - allow: The `allow_once` option of the request.
   ///   - modeOption: The option that
   ///     ``PermissionPresentation/autoModeOption(in:)`` gave.
   private func switchToAuto(allow: PermissionOption, modeOption: ConfigOption) {
-    answer { actions, request in
-      await actions.respond(to: request, PermissionDecision(outcome: .selected(allow.id)))
-      await actions.setConfigOption(modeOption.id, PermissionPresentation.autoModeValue)
+    let actions = actions
+    send(PermissionDecision(outcome: .selected(allow.id))) {
+      await actions?.setConfigOption(modeOption.id, PermissionPresentation.autoModeValue)
     }
   }
 
-  /// Sends `decision` to the thread actions.
+  /// Sends `decision` one time for the card to the session model that holds
+  /// the request, then runs `next`.
   ///
-  /// - Parameter decision: The answer of the user.
-  private func send(_ decision: PermissionDecision) {
-    answer { actions, request in
-      await actions.respond(to: request, decision)
-    }
-  }
-
-  /// Runs `work` one time for the card.
-  ///
-  /// - Parameter work: The calls that answer the request.
-  private func answer(
-    _ work: @escaping @MainActor (any AgentThreadActions, PermissionRequest) async -> Void
+  /// - Parameters:
+  ///   - decision: The answer of the user.
+  ///   - next: The work that runs after the answer.
+  private func send(
+    _ decision: PermissionDecision, then next: @escaping @MainActor () async -> Void = {}
   ) {
-    guard !isAnswered, let actions else { return }
+    guard !isAnswered, let replies else { return }
     isAnswered = true
     let request = request
     Task {
-      await work(actions, request)
+      await replies.reply(to: request, decision)
+      await next()
     }
   }
 }

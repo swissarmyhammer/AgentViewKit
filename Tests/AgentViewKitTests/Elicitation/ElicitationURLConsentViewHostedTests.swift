@@ -60,7 +60,7 @@ import Testing
     let actions = NoopThreadActions()
     let browser = FakeWebAuthSession(script: .waitsForCancel)
     let view = ElicitationURLConsentView(request: request)
-      .environment(\.threadActions, actions)
+      .repliesRecorded(by: actions)
       .environment(\.authorizationPresenter, AuthorizationPresenter(factory: browser))
       .environment(\.focusReporter, reporter)
     let harness = HostedViewHarness(AnyView(view), size: cardSize)
@@ -238,13 +238,24 @@ import Testing
 
   // MARK: - Host
 
-  @Test func thePendingHostShowsTheConsentCardForAURLRequest() {
-    let thread = AgentThread()
-    thread.apply(.addElicitation(ThreadFixtures.urlElicitationRequest(id: "url-1")))
-    thread.apply(.addElicitation(ThreadFixtures.formElicitationRequest(id: "form-1")))
-    let harness = HostedViewHarness(PendingRequestsHost(thread: thread), size: Self.hostSize)
+  /// The params of a URL mode elicitation of the scripted session.
+  static let urlElicitationParams = #"""
+    {"sessionId": "\#(ScriptedSession.sessionID)", "message": "Sign in", "mode": "url",
+     "url": "https://example.com/auth", "elicitationId": "url-1"}
+    """#
+
+  @Test func thePendingHostShowsTheConsentCardForAURLRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = HostedViewHarness(PendingRequestsHost(session: session.model), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+
+    try await session.sendRequest("elicitation/create", id: 1, params: Self.urlElicitationParams)
+    try await session.sendRequest("elicitation/create", id: 2, params: ScriptedSession.formElicitationParams)
+    await harness.pump(until: Self.callWaitSeconds) {
+      harness.element(identifier: ElicitationURLConsentView.identifier) != nil
+        && harness.element(identifier: ElicitationView.formIdentifier) != nil
+    }
 
     #expect(harness.element(identifier: ElicitationURLConsentView.identifier) != nil)
     #expect(harness.element(identifier: ElicitationURLConsentView.openIdentifier) != nil)

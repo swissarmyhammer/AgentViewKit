@@ -58,6 +58,7 @@ import Testing
   ) -> HostedViewHarness<some View> {
     let harness = threadViewHarness(size: cardSize, actions: actions, thread: thread) {
       PermissionView(request: request)
+        .repliesRecorded(by: actions)
     }
     harness.pump()
     return harness
@@ -281,27 +282,45 @@ import Testing
 
   // MARK: - Host
 
-  /// Mounts the host of `thread` with `reporter`.
+  /// The JSON-RPC id of the first request that the scripted agent sends.
+  static let agentRequestID = 100
+
+  /// Mounts the host of the session model of `session` with `reporter`.
   static func mountHost(
-    _ thread: AgentThread, reporter: RecordingFocusReporter
+    _ session: ScriptedSession, reporter: RecordingFocusReporter
   ) -> HostedViewHarness<some View> {
     let harness = threadViewHarness(size: cardSize, actions: NoopThreadActions()) {
-      PendingRequestsHost(thread: thread)
+      PendingRequestsHost(session: session.model)
         .environment(\.focusReporter, reporter)
     }
     harness.pump()
     return harness
   }
 
-  @Test func theHostReportsANewCardThenThePromptEditor() async {
-    let thread = AgentThread()
+  /// Sends a permission request of the session from the agent, and waits
+  /// until the session model holds it.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness to pump while the test waits.
+  /// - Returns: The local id of the pending request.
+  static func sendPermissionRequest(
+    _ session: ScriptedSession, harness: HostedViewHarness<some View>
+  ) async throws -> UUID {
+    try #require(
+      try await session.sendPermissionRequest(id: agentRequestID, pumping: harness, timeout: waitTimeout))
+  }
+
+  @Test func theHostReportsANewCardThenThePromptEditor() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let reporter = RecordingFocusReporter()
-    let harness = Self.mountHost(thread, reporter: reporter)
+    let harness = Self.mountHost(session, reporter: reporter)
     defer { harness.close() }
-    let cardIdentifier = PendingRequestsHost.identifier(for: Self.requestID)
     #expect(reporter.moves.isEmpty)
 
-    thread.apply(.addPermission(Self.request))
+    let id = try await Self.sendPermissionRequest(session, harness: harness)
+    let cardIdentifier = PendingRequestsHost.identifier(for: id.uuidString)
     await harness.pump(until: Self.waitTimeout) { reporter.moves.count >= 2 }
 
     // The host reports the card container, and the card reports itself.
@@ -310,37 +329,47 @@ import Testing
     #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
     let movesBeforeAnswer = reporter.moves.count
-    thread.apply(.resolvePermission(PermissionRequestID(Self.requestID)))
+    session.model.cancelPermission(id)
     await harness.pump(until: Self.waitTimeout) { reporter.moves.count > movesBeforeAnswer }
 
     #expect(reporter.moves.dropFirst(movesBeforeAnswer) == [StockPromptEditor.identifier])
     #expect(harness.element(identifier: cardIdentifier) == nil)
   }
 
-  @Test func theHostShowsOneCardForEachPendingRequest() {
-    let thread = AgentThread()
-    let elicitation = ThreadFixtures.formElicitationRequest(id: "elicitation-1")
-    thread.apply(.addPermission(Self.request))
-    thread.apply(.addElicitation(elicitation))
-    let harness = Self.mountHost(thread, reporter: RecordingFocusReporter())
+  @Test func theHostShowsOneCardForEachPendingRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mountHost(session, reporter: RecordingFocusReporter())
     defer { harness.close() }
 
-    for id in [Self.requestID, "elicitation-1"] {
-      #expect(harness.element(identifier: PendingRequestsHost.identifier(for: id)) != nil)
+    let permissionID = try await Self.sendPermissionRequest(session, harness: harness)
+    try await session.sendRequest(
+      "elicitation/create", id: Self.agentRequestID + 1, params: ScriptedSession.formElicitationParams)
+    await harness.pump(until: Self.waitTimeout) { !session.model.pendingElicitations.isEmpty }
+    let elicitationID = try #require(session.model.pendingElicitations.first).id
+    await harness.pump(until: Self.waitTimeout) {
+      harness.element(identifier: ElicitationView.formIdentifier) != nil
+    }
+
+    for id in [permissionID, elicitationID] {
+      #expect(harness.element(identifier: PendingRequestsHost.identifier(for: id.uuidString)) != nil)
     }
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }
 
-  @Test func theThreadViewShowsThePendingCards() {
-    let thread = AgentThread()
-    thread.apply(.addPermission(Self.request))
+  @Test func theThreadViewShowsThePendingCards() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let harness = HostedViewHarness(
-      AgentThreadView(thread: thread, actions: NoopThreadActions()), size: Self.cardSize)
+      AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.cardSize)
     defer { harness.close() }
     harness.pump()
 
-    #expect(
-      harness.element(identifier: PendingRequestsHost.identifier(for: Self.requestID)) != nil)
+    let id = try await Self.sendPermissionRequest(session, harness: harness)
+    let cardIdentifier = PendingRequestsHost.identifier(for: id.uuidString)
+    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: cardIdentifier) != nil }
+
+    #expect(harness.element(identifier: cardIdentifier) != nil)
   }
 
   // MARK: - Focus target

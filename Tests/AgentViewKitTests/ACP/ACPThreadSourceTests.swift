@@ -27,27 +27,10 @@ private func thoughtChunk(_ text: String, id: String = "t1") -> String {
   """
 }
 
-/// A permission request with a tool call subject.
-private let toolCallPermissionJSON = #"""
-  {"sessionId": "s1", "title": "Edit a.swift",
-   "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"}],
-   "subject": {"type": "tool_call",
-               "toolCall": {"toolCallId": "c1", "title": "Edit a.swift", "kind": "edit"}}}
-  """#
-
-/// A URL elicitation of the session `s1`.
-private let urlElicitationJSON = #"""
-  {"sessionId": "s1", "message": "Sign in", "mode": "url",
-   "url": "https://example.com/auth", "elicitationId": "e1"}
-  """#
-
-/// An elicitation with a mode that the kit does not know.
-private let unknownElicitationJSON = #"{"sessionId": "s1", "message": "Pick", "mode": "picker"}"#
-
 @MainActor
 @Suite struct ACPThreadSourceTests {
   /// Makes a source with no stream updates, for the tests that call
-  /// `apply(_:)` and the mirror functions.
+  /// `apply(_:)`.
   private func makeSource() -> ACPThreadSource {
     ACPThreadSource(thread: AgentThread(), updates: AsyncStream { $0.finish() }, agentName: "Agent")
   }
@@ -226,86 +209,6 @@ private let unknownElicitationJSON = #"{"sessionId": "s1", "message": "Pick", "m
         == [AgentViewKit.ContentBlock(text: "Text")])
   }
 
-  // MARK: - Pending requests
-
-  @Test func mirrorPermissionsAddsTheToolCallAndTheRequest() throws {
-    let source = makeSource()
-    let id = UUID()
-    let request = try SessionUpdateFixtures.decode(
-      RequestPermissionRequest.self, toolCallPermissionJSON)
-
-    source.mirrorPermissions([TestPermission(id: id, request: request)])
-    source.mirrorPermissions([TestPermission(id: id, request: request)])
-
-    #expect(source.thread.pendingPermissions.map(\.id) == [PermissionRequestID(id.uuidString)])
-    guard case .toolCall(let call)? = source.thread.item(id: "c1") else {
-      Issue.record("The thread has no tool call c1.")
-      return
-    }
-    #expect(call.kind == .edit)
-    #expect(call.revision == 0)
-  }
-
-  @Test func mirrorPermissionsResolvesARequestThatIsGone() throws {
-    let source = makeSource()
-    let request = try SessionUpdateFixtures.decode(
-      RequestPermissionRequest.self, toolCallPermissionJSON)
-    let first = TestPermission(id: UUID(), request: request)
-    let second = TestPermission(id: UUID(), request: request)
-
-    source.mirrorPermissions([first, second])
-    source.mirrorPermissions([second])
-
-    #expect(source.thread.pendingPermissions.map(\.id) == [PermissionRequestID(second.id.uuidString)])
-  }
-
-  @Test func mirrorElicitationsAddsAndResolvesAndSkipsAnUnknownMode() throws {
-    let source = makeSource()
-    let url = TestElicitation(
-      id: UUID(),
-      request: try SessionUpdateFixtures.decode(CreateElicitationRequest.self, urlElicitationJSON))
-    let unknown = TestElicitation(
-      id: UUID(),
-      request: try SessionUpdateFixtures.decode(
-        CreateElicitationRequest.self, unknownElicitationJSON))
-
-    source.mirrorElicitations([url, unknown])
-
-    #expect(source.thread.pendingElicitations.map(\.id) == [ElicitationRequestID(url.id.uuidString)])
-    #expect(source.thread.pendingElicitations.first?.server == "Agent")
-
-    source.mirrorElicitations([TestElicitation]())
-
-    #expect(source.thread.pendingElicitations.isEmpty)
-  }
-
-  @Test func mirrorPendingRequestsFollowsTheSessionModel() async throws {
-    let harness = try await WireHarness()
-    defer { harness.agent.stop() }
-    let source = try await harness.openNewSession()
-    let session = try #require(source.session)
-    let mirror = Task { await source.mirrorPendingRequests(of: session) }
-
-    try await harness.agent.send(agentRequest("session/request_permission", id: 100, params: toolCallPermissionJSON))
-    try await harness.agent.send(agentRequest("elicitation/create", id: 101, params: urlElicitationJSON))
-    let added = await waitUntil {
-      source.thread.pendingPermissions.count == 1 && source.thread.pendingElicitations.count == 1
-    }
-    #expect(added)
-
-    let pendingPermission = try #require(session.pendingPermissions.first)
-    session.selectPermission(pendingPermission.id, option: PermissionOptionId(rawValue: "yes"))
-    let pendingElicitation = try #require(session.pendingElicitations.first)
-    session.declineElicitation(pendingElicitation.id)
-
-    let resolved = await waitUntil {
-      source.thread.pendingPermissions.isEmpty && source.thread.pendingElicitations.isEmpty
-    }
-    #expect(resolved)
-    mirror.cancel()
-    await mirror.value
-  }
-
   // MARK: - Session model
 
   @Test func aPromptShowsTheUserMessageAndTheAgentMessage() async throws {
@@ -438,17 +341,6 @@ private let compactionUpdate = #"""
 /// - Returns: The frame.
 private func updateFrame(_ update: String) -> String {
   #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#
-}
-
-/// A JSON-RPC request from the agent.
-///
-/// - Parameters:
-///   - method: The method of the request.
-///   - id: The JSON-RPC id of the request.
-///   - params: The JSON text of the parameters.
-/// - Returns: The frame.
-private func agentRequest(_ method: String, id: Int, params: String) -> String {
-  #"{"jsonrpc":"2.0","id":\#(id),"method":"\#(method)","params":\#(params)}"#
 }
 
 /// The objects of a test over the scripted agent: the agent and the

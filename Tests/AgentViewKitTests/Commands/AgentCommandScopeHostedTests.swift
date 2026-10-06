@@ -7,8 +7,7 @@ import SwiftUI
 import Testing
 
 /// Tests for the agent command scope in a window: the registration of a
-/// mounted thread view, and the composer and the cards that run the
-/// commands.
+/// mounted thread view, and the composer that runs the commands.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentCommandScopeHostedTests {
   /// The text that the composer tests send.
   static let message = "Hello"
@@ -146,24 +145,6 @@ import Testing
     harness.pump()
 
     #expect(harness.window.firstResponder === editor)
-  }
-
-  @Test func theAllowButtonOfACardRunsTheApproveCommand() async throws {
-    let thread = AgentThread()
-    let request = ThreadFixtures.permissionRequest()
-    thread.apply(.addPermission(request))
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
-    }
-    defer { harness.close() }
-    harness.pump()
-    let allow = PermissionOptionID(PermissionOption.Kind.allowAlways.wireValue)
-
-    try harness.press(identifier: PermissionView.optionIdentifier(for: allow))
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-
-    #expect(actions.calls == [.respondToPermission(request, PermissionDecision(outcome: .selected(allow)))])
   }
 
   @Test func theScopeRemovesItsNodeWhenTheViewGoesAway() {

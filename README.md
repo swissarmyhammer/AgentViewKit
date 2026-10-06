@@ -51,8 +51,9 @@ code that we build. See [The README gate](#the-readme-gate).
 `ConnectionModel` of FoundationModelsACPClient connects to the agent and opens
 the session. `ACPThreadSource` fills the thread from the `SessionModel` of the
 session: first from the state of the model, then from each `session/update`.
-`ACPThreadActions` sends the prompts, the cancel, and the answers to the agent
-through the two models.
+`ACPThreadActions` sends the prompts and the cancel to the agent through the
+two models. The `SessionModel` holds the pending permission and elicitation
+requests, and the cards of the thread view send each answer to it.
 
 ```swift
 // readme:compile ACPQuickStart
@@ -68,6 +69,7 @@ import SwiftUI
 final class ACPQuickStart {
   let thread = AgentThread()
   private(set) var actions: ACPThreadActions?
+  private(set) var session: SessionModel?
 
   @ObservationIgnored private let connection = ConnectionModel()
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
@@ -85,11 +87,9 @@ final class ACPQuickStart {
       NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)), on: connection, thread: thread, agentName: "Agent")
     source.acceptProtocolVersion(response.protocolVersion, requested: request.protocolVersion)
     guard let session = source.session else { return }
-    tasks = [
-      Task { await source.run() },
-      Task { await source.mirrorPendingRequests(of: session) },
-    ]
+    tasks = [Task { await source.run() }]
     actions = ACPThreadActions(thread: thread, session: session, connection: connection)
+    self.session = session
   }
 }
 
@@ -98,7 +98,10 @@ struct ACPThread: View {
 
   var body: some View {
     if let actions = model.actions {
+      // The session model holds the pending permission and elicitation
+      // requests. The thread view shows a card for each one.
       AgentThreadView(thread: model.thread, actions: actions)
+        .environment(\.sessionModel, model.session)
     } else {
       ProgressView("Connecting")
     }

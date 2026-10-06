@@ -13,9 +13,6 @@ private let operationLimit = ScriptedWireAgent.operationLimit
 /// The session of each test.
 private let sessionID = "s1"
 
-/// The JSON-RPC id of each request that the agent sends to the client.
-private let agentRequestID = 100.0
-
 /// The path of the agent program for terminal authentication.
 private let agentPath = "/usr/local/bin/agent"
 
@@ -33,29 +30,6 @@ private func errorCodes(of session: SessionModel) -> [Int] {
     if case .error(let error) = entry { error.code.wireValue } else { nil }
   }
 }
-
-/// Decodes JSON text into a kit JSON value.
-private func json(_ text: String) throws -> AgentViewKit.JSONValue {
-  try JSONDecoder().decode(AgentViewKit.JSONValue.self, from: Data(text.utf8))
-}
-
-/// A JSON-RPC request from the agent with `method` and `params`.
-private func agentRequest(_ method: String, params: String) -> String {
-  #"{"jsonrpc":"2.0","id":\#(Int(agentRequestID)),"method":"\#(method)","params":\#(params)}"#
-}
-
-/// A permission request with an allow option and a reject option.
-private let permissionParams = #"""
-  {"sessionId": "s1", "title": "Edit a.swift",
-   "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"},
-               {"optionId": "no", "name": "Reject", "kind": "reject_once"}]}
-  """#
-
-/// A form elicitation of the session.
-private let formElicitationParams = #"""
-  {"sessionId": "s1", "message": "Your name?", "mode": "form",
-   "requestedSchema": {"type": "object", "properties": {"name": {"type": "string"}}}}
-  """#
 
 /// The response of `session/set_config_option`.
 private let configOptionsResult = #"""
@@ -176,96 +150,6 @@ private struct Harness {
     let cancel = try #require(harness.agent.messages(method: "session/cancel").first)
     #expect(cancel["params"] == .object(["sessionId": .string(sessionID)]))
     #expect(cancel["id"] == nil)
-  }
-
-  // MARK: - Permission
-
-  /// Sends the permission request and gives its kit request.
-  private func pendingPermission(_ harness: Harness) async throws -> PermissionRequest {
-    try await harness.agent.send(agentRequest("session/request_permission", params: permissionParams))
-    #expect(await waitUntil { !harness.session.pendingPermissions.isEmpty })
-    let pending = try #require(harness.session.pendingPermissions.first)
-    let request = SessionUpdateMapping.permissionRequest(pending)
-    harness.thread.apply(.addPermission(request))
-    return request
-  }
-
-  @Test func permissionSelectionSendsTheSelectedOption() async throws {
-    let harness = try await Harness()
-    defer { harness.agent.stop() }
-    let request = try await pendingPermission(harness)
-
-    await harness.bounded { await harness.actions.respond(to: request, PermissionDecision(outcome: .selected(PermissionOptionID("yes")))) }
-
-    #expect(await waitUntil { harness.agent.response(to: agentRequestID) != nil })
-    let response = try #require(harness.agent.response(to: agentRequestID))
-    #expect(response["result"] == (try json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
-    #expect(harness.thread.pendingPermissions.isEmpty)
-    #expect(harness.agent.messages(method: "session/prompt").isEmpty)
-  }
-
-  @Test func permissionCancelSendsTheCancelledOutcome() async throws {
-    let harness = try await Harness()
-    defer { harness.agent.stop() }
-    let request = try await pendingPermission(harness)
-
-    await harness.bounded { await harness.actions.respond(to: request, PermissionDecision(outcome: .cancelled)) }
-
-    #expect(await waitUntil { harness.agent.response(to: agentRequestID) != nil })
-    let response = try #require(harness.agent.response(to: agentRequestID))
-    #expect(response["result"] == (try json(#"{"outcome": {"outcome": "cancelled"}}"#)))
-    #expect(harness.thread.pendingPermissions.isEmpty)
-  }
-
-  @Test func rejectionWithACommentSendsTheAnswerThenAPrompt() async throws {
-    let harness = try await Harness()
-    defer { harness.agent.stop() }
-    let request = try await pendingPermission(harness)
-    let comment = "Write the tests first."
-
-    await harness.bounded { await harness.actions.respond(to: request, PermissionDecision(outcome: .selected(PermissionOptionID("no")), comment: comment)) }
-
-    let answer = try #require(harness.agent.index(ofResponseTo: agentRequestID))
-    let prompt = try #require(harness.agent.index(ofMethod: "session/prompt"))
-    #expect(answer < prompt)
-    let blocks = harness.agent.received[prompt]["params"]?["prompt"]
-    #expect(blocks == .array([.object(["type": .string("text"), "text": .string(comment)])]))
-    #expect(
-      harness.agent.received[answer]["result"]
-        == (try json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
-  }
-
-  // MARK: - Elicitation
-
-  /// Sends an elicitation request and gives its kit request.
-  private func pendingElicitation(_ harness: Harness, params: String) async throws
-    -> AgentViewKit.ElicitationRequest
-  {
-    try await harness.agent.send(agentRequest("elicitation/create", params: params))
-    #expect(await waitUntil { !harness.session.pendingElicitations.isEmpty })
-    let pending = try #require(harness.session.pendingElicitations.first)
-    let request = try #require(SessionUpdateMapping.elicitationRequest(pending, server: "Agent"))
-    harness.thread.apply(.addElicitation(request))
-    return request
-  }
-
-  @Test(arguments: [
-    (ElicitationResult.accept(.object(["name": .string("Ada")])), #"{"action": "accept", "content": {"name": "Ada"}}"#),
-    (ElicitationResult.decline, #"{"action": "decline"}"#),
-    (ElicitationResult.cancel, #"{"action": "cancel"}"#),
-  ])
-  func elicitationResultSendsTheAction(result: ElicitationResult, expected: String) async throws {
-    let harness = try await Harness()
-    defer { harness.agent.stop() }
-    let request = try await pendingElicitation(harness, params: formElicitationParams)
-
-    await harness.bounded { await harness.actions.respond(to: request, result) }
-
-    #expect(await waitUntil { harness.agent.response(to: agentRequestID) != nil })
-    let response = try #require(harness.agent.response(to: agentRequestID))
-    #expect(response["result"] == (try json(expected)))
-    #expect(harness.thread.pendingElicitations.isEmpty)
-    #expect(harness.session.pendingElicitations.isEmpty)
   }
 
   // MARK: - Config

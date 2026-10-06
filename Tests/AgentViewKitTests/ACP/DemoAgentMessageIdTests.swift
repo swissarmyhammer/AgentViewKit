@@ -217,7 +217,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
   }
 
   @Test func aHeldPromptAnswerStopsTheAgentUntilTheRelease() async throws {
-    let (agent, client) = startScriptedAgent { $0.holdsPromptAnswers = true }
+    let (agent, client) = startScriptedAgent { $0.heldMethods = ["session/prompt"] }
     defer { agent.stop() }
 
     let prompt = try await agent.bounded {
@@ -228,7 +228,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
       // stays unread. Without the hold, the agent reads it within the pause.
       try await Task.sleep(for: heldReadPause)
       #expect(agent.messages(method: markerMethod).isEmpty)
-      agent.releasePromptAnswer()
+      agent.releaseHeldAnswer()
       let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
       return try PromptFrames(frames: frames, promptID: firstPromptID)
     }
@@ -238,9 +238,9 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
   }
 
   @Test func aReleaseBeforeThePromptLetsTheNextAnswerGoOutAtOnce() async throws {
-    let (agent, client) = startScriptedAgent { $0.holdsPromptAnswers = true }
+    let (agent, client) = startScriptedAgent { $0.heldMethods = ["session/prompt"] }
     defer { agent.stop() }
-    agent.releasePromptAnswer()
+    agent.releaseHeldAnswer()
 
     let prompt = try await promptFrames(of: agent, client: client)
 

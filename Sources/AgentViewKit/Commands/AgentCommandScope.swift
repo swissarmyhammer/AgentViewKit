@@ -16,8 +16,7 @@ import SwiftUI
 /// pending lists of the thread. The views in the scope give the parts that
 /// only they have: ``ConversationView`` in an ``AgentThreadView`` gives its
 /// scroll anchors, ``AgentThreadView`` gives its store of the expanded items,
-/// ``PromptInputView`` gives its submit and its focus, and ``PermissionView``
-/// answers through the approve and reject commands.
+/// and ``PromptInputView`` gives its submit and its focus.
 ///
 /// ``AgentThreadView`` applies a scope for its thread. To put a composer in
 /// the same scope, apply ``SwiftUI/View/agentCommandScope(thread:)`` to a view

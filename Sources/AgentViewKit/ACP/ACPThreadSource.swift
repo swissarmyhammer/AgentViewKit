@@ -1,7 +1,6 @@
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
-import Observation
 
 /// Fills an ``AgentThread`` from an ACP v2 session (plan.md §3.3).
 ///
@@ -17,8 +16,8 @@ import Observation
 /// the same id arrives, when a stream for another id starts, when the state
 /// changes, and when the update stream ends.
 ///
-/// The source also copies the pending permission requests and the pending
-/// elicitations of the session model into the pending lists of the thread.
+/// The source does not copy the pending requests. The session model holds
+/// them, and ``PendingRequestsHost`` reads them from the model.
 ///
 /// The source refuses a session whose protocol version is not in
 /// ``SupportedProtocolVersions`` (`Docs/decisions/acp-version.md`).
@@ -241,67 +240,6 @@ public final class ACPThreadSource {
     }
   }
 
-  // MARK: - Pending requests
-
-  /// Copies the pending permission requests into the thread.
-  ///
-  /// A request that is not in the list any more is resolved. A new request
-  /// is added. When a new request names a tool call, the tool call update of
-  /// the request is applied first, so that the thread shows the call.
-  ///
-  /// - Parameter pending: The pending requests of the session, in order.
-  public func mirrorPermissions<Pending: PendingPermissionRequestValue>(_ pending: [Pending]) {
-    let requests = pending.map(SessionUpdateMapping.permissionRequest)
-    let current = Set(requests.map(\.id))
-    for stale in thread.pendingPermissions where !current.contains(stale.id) {
-      thread.apply(.resolvePermission(stale.id))
-    }
-    let known = Set(thread.pendingPermissions.map(\.id))
-    for (request, source) in zip(requests, pending) where !known.contains(request.id) {
-      if case .toolCall(let subject)? = source.request.subject {
-        thread.apply(SessionUpdateMapping.toolCallChange(subject.toolCall))
-      }
-      thread.apply(.addPermission(request))
-    }
-  }
-
-  /// Copies the pending elicitations into the thread.
-  ///
-  /// An elicitation that is not in the list any more is resolved. A new
-  /// elicitation is added. An elicitation with a mode that the kit does not
-  /// know is not added.
-  ///
-  /// - Parameter pending: The pending elicitations of the session, in order.
-  public func mirrorElicitations<Pending: PendingElicitationValue>(_ pending: [Pending]) {
-    let requests = pending.compactMap { SessionUpdateMapping.elicitationRequest($0, server: agentName) }
-    let current = Set(requests.map(\.id))
-    for stale in thread.pendingElicitations where !current.contains(stale.id) {
-      thread.apply(.resolveElicitation(stale.id))
-    }
-    let known = Set(thread.pendingElicitations.map(\.id))
-    for request in requests where !known.contains(request.id) {
-      thread.apply(.addElicitation(request))
-    }
-  }
-
-  /// Copies the pending requests of a session model into the thread each
-  /// time that they change, until the task is cancelled.
-  ///
-  /// The source copies `SessionModel.pendingPermissions` and
-  /// `SessionModel.pendingElicitations`. A request-scoped elicitation has no
-  /// session, so `ConnectionModel` holds it, and it is not for this thread.
-  ///
-  /// - Parameter session: The model of the session.
-  public func mirrorPendingRequests(of session: SessionModel) async {
-    let changes = Observations { @MainActor in
-      PendingRequests(permissions: session.pendingPermissions, elicitations: session.pendingElicitations)
-    }
-    for await requests in changes {
-      mirrorPermissions(requests.permissions)
-      mirrorElicitations(requests.elicitations)
-    }
-  }
-
   // MARK: - Streams
 
   /// Sends a text chunk to the stream of its record. Another chunk closes
@@ -380,15 +318,6 @@ public final class ACPThreadSource {
 }
 
 // MARK: - Supporting types
-
-/// The pending requests of one session at one time.
-private struct PendingRequests: Sendable {
-  /// The permission requests of the session.
-  var permissions: [PendingPermissionRequest]
-
-  /// The elicitations of the session.
-  var elicitations: [PendingElicitation]
-}
 
 /// The kind of record that a stream fills.
 private enum StreamKind {
@@ -473,7 +402,3 @@ private enum StreamPrefix {
     }
   }
 }
-
-nonisolated extension PendingPermissionRequest: PendingPermissionRequestValue {}
-
-nonisolated extension PendingElicitation: PendingElicitationValue {}

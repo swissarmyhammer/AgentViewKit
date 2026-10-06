@@ -14,13 +14,13 @@ import SwiftUI
 /// 1. The card starts ``AuthorizationPresenter/present(url:callbackScheme:ephemeral:)``
 ///    on the `authorizationPresenter` environment value. The browser session
 ///    runs in a task, because it ends only when the user closes the browser.
-/// 2. The card then sends ``ElicitationResult/accept(_:)`` with `nil` to
-///    ``AgentThreadActions/respond(to:_:)-(ElicitationRequest,_)`` of the
-///    `threadActions` environment value. The answer tells the server that
-///    the user gave consent. It does not wait for the browser.
-/// 3. The card shows a waiting state. The request stays in
-///    ``AgentThread/pendingElicitations`` until the server sends
-///    `elicitation/complete`. Then the host removes the card.
+/// 2. The card then accepts the elicitation with no content: it calls
+///    `acceptElicitation(_:content:)` on the client model in
+///    ``SwiftUI/EnvironmentValues/elicitationReplies``. The answer tells the
+///    server that the user gave consent. It does not wait for the browser.
+/// 3. The card shows a waiting state until the model removes the request.
+///    The accept removes the request at once, so the host then removes the
+///    card.
 ///
 /// Before the press, the card shows Cancel, Decline, and Open in Browser. In
 /// the waiting state, the card shows Cancel and Retry. Retry opens the
@@ -87,7 +87,7 @@ public struct ElicitationURLConsentView: View {
   /// Whether the card has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.threadActions) private var actions
+  @Environment(\.elicitationReplies) private var replies
   @Environment(\.authorizationPresenter) private var presenter
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
@@ -242,11 +242,11 @@ public struct ElicitationURLConsentView: View {
     respond(.cancel)
   }
 
-  /// Sends `result` to the thread actions.
+  /// Sends `result` to the client model that holds the request.
   ///
   /// - Parameter result: The answer of the user.
   private func respond(_ result: ElicitationResult) {
-    actions?.startRespond(to: request, result)
+    replies?.reply(to: request, result)
   }
 }
 

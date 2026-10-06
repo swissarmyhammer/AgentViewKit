@@ -98,7 +98,7 @@ import Testing
     @ViewBuilder content: (ElicitationView) -> Content
   ) -> HostedViewHarness<AnyView> {
     let view = content(ElicitationView(request: request))
-      .environment(\.threadActions, actions)
+      .repliesRecorded(by: actions)
       .environment(\.focusReporter, reporter)
     let harness = HostedViewHarness(AnyView(view), size: formSize)
     harness.pump()

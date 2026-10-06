@@ -10,9 +10,10 @@ import SwiftUI
 /// names the server, the layout slot shows the fields, and the footer slot
 /// shows Submit, Decline, and Cancel. Submit is disabled until
 /// ``ElicitationValidator/isComplete(values:schemas:)`` is `true`. Esc
-/// sends ``ElicitationResult/cancel``. Each answer goes to
-/// ``AgentThreadActions/respond(to:_:)-(ElicitationRequest,_)`` of the
-/// `threadActions` environment value.
+/// sends ``ElicitationResult/cancel``. Each answer goes to the reply method
+/// of the client model in ``SwiftUI/EnvironmentValues/elicitationReplies``:
+/// `acceptElicitation(_:content:)`, `declineElicitation(_:)` or
+/// `cancelElicitation(_:)`.
 ///
 /// The view keeps its answers in state. Give each request its own view
 /// identity, for example with `.id(request.id)`, so that a new request
@@ -54,7 +55,7 @@ public struct ElicitationView: View {
   /// Whether the form has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.threadActions) private var actions
+  @Environment(\.elicitationReplies) private var replies
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
   @Environment(\.elicitationHeaderOverride) private var headerOverride
@@ -178,11 +179,11 @@ public struct ElicitationView: View {
     respond(.accept(.object(values)))
   }
 
-  /// Sends `result` to the thread actions.
+  /// Sends `result` to the client model that holds the request.
   ///
   /// - Parameter result: The answer of the user.
   private func respond(_ result: ElicitationResult) {
-    actions?.startRespond(to: request, result)
+    replies?.reply(to: request, result)
   }
 }
 

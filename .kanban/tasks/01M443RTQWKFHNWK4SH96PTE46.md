@@ -18,20 +18,21 @@ position_ordinal: a280
 title: Add the in-process helper and the ACP client and in-process README quick starts
 ---
 ## What
-Source: update.md §8 items 1 and 4, §7 item 4 (README snippets). This task runs before the adapter removal, so that no snippet uses `ACPThreadSource` or the old `AgentThreadView(thread:actions:)` initializer when they are deleted.
+Source: update.md §8 items 1 and 4, §7 item 4 (README snippets). This task runs before the adapter removal, so that no snippet uses `ACPThreadSource` or the old `AgentThreadView(thread:actions:)` initializer when they are deleted. Owner rule (2026-10-06): the views bind directly to the observable model of FoundationModelsACPClient. The helper and the snippets show this: they give the views the `ConnectionModel` and the `SessionModel`, and keep no copy of their state.
 
-- [ ] Add `Sources/AgentViewKit/ACP/InProcessAgent.swift`: a helper that pairs `InMemoryTransport.pair()`, gives one end to an `AgentSideConnection` with a host-given `Agent`, and connects a `ConnectionModel` over the other end. The helper must not import FoundationModelsACPAgent; the host gives the `Agent` (for example `RoutedACPAgent`).
-- [ ] Rewrite `Examples/ReadmeSnippets/Snippets/ACPQuickStart.swift` and `HostApp.swift`, and their README blocks, on `ConnectionModel` and `AgentThreadView(session:actions:)`.
+- [ ] Add `Sources/AgentViewKit/ACP/InProcessAgent.swift`: a helper that pairs `InMemoryTransport.pair()`, gives one end to an `AgentSideConnection` with a host-given `Agent`, and connects a `ConnectionModel` over the other end. The helper returns the `ConnectionModel`; it keeps no connection state or session list of its own. The helper must not import FoundationModelsACPAgent; the host gives the `Agent` (for example `RoutedACPAgent`).
+- [ ] Rewrite `Examples/ReadmeSnippets/Snippets/ACPQuickStart.swift` and `HostApp.swift`, and their README blocks, on `ConnectionModel` and `AgentThreadView(session:actions:)`. The snippets hold the models only; they show no `PromptQueue`, no kit state object and no copy of a model value.
 - [ ] Add `Examples/ReadmeSnippets/Snippets/InProcessQuickStart.swift` and its README block on the helper.
 - [ ] Run `Scripts/extract-readme-snippets.sh`.
 
 ## Acceptance Criteria
-- [ ] A test connects through the helper to `InMemoryDemoAgent`, opens a session and gets an agent message.
+- [ ] A test connects through the helper to `InMemoryDemoAgent`, opens a session and gets an agent message in `SessionModel.transcript`.
+- [ ] The test reads the connection state from `ConnectionModel.state` of the returned model (the helper has no state property of its own).
 - [ ] No snippet and no README block uses `ACPThreadSource`, `AgentThread` or `AgentThreadView(thread:actions:)`.
 - [ ] `Scripts/check-readme.sh` passes and `ReadmeCoverageTests` cover the two quick starts.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift`: connect, initialize, new session, one prompt round trip; the connection state becomes `.disconnected` after close.
+- [ ] `Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift`: connect, initialize, new session, one prompt round trip; the connection state of the model becomes `.disconnected` after close.
 - [ ] `swift test` passes.
 
 ## Workflow

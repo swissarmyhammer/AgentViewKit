@@ -101,7 +101,7 @@
     func aSentPromptShowsAsPendingAtOnceAndThenAsSent(order: ScriptedWireAgent.PromptEchoOrder) async throws {
       let session = try await ScriptedSession.open {
         $0.promptEchoOrder = order
-        $0.holdsPromptAnswers = true
+        $0.heldMethods = [Self.promptMethod]
         $0.followUps[Self.promptMethod] = { request, _ in
           [Self.updateFrame(carrying: Self.markerUpdate, for: request)]
         }
@@ -121,7 +121,7 @@
       #expect(Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.pending])
       #expect(draft.plainText.isEmpty)
 
-      session.agent.releasePromptAnswer()
+      session.agent.releaseHeldAnswer()
       await harness.pump(until: Self.waitTimeout) { model.transcript.contains { $0.rowKey.hasSuffix(Self.markerMessageID) } }
       await harness.pump(until: Self.waitTimeout) {
         Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.sent]
@@ -181,7 +181,7 @@
     // MARK: - Queue
 
     @Test func theQueueSendsTheNextPromptOnlyAfterTheCurrentPromptReturns() async throws {
-      let session = try await ScriptedSession.open { $0.holdsPromptAnswers = true }
+      let session = try await ScriptedSession.open { $0.heldMethods = [Self.promptMethod] }
       defer { session.close() }
       let draft = PromptInputHostedTestModel(text: Self.firstMessage)
       let queue = PromptQueue()
@@ -199,9 +199,9 @@
       #expect(queue.items.map(\.input.text) == [Self.secondMessage])
       #expect(Self.userMessages(of: model).count == 1)
 
-      session.agent.releasePromptAnswer()
+      session.agent.releaseHeldAnswer()
       await harness.pump(until: Self.waitTimeout) { Self.userMessages(of: model).count == 2 }
-      session.agent.releasePromptAnswer()
+      session.agent.releaseHeldAnswer()
 
       #expect(queue.isEmpty)
       #expect(Self.userMessages(of: model).count == 2)

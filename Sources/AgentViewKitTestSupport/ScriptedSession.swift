@@ -85,6 +85,45 @@ public final class ScriptedSession {
       #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#)
   }
 
+  /// The params of a permission request of the session, with the
+  /// `allow_once` option `yes` and the `reject_once` option `no`.
+  public static let permissionParams = #"""
+    {"sessionId": "\#(sessionID)", "title": "Edit a.swift",
+     "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"},
+                 {"optionId": "no", "name": "Reject", "kind": "reject_once"}]}
+    """#
+
+  /// The params of a form elicitation of the session. The one field `name`
+  /// has the default `Ada`, so the form can submit at once.
+  public static let formElicitationParams = #"""
+    {"sessionId": "\#(sessionID)", "message": "Your name?", "mode": "form",
+     "requestedSchema": {"type": "object",
+                         "properties": {"name": {"type": "string", "default": "Ada"}}}}
+    """#
+
+  /// A JSON-RPC request frame from the agent to the client.
+  ///
+  /// - Parameters:
+  ///   - method: The method of the request.
+  ///   - id: The JSON-RPC id of the request.
+  ///   - params: The JSON text of the params.
+  /// - Returns: The JSON text of the frame.
+  public static func requestFrame(_ method: String, id: Int, params: String) -> String {
+    #"{"jsonrpc":"2.0","id":\#(id),"method":"\#(method)","params":\#(params)}"#
+  }
+
+  /// Sends one JSON-RPC request from the agent to the client.
+  ///
+  /// - Parameters:
+  ///   - method: The method of the request, such as
+  ///     `session/request_permission`.
+  ///   - id: The JSON-RPC id of the request.
+  ///   - params: The JSON text of the params.
+  /// - Throws: The error of the transport.
+  public func sendRequest(_ method: String, id: Int, params: String) async throws {
+    try await agent.send(Self.requestFrame(method, id: id, params: params))
+  }
+
   /// Stops the agent and closes the transport.
   public func close() {
     agent.stop()

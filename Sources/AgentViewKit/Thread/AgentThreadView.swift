@@ -9,7 +9,10 @@ import SwiftUI
 /// record.
 ///
 /// Below the conversation, a ``PendingRequestsHost`` shows one card for each
-/// pending permission request and elicitation request of the thread.
+/// pending permission request and elicitation request of the session model.
+/// A view of a thread reads the session model from
+/// ``SwiftUI/EnvironmentValues/sessionModel``, and shows no card when the
+/// environment has none.
 ///
 /// The host gives the ``AgentThreadActions`` in the initializer. There is no
 /// default, because actions that do nothing are a quiet failure. The view
@@ -48,9 +51,9 @@ import SwiftUI
 /// `TranscriptEntry.id`, and each item view reads its own entry object, so a
 /// streamed chunk draws only the row of its entry. Above the conversation, a
 /// ``SessionNoticeBanner`` shows one banner for each notice of the session
-/// model; the banner view, and not this view, reads the notices. The pending
-/// requests, the announcements and the agent commands read an
-/// ``AgentThread``, so a view of a session model does not show them.
+/// model; the banner view, and not this view, reads the notices. The
+/// announcements and the agent commands read an ``AgentThread``, so a view of
+/// a session model does not show them.
 public struct AgentThreadView: View {
   /// The model that the view shows.
   private enum Source {
@@ -80,6 +83,7 @@ public struct AgentThreadView: View {
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
+  @Environment(\.sessionModel) private var hostSession
 
   /// Makes the view of a thread.
   ///
@@ -125,7 +129,10 @@ public struct AgentThreadView: View {
     case .thread(let thread):
       VStack(spacing: 0) {
         ConversationView(thread: thread, anchors: anchors)
-        PendingRequestsHost(thread: thread)
+        if let hostSession {
+          PendingRequestsHost(session: hostSession)
+            .environment(\.agentThread, thread)
+        }
       }
       .background { ThreadAnnouncementObserver(thread: thread) }
       .agentCommandScope(thread: thread, anchors: anchors)
@@ -133,6 +140,7 @@ public struct AgentThreadView: View {
       VStack(spacing: 0) {
         SessionNoticeBanner(session: session)
         ConversationView(session: session, anchors: anchors)
+        PendingRequestsHost(session: session)
       }
     }
   }

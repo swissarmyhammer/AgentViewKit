@@ -47,6 +47,10 @@ public final class ACPDemoSession {
   /// The actions of the bound session, or `nil` before the first session.
   public private(set) var actions: ACPThreadActions?
 
+  /// The model of the bound session, or `nil` before the first session. It
+  /// holds the pending requests that the thread view shows.
+  public private(set) var sessionModel: SessionModel?
+
   /// The session pages of the agent, or `nil` before the connection.
   public private(set) var sessionList: ACPSessionList?
 
@@ -231,10 +235,7 @@ public final class ACPDemoSession {
     stopBinding()
     let requested = Self.initializeRequest.protocolVersion
     source.acceptProtocolVersion(negotiatedVersion ?? requested, requested: requested)
-    bindingTasks = [
-      Task { await source.run() },
-      Task { await source.mirrorPendingRequests(of: session) },
-    ]
+    bindingTasks = [Task { await source.run() }]
     actions = ACPThreadActions(
       thread: source.thread,
       session: session,
@@ -242,6 +243,7 @@ public final class ACPDemoSession {
       agentProgram: agentProgram
     )
     thread = source.thread
+    sessionModel = session
     sessionID = SessionID(session.sessionId.rawValue)
   }
 

@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModelsACP
+import FoundationModelsACPClient
 import OSLog
 
 /// Changes ACP v2 `session/update` values into thread changes
@@ -696,6 +697,10 @@ public nonisolated protocol PendingElicitationValue {
   /// The request as the agent sent it.
   var request: CreateElicitationRequest { get }
 }
+
+nonisolated extension PendingPermissionRequest: PendingPermissionRequestValue {}
+
+nonisolated extension PendingElicitation: PendingElicitationValue {}
 
 nonisolated extension FoundationModelsACP.ContentBlock {
   /// `true` for a text block.
