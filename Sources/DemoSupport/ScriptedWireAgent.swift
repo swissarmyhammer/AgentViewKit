@@ -15,7 +15,8 @@ private let promptMethod = "session/prompt"
 /// records them.
 ///
 /// The agent answers each request with the scripted result for its method,
-/// or with `{}`. A method in ``failingMethods`` gets an error. The result of
+/// or with `{}`. A method in ``failingMethods`` gets an error with the code
+/// that ``errorCodes`` gives. The result of
 /// each `session/prompt` request gets a new `messageId` (a UUID string), and
 /// the agent echoes the prompt text in a `user_message_chunk` update with the
 /// same `messageId`. ``promptEchoOrder`` tells if the echo comes before or
@@ -78,6 +79,13 @@ public final class ScriptedWireAgent {
 
   /// The methods that get an error.
   public var failingMethods: Set<String> = []
+
+  /// The JSON-RPC error code of each method in ``failingMethods``.
+  ///
+  /// A failing method with no code here gets `-32603` (internal error). For
+  /// example, `-32000` tells the client that the agent requires
+  /// authentication.
+  public var errorCodes: [String: Int] = [:]
 
   /// The frames to send after the answer to a request, keyed by method.
   public var followUps: [String: FollowUp] = [:]
@@ -213,7 +221,8 @@ public final class ScriptedWireAgent {
       await waitForRelease()
     }
     if failingMethods.contains(method) {
-      try? await send(#"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(internalErrorCode),"message":"failed"}}"#)
+      let code = errorCodes[method] ?? internalErrorCode
+      try? await send(#"{"jsonrpc":"2.0","id":\#(idText),"error":{"code":\#(code),"message":"failed"}}"#)
     } else if method == promptMethod {
       await answerPrompt(request: frame, idText: idText)
     } else {

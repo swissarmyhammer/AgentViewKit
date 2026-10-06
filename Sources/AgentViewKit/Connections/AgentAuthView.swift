@@ -1,35 +1,45 @@
+import FoundationModelsACP
+import FoundationModelsACPClient
+import OSLog
 import SwiftUI
 
-/// The card that signs the user in to an ACP agent (plan.md §9 E2, §12).
+/// The card that signs the user in to an ACP agent (plan.md §9 E2, §12;
+/// update.md §4.3 "Initialize and auth").
 ///
-/// The card shows one row for each ``AuthMethod`` that the agent gave at
-/// `initialize`. The card calls the verbs of the `threadActions` environment
-/// value:
+/// The card binds directly to a `ConnectionModel`. The body reads
+/// `authMethods`, `authState` and `canLogout` of the model, and keeps no copy
+/// of them:
 ///
-/// - An ``AuthMethod/agent(_:)`` row has a Sign In button. The button calls
-///   ``AgentThreadActions/login(_:)`` with the id of the method.
-/// - An ``AuthMethod/terminal(_:)`` row has a Run button. The button calls
-///   ``AgentThreadActions/runTerminalAuth(_:)``, and never calls `login`.
-///   When the thread has the record with the id
-///   ``TerminalRecord/authID(for:)`` of the method, the row shows the record
-///   in a ``TerminalView`` with an input field. Each line that the user
-///   types goes to ``AgentThreadActions/writeTerminalLine(_:to:)``.
-/// - An ``AuthMethod/unknown(_:)`` method has no row.
-/// - When `isAuthenticated` is `true`, a Sign Out button calls
-///   ``AgentThreadActions/logout()``. Otherwise the button is not shown.
+/// - Each `agent` method of `authMethods` has a row with a Sign In button.
+///   The button calls `ConnectionModel.login(_:)` with the id of the method.
+/// - Each `terminal` method has a row with a Run button. The model has no
+///   terminal auth runner, so the button calls
+///   ``AgentThreadActions/runTerminalAuth(_:)`` of the `threadActions`
+///   environment value, and never calls `login`. When the thread has the
+///   record with the id ``TerminalRecord/authID(for:)`` of the method, the row
+///   shows the record in a ``TerminalView`` with an input field. Each line
+///   that the user types goes to
+///   ``AgentThreadActions/writeTerminalLine(_:to:)``.
+/// - A method type that the kit does not know has no row.
+/// - While `authState` is `.authenticated`, the card shows no method row.
+/// - While `authState` is `.failed`, the card shows the message of the error
+///   of the agent under the rows.
+/// - When `canLogout` is `true`, a Sign Out button calls
+///   `ConnectionModel.logout(_:)`. Otherwise the button is not shown.
 ///
-/// While a verb runs, its button is disabled and shows a `ProgressView`. When
-/// a verb throws, the card shows the text of the error under the row. A
-/// cancelled verb shows no error.
+/// While a call runs, its button is disabled and shows a `ProgressView`. This
+/// flag is view state. A failure that the model does not record, for example
+/// a failed logout or a closed connection, goes to the log, and adds an error
+/// entry to the transcript of the ``SwiftUI/EnvironmentValues/sessionModel``
+/// environment value when the environment has one. A cancelled call records
+/// nothing.
 ///
-/// The host puts the card in the thread when the ACP source reports the
-/// `authenticationRequired` error (code -32000), and in its settings surface
-/// next to ``ConnectionsView``. The card finds terminal records in the
-/// `thread` argument, else in the ``SwiftUI/EnvironmentValues/agentThread``
-/// environment value. With no thread, a terminal row shows no terminal.
-///
-/// The view keeps the progress and the errors in state. Give each agent its
-/// own view identity, for example with `.id(agentID)`.
+/// The host puts the card in its settings surface next to
+/// ``ConnectionsView``. ``AgentThreadView`` shows the card when a request of
+/// the session fails with the code `-32000` (authentication required). The
+/// card finds terminal records in the `thread` argument, else in the
+/// ``SwiftUI/EnvironmentValues/agentThread`` environment value. With no
+/// thread, a terminal row shows no terminal.
 public struct AgentAuthView: View {
   /// The accessibility identifier of the card.
   public static let identifier = "agent-auth"
@@ -41,36 +51,38 @@ public struct AgentAuthView: View {
   public static let signInIdentifierPrefix = "agent-auth-sign-in-"
   /// The start of the accessibility identifier of each Run button.
   public static let runIdentifierPrefix = "agent-auth-run-"
-  /// The start of the accessibility identifier of each row error text.
-  public static let errorIdentifierPrefix = "agent-auth-error-"
+  /// The accessibility identifier of the text of a login that the agent
+  /// refused.
+  public static let loginErrorIdentifier = "agent-auth-login-error"
   /// The accessibility identifier of the Sign Out button.
   public static let signOutIdentifier = "agent-auth-sign-out"
-  /// The accessibility identifier of the Sign Out error text.
-  public static let signOutErrorIdentifier = "agent-auth-sign-out-error"
 
   /// The symbol of the title.
   static let symbol = "person.badge.key"
 
-  /// A verb that the card runs, as the key of its progress and its error.
+  /// The log of the auth calls that fail.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "AgentAuthView")
+
+  /// A call that the card runs, as the key of its progress.
   enum Operation: Hashable {
-    /// The Sign In or Run verb of the method with this id.
-    case method(AuthMethodID)
-    /// The Sign Out verb.
+    /// The Sign In or Run call of the method with this id.
+    case method(AuthMethodId)
+    /// The Sign Out call.
     case signOut
   }
 
   /// A method that the card shows.
   enum Row: Identifiable {
     /// A method that the agent runs through `auth/login`.
-    case agent(AuthMethod.Agent)
+    case agent(AuthMethodAgent)
     /// A method that the client runs as a separate process.
-    case terminal(AuthMethod.Terminal)
+    case terminal(AuthMethodTerminal)
 
     /// The identifier of the method.
-    var id: AuthMethodID {
+    var id: AuthMethodId {
       switch self {
-      case .agent(let method): method.id
-      case .terminal(let method): method.id
+      case .agent(let method): method.methodId
+      case .terminal(let method): method.methodId
       }
     }
 
@@ -91,33 +103,28 @@ public struct AgentAuthView: View {
     }
   }
 
-  /// The methods that the agent gave.
-  let methods: [AuthMethod]
-  /// Whether the user is signed in to the agent.
-  let isAuthenticated: Bool
+  /// The connection model whose auth state the card shows.
+  let connection: ConnectionModel
   /// The thread that the host gives, or `nil` to use the environment thread.
   let suppliedThread: AgentThread?
 
-  /// The verbs that run.
+  /// The calls that run.
   @State private var running: Set<Operation> = []
-  /// The error text of each verb whose last call failed.
-  @State private var errors: [Operation: String] = [:]
 
   @Environment(\.threadActions) private var actions
   @Environment(\.agentThread) private var environmentThread
+  @Environment(\.sessionModel) private var session
   @Environment(\.agentTheme) private var theme
 
   /// Makes the card.
   ///
   /// - Parameters:
-  ///   - methods: The methods that the agent gave at `initialize`, in order.
-  ///   - isAuthenticated: Whether the user is signed in. When it is `true`,
-  ///     the card shows the Sign Out button.
+  ///   - connection: The connection model of the agent. The card reads its
+  ///     auth methods and its auth state, and calls its login and logout.
   ///   - thread: The thread that has the terminal records of the terminal
   ///     methods, or `nil` to use the environment thread.
-  public init(methods: [AuthMethod], isAuthenticated: Bool, thread: AgentThread? = nil) {
-    self.methods = methods
-    self.isAuthenticated = isAuthenticated
+  public init(connection: ConnectionModel, thread: AgentThread? = nil) {
+    self.connection = connection
     self.suppliedThread = thread
   }
 
@@ -127,7 +134,7 @@ public struct AgentAuthView: View {
   ///
   /// - Parameter id: The identifier of the method.
   /// - Returns: `agent-auth-row-<id>`.
-  public static func rowIdentifier(for id: AuthMethodID) -> String {
+  public static func rowIdentifier(for id: AuthMethodId) -> String {
     AccessibilityIdentifier.make(prefix: rowIdentifierPrefix, value: id.rawValue)
   }
 
@@ -135,7 +142,7 @@ public struct AgentAuthView: View {
   ///
   /// - Parameter id: The identifier of the agent method.
   /// - Returns: `agent-auth-sign-in-<id>`.
-  public static func signInIdentifier(for id: AuthMethodID) -> String {
+  public static func signInIdentifier(for id: AuthMethodId) -> String {
     AccessibilityIdentifier.make(prefix: signInIdentifierPrefix, value: id.rawValue)
   }
 
@@ -143,25 +150,17 @@ public struct AgentAuthView: View {
   ///
   /// - Parameter id: The identifier of the terminal method.
   /// - Returns: `agent-auth-run-<id>`.
-  public static func runIdentifier(for id: AuthMethodID) -> String {
+  public static func runIdentifier(for id: AuthMethodId) -> String {
     AccessibilityIdentifier.make(prefix: runIdentifierPrefix, value: id.rawValue)
-  }
-
-  /// The accessibility identifier of the error text of the row of `id`.
-  ///
-  /// - Parameter id: The identifier of the method.
-  /// - Returns: `agent-auth-error-<id>`.
-  public static func errorIdentifier(for id: AuthMethodID) -> String {
-    AccessibilityIdentifier.make(prefix: errorIdentifierPrefix, value: id.rawValue)
   }
 
   // MARK: Model
 
   /// The rows of `methods`, in order, with no row for an unknown method.
   ///
-  /// - Parameter methods: The methods that the agent gave.
+  /// - Parameter methods: The auth methods of the model.
   /// - Returns: One row for each agent and terminal method.
-  static func rows(of methods: [AuthMethod]) -> [Row] {
+  static func rows(of methods: [FoundationModelsACP.AuthMethod]) -> [Row] {
     methods.compactMap { method in
       switch method {
       case .agent(let agent): .agent(agent)
@@ -176,6 +175,18 @@ public struct AgentAuthView: View {
     suppliedThread ?? environmentThread
   }
 
+  /// Whether the last login succeeded: `authState` is `.authenticated`.
+  private var isAuthenticated: Bool {
+    guard case .authenticated = connection.authState else { return false }
+    return true
+  }
+
+  /// The error of the last login that the agent refused, or `nil`.
+  private var loginRefusal: RequestError? {
+    guard case .failed(let refusal) = connection.authState else { return nil }
+    return refusal
+  }
+
   // MARK: Body
 
   public var body: some View {
@@ -184,10 +195,15 @@ public struct AgentAuthView: View {
         .font(.headline)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)
-      ForEach(Self.rows(of: methods)) { row in
-        rowView(row)
+      if !isAuthenticated {
+        ForEach(Self.rows(of: connection.authMethods)) { row in
+          rowView(row)
+        }
       }
-      if isAuthenticated {
+      if let loginRefusal {
+        errorText(loginRefusal.message, identifier: Self.loginErrorIdentifier)
+      }
+      if connection.canLogout {
         signOutRow
       }
     }
@@ -199,8 +215,8 @@ public struct AgentAuthView: View {
     .accessibilityIdentifier(Self.identifier)
   }
 
-  /// The row of one method: the name, the description, the button, the
-  /// error text, and the terminal of a terminal method.
+  /// The row of one method: the name, the description, the button, and the
+  /// terminal of a terminal method.
   ///
   /// - Parameter row: The method to show.
   /// - Returns: The row.
@@ -220,13 +236,10 @@ public struct AgentAuthView: View {
         Spacer(minLength: theme.spacing.s)
         methodButton(row)
       }
-      if let message = errors[.method(row.id)] {
-        errorText(message, identifier: Self.errorIdentifier(for: row.id))
-      }
       if case .terminal(let method) = row,
-        let record = thread?.terminals[TerminalRecord.authID(for: method.id)]
+        let record = thread?.terminals[TerminalRecord.authID(for: AuthMethodID(method.methodId.rawValue))]
       {
-        TerminalView(record: record, stdin: { line in write(line, to: record.id, for: method.id) })
+        TerminalView(record: record, stdin: { line in write(line, to: record.id) })
       }
     }
     .accessibilityElement(children: .contain)
@@ -244,60 +257,57 @@ public struct AgentAuthView: View {
     switch row {
     case .agent(let method):
       actionButton(
-        String(localized: "Sign In"), operation: .method(method.id),
+        String(localized: "Sign In"), operation: .method(method.methodId),
         accessibilityLabel: String(localized: "Sign in with \(method.name)"),
-        identifier: Self.signInIdentifier(for: method.id)
-      ) { actions in
-        try await actions.login(method.id)
+        identifier: Self.signInIdentifier(for: method.methodId)
+      ) { [connection] in
+        try await Self.login(method.methodId, on: connection)
       }
     case .terminal(let method):
       actionButton(
-        String(localized: "Run"), operation: .method(method.id),
+        String(localized: "Run"), operation: .method(method.methodId),
         accessibilityLabel: String(localized: "Run \(method.name)"),
-        identifier: Self.runIdentifier(for: method.id)
-      ) { actions in
-        try await actions.runTerminalAuth(method)
+        identifier: Self.runIdentifier(for: method.methodId)
+      ) { [actions] in
+        try await Self.runTerminalAuth(method, with: actions)
       }
     }
   }
 
-  /// The row with the Sign Out button and its error text.
+  /// The row with the Sign Out button.
   private var signOutRow: some View {
     VStack(alignment: .trailing, spacing: theme.spacing.s) {
       Divider()
-      if let message = errors[.signOut] {
-        errorText(message, identifier: Self.signOutErrorIdentifier)
-      }
       actionButton(
         String(localized: "Sign Out"), operation: .signOut,
         accessibilityLabel: String(localized: "Sign out of the agent"),
         identifier: Self.signOutIdentifier
-      ) { actions in
-        try await actions.logout()
+      ) { [connection] in
+        try await connection.logout(LogoutAuthRequest())
       }
     }
     .frame(maxWidth: .infinity, alignment: .trailing)
   }
 
-  /// A button that runs a verb, with a `ProgressView` while the verb runs.
+  /// A button that runs a call, with a `ProgressView` while the call runs.
   ///
   /// - Parameters:
   ///   - title: The text of the button.
-  ///   - operation: The key of the progress and the error of the verb.
+  ///   - operation: The key of the progress of the call.
   ///   - accessibilityLabel: The label that VoiceOver reads.
   ///   - identifier: The accessibility identifier of the button.
-  ///   - verb: The verb to run with the actions of the environment.
+  ///   - call: The call to run.
   /// - Returns: The button.
   private func actionButton(
     _ title: String,
     operation: Operation,
     accessibilityLabel: String,
     identifier: String,
-    verb: @escaping @MainActor (any AgentThreadActions) async throws -> Void
+    call: @escaping @MainActor () async throws -> Void
   ) -> some View {
     let isRunning = running.contains(operation)
     return Button {
-      perform(operation, verb)
+      perform(operation, call)
     } label: {
       if isRunning {
         ProgressView()
@@ -312,7 +322,7 @@ public struct AgentAuthView: View {
     .accessibilityIdentifier(identifier)
   }
 
-  /// The text of a failed verb.
+  /// The text of a login that the agent refused.
   ///
   /// - Parameters:
   ///   - message: The text of the error.
@@ -328,29 +338,65 @@ public struct AgentAuthView: View {
 
   // MARK: Actions
 
-  /// Runs `verb`, and records its progress and its error under `operation`.
+  /// Sends `auth/login` with the id of an agent method.
   ///
-  /// A second call while the verb runs does nothing. A cancelled verb
-  /// records no error. Each other thrown error records the text of the
-  /// error.
+  /// When the agent refuses the login, the model records the error in
+  /// `authState`, and the card shows it from there. Thus the refusal does not
+  /// go to ``report(_:)``.
   ///
   /// - Parameters:
-  ///   - operation: The key of the progress and the error.
-  ///   - verb: The verb to run with the actions of the environment.
-  private func perform(
-    _ operation: Operation,
-    _ verb: @escaping @MainActor (any AgentThreadActions) async throws -> Void
-  ) {
-    guard !running.contains(operation), let actions else { return }
+  ///   - methodID: The id of the agent method.
+  ///   - connection: The connection model that sends the request.
+  /// - Throws: Each error that the model does not record in `authState`.
+  private static func login(_ methodID: AuthMethodId, on connection: ConnectionModel) async throws {
+    do {
+      try await connection.login(LoginAuthRequest(methodId: methodID))
+    } catch is RequestError {
+      // `authState` holds the refusal, and the card shows it.
+    }
+  }
+
+  /// Runs a terminal method with the thread actions.
+  ///
+  /// The thread actions take the kit form of the method, so the call changes
+  /// the ACP method at the time of the press, and keeps no copy.
+  ///
+  /// - Parameters:
+  ///   - method: The terminal method of the model.
+  ///   - actions: The actions of the environment, or `nil`.
+  /// - Throws: The error of the actions.
+  private static func runTerminalAuth(
+    _ method: AuthMethodTerminal, with actions: (any AgentThreadActions)?
+  ) async throws {
+    guard let actions else { return }
+    guard case .terminal(let kitMethod)? = SessionUpdateMapping.authMethod(.terminal(method)) else {
+      assertionFailure("The terminal auth method \(method.methodId.rawValue) does not decode as a terminal method.")
+      logger.error(
+        "The terminal auth method \(method.methodId.rawValue, privacy: .public) does not decode; the Run button does nothing."
+      )
+      return
+    }
+    try await actions.runTerminalAuth(kitMethod)
+  }
+
+  /// Runs `call`, and records its progress under `operation`.
+  ///
+  /// A second call while the call runs does nothing. A cancelled call
+  /// records nothing. Each other thrown error goes to ``report(_:)``.
+  ///
+  /// - Parameters:
+  ///   - operation: The key of the progress.
+  ///   - call: The call to run.
+  private func perform(_ operation: Operation, _ call: @escaping @MainActor () async throws -> Void) {
+    guard !running.contains(operation) else { return }
     running.insert(operation)
-    errors[operation] = nil
     Task {
       do {
-        try await verb(actions)
+        try await call()
       } catch is CancellationError {
-        // A cancelled verb is not a failure.
+        // A cancelled call is not a failure.
       } catch {
-        errors[operation] = error.localizedDescription
+        report(error)
       }
       running.remove(operation)
     }
@@ -358,14 +404,12 @@ public struct AgentAuthView: View {
 
   /// Sends a line of the terminal input field to the process of a method.
   ///
-  /// A failed write shows the text of the error under the row of the
-  /// method.
+  /// A failed write goes to ``report(_:)``.
   ///
   /// - Parameters:
   ///   - line: The line that the user typed.
   ///   - terminal: The identifier of the terminal record.
-  ///   - methodID: The identifier of the terminal method.
-  private func write(_ line: String, to terminal: TerminalID, for methodID: AuthMethodID) {
+  private func write(_ line: String, to terminal: TerminalID) {
     guard let actions else { return }
     Task {
       do {
@@ -373,8 +417,19 @@ public struct AgentAuthView: View {
       } catch is CancellationError {
         // A cancelled write is not a failure.
       } catch {
-        errors[.method(methodID)] = error.localizedDescription
+        report(error)
       }
     }
+  }
+
+  /// Records a failure that the model does not record.
+  ///
+  /// The failure goes to the log. When the environment has a session model,
+  /// the failure also adds an error entry to its transcript.
+  ///
+  /// - Parameter error: The error of the call.
+  private func report(_ error: any Error) {
+    Self.logger.error("An auth call failed: \(String(describing: error), privacy: .public)")
+    session?.appendError(reporting: error)
   }
 }

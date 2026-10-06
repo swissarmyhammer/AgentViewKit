@@ -10,6 +10,8 @@ depends_on:
 - 01M48MSNZ644ZZQGK3K8YWX4HY
 - 01M48MT3CW529Q3MWWN8XRVRW5
 - 01M48MTGH4ZSS4GVBP6GVE03AX
+- 01M49EX269YQZDGYF6HS3ZYGVH
+- 01M49GHXXC7CY7R1PRZ83200VG
 position_column: todo
 position_ordinal: a180
 title: 'Remove the kit session model: AgentThread, ThreadItem, ThreadChange, ItemPatch and the records'

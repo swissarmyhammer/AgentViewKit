@@ -45,7 +45,7 @@ struct ACPSettingsSheet: View {
             VStack(alignment: .leading) {
               LabeledContent("Command", value: agentCommand)
                 .accessibilityIdentifier(Self.agentCommandIdentifier)
-              AgentAuthView(methods: session.authMethods, isAuthenticated: false, thread: session.thread)
+              AgentAuthView(connection: session.connectionModel, thread: session.thread)
             }
           }
           if let model = session.sessionModel {

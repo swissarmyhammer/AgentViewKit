@@ -56,7 +56,12 @@ import SwiftUI
 /// stream state: the replay marker, the partial-history note, the
 /// missed-updates banner with its Reload button, and the closed state. Below
 /// the conversation, a ``StateBanner`` shows the agent state. Each banner
-/// view, and not this view, reads its part of the model. The announcements
+/// view, and not this view, reads its part of the model. When the host gives
+/// the connection model, an ``AgentInfoHeader`` names the agent from its
+/// `initialize` answer, an ``AgentConnectionBanner`` shows the connection
+/// state, and an ``AgentAuthView`` shows below the conversation while the
+/// last entry of the transcript is an error entry with the code `-32000`
+/// (authentication required). The announcements
 /// and the agent commands read an ``AgentThread``, so a view of a session
 /// model does not show them.
 public struct AgentThreadView: View {
@@ -177,9 +182,16 @@ public struct AgentThreadView: View {
       .agentCommandScope(thread: thread, anchors: anchors)
     case .session(let session):
       VStack(spacing: 0) {
+        if let connection {
+          AgentInfoHeader(connection: connection)
+          AgentConnectionBanner(connection: connection)
+        }
         SessionNoticeBanner(session: session)
         SessionStreamBanner(session: session, connection: connection, workingDirectory: workingDirectory)
         ConversationView(session: session, anchors: anchors)
+        if let connection {
+          AgentLoginPrompt(session: session, connection: connection)
+        }
         PendingRequestsHost(session: session)
       }
       .onDisappear { closeWhenSupported(session) }

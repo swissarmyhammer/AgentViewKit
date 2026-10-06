@@ -41,14 +41,45 @@ public final class ScriptedSession {
     makeInitializeResult(sessionCapabilities: #"{"prompt": \#(promptCapabilities)}"#)
   }
 
+  /// The `info` member of the `initialize` result of the agent: the name
+  /// `scripted-agent` and the version `1.0.0`, with no title.
+  public static let agentInfo = #"{"name": "scripted-agent", "version": "1.0.0"}"#
+
+  /// Makes the `initialize` result of an agent with auth methods.
+  ///
+  /// Give the result to the agent in the `configure` closure of
+  /// ``open(bufferLimits:configure:)``:
+  ///
+  /// ```swift
+  /// let session = try await ScriptedSession.open {
+  ///   $0.results["initialize"] = ScriptedSession.makeInitializeResult(
+  ///     info: ScriptedSession.agentInfo,
+  ///     authMethods: #"[{"type": "agent", "methodId": "login", "name": "Sign in"}]"#)
+  /// }
+  /// ```
+  ///
+  /// - Parameters:
+  ///   - info: The JSON text of the `info` member, such as ``agentInfo``.
+  ///   - authMethods: The JSON text of the `authMethods` array.
+  /// - Returns: The JSON text of the result: protocol version 2 with the
+  ///   session capabilities, the agent info and the auth methods.
+  public static func makeInitializeResult(info: String, authMethods: String) -> String {
+    makeInitializeResult(sessionCapabilities: "{}", info: info, authMethods: authMethods)
+  }
+
   /// Makes the `initialize` result of the agent.
   ///
-  /// - Parameter sessionCapabilities: The JSON text of the `session` member of
-  ///   the agent capabilities.
+  /// - Parameters:
+  ///   - sessionCapabilities: The JSON text of the `session` member of the
+  ///     agent capabilities.
+  ///   - info: The JSON text of the `info` member.
+  ///   - authMethods: The JSON text of the `authMethods` array.
   /// - Returns: The JSON text of the result with protocol version 2.
-  private static func makeInitializeResult(sessionCapabilities: String) -> String {
+  private static func makeInitializeResult(
+    sessionCapabilities: String, info: String = agentInfo, authMethods: String = "[]"
+  ) -> String {
     #"""
-    {"info": {"name": "scripted-agent", "version": "1.0.0"}, "protocolVersion": 2,
+    {"info": \#(info), "protocolVersion": 2, "authMethods": \#(authMethods),
      "capabilities": {"session": \#(sessionCapabilities)}}
     """#
   }

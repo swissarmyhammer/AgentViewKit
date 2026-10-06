@@ -1,25 +1,57 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import DemoSupport
 import Foundation
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
+/// The auth card over a `ConnectionModel` (update.md §4.3).
+///
+/// The card reads `authMethods`, `authState` and `canLogout` of the model of a
+/// scripted agent, and calls `login(_:)` and `logout(_:)`. A terminal method
+/// still runs through the thread actions, because the model has no terminal
+/// auth runner.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentAuthViewHostedTests {
-  /// The agent method in the tests.
-  static let agentMethod = AuthMethod.Agent(
-    id: AuthMethodID("agent-login"), name: "Sign in with the agent",
-    description: "The agent opens a browser.")
+  /// The id of the agent method in the tests.
+  static let agentMethodID = AuthMethodId(rawValue: "agent-login")
 
-  /// The terminal method in the tests.
-  static let terminalMethod = AuthMethod.Terminal(
-    id: AuthMethodID("terminal-login"), name: "Terminal login", args: ["--login"])
+  /// The id of the terminal method in the tests.
+  static let terminalMethodID = AuthMethodId(rawValue: "terminal-login")
 
-  /// The methods that the agent gives, with one method type that the kit
-  /// does not know.
-  static let methods: [AuthMethod] = [
-    .agent(agentMethod), .terminal(terminalMethod), .unknown("_passkey"),
-  ]
+  /// The id of the method whose type the kit does not know.
+  static let unknownMethodID = AuthMethodId(rawValue: "passkey")
+
+  /// The JSON text of the agent method.
+  static let agentMethodJSON =
+    #"{"type": "agent", "methodId": "agent-login", "name": "Sign in with the agent", "description": "The agent opens a browser."}"#
+
+  /// The JSON text of the terminal method.
+  static let terminalMethodJSON =
+    #"{"type": "terminal", "methodId": "terminal-login", "name": "Terminal login", "args": ["--login"]}"#
+
+  /// The JSON text of a method type that the kit does not know.
+  static let unknownMethodJSON = #"{"type": "_passkey", "methodId": "passkey", "name": "Passkey"}"#
+
+  /// The methods that the agent gives: an agent method, a terminal method,
+  /// and one method type that the kit does not know.
+  static let allMethods = "[\(agentMethodJSON), \(terminalMethodJSON), \(unknownMethodJSON)]"
+
+  /// The methods of an agent that serves no `auth/logout`: one terminal
+  /// method.
+  static let terminalOnlyMethods = "[\(terminalMethodJSON)]"
+
+  /// The terminal method, as the thread actions get it.
+  static let kitTerminalMethod = AgentViewKit.AuthMethod.Terminal(
+    id: AuthMethodID(terminalMethodID.rawValue), name: "Terminal login", args: ["--login"])
+
+  /// The method of a logout request.
+  static let logoutMethod = "auth/logout"
+
+  /// The message of the error that the scripted agent sends.
+  static let scriptedErrorMessage = "failed"
 
   /// The command of the terminal record.
   static let terminalCommand = "/usr/local/bin/agent --login"
@@ -40,102 +72,94 @@ import Testing
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
-  /// A harness that shows the card with `actions` and `thread`.
+  /// Opens a scripted session whose agent gives `authMethods`.
   ///
   /// - Parameters:
-  ///   - actions: The actions that the card calls.
-  ///   - isAuthenticated: Whether the user is signed in.
-  ///   - thread: The thread of the environment, or `nil`.
-  /// - Returns: The harness.
-  static func harness(
-    actions: NoopThreadActions, isAuthenticated: Bool = false, thread: AgentThread? = nil
-  ) -> HostedViewHarness<some View> {
-    threadViewHarness(size: cardSize, actions: actions, thread: thread) {
-      AgentAuthView(methods: methods, isAuthenticated: isAuthenticated)
+  ///   - authMethods: The JSON text of the `authMethods` array.
+  ///   - configure: Changes the agent before it starts.
+  /// - Returns: The scripted session.
+  static func openSession(
+    authMethods: String = allMethods, configure: (ScriptedWireAgent) -> Void = { _ in }
+  ) async throws -> ScriptedSession {
+    try await ScriptedSession.open {
+      $0.results["initialize"] = ScriptedSession.makeInitializeResult(
+        info: ScriptedSession.agentInfo, authMethods: authMethods)
+      configure($0)
     }
   }
 
-  /// An error with a fixed description.
-  struct LoginError: LocalizedError {
-    var errorDescription: String? { "The login failed." }
+  /// A harness that shows the card of the connection of `session`, with the
+  /// session model in the environment.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - actions: The actions that the terminal rows call.
+  ///   - thread: The thread of the environment, or `nil`.
+  /// - Returns: The harness.
+  static func harness(
+    _ session: ScriptedSession, actions: NoopThreadActions = NoopThreadActions(), thread: AgentThread? = nil
+  ) -> HostedViewHarness<some View> {
+    threadViewHarness(size: cardSize, actions: actions, thread: thread) {
+      AgentAuthView(connection: session.connection)
+        .environment(\.sessionModel, session.model)
+    }
   }
 
   // MARK: - Layout
 
-  @Test func theCardShowsOneRowForEachKnownMethod() {
-    let harness = Self.harness(actions: NoopThreadActions())
+  @Test func theCardShowsOneRowForEachKnownMethod() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
 
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
-    #expect(
-      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethod.id)) != nil)
-    #expect(
-      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethod.id)) != nil)
-    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: AuthMethodID("_passkey"))) == nil)
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.unknownMethodID)) == nil)
     let rows = harness.accessibilityElements().filter {
       $0.identifier?.hasPrefix(AgentAuthView.rowIdentifierPrefix) == true
     }
     #expect(rows.count == 2)
   }
 
-  // MARK: - Agent method
-
-  @Test func anAgentRowCallsLoginWithTheMethodId() async throws {
-    let actions = NoopThreadActions()
-    let harness = Self.harness(actions: actions)
+  @Test func anAgentRowHasASignInButtonAndNoRunButton() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
 
-    #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.agentMethod.id)) == nil)
-    try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethod.id))
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-
-    #expect(actions.calls == [.login(Self.agentMethod.id)])
-  }
-
-  @Test func aFailedLoginShowsTheErrorUnderTheRow() async throws {
-    let actions = NoopThreadActions()
-    actions.onLogin = { _ in throw LoginError() }
-    let harness = Self.harness(actions: actions)
-    defer { harness.close() }
-    harness.pump()
-
-    let errorID = AgentAuthView.errorIdentifier(for: Self.agentMethod.id)
-    #expect(harness.element(identifier: errorID) == nil)
-    try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethod.id))
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: errorID) != nil }
-
-    #expect(harness.element(identifier: errorID)?.label == "The login failed.")
-    #expect(
-      harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethod.id))?.isEnabled
-        == true)
+    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
+    #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.agentMethodID)) == nil)
   }
 
   // MARK: - Terminal method
 
   @Test func aTerminalRowCallsRunTerminalAuthAndShowsATerminalWithAnInputField() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
     let actions = NoopThreadActions()
     let thread = AgentThread()
-    let terminalID = TerminalRecord.authID(for: Self.terminalMethod.id)
+    let terminalID = TerminalRecord.authID(for: Self.kitTerminalMethod.id)
     actions.onRunTerminalAuth = { _ in
       thread.apply(
         .upsertTerminal(
           TerminalPatch(id: terminalID, command: .value(Self.terminalCommand), output: .value(Data()))))
     }
-    let harness = Self.harness(actions: actions, thread: thread)
+    let harness = Self.harness(session, actions: actions, thread: thread)
     defer { harness.close() }
     harness.pump()
 
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
-    #expect(
-      harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.terminalMethod.id)) == nil)
-    try harness.press(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethod.id))
+    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.terminalMethodID)) == nil)
+    try harness.press(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID))
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: TerminalView.inputIdentifier) != nil
     }
 
-    #expect(actions.calls == [.runTerminalAuth(Self.terminalMethod)])
+    #expect(actions.calls == [.runTerminalAuth(Self.kitTerminalMethod)])
     #expect(
       harness.element(identifier: TerminalView.identifier)?.label
         == "Terminal, \(Self.terminalCommand)")
@@ -148,59 +172,76 @@ import Testing
 
     #expect(
       actions.calls == [
-        .runTerminalAuth(Self.terminalMethod), .writeTerminalLine(Self.inputLine, terminalID),
+        .runTerminalAuth(Self.kitTerminalMethod), .writeTerminalLine(Self.inputLine, terminalID),
       ])
   }
 
   @Test func aTerminalRowWithNoThreadShowsNoTerminal() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
     let actions = NoopThreadActions()
-    let harness = Self.harness(actions: actions)
+    let harness = Self.harness(session, actions: actions)
     defer { harness.close() }
     harness.pump()
 
-    try harness.press(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethod.id))
+    try harness.press(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID))
     await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
     harness.pump()
 
-    #expect(actions.calls == [.runTerminalAuth(Self.terminalMethod)])
+    #expect(actions.calls == [.runTerminalAuth(Self.kitTerminalMethod)])
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
   }
 
   // MARK: - Sign out
 
-  @Test func signOutIsHiddenWhenTheUserIsNotSignedIn() {
-    let harness = Self.harness(actions: NoopThreadActions(), isAuthenticated: false)
+  @Test func signOutIsHiddenWhenTheAgentCannotLogOut() async throws {
+    let session = try await Self.openSession(authMethods: Self.terminalOnlyMethods)
+    defer { session.close() }
+    let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
 
+    #expect(!session.connection.canLogout)
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
     #expect(harness.element(identifier: AgentAuthView.signOutIdentifier) == nil)
   }
 
-  @Test func signOutCallsLogout() async throws {
-    let actions = NoopThreadActions()
-    let harness = Self.harness(actions: actions, isAuthenticated: true)
+  @Test func signOutSendsTheLogoutFrameAndShowsTheSignInRowsAgain() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    try await session.connection.login(LoginAuthRequest(methodId: Self.agentMethodID))
+    let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
-
-    #expect(harness.element(identifier: AgentAuthView.signOutIdentifier) != nil)
-    try harness.press(identifier: AgentAuthView.signOutIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-
-    #expect(actions.calls == [.logout])
-  }
-
-  @Test func aFailedSignOutShowsTheError() async throws {
-    let actions = NoopThreadActions()
-    actions.onLogout = { _ in throw LoginError() }
-    let harness = Self.harness(actions: actions, isAuthenticated: true)
-    defer { harness.close() }
-    harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) == nil)
 
     try harness.press(identifier: AgentAuthView.signOutIdentifier)
     await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.signOutErrorIdentifier) != nil
+      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil
     }
 
-    #expect(harness.element(identifier: AgentAuthView.signOutErrorIdentifier)?.label == "The login failed.")
+    #expect(session.agent.messages(method: Self.logoutMethod).count == 1)
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
+  }
+
+  @Test func aFailedSignOutAddsAnErrorEntryToTheSession() async throws {
+    let session = try await Self.openSession { $0.failingMethods = [Self.logoutMethod] }
+    defer { session.close() }
+    let harness = Self.harness(session)
+    defer { harness.close() }
+    harness.pump()
+
+    try harness.press(identifier: AgentAuthView.signOutIdentifier)
+    // The error entry and the end of the progress come in one main-actor
+    // turn, but the view draws the enabled button in a later pass.
+    await harness.pump(until: Self.waitTimeout) {
+      !session.model.transcript.isEmpty
+        && harness.element(identifier: AgentAuthView.signOutIdentifier)?.isEnabled == true
+    }
+
+    let lastEntry = try #require(session.model.transcript.last)
+    let message: String? = if case .error(let entry) = lastEntry { entry.message } else { nil }
+    #expect(message == Self.scriptedErrorMessage)
+    #expect(harness.element(identifier: AgentAuthView.signOutIdentifier)?.isEnabled == true)
   }
 }

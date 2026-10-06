@@ -18,8 +18,24 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/Model/ThreadItemTests.swift. `swift test --filter ThreadItemTests`: 11 tests passed (it failed as expected with `bump()` broken). Full `swift test`: 1319 tests in 122 suites passed, 0 failures. The only warning is the expected mlx-swift `missing creator for mutated node`.
     - next: /review
   timestamp: 2026-10-06T19:00:04.122083+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m499mat3wthexgjgd03fc6mz
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 6c6d0e1). 0 findings, 0 confirmed, 0 refuted. 1 file reviewed. 4 .kanban files not reviewed (.reviewignore).
+    - next: none. The task is in done.
+  timestamp: 2026-10-06T19:04:15.939192+00:00
+- actor: claude-code
+  id: 01m499mbzj8rg39h38fq7p5bc3
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ThreadItemTests.bumpNotifiesAnObserverOfTheRevision uses ChangeFlag.observing
+    - test: green — swift test, 1319 passed
+    - commit: 6c6d0e1
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T19:04:17.138010+00:00
+position_column: done
+position_ordinal: f480
 title: Use ChangeFlag.observing in ThreadItemTests.bumpNotifiesAnObserverOfTheRevision
 ---
 ## What
