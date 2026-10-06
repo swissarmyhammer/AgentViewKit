@@ -19,13 +19,25 @@ public nonisolated final class ChangeFlag: Sendable {
     storage.withLock { $0 = true }
   }
 
-  /// Makes a flag that is set when a value that `read` reads changes.
+  /// Makes a flag that is set when a value that `read` reads changes and
+  /// `condition` is `true` at that change.
   ///
-  /// - Parameter read: The closure that reads the observed values one time.
+  /// The change handler runs `condition` one time, before the change is done.
+  /// When `condition` gives `false`, the flag stays clear. With no
+  /// `condition`, the change sets the flag.
+  ///
+  /// - Parameters:
+  ///   - read: The closure that reads the observed values one time.
+  ///   - condition: The closure that tells, at the change, if the flag is set.
   /// - Returns: A flag that is not set yet.
-  public static func observing(_ read: () -> Void) -> ChangeFlag {
+  public static func observing(
+    _ read: () -> Void,
+    when condition: @escaping @Sendable () -> Bool = { true }
+  ) -> ChangeFlag {
     let flag = ChangeFlag()
-    withObservationTracking(read) { flag.set() }
+    withObservationTracking(read) {
+      if condition() { flag.set() }
+    }
     return flag
   }
 }

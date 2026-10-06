@@ -6,7 +6,6 @@
   import Foundation
   import FoundationModelsACP
   import FoundationModelsACPClient
-  import Observation
   import SwiftUI
   import Testing
 
@@ -128,15 +127,11 @@
     ///   - model: The session model.
     /// - Returns: A flag that is not set yet.
     static func flagAnswerBeforePrompt(withText text: String, in model: SessionModel) -> ChangeFlag {
-      let flag = ChangeFlag()
-      withObservationTracking {
+      ChangeFlag.observing {
         _ = model.pendingPermissions
-      } onChange: {
-        MainActor.assumeIsolated {
-          if !transcriptHasUserMessage(withText: text, in: model) { flag.set() }
-        }
+      } when: {
+        MainActor.assumeIsolated { !transcriptHasUserMessage(withText: text, in: model) }
       }
-      return flag
     }
 
     // MARK: - Permission
