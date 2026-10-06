@@ -68,11 +68,27 @@ comments:
     - evidence: 1 file — Sources/AgentViewKit/Config/ConfigSelectChoices.swift. Commands: `swift build --build-tests` (pass), `swift test` (1300 tests in 119 suites passed, 0 issues). The two runs show one build-system line, "warning: missing creator for mutated node" on the mlx-swift_Cmlx.bundle of a dependency. It is not a compiler warning and it does not come from this change.
     - next: /review. The task stays in doing.
   timestamp: 2026-10-06T17:01:48.270834+00:00
+- actor: claude-code
+  id: 01m492wc466pn0e0khnwp42ac9
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (db0f426); 0 findings (0 confirmed, 0 refuted); 1 file reviewed, 2 .kanban files not reviewed (excluded by .reviewignore). All prior review items are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-06T17:06:19.398892+00:00
+- actor: claude-code
+  id: 01m492wczwmtbkkb69bcvz9f0d
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — SessionConfigSelect.choices calls assertionFailure before each error log
+    - test: green — swift test, 1300 passed
+    - commit: db0f426
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T17:06:20.284790+00:00
 depends_on:
 - 01M443PGJC9H955A0M1QSS6FR3
 - 01M48MQ0BVDHNY798PTF3VYEQH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f080
 title: 'Bind slash commands and config options to SessionModel: commands "not reported" and empty, setConfigOption'
 ---
 ## What

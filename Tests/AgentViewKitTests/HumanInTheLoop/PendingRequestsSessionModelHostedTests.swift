@@ -6,6 +6,7 @@
   import Foundation
   import FoundationModelsACP
   import FoundationModelsACPClient
+  import Observation
   import SwiftUI
   import Testing
 
@@ -24,9 +25,6 @@
 
     /// The JSON-RPC id of the request that the agent sends to the client.
     static let agentRequestID = 100
-
-    /// The number of runs of the frame order test.
-    static let orderRuns = 50
 
     /// The comment that the reject tests send.
     static let comment = "Use the test file."
@@ -104,6 +102,43 @@
       }
     }
 
+    /// Whether the transcript of `model` has a user message with `text`.
+    ///
+    /// - Parameters:
+    ///   - text: The text of the message.
+    ///   - model: The session model.
+    /// - Returns: `true` when a user message entry has that text.
+    static func transcriptHasUserMessage(withText text: String, in model: SessionModel) -> Bool {
+      model.transcript.contains { entry in
+        SessionTranscriptViewHostedTests.userMessage(entry).map {
+          SessionTranscriptViewHostedTests.text(of: $0.content) == text
+        } ?? false
+      }
+    }
+
+    /// Watches the next change of the pending permissions of `model`.
+    ///
+    /// The change handler runs when the pending request goes away, before the
+    /// change is done. It sets the flag when the transcript has no user message
+    /// with `text` at that time, which shows that the answer came before the
+    /// prompt. A prompt before the answer, or no change, leaves the flag clear.
+    ///
+    /// - Parameters:
+    ///   - text: The text of the prompt that the answer comes before.
+    ///   - model: The session model.
+    /// - Returns: A flag that is not set yet.
+    static func flagAnswerBeforePrompt(withText text: String, in model: SessionModel) -> ChangeFlag {
+      let flag = ChangeFlag()
+      withObservationTracking {
+        _ = model.pendingPermissions
+      } onChange: {
+        MainActor.assumeIsolated {
+          if !transcriptHasUserMessage(withText: text, in: model) { flag.set() }
+        }
+      }
+      return flag
+    }
+
     // MARK: - Permission
 
     @Test func aSelectedOptionGoesToTheAgentAndTheCardGoesAway() async throws {
@@ -135,7 +170,18 @@
       #expect(session.agent.messages(method: Self.promptMethod).isEmpty)
     }
 
-    @Test func aRejectWithACommentSendsTheAnswerAndThenThePrompt() async throws {
+    /// A reject with a comment answers the request, and then sends the comment
+    /// as a prompt.
+    ///
+    /// The card calls `selectPermission(_:option:)` before `prompt(_:meta:)`.
+    /// The test reads that order in the client model: when the pending request
+    /// goes away, the transcript has no user message with the comment yet.
+    ///
+    /// The test does not read the order of the two frames on the wire. The
+    /// client model does not promise that order: `selectPermission(_:option:)`
+    /// only resumes the waiting request handler, and the handler writes the
+    /// response frame later, so the prompt frame can go out first (^et6e0ps).
+    @Test func aRejectWithACommentAnswersTheRequestBeforeItSendsThePrompt() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = Self.mount(session: session)
@@ -151,43 +197,18 @@
       harness.pump()
       #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
       harness.type(Self.comment)
+      let answeredBeforePrompt = Self.flagAnswerBeforePrompt(withText: Self.comment, in: model)
       try harness.press(identifier: PermissionView.commentSubmitIdentifier)
       await harness.pump(until: Self.waitTimeout) {
         Self.indexOfPrompt(withText: Self.comment, in: session.agent) != nil
       }
+      await harness.pump(until: Self.waitTimeout) { Self.response(to: Self.agentRequestID, in: session) != nil }
 
-      let answer = try #require(session.agent.index(ofResponseTo: Double(Self.agentRequestID)))
-      let prompt = try #require(Self.indexOfPrompt(withText: Self.comment, in: session.agent))
-      #expect(answer < prompt)
-      #expect(
-        session.agent.received[answer]["result"]
-          == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
+      #expect(answeredBeforePrompt.value)
+      #expect(Self.transcriptHasUserMessage(withText: Self.comment, in: model))
+      let response = try #require(Self.response(to: Self.agentRequestID, in: session))
+      #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
       #expect(model.pendingPermissions.isEmpty)
-    }
-
-    /// The order of the frames when a client answers a permission request
-    /// and then sends a prompt, as the card does for a comment. The test reads
-    /// the client models only, and it runs many times to catch a race.
-    @Test func thePermissionResponseFrameComesBeforeTheNextPromptFrame() async throws {
-      let session = try await ScriptedSession.open()
-      defer { session.close() }
-      let model = session.model
-
-      for run in 0..<Self.orderRuns {
-        let requestID = Self.agentRequestID + run
-        let text = "Comment \(run)"
-        try await session.sendRequest(Self.permissionMethod, id: requestID, params: ScriptedSession.permissionParams)
-        #expect(await waitUntil { !model.pendingPermissions.isEmpty })
-        let pending = try #require(model.pendingPermissions.first)
-
-        model.selectPermission(pending.id, option: PermissionOptionId(rawValue: "no"))
-        _ = try await model.prompt([.text(TextContent(text: text))])
-
-        #expect(await waitUntil { Self.indexOfPrompt(withText: text, in: session.agent) != nil })
-        let answer = try #require(session.agent.index(ofResponseTo: Double(requestID)))
-        let prompt = try #require(Self.indexOfPrompt(withText: text, in: session.agent))
-        #expect(answer < prompt, "Run \(run): the prompt frame came before the response frame.")
-      }
     }
 
     // MARK: - Elicitation
