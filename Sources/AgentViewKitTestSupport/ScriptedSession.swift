@@ -18,11 +18,39 @@ public final class ScriptedSession {
   public static let workingDirectory = "/tmp/scripted-session"
 
   /// The `initialize` result of the agent: protocol version 2 with the
-  /// session capabilities.
-  static let initializeResult = #"""
+  /// session capabilities and no prompt capability.
+  static let initializeResult = makeInitializeResult(sessionCapabilities: "{}")
+
+  /// Makes the `initialize` result of an agent with prompt capabilities.
+  ///
+  /// Give the result to the agent in the `configure` closure of
+  /// ``open(configure:)``:
+  ///
+  /// ```swift
+  /// let session = try await ScriptedSession.open {
+  ///   $0.results["initialize"] = ScriptedSession.makeInitializeResult(promptCapabilities: #"{"image": {}}"#)
+  /// }
+  /// ```
+  ///
+  /// - Parameter promptCapabilities: The JSON text of the `prompt` member of
+  ///   the session capabilities, such as `{"embeddedContext": {}}`.
+  /// - Returns: The JSON text of the result: protocol version 2 with the
+  ///   session capabilities and the prompt capabilities.
+  public static func makeInitializeResult(promptCapabilities: String) -> String {
+    makeInitializeResult(sessionCapabilities: #"{"prompt": \#(promptCapabilities)}"#)
+  }
+
+  /// Makes the `initialize` result of the agent.
+  ///
+  /// - Parameter sessionCapabilities: The JSON text of the `session` member of
+  ///   the agent capabilities.
+  /// - Returns: The JSON text of the result with protocol version 2.
+  private static func makeInitializeResult(sessionCapabilities: String) -> String {
+    #"""
     {"info": {"name": "scripted-agent", "version": "1.0.0"}, "protocolVersion": 2,
-     "capabilities": {"session": {}}}
+     "capabilities": {"session": \#(sessionCapabilities)}}
     """#
+  }
 
   /// The `session/new` result of the agent.
   static let newSessionResult = #"{"sessionId": "\#(sessionID)"}"#

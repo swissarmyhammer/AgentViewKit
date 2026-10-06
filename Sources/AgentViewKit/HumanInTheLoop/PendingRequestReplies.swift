@@ -121,7 +121,9 @@ extension SessionModel: PermissionReplying {
       cancelPermission(id)
     }
     guard let comment = decision.comment, !comment.isEmpty else { return }
-    await sendPrompt(with: UserInput(text: comment))
+    // A comment has no attachment, so the prompt capabilities do not change
+    // its one text block.
+    await sendPrompt(with: UserInput(text: comment), accepting: nil)
   }
 }
 

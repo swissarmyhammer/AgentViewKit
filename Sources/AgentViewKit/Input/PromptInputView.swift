@@ -39,8 +39,17 @@ import SwiftUI
 /// `SessionModel.cancel(meta:)`. The composer reads `agentState` only to show
 /// the Stop control. The editor gets `SessionModel.availableCommands` as
 /// ``PromptEditorContext/commands``. With no session model, the editor gets
-/// `nil`: no command menu. Give the model to the composer with
-/// `.environment(\.sessionModel, model)`:
+/// `nil`: no command menu.
+///
+/// The blocks of a prompt and the attachment chips follow the prompt
+/// capabilities of the connection model of the environment
+/// (``SwiftUI/EnvironmentValues/connectionModel``). The composer reads
+/// `ConnectionModel.agentCapabilities` at the time of each submit and each
+/// draw, and keeps no copy. An image goes out only when the agent advertises
+/// `image`; else its chip shows the "not accepted" mark and the prompt does
+/// not carry it. A file goes out as an embedded resource when the agent
+/// advertises `embeddedContext`, else as a resource link. Give both models to
+/// the composer:
 ///
 /// ```swift
 /// VStack {
@@ -48,6 +57,7 @@ import SwiftUI
 ///   PromptInputView(text: $draft) {}
 /// }
 /// .environment(\.sessionModel, model)
+/// .environment(\.connectionModel, connection)
 /// ```
 ///
 /// In an agent command scope (``SwiftUI/View/agentCommandScope(thread:)``),

@@ -11,26 +11,26 @@ import UniformTypeIdentifiers
 private typealias Attachment = AgentViewKit.Attachment
 
 /// The text and the attachments of a hosted composer.
-@Observable private final class AttachmentChipsTestModel {
+@Observable final class AttachmentChipsTestModel {
   /// The text of the composer.
   var text: AttributedString
 
   /// The attachments of the composer.
-  var attachments: [Attachment]
+  var attachments: [AgentViewKit.Attachment]
 
   /// Makes a model.
   ///
   /// - Parameters:
   ///   - text: The first text of the composer.
   ///   - attachments: The first attachments of the composer.
-  init(text: String = "", attachments: [Attachment]) {
+  init(text: String = "", attachments: [AgentViewKit.Attachment]) {
     self.text = AttributedString(text)
     self.attachments = attachments
   }
 }
 
 /// A host view that owns the text and the attachments of a stock composer.
-private struct AttachmentComposerHost: View {
+struct AttachmentComposerHost: View {
   /// The model that holds the text and the attachments.
   @Bindable var model: AttachmentChipsTestModel
 

@@ -1,5 +1,6 @@
 import AppKit
 import CoreTransferable
+import FoundationModelsACPClient
 import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
@@ -10,6 +11,14 @@ import os
 ///
 /// The row shows one ``AttachmentChip`` for each attachment, with a remove
 /// button that drops the attachment from the binding.
+///
+/// The row reads the prompt capabilities of the agent from the connection
+/// model of the environment (``SwiftUI/EnvironmentValues/connectionModel``)
+/// each time it draws, and keeps no copy of them. A chip of an attachment
+/// that the agent does not accept, such as an image when the agent does not
+/// advertise `image`, shows a "not accepted" mark. The prompt does not carry
+/// that attachment. With no connection model, the row reads no capability, so
+/// each image chip shows the mark.
 ///
 /// ``PromptInputView`` shows the row above its editor while the attachment
 /// list is not empty. The composer also accepts a dropped file, a dropped
@@ -22,6 +31,9 @@ public struct AttachmentChips: View {
   /// The start of the accessibility identifier of each remove button.
   public static let removeIdentifierPrefix = "attachment-remove-"
 
+  /// The start of the accessibility identifier of each "not accepted" mark.
+  public static let notAcceptedIdentifierPrefix = "attachment-not-accepted-"
+
   /// The file name, without the extension, of a dropped or pasted image.
   static let imageFileStem = "Image"
 
@@ -32,6 +44,7 @@ public struct AttachmentChips: View {
   @Binding var attachments: [Attachment]
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.connectionModel) private var connection
 
   /// Makes the row.
   ///
@@ -61,6 +74,16 @@ public struct AttachmentChips: View {
   /// - Returns: The identifier, such as `attachment-remove-file:///a.txt`.
   public static func removeIdentifier(for id: AttachmentID) -> String {
     AccessibilityIdentifier.make(prefix: removeIdentifierPrefix, value: id.rawValue)
+  }
+
+  /// The accessibility identifier of the "not accepted" mark of an
+  /// attachment.
+  ///
+  /// - Parameter id: The identifier of the attachment.
+  /// - Returns: The identifier, such as
+  ///   `attachment-not-accepted-file:///a.png`.
+  public static func notAcceptedIdentifier(for id: AttachmentID) -> String {
+    AccessibilityIdentifier.make(prefix: notAcceptedIdentifierPrefix, value: id.rawValue)
   }
 
   /// Adds the attachments of dropped or pasted items to a list.
@@ -141,6 +164,9 @@ public struct AttachmentChips: View {
   }
 
   public var body: some View {
+    // The row reads the capabilities from the model at each draw, so a new
+    // `initialize` answer or a second connection changes the marks at once.
+    let capabilities = connection?.promptCapabilities
     ScrollView(.horizontal) {
       HStack(spacing: theme.spacing.s) {
         ForEach(attachments) { attachment in
@@ -148,6 +174,9 @@ public struct AttachmentChips: View {
             AttachmentChip(attachment)
               .accessibilityElement(children: .combine)
               .accessibilityIdentifier(Self.chipIdentifier(for: attachment.id))
+            if !PromptContent.isAccepted(attachmentAt: attachment.url, by: capabilities) {
+              notAcceptedMark(for: attachment)
+            }
             Button {
               remove(attachment.id)
             } label: {
@@ -170,6 +199,20 @@ public struct AttachmentChips: View {
   /// - Parameter id: The identifier of the attachment to remove.
   private func remove(_ id: AttachmentID) {
     attachments.removeAll { $0.id == id }
+  }
+
+  /// The mark that tells that the agent does not accept an attachment, so
+  /// the prompt does not carry it.
+  ///
+  /// - Parameter attachment: The attachment that the agent does not accept.
+  /// - Returns: The mark.
+  private func notAcceptedMark(for attachment: Attachment) -> some View {
+    Label(String(localized: "Not accepted"), systemImage: "exclamationmark.triangle.fill")
+      .labelStyle(.iconOnly)
+      .foregroundStyle(theme.statusColors.failed)
+      .help(String(localized: "The agent does not accept this kind of file. The prompt does not send it."))
+      .accessibilityLabel(String(localized: "The agent does not accept \(attachment.name)"))
+      .accessibilityIdentifier(Self.notAcceptedIdentifier(for: attachment.id))
   }
 }
 

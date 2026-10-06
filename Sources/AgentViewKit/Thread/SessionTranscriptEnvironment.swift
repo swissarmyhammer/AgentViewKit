@@ -9,6 +9,16 @@ extension EnvironmentValues {
   /// A row view reads the model to find whether its entry still streams. The
   /// value is `nil` outside a thread view over a session model.
   @Entry public var sessionModel: SessionModel? = nil
+
+  /// The connection model of the agent of the session (update.md §4.3).
+  ///
+  /// The composer reads the prompt capabilities of the agent from
+  /// `ConnectionModel.agentCapabilities` at the time of use, and keeps no copy
+  /// of them. Its attachment chips and the blocks of each prompt follow those
+  /// capabilities. When the value is `nil`, the composer reads no capability:
+  /// it does not send an image, and it sends each other file as a resource
+  /// link. Give the model with `.environment(\.connectionModel, model)`.
+  @Entry public var connectionModel: ConnectionModel? = nil
 }
 
 extension SessionModel {

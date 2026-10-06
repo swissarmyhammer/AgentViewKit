@@ -67,8 +67,24 @@ comments:
     - evidence: 3 files — Sources/AgentViewKitTestSupport/ChangeFlag.swift, Tests/AgentViewKitTests/HumanInTheLoop/PendingRequestsSessionModelHostedTests.swift, Tests/AgentViewKitTests/TestSupport/ChangeFlagTests.swift (new). Commands: `swift test --filter ChangeFlagTests` (RED: compile error, no `when:`; GREEN: 3/3 pass); `swift test --filter "PendingRequestsSessionModelHostedTests/aRejectWithACommentAnswersTheRequestBeforeItSendsThePrompt" --maximum-repetitions 50` (50/50 pass); full `swift test` (1302 tests in 120 suites + 77 tests in 12 suites + 1 test pass, 0 failures; only the known mlx `missing creator for mutated node` warning). No sleeps.
     - next: /review. The finding in "Review Findings (2026-10-06 12:44)" is `- [x]`. The task stays in doing.
   timestamp: 2026-10-06T17:53:43.958504+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m495x37h77f90smxwxgfffpd
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0c54424), 0 findings (0 confirmed, 0 refuted); 3 files reviewed, 4 .kanban files excluded by .reviewignore. All prior Review Findings items are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-06T17:59:08.785815+00:00
+- actor: claude-code
+  id: 01m495x4cytq8ckfjgxksz4mjz
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ChangeFlag.observing takes a when: condition; flagAnswerBeforePrompt uses it; ChangeFlagTests (new)
+    - test: green — swift test, 1302 passed
+    - commit: 0c54424
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T17:59:09.982185+00:00
+position_column: done
+position_ordinal: f180
 title: Make PendingRequestsSessionModelHostedTests.thePermissionResponseFrameComesBeforeTheNextPromptFrame stable
 ---
 ## What

@@ -7,6 +7,49 @@
   import SwiftUI
   import Testing
 
+  /// The connection model that a hosted composer reads from the environment.
+  /// A test replaces it to give the composer a second connection.
+  @Observable @MainActor private final class ConnectionHolder {
+    /// The connection model of the environment.
+    var connection: ConnectionModel
+
+    /// Makes a holder.
+    ///
+    /// - Parameter connection: The first connection model.
+    init(connection: ConnectionModel) {
+      self.connection = connection
+    }
+  }
+
+  /// A composer with attachments that reads the connection model of a holder
+  /// (``SwiftUI/EnvironmentValues/connectionModel``).
+  private struct ConnectionComposerHost: View {
+    /// The holder of the connection model.
+    let holder: ConnectionHolder
+
+    /// The text and the attachments of the composer.
+    let model: AttachmentChipsTestModel
+
+    var body: some View {
+      AttachmentComposerHost(model: model)
+        .environment(\.connectionModel, holder.connection)
+    }
+  }
+
+  /// The attached files of one capability test, in a new temporary
+  /// directory.
+  private struct ComposerAttachedFiles {
+    /// The directory that holds the files.
+    let directory: URL
+
+    /// An image that the composer wrote to a file, as it does for a pasted
+    /// image.
+    let image: AgentViewKit.Attachment
+
+    /// A text file.
+    let notes: AgentViewKit.Attachment
+  }
+
   /// The composer over a `SessionModel` (update.md §4.2 "Prompt helper", §4.7
   /// "Composer", §5 `PromptResponse.messageId`).
   ///
@@ -54,6 +97,75 @@
     static let sendStateLabels: [SendState: String] = [
       .pending: "Sending", .sent: "Sent", .failed: "Not sent",
     ]
+
+    /// The prompt capabilities of an agent that accepts embedded context and
+    /// no image.
+    static let embeddedContextOnly = #"{"embeddedContext": {}}"#
+
+    /// The prompt capabilities of an agent that accepts images and no
+    /// embedded context.
+    static let imageOnly = #"{"image": {}}"#
+
+    /// The text of the attached text file.
+    static let notesText = "Line one\nLine two\n"
+
+    /// Shows the transcript and a composer with attachments over a session.
+    /// The composer reads the connection model of a holder.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - holder: The holder of the connection model of the composer.
+    ///   - draft: The model that holds the text and the attachments.
+    /// - Returns: The harness.
+    private static func mount(
+      session: ScriptedSession, connection holder: ConnectionHolder, draft: AttachmentChipsTestModel
+    ) -> HostedViewHarness<some View> {
+      HostedViewHarness(size: size) {
+        VStack(spacing: 0) {
+          AgentThreadView(session: session.model, actions: NoopThreadActions())
+          ConnectionComposerHost(holder: holder, model: draft)
+        }
+        .environment(\.sessionModel, session.model)
+        .transaction { $0.disablesAnimations = true }
+      }
+    }
+
+    /// Shows a composer with attachments over a session and its own
+    /// connection model.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - draft: The model that holds the text and the attachments.
+    /// - Returns: The harness.
+    private static func mount(
+      session: ScriptedSession, draft: AttachmentChipsTestModel
+    ) -> HostedViewHarness<some View> {
+      mount(session: session, connection: ConnectionHolder(connection: session.connection), draft: draft)
+    }
+
+    /// Writes a pasted image and a text file to a new temporary directory.
+    ///
+    /// - Returns: The directory and the attachments of the two files.
+    /// - Throws: The error of a file write.
+    private static func makeAttachedFiles() throws -> ComposerAttachedFiles {
+      let directory = try AttachmentChipsHostedTests.makeDirectory()
+      let image = try AttachmentChips.writeImage(AttachmentChipsHostedTests.pngData(), in: directory)
+      let notesURL = directory.appending(path: "notes.txt")
+      try Data(notesText.utf8).write(to: notesURL)
+      return ComposerAttachedFiles(
+        directory: directory, image: image, notes: AgentViewKit.Attachment(url: notesURL))
+    }
+
+    /// The prompt blocks of the first `session/prompt` frame.
+    ///
+    /// - Parameter agent: The scripted agent.
+    /// - Returns: The blocks, or an empty list when the agent got no prompt.
+    static func promptBlocks(of agent: ScriptedWireAgent) -> [AgentViewKit.JSONValue] {
+      guard case .array(let blocks) = agent.messages(method: promptMethod).first?["params"]?["prompt"] else {
+        return []
+      }
+      return blocks
+    }
 
     /// Shows the transcript and a composer over a session.
     ///
@@ -264,6 +376,75 @@
       let cancels = session.agent.messages(method: Self.cancelMethod)
       #expect(cancels.count == 1)
       #expect(cancels.first?["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
+    }
+
+    // MARK: - Prompt capabilities
+
+    @Test func aPastedImageThatTheAgentDoesNotAcceptShowsAsNotAcceptedAndIsNotSent() async throws {
+      let session = try await ScriptedSession.open {
+        $0.results["initialize"] = ScriptedSession.makeInitializeResult(promptCapabilities: Self.embeddedContextOnly)
+      }
+      defer { session.close() }
+      let files = try Self.makeAttachedFiles()
+      defer { try? FileManager.default.removeItem(at: files.directory) }
+      let draft = AttachmentChipsTestModel(text: Self.firstMessage, attachments: [files.image, files.notes])
+      let harness = Self.mount(session: session, draft: draft)
+      defer { harness.close() }
+      let imageBadge = AttachmentChips.notAcceptedIdentifier(for: files.image.id)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: imageBadge) != nil }
+
+      #expect(harness.element(identifier: imageBadge) != nil)
+      #expect(harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id)) == nil)
+
+      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+
+      let blocks = Self.promptBlocks(of: session.agent)
+      #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource"])
+      #expect(blocks.last?["resource"]?["text"]?.stringValue == Self.notesText)
+    }
+
+    @Test func withoutEmbeddedContextAnAttachedTextFileGoesOutAsAResourceLink() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let files = try Self.makeAttachedFiles()
+      defer { try? FileManager.default.removeItem(at: files.directory) }
+      let draft = AttachmentChipsTestModel(text: Self.firstMessage, attachments: [files.notes])
+      let harness = Self.mount(session: session, draft: draft)
+      defer { harness.close() }
+      harness.pump()
+
+      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+
+      let blocks = Self.promptBlocks(of: session.agent)
+      #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource_link"])
+      #expect(blocks.last?["uri"]?.stringValue == files.notes.url.absoluteString)
+    }
+
+    @Test func aSecondConnectionWithOtherCapabilitiesChangesTheChipState() async throws {
+      let first = try await ScriptedSession.open()
+      defer { first.close() }
+      let second = try await ScriptedSession.open {
+        $0.results["initialize"] = ScriptedSession.makeInitializeResult(promptCapabilities: Self.imageOnly)
+      }
+      defer { second.close() }
+      let files = try Self.makeAttachedFiles()
+      defer { try? FileManager.default.removeItem(at: files.directory) }
+      let holder = ConnectionHolder(connection: first.connection)
+      let draft = AttachmentChipsTestModel(text: Self.firstMessage, attachments: [files.image])
+      let harness = Self.mount(session: first, connection: holder, draft: draft)
+      defer { harness.close() }
+      let imageBadge = AttachmentChips.notAcceptedIdentifier(for: files.image.id)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: imageBadge) != nil }
+
+      #expect(harness.element(identifier: imageBadge) != nil)
+
+      holder.connection = second.connection
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: imageBadge) == nil }
+
+      #expect(harness.element(identifier: imageBadge) == nil)
+      #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: files.image.id)) != nil)
     }
 
     // MARK: - Helpers

@@ -150,8 +150,11 @@ struct ACPTabView: View {
         .padding()
     }
     // The thread view and the composer read the session model: the
-    // composer gets its slash commands and its mode picker from it.
+    // composer gets its slash commands and its mode picker from it. The
+    // composer reads the prompt capabilities of the agent from the
+    // connection model.
     .environment(\.sessionModel, session.sessionModel)
+    .environment(\.connectionModel, session.connectionModel)
     .id(ObjectIdentifier(thread))
   }
 

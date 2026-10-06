@@ -39,9 +39,11 @@ private let configOptionsResult = #"""
   """#
 
 /// An `initialize` result with protocol version 2 and one agent auth method,
-/// so that the connection model can send `auth/logout`.
+/// so that the connection model can send `auth/logout`. The agent accepts
+/// images in a prompt, and no embedded context.
 private let initializeResult = #"""
   {"info": {"name": "agent", "version": "1.0.0"}, "protocolVersion": 2,
+   "capabilities": {"session": {"prompt": {"image": {}}}},
    "authMethods": [{"type": "agent", "methodId": "agent-login", "name": "Sign in"}]}
   """#
 

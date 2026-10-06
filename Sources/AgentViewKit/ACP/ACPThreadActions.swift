@@ -45,8 +45,12 @@ public nonisolated struct ACPAgentProgram: Sendable, Hashable {
 /// Each verb has one behavior:
 ///
 /// - ``send(_:)`` sends `session/prompt` with `SessionModel.prompt(_:meta:)`.
-///   The text is a `text` block. An image attachment is an `image` block with
-///   base64 data. Each other attachment is a `resource_link` block.
+///   The text is a `text` block. The attachment blocks follow the prompt
+///   capabilities of the connection model at the time of the send: an image
+///   attachment is an `image` block with base64 data only when the agent
+///   advertises `image`, else it does not go out. Each other attachment is an
+///   embedded `resource` block when the agent advertises `embeddedContext`,
+///   else a `resource_link` block.
 /// - ``cancel()`` sends `session/cancel` with `SessionModel.cancel(meta:)`.
 /// - ``respond(to:_:)-(PermissionRequest,_)`` and
 ///   ``respond(to:_:)-(ElicitationRequest,_)`` send nothing. The client
@@ -127,8 +131,9 @@ public final class ACPThreadActions: AgentThreadActions {
 
   public func send(_ input: UserInput) async {
     // The session model adds the error entry of a failed prompt, and the
-    // helper writes the failure to the log.
-    await session.sendPrompt(with: input)
+    // helper writes the failure to the log. The blocks follow the prompt
+    // capabilities that the connection model holds at this time.
+    await session.sendPrompt(with: input, accepting: connection.promptCapabilities)
   }
 
   public func cancel() async {
