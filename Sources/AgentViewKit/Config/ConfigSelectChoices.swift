@@ -40,9 +40,10 @@ extension SessionConfigSelect {
   /// flat.
   ///
   /// - Returns: The choices, or `nil` when the JSON value has neither shape.
-  ///   The log records the failure.
+  ///   A debug build stops at the failure, and the log records it.
   var choices: ConfigSelectChoices? {
     guard case .array(let items) = options else {
+      assertionFailure("select options are not a JSON array")
       configChoicesLogger.error("The select options are not a JSON list.")
       return nil
     }
@@ -53,6 +54,7 @@ extension SessionConfigSelect {
       }
       return .flat(try JSONDecoder().decode([SessionConfigSelectOption].self, from: data))
     } catch {
+      assertionFailure("select options decode failed: \(error)")
       configChoicesLogger.error("The select options do not decode: \(String(describing: error), privacy: .public)")
       return nil
     }
