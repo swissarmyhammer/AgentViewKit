@@ -82,13 +82,8 @@ import Testing
 
   @Test func bumpNotifiesAnObserverOfTheRevision() {
     let reasoning = Reasoning(id: "reasoning-1", segments: [])
-    let changed = ChangeFlag()
+    let changed = ChangeFlag.observing { _ = reasoning.revision }
 
-    withObservationTracking {
-      _ = reasoning.revision
-    } onChange: {
-      changed.set()
-    }
     reasoning.bump()
 
     #expect(changed.value)

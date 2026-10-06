@@ -34,12 +34,28 @@ comments:
     - evidence: 10 files — Sources/AgentViewKit/Status/StateBanner.swift, Sources/AgentViewKit/Status/SessionStreamBanner.swift (new), Sources/AgentViewKit/Status/StatusBar.swift (new), Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Thread/ConversationView.swift, Sources/AgentViewKit/Thread/SessionTranscriptEnvironment.swift, Sources/AgentViewKit/Input/PromptInputView.swift, Sources/AgentViewKit/Input/ThreadActionTasks.swift, Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift (new). `swift test --filter SessionStateBannersHostedTests`: 6 of 6 pass. Full `swift test`: 1319 tests in 122 suites, 77 in 12 suites and 1 in 1 suite pass; no warnings other than the expected deprecation and mlx-swift ones. README and demo not changed.
     - next: /review. The owner must confirm the new `workingDirectory` input of AgentThreadView (see the comment above).
   timestamp: 2026-10-06T18:49:11.157867+00:00
+- actor: claude-code
+  id: 01m4994an9fp27fda1qyy3sprs
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 2cce990) — 0 findings, 0 confirmed, 0 refuted; 10 files reviewed, 4 .kanban/ files not reviewed (.reviewignore).
+    - next: none. The task is in done.
+  timestamp: 2026-10-06T18:55:31.497448+00:00
+- actor: claude-code
+  id: 01m4994c12ycv70vjatm7554am
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — StateBanner(session:) reads agentState; SessionStreamBanner (new) shows closed, replay, missed updates with Reload and the partial-history note; StatusBar (new); composer reads isClosed; workingDirectory input for Reload
+    - test: green — swift test, 1319 passed
+    - commit: 2cce990
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T18:55:32.898762+00:00
 depends_on:
 - 01M443NN55C6HTFT2F2REPFZA1
 - 01M443GNSTVHXNPFNPG33W402N
 - 01M48MQ0BVDHNY798PTF3VYEQH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f380
 title: 'Bind the state banners to SessionModel: agentState, replay marker, missed updates with Reload, closed thread'
 ---
 ## What
