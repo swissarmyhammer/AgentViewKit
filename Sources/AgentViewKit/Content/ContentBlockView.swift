@@ -1,11 +1,18 @@
+import FoundationModelsACP
 import SwiftUI
 
 /// The view of one content block of a message (plan.md §3.6, §9 A2).
 ///
-/// The view uses the registration of the ``ContentBlockRegistry`` for the
-/// kind of the block when there is one. See
-/// ``SwiftUI/View/contentBlockView(for:_:)``. Otherwise it uses the default
-/// view of the kind:
+/// The view shows a kit ``ContentBlock`` of a thread message, or an ACP
+/// `ContentBlock` that a transcript entry of a `SessionModel` holds. The view
+/// of an ACP block reads the ACP value directly, with no kit block between
+/// the value and the view.
+///
+/// For a kit block, the view uses the registration of the
+/// ``ContentBlockRegistry`` for the kind of the block when there is one. See
+/// ``SwiftUI/View/contentBlockView(for:_:)``. The registry keys the kit block,
+/// so an ACP block always shows its default view. Otherwise the view uses the
+/// default view of the kind:
 ///
 /// - text: a ``ResponseView``, through Textual.
 /// - image: an ``ImageView``. A tap selects the image in the inspector.
@@ -23,8 +30,17 @@ public struct ContentBlockView: View {
   /// The start of the accessibility identifier of each default view.
   public static let identifierPrefix = "content-block-"
 
+  /// The block that the view shows.
+  enum Source {
+    /// A kit block of a thread message.
+    case record(ContentBlock)
+
+    /// An ACP block that a transcript entry holds.
+    case wire(FoundationModelsACP.ContentBlock)
+  }
+
   /// The block to show.
-  let block: ContentBlock
+  let source: Source
 
   /// The id of the block view.
   let id: String
@@ -39,7 +55,21 @@ public struct ContentBlockView: View {
   ///     `<message id>-<block index>`. The text view keys its code blocks by
   ///     this id, and the unknown view keys its expanded state by it.
   public init(block: ContentBlock, id: String) {
-    self.block = block
+    self.source = .record(block)
+    self.id = id
+  }
+
+  /// Makes the view of an ACP content block of a transcript entry.
+  ///
+  /// The view reads the ACP value directly. The ``ContentBlockRegistry``
+  /// does not apply, because it keys the kit block.
+  ///
+  /// - Parameters:
+  ///   - block: The ACP block to show, as the entry holds it.
+  ///   - id: The id of the block view, unique in the thread, such as
+  ///     `<row key>-<block index>`.
+  public init(block: FoundationModelsACP.ContentBlock, id: String) {
+    self.source = .wire(block)
     self.id = id
   }
 
@@ -52,18 +82,29 @@ public struct ContentBlockView: View {
   }
 
   public var body: some View {
-    if block.isVisible(to: .user) {
-      if let renderer = registry.resolve(kind: block.kind) {
-        renderer(block)
-      } else {
-        defaultView
-          .contentContainer(identifier: Self.identifier(for: block.kind))
+    switch source {
+    case .record(let block):
+      if block.isVisible(to: .user) {
+        if let renderer = registry.resolve(kind: block.kind) {
+          renderer(block)
+        } else {
+          recordView(of: block)
+            .contentContainer(identifier: Self.identifier(for: block.kind))
+        }
+      }
+    case .wire(let block):
+      if Self.isVisibleToUser(block: block) {
+        wireView(of: block)
+          .contentContainer(identifier: Self.identifier(of: block))
       }
     }
   }
 
-  /// The default view of the kind of the block.
-  @ViewBuilder private var defaultView: some View {
+  /// The default view of the kind of a kit block.
+  ///
+  /// - Parameter block: The kit block.
+  /// - Returns: The default view.
+  @ViewBuilder private func recordView(of block: ContentBlock) -> some View {
     switch block.content {
     case .text(let text):
       TextBlockView(text: text, id: id)
@@ -80,5 +121,68 @@ public struct ContentBlockView: View {
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: id)
     }
+  }
+
+  /// The default view of the kind of an ACP block.
+  ///
+  /// - Parameter block: The ACP block.
+  /// - Returns: The default view.
+  @ViewBuilder private func wireView(of block: FoundationModelsACP.ContentBlock) -> some View {
+    switch block {
+    case .text(let text):
+      TextBlockView(text: text.text, id: id)
+    case .image(let image):
+      ImageView(image: image)
+    case .audio(let audio):
+      AudioPlayerView(audio: audio)
+    case .resourceLink(let link):
+      LinkView(link: link)
+    case .resource(let resource):
+      ResourceBlockView(resource: resource, id: id)
+    case .unknown(let kind, let raw):
+      UnknownItemView(kind: kind, wireValue: raw, id: id)
+    }
+  }
+
+  /// The accessibility identifier of the default view of an ACP block.
+  ///
+  /// The kind names are the names of the kit kinds, so an ACP block and a kit
+  /// block of one kind have the same identifier.
+  ///
+  /// - Parameter block: The ACP block.
+  /// - Returns: `content-block-<kind>`, such as `content-block-resourceLink`.
+  private static func identifier(of block: FoundationModelsACP.ContentBlock) -> String {
+    let kindName =
+      switch block {
+      case .text: "text"
+      case .image: "image"
+      case .audio: "audio"
+      case .resourceLink: "resourceLink"
+      case .resource: "resource"
+      case .unknown: "unknown"
+      }
+    return AccessibilityIdentifier.make(prefix: identifierPrefix, value: kindName)
+  }
+
+  /// Tells if an ACP block is for the user.
+  ///
+  /// A block with no audience is for each audience. A block with an audience
+  /// list is only for the audiences in the list. An unknown block has no
+  /// annotations, so it is for the user.
+  ///
+  /// - Parameter block: The ACP block.
+  /// - Returns: `true` when the block is for the user.
+  private static func isVisibleToUser(block: FoundationModelsACP.ContentBlock) -> Bool {
+    let annotations: FoundationModelsACP.Annotations? =
+      switch block {
+      case .text(let text): text.annotations
+      case .image(let image): image.annotations
+      case .audio(let audio): audio.annotations
+      case .resourceLink(let link): link.annotations
+      case .resource(let resource): resource.annotations
+      case .unknown: nil
+      }
+    guard let audience = annotations?.audience else { return true }
+    return audience.contains(.user)
   }
 }

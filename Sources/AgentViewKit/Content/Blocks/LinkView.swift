@@ -1,4 +1,5 @@
 import AppKit
+import FoundationModelsACP
 import LinkPresentation
 import SwiftUI
 
@@ -10,6 +11,9 @@ import SwiftUI
 /// the card opens the link through the `openURL` action of the environment,
 /// so the link opens in the browser of the user. A link with a URI that is
 /// not a URL shows the name and the URI as text.
+///
+/// The view shows a kit ``ResourceLink``, or an ACP `ResourceLink` that a
+/// transcript entry holds.
 public struct LinkView: View {
   /// The accessibility identifier of the card.
   public static let cardIdentifier = "link-card"
@@ -17,8 +21,17 @@ public struct LinkView: View {
   /// The largest width of the card, in points.
   private static let maximumCardWidth: CGFloat = 400
 
+  /// The link that the view shows.
+  enum Source {
+    /// A kit link of a thread message.
+    case record(ResourceLink)
+
+    /// An ACP link that a transcript entry holds.
+    case wire(FoundationModelsACP.ResourceLink)
+  }
+
   /// The link to show.
-  let link: ResourceLink
+  let source: Source
 
   /// The loaded first icon of the link, or `nil`.
   @State private var icon: NSImage?
@@ -29,30 +42,46 @@ public struct LinkView: View {
   ///
   /// - Parameter link: The link to show.
   public init(link: ResourceLink) {
-    self.link = link
+    self.source = .record(link)
+  }
+
+  /// Makes the view of an ACP resource link of a transcript entry.
+  ///
+  /// - Parameter link: The ACP link to show, as the entry holds it.
+  public init(link: FoundationModelsACP.ResourceLink) {
+    self.source = .wire(link)
+  }
+
+  /// The name, the URI, and the source of the first icon of the link.
+  private var parts: (name: String, uri: String, iconSource: String?) {
+    switch source {
+    case .record(let link): (link.name, link.uri, link.icons.first?.src)
+    case .wire(let link): (link.name, link.uri, link.icons?.first?.src)
+    }
   }
 
   public var body: some View {
-    if let url = URL(string: link.uri) {
+    let (name, uri, iconSource) = parts
+    if let url = URL(string: uri) {
       Button {
         openURL(url)
       } label: {
-        LinkCard(link: link, url: url, icon: icon)
+        LinkCard(name: name, url: url, icon: icon)
           .allowsHitTesting(false)
           .frame(maxWidth: Self.maximumCardWidth, alignment: .leading)
       }
       .buttonStyle(.plain)
-      .help(link.uri)
-      .accessibilityLabel(link.name)
-      .accessibilityHint(link.uri)
+      .help(uri)
+      .accessibilityLabel(name)
+      .accessibilityHint(uri)
       .accessibilityIdentifier(Self.cardIdentifier)
-      .task(id: link.icons.first) {
-        icon = await Self.loadIcon(link.icons.first)
+      .task(id: iconSource) {
+        icon = await Self.loadIcon(from: iconSource)
       }
     } else {
       VStack(alignment: .leading) {
-        Text(link.name)
-        Text(link.uri)
+        Text(name)
+        Text(uri)
           .font(.caption)
           .foregroundStyle(.secondary)
       }
@@ -62,11 +91,11 @@ public struct LinkView: View {
 
   /// Loads the image of an icon.
   ///
-  /// - Parameter icon: The icon, or `nil`.
+  /// - Parameter iconSource: The URI of the icon, or `nil`.
   /// - Returns: The image, or `nil` when there is no icon, when its source
   ///   is not a URL, or when the load fails.
-  private static func loadIcon(_ icon: ResourceIcon?) async -> NSImage? {
-    guard let source = icon.flatMap({ URL(string: $0.src) }),
+  private static func loadIcon(from iconSource: String?) async -> NSImage? {
+    guard let source = iconSource.flatMap({ URL(string: $0) }),
       let (data, _) = try? await URLSession.shared.data(from: source)
     else { return nil }
     return NSImage(data: data)
@@ -75,8 +104,8 @@ public struct LinkView: View {
 
 /// An `LPLinkView` card with metadata that the kit makes.
 private struct LinkCard: NSViewRepresentable {
-  /// The link to show.
-  let link: ResourceLink
+  /// The name of the resource.
+  let name: String
 
   /// The URL of the link.
   let url: URL
@@ -85,13 +114,13 @@ private struct LinkCard: NSViewRepresentable {
   let icon: NSImage?
 
   func makeNSView(context: Context) -> LPLinkView {
-    context.coordinator.remember(link: link, icon: icon)
+    context.coordinator.remember(name: name, url: url, icon: icon)
     return LPLinkView(metadata: metadata)
   }
 
   func updateNSView(_ view: LPLinkView, context: Context) {
-    guard !context.coordinator.shows(link: link, icon: icon) else { return }
-    context.coordinator.remember(link: link, icon: icon)
+    guard !context.coordinator.shows(name: name, url: url, icon: icon) else { return }
+    context.coordinator.remember(name: name, url: url, icon: icon)
     view.metadata = metadata
   }
 
@@ -99,33 +128,39 @@ private struct LinkCard: NSViewRepresentable {
     Coordinator()
   }
 
-  /// Keeps the link and the icon that the card shows, so that an update with
-  /// the same values does not make the metadata again.
+  /// Keeps the name, the URL and the icon that the card shows, so that an
+  /// update with the same values does not make the metadata again.
   final class Coordinator {
-    /// The link that the card shows.
-    private var link: ResourceLink?
+    /// The name that the card shows.
+    private var name: String?
+
+    /// The URL that the card shows.
+    private var url: URL?
 
     /// The icon that the card shows.
     private var icon: NSImage?
 
-    /// Tells whether the card shows a link and an icon.
+    /// Tells whether the card shows a name, a URL and an icon.
     ///
     /// - Parameters:
-    ///   - link: The link.
+    ///   - name: The name of the resource.
+    ///   - url: The URL of the link.
     ///   - icon: The icon, or `nil`.
-    /// - Returns: `true` when the card shows the same link and the same icon
-    ///   object.
-    func shows(link: ResourceLink, icon: NSImage?) -> Bool {
-      self.link == link && self.icon === icon
+    /// - Returns: `true` when the card shows the same name, the same URL and
+    ///   the same icon object.
+    func shows(name: String, url: URL, icon: NSImage?) -> Bool {
+      self.name == name && self.url == url && self.icon === icon
     }
 
-    /// Records the link and the icon that the card shows.
+    /// Records the name, the URL and the icon that the card shows.
     ///
     /// - Parameters:
-    ///   - link: The link.
+    ///   - name: The name of the resource.
+    ///   - url: The URL of the link.
     ///   - icon: The icon, or `nil`.
-    func remember(link: ResourceLink, icon: NSImage?) {
-      self.link = link
+    func remember(name: String, url: URL, icon: NSImage?) {
+      self.name = name
+      self.url = url
       self.icon = icon
     }
   }
@@ -135,7 +170,7 @@ private struct LinkCard: NSViewRepresentable {
     let metadata = LPLinkMetadata()
     metadata.originalURL = url
     metadata.url = url
-    metadata.title = link.name
+    metadata.title = name
     metadata.iconProvider = icon.map { NSItemProvider(object: $0) }
     return metadata
   }

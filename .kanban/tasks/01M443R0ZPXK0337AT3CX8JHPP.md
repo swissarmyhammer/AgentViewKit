@@ -62,12 +62,28 @@ comments:
     - evidence: 4 files — Tests/AgentViewKitTests/Helpers/HarnessStateBanner.swift (new), Tests/AgentViewKitTests/Helpers/SourceLines.swift (new), Tests/AgentViewKitTests/Thread/BackgroundRunsHostedTests.swift, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift; `swift test --filter 'BackgroundRunsHostedTests|SessionStateBannersHostedTests'` (9 tests in 2 suites pass); `swift test` (1331 tests in 124 suites pass, only the mlx-swift `missing creator for mutated node` warning); finding at BackgroundRunsHostedTests.swift:109 is `- [x]`
     - next: /review
   timestamp: 2026-10-06T22:06:36.961790+00:00
+- actor: claude-code
+  id: 01m49mf0ngj77pg4vxs8drc2nd
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (06309b5); 0 findings (0 confirmed, 0 refuted); 4 files reviewed, 2 .kanban files not reviewed (from .reviewignore); all prior items in "Review Findings (2026-10-06 16:50)" are checked
+    - next: none — task moved to done
+  timestamp: 2026-10-06T22:13:36.048073+00:00
+- actor: claude-code
+  id: 01m49mf1s1kw75qa8p2avcyved
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — HostedViewHarness.stateBannerLabel and SourceLines.matching (new shared test helpers) used by both suites
+    - test: green — swift test, 1331 passed
+    - commit: 06309b5
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T22:13:37.185095+00:00
 depends_on:
 - 01M443QAWWDY730CX0EDPG4T4Z
 - 01M443NW9A12NWXYHJFYTTTA85
 - 01M48MQDWDPN98ZSWQ4N7S44FW
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f780
 title: 'Show background runs as SessionModel reports them: two agent message rows, tool rows that update, running until idle'
 ---
 ## What

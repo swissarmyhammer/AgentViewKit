@@ -62,12 +62,11 @@ struct MessageItemView: View {
   }
 }
 
-/// The layout of one message: the header, the content blocks, and the
-/// footer slot.
+/// The layout of one message of a thread: the header, the content blocks,
+/// and the footer slot, in a ``MessageLayout``.
 ///
 /// The caller gives the stream of the message. ``MessageItemView`` reads it
-/// from the thread. A transcript entry view gives no stream, because it shows
-/// the text of the entry as the session model holds it.
+/// from the thread.
 struct MessageBodyView: View {
   /// The message to show.
   let message: Message
@@ -82,7 +81,6 @@ struct MessageBodyView: View {
   let streaming: StreamingMessage?
 
   @Environment(\.messageFooter) private var footer
-  @Environment(\.agentTheme) private var theme
 
   /// The id of the view of the block at `index` of a message.
   ///
@@ -96,8 +94,7 @@ struct MessageBodyView: View {
 
   var body: some View {
     let blocks = Array(message.blocks.enumerated())
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
-      MessageHeader(role: role, date: date)
+    MessageLayout(id: message.id, role: role, date: date) {
       if let streaming {
         ResponseView(message: message, streaming: streaming)
         blockViews(blocks.filter { $0.element.kind != .text })
@@ -108,19 +105,6 @@ struct MessageBodyView: View {
         footer(message)
       }
     }
-    // Each paragraph of the message is in one linked reading group, also
-    // when the paragraphs are in more than one text block (plan.md §6).
-    .environment(\.accessibilityMessageGroupID, message.id)
-    .accessibilityReadingScope()
-    // The text of one message is selectable. A selection does not go into
-    // the next message (Docs/decisions/text-selection.md).
-    .textual.textSelection(.enabled)
-    .contentContainer(identifier: role.messageIdentifier(for: message.id))
-    .accessibilityLabel(role.accessibilityLabel)
-    // The row is a container with this view as its one child. The second
-    // hidden child keeps SwiftUI from merging this view into the row, so
-    // this view keeps its identifier. See `contentContainer(identifier:)`.
-    .background { Color.clear.accessibilityHidden(true) }
   }
 
   /// One ``ContentBlockView`` for each block, keyed by its position.
@@ -134,5 +118,50 @@ struct MessageBodyView: View {
     ForEach(blocks, id: \.offset) { index, block in
       ContentBlockView(block: block, id: Self.blockID(messageID: message.id, index: index))
     }
+  }
+}
+
+/// The layout of one message: the ``MessageHeader`` and then the content,
+/// in one accessibility container.
+///
+/// ``MessageBodyView`` puts the blocks and the footer of a thread message in
+/// it. ``TranscriptMessageView`` puts the ACP content of a transcript entry
+/// in it.
+///
+/// The text of the message is selectable, one message at a time, and each
+/// paragraph of the message is in one linked reading group.
+struct MessageLayout<Content: View>: View {
+  /// The id of the message, such as the row key of a transcript entry.
+  let id: String
+
+  /// The sender of the message.
+  let role: MessageRole
+
+  /// The time of the message, or `nil` when it is not known.
+  let date: Date?
+
+  /// The content below the header.
+  @ViewBuilder let content: Content
+
+  @Environment(\.agentTheme) private var theme
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: theme.spacing.s) {
+      MessageHeader(role: role, date: date)
+      content
+    }
+    // Each paragraph of the message is in one linked reading group, also
+    // when the paragraphs are in more than one text block (plan.md §6).
+    .environment(\.accessibilityMessageGroupID, id)
+    .accessibilityReadingScope()
+    // The text of one message is selectable. A selection does not go into
+    // the next message (Docs/decisions/text-selection.md).
+    .textual.textSelection(.enabled)
+    .contentContainer(identifier: role.messageIdentifier(for: id))
+    .accessibilityLabel(role.accessibilityLabel)
+    // The row is a container with this view as its one child. The second
+    // hidden child keeps SwiftUI from merging this view into the row, so
+    // this view keeps its identifier. See `contentContainer(identifier:)`.
+    .background { Color.clear.accessibilityHidden(true) }
   }
 }

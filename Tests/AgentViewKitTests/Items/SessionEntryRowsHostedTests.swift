@@ -45,6 +45,17 @@
     /// The text of the thought of the tests.
     static let thoughtText = "Thinking."
 
+    /// The name of the resource link that the content tests send.
+    static let linkName = "Guide"
+
+    /// The URI of the resource link that the content tests send.
+    static let linkURI = "https://example.com/docs/guide.html"
+
+    /// The JSON text of the resource link block that the content tests send.
+    static var linkBlock: String {
+      WireBlockJSON.makeResourceLink(name: linkName, uri: linkURI)
+    }
+
     /// The base64 form of the UTF-8 bytes of `text`.
     ///
     /// - Parameter text: The terminal text.
@@ -158,6 +169,53 @@
     @Test func aThoughtChunkEvaluatesOnlyTheRowOfItsThought() async throws {
       try await SessionTranscriptViewHostedTests.expectAChunkEvaluatesOnlyTheRowOfItsEntry(
         kind: "agent_thought_chunk")
+    }
+
+    @Test func aThoughtEntryShowsTheACPContentOfTheModel() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk("agent_thought_chunk", messageID: Self.thoughtID, block: Self.linkBlock))
+      await harness.pump(until: Self.waitTimeout) {
+        SessionTranscriptViewHostedTests.rowKeys(in: harness).count == 1
+      }
+      let key = try #require(session.model.transcript.first?.rowKey)
+      store.expand(key)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: LinkView.cardIdentifier) != nil
+      }
+
+      #expect(SessionTranscriptViewHostedTests.showsParagraphs(of: Self.thoughtText, in: harness))
+      #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
+    }
+
+    // MARK: - Compaction
+
+    @Test func aCompactionSummaryShowsTheACPContentOfTheModel() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThread(session)
+      defer { harness.close() }
+      let compactionID = CompactionAndNoticeHostedTests.compactionID
+      let summaryText = CompactionAndNoticeHostedTests.summaryText
+
+      try await session.sendUpdate(
+        WireBlockJSON.makeCompactionSummaryChunk(
+          compactionID: compactionID, block: WireBlockJSON.makeText(summaryText)))
+      try await session.sendUpdate(
+        WireBlockJSON.makeCompactionSummaryChunk(compactionID: compactionID, block: Self.linkBlock))
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: LinkView.cardIdentifier) != nil
+      }
+
+      #expect(Self.labels(in: harness).contains { $0.contains(summaryText) })
+      #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
     }
 
     // MARK: - Terminal

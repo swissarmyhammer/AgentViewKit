@@ -442,7 +442,7 @@ public enum SessionUpdateMapping {
         annotations: annotations(link.annotations)
       )
     case .resource(let resource):
-      guard let embedded = embeddedResource(resource.resource) else {
+      guard let embedded = embeddedResource(resource) else {
         return unknownBlock(block)
       }
       return AgentViewKit.ContentBlock(
@@ -452,32 +452,19 @@ public enum SessionUpdateMapping {
     }
   }
 
-  /// The keys of an ACP embedded resource.
-  private enum ResourceKey {
-    static let uri = "uri"
-    static let mimeType = "mimeType"
-    static let text = "text"
-    static let blob = "blob"
-  }
-
-  /// Reads an ACP embedded resource, which is a raw JSON value.
+  /// Reads an ACP embedded resource, whose resource is a raw JSON value.
   ///
   /// - Returns: The resource, or `nil` when it has no `uri`, or no `text`
   ///   and no valid base64 `blob`.
   private static func embeddedResource(
-    _ resource: EmbeddedResourceResource
+    _ resource: FoundationModelsACP.EmbeddedResource
   ) -> AgentViewKit.EmbeddedResource? {
-    guard case .object(let members) = resource,
-      case .string(let uri) = members[ResourceKey.uri]
-    else { return nil }
-    var mimeType: String?
-    if case .string(let value) = members[ResourceKey.mimeType] {
-      mimeType = value
-    }
-    if case .string(let text) = members[ResourceKey.text] {
+    guard let uri = resource.resourceURI else { return nil }
+    let mimeType = resource.resourceMimeType
+    if let text = resource.resourceText {
       return AgentViewKit.EmbeddedResource(uri: uri, mimeType: mimeType, contents: .text(text))
     }
-    if case .string(let blob) = members[ResourceKey.blob], let data = Data(base64Encoded: blob) {
+    if let data = resource.resourceBlob {
       return AgentViewKit.EmbeddedResource(uri: uri, mimeType: mimeType, contents: .blob(data))
     }
     return nil

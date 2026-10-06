@@ -47,8 +47,22 @@ public struct ResponseView: View {
   /// The text between two text blocks of a message.
   static let blockSeparator = "\n\n"
 
-  /// The message to show.
-  let message: Message
+  /// The text that the view shows.
+  enum Source {
+    /// The text blocks of a kit message.
+    case message(Message)
+
+    /// One Markdown text, such as the text of an ACP text block.
+    ///
+    /// - Parameters:
+    ///   - id: The id that keys the code blocks and the evaluation counters,
+    ///     such as the id of the block view.
+    ///   - text: The Markdown text.
+    case markdown(id: String, text: String)
+  }
+
+  /// The text to show.
+  let source: Source
 
   /// The stream of the message, or `nil` when the message does not stream.
   let streaming: StreamingMessage?
@@ -74,9 +88,38 @@ public struct ResponseView: View {
   ///     in a ``SourcesView``, and put the two views in one
   ///     ``SwiftUI/View/citationScope()``.
   public init(message: Message, streaming: StreamingMessage?, citations: CitationPayload? = nil) {
-    self.message = message
+    self.source = .message(message)
     self.streaming = streaming
     self.citations = citations
+  }
+
+  /// Makes the body of one Markdown text that does not stream, such as the
+  /// text of an ACP text block of a transcript entry.
+  ///
+  /// - Parameters:
+  ///   - id: The id that keys the code blocks and the evaluation counters,
+  ///     unique in the thread, such as the id of the block view.
+  ///   - markdown: The Markdown text.
+  init(id: String, markdown: String) {
+    self.source = .markdown(id: id, text: markdown)
+    self.streaming = nil
+    self.citations = nil
+  }
+
+  /// The id of the message, or the id of the Markdown text.
+  private var messageID: String {
+    switch source {
+    case .message(let message): message.id
+    case .markdown(let id, _): id
+    }
+  }
+
+  /// The Markdown text that the view shows when it does not stream.
+  private var markdownText: String {
+    switch source {
+    case .message(let message): Self.markdown(of: message)
+    case .markdown(_, let text): text
+    }
   }
 
   /// The accessibility identifier of the settled paragraph at `index`.
@@ -136,10 +179,10 @@ public struct ResponseView: View {
     let placements = citations?.placementsByParagraph() ?? [:]
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       if let streaming {
-        SettledParagraphs(messageID: message.id, streaming: streaming, citations: placements)
-        StreamingTail(messageID: message.id, streaming: streaming)
+        SettledParagraphs(messageID: messageID, streaming: streaming, citations: placements)
+        StreamingTail(messageID: messageID, streaming: streaming)
       } else {
-        MessageParagraphs(message: message, citations: placements)
+        MessageParagraphs(messageID: messageID, markdown: markdownText, citations: placements)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -208,18 +251,21 @@ private struct SettledParagraphs: View {
   }
 }
 
-/// The paragraphs of a message that does not stream.
+/// The paragraphs of a text that does not stream.
 private struct MessageParagraphs: View {
-  /// The message to show.
-  let message: Message
+  /// The id of the message.
+  let messageID: String
+
+  /// The Markdown text to show.
+  let markdown: String
 
   /// The citation pills of each paragraph, keyed by the paragraph index.
   let citations: [Int: [CitationPlacement]]
 
   var body: some View {
     ParagraphList(
-      messageID: message.id,
-      paragraphs: ParagraphSplitter.paragraphs(ResponseView.markdown(of: message)),
+      messageID: messageID,
+      paragraphs: ParagraphSplitter.paragraphs(markdown),
       citations: citations)
   }
 }

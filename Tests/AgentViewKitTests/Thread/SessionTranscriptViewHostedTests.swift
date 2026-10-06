@@ -43,8 +43,7 @@
     ///     escape `\n`.
     /// - Returns: The JSON text of the update.
     static func chunk(_ kind: String, messageID: String, text: String) -> String {
-      let escaped = text.replacingOccurrences(of: "\n", with: #"\n"#)
-      return #"{"sessionUpdate":"\#(kind)","messageId":"\#(messageID)","content":{"type":"text","text":"\#(escaped)"}}"#
+      WireBlockJSON.makeChunk(kind, messageID: messageID, block: WireBlockJSON.makeText(text))
     }
 
     /// Tells whether `harness` shows `text` as the paragraphs that a pure

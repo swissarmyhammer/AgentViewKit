@@ -19,8 +19,9 @@ import SwiftUI
 /// | no update yet | No status yet |
 /// | other | Unknown status, with the wire value |
 ///
-/// Below the status, the row shows the summary that the compaction keeps,
-/// one ``ContentBlockView`` for each block.
+/// Below the status, the row shows the ACP content blocks of the summary that
+/// the compaction keeps, as the entry holds them, through an
+/// ``EntryContentView``.
 ///
 /// The view reads the entry object, so each later `compaction_update` and
 /// each `compaction_summary_chunk` changes this row in place. Compaction is
@@ -35,6 +36,10 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
 
   /// The SF Symbol name of the row.
   private static let symbolName = "arrow.down.right.and.arrow.up.left"
+
+  /// The text after the row key in the start of the id of each summary
+  /// block view.
+  private static let summaryIDSuffix = "-summary"
 
   /// The compaction entry to show.
   let entry: CompactionEntry
@@ -115,15 +120,13 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     }
   }
 
-  /// The blocks of the summary that the compaction keeps.
+  /// The ACP blocks of the summary that the compaction keeps, as the entry
+  /// holds them.
   ///
   /// - Parameter key: The row key of the entry. The id of each block view is
   ///   `<key>-summary-<index>`.
-  /// - Returns: One ``ContentBlockView`` for each block.
+  /// - Returns: An ``EntryContentView`` of the summary.
   private func summary(key: String) -> some View {
-    let blocks = TranscriptMessageView.messageBlocks(of: entry.summary)
-    return ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
-      ContentBlockView(block: block, id: "\(key)-summary-\(index)")
-    }
+    EntryContentView(content: entry.summary, id: key + Self.summaryIDSuffix)
   }
 }
