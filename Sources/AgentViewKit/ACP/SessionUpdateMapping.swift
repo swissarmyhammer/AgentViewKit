@@ -330,11 +330,9 @@ public enum SessionUpdateMapping {
 
   /// Changes one ACP command into a kit slash command.
   private static func slashCommand(_ command: AvailableCommand) -> SlashCommand {
-    var hint: String?
-    if case .text(let input) = command.input {
-      hint = input.hint
-    }
-    return SlashCommand(name: command.name, description: command.description, inputHint: hint)
+    SlashCommand(
+      name: command.name, description: command.description,
+      inputHint: SlashCommandSource.inputHint(of: command))
   }
 
   /// Changes one ACP config option into a kit config option.

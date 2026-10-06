@@ -60,7 +60,9 @@ struct ACPTabView: View {
     }
     .toolbar {
       ToolbarItemGroup {
-        ConfigOptionsView(options: session.thread.configOptions)
+        if let model = session.sessionModel {
+          ConfigOptionsView(session: model)
+        }
         Button("Settings", systemImage: "gearshape") {
           showsSettings = true
         }
@@ -138,7 +140,6 @@ struct ACPTabView: View {
       }
       StateBanner(state: thread.state)
       AgentThreadView(thread: thread, actions: actions)
-        .environment(\.sessionModel, session.sessionModel)
       TaskListView(plans: thread.plans)
       if let model = session.sessionModel {
         ContextUsageView(session: model)
@@ -148,6 +149,9 @@ struct ACPTabView: View {
       PromptInputView(text: $draft) {}
         .padding()
     }
+    // The thread view and the composer read the session model: the
+    // composer gets its slash commands and its mode picker from it.
+    .environment(\.sessionModel, session.sessionModel)
     .id(ObjectIdentifier(thread))
   }
 

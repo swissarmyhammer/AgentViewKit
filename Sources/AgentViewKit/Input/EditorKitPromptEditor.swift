@@ -3,6 +3,7 @@ import EditorCore
 import EditorExtensions
 import EditorSwiftUI
 import EditorText
+import FoundationModelsACP
 import SwiftUI
 
 /// The EditorKit editor of ``PromptInputView`` (plan.md §4.1, §9 D).
@@ -39,6 +40,16 @@ public struct EditorKitPromptEditor: View {
 
   /// The accessibility identifier of each row of the completion list.
   public static let completionRowIdentifier = "prompt-completion-row"
+
+  /// The accessibility identifier of the note that the menu shows when the
+  /// agent reports an empty command list.
+  public static let noCommandsIdentifier = "prompt-no-commands"
+
+  /// The text of the note that the menu shows when the agent reports an
+  /// empty command list.
+  public static var noCommandsNote: String {
+    String(localized: "No commands")
+  }
 
   /// The largest height of the completion list, in points.
   static let completionListMaximumHeight: CGFloat = 160
@@ -90,6 +101,9 @@ public struct EditorKitPromptEditor: View {
       if completion.isOpen, !completion.listedItems.isEmpty {
         completionList(completion, model: model)
           .alignmentGuide(.top) { $0[.bottom] }
+      } else if Self.showsNoCommandsNote(completion, commands: context.commands) {
+        noCommandsNote
+          .alignmentGuide(.top) { $0[.bottom] }
       }
     }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
@@ -118,6 +132,31 @@ public struct EditorKitPromptEditor: View {
     .frame(maxHeight: Self.completionListMaximumHeight)
     .fixedSize(horizontal: false, vertical: true)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.m))
+  }
+
+  /// The empty command menu: a short note that the agent reported no
+  /// command.
+  private var noCommandsNote: some View {
+    Text(Self.noCommandsNote)
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .padding(.horizontal, theme.spacing.s)
+      .padding(.vertical, theme.spacing.xs)
+      .frame(width: Self.completionListWidth, alignment: .leading)
+      .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.m))
+      .accessibilityIdentifier(Self.noCommandsIdentifier)
+  }
+
+  /// Whether the menu shows the "no commands" note.
+  ///
+  /// - Parameters:
+  ///   - completion: The completion session of the editor.
+  ///   - commands: The slash commands of the session.
+  /// - Returns: `true` when a slash token opened the session, the session
+  ///   lists no row, and the agent reported an empty command list.
+  private static func showsNoCommandsNote(_ completion: CompletionSessionState, commands: [AvailableCommand]?) -> Bool {
+    guard completion.isOpen, completion.listedItems.isEmpty, commands?.isEmpty == true else { return false }
+    return completion.prefix.hasPrefix(SlashCommandSource.trigger)
   }
 
   // MARK: - Keys
@@ -203,7 +242,7 @@ public struct EditorKitPromptEditor: View {
   /// - Parameter model: The model of the editor.
   private func updateCompletion(in model: EditorModel) {
     let editor = Self.editorContext(of: model)
-    if Self.isTrigger(caretLine(in: model), hasCommands: !context.commands.isEmpty, hasRoot: fileRoot != nil) {
+    if Self.isTrigger(caretLine(in: model), reportsCommands: context.commands != nil, hasRoot: fileRoot != nil) {
       session.engine(commands: context.commands, root: fileRoot).request(trigger: .typed, in: editor)
     } else if let dismiss = CompletionCommands.dismissTransaction(in: editor.state) {
       model.dispatch(dismiss)
@@ -248,12 +287,13 @@ public struct EditorKitPromptEditor: View {
   ///
   /// - Parameters:
   ///   - line: The text of the caret line before the caret.
-  ///   - hasCommands: Whether the thread has slash commands.
+  ///   - reportsCommands: Whether the agent reported its slash commands. An
+  ///     empty list counts as reported.
   ///   - hasRoot: Whether the editor has a file root.
   /// - Returns: `true` for a `/` token at the start of the line, or for a run
   ///   that starts with `@` after white space.
-  static func isTrigger(_ line: Substring, hasCommands: Bool, hasRoot: Bool) -> Bool {
-    if hasCommands, line.hasPrefix(SlashCommandSource.trigger),
+  static func isTrigger(_ line: Substring, reportsCommands: Bool, hasRoot: Bool) -> Bool {
+    if reportsCommands, line.hasPrefix(SlashCommandSource.trigger),
       line.dropFirst(SlashCommandSource.trigger.count).allSatisfy(CompletionTokenizer.isWordCharacter)
     {
       return true
@@ -395,8 +435,9 @@ final class PromptEditorSession {
   /// The engine, or `nil` before the first completion request.
   private var storedEngine: CompletionEngine?
 
-  /// The slash commands that the sources of the engine read.
-  private var engineCommands: [SlashCommand] = []
+  /// The slash commands that the sources of the engine read, or `nil` when
+  /// the agent did not report its commands.
+  private var engineCommands: [AvailableCommand]?
 
   /// The file root that the sources of the engine read.
   private var engineRoot: URL?
@@ -470,10 +511,11 @@ final class PromptEditorSession {
   /// engine when either value changes.
   ///
   /// - Parameters:
-  ///   - commands: The slash commands of the thread.
+  ///   - commands: The slash commands of the session, or `nil` when the agent
+  ///     did not report its commands.
   ///   - root: The file root, or `nil`.
   /// - Returns: The engine.
-  func engine(commands: [SlashCommand], root: URL?) -> CompletionEngine {
+  func engine(commands: [AvailableCommand]?, root: URL?) -> CompletionEngine {
     if let storedEngine, engineCommands == commands, engineRoot == root {
       return storedEngine
     }

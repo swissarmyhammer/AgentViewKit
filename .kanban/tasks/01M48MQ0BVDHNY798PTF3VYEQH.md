@@ -29,10 +29,26 @@ comments:
     - evidence: Sources/AgentViewKit/Input/PromptInputView.swift, Sources/AgentViewKit/Input/ThreadActionTasks.swift, Sources/AgentViewKit/Input/PromptEditorContext.swift, Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Sources/AgentViewKit/Commands/AgentCommandScope.swift, Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift, Tests/AgentViewKitTests/Input/PromptInputViewHostedTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift; deleted Sources/AgentViewKit/Input/PromptQueue.swift, Sources/AgentViewKit/Input/PromptQueueView.swift, Tests/AgentViewKitTests/Input/PromptQueueTests.swift, Tests/AgentViewKitTests/Input/PromptQueueViewHostedTests.swift; swift test, Scripts/check-readme.sh, Scripts/test-examples.sh AgentViewKitDemo all pass
     - next: /review
   timestamp: 2026-10-06T16:15:57.452931+00:00
+- actor: claude-code
+  id: 01m490aaf6rjp4930pbm9gw4m8
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1297eaf); 12 files reviewed; counts: findings 0, confirmed 0, refuted 0; no prior Review Findings section
+    - next: none — task moved to done
+  timestamp: 2026-10-06T16:21:30.726119+00:00
+- actor: claude-code
+  id: 01m490absqr7rhwgsmfpg9mtpw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — each submit calls SessionModel.prompt at once; promptsInFlight, the agentState gate and onReturn removed; PromptQueue and PromptQueueView deleted; 12 files
+    - test: green — swift test, 1295 passed; README and demo UI gates passed
+    - commit: 1297eaf
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T16:21:32.087670+00:00
 depends_on:
 - 01M443PGJC9H955A0M1QSS6FR3
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ef80
 title: 'Remove the turn gate from the composer: each submit calls SessionModel.prompt at once'
 ---
 ## What

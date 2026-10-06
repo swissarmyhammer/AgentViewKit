@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import SwiftUI
 
 /// The values that ``PromptInputView`` gives to its editor (plan.md §7).
@@ -39,8 +40,12 @@ public struct PromptEditorContext {
   /// change.
   public let onCancel: Submit?
 
-  /// The slash commands of the thread, for the slash completion source.
-  public let commands: [SlashCommand]
+  /// The slash commands of the session, for the slash completion source.
+  ///
+  /// The value is `SessionModel.availableCommands`. `nil` tells that the
+  /// agent did not report its commands, and `[]` tells that the agent
+  /// reported no command (``SlashCommandSource``).
+  public let commands: [AvailableCommand]?
 
   /// Makes an editor context.
   ///
@@ -53,14 +58,15 @@ public struct PromptEditorContext {
   ///     is `onSubmit`.
   ///   - onCancel: The closure that stops the current turn, or `nil` while
   ///     the agent does not run a turn.
-  ///   - commands: The slash commands of the thread.
+  ///   - commands: The slash commands of the session, or `nil` when the
+  ///     agent did not report its commands.
   public init(
     text: Binding<AttributedString>,
     placeholder: String,
     onSubmit: @escaping Submit,
     onSendNow: Submit? = nil,
     onCancel: Submit? = nil,
-    commands: [SlashCommand] = []
+    commands: [AvailableCommand]? = nil
   ) {
     self.text = text
     self.placeholder = placeholder

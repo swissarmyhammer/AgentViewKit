@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import DemoSupport
 import Foundation
 import SwiftUI
 import Testing
@@ -51,14 +52,22 @@ struct PromptInputHost: View {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
-  /// The `mode` option of the thread in the picker test.
-  static let modeOption = ConfigOption(
-    id: ConfigOptionID("mode"), name: "Mode", category: .mode,
-    kind: .select(
-      current: "ask",
-      choices: .flat([
-        SelectOption(id: "ask", name: "Ask"), SelectOption(id: "auto", name: "Auto"),
-      ])))
+  /// The method of a prompt request.
+  static let promptMethod = "session/prompt"
+
+  /// The `session/new` result with the one command `plan`.
+  static let newSessionWithPlan = #"""
+    {"sessionId": "\#(ScriptedSession.sessionID)",
+     "availableCommands": [{"name": "plan", "description": "Make a plan"}]}
+    """#
+
+  /// The `session/new` result with a `mode` option, for the picker test.
+  static let newSessionWithMode = #"""
+    {"sessionId": "\#(ScriptedSession.sessionID)",
+     "configOptions": [{"configId": "mode", "name": "Mode", "category": "mode", "type": "select",
+                        "currentValue": "ask",
+                        "options": [{"value": "ask", "name": "Ask"}, {"value": "auto", "name": "Auto"}]}]}
+    """#
 
   // MARK: - Mount
 
@@ -86,14 +95,15 @@ struct PromptInputHost: View {
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
   }
 
-  @Test func theAccessoryShowsThePermissionModePickerOfTheThread() {
-    let thread = AgentThread()
-    thread.apply(.setConfigOptions([Self.modeOption]))
+  @Test func theAccessoryShowsThePermissionModePickerOfTheSessionModel() async throws {
+    let session = try await ScriptedSession.open {
+      $0.results["session/new"] = Self.newSessionWithMode
+    }
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(
-      size: Self.composerSize, actions: NoopThreadActions(), thread: thread
-    ) {
+    let harness = HostedViewHarness(size: Self.composerSize) {
       PromptInputHost(model: model)
+        .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.pump()
@@ -104,16 +114,17 @@ struct PromptInputHost: View {
   // MARK: - Custom editor
 
   @Test func aCustomEditorGetsTheContextOfTheComposer() async throws {
-    let thread = AgentThread()
-    let command = SlashCommand(name: "plan", description: "Make a plan")
-    thread.apply(.setAvailableCommands([command]))
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open {
+      $0.results["session/new"] = Self.newSessionWithPlan
+    }
+    defer { session.close() }
     let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions, thread: thread) {
+    let harness = HostedViewHarness(size: Self.composerSize) {
       PromptInputView(text: Bindable(model).text, onSubmit: {}) { context in
-        Button(context.commands.map(\.name).joined()) { context.onSubmit() }
+        Button((context.commands ?? []).map(\.name).joined()) { context.onSubmit() }
           .accessibilityIdentifier("custom-editor")
       }
+      .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.pump()
@@ -121,9 +132,10 @@ struct PromptInputHost: View {
     #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
     #expect(harness.element(identifier: "custom-editor")?.label == "plan")
     try harness.press(identifier: "custom-editor")
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    let prompts = session.agent.messages(method: Self.promptMethod)
+    #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
     #expect(model.plainText.isEmpty)
   }
 

@@ -24,7 +24,8 @@ extension AgentThreadActions {
 /// The log of the composer requests of a session model.
 private let sessionRequestLogger = Logger(subsystem: "AgentViewKit", category: "SessionModel")
 
-/// The composer requests of a session model (update.md §4.2 "Prompt helper",
+/// The composer requests of a session model, and the shared start of the
+/// other requests that a kit view sends (update.md §4.2 "Prompt helper",
 /// "Other requests", §4.7 "Composer").
 extension SessionModel {
   /// The MIME type of an attachment with no known type.
@@ -55,11 +56,23 @@ extension SessionModel {
   /// cancel joins the trace of the turn. A failure adds an error entry to the
   /// transcript.
   func startCancel() {
+    startRequest("session/cancel") { try await self.cancel(meta: self.promptTraceMeta) }
+  }
+
+  /// Starts a main-actor task that sends one request of the session.
+  ///
+  /// A failure goes to the log and adds an error entry to the transcript
+  /// with `appendError(reporting:)`.
+  ///
+  /// - Parameters:
+  ///   - method: The ACP method of the request, for the log.
+  ///   - send: The call that sends the request.
+  func startRequest(_ method: String, _ send: @escaping @MainActor () async throws -> Void) {
     Task { @MainActor in
       do {
-        try await cancel(meta: promptTraceMeta)
+        try await send()
       } catch {
-        sessionRequestLogger.error("session/cancel failed: \(String(describing: error), privacy: .public)")
+        sessionRequestLogger.error("\(method, privacy: .public) failed: \(String(describing: error), privacy: .public)")
         appendError(reporting: error)
       }
     }

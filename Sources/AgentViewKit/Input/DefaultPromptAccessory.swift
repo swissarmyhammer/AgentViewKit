@@ -3,7 +3,8 @@ import SwiftUI
 
 /// The default accessory row of ``PromptInputView`` (plan.md §9 D).
 ///
-/// The row shows the ``PermissionModePicker`` of the thread, the
+/// The row shows the ``PermissionModePicker`` of the session model of the
+/// environment (``SwiftUI/EnvironmentValues/sessionModel``), the
 /// ``ToolToggles`` of the ambient ``ConnectionStore``, the
 /// ``SpeechInputButton``, and the submit button in the `.glassProminent`
 /// style. While the thread runs a turn, a Stop button replaces the submit
@@ -51,9 +52,11 @@ public struct DefaultPromptAccessory: View {
         SuggestionsView(suggestions: suggestions)
       }
       HStack(spacing: theme.spacing.s) {
-        PermissionModePicker(options: turn.thread?.configOptions ?? [])
-          .labelsHidden()
-          .fixedSize()
+        if let session = turn.session {
+          PermissionModePicker(session: session)
+            .labelsHidden()
+            .fixedSize()
+        }
         ToolToggles()
         Spacer(minLength: theme.spacing.s)
         SpeechInputButton()

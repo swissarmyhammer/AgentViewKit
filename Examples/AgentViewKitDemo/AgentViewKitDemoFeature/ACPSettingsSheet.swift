@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// The sheet shows the ``ConnectionsView`` of the ambient
 /// ``ConnectionStore``, the ``AgentAuthView`` of the agent, and the
-/// ``ConfigOptionsView`` of the thread in the form style.
+/// ``ConfigOptionsView`` of the session model in the form style.
 struct ACPSettingsSheet: View {
   /// The accessibility identifier of the Done button.
   static let doneIdentifier = "demo-settings-done"
@@ -48,8 +48,10 @@ struct ACPSettingsSheet: View {
               AgentAuthView(methods: session.authMethods, isAuthenticated: false, thread: session.thread)
             }
           }
-          GroupBox("Session") {
-            ConfigOptionsView(options: session.thread.configOptions, style: .form)
+          if let model = session.sessionModel {
+            GroupBox("Session") {
+              ConfigOptionsView(session: model, style: .form)
+            }
           }
         }
         .padding()

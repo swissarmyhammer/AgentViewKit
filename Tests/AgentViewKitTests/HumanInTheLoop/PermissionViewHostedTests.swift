@@ -39,10 +39,19 @@ import Testing
   }
 
   /// The config options of a session in the `ask` mode, with an `auto`
-  /// choice. The mode option comes from ``ConfigOptionsViewHostedTests``.
+  /// choice.
   static var askModeOptions: [ConfigOption] {
-    [ConfigOptionsViewHostedTests.modeOption(current: "ask")]
+    [
+      ConfigOption(
+        id: modeID, name: "Mode", category: .mode,
+        kind: .select(
+          current: "ask",
+          choices: .flat([SelectOption(id: "ask", name: "Ask"), SelectOption(id: "auto", name: "Auto")])))
+    ]
   }
+
+  /// The id of the mode option.
+  static let modeID = ConfigOptionID("mode")
 
   /// Mounts a card with a thread in the environment.
   ///
@@ -245,7 +254,7 @@ import Testing
     #expect(
       actions.calls == [
         .respondToPermission(Self.request, Self.selected(Self.optionID(.allowOnce))),
-        .setConfigOption(ConfigOptionsViewHostedTests.modeID, PermissionPresentation.autoModeValue),
+        .setConfigOption(Self.modeID, PermissionPresentation.autoModeValue),
       ])
   }
 

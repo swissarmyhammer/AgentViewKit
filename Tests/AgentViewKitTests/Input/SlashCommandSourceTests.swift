@@ -2,6 +2,7 @@ import EditorComplete
 import EditorCore
 import EditorExtensions
 import EditorSwiftUI
+import FoundationModelsACP
 import Testing
 
 @testable import AgentViewKit
@@ -58,11 +59,13 @@ import Testing
 }
 
 @Suite @MainActor struct SlashCommandSourceTests {
-  /// The commands of the thread.
+  /// The commands of the session.
   static let commands = [
-    SlashCommand(name: "compact", description: "Compact the thread", inputHint: "instructions"),
-    SlashCommand(name: "context", description: "Show the context"),
-    SlashCommand(name: "plan", description: "Make a plan"),
+    AvailableCommand(
+      description: "Compact the thread", name: "compact",
+      input: .text(TextCommandInput(hint: "instructions"))),
+    AvailableCommand(description: "Show the context", name: "context"),
+    AvailableCommand(description: "Make a plan", name: "plan"),
   ]
 
   /// A fixture with the slash source over ``commands``.

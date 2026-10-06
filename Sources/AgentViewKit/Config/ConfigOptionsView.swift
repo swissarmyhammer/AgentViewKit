@@ -1,11 +1,15 @@
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 
-/// The controls for the session options of a thread, grouped by category
-/// (plan.md §9 D, §11 decision 16).
+/// The controls for the config options of a session, grouped by category
+/// (plan.md §9 D, §11 decision 16; update.md §4.2 "Last-value state").
 ///
-/// Pass ``AgentThread/configOptions`` as `options`. The view reads the list
-/// in its body, so a host view that reads the thread updates the view when a
-/// source replaces the list.
+/// The view reads `SessionModel.configOptions` (the ACP
+/// `SessionConfigOption` values) in its body. It keeps no copy of the
+/// options and no selected value of its own. When the agent sends a
+/// `config_option_update`, the view shows the new values with no user step.
+/// When `configOptions` is `nil` or empty, the view is empty.
 ///
 /// The view puts the options in one section for each category, in this
 /// order: mode, model, thought level, model config, then the options with no
@@ -16,13 +20,14 @@ import SwiftUI
 /// cannot show an option of a type that it does not know, so the view does
 /// not show it.
 ///
-/// Each change calls ``AgentThreadActions/setConfigOption(_:_:)`` of the
-/// `threadActions` environment value. The control shows the value that the
-/// source gives. It shows the new value when the source replaces the list.
+/// Each change calls `SessionModel.setConfigOption(_:)`, which sends
+/// `session/set_config_option`. The call returns nothing: the control keeps
+/// the value of the model, and shows the new value when the agent reports it
+/// in a later `config_option_update`. A failed call adds an error entry to
+/// the transcript.
 ///
 /// ``Style/menu`` shows the sections in a menu for a toolbar.
-/// ``Style/form`` shows the sections in a `Form` for a settings sheet. When
-/// the list has no option that the view can show, the view is empty.
+/// ``Style/form`` shows the sections in a `Form` for a settings sheet.
 public struct ConfigOptionsView: View {
   /// The presentation of a ``ConfigOptionsView``.
   public enum Style: Sendable, Hashable {
@@ -34,14 +39,14 @@ public struct ConfigOptionsView: View {
     case form
   }
 
-  /// The options of one category, in the order of the source.
+  /// The options of one category, in the order of the agent.
   public struct CategorySection: Sendable, Hashable, Identifiable {
     /// The category of the options, or `nil` for the options with no
     /// category that the kit knows.
-    public let category: ConfigOption.Category?
+    public let category: SessionConfigOptionCategory?
 
-    /// The options of the category, in the order of the source.
-    public let options: [ConfigOption]
+    /// The options of the category, in the order of the agent.
+    public let options: [SessionConfigOption]
 
     /// The identifier of the section: the wire value of the category, or
     /// ``ConfigOptionsView/uncategorizedSectionID``.
@@ -86,15 +91,15 @@ public struct ConfigOptionsView: View {
   public static let uncategorizedSectionID = "uncategorized"
 
   /// The categories in the order of their sections.
-  public static let categoryOrder: [ConfigOption.Category] = [
+  public static let categoryOrder: [SessionConfigOptionCategory] = [
     .mode, .model, .thoughtLevel, .modelConfig,
   ]
 
   /// The SF Symbol of the menu button.
   static let menuSymbolName = "slider.horizontal.3"
 
-  /// The options to show.
-  let options: [ConfigOption]
+  /// The session model whose options the view shows.
+  let session: SessionModel
 
   /// The presentation of the view.
   let style: Style
@@ -102,10 +107,10 @@ public struct ConfigOptionsView: View {
   /// Makes the view.
   ///
   /// - Parameters:
-  ///   - options: The options to show, such as ``AgentThread/configOptions``.
+  ///   - session: The session model whose options the view shows.
   ///   - style: The presentation of the view.
-  public init(options: [ConfigOption], style: Style = .menu) {
-    self.options = options
+  public init(session: SessionModel, style: Style = .menu) {
+    self.session = session
     self.style = style
   }
 
@@ -113,9 +118,9 @@ public struct ConfigOptionsView: View {
 
   /// The accessibility identifier of the control of an option.
   ///
-  /// - Parameter id: The identifier of the option.
+  /// - Parameter id: The id of the option.
   /// - Returns: The identifier, such as `config-option-model`.
-  public static func controlIdentifier(for id: ConfigOptionID) -> String {
+  public static func controlIdentifier(for id: SessionConfigId) -> String {
     AccessibilityIdentifier.make(prefix: controlIdentifierPrefix, value: id.rawValue)
   }
 
@@ -123,32 +128,32 @@ public struct ConfigOptionsView: View {
   /// ``Style/form``.
   ///
   /// - Parameters:
-  ///   - id: The identifier of the select option.
-  ///   - groupID: The ``SelectGroup/id`` of the group.
+  ///   - id: The id of the select option.
+  ///   - groupID: The `groupId` of the group.
   /// - Returns: The identifier, such as `config-option-model-group-fast`.
-  public static func groupIdentifier(for id: ConfigOptionID, groupID: String) -> String {
+  public static func groupIdentifier(for id: SessionConfigId, groupID: String) -> String {
     controlIdentifier(for: id, infix: groupIdentifierInfix, suffix: groupID)
   }
 
   /// The accessibility identifier of one value of a select option.
   ///
   /// - Parameters:
-  ///   - id: The identifier of the select option.
-  ///   - value: The ``SelectOption/id`` of the value.
+  ///   - id: The id of the select option.
+  ///   - value: The `value` id of the choice.
   /// - Returns: The identifier, such as `config-option-model-value-fast-1`.
-  public static func choiceIdentifier(for id: ConfigOptionID, value: String) -> String {
+  public static func choiceIdentifier(for id: SessionConfigId, value: String) -> String {
     controlIdentifier(for: id, infix: choiceIdentifierInfix, suffix: value)
   }
 
   /// The accessibility identifier of a part of the control of an option.
   ///
   /// - Parameters:
-  ///   - id: The identifier of the option.
+  ///   - id: The id of the option.
   ///   - infix: The text between the control identifier and `suffix`.
   ///   - suffix: The id of the part.
   /// - Returns: The control identifier, then `infix`, then `suffix`.
   private static func controlIdentifier(
-    for id: ConfigOptionID,
+    for id: SessionConfigId,
     infix: String,
     suffix: String
   ) -> String {
@@ -168,21 +173,23 @@ public struct ConfigOptionsView: View {
   /// Tells if the view can show an option.
   ///
   /// - Parameter option: The option.
-  /// - Returns: `true` for a select option and a boolean option.
-  public static func isShown(_ option: ConfigOption) -> Bool {
-    switch option.kind {
-    case .select, .boolean: true
+  /// - Returns: `true` for a boolean option, and for a select option whose
+  ///   choices the kit can read.
+  public static func isShown(_ option: SessionConfigOption) -> Bool {
+    switch option.type {
+    case .select(let select): select.choices != nil
+    case .boolean: true
     case .unknown: false
     }
   }
 
   /// Puts the options that the view can show in category sections.
   ///
-  /// - Parameter options: The options, in the order of the source.
+  /// - Parameter options: The options, in the order of the agent.
   /// - Returns: One section for each category that has an option, in the
   ///   order of ``categoryOrder``, then one section for the other options.
-  ///   The options of a section keep the order of the source.
-  public static func sections(for options: [ConfigOption]) -> [CategorySection] {
+  ///   The options of a section keep the order of the agent.
+  public static func sections(for options: [SessionConfigOption]) -> [CategorySection] {
     let shown = options.filter(isShown)
     var sections = categoryOrder.compactMap { category -> CategorySection? in
       let members = shown.filter { $0.category == category }
@@ -201,7 +208,7 @@ public struct ConfigOptionsView: View {
   // MARK: - Body
 
   public var body: some View {
-    let sections = Self.sections(for: options)
+    let sections = Self.sections(for: session.configOptions ?? [])
     if !sections.isEmpty {
       content(sections)
     }
@@ -237,8 +244,8 @@ public struct ConfigOptionsView: View {
   private func sectionList(_ sections: [CategorySection], inlineChoices: Bool) -> some View {
     ForEach(sections) { section in
       Section {
-        ForEach(section.options) { option in
-          ConfigOptionControl(option: option, inlineChoices: inlineChoices)
+        ForEach(section.options, id: \.configId) { option in
+          ConfigOptionControl(option: option, session: session, inlineChoices: inlineChoices)
         }
       } header: {
         Text(section.title)
@@ -248,26 +255,29 @@ public struct ConfigOptionsView: View {
   }
 }
 
-/// The control of one ``ConfigOption``: a `Picker` for a select and a
-/// `Toggle` for a boolean.
+/// The control of one ACP `SessionConfigOption`: a `Picker` for a select and
+/// a `Toggle` for a boolean.
 struct ConfigOptionControl: View {
-  /// The option to show.
-  let option: ConfigOption
+  /// The option to show, as the session model holds it.
+  let option: SessionConfigOption
+
+  /// The session model that gets each change.
+  let session: SessionModel
 
   /// Whether a select shows its choices in place, and not in a menu.
   let inlineChoices: Bool
 
-  @Environment(\.threadActions) private var actions
-
   var body: some View {
-    switch option.kind {
-    case .select(let current, let choices):
-      picker(current: current, choices: choices)
-    case .boolean(let current):
-      Toggle(option.name, isOn: binding(current, send: ConfigValue.boolean))
+    switch option.type {
+    case .select(let select):
+      if let choices = select.choices {
+        picker(current: select.currentValue, choices: choices)
+      }
+    case .boolean(let boolean):
+      Toggle(option.name, isOn: binding(boolean.currentValue, send: SetSessionConfigOptionRequest.Value.boolean))
         .toggleStyle(.checkbox)
         .help(option.description ?? option.name)
-        .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.id))
+        .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
     case .unknown:
       EmptyView()
     }
@@ -280,8 +290,8 @@ struct ConfigOptionControl: View {
   ///   - choices: The values that the user can select.
   /// - Returns: The picker. It has one section for each group of `choices`.
   @ViewBuilder
-  private func picker(current: String, choices: SelectChoices) -> some View {
-    let selection = binding(current, send: ConfigValue.id)
+  private func picker(current: SessionConfigValueId, choices: ConfigSelectChoices) -> some View {
+    let selection = binding(current, send: SetSessionConfigOptionRequest.Value.id)
     switch (choices, inlineChoices) {
     case (.flat(let values), true):
       Picker(option.name, selection: selection) {
@@ -289,7 +299,7 @@ struct ConfigOptionControl: View {
       }
       .pickerStyle(.inline)
       .help(option.description ?? option.name)
-      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.id))
+      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
     case (.grouped(let groups), true):
       inlineGroups(groups, current: current, selection: selection)
     case (.flat(let values), false):
@@ -298,10 +308,10 @@ struct ConfigOptionControl: View {
       }
       .pickerStyle(.menu)
       .help(option.description ?? option.name)
-      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.id))
+      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
     case (.grouped(let groups), false):
       Picker(option.name, selection: selection) {
-        ForEach(groups) { group in
+        ForEach(groups, id: \.groupId) { group in
           Section(group.name) {
             choiceRows(group.options, tag: { $0 })
           }
@@ -309,7 +319,7 @@ struct ConfigOptionControl: View {
       }
       .pickerStyle(.menu)
       .help(option.description ?? option.name)
-      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.id))
+      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
     }
   }
 
@@ -326,15 +336,15 @@ struct ConfigOptionControl: View {
   ///   - selection: The binding of the option.
   /// - Returns: The label of the option and one picker for each group.
   private func inlineGroups(
-    _ groups: [SelectGroup],
-    current: String,
-    selection: Binding<String>
+    _ groups: [SessionConfigSelectGroup],
+    current: SessionConfigValueId,
+    selection: Binding<SessionConfigValueId>
   ) -> some View {
     VStack(alignment: .leading) {
       Text(option.name)
-      ForEach(groups) { group in
-        let groupSelection = Binding<String?>(
-          get: { group.options.contains { $0.id == current } ? current : nil },
+      ForEach(groups, id: \.groupId) { group in
+        let groupSelection = Binding<SessionConfigValueId?>(
+          get: { group.options.contains { $0.value == current } ? current : nil },
           set: { newValue in
             if let newValue {
               selection.wrappedValue = newValue
@@ -345,12 +355,12 @@ struct ConfigOptionControl: View {
         }
         .pickerStyle(.inline)
         .accessibilityIdentifier(
-          ConfigOptionsView.groupIdentifier(for: option.id, groupID: group.id))
+          ConfigOptionsView.groupIdentifier(for: option.configId, groupID: group.groupId.rawValue))
       }
     }
     .help(option.description ?? option.name)
     .accessibilityElement(children: .contain)
-    .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.id))
+    .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
   }
 
   /// One tagged row for each value.
@@ -360,56 +370,27 @@ struct ConfigOptionControl: View {
   ///   - tag: The function that makes the tag of a value id.
   /// - Returns: The rows.
   private func choiceRows<Tag: Hashable>(
-    _ values: [SelectOption],
-    tag: @escaping (String) -> Tag
+    _ values: [SessionConfigSelectOption],
+    tag: @escaping (SessionConfigValueId) -> Tag
   ) -> some View {
-    ForEach(values) { value in
+    ForEach(values, id: \.value) { value in
       Text(value.name)
-        .tag(tag(value.id))
+        .tag(tag(value.value))
         .accessibilityIdentifier(
-          ConfigOptionsView.choiceIdentifier(for: option.id, value: value.id))
+          ConfigOptionsView.choiceIdentifier(for: option.configId, value: value.value.rawValue))
     }
   }
 
   /// A binding for the control of ``option``.
   ///
   /// - Parameters:
-  ///   - current: The value that the source gives.
-  ///   - send: The function that makes the config value of a new value.
-  /// - Returns: The binding from ``configOptionBinding(id:current:actions:send:)``.
+  ///   - current: The value that the session model holds.
+  ///   - send: The function that makes the request value of a new value.
+  /// - Returns: The binding from `SessionModel.makeConfigBinding(for:current:send:)`.
   private func binding<Value: Equatable>(
     _ current: Value,
-    send: @escaping (Value) -> ConfigValue
+    send: @escaping (Value) -> SetSessionConfigOptionRequest.Value
   ) -> Binding<Value> {
-    configOptionBinding(id: option.id, current: current, actions: actions, send: send)
+    session.makeConfigBinding(for: option.configId, current: current, send: send)
   }
-}
-
-/// A binding that shows the value of a config option and sends each new
-/// value to the thread actions.
-///
-/// The binding does not keep the new value. The control shows the new value
-/// when the source replaces the option list.
-///
-/// - Parameters:
-///   - id: The identifier of the option.
-///   - current: The value that the source gives.
-///   - actions: The actions that get the new value, or `nil` when no
-///     ``AgentThreadView`` gave actions to this view.
-///   - send: The function that makes the config value of a new value.
-/// - Returns: The binding.
-func configOptionBinding<Value: Equatable>(
-  id: ConfigOptionID,
-  current: Value,
-  actions: (any AgentThreadActions)?,
-  send: @escaping (Value) -> ConfigValue
-) -> Binding<Value> {
-  Binding(
-    get: { current },
-    set: { newValue in
-      guard newValue != current, let actions else { return }
-      Task {
-        await actions.setConfigOption(id, send(newValue))
-      }
-    })
 }

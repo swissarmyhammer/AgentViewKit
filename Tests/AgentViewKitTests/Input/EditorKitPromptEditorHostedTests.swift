@@ -32,11 +32,13 @@ struct EditorKitPromptInputHost: View {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
-  /// The commands of the thread.
-  static let commands = [
-    SlashCommand(name: "compact", description: "Compact the thread", inputHint: "instructions"),
-    SlashCommand(name: "plan", description: "Make a plan"),
-  ]
+  /// An `available_commands_update` with two commands.
+  static let commandsUpdate = #"""
+    {"sessionUpdate": "available_commands_update", "availableCommands": [
+      {"name": "compact", "description": "Compact the thread",
+       "input": {"type": "text", "hint": "instructions"}},
+      {"name": "plan", "description": "Make a plan"}]}
+    """#
 
   /// Mounts a composer with the EditorKit editor and focuses the editor.
   ///
@@ -161,12 +163,18 @@ struct EditorKitPromptInputHost: View {
   // MARK: - Slash commands
 
   @Test func aSlashListsTheCommandsAndReturnAcceptsOne() async throws {
-    let thread = AgentThread()
-    thread.apply(.setAvailableCommands(Self.commands))
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(Self.commandsUpdate)
     let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: actions, thread: thread)
+    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
+      EditorKitPromptInputHost(model: model, fileRoot: nil)
+        .environment(\.sessionModel, session.model)
+    }
     defer { harness.close() }
+    await harness.pump(until: Self.waitTimeout) { session.model.availableCommands != nil }
+    try #require(harness.focusFirstEditableTextView())
 
     harness.type("/")
     await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).count == 2 }

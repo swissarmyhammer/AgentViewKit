@@ -37,7 +37,9 @@ import SwiftUI
 /// with the send state `pending`, so the composer adds no row of its own.
 /// Esc and the Stop button send `session/cancel` with
 /// `SessionModel.cancel(meta:)`. The composer reads `agentState` only to show
-/// the Stop control. Give the model to the composer with
+/// the Stop control. The editor gets `SessionModel.availableCommands` as
+/// ``PromptEditorContext/commands``. With no session model, the editor gets
+/// `nil`: no command menu. Give the model to the composer with
 /// `.environment(\.sessionModel, model)`:
 ///
 /// ```swift
@@ -131,7 +133,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     let context = PromptEditorContext(
       text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
       onCancel: turn.isRunning ? cancelCommand : nil,
-      commands: turn.thread?.availableCommands ?? [])
+      commands: turn.session?.availableCommands)
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       if !attachments.wrappedValue.isEmpty {
         AttachmentChips(attachments: attachments)
