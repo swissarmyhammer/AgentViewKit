@@ -2,6 +2,8 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import Foundation
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -49,6 +51,94 @@ import Testing
     }
     harness.pump()
     return harness
+  }
+
+  /// The title of the tool call that the session tests send.
+  static let toolTitle = "Build"
+
+  /// The JSON-RPC id of the request that the agent of a session test sends.
+  static let agentRequestID = 1
+
+  /// The `messageId` of the agent message that the session tests stream.
+  static let streamedMessageID = "accessibility-streamed"
+
+  /// Makes an ``AgentThreadView`` of a scripted session and its connection
+  /// model, with the recording announcer.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - announcer: The announcer of the environment.
+  /// - Returns: The harness, pumped one time.
+  static func makeHarness(session: ScriptedSession, announcer: RecordingAnnouncer) -> HostedViewHarness<some View> {
+    let actions = NoopThreadActions()
+    let harness = threadViewHarness(size: hostSize, actions: actions) {
+      AgentThreadView(session: session.model, connection: session.connection, actions: actions)
+        .environment(\.announcer, announcer)
+    }
+    harness.pump()
+    return harness
+  }
+
+  /// Makes one `agent_message_chunk` update of the message
+  /// ``streamedMessageID``.
+  ///
+  /// - Parameter text: The text of the chunk.
+  /// - Returns: The update.
+  static func makeChunkUpdate(text: String) -> SessionUpdate {
+    .agentMessageChunk(
+      ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: streamedMessageID)))
+  }
+
+  /// Tells whether `entry` is a tool call entry with the status `completed`.
+  ///
+  /// - Parameter entry: A transcript entry, or `nil`.
+  /// - Returns: `true` for a completed tool call entry.
+  static func isCompletedToolCall(_ entry: TranscriptEntry?) -> Bool {
+    guard case .toolCall(let call)? = entry else { return false }
+    return call.status == .completed
+  }
+
+  /// Tells whether `state` is the idle agent state.
+  ///
+  /// - Parameter state: An `agentState`, or `nil`.
+  /// - Returns: `true` for `.idle`.
+  static func isIdle(_ state: StateUpdate?) -> Bool {
+    guard case .idle? = state else { return false }
+    return true
+  }
+
+  /// Starts a `session/resume` request that replays the history from the
+  /// start, and pumps `harness` until the session model replays. The agent
+  /// of `session` must hold its answer to the request.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness to pump while the test waits.
+  /// - Returns: The task of the request.
+  static func beginReplay(
+    of session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+  ) async -> Task<SessionModel, any Error> {
+    let resume = Task { try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest) }
+    await harness.pump(until: waitTimeout) { session.model.isReplaying }
+    return resume
+  }
+
+  /// Releases the held answer of the `session/resume` request, and pumps
+  /// `harness` until the replay ends.
+  ///
+  /// - Parameters:
+  ///   - resume: The task of the request from ``beginReplay(of:pumping:)``.
+  ///   - session: The scripted session.
+  ///   - harness: The harness to pump while the test waits.
+  /// - Throws: The error of the request.
+  static func endReplay(
+    _ resume: Task<SessionModel, any Error>, of session: ScriptedSession,
+    pumping harness: HostedViewHarness<some View>
+  ) async throws {
+    session.agent.releaseHeldAnswer()
+    _ = try await resume.value
+    await harness.pump(until: waitTimeout) { !session.model.isReplaying }
+    harness.pump()
   }
 
   /// A thread with two assistant messages. The first message has three
@@ -173,6 +263,135 @@ import Testing
       announcer.announcements.map(\.message) == [
         ToolCallView.accessibilityLabel(title: call.title, status: .completed)
       ])
+  }
+
+  // MARK: - Announcements of a session model
+
+  @Test func aSessionThatGoesIdleAfterItRunsAnnouncesThatTheResponseIsCompleteOneTime() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let announcer = RecordingAnnouncer()
+    let harness = Self.makeHarness(session: session, announcer: announcer)
+    defer { harness.close() }
+
+    try await session.sendUpdate(ScriptedSession.runningState)
+    await harness.pump(until: Self.waitTimeout) { session.model.agentState != nil }
+    for index in 0..<Self.chunkCount {
+      try await session.send(update: Self.makeChunkUpdate(text: "Chunk \(index). "))
+      harness.pump()
+    }
+    await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
+    #expect(announcer.announcements.isEmpty)
+
+    try await session.sendUpdate(ScriptedSession.endTurnState)
+    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
+    harness.pump()
+
+    #expect(
+      announcer.announcements == [
+        RecordingAnnouncer.Announcement(message: "Response complete", priority: .medium)
+      ])
+  }
+
+  @Test func aToolCallEntryThatCompletesAnnouncesItsTitleAndItsStatus() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let announcer = RecordingAnnouncer()
+    let harness = Self.makeHarness(session: session, announcer: announcer)
+    defer { harness.close() }
+
+    try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
+    await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
+    harness.pump()
+    #expect(announcer.announcements.isEmpty)
+
+    try await session.sendToolCallUpdate(title: Self.toolTitle, status: .completed)
+    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
+
+    #expect(
+      announcer.announcements == [
+        RecordingAnnouncer.Announcement(
+          message: ToolCallView.accessibilityLabel(title: Self.toolTitle, status: .completed), priority: .medium)
+      ])
+  }
+
+  @Test func aPendingPermissionOfTheSessionAnnouncesThatAnActionIsRequired() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let announcer = RecordingAnnouncer()
+    let harness = Self.makeHarness(session: session, announcer: announcer)
+    defer { harness.close() }
+
+    _ = try await session.sendPermissionRequest(
+      id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
+    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
+    harness.pump()
+
+    let request = try #require(session.model.pendingPermissions.first)
+    #expect(
+      announcer.announcements == [
+        RecordingAnnouncer.Announcement(message: "Action required: \(request.request.title)", priority: .high)
+      ])
+  }
+
+  @Test func aLoginElicitationOfTheConnectionAnnouncesThatAnActionIsRequired() async throws {
+    let session = try await ScriptedSession.openWithLoginElicitation(id: Self.agentRequestID)
+    defer { session.close() }
+    let announcer = RecordingAnnouncer()
+    let harness = Self.makeHarness(session: session, announcer: announcer)
+    defer { harness.close() }
+
+    let login = session.startLogin()
+    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
+    harness.pump()
+    session.agent.releaseHeldAnswer()
+    try await login.value
+
+    #expect(
+      announcer.announcements == [
+        RecordingAnnouncer.Announcement(
+          message: "Action required: \(ScriptedSession.loginElicitationMessage)", priority: .high)
+      ])
+  }
+
+  @Test func aReplayOfFinishedToolCallsMakesNoToolResultAnnouncement() async throws {
+    let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
+    defer { session.close() }
+    let announcer = RecordingAnnouncer()
+    let harness = Self.makeHarness(session: session, announcer: announcer)
+    defer { harness.close() }
+
+    let resume = await Self.beginReplay(of: session, pumping: harness)
+    try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
+    await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
+    harness.pump()
+    try await session.sendToolCallUpdate(title: Self.toolTitle, status: .completed)
+    await harness.pump(until: Self.waitTimeout) { Self.isCompletedToolCall(session.model.transcript.first) }
+    harness.pump()
+    #expect(Self.isCompletedToolCall(session.model.transcript.first))
+    try await Self.endReplay(resume, of: session, pumping: harness)
+
+    #expect(announcer.announcements.isEmpty)
+  }
+
+  @Test func aReplayOfARunThatEndsMakesNoStopAnnouncement() async throws {
+    let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
+    defer { session.close() }
+    let announcer = RecordingAnnouncer()
+    let harness = Self.makeHarness(session: session, announcer: announcer)
+    defer { harness.close() }
+
+    let resume = await Self.beginReplay(of: session, pumping: harness)
+    try await session.sendUpdate(ScriptedSession.runningState)
+    await harness.pump(until: Self.waitTimeout) { session.model.agentState != nil }
+    harness.pump()
+    try await session.sendUpdate(ScriptedSession.endTurnState)
+    await harness.pump(until: Self.waitTimeout) { Self.isIdle(session.model.agentState) }
+    harness.pump()
+    #expect(Self.isIdle(session.model.agentState))
+    try await Self.endReplay(resume, of: session, pumping: harness)
+
+    #expect(announcer.announcements.isEmpty)
   }
 
   // MARK: - Focus

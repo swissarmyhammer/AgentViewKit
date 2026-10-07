@@ -62,11 +62,27 @@ comments:
     - evidence: 3 files — Sources/AgentViewKit/Items/ThreadExporter.swift, Sources/AgentViewKit/Items/MessageActions.swift, Tests/AgentViewKitTests/Items/ThreadExporterTests.swift. `swift test --filter "ThreadExporterTests|MessageActionsHostedTests|AgentCommand"`: 70 tests in 4 suites pass. Full `swift test`: 1383 tests in 127 suites pass (plus 78 and 1 in the other runs), 0 failures. Warnings: only the mlx-swift `missing creator` one. Review finding flipped to [x].
     - next: /review
   timestamp: 2026-10-07T01:45:36.464456+00:00
+- actor: claude-code
+  id: 01m4a0yvkem89cj553cfmph554
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ThreadExporter.markdown(for: ConversationSource); copy thread and export take the same form
+    - test: green — swift test, 1383 passed
+    - commit: e93a009
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T01:51:58.062635+00:00
+- actor: claude-code
+  id: 01m4a0yxa6jfkyvt8z94tsq0cv
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit e93a009). 0 findings (0 confirmed, 0 refuted; 7 attempted, 0 failed). 3 files reviewed; 2 .kanban files not reviewed because of .reviewignore. All prior Review Findings items are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-07T01:51:59.814583+00:00
 depends_on:
 - 01M48MS20B5GS4711S119KD9GM
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fc80
 title: 'Bind the message actions and the Markdown export to SessionModel: copy, export and retry from the transcript entries'
 ---
 ## What

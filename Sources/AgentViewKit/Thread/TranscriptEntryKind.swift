@@ -18,4 +18,11 @@ extension TranscriptEntry {
     case .error(let object): object
     }
   }
+
+  /// The tool call object of the entry, or `nil` when the entry is not a
+  /// tool call.
+  var toolCall: ToolCallEntry? {
+    guard case .toolCall(let toolCall) = self else { return nil }
+    return toolCall
+  }
 }

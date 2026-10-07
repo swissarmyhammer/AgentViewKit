@@ -1,3 +1,8 @@
+// Scoped imports: the whole module also has a `Content` type, which hides the
+// `Content` of each `ViewModifier` in this file.
+import enum FoundationModelsACP.StateUpdate
+import enum FoundationModelsACP.ToolCallStatus
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The fixed values and the pure functions of the thread accessibility
@@ -17,7 +22,21 @@ public enum ThreadAccessibility {
 
   // MARK: - Announcements
 
-  /// The announcement when a turn stops.
+  /// The announcement of a turn that stopped with no reason to report, or
+  /// with `end_turn`.
+  private static var responseCompleteText: String {
+    String(localized: "Response complete")
+  }
+
+  /// The announcement of a turn that stopped with `cancelled`.
+  private static var responseCancelledText: String {
+    String(localized: "Response cancelled")
+  }
+
+  /// The announcement when a turn of an ``AgentThread`` stops.
+  ///
+  /// The deprecated `AgentThreadView(thread:actions:)` path uses this
+  /// function. The removal of the ACP adapter removes it.
   ///
   /// - Parameters:
   ///   - old: The state before the change.
@@ -32,55 +51,105 @@ public enum ThreadAccessibility {
       return banner.title
     }
     if reason == .cancelled {
-      return String(localized: "Response cancelled")
+      return responseCancelledText
     }
-    return String(localized: "Response complete")
+    return responseCompleteText
+  }
+
+  /// The announcement when the agent state of a session model goes from
+  /// foreground work to idle.
+  ///
+  /// The function compares only the two values of the change. It keeps no
+  /// turn state of its own.
+  ///
+  /// - Parameters:
+  ///   - old: The `agentState` before the change.
+  ///   - new: The `agentState` after the change.
+  /// - Returns: The text, or `nil` when the change does not stop foreground
+  ///   work. Foreground work stops when the state goes from `.running` or
+  ///   `.requiresAction` to `.idle`. No stop reason and `end_turn` give
+  ///   "Response complete", `cancelled` gives "Response cancelled", and each
+  ///   other stop reason gives the title of its ``StateBanner``.
+  public static func turnAnnouncement(old: StateUpdate?, new: StateUpdate?) -> String? {
+    guard AgentCommandTarget.isActive(old), case .idle(let idle)? = new else { return nil }
+    switch idle.stopReason {
+    case nil, .endTurn: return responseCompleteText
+    case .cancelled: return responseCancelledText
+    case .maxTokens, .maxTurnRequests, .refusal, .unknown:
+      return StateBanner.message(for: .idle(idle)).title
+    }
   }
 
   /// The progress of one tool call, for the tool result announcement.
   public struct ToolCallProgress: Equatable, Sendable {
-    /// The identifier of the record.
+    /// The text identity of the call: the record id, or the row key of the
+    /// transcript entry.
     public let id: String
     /// The title of the call.
     public let title: String
-    /// The progress of the call.
-    public let status: ToolCallStatus
+    /// The ACP progress of the call.
+    public let status: FoundationModelsACP.ToolCallStatus
 
     /// Makes the progress of a call.
     ///
     /// - Parameters:
-    ///   - id: The identifier of the record.
+    ///   - id: The text identity of the call.
     ///   - title: The title of the call.
-    ///   - status: The progress of the call.
-    public init(id: String, title: String, status: ToolCallStatus) {
+    ///   - status: The ACP progress of the call.
+    public init(id: String, title: String, status: FoundationModelsACP.ToolCallStatus) {
       self.id = id
       self.title = title
       self.status = status
+    }
+
+    /// Makes the progress of the call that `source` shows.
+    ///
+    /// - Parameter source: A tool call record or a tool call entry.
+    init(source: ToolCallSource) {
+      self.init(id: source.id, title: source.title, status: source.status)
     }
   }
 
   /// The progress of each tool call in `items`, in item order.
   ///
   /// A view that calls this function observes the items and the title and
-  /// status of each tool call record.
+  /// status of each tool call record. The deprecated
+  /// `AgentThreadView(thread:actions:)` path uses this function. The removal
+  /// of the ACP adapter removes it.
   ///
   /// - Parameter items: The items of a thread.
   /// - Returns: One value for each tool call item.
   public static func toolCallProgress(in items: [ThreadItem]) -> [ToolCallProgress] {
     items.compactMap { item in
       guard case .toolCall(let record) = item else { return nil }
-      return ToolCallProgress(id: record.id, title: record.title, status: record.status)
+      return ToolCallProgress(source: .record(record))
     }
+  }
+
+  /// The progress of each `ToolCallEntry` of `transcript`, in transcript
+  /// order.
+  ///
+  /// A view that calls this function observes the transcript and the title
+  /// and status of each tool call entry. The value is only for the
+  /// comparison of one change. The view keeps no copy of it.
+  ///
+  /// - Parameter transcript: The transcript of a session model.
+  /// - Returns: One value for each tool call entry, with the row key of the
+  ///   entry as its identity.
+  public static func toolCallProgress(in transcript: [TranscriptEntry]) -> [ToolCallProgress] {
+    transcript.compactMap(\.toolCall).map { ToolCallProgress(source: .entry($0)) }
   }
 
   /// Tells if a call with `status` has its result.
   ///
-  /// - Parameter status: The progress of a call.
-  /// - Returns: `true` for completed, failed, cancelled, and lost calls.
-  static func hasResult(_ status: ToolCallStatus) -> Bool {
+  /// - Parameter status: The ACP progress of a call.
+  /// - Returns: `true` for completed, failed and cancelled calls, and for the
+  ///   kit extension status of a lost call.
+  static func hasResult(_ status: FoundationModelsACP.ToolCallStatus) -> Bool {
     switch status {
-    case .completed, .failed, .cancelled, .lost: true
-    case .pending, .inProgress, .unknown: false
+    case .completed, .failed, .cancelled: true
+    case .unknown(let wireValue): wireValue == AgentViewKit.ToolCallStatus.lost.wireValue
+    case .pending, .inProgress: false
     }
   }
 
@@ -102,7 +171,7 @@ public enum ThreadAccessibility {
       guard let before = oldStatus[call.id], !hasResult(before), hasResult(call.status) else {
         return nil
       }
-      return ToolCallView.accessibilityLabel(title: call.title, status: call.status.acpStatus)
+      return ToolCallView.accessibilityLabel(title: call.title, status: call.status)
     }
   }
 
@@ -127,6 +196,9 @@ public enum ThreadAccessibility {
   /// The summary of each pending request of `thread`, in the order of the
   /// cards of ``PendingRequestsHost``.
   ///
+  /// The deprecated `AgentThreadView(thread:actions:)` path uses this
+  /// function. The removal of the ACP adapter removes it.
+  ///
   /// - Parameter thread: The thread.
   /// - Returns: The permission title or the elicitation message of each
   ///   request.
@@ -135,6 +207,32 @@ public enum ThreadAccessibility {
       + thread.pendingElicitations.map {
         PendingRequestSummary(id: $0.id.rawValue, title: $0.message)
       }
+  }
+
+  /// The summary of each pending request of a session model and of its
+  /// connection model.
+  ///
+  /// The order is the order of the cards: the `pendingPermissions` of the
+  /// session, then its `pendingElicitations`, then the request-scoped
+  /// `pendingElicitations` of the connection. An elicitation of a mode that
+  /// has no card (``PendingRequestsHost``) gives no summary. The value is
+  /// only for the comparison of one change. The view keeps no copy of it.
+  ///
+  /// - Parameters:
+  ///   - session: The session model.
+  ///   - connection: The connection model of the session, or `nil`.
+  /// - Returns: The permission title or the elicitation message of each
+  ///   request, with the local id of the request as its identity.
+  public static func pendingRequests(
+    of session: SessionModel, connection: ConnectionModel?
+  ) -> [PendingRequestSummary] {
+    let elicitations = (session.pendingElicitations + (connection?.pendingElicitations ?? []))
+      .filter(ElicitationCard.hasCard(for:))
+    let permissions = session.pendingPermissions.map {
+      PendingRequestSummary(id: $0.id.uuidString, title: $0.request.title)
+    }
+    let requests = elicitations.map { PendingRequestSummary(id: $0.id.uuidString, title: $0.request.message) }
+    return permissions + requests
   }
 
   /// The announcements of the requests that are new.
@@ -225,7 +323,9 @@ private struct ReadingGroupModifier: ViewModifier {
 ///
 /// The view reads the state, the tool call progress, and the pending
 /// requests of the thread. It does not read ``AgentThread/streaming``, so a
-/// chunk does not evaluate its body.
+/// chunk does not evaluate its body. The deprecated
+/// `AgentThreadView(thread:actions:)` path uses this view. The removal of the
+/// ACP adapter removes it.
 struct ThreadAnnouncementObserver: View {
   /// The thread to observe.
   let thread: AgentThread
@@ -235,21 +335,90 @@ struct ThreadAnnouncementObserver: View {
   var body: some View {
     Color.clear
       .accessibilityHidden(true)
-      .onChange(of: thread.state) { old, new in
-        if let text = ThreadAccessibility.turnAnnouncement(old: old, new: new) {
-          announcer.announce(text, priority: .medium)
-        }
+      .announcing(changesOf: thread.state, to: announcer, priority: .medium) { old, new in
+        ThreadAccessibility.turnAnnouncement(old: old, new: new).map { [$0] } ?? []
       }
-      .onChange(of: ThreadAccessibility.toolCallProgress(in: thread.items)) { old, new in
-        for text in ThreadAccessibility.toolResultAnnouncements(old: old, new: new) {
-          announcer.announce(text, priority: .medium)
-        }
+      .announcing(
+        changesOf: ThreadAccessibility.toolCallProgress(in: thread.items), to: announcer, priority: .medium,
+        texts: ThreadAccessibility.toolResultAnnouncements(old:new:))
+      .announcing(
+        changesOf: ThreadAccessibility.pendingRequests(of: thread), to: announcer, priority: .high,
+        texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:))
+  }
+}
+
+/// The view that tells the ``SwiftUI/EnvironmentValues/announcer`` about the
+/// boundaries of a session model (update.md §4.2).
+///
+/// The view reads the observable values of the client models directly, and
+/// keeps no state of its own. Each announcement reacts to one change of a
+/// model value, and compares only the old and the new value that
+/// `onChange` gives:
+///
+/// - A change of `SessionModel.agentState` from `.running` or
+///   `.requiresAction` to `.idle` announces the stop, with the stop reason
+///   of the model.
+/// - A change of the `status` of a `ToolCallEntry` of
+///   `SessionModel.transcript` to a result announces the `title` and the
+///   status.
+/// - While `SessionModel.isReplaying` is true, the history replay of a
+///   `session/resume` request makes no stop announcement and no tool result
+///   announcement.
+/// - A new request in `SessionModel.pendingPermissions`,
+///   `SessionModel.pendingElicitations`, or
+///   `ConnectionModel.pendingElicitations` announces that an action is
+///   required, with high priority.
+///
+/// A streamed chunk changes only the content of its entry, which the view
+/// does not read, so a chunk does not evaluate its body.
+struct SessionAnnouncementObserver: View {
+  /// The session model to observe.
+  let session: SessionModel
+
+  /// The connection model of the session, whose request-scoped
+  /// elicitations the view observes, or `nil`.
+  let connection: ConnectionModel?
+
+  @Environment(\.announcer) private var announcer
+
+  var body: some View {
+    Color.clear
+      .accessibilityHidden(true)
+      .announcing(changesOf: session.agentState, to: announcer, priority: .medium) { old, new in
+        session.isReplaying ? [] : ThreadAccessibility.turnAnnouncement(old: old, new: new).map { [$0] } ?? []
       }
-      .onChange(of: ThreadAccessibility.pendingRequests(of: thread)) { old, new in
-        for text in ThreadAccessibility.actionRequiredAnnouncements(old: old, new: new) {
-          announcer.announce(text, priority: .high)
-        }
+      .announcing(
+        changesOf: ThreadAccessibility.toolCallProgress(in: session.transcript), to: announcer, priority: .medium
+      ) { old, new in
+        session.isReplaying ? [] : ThreadAccessibility.toolResultAnnouncements(old: old, new: new)
       }
+      .announcing(
+        changesOf: ThreadAccessibility.pendingRequests(of: session, connection: connection), to: announcer,
+        priority: .high, texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:))
+  }
+}
+
+extension View {
+  /// Tells `announcer` the texts that each change of `value` gives.
+  ///
+  /// - Parameters:
+  ///   - value: The observed value. The modifier keeps no copy of it:
+  ///     `onChange` gives the old and the new value of each change.
+  ///   - announcer: The announcer that speaks the texts.
+  ///   - priority: The priority of each text.
+  ///   - texts: The texts of one change, from the old and the new value.
+  /// - Returns: A view that announces the changes of `value`.
+  fileprivate func announcing<Value: Equatable>(
+    changesOf value: Value,
+    to announcer: any Announcer,
+    priority: AnnouncementPriority,
+    texts: @escaping (Value, Value) -> [String]
+  ) -> some View {
+    onChange(of: value) { old, new in
+      for text in texts(old, new) {
+        announcer.announce(text, priority: priority)
+      }
+    }
   }
 }
 

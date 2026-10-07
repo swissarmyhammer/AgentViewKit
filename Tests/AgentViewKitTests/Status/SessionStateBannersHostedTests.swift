@@ -20,9 +20,6 @@
     /// A size that shows the thread, the banners and the composer.
     static let size = CGSize(width: 480, height: 800)
 
-    /// The method of a resume request.
-    static let resumeMethod = "session/resume"
-
     /// The text of the composer draft.
     static let draftText = "Hello"
 
@@ -108,15 +105,6 @@
       harness.element(identifier: identifier) != nil
     }
 
-    /// The `session/resume` request of the scripted session that replays
-    /// the history from the start.
-    static var replayFromStartRequest: ResumeSessionRequest {
-      ResumeSessionRequest(
-        cwd: AbsolutePath(rawValue: ScriptedSession.workingDirectory),
-        sessionId: SessionId(rawValue: ScriptedSession.sessionID),
-        replayFrom: .start(ReplayFromStart()))
-    }
-
     // MARK: - Agent state
 
     @Test func eachAgentStateShowsItsBannerAndANewValueReplacesIt() async throws {
@@ -158,14 +146,14 @@
     // MARK: - Resume
 
     @Test func aResumeShowsTheReplayMarkerAndThenThePartialHistoryNote() async throws {
-      let session = try await ScriptedSession.open { $0.heldMethods = [Self.resumeMethod] }
+      let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
       defer { session.close() }
       let harness = Self.mount(session, draft: PromptInputHostedTestModel())
       defer { harness.close() }
       harness.pump()
       #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
 
-      let resume = Task { try await session.connection.resumeSession(Self.replayFromStartRequest) }
+      let resume = Task { try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest) }
       await harness.pump(until: Self.waitTimeout) { Self.shows(SessionStreamBanner.replayingIdentifier, in: harness) }
 
       #expect(session.model.isReplaying)
@@ -187,7 +175,7 @@
     @Test func anOverflowShowsTheMissedUpdatesBannerAndReloadReplaysFromTheStart() async throws {
       let session = try await ScriptedSession.open(bufferLimits: Self.smallBufferLimits) {
         $0.leadIns["session/new"] = { _, _ in (1...Self.overflowUpdateCount).map(Self.chunkFrame(index:)) }
-        $0.heldMethods = [Self.resumeMethod]
+        $0.heldMethods = [ScriptedSession.resumeMethod]
       }
       defer { session.close() }
       let harness = Self.mount(session, draft: PromptInputHostedTestModel())
@@ -196,13 +184,13 @@
       #expect(session.model.hasMissedUpdates)
 
       try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.resumeMethod).isEmpty }
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.resumeMethod).isEmpty }
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.isEnabled == false
       }
 
       #expect(session.model.isReplaying)
-      let resume = try #require(session.agent.messages(method: Self.resumeMethod).first)
+      let resume = try #require(session.agent.messages(method: ScriptedSession.resumeMethod).first)
       #expect(resume["params"]?["replayFrom"]?["type"]?.stringValue == "start")
       #expect(resume["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
       #expect(resume["params"]?["cwd"]?.stringValue == ScriptedSession.workingDirectory)
@@ -214,7 +202,7 @@
       await harness.pump(until: Self.waitTimeout) { !Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness) }
 
       #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
-      #expect(session.agent.messages(method: Self.resumeMethod).count == 1)
+      #expect(session.agent.messages(method: ScriptedSession.resumeMethod).count == 1)
     }
 
     // MARK: - Closed thread

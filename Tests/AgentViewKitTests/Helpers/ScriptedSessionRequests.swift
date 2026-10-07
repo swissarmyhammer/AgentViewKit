@@ -1,6 +1,8 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import DemoSupport
 import Foundation
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -26,6 +28,81 @@ extension ScriptedSession {
 
   /// The `session/update` value that tells that the agent is idle.
   static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
+
+  /// The `session/update` value that tells that the agent is idle because
+  /// the turn ended (`end_turn`).
+  static let endTurnState = #"{"sessionUpdate":"state_update","state":"idle","stopReason":"end_turn"}"#
+
+  /// The method of a resume request.
+  static let resumeMethod = "session/resume"
+
+  /// The method of a login request.
+  static let loginMethod = "auth/login"
+
+  /// The agent auth method of ``loginInitializeResult``.
+  static let loginAuthMethodID = AuthMethodId(rawValue: "agent-login")
+
+  /// The `initialize` result of an agent with the one agent auth method
+  /// ``loginAuthMethodID``.
+  static let loginInitializeResult = makeInitializeResult(
+    info: agentInfo, authMethods: #"[{"type": "agent", "methodId": "agent-login", "name": "Sign in"}]"#)
+
+  /// The message of the form elicitation that the agent of
+  /// ``openWithLoginElicitation(id:)`` sends during the login.
+  static let loginElicitationMessage = "Your code?"
+
+  /// The `session/resume` request of the scripted session that replays the
+  /// history from the start.
+  static var replayFromStartRequest: ResumeSessionRequest {
+    ResumeSessionRequest(
+      cwd: AbsolutePath(rawValue: workingDirectory),
+      sessionId: SessionId(rawValue: sessionID),
+      replayFrom: .start(ReplayFromStart()))
+  }
+
+  /// Opens a session whose agent holds its answer to `auth/login`. Before it
+  /// holds the answer, the agent sends a form elicitation that names the
+  /// login request, with the message ``loginElicitationMessage``. The
+  /// connection model then holds the elicitation while the login runs.
+  ///
+  /// - Parameter id: The JSON-RPC id of the elicitation request.
+  /// - Returns: The helper with the open session.
+  /// - Throws: The error of `initialize` or of `session/new`.
+  static func openWithLoginElicitation(id: Int) async throws -> ScriptedSession {
+    try await open { agent in
+      agent.results["initialize"] = loginInitializeResult
+      agent.heldMethods = [loginMethod]
+      agent.leadIns[loginMethod] = { request, _ in
+        let loginID = request["id"]?.jsonString ?? "null"
+        let params = #"""
+          {"requestId": \#(loginID), "message": "\#(loginElicitationMessage)", "mode": "form",
+           "requestedSchema": {"type": "object", "properties": {"code": {"type": "string"}}}}
+          """#
+        return [requestFrame(elicitationMethod, id: id, params: params)]
+      }
+    }
+  }
+
+  /// Starts the login with ``loginAuthMethodID``.
+  ///
+  /// - Returns: The task of the login. It ends when the agent answers.
+  func startLogin() -> Task<Void, any Error> {
+    let connection = connection
+    return Task { try await connection.login(LoginAuthRequest(methodId: Self.loginAuthMethodID)) }
+  }
+
+  /// Sends one `tool_call_update` of the session from the agent. The title is
+  /// also the `toolCallId`, so each title is one tool call.
+  ///
+  /// - Parameters:
+  ///   - title: The title of the tool call.
+  ///   - status: The new status of the tool call.
+  /// - Throws: The error of the encoder or of the transport.
+  func sendToolCallUpdate(title: String, status: FoundationModelsACP.ToolCallStatus) async throws {
+    try await send(
+      update: .toolCallUpdate(
+        ToolCallUpdate(toolCallId: ToolCallId(rawValue: title), status: .value(status), title: .value(title))))
+  }
 
   /// Sends a permission request of the session from the agent, with
   /// ``ScriptedSession/permissionParams``, and pumps `harness` until the

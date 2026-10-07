@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -160,10 +161,18 @@ import Testing
     defer { harness.close() }
     harness.pump()
 
-    let labels = harness.accessibilityElements().compactMap(\.label)
-    let showsName = labels.contains { $0.contains(Self.toolName) }
-    #expect(showsName)
+    #expect(Self.showsText(Self.toolName, in: harness))
     #expect(harness.element(identifier: ShimmerView.identifier) == nil)
+  }
+
+  /// Tells whether an accessibility label of `harness` holds `text`.
+  ///
+  /// - Parameters:
+  ///   - text: The text to find.
+  ///   - harness: The harness that shows the indicator.
+  /// - Returns: `true` when a label holds the text.
+  static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>) -> Bool {
+    harness.accessibilityElements().compactMap(\.label).contains { $0.contains(text) }
   }
 
   @Test func theIdleIndicatorShowsNothing() {
@@ -175,6 +184,27 @@ import Testing
     let labels = harness.accessibilityElements().compactMap(\.label)
     let showsText = labels.contains { !$0.isEmpty }
     #expect(!showsText)
+  }
+
+  @Test func theIndicatorOfASessionShowsTheRunningToolCallAndGoesAwayAtIdle() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = HostedViewHarness { ActivityIndicator(session: session.model) }
+    defer { harness.close() }
+
+    try await session.sendUpdate(ScriptedSession.runningState)
+    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: ShimmerView.identifier) != nil }
+    #expect(harness.element(identifier: ShimmerView.identifier) != nil)
+
+    try await session.sendToolCallUpdate(title: Self.toolName, status: .inProgress)
+    await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.toolName, in: harness) }
+    #expect(Self.showsText(Self.toolName, in: harness))
+    #expect(harness.element(identifier: ShimmerView.identifier) == nil)
+
+    try await session.sendUpdate(ScriptedSession.idleState)
+    await harness.pump(until: Self.waitTimeout) { !Self.showsText(Self.toolName, in: harness) }
+    #expect(!Self.showsText(Self.toolName, in: harness))
+    #expect(harness.element(identifier: ShimmerView.identifier) == nil)
   }
 
   @Test func theActivityStateComesFromTheThread() {

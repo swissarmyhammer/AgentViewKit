@@ -62,8 +62,10 @@ import SwiftUI
 /// state, and an ``AgentAuthView`` shows below the conversation while the
 /// last entry of the transcript is an error entry with the code `-32000`
 /// (authentication required). The agent commands read the session model
-/// directly (``SwiftUI/View/agentCommandScope(session:)``). The announcements
-/// read an ``AgentThread``, so a view of a session model does not show them.
+/// directly (``SwiftUI/View/agentCommandScope(session:)``). The VoiceOver
+/// announcements read the session model, and the connection model when the
+/// host gives it, directly: the change of `agentState` to idle, the status of
+/// each `ToolCallEntry`, and the pending requests (``ThreadAccessibility``).
 public struct AgentThreadView: View {
   /// The model that the view shows.
   private enum Source {
@@ -193,6 +195,7 @@ public struct AgentThreadView: View {
         }
         PendingRequestsHost(session: session)
       }
+      .background { SessionAnnouncementObserver(session: session, connection: connection) }
       .agentCommandScope(session: session, anchors: anchors)
       .onDisappear { closeWhenSupported(session) }
     }

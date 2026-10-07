@@ -46,20 +46,6 @@
     /// The method of an elicitation request.
     static let elicitationMethod = "elicitation/create"
 
-    /// The method of a login request.
-    static let loginMethod = "auth/login"
-
-    /// The id of the auth method of the agent.
-    static let authMethodID = "agent-login"
-
-    /// The `initialize` result with protocol version 2, the session
-    /// capabilities and one agent auth method.
-    static let initializeResult = #"""
-      {"info": {"name": "scripted-agent", "version": "1.0.0"}, "protocolVersion": 2,
-       "capabilities": {"session": {}},
-       "authMethods": [{"type": "agent", "methodId": "agent-login", "name": "Sign in"}]}
-      """#
-
     /// Decodes JSON text into a kit JSON value.
     ///
     /// - Parameter text: The JSON text.
@@ -328,18 +314,7 @@
 
     @Test func aLoginElicitationShowsInTheConnectionHostAndGoesAwayWhenTheLoginEnds() async throws {
       let elicitationID = Self.agentRequestID
-      let session = try await ScriptedSession.open { agent in
-        agent.results["initialize"] = Self.initializeResult
-        agent.heldMethods = [Self.loginMethod]
-        agent.leadIns[Self.loginMethod] = { request, _ in
-          let loginID = request["id"]?.jsonString ?? "null"
-          let params = #"""
-            {"requestId": \#(loginID), "message": "Your code?", "mode": "form",
-             "requestedSchema": {"type": "object", "properties": {"code": {"type": "string"}}}}
-            """#
-          return [ScriptedSession.requestFrame(Self.elicitationMethod, id: elicitationID, params: params)]
-        }
-      }
+      let session = try await ScriptedSession.openWithLoginElicitation(id: elicitationID)
       defer { session.close() }
       let connection = session.connection
       let harness = HostedViewHarness(size: Self.size) {
@@ -348,15 +323,13 @@
       }
       defer { harness.close() }
 
-      let login = Task {
-        try await connection.login(LoginAuthRequest(methodId: AuthMethodId(rawValue: Self.authMethodID)))
-      }
+      let login = session.startLogin()
       await harness.pump(until: Self.waitTimeout) { !connection.pendingElicitations.isEmpty }
       let pending = try #require(connection.pendingElicitations.first)
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: ElicitationView.formIdentifier) != nil
       }
-      #expect(pending.requestMethod == Self.loginMethod)
+      #expect(pending.requestMethod == ScriptedSession.loginMethod)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
       session.agent.releaseHeldAnswer()
