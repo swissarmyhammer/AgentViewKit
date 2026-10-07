@@ -31,10 +31,26 @@ comments:
     - evidence: 15 files — Sources/AgentViewKit/Connections/{ConnectionStore.swift (deleted), ConnectionsView.swift, ConnectionRow.swift, ConnectionStatusChip.swift, AgentConnectionBanner.swift}, Sources/AgentViewKit/Input/{ToolToggles.swift, DefaultPromptAccessory.swift}, Sources/AgentViewKit/Items/ToolCallView.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPSettingsSheet.swift, Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift, Tests/AgentViewKitTests/Connections/{MCPServersHostedTests.swift (new), ConnectionsViewHostedTests.swift, ConnectionStoreTests.swift (deleted)}, Tests/AgentViewKitTests/Input/ToolTogglesHostedTests.swift, Tests/AgentViewKitTests/Items/ToolCallViewHostedTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. Gates: `swift test` 1284 tests in 125 suites + 83 + 1 passed; `Scripts/check-readme.sh` passed; `Scripts/test-examples.sh AgentViewKitDemo` passed (4 UI tests). Only the expected mlx-swift "missing creator for mutated node" warning.
     - next: /review
   timestamp: 2026-10-07T17:41:51.848807+00:00
+- actor: claude-code
+  id: 01m4br6hx0s9xw7rc35y5w8ktn
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit abf51bd), 16 files reviewed, 4 .kanban files not reviewed (ignore rule). Counts: 0 findings, 0 confirmed, 0 refuted. No prior review findings on the task. The task moved to done.
+    - next: none
+  timestamp: 2026-10-07T17:57:21.952382+00:00
+- actor: claude-code
+  id: 01m4br6kq4rc0kndy3t8ba8wpk
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ConnectionStore deleted; ConnectionsView, ConnectionRow(server:) and ConnectionStatusChip(status:) read SessionModel.mcpServers; ToolToggles keeps only the host-list initializer; MCPServersHostedTests (new); 15 files
+    - test: green — swift test, 1284 passed (load about 60); README and demo UI gates passed
+    - commit: abf51bd
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T17:57:23.812950+00:00
 depends_on:
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8a80
 title: Show the MCP servers and their status from the client model
 ---
 ## What

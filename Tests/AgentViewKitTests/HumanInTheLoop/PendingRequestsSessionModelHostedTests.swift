@@ -1,5 +1,5 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
   import AppKit
   import DemoSupport
@@ -45,6 +45,10 @@
 
     /// The method of an elicitation request.
     static let elicitationMethod = "elicitation/create"
+
+    /// The runs of the frame order test. Many runs find a race between the
+    /// two frames. `@Test(arguments:)` reads the range outside the main actor.
+    nonisolated static let frameOrderRuns = 1...100
 
     /// Decodes JSON text into a kit JSON value.
     ///
@@ -167,10 +171,8 @@
     /// The test reads that order in the client model: when the pending request
     /// goes away, the transcript has no user message with the comment yet.
     ///
-    /// The test does not read the order of the two frames on the wire. The
-    /// client model does not promise that order: `selectPermission(_:option:)`
-    /// only resumes the waiting request handler, and the handler writes the
-    /// response frame later, so the prompt frame can go out first (^et6e0ps).
+    /// ``anAnswerWithACommentWritesTheResponseFrameBeforeThePromptFrame(run:)``
+    /// examines the order of the two frames on the wire.
     @Test func aRejectWithACommentAnswersTheRequestBeforeItSendsThePrompt() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
@@ -199,6 +201,38 @@
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
       #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
       #expect(model.pendingPermissions.isEmpty)
+    }
+
+    /// An answer with a comment writes the permission response frame before
+    /// the prompt frame of the comment.
+    ///
+    /// `SessionModel.answerPermission(_:option:comment:)` sends the prompt
+    /// only after `selectPermission(_:option:)` returns, and that call
+    /// returns after the client writes the response frame. The scripted agent
+    /// records the frames in arrival order. The test runs many times to find
+    /// a race, and it waits with the run loop, with no sleep.
+    ///
+    /// - Parameter run: The number of the run, for the failure message.
+    @Test(arguments: frameOrderRuns)
+    func anAnswerWithACommentWritesTheResponseFrameBeforeThePromptFrame(run: Int) async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mount(session: session)
+      defer { harness.close() }
+      let model = session.model
+      let requestID = Double(Self.agentRequestID)
+
+      let pendingID = try await session.sendPermissionRequest(
+        id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
+      model.answerPermission(try #require(pendingID), option: Self.rejectOptionID, comment: Self.comment)
+      await harness.pump(until: Self.waitTimeout) {
+        Self.indexOfPrompt(withText: Self.comment, in: session.agent) != nil
+          && session.agent.index(ofResponseTo: requestID) != nil
+      }
+
+      let answer = try #require(session.agent.index(ofResponseTo: requestID))
+      let prompt = try #require(Self.indexOfPrompt(withText: Self.comment, in: session.agent))
+      #expect(answer < prompt, "Run \(run): the prompt frame came before the response frame.")
     }
 
     @Test func aSelectThroughTheModelRemovesTheCard() async throws {

@@ -76,32 +76,45 @@ extension SessionModel {
     Task { @MainActor in await sendPrompt(content) }
   }
 
-  /// Starts a main-actor task that sends `text` as `session/prompt` with
-  /// ``sendPrompt(with:accepting:)``.
+  /// Sends `text` as `session/prompt` with ``sendPrompt(with:accepting:)``,
+  /// and returns when the prompt returns.
   ///
   /// The text has no attachment, so the prompt capabilities do not change
   /// its one text block.
   ///
   /// - Parameter text: The text of the prompt.
-  func startPrompt(text: String) {
-    Task { @MainActor in await sendPrompt(with: UserInput(text: text), accepting: nil) }
+  func sendPrompt(text: String) async {
+    await sendPrompt(with: UserInput(text: text), accepting: nil)
   }
 
-  /// Selects an option of a pending permission request with
-  /// `selectPermission(_:option:)`, then sends the comment of the user as
-  /// the next prompt.
+  /// Starts a main-actor task that sends `text` as `session/prompt` with
+  /// ``sendPrompt(text:)``.
+  ///
+  /// - Parameter text: The text of the prompt.
+  func startPrompt(text: String) {
+    Task { @MainActor in await sendPrompt(text: text) }
+  }
+
+  /// Starts a main-actor task that selects an option of a pending permission
+  /// request with `selectPermission(_:option:)`, then sends the comment of
+  /// the user as the next prompt.
   ///
   /// ACP has no comment in the answer of a permission request, so the
-  /// comment goes out after the answer, as one text prompt.
+  /// comment goes out after the answer, as one text prompt. The task awaits
+  /// `selectPermission(_:option:)` before it sends the prompt. That call
+  /// returns after the client writes the response frame, so the response
+  /// frame goes out before the prompt frame.
   ///
   /// - Parameters:
   ///   - id: The local id of the pending request.
   ///   - optionID: The id of the option that the user selected.
   ///   - comment: The comment of the user, or `nil` for no prompt.
   func answerPermission(_ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId, comment: String?) {
-    startSelectPermission(id, option: optionID)
-    guard let comment else { return }
-    startPrompt(text: comment)
+    Task { @MainActor in
+      await selectPermission(id, option: optionID)
+      guard let comment else { return }
+      await sendPrompt(text: comment)
+    }
   }
 
   /// Starts a main-actor task that selects an option of a pending permission
