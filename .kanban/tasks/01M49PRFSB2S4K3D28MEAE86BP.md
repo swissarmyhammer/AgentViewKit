@@ -31,10 +31,26 @@ comments:
     - evidence: 8 files — Sources/AgentViewKit/Content/WireContentBlockKind.swift (new), Sources/AgentViewKit/Thread/Registries.swift, Sources/AgentViewKit/Content/ContentBlockView.swift, Tests/AgentViewKitTests/Content/WireContentBlockViewHostedTests.swift, Tests/AgentViewKitTests/Content/ContentBlockViewHostedTests.swift, Tests/AgentViewKitTests/Thread/RegistryResolutionTests.swift, README.md, Examples/ReadmeSnippets/Snippets/HostApp.swift; `swift test` 1297 passed, `Scripts/check-readme.sh` passed
     - next: /review
   timestamp: 2026-10-07T07:51:39.715387+00:00
+- actor: claude-code
+  id: 01m4anx4zrfpwtp6c2rr5bxaz2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 241c9b5) — 0 findings (7 files reviewed; README.md had no matching validator; .kanban/ files are ignored by .reviewignore)
+    - next: none — task moved to done
+  timestamp: 2026-10-07T07:58:02.232797+00:00
+- actor: claude-code
+  id: 01m4anx6j5e0jhfre8h6ksfm4v
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ACP ContentBlock.Kind (new); the content block registry keys the ACP kind and gives the ACP block; README and HostApp snippet updated; 8 files
+    - test: green — swift test, 1297 passed; README gate passed
+    - commit: 241c9b5
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T07:58:03.845872+00:00
 depends_on:
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8580
 title: Key the content block registry on the ACP ContentBlock
 ---
 ## What

@@ -425,11 +425,23 @@
       session.model.appendError(
         code: .invalidParams, message: "Invalid params",
         data: .object([Self.errorDataField: .string("cwd")]))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ErrorView.dataIdentifier) != nil
-      }
+      // The wait reads the label and not only the identifier. The data text
+      // is selectable. In the first hosted test of a process, SwiftUI first
+      // shows it as a text area element with the identifier and no text, and
+      // adds the text on the next update.
+      await harness.pump(until: Self.waitTimeout) { Self.showsErrorData(in: harness) }
 
-      #expect(harness.element(identifier: ErrorView.dataIdentifier)?.label?.contains(Self.errorDataField) == true)
+      #expect(Self.showsErrorData(in: harness))
+    }
+
+    /// Tells whether the data element of the error card shows the data of the
+    /// appended error.
+    ///
+    /// - Parameter harness: The harness that shows the thread.
+    /// - Returns: `true` when the label of the data element contains
+    ///   `errorDataField`.
+    static func showsErrorData<Content: View>(in harness: HostedViewHarness<Content>) -> Bool {
+      harness.element(identifier: ErrorView.dataIdentifier)?.label?.contains(errorDataField) == true
     }
   }
 
