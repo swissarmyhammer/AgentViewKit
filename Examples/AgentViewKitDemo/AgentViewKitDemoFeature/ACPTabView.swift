@@ -24,7 +24,13 @@ import SwiftUI
 /// the connection model. The tab gives the `terminalAuthRunner` and the
 /// `agentReconnect` environment values of ``DemoAgent`` to the kit views, so
 /// that a terminal sign-in can run, and the Reconnect button connects again
-/// and opens that session.
+/// and opens that session. A Reconnect from the thread of an open session
+/// (after a prompt failed with `-32000`) opens a new session, because the
+/// reconnect closed the old one.
+///
+/// A sign-in with an `agent` method sets the `authState` of the connection
+/// model to `.authenticated`. The tab observes that state and tells
+/// ``DemoAgent`` to retry the kept `session/new`.
 struct ACPTabView: View {
   /// The state of the tab.
   private enum Phase {
@@ -107,6 +113,9 @@ struct ACPTabView: View {
     .task {
       await start()
     }
+    .task(id: agent?.connection.authState) {
+      await authStateDidChange()
+    }
   }
 
   /// The agent of the phase, or `nil` before the start or after a failed
@@ -157,22 +166,50 @@ struct ACPTabView: View {
   ///   - failure: Shows the error of a failed request.
   private func openSession(on agent: DemoAgent, failure: (any Error) async -> Void) async {
     do {
-      try await agent.openSession { session in
-        phase = .running(agent, session)
-        newSessionFailure = nil
-      }
+      try await agent.openSession { session in select(session, on: agent) }
     } catch {
       await failure(error)
     }
   }
 
-  /// Connects to the agent again after a terminal sign-in. The agent then
-  /// retries the operation that failed with `-32000`.
+  /// Shows a session that the agent opened, and clears the failure of the
+  /// New Session button.
+  ///
+  /// - Parameters:
+  ///   - session: The open session model.
+  ///   - agent: The agent that opened it.
+  private func select(_ session: SessionModel, on agent: DemoAgent) {
+    phase = .running(agent, session)
+    newSessionFailure = nil
+  }
+
+  /// Connects to the agent again after a terminal sign-in.
+  ///
+  /// The agent then retries the operation that failed with `-32000`. When it
+  /// kept no operation, for example after a prompt of the open session
+  /// failed with `-32000`, the agent opens a new session, because the
+  /// reconnect closed the old one. The tab selects that session.
   ///
   /// - Parameter agent: The agent.
   private func reconnect(_ agent: DemoAgent) async {
     do {
-      try await agent.reconnect()
+      try await agent.reconnect { session in select(session, on: agent) }
+    } catch {
+      await show(error, of: agent)
+    }
+  }
+
+  /// Retries the operation that failed with `-32000` when the `authState`
+  /// of the connection model becomes `.authenticated`.
+  ///
+  /// A sign-in with an `agent` method on the sign-in card sets that state.
+  /// The agent runs its kept operation, for example the first `session/new`,
+  /// and the tab selects the session. After a reconnect, the agent kept no
+  /// operation, so the call does nothing.
+  private func authStateDidChange() async {
+    guard let agent, case .authenticated = agent.connection.authState else { return }
+    do {
+      try await agent.retryFailedOperation()
     } catch {
       await show(error, of: agent)
     }

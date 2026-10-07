@@ -115,9 +115,10 @@ import Testing
   }
 }
 
-/// Tests of the terminal sign-in of ``DemoAgent``: the runner, the
-/// reconnect over a new transport, and the retry of the operation that
-/// failed with `-32000`.
+/// Tests of the sign-in of ``DemoAgent``: the runner, the reconnect over a
+/// new transport, the retry of the operation that failed with `-32000`
+/// after a terminal or an `agent` sign-in, and the new session of a
+/// reconnect with no kept operation.
 ///
 /// Each test gives two ``ScriptedWireAgent`` transports to the transport
 /// factory of the demo agent. The first agent answers `session/new` with
@@ -130,6 +131,13 @@ import Testing
   static let terminalMethods =
     #"[{"type": "terminal", "methodId": "terminal-login", "name": "Terminal login", "args": ["--login"]}]"#
 
+  /// The id of the agent method of the scripted agents.
+  static let agentMethodID = AuthMethodId(rawValue: "agent-login")
+
+  /// The `authMethods` of an agent with one agent method, which the agent
+  /// runs through `auth/login`.
+  static let agentMethods = #"[{"type": "agent", "methodId": "agent-login", "name": "Agent login"}]"#
+
   /// The `authMethods` of an agent with no auth method.
   static let noMethods = "[]"
 
@@ -141,6 +149,10 @@ import Testing
 
   /// The method of the operation that needs the sign-in.
   static let newSessionMethod = "session/new"
+
+  /// The number of `session/new` requests of one failed request and one
+  /// retry.
+  static let failedAndRetriedRequestCount = 2
 
   /// The method of the initialize request.
   static let initializeMethod = "initialize"
@@ -192,13 +204,16 @@ import Testing
   ///
   /// - Parameters:
   ///   - runner: The terminal auth runner of the demo agent.
+  ///   - firstAuthMethods: The `authMethods` of the first agent.
   ///   - secondAuthMethods: The `authMethods` of the second agent.
   /// - Returns: The scenario.
   /// - Throws: The error of `initialize`.
   static func makeScenario(
-    runner: any TerminalAuthRunner, secondAuthMethods: String = terminalMethods
+    runner: any TerminalAuthRunner,
+    firstAuthMethods: String = terminalMethods,
+    secondAuthMethods: String = terminalMethods
   ) async throws -> Scenario {
-    let (firstEnd, first) = makeScriptedAgent(authMethods: terminalMethods)
+    let (firstEnd, first) = makeScriptedAgent(authMethods: firstAuthMethods)
     first.failingMethods = [newSessionMethod]
     first.errorCodes[newSessionMethod] = authenticationRequiredCode
     let (secondEnd, second) = makeScriptedAgent(authMethods: secondAuthMethods)
@@ -234,6 +249,37 @@ import Testing
     }
     #expect(error?.code == .authenticationRequired)
     return opened
+  }
+
+  /// Lets the first agent open ``firstSessionID``, and opens it with
+  /// ``DemoAgent/openSession(onOpen:)``. Then the first agent answers each
+  /// later `session/new` with `-32000` again.
+  ///
+  /// - Parameters:
+  ///   - scenario: The scenario.
+  ///   - opened: The box that gets the session.
+  /// - Throws: The error of `session/new`.
+  static func openFirstSession(in scenario: Scenario, recordingInto opened: OpenedSessions) async throws {
+    let first = scenario.first
+    first.failingMethods = []
+    first.results[newSessionMethod] = #"{"sessionId": "\#(firstSessionID)"}"#
+    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
+      try await scenario.agent.openSession { opened.sessions.append($0) }
+    }
+    first.failingMethods = [newSessionMethod]
+  }
+
+  /// Calls ``DemoAgent/reconnect(onOpen:)`` with the time limit of the ACP
+  /// tests, and records the session that it gives to its handler.
+  ///
+  /// - Parameters:
+  ///   - scenario: The scenario.
+  ///   - opened: The box that gets the session.
+  /// - Throws: The error of the reconnect.
+  static func reconnect(in scenario: Scenario, recordingInto opened: OpenedSessions = OpenedSessions()) async throws {
+    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
+      try await scenario.agent.reconnect { opened.sessions.append($0) }
+    }
   }
 
   /// Runs the terminal method with `runner`, and ignores its error.
@@ -278,7 +324,7 @@ import Testing
     let opened = await Self.openSessionExpectingSignIn(in: scenario)
     await Self.runTerminalSignIn(in: scenario, with: runner)
 
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await scenario.agent.reconnect() }
+    try await Self.reconnect(in: scenario)
 
     let second = scenario.second
     let initialize = try #require(second.messages(method: Self.initializeMethod).first)
@@ -295,23 +341,69 @@ import Testing
   @Test func aNewSessionThatFailsWithCode32000OpensItsSessionAfterASignInAndAReconnect() async throws {
     let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
     let scenario = try await Self.makeScenario(runner: runner)
-    let first = scenario.first
-    first.failingMethods = []
-    first.results[Self.newSessionMethod] = #"{"sessionId": "\#(Self.firstSessionID)"}"#
-    let agent = scenario.agent
     let opened = OpenedSessions()
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
-      try await agent.openSession { opened.sessions.append($0) }
-    }
-    first.failingMethods = [Self.newSessionMethod]
+    try await Self.openFirstSession(in: scenario, recordingInto: opened)
     await Self.openSessionExpectingSignIn(in: scenario, recordingInto: opened)
     await Self.runTerminalSignIn(in: scenario, with: runner)
 
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await agent.reconnect() }
+    try await Self.reconnect(in: scenario)
 
     let expected = [Self.firstSessionID, Self.signedInSessionID].map { SessionId(rawValue: $0) }
     #expect(opened.sessions.map(\.sessionId) == expected)
-    #expect(agent.connection.authState == .authenticated(Self.terminalMethodID))
+    #expect(scenario.agent.connection.authState == .authenticated(Self.terminalMethodID))
+    await scenario.stop()
+  }
+
+  @Test func aReconnectWithNoKeptOperationOpensASessionOnTheSecondTransport() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let scenario = try await Self.makeScenario(runner: runner)
+    let opened = OpenedSessions()
+    try await Self.openFirstSession(in: scenario, recordingInto: opened)
+    let firstSession = try #require(opened.sessions.first)
+    await Self.runTerminalSignIn(in: scenario, with: runner)
+
+    try await Self.reconnect(in: scenario, recordingInto: opened)
+
+    let expected = [Self.firstSessionID, Self.signedInSessionID].map { SessionId(rawValue: $0) }
+    #expect(opened.sessions.map(\.sessionId) == expected)
+    #expect(firstSession.isClosed)
+    let signedInSession = try #require(opened.sessions.last)
+    #expect(scenario.agent.connection.session(for: signedInSession.sessionId) === signedInSession)
+    #expect(scenario.second.messages(method: Self.newSessionMethod).count == 1)
+    await scenario.stop()
+  }
+
+  @Test func anAgentLoginAfterAnAnswerWithCode32000RunsTheKeptNewSessionOneTime() async throws {
+    let scenario = try await Self.makeScenario(
+      runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus), firstAuthMethods: Self.agentMethods)
+    let opened = await Self.openSessionExpectingSignIn(in: scenario)
+    let first = scenario.first
+    first.failingMethods = []
+    first.results[Self.newSessionMethod] = #"{"sessionId": "\#(Self.signedInSessionID)"}"#
+    let agent = scenario.agent
+
+    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
+      try await agent.connection.login(LoginAuthRequest(methodId: Self.agentMethodID))
+      try await agent.retryFailedOperation()
+      try await agent.retryFailedOperation()
+    }
+
+    #expect(agent.connection.authState == .authenticated(Self.agentMethodID))
+    #expect(opened.sessions.map(\.sessionId) == [SessionId(rawValue: Self.signedInSessionID)])
+    #expect(first.messages(method: Self.newSessionMethod).count == Self.failedAndRetriedRequestCount)
+    await scenario.stop()
+  }
+
+  @Test func aRetryBeforeASignInSendsNoRequest() async throws {
+    let scenario = try await Self.makeScenario(
+      runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus), firstAuthMethods: Self.agentMethods)
+    let opened = await Self.openSessionExpectingSignIn(in: scenario)
+    let agent = scenario.agent
+
+    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await agent.retryFailedOperation() }
+
+    #expect(opened.sessions.isEmpty)
+    #expect(scenario.first.messages(method: Self.newSessionMethod).count == 1)
     await scenario.stop()
   }
 
@@ -321,7 +413,7 @@ import Testing
     let opened = await Self.openSessionExpectingSignIn(in: scenario)
     await Self.runTerminalSignIn(in: scenario, with: runner)
 
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await scenario.agent.reconnect() }
+    try await Self.reconnect(in: scenario, recordingInto: opened)
 
     #expect(scenario.second.messages(method: Self.initializeMethod).count == 1)
     #expect(scenario.second.messages(method: Self.newSessionMethod).isEmpty)
@@ -336,7 +428,7 @@ import Testing
     await Self.openSessionExpectingSignIn(in: scenario)
     await Self.runTerminalSignIn(in: scenario, with: runner)
 
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await scenario.agent.reconnect() }
+    try await Self.reconnect(in: scenario)
 
     let failure = AuthFailure(
       operation: .terminalLogin(Self.terminalMethodID), reason: .terminal(exitStatus: nil, message: nil))

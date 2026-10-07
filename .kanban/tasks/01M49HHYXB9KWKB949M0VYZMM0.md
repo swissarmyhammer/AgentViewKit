@@ -85,11 +85,27 @@ comments:
     - run on the working tree. No code changed. No commit.
     - next: review.
   timestamp: 2026-10-07T21:25:00.599077+00:00
+- actor: claude-code
+  id: 01m4c4bzrgke3nkdnmb87x0t1p
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 14db5f1). 0 findings, 0 confirmed, 0 refuted. 7 validator runs attempted, 0 failed. 4 files reviewed. 2 .kanban files not reviewed (.reviewignore). The prior finding at Sources/AgentViewKit/Status/SessionStreamBanner.swift:127 is checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-07T21:30:02.896901+00:00
+- actor: claude-code
+  id: 01m4c4c7aasg0ch7060ettkqe5
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 4 files (ResumeSessionRequest+AgentViewKit.swift new, SessionStreamBanner, SessionListView, ResumeSessionRequestTests new)
+    - test: green — swift test 1313 passed, check-readme passed, test-examples 4 passed
+    - commit: 14db5f1
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-07T21:30:10.634323+00:00
 depends_on:
 - 01M443RA2PMKC5MXXBNH1116AB
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8e80
 title: Resume and reload from SessionModel.cwd and additionalDirectories
 ---
 ## Start condition
