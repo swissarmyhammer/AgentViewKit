@@ -57,8 +57,24 @@ comments:
     - `swift test --filter SessionEntryRowsHostedTests`: 14 tests in 1 suite passed. Full `swift test`: 1297 tests in 125 suites passed, 83 tests in 12 suites passed, 1 test passed, 0 failures. The one warning is the mlx-swift build-system message `missing creator for mutated node` from a dependency. It was also in the earlier runs on this task.
     - next: /review
   timestamp: 2026-10-07T12:54:42.045575+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4b74rcqd675642kwadesk99
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 6cf6776), 0 findings (7 validator runs attempted, 0 failed). 1 file reviewed; 2 .kanban files not reviewed because of .reviewignore. All items in the "Review Findings (2026-10-07 07:47)" section are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-07T12:59:17.271869+00:00
+- actor: claude-code
+  id: 01m4b74sarmsfwqdxyfnbcrx3q
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — showsErrorData is private
+    - test: green — swift test, 1297 passed
+    - commit: 6cf6776
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T12:59:18.232093+00:00
+position_column: done
+position_ordinal: ff8680
 title: Make SessionEntryRowsHostedTests.anAppendedErrorShowsItsData stable
 ---
 ## What

@@ -619,8 +619,8 @@ private struct LinkedElicitations: View {
 
 /// The locations of a tool call as a row of chips that wraps.
 private struct LocationChips: View {
-  /// The locations to show.
-  let locations: [ToolCallLocation]
+  /// The ACP locations to show.
+  let locations: [FoundationModelsACP.ToolCallLocation]
 
   @Environment(\.agentTheme) private var theme
 
@@ -638,19 +638,19 @@ private struct LocationChips: View {
   ///   - location: The location.
   ///   - path: The path text to use.
   /// - Returns: "<path>" or "<path>:<line>".
-  private static func text(_ location: ToolCallLocation, path: String) -> String {
+  private static func text(_ location: FoundationModelsACP.ToolCallLocation, path: String) -> String {
     guard let line = location.line else { return path }
     return "\(path):\(line)"
   }
 
   /// One chip: the file name, with the full path in the help tag.
   ///
-  /// - Parameter location: The location to show.
+  /// - Parameter location: The ACP location to show.
   /// - Returns: The chip view.
-  private func chip(_ location: ToolCallLocation) -> some View {
-    let fullText = Self.text(location, path: location.path)
-    let shortText = Self.text(
-      location, path: URL(fileURLWithPath: location.path).lastPathComponent)
+  private func chip(_ location: FoundationModelsACP.ToolCallLocation) -> some View {
+    let path = location.path.rawValue
+    let fullText = Self.text(location, path: path)
+    let shortText = Self.text(location, path: URL(fileURLWithPath: path).lastPathComponent)
     return Label(shortText, systemImage: "doc")
       .font(.caption)
       .lineLimit(1)

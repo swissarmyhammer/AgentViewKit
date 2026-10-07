@@ -76,13 +76,13 @@ enum ToolCallSource {
     }
   }
 
-  /// The files that the call reads or changes.
-  var locations: [ToolCallLocation] {
+  /// The files that the call reads or changes, as ACP locations. An entry
+  /// gives its own values, and a record gives its values through
+  /// ``ToolCallLocation/acpLocation``.
+  var locations: [FoundationModelsACP.ToolCallLocation] {
     switch self {
-    case .record(let record):
-      record.locations
-    case .entry(let entry):
-      entry.locations.map { ToolCallLocation(path: $0.path.rawValue, line: $0.line) }
+    case .record(let record): record.locations.map(\.acpLocation)
+    case .entry(let entry): entry.locations
     }
   }
 

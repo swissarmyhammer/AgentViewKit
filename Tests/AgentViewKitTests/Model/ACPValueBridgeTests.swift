@@ -12,6 +12,13 @@ import Testing
   /// The wire string of a priority that the kit does not know.
   static let unknownPriority = "urgent"
 
+  /// The relative path of the location of the bridge test. A record path can
+  /// be relative.
+  static let relativePath = "Sources/main.swift"
+
+  /// The line of the location of the bridge test.
+  static let locationLine = 12
+
   @Test func aKitJSONValueGivesTheACPValueWithTheSameJSONForm() {
     let kit = AgentViewKit.JSONValue.object([
       "name": .string("tool"),
@@ -40,6 +47,15 @@ import Testing
       kit.acpEntry
         == FoundationModelsACP.PlanEntry(
           content: Self.entryText, priority: .unknown(Self.unknownPriority), status: .inProgress))
+  }
+
+  @Test func aKitLocationGivesTheACPLocationWithTheSamePathAndLine() {
+    let kit = AgentViewKit.ToolCallLocation(path: Self.relativePath, line: Self.locationLine)
+
+    #expect(
+      kit.acpLocation
+        == FoundationModelsACP.ToolCallLocation(
+          path: AbsolutePath(rawValue: Self.relativePath), line: Self.locationLine))
   }
 
   @Test func theACPJSONTextSortsTheKeysAndIndents() {

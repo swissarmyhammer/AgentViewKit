@@ -255,3 +255,15 @@ public nonisolated struct ToolCallLocation: Sendable, Hashable {
     self.line = line
   }
 }
+
+nonisolated extension ToolCallLocation {
+  /// The ACP location with the same path and line.
+  ///
+  /// The views use the ACP location (update.md §4.7). A record of the kit
+  /// model gives its locations to a view through this value. The ACP
+  /// `AbsolutePath` keeps the path text as given, so a relative record path
+  /// stays relative.
+  var acpLocation: FoundationModelsACP.ToolCallLocation {
+    FoundationModelsACP.ToolCallLocation(path: AbsolutePath(rawValue: path), line: line)
+  }
+}

@@ -37,11 +37,23 @@
     /// The default branch of the linked form of the accept test.
     static let defaultBranch = "main"
 
+    /// The path of the file that the fixture call reads.
+    static let readPath = "/project/README.md"
+
     /// The fields of a running call that reads a file, with no name.
     static let readFields = #"""
       "title": "Read README.md", "kind": "read", "status": "in_progress",
-      "locations": [{"path": "/project/README.md"}]
+      "locations": [{"path": "\#(readPath)"}]
       """#
+
+    /// The path of the location that a later update adds.
+    static let addedLocationPath = "/project/Package.swift"
+
+    /// The line of the location that a later update adds.
+    static let addedLocationLine = 12
+
+    /// The text of the chip of the location that a later update adds.
+    static let addedLocationText = "\(addedLocationPath):\(addedLocationLine)"
 
     /// The path in the raw input of the raw value tests.
     static let inputPath = "/project/input.txt"
@@ -200,6 +212,29 @@
       }
 
       #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
+    }
+
+    // MARK: - Locations
+
+    @Test func aLaterUpdateAddsALocationChip() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+      _ = try await Self.showExpandedCall(
+        WireBlockJSON.makeToolCallUpdate(id: "location-c", fields: Self.readFields), id: "location-c",
+        in: session, harness: harness, store: store)
+      #expect(!Self.showsText(Self.addedLocationText, in: harness))
+
+      let locations = #"""
+        "locations": [{"path": "\#(Self.readPath)"},
+                      {"path": "\#(Self.addedLocationPath)", "line": \#(Self.addedLocationLine)}]
+        """#
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "location-c", fields: locations))
+      await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.addedLocationText, in: harness) }
+
+      #expect(Self.showsText(Self.addedLocationText, in: harness))
     }
 
     // MARK: - Raw values and content
