@@ -15,6 +15,16 @@ enum WireBlockJSON {
     #"{"sessionUpdate":"\#(kind)","messageId":"\#(messageID)","content":\#(block)}"#
   }
 
+  /// A `tool_call_update` value for the call of `id`.
+  ///
+  /// - Parameters:
+  ///   - id: The `toolCallId` of the call.
+  ///   - fields: The other fields of the update, as JSON members.
+  /// - Returns: The JSON text of the update.
+  static func makeToolCallUpdate(id: String, fields: String) -> String {
+    #"{"sessionUpdate": "tool_call_update", "toolCallId": "\#(id)", \#(fields)}"#
+  }
+
   /// A `compaction_summary_chunk` value with one content block.
   ///
   /// - Parameters:

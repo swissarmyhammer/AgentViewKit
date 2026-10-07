@@ -46,11 +46,34 @@ extension SessionModel {
   ///     `ConnectionModel.agentCapabilities` at the time of the call, or `nil`
   ///     when the agent advertises none.
   func sendPrompt(with input: UserInput, accepting capabilities: PromptCapabilities?) async {
+    await sendPrompt(PromptContent.makeBlocks(for: input, accepting: capabilities))
+  }
+
+  /// Sends `content` as `session/prompt` with `prompt(_:meta:)`, and returns
+  /// when the prompt returns.
+  ///
+  /// The model adds the local user message with the content, and on a
+  /// failure marks it as failed and adds the error entry. This function then
+  /// writes the failure to the log, and does not throw it.
+  ///
+  /// - Parameter content: The ACP content blocks of the prompt.
+  func sendPrompt(_ content: [FoundationModelsACP.ContentBlock]) async {
     do {
-      _ = try await prompt(PromptContent.makeBlocks(for: input, accepting: capabilities))
+      _ = try await prompt(content)
     } catch {
       sessionRequestLogger.error("session/prompt failed: \(String(describing: error), privacy: .public)")
     }
+  }
+
+  /// Starts a main-actor task that sends `content` as `session/prompt` with
+  /// ``sendPrompt(_:)``.
+  ///
+  /// Retry uses this call to send the content of an earlier user message
+  /// entry again, with no copy of the message.
+  ///
+  /// - Parameter content: The ACP content blocks of the prompt.
+  func startPrompt(content: [FoundationModelsACP.ContentBlock]) {
+    Task { @MainActor in await sendPrompt(content) }
   }
 
   /// Starts a main-actor task that sends `text` as `session/prompt` with

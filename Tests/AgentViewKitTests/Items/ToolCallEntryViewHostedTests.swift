@@ -77,16 +77,6 @@
       }
     }
 
-    /// A `tool_call_update` value for the call of `id`.
-    ///
-    /// - Parameters:
-    ///   - id: The `toolCallId` of the call.
-    ///   - fields: The other fields of the update, as JSON members.
-    /// - Returns: The JSON text of the update.
-    static func toolCallUpdate(id: String, fields: String) -> String {
-      #"{"sessionUpdate": "tool_call_update", "toolCallId": "\#(id)", \#(fields)}"#
-    }
-
     /// The row key of the tool call entry of `id`.
     ///
     /// - Parameters:
@@ -166,7 +156,7 @@
       let harness = Self.mountThread(session, store: store)
       defer { harness.close() }
 
-      let update = Self.toolCallUpdate(
+      let update = WireBlockJSON.makeToolCallUpdate(
         id: "named-c", fields: #""name": "\#(Self.readFileName)", "# + Self.readFields)
       let key = try await Self.showExpandedCall(
         update, id: "named-c", in: session, harness: harness, store: store)
@@ -184,7 +174,7 @@
       defer { harness.close() }
 
       let key = try await Self.showExpandedCall(
-        Self.toolCallUpdate(id: "plain-c", fields: Self.readFields), id: "plain-c",
+        WireBlockJSON.makeToolCallUpdate(id: "plain-c", fields: Self.readFields), id: "plain-c",
         in: session, harness: harness, store: store)
 
       #expect(harness.element(identifier: Self.registeredIdentifier) == nil)
@@ -199,11 +189,11 @@
       let harness = Self.mountThread(session, store: store)
       defer { harness.close() }
       let key = try await Self.showExpandedCall(
-        Self.toolCallUpdate(id: "status-c", fields: Self.readFields), id: "status-c",
+        WireBlockJSON.makeToolCallUpdate(id: "status-c", fields: Self.readFields), id: "status-c",
         in: session, harness: harness, store: store)
 
       try await session.sendUpdate(
-        Self.toolCallUpdate(id: "status-c", fields: #""status": "completed""#))
+        WireBlockJSON.makeToolCallUpdate(id: "status-c", fields: #""status": "completed""#))
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel
       }
@@ -221,7 +211,7 @@
       defer { harness.close() }
 
       let key = try await Self.showExpandedCall(
-        Self.toolCallUpdate(id: "raw-c", fields: Self.rawValueFields), id: "raw-c",
+        WireBlockJSON.makeToolCallUpdate(id: "raw-c", fields: Self.rawValueFields), id: "raw-c",
         in: session, harness: harness, store: store)
       await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.firstOutput, in: harness) }
 
@@ -240,12 +230,12 @@
       let harness = Self.mountThread(session, store: store)
       defer { harness.close() }
       _ = try await Self.showExpandedCall(
-        Self.toolCallUpdate(id: "output-c", fields: Self.rawValueFields), id: "output-c",
+        WireBlockJSON.makeToolCallUpdate(id: "output-c", fields: Self.rawValueFields), id: "output-c",
         in: session, harness: harness, store: store)
       await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.firstOutput, in: harness) }
 
       try await session.sendUpdate(
-        Self.toolCallUpdate(id: "output-c", fields: #""rawOutput": {"result": "\#(Self.secondOutput)"}"#))
+        WireBlockJSON.makeToolCallUpdate(id: "output-c", fields: #""rawOutput": {"result": "\#(Self.secondOutput)"}"#))
       await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.secondOutput, in: harness) }
 
       #expect(Self.showsText(Self.secondOutput, in: harness))
@@ -266,7 +256,7 @@
         "content": [{"type": "diff", "changes": [{"operation": "add", "path": "\#(Self.addedPath)"}]}]
         """#
       _ = try await Self.showExpandedCall(
-        Self.toolCallUpdate(id: "diff-c", fields: fields), id: "diff-c",
+        WireBlockJSON.makeToolCallUpdate(id: "diff-c", fields: fields), id: "diff-c",
         in: session, harness: harness, store: store)
 
       #expect(harness.element(identifier: DiffView.containerIdentifier) != nil)
@@ -283,8 +273,8 @@
       let harness = Self.mountThread(session, store: store)
       defer { harness.close() }
       let model = session.model
-      try await session.sendUpdate(Self.toolCallUpdate(id: "ask-c", fields: Self.readFields))
-      try await session.sendUpdate(Self.toolCallUpdate(id: "other-c", fields: Self.readFields))
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "ask-c", fields: Self.readFields))
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "other-c", fields: Self.readFields))
       await harness.pump(until: Self.waitTimeout) { Self.rowKey(ofCall: "other-c", in: model) != nil }
       let askKey = try #require(Self.rowKey(ofCall: "ask-c", in: model))
       let otherKey = try #require(Self.rowKey(ofCall: "other-c", in: model))
@@ -313,7 +303,7 @@
       let store = ExpandedBlocksStore()
       let harness = Self.mountThread(session, store: store)
       defer { harness.close() }
-      try await session.sendUpdate(Self.toolCallUpdate(id: "accept-c", fields: Self.readFields))
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "accept-c", fields: Self.readFields))
       await harness.pump(until: Self.waitTimeout) { Self.rowKey(ofCall: "accept-c", in: session.model) != nil }
       let key = try #require(Self.rowKey(ofCall: "accept-c", in: session.model))
 

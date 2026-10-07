@@ -547,23 +547,31 @@ final class AgentCommandTarget {
   /// in transcript order.
   ///
   /// Each `UserMessageEntry` and `AgentMessageEntry` gives one section: a
-  /// role line, then the text blocks that are for the user. The adjacent
-  /// text chunks of an entry join as the view shows them
-  /// (``EntryContentView/joiningAdjacentText(in:)``). A blank line separates
-  /// two sections. The text omits the other entries.
+  /// role line, then the text blocks that are for the user. The entries come
+  /// from ``ThreadExporter/messageTexts(in:)``, the same function as the
+  /// Markdown export, so the adjacent text chunks of an entry join as the
+  /// view shows them. A blank line separates two sections. The text omits
+  /// the other entries.
   ///
   /// - Parameter session: The session model.
   /// - Returns: The text, or an empty string when the transcript has no
   ///   message text.
   static func plainText(of session: SessionModel) -> String {
-    session.transcript.compactMap { entry -> String? in
-      switch entry {
-      case .userMessage(let message): section(role: userRole, texts: texts(of: message.content))
-      case .agentMessage(let message): section(role: assistantRole, texts: texts(of: message.content))
-      case .thought, .toolCall, .terminal, .plan, .unknown, .compaction, .error: nil
-      }
+    ThreadExporter.messageTexts(in: session.transcript).compactMap { message in
+      section(role: roleLine(for: message.role), texts: message.texts)
     }
     .joined(separator: sectionSeparator)
+  }
+
+  /// The role line of a message of `role`.
+  ///
+  /// - Parameter role: The sender of the message.
+  /// - Returns: ``userRole`` or ``assistantRole``.
+  private static func roleLine(for role: MessageRole) -> String {
+    switch role {
+    case .user: userRole
+    case .assistant: assistantRole
+    }
   }
 
   /// The text blocks of a thread message that are for the user.
@@ -574,18 +582,6 @@ final class AgentCommandTarget {
     message.blocks.compactMap { block -> String? in
       guard block.isVisible(to: .user), case .text(let text) = block.content else { return nil }
       return text
-    }
-  }
-
-  /// The text blocks of the content of an entry that are for the user, with
-  /// each run of adjacent text chunks as one text.
-  ///
-  /// - Parameter content: The ACP content blocks of an entry.
-  /// - Returns: The texts, in order.
-  private static func texts(of content: [FoundationModelsACP.ContentBlock]) -> [String] {
-    EntryContentView.joiningAdjacentText(in: content).compactMap { block -> String? in
-      guard block.isVisibleToUser, case .text(let text) = block else { return nil }
-      return text.text
     }
   }
 
