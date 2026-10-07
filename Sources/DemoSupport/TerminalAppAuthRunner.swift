@@ -208,18 +208,31 @@ public nonisolated final class TerminalAppAuthRunner: TerminalAuthRunner {
   /// - Parameter script: The script file.
   /// - Returns: `true` when `open` exits with status zero.
   public static func openInTerminal(_ script: URL) async -> Bool {
+    let arguments = [applicationOption, terminalApplication, script.path(percentEncoded: false)]
+    return await run(program: openProgram, arguments: arguments) == successStatus
+  }
+
+  /// Runs a program, and waits until it ends.
+  ///
+  /// - Parameters:
+  ///   - program: The absolute path of the program.
+  ///   - arguments: The arguments of the program.
+  /// - Returns: The exit status of the program, or `nil` when the program
+  ///   does not start. The runner logs the reason of a start failure.
+  static func run(program: String, arguments: [String]) async -> Int32? {
     await withCheckedContinuation { continuation in
       let process = Process()
-      process.executableURL = URL(filePath: openProgram)
-      process.arguments = [applicationOption, terminalApplication, script.path(percentEncoded: false)]
+      process.executableURL = URL(filePath: program)
+      process.arguments = arguments
       process.terminationHandler = { ended in
-        continuation.resume(returning: ended.terminationStatus == successStatus)
+        continuation.resume(returning: ended.terminationStatus)
       }
       do {
         try process.run()
       } catch {
-        logger.error("The open program did not start: \(String(describing: error), privacy: .public)")
-        continuation.resume(returning: false)
+        let reason = String(describing: error)
+        logger.error("The program \(program, privacy: .public) did not start: \(reason, privacy: .public)")
+        continuation.resume(returning: nil)
       }
     }
   }

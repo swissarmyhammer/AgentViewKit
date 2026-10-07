@@ -21,15 +21,19 @@ import FoundationModelsACPClient
 /// make a transport, so ``reconnect()`` makes a new transport with the
 /// transport factory, connects the model over it and sends the same
 /// `initialize` request. The model then sets `.authenticated`. The model does
-/// not retry the operation that failed with `-32000`, so ``perform(_:)`` keeps
-/// that operation, and ``reconnect()`` runs it one more time.
+/// not retry the operation that failed with `-32000`, so
+/// ``openSession(onOpen:)`` keeps that operation, and ``reconnect()`` runs it
+/// one more time.
 public final class DemoAgent {
   /// Makes a new transport to the agent, for the first connection and for
   /// each reconnect.
   public typealias TransportFactory = () throws -> any ACPTransport
 
+  /// Shows a session that ``openSession(onOpen:)`` opened.
+  public typealias SessionHandler = (SessionModel) -> Void
+
   /// An operation that can fail with `-32000` (authentication required).
-  public typealias Operation = () async throws -> Void
+  private typealias Operation = () async throws -> Void
 
   /// The `info` that the demo app sends in its `initialize` request.
   public static let clientInfo = Implementation(name: "AgentViewKitDemo", version: "1.0.0")
@@ -57,10 +61,10 @@ public final class DemoAgent {
   /// it one more time after a terminal sign-in.
   private var failedOperation: Operation?
 
-  /// Makes the agent from its connected parts.
+  /// Makes the agent from its parts.
   ///
   /// - Parameters:
-  ///   - connection: The connected model.
+  ///   - connection: The model.
   ///   - workingDirectory: The working directory of each new session.
   ///   - terminalAuthRunner: The runner of the `terminal` auth methods.
   ///   - makeTransport: The transport factory, or `nil`.
@@ -136,16 +140,12 @@ public final class DemoAgent {
     terminalAuthRunner: any TerminalAuthRunner,
     workingDirectory: AbsolutePath
   ) async throws -> DemoAgent {
-    let connection = ConnectionModel()
-    _ = await connection.connect(over: try makeTransport())
-    let agent = DemoAgent(
-      connection: connection,
+    try await makeStarted(
+      connection: ConnectionModel(),
       workingDirectory: workingDirectory,
       terminalAuthRunner: terminalAuthRunner,
       makeTransport: makeTransport
     )
-    try await agent.initialize()
-    return agent
   }
 
   /// Starts ``InMemoryDemoACPAgent`` in this process through
@@ -158,20 +158,53 @@ public final class DemoAgent {
     let connection = await InProcessAgent.makeConnection { agentConnection in
       InMemoryDemoACPAgent(connection: agentConnection)
     }
-    let agent = DemoAgent(
+    return try await makeStarted(
       connection: connection,
       workingDirectory: workingDirectory,
       terminalAuthRunner: nil,
       makeTransport: nil
     )
-    try await agent.initialize()
+  }
+
+  /// Makes the agent from its parts, and starts it with
+  /// ``connectAndInitialize()``.
+  ///
+  /// - Parameters:
+  ///   - connection: The model. It is connected already when `makeTransport`
+  ///     is `nil`.
+  ///   - workingDirectory: The working directory of each new session.
+  ///   - terminalAuthRunner: The runner of the `terminal` auth methods, or
+  ///     `nil`.
+  ///   - makeTransport: The transport factory, or `nil`.
+  /// - Returns: The agent, with a connected and initialized model.
+  /// - Throws: The error of the factory, or the error of `initialize`.
+  private static func makeStarted(
+    connection: ConnectionModel,
+    workingDirectory: AbsolutePath,
+    terminalAuthRunner: (any TerminalAuthRunner)?,
+    makeTransport: TransportFactory?
+  ) async throws -> DemoAgent {
+    let agent = DemoAgent(
+      connection: connection,
+      workingDirectory: workingDirectory,
+      terminalAuthRunner: terminalAuthRunner,
+      makeTransport: makeTransport
+    )
+    try await agent.connectAndInitialize()
     return agent
   }
 
-  /// Sends ``initializeRequest``. When the request fails, stops the agent.
+  /// Connects ``connection`` over a new transport of the transport factory,
+  /// and sends ``initializeRequest``. When the request fails, stops the agent.
   ///
-  /// - Throws: The error of `initialize`.
-  private func initialize() async throws {
+  /// The in-memory agent has no transport factory: ``InProcessAgent``
+  /// connected its model, so the call only sends `initialize`.
+  ///
+  /// - Throws: The error of the factory, or the error of `initialize`.
+  private func connectAndInitialize() async throws {
+    if let makeTransport {
+      _ = await connection.connect(over: try makeTransport())
+    }
     do {
       _ = try await connection.initialize(initializeRequest)
     } catch {
@@ -187,15 +220,31 @@ public final class DemoAgent {
     makeTransport != nil
   }
 
+  /// Sends `session/new` in ``workingDirectory``, and gives the new session to
+  /// `onOpen`.
+  ///
+  /// The call sends the request through ``perform(_:)``. When the agent
+  /// answers `-32000`, the call throws, and this type keeps the request. After
+  /// a terminal sign-in, ``reconnect()`` sends it one more time, and gives
+  /// that session to `onOpen`. Thus the first session and each New Session
+  /// request get the same retry.
+  ///
+  /// - Parameter onOpen: Shows the new session. The connection model also
+  ///   keeps it in `openSessions`.
+  /// - Throws: The error of `session/new`.
+  public func openSession(onOpen: @escaping SessionHandler) async throws {
+    let request = NewSessionRequest(cwd: workingDirectory)
+    try await perform { [connection] in onOpen(try await connection.newSession(request)) }
+  }
+
   /// Runs an operation, and keeps it when it fails with `-32000`.
   ///
   /// After a terminal sign-in, ``reconnect()`` runs the kept operation one
   /// more time.
   ///
-  /// - Parameter operation: The operation, for example a `session/new`
-  ///   request that shows its session.
+  /// - Parameter operation: The operation.
   /// - Throws: The error of the operation.
-  public func perform(_ operation: @escaping Operation) async throws {
+  private func perform(_ operation: @escaping Operation) async throws {
     do {
       try await operation()
     } catch {
@@ -210,31 +259,21 @@ public final class DemoAgent {
   /// retries the operation that failed with `-32000`.
   ///
   /// When `authState` is not `.reconnectRequired`, the call does nothing.
-  /// Otherwise the call closes the open connection, makes a new transport,
-  /// connects the model over it, and sends the same `initialize` request.
-  /// When `authState` is then `.authenticated`, the call runs the kept
-  /// operation one more time through ``perform(_:)``. In each other state, the
-  /// call retries nothing.
+  /// Otherwise the call closes the open connection, and starts it again with
+  /// ``connectAndInitialize()``: a new transport, and the same `initialize`
+  /// request. When `authState` is then `.authenticated`, the call runs the
+  /// kept operation one more time through ``perform(_:)``. In each other
+  /// state, the call retries nothing.
   ///
   /// - Throws: The error of the factory, of `initialize` or of the retried
   ///   operation.
   public func reconnect() async throws {
-    guard case .reconnectRequired = connection.authState, let makeTransport else { return }
+    guard case .reconnectRequired = connection.authState, canReconnect else { return }
     await connection.disconnect()
-    _ = await connection.connect(over: try makeTransport())
-    try await initialize()
+    try await connectAndInitialize()
     guard case .authenticated = connection.authState, let operation = failedOperation else { return }
     failedOperation = nil
     try await perform(operation)
-  }
-
-  /// Sends `session/new` in ``workingDirectory``.
-  ///
-  /// - Returns: The model of the new session. The connection model keeps it
-  ///   in `openSessions`.
-  /// - Throws: The error of `session/new`.
-  public func openSession() async throws -> SessionModel {
-    try await connection.newSession(NewSessionRequest(cwd: workingDirectory))
   }
 
   /// Stops the agent with `ConnectionModel.disconnect()`. When the call

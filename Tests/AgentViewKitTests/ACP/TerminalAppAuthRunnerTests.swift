@@ -44,6 +44,9 @@ import Testing
   /// An environment variable name that the shell cannot read.
   static let invalidName = "SIGN-IN"
 
+  /// A program path that does not exist, so that no process starts.
+  static let missingProgram = "/nonexistent/sign-in-program"
+
   /// Records each script that an opener got, and opens no script.
   nonisolated final class RecordingOpener: Sendable {
     /// The scripts, in open order.
@@ -64,20 +67,13 @@ import Testing
 
   /// Runs a script with `/bin/sh`, and waits until it ends.
   ///
+  /// The exit status of the script is not the result: the runner reads the
+  /// status file that the script writes.
+  ///
   /// - Parameter script: The script file.
   /// - Returns: `true` when the shell started.
   nonisolated static func runInShell(_ script: URL) async -> Bool {
-    await withCheckedContinuation { continuation in
-      let process = Process()
-      process.executableURL = URL(filePath: shell)
-      process.arguments = [script.path(percentEncoded: false)]
-      process.terminationHandler = { _ in continuation.resume(returning: true) }
-      do {
-        try process.run()
-      } catch {
-        continuation.resume(returning: false)
-      }
-    }
+    await TerminalAppAuthRunner.run(program: shell, arguments: [script.path(percentEncoded: false)]) != nil
   }
 
   /// Makes a runner whose agent command is `/bin/sh -c <command> sign-in`.
@@ -142,6 +138,20 @@ import Testing
 
     #expect(status == nil)
     #expect(opener.opened.count == 1)
+  }
+
+  @Test func runGivesTheExitStatusOfTheProgram() async {
+    let status = await TerminalAppAuthRunner.run(
+      program: Self.shell,
+      arguments: [Self.commandOption, Self.exitWithFirstArgument, Self.commandName, String(Self.exitStatus)])
+
+    #expect(status == Self.exitStatus)
+  }
+
+  @Test func runOfAProgramThatDoesNotStartGivesNoExitStatus() async {
+    let status = await TerminalAppAuthRunner.run(program: Self.missingProgram, arguments: [])
+
+    #expect(status == nil)
   }
 
   @Test func anEnvironmentNameThatTheShellCannotReadOpensNoScript() async throws {

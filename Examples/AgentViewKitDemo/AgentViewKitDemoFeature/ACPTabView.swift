@@ -19,11 +19,12 @@ import SwiftUI
 /// the connection state, the sessions, the auth methods, the auth state and
 /// the capability flags from the models directly.
 ///
-/// When the agent answers the first `session/new` with `-32000`, the tab shows
-/// the ``AgentAuthView`` of the connection model. The tab gives the
-/// `terminalAuthRunner` and the `agentReconnect` environment values of
-/// ``DemoAgent`` to the kit views, so that a terminal sign-in can run, and the
-/// Reconnect button connects again and opens the first session.
+/// When the agent answers a `session/new` request (the first session or the
+/// New Session button) with `-32000`, the tab shows the ``AgentAuthView`` of
+/// the connection model. The tab gives the `terminalAuthRunner` and the
+/// `agentReconnect` environment values of ``DemoAgent`` to the kit views, so
+/// that a terminal sign-in can run, and the Reconnect button connects again
+/// and opens that session.
 struct ACPTabView: View {
   /// The state of the tab.
   private enum Phase {
@@ -33,7 +34,7 @@ struct ACPTabView: View {
     /// The start failed with the error.
     case failed(any Error)
 
-    /// The agent runs, and asks for a sign-in before the first session.
+    /// The agent runs, and asks for a sign-in before it opens a session.
     case signingIn(DemoAgent)
 
     /// The agent runs, and the tab shows the selected session.
@@ -138,16 +139,30 @@ struct ACPTabView: View {
     }
   }
 
-  /// Opens the first session of a connected agent through
-  /// ``DemoAgent/perform(_:)``, so that a reconnect after a terminal sign-in
-  /// can open it again.
+  /// Opens the first session of a connected agent. Each failure shows through
+  /// ``show(_:of:)``.
   ///
   /// - Parameter agent: The connected agent.
   private func openFirstSession(on agent: DemoAgent) async {
+    await openSession(on: agent) { error in await show(error, of: agent) }
+  }
+
+  /// Opens a session with ``DemoAgent/openSession(onOpen:)`` and selects it.
+  ///
+  /// The agent keeps a request that fails with `-32000`, so that a reconnect
+  /// after a terminal sign-in opens and selects the session.
+  ///
+  /// - Parameters:
+  ///   - agent: The connected agent.
+  ///   - failure: Shows the error of a failed request.
+  private func openSession(on agent: DemoAgent, failure: (any Error) async -> Void) async {
     do {
-      try await agent.perform { phase = .running(agent, try await agent.openSession()) }
+      try await agent.openSession { session in
+        phase = .running(agent, session)
+        newSessionFailure = nil
+      }
     } catch {
-      await show(error, of: agent)
+      await failure(error)
     }
   }
 
@@ -163,7 +178,8 @@ struct ACPTabView: View {
     }
   }
 
-  /// Shows the failure of the first session or of a reconnect.
+  /// Shows the failure of the first session, of a reconnect, or the `-32000`
+  /// answer of the New Session button.
   ///
   /// A `-32000` answer shows the sign-in card. Each other failure stops the
   /// agent, because the tab then has no session to show.
@@ -180,15 +196,19 @@ struct ACPTabView: View {
     phase = .failed(error)
   }
 
-  /// Opens a new session and selects it. A failure keeps the selected
-  /// session, and the sidebar shows the error.
+  /// Opens a new session and selects it.
+  ///
+  /// A `-32000` answer shows the sign-in card through ``show(_:of:)``, and a
+  /// reconnect after a terminal sign-in opens the session. Each other failure
+  /// keeps the selected session, and the sidebar shows the error.
   ///
   /// - Parameter agent: The running agent.
   private func openNewSession(on agent: DemoAgent) async {
-    do {
-      phase = .running(agent, try await agent.openSession())
-      newSessionFailure = nil
-    } catch {
+    await openSession(on: agent) { error in
+      guard !DemoAgent.isAuthenticationRequired(error) else {
+        await show(error, of: agent)
+        return
+      }
       newSessionFailure = error
     }
   }

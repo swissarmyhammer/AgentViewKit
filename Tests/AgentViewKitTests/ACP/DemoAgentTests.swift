@@ -48,8 +48,14 @@ import Testing
   @Test func openSessionOpensANewSessionInTheWorkingDirectoryOfTheOptions() async throws {
     let agent = try await Self.makeInMemoryAgent()
 
-    let session = try await ACPTestTimeLimit.run(stopping: agent.stop) { try await agent.openSession() }
+    let opened = DemoAgentTerminalSignInTests.OpenedSessions()
 
+    try await ACPTestTimeLimit.run(stopping: agent.stop) {
+      try await agent.openSession { opened.sessions.append($0) }
+    }
+
+    let session = try #require(opened.sessions.first)
+    #expect(opened.sessions.count == 1)
     #expect(agent.workingDirectory == AbsolutePath(rawValue: Self.workingDirectory))
     #expect(session.sessionId == SessionId(rawValue: InMemoryDemoAgent.sessionID))
     #expect(agent.connection.session(for: session.sessionId) === session)
@@ -142,6 +148,10 @@ import Testing
   /// The id of the session that the second agent opens.
   static let signedInSessionID = "signed-in-session"
 
+  /// The id of the session that the first agent opens before it asks for a
+  /// sign-in.
+  static let firstSessionID = "first-session"
+
   /// The JSON value of an empty capability object, `{}`.
   static let emptyCapability = AgentViewKit.JSONValue.object([:])
 
@@ -204,19 +214,22 @@ import Testing
     return Scenario(agent: agent, first: first, second: second)
   }
 
-  /// Opens a session through ``DemoAgent/perform(_:)``, expects the `-32000`
-  /// answer of the first agent, and records the session that each run of the
-  /// operation opens.
+  /// Opens a session with ``DemoAgent/openSession(onOpen:)``, expects the
+  /// `-32000` answer of the first agent, and records the session that each
+  /// run of the operation opens.
   ///
-  /// - Parameter scenario: The scenario.
-  /// - Returns: The box that gets the session of each run.
+  /// - Parameters:
+  ///   - scenario: The scenario.
+  ///   - opened: The box that gets the session of each run.
+  /// - Returns: `opened`.
   @discardableResult
-  static func openSessionExpectingSignIn(in scenario: Scenario) async -> OpenedSessions {
-    let opened = OpenedSessions()
+  static func openSessionExpectingSignIn(
+    in scenario: Scenario, recordingInto opened: OpenedSessions = OpenedSessions()
+  ) async -> OpenedSessions {
     let agent = scenario.agent
     let error = await ACPTestTimeLimit.run(stopping: scenario.stop) {
       await #expect(throws: RequestError.self) {
-        try await agent.perform { opened.sessions.append(try await agent.openSession()) }
+        try await agent.openSession { opened.sessions.append($0) }
       }
     }
     #expect(error?.code == .authenticationRequired)
@@ -276,6 +289,29 @@ import Testing
     #expect(second.messages(method: Self.newSessionMethod).count == 1)
     #expect(opened.sessions.map(\.sessionId) == [SessionId(rawValue: Self.signedInSessionID)])
     #expect(scenario.agent.connection.authState == .authenticated(Self.terminalMethodID))
+    await scenario.stop()
+  }
+
+  @Test func aNewSessionThatFailsWithCode32000OpensItsSessionAfterASignInAndAReconnect() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let scenario = try await Self.makeScenario(runner: runner)
+    let first = scenario.first
+    first.failingMethods = []
+    first.results[Self.newSessionMethod] = #"{"sessionId": "\#(Self.firstSessionID)"}"#
+    let agent = scenario.agent
+    let opened = OpenedSessions()
+    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
+      try await agent.openSession { opened.sessions.append($0) }
+    }
+    first.failingMethods = [Self.newSessionMethod]
+    await Self.openSessionExpectingSignIn(in: scenario, recordingInto: opened)
+    await Self.runTerminalSignIn(in: scenario, with: runner)
+
+    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await agent.reconnect() }
+
+    let expected = [Self.firstSessionID, Self.signedInSessionID].map { SessionId(rawValue: $0) }
+    #expect(opened.sessions.map(\.sessionId) == expected)
+    #expect(agent.connection.authState == .authenticated(Self.terminalMethodID))
     await scenario.stop()
   }
 

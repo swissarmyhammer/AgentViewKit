@@ -42,6 +42,60 @@ comments:
     - evidence: swift test - 1305 tests in 127 suites passed, 0 failed, 0 skipped; Scripts/check-readme.sh - passed (3 snippets, compile); Scripts/test-examples.sh AgentViewKitDemo - 4 UI tests, 0 failures. Only the expected mlx-swift warning "missing creator for mutated node" appeared. No time-limit failure, so no uptime run.
     - next: review
   timestamp: 2026-10-07T19:46:04.793593+00:00
+- actor: claude-code
+  id: 01m4byvxserqhb561jqzbmvrce
+  text: |-
+    ### review — findings
+    - scope: review sha HEAD~1..HEAD (commit 59f9d4b)
+    - engine counts: 5 findings, 5 confirmed, 2 refuted. A check against the code removed 1 more finding: `Sources/DemoSupport/TerminalAppAuthRunner.swift:60` (code-hygiene/magic-numbers-swift). That line is the named constant `statusPollInterval = Duration.milliseconds(200)`. It is not a magic number.
+    - evidence: 4 findings — Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:148, Sources/DemoSupport/DemoAgent.swift:161, Sources/DemoSupport/DemoAgent.swift:224, Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift:69
+    - note: The New Session finding (ACPTabView.swift:148) is not one of the two paths in ^qz932n9. Those paths are the agent-method login and the reconnect after a prompt failure. In `openNewSession`, `agent.openSession()` is not sent through `perform`. Thus a `-32000` answer from New Session keeps no operation to retry.
+    - next: implement the 4 open items in the 2026-10-07 14:46 Review Findings section. The task stays in review.
+  timestamp: 2026-10-07T19:53:53.710684+00:00
+- actor: claude-code
+  id: 01m4byw9r8n8adtbmdzj4xep9b
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 6 files (TerminalAppAuthRunner, DemoAgent, ACPTabView, tests)
+    - test: green — swift test 1305 passed, check-readme passed, test-examples 4 passed
+    - commit: 59f9d4b
+    - review: findings — Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:148, Sources/DemoSupport/DemoAgent.swift:161, Sources/DemoSupport/DemoAgent.swift:224, Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift:69
+  timestamp: 2026-10-07T19:54:05.960995+00:00
+- actor: claude-code
+  id: 01m4bz3f22my8k9zgw5ax29k7r
+  text: |-
+    Pick-up for the 4 items of Review Findings (2026-10-07 14:46). Plan:
+    - New Session item: the view cannot be tested for a terminal sign-in (the UI tests use the in-memory agent, which has no terminal method). Thus the open-and-retry step moves into DemoAgent: a public `openSession(onOpen:)` sends `session/new` through `perform`, and gives the session to `onOpen` (also on the retry after a reconnect). The plain `openSession()` and `perform(_:)` become private, so that no caller can open a session without `perform`. Both tab paths (first session and New Session) call `openSession(onOpen:)`. A `-32000` from New Session shows the sign-in card through `show(_:of:)`; another New Session error keeps the session and shows `newSessionFailure`. New test: the first session opens, then New Session gets `-32000`, then a terminal sign-in and a reconnect open the New Session session (`ScriptedWireAgent.failingMethods` is set after the first session).
+    - `makeInProcess` and `makeConnected(makeTransport:)`: one private static helper makes the agent and starts it. `reconnect()` and the helper share one private `connectAndInitialize()`: it connects over a new transport of the factory when the agent has a factory, then sends `initialize`.
+    - Test `runInShell` and `openInTerminal`: one internal static `TerminalAppAuthRunner.run(program:arguments:)` that gives the exit status, or `nil` when the program does not start. It gives the status and not a Bool, because `runInShell` must not depend on the exit status of the script (the test of a stopped script must read the `stopped` text, not a failed open).
+  timestamp: 2026-10-07T19:58:00.770065+00:00
+- actor: claude-code
+  id: 01m4bzq86ckxettjawsyq8b60m
+  text: |-
+    Implementation of the 4 findings:
+    - New Session item: `DemoAgent.openSession(onOpen:)` is now the only way to open a session. It sends `session/new` through the private `perform(_:)`, so a `-32000` keeps the request for `reconnect()`. The old public `openSession()` and the public `perform(_:)` are gone (now private), so no caller can bypass the retry. In `ACPTabView`, the first session and New Session both call one private `openSession(on:failure:)`. New Session sends a `-32000` to `show(_:of:)` (sign-in card) and keeps `newSessionFailure` for each other error. New test `DemoAgentTerminalSignInTests.aNewSessionThatFailsWithCode32000OpensItsSessionAfterASignInAndAReconnect`: the first session opens, then `ScriptedWireAgent.failingMethods` makes the next `session/new` give `-32000`; sign-in and reconnect open the session (ids `[first-session, signed-in-session]`).
+    - `makeInProcess` and `makeConnected(makeTransport:)` now call one private static `makeStarted(connection:workingDirectory:terminalAuthRunner:makeTransport:)`; they differ only in the arguments.
+    - `reconnect()` and `makeStarted` share one private `connectAndInitialize()`: it connects over a new transport of the factory when the agent has a factory (the in-memory model is connected by `InProcessAgent`), then sends `initialize` and stops the agent on failure. The old `initialize()` helper is merged into it.
+    - `TerminalAppAuthRunner.run(program:arguments:) -> Int32?` (internal static) holds the one `Process` start and `terminationHandler` continuation. `openInTerminal` compares its result with `successStatus`; the test `runInShell` checks only that the shell started. It returns the status, not a Bool, because `runInShell` must not read the exit status of the script: `aRunThatTheUserStopsGivesNoExitStatus` must get `nil` from the `stopped` text, not from a failed open. Two new tests: `runGivesTheExitStatusOfTheProgram`, `runOfAProgramThatDoesNotStartGivesNoExitStatus`.
+    - RED: the filtered build failed on the missing `TerminalAppAuthRunner.run` and `DemoAgent.openSession(onOpen:)`. GREEN: 25 tests in 5 suites pass.
+    - Not touched: the two paths of ^qz932n9.
+  timestamp: 2026-10-07T20:08:49.100359+00:00
+- actor: claude-code
+  id: 01m4bzqacpnd0r23c23rag4b5r
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Sources/DemoSupport/DemoAgent.swift, Sources/DemoSupport/TerminalAppAuthRunner.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift. `swift test --filter "KitInitializeRequestTests|DemoAgentTests|DemoAgentTerminalSignInTests|TerminalAppAuthRunnerTests"`: 25 tests in 5 suites pass. `swift test`: 1308 tests in 127 suites, 83 in 12, 1 in 1 pass, 0 failures, no compiler warnings (only the expected mlx-swift "missing creator for mutated node"). `Scripts/check-readme.sh`: passed. `Scripts/test-examples.sh AgentViewKitDemo`: BUILD SUCCEEDED, 4 tests, 0 failures. No time-limit failure. All 4 items of Review Findings (2026-10-07 14:46) are checked.
+    - next: /review
+  timestamp: 2026-10-07T20:08:51.350147+00:00
+- actor: claude-code
+  id: 01m4c038zxapxyvpecgs66t1zx
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1308 tests in 127 suites passed, 0 failed, 0 skipped. `Scripts/check-readme.sh` — README gate passed (3 snippets). `Scripts/test-examples.sh AgentViewKitDemo` — 4 UI tests, 0 failures, TEST SUCCEEDED, example gate passed.
+    - warnings: only the expected mlx-swift "missing creator for mutated node" line and the Xcode "Metadata extraction skipped" notice.
+    - code change: none. No time-limit failure, so no load check was needed.
+    - next: review.
+  timestamp: 2026-10-07T20:15:23.133938+00:00
 depends_on:
 - 01M49GHXXC7CY7R1PRZ83200VG
 - 01M49HGF5KFW6185XJATDG13NJ
@@ -87,3 +141,15 @@ Size: 3 to 4 source files: `KitInitializeRequest.swift`, the new demo runner fil
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 14:46)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:148` `completeness/invariant-propagation` — The first session is opened through agent.perform, so a -32000 answer keeps the operation for the retry after a terminal sign-in. The New Session path in openNewSession (ACPTabView.swift line 189) calls agent.openSession() directly and does not use perform. A -32000 answer from New Session is therefore not kept, and reconnect() has no operation to retry. The sign-in card is also never shown for that path. The user only sees newSessionFailure, and cannot reach the Reconnect flow from New Session. Route openNewSession through agent.perform, and on failure call show(error, of: agent) instead of setting newSessionFailure only for the -32000 case. Add a test where a New Session -32000 is followed by a terminal sign-in and reconnect, and assert that the retried session/new opens the session.
+- [x] `Sources/DemoSupport/DemoAgent.swift:161` `duplication/duplication` — makeInProcess repeats the tail of makeConnected(makeTransport:): it builds a DemoAgent from the connection, the working directory and the runner or factory, then awaits agent.initialize() and returns the agent. Only the connection construction and the nil or non-nil arguments differ. The two copies can drift apart, for example when a step is added to one and not the other. Extract a private static helper that takes the connected ConnectionModel, the working directory, the runner and the factory, and builds the agent and runs initialize. Both makeInProcess and makeConnected(makeTransport:) then call it and differ only in the arguments they pass.
+- [x] `Sources/DemoSupport/DemoAgent.swift:224` `duplication/duplication` — reconnect() repeats the connect-then-initialize sequence of makeConnected(makeTransport:): connect over a new transport from the factory, then send the same initialize request. Any change to how a connection starts, for example a new step before initialize, would have to be made in both places. Extract a private async helper, for example `connectAndInitialize(over factory: TransportFactory)`, that calls connect over a new transport and then initialize. Call it from makeConnected(makeTransport:) and from reconnect().
+- [x] `Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift:69` `reuse/reuse` — runInShell rebuilds the same Process launch and terminationHandler continuation that openInTerminal already has in TerminalAppAuthRunner.swift. The only difference is the executable and the return value, so the process code is duplicated. Extract one helper that runs an executable with arguments and returns whether it started and exited with status zero. Have openInTerminal and runInShell both call it, passing /usr/bin/open or /bin/sh as the executable.
