@@ -92,7 +92,8 @@ public final class ScrollAnchorManager {
   ///
   /// The list is at the bottom when it has no item, or when the last visible
   /// identifier is the last item and `distanceFromBottom` is at most
-  /// ``tolerance``. A change to pinned sets ``newItemsSinceUnpinned`` to zero.
+  /// ``tolerance``. A change to pinned sets ``newItemsSinceUnpinned`` to zero
+  /// and clears ``anchorID``.
   ///
   /// - Parameters:
   ///   - ids: The identifiers of the items in view, from
@@ -216,8 +217,11 @@ public final class ScrollAnchorManager {
     return visibleIDs.last == lastItemID && distanceFromBottom <= tolerance
   }
 
-  /// Sets ``isPinnedToBottom``, and clears the new item count on a change to
-  /// pinned.
+  /// Sets ``isPinnedToBottom``, and clears the new item count and the kept
+  /// anchor on a change to pinned.
+  ///
+  /// A pinned list follows the bottom, so a kept anchor, such as the item of
+  /// an earlier jump, has no use after the list is back at the bottom.
   ///
   /// - Parameter pinned: The new value.
   private func setPinned(_ pinned: Bool) {
@@ -225,6 +229,7 @@ public final class ScrollAnchorManager {
     isPinnedToBottom = pinned
     if pinned {
       newItemsSinceUnpinned = 0
+      anchorID = nil
     }
   }
 

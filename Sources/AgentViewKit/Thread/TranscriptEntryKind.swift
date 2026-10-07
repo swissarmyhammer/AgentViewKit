@@ -19,6 +19,25 @@ extension TranscriptEntry {
     }
   }
 
+  /// The stable name of the case of the entry.
+  ///
+  /// ``ThreadMinimapView`` puts this name in its tick identifiers. The
+  /// values are `user-message`, `agent-message`, `thought`, `tool-call`,
+  /// `terminal`, `plan`, `unknown`, `compaction` and `error`.
+  var kindName: String {
+    switch self {
+    case .userMessage: "user-message"
+    case .agentMessage: "agent-message"
+    case .thought: "thought"
+    case .toolCall: "tool-call"
+    case .terminal: "terminal"
+    case .plan: "plan"
+    case .unknown: "unknown"
+    case .compaction: "compaction"
+    case .error: "error"
+    }
+  }
+
   /// The tool call object of the entry, or `nil` when the entry is not a
   /// tool call.
   var toolCall: ToolCallEntry? {

@@ -57,6 +57,9 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     // the permission card.
     "PermissionReplying", "ElicitationReplying", "permissionReplies", "elicitationReplies",
     "isAnswered",
+    // The kit turn grouping and the durations from the host times. The model
+    // has no turn and no time.
+    "TurnSummary", "TurnSummaryRow", "ThreadTurnSummary", "DiffStat",
   ]
 
   /// The directories of the pending request cards.

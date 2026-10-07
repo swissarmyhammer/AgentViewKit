@@ -78,10 +78,26 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift (doc comments only). Declarations: `ScriptedSession.loginMethod` at Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:53 (caller PendingRequestsSessionModelHostedTests.swift:332); `ScriptedSession.resumeMethod` at Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:46 (callers SessionStateBannersHostedTests.swift:178 and :193). `swift build --build-tests` complete; `swift test --filter 'PendingRequestsSessionModelHostedTests|SessionStateBannersHostedTests|ThreadAccessibilityHostedTests'` 30 tests in 3 suites pass; `swift test` 1396 tests in 127 suites, 78 tests in 12 suites, 1 test in 1 suite pass; only the known mlx-swift `missing creator for mutated node` warning.
     - next: /review
   timestamp: 2026-10-07T02:36:40.430315+00:00
+- actor: claude-code
+  id: 01m4a3spax5cnymcwf3a8n94jq
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — the three findings were checked in the code (the constants moved to the shared ScriptedSession extension; the callers compile); doc comments only
+    - test: green — swift test, 1396 passed
+    - commit: 19f15f2
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T02:41:34.557246+00:00
+- actor: claude-code
+  id: 01m4a3sqw1mpyewrbavn9b78dv
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (19f15f2); 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed); 1 file reviewed, 2 .kanban files not reviewed (.reviewignore). All 3 items in "## Review Findings (2026-10-06 21:19)" are checked.
+    - next: none — task moved to done
+  timestamp: 2026-10-07T02:41:36.129591+00:00
 depends_on:
 - 01M48MS20B5GS4711S119KD9GM
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fd80
 title: 'Bind the VoiceOver announcements and the activity indicator to SessionModel: agentState, tool call status, pending requests'
 ---
 ## What

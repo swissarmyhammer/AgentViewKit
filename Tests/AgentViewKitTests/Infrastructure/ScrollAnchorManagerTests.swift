@@ -320,4 +320,16 @@ import Testing
     #expect(manager.anchorID == "a")
     #expect(recorder.targets.isEmpty)
   }
+
+  @Test func aReturnToTheBottomClearsTheJumpAnchor() {
+    let manager = ScrollAnchorManager()
+    manager.noteAppended(ids: ["a", "b", "c", "d"])
+    manager.noteVisible(ids: ["a", "b"])
+    manager.noteJump(to: "b")
+
+    manager.noteVisible(ids: ["c", "d"])
+
+    #expect(manager.isPinnedToBottom)
+    #expect(manager.anchorID == nil)
+  }
 }

@@ -1,27 +1,34 @@
 import AppKit
+import FoundationModelsACPClient
 import SwiftUI
 
-/// A thin vertical rail that shows the items of a thread and moves the
-/// conversation to an item (plan.md §9 A).
+/// A thin vertical rail that shows the entries of the transcript of a
+/// `SessionModel` and moves the conversation to an entry (plan.md §9 A).
 ///
-/// The rail shows one tick for each item, in thread order, tinted by the item
-/// kind. A tool call tick shows the status color of the call. A translucent
-/// band shows the items in view, from ``ScrollAnchorManager/visibleIDs``.
+/// The rail shows one tick for each entry of `SessionModel.transcript`, in
+/// transcript order, tinted by the case of the entry. A tool call tick shows
+/// the status color of `ToolCallEntry.status`. The rail reads the model each
+/// time that it draws, so a new entry adds a tick and a status change of a
+/// tool call changes the tint of its tick. A translucent band shows the
+/// entries in view, from ``ScrollAnchorManager/visibleIDs``.
 ///
-/// A click or a drag on the rail moves the conversation to the item under the
-/// pointer. The rail calls ``ScrollAnchorManager/noteJump(to:)`` and scrolls
-/// with the `ScrollViewProxy`. When the rail has no proxy, it sends
+/// A click or a drag on the rail moves the conversation to the entry under
+/// the pointer. The rail calls ``ScrollAnchorManager/noteJump(to:)`` with the
+/// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of the entry and
+/// scrolls with the `ScrollViewProxy`. When the rail has no proxy, it sends
 /// ``ScrollAnchorTarget/item(_:)`` to ``ScrollAnchorManager/onScroll``.
+/// ``ConversationView/init(session:anchors:)`` sets that closure.
 ///
-/// The rail shows nothing when the thread has fewer items than
+/// The rail shows nothing when the transcript has fewer entries than
 /// `minimumItemCount`. To also hide the rail in a narrow conversation, use
-/// ``SwiftUI/View/threadMinimap(thread:anchors:proxy:minimumItemCount:minimumWidth:)``.
+/// ``SwiftUI/View/threadMinimap(session:anchors:proxy:minimumItemCount:minimumWidth:)``.
 ///
 /// For accessibility, the rail is one adjustable element with the identifier
 /// ``railIdentifier`` and the value "Item N of M". The increment and decrement
-/// actions move one item. In a debug build, each tick is also an element with
+/// actions move one entry. In a debug build, each tick is also an element with
 /// the identifier from ``tickIdentifier(for:)``, so that a test can count the
-/// ticks.
+/// ticks. The value of the tick element of a tool call is the wire value of
+/// the status that sets the tint.
 public struct ThreadMinimapView: View {
   /// The accessibility identifier of the rail.
   public static let railIdentifier = "thread-minimap"
@@ -29,12 +36,12 @@ public struct ThreadMinimapView: View {
   /// The start of the accessibility identifier of each tick.
   public static let tickIdentifierPrefix = "minimap-tick-"
 
-  /// The default smallest number of items that shows the rail.
+  /// The default smallest number of entries that shows the rail.
   public static let defaultMinimumItemCount = 10
 
   /// The default smallest width of the conversation that shows the rail, in
   /// points. See
-  /// ``SwiftUI/View/threadMinimap(thread:anchors:proxy:minimumItemCount:minimumWidth:)``.
+  /// ``SwiftUI/View/threadMinimap(session:anchors:proxy:minimumItemCount:minimumWidth:)``.
   public static let defaultMinimumWidth: CGFloat = 480
 
   /// The width of the rail, in points.
@@ -43,78 +50,78 @@ public struct ThreadMinimapView: View {
   /// The smallest height of one tick, in points.
   static let minimumTickHeight: CGFloat = 1
 
-  /// The part of each item slot that the tick fills. The rest is a gap.
+  /// The part of each entry slot that the tick fills. The rest is a gap.
   static let tickFill: CGFloat = 0.7
 
   /// The opacity of the viewport band.
   static let bandOpacity: CGFloat = 0.18
 
-  /// The opacity of the ticks of the item kinds with no strong color.
+  /// The opacity of the ticks of the entry cases with no strong color.
   static let quietTickOpacity: CGFloat = 0.4
 
-  /// The number of items that the increment and decrement actions move.
+  /// The number of entries that the increment and decrement actions move.
   static let adjustStep = 1
 
-  /// The thread to show.
-  let thread: AgentThread
+  /// The session model whose transcript the rail shows.
+  let session: SessionModel
 
-  /// The manager that gives the items in view and keeps the anchor.
+  /// The manager that gives the rows in view and keeps the anchor.
   let anchors: ScrollAnchorManager
 
   /// The proxy that scrolls the conversation, or `nil`.
   let proxy: ScrollViewProxy?
 
-  /// The smallest number of items that shows the rail.
+  /// The smallest number of entries that shows the rail.
   let minimumItemCount: Int
 
   @Environment(\.agentTheme) private var theme
 
-  /// Makes the rail of a thread.
+  /// Makes the rail of the transcript of a session model.
   ///
   /// - Parameters:
-  ///   - thread: The thread to show.
-  ///   - anchors: The manager that gives the items in view and keeps the
+  ///   - session: The session model whose transcript the rail shows.
+  ///   - anchors: The manager that gives the rows in view and keeps the
   ///     anchor.
   ///   - proxy: The proxy that scrolls the conversation. With `nil`, the rail
   ///     sends each scroll to ``ScrollAnchorManager/onScroll``.
-  ///   - minimumItemCount: The smallest number of items that shows the rail.
+  ///   - minimumItemCount: The smallest number of entries that shows the rail.
   public init(
-    thread: AgentThread,
+    session: SessionModel,
     anchors: ScrollAnchorManager,
     proxy: ScrollViewProxy? = nil,
     minimumItemCount: Int = ThreadMinimapView.defaultMinimumItemCount
   ) {
-    self.thread = thread
+    self.session = session
     self.anchors = anchors
     self.proxy = proxy
     self.minimumItemCount = minimumItemCount
   }
 
-  /// The accessibility identifier of the tick of `item`.
+  /// The accessibility identifier of the tick of `entry`.
   ///
-  /// - Parameter item: The item.
-  /// - Returns: `minimap-tick-<kind>`, where the kind is the
-  ///   ``ThreadItem/kindName`` of the item.
-  public static func tickIdentifier(for item: ThreadItem) -> String {
-    AccessibilityIdentifier.make(prefix: tickIdentifierPrefix, value: item.kindName)
+  /// - Parameter entry: The transcript entry.
+  /// - Returns: `minimap-tick-<kind>`, where the kind is the name of the case
+  ///   of the entry, such as `tool-call` or `agent-message`.
+  public static func tickIdentifier(for entry: TranscriptEntry) -> String {
+    AccessibilityIdentifier.make(prefix: tickIdentifierPrefix, value: entry.kindName)
   }
 
   /// The accessibility value of the rail.
   ///
   /// - Parameters:
-  ///   - position: The position of the first item in view, from zero.
-  ///   - count: The number of items.
+  ///   - position: The position of the first entry in view, from zero.
+  ///   - count: The number of entries.
   /// - Returns: "Item N of M", where N counts from one.
   static func positionValue(position: Int, count: Int) -> String {
     String(localized: "Item \(position + 1) of \(count)")
   }
 
-  /// The position of the item at `fraction` of the rail height.
+  /// The position of the entry at `fraction` of the rail height.
   ///
   /// - Parameters:
   ///   - fraction: The distance from the top of the rail, as a part of the
   ///     rail height. The function clamps the value to `0...1`.
-  ///   - count: The number of items.
+  ///   - count: The number of entries.
   /// - Returns: The position, in `0..<count`, or `nil` when `count` is not
   ///   more than zero.
   static func position(atFraction fraction: CGFloat, count: Int) -> Int? {
@@ -124,21 +131,22 @@ public struct ThreadMinimapView: View {
   }
 
   public var body: some View {
-    let items = thread.items
-    if items.count >= minimumItemCount, !items.isEmpty {
-      rail(items: items)
+    let entries = session.transcript
+    if entries.count >= minimumItemCount, !entries.isEmpty {
+      rail(entries: entries)
     }
   }
 
   // MARK: - Rail
 
-  /// The rail of `items`.
+  /// The rail of `entries`.
   ///
-  /// - Parameter items: The items of the thread, not empty.
+  /// - Parameter entries: The entries of the transcript, not empty.
   /// - Returns: The rail view.
-  private func rail(items: [ThreadItem]) -> some View {
-    let tints = items.map(tint(of:))
-    let band = visibleRange(in: items)
+  private func rail(entries: [TranscriptEntry]) -> some View {
+    let keys = entries.map(\.rowKey)
+    let tints = entries.map(tint(of:))
+    let band = visibleRange(in: keys)
     let current = band?.lowerBound ?? 0
     return ZStack {
       Canvas { context, size in
@@ -146,21 +154,21 @@ public struct ThreadMinimapView: View {
       }
       .accessibilityHidden(true)
       #if DEBUG
-        tickElements(items: items)
+        tickElements(entries: entries)
       #endif
       Color.clear
         .accessibilityElement()
         .accessibilityLabel(Text("Thread minimap"))
-        .accessibilityValue(Text(Self.positionValue(position: current, count: items.count)))
+        .accessibilityValue(Text(Self.positionValue(position: current, count: keys.count)))
         // An element with no role does not give its value. The trait gives
         // the static text role.
         .accessibilityAddTraits(.isStaticText)
         .accessibilityAdjustableAction { direction in
-          adjust(direction, from: current, items: items)
+          adjust(direction, from: current, keys: keys)
         }
         .accessibilityIdentifier(Self.railIdentifier)
       ScrubSurface { fraction in
-        scrub(toFraction: fraction, items: items)
+        scrub(toFraction: fraction, keys: keys)
       }
       .accessibilityHidden(true)
     }
@@ -171,29 +179,43 @@ public struct ThreadMinimapView: View {
 
   #if DEBUG
     /// One accessibility element for each tick, so that a test can count the
-    /// ticks.
+    /// ticks and read the status of a tool call tick.
     ///
-    /// - Parameter items: The items of the thread.
-    /// - Returns: A stack of clear elements, one for each item.
-    private func tickElements(items: [ThreadItem]) -> some View {
+    /// - Parameter entries: The entries of the transcript.
+    /// - Returns: A stack of clear elements, one for each entry.
+    private func tickElements(entries: [TranscriptEntry]) -> some View {
       VStack(spacing: 0) {
-        ForEach(items, id: \.id) { item in
+        ForEach(entries, id: \.id) { entry in
           Color.clear
             .frame(maxHeight: .infinity)
             .accessibilityElement()
-            .accessibilityLabel(Text(item.kindName))
-            .accessibilityIdentifier(Self.tickIdentifier(for: item))
+            .accessibilityLabel(Text(entry.kindName))
+            .accessibilityValue(Text(Self.statusValue(of: entry)))
+            // An element with no role does not give its value. The trait
+            // gives the static text role.
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityIdentifier(Self.tickIdentifier(for: entry))
         }
       }
       .allowsHitTesting(false)
+    }
+
+    /// The value of the tick element of `entry`.
+    ///
+    /// - Parameter entry: The transcript entry.
+    /// - Returns: The wire value of the status of a tool call, and an empty
+    ///   text for each other entry.
+    private static func statusValue(of entry: TranscriptEntry) -> String {
+      guard let toolCall = entry.toolCall else { return "" }
+      return ToolCallSource.entry(toolCall).status.wireValue
     }
   #endif
 
   /// Draws the viewport band and one tick for each tint.
   ///
   /// - Parameters:
-  ///   - tints: The color of each tick, in thread order.
-  ///   - band: The positions of the items in view, or `nil`.
+  ///   - tints: The color of each tick, in transcript order.
+  ///   - band: The positions of the entries in view, or `nil`.
   ///   - bandColor: The color of the viewport band.
   ///   - context: The graphics context.
   ///   - size: The size of the rail.
@@ -218,74 +240,77 @@ public struct ThreadMinimapView: View {
 
   // MARK: - Actions
 
-  /// Moves the conversation to the item at `fraction` of the rail height.
+  /// Moves the conversation to the entry at `fraction` of the rail height.
   ///
   /// - Parameters:
   ///   - fraction: The distance from the top of the rail, as a part of the
   ///     rail height.
-  ///   - items: The items of the thread.
-  private func scrub(toFraction fraction: CGFloat, items: [ThreadItem]) {
-    guard let position = Self.position(atFraction: fraction, count: items.count) else {
+  ///   - keys: The row keys of the entries, in transcript order.
+  private func scrub(toFraction fraction: CGFloat, keys: [String]) {
+    guard let position = Self.position(atFraction: fraction, count: keys.count) else {
       return
     }
-    jump(to: items[position].id)
+    jump(to: keys[position])
   }
 
-  /// Moves the conversation one item up or down from `current`.
+  /// Moves the conversation one entry up or down from `current`.
   ///
   /// - Parameters:
   ///   - direction: The direction of the adjustment.
-  ///   - current: The position of the first item in view.
-  ///   - items: The items of the thread.
+  ///   - current: The position of the first entry in view.
+  ///   - keys: The row keys of the entries, in transcript order.
   private func adjust(
-    _ direction: AccessibilityAdjustmentDirection, from current: Int, items: [ThreadItem]
+    _ direction: AccessibilityAdjustmentDirection, from current: Int, keys: [String]
   ) {
     let step = direction == .increment ? Self.adjustStep : -Self.adjustStep
-    let target = min(max(current + step, 0), items.count - 1)
-    jump(to: items[target].id)
+    let target = min(max(current + step, 0), keys.count - 1)
+    jump(to: keys[target])
   }
 
-  /// Keeps `id` as the anchor and scrolls the conversation to it.
+  /// Keeps `key` as the anchor and scrolls the conversation to its row.
   ///
-  /// - Parameter id: The identifier of the item.
-  private func jump(to id: String) {
-    guard anchors.anchorID != id else { return }
-    anchors.noteJump(to: id)
+  /// - Parameter key: The row key of the entry.
+  private func jump(to key: String) {
+    guard anchors.anchorID != key else { return }
+    anchors.noteJump(to: key)
     if let proxy {
-      proxy.scrollTo(id, anchor: .top)
+      proxy.scrollTo(key, anchor: .top)
     } else {
-      anchors.onScroll(.item(id))
+      anchors.onScroll(.item(key))
     }
   }
 
-  // MARK: - Items
+  // MARK: - Entries
 
-  /// The positions of the first and the last item in view.
+  /// The positions of the first and the last row in view.
   ///
-  /// - Parameter items: The items of the thread.
-  /// - Returns: The range, or `nil` when no item of `items` is in view.
-  private func visibleRange(in items: [ThreadItem]) -> ClosedRange<Int>? {
+  /// - Parameter keys: The row keys of the entries, in transcript order.
+  /// - Returns: The range, or `nil` when no row of `keys` is in view.
+  private func visibleRange(in keys: [String]) -> ClosedRange<Int>? {
     let visible = Set(anchors.visibleIDs)
     guard !visible.isEmpty,
-      let first = items.firstIndex(where: { visible.contains($0.id) }),
-      let last = items.lastIndex(where: { visible.contains($0.id) })
+      let first = keys.firstIndex(where: visible.contains),
+      let last = keys.lastIndex(where: visible.contains)
     else { return nil }
     return first...last
   }
 
-  /// The tick color of `item`, from the theme.
+  /// The tick color of `entry`, from the theme.
   ///
-  /// - Parameter item: The item.
+  /// The color of a tool call reads `ToolCallEntry.status`, so a status
+  /// change draws the rail again.
+  ///
+  /// - Parameter entry: The transcript entry.
   /// - Returns: The color.
-  private func tint(of item: ThreadItem) -> Color {
+  private func tint(of entry: TranscriptEntry) -> Color {
     let colors = theme.statusColors
-    return switch item {
+    return switch entry {
     case .userMessage: theme.accent
-    case .assistantMessage: Color.primary
-    case .reasoning: Color.secondary
-    case .toolCall(let record): colors.color(for: record.status.acpStatus)
+    case .agentMessage: Color.primary
+    case .thought, .terminal, .plan: Color.secondary
+    case .toolCall(let toolCall): colors.color(for: ToolCallSource.entry(toolCall).status)
     case .error: colors.failed
-    case .unknown:
+    case .unknown, .compaction:
       Color.secondary.opacity(Self.quietTickOpacity)
     }
   }
@@ -349,16 +374,16 @@ private final class ScrubSurfaceView: NSView {
 /// Shows ``ThreadMinimapView`` on the trailing edge of a conversation that is
 /// wide enough.
 private struct ThreadMinimapModifier: ViewModifier {
-  /// The thread to show.
-  let thread: AgentThread
+  /// The session model whose transcript the rail shows.
+  let session: SessionModel
 
-  /// The manager that gives the items in view and keeps the anchor.
+  /// The manager that gives the rows in view and keeps the anchor.
   let anchors: ScrollAnchorManager
 
   /// The proxy that scrolls the conversation, or `nil`.
   let proxy: ScrollViewProxy?
 
-  /// The smallest number of items that shows the rail.
+  /// The smallest number of entries that shows the rail.
   let minimumItemCount: Int
 
   /// The smallest width of the conversation that shows the rail, in points.
@@ -377,7 +402,7 @@ private struct ThreadMinimapModifier: ViewModifier {
       .overlay(alignment: .trailing) {
         if width >= minimumWidth {
           ThreadMinimapView(
-            thread: thread, anchors: anchors, proxy: proxy, minimumItemCount: minimumItemCount)
+            session: session, anchors: anchors, proxy: proxy, minimumItemCount: minimumItemCount)
         }
       }
   }
@@ -386,20 +411,20 @@ private struct ThreadMinimapModifier: ViewModifier {
 extension View {
   /// Shows a ``ThreadMinimapView`` on the trailing edge of this view.
   ///
-  /// The rail is hidden when the thread has fewer items than
+  /// The rail is hidden when the transcript has fewer entries than
   /// `minimumItemCount`, and when this view is narrower than `minimumWidth`.
   ///
   /// - Parameters:
-  ///   - thread: The thread to show.
-  ///   - anchors: The manager that gives the items in view and keeps the
+  ///   - session: The session model whose transcript the rail shows.
+  ///   - anchors: The manager that gives the rows in view and keeps the
   ///     anchor.
   ///   - proxy: The proxy that scrolls the conversation.
-  ///   - minimumItemCount: The smallest number of items that shows the rail.
+  ///   - minimumItemCount: The smallest number of entries that shows the rail.
   ///   - minimumWidth: The smallest width of this view that shows the rail,
   ///     in points.
   /// - Returns: The view with the rail.
   public func threadMinimap(
-    thread: AgentThread,
+    session: SessionModel,
     anchors: ScrollAnchorManager,
     proxy: ScrollViewProxy? = nil,
     minimumItemCount: Int = ThreadMinimapView.defaultMinimumItemCount,
@@ -407,7 +432,7 @@ extension View {
   ) -> some View {
     modifier(
       ThreadMinimapModifier(
-        thread: thread, anchors: anchors, proxy: proxy,
+        session: session, anchors: anchors, proxy: proxy,
         minimumItemCount: minimumItemCount, minimumWidth: minimumWidth))
   }
 }

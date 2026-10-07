@@ -38,20 +38,4 @@ public enum ThreadItem: Identifiable {
   public var id: String {
     record.id
   }
-
-  /// The stable name of the kind of the item.
-  ///
-  /// ``ThreadMinimapView`` puts this name in its tick identifiers. The
-  /// values are `user`, `assistant`, `reasoning`, `tool-call`, `error`, and
-  /// `unknown`.
-  public var kindName: String {
-    switch self {
-    case .userMessage: "user"
-    case .assistantMessage: "assistant"
-    case .reasoning: "reasoning"
-    case .toolCall: "tool-call"
-    case .error: "error"
-    case .unknown: "unknown"
-    }
-  }
 }

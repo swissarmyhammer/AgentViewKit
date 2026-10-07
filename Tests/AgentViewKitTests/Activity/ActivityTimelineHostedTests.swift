@@ -2,9 +2,14 @@
   import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
+  import FoundationModelsACP
+  import FoundationModelsACPClient
   import SwiftUI
   import Testing
 
+  /// The activity timeline over the transcript of a `SessionModel`. The
+  /// timeline shows one row for each thought, tool call, terminal and error
+  /// entry, in transcript order, with no turn section and no duration.
   @Suite(.serialized, .hostedSerially) @MainActor struct ActivityTimelineHostedTests {
     /// The longest time that a test waits for the view to change, in seconds.
     static let waitTimeout: TimeInterval = 5
@@ -12,112 +17,148 @@
     /// A size that shows each row and an expanded view.
     static let tallSize = CGSize(width: 560, height: 1_400)
 
-    /// The start of the sample turn.
-    static let start = ThreadFixtures.startTime
+    /// The `messageId` of the thought of the tests.
+    static let thoughtID = "timeline-thought"
 
-    /// The id of the terminal of the terminal test.
-    static let terminalID = "timeline-terminal"
+    /// The title, and thus the `toolCallId`, of the first tool call.
+    static let firstCall = "Read README.md"
 
-    /// Makes a tool call record that runs from `start` plus `from` seconds to
-    /// `start` plus `to` seconds.
-    ///
-    /// - Parameters:
-    ///   - id: The identifier of the call.
-    ///   - from: The start, in seconds after ``start``, or `nil` for no start.
-    ///   - to: The end, in seconds after ``start``, or `nil` for no end.
-    ///   - content: The output of the call.
-    /// - Returns: The record.
-    static func call(
-      _ id: String, from: TimeInterval?, to: TimeInterval?, content: [ToolContent] = []
-    ) -> ToolCallRecord {
-      ToolCallRecord(
-        id: id, title: "Run \(id)", kind: .execute, status: .completed, content: content,
-        startedAt: from.map { start.addingTimeInterval($0) },
-        endedAt: to.map { start.addingTimeInterval($0) })
-    }
+    /// The title, and thus the `toolCallId`, of the second tool call.
+    static let secondCall = "Run the tests"
 
-    /// Makes a thread from `items`, in order.
-    ///
-    /// - Parameter items: The items of the thread.
-    /// - Returns: The thread.
-    static func makeThread(_ items: [ThreadItem]) -> AgentThread {
-      let thread = AgentThread()
-      for item in items {
-        thread.apply(.insert(item, after: nil))
-      }
-      return thread
-    }
+    /// The title, and thus the `toolCallId`, of the tool call that the agent
+    /// adds after the mount.
+    static let laterCall = "Write the summary"
 
-    /// Makes a harness that shows the timeline of `thread` with no
+    /// The `messageId` of the agent message of the message test.
+    static let messageID = "timeline-message"
+
+    /// Makes a harness that shows the timeline of `session` with no
     /// animations.
     ///
-    /// - Parameter thread: The thread to show.
+    /// - Parameter session: The scripted session.
     /// - Returns: The harness, after one pump.
-    static func mountTimeline(_ thread: AgentThread) -> HostedViewHarness<some View> {
+    static func mountTimeline(_ session: ScriptedSession) -> HostedViewHarness<some View> {
       let harness = HostedViewHarness(size: tallSize) {
-        ActivityTimeline(thread: thread)
+        ActivityTimeline(session: session.model)
           .transaction { $0.disablesAnimations = true }
       }
       harness.pump()
       return harness
     }
 
-    /// The ids of the entry rows that the harness shows, in view order.
+    /// The row keys of the entries that have a row in `harness`, in view
+    /// order.
     ///
     /// - Parameters:
-    ///   - harness: The harness.
-    ///   - ids: The entry ids to find.
-    /// - Returns: The ids of `ids` that have a row, in the order of the rows.
-    static func shownEntries<Content: View>(
-      in harness: HostedViewHarness<Content>, of ids: [String]
-    ) -> [String] {
+    ///   - harness: The harness that shows the timeline.
+    ///   - model: The session model.
+    /// - Returns: The row keys of the transcript entries that have a row, in
+    ///   the order of the rows.
+    static func shownRows<Content: View>(in harness: HostedViewHarness<Content>, of model: SessionModel)
+      -> [String]
+    {
+      let keys = model.transcript.map(\.rowKey)
       let identifiers = harness.accessibilityElements().compactMap(\.identifier)
       return identifiers.compactMap { identifier in
-        ids.first { ActivityEntry.identifier(for: $0) == identifier }
+        keys.first { ActivityTimeline.rowIdentifier(for: $0) == identifier }
       }
+    }
+
+    /// Sends one tool call of the session from the agent, in progress, and
+    /// waits until the model holds its entry.
+    ///
+    /// - Parameters:
+    ///   - title: The title, and thus the `toolCallId`, of the call.
+    ///   - session: The scripted session.
+    ///   - harness: The harness to pump while the test waits.
+    /// - Returns: The row key of the tool call entry.
+    /// - Throws: The error of the transport, or an issue when the model holds
+    ///   no entry of the call at the time limit.
+    static func sendCall(
+      _ title: String, in session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+    ) async throws -> String {
+      try await session.sendToolCallUpdate(title: title, status: .inProgress)
+      await harness.pump(until: waitTimeout) {
+        ToolCallEntryViewHostedTests.rowKey(ofCall: title, in: session.model) != nil
+      }
+      return try #require(ToolCallEntryViewHostedTests.rowKey(ofCall: title, in: session.model))
+    }
+
+    /// Pumps `harness` until it shows the rows of `keys`, in order.
+    ///
+    /// - Parameters:
+    ///   - keys: The row keys of the rows to wait for.
+    ///   - harness: The harness that shows the timeline.
+    ///   - model: The session model.
+    static func waitForRows<Content: View>(
+      _ keys: [String], in harness: HostedViewHarness<Content>, of model: SessionModel
+    ) async {
+      await harness.pump(until: waitTimeout) { shownRows(in: harness, of: model) == keys }
     }
 
     // MARK: - Rows
 
-    @Test func timedRowsShowInTimeOrderWithTheirDurations() {
-      let harness = Self.mountTimeline(
-        Self.makeThread([
-          .userMessage(ThreadFixtures.message(id: "u1")),
-          .toolCall(Self.call("late", from: 1, to: 3)),
-          .toolCall(Self.call("early", from: 0, to: 1)),
-        ]))
+    @Test func theRowsShowInTranscriptOrderWithNoDuration() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
       defer { harness.close() }
 
-      #expect(harness.element(identifier: ActivityTimeline.identifier) != nil)
-      let summary = harness.element(identifier: TurnSummaryRow.identifier(for: "u1"))
-      #expect(summary?.label == "Worked 3 s, 2 tools")
-      #expect(Self.shownEntries(in: harness, of: ["late", "early"]) == ["early", "late"])
-      let late = harness.element(identifier: ActivityEntry.identifier(for: "late"))
-      #expect(late?.label == "Run late")
-      #expect(late?.value == "2.0 s")
-    }
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: "Plan."))
+      await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
+      let thoughtKey = try #require(session.model.transcript.first?.rowKey)
+      let firstKey = try await Self.sendCall(Self.firstCall, in: session, pumping: harness)
+      let secondKey = try await Self.sendCall(Self.secondCall, in: session, pumping: harness)
+      session.model.appendError(code: .internalError, message: "failed", data: nil)
+      let errorKey = try #require(session.model.transcript.last?.rowKey)
+      let expected = [thoughtKey, firstKey, secondKey, errorKey]
+      await Self.waitForRows(expected, in: harness, of: session.model)
 
-    @Test func rowsWithoutTimesShowInOrderWithNoDuration() {
-      let harness = Self.mountTimeline(
-        Self.makeThread([
-          .toolCall(Self.call("first", from: nil, to: nil)),
-          .error(ThreadError(id: "oops", kind: .unknown(message: "x"))),
-          .toolCall(Self.call("second", from: 0, to: 1)),
-        ]))
-      defer { harness.close() }
-
-      let order = ["first", "oops", "second"]
-      #expect(Self.shownEntries(in: harness, of: order) == order)
-      let first = harness.element(identifier: ActivityEntry.identifier(for: "first"))
-      #expect(first != nil)
+      #expect(session.model.transcript.map(\.rowKey) == expected)
+      #expect(Self.shownRows(in: harness, of: session.model) == expected)
+      let first = harness.element(identifier: ActivityTimeline.rowIdentifier(for: firstKey))
+      #expect(first?.label == Self.firstCall)
       #expect(first?.value == nil || first?.value == "")
-      // Only the second call has times, so the turn lasts one second.
-      let summary = harness.element(identifier: TurnSummaryRow.identifier(for: "first"))
-      #expect(summary?.label == "Worked 1 s, 2 tools")
     }
 
-    @Test func anEmptyThreadShowsTheEmptyState() {
-      let harness = Self.mountTimeline(AgentThread())
+    @Test func aToolCallThatTheAgentAddsAddsARow() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
+      defer { harness.close() }
+      let firstKey = try await Self.sendCall(Self.firstCall, in: session, pumping: harness)
+      await Self.waitForRows([firstKey], in: harness, of: session.model)
+
+      let laterKey = try await Self.sendCall(Self.laterCall, in: session, pumping: harness)
+      await Self.waitForRows([firstKey, laterKey], in: harness, of: session.model)
+
+      #expect(Self.shownRows(in: harness, of: session.model) == [firstKey, laterKey])
+      #expect(harness.element(identifier: ActivityTimeline.rowIdentifier(for: laterKey))?.label == Self.laterCall)
+    }
+
+    @Test func aMessageEntryShowsNoRow() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
+      defer { harness.close() }
+
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("agent_message_chunk", messageID: Self.messageID, text: "Done."))
+      let callKey = try await Self.sendCall(Self.firstCall, in: session, pumping: harness)
+      let messageKey = try #require(session.model.transcript.first?.rowKey)
+      await Self.waitForRows([callKey], in: harness, of: session.model)
+
+      #expect(messageKey != callKey)
+      #expect(harness.element(identifier: ActivityTimeline.rowIdentifier(for: messageKey)) == nil)
+      #expect(Self.shownRows(in: harness, of: session.model) == [callKey])
+    }
+
+    @Test func anEmptyTranscriptShowsTheEmptyState() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
       defer { harness.close() }
 
       #expect(harness.element(identifier: ActivityTimeline.emptyStateIdentifier) != nil)
@@ -125,19 +166,22 @@
 
     // MARK: - Expand
 
-    @Test func aClickOnABarExpandsTheToolCallView() async throws {
-      let harness = Self.mountTimeline(
-        Self.makeThread([.toolCall(Self.call("tool", from: 0, to: 2))]))
+    @Test func aClickOnAToolCallRowExpandsTheToolCallView() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
       defer { harness.close() }
-      let rowID = ActivityEntry.identifier(for: "tool")
-      let detailID = ActivityEntry.detailIdentifier(for: "tool")
-      #expect(harness.element(identifier: ToolCallView.identifier(for: "tool")) == nil)
+      let key = try await Self.sendCall(Self.firstCall, in: session, pumping: harness)
+      let rowID = ActivityTimeline.rowIdentifier(for: key)
+      let detailID = ActivityTimeline.detailIdentifier(for: key)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: rowID) != nil }
+      #expect(harness.element(identifier: ToolCallView.identifier(for: key)) == nil)
 
       try harness.press(identifier: rowID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: detailID) != nil }
 
       #expect(harness.element(identifier: detailID) != nil)
-      #expect(harness.element(identifier: ToolCallView.identifier(for: "tool")) != nil)
+      #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
 
       try harness.press(identifier: rowID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: detailID) == nil }
@@ -145,113 +189,25 @@
       #expect(harness.element(identifier: detailID) == nil)
     }
 
-    @Test func aClickOnAReasoningRowExpandsTheReasoningView() async throws {
-      let reasoning = Reasoning(
-        id: "think", segments: ["Plan the work."], startedAt: Self.start,
-        endedAt: Self.start.addingTimeInterval(4))
-      let harness = Self.mountTimeline(Self.makeThread([.reasoning(reasoning)]))
+    @Test func aTerminalEntryShowsARowThatExpandsTheTerminalView() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
       defer { harness.close() }
-      let reasoningID = ReasoningView.identifier(for: "think")
-
-      try harness.press(identifier: ActivityEntry.identifier(for: "think"))
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: reasoningID) != nil }
-
-      #expect(harness.element(identifier: reasoningID) != nil)
-      let title = harness.element(identifier: ReasoningView.titleIdentifier(for: "think"))
-      #expect(title?.label == "Thought for 4 s")
-    }
-
-    @Test func aClickOnATerminalRowExpandsTheTerminalView() async throws {
-      let thread = AgentThread()
-      thread.apply(
-        .upsertTerminal(TerminalPatch(id: TerminalID(Self.terminalID), command: .value("make"))))
-      thread.apply(
-        .insert(
-          .toolCall(Self.call("build", from: 0, to: 1, content: [.terminal(id: Self.terminalID)])),
-          after: nil))
-      let harness = Self.mountTimeline(thread)
-      defer { harness.close() }
-      let entryID = ActivityEntry.terminalEntryID(callID: "build", terminalID: Self.terminalID)
-      let rowID = ActivityEntry.identifier(for: entryID)
-      #expect(harness.element(identifier: rowID)?.label == "make")
+      try await session.sendUpdate(
+        SessionEntryRowsHostedTests.terminalUpdate(#""command": "\#(SessionEntryRowsHostedTests.command)""#))
+      await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
+      let key = try #require(session.model.transcript.first?.rowKey)
+      let rowID = ActivityTimeline.rowIdentifier(for: key)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: rowID) != nil }
+      #expect(harness.element(identifier: rowID)?.label == SessionEntryRowsHostedTests.command)
 
       try harness.press(identifier: rowID)
       await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: TerminalView.identifier) != nil
+        harness.element(identifier: TerminalView.commandIdentifier) != nil
       }
 
-      #expect(harness.element(identifier: TerminalView.identifier) != nil)
-    }
-
-    @Test func onlyTheLastTurnIsOpenAndAPressOpensAnother() async throws {
-      let harness = Self.mountTimeline(
-        Self.makeThread([
-          .userMessage(ThreadFixtures.message(id: "u1")),
-          .toolCall(Self.call("old", from: 0, to: 1)),
-          .userMessage(ThreadFixtures.message(id: "u2")),
-          .toolCall(Self.call("new", from: 2, to: 3)),
-        ]))
-      defer { harness.close() }
-      let oldRow = ActivityEntry.identifier(for: "old")
-      let toggleID = ActivityTimeline.turnToggleIdentifier(for: "u1")
-      #expect(harness.element(identifier: oldRow) == nil)
-      #expect(harness.element(identifier: ActivityEntry.identifier(for: "new")) != nil)
-      #expect(harness.element(identifier: toggleID)?.value == "Collapsed")
-
-      try harness.press(identifier: toggleID)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: oldRow) != nil }
-
-      #expect(harness.element(identifier: oldRow) != nil)
-      #expect(harness.element(identifier: toggleID)?.value == "Expanded")
-      #expect(harness.element(identifier: ActivityTimeline.turnIdentifier(for: "u1")) != nil)
-    }
-
-    @Test func aStatusPatchUpdatesTheSummary() async {
-      let call = ToolCallRecord(id: "live", title: "Live", status: .inProgress, startedAt: Self.start)
-      let thread = Self.makeThread([.userMessage(ThreadFixtures.message(id: "u1")), .toolCall(call)])
-      let harness = Self.mountTimeline(thread)
-      defer { harness.close() }
-      let summaryID = TurnSummaryRow.identifier(for: "u1")
-      #expect(harness.element(identifier: summaryID)?.label == "Worked, 1 tool")
-
-      // A source stamps the host time on the record, then patches the status.
-      call.endedAt = Self.start.addingTimeInterval(5)
-      thread.apply(.patch(id: "live", .toolCall(status: .value(.completed))))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: summaryID)?.label == "Worked 5 s, 1 tool"
-      }
-
-      #expect(harness.element(identifier: summaryID)?.label == "Worked 5 s, 1 tool")
-    }
-
-    // MARK: - Thread
-
-    @Test func theThreadShowsTheSummaryAboveATurnWithWork() {
-      let thread = Self.makeThread([
-        .userMessage(ThreadFixtures.message(id: "u1")),
-        .toolCall(Self.call("work", from: 0, to: 2)),
-        .assistantMessage(ThreadFixtures.message(id: "a1")),
-        .userMessage(ThreadFixtures.message(id: "u2")),
-        .assistantMessage(ThreadFixtures.message(id: "a2")),
-      ])
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        AgentThreadView(thread: thread, actions: NoopThreadActions())
-      }
-      defer { harness.close() }
-      harness.pump()
-
-      let summaryID = TurnSummaryRow.identifier(for: "u1")
-      let identifiers = harness.accessibilityElements().compactMap(\.identifier)
-      let summary = identifiers.firstIndex(of: summaryID)
-      let work = identifiers.firstIndex(of: ItemRow.identifier(for: "work"))
-      #expect(summary != nil)
-      #expect(work != nil)
-      if let summary, let work {
-        #expect(summary < work)
-      }
-      #expect(harness.element(identifier: summaryID)?.label == "Worked 2 s, 1 tool")
-      #expect(harness.element(identifier: TurnSummaryRow.identifier(for: "u2")) == nil)
-      #expect(harness.element(identifier: ItemRow.identifier(for: "a2")) != nil)
+      #expect(harness.element(identifier: TerminalView.commandIdentifier) != nil)
     }
   }
 #endif

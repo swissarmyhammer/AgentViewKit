@@ -145,9 +145,6 @@ extension View {
 ///
 /// When the thread has no item, the view shows the `emptyState` slot.
 ///
-/// Above the first agent item of each turn that has work, the view shows a
-/// ``TurnSummaryRow``. See ``TurnSummary/anchors(in:)``.
-///
 /// Below the list, a ``StateBanner`` tells when the thread needs attention.
 /// Its Show Error button scrolls to the newest related error, as
 /// ``ConversationLayout/relatedErrorID(in:state:)`` finds it. The error
@@ -165,8 +162,7 @@ extension View {
 /// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of each entry.
 /// Below the list, ``StateBanner/init(session:onShowError:)`` shows the
 /// `agentState` of the model. Its Show Error button scrolls to the last
-/// `ErrorEntry` of the transcript. The turn summaries read an
-/// ``AgentThread``, so a session list does not show them.
+/// `ErrorEntry` of the transcript.
 public struct ConversationView<EmptyState: View>: View {
   /// The model to show.
   let source: ConversationSource
@@ -292,7 +288,9 @@ public struct ConversationView<EmptyState: View>: View {
       Text(ConversationLayout.listValue(shown: shownCount, count: count))
     )
     .accessibilityIdentifier(ConversationLayout.listIdentifier)
-    .defaultScrollAnchor(.bottom)
+    .defaultScrollAnchor(.bottom, for: .initialOffset)
+    .defaultScrollAnchor(.bottom, for: .alignment)
+    .modifier(ConversationFollowAnchor(anchors: anchors))
     .scrollPosition($position)
     .onScrollTargetVisibilityChange(
       idType: String.self, threshold: ConversationLayout.visibilityThreshold
@@ -334,25 +332,15 @@ public struct ConversationView<EmptyState: View>: View {
     }
   }
 
-  /// The rows of the last `shownCount` items of a thread, with the turn
-  /// summary above the first agent item of each turn that has work.
+  /// The rows of the last `shownCount` items of a thread.
   ///
   /// - Parameters:
   ///   - thread: The thread.
   ///   - shownCount: The number of rows that the list shows.
   /// - Returns: One row for each shown item.
   private func threadRows(_ thread: AgentThread, shownCount: Int) -> some View {
-    let items = thread.items
-    let turnAnchors = TurnSummary.anchors(in: items)
-    return ForEach(items.suffix(shownCount), id: \.id) { item in
-      if let turnID = turnAnchors[item.id] {
-        VStack(alignment: .leading, spacing: theme.spacing.xs) {
-          ThreadTurnSummary(thread: thread, turnID: turnID)
-          readingRow(ItemRow(item: item))
-        }
-      } else {
-        readingRow(ItemRow(item: item))
-      }
+    ForEach(thread.items.suffix(shownCount), id: \.id) { item in
+      readingRow(ItemRow(item: item))
     }
   }
 
@@ -518,6 +506,24 @@ private struct ConversationPill: View {
         anchors.pinToBottom()
       }
     }
+  }
+}
+
+/// Keeps the end of the list in view when the size of the content changes,
+/// only while the list follows the bottom.
+///
+/// A row that grows, such as a streamed message, keeps the end in view while
+/// the manager is pinned to the bottom. After a jump to a row, the manager
+/// keeps that row as its anchor, and a size change does not move the list
+/// back to the bottom. The modifier reads the manager in its own body, so a
+/// change to the pin state does not evaluate the list.
+private struct ConversationFollowAnchor: ViewModifier {
+  /// The manager of the conversation.
+  let anchors: ScrollAnchorManager
+
+  func body(content: Content) -> some View {
+    let follows = anchors.isPinnedToBottom && anchors.anchorID == nil
+    content.defaultScrollAnchor(follows ? .bottom : nil, for: .sizeChanges)
   }
 }
 
