@@ -89,12 +89,28 @@ comments:
     - no time-limit failure. No code change. No commit.
     - next: review
   timestamp: 2026-10-07T19:12:55.726398+00:00
+- actor: claude-code
+  id: 01m4bwshqgn081v0csv3qrr9ns
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (569d56a) — 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed. 1 file reviewed: Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift. The prior finding at Sources/AgentViewKit/Connections/AgentAuthView.swift:234 is checked.
+    - next: none. The task moved to done. The `unsupported` failure text stays in task ^vewxkf3.
+  timestamp: 2026-10-07T19:17:38.672080+00:00
+- actor: claude-code
+  id: 01m4bwsyhdagcksx520qe34rj1
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift (non-zero exit status test, runner error test)
+    - test: green — swift test 1294 passed, check-readme passed, test-examples 4 passed
+    - commit: 569d56a
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-07T19:17:51.789146+00:00
 depends_on:
 - 01M443QS68DG8EJ9NEKCCHG10S
 - 01M443RA2PMKC5MXXBNH1116AB
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8c80
 title: 'Bind the sign-in views to the client auth state: required, failures and terminal sign-in'
 ---
 ## Start condition

@@ -16,8 +16,14 @@ import SwiftUI
 ///   (``ACPSettingsSheet``).
 ///
 /// The tab holds the two models and nothing that they hold. Each view reads
-/// the connection state, the sessions, the auth methods and the capability
-/// flags from the models directly.
+/// the connection state, the sessions, the auth methods, the auth state and
+/// the capability flags from the models directly.
+///
+/// When the agent answers the first `session/new` with `-32000`, the tab shows
+/// the ``AgentAuthView`` of the connection model. The tab gives the
+/// `terminalAuthRunner` and the `agentReconnect` environment values of
+/// ``DemoAgent`` to the kit views, so that a terminal sign-in can run, and the
+/// Reconnect button connects again and opens the first session.
 struct ACPTabView: View {
   /// The state of the tab.
   private enum Phase {
@@ -26,6 +32,9 @@ struct ACPTabView: View {
 
     /// The start failed with the error.
     case failed(any Error)
+
+    /// The agent runs, and asks for a sign-in before the first session.
+    case signingIn(DemoAgent)
 
     /// The agent runs, and the tab shows the selected session.
     case running(DemoAgent, SessionModel)
@@ -92,9 +101,27 @@ struct ACPTabView: View {
     .sheet(isPresented: $showsSettings) {
       settingsSheet
     }
+    .terminalAuthRunner(agent?.terminalAuthRunner)
+    .agentReconnect(reconnectAction)
     .task {
       await start()
     }
+  }
+
+  /// The agent of the phase, or `nil` before the start or after a failed
+  /// start.
+  private var agent: DemoAgent? {
+    switch phase {
+    case .starting, .failed: nil
+    case .signingIn(let agent), .running(let agent, _): agent
+    }
+  }
+
+  /// The Reconnect closure of the sign-in card, or `nil` when the agent cannot
+  /// make a new transport.
+  private var reconnectAction: AgentReconnect? {
+    guard let agent, agent.canReconnect else { return nil }
+    return { await reconnect(agent) }
   }
 
   // MARK: - Start
@@ -111,18 +138,46 @@ struct ACPTabView: View {
     }
   }
 
-  /// Opens the first session of a connected agent.
-  ///
-  /// A failure stops the agent, because the tab then has no session to show.
+  /// Opens the first session of a connected agent through
+  /// ``DemoAgent/perform(_:)``, so that a reconnect after a terminal sign-in
+  /// can open it again.
   ///
   /// - Parameter agent: The connected agent.
   private func openFirstSession(on agent: DemoAgent) async {
     do {
-      phase = .running(agent, try await agent.openSession())
+      try await agent.perform { phase = .running(agent, try await agent.openSession()) }
     } catch {
-      await agent.stop()
-      phase = .failed(error)
+      await show(error, of: agent)
     }
+  }
+
+  /// Connects to the agent again after a terminal sign-in. The agent then
+  /// retries the operation that failed with `-32000`.
+  ///
+  /// - Parameter agent: The agent.
+  private func reconnect(_ agent: DemoAgent) async {
+    do {
+      try await agent.reconnect()
+    } catch {
+      await show(error, of: agent)
+    }
+  }
+
+  /// Shows the failure of the first session or of a reconnect.
+  ///
+  /// A `-32000` answer shows the sign-in card. Each other failure stops the
+  /// agent, because the tab then has no session to show.
+  ///
+  /// - Parameters:
+  ///   - error: The error of the operation.
+  ///   - agent: The agent.
+  private func show(_ error: any Error, of agent: DemoAgent) async {
+    guard !DemoAgent.isAuthenticationRequired(error) else {
+      phase = .signingIn(agent)
+      return
+    }
+    await agent.stop()
+    phase = .failed(error)
   }
 
   /// Opens a new session and selects it. A failure keeps the selected
@@ -176,11 +231,16 @@ struct ACPTabView: View {
 
   // MARK: - Detail
 
-  /// The selected session, or the state of the start.
+  /// The selected session, the sign-in card, or the state of the start.
   @ViewBuilder private var detail: some View {
-    if case .running(let agent, let session) = phase {
+    switch phase {
+    case .running(let agent, let session):
       thread(of: session, on: agent)
-    } else {
+    case .signingIn(let agent):
+      AgentAuthView(connection: agent.connection)
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    case .starting, .failed:
       phaseView
     }
   }
@@ -227,7 +287,7 @@ struct ACPTabView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     case .failed(let error):
       failureLabel(error, identifier: Self.failureIdentifier)
-    case .running:
+    case .signingIn, .running:
       EmptyView()
     }
   }
