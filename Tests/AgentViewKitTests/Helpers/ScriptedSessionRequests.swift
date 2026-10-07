@@ -7,6 +7,12 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
+/// The shared request helpers of the hosted test suites.
+///
+/// The method names, the `session/update` values, the replay request and the
+/// login helpers belong here, on `ScriptedSession`, and not on a test suite.
+/// A suite refers to them as `ScriptedSession.<name>` and keeps no copy of
+/// its own.
 extension ScriptedSession {
   /// The method of a permission request.
   static let permissionMethod = "session/request_permission"
@@ -34,9 +40,16 @@ extension ScriptedSession {
   static let endTurnState = #"{"sessionUpdate":"state_update","state":"idle","stopReason":"end_turn"}"#
 
   /// The method of a resume request.
+  ///
+  /// `SessionStateBannersHostedTests` and `ThreadAccessibilityHostedTests`
+  /// hold this method and find the resume messages of the agent with it.
   static let resumeMethod = "session/resume"
 
   /// The method of a login request.
+  ///
+  /// ``openWithLoginElicitation(id:)`` holds this method, and
+  /// `PendingRequestsSessionModelHostedTests` compares the request method of
+  /// the login elicitation with it.
   static let loginMethod = "auth/login"
 
   /// The agent auth method of ``loginInitializeResult``.

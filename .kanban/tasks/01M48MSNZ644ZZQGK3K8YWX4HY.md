@@ -49,6 +49,35 @@ comments:
     - evidence: Sources/AgentViewKit/Accessibility/ThreadAccessibility.swift, Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift; `swift test --filter ThreadAccessibilityHostedTests` 18 tests pass; `swift test` green (1396 tests in 127 suites, 78 tests in 12 suites), only the expected mlx-swift warning
     - next: /review
   timestamp: 2026-10-07T02:16:20.718434+00:00
+- actor: claude-code
+  id: 01m4a34bn6fwba6114c42w3whn
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — VoiceOver stop, tool result and action-required announcements read SessionModel (silent while isReplaying); ActivityIndicator(session:); ToolCallProgress.status is the ACP ToolCallStatus; shared replay and login test helpers
+    - test: green — swift test, 1396 passed
+    - commit: a0c9709
+    - review: findings — Tests/AgentViewKitTests/HumanInTheLoop/PendingRequestsSessionModelHostedTests.swift:332, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:178, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:193
+  timestamp: 2026-10-07T02:29:55.494517+00:00
+- actor: claude-code
+  id: 01m4a34ga88n544ys5v0gywdd4
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (a0c9709); 3 findings (3 confirmed, 4 refuted) — Tests/AgentViewKitTests/HumanInTheLoop/PendingRequestsSessionModelHostedTests.swift:332, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:178, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:193
+    - next: /implement the unchecked items in "## Review Findings (2026-10-06 21:19)"
+  timestamp: 2026-10-07T02:30:00.264744+00:00
+- actor: claude-code
+  id: 01m4a3gq3erschdrfvjepssvnf
+  text: |-
+    Review findings checked against the code (2026-10-06 21:19 set, 3 items). The findings are not correct as written. Commit a0c9709 did not remove `ScriptedSession.loginMethod` or `ScriptedSession.resumeMethod`. It removed the suite copies `PendingRequestsSessionModelHostedTests.loginMethod` and `SessionStateBannersHostedTests.resumeMethod` (the tests used them as `Self.…`). The same commit added `static let resumeMethod` and `static let loginMethod` to `extension ScriptedSession` in `Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift`, and changed the callers to `ScriptedSession.…`. The callers compile against these declarations. `swift build --build-tests` was complete before and after the change.
+
+    Change, with no behavior change: doc comments only, in `ScriptedSessionRequests.swift`. The extension now has a doc comment that says that the shared request helpers belong on `ScriptedSession` and not on a test suite, and that a suite keeps no copy. The doc comments of `resumeMethod` (now at `:46`) and `loginMethod` (now at `:53`) name their callers. Names, types and values do not change. No second copy.
+
+    Discovery, not in the scope of this card: `ConnectionModelViewsHostedTests` still has its own `static let loginMethod = "auth/login"`, and `PendingRequestsSessionModelHostedTests` still has its own `elicitationMethod`. They are older than a0c9709. I did not change them.
+
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift (doc comments only). Declarations: `ScriptedSession.loginMethod` at Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:53 (caller PendingRequestsSessionModelHostedTests.swift:332); `ScriptedSession.resumeMethod` at Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:46 (callers SessionStateBannersHostedTests.swift:178 and :193). `swift build --build-tests` complete; `swift test --filter 'PendingRequestsSessionModelHostedTests|SessionStateBannersHostedTests|ThreadAccessibilityHostedTests'` 30 tests in 3 suites pass; `swift test` 1396 tests in 127 suites, 78 tests in 12 suites, 1 test in 1 suite pass; only the known mlx-swift `missing creator for mutated node` warning.
+    - next: /review
+  timestamp: 2026-10-07T02:36:40.430315+00:00
 depends_on:
 - 01M48MS20B5GS4711S119KD9GM
 position_column: doing
@@ -79,3 +108,17 @@ Owner rule (2026-10-06): each kit view binds directly to the observable model of
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 21:19)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 10 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/HumanInTheLoop/PendingRequestsSessionModelHostedTests.swift:332` `completeness/public-output-contract` — Property `loginMethod` was deleted from `ScriptedSession` in this change (per semantic diff), but line 332 references it as `ScriptedSession.loginMethod`, causing a compilation error. The public interface of ScriptedSession was changed without updating this caller. Update line 332 to use the new SessionModel-based API for accessing the login request method, matching the refactor's intent to bind to SessionModel.
+  - Evidence: the caller uses `static let loginMethod` in `extension ScriptedSession` at `Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:53` (a0c9709 removed only the suite copy `PendingRequestsSessionModelHostedTests.loginMethod`); doc comment added; `swift build --build-tests` complete, `PendingRequestsSessionModelHostedTests` passes.
+- [x] `Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:178` `completeness/public-output-contract` — Property `resumeMethod` was deleted from `ScriptedSession` in this change (per semantic diff), but line 178 references it, causing a compilation error. Update to use the new SessionModel-based API for held methods.
+  - Evidence: the caller uses `static let resumeMethod` in `extension ScriptedSession` at `Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:46` (a0c9709 removed only the suite copy `SessionStateBannersHostedTests.resumeMethod`); doc comment added; `swift build --build-tests` complete, `SessionStateBannersHostedTests` passes.
+- [x] `Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:193` `completeness/public-output-contract` — Property `resumeMethod` was deleted from `ScriptedSession` in this change (per semantic diff), but line 193 references it in the messages query, causing a compilation error. Update to use the new SessionModel-based API for querying held methods.
+  - Evidence: the caller uses `static let resumeMethod` in `extension ScriptedSession` at `Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift:46`; `swift build --build-tests` complete, `SessionStateBannersHostedTests` passes.
