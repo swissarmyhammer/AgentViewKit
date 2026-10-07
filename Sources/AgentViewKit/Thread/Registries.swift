@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import UniformTypeIdentifiers
@@ -67,19 +68,24 @@ extension View {
 
 // MARK: - Content block registry
 
-/// The views of content blocks, keyed by block kind (plan.md §3.6).
+/// The views of the ACP content blocks, keyed by the kind of the block
+/// (plan.md §3.6).
 ///
-/// Register a view with ``SwiftUI/View/contentBlockView(for:_:)``. A kind
-/// with no registration resolves to `nil`, and the caller shows the default
-/// view of the kind.
-public typealias ContentBlockRegistry = KeyedViewRegistry<ContentBlock.Kind, ContentBlock>
+/// Register a view with ``SwiftUI/View/contentBlockView(for:_:)``. The view
+/// function gets the ACP `ContentBlock` value as the transcript entry holds
+/// it. A kind with no registration resolves to `nil`, and the caller shows
+/// the default view of the kind.
+public typealias ContentBlockRegistry = KeyedViewRegistry<
+  FoundationModelsACP.ContentBlock.Kind, FoundationModelsACP.ContentBlock
+>
 
-extension KeyedViewRegistry where Key == ContentBlock.Kind, Value == ContentBlock {
+extension KeyedViewRegistry
+where Key == FoundationModelsACP.ContentBlock.Kind, Value == FoundationModelsACP.ContentBlock {
   /// The view function of a block kind.
   ///
   /// - Parameter kind: The block kind to find.
   /// - Returns: The innermost registration for `kind`, or `nil`.
-  public func resolve(kind: ContentBlock.Kind) -> Renderer? {
+  public func resolve(kind: FoundationModelsACP.ContentBlock.Kind) -> Renderer? {
     renderer(for: kind)
   }
 }
@@ -146,7 +152,7 @@ extension KeyedViewRegistry where Key == String, Value == ToolCallEntry {
 // MARK: - Environment
 
 extension EnvironmentValues {
-  /// The content block views that the message views read.
+  /// The views of the ACP content blocks that ``ContentBlockView`` reads.
   @Entry public var contentBlockRegistry = ContentBlockRegistry()
 
   /// The attachment views that the attachment views read.
@@ -157,15 +163,18 @@ extension EnvironmentValues {
 }
 
 extension View {
-  /// Replaces the view of each content block of `kind` in this view.
+  /// Replaces the view of each ACP content block of `kind` in this view.
+  ///
+  /// The function gets the ACP `ContentBlock` value that the transcript entry
+  /// holds, such as a block of an agent message or of a tool call.
   ///
   /// - Parameters:
-  ///   - kind: The block kind, such as ``ContentBlock/Kind/resourceLink``.
+  ///   - kind: The block kind, such as `.resourceLink`.
   ///   - content: The function that makes the view of a block.
   /// - Returns: A view that gives the registration to its subtree.
   public func contentBlockView<Content: View>(
-    for kind: ContentBlock.Kind,
-    @ViewBuilder _ content: @escaping @MainActor (ContentBlock) -> Content
+    for kind: FoundationModelsACP.ContentBlock.Kind,
+    @ViewBuilder _ content: @escaping @MainActor (FoundationModelsACP.ContentBlock) -> Content
   ) -> some View {
     register(in: \.contentBlockRegistry, kind, content)
   }

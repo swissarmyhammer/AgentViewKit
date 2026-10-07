@@ -39,7 +39,7 @@ struct HostThread: View {
       .reasoningView { _ in EmptyView() }
       // The open-ended kinds take a key: a block kind or a type.
       .contentBlockView(for: .resourceLink) { block in
-        if case .resourceLink(let link) = block.content { Text(link.name) }
+        if case .resourceLink(let link) = block { Text(link.name) }
       }
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.

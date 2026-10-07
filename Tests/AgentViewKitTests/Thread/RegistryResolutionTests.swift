@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -87,10 +88,11 @@ struct OverrideKeysReader: View {
   }
 }
 
-/// Shows the view that the content block registry resolves for a kind.
+/// Shows the view that the content block registry resolves for the kind of an
+/// ACP block.
 struct ContentBlockRegistryReader: View {
-  /// The block to resolve.
-  let block: ContentBlock
+  /// The ACP block to resolve.
+  let block: FoundationModelsACP.ContentBlock
 
   @Environment(\.contentBlockRegistry) private var registry
 
@@ -154,6 +156,9 @@ func marker(_ identifier: String) -> some View {
 
   // MARK: - Content block registry
 
+  /// An ACP text block of the registry tests.
+  static let textBlock = FoundationModelsACP.ContentBlock.text(TextContent(text: "t"))
+
   @Test func contentBlockRegistryLastWriterWins() {
     var registry = ContentBlockRegistry()
     var calls: [String] = []
@@ -166,12 +171,12 @@ func marker(_ identifier: String) -> some View {
       return AnyView(EmptyView())
     }
     let renderer = registry.resolve(kind: .text)
-    _ = renderer?(ContentBlock(text: "t"))
+    _ = renderer?(Self.textBlock)
     #expect(calls == ["second"])
   }
 
-  @Test func contentBlockViewResolvesByKind() {
-    let link = ContentBlock(content: .resourceLink(ResourceLink(name: "n", uri: "u")))
+  @Test func contentBlockViewResolvesForAnACPBlockByItsKind() {
+    let link = FoundationModelsACP.ContentBlock.resourceLink(FoundationModelsACP.ResourceLink(name: "n", uri: "u"))
     let harness = Self.mount(
       ContentBlockRegistryReader(block: link)
         .contentBlockView(for: .resourceLink) { _ in marker("link") }
@@ -182,7 +187,7 @@ func marker(_ identifier: String) -> some View {
 
   @Test func contentBlockViewWithNoRegistrationIsNil() {
     let harness = Self.mount(
-      ContentBlockRegistryReader(block: ContentBlock(text: "t"))
+      ContentBlockRegistryReader(block: Self.textBlock)
         .contentBlockView(for: .resourceLink) { _ in marker("link") }
     )
     defer { harness.close() }
@@ -191,7 +196,7 @@ func marker(_ identifier: String) -> some View {
 
   @Test func innerContentBlockViewWinsOverOuter() {
     let harness = Self.mount(
-      ContentBlockRegistryReader(block: ContentBlock(text: "t"))
+      ContentBlockRegistryReader(block: Self.textBlock)
         .contentBlockView(for: .text) { _ in marker("inner") }
         .contentBlockView(for: .text) { _ in marker("outer") }
     )

@@ -53,9 +53,14 @@ import Testing
   /// The bytes of the binary resource in the tests.
   static let archiveBytes = Data([1, 2, 3])
 
-  /// The kinds of the kit default views that an ACP block can show. ACP
-  /// defines no attachment block.
-  nonisolated static let wireKinds = AgentViewKit.ContentBlock.Kind.allCases.filter { $0 != .attachment }
+  /// The accessibility identifier of the registered views in the tests.
+  static let customIdentifier = "custom-wire-block"
+
+  /// The `messageId` of the agent message of the entry test.
+  static let entryMessageID = "registry-m"
+
+  /// The kinds of the ACP blocks.
+  nonisolated static let wireKinds = FoundationModelsACP.ContentBlock.Kind.allCases
 
   /// The kinds of the ACP blocks that hold annotations. An unknown block
   /// holds none.
@@ -64,16 +69,27 @@ import Testing
   // MARK: - Default views
 
   @Test(arguments: wireKinds)
-  func eachWireBlockMountsTheDefaultViewOfItsKind(kind: AgentViewKit.ContentBlock.Kind) async throws {
-    let block = try #require(try Self.makeWireBlock(of: kind))
+  func eachWireBlockMountsTheDefaultViewOfItsKind(kind: FoundationModelsACP.ContentBlock.Kind) async throws {
+    let block = try Self.makeWireBlock(of: kind)
     let harness = HostedViewHarness(ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    let identifier = ContentBlockView.identifier(for: kind)
+    let identifier = ContentBlockView.identifier(of: kind)
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: identifier) != nil
     }
 
     #expect(harness.element(identifier: identifier) != nil, "No element \(identifier).")
+  }
+
+  @Test func theIdentifierOfAWireKindHasThePrefixAndTheKindName() {
+    #expect(ContentBlockView.identifier(of: .text) == "content-block-text")
+    #expect(ContentBlockView.identifier(of: .resourceLink) == "content-block-resourceLink")
+    #expect(ContentBlockView.identifier(of: .unknown) == "content-block-unknown")
+  }
+
+  @Test func theKindOfEachWireBlockIsTheKindItWasMadeFor() throws {
+    let kinds = try Self.wireKinds.map { try Self.makeWireBlock(of: $0).kind }
+    #expect(kinds == Self.wireKinds)
   }
 
   @Test func aWireTextBlockShowsItsText() {
@@ -190,9 +206,9 @@ import Testing
   // MARK: - Audience
 
   @Test(arguments: annotatedKinds)
-  func aWireBlockForTheAssistantOnlyProducesNoElement(kind: AgentViewKit.ContentBlock.Kind) throws {
+  func aWireBlockForTheAssistantOnlyProducesNoElement(kind: FoundationModelsACP.ContentBlock.Kind) throws {
     let assistantOnly = FoundationModelsACP.Annotations(audience: [.assistant])
-    let block = try #require(try Self.makeWireBlock(of: kind, annotations: assistantOnly))
+    let block = try Self.makeWireBlock(of: kind, annotations: assistantOnly)
     let harness = HostedViewHarness(
       VStack {
         Text("host")
@@ -209,7 +225,72 @@ import Testing
     #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
   }
 
+  // MARK: - Registry
+
+  @Test(arguments: wireKinds)
+  func aRegisteredViewReplacesTheDefaultViewOfAWireBlockOfItsKind(
+    kind: FoundationModelsACP.ContentBlock.Kind
+  ) throws {
+    let harness = HostedViewHarness(
+      ContentBlockView(block: try Self.makeWireBlock(of: kind), id: Self.blockID)
+        .contentBlockView(for: kind) { _ in marker(Self.customIdentifier) },
+      size: Self.hostSize)
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: Self.customIdentifier) != nil)
+    #expect(harness.element(identifier: ContentBlockView.identifier(of: kind)) == nil)
+  }
+
+  @Test func aRegisteredLinkViewGetsTheWireBlock() {
+    let harness = HostedViewHarness(
+      ContentBlockView(block: Self.makeLinkBlock(), id: Self.blockID)
+        .contentBlockView(for: .resourceLink, Self.makeCustomLinkView(of:)),
+      size: Self.hostSize)
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: Self.customIdentifier)?.label == Self.linkName)
+    #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
+  }
+
+  @Test func aRegisteredLinkViewReplacesTheLinkCardInTheRowOfAnAgentMessageEntry() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      WireBlockJSON.makeChunk(
+        "agent_message_chunk", messageID: Self.entryMessageID,
+        block: WireBlockJSON.makeResourceLink(name: Self.linkName, uri: Self.linkURI)))
+    let model = session.model
+    _ = await waitUntil { !model.transcript.isEmpty }
+    let entry = try #require(model.transcript.first)
+
+    let harness = HostedViewHarness(
+      ItemRow(entry: entry).contentBlockView(for: .resourceLink, Self.makeCustomLinkView(of:)),
+      size: Self.hostSize)
+    defer { harness.close() }
+    await harness.pump(until: Self.waitSeconds) {
+      harness.element(identifier: Self.customIdentifier) != nil
+    }
+
+    #expect(harness.element(identifier: Self.customIdentifier)?.label == Self.linkName)
+    #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
+    #expect(harness.element(identifier: ItemRow.identifier(for: entry.rowKey)) != nil)
+  }
+
   // MARK: - Helpers
+
+  /// Makes the registered view of a resource link block in the tests: a text
+  /// with the name of the link and the identifier ``customIdentifier``.
+  ///
+  /// - Parameter block: The ACP block that the registry gives.
+  /// - Returns: The text, or no view for a block that is not a resource link.
+  @ViewBuilder
+  static func makeCustomLinkView(of block: FoundationModelsACP.ContentBlock) -> some View {
+    if case .resourceLink(let link) = block {
+      Text(link.name).accessibilityIdentifier(customIdentifier)
+    }
+  }
 
   /// The labels of the accessibility elements of `harness`.
   ///
@@ -229,18 +310,17 @@ import Testing
         name: linkName, uri: linkURI, annotations: annotations, mimeType: MediaType(rawValue: "text/html")))
   }
 
-  /// Makes one ACP block that shows the default view of a kit kind.
+  /// Makes one ACP block of a kind.
   ///
   /// - Parameters:
-  ///   - kind: The kind of the default view.
+  ///   - kind: The kind of the block.
   ///   - annotations: The annotations of the block. An unknown block holds
   ///     none.
-  /// - Returns: The block, or `nil` for the attachment kind, which ACP does
-  ///   not define.
+  /// - Returns: The block.
   /// - Throws: An error when AppKit cannot make the image.
   static func makeWireBlock(
-    of kind: AgentViewKit.ContentBlock.Kind, annotations: FoundationModelsACP.Annotations? = nil
-  ) throws -> FoundationModelsACP.ContentBlock? {
+    of kind: FoundationModelsACP.ContentBlock.Kind, annotations: FoundationModelsACP.Annotations? = nil
+  ) throws -> FoundationModelsACP.ContentBlock {
     switch kind {
     case .text:
       .text(TextContent(text: blockText, annotations: annotations))
@@ -265,8 +345,6 @@ import Testing
           annotations: annotations))
     case .unknown:
       .unknown(unknownKind, .object(["note": .string(blockText)]))
-    case .attachment:
-      nil
     }
   }
 }

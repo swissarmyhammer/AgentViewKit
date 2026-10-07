@@ -72,14 +72,30 @@ comments:
     - evidence: 3 files — Sources/AgentViewKitTestSupport/BackgroundRunScript.swift, Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift, Tests/AgentViewKitTests/Commands/AgentCommandScopeHostedTests.swift. `swift test --filter 'AgentCommandScopeHostedTests|ThreadAccessibilityHostedTests|BackgroundRun'`: 28 tests in 3 suites passed. Mutation run (scope removed from AgentThreadView): `aMountedSessionThreadViewRegistersTheTenCommands` failed with 4 issues, then the scope was restored. Full `swift test`: 1293 tests in 125 suites and 83 tests in 12 suites passed; the only warning is the known mlx-swift `missing creator for mutated node` build warning. The unstable tests ^zcktrsh and ^vhp5fv7 did not fail and were not changed. Both review findings are `- [x]`. No commit, no push.
     - next: /review
   timestamp: 2026-10-07T07:36:48.537519+00:00
+- actor: claude-code
+  id: 01m4amzbx47yyejt9k5b5wr9tg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1a36b18), 0 findings (0 confirmed, 0 refuted), 3 files reviewed, 2 .kanban files excluded by .reviewignore. All prior Review Findings items are checked.
+    - next: none — task moved to done
+  timestamp: 2026-10-07T07:41:46.276299+00:00
+- actor: claude-code
+  id: 01m4amzd5ts773h386ag0efn2g
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared BackgroundRunScript.makeChunkUpdate; one mount helper with an outerScope option; the scope test mounts no outer scope on purpose and fails when the view scope is removed
+    - test: green — swift test, 1293 passed
+    - commit: 1a36b18
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T07:41:47.578242+00:00
 depends_on:
 - 01M443S0EDEB23N7RPAR39TGZ5
 - 01M443RTQWKFHNWK4SH96PTE46
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
 - 01M48MR5W3YAB8VFA4KTJZVCYN
 - 01M48MRPTCY92MXNFB1XZHAA2A
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8480
 title: 'Remove the ACP adapter: ACPThreadSource, SessionUpdateMapping, ACPSessionList and ACPThreadActions'
 ---
 ## What

@@ -203,7 +203,7 @@ struct HostThread: View {
       .reasoningView { _ in EmptyView() }
       // The open-ended kinds take a key: a block kind or a type.
       .contentBlockView(for: .resourceLink) { block in
-        if case .resourceLink(let link) = block.content { Text(link.name) }
+        if case .resourceLink(let link) = block { Text(link.name) }
       }
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.
@@ -236,7 +236,7 @@ The open-ended kinds take a key:
 
 | Modifier | The closure gets |
 |---|---|
-| `.contentBlockView(for: .kind) { block in }` | `ContentBlock`, for one block kind |
+| `.contentBlockView(for: .kind) { block in }` | the ACP `ContentBlock` of the entry, for one block kind |
 | `.attachmentView(for: .pdf) { url in }` | `URL`, for one uniform type and its subtypes |
 | `.messageFooter { entry in }` | `MessageEntry`, the user or agent message entry, for the footer slot of each message |
 | `.diffRenderer { patch, file in }` | the patch and the file, in place of the EditorKit diff view |

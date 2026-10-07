@@ -42,9 +42,6 @@ nonisolated final class OpenedURLRecorder: Sendable {
   /// The URI of the resource link in the tests.
   static let linkURI = "https://example.com/docs/guide.html"
 
-  /// The accessibility identifier of the registered link view.
-  static let customLinkIdentifier = "custom-link-card"
-
   /// The text of the text block in the tests.
   static let blockText = "Hello from the block"
 
@@ -139,26 +136,6 @@ nonisolated final class OpenedURLRecorder: Sendable {
 
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains { $0.contains("archive.zip") })
-  }
-
-  // MARK: - Registry
-
-  @Test func aRegisteredResourceLinkViewReplacesTheDefault() {
-    let harness = HostedViewHarness(
-      ContentBlockView(block: Self.linkBlock(), id: Self.blockID)
-        .contentBlockView(for: .resourceLink) { block in
-          if case .resourceLink(let link) = block.content {
-            Text("Custom \(link.name)")
-              .accessibilityIdentifier(Self.customLinkIdentifier)
-          }
-        },
-      size: Self.hostSize)
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: Self.customLinkIdentifier)?.label == "Custom Guide")
-    #expect(harness.element(identifier: ContentBlockView.identifier(for: .resourceLink)) == nil)
-    #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
   }
 
   // MARK: - Link

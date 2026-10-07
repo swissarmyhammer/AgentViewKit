@@ -8,11 +8,11 @@ import SwiftUI
 /// of an ACP block reads the ACP value directly, with no kit block between
 /// the value and the view.
 ///
-/// For a kit block, the view uses the registration of the
-/// ``ContentBlockRegistry`` for the kind of the block when there is one. See
-/// ``SwiftUI/View/contentBlockView(for:_:)``. The registry keys the kit block,
-/// so an ACP block always shows its default view. Otherwise the view uses the
-/// default view of the kind:
+/// For an ACP block, the view uses the registration of the
+/// ``ContentBlockRegistry`` for the kind of the block when there is one, and
+/// gives it the ACP value. See ``SwiftUI/View/contentBlockView(for:_:)``. The
+/// registry keys the ACP block, so a kit block always shows its default view.
+/// Otherwise the view uses the default view of the kind:
 ///
 /// - text: a ``ResponseView``, through Textual.
 /// - image: an ``ImageView``. A tap selects the image in the inspector.
@@ -53,8 +53,9 @@ public struct ContentBlockView: View {
 
   /// Makes the view of an ACP content block of a transcript entry.
   ///
-  /// The view reads the ACP value directly. The ``ContentBlockRegistry``
-  /// does not apply, because it keys the kit block.
+  /// The view reads the ACP value directly. A registration of the
+  /// ``ContentBlockRegistry`` for the kind of the block replaces the default
+  /// view, and gets the same value.
   ///
   /// - Parameters:
   ///   - block: The ACP block to show, as the entry holds it.
@@ -81,6 +82,26 @@ public struct ContentBlockView: View {
   /// - Parameter kind: The block kind.
   /// - Returns: `content-block-<kind>`, such as `content-block-resourceLink`.
   public static func identifier(for kind: ContentBlock.Kind) -> String {
+    identifier(named: kind)
+  }
+
+  /// The accessibility identifier of the default view of an ACP block kind.
+  ///
+  /// The kind names are the names of the kit kinds, so an ACP block and a kit
+  /// block of one kind have the same identifier.
+  ///
+  /// - Parameter kind: The ACP block kind.
+  /// - Returns: `content-block-<kind>`, such as `content-block-resourceLink`.
+  static func identifier(of kind: FoundationModelsACP.ContentBlock.Kind) -> String {
+    identifier(named: kind)
+  }
+
+  /// The accessibility identifier of the default view of a kind.
+  ///
+  /// - Parameter kind: The kit or ACP block kind. Its case name is the kind
+  ///   name of the identifier.
+  /// - Returns: `content-block-<kind>`.
+  private static func identifier(named kind: some Sendable) -> String {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: String(describing: kind))
   }
 
@@ -88,17 +109,17 @@ public struct ContentBlockView: View {
     switch source {
     case .record(let block):
       if block.isVisible(to: .user) {
-        if let renderer = registry.resolve(kind: block.kind) {
-          renderer(block)
-        } else {
-          recordView(of: block)
-            .contentContainer(identifier: Self.identifier(for: block.kind))
-        }
+        recordView(of: block)
+          .contentContainer(identifier: Self.identifier(for: block.kind))
       }
     case .wire(let block):
       if block.isVisibleToUser {
-        wireView(of: block)
-          .contentContainer(identifier: Self.identifier(of: block))
+        if let renderer = registry.resolve(kind: block.kind) {
+          renderer(block)
+        } else {
+          wireView(of: block)
+            .contentContainer(identifier: Self.identifier(of: block.kind))
+        }
       }
     }
   }
@@ -145,26 +166,6 @@ public struct ContentBlockView: View {
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, wireValue: raw, id: id)
     }
-  }
-
-  /// The accessibility identifier of the default view of an ACP block.
-  ///
-  /// The kind names are the names of the kit kinds, so an ACP block and a kit
-  /// block of one kind have the same identifier.
-  ///
-  /// - Parameter block: The ACP block.
-  /// - Returns: `content-block-<kind>`, such as `content-block-resourceLink`.
-  private static func identifier(of block: FoundationModelsACP.ContentBlock) -> String {
-    let kindName =
-      switch block {
-      case .text: "text"
-      case .image: "image"
-      case .audio: "audio"
-      case .resourceLink: "resourceLink"
-      case .resource: "resource"
-      case .unknown: "unknown"
-      }
-    return AccessibilityIdentifier.make(prefix: identifierPrefix, value: kindName)
   }
 }
 
