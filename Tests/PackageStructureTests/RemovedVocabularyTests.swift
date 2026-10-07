@@ -97,6 +97,24 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #/AgentThreadView\(\s*thread:/#
   }
 
+  /// The pattern that finds a use of the removed `workingDirectory:` input
+  /// of a view: a call of `AgentThreadView(session:connection:workingDirectory:actions:)`
+  /// or of `SessionStreamBanner(session:connection:workingDirectory:)`, also
+  /// a call over more lines, or a DocC link to one of the two initializers.
+  ///
+  /// The views read the working directory and the additional directories
+  /// from the session model, so the host does not give them.
+  ///
+  /// A `Regex` is not `Sendable`, so each call makes the value again. The
+  /// pattern uses simple word boundaries, because the default boundaries do
+  /// not break at the `:` in `connection:workingDirectory:`.
+  ///
+  /// - Returns: The pattern.
+  static func workingDirectoryInputUse() -> Regex<Substring> {
+    #/\b(?:AgentThreadView|SessionStreamBanner)(?:/init)?\([^)]*\bworkingDirectory:/#
+      .wordBoundaryKind(.simple)
+  }
+
   /// The usage initializer from the fill of the context window.
   static let usageFromFill = RemovedInitializer(name: "init(used:fill:)", labels: ["used", "fill"])
 
@@ -234,15 +252,43 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect(!"AgentThreadView(session: session, actions: actions)".contains(Self.threadInitializerCall()))
   }
 
-  @Test func noFileCallsTheRemovedThreadInitializer() throws {
-    let swiftFiles = try Self.swiftPaths.flatMap { try PackageFiles.swiftFiles(in: PackageFiles.file($0)) }
-    let files = swiftFiles + [try PackageFiles.file(Self.readmePath)]
-
-    let callers = try files.filter { file in
-      try String(contentsOf: file, encoding: .utf8).contains(Self.threadInitializerCall())
+  /// Finds each Swift file below ``swiftPaths``, and the README, whose text
+  /// matches a pattern. The pattern reads the whole text, so it finds a
+  /// call over more lines.
+  ///
+  /// - Parameter makePattern: Makes the pattern. A `Regex` is not
+  ///   `Sendable`, so the scan makes the value for each file.
+  /// - Returns: The names of the files that match.
+  /// - Throws: The error of the scan when a file cannot be read.
+  static func fileNames(matching makePattern: () -> Regex<Substring>) throws -> [String] {
+    let swiftFiles = try swiftPaths.flatMap { try PackageFiles.swiftFiles(in: PackageFiles.file($0)) }
+    let files = swiftFiles + [try PackageFiles.file(readmePath)]
+    return try files.filter { file in
+      try String(contentsOf: file, encoding: .utf8).contains(makePattern())
     }
+    .map(\.lastPathComponent)
+  }
 
-    #expect(callers.isEmpty, "\(callers.map(\.lastPathComponent))")
+  @Test func noFileCallsTheRemovedThreadInitializer() throws {
+    let callers = try Self.fileNames(matching: Self.threadInitializerCall)
+
+    #expect(callers.isEmpty, "\(callers)")
+  }
+
+  @Test func theWorkingDirectoryPatternFindsACallOverTwoLinesAndADocLink() {
+    let pattern = Self.workingDirectoryInputUse()
+
+    #expect("AgentThreadView(\n  session: s, connection: c,\n  workingDirectory: w, actions: a)".contains(pattern))
+    #expect("SessionStreamBanner(session: s, connection: c, workingDirectory: w)".contains(pattern))
+    #expect("``AgentThreadView/init(session:connection:workingDirectory:actions:)``".contains(pattern))
+    #expect(!"AgentThreadView(session: s, connection: c, actions: a)".contains(pattern))
+    #expect(!"DemoAgent.makeConnected(workingDirectory: w)".contains(pattern))
+  }
+
+  @Test func noFileGivesTheWorkingDirectoryToAView() throws {
+    let users = try Self.fileNames(matching: Self.workingDirectoryInputUse)
+
+    #expect(users.isEmpty, "\(users)")
   }
 
   @Test func useFindsTheLabelsOfACall() throws {

@@ -59,6 +59,18 @@ import Testing
                    "title": "Write the release notes"}]}
     """#
 
+  /// The additional workspace roots of the listed session ``closedSessionID``
+  /// in ``directoriesPage``.
+  static let listedAdditionalDirectories = ["/work/shared", "/work/vendor"]
+
+  /// A `session/list` result with one session that has additional workspace
+  /// roots: ``closedSessionID`` in ``docsDirectory`` with
+  /// ``listedAdditionalDirectories``.
+  static let directoriesPage = #"""
+    {"sessions": [{"sessionId": "\#(closedSessionID)", "cwd": "\#(docsDirectory)",
+                   "additionalDirectories": ["\#(listedAdditionalDirectories.joined(separator: #"", ""#))"]}]}
+    """#
+
   /// The `initialize` result of an agent that serves `session/delete`.
   static let deleteCapableInitialize = #"""
     {"info": {"name": "scripted-agent", "version": "1.0.0"}, "protocolVersion": 2,
@@ -265,6 +277,26 @@ import Testing
     #expect(resume["params"]?["sessionId"] == .string(Self.closedSessionID))
     #expect(resume["params"]?["cwd"] == .string(Self.docsDirectory))
     #expect(resume["params"]?["replayFrom"] == .object(["type": .string("start")]))
+    #expect(resume["params"]?["additionalDirectories"] == nil)
+  }
+
+  @Test func aRowPressSendsTheWorkingDirectoryAndEachAdditionalDirectoryOfTheRow() async throws {
+    let session = try await ScriptedSession.open { agent in
+      agent.results["initialize"] = ScriptedSession.additionalDirectoriesInitializeResult
+      agent.resultQueues["session/list"] = [Self.directoriesPage]
+    }
+    defer { session.close() }
+    var opened: [SessionModel] = []
+    let harness = await Self.mountPicker(session) { opened.append($0) }
+    defer { harness.close() }
+
+    try harness.press(identifier: Self.row(Self.closedSessionID))
+    await harness.pump(until: Self.waitTimeout) { !opened.isEmpty }
+
+    let resume = try #require(session.agent.messages(method: "session/resume").first)
+    #expect(resume["params"]?["cwd"] == .string(Self.docsDirectory))
+    #expect(resume["params"]?["additionalDirectories"] == .array(Self.listedAdditionalDirectories.map { .string($0) }))
+    #expect(opened.first?.additionalDirectories.map(\.rawValue) == Self.listedAdditionalDirectories)
   }
 
   // MARK: - Delete

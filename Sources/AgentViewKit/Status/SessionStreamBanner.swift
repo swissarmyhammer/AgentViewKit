@@ -23,9 +23,13 @@ import SwiftUI
 ///   keeps, so the note never tells that the history is complete.
 ///
 /// The Reload button shows only when the host gives the connection model and
-/// the working directory of the session, and the agent can resume sessions
-/// (`ConnectionModel.canResumeSessions`). The session model does not hold the
-/// working directory, and `session/resume` needs it, so the host gives it.
+/// the agent can resume sessions (`ConnectionModel.canResumeSessions`). The
+/// `session/resume` request of the button sends the `cwd` and the full list
+/// of `additionalDirectories` of the session model, because ACP v2 requires
+/// the same values again on a resume. When the list is empty, the request
+/// has no `additionalDirectories`. A model with no `cwd` is a model that no
+/// `session/new` or `session/resume` request opened, and it shows no
+/// Reload button.
 ///
 /// The text of each banner has its own accessibility identifier, such as
 /// ``missedUpdatesIdentifier``.
@@ -52,9 +56,6 @@ public struct SessionStreamBanner: View {
   /// button.
   let connection: ConnectionModel?
 
-  /// The working directory of the session, or `nil` for no Reload button.
-  let workingDirectory: AbsolutePath?
-
   @Environment(\.agentTheme) private var theme
 
   /// Makes the banners of the stream state of a session model.
@@ -63,13 +64,9 @@ public struct SessionStreamBanner: View {
   ///   - session: The session model whose stream state the banners show.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host does not let the user reload the session.
-  ///   - workingDirectory: The working directory of the session, the `cwd`
-  ///     of its `session/new` request, or `nil` when the host does not let the
-  ///     user reload the session.
-  public init(session: SessionModel, connection: ConnectionModel?, workingDirectory: AbsolutePath?) {
+  public init(session: SessionModel, connection: ConnectionModel?) {
     self.session = session
     self.connection = connection
-    self.workingDirectory = workingDirectory
   }
 
   /// One banner of the view.
@@ -118,15 +115,19 @@ public struct SessionStreamBanner: View {
   /// Makes the Reload button of the missed-updates banner.
   ///
   /// - Parameter isEnabled: Whether the button takes a press.
-  /// - Returns: The button, or `nil` when the host gave no connection model or
-  ///   no working directory, or the agent cannot resume sessions.
+  /// - Returns: The button, or `nil` when the host gave no connection model,
+  ///   the agent cannot resume sessions, or the session model has no `cwd`.
   private func makeReloadAction(isEnabled: Bool) -> StatusBar.Action? {
-    guard let connection, let workingDirectory, connection.canResumeSessions else { return nil }
+    guard let connection, connection.canResumeSessions, let cwd = session.cwd else { return nil }
     return StatusBar.Action(
       title: String(localized: "Reload"), identifier: Self.reloadIdentifier, isEnabled: isEnabled
     ) { [session] in
+      let directories = session.additionalDirectories
       let request = ResumeSessionRequest(
-        cwd: workingDirectory, sessionId: session.sessionId, replayFrom: .start(ReplayFromStart()))
+        cwd: cwd,
+        sessionId: session.sessionId,
+        additionalDirectories: directories.isEmpty ? nil : directories,
+        replayFrom: .start(ReplayFromStart()))
       session.startRequest("session/resume") { _ = try await connection.resumeSession(request) }
     }
   }

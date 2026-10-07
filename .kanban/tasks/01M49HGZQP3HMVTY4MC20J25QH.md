@@ -96,13 +96,29 @@ comments:
     - code change: none. No time-limit failure, so no load check was needed.
     - next: review.
   timestamp: 2026-10-07T20:15:23.133938+00:00
+- actor: claude-code
+  id: 01m4c0fmgte9rrcs7s7fpraaed
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (273fcf3). 0 findings (7 attempted, 0 failed). 5 files reviewed. 2 .kanban files not reviewed because of .reviewignore. The 4 prior findings of 2026-10-07 14:46 are all checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-07T20:22:08.154527+00:00
+- actor: claude-code
+  id: 01m4c0fwczaxs5650p0e5w769e
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 5 files (DemoAgent, TerminalAppAuthRunner, ACPTabView, DemoAgentTests, TerminalAppAuthRunnerTests)
+    - test: green — swift test 1308 passed, check-readme passed, test-examples 4 passed
+    - commit: 273fcf3
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-07T20:22:16.223617+00:00
 depends_on:
 - 01M49GHXXC7CY7R1PRZ83200VG
 - 01M49HGF5KFW6185XJATDG13NJ
 - 01M443S0EDEB23N7RPAR39TGZ5
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8d80
 title: 'Reconnect and retry after a terminal sign-in in the demo host: runner, auth.terminal, new transport, initialize, retry'
 ---
 ## Start condition

@@ -6,9 +6,9 @@ import FoundationModelsACPClient
 /// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
 /// tests (update.md §4.2).
 ///
-/// ``open(bufferLimits:terminalAuthRunner:configure:)`` connects a
-/// `ConnectionModel` to the agent over an `InMemoryTransport` pair, sends
-/// `initialize`, and opens one new session.
+/// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:configure:)``
+/// connects a `ConnectionModel` to the agent over an `InMemoryTransport`
+/// pair, sends `initialize`, and opens one new session.
 /// The connection model has a coalescing cadence of zero, so each chunk
 /// changes its entry at once. A test sends `session/update` frames with
 /// ``sendUpdate(_:)`` and reads the transcript of ``model``.
@@ -23,10 +23,17 @@ public final class ScriptedSession {
   /// session capabilities and no prompt capability.
   static let initializeResult = makeInitializeResult(sessionCapabilities: "{}")
 
+  /// The `initialize` result of an agent that accepts the
+  /// `additionalDirectories` of `session/new` and `session/resume`: protocol
+  /// version 2 with the session capability `additionalDirectories` and no
+  /// prompt capability.
+  public static let additionalDirectoriesInitializeResult = makeInitializeResult(
+    sessionCapabilities: #"{"additionalDirectories": {}}"#)
+
   /// Makes the `initialize` result of an agent with prompt capabilities.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:terminalAuthRunner:configure:)``:
+  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -49,7 +56,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with auth methods.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:terminalAuthRunner:configure:)``:
+  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -119,6 +126,11 @@ public final class ScriptedSession {
   ///   - bufferLimits: The limits of the update buffer of the connection. A
   ///     test gives small limits to make the buffer overflow, so that the
   ///     session model gets `hasMissedUpdates`.
+  ///   - additionalDirectories: The additional workspace roots of the
+  ///     `session/new` request. When the list is not empty, the `initialize`
+  ///     result of the agent advertises `session.additionalDirectories`, so
+  ///     that the connection model sends the list. A `configure` closure
+  ///     that replaces the `initialize` result must also advertise it.
   ///   - terminalAuthRunner: The runner of the host, or `nil`. With a
   ///     runner, the `initialize` request advertises `auth.terminal`, so
   ///     that the model can run a `terminal` method of the agent.
@@ -128,12 +140,14 @@ public final class ScriptedSession {
   /// - Throws: The error of `initialize` or of `session/new`.
   public static func open(
     bufferLimits: SessionUpdateBufferLimits = .default,
+    additionalDirectories: [AbsolutePath] = [],
     terminalAuthRunner: (any TerminalAuthRunner)? = nil,
     configure: (ScriptedWireAgent) -> Void = { _ in }
   ) async throws -> ScriptedSession {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
     let agent = ScriptedWireAgent(transport: agentEnd)
-    agent.results["initialize"] = initializeResult
+    agent.results["initialize"] =
+      additionalDirectories.isEmpty ? initializeResult : additionalDirectoriesInitializeResult
     agent.results["session/new"] = newSessionResult
     configure(agent)
     agent.start()
@@ -142,7 +156,9 @@ public final class ScriptedSession {
     _ = try await connection.initialize(
       InitializeRequest.makeAgentViewKitRequest(info: clientInfo, terminalAuthRunner: terminalAuthRunner))
     let model = try await connection.newSession(
-      NewSessionRequest(cwd: AbsolutePath(rawValue: workingDirectory)))
+      NewSessionRequest(
+        cwd: AbsolutePath(rawValue: workingDirectory),
+        additionalDirectories: additionalDirectories.isEmpty ? nil : additionalDirectories))
     return ScriptedSession(agent: agent, connection: connection, model: model)
   }
 

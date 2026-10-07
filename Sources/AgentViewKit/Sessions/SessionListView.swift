@@ -23,11 +23,13 @@ import SwiftUI
 /// - When `canResumeSessions` is false, a row is not a button.
 /// - When `canDeleteSessions` is false, a row has no delete button.
 ///
-/// A press on a row calls `resumeSession(_:)` with the working directory of
-/// the row and `replayFrom: .start`, and gives the model of the session to
-/// `onOpen`. A delete calls `deleteSession(_:)`, and the row goes away when
-/// the model removes the item. When a call fails, the view shows the error of
-/// the call, and the list keeps the values of the model.
+/// A press on a row calls `resumeSession(_:)` with the `cwd` and the full
+/// `additionalDirectories` of the `SessionInfo` of the row and
+/// `replayFrom: .start`, and gives the model of the session to `onOpen`. ACP
+/// v2 requires the same `cwd` and the full list of additional directories
+/// again on a resume. A delete calls `deleteSession(_:)`, and the row goes
+/// away when the model removes the item. When a call fails, the view shows
+/// the error of the call, and the list keeps the values of the model.
 public struct SessionListView: View {
   /// The accessibility identifier of the search field.
   public static let searchIdentifier = "session-list-search"
@@ -289,7 +291,10 @@ public struct SessionListView: View {
   /// - Parameter info: The session to resume.
   private func resume(_ info: SessionInfo) async {
     let request = ResumeSessionRequest(
-      cwd: info.cwd, sessionId: info.sessionId, replayFrom: .start(ReplayFromStart()))
+      cwd: info.cwd,
+      sessionId: info.sessionId,
+      additionalDirectories: info.additionalDirectories,
+      replayFrom: .start(ReplayFromStart()))
     await perform { onOpen(try await connection.resumeSession(request)) }
   }
 

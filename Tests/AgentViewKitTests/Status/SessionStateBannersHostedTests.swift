@@ -31,6 +31,9 @@
     /// result in the overflow test. It is more than the buffer keeps.
     static let overflowUpdateCount = 2
 
+    /// The two additional workspace roots of the session in the reload test.
+    static let additionalDirectories = [AbsolutePath(rawValue: "/tmp/shared-lib"), AbsolutePath(rawValue: "/tmp/docs")]
+
     /// The names of the stream state of the session model. No source of the
     /// status views declares a property with one of these names.
     static let streamStateNames = ["agentState", "hasMissedUpdates", "isReplaying", "history", "isClosed"]
@@ -72,7 +75,7 @@
     }
 
     /// Shows the thread of a session and a composer below it. The thread gets
-    /// the connection model and the working directory of the session.
+    /// the connection model of the session.
     ///
     /// - Parameters:
     ///   - session: The scripted session.
@@ -83,10 +86,7 @@
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
-          AgentThreadView(
-            session: session.model, connection: session.connection,
-            workingDirectory: AbsolutePath(rawValue: ScriptedSession.workingDirectory),
-            actions: NoopThreadActions())
+          AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
           PromptInputHost(model: draft)
         }
         .environment(\.sessionModel, session.model)
@@ -172,11 +172,23 @@
 
     // MARK: - Missed updates
 
-    @Test func anOverflowShowsTheMissedUpdatesBannerAndReloadReplaysFromTheStart() async throws {
-      let session = try await ScriptedSession.open(bufferLimits: Self.smallBufferLimits) {
-        $0.leadIns["session/new"] = { _, _ in (1...Self.overflowUpdateCount).map(Self.chunkFrame(index:)) }
+    /// Opens a scripted session whose update buffer overflows before the
+    /// `session/new` result, so that the session model gets
+    /// `hasMissedUpdates`. The agent holds its answer to `session/resume`.
+    ///
+    /// - Parameter additionalDirectories: The additional workspace roots of
+    ///   the `session/new` request.
+    /// - Returns: The open session.
+    /// - Throws: The error of `initialize` or of `session/new`.
+    static func openOverflowingSession(additionalDirectories: [AbsolutePath] = []) async throws -> ScriptedSession {
+      try await ScriptedSession.open(bufferLimits: smallBufferLimits, additionalDirectories: additionalDirectories) {
+        $0.leadIns["session/new"] = { _, _ in (1...overflowUpdateCount).map(chunkFrame(index:)) }
         $0.heldMethods = [ScriptedSession.resumeMethod]
       }
+    }
+
+    @Test func anOverflowShowsTheMissedUpdatesBannerAndReloadReplaysFromTheStart() async throws {
+      let session = try await Self.openOverflowingSession()
       defer { session.close() }
       let harness = Self.mount(session, draft: PromptInputHostedTestModel())
       defer { harness.close() }
@@ -194,6 +206,7 @@
       #expect(resume["params"]?["replayFrom"]?["type"]?.stringValue == "start")
       #expect(resume["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
       #expect(resume["params"]?["cwd"]?.stringValue == ScriptedSession.workingDirectory)
+      #expect(resume["params"]?["additionalDirectories"] == nil)
       #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.isEnabled == false)
 
@@ -203,6 +216,23 @@
 
       #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(session.agent.messages(method: ScriptedSession.resumeMethod).count == 1)
+    }
+
+    @Test func reloadSendsTheWorkingDirectoryAndTheAdditionalDirectoriesOfTheSessionModel() async throws {
+      let session = try await Self.openOverflowingSession(additionalDirectories: Self.additionalDirectories)
+      defer { session.close() }
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      defer { harness.close() }
+      await harness.pump(until: Self.waitTimeout) { Self.shows(SessionStreamBanner.reloadIdentifier, in: harness) }
+      #expect(session.model.additionalDirectories == Self.additionalDirectories)
+
+      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.resumeMethod).isEmpty }
+
+      let resume = try #require(session.agent.messages(method: ScriptedSession.resumeMethod).first)
+      #expect(resume["params"]?["cwd"]?.stringValue == ScriptedSession.workingDirectory)
+      #expect(
+        resume["params"]?["additionalDirectories"] == .array(Self.additionalDirectories.map { .string($0.rawValue) }))
     }
 
     // MARK: - Closed thread

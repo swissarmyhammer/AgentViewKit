@@ -280,7 +280,6 @@ struct ACPTabView: View {
       AgentThreadView(
         session: session,
         connection: agent.connection,
-        workingDirectory: agent.workingDirectory,
         // The session views send the prompts, the cancel, and the answers
         // through the two models. The logging actions get only the verbs
         // that no model has, such as a terminal sign-in.

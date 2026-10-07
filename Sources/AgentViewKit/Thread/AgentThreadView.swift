@@ -1,4 +1,3 @@
-import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -65,10 +64,6 @@ public struct AgentThreadView: View {
   /// session on, or `nil`.
   let connection: ConnectionModel?
 
-  /// The working directory of the session, which the Reload button of the
-  /// missed-updates banner sends, or `nil`.
-  let workingDirectory: AbsolutePath?
-
   /// The actions that the views of the thread call.
   let actions: any AgentThreadActions
 
@@ -94,27 +89,23 @@ public struct AgentThreadView: View {
   /// the session is not closed. A close that fails adds an error entry to
   /// the transcript of the session.
   ///
-  /// When the host also gives the working directory of the session, the
-  /// missed-updates banner of ``SessionStreamBanner`` shows its Reload
-  /// button. The session model does not hold the working directory, and
-  /// `session/resume` needs it.
+  /// With the connection model, the missed-updates banner of
+  /// ``SessionStreamBanner`` also shows its Reload button. The button
+  /// resumes the session with the `cwd` and the additional directories of
+  /// the session model.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
-  ///   - workingDirectory: The working directory of the session, the `cwd`
-  ///     of its `session/new` request, or `nil` for no Reload button.
   ///   - actions: The actions that the views of the thread call.
   public init(
     session: SessionModel,
     connection: ConnectionModel? = nil,
-    workingDirectory: AbsolutePath? = nil,
     actions: any AgentThreadActions
   ) {
     self.session = session
     self.connection = connection
-    self.workingDirectory = workingDirectory
     self.actions = actions
   }
 
@@ -140,7 +131,7 @@ public struct AgentThreadView: View {
         AgentConnectionBanner(connection: connection)
       }
       SessionNoticeBanner(session: session)
-      SessionStreamBanner(session: session, connection: connection, workingDirectory: workingDirectory)
+      SessionStreamBanner(session: session, connection: connection)
       ConversationView(session: session, anchors: anchors)
       if let connection {
         AgentLoginPrompt(session: session, connection: connection)
