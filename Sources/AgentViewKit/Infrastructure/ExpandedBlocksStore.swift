@@ -17,14 +17,17 @@ extension EnvironmentValues {
 /// invalidates only the views that read that identifier. The open state is
 /// view state: the store keeps no value of the session model.
 ///
+/// Each public method takes the `TranscriptEntry` of the row. The store keys
+/// the decision of an entry by its row key
+/// (``FoundationModelsACPClient/TranscriptEntry/ID/rowKey``).
+///
 /// A transcript entry with no recorded decision uses ``defaultExpanded``.
 /// The policy gets the entry object, so it reads the values of the model,
 /// such as the status of a tool call. A view that reads the policy in its
 /// body therefore opens when the model sets a value that the policy expands.
-/// ``seed(_:)`` records the policy value for an entry one time, so that a
-/// read by identifier and ``toggle(_:)`` start from the policy. The
-/// identifier of an entry is its row key
-/// (``FoundationModelsACPClient/TranscriptEntry/ID/rowKey``).
+/// ``toggle(entry:)`` flips the policy value of an entry with no decision.
+/// ``seed(entry:)`` records the policy value for an entry one time, so that
+/// a later change of the model does not change the open state.
 @MainActor
 @Observable
 public final class ExpandedBlocksStore {
@@ -60,33 +63,26 @@ public final class ExpandedBlocksStore {
 
   // MARK: - Read
 
-  /// Tells if the row with this identifier is expanded.
-  ///
-  /// - Parameter id: The row identifier.
-  /// - Returns: The recorded decision, or `false` when there is none.
-  public func isExpanded(_ id: String) -> Bool {
-    entry(for: id).decision ?? false
-  }
-
   /// Tells if the row of a transcript entry is expanded.
   ///
   /// - Parameter transcriptEntry: The entry.
   /// - Returns: The recorded decision for the row key of the entry, or the
   ///   ``defaultExpanded`` value when there is none.
-  public func isExpanded(_ transcriptEntry: TranscriptEntry) -> Bool {
-    entry(for: transcriptEntry.rowKey).decision ?? defaultExpanded(transcriptEntry)
+  public func isExpanded(entry transcriptEntry: TranscriptEntry) -> Bool {
+    decision(for: transcriptEntry) ?? defaultExpanded(transcriptEntry)
   }
 
-  /// The recorded decision for the row with this identifier.
+  /// The recorded decision for the row of a transcript entry.
   ///
   /// A view that has its own default, for example a block that is open
   /// while it streams, uses this value to tell a user decision from no
   /// decision.
   ///
-  /// - Parameter id: The row identifier.
-  /// - Returns: The recorded decision, or `nil` when there is none.
-  public func decision(for id: String) -> Bool? {
-    entry(for: id).decision
+  /// - Parameter transcriptEntry: The entry.
+  /// - Returns: The recorded decision for the row key of the entry, or `nil`
+  ///   when there is none.
+  public func decision(for transcriptEntry: TranscriptEntry) -> Bool? {
+    decision(for: transcriptEntry.rowKey)
   }
 
   // MARK: - Write
@@ -95,31 +91,72 @@ public final class ExpandedBlocksStore {
   /// entry, when the row has no decision.
   ///
   /// - Parameter transcriptEntry: The entry.
-  public func seed(_ transcriptEntry: TranscriptEntry) {
-    let id = transcriptEntry.rowKey
-    guard entry(for: id).decision == nil else { return }
-    set(id, expanded: defaultExpanded(transcriptEntry))
+  public func seed(entry transcriptEntry: TranscriptEntry) {
+    guard decision(for: transcriptEntry) == nil else { return }
+    set(id: transcriptEntry.rowKey, expanded: defaultExpanded(transcriptEntry))
   }
 
-  /// Flips the row with this identifier, and leaves each other row.
+  /// Flips the row of a transcript entry, and leaves each other row.
+  ///
+  /// A row with no decision flips the ``defaultExpanded`` value.
+  ///
+  /// - Parameter transcriptEntry: The entry.
+  public func toggle(entry transcriptEntry: TranscriptEntry) {
+    set(id: transcriptEntry.rowKey, expanded: !isExpanded(entry: transcriptEntry))
+  }
+
+  /// Expands the row of a transcript entry.
+  ///
+  /// - Parameter transcriptEntry: The entry.
+  public func expand(entry transcriptEntry: TranscriptEntry) {
+    expand(id: transcriptEntry.rowKey)
+  }
+
+  /// Collapses the row of a transcript entry.
+  ///
+  /// - Parameter transcriptEntry: The entry.
+  public func collapse(entry transcriptEntry: TranscriptEntry) {
+    collapse(id: transcriptEntry.rowKey)
+  }
+
+  // MARK: - Row identifier
+
+  // A row with no transcript entry keys its decision by an identifier. The
+  // kit callers are the rows of the old thread path, which have `ThreadItem`
+  // ids (`ToolCallView`, `ReasoningView` and the expand-all command over an
+  // `AgentThread`), and `JSONDisclosure`, whose rows include unknown values
+  // and unknown content blocks. These forms are internal: the public form
+  // takes the transcript entry. No identifier read applies the policy,
+  // because the policy reads a transcript entry.
+
+  /// Tells if the row with this identifier is expanded.
   ///
   /// - Parameter id: The row identifier.
-  public func toggle(_ id: String) {
-    set(id, expanded: !isExpanded(id))
+  /// - Returns: The recorded decision, or `false` when there is none.
+  func isExpanded(id: String) -> Bool {
+    decision(for: id) ?? false
+  }
+
+  /// The recorded decision for the row with this identifier.
+  ///
+  /// - Parameter id: The row identifier.
+  /// - Returns: The recorded decision, or `nil` when there is none.
+  func decision(for id: String) -> Bool? {
+    entry(for: id).decision
   }
 
   /// Expands the row with this identifier.
   ///
   /// - Parameter id: The row identifier.
-  public func expand(_ id: String) {
-    set(id, expanded: true)
+  func expand(id: String) {
+    set(id: id, expanded: true)
   }
 
   /// Collapses the row with this identifier.
   ///
   /// - Parameter id: The row identifier.
-  public func collapse(_ id: String) {
-    set(id, expanded: false)
+  func collapse(id: String) {
+    set(id: id, expanded: false)
   }
 
   // MARK: - Private
@@ -146,7 +183,7 @@ public final class ExpandedBlocksStore {
   /// - Parameters:
   ///   - id: The row identifier.
   ///   - expanded: The new decision.
-  private func set(_ id: String, expanded: Bool) {
+  private func set(id: String, expanded: Bool) {
     let target = entry(for: id)
     guard target.decision != expanded else { return }
     target.decision = expanded

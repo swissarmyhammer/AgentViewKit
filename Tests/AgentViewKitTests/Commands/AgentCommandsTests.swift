@@ -356,16 +356,20 @@ final class CallCounter {
     #expect(AgentCommandTarget.plainText(of: AgentThread()).isEmpty)
   }
 
-  @Test func toggleExpandAllExpandsEachItemThenCollapsesEachItem() {
+  /// The old thread path. A `ThreadItem` has no transcript entry, so the
+  /// test reads the internal identifier form of the store. The session path
+  /// reads the entry form in
+  /// ``toggleExpandAllExpandsEachEntryOfTheSessionModelThenCollapsesEachEntry()``.
+  @Test func toggleExpandAllExpandsEachThreadItemThenCollapsesEachThreadItem() {
     let store = ExpandedBlocksStore()
     let thread = Self.turnThread()
     let fixture = Self.makeFixture(thread: thread) { $0.expandedBlocks = store }
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(thread.items.allSatisfy { store.isExpanded($0.id) })
+    #expect(thread.items.allSatisfy { store.isExpanded(id: $0.id) })
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(thread.items.allSatisfy { !store.isExpanded($0.id) })
+    #expect(thread.items.allSatisfy { !store.isExpanded(id: $0.id) })
   }
 
   @Test func scrollToBottomPinsTheList() async {
@@ -518,13 +522,12 @@ final class CallCounter {
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "expand-m", block: WireBlockJSON.makeText("Hello.")))
     #expect(await waitUntil { model.transcript.count == 2 })
-    let keys = model.transcript.map(\.rowKey)
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(keys.allSatisfy { store.isExpanded($0) })
+    #expect(model.transcript.allSatisfy { store.isExpanded(entry: $0) })
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(keys.allSatisfy { !store.isExpanded($0) })
+    #expect(model.transcript.allSatisfy { !store.isExpanded(entry: $0) })
   }
 
   @Test func toggleExpandAllCollapsesTheEntriesThatThePolicyExpands() async throws {
@@ -536,10 +539,10 @@ final class CallCounter {
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "policy-m", block: WireBlockJSON.makeText("Hello.")))
     #expect(await waitUntil { !model.transcript.isEmpty })
-    #expect(model.transcript.allSatisfy { store.isExpanded($0) })
+    #expect(model.transcript.allSatisfy { store.isExpanded(entry: $0) })
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
 
-    #expect(model.transcript.allSatisfy { !store.isExpanded($0) })
+    #expect(model.transcript.allSatisfy { !store.isExpanded(entry: $0) })
   }
 }

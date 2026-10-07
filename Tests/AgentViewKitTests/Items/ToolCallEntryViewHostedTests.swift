@@ -138,9 +138,10 @@
       harness: HostedViewHarness<some View>, store: ExpandedBlocksStore
     ) async throws -> String {
       try await session.sendUpdate(update)
-      await harness.pump(until: waitTimeout) { rowKey(ofCall: id, in: session.model) != nil }
-      let key = try #require(rowKey(ofCall: id, in: session.model))
-      store.expand(key)
+      await harness.pump(until: waitTimeout) { toolCallEntry(id, in: session.model) != nil }
+      let call = try #require(toolCallEntry(id, in: session.model))
+      let key = call.id.rowKey
+      store.expand(entry: .toolCall(call))
       await harness.pump(until: waitTimeout) {
         harness.element(identifier: ToolCallView.bodyIdentifier(for: key)) != nil
       }

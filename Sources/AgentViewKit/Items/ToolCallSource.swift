@@ -122,8 +122,25 @@ enum ToolCallSource {
   ///   has none.
   func isExpanded(in store: ExpandedBlocksStore) -> Bool {
     switch self {
-    case .record(let record): store.isExpanded(record.id)
-    case .entry(let entry): store.isExpanded(.toolCall(entry))
+    case .record(let record): store.isExpanded(id: record.id)
+    case .entry(let entry): store.isExpanded(entry: .toolCall(entry))
+    }
+  }
+
+  /// Records a user decision for the call.
+  ///
+  /// An entry gives its transcript entry to the store. A record has no
+  /// transcript entry, so it gives its id.
+  ///
+  /// - Parameters:
+  ///   - expanded: `true` to expand the call, `false` to collapse it.
+  ///   - store: The store of the user decisions.
+  func setExpanded(to expanded: Bool, in store: ExpandedBlocksStore) {
+    switch self {
+    case .record(let record):
+      if expanded { store.expand(id: record.id) } else { store.collapse(id: record.id) }
+    case .entry(let entry):
+      if expanded { store.expand(entry: .toolCall(entry)) } else { store.collapse(entry: .toolCall(entry)) }
     }
   }
 }

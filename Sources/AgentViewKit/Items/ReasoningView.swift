@@ -214,15 +214,34 @@ struct ReasoningBlock<Content: View>: View {
 
   /// Tells if the block is open.
   ///
+  /// A block with a policy entry gives the entry to the store. A reasoning
+  /// record has no transcript entry, so it gives its id.
+  ///
   /// - Parameter store: The store of the user decisions.
   /// - Returns: The user decision. With no decision, `true` while in
   ///   progress, and when complete the store policy, or `false` with no
   ///   policy entry.
   private func isExpanded(in store: ExpandedBlocksStore) -> Bool {
-    if let decision = store.decision(for: id) {
-      return decision
+    guard let policyEntry else {
+      return store.decision(for: id) ?? isInProgress
     }
-    return isInProgress || policyEntry.map(store.defaultExpanded) ?? false
+    return store.decision(for: policyEntry) ?? (isInProgress || store.defaultExpanded(policyEntry))
+  }
+
+  /// Records a user decision for the block.
+  ///
+  /// A block with a policy entry gives the entry to the store. A reasoning
+  /// record has no transcript entry, so it gives its id.
+  ///
+  /// - Parameters:
+  ///   - expanded: `true` to open the block, `false` to close it.
+  ///   - store: The store of the user decisions.
+  private func setExpanded(to expanded: Bool, in store: ExpandedBlocksStore) {
+    guard let policyEntry else {
+      if expanded { store.expand(id: id) } else { store.collapse(id: id) }
+      return
+    }
+    if expanded { store.expand(entry: policyEntry) } else { store.collapse(entry: policyEntry) }
   }
 
   /// The title and the expand button.
@@ -232,13 +251,7 @@ struct ReasoningBlock<Content: View>: View {
   ///   - expanded: `true` while the block is open.
   /// - Returns: The header view.
   private func header(store: ExpandedBlocksStore, expanded: Bool) -> some View {
-    let toggle = {
-      if expanded {
-        store.collapse(id)
-      } else {
-        store.expand(id)
-      }
-    }
+    let toggle = { setExpanded(to: !expanded, in: store) }
     return HStack(spacing: theme.spacing.s) {
       title
       Spacer(minLength: theme.spacing.s)

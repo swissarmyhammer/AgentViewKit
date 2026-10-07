@@ -51,8 +51,8 @@ struct AgentComposerHook {
 ///   `selectPermission(_:option:)`.
 /// - Copy reads the user message entries and the agent message entries of the
 ///   transcript. Jump goes to the next or the previous user message entry.
-///   Expand all reads the row key of each entry and the expanded policy of
-///   the store for the entry.
+///   Expand all gives each entry to the store, so that the store reads the
+///   expanded policy for the entry.
 ///
 /// The deprecated thread path reads the ``AgentThread`` and calls the
 /// ``AgentThreadActions`` in the same way. It goes away with the kit session
@@ -474,15 +474,21 @@ final class AgentCommandTarget {
 
   /// Expands each row, or collapses each row when all rows are expanded.
   ///
+  /// A transcript entry uses the entry form of the store. A thread item has
+  /// no transcript entry, so it uses the identifier form.
+  ///
   /// - Parameter source: The model of the scope.
   private func toggleExpandAll(_ source: ConversationSource) {
     guard let store = expandedBlocks else { return }
     let expandsAll = !Self.isEachRowExpanded(of: source, in: store)
-    for key in source.rowKeys {
-      if expandsAll {
-        store.expand(key)
-      } else {
-        store.collapse(key)
+    switch source {
+    case .thread(let thread):
+      for item in thread.items {
+        if expandsAll { store.expand(id: item.id) } else { store.collapse(id: item.id) }
+      }
+    case .session(let session):
+      for entry in session.transcript {
+        if expandsAll { store.expand(entry: entry) } else { store.collapse(entry: entry) }
       }
     }
   }
@@ -499,8 +505,8 @@ final class AgentCommandTarget {
   /// - Returns: `true` when each row is expanded.
   private static func isEachRowExpanded(of source: ConversationSource, in store: ExpandedBlocksStore) -> Bool {
     switch source {
-    case .thread(let thread): thread.items.allSatisfy { store.isExpanded($0.id) }
-    case .session(let session): session.transcript.allSatisfy { store.isExpanded($0) }
+    case .thread(let thread): thread.items.allSatisfy { store.isExpanded(id: $0.id) }
+    case .session(let session): session.transcript.allSatisfy { store.isExpanded(entry: $0) }
     }
   }
 

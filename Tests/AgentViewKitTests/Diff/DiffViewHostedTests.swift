@@ -1,10 +1,13 @@
 #if DEBUG
-  import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
   import FoundationModelsACP
   import SwiftUI
   import Testing
+
+  // The tool call record of the old thread path has no transcript entry, so
+  // the tests read the internal identifier form of the store.
+  @testable import AgentViewKit
 
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffViewHostedTests {
     /// The longest time that a test waits for the view to change, in seconds.
@@ -257,7 +260,7 @@
         id: id, title: "Edit", kind: .edit, status: .completed,
         content: [.diff(patch: Self.patch)])
       let store = ExpandedBlocksStore()
-      store.expand(id)
+      store.expand(id: id)
       let harness = HostedViewHarness(size: Self.tallSize) {
         ToolCallView(record: call)
           .environment(\.expandedBlocksStore, store)

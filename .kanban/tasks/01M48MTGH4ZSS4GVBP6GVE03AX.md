@@ -30,6 +30,39 @@ comments:
     - evidence: 24 files. Sources: ItemViewOverrides.swift, ItemRow.swift, AgentThreadView.swift, ExpandedBlocksStore.swift, MessageItemView.swift, ThreadMessageItemView.swift (new), TranscriptMessageView.swift, UserMessageView.swift, AssistantMessageView.swift, MessageActions.swift, ReasoningView.swift, ThoughtEntryBlock.swift, ToolCallSource.swift, ToolCallView.swift, AgentCommandTarget.swift. Tests: RegistryResolutionTests, SessionTranscriptViewHostedTests, ExpandedBlocksStoreTests, SessionEntryRowsHostedTests, MessageViewsHostedTests, MessageActionsHostedTests, AgentThreadViewHostedTests, AgentCommandsTests. Docs: README.md, Examples/ReadmeSnippets/Snippets/HostApp.swift, Docs/decisions/accessibility.md. Commands: `swift test` (1383 tests in 126 suites passed, plus 78 and 1; only the mlx-swift "missing creator" warning), `Scripts/check-readme.sh` (pass). Demo not changed, so no demo gate.
     - next: /review
   timestamp: 2026-10-07T03:48:04.749469+00:00
+- actor: claude-code
+  id: 01m4a8pgqwvdgpkjk5c2gh9q6d
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (db9ce32): 7 findings (7 confirmed, 5 refuted). Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift:365, :368; Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:120, :132, :147, :158, :167. All are completeness/invariant-propagation.
+    - next: /implement the open items in "## Review Findings (2026-10-06 22:53)".
+  timestamp: 2026-10-07T04:07:13.404750+00:00
+- actor: claude-code
+  id: 01m4a8pkvkp52pxyty0bpff43j
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — item view overrides take the entry objects (new terminal, plan and compaction overrides); messageFooter takes MessageEntry; expanded policy keyed on TranscriptEntry; ThreadMessageItemView for the old path; 24 files
+    - test: green — swift test, 1383 passed; README and demo UI gates passed
+    - commit: db9ce32
+    - review: findings — Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift:365, Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift:368, Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:120, Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:132, Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:147, Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:158, Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:167
+  timestamp: 2026-10-07T04:07:16.595506+00:00
+- actor: claude-code
+  id: 01m4a9etz57p4qb6yx2mjf195v
+  text: |-
+    Review findings fixed (one cause: the public store methods took two forms).
+    - ExpandedBlocksStore: each public method takes the TranscriptEntry, with a labeled first parameter: isExpanded(entry:), decision(for:), seed(entry:), toggle(entry:), expand(entry:), collapse(entry:). toggle(entry:) now starts from the policy value when the row has no decision. The DocC links in the type doc are ``toggle(entry:)`` and ``seed(entry:)``.
+    - The identifier form stays, internal, with labels: isExpanded(id:), decision(for:) on a String, expand(id:), collapse(id:). A comment in the store names the callers that cannot give an entry: the old thread path (ToolCallView of a ToolCallRecord, ReasoningView of a Reasoning record, the expand-all command over an AgentThread, which have ThreadItem ids) and JSONDisclosure (unknown values and unknown content blocks). toggle on a String had no caller, so it is gone.
+    - Sources callers: AgentCommandTarget.toggleExpandAll and isEachRowExpanded give each transcript entry to the store, and give the item id only for an AgentThread. ToolCallSource has a new setExpanded(to:in:) beside isExpanded(in:) (entry form for an entry, id form for a record); ToolCallView calls it. ReasoningBlock has private isExpanded(in:) and setExpanded(to:in:) that use the entry form when it has a policy entry (thought entry), else the id form. JSONDisclosure uses the internal id form.
+    - Tests: ExpandedBlocksStoreTests uses the entry form at each finding site; the seed test now checks decision(for: entry) == true/false, so it proves that seed records the value (isExpanded(entry:) gives the policy value with no seed too). New test toggleWithNoSeedFlipsThePolicyValue (RED first: no entry overload). The id-form tests stay in a "Row identifier" section (@testable import). AgentCommandsTests: the session test uses model.transcript entries with isExpanded(entry:), as the policy test does; the thread test is kept because it is the only cover of the AgentThread path of toggleExpandAll, and a ThreadItem has no transcript entry, so it uses isExpanded(id:) with a doc comment that says so. SessionEntryRowsHostedTests and ToolCallEntryViewHostedTests give the entry. ToolCallViewHostedTests, UnknownItemViewHostedTests and DiffViewHostedTests (record path) use @testable import and the id form.
+    - Note: the filtered build showed deprecation warnings for AgentThreadView(thread:actions:) in ToolCallViewHostedTests and UnknownItemViewHostedTests. They come from unchanged lines; the files compiled again because their imports changed. The full swift test run showed no such warning.
+  timestamp: 2026-10-07T04:20:30.309573+00:00
+- actor: claude-code
+  id: 01m4a9eycp7fy7ar11dhvv0qjp
+  text: |-
+    ### implement — changed
+    - evidence: 13 files. Sources: Infrastructure/ExpandedBlocksStore.swift, Commands/AgentCommandTarget.swift, Items/ToolCallSource.swift, Items/ToolCallView.swift, Items/ReasoningView.swift, Items/JSONDisclosure.swift. Tests: Infrastructure/ExpandedBlocksStoreTests.swift, Commands/AgentCommandsTests.swift, Items/SessionEntryRowsHostedTests.swift, Items/ToolCallEntryViewHostedTests.swift, Items/ToolCallViewHostedTests.swift, Items/UnknownItemViewHostedTests.swift, Diff/DiffViewHostedTests.swift. Commands: swift test --filter ExpandedBlocksStoreTests (RED, no entry overload); swift test --filter of the 9 affected suites (110 tests passed); swift test (1385 tests in 126 suites, 78 in 12, 1 in 1 passed; only the mlx-swift "missing creator" warning). 7 of 7 findings checked.
+    - next: /review
+  timestamp: 2026-10-07T04:20:33.814958+00:00
 depends_on:
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
 - 01M48MR5W3YAB8VFA4KTJZVCYN
@@ -64,3 +97,22 @@ The open state stays view state in the store. Only the type that the policy read
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 22:53)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 24 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/accessibility.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift:365` `completeness/invariant-propagation` — This test calls store.isExpanded($0.id) passing ThreadItem.id, but the parallel new test at line 539 calls store.isExpanded($0) passing TranscriptEntry objects directly. Both test the same command (toggleExpandAll) but use inconsistent models and APIs. Update the test to use TranscriptEntry objects from session.model.transcript (following the new test pattern at line 539) instead of ThreadItem from thread.items, and pass entry objects directly to store.isExpanded() without extracting .id.
+- [x] `Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift:368` `completeness/invariant-propagation` — Counterpart to line 365; same inconsistency with the new test pattern at line 543. Update along with line 365 to use TranscriptEntry objects.
+- [x] `Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:120` `completeness/invariant-propagation` — This line calls expand() with .rowKey (a string), contradicting the refactoring goal to key on transcript entry objects (per the commit message). The method should accept TranscriptEntry directly to match the pattern of seed() and be consistent across the API. Change to store.expand(entries.thought) to use the entry object directly.
+- [x] `Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:132` `completeness/invariant-propagation` — This collapse() call again uses .rowKey instead of the TranscriptEntry object, repeating the same incomplete refactoring pattern seen at lines 119–120. If ExpandedBlocksStore was refactored to key on entries, this method signature should accept entries uniformly. Change to store.collapse(entries.toolCall).
+- [x] `Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:147` `completeness/invariant-propagation` — Counterpart to line 146; this isExpanded() call uses .rowKey instead of the entry object, inconsistent with the predominant pattern in the test suite. Change to store.isExpanded(entries.thought).
+- [x] `Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:158` `completeness/invariant-propagation` — This line calls isExpanded() with .rowKey, repeating the same inconsistency seen at lines 146–147. Other tests use the entry object directly. Change to store.isExpanded(entries.toolCall).
+- [x] `Tests/AgentViewKitTests/Infrastructure/ExpandedBlocksStoreTests.swift:167` `completeness/invariant-propagation` — The toggle() call uses .rowKey at line 167, but the immediately following isExpanded() check at line 169 passes the entry object directly. This inconsistency within the same test suggests the API refactor to key on TranscriptEntry was incompletely applied to toggle(). Change to store.toggle(entries.toolCall).

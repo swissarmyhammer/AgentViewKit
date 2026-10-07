@@ -1,7 +1,10 @@
-import AgentViewKit
 import AgentViewKitTestSupport
 import SwiftUI
 import Testing
+
+// The unknown record of the old thread path has no transcript entry, so the
+// tests read the internal identifier form of the store.
+@testable import AgentViewKit
 
 @Suite(.serialized, .hostedSerially) @MainActor struct UnknownItemViewHostedTests {
   /// Makes an unknown record.
@@ -61,7 +64,7 @@ import Testing
   @Test func theStoreOfTheEnvironmentKeepsTheExpandedState() {
     let record = Self.unknownRecord(id: "unknown-store")
     let store = ExpandedBlocksStore()
-    store.expand(record.id)
+    store.expand(id: record.id)
     let harness = HostedViewHarness(
       UnknownItemView(record: record).environment(\.expandedBlocksStore, store))
     defer { harness.close() }

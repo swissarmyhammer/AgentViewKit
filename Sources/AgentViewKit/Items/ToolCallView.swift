@@ -373,11 +373,7 @@ public struct ToolCallView: View {
   ) -> some View {
     HStack(spacing: theme.spacing.s) {
       Button {
-        if expanded {
-          store.collapse(id)
-        } else {
-          store.expand(id)
-        }
+        source.setExpanded(to: !expanded, in: store)
       } label: {
         rowContent(expanded: expanded)
       }

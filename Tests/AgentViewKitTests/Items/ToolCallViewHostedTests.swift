@@ -1,9 +1,12 @@
 #if DEBUG
-  import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
   import SwiftUI
   import Testing
+
+  // The tool call record of the old thread path has no transcript entry, so
+  // the tests read the internal identifier form of the store.
+  @testable import AgentViewKit
 
   @Suite(.serialized, .hostedSerially) @MainActor struct ToolCallViewHostedTests {
     /// The longest time that a test waits for the view to change, in seconds.
@@ -43,7 +46,7 @@
     /// - Returns: The store.
     static func makeExpandedStore(for id: String) -> ExpandedBlocksStore {
       let store = ExpandedBlocksStore()
-      store.expand(id)
+      store.expand(id: id)
       return store
     }
 
@@ -133,12 +136,12 @@
       harness.pump()
       let toggleID = ToolCallView.toggleIdentifier(for: id)
       let bodyID = ToolCallView.bodyIdentifier(for: id)
-      #expect(!store.isExpanded(id))
+      #expect(!store.isExpanded(id: id))
 
       try harness.press(identifier: toggleID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: bodyID) != nil }
 
-      #expect(store.isExpanded(id))
+      #expect(store.isExpanded(id: id))
       #expect(harness.element(identifier: bodyID) != nil)
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: id)) != nil)
       #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: id)) != nil)
@@ -150,7 +153,7 @@
       try harness.press(identifier: toggleID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: bodyID) == nil }
 
-      #expect(!store.isExpanded(id))
+      #expect(!store.isExpanded(id: id))
       #expect(harness.element(identifier: bodyID) == nil)
     }
 

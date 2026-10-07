@@ -164,8 +164,9 @@
       await harness.pump(until: Self.waitTimeout) {
         SessionTranscriptViewHostedTests.rowKeys(in: harness).count == 1
       }
-      let key = try #require(model.transcript.first?.rowKey)
-      store.expand(key)
+      let entry = try #require(model.transcript.first)
+      let key = entry.rowKey
+      store.expand(entry: entry)
       await harness.pump(until: Self.waitTimeout) {
         SessionTranscriptViewHostedTests.showsParagraphs(of: Self.thoughtText, in: harness)
       }
@@ -194,9 +195,9 @@
         SessionTranscriptViewHostedTests.showsParagraphs(of: Self.thoughtText, in: harness)
       }
 
-      let key = try #require(session.model.transcript.first?.rowKey)
-      #expect(store.decision(for: key) == nil)
-      Self.expectCompleteThought(key: key, in: harness)
+      let entry = try #require(session.model.transcript.first)
+      #expect(store.decision(for: entry) == nil)
+      Self.expectCompleteThought(key: entry.rowKey, in: harness)
     }
 
     @Test func aThoughtChunkEvaluatesOnlyTheRowOfItsThought() async throws {
@@ -218,8 +219,8 @@
       await harness.pump(until: Self.waitTimeout) {
         SessionTranscriptViewHostedTests.rowKeys(in: harness).count == 1
       }
-      let key = try #require(session.model.transcript.first?.rowKey)
-      store.expand(key)
+      let entry = try #require(session.model.transcript.first)
+      store.expand(entry: entry)
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: LinkView.cardIdentifier) != nil
       }
@@ -379,8 +380,8 @@
       }
       #expect(Self.labels(in: harness).contains { $0.contains(Self.unknownType) })
 
-      let key = try #require(session.model.transcript.first?.rowKey)
-      store.expand(key)
+      let entry = try #require(session.model.transcript.first)
+      store.expand(entry: entry)
       await harness.pump(until: Self.waitTimeout) {
         Self.labels(in: harness).contains { $0.contains(Self.unknownNote) }
       }
@@ -397,8 +398,8 @@
 
       try await session.sendUpdate(#"{"sessionUpdate": "\#(Self.unknownType)", "note": "\#(Self.unknownNote)"}"#)
       await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
-      let key = try #require(session.model.transcript.first?.rowKey)
-      store.expand(key)
+      let entry = try #require(session.model.transcript.first)
+      store.expand(entry: entry)
       await harness.pump(until: Self.waitTimeout) { Self.labels(in: harness).contains { $0.contains(member) } }
 
       #expect(Self.labels(in: harness).contains { $0.contains(member) })

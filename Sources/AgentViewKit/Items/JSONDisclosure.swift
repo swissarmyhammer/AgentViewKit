@@ -39,7 +39,7 @@ struct JSONDisclosure: View {
     self.identifier = identifier
     let store = ExpandedBlocksStore()
     if isExpanded {
-      store.expand(id)
+      store.expand(id: id)
     }
     _ownStore = State(initialValue: store)
   }
@@ -49,12 +49,12 @@ struct JSONDisclosure: View {
     let id = id
     DisclosureGroup(
       isExpanded: Binding(
-        get: { store.isExpanded(id) },
+        get: { store.isExpanded(id: id) },
         set: { isExpanded in
           if isExpanded {
-            store.expand(id)
+            store.expand(id: id)
           } else {
-            store.collapse(id)
+            store.collapse(id: id)
           }
         }
       )
