@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4btmr5wc3je33mgbn6s7vgt
+  text: 'Note from ^83200vg: the first subtask of this card is done there, in a different form. `InitializeRequest.makeAgentViewKitRequest(info:terminalAuthRunner:)` takes the runner, not `terminalAuth: Bool`, and sets `capabilities.auth.terminal = {}` only when the runner is not `nil`. The test is `KitInitializeRequestTests.aHostWithATerminalAuthRunnerAdvertisesTerminalAuth`. The kit views read the runner from the `terminalAuthRunner` environment value and the Reconnect closure from the `agentReconnect` environment value (`AgentReconnect = @MainActor () async -> Void`). `AgentViewKitTestSupport` has `FakeTerminalAuthRunner(exitStatus:)` with `runs`, and `ScriptedSession.open(terminalAuthRunner:)`. The in-memory demo agent lists an `agent` auth method, so the demo thread shows the sign-in card after `initialize`.'
+  timestamp: 2026-10-07T18:40:04.284794+00:00
 depends_on:
 - 01M49GHXXC7CY7R1PRZ83200VG
 - 01M49HGF5KFW6185XJATDG13NJ

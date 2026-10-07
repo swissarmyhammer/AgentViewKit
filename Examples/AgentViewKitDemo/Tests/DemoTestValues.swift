@@ -15,8 +15,8 @@ enum DemoTestValues {
   static let elementTimeout: TimeInterval = 20
 }
 
-extension XCUIApplication {
-  /// The first element of any type with `identifier`.
+extension XCUIElement {
+  /// The first element of any type with `identifier` under this element.
   ///
   /// - Parameter identifier: The accessibility identifier.
   /// - Returns: The element.

@@ -72,20 +72,6 @@ struct NoopThreadActionsTests {
     #expect(actions.calls == [.login(id)])
   }
 
-  @Test func runTerminalAuthRecordsTheMethod() async throws {
-    let actions = NoopThreadActions()
-    let method = AuthMethodTerminal(
-      methodId: AuthMethodId(rawValue: "setup"),
-      name: "Set up",
-      args: ["--setup"],
-      env: [EnvVariable(name: "MODE", value: "login")]
-    )
-
-    try await actions.runTerminalAuth(method)
-
-    #expect(actions.calls == [.runTerminalAuth(method)])
-  }
-
   @Test func writeTerminalLineRecordsTheLineAndTheTerminal() async throws {
     let actions = NoopThreadActions()
     var received: [(String, TerminalID)] = []

@@ -1,6 +1,3 @@
-// A scoped import: the whole module has types, such as `AuthMethod`, that
-// this module also has.
-import struct FoundationModelsACP.AuthMethodTerminal
 import OSLog
 import SwiftUI
 
@@ -49,14 +46,6 @@ public protocol AgentThreadActions: AnyObject {
   /// - Parameter methodId: The identifier of the agent method.
   /// - Throws: The error of the login.
   func login(_ methodId: AuthMethodID) async throws
-
-  /// Runs the agent again with the extra arguments and environment of a
-  /// terminal method (plan.md §12).
-  ///
-  /// - Parameter method: The terminal method, as the `authMethods` of the
-  ///   connection model give it.
-  /// - Throws: The error of the process.
-  func runTerminalAuth(_ method: AuthMethodTerminal) async throws
 
   /// Writes a line of user input to the standard input of a running
   /// terminal auth process (plan.md §12).
@@ -112,10 +101,6 @@ public final class LoggingThreadActions: AgentThreadActions {
 
   public func login(_ methodId: AuthMethodID) async throws {
     log("login")
-  }
-
-  public func runTerminalAuth(_ method: AuthMethodTerminal) async throws {
-    log("runTerminalAuth")
   }
 
   public func writeTerminalLine(_ line: String, to terminal: TerminalID) async throws {

@@ -31,10 +31,26 @@ comments:
     - evidence: 2 files — Sources/AgentViewKit/Input/ThreadActionTasks.swift, Tests/AgentViewKitTests/HumanInTheLoop/PendingRequestsSessionModelHostedTests.swift; RED run (run 44 of 100 failed), GREEN run (100 of 100 pass), full `swift test` 1285 tests pass, load 45-50
     - next: /review
   timestamp: 2026-10-07T18:09:10.228460+00:00
+- actor: claude-code
+  id: 01m4bsc0aejky32nw7n0fsg536
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c87be2a), 2 files reviewed, 0 findings (confirmed 0, refuted 0, attempted 7, failed 0); 4 .kanban files not reviewed because of .reviewignore
+    - next: the task is in done
+  timestamp: 2026-10-07T18:17:49.134674+00:00
+- actor: claude-code
+  id: 01m4bsc1zwvvdfj6gxnw9b9yxa
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — answerPermission awaits selectPermission before the comment prompt in one main-actor task; SessionModel.sendPrompt(text:) shared; wire frame-order test, RED 1 of 100, GREEN 100 of 100
+    - test: green — swift test, 1285 passed (load about 46)
+    - commit: c87be2a
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T18:17:50.844842+00:00
 depends_on:
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8b80
 title: Call the async selectPermission and cancelPermission of the client model
 ---
 ## What

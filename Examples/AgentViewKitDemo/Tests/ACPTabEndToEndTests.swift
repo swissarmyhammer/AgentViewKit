@@ -126,15 +126,20 @@ final class ACPTabEndToEndTests: XCTestCase {
 
     app.element(Self.settingsButton).click()
 
-    XCTAssertTrue(waitForElement(Self.agentAuth), "The sheet has no AgentAuthView.")
+    // The in-memory agent lists an auth method, so the thread also shows an
+    // auth card while `authState` is `.required`. Thus the test finds the
+    // card of the sheet in the sheet.
+    let sheet = app.sheets.firstMatch
+    XCTAssertTrue(sheet.waitForExistence(timeout: DemoTestValues.elementTimeout), "No settings sheet shows.")
     XCTAssertTrue(
-      app.element(Self.connectionsEmpty).exists,
+      sheet.element(Self.agentAuth).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      "The sheet has no AgentAuthView.")
+    XCTAssertTrue(
+      sheet.element(Self.connectionsEmpty).exists,
       "ConnectionsView shows an MCP server. The demo agent reports no MCP server.")
-    let done = app.element(Self.settingsDone)
+    let done = sheet.element(Self.settingsDone)
     XCTAssertTrue(done.exists)
     done.click()
-    XCTAssertTrue(
-      app.element(Self.agentAuth).waitForNonExistence(timeout: DemoTestValues.elementTimeout),
-      "The sheet did not close.")
+    XCTAssertTrue(sheet.waitForNonExistence(timeout: DemoTestValues.elementTimeout), "The sheet did not close.")
   }
 }

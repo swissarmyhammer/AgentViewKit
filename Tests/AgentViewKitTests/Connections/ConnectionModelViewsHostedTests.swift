@@ -13,8 +13,8 @@ import Testing
 /// Each test drives a scripted agent, and the views read the model directly.
 /// The connection banner reads `state`, the header reads the agent info of the
 /// `initialize` result, the auth card reads `authMethods` and `authState`, and
-/// the thread view opens the auth card when the last error entry of the
-/// transcript has the code `-32000`.
+/// the thread view opens the auth card while `authState` asks for a sign-in,
+/// for example after an answer with the code `-32000`.
 @Suite(.serialized, .hostedSerially) @MainActor struct ConnectionModelViewsHostedTests {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
@@ -177,18 +177,19 @@ import Testing
     let harness = Self.mountAuth(session.connection)
     defer { harness.close() }
     harness.pump()
-    #expect(harness.element(identifier: AgentAuthView.loginErrorIdentifier) == nil)
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
     try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))
     await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.loginErrorIdentifier) != nil
+      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
         && harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.isEnabled == true
     }
 
     #expect(
       session.connection.authState
         == .failed(AuthFailure(operation: .login(Self.agentMethodID), reason: .request(Self.scriptedRefusal))))
-    #expect(harness.element(identifier: AgentAuthView.loginErrorIdentifier)?.label == Self.scriptedRefusal.message)
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier)?.label == Self.scriptedRefusal.message)
+    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Sign-in failed")
     #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.isEnabled == true)
   }
 
@@ -214,8 +215,32 @@ import Testing
 
   // MARK: - Authentication required
 
+  /// Opens a scripted session and signs in with the agent method, so that
+  /// `authState` is `.authenticated` and the thread shows no login card.
+  ///
+  /// - Parameter configure: Changes the agent before it starts.
+  /// - Returns: The scripted session.
+  static func openSignedInSession(configure: (ScriptedWireAgent) -> Void) async throws -> ScriptedSession {
+    let session = try await openSession(configure: configure)
+    try await session.connection.login(LoginAuthRequest(methodId: agentMethodID))
+    return session
+  }
+
+  @Test func theRequiredAuthStateOfInitializeOpensTheLoginViewWithNoErrorEntry() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mountThread(session)
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(session.connection.authState == .required(session.connection.authMethods))
+    #expect(session.model.transcript.isEmpty)
+    #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
+    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
+  }
+
   @Test func aPromptThatFailsWithAuthenticationRequiredOpensTheLoginView() async throws {
-    let session = try await Self.openSession {
+    let session = try await Self.openSignedInSession {
       $0.failingMethods = [ScriptedSession.promptMethod]
       $0.errorCodes[ScriptedSession.promptMethod] = Self.authenticationRequiredCode
     }
@@ -228,12 +253,13 @@ import Testing
     _ = try? await session.model.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
     await harness.pump(until: Self.waitTimeout) { harness.element(identifier: AgentAuthView.identifier) != nil }
 
+    #expect(session.connection.authState == .required(session.connection.authMethods))
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
     #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
   }
 
   @Test func aPromptThatFailsWithAnotherCodeDoesNotOpenTheLoginView() async throws {
-    let session = try await Self.openSession { $0.failingMethods = [ScriptedSession.promptMethod] }
+    let session = try await Self.openSignedInSession { $0.failingMethods = [ScriptedSession.promptMethod] }
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }

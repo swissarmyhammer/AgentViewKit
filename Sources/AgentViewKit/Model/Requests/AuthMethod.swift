@@ -50,9 +50,8 @@ public nonisolated enum AuthMethod: Sendable, Hashable {
 
   /// A method that the client runs as a separate interactive process.
   ///
-  /// The fields follow the ACP v2 `AuthMethodTerminal`.
-  /// `AgentThreadActions.runTerminalAuth(_:)` takes this type. A zero exit
-  /// status of the process tells that the authentication is a success.
+  /// The fields follow the ACP v2 `AuthMethodTerminal`. A zero exit status
+  /// of the process tells that the authentication is a success.
   public struct Terminal: Sendable, Hashable, Identifiable {
     /// The identifier of the method.
     public var id: AuthMethodID

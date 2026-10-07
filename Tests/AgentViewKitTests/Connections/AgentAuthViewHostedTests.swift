@@ -10,10 +10,11 @@ import Testing
 
 /// The auth card over a `ConnectionModel` (update.md §4.3).
 ///
-/// The card reads `authMethods`, `authState` and `canLogout` of the model of a
-/// scripted agent, and calls `login(_:)` and `logout(_:)`. A terminal method
-/// still runs through the thread actions, because the model has no terminal
-/// auth runner.
+/// The card reads `authMethods`, `authState`, `canLogin` and `canLogout` of
+/// the model of a scripted agent, and calls `login(_:)`, `logout(_:)` and
+/// `loginWithTerminal(_:runner:)`. A terminal method runs through the
+/// `terminalAuthRunner` environment value, and the Reconnect button calls the
+/// `agentReconnect` environment value.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentAuthViewHostedTests {
   /// The id of the agent method in the tests.
   static let agentMethodID = AuthMethodId(rawValue: "agent-login")
@@ -39,15 +40,21 @@ import Testing
   /// and one method type that the kit does not know.
   static let allMethods = "[\(agentMethodJSON), \(terminalMethodJSON), \(unknownMethodJSON)]"
 
+  /// The methods of an agent that gives only a terminal method, so the
+  /// agent serves no `auth/login`.
+  static let terminalOnlyMethods = "[\(terminalMethodJSON)]"
+
   /// The methods of an agent that serves no `auth/logout`: no method. The
   /// client model follows the ACP rule: an agent that lists an auth method of
   /// any type serves `auth/logout`.
   static let noMethods = "[]"
 
-  /// The terminal method of the model, which the thread actions get with no
-  /// change.
-  static let terminalMethod = AuthMethodTerminal(
-    methodId: terminalMethodID, name: "Terminal login", args: ["--login"])
+  /// The run that the model gives to the runner for the terminal method: the
+  /// `args` of the method and no environment variable.
+  static let terminalRun = FakeTerminalAuthRunner.Run(arguments: ["--login"], environment: [:])
+
+  /// The exit status of a terminal process that succeeded.
+  static let successStatus: Int32 = 0
 
   /// The method of a logout request.
   static let logoutMethod = "auth/logout"
@@ -74,16 +81,31 @@ import Testing
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
+  /// A host closure that counts its calls, for the Reconnect button.
+  @MainActor final class ReconnectRecorder {
+    /// The number of calls.
+    private(set) var callCount = 0
+
+    /// Records one call.
+    func reconnect() async {
+      callCount += 1
+    }
+  }
+
   /// Opens a scripted session whose agent gives `authMethods`.
   ///
   /// - Parameters:
   ///   - authMethods: The JSON text of the `authMethods` array.
+  ///   - runner: The runner of the host, or `nil`. With a runner, the
+  ///     `initialize` request advertises `auth.terminal`.
   ///   - configure: Changes the agent before it starts.
   /// - Returns: The scripted session.
   static func openSession(
-    authMethods: String = allMethods, configure: (ScriptedWireAgent) -> Void = { _ in }
+    authMethods: String = allMethods,
+    runner: (any TerminalAuthRunner)? = nil,
+    configure: (ScriptedWireAgent) -> Void = { _ in }
   ) async throws -> ScriptedSession {
-    try await ScriptedSession.open {
+    try await ScriptedSession.open(terminalAuthRunner: runner) {
       $0.results["initialize"] = ScriptedSession.makeInitializeResult(
         info: ScriptedSession.agentInfo, authMethods: authMethods)
       configure($0)
@@ -95,16 +117,40 @@ import Testing
   ///
   /// - Parameters:
   ///   - session: The scripted session.
-  ///   - actions: The actions that the terminal rows call.
+  ///   - actions: The actions that the terminal input field calls.
   ///   - thread: The thread of the environment, or `nil`.
+  ///   - runner: The terminal auth runner of the environment, or `nil`.
+  ///   - reconnect: The Reconnect closure of the environment, or `nil`.
   /// - Returns: The harness.
   static func harness(
-    _ session: ScriptedSession, actions: NoopThreadActions = NoopThreadActions(), thread: AgentThread? = nil
+    _ session: ScriptedSession,
+    actions: NoopThreadActions = NoopThreadActions(),
+    thread: AgentThread? = nil,
+    runner: (any TerminalAuthRunner)? = nil,
+    reconnect: AgentReconnect? = nil
   ) -> HostedViewHarness<some View> {
     threadViewHarness(size: cardSize, actions: actions, thread: thread) {
       AgentAuthView(connection: session.connection)
         .environment(\.sessionModel, session.model)
+        .terminalAuthRunner(runner)
+        .agentReconnect(reconnect)
     }
+  }
+
+  /// Presses the Run button of the terminal method, and waits until the
+  /// model records the end of the run.
+  ///
+  /// - Parameters:
+  ///   - harness: The harness of the card.
+  ///   - session: The scripted session of the card.
+  static func pressRunAndWait(
+    in harness: HostedViewHarness<some View>, of session: ScriptedSession
+  ) async throws {
+    try harness.press(identifier: AgentAuthView.runIdentifier(for: terminalMethodID))
+    await harness.pump(until: waitTimeout) {
+      session.connection.authState != .required(session.connection.authMethods)
+    }
+    harness.pump()
   }
 
   // MARK: - Layout
@@ -129,7 +175,7 @@ import Testing
   @Test func anAgentRowHasASignInButtonAndNoRunButton() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let harness = Self.harness(session)
+    let harness = Self.harness(session, runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
     defer { harness.close() }
     harness.pump()
 
@@ -137,31 +183,133 @@ import Testing
     #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.agentMethodID)) == nil)
   }
 
+  @Test func anAgentWithOnlyATerminalMethodShowsNoSignInButton() async throws {
+    let session = try await Self.openSession(authMethods: Self.terminalOnlyMethods)
+    defer { session.close() }
+    let harness = Self.harness(session, runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(!session.connection.canLogin)
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
+    #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID)) != nil)
+    let signInButtons = harness.accessibilityElements().filter {
+      $0.identifier?.hasPrefix(AgentAuthView.signInIdentifierPrefix) == true
+    }
+    #expect(signInButtons.isEmpty)
+  }
+
   // MARK: - Terminal method
 
-  @Test func aTerminalRowCallsRunTerminalAuthAndShowsATerminalWithAnInputField() async throws {
+  @Test func withNoTerminalAuthRunnerATerminalRowHasNoRunButton() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.harness(session)
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
+    #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID)) == nil)
+  }
+
+  @Test func theRunButtonGivesTheArgumentsOfTheMethodToTheRunner() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let session = try await Self.openSession(runner: runner)
+    defer { session.close() }
+    let harness = Self.harness(session, runner: runner)
+    defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.terminalMethodID)) == nil)
+
+    try await Self.pressRunAndWait(in: harness, of: session)
+
+    #expect(runner.runs == [Self.terminalRun])
+    #expect(session.agent.messages(method: ConnectionModelViewsHostedTests.loginMethod).isEmpty)
+  }
+
+  @Test func aRunnerWithNoExitStatusShowsTheTerminalFailureText() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: nil)
+    let session = try await Self.openSession(runner: runner)
+    defer { session.close() }
+    let harness = Self.harness(session, runner: runner)
+    defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
+
+    try await Self.pressRunAndWait(in: harness, of: session)
+    await harness.pump(until: Self.waitTimeout) {
+      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
+    }
+
+    #expect(
+      session.connection.authState
+        == .failed(
+          AuthFailure(
+            operation: .terminalLogin(Self.terminalMethodID), reason: .terminal(exitStatus: nil, message: nil))))
+    #expect(
+      harness.element(identifier: AgentAuthView.failureIdentifier)?.label
+        == "The sign-in process ended with no exit status.")
+    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Terminal sign-in failed")
+    #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) == nil)
+  }
+
+  @Test func anExitStatusOfZeroAsksForAReconnectAndTheButtonCallsTheHostClosure() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let recorder = ReconnectRecorder()
+    let session = try await Self.openSession(runner: runner)
+    defer { session.close() }
+    let harness = Self.harness(session, runner: runner, reconnect: recorder.reconnect)
+    defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) == nil)
+
+    try await Self.pressRunAndWait(in: harness, of: session)
+    await harness.pump(until: Self.waitTimeout) {
+      harness.element(identifier: AgentAuthView.reconnectIdentifier) != nil
+    }
+
+    #expect(session.connection.authState == .reconnectRequired(Self.terminalMethodID))
+    #expect(
+      harness.element(identifier: AgentAuthView.reconnectMessageIdentifier)?.label
+        == "Reconnect to the agent to finish the sign-in")
+    #expect(recorder.callCount == 0)
+
+    try harness.press(identifier: AgentAuthView.reconnectIdentifier)
+    await harness.pump(until: Self.waitTimeout) { recorder.callCount > 0 }
+    harness.pump()
+
+    #expect(recorder.callCount == 1)
+  }
+
+  @Test func withNoReconnectClosureTheCardShowsOnlyTheReconnectText() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let session = try await Self.openSession(runner: runner)
+    defer { session.close() }
+    let harness = Self.harness(session, runner: runner)
+    defer { harness.close() }
+    harness.pump()
+
+    try await Self.pressRunAndWait(in: harness, of: session)
+    await harness.pump(until: Self.waitTimeout) {
+      harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil
+    }
+
+    #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil)
+    #expect(harness.element(identifier: AgentAuthView.reconnectIdentifier) == nil)
+  }
+
+  @Test func aTerminalRowShowsTheRecordOfTheThreadWithAnInputField() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     let actions = NoopThreadActions()
     let thread = AgentThread()
     let terminalID = TerminalRecord.authID(for: Self.terminalMethodID)
-    actions.onRunTerminalAuth = { _ in
-      thread.apply(
-        .upsertTerminal(
-          TerminalPatch(id: terminalID, command: .value(Self.terminalCommand), output: .value(Data()))))
-    }
+    thread.apply(
+      .upsertTerminal(TerminalPatch(id: terminalID, command: .value(Self.terminalCommand), output: .value(Data()))))
     let harness = Self.harness(session, actions: actions, thread: thread)
     defer { harness.close() }
     harness.pump()
 
-    #expect(harness.element(identifier: TerminalView.identifier) == nil)
-    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.terminalMethodID)) == nil)
-    try harness.press(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID))
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: TerminalView.inputIdentifier) != nil
-    }
-
-    #expect(actions.calls == [.runTerminalAuth(Self.terminalMethod)])
     #expect(
       harness.element(identifier: TerminalView.identifier)?.label
         == "Terminal, \(Self.terminalCommand)")
@@ -170,27 +318,19 @@ import Testing
     try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
     harness.type(Self.inputLine)
     try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { actions.calls.count == 2 }
+    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
 
-    #expect(
-      actions.calls == [
-        .runTerminalAuth(Self.terminalMethod), .writeTerminalLine(Self.inputLine, terminalID),
-      ])
+    #expect(actions.calls == [.writeTerminalLine(Self.inputLine, terminalID)])
   }
 
   @Test func aTerminalRowWithNoThreadShowsNoTerminal() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let actions = NoopThreadActions()
-    let harness = Self.harness(session, actions: actions)
+    let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
 
-    try harness.press(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID))
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-    harness.pump()
-
-    #expect(actions.calls == [.runTerminalAuth(Self.terminalMethod)])
+    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
   }
 
@@ -226,24 +366,25 @@ import Testing
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
   }
 
-  @Test func aFailedSignOutAddsAnErrorEntryToTheSession() async throws {
+  @Test func aFailedSignOutShowsItsFailureTextAndAddsNoErrorEntry() async throws {
     let session = try await Self.openSession { $0.failingMethods = [Self.logoutMethod] }
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
     try harness.press(identifier: AgentAuthView.signOutIdentifier)
-    // The error entry and the end of the progress come in one main-actor
-    // turn, but the view draws the enabled button in a later pass.
+    // The failure and the end of the progress come in one main-actor turn,
+    // but the view draws the enabled button in a later pass.
     await harness.pump(until: Self.waitTimeout) {
-      !session.model.transcript.isEmpty
+      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
         && harness.element(identifier: AgentAuthView.signOutIdentifier)?.isEnabled == true
     }
 
-    let lastEntry = try #require(session.model.transcript.last)
-    let message: String? = if case .error(let entry) = lastEntry { entry.message } else { nil }
-    #expect(message == Self.scriptedErrorMessage)
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier)?.label == Self.scriptedErrorMessage)
+    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Sign-out failed")
+    #expect(session.model.transcript.isEmpty)
     #expect(harness.element(identifier: AgentAuthView.signOutIdentifier)?.isEnabled == true)
   }
 }

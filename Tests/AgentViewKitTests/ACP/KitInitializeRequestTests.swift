@@ -9,7 +9,8 @@ import Testing
 /// Tests of the `initialize` request that a kit host sends.
 ///
 /// The request advertises only the capabilities that the kit views can show:
-/// the form and the URL elicitation modes, and no `auth` capability.
+/// the form and the URL elicitation modes. It advertises `auth.terminal` only
+/// when the host gives a terminal auth runner.
 struct KitInitializeRequestTests {
   /// The JSON value of an empty capability object, such as `{}`.
   static let emptyCapability = AgentViewKit.JSONValue.object([:])
@@ -57,5 +58,16 @@ struct KitInitializeRequestTests {
     #expect(request.info.version == Self.demoVersion)
     #expect(request.protocolVersion == ACPClient.supportedProtocolVersion)
     try Self.expectOnlyKitCapabilities(in: AgentViewKit.JSONValue(encoding: request))
+  }
+
+  @Test func aHostWithATerminalAuthRunnerAdvertisesTerminalAuth() async throws {
+    let session = try await ScriptedSession.open(terminalAuthRunner: FakeTerminalAuthRunner(exitStatus: nil))
+    defer { session.close() }
+
+    let frame = try #require(session.agent.messages(method: "initialize").first)
+    let capabilities = try #require(frame["params"]?["capabilities"])
+    #expect(capabilities["auth"]?["terminal"] == Self.emptyCapability)
+    #expect(capabilities["elicitation"]?["form"] == Self.emptyCapability)
+    #expect(capabilities["elicitation"]?["url"] == Self.emptyCapability)
   }
 }

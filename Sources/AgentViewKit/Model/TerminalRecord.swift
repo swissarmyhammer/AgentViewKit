@@ -114,9 +114,9 @@ extension TerminalRecord {
   /// The id of the record that shows the terminal auth process of a method
   /// (plan.md §12).
   ///
-  /// A source that runs `AgentThreadActions.runTerminalAuth(_:)` writes the
-  /// output of the process to the record with this id. `AgentAuthView` finds
-  /// the record with the same id.
+  /// A host whose `TerminalAuthRunner` runs the process of a terminal method
+  /// can write the output of the process to the record with this id.
+  /// `AgentAuthView` finds the record with the same id.
   ///
   /// - Parameter methodID: The identifier of the terminal method, as the
   ///   `authMethods` of the connection model give it.

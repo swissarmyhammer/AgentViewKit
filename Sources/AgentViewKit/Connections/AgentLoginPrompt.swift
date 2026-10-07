@@ -1,42 +1,47 @@
-import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
 /// The login card that a thread shows when the agent requires
 /// authentication (update.md §9.4 "Error `-32000` does not start a login").
 ///
-/// When a request of the session fails, `SessionModel` adds an error entry
-/// with the JSON-RPC code of the failure to its transcript. The kit keeps no
-/// error list. The body reads the last entry of `SessionModel.transcript`:
-/// while it is an error entry with the code `-32000` (authentication
-/// required), the view shows an ``AgentAuthView`` of the connection model.
-/// The next entry of the transcript, for example the next prompt, removes
-/// the card.
+/// The view binds directly to `ConnectionModel.authState`. The model sets
+/// `.required(authMethods)` from the `initialize` answer, after a logout, and
+/// after each answer of the agent with the code `-32000` (authentication
+/// required). The kit does not read the transcript to find that a sign-in is
+/// necessary. While `authState` asks for a sign-in, the view shows an
+/// ``AgentAuthView`` of the connection model:
+///
+/// - `.required`: the user must sign in.
+/// - `.failed`: an auth operation failed, and the card shows its text.
+/// - `.reconnectRequired`: a terminal sign-in needs a new connection.
 ///
 /// The card gets the session model in the
 /// ``SwiftUI/EnvironmentValues/sessionModel`` environment value, so that a
-/// failed auth call adds its error entry to this transcript.
+/// failed write to a terminal sign-in process adds its error entry to this
+/// transcript.
 struct AgentLoginPrompt: View {
-  /// The session model whose transcript tells that a login is necessary.
+  /// The session model of the thread.
   let session: SessionModel
 
-  /// The connection model that the login card signs in to.
+  /// The connection model whose auth state tells that a login is necessary.
   let connection: ConnectionModel
 
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
-    if requiresAuthentication {
+    if requiresSignIn {
       AgentAuthView(connection: connection)
         .environment(\.sessionModel, session)
         .padding(theme.spacing.m)
     }
   }
 
-  /// Whether the last entry of the transcript is an error entry with the
-  /// code `-32000` (authentication required).
-  private var requiresAuthentication: Bool {
-    guard case .error(let entry)? = session.transcript.last else { return false }
-    return entry.code == .authenticationRequired
+  /// Whether `authState` asks for a sign-in: `.required`, `.failed` or
+  /// `.reconnectRequired`.
+  private var requiresSignIn: Bool {
+    switch connection.authState {
+    case .required, .failed, .reconnectRequired: true
+    case .unknown, .notRequired, .authenticated: false
+    }
   }
 }

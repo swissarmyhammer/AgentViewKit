@@ -1,46 +1,57 @@
 import FoundationModelsACP
 import FoundationModelsACPClient
-import OSLog
 import SwiftUI
+
+/// A host closure that connects to the agent again after a terminal sign-in.
+///
+/// After a successful `ConnectionModel.loginWithTerminal(_:runner:)`, the
+/// `authState` of the model is `.reconnectRequired(methodId)`. ACP v2 tells
+/// the client to connect again: the host makes a new transport, calls
+/// `ConnectionModel.connect(over:)` and `initialize(_:)`, and then retries the
+/// operation that needed the sign-in. Only the host can make a transport, so
+/// the kit calls this closure and keeps no transport and no failed operation.
+public typealias AgentReconnect = @MainActor () async -> Void
 
 /// The card that signs the user in to an ACP agent (plan.md §9 E2, §12;
 /// update.md §4.3 "Initialize and auth").
 ///
 /// The card binds directly to a `ConnectionModel`. The body reads
-/// `authMethods`, `authState` and `canLogout` of the model, and keeps no copy
-/// of them:
+/// `authMethods`, `authState`, `canLogin` and `canLogout` of the model, and
+/// keeps no copy of them:
 ///
-/// - Each `agent` method of `authMethods` has a row with a Sign In button.
-///   The button calls `ConnectionModel.login(_:)` with the id of the method.
-/// - Each `terminal` method has a row with a Run button. The model has no
-///   terminal auth runner, so the button calls
-///   ``AgentThreadActions/runTerminalAuth(_:)`` of the `threadActions`
-///   environment value, and never calls `login`. When the thread has the
-///   record with the id ``TerminalRecord/authID(for:)`` of the method, the row
-///   shows the record in a ``TerminalView`` with an input field. Each line
-///   that the user types goes to
+/// - When `canLogin` is `true`, each `agent` method of `authMethods` has a row
+///   with a Sign In button. The button calls `ConnectionModel.login(_:)` with
+///   the id of the method.
+/// - Each `terminal` method has a row. When the
+///   ``SwiftUI/EnvironmentValues/terminalAuthRunner`` environment value has a
+///   runner, the row has a Run button. The button calls
+///   `ConnectionModel.loginWithTerminal(_:runner:)` with that runner, and
+///   never calls `login`. With no runner, the row has no button. When the
+///   thread has the record with the id ``TerminalRecord/authID(for:)`` of the
+///   method, the row shows the record in a ``TerminalView`` with an input
+///   field. Each line that the user types goes to
 ///   ``AgentThreadActions/writeTerminalLine(_:to:)``.
 /// - A method type that the kit does not know has no row.
 /// - While `authState` is `.authenticated`, the card shows no method row.
-/// - While `authState` is `.failed` for an `auth/login` request that the
-///   agent refused, the card shows the message of the error of the agent
-///   under the rows.
+/// - While `authState` is `.failed(AuthFailure)`, the card shows the
+///   operation that failed and the text of the reason under the rows.
+/// - While `authState` is `.reconnectRequired`, the card tells the user to
+///   connect to the agent again. When the
+///   ``SwiftUI/EnvironmentValues/agentReconnect`` environment value has a
+///   closure, a Reconnect button calls it.
 /// - When `canLogout` is `true`, a Sign Out button calls
 ///   `ConnectionModel.logout(_:)`. Otherwise the button is not shown.
 ///
 /// While a call runs, its button is disabled and shows a `ProgressView`. This
-/// flag is view state. A failure that the model does not record, for example
-/// a failed logout or a closed connection, goes to the log, and adds an error
-/// entry to the transcript of the ``SwiftUI/EnvironmentValues/sessionModel``
-/// environment value when the environment has one. A cancelled call records
-/// nothing.
+/// flag is view state. The model records each failure of a call that it can
+/// record in `authState`, and the card shows the failure from there. The card
+/// keeps no failure of its own.
 ///
 /// The host puts the card in its settings surface next to
-/// ``ConnectionsView``. ``AgentThreadView`` shows the card when a request of
-/// the session fails with the code `-32000` (authentication required). The
-/// card finds terminal records in the `thread` argument, else in the
-/// ``SwiftUI/EnvironmentValues/agentThread`` environment value. With no
-/// thread, a terminal row shows no terminal.
+/// ``ConnectionsView``. ``AgentThreadView`` shows the card while `authState`
+/// asks for a sign-in. The card finds terminal records in the `thread`
+/// argument, else in the ``SwiftUI/EnvironmentValues/agentThread`` environment
+/// value. With no thread, a terminal row shows no terminal.
 public struct AgentAuthView: View {
   /// The accessibility identifier of the card.
   public static let identifier = "agent-auth"
@@ -52,17 +63,21 @@ public struct AgentAuthView: View {
   public static let signInIdentifierPrefix = "agent-auth-sign-in-"
   /// The start of the accessibility identifier of each Run button.
   public static let runIdentifierPrefix = "agent-auth-run-"
-  /// The accessibility identifier of the text of a login that the agent
-  /// refused.
-  public static let loginErrorIdentifier = "agent-auth-login-error"
+  /// The accessibility identifier of the operation of a failure in
+  /// `authState`.
+  public static let failureTitleIdentifier = "agent-auth-failure-title"
+  /// The accessibility identifier of the text of a failure in `authState`.
+  public static let failureIdentifier = "agent-auth-failure"
+  /// The accessibility identifier of the text that tells the user to connect
+  /// to the agent again.
+  public static let reconnectMessageIdentifier = "agent-auth-reconnect-message"
+  /// The accessibility identifier of the Reconnect button.
+  public static let reconnectIdentifier = "agent-auth-reconnect"
   /// The accessibility identifier of the Sign Out button.
   public static let signOutIdentifier = "agent-auth-sign-out"
 
   /// The symbol of the title.
   static let symbol = "person.badge.key"
-
-  /// The log of the auth calls that fail.
-  private static let logger = Logger(subsystem: "AgentViewKit", category: "AgentAuthView")
 
   /// A call that the card runs, as the key of its progress.
   enum Operation: Hashable {
@@ -70,6 +85,8 @@ public struct AgentAuthView: View {
     case method(AuthMethodId)
     /// The Sign Out call.
     case signOut
+    /// The Reconnect call.
+    case reconnect
   }
 
   /// A method that the card shows.
@@ -115,6 +132,8 @@ public struct AgentAuthView: View {
   @Environment(\.threadActions) private var actions
   @Environment(\.agentThread) private var environmentThread
   @Environment(\.sessionModel) private var session
+  @Environment(\.terminalAuthRunner) private var runner
+  @Environment(\.agentReconnect) private var reconnect
   @Environment(\.agentTheme) private var theme
 
   /// Makes the card.
@@ -159,16 +178,60 @@ public struct AgentAuthView: View {
 
   /// The rows of `methods`, in order, with no row for an unknown method.
   ///
-  /// - Parameter methods: The auth methods of the model.
-  /// - Returns: One row for each agent and terminal method.
-  static func rows(of methods: [FoundationModelsACP.AuthMethod]) -> [Row] {
+  /// When `canLogin` is `false`, an `agent` method has no row, because the
+  /// agent serves no `auth/login`.
+  ///
+  /// - Parameters:
+  ///   - methods: The auth methods of the model.
+  ///   - canLogin: The `canLogin` flag of the model.
+  /// - Returns: One row for each terminal method, and one row for each agent
+  ///   method when `canLogin` is `true`.
+  private static func rows(of methods: [FoundationModelsACP.AuthMethod], canLogin: Bool) -> [Row] {
     methods.compactMap { method in
       switch method {
-      case .agent(let agent): .agent(agent)
+      case .agent(let agent): canLogin ? .agent(agent) : nil
       case .terminal(let terminal): .terminal(terminal)
       case .unknown: nil
       }
     }
+  }
+
+  /// The title of a failure: the operation that failed.
+  ///
+  /// - Parameter operation: The operation of the failure.
+  /// - Returns: The text that names the operation.
+  private static func title(of operation: AuthFailure.Operation) -> String {
+    switch operation {
+    case .login: String(localized: "Sign-in failed")
+    case .logout: String(localized: "Sign-out failed")
+    case .terminalLogin: String(localized: "Terminal sign-in failed")
+    }
+  }
+
+  /// The text of the reason of a failure.
+  ///
+  /// - Parameter reason: The reason of the failure.
+  /// - Returns: The message of the JSON-RPC error, or the text of the end of
+  ///   the terminal process.
+  private static func text(of reason: AuthFailure.Reason) -> String {
+    switch reason {
+    case .request(let error): error.message
+    case .terminal(let exitStatus, let message): terminalText(exitStatus: exitStatus, message: message)
+    }
+  }
+
+  /// The text of a terminal process that failed.
+  ///
+  /// - Parameters:
+  ///   - exitStatus: The exit status of the process, or `nil` when the
+  ///     process did not exit normally.
+  ///   - message: The message of the model, or `nil`.
+  /// - Returns: The message, when there is one. Otherwise a text that gives
+  ///   the exit status, or that tells that there is none.
+  private static func terminalText(exitStatus: Int32?, message: String?) -> String {
+    if let message { return message }
+    guard let exitStatus else { return String(localized: "The sign-in process ended with no exit status.") }
+    return String(localized: "The sign-in process ended with exit status \(exitStatus).")
   }
 
   /// The thread that has the terminal records.
@@ -182,16 +245,17 @@ public struct AgentAuthView: View {
     return true
   }
 
-  /// The error of the last login that the agent refused, or `nil`.
-  ///
-  /// The value reads the `AuthFailure` of `authState` only for a failed
-  /// `auth/login` request. Other failures have no view here yet.
-  private var loginRefusal: RequestError? {
-    guard case .failed(let failure) = connection.authState,
-      case .login = failure.operation,
-      case .request(let refusal) = failure.reason
-    else { return nil }
-    return refusal
+  /// The failure of the last auth operation, or `nil`.
+  private var failure: AuthFailure? {
+    guard case .failed(let failure) = connection.authState else { return nil }
+    return failure
+  }
+
+  /// Whether the host must connect to the agent again to finish a terminal
+  /// sign-in: `authState` is `.reconnectRequired`.
+  private var isReconnectRequired: Bool {
+    guard case .reconnectRequired = connection.authState else { return false }
+    return true
   }
 
   // MARK: Body
@@ -203,12 +267,15 @@ public struct AgentAuthView: View {
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)
       if !isAuthenticated {
-        ForEach(Self.rows(of: connection.authMethods)) { row in
+        ForEach(Self.rows(of: connection.authMethods, canLogin: connection.canLogin)) { row in
           rowView(row)
         }
       }
-      if let loginRefusal {
-        errorText(loginRefusal.message, identifier: Self.loginErrorIdentifier)
+      if let failure {
+        failureView(failure)
+      }
+      if isReconnectRequired {
+        reconnectView
       }
       if connection.canLogout {
         signOutRow
@@ -255,7 +322,8 @@ public struct AgentAuthView: View {
   }
 
   /// The Sign In button of an agent method, or the Run button of a terminal
-  /// method.
+  /// method. A terminal method has no button when the environment has no
+  /// terminal auth runner.
   ///
   /// - Parameter row: The method of the button.
   /// - Returns: The button.
@@ -268,15 +336,54 @@ public struct AgentAuthView: View {
         accessibilityLabel: String(localized: "Sign in with \(method.name)"),
         identifier: Self.signInIdentifier(for: method.methodId)
       ) { [connection] in
-        try await Self.login(method.methodId, on: connection)
+        try await connection.login(LoginAuthRequest(methodId: method.methodId))
       }
     case .terminal(let method):
-      actionButton(
-        String(localized: "Run"), operation: .method(method.methodId),
-        accessibilityLabel: String(localized: "Run \(method.name)"),
-        identifier: Self.runIdentifier(for: method.methodId)
-      ) { [actions] in
-        try await actions?.runTerminalAuth(method)
+      if let runner {
+        actionButton(
+          String(localized: "Run"), operation: .method(method.methodId),
+          accessibilityLabel: String(localized: "Run \(method.name)"),
+          identifier: Self.runIdentifier(for: method.methodId)
+        ) { [connection] in
+          try await connection.loginWithTerminal(method.methodId, runner: runner)
+        }
+      }
+    }
+  }
+
+  /// The operation and the reason of a failure in `authState`.
+  ///
+  /// - Parameter failure: The failure of the last auth operation.
+  /// - Returns: The two texts.
+  private func failureView(_ failure: AuthFailure) -> some View {
+    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+      Text(Self.title(of: failure.operation))
+        .font(.callout.weight(.semibold))
+        .accessibilityIdentifier(Self.failureTitleIdentifier)
+      Text(Self.text(of: failure.reason))
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier(Self.failureIdentifier)
+    }
+    .foregroundStyle(theme.statusColors.failed)
+  }
+
+  /// The text that tells the user to connect to the agent again, and the
+  /// Reconnect button when the environment has a closure.
+  private var reconnectView: some View {
+    VStack(alignment: .leading, spacing: theme.spacing.s) {
+      Text(String(localized: "Reconnect to the agent to finish the sign-in"))
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier(Self.reconnectMessageIdentifier)
+      if let reconnect {
+        actionButton(
+          String(localized: "Reconnect"), operation: .reconnect,
+          accessibilityLabel: String(localized: "Reconnect to the agent"),
+          identifier: Self.reconnectIdentifier
+        ) {
+          await reconnect()
+        }
       }
     }
   }
@@ -329,44 +436,14 @@ public struct AgentAuthView: View {
     .accessibilityIdentifier(identifier)
   }
 
-  /// The text of a login that the agent refused.
-  ///
-  /// - Parameters:
-  ///   - message: The text of the error.
-  ///   - identifier: The accessibility identifier of the text.
-  /// - Returns: The text view.
-  private func errorText(_ message: String, identifier: String) -> some View {
-    Text(message)
-      .font(.callout)
-      .foregroundStyle(theme.statusColors.failed)
-      .fixedSize(horizontal: false, vertical: true)
-      .accessibilityIdentifier(identifier)
-  }
-
   // MARK: Actions
-
-  /// Sends `auth/login` with the id of an agent method.
-  ///
-  /// When the agent refuses the login, the model records the error in
-  /// `authState`, and the card shows it from there. Thus the refusal does not
-  /// go to ``report(_:)``.
-  ///
-  /// - Parameters:
-  ///   - methodID: The id of the agent method.
-  ///   - connection: The connection model that sends the request.
-  /// - Throws: Each error that the model does not record in `authState`.
-  private static func login(_ methodID: AuthMethodId, on connection: ConnectionModel) async throws {
-    do {
-      try await connection.login(LoginAuthRequest(methodId: methodID))
-    } catch is RequestError {
-      // `authState` holds the refusal, and the card shows it.
-    }
-  }
 
   /// Runs `call`, and records its progress under `operation`.
   ///
-  /// A second call while the call runs does nothing. A cancelled call
-  /// records nothing. Each other thrown error goes to ``report(_:)``.
+  /// A second call while the call runs does nothing. The model records each
+  /// failure of a login, a logout and a terminal sign-in in `authState`, and
+  /// the card shows the failure from there. Thus the card does not keep the
+  /// error that `call` throws.
   ///
   /// - Parameters:
   ///   - operation: The key of the progress.
@@ -375,20 +452,16 @@ public struct AgentAuthView: View {
     guard !running.contains(operation) else { return }
     running.insert(operation)
     Task {
-      do {
-        try await call()
-      } catch is CancellationError {
-        // A cancelled call is not a failure.
-      } catch {
-        report(error)
-      }
+      try? await call()
       running.remove(operation)
     }
   }
 
   /// Sends a line of the terminal input field to the process of a method.
   ///
-  /// A failed write goes to ``report(_:)``.
+  /// The model has no state for this write. When the write fails and the
+  /// environment has a session model, the failure adds an error entry to its
+  /// transcript. A cancelled write records nothing.
   ///
   /// - Parameters:
   ///   - line: The line that the user typed.
@@ -401,19 +474,50 @@ public struct AgentAuthView: View {
       } catch is CancellationError {
         // A cancelled write is not a failure.
       } catch {
-        report(error)
+        session?.appendError(reporting: error)
       }
     }
   }
+}
 
-  /// Records a failure that the model does not record.
+extension EnvironmentValues {
+  /// The runner that runs a `terminal` auth method of the agent in an
+  /// interactive terminal (plan.md §12).
   ///
-  /// The failure goes to the log. When the environment has a session model,
-  /// the failure also adds an error entry to its transcript.
+  /// ``AgentAuthView`` shows the Run button of a `terminal` method only when
+  /// this value has a runner, and gives the runner to
+  /// `ConnectionModel.loginWithTerminal(_:runner:)`. The default is `nil`:
+  /// only a host can run the agent program in a terminal. A host that sets a
+  /// runner also sends `auth.terminal` in its `initialize` request, with
+  /// ``FoundationModelsACP/InitializeRequest/makeAgentViewKitRequest(info:terminalAuthRunner:)``.
+  @Entry public var terminalAuthRunner: (any TerminalAuthRunner)? = nil
+
+  /// The host closure that connects to the agent again after a terminal
+  /// sign-in.
   ///
-  /// - Parameter error: The error of the call.
-  private func report(_ error: any Error) {
-    Self.logger.error("An auth call failed: \(String(describing: error), privacy: .public)")
-    session?.appendError(reporting: error)
+  /// ``AgentAuthView`` shows a Reconnect button that calls this closure while
+  /// `authState` is `.reconnectRequired`. The default is `nil`: the card then
+  /// shows only the text that tells the user to connect again.
+  @Entry public var agentReconnect: AgentReconnect? = nil
+}
+
+extension View {
+  /// Sets the runner that runs the `terminal` auth methods of the agent in
+  /// this subtree.
+  ///
+  /// - Parameter runner: The runner of the host, or `nil` for no Run button.
+  /// - Returns: A view that gives the runner to its subtree.
+  public func terminalAuthRunner(_ runner: (any TerminalAuthRunner)?) -> some View {
+    environment(\.terminalAuthRunner, runner)
+  }
+
+  /// Sets the host closure that the Reconnect button of the auth card calls
+  /// in this subtree.
+  ///
+  /// - Parameter reconnect: The closure of the host, or `nil` for no
+  ///   Reconnect button.
+  /// - Returns: A view that gives the closure to its subtree.
+  public func agentReconnect(_ reconnect: AgentReconnect?) -> some View {
+    environment(\.agentReconnect, reconnect)
   }
 }

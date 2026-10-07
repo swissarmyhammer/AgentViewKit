@@ -6,9 +6,9 @@ import FoundationModelsACPClient
 /// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
 /// tests (update.md §4.2).
 ///
-/// ``open(bufferLimits:configure:)`` connects a `ConnectionModel` to the agent
-/// over an `InMemoryTransport` pair, sends `initialize`, and opens one new
-/// session.
+/// ``open(bufferLimits:terminalAuthRunner:configure:)`` connects a
+/// `ConnectionModel` to the agent over an `InMemoryTransport` pair, sends
+/// `initialize`, and opens one new session.
 /// The connection model has a coalescing cadence of zero, so each chunk
 /// changes its entry at once. A test sends `session/update` frames with
 /// ``sendUpdate(_:)`` and reads the transcript of ``model``.
@@ -26,7 +26,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with prompt capabilities.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:configure:)``:
+  /// ``open(bufferLimits:terminalAuthRunner:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -49,7 +49,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with auth methods.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:configure:)``:
+  /// ``open(bufferLimits:terminalAuthRunner:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -119,12 +119,16 @@ public final class ScriptedSession {
   ///   - bufferLimits: The limits of the update buffer of the connection. A
   ///     test gives small limits to make the buffer overflow, so that the
   ///     session model gets `hasMissedUpdates`.
+  ///   - terminalAuthRunner: The runner of the host, or `nil`. With a
+  ///     runner, the `initialize` request advertises `auth.terminal`, so
+  ///     that the model can run a `terminal` method of the agent.
   ///   - configure: Changes the agent before it starts, for example its
   ///     results or its prompt echo order.
   /// - Returns: The helper with the open session.
   /// - Throws: The error of `initialize` or of `session/new`.
   public static func open(
     bufferLimits: SessionUpdateBufferLimits = .default,
+    terminalAuthRunner: (any TerminalAuthRunner)? = nil,
     configure: (ScriptedWireAgent) -> Void = { _ in }
   ) async throws -> ScriptedSession {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
@@ -135,7 +139,8 @@ public final class ScriptedSession {
     agent.start()
     let connection = ConnectionModel(coalescingCadence: .zero)
     _ = await connection.connect(over: clientEnd, bufferLimits: bufferLimits)
-    _ = try await connection.initialize(InitializeRequest.makeAgentViewKitRequest(info: clientInfo))
+    _ = try await connection.initialize(
+      InitializeRequest.makeAgentViewKitRequest(info: clientInfo, terminalAuthRunner: terminalAuthRunner))
     let model = try await connection.newSession(
       NewSessionRequest(cwd: AbsolutePath(rawValue: workingDirectory)))
     return ScriptedSession(agent: agent, connection: connection, model: model)
