@@ -5,12 +5,13 @@ depends_on:
 - 01M49GHXXC7CY7R1PRZ83200VG
 - 01M49HGF5KFW6185XJATDG13NJ
 - 01M443S0EDEB23N7RPAR39TGZ5
+- 01M4BHMJNEVT7DQ6KHVZTXQXVH
 position_column: todo
 position_ordinal: b680
 title: 'Reconnect and retry after a terminal sign-in in the demo host: runner, auth.terminal, new transport, initialize, retry'
 ---
 ## Start condition
-Do not start this task before the kit pins a FoundationModelsACPClient commit that has the client task 9caa4y2. Before that commit, the client auth state has no `.reconnectRequired(methodId)` case, and the runner does not return `Int32?`.
+The pin task ^ztxqxvh moves the pins; this task starts after it.
 
 ## What
 Rule: the agent streams to FoundationModelsACPClient over ACP. The client keeps an observable state. The kit views bind directly to that state and keep no state or logic of their own.
@@ -42,4 +43,4 @@ Size: 3 to 4 source files: `KitInitializeRequest.swift`, the new demo runner fil
 - [ ] Command: `swift test --filter "KitInitializeRequestTests|ACPDemoSessionTests"`. Then `swift test` and `Scripts/test-examples.sh AgentViewKitDemo` pass.
 
 ## Workflow
-- Use `/tdd` — write failing tests first, then implement to make them pass. #blocked-upstream
+- Use `/tdd` — write failing tests first, then implement to make them pass.

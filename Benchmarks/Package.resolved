@@ -43,7 +43,7 @@
       "location" : "git@github.com:swissarmyhammer/FoundationModelsACP.git",
       "state" : {
         "branch" : "main",
-        "revision" : "fe0d82da1ef488b82d06afb0fd0ee9cd5a31cb98"
+        "revision" : "163f7ebbebc5c831319a618cf8ba7edde982e483"
       }
     },
     {
@@ -52,7 +52,7 @@
       "location" : "git@github.com:swissarmyhammer/FoundationModelsACPClient.git",
       "state" : {
         "branch" : "main",
-        "revision" : "be7e615b1db2dc59e48d43bce4276886160ff0f4"
+        "revision" : "36f32491217056108554fe1533ce80099a6a6ff8"
       }
     },
     {

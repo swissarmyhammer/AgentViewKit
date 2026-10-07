@@ -120,8 +120,9 @@ the app. It pairs an `InMemoryTransport`, serves the agent on one end with an
 The two sides speak the real ACP wire. The helper returns the connection
 model and keeps no state of its own. The kit does not import an agent: the
 app gives it, for example the `RoutedACPAgent` of FoundationModelsACPAgent.
-When the agent closes its connection, `ConnectionModel.state` becomes
-`.disconnected`.
+To stop the agent, call `ConnectionModel.disconnect()`: the helper then closes
+the input of the agent side, and the agent stops. When the agent closes its
+connection first, `ConnectionModel.state` becomes `.disconnected`.
 
 ```swift
 // readme:compile InProcessQuickStart

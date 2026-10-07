@@ -369,7 +369,7 @@ import Testing
     #expect(reporter.moves.contains(PendingRequestsHost.identifier(for: id.uuidString)))
     #expect(reporter.moves.contains(PermissionView.identifier))
 
-    session.model.cancelPermission(id)
+    await session.model.cancelPermission(id)
     await harness.pump(until: Self.waitTimeout) {
       reporter.moves.last == StockPromptEditor.identifier
     }
@@ -395,7 +395,7 @@ import Testing
     await harness.pump(until: Self.waitTimeout) { mover.lastMove != nil }
     #expect(mover.lastMove != nil)
 
-    session.model.cancelPermission(id)
+    await session.model.cancelPermission(id)
     await harness.pump(until: Self.waitTimeout) {
       mover.lastMove?.identifier == StockPromptEditor.identifier
     }

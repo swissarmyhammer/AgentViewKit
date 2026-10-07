@@ -212,7 +212,7 @@
       }
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
-      session.model.selectPermission(pending.id, option: Self.allowOptionID)
+      await session.model.selectPermission(pending.id, option: Self.allowOptionID)
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: Self.cardIdentifier(pending.id)) == nil
       }

@@ -24,16 +24,6 @@ public struct DemoAgent {
     InitializeRequest.makeAgentViewKitRequest(info: clientInfo)
   }
 
-  /// The agent that runs.
-  private enum Runner {
-    /// An agent in this process, with the box that closes its side of the
-    /// connection.
-    case inProcess(AgentConnectionBox)
-
-    /// An agent in a child process.
-    case process(AgentProcess)
-  }
-
   /// The connection model of the client side. The views read its state
   /// directly.
   public let connection: ConnectionModel
@@ -41,8 +31,9 @@ public struct DemoAgent {
   /// The working directory of each new session, from the launch options.
   public let workingDirectory: AbsolutePath
 
-  /// The agent that runs.
-  private let runner: Runner
+  /// The agent process, or `nil` for the in-process agent. The value keeps
+  /// the process while the demo app uses it.
+  private let process: AgentProcess?
 
   /// Starts the agent of `options`, connects a new `ConnectionModel`, and
   /// sends `initialize` with ``initializeRequest``.
@@ -83,12 +74,10 @@ public struct DemoAgent {
   /// - Parameter workingDirectory: The working directory of each new session.
   /// - Returns: The agent, with a connected model.
   private static func makeInProcess(workingDirectory: AbsolutePath) async -> DemoAgent {
-    let box = AgentConnectionBox()
     let connection = await InProcessAgent.makeConnection { agentConnection in
-      box.keep(agentConnection)
-      return InMemoryDemoACPAgent(connection: agentConnection)
+      InMemoryDemoACPAgent(connection: agentConnection)
     }
-    return DemoAgent(connection: connection, workingDirectory: workingDirectory, runner: .inProcess(box))
+    return DemoAgent(connection: connection, workingDirectory: workingDirectory, process: nil)
   }
 
   /// Starts an agent program as an `AgentProcess`, and connects a new
@@ -103,7 +92,7 @@ public struct DemoAgent {
     let process = try AgentProcess(command: command, arguments: DemoLaunchOptions.agentArguments(for: command))
     let connection = ConnectionModel()
     _ = await connection.connect(over: process.transport)
-    return DemoAgent(connection: connection, workingDirectory: workingDirectory, runner: .process(process))
+    return DemoAgent(connection: connection, workingDirectory: workingDirectory, process: process)
   }
 
   /// Sends `session/new` in ``workingDirectory``.
@@ -115,19 +104,14 @@ public struct DemoAgent {
     try await connection.newSession(NewSessionRequest(cwd: workingDirectory))
   }
 
-  /// Stops the agent. The state of ``connection`` then becomes
-  /// `.disconnected`.
+  /// Stops the agent with `ConnectionModel.disconnect()`. When the call
+  /// returns, the state of ``connection`` is `.disconnected`.
   ///
-  /// The in-process agent closes its side of the connection, and the helper
-  /// closes the two ends of the pair. An agent process gets a group kill.
-  /// `ConnectionModel` has no disconnect call in the pinned client, so the
-  /// demo app stops the agent instead.
+  /// The disconnect stops the read of the transport. For the in-process
+  /// agent, ``InProcessAgent`` then closes the input of the agent side, and
+  /// the agent stops. An agent process gets a group kill when its transport
+  /// stops.
   public func stop() async {
-    switch runner {
-    case .inProcess(let box):
-      await box.close()
-    case .process(let process):
-      process.shutdown()
-    }
+    await connection.disconnect()
   }
 }

@@ -65,14 +65,19 @@
       model.transcript.lazy.compactMap(agentMessage(of:)).first { $0.messageId?.rawValue == messageID }
     }
 
-    /// The tool call entry of `model` with the title `title`.
+    /// The tool call entry of `model` with the `toolCallId` `id`.
+    ///
+    /// ``BackgroundRunScript`` uses the title of each tool call as its
+    /// `toolCallId`. The lookup reads `ToolCallEntry.toolCallId`, because the
+    /// title is display text that the agent can change.
     ///
     /// - Parameters:
-    ///   - title: The title of the tool call.
+    ///   - id: The `toolCallId` of the tool call.
     ///   - model: The session model.
     /// - Returns: The entry, or `nil` when the transcript has no such entry.
-    static func toolCall(title: String, in model: SessionModel) -> ToolCallEntry? {
-      model.transcript.lazy.compactMap(toolCall(of:)).first { $0.title == title }
+    static func toolCall(id: String, in model: SessionModel) -> ToolCallEntry? {
+      let toolCallId = ToolCallId(rawValue: id)
+      return model.transcript.lazy.compactMap(toolCall(of:)).first { $0.toolCallId == toolCallId }
     }
 
     /// Tells whether `model` reports the change of one step of the script.
@@ -89,7 +94,7 @@
         agentMessage(messageID: messageID, in: model).map { SessionTranscriptViewHostedTests.text(of: $0.content) }
           == text
       case .toolCallStatus(let title, let status):
-        toolCall(title: title, in: model)?.status == status
+        toolCall(id: title, in: model)?.status == status
       }
     }
 

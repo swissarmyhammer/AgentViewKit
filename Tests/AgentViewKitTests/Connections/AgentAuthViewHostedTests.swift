@@ -39,9 +39,10 @@ import Testing
   /// and one method type that the kit does not know.
   static let allMethods = "[\(agentMethodJSON), \(terminalMethodJSON), \(unknownMethodJSON)]"
 
-  /// The methods of an agent that serves no `auth/logout`: one terminal
-  /// method.
-  static let terminalOnlyMethods = "[\(terminalMethodJSON)]"
+  /// The methods of an agent that serves no `auth/logout`: no method. The
+  /// client model follows the ACP rule: an agent that lists an auth method of
+  /// any type serves `auth/logout`.
+  static let noMethods = "[]"
 
   /// The terminal method of the model, which the thread actions get with no
   /// change.
@@ -196,14 +197,14 @@ import Testing
   // MARK: - Sign out
 
   @Test func signOutIsHiddenWhenTheAgentCannotLogOut() async throws {
-    let session = try await Self.openSession(authMethods: Self.terminalOnlyMethods)
+    let session = try await Self.openSession(authMethods: Self.noMethods)
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
     harness.pump()
 
     #expect(!session.connection.canLogout)
-    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
+    #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
     #expect(harness.element(identifier: AgentAuthView.signOutIdentifier) == nil)
   }
 

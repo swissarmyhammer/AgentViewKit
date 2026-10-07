@@ -99,9 +99,27 @@ extension SessionModel {
   ///   - optionID: The id of the option that the user selected.
   ///   - comment: The comment of the user, or `nil` for no prompt.
   func answerPermission(_ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId, comment: String?) {
-    selectPermission(id, option: optionID)
+    startSelectPermission(id, option: optionID)
     guard let comment else { return }
     startPrompt(text: comment)
+  }
+
+  /// Starts a main-actor task that selects an option of a pending permission
+  /// request with `selectPermission(_:option:)`.
+  ///
+  /// - Parameters:
+  ///   - id: The local id of the pending request.
+  ///   - optionID: The id of the option that the user selected.
+  func startSelectPermission(_ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId) {
+    Task { @MainActor in await selectPermission(id, option: optionID) }
+  }
+
+  /// Starts a main-actor task that cancels a pending permission request with
+  /// `cancelPermission(_:)`.
+  ///
+  /// - Parameter id: The local id of the pending request.
+  func startCancelPermission(_ id: PendingPermissionRequest.ID) {
+    Task { @MainActor in await cancelPermission(id) }
   }
 
   /// Starts a main-actor task that sends `session/cancel` with

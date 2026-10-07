@@ -415,7 +415,7 @@ import Testing
     #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
     let movesBeforeAnswer = reporter.moves.count
-    session.model.cancelPermission(id)
+    await session.model.cancelPermission(id)
     await harness.pump(until: Self.waitTimeout) { reporter.moves.count > movesBeforeAnswer }
 
     #expect(reporter.moves.dropFirst(movesBeforeAnswer) == [StockPromptEditor.identifier])

@@ -9,12 +9,13 @@ comments:
 depends_on:
 - 01M443QS68DG8EJ9NEKCCHG10S
 - 01M443RA2PMKC5MXXBNH1116AB
+- 01M4BHMJNEVT7DQ6KHVZTXQXVH
 position_column: todo
 position_ordinal: b480
 title: 'Bind the sign-in views to the client auth state: required, failures and terminal sign-in'
 ---
 ## Start condition
-Do not start this task before the kit pins a FoundationModelsACPClient commit that has the client tasks 73c1nkk, fxa80af, cgznw8q, 9caa4y2 and s57dn8h. Before that commit, the client auth state has no `.required` case, no `.reconnectRequired(methodId)` case, no `AuthFailure` value, no `canLogin` flag, and no `loginWithTerminal(_:runner:)` method whose runner returns `Int32?`.
+The pin task ^ztxqxvh moves the pins; this task starts after it. The pin task only makes the kit compile with `AuthState.failed(AuthFailure)`. This task does the views.
 
 ## What
 Rule: the agent streams to FoundationModelsACPClient over ACP. The client keeps an observable state. The kit views bind directly to that state and keep no state or logic of their own.
@@ -52,4 +53,4 @@ Size: 4 source files: `AgentAuthView.swift`, `AgentLoginPrompt.swift`, `Sources/
 - [ ] Command: `swift test --filter "ConnectionModelViewsHostedTests|AgentAuthViewHostedTests"`. Then `swift test` passes.
 
 ## Workflow
-- Use `/tdd` — write failing tests first, then implement to make them pass. #blocked-upstream
+- Use `/tdd` — write failing tests first, then implement to make them pass.

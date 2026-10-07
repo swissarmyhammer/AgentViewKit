@@ -2,7 +2,8 @@ import FoundationModelsACP
 import Synchronization
 
 /// Keeps the agent side of the connection that the factory of
-/// ``AgentViewKit/InProcessAgent`` got, so that the host can close it.
+/// ``AgentViewKit/InProcessAgent`` got, so that the host can close it or wait
+/// for its close.
 ///
 /// A close of the agent side is the in-process form of an agent process that
 /// stops: the helper then closes the two ends of the pair, and the state of
@@ -28,5 +29,12 @@ public nonisolated final class AgentConnectionBox: Sendable {
   /// stops. Before the factory ran, the call does nothing.
   public func close() async {
     await connection.withLock { $0 }?.close()
+  }
+
+  /// Waits until the agent side of the connection closed, for example after
+  /// the client side disconnected. Before the factory ran, the call returns
+  /// at once.
+  public func waitUntilClosed() async {
+    _ = await connection.withLock { $0 }?.closed
   }
 }

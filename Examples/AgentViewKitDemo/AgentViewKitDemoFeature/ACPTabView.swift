@@ -250,9 +250,9 @@ struct ACPTabView: View {
   /// The configuration menu of the selected session, the button that stops
   /// the agent, and the settings button, while the agent runs.
   ///
-  /// The stop is the in-process form of an agent that exits: the state of the
-  /// connection model becomes `.disconnected`, and the thread view shows the
-  /// connection banner.
+  /// The stop calls `ConnectionModel.disconnect()` through
+  /// `DemoAgent.stop()`: the state of the connection model becomes
+  /// `.disconnected`, and the thread view shows the connection banner.
   @ViewBuilder private var toolbarItems: some View {
     if case .running(let agent, let session) = phase {
       ConfigOptionsView(session: session)

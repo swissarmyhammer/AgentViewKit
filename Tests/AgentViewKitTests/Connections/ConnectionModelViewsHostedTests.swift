@@ -185,7 +185,9 @@ import Testing
         && harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.isEnabled == true
     }
 
-    #expect(session.connection.authState == .failed(Self.scriptedRefusal))
+    #expect(
+      session.connection.authState
+        == .failed(AuthFailure(operation: .login(Self.agentMethodID), reason: .request(Self.scriptedRefusal))))
     #expect(harness.element(identifier: AgentAuthView.loginErrorIdentifier)?.label == Self.scriptedRefusal.message)
     #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.isEnabled == true)
   }

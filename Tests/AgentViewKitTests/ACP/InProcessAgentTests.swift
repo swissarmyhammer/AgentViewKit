@@ -38,10 +38,10 @@ import Testing
   }
 
   @Test func theReturnedModelIsConnected() async {
-    let (model, agent) = await Self.makeDemoConnection()
+    let (model, _) = await Self.makeDemoConnection()
 
     #expect(model.state == .connected)
-    await agent.close()
+    await model.disconnect()
   }
 
   @Test func aPromptRoundTripPutsTheReplyOfTheAgentInTheTranscript() async throws {
@@ -57,7 +57,7 @@ import Testing
     let expected = InMemoryDemoAgent.replyText(to: Self.promptText)
     let replyID = InMemoryDemoAgent.replyID(turn: Self.firstTurn)
     #expect(await waitUntil { session.agentMessageText(id: replyID) == expected })
-    await agent.close()
+    await model.disconnect()
   }
 
   @Test func theStateOfTheModelBecomesDisconnectedAfterTheAgentCloses() async {
@@ -66,5 +66,14 @@ import Testing
     await agent.close()
 
     #expect(await waitUntil { model.state == .disconnected })
+  }
+
+  @Test func aDisconnectOfTheModelClosesTheAgentSide() async {
+    let (model, agent) = await Self.makeDemoConnection()
+
+    await model.disconnect()
+
+    await ACPTestTimeLimit.run(stopping: agent.close) { await agent.waitUntilClosed() }
+    #expect(model.state == .disconnected)
   }
 }

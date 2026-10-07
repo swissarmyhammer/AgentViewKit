@@ -1,6 +1,8 @@
 ---
 assignees:
 - claude-code
+depends_on:
+- 01M4BHMJNEVT7DQ6KHVZTXQXVH
 position_column: todo
 position_ordinal: b280
 title: Show the MCP servers and their status from the client model
@@ -8,15 +10,17 @@ title: Show the MCP servers and their status from the client model
 ## What
 Owner decision (2026-10-06): the UI must show the connected MCP servers and the status of each server. This data comes from the observable state of the ACP client (FoundationModelsACPClient). It does not come from a kit store. Source: ACP v2 initialization, MCP part (https://agentclientprotocol.com/protocol/v2/initialization#param-mcp). In FoundationModelsACP `fe0d82d`, this is `MCPCapabilities` (`http`, `stdio`) and `MCPServerHTTP` / `MCPServerStdio` in the session requests.
 
-Blocked upstream. FoundationModelsACPClient task k8skz98 gives this client API:
+FoundationModelsACPClient task k8skz98 gives this client API:
 - `SessionModel.mcpServers`: a list of `MCPServerItem`. Each item has `name`, `transport`, `origin`, `server: MCPServer?` and `status`.
 - `MCPServerTransport`: `.stdio`, `.http`.
 - `MCPServerOrigin`: `.client`, `.config`.
 - `MCPServerStatus`: `.notReported`, `.connecting`, `.connected`, `.failed(reason: String?)`, `.closed`.
 
-The client sets the status from the `_mcp_server_status` session updates of the agent (client task d8d4384, agent task cbqsngc). The kit reads `mcpServers` in the view body. The kit keeps no copy of the list.
+The client sets the status from the `_mcp_server_status` session updates of the agent (client task d8d4384). The kit reads `mcpServers` in the view body. The kit keeps no copy of the list.
 
-Start condition: the kit pins a FoundationModelsACPClient commit that has k8skz98 and d8d4384. Do not start this task before that pin.
+The pin task ^ztxqxvh moves the pins; this task starts after it.
+
+Note: the kit tests send `_mcp_server_status` from the scripted agent. Thus the agent tasks (for example cbqsngc) are not necessary for the kit work.
 
 The kit must not build a status of its own. The kit must not keep a copy of the list. The views keep view state only (for example selection, open state and a per-button "call in progress" flag).
 
@@ -42,4 +46,4 @@ Note: `Sources/DemoSupport/ACPDemoSession.swift` also uses `ConnectionStore`. Ta
 - [ ] `swift test` passes.
 
 ## Workflow
-- Use `/tdd` — write failing tests first, then implement to make them pass. #blocked-upstream
+- Use `/tdd` — write failing tests first, then implement to make them pass.

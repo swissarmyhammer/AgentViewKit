@@ -134,7 +134,7 @@ public struct PermissionView: View {
     .focusEffectDisabled()
     .focused($isFocused)
     .defaultFocus($isFocused, true)
-    .onExitCommand { session.cancelPermission(request.id) }
+    .onExitCommand { session.startCancelPermission(request.id) }
     .accessibilityElement(children: .contain)
     .accessibilityLabel(request.request.title)
     .accessibilityIdentifier(Self.identifier)
@@ -382,7 +382,7 @@ public struct PermissionView: View {
   ///     ``PermissionPresentation/autoModeOption(in:)`` gave.
   private func switchToAuto(allow: FoundationModelsACP.PermissionOption, modeOption: SessionConfigOption) {
     guard isPending else { return }
-    session.selectPermission(request.id, option: allow.optionId)
+    session.startSelectPermission(request.id, option: allow.optionId)
     session.startSetConfigOption(modeOption.configId, to: PermissionPresentation.autoModeValue)
   }
 

@@ -33,13 +33,14 @@ import Testing
 
   /// The revision of each in-family ACP package, keyed by identity.
   ///
-  /// FoundationModelsACP `fe0d82d` is `schema-v2.0.0-alpha.7` with
-  /// `subscribe(to:)` in place of the removed stream API (`27419fa` and
-  /// later). FoundationModelsACPClient `be7e615` has `ConnectionModel` and
-  /// `SessionModel` (`a65af8a` and later).
+  /// FoundationModelsACPClient `36f3249` has the async `selectPermission` and
+  /// `cancelPermission`, `AuthState.failed(AuthFailure)`, `disconnect()`,
+  /// `ToolCallEntry.toolCallId`, and the MCP server and directory values of
+  /// `SessionModel`. FoundationModelsACP `163f7eb` is the revision that this
+  /// client resolves.
   static let expectedRevisions = [
-    "foundationmodelsacp": "fe0d82da1ef488b82d06afb0fd0ee9cd5a31cb98",
-    "foundationmodelsacpclient": "be7e615b1db2dc59e48d43bce4276886160ff0f4",
+    "foundationmodelsacp": "163f7ebbebc5c831319a618cf8ba7edde982e483",
+    "foundationmodelsacpclient": "36f32491217056108554fe1533ce80099a6a6ff8",
   ]
 
   /// Tells whether the demo project was generated in this checkout.

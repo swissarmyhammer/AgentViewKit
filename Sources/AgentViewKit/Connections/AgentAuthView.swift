@@ -22,8 +22,9 @@ import SwiftUI
 ///   ``AgentThreadActions/writeTerminalLine(_:to:)``.
 /// - A method type that the kit does not know has no row.
 /// - While `authState` is `.authenticated`, the card shows no method row.
-/// - While `authState` is `.failed`, the card shows the message of the error
-///   of the agent under the rows.
+/// - While `authState` is `.failed` for an `auth/login` request that the
+///   agent refused, the card shows the message of the error of the agent
+///   under the rows.
 /// - When `canLogout` is `true`, a Sign Out button calls
 ///   `ConnectionModel.logout(_:)`. Otherwise the button is not shown.
 ///
@@ -182,8 +183,14 @@ public struct AgentAuthView: View {
   }
 
   /// The error of the last login that the agent refused, or `nil`.
+  ///
+  /// The value reads the `AuthFailure` of `authState` only for a failed
+  /// `auth/login` request. Other failures have no view here yet.
   private var loginRefusal: RequestError? {
-    guard case .failed(let refusal) = connection.authState else { return nil }
+    guard case .failed(let failure) = connection.authState,
+      case .login = failure.operation,
+      case .request(let refusal) = failure.reason
+    else { return nil }
     return refusal
   }
 
