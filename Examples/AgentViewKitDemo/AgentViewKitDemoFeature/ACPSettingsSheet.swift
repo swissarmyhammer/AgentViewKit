@@ -1,11 +1,15 @@
 import AgentViewKit
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The settings sheet of the ACP tab.
 ///
 /// The sheet shows the ``ConnectionsView`` of the ambient
-/// ``ConnectionStore``, the ``AgentAuthView`` of the agent, and the
-/// ``ConfigOptionsView`` of the session model in the form style.
+/// ``ConnectionStore``, the ``AgentInfoHeader`` and the ``AgentAuthView`` of
+/// the connection model, and the ``ConfigOptionsView`` of the session model in
+/// the form style. Each view reads the models directly. The demo app writes
+/// no agent connection into a ``ConnectionStore``: the store is for the MCP
+/// servers of the agent.
 struct ACPSettingsSheet: View {
   /// The accessibility identifier of the Done button.
   static let doneIdentifier = "demo-settings-done"
@@ -25,8 +29,11 @@ struct ACPSettingsSheet: View {
   /// The minimum height of the sheet.
   static let minimumHeight: CGFloat = 480
 
-  /// The ACP session of the tab.
-  let session: ACPDemoSession
+  /// The connection model of the agent.
+  let connection: ConnectionModel
+
+  /// The selected session model.
+  let session: SessionModel
 
   /// The agent program of the launch options.
   let agentCommand: String
@@ -43,15 +50,14 @@ struct ACPSettingsSheet: View {
           }
           GroupBox("Agent") {
             VStack(alignment: .leading) {
+              AgentInfoHeader(connection: connection)
               LabeledContent("Command", value: agentCommand)
                 .accessibilityIdentifier(Self.agentCommandIdentifier)
-              AgentAuthView(connection: session.connectionModel, thread: session.thread)
+              AgentAuthView(connection: connection)
             }
           }
-          if let model = session.sessionModel {
-            GroupBox("Session") {
-              ConfigOptionsView(session: model, style: .form)
-            }
+          GroupBox("Session") {
+            ConfigOptionsView(session: session, style: .form)
           }
         }
         .padding()

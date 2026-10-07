@@ -4,9 +4,11 @@ import FoundationModelsACP
 
 /// The scripted ACP agent of the demo app.
 ///
-/// The demo app binds this agent when it starts with ``launchArgument``. The
-/// agent runs in the app process over an `InMemoryTransport`, so the
-/// end-to-end test of the demo app needs no agent binary.
+/// When the demo app starts with ``launchArgument``, it runs the script of
+/// this type in the app process, as ``InMemoryDemoACPAgent``, so the
+/// end-to-end test of the demo app needs no agent binary. ``start(on:)`` runs
+/// the same script as raw wire frames over an `InMemoryTransport`, for the
+/// wire tests.
 ///
 /// The agent answers:
 ///
@@ -58,6 +60,20 @@ public enum InMemoryDemoAgent {
 
   /// The number of text chunks of each reply.
   static let replyChunkCount = 2
+
+  /// The text of the user message that a resume from the start replays.
+  public static let historyPrompt = "Show the saved history"
+
+  /// The id of the user message that a resume from the start replays.
+  static let historyPromptID = "demo-history-prompt"
+
+  /// The id of the agent message that a resume from the start replays.
+  public static let historyReplyID = "demo-history-reply"
+
+  /// The text of the agent message that a resume from the start replays.
+  public static var historyReply: String {
+    replyText(to: historyPrompt)
+  }
 
   /// The id of the reply of a turn.
   ///
@@ -198,11 +214,7 @@ public enum InMemoryDemoAgent {
         ])
       }
       + [
-        .object([
-          "sessionUpdate": .string("agent_message"),
-          "messageId": replyID,
-          "content": .array([ScriptedWireAgent.textBlock(text: reply)]),
-        ]),
+        messageUpdate(kind: "agent_message", id: replyID, text: reply),
         .object([
           "sessionUpdate": .string("plan_update"),
           "plan": .object([
@@ -225,9 +237,55 @@ public enum InMemoryDemoAgent {
           "stopReason": .string("end_turn"),
         ]),
       ]
-    return updates.map { update in
+    return notificationParams(of: updates, sessionId: sessionId)
+  }
+
+  /// The params of the `session/update` notifications that a resume from the
+  /// start replays: the saved user message and the saved reply of the agent.
+  ///
+  /// ``InMemoryDemoACPAgent`` sends them before the result of
+  /// `session/resume`, so the client puts them in the transcript of the
+  /// resumed session.
+  ///
+  /// - Parameter sessionId: The id of the resumed session.
+  /// - Returns: The params, in send order.
+  static func historyNotifications(sessionId: AgentViewKit.JSONValue) -> [AgentViewKit.JSONValue] {
+    let updates = [
+      messageUpdate(kind: "user_message", id: .string(historyPromptID), text: historyPrompt),
+      messageUpdate(kind: "agent_message", id: .string(historyReplyID), text: historyReply),
+    ]
+    return notificationParams(of: updates, sessionId: sessionId)
+  }
+
+  /// The params of one `session/update` notification for each update.
+  ///
+  /// - Parameters:
+  ///   - updates: The `update` members, in send order.
+  ///   - sessionId: The id of the session of the updates.
+  /// - Returns: The params, in send order.
+  private static func notificationParams(
+    of updates: [AgentViewKit.JSONValue], sessionId: AgentViewKit.JSONValue
+  ) -> [AgentViewKit.JSONValue] {
+    updates.map { update in
       AgentViewKit.JSONValue.object(["sessionId": sessionId, "update": update])
     }
+  }
+
+  /// The `update` member of a whole message: one text block.
+  ///
+  /// - Parameters:
+  ///   - kind: The `sessionUpdate` kind, `user_message` or `agent_message`.
+  ///   - id: The `messageId` of the message.
+  ///   - text: The text of the message.
+  /// - Returns: The update.
+  private static func messageUpdate(
+    kind: String, id: AgentViewKit.JSONValue, text: String
+  ) -> AgentViewKit.JSONValue {
+    .object([
+      "sessionUpdate": .string(kind),
+      "messageId": id,
+      "content": .array([ScriptedWireAgent.textBlock(text: text)]),
+    ])
   }
 
   /// A plan entry with the `medium` priority.

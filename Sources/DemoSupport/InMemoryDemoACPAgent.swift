@@ -21,7 +21,9 @@ import OSLog
 /// `AgentSideConnection.insertUserMessage(_:messageId:)`, answers with its
 /// `messageId`, and then sends the turn of
 /// ``InMemoryDemoAgent/turnNotifications(for:turn:)``. A turn ends before
-/// its prompt result goes out, so `session/cancel` has nothing to stop.
+/// its prompt result goes out, so `session/cancel` has nothing to stop. A
+/// `session/resume` with `replayFrom: .start` sends the saved history of
+/// ``InMemoryDemoAgent/historyNotifications(sessionId:)`` before its result.
 ///
 /// The agent keeps its connection weakly, as `RoutedACPAgent` of
 /// FoundationModelsACPAgent does: the connection keeps the agent, and the
@@ -56,7 +58,10 @@ public actor InMemoryDemoACPAgent: Agent {
   }
 
   public func resumeSession(_ params: ResumeSessionRequest) async throws -> ResumeSessionResponse {
-    try Self.decoded(await InMemoryDemoAgent.resumeSessionResult)
+    if case .start = params.replayFrom {
+      try await replayHistory(of: params.sessionId)
+    }
+    return try Self.decoded(await InMemoryDemoAgent.resumeSessionResult)
   }
 
   public func closeSession(_ params: CloseSessionRequest) async throws -> CloseSessionResponse {
@@ -76,13 +81,7 @@ public actor InMemoryDemoACPAgent: Agent {
   }
 
   public func prompt(_ params: PromptRequest) async throws -> PromptResponse {
-    guard let connection else {
-      // The connection serves each request, so a request with no
-      // connection is a defect of the caller.
-      assertionFailure(Self.closedConnectionDetail)
-      Self.logger.error("\(Self.closedConnectionDetail, privacy: .public) The prompt gets an error.")
-      throw RequestError.internalError(detail: Self.closedConnectionDetail)
-    }
+    let connection = try openConnection()
     promptCount += 1
     let updates = try await Self.turnUpdates(for: params, turn: promptCount)
     // The echo and the turn follow the response. Register them with no
@@ -98,12 +97,46 @@ public actor InMemoryDemoACPAgent: Agent {
 
   public func sessionCancel(_ params: CancelSessionNotification) async {}
 
+  // MARK: - Connection
+
+  /// Gives the connection that serves the current request.
+  ///
+  /// - Returns: The connection.
+  /// - Throws: `RequestError.internalError` after the release of the
+  ///   connection.
+  private func openConnection() throws -> AgentSideConnection {
+    guard let connection else {
+      // The connection serves each request, so a request with no
+      // connection is a defect of the caller.
+      assertionFailure(Self.closedConnectionDetail)
+      Self.logger.error("\(Self.closedConnectionDetail, privacy: .public) The request gets an error.")
+      throw RequestError.internalError(detail: Self.closedConnectionDetail)
+    }
+    return connection
+  }
+
+  /// Sends the saved history of a session, before the result of
+  /// `session/resume` goes out.
+  ///
+  /// The client puts the marker of the resume after the last replayed
+  /// update, so the history is in the transcript when the resume returns.
+  ///
+  /// - Parameter sessionId: The id of the resumed session.
+  /// - Throws: The error of the connection, or of the decoder.
+  private func replayHistory(of sessionId: SessionId) async throws {
+    let connection = try openConnection()
+    let notifications = await InMemoryDemoAgent.historyNotifications(sessionId: .string(sessionId.rawValue))
+    for params in notifications {
+      try await connection.sessionUpdate(Self.decoded(params))
+    }
+  }
+
   // MARK: - Script
 
   /// The empty result object of each request that returns no data.
   private static let emptyResult = AgentViewKit.JSONValue.object([:])
 
-  /// The detail of the error of a prompt that came after the release of the
+  /// The detail of the error of a request that came after the release of the
   /// connection.
   private static let closedConnectionDetail = "The connection of the in-memory demo agent is gone."
 

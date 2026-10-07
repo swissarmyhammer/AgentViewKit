@@ -62,6 +62,15 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "TurnSummary", "TurnSummaryRow", "ThreadTurnSummary", "DiffStat",
   ]
 
+  /// The symbols of the session controller that the demo app removed. The
+  /// demo app binds its views to the client models directly, and it writes
+  /// no agent connection into a `ConnectionStore`.
+  static let removedDemoSymbols = ["ACPDemoSession", "agentConnectionID"]
+
+  /// The directories of the demo app, of its support target, and of their
+  /// tests.
+  static let demoPaths = [sourcesPath, "Tests/AgentViewKitTests", "Examples"]
+
   /// The directories of the pending request cards.
   static let pendingRequestCardPaths = [
     "Sources/AgentViewKit/HumanInTheLoop", "Sources/AgentViewKit/Elicitation",
@@ -154,26 +163,39 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect(found.isEmpty)
   }
 
-  @Test func sourcesUseNoRemovedSymbol() throws {
-    let found = try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(Self.sourcesPath),
-      relativeTo: PackageFiles.root
-    ) { line in
-      Self.uses(of: Self.removedSymbols, on: line)
+  /// Finds each use of a removed symbol in the Swift files below some
+  /// directories.
+  ///
+  /// - Parameters:
+  ///   - symbols: The removed symbols.
+  ///   - paths: The directories, relative to the package root.
+  /// - Returns: The uses, in directory order.
+  /// - Throws: The error of the scan when a directory cannot be read.
+  static func uses(of symbols: [String], below paths: [String]) throws -> [RemovedSymbolUse] {
+    try paths.flatMap { path in
+      try SourceLineScanner.matches(
+        inSwiftFilesBelow: PackageFiles.file(path),
+        relativeTo: PackageFiles.root
+      ) { line in
+        Self.uses(of: symbols, on: line)
+      }
     }
+  }
+
+  @Test func sourcesUseNoRemovedSymbol() throws {
+    let found = try Self.uses(of: Self.removedSymbols, below: [Self.sourcesPath])
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func theDemoAppAndItsTestsUseNoRemovedDemoSymbol() throws {
+    let found = try Self.uses(of: Self.removedDemoSymbols, below: Self.demoPaths)
 
     #expect(found.isEmpty, "\(found)")
   }
 
   @Test func thePendingRequestCardsUseNoSessionUpdateMapping() throws {
-    let cardFiles = try Self.pendingRequestCardPaths.flatMap { path in
-      try SourceLineScanner.matches(
-        inSwiftFilesBelow: PackageFiles.file(path),
-        relativeTo: PackageFiles.root
-      ) { line in
-        Self.uses(of: [Self.mappingSymbol], on: line)
-      }
-    }
+    let cardFiles = try Self.uses(of: [Self.mappingSymbol], below: Self.pendingRequestCardPaths)
     let toolCallView = SourceLineScanner.matches(
       inSource: try PackageFiles.text(of: Self.toolCallViewPath), file: Self.toolCallViewPath
     ) { line in

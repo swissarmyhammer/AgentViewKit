@@ -32,6 +32,22 @@ comments:
     - evidence: new Sources/AgentViewKit/ACP/InProcessAgent.swift, Sources/DemoSupport/InMemoryDemoACPAgent.swift, Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift, Examples/ReadmeSnippets/Snippets/InProcessQuickStart.swift; changed Sources/DemoSupport/InMemoryDemoAgent.swift, Tests/AgentViewKitTests/ACP/ScriptedWireAgent+Bounded.swift, Tests/PackageStructureTests/ReadmeCoverageTests.swift, README.md, Examples/ReadmeSnippets/Snippets/ACPQuickStart.swift, Examples/ReadmeSnippets/Snippets/HostApp.swift. `swift test`: 1390 tests in 128 suites, 80 tests in 12 suites and 1 test passed, only the mlx-swift `missing creator` warning. `Scripts/check-readme.sh` passed. `Scripts/test-examples.sh AgentViewKitDemo`: BUILD SUCCEEDED, TEST SUCCEEDED (2 tests), no Swift warning outside mlx-swift. ^zcktrsh and ^vhp5fv7 did not fail.
     - next: /review
   timestamp: 2026-10-07T05:37:30.161346+00:00
+- actor: claude-code
+  id: 01m4ae9facabh5whmn01pkbw34
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit a722db6). 0 findings, 0 confirmed, 0 refuted. 9 files reviewed. README.md was not reviewed (no validator matches this file). 4 .kanban files were not reviewed (.reviewignore).
+    - next: none. The task is in done.
+  timestamp: 2026-10-07T05:44:57.420961+00:00
+- actor: claude-code
+  id: 01m4ae9gqt4e3v2pd5sxfc9z64
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — InProcessAgent.makeConnection(serving:) returns only the ConnectionModel; InMemoryDemoACPAgent; ACPTestTimeLimit; README quick starts on the session view; InProcessAgentTests (new)
+    - test: green — swift test, 1390 passed; README and demo UI gates passed
+    - commit: a722db6
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T05:44:58.874041+00:00
 depends_on:
 - 01M443NW9A12NWXYHJFYTTTA85
 - 01M443P38JZMBRSCEPWCS25T9A
@@ -45,8 +61,8 @@ depends_on:
 - 01M443QWQ6X9S6KT61DS8SQ0BF
 - 01M443R0ZPXK0337AT3CX8JHPP
 - 01M49HGF5KFW6185XJATDG13NJ
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8280
 title: Add the in-process helper and the ACP client and in-process README quick starts
 ---
 ## What

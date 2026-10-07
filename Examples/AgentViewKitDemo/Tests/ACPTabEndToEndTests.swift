@@ -2,8 +2,10 @@ import XCTest
 
 /// The end-to-end tests of the ACP tab of the demo app.
 ///
-/// Each test starts the app with `--in-memory-agent`, so the tab binds the
-/// scripted in-memory agent and starts no agent binary.
+/// Each test starts the app with `--in-memory-agent`, so the tab runs the
+/// in-memory agent in the app process through the in-process helper and
+/// starts no agent binary. The tab shows the `ConnectionModel` and the
+/// `SessionModel` of the client with the kit session views.
 ///
 /// The identifiers are the identifiers of the kit views and of the demo
 /// views. This test bundle does not link the kit, so it writes them as text.
@@ -14,18 +16,27 @@ final class ACPTabEndToEndTests: XCTestCase {
   /// The launch argument that binds the in-memory agent.
   private static let inMemoryAgentArgument = "--in-memory-agent"
 
-  /// The identifier of the row of the first reply of the in-memory agent.
-  private static let firstReplyRow = "item-row-demo-reply-1"
+  /// The identifier of the row of the first reply of the in-memory agent:
+  /// the row key of the agent message `demo-reply-1`.
+  private static let firstReplyRow = "item-row-agent-message-demo-reply-1"
 
-  /// The start of the identifier of each thread row. The echoed user message
-  /// has a new UUID for each prompt, so the test finds its row by this start.
+  /// The identifier of the row of the reply that the in-memory agent replays
+  /// when the sidebar resumes its saved session.
+  private static let replayedReplyRow = "item-row-agent-message-demo-history-reply"
+
+  /// The start of the identifier of each transcript row. The echoed user
+  /// message has a new id for each prompt, so the test finds its row by this
+  /// start.
   private static let itemRowPrefix = "item-row-"
 
-  /// The identifier of the row of the in-memory session in the sidebar.
+  /// The identifier of the row of the saved session in the sidebar.
   private static let sessionRow = "session-row-demo-session"
 
   /// The identifier of the settings button of the ACP tab.
   private static let settingsButton = "demo-acp-settings"
+
+  /// The identifier of the button that stops the agent.
+  private static let stopAgentButton = "demo-acp-stop-agent"
 
   /// The identifier of the Done button of the settings sheet.
   private static let settingsDone = "demo-settings-done"
@@ -33,13 +44,13 @@ final class ACPTabEndToEndTests: XCTestCase {
   /// The identifier of the agent authentication card.
   private static let agentAuth = "agent-auth"
 
-  /// The identifier of the chip of a connected server.
-  private static let connectedChip = "connection-chip-connected"
-
   /// The identifier of the empty state of the connection list.
   private static let connectionsEmpty = "connections-empty"
 
-  /// The identifier of the text that shows a failed connection.
+  /// The identifier of the disconnected connection banner.
+  private static let disconnectedBanner = "agent-connection-disconnected"
+
+  /// The identifier of the text that shows a failed start.
   private static let failure = "demo-acp-failure"
 
   /// The app under test. XCTest makes one test instance for each test
@@ -58,14 +69,22 @@ final class ACPTabEndToEndTests: XCTestCase {
     try await super.tearDown()
   }
 
-  /// Waits until the in-memory session binds.
+  /// Waits until the first session of the in-memory agent shows.
   private func waitForTheSession() {
     let sessionShows = app.element(Self.sessionRow).waitForExistence(timeout: DemoTestValues.elementTimeout)
-    XCTAssertFalse(app.element(Self.failure).exists, "The connection failed.")
+    XCTAssertFalse(app.element(Self.failure).exists, "The start of the agent failed.")
     XCTAssertTrue(sessionShows, "The sidebar shows no session.")
     XCTAssertTrue(
       app.element(DemoTestValues.promptEditor).waitForExistence(timeout: DemoTestValues.elementTimeout),
       "The composer has no editor.")
+  }
+
+  /// Waits until `identifier` exists.
+  ///
+  /// - Parameter identifier: The accessibility identifier.
+  /// - Returns: `true` when the element exists before the time limit.
+  private func waitForElement(_ identifier: String) -> Bool {
+    app.element(identifier).waitForExistence(timeout: DemoTestValues.elementTimeout)
   }
 
   func testASendOfHelloShowsTheReplyOfTheAgent() throws {
@@ -78,34 +97,44 @@ final class ACPTabEndToEndTests: XCTestCase {
     XCTAssertTrue(submit.waitForExistence(timeout: DemoTestValues.elementTimeout))
     submit.click()
 
-    XCTAssertTrue(
-      app.element(Self.firstReplyRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
-      "The thread shows no reply.")
+    XCTAssertTrue(waitForElement(Self.firstReplyRow), "The transcript shows no reply.")
     let userRow = app.descendants(matching: .any).matching(
       NSPredicate(format: "identifier BEGINSWITH %@ AND identifier != %@", Self.itemRowPrefix, Self.firstReplyRow)
     ).firstMatch
-    XCTAssertTrue(userRow.exists, "The thread shows no user message.")
+    XCTAssertTrue(userRow.exists, "The transcript shows no user message.")
   }
 
-  func testTheSettingsSheetShowsTheConnectionsAndTheAgentAuthentication() throws {
+  func testSelectingTheSavedSessionShowsItsReplayedHistory() throws {
+    waitForTheSession()
+
+    app.element(Self.sessionRow).click()
+
+    XCTAssertTrue(waitForElement(Self.replayedReplyRow), "The resumed session shows no replayed message.")
+  }
+
+  func testStoppingTheAgentShowsTheDisconnectedBanner() throws {
+    waitForTheSession()
+    XCTAssertFalse(app.element(Self.disconnectedBanner).exists, "The banner shows before the agent stops.")
+
+    app.element(Self.stopAgentButton).click()
+
+    XCTAssertTrue(waitForElement(Self.disconnectedBanner), "The thread shows no disconnected banner.")
+  }
+
+  func testTheSettingsSheetShowsTheAgentAuthenticationAndNoAgentConnection() throws {
     waitForTheSession()
 
     app.element(Self.settingsButton).click()
 
+    XCTAssertTrue(waitForElement(Self.agentAuth), "The sheet has no AgentAuthView.")
     XCTAssertTrue(
-      app.element(Self.agentAuth).waitForExistence(timeout: DemoTestValues.elementTimeout),
-      "The sheet has no AgentAuthView.")
-    XCTAssertTrue(app.element(Self.connectedChip).exists, "The sheet has no connected server in ConnectionsView.")
-    XCTAssertFalse(app.element(Self.connectionsEmpty).exists, "ConnectionsView shows its empty state.")
+      app.element(Self.connectionsEmpty).exists,
+      "ConnectionsView shows a connection. The demo app writes no agent connection into the store.")
     let done = app.element(Self.settingsDone)
     XCTAssertTrue(done.exists)
     done.click()
     XCTAssertTrue(
-      waitForNonExistence(of: app.element(Self.agentAuth)), "The sheet did not close.")
-  }
-
-  /// Waits until `element` does not exist.
-  private func waitForNonExistence(of element: XCUIElement) -> Bool {
-    element.waitForNonExistence(timeout: DemoTestValues.elementTimeout)
+      app.element(Self.agentAuth).waitForNonExistence(timeout: DemoTestValues.elementTimeout),
+      "The sheet did not close.")
   }
 }

@@ -109,11 +109,11 @@ let package = Package(
       dependencies: ["AgentViewKit", "DemoSupport"] + acpProducts,
       swiftSettings: mainActorIsolated
     ),
-    // The scripted in-memory ACP agent, the ACP session model, and the launch
-    // options of the demo app. The ACP tests link this target. The demo app
-    // (Examples/AgentViewKitDemo) compiles its sources into the app. The
-    // target is not a product, because the package has exactly one library
-    // product (update.md §3, D4).
+    // The scripted in-memory ACP agent, the agent starter of the demo app
+    // (`DemoAgent`), and the launch options of the demo app. The ACP tests
+    // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
+    // sources into the app. The target is not a product, because the package
+    // has exactly one library product (update.md §3, D4).
     .target(
       name: "DemoSupport",
       dependencies: ["AgentViewKit"] + acpProducts,

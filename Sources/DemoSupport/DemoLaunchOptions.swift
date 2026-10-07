@@ -8,8 +8,9 @@ public enum DemoTab: Sendable, Hashable, CaseIterable {
 
 /// The launch arguments of the demo app.
 ///
-/// - `--in-memory-agent`: the ACP tab binds ``InMemoryDemoAgent`` and starts
-///   no process. The end-to-end test uses this argument.
+/// - `--in-memory-agent`: the ACP tab runs ``InMemoryDemoACPAgent`` in the
+///   app process (``DemoAgent``) and starts no process. The end-to-end test
+///   uses this argument.
 /// - `--agent-command <path>`: the ACP tab starts this agent program, with
 ///   the arguments of ``agentArguments(for:)``. The default is
 ///   ``defaultAgentCommand``.

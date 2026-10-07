@@ -3,31 +3,7 @@ import AgentViewKitTestSupport
 import DemoSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
-import Synchronization
 import Testing
-
-/// Keeps the agent side of the connection that the factory of
-/// ``InProcessAgent`` got, so that a test can close it.
-///
-/// The factory runs outside the main actor, so the box is not isolated. A
-/// `Mutex` holds the connection.
-nonisolated private final class AgentConnectionBox: Sendable {
-  /// The agent side of the connection, or `nil` before the factory ran.
-  private let connection = Mutex<AgentSideConnection?>(nil)
-
-  /// Keeps the agent side of the connection.
-  ///
-  /// - Parameter agentConnection: The connection that the factory got.
-  func keep(_ agentConnection: AgentSideConnection) {
-    connection.withLock { $0 = agentConnection }
-  }
-
-  /// Closes the agent side of the connection, as an agent process that
-  /// stops. Before the factory ran, the call does nothing.
-  func close() async {
-    await connection.withLock { $0 }?.close()
-  }
-}
 
 /// Tests of ``InProcessAgent``: the helper connects a `ConnectionModel` to an
 /// ACP agent that runs in the process of the host (update.md §8 item 4).
@@ -61,22 +37,6 @@ nonisolated private final class AgentConnectionBox: Sendable {
     return (model, agent)
   }
 
-  /// The text of the agent message of the first turn in the transcript of a
-  /// session.
-  ///
-  /// - Parameter session: The session model.
-  /// - Returns: The joined text blocks of the message, or `nil` when the
-  ///   transcript has no agent message with the reply id of the first turn.
-  private static func firstReplyText(in session: SessionModel) -> String? {
-    let replyID = MessageId(rawValue: InMemoryDemoAgent.replyID(turn: firstTurn))
-    for case .agentMessage(let message) in session.transcript where message.messageId == replyID {
-      return message.content.compactMap { block in
-        if case .text(let text) = block { text.text } else { nil }
-      }.joined()
-    }
-    return nil
-  }
-
   @Test func theReturnedModelIsConnected() async {
     let (model, agent) = await Self.makeDemoConnection()
 
@@ -95,7 +55,8 @@ nonisolated private final class AgentConnectionBox: Sendable {
     }
 
     let expected = InMemoryDemoAgent.replyText(to: Self.promptText)
-    #expect(await waitUntil { Self.firstReplyText(in: session) == expected })
+    let replyID = InMemoryDemoAgent.replyID(turn: Self.firstTurn)
+    #expect(await waitUntil { session.agentMessageText(id: replyID) == expected })
     await agent.close()
   }
 

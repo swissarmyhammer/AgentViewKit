@@ -51,7 +51,7 @@ struct KitInitializeRequestTests {
   }
 
   @Test func theDemoRequestHasTheDemoInfoTheClientVersionAndOnlyTheKitCapabilities() throws {
-    let request = ACPDemoSession.initializeRequest
+    let request = DemoAgent.initializeRequest
 
     #expect(request.info.name == Self.demoName)
     #expect(request.info.version == Self.demoVersion)

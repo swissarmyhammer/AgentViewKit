@@ -13,12 +13,13 @@
 
 require_relative '../../Scripts/xcodeproj_generator'
 
-# The AgentViewKit product that the app links. `AgentViewKit` gives the views, the model, and
-# the ACP adapter: `ACPThreadSource`, `ACPThreadActions`, and `ACPSessionList`.
+# The AgentViewKit product that the app links. `AgentViewKit` gives the session views and the
+# in-process helper `InProcessAgent`.
 PACKAGE_PRODUCTS = %w[AgentViewKit].freeze
 
-# The package target that compiles into the app: the in-memory agent, the ACP session model,
-# and the launch options. It is not a product, so the app compiles its files.
+# The package target that compiles into the app: the in-memory agent, `DemoAgent` (which starts
+# the agent and connects a `ConnectionModel`), and the launch options. It is not a product, so
+# the app compiles its files.
 SHARED_SOURCES = %w[../../Sources/DemoSupport].freeze
 
 # The packages whose modules `Sources/DemoSupport` imports. `Package.swift` depends on the same

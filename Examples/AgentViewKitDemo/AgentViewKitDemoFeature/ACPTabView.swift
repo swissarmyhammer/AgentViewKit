@@ -1,29 +1,51 @@
 import AgentViewKit
-import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The ACP tab of the demo app.
 ///
-/// The tab starts the agent of the launch options (``ACPDemoSession``) and
-/// shows:
+/// The tab starts the agent of the launch options with ``DemoAgent``, and
+/// shows the `ConnectionModel` and the selected `SessionModel` of the client
+/// with the kit session views:
 ///
-/// - a sidebar with the ``SessionListView`` of the agent,
-/// - the ``StateBanner``, the ``AgentThreadView`` and the ``TaskListView`` of
-///   the bound thread, and the ``ContextUsageView`` of its session model,
-/// - a ``PromptInputView``, whose default accessory row has the
-///   ``PermissionModePicker``,
-/// - a toolbar with the ``ConfigOptionsView`` menu and a button that opens
-///   the settings sheet (``ACPSettingsSheet``).
+/// - a sidebar with the ``SessionListView`` of the connection model,
+/// - the ``AgentThreadView`` of the selected session, the
+///   ``ContextUsageView`` of the session, and a ``PromptInputView``,
+/// - a toolbar with the ``ConfigOptionsView`` menu, a button that stops the
+///   agent, and a button that opens the settings sheet
+///   (``ACPSettingsSheet``).
+///
+/// The tab holds the two models and nothing that they hold. Each view reads
+/// the connection state, the sessions, the auth methods and the capability
+/// flags from the models directly.
 struct ACPTabView: View {
+  /// The state of the tab.
+  private enum Phase {
+    /// The agent starts, and the first session opens.
+    case starting
+
+    /// The start failed with the error.
+    case failed(any Error)
+
+    /// The agent runs, and the tab shows the selected session.
+    case running(DemoAgent, SessionModel)
+  }
+
   /// The accessibility identifier of the settings button.
   static let settingsButtonIdentifier = "demo-acp-settings"
 
-  /// The accessibility identifier of the text that shows a failed
-  /// connection.
+  /// The accessibility identifier of the button that stops the agent.
+  static let stopAgentButtonIdentifier = "demo-acp-stop-agent"
+
+  /// The accessibility identifier of the text that shows a failed start.
   static let failureIdentifier = "demo-acp-failure"
 
-  /// The accessibility identifier of the progress view of a connection.
-  static let connectingIdentifier = "demo-acp-connecting"
+  /// The accessibility identifier of the text that shows a failed
+  /// `session/new` request of the New Session button.
+  static let newSessionFailureIdentifier = "demo-acp-new-session-failure"
+
+  /// The accessibility identifier of the progress view of the start.
+  static let startingIdentifier = "demo-acp-starting"
 
   /// The minimum width of the sidebar column.
   static let sidebarMinimumWidth: CGFloat = 200
@@ -34,8 +56,12 @@ struct ACPTabView: View {
   /// The launch options of the app.
   let options: DemoLaunchOptions
 
-  /// The ACP session of the tab.
-  @State private var session: ACPDemoSession
+  /// The state of the tab.
+  @State private var phase = Phase.starting
+
+  /// The error of the last `session/new` request of the New Session button,
+  /// or `nil`. The connection model does not record this error.
+  @State private var newSessionFailure: (any Error)?
 
   /// The text of the composer.
   @State private var draft = AttributedString()
@@ -48,7 +74,6 @@ struct ACPTabView: View {
   /// - Parameter options: The launch options of the app.
   init(options: DemoLaunchOptions) {
     self.options = options
-    _session = State(initialValue: ACPDemoSession(options: options))
   }
 
   var body: some View {
@@ -57,121 +82,195 @@ struct ACPTabView: View {
         .navigationSplitViewColumnWidth(min: Self.sidebarMinimumWidth, ideal: Self.sidebarIdealWidth)
     } detail: {
       detail
+        .navigationTitle(options.agentName)
     }
     .toolbar {
       ToolbarItemGroup {
-        if let model = session.sessionModel {
-          ConfigOptionsView(session: model)
-        }
-        Button("Settings", systemImage: "gearshape") {
-          showsSettings = true
-        }
-        .accessibilityIdentifier(Self.settingsButtonIdentifier)
+        toolbarItems
       }
     }
     .sheet(isPresented: $showsSettings) {
-      ACPSettingsSheet(session: session, agentCommand: options.agentCommand)
-        .environment(\.agentThread, session.thread)
-        .environment(\.threadActions, session.actions)
-        .connectionStore(session.connectionStore)
+      settingsSheet
     }
-    .environment(\.agentThread, session.thread)
-    // The actions are `nil` before the first session binds. A view that
-    // reads no actions does nothing (Docs/decisions/required-thread-actions.md).
-    .environment(\.threadActions, session.actions)
-    .connectionStore(session.connectionStore)
     .task {
-      await session.start(options: options)
+      await start()
+    }
+  }
+
+  // MARK: - Start
+
+  /// Starts the agent and opens the first session. The tab starts the agent
+  /// one time only.
+  private func start() async {
+    guard case .starting = phase else { return }
+    do {
+      let agent = try await DemoAgent.makeConnected(options: options)
+      await openFirstSession(on: agent)
+    } catch {
+      phase = .failed(error)
+    }
+  }
+
+  /// Opens the first session of a connected agent.
+  ///
+  /// A failure stops the agent, because the tab then has no session to show.
+  ///
+  /// - Parameter agent: The connected agent.
+  private func openFirstSession(on agent: DemoAgent) async {
+    do {
+      phase = .running(agent, try await agent.openSession())
+    } catch {
+      await agent.stop()
+      phase = .failed(error)
+    }
+  }
+
+  /// Opens a new session and selects it. A failure keeps the selected
+  /// session, and the sidebar shows the error.
+  ///
+  /// - Parameter agent: The running agent.
+  private func openNewSession(on agent: DemoAgent) async {
+    do {
+      phase = .running(agent, try await agent.openSession())
+      newSessionFailure = nil
+    } catch {
+      newSessionFailure = error
     }
   }
 
   // MARK: - Sidebar
 
-  /// The session list of the agent after `initialize`, or the connection
-  /// state.
+  /// The session list of the connection model, or the state of the start.
   @ViewBuilder private var sidebar: some View {
-    if session.connectionModel.initializeResponse != nil {
-      sessionList
+    if case .running(let agent, _) = phase {
+      sessionList(of: agent)
     } else {
       phaseView
     }
   }
 
-  /// The session list of the connection model.
+  /// The session list of the connection model of an agent.
   ///
-  /// The list resumes a selected session, and the demo session binds it. The
-  /// New Session button opens a session. The list shows each action only
-  /// when the agent sends its capability.
-  private var sessionList: some View {
-    let session = session
-    return SessionListView(
-      connection: session.connectionModel,
-      cwd: AbsolutePath(rawValue: session.cwd),
-      onOpen: { model in session.open(model) },
-      onNewSession: {
-        Task { await session.newSession() }
+  /// The list resumes a selected session with `replayFrom: .start`, and the
+  /// tab selects the session model that the resume gives. The New Session
+  /// button opens a session. The list shows each action only when the agent
+  /// sends its capability.
+  ///
+  /// - Parameter agent: The running agent.
+  /// - Returns: The sidebar.
+  private func sessionList(of agent: DemoAgent) -> some View {
+    VStack(spacing: 0) {
+      SessionListView(
+        connection: agent.connection,
+        cwd: agent.workingDirectory,
+        onOpen: { session in phase = .running(agent, session) },
+        onNewSession: {
+          Task { await openNewSession(on: agent) }
+        }
+      )
+      if let newSessionFailure {
+        failureLabel(newSessionFailure, identifier: Self.newSessionFailureIdentifier)
       }
-    )
+    }
   }
 
   // MARK: - Detail
 
-  /// The bound thread with its status views and the composer, or the
-  /// connection state before the first session binds.
+  /// The selected session, or the state of the start.
   @ViewBuilder private var detail: some View {
-    if let actions = session.actions {
-      boundThread(actions: actions)
-        .navigationTitle(session.agentName)
+    if case .running(let agent, let session) = phase {
+      thread(of: session, on: agent)
     } else {
       phaseView
-        .navigationTitle(session.agentName)
     }
   }
 
-  /// The bound thread with its status views and the composer.
+  /// The transcript of a session with its usage and the composer.
   ///
-  /// - Parameter actions: The actions of the bound session.
-  /// - Returns: The detail view of the thread.
-  private func boundThread(actions: ACPThreadActions) -> some View {
-    let thread = session.thread
-    return VStack(spacing: 0) {
-      if case .failed = session.phase {
-        phaseView
-      }
-      StateBanner(state: thread.state)
-      AgentThreadView(thread: thread, actions: actions)
-      TaskListView(plans: thread.plans)
-      if let model = session.sessionModel {
-        ContextUsageView(session: model)
-          .frame(maxWidth: .infinity, alignment: .trailing)
-          .padding(.horizontal)
-      }
+  /// The thread view shows the connection banner and the agent header of
+  /// the connection model, and closes the session when it goes away. The
+  /// composer reads the two models from the environment.
+  ///
+  /// - Parameters:
+  ///   - session: The selected session model.
+  ///   - agent: The running agent.
+  /// - Returns: The detail view.
+  private func thread(of session: SessionModel, on agent: DemoAgent) -> some View {
+    VStack(spacing: 0) {
+      AgentThreadView(
+        session: session,
+        connection: agent.connection,
+        workingDirectory: agent.workingDirectory,
+        // The session views send the prompts, the cancel, and the answers
+        // through the two models. The logging actions get only the verbs
+        // that no model has, such as a terminal sign-in.
+        actions: LoggingThreadActions()
+      )
+      .messageFooter { entry in MessageActions(entry: entry) }
+      ContextUsageView(session: session)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal)
       PromptInputView(text: $draft) {}
         .padding()
     }
-    // The thread view and the composer read the session model: the
-    // composer gets its slash commands and its mode picker from it. The
-    // composer reads the prompt capabilities of the agent from the
-    // connection model.
-    .environment(\.sessionModel, session.sessionModel)
-    .environment(\.connectionModel, session.connectionModel)
-    .id(ObjectIdentifier(thread))
+    .environment(\.sessionModel, session)
+    .environment(\.connectionModel, agent.connection)
+    .id(ObjectIdentifier(session))
   }
 
-  /// The view of a connection that is not ready.
+  /// The view of a start that has not given a session.
   @ViewBuilder private var phaseView: some View {
-    switch session.phase {
-    case .idle, .connecting:
-      ProgressView("Connecting to \(session.agentName)")
-        .accessibilityIdentifier(Self.connectingIdentifier)
+    switch phase {
+    case .starting:
+      ProgressView("Starting \(options.agentName)")
+        .accessibilityIdentifier(Self.startingIdentifier)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    case .failed(let message):
-      Label(message, systemImage: "exclamationmark.triangle")
-        .foregroundStyle(.red)
-        .padding()
-        .accessibilityIdentifier(Self.failureIdentifier)
-    case .ready:
+    case .failed(let error):
+      failureLabel(error, identifier: Self.failureIdentifier)
+    case .running:
       EmptyView()
+    }
+  }
+
+  /// The text of a failed request.
+  ///
+  /// - Parameters:
+  ///   - error: The error of the request.
+  ///   - identifier: The accessibility identifier of the text.
+  /// - Returns: The label.
+  private func failureLabel(_ error: any Error, identifier: String) -> some View {
+    Label(String(describing: error), systemImage: "exclamationmark.triangle")
+      .foregroundStyle(.red)
+      .padding()
+      .accessibilityIdentifier(identifier)
+  }
+
+  // MARK: - Toolbar
+
+  /// The configuration menu of the selected session, the button that stops
+  /// the agent, and the settings button, while the agent runs.
+  ///
+  /// The stop is the in-process form of an agent that exits: the state of the
+  /// connection model becomes `.disconnected`, and the thread view shows the
+  /// connection banner.
+  @ViewBuilder private var toolbarItems: some View {
+    if case .running(let agent, let session) = phase {
+      ConfigOptionsView(session: session)
+      Button("Stop Agent", systemImage: "stop.circle") {
+        Task { await agent.stop() }
+      }
+      .accessibilityIdentifier(Self.stopAgentButtonIdentifier)
+      Button("Settings", systemImage: "gearshape") {
+        showsSettings = true
+      }
+      .accessibilityIdentifier(Self.settingsButtonIdentifier)
+    }
+  }
+
+  /// The settings sheet, with the models of the running agent.
+  @ViewBuilder private var settingsSheet: some View {
+    if case .running(let agent, let session) = phase {
+      ACPSettingsSheet(connection: agent.connection, session: session, agentCommand: options.agentCommand)
     }
   }
 }
