@@ -440,7 +440,7 @@
     /// - Parameter harness: The harness that shows the thread.
     /// - Returns: `true` when the label of the data element contains
     ///   `errorDataField`.
-    static func showsErrorData<Content: View>(in harness: HostedViewHarness<Content>) -> Bool {
+    private static func showsErrorData<Content: View>(in harness: HostedViewHarness<Content>) -> Bool {
       harness.element(identifier: ErrorView.dataIdentifier)?.label?.contains(errorDataField) == true
     }
   }

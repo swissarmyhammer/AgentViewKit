@@ -33,6 +33,30 @@ comments:
     - Environment note: the sourcekit-lsp of `sah serve` writes index builds into `.build/checkouts/*/.build` and races SwiftPM when SwiftPM makes the checkouts again. See the earlier comment.
     - next: /review
   timestamp: 2026-10-07T12:43:54.363909+00:00
+- actor: claude-code
+  id: 01m4b6mygffgevjm11qr8fwbkq
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 08a632b), 1 finding: Tests/AgentViewKitTests/Items/SessionEntryRowsHostedTests.swift:443 `swift/access-control` — Helper function `showsErrorData` should be marked `private`. Change `static func showsErrorData` to `private static func showsErrorData`.
+    - next: /implement the open item in the "Review Findings (2026-10-07 07:47)" section. The task stays in review.
+  timestamp: 2026-10-07T12:50:39.247929+00:00
+- actor: claude-code
+  id: 01m4b6n02emg7q13afbke7j7ja
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — the error-data test waits for the label through showsErrorData(in:); cause: SwiftUI first shows an empty AXTextArea on the first view test of a process; RED 7 of 10 new processes, GREEN 60 of 60
+    - test: green — swift test, 1297 passed
+    - commit: 08a632b
+    - review: findings — Tests/AgentViewKitTests/Items/SessionEntryRowsHostedTests.swift:443
+  timestamp: 2026-10-07T12:50:40.846300+00:00
+- actor: claude-code
+  id: 01m4b6wbkxv2pc7086r3nftbhn
+  text: |-
+    ### implement — changed
+    - evidence: 1 file, Tests/AgentViewKitTests/Items/SessionEntryRowsHostedTests.swift. `static func showsErrorData` is now `private static func showsErrorData`. Commit 08a632b added only this one helper. Its only callers are the wait closure and the `#expect` in `anAppendedErrorShowsItsData`, in the same type. No other file calls it. The finding item is now `- [x]`.
+    - `swift test --filter SessionEntryRowsHostedTests`: 14 tests in 1 suite passed. Full `swift test`: 1297 tests in 125 suites passed, 83 tests in 12 suites passed, 1 test passed, 0 failures. The one warning is the mlx-swift build-system message `missing creator for mutated node` from a dependency. It was also in the earlier runs on this task.
+    - next: /review
+  timestamp: 2026-10-07T12:54:42.045575+00:00
 position_column: doing
 position_ordinal: '80'
 title: Make SessionEntryRowsHostedTests.anAppendedErrorShowsItsData stable
@@ -60,3 +84,12 @@ Find the cause. Read the order of events between `appendError`, the row in the l
 ## Workflow
 
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 07:47)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 1 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Items/SessionEntryRowsHostedTests.swift:443` `swift/access-control` — Helper function `showsErrorData` should be marked `private`. It is only called within the test class (lines 432 and 434) and should not be part of the class's public interface. Change `static func showsErrorData` to `private static func showsErrorData`.
