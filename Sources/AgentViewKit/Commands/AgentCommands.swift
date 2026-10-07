@@ -87,10 +87,13 @@ public nonisolated enum AgentCommandPayload {
   /// The key of the text that ``AgentCommandVerb/send`` sends.
   public static let textKey = "text"
 
-  /// The key of the raw identifier of the permission request to answer.
+  /// The key of the raw identifier of the permission request to answer. For
+  /// a session model, the value is the `uuidString` of the local id of the
+  /// `PendingPermissionRequest`.
   public static let requestKey = "request"
 
-  /// The key of the raw identifier of the permission option to select.
+  /// The key of the raw identifier of the permission option to select. For
+  /// a session model, the value is the `optionId` of the ACP option.
   public static let optionKey = "option"
 
   /// The key of the comment of a permission answer.

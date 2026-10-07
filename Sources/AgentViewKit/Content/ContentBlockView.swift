@@ -96,7 +96,7 @@ public struct ContentBlockView: View {
         }
       }
     case .wire(let block):
-      if Self.isVisibleToUser(block: block) {
+      if block.isVisibleToUser {
         wireView(of: block)
           .contentContainer(identifier: Self.identifier(of: block))
       }
@@ -166,18 +166,17 @@ public struct ContentBlockView: View {
       }
     return AccessibilityIdentifier.make(prefix: identifierPrefix, value: kindName)
   }
+}
 
-  /// Tells if an ACP block is for the user.
+nonisolated extension FoundationModelsACP.ContentBlock {
+  /// Tells if the block is for the user.
   ///
   /// A block with no audience is for each audience. A block with an audience
   /// list is only for the audiences in the list. An unknown block has no
   /// annotations, so it is for the user.
-  ///
-  /// - Parameter block: The ACP block.
-  /// - Returns: `true` when the block is for the user.
-  private static func isVisibleToUser(block: FoundationModelsACP.ContentBlock) -> Bool {
+  var isVisibleToUser: Bool {
     let annotations: FoundationModelsACP.Annotations? =
-      switch block {
+      switch self {
       case .text(let text): text.annotations
       case .image(let image): image.annotations
       case .audio(let audio): audio.annotations

@@ -39,11 +39,27 @@ comments:
     - evidence: 26 files. Sources: HumanInTheLoop/PermissionView.swift, PermissionPresentation.swift, PendingRequestReplies.swift, PendingRequestsHost.swift; Elicitation/ElicitationCard.swift, ElicitationView.swift, ElicitationURLConsentView.swift, ElicitationValidator.swift, ElicitationLayout.swift; Items/ToolCallView.swift; Config/ConfigSelectChoices.swift, SessionModel+ConfigOption.swift; Model/JSONValue.swift; Thread/AgentThreadView.swift. Tests: PermissionViewHostedTests, PendingRequestsSessionModelHostedTests, PermissionPresentationTests, ElicitationViewHostedTests, ElicitationURLConsentViewHostedTests, ElicitationValidatorTests, ToolCallEntryViewHostedTests, Helpers/ScriptedSessionRequests, RemovedVocabularyTests; deleted ActionsReplies.swift, ElicitationReplySendTests.swift. Docs: README.md, Docs/decisions/permission-ux.md. Commands: `swift build --build-tests` (RED, then clean), `swift test` (1362 + 78 + 1 passed), `Scripts/check-readme.sh` (passed), acceptance `rg` (no match).
     - next: /review. The task stays in doing.
   timestamp: 2026-10-07T00:17:10.515017+00:00
+- actor: claude-code
+  id: 01m49wq3dfzh4s36g8ebrjy9yw
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit e677b04). 0 findings (confirmed 0, refuted 0, 21 attempted, 0 failed). 25 files reviewed. Not reviewed: 4 .kanban files (ignore rule), README.md and Docs/decisions/permission-ux.md (no validator matches). The code-hygiene Swift rules could not read ActionsReplies.swift and ElicitationReplySendTests.swift because this commit deletes them.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-07T00:37:49.615181+00:00
+- actor: claude-code
+  id: 01m49wq4ky7fd0twrpkave4cdb
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — PermissionView(request:session:) and the elicitation cards take the model pending values; PendingElicitationOwner; no kit request copy and no answered flag; 26 files
+    - test: green — swift test, 1362 passed; README and demo UI gates passed
+    - commit: e677b04
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T00:37:50.846267+00:00
 depends_on:
 - 01M443Q580KBFG7JE5M6A6X9X9
 - 01M48MR5W3YAB8VFA4KTJZVCYN
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fa80
 title: Show the permission and elicitation cards from the pending request values of the models, with no kit request copy and no answered flag
 ---
 ## What

@@ -21,12 +21,6 @@
     /// The position of the entry that the chunk test changes.
     static let chunkedPosition = 1
 
-    /// The `session/update` value that tells that the agent runs.
-    static let runningState = #"{"sessionUpdate":"state_update","state":"running"}"#
-
-    /// The `session/update` value that tells that the agent is idle.
-    static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
-
     /// The text chunks that the stream test sends to one agent message, in
     /// order. Each chunk after the first starts a new paragraph.
     static let streamedChunks = ["One.", "\n\nTwo.", "\n\nThree."]
@@ -253,7 +247,7 @@
       defer { harness.close() }
       let model = session.model
 
-      try await session.sendUpdate(Self.runningState)
+      try await session.sendUpdate(ScriptedSession.runningState)
       for (index, chunk) in Self.streamedChunks.enumerated() {
         try await session.sendUpdate(
           Self.chunk("agent_message_chunk", messageID: Self.streamedMessageID, text: chunk))
@@ -267,7 +261,7 @@
       }
       #expect(ComposerSessionModelHostedTests.isRunning(model))
 
-      try await session.sendUpdate(Self.idleState)
+      try await session.sendUpdate(ScriptedSession.idleState)
       await harness.pump(until: Self.waitTimeout) { !ComposerSessionModelHostedTests.isRunning(model) }
       harness.pump()
 

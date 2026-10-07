@@ -52,9 +52,6 @@ struct PromptInputHost: View {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
-  /// The method of a prompt request.
-  static let promptMethod = "session/prompt"
-
   /// The `session/new` result with the one command `plan`.
   static let newSessionWithPlan = #"""
     {"sessionId": "\#(ScriptedSession.sessionID)",
@@ -132,9 +129,9 @@ struct PromptInputHost: View {
     #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
     #expect(harness.element(identifier: "custom-editor")?.label == "plan")
     try harness.press(identifier: "custom-editor")
-    await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
-    let prompts = session.agent.messages(method: Self.promptMethod)
+    let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
     #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
     #expect(model.plainText.isEmpty)
   }

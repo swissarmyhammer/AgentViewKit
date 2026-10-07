@@ -348,10 +348,9 @@ public struct PermissionView: View {
   ///
   /// - Parameter option: The option that the user pressed.
   private func didPress(option: FoundationModelsACP.PermissionOption) {
-    switch option.kind {
-    case .rejectOnce, .rejectAlways:
+    if PermissionPresentation.isReject(kind: option.kind) {
       selectedReject = option
-    case .allowOnce, .allowAlways, .unknown:
+    } else {
       answer(with: option, comment: nil)
     }
   }
@@ -365,19 +364,14 @@ public struct PermissionView: View {
   }
 
   /// Selects `option` on the session model, then sends the comment as the
-  /// next prompt.
-  ///
-  /// The prompt goes out after `selectPermission(_:option:)` returns. A
-  /// comment has no attachment, so the prompt capabilities do not change its
-  /// one text block.
+  /// next prompt, with `SessionModel.answerPermission(_:option:comment:)`.
   ///
   /// - Parameters:
   ///   - option: The option that the user selected.
   ///   - comment: The comment of the user, or `nil`.
   private func answer(with option: FoundationModelsACP.PermissionOption, comment: String?) {
-    guard selectOnModel(option: option), let comment else { return }
-    let session = session
-    Task { @MainActor in await session.sendPrompt(with: UserInput(text: comment), accepting: nil) }
+    guard isPending else { return }
+    session.answerPermission(request.id, option: option.optionId, comment: comment)
   }
 
   /// Selects `allow` on the session model, then sets the mode option to auto.
@@ -387,19 +381,14 @@ public struct PermissionView: View {
   ///   - modeOption: The option that
   ///     ``PermissionPresentation/autoModeOption(in:)`` gave.
   private func switchToAuto(allow: FoundationModelsACP.PermissionOption, modeOption: SessionConfigOption) {
-    guard selectOnModel(option: allow) else { return }
+    guard isPending else { return }
+    session.selectPermission(request.id, option: allow.optionId)
     session.startSetConfigOption(modeOption.configId, to: PermissionPresentation.autoModeValue)
   }
 
-  /// Calls `selectPermission(_:option:)` on the session model while the model
-  /// holds the request.
-  ///
-  /// - Parameter option: The option that the user selected.
-  /// - Returns: `true` when the model held the request, so the selection
-  ///   answered it. `false` when the request already resolved.
-  private func selectOnModel(option: FoundationModelsACP.PermissionOption) -> Bool {
-    guard session.pendingPermissions.contains(where: { $0.id == request.id }) else { return false }
-    session.selectPermission(request.id, option: option.optionId)
-    return true
+  /// Whether the session model still holds the request. An answer after the
+  /// request resolved does nothing.
+  private var isPending: Bool {
+    session.pendingPermissions.contains { $0.id == request.id }
   }
 }

@@ -12,6 +12,21 @@ extension ScriptedSession {
   /// The method of an elicitation request.
   static let elicitationMethod = "elicitation/create"
 
+  /// The method of a prompt request.
+  static let promptMethod = "session/prompt"
+
+  /// The method of a cancel notification.
+  static let cancelMethod = "session/cancel"
+
+  /// The `session/update` value that tells that the agent runs.
+  static let runningState = #"{"sessionUpdate":"state_update","state":"running"}"#
+
+  /// The `session/update` value that tells that the agent waits for the user.
+  static let requiresActionState = #"{"sessionUpdate":"state_update","state":"requires_action"}"#
+
+  /// The `session/update` value that tells that the agent is idle.
+  static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
+
   /// Sends a permission request of the session from the agent, with
   /// ``ScriptedSession/permissionParams``, and pumps `harness` until the
   /// session model holds it.

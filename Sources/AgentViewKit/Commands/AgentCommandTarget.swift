@@ -1,6 +1,8 @@
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The calls that the composer gives to the agent commands.
@@ -36,6 +38,24 @@ struct AgentComposerHook {
 /// items, and the composer. They dispatch their own verbs through
 /// ``perform(_:payload:)``, so that a palette, a key, and a button run the
 /// same command.
+///
+/// The target holds the model of the scope, a `SessionModel` or an
+/// ``AgentThread``, and keeps no copy of its values. Each availability check
+/// and each run reads the model again:
+///
+/// - Cancel is available while the `agentState` of the session model is
+///   `.running` or `.requiresAction`, and it calls
+///   `SessionModel.cancel(meta:)`.
+/// - Send with a text payload calls `SessionModel.prompt(_:meta:)`.
+/// - Approve and reject read `SessionModel.pendingPermissions`, and call
+///   `selectPermission(_:option:)`.
+/// - Copy reads the user message entries and the agent message entries of the
+///   transcript. Jump goes to the next or the previous user message entry.
+///   Expand all reads the row key of each entry.
+///
+/// The deprecated thread path reads the ``AgentThread`` and calls the
+/// ``AgentThreadActions`` in the same way. It goes away with the kit session
+/// model.
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
@@ -44,10 +64,14 @@ final class AgentCommandTarget {
   /// The radix of the thread identity in the focus segment: hexadecimal.
   static let segmentIdentityRadix = 16
 
-  /// The thread that the commands act on.
-  var thread: AgentThread?
+  /// The line that separates two messages in the copy text: one blank line.
+  static let sectionSeparator = "\n\n"
 
-  /// The actions that the commands call, or `nil` when no scope gave them.
+  /// The model that the commands act on, or `nil` when no scope gave one.
+  var source: ConversationSource?
+
+  /// The actions that the commands of a thread call, or `nil` when no scope
+  /// gave them. The commands of a session model call the session model.
   var actions: (any AgentThreadActions)?
 
   /// The pasteboard that ``AgentCommandVerb/copyThread`` writes to.
@@ -68,20 +92,25 @@ final class AgentCommandTarget {
   /// The path of the scope in ``system``.
   var path: FocusPath?
 
-  /// Makes a target with no thread.
+  /// Makes a target with no model.
   init() {}
 
-  /// The focus segment of the scope of `thread`.
+  /// The focus segment of the scope of `source`.
   ///
-  /// The identifier comes from the identity of the thread, so two thread
-  /// views in one window have two scopes.
+  /// The identifier of a session model is its `sessionId`. The identifier of
+  /// a thread comes from the identity of the thread object. Thus two thread
+  /// views of two models in one window have two scopes.
   ///
-  /// - Parameter thread: The thread.
+  /// - Parameter source: The model of the scope.
   /// - Returns: The segment `agentThread:<identity>`.
-  static func segment(for thread: AgentThread) -> FocusSegment {
-    let identity = String(
-      UInt(bitPattern: ObjectIdentifier(thread)), radix: segmentIdentityRadix)
-    return FocusSegment(kind: segmentKind, id: identity)
+  static func segment(for source: ConversationSource) -> FocusSegment {
+    switch source {
+    case .thread(let thread):
+      let identity = String(UInt(bitPattern: ObjectIdentifier(thread)), radix: segmentIdentityRadix)
+      return FocusSegment(kind: segmentKind, id: identity)
+    case .session(let session):
+      return FocusSegment(kind: segmentKind, id: session.sessionId.rawValue)
+    }
   }
 
   // MARK: - Dispatch
@@ -116,23 +145,37 @@ final class AgentCommandTarget {
   ///   - payload: The payload of the dispatch, or `nil`.
   /// - Returns: The availability.
   func availability(of verb: AgentCommandVerb, payload: CommandPayload?) -> Availability {
-    guard let thread else {
+    guard let source else {
       return .unavailable(reason: String(localized: "The thread is not shown."))
     }
-    let isAvailable: Bool
-    switch verb {
-    case .send: isAvailable = canSend(payload: payload)
-    case .cancel: isAvailable = !Self.isIdle(thread.state)
-    case .approvePending: isAvailable = answer(payload: payload, rejects: false) != nil
-    case .rejectPending: isAvailable = answer(payload: payload, rejects: true) != nil
-    case .jumpToNext: isAvailable = anchors != nil && jumpTarget(forward: true) != nil
-    case .jumpToPrevious: isAvailable = anchors != nil && jumpTarget(forward: false) != nil
-    case .copyThread: isAvailable = !Self.plainText(of: thread).isEmpty
-    case .toggleExpandAll: isAvailable = expandedBlocks != nil && !thread.items.isEmpty
-    case .scrollToBottom: isAvailable = anchors != nil && thread.lastItemID != nil
-    case .focusComposer: isAvailable = composer != nil
+    guard isAvailable(verb, payload: payload, in: source) else {
+      return .unavailable(reason: Self.reason(for: verb))
     }
-    return isAvailable ? .available : .unavailable(reason: Self.reason(for: verb))
+    return .available
+  }
+
+  /// Tells if `verb` can run now on `source`.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb.
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - source: The model of the scope.
+  /// - Returns: `true` when the verb can run.
+  private func isAvailable(
+    _ verb: AgentCommandVerb, payload: CommandPayload?, in source: ConversationSource
+  ) -> Bool {
+    switch verb {
+    case .send: canSend(payload: payload)
+    case .cancel: Self.canCancel(source)
+    case .approvePending: answer(payload: payload, rejects: false) != nil
+    case .rejectPending: answer(payload: payload, rejects: true) != nil
+    case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
+    case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
+    case .copyThread: !Self.plainText(of: source).isEmpty
+    case .toggleExpandAll: expandedBlocks != nil && source.rowCount > 0
+    case .scrollToBottom: anchors != nil && source.lastRowKey != nil
+    case .focusComposer: composer != nil
+    }
   }
 
   /// The text that tells the user why `verb` cannot run.
@@ -153,6 +196,18 @@ final class AgentCommandTarget {
     }
   }
 
+  /// Tells if the agent of `source` does work that a cancel stops.
+  ///
+  /// - Parameter source: The model of the scope.
+  /// - Returns: `true` while the `agentState` of a session model is
+  ///   `.running` or `.requiresAction`, or while a thread is not idle.
+  static func canCancel(_ source: ConversationSource) -> Bool {
+    switch source {
+    case .thread(let thread): !isIdle(thread.state)
+    case .session(let session): isActive(session.agentState)
+    }
+  }
+
   /// Tells if `state` is an idle state.
   ///
   /// - Parameter state: The run state of the thread.
@@ -160,6 +215,19 @@ final class AgentCommandTarget {
   static func isIdle(_ state: ThreadState) -> Bool {
     if case .idle = state { return true }
     return false
+  }
+
+  /// Tells if `state` is a state of foreground work.
+  ///
+  /// - Parameter state: The `agentState` of a session model, or `nil` when
+  ///   the agent reported no state.
+  /// - Returns: `true` for `.running` and `.requiresAction`. A state that
+  ///   the kit does not know is not foreground work.
+  static func isActive(_ state: StateUpdate?) -> Bool {
+    switch state {
+    case .running, .requiresAction: true
+    case .idle, .unknown, nil: false
+    }
   }
 
   // MARK: - Run
@@ -171,23 +239,23 @@ final class AgentCommandTarget {
   ///   - payload: The payload of the dispatch, or `nil`.
   /// - Returns: `true` when the verb ran.
   func run(_ verb: AgentCommandVerb, payload: CommandPayload?) -> Bool {
-    guard let thread, availability(of: verb, payload: payload).isAvailable else { return false }
+    guard let source, availability(of: verb, payload: payload).isAvailable else { return false }
     switch verb {
-    case .send: send(payload: payload)
-    case .cancel: actions?.startCancel()
+    case .send: send(payload: payload, to: source)
+    case .cancel: cancel(source)
     case .approvePending: respond(payload: payload, rejects: false)
     case .rejectPending: respond(payload: payload, rejects: true)
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
-    case .copyThread: pasteboard.copyText(Self.plainText(of: thread))
-    case .toggleExpandAll: toggleExpandAll(thread)
+    case .copyThread: pasteboard.copyText(Self.plainText(of: source))
+    case .toggleExpandAll: toggleExpandAll(source)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false
     }
     return true
   }
 
-  // MARK: - Send
+  // MARK: - Send and cancel
 
   /// Tells if a send can run.
   ///
@@ -203,53 +271,138 @@ final class AgentCommandTarget {
 
   /// Sends the text of the payload, or submits the composer.
   ///
-  /// - Parameter payload: The payload of the dispatch, or `nil`.
-  private func send(payload: CommandPayload?) {
+  /// A session model gets the text as `session/prompt` at once. A thread
+  /// gets it through ``AgentThreadActions/send(_:)``.
+  ///
+  /// - Parameters:
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - source: The model of the scope.
+  private func send(payload: CommandPayload?, to source: ConversationSource) {
     guard let text = AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) else {
       composer?.submit()
       return
     }
-    actions?.startSend(UserInput(text: text))
+    switch source {
+    case .thread: actions?.startSend(UserInput(text: text))
+    case .session(let session): session.startPrompt(text: text)
+    }
+  }
+
+  /// Stops the work of the agent of `source`.
+  ///
+  /// A session model sends `session/cancel` with `cancel(meta:)`. A thread
+  /// calls ``AgentThreadActions/cancel()``.
+  ///
+  /// - Parameter source: The model of the scope.
+  private func cancel(_ source: ConversationSource) {
+    switch source {
+    case .thread: actions?.startCancel()
+    case .session(let session): session.startCancel()
+    }
   }
 
   // MARK: - Permission
 
   /// The request and the option that a permission answer selects.
+  private enum PermissionAnswer {
+    /// A request of a thread, and one of its options.
+    case thread(PermissionRequest, AgentViewKit.PermissionOption)
+
+    /// A pending request of a session model, and one of its ACP options.
+    case session(SessionModel, PendingPermissionRequest.ID, FoundationModelsACP.PermissionOption)
+  }
+
+  /// The request and the option that a permission answer selects.
+  ///
+  /// With no request key in the payload, the answer is for the first pending
+  /// request. With no option key, the answer selects the first option of the
+  /// kind in display order (``PermissionPresentation/order(of:)``). The
+  /// request key of a session model is the `uuidString` of the local id of
+  /// the pending request, and the option key is the `optionId`.
   ///
   /// - Parameters:
-  ///   - payload: The payload of the dispatch, or `nil`. With no request
-  ///     key, the answer is for the first pending request. With no option
-  ///     key, the answer selects the first option of the kind in display
-  ///     order.
+  ///   - payload: The payload of the dispatch, or `nil`.
   ///   - rejects: `true` for a reject option, `false` for an allow option.
   ///     An option of an unknown kind is an allow option, as in
   ///     ``PermissionView``.
-  /// - Returns: The request and the option, or `nil` when there is none.
-  private func answer(
-    payload: CommandPayload?, rejects: Bool
-  ) -> (request: PermissionRequest, option: PermissionOption)? {
-    guard let thread else { return nil }
+  /// - Returns: The answer, or `nil` when there is none.
+  private func answer(payload: CommandPayload?, rejects: Bool) -> PermissionAnswer? {
     let requestID = AgentCommandPayload.string(AgentCommandPayload.requestKey, in: payload)
-    let request =
-      requestID.map { id in thread.pendingPermissions.first { $0.id.rawValue == id } }
-      ?? thread.pendingPermissions.first
-    guard let request else { return nil }
-    let options = PermissionPresentation.order(of: request.options)
-      .filter { Self.isReject($0.kind) == rejects }
     let optionID = AgentCommandPayload.string(AgentCommandPayload.optionKey, in: payload)
-    let option = optionID.map { id in options.first { $0.id.rawValue == id } } ?? options.first
-    return option.map { (request, $0) }
+    switch source {
+    case .thread(let thread):
+      return Self.answer(in: thread, requestID: requestID, optionID: optionID, rejects: rejects)
+    case .session(let session):
+      return Self.answer(in: session, requestID: requestID, optionID: optionID, rejects: rejects)
+    case nil:
+      return nil
+    }
+  }
+
+  /// The answer to a pending request of a thread.
+  ///
+  /// - Parameters:
+  ///   - thread: The thread.
+  ///   - requestID: The raw id of the request, or `nil` for the first one.
+  ///   - optionID: The raw id of the option, or `nil` for the first one.
+  ///   - rejects: `true` for a reject option, `false` for an allow option.
+  /// - Returns: The answer, or `nil` when there is none.
+  private static func answer(
+    in thread: AgentThread, requestID: String?, optionID: String?, rejects: Bool
+  ) -> PermissionAnswer? {
+    guard let request = select(thread.pendingPermissions, id: requestID, key: \.id.rawValue) else {
+      return nil
+    }
+    let options = PermissionPresentation.order(of: request.options).filter { isReject($0.kind) == rejects }
+    return select(options, id: optionID, key: \.id.rawValue).map { .thread(request, $0) }
+  }
+
+  /// The answer to a pending request of a session model.
+  ///
+  /// - Parameters:
+  ///   - session: The session model.
+  ///   - requestID: The `uuidString` of the local id of the request, or
+  ///     `nil` for the first one.
+  ///   - optionID: The `optionId` of the option, or `nil` for the first one.
+  ///   - rejects: `true` for a reject option, `false` for an allow option.
+  /// - Returns: The answer, or `nil` when there is none.
+  private static func answer(
+    in session: SessionModel, requestID: String?, optionID: String?, rejects: Bool
+  ) -> PermissionAnswer? {
+    guard let pending = select(session.pendingPermissions, id: requestID, key: \.id.uuidString) else {
+      return nil
+    }
+    let options = PermissionPresentation.order(of: pending.request.options)
+      .filter { PermissionPresentation.isReject(kind: $0.kind) == rejects }
+    return select(options, id: optionID, key: \.optionId.rawValue).map { .session(session, pending.id, $0) }
+  }
+
+  /// The item whose key is `id`, or the first item when there is no `id`.
+  ///
+  /// - Parameters:
+  ///   - items: The items, in order.
+  ///   - id: The key to find, or `nil` for the first item.
+  ///   - key: Gives the key of an item.
+  /// - Returns: The item, or `nil` when no item has the key.
+  private static func select<Item>(_ items: [Item], id: String?, key: (Item) -> String) -> Item? {
+    guard let id else { return items.first }
+    return items.first { key($0) == id }
   }
 
   /// Tells if `kind` rejects the operation.
   ///
-  /// - Parameter kind: The kind of an option.
+  /// - Parameter kind: The kind of an option of a thread request.
   /// - Returns: `true` for `reject_once` and `reject_always`.
-  static func isReject(_ kind: PermissionOption.Kind) -> Bool {
+  static func isReject(_ kind: AgentViewKit.PermissionOption.Kind) -> Bool {
     kind == .rejectOnce || kind == .rejectAlways
   }
 
   /// Sends the answer that the payload selects.
+  ///
+  /// A session model gets `selectPermission(_:option:)`, and a comment of the
+  /// payload goes out as the next prompt
+  /// (`SessionModel.answerPermission(_:option:comment:)`). A thread gets the
+  /// decision with the comment through the actions.
   ///
   /// - Parameters:
   ///   - payload: The payload of the dispatch, or `nil`.
@@ -257,33 +410,53 @@ final class AgentCommandTarget {
   private func respond(payload: CommandPayload?, rejects: Bool) {
     guard let answer = answer(payload: payload, rejects: rejects) else { return }
     let comment = AgentCommandPayload.string(AgentCommandPayload.commentKey, in: payload)
-    let decision = PermissionDecision(outcome: .selected(answer.option.id), comment: comment)
-    guard let actions else { return }
-    Task { await actions.respond(to: answer.request, decision) }
+    switch answer {
+    case .thread(let request, let option):
+      guard let actions else { return }
+      let decision = PermissionDecision(outcome: .selected(option.id), comment: comment)
+      Task { await actions.respond(to: request, decision) }
+    case .session(let session, let id, let option):
+      session.answerPermission(id, option: option.optionId, comment: comment)
+    }
   }
 
   // MARK: - Jump
 
-  /// The identifier of the turn that a jump goes to.
+  /// The row key of the turn that a jump goes to.
   ///
-  /// A turn starts at a user message. The jump starts at the first item in
-  /// view. With no item in view, a forward jump goes to the first turn.
+  /// A turn starts at a user message. The jump starts at the first row in
+  /// view. With no row in view, a forward jump goes to the first turn.
   ///
   /// - Parameter forward: `true` for the next turn, `false` for the previous
   ///   turn.
-  /// - Returns: The item identifier of the turn, or `nil` when there is none.
+  /// - Returns: The row key of the turn, or `nil` when there is none.
   private func jumpTarget(forward: Bool) -> String? {
-    guard let thread else { return nil }
-    let current = anchors?.visibleIDs.first.flatMap { thread.position(of: $0) }
-    let turns = thread.items.enumerated().filter { _, item in
-      if case .userMessage = item { return true }
-      return false
-    }
+    guard let source else { return nil }
+    let current = anchors?.visibleIDs.first.flatMap { source.position(of: $0) }
+    let turns = Self.turnRows(of: source)
     if forward {
-      return turns.first { position, _ in current.map { position > $0 } ?? true }?.element.id
+      return turns.first { turn in current.map { turn.position > $0 } ?? true }?.key
     }
     guard let current else { return nil }
-    return turns.last { position, _ in position < current }?.element.id
+    return turns.last { $0.position < current }?.key
+  }
+
+  /// The position and the row key of each user message row, in order.
+  ///
+  /// - Parameter source: The model of the scope.
+  /// - Returns: One row for each user message item of a thread, or for each
+  ///   `UserMessageEntry` of a transcript.
+  private static func turnRows(of source: ConversationSource) -> [(position: Int, key: String)] {
+    switch source {
+    case .thread(let thread):
+      thread.items.enumerated().compactMap { position, item in
+        if case .userMessage = item { (position, item.id) } else { nil }
+      }
+    case .session(let session):
+      session.transcript.enumerated().compactMap { position, entry in
+        if case .userMessage = entry { (position, entry.rowKey) } else { nil }
+      }
+    }
   }
 
   /// Scrolls the list to the next or the previous turn.
@@ -298,22 +471,57 @@ final class AgentCommandTarget {
 
   // MARK: - Expand
 
-  /// Expands each item, or collapses each item when all items are expanded.
+  /// Expands each row, or collapses each row when all rows are expanded.
   ///
-  /// - Parameter thread: The thread.
-  private func toggleExpandAll(_ thread: AgentThread) {
+  /// - Parameter source: The model of the scope.
+  private func toggleExpandAll(_ source: ConversationSource) {
     guard let store = expandedBlocks else { return }
-    let expandsAll = !thread.items.allSatisfy { store.isExpanded($0) }
-    for item in thread.items {
+    let expandsAll = !Self.isEachRowExpanded(of: source, in: store)
+    for key in source.rowKeys {
       if expandsAll {
-        store.expand(item.id)
+        store.expand(key)
       } else {
-        store.collapse(item.id)
+        store.collapse(key)
       }
     }
   }
 
+  /// Tells if each row of `source` is expanded.
+  ///
+  /// A thread item with no decision reads the
+  /// ``ExpandedBlocksStore/defaultExpanded`` policy. The policy takes a
+  /// thread item, so a transcript entry reads only its decision.
+  ///
+  /// - Parameters:
+  ///   - source: The model of the scope.
+  ///   - store: The store of the expanded rows.
+  /// - Returns: `true` when each row is expanded.
+  private static func isEachRowExpanded(of source: ConversationSource, in store: ExpandedBlocksStore) -> Bool {
+    switch source {
+    case .thread(let thread): thread.items.allSatisfy { store.isExpanded($0) }
+    case .session(let session): session.transcript.allSatisfy { store.isExpanded($0.rowKey) }
+    }
+  }
+
   // MARK: - Copy
+
+  /// The role line of a user message.
+  private static var userRole: String { String(localized: "User") }
+
+  /// The role line of an agent message.
+  private static var assistantRole: String { String(localized: "Assistant") }
+
+  /// The messages of the model of a scope as plain text.
+  ///
+  /// - Parameter source: The model of the scope.
+  /// - Returns: The text, or an empty string when the model has no message
+  ///   text.
+  static func plainText(of source: ConversationSource) -> String {
+    switch source {
+    case .thread(let thread): plainText(of: thread)
+    case .session(let session): plainText(of: session)
+    }
+  }
 
   /// The messages of the thread as plain text.
   ///
@@ -327,28 +535,67 @@ final class AgentCommandTarget {
   static func plainText(of thread: AgentThread) -> String {
     thread.items.compactMap { item -> String? in
       switch item {
-      case .userMessage(let message):
-        section(role: String(localized: "User"), message: message)
-      case .assistantMessage(let message):
-        section(role: String(localized: "Assistant"), message: message)
-      case .reasoning, .toolCall, .error, .unknown:
-        nil
+      case .userMessage(let message): section(role: userRole, texts: texts(of: message))
+      case .assistantMessage(let message): section(role: assistantRole, texts: texts(of: message))
+      case .reasoning, .toolCall, .error, .unknown: nil
       }
     }
-    .joined(separator: "\n\n")
+    .joined(separator: sectionSeparator)
+  }
+
+  /// The message entries of the transcript of a session model as plain text,
+  /// in transcript order.
+  ///
+  /// Each `UserMessageEntry` and `AgentMessageEntry` gives one section: a
+  /// role line, then the text blocks that are for the user. The adjacent
+  /// text chunks of an entry join as the view shows them
+  /// (``EntryContentView/joiningAdjacentText(in:)``). A blank line separates
+  /// two sections. The text omits the other entries.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: The text, or an empty string when the transcript has no
+  ///   message text.
+  static func plainText(of session: SessionModel) -> String {
+    session.transcript.compactMap { entry -> String? in
+      switch entry {
+      case .userMessage(let message): section(role: userRole, texts: texts(of: message.content))
+      case .agentMessage(let message): section(role: assistantRole, texts: texts(of: message.content))
+      case .thought, .toolCall, .terminal, .plan, .unknown, .compaction, .error: nil
+      }
+    }
+    .joined(separator: sectionSeparator)
+  }
+
+  /// The text blocks of a thread message that are for the user.
+  ///
+  /// - Parameter message: The message.
+  /// - Returns: The texts, in order.
+  private static func texts(of message: Message) -> [String] {
+    message.blocks.compactMap { block -> String? in
+      guard block.isVisible(to: .user), case .text(let text) = block.content else { return nil }
+      return text
+    }
+  }
+
+  /// The text blocks of the content of an entry that are for the user, with
+  /// each run of adjacent text chunks as one text.
+  ///
+  /// - Parameter content: The ACP content blocks of an entry.
+  /// - Returns: The texts, in order.
+  private static func texts(of content: [FoundationModelsACP.ContentBlock]) -> [String] {
+    EntryContentView.joiningAdjacentText(in: content).compactMap { block -> String? in
+      guard block.isVisibleToUser, case .text(let text) = block else { return nil }
+      return text.text
+    }
   }
 
   /// The section of one message.
   ///
   /// - Parameters:
   ///   - role: The role line.
-  ///   - message: The message.
+  ///   - texts: The texts of the message that are for the user.
   /// - Returns: The section, or `nil` when the message has no text.
-  private static func section(role: String, message: Message) -> String? {
-    let texts = message.blocks.compactMap { block -> String? in
-      guard block.isVisible(to: .user), case .text(let text) = block.content else { return nil }
-      return text
-    }
+  private static func section(role: String, texts: [String]) -> String? {
     guard !texts.isEmpty else { return nil }
     return ([role + ":"] + texts).joined(separator: "\n")
   }
@@ -358,11 +605,10 @@ extension EnvironmentValues {
   /// The target of the nearest ``AgentCommandScope``, or `nil`.
   @Entry var agentCommandTarget: AgentCommandTarget? = nil
 
-  /// The identity of the thread of the nearest ``AgentCommandScope``, or
-  /// `nil`.
+  /// The focus segment of the nearest ``AgentCommandScope``, or `nil`.
   ///
   /// The scope writes this value in its body, before its mount gives the
-  /// thread to the target, so that a scope below can see at once that it is
-  /// in a scope for the same thread.
-  @Entry var agentCommandScopeThread: ObjectIdentifier? = nil
+  /// model to the target, so that a scope below can see at once that it is
+  /// in a scope for the same model.
+  @Entry var agentCommandScopeSegment: FocusSegment? = nil
 }

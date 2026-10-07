@@ -53,6 +53,34 @@ extension SessionModel {
     }
   }
 
+  /// Starts a main-actor task that sends `text` as `session/prompt` with
+  /// ``sendPrompt(with:accepting:)``.
+  ///
+  /// The text has no attachment, so the prompt capabilities do not change
+  /// its one text block.
+  ///
+  /// - Parameter text: The text of the prompt.
+  func startPrompt(text: String) {
+    Task { @MainActor in await sendPrompt(with: UserInput(text: text), accepting: nil) }
+  }
+
+  /// Selects an option of a pending permission request with
+  /// `selectPermission(_:option:)`, then sends the comment of the user as
+  /// the next prompt.
+  ///
+  /// ACP has no comment in the answer of a permission request, so the
+  /// comment goes out after the answer, as one text prompt.
+  ///
+  /// - Parameters:
+  ///   - id: The local id of the pending request.
+  ///   - optionID: The id of the option that the user selected.
+  ///   - comment: The comment of the user, or `nil` for no prompt.
+  func answerPermission(_ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId, comment: String?) {
+    selectPermission(id, option: optionID)
+    guard let comment else { return }
+    startPrompt(text: comment)
+  }
+
   /// Starts a main-actor task that sends `session/cancel` with
   /// `cancel(meta:)`.
   ///

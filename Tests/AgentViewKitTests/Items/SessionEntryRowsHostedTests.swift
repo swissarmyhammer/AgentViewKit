@@ -158,7 +158,7 @@
       defer { harness.close() }
       let model = session.model
 
-      try await session.sendUpdate(SessionTranscriptViewHostedTests.runningState)
+      try await session.sendUpdate(ScriptedSession.runningState)
       try await session.sendUpdate(
         SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
       await harness.pump(until: Self.waitTimeout) {
@@ -172,7 +172,7 @@
       #expect(ComposerSessionModelHostedTests.isRunning(model))
       Self.expectCompleteThought(key: key, in: harness)
 
-      try await session.sendUpdate(SessionTranscriptViewHostedTests.idleState)
+      try await session.sendUpdate(ScriptedSession.idleState)
       await harness.pump(until: Self.waitTimeout) { !ComposerSessionModelHostedTests.isRunning(model) }
       harness.pump()
 

@@ -112,6 +112,20 @@ public nonisolated enum PermissionPresentation {
     }
   }
 
+  /// Tells if an option of a kind rejects the operation.
+  ///
+  /// A kind that the kit does not know is not a reject kind, so the card and
+  /// the approve command treat it as an allow option.
+  ///
+  /// - Parameter kind: The kind of an option.
+  /// - Returns: `true` for `reject_once` and `reject_always`.
+  static func isReject(kind: PermissionOptionKind) -> Bool {
+    switch kind {
+    case .rejectOnce, .rejectAlways: true
+    case .allowOnce, .allowAlways, .unknown: false
+    }
+  }
+
   /// Tells if the card offers the "switch to auto" action.
   ///
   /// - Parameter configOptions: The config options of the session model.

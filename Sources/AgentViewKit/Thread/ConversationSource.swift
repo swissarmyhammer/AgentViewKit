@@ -1,6 +1,7 @@
 import FoundationModelsACPClient
 
-/// The model whose rows a ``ConversationView`` shows.
+/// The model whose rows a ``ConversationView`` shows, and that the agent
+/// commands act on (``AgentCommandTarget``).
 ///
 /// The list, the pages and the scroll anchors read the rows through the text
 /// key of each row: the item id of a thread item, or the

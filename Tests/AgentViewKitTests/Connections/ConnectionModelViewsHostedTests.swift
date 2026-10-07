@@ -26,9 +26,6 @@ import Testing
   /// The method of a login request.
   static let loginMethod = "auth/login"
 
-  /// The method of a prompt request.
-  static let promptMethod = "session/prompt"
-
   /// The JSON-RPC code of the error "authentication required".
   static let authenticationRequiredCode = -32000
 
@@ -217,8 +214,8 @@ import Testing
 
   @Test func aPromptThatFailsWithAuthenticationRequiredOpensTheLoginView() async throws {
     let session = try await Self.openSession {
-      $0.failingMethods = [Self.promptMethod]
-      $0.errorCodes[Self.promptMethod] = Self.authenticationRequiredCode
+      $0.failingMethods = [ScriptedSession.promptMethod]
+      $0.errorCodes[ScriptedSession.promptMethod] = Self.authenticationRequiredCode
     }
     defer { session.close() }
     let harness = Self.mountThread(session)
@@ -234,7 +231,7 @@ import Testing
   }
 
   @Test func aPromptThatFailsWithAnotherCodeDoesNotOpenTheLoginView() async throws {
-    let session = try await Self.openSession { $0.failingMethods = [Self.promptMethod] }
+    let session = try await Self.openSession { $0.failingMethods = [ScriptedSession.promptMethod] }
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }

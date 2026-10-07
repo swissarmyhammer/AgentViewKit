@@ -44,9 +44,6 @@ import Testing
   /// The comment that the reject tests type.
   static let comment = "Use the test file."
 
-  /// The method of a prompt request.
-  static let promptMethod = "session/prompt"
-
   /// The method of a set-config-option request.
   static let setConfigOptionMethod = "session/set_config_option"
 
@@ -156,7 +153,7 @@ import Testing
   /// - Parameter session: The scripted session.
   /// - Returns: The texts.
   static func promptTexts(_ session: ScriptedSession) -> [String] {
-    session.agent.messages(method: promptMethod).map(ScriptedWireAgent.promptText(of:))
+    session.agent.messages(method: ScriptedSession.promptMethod).map(ScriptedWireAgent.promptText(of:))
   }
 
   /// The identifiers of the option buttons of a harness, in tree order.

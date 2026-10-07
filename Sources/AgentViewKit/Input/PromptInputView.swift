@@ -62,7 +62,7 @@ import SwiftUI
 /// .environment(\.connectionModel, connection)
 /// ```
 ///
-/// In an agent command scope (``SwiftUI/View/agentCommandScope(thread:)``),
+/// In an agent command scope (``SwiftUI/View/agentCommandScope(session:)``),
 /// a submit runs ``AgentCommandVerb/send`` and Esc runs
 /// ``AgentCommandVerb/cancel``. The scope can then submit the composer and
 /// focus its editor (``AgentCommandVerb/focusComposer``).

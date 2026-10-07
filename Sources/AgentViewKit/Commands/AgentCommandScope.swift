@@ -1,30 +1,33 @@
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import FoundationModelsACPClient
 import SwiftUI
 
-/// The focus scope that registers the agent commands of a thread
-/// (plan.md §4.1, §11 decision 14).
+/// The focus scope that registers the agent commands of a session model or
+/// a thread (plan.md §4.1, §11 decision 14).
 ///
 /// The scope registers one command for each ``AgentCommandVerb``, and the keys
 /// of ``AgentKeymap``, in the ambient `CommandSystem` of EditorKit. The scope
-/// adds the segment `agentThread:<identity>` to the focus path. When no
+/// adds the segment `agentThread:<identity>` to the focus path: the
+/// `sessionId` of a session model, or the identity of a thread object. When no
 /// ancestor installs a system with `.commandSystem(_:)`, the scope uses a
 /// private system, so that the views in the scope still run the commands.
 ///
-/// Each command reads its eligibility from ``AgentThread/state`` and the
-/// pending lists of the thread. The views in the scope give the parts that
-/// only they have: ``ConversationView`` in an ``AgentThreadView`` gives its
-/// scroll anchors, ``AgentThreadView`` gives its store of the expanded items,
-/// and ``PromptInputView`` gives its submit and its focus.
+/// Each command reads its eligibility from the model directly: the
+/// `agentState`, the `pendingPermissions` and the `transcript` of a
+/// `SessionModel` (see ``AgentCommandTarget``). The views in the scope give the
+/// parts that only they have: ``ConversationView`` in an ``AgentThreadView``
+/// gives its scroll anchors, ``AgentThreadView`` gives its store of the
+/// expanded items, and ``PromptInputView`` gives its submit and its focus.
 ///
-/// ``AgentThreadView`` applies a scope for its thread. To put a composer in
-/// the same scope, apply ``SwiftUI/View/agentCommandScope(thread:)`` to a view
-/// that holds both. A thread view in a scope for the same thread adds its
+/// ``AgentThreadView`` applies a scope for its model. To put a composer in
+/// the same scope, apply ``SwiftUI/View/agentCommandScope(session:)`` to a
+/// view that holds both. A thread view in a scope for the same model adds its
 /// parts to that scope and does not make a second scope.
 struct AgentCommandScope: ViewModifier {
-  /// The thread that the commands act on.
-  let thread: AgentThread
+  /// The model that the commands act on.
+  let source: ConversationSource
 
   /// The scroll anchors of the thread list, or `nil`.
   let anchors: ScrollAnchorManager?
@@ -32,7 +35,7 @@ struct AgentCommandScope: ViewModifier {
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
   @Environment(\.agentCommandTarget) private var enclosingTarget
-  @Environment(\.agentCommandScopeThread) private var enclosingThread
+  @Environment(\.agentCommandScopeSegment) private var enclosingSegment
   @Environment(\.threadActions) private var actions
   @Environment(\.pasteboard) private var pasteboard
   @Environment(\.expandedBlocksStore) private var expandedBlocks
@@ -43,25 +46,20 @@ struct AgentCommandScope: ViewModifier {
   /// The system that the scope uses when no ancestor installs one.
   @State private var standaloneSystem = CommandSystem()
 
-  /// The segment of this scope.
-  private var segment: FocusSegment {
-    AgentCommandTarget.segment(for: thread)
-  }
-
   func body(content: Content) -> some View {
-    if let enclosingTarget, enclosingThread == ObjectIdentifier(thread) {
+    let segment = AgentCommandTarget.segment(for: source)
+    if let enclosingTarget, enclosingSegment == segment {
       content.background(
         AgentCommandMount(
           target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks))
     } else {
-      let segment = segment
       let path = parentPath?.appending(segment) ?? .root(segment)
       let scope = AgentCommandMount.Scope(
-        system: ambientSystem ?? standaloneSystem, path: path, thread: thread,
+        system: ambientSystem ?? standaloneSystem, path: path, source: source,
         actions: actions, pasteboard: pasteboard)
       content
         .environment(\.agentCommandTarget, ownTarget)
-        .environment(\.agentCommandScopeThread, ObjectIdentifier(thread))
+        .environment(\.agentCommandScopeSegment, segment)
         .background(
           AgentCommandMount(
             target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks))
@@ -81,7 +79,7 @@ extension View {
   /// - Parameter thread: The thread that the commands act on.
   /// - Returns: A view in the scope of the commands.
   public func agentCommandScope(thread: AgentThread) -> some View {
-    modifier(AgentCommandScope(thread: thread, anchors: nil))
+    modifier(AgentCommandScope(source: .thread(thread), anchors: nil))
   }
 
   /// Registers the agent commands of `thread`, with the scroll anchors of
@@ -92,7 +90,35 @@ extension View {
   ///   - anchors: The scroll anchors of the thread list.
   /// - Returns: A view in the scope of the commands.
   func agentCommandScope(thread: AgentThread, anchors: ScrollAnchorManager) -> some View {
-    modifier(AgentCommandScope(thread: thread, anchors: anchors))
+    modifier(AgentCommandScope(source: .thread(thread), anchors: anchors))
+  }
+
+  /// Registers the agent commands of a session model for this view and each
+  /// view in it (plan.md §4.1, §11 decision 14).
+  ///
+  /// Each command reads the session model directly and calls its methods:
+  /// cancel follows `agentState` and calls `cancel(meta:)`, approve and reject
+  /// read `pendingPermissions` and call `selectPermission(_:option:)`, and
+  /// copy and jump read `transcript`. Apply the scope to a view that holds an
+  /// ``AgentThreadView`` and a ``PromptInputView``, so that the commands
+  /// submit and focus the composer. See ``AgentCommandVerb`` and
+  /// ``AgentKeymap``.
+  ///
+  /// - Parameter session: The session model that the commands act on.
+  /// - Returns: A view in the scope of the commands.
+  public func agentCommandScope(session: SessionModel) -> some View {
+    modifier(AgentCommandScope(source: .session(session), anchors: nil))
+  }
+
+  /// Registers the agent commands of a session model, with the scroll
+  /// anchors of the thread list.
+  ///
+  /// - Parameters:
+  ///   - session: The session model that the commands act on.
+  ///   - anchors: The scroll anchors of the thread list.
+  /// - Returns: A view in the scope of the commands.
+  func agentCommandScope(session: SessionModel, anchors: ScrollAnchorManager) -> some View {
+    modifier(AgentCommandScope(source: .session(session), anchors: anchors))
   }
 }
 
@@ -143,7 +169,7 @@ enum AgentCommandRegistration {
 /// live.
 ///
 /// SwiftUI calls `updateNSView` after each change to the values, so the
-/// target always has the current thread, actions, and parts. The teardown
+/// target always has the current model, actions, and parts. The teardown
 /// removes the registration and the parts that this mount gave.
 struct AgentCommandMount: NSViewRepresentable {
   /// The values of a scope that the mount owns.
@@ -152,9 +178,9 @@ struct AgentCommandMount: NSViewRepresentable {
     let system: CommandSystem
     /// The path of the scope.
     let path: FocusPath
-    /// The thread of the scope.
-    let thread: AgentThread
-    /// The actions that the commands call, or `nil` when no
+    /// The model of the scope.
+    let source: ConversationSource
+    /// The actions that the commands of a thread call, or `nil` when no
     /// ``AgentThreadView`` gave them.
     let actions: (any AgentThreadActions)?
     /// The pasteboard of the copy command.
@@ -226,7 +252,7 @@ struct AgentCommandMount: NSViewRepresentable {
   ///   the teardown.
   private func apply(to coordinator: Coordinator) {
     if let scope {
-      target.thread = scope.thread
+      target.source = scope.source
       target.actions = scope.actions
       target.pasteboard = scope.pasteboard
       target.system = scope.system

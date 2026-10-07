@@ -46,9 +46,6 @@
     /// The method of an elicitation request.
     static let elicitationMethod = "elicitation/create"
 
-    /// The method of a prompt request.
-    static let promptMethod = "session/prompt"
-
     /// The method of a login request.
     static let loginMethod = "auth/login"
 
@@ -108,7 +105,7 @@
     /// - Returns: The position, or `nil`.
     static func indexOfPrompt(withText text: String, in agent: ScriptedWireAgent) -> Int? {
       agent.received.firstIndex { frame in
-        frame["method"]?.stringValue == promptMethod
+        frame["method"]?.stringValue == ScriptedSession.promptMethod
           && ScriptedWireAgent.promptText(of: frame) == text
       }
     }
@@ -174,7 +171,7 @@
       #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
       #expect(model.pendingPermissions.isEmpty)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) == nil)
-      #expect(session.agent.messages(method: Self.promptMethod).isEmpty)
+      #expect(session.agent.messages(method: ScriptedSession.promptMethod).isEmpty)
     }
 
     /// A reject with a comment answers the request, and then sends the comment

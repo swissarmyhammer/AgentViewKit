@@ -69,20 +69,8 @@
     /// The text of the second prompt.
     static let secondMessage = "And then?"
 
-    /// The method of a prompt request.
-    static let promptMethod = "session/prompt"
-
-    /// The method of a cancel notification.
-    static let cancelMethod = "session/cancel"
-
     /// The JSON-RPC code of the error that the scripted agent sends.
     static let scriptedErrorCode = -32603
-
-    /// The `session/update` value that tells that the agent runs.
-    static let runningState = #"{"sessionUpdate":"state_update","state":"running"}"#
-
-    /// The `session/update` value that tells that the agent is idle.
-    static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
 
     /// The `messageId` of the agent message that marks the end of the frames
     /// of a prompt.
@@ -161,7 +149,7 @@
     /// - Parameter agent: The scripted agent.
     /// - Returns: The blocks, or an empty list when the agent got no prompt.
     static func promptBlocks(of agent: ScriptedWireAgent) -> [AgentViewKit.JSONValue] {
-      guard case .array(let blocks) = agent.messages(method: promptMethod).first?["params"]?["prompt"] else {
+      guard case .array(let blocks) = agent.messages(method: ScriptedSession.promptMethod).first?["params"]?["prompt"] else {
         return []
       }
       return blocks
@@ -222,8 +210,8 @@
     func aSentPromptShowsAsPendingAtOnceAndThenAsSent(order: ScriptedWireAgent.PromptEchoOrder) async throws {
       let session = try await ScriptedSession.open {
         $0.promptEchoOrder = order
-        $0.heldMethods = [Self.promptMethod]
-        $0.followUps[Self.promptMethod] = { request, _ in
+        $0.heldMethods = [ScriptedSession.promptMethod]
+        $0.followUps[ScriptedSession.promptMethod] = { request, _ in
           [Self.updateFrame(carrying: Self.markerUpdate, for: request)]
         }
       }
@@ -252,11 +240,11 @@
       #expect(entry.messageId != nil)
       #expect(Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.sent])
       #expect(Self.userMessages(of: model).map(\.id) == [entry.id])
-      #expect(session.agent.messages(method: Self.promptMethod).count == 1)
+      #expect(session.agent.messages(method: ScriptedSession.promptMethod).count == 1)
     }
 
     @Test func aFailedPromptShowsTheMessageAsNotSentAndAddsAnErrorRow() async throws {
-      let session = try await ScriptedSession.open { $0.failingMethods = [Self.promptMethod] }
+      let session = try await ScriptedSession.open { $0.failingMethods = [ScriptedSession.promptMethod] }
       defer { session.close() }
       let draft = PromptInputHostedTestModel(text: Self.firstMessage)
       let harness = Self.mount(session: session, draft: draft)
@@ -279,7 +267,7 @@
     // MARK: - Send while the agent runs
 
     @Test func aSubmitWhileTheAgentRunsSendsAPromptFrameAtOnce() async throws {
-      let session = try await ScriptedSession.open { $0.heldMethods = [Self.promptMethod] }
+      let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.promptMethod] }
       defer { session.close() }
       let draft = PromptInputHostedTestModel(text: Self.firstMessage)
       let harness = Self.mount(session: session, draft: draft)
@@ -288,7 +276,7 @@
       try await Self.startRunning(session, in: harness)
 
       try Self.submitWithReturn(in: harness)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
       let entry = try #require(Self.userMessages(of: model).first)
       await harness.pump(until: Self.waitTimeout) { Self.sendStateLabel(of: entry, in: harness) != nil }
 
@@ -308,11 +296,11 @@
       try await Self.startRunning(session, in: harness)
 
       try Self.submitWithReturn(in: harness)
-      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: Self.promptMethod).count == 1 }
+      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: ScriptedSession.promptMethod).count == 1 }
       draft.text = AttributedString(Self.secondMessage)
       harness.pump()
       try Self.submitWithReturn(in: harness)
-      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: Self.promptMethod).count == 2 }
+      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: ScriptedSession.promptMethod).count == 2 }
 
       #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage, Self.secondMessage])
       #expect(Self.isRunning(model))
@@ -328,7 +316,7 @@
       let framesBefore = session.agent.received.count
 
       try await Self.startRunning(session, in: harness)
-      try await session.sendUpdate(Self.idleState)
+      try await session.sendUpdate(ScriptedSession.idleState)
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil
       }
@@ -351,7 +339,7 @@
       #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil)
       #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) == nil)
 
-      try await session.sendUpdate(Self.idleState)
+      try await session.sendUpdate(ScriptedSession.idleState)
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil
       }
@@ -370,10 +358,10 @@
       try await Self.startRunning(session, in: harness)
       try harness.press(identifier: DefaultPromptAccessory.stopIdentifier)
       await harness.pump(until: Self.waitTimeout) {
-        !session.agent.messages(method: Self.cancelMethod).isEmpty
+        !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
       }
 
-      let cancels = session.agent.messages(method: Self.cancelMethod)
+      let cancels = session.agent.messages(method: ScriptedSession.cancelMethod)
       #expect(cancels.count == 1)
       #expect(cancels.first?["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
     }
@@ -397,7 +385,7 @@
       #expect(harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id)) == nil)
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
       let blocks = Self.promptBlocks(of: session.agent)
       #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource"])
@@ -415,7 +403,7 @@
       harness.pump()
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: Self.promptMethod).isEmpty }
+      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
       let blocks = Self.promptBlocks(of: session.agent)
       #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource_link"])
@@ -459,7 +447,7 @@
     static func startRunning<Content: View>(
       _ session: ScriptedSession, in harness: HostedViewHarness<Content>
     ) async throws {
-      try await session.sendUpdate(runningState)
+      try await session.sendUpdate(ScriptedSession.runningState)
       await harness.pump(until: waitTimeout) {
         harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil
       }
@@ -484,7 +472,7 @@
     /// - Parameter agent: The scripted agent.
     /// - Returns: The texts.
     static func promptTexts(of agent: ScriptedWireAgent) -> [String] {
-      agent.messages(method: promptMethod).compactMap { $0["params"]?["prompt"]?[0]?["text"]?.stringValue }
+      agent.messages(method: ScriptedSession.promptMethod).compactMap { $0["params"]?["prompt"]?[0]?["text"]?.stringValue }
     }
 
     /// A `session/update` frame of the session of a request.
