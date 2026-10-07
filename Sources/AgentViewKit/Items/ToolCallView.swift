@@ -632,25 +632,15 @@ private struct LocationChips: View {
     }
   }
 
-  /// The text of a location: the path, and the line when there is one.
-  ///
-  /// - Parameters:
-  ///   - location: The location.
-  ///   - path: The path text to use.
-  /// - Returns: "<path>" or "<path>:<line>".
-  private static func text(_ location: FoundationModelsACP.ToolCallLocation, path: String) -> String {
-    guard let line = location.line else { return path }
-    return "\(path):\(line)"
-  }
-
   /// One chip: the file name, with the full path in the help tag.
   ///
   /// - Parameter location: The ACP location to show.
   /// - Returns: The chip view.
   private func chip(_ location: FoundationModelsACP.ToolCallLocation) -> some View {
     let path = location.path.rawValue
-    let fullText = Self.text(location, path: path)
-    let shortText = Self.text(location, path: URL(fileURLWithPath: path).lastPathComponent)
+    let fullText = FoundationModelsACP.ToolCallLocation.text(path: path, line: location.line)
+    let shortText = FoundationModelsACP.ToolCallLocation.text(
+      path: URL(fileURLWithPath: path).lastPathComponent, line: location.line)
     return Label(shortText, systemImage: "doc")
       .font(.caption)
       .lineLimit(1)

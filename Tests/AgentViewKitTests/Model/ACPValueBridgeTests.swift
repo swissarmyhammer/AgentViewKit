@@ -4,7 +4,7 @@ import Testing
 @testable import AgentViewKit
 
 /// The ACP values that the records of the old thread path give to the views,
-/// and the JSON text of an ACP value.
+/// the JSON text of an ACP value, and the text of an ACP location.
 @Suite struct ACPValueBridgeTests {
   /// The text of the plan entry of the bridge test.
   static let entryText = "Read the file"
@@ -62,5 +62,17 @@ import Testing
     let value = FoundationModelsACP.JSONValue.object(["b": .number(1), "a": .string("x/y")])
 
     #expect(value.prettyPrinted == "{\n  \"a\" : \"x/y\",\n  \"b\" : 1\n}")
+  }
+
+  @Test func aLocationTextWithALineJoinsThePathAndTheLine() {
+    #expect(
+      FoundationModelsACP.ToolCallLocation.text(path: Self.relativePath, line: Self.locationLine)
+        == "\(Self.relativePath):\(Self.locationLine)")
+  }
+
+  @Test func aLocationTextWithNoLineIsThePath() {
+    #expect(
+      FoundationModelsACP.ToolCallLocation.text(path: Self.relativePath, line: nil)
+        == Self.relativePath)
   }
 }

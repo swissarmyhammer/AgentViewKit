@@ -265,7 +265,10 @@ public enum ThreadExporter {
       "status": .string(call.status.wireValue),
     ]
     if !call.locations.isEmpty {
-      summary["locations"] = .array(call.locations.map { .string(locationText($0)) })
+      summary["locations"] = .array(
+        call.locations.map {
+          .string(FoundationModelsACP.ToolCallLocation.text(path: $0.path, line: $0.line))
+        })
     }
     if let rawInput = call.rawInput {
       summary["input"] = rawInput
@@ -274,15 +277,5 @@ public enum ThreadExporter {
       summary["output"] = rawOutput
     }
     return .object(summary)
-  }
-
-  /// The text of a location: the path, with `:<line>` when the line is
-  /// known.
-  ///
-  /// - Parameter location: The location.
-  /// - Returns: The text.
-  private static func locationText(_ location: ToolCallLocation) -> String {
-    guard let line = location.line else { return location.path }
-    return "\(location.path):\(line)"
   }
 }
