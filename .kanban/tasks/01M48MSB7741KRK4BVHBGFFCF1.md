@@ -29,6 +29,39 @@ comments:
     - evidence: 8 files — Sources/AgentViewKit/Items/MessageActions.swift, Sources/AgentViewKit/Items/ThreadExporter.swift, Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Sources/AgentViewKit/Input/ThreadActionTasks.swift, Tests/AgentViewKitTests/Items/MessageActionsHostedTests.swift, Tests/AgentViewKitTests/Items/ThreadExporterTests.swift, Tests/AgentViewKitTests/Helpers/WireBlockJSON.swift, Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift. `swift test --filter "ThreadExporterTests|MessageActionsHostedTests"`: 30 tests pass. Full `swift test`: 1381 tests, 1 failure (`ParagraphReuseTests.aChunkThatSettlesAParagraphEvaluatesOnlyTheNewParagraph`, also fails at d47abd7 with no change; task ^vhp5fv7). Warnings: only the expected deprecation and mlx-swift `missing creator` ones.
     - next: /review
   timestamp: 2026-10-07T01:24:52.799452+00:00
+- actor: claude-code
+  id: 01m4a07q99fppdqeaybed4wt98
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — MessageActions(entry:) for user and agent entries; ThreadExporter.markdown(for: [TranscriptEntry]) and messageTexts(in:) shared with the copy-thread command; SessionModel.sendPrompt and startPrompt(content:); 8 files
+    - test: green — swift test, 1381 passed
+    - commit: 1a7ee35
+    - review: findings — Sources/AgentViewKit/Items/MessageActions.swift:320
+  timestamp: 2026-10-07T01:39:19.977486+00:00
+- actor: claude-code
+  id: 01m4a07rz1qvvaztgjx2ej12jy
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 1a7ee35). 1 finding (1 confirmed, 2 refuted). Sources/AgentViewKit/Items/MessageActions.swift:320 `completeness/inverse-operation-coverage`.
+    - next: /implement the open item of "## Review Findings (2026-10-06 20:30)".
+  timestamp: 2026-10-07T01:39:21.697127+00:00
+- actor: claude-code
+  id: 01m4a0k4vk7ynec936rch7b9jc
+  text: |-
+    Finding fixed: MessageActions.swift copyThread `completeness/inverse-operation-coverage`.
+    - Discovery: the finding is not correct about the overload. `AgentCommandTarget.plainText(of: ConversationSource)` exists (AgentCommandTarget.swift, Copy section). It switches on the source and calls the `AgentThread` or `SessionModel` overload. Thus the call in `copyThread()` compiled and was correct. The true cause was the asymmetry: `export()` switched on the source itself, but `copyThread()` gave the source to one function.
+    - Fix (no duplicate switch): new internal `ThreadExporter.markdown(for: ConversationSource)`, the same form as `plainText(of: ConversationSource)`. `export()` now does `guard let source` and calls it, as `copyThread()` does. Both doc comments tell that the two actions take the model in the same form. A switch in both actions (the other choice) would copy the switch that `plainText(of: ConversationSource)` already has.
+    - TDD: two new tests in ThreadExporterTests (`theExportOfAThreadSourceEqualsTheGoldenFile`, `theExportOfASessionSourceHasOnlyTheMessageEntries`) failed to compile first (no contextual type for `.thread` / `.session`), then passed.
+    - Copy thread on both paths keeps its tests: `copyThreadWithNoScopeWritesTheTextOfTheCommand` (thread path) and `copyThreadOnAnEntryWritesTheTextOfTheCopyCommand` (session path), both in MessageActionsHostedTests.
+    - Note: `dump validators` for one .swift file gives a 12097-line rules file (about 750k characters). It is too large to read whole; I read the `inverse-operation-coverage` body.
+  timestamp: 2026-10-07T01:45:34.323149+00:00
+- actor: claude-code
+  id: 01m4a0k6ygjrbp1cfzv9r9sn2s
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Sources/AgentViewKit/Items/ThreadExporter.swift, Sources/AgentViewKit/Items/MessageActions.swift, Tests/AgentViewKitTests/Items/ThreadExporterTests.swift. `swift test --filter "ThreadExporterTests|MessageActionsHostedTests|AgentCommand"`: 70 tests in 4 suites pass. Full `swift test`: 1383 tests in 127 suites pass (plus 78 and 1 in the other runs), 0 failures. Warnings: only the mlx-swift `missing creator` one. Review finding flipped to [x].
+    - next: /review
+  timestamp: 2026-10-07T01:45:36.464456+00:00
 depends_on:
 - 01M48MS20B5GS4711S119KD9GM
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
@@ -56,3 +89,12 @@ Owner rule (2026-10-06): each kit view binds directly to the observable model of
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 20:30)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Sources/AgentViewKit/Items/MessageActions.swift:320` `completeness/inverse-operation-coverage` — copyThread() calls AgentCommandTarget.plainText(of: source) where source is ConversationSource, but plainText has no overload for ConversationSource — only for AgentThread and SessionModel. The export() function at lines 327–330 correctly pattern-matches on source to extract the underlying type before passing it to ThreadExporter; copyThread should do the same. Replace line 320 with pattern-matching logic that mirrors export(): switch on source, extract .session(let session) or .thread(let thread), and call the appropriate plainText overload for each.

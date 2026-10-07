@@ -49,6 +49,12 @@ import Testing
     #expect(ThreadExporter.markdown(for: Self.fixtureThread()) == golden)
   }
 
+  @Test func theExportOfAThreadSourceEqualsTheGoldenFile() throws {
+    let golden = try PackageFiles.text(of: Self.goldenPath)
+
+    #expect(ThreadExporter.markdown(for: .thread(Self.fixtureThread())) == golden)
+  }
+
   @Test func anEmptyThreadGivesAnEmptyDocument() {
     #expect(ThreadExporter.markdown(for: AgentThread()).isEmpty)
   }
@@ -116,6 +122,15 @@ import Testing
 
     #expect(session.model.transcript.count == Self.turnEntryCount)
     #expect(ThreadExporter.markdown(for: session.model.transcript) == Self.turnMarkdown)
+  }
+
+  @Test func theExportOfASessionSourceHasOnlyTheMessageEntries() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+
+    try await Self.sendTurn(to: session)
+
+    #expect(ThreadExporter.markdown(for: .session(session.model)) == Self.turnMarkdown)
   }
 
   @Test func aMessageEntryThatTheModelAddsIsInTheNextExport() async throws {

@@ -315,6 +315,10 @@ public struct MessageActions: View {
 
   /// Copies the thread through the command scope, or directly when there is
   /// no scope, with the same text as the command.
+  ///
+  /// `AgentCommandTarget.plainText(of:)` takes the model as a
+  /// `ConversationSource`, the same form that ``export()`` gives to
+  /// `ThreadExporter.markdown(for:)`.
   private func copyThread() {
     guard let source, commandTarget?.perform(.copyThread) != true else { return }
     pasteboard.copyText(AgentCommandTarget.plainText(of: source))
@@ -322,14 +326,11 @@ public struct MessageActions: View {
 
   /// Shows the file exporter with the Markdown of the model: the message
   /// entries of the transcript of a session model, or the items of a thread.
+  ///
+  /// The function takes the model in the same form as ``copyThread()``.
   private func export() {
-    let text: String
-    switch source {
-    case .session(let session): text = ThreadExporter.markdown(for: session.transcript)
-    case .thread(let thread): text = ThreadExporter.markdown(for: thread)
-    case nil: return
-    }
-    exportDocument = MarkdownDocument(text: text)
+    guard let source else { return }
+    exportDocument = MarkdownDocument(text: ThreadExporter.markdown(for: source))
   }
 
   /// Sends the last user message before this message again.

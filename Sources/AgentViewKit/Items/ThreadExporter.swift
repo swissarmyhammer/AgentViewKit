@@ -60,6 +60,22 @@ public enum ThreadExporter {
     return sections.joined(separator: "\n\n") + "\n"
   }
 
+  /// The Markdown document of the model of a conversation.
+  ///
+  /// Export and Copy thread of ``MessageActions`` take the model in the same
+  /// form: Export calls this function, and Copy thread calls
+  /// `AgentCommandTarget.plainText(of:)`.
+  ///
+  /// - Parameter source: The model: a session model or a deprecated thread.
+  /// - Returns: The transcript form of `markdown(for:)` for the transcript of
+  ///   a session model, or the thread form for a thread.
+  static func markdown(for source: ConversationSource) -> String {
+    switch source {
+    case .session(let session): markdown(for: session.transcript)
+    case .thread(let thread): markdown(for: thread)
+    }
+  }
+
   /// The Markdown of the content of a message entry.
   ///
   /// The text is each text block that is for the user, with each run of
