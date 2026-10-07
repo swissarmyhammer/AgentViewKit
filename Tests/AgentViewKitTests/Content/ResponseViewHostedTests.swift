@@ -193,4 +193,11 @@ import Testing
       ParagraphView(messageID: "m", paragraph: paragraph)
         != ParagraphView(messageID: "n", paragraph: paragraph))
   }
+
+  @Test func twoParagraphViewsInDifferentReadingGroupsAreNotEqual() {
+    let paragraph = ParagraphSplitter.Paragraph(index: 0, text: "One.")
+    #expect(
+      ParagraphView(messageID: "m", paragraph: paragraph, readingGroupID: "a")
+        != ParagraphView(messageID: "m", paragraph: paragraph, readingGroupID: "b"))
+  }
 }

@@ -271,6 +271,9 @@ private struct MessageParagraphs: View {
 }
 
 /// One ``ParagraphView`` for each paragraph, keyed by the paragraph id.
+///
+/// This view, and not each ``ParagraphView``, reads the reading group of the
+/// message from the environment, and gives it to each paragraph as a value.
 private struct ParagraphList: View {
   /// The id of the message.
   let messageID: String
@@ -281,12 +284,18 @@ private struct ParagraphList: View {
   /// The citation pills of each paragraph, keyed by the paragraph index.
   let citations: [Int: [CitationPlacement]]
 
+  /// The linked reading group of the message that holds the view, or `nil`
+  /// to use the group of ``messageID``.
+  @Environment(\.accessibilityMessageGroupID) private var messageGroupID
+
   var body: some View {
+    let readingGroupID = messageGroupID ?? messageID
     ForEach(paragraphs) { paragraph in
       ParagraphView(
         messageID: messageID,
         paragraph: paragraph,
-        citations: citations[paragraph.id.index] ?? []
+        citations: citations[paragraph.id.index] ?? [],
+        readingGroupID: readingGroupID
       )
       .equatable()
     }

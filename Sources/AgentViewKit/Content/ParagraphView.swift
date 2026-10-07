@@ -9,7 +9,12 @@ import SwiftUI
 /// streaming tail does not evaluate the body again.
 ///
 /// The paragraph is in the linked reading group of its message
-/// (plan.md §6), so VoiceOver reads from one paragraph into the next.
+/// (plan.md §6), so VoiceOver reads from one paragraph into the next. The
+/// view gets the id of the group as a value, and it reads no environment
+/// value itself. SwiftUI can evaluate the body of a view that reads the
+/// environment again on the first change of the paragraph list after the
+/// mount, with no Equatable check. A view with no environment property
+/// evaluates again only when `==` gives `false`.
 ///
 /// The view gives its code block identity to the environment. Thus
 /// ``EditorKitCodeBlockStyle`` gets the cached model of a fenced block from
@@ -30,17 +35,22 @@ public struct ParagraphView: View, Equatable {
   /// The citation pills of the paragraph.
   let citations: [CitationPlacement]
 
-  /// The linked reading group of the message that holds the view, or `nil`
-  /// to use the group of ``messageID``.
-  @Environment(\.accessibilityMessageGroupID) private var messageGroupID
+  /// The id of the linked reading group of the paragraph.
+  let readingGroupID: String
 
   /// Makes the view of one settled paragraph.
   ///
   /// - Parameters:
   ///   - messageID: The id of the message that holds the paragraph.
   ///   - paragraph: The paragraph to show.
-  public init(messageID: String, paragraph: ParagraphSplitter.Paragraph) {
-    self.init(messageID: messageID, paragraph: paragraph, citations: [])
+  ///   - readingGroupID: The id of the linked reading group of the message
+  ///     that holds the paragraph, or `nil` to use the group of `messageID`.
+  public init(
+    messageID: String, paragraph: ParagraphSplitter.Paragraph, readingGroupID: String? = nil
+  ) {
+    self.init(
+      messageID: messageID, paragraph: paragraph, citations: [],
+      readingGroupID: readingGroupID ?? messageID)
   }
 
   /// Makes the view of one settled paragraph with citation pills.
@@ -49,26 +59,29 @@ public struct ParagraphView: View, Equatable {
   ///   - messageID: The id of the message that holds the paragraph.
   ///   - paragraph: The paragraph to show.
   ///   - citations: The citation pills of the paragraph.
-  init(messageID: String, paragraph: ParagraphSplitter.Paragraph, citations: [CitationPlacement]) {
+  ///   - readingGroupID: The id of the linked reading group of the
+  ///     paragraph.
+  init(
+    messageID: String, paragraph: ParagraphSplitter.Paragraph, citations: [CitationPlacement],
+    readingGroupID: String
+  ) {
     self.messageID = messageID
     self.paragraph = paragraph
     self.citations = citations
+    self.readingGroupID = readingGroupID
   }
 
   /// Tells whether two views show the same paragraph of the same message
-  /// with the same citation pills.
-  ///
-  /// The comparison does not include the environment. SwiftUI evaluates the
-  /// body again when an environment value that the body reads changes.
+  /// with the same citation pills, in the same reading group.
   ///
   /// - Parameters:
   ///   - lhs: A paragraph view.
   ///   - rhs: A paragraph view.
-  /// - Returns: `true` when the message id, the paragraph, and the citation
-  ///   pills are equal.
+  /// - Returns: `true` when the message id, the paragraph, the citation
+  ///   pills, and the reading group are equal.
   public static func == (lhs: ParagraphView, rhs: ParagraphView) -> Bool {
     lhs.messageID == rhs.messageID && lhs.paragraph == rhs.paragraph
-      && lhs.citations == rhs.citations
+      && lhs.citations == rhs.citations && lhs.readingGroupID == rhs.readingGroupID
   }
 
   /// The text form of a paragraph id: the index and the hexadecimal text
@@ -102,6 +115,6 @@ public struct ParagraphView: View, Equatable {
         CodeBlockID(messageID: messageID, paragraphID: Self.key(for: paragraph.id))
       )
       .contentContainer(identifier: ResponseView.paragraphIdentifier(index: paragraph.id.index))
-      .accessibilityReadingGroup(messageGroupID ?? messageID)
+      .accessibilityReadingGroup(readingGroupID)
   }
 }
