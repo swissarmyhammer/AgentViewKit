@@ -40,7 +40,16 @@ import Testing
     "Docs/decisions/usage-model.md",
     "Docs/decisions/branches.md",
     "Docs/decisions/compaction-ux.md",
+    "Docs/decisions/required-thread-actions.md",
   ]
+
+  /// The heading of the section of the scope record that names the host
+  /// hooks.
+  static let hostHooksHeading = "## Host hooks"
+
+  /// The environment values that are the only host hooks of the kit. Each
+  /// view binds to the client models, and the host gives only these.
+  static let hostHooks = ["terminalAuthRunner", "agentReconnect"]
 
   /// The attachment type record, relative to the package root.
   static let attachmentTypesRecordPath = "Docs/decisions/attachment-types.md"
@@ -65,6 +74,17 @@ import Testing
     let lines = try PackageFiles.text(of: Self.clientKitRecordPath).split(separator: "\n")
 
     #expect(lines.first.map(String.init) == Self.clientKitTitle)
+  }
+
+  @Test func theClientKitRecordNamesEachHostHook() throws {
+    let text = try PackageFiles.text(of: Self.clientKitRecordPath)
+    let section = try #require(
+      text.components(separatedBy: "\n\(Self.hostHooksHeading)\n").dropFirst().first?
+        .components(separatedBy: "\n## ").first)
+
+    for hook in Self.hostHooks {
+      #expect(section.contains("`\(hook)`"), "The host hook section does not name \(hook).")
+    }
   }
 
   @Test(arguments: removedDependencies)

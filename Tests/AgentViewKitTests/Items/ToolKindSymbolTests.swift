@@ -21,9 +21,6 @@ import Testing
     .unknown("custom_status"),
   ]
 
-  /// The start time of the duration tests.
-  static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
-
   // MARK: - Kinds
 
   @Test func eachKindMapsToADistinctSymbol() {
@@ -39,11 +36,6 @@ import Testing
 
   @Test func allUnknownKindsShareOneSymbol() {
     #expect(ToolKindSymbol.name(for: .unknown("a")) == ToolKindSymbol.name(for: .unknown("b")))
-  }
-
-  @Test func eachKitKindBridgesToTheACPKindWithTheSameWireValue() {
-    let kitKinds = AgentViewKit.ToolKind.knownCases + [.unknown("custom_kind")]
-    #expect(kitKinds.map(\.acpKind) == Self.kinds)
   }
 
   // MARK: - Statuses
@@ -76,11 +68,6 @@ import Testing
     }
   }
 
-  @Test func eachKitStatusBridgesToTheACPStatusWithTheSameWireValue() {
-    let kitStatuses = AgentViewKit.ToolCallStatus.knownCases + [.unknown("custom_status")]
-    #expect(kitStatuses.map(\.acpStatus) == Self.statuses)
-  }
-
   @Test func aToolCallAndAPlanEntryShareTheNameOfEachCommonStatus() {
     let pairs: [(FoundationModelsACP.ToolCallStatus, FoundationModelsACP.PlanEntryStatus)] = [
       (.pending, .pending),
@@ -110,20 +97,6 @@ import Testing
         == "Tool call, Result lost")
   }
 
-  @Test func theDurationNeedsBothTimes() {
-    #expect(ToolCallView.durationText(from: nil, to: Self.start) == nil)
-    #expect(ToolCallView.durationText(from: Self.start, to: nil) == nil)
-  }
-
-  @Test func aShortDurationHasOneDecimalAndALongDurationHasNone() {
-    let short = Self.start.addingTimeInterval(1.5)
-    let long = Self.start.addingTimeInterval(12.4)
-    let negative = Self.start.addingTimeInterval(-3)
-    #expect(ToolCallView.durationText(from: Self.start, to: short) == "1.5 s")
-    #expect(ToolCallView.durationText(from: Self.start, to: long) == "12 s")
-    #expect(ToolCallView.durationText(from: Self.start, to: negative) == "0.0 s")
-  }
-
   // MARK: - Command output
 
   @Test func theCommandComesFromAStringOrAnArrayValue() {
@@ -145,7 +118,7 @@ import Testing
 
   // MARK: - Identifiers
 
-  @Test func theIdentifiersAndCounterKeysUseTheRecordID() {
+  @Test func theIdentifiersAndCounterKeysUseTheRowKey() {
     #expect(ToolCallView.identifier(for: "call") == "tool-call-call")
     #expect(ToolCallView.toggleIdentifier(for: "call") == "tool-call-call-toggle")
     #expect(ToolCallView.bodyIdentifier(for: "call") == "tool-call-call-body")

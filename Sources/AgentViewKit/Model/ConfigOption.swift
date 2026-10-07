@@ -1,7 +1,6 @@
 /// The identifier of a ``ConfigOption`` (plan.md §3.4).
 ///
-/// For ACP, this is the `configId`. `AgentThreadActions.setConfigOption`
-/// takes this type.
+/// For ACP, this is the `configId`.
 public typealias ConfigOptionID = Identifier<ConfigOption>
 
 /// A setting of the session that the user can change (plan.md §3.2, §3.4).
@@ -184,8 +183,7 @@ public nonisolated struct SelectGroup: Sendable, Hashable, Identifiable {
 
 /// A new value for a ``ConfigOption`` (plan.md §3.4).
 ///
-/// `AgentThreadActions.setConfigOption` takes this type. The cases follow
-/// the value types of the ACP v2 `session/set_config_option` request.
+/// The cases follow the value types of the ACP v2 `session/set_config_option` request.
 public nonisolated enum ConfigValue: Sendable, Hashable {
   /// The ``SelectOption/id`` of a value of a select option.
   case id(String)

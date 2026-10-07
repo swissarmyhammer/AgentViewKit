@@ -110,7 +110,7 @@
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
-          AgentThreadView(session: session.model, actions: NoopThreadActions())
+          AgentThreadView(session: session.model)
           ConnectionComposerHost(holder: holder, model: draft)
         }
         .environment(\.sessionModel, session.model)
@@ -166,7 +166,7 @@
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
-          AgentThreadView(session: session.model, actions: NoopThreadActions())
+          AgentThreadView(session: session.model)
           PromptInputHost(model: draft)
         }
         .environment(\.sessionModel, session.model)
@@ -250,7 +250,7 @@
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
       let model = session.model
-      let errorIdentifier = ErrorView.identifier(for: .acp(code: Self.scriptedErrorCode, message: "failed"))
+      let errorIdentifier = ErrorView.identifier
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: errorIdentifier) != nil }

@@ -6,9 +6,9 @@ import SwiftUI
 /// The row shows the ``PermissionModePicker`` of the session model of the
 /// environment (``SwiftUI/EnvironmentValues/sessionModel``), the
 /// ``SpeechInputButton``, and the submit button in the `.glassProminent`
-/// style. While the thread runs a turn, a Stop button replaces the submit
-/// button and calls ``AgentThreadActions/cancel()``. While the thread does
-/// not run a turn, a ``SuggestionsView`` above the row shows the prompts of
+/// style. While the agent runs a turn, a Stop button replaces the submit
+/// button. While the agent does not run a turn, a ``SuggestionsView`` above
+/// the row shows the prompts of
 /// ``SwiftUI/EnvironmentValues/promptSuggestions``. A host that has a list of
 /// tools puts a ``ToolToggles`` in its own accessory row.
 ///
@@ -16,13 +16,12 @@ import SwiftUI
 /// list is empty, and the mic when
 /// ``SwiftUI/EnvironmentValues/speechTranscriber`` is `nil`.
 ///
-/// The row reads the thread from ``SwiftUI/EnvironmentValues/agentThread``,
-/// the actions from ``SwiftUI/EnvironmentValues/threadActions``, and the
-/// submit action from ``SwiftUI/EnvironmentValues/promptSubmitAction``. When
-/// the environment has a session model
-/// (``SwiftUI/EnvironmentValues/sessionModel``), the Stop button shows while
-/// its `agentState` is `running`, and it sends `session/cancel` with
-/// `SessionModel.cancel(meta:)` (update.md §4.2 "Other requests"). The
+/// The row reads the session model from
+/// ``SwiftUI/EnvironmentValues/sessionModel`` and the submit action from
+/// ``SwiftUI/EnvironmentValues/promptSubmitAction``. The Stop button shows
+/// while the `agentState` of the session model is `running`, and it sends
+/// `session/cancel` with `SessionModel.cancel(meta:)` (update.md §4.2 "Other
+/// requests"). The
 /// attachment chips come in their own task. This row has no control for them
 /// yet.
 public struct DefaultPromptAccessory: View {
@@ -32,8 +31,7 @@ public struct DefaultPromptAccessory: View {
   /// The accessibility identifier of the Stop button.
   public static let stopIdentifier = "prompt-stop"
 
-  /// The turn verbs of the session model or of the thread actions.
-  @EnvironmentComposerTurn private var turn
+  @Environment(\.sessionModel) private var session
   @Environment(\.promptSubmitAction) private var submit
   @Environment(\.promptSuggestions) private var suggestions
   @Environment(\.agentTheme) private var theme
@@ -41,9 +39,10 @@ public struct DefaultPromptAccessory: View {
   /// Makes the accessory row.
   public init() {}
 
-  /// Whether the agent runs a turn.
+  /// Whether the agent runs a turn: the `agentState` of the session model
+  /// is `running`.
   private var isRunning: Bool {
-    turn.isRunning
+    session?.isRunning == true
   }
 
   public var body: some View {
@@ -52,7 +51,7 @@ public struct DefaultPromptAccessory: View {
         SuggestionsView(suggestions: suggestions)
       }
       HStack(spacing: theme.spacing.s) {
-        if let session = turn.session {
+        if let session {
           PermissionModePicker(session: session)
             .labelsHidden()
             .fixedSize()
@@ -87,7 +86,7 @@ public struct DefaultPromptAccessory: View {
   /// The button that stops the current turn.
   private var stopButton: some View {
     Button {
-      turn.startCancel()
+      session?.startCancel()
     } label: {
       Label(String(localized: "Stop"), systemImage: "stop.fill")
         .labelStyle(.iconOnly)

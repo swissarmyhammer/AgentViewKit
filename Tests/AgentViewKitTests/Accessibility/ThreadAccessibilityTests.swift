@@ -68,7 +68,7 @@ import Testing
   @Test func aCallThatGetsItsResultAnnouncesItsTitleAndStatus() {
     let old = [Progress(id: "a", title: "Read file", status: .inProgress)]
     let statuses: [FoundationModelsACP.ToolCallStatus] = [
-      .completed, .failed, .cancelled, AgentViewKit.ToolCallStatus.lost.acpStatus,
+      .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
     ]
     for status in statuses {
       let new = [Progress(id: "a", title: "Read file", status: status)]

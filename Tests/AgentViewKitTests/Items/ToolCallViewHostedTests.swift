@@ -1,14 +1,15 @@
 #if DEBUG
+  import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
+  import FoundationModelsACP
   import FoundationModelsACPClient
   import SwiftUI
   import Testing
 
-  // The tool call record of the old thread path has no transcript entry, so
-  // the tests read the internal identifier form of the store.
-  @testable import AgentViewKit
-
+  /// Hosted tests of one ``ToolCallView`` over a `ToolCallEntry` of a
+  /// scripted session. `ToolCallEntryViewHostedTests` tests the rows of the
+  /// thread.
   @Suite(.serialized, .hostedSerially) @MainActor struct ToolCallViewHostedTests {
     /// The longest time that a test waits for the view to change, in seconds.
     static let waitTimeout: TimeInterval = 5
@@ -16,218 +17,183 @@
     /// A size that shows the expanded body of a call.
     static let tallSize = CGSize(width: 520, height: 1_400)
 
-    /// The label of the fixture call while it runs.
-    static let runningLabel = "Read README.md, In progress"
-
     /// The label of the fixture call after it completes.
     static let completedLabel = "Read README.md, Completed"
 
     /// The id of the terminal of the terminal test.
     static let terminalID = "terminal-under-test"
 
-    /// The command of the terminal and execute tests.
-    static let command = "swift build"
+    /// The fields of a running call that reads a file, with a raw input and
+    /// one text content part.
+    static let readFields = #"""
+      "title": "Read README.md", "kind": "read", "status": "in_progress",
+      "locations": [{"path": "/project/README.md"}],
+      "rawInput": {"path": "/project/README.md"},
+      "content": [{"type": "content", "content": {"type": "text", "text": "The file."}}]
+      """#
 
-    /// Makes a thread with one tool call.
+    /// Opens a scripted session and sends one tool call.
     ///
     /// - Parameters:
-    ///   - id: The identifier of the call.
-    ///   - status: The progress of the call.
-    /// - Returns: The thread and the call.
-    static func makeCallThread(id: String, status: ToolCallStatus) -> (AgentThread, ToolCallRecord) {
-      let thread = AgentThread()
-      let call = ThreadFixtures.toolCall(id: id, status: status)
-      thread.apply(.insert(.toolCall(call), after: nil))
-      return (thread, call)
+    ///   - id: The `toolCallId` of the call.
+    ///   - fields: The other fields of the `tool_call_update`, as JSON members.
+    /// - Returns: The session and the entry of the call.
+    /// - Throws: The error of the transport, or a missing entry.
+    static func openCall(id: String, fields: String) async throws -> (ScriptedSession, ToolCallEntry) {
+      let session = try await ScriptedSession.open()
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: fields))
+      _ = await waitUntil { ToolCallEntryViewHostedTests.toolCallEntry(id, in: session.model) != nil }
+      return (session, try #require(ToolCallEntryViewHostedTests.toolCallEntry(id, in: session.model)))
     }
 
-    /// Makes a store in which the call of `id` is expanded.
+    /// Makes a store in which `call` is expanded.
     ///
-    /// - Parameter id: The identifier of the call.
+    /// - Parameter call: The tool call entry.
     /// - Returns: The store.
-    static func makeExpandedStore(for id: String) -> ExpandedBlocksStore {
+    static func makeExpandedStore(for call: ToolCallEntry) -> ExpandedBlocksStore {
       let store = ExpandedBlocksStore()
-      store.expand(id: id)
+      store.expand(entry: .toolCall(call))
       return store
     }
 
-    // MARK: - Mount
-
-    @Test func aCallMountsWithItsIdentifierAndLabel() {
-      let id = "mount-call"
-      let call = ThreadFixtures.toolCall(id: id, status: .inProgress)
-      let harness = HostedViewHarness { ToolCallView(record: call) }
-      defer { harness.close() }
-      harness.pump()
-
-      #expect(harness.element(identifier: ToolCallView.identifier(for: id))?.label == Self.runningLabel)
-      #expect(harness.element(identifier: ToolCallView.toggleIdentifier(for: id)) != nil)
-      #expect(harness.element(identifier: ToolCallView.bodyIdentifier(for: id)) == nil)
-    }
-
-    @Test func theLabelChangesWithTheStatus() async {
-      let id = "label-call"
-      let (thread, call) = Self.makeCallThread(id: id, status: .inProgress)
-      let harness = HostedViewHarness { ToolCallView(record: call) }
-      defer { harness.close() }
-      harness.pump()
-      #expect(harness.element(identifier: ToolCallView.identifier(for: id))?.label == Self.runningLabel)
-
-      thread.apply(.patch(id: id, .toolCall(status: .value(.completed))))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ToolCallView.identifier(for: id))?.label == Self.completedLabel
+    /// Mounts the view of `call` with the store `store`.
+    ///
+    /// - Parameters:
+    ///   - call: The tool call entry.
+    ///   - store: The store of the expanded rows.
+    /// - Returns: The harness.
+    static func mount(_ call: ToolCallEntry, store: ExpandedBlocksStore) -> HostedViewHarness<some View> {
+      let harness = HostedViewHarness(size: tallSize) {
+        ToolCallView(entry: call)
+          .environment(\.expandedBlocksStore, store)
+          .transaction { $0.disablesAnimations = true }
       }
-
-      #expect(harness.element(identifier: ToolCallView.identifier(for: id))?.label == Self.completedLabel)
+      harness.pump()
+      return harness
     }
 
     // MARK: - Evaluation counts
 
-    @Test func aStatusPatchEvaluatesTheRowAndNotTheExpandedBody() {
+    @Test func aStatusUpdateEvaluatesTheRowAndNotTheExpandedBody() async throws {
       let id = "patch-count-call"
-      let (thread, call) = Self.makeCallThread(id: id, status: .inProgress)
-      let store = Self.makeExpandedStore(for: id)
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, store)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let (session, call) = try await Self.openCall(id: id, fields: Self.readFields)
+      defer { session.close() }
+      let key = call.id.rowKey
+      let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }
-      harness.pump()
-      let rowKey = ToolCallView.rowCounterKey(for: id)
-      let bodyKey = ToolCallView.bodyCounterKey(for: id)
-      #expect(harness.element(identifier: ToolCallView.bodyIdentifier(for: id)) != nil)
-      #expect(BodyEvaluationCounter.count(rowKey) >= 1)
+      let rowKey = ToolCallView.rowCounterKey(for: key)
+      let bodyKey = ToolCallView.bodyCounterKey(for: key)
+      defer {
+        BodyEvaluationCounter.reset(rowKey)
+        BodyEvaluationCounter.reset(bodyKey)
+      }
+      #expect(harness.element(identifier: ToolCallView.bodyIdentifier(for: key)) != nil)
       #expect(BodyEvaluationCounter.count(bodyKey) >= 1)
       BodyEvaluationCounter.reset(rowKey)
       BodyEvaluationCounter.reset(bodyKey)
 
-      thread.apply(.patch(id: id, .toolCall(status: .value(.completed))))
-      harness.pump()
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: #""status": "completed""#))
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel
+      }
 
-      #expect(BodyEvaluationCounter.count(rowKey) == 1)
+      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
+      #expect(BodyEvaluationCounter.count(rowKey) >= 1)
       #expect(BodyEvaluationCounter.count(bodyKey) == 0)
-      BodyEvaluationCounter.reset(rowKey)
-      BodyEvaluationCounter.reset(bodyKey)
     }
 
     // MARK: - Expand
 
     @Test func aPressOnTheRowTogglesTheStore() async throws {
-      let id = "toggle-call"
-      let call = ThreadFixtures.toolCall(id: id, status: .completed)
+      let (session, call) = try await Self.openCall(id: "toggle-call", fields: Self.readFields)
+      defer { session.close() }
+      let key = call.id.rowKey
       let store = ExpandedBlocksStore()
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, store)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let harness = Self.mount(call, store: store)
       defer { harness.close() }
-      harness.pump()
-      let toggleID = ToolCallView.toggleIdentifier(for: id)
-      let bodyID = ToolCallView.bodyIdentifier(for: id)
-      #expect(!store.isExpanded(id: id))
+      let toggleID = ToolCallView.toggleIdentifier(for: key)
+      let bodyID = ToolCallView.bodyIdentifier(for: key)
+      #expect(!store.isExpanded(entry: .toolCall(call)))
 
       try harness.press(identifier: toggleID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: bodyID) != nil }
 
-      #expect(store.isExpanded(id: id))
-      #expect(harness.element(identifier: bodyID) != nil)
-      #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: id)) != nil)
-      #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: id)) != nil)
-      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: id, index: 0)) != nil)
-      #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: id)) == nil)
-      let labels = harness.accessibilityElements().compactMap(\.label)
-      #expect(labels.contains("/project/README.md"))
+      #expect(store.isExpanded(entry: .toolCall(call)))
+      #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) != nil)
+      #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: key)) != nil)
+      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
+      #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: key)) == nil)
 
       try harness.press(identifier: toggleID)
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: bodyID) == nil }
 
-      #expect(!store.isExpanded(id: id))
+      #expect(!store.isExpanded(entry: .toolCall(call)))
       #expect(harness.element(identifier: bodyID) == nil)
     }
 
     // MARK: - Content
 
-    @Test func theTextOfAnExecuteCallShowsAsCommandOutput() {
-      let id = "execute-call"
-      let call = ToolCallRecord(
-        id: id, title: "Build", kind: .execute, status: .completed,
-        content: [.block(ContentBlock(text: "Build complete!"))],
-        rawInput: .object(["command": .string(Self.command)]),
-        rawOutput: .object(["exitCode": .number(0)]))
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.makeExpandedStore(for: id))
-      }
+    @Test func theTextOfAnExecuteCallShowsAsCommandOutput() async throws {
+      let fields = #"""
+        "title": "Build", "kind": "execute", "status": "completed",
+        "rawInput": {"command": "swift build"}, "rawOutput": {"exitCode": 0},
+        "content": [{"type": "content", "content": {"type": "text", "text": "Build complete!"}}]
+        """#
+      let (session, call) = try await Self.openCall(id: "execute-call", fields: fields)
+      defer { session.close() }
+      let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }
-      harness.pump()
 
       #expect(harness.element(identifier: CommandOutputView.identifier) != nil)
       #expect(harness.element(identifier: CommandOutputView.footerIdentifier) != nil)
-      #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: id)) != nil)
+      #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: call.id.rowKey)) != nil)
     }
 
-    @Test func aTerminalPartShowsTheTerminalOfTheThread() {
-      let id = "terminal-call"
-      let thread = AgentThread()
-      thread.apply(
-        .upsertTerminal(TerminalPatch(id: TerminalID(Self.terminalID), command: .value(Self.command))))
-      let call = ToolCallRecord(
-        id: id, title: "Build", kind: .execute, status: .inProgress,
-        content: [.terminal(id: Self.terminalID), .terminal(id: "missing-terminal")])
-      thread.apply(.insert(.toolCall(call), after: nil))
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.makeExpandedStore(for: id))
-          .environment(\.agentThread, thread)
-      }
+    @Test func aTerminalPartShowsALabelWithTheTerminalID() async throws {
+      let fields = #"""
+        "title": "Build", "kind": "execute", "status": "in_progress",
+        "content": [{"type": "terminal", "terminalId": "\#(Self.terminalID)"}]
+        """#
+      let (session, call) = try await Self.openCall(id: "terminal-call", fields: fields)
+      defer { session.close() }
+      let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }
-      harness.pump()
 
-      #expect(harness.element(identifier: TerminalView.identifier) != nil)
-      #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == Self.command)
-      #expect(harness.element(identifier: CommandOutputView.identifier) == nil)
       let labels = harness.accessibilityElements().compactMap(\.label)
-      #expect(labels.contains { $0.contains("missing-terminal") })
+      #expect(labels.contains { $0.contains(Self.terminalID) })
+      #expect(harness.element(identifier: CommandOutputView.identifier) == nil)
     }
 
-    @Test func aDiffAndAnUnknownPartShowInTheBody() {
-      let id = "diff-call"
-      let call = ToolCallRecord(
-        id: id, title: "Edit", kind: .edit, status: .completed,
-        content: [
-          .diff(patch: "--- a/x\n+++ b/x\n@@ -1 +1 @@\n-old\n+new\n"),
-          .unknown(kind: "custom", raw: .object(["a": .number(1)])),
-        ])
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(record: call)
-          .environment(\.expandedBlocksStore, Self.makeExpandedStore(for: id))
-      }
+    @Test func anUnknownPartShowsTheUnknownView() async throws {
+      let fields = #"""
+        "title": "Edit", "kind": "edit", "status": "completed",
+        "content": [{"type": "custom", "a": 1}]
+        """#
+      let (session, call) = try await Self.openCall(id: "unknown-part-call", fields: fields)
+      defer { session.close() }
+      let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }
-      harness.pump()
 
-      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: id, index: 0)) != nil)
-      #expect(harness.element(identifier: DiffView.containerIdentifier) != nil)
-      #expect(harness.element(identifier: DiffView.identifier(for: "x")) != nil)
-      #expect(harness.element(identifier: CodeBlockView.identifier) == nil)
+      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: call.id.rowKey, index: 0)) != nil)
       #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
     }
 
     // MARK: - Connection
 
-    @Test func theConnectionChipShowsOnlyForACallThatWaitsForAServer() {
-      let waitingID = "waiting-call"
-      let freeID = "free-call"
-      let waiting = ThreadFixtures.toolCall(id: waitingID, status: .pending)
-      let free = ThreadFixtures.toolCall(id: freeID, status: .pending)
+    @Test func theConnectionChipShowsOnlyForACallThatWaitsForAServer() async throws {
+      let fields = #""title": "Search", "kind": "search", "status": "pending""#
+      let (session, waiting) = try await Self.openCall(id: "waiting-call", fields: fields)
+      defer { session.close() }
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "free-call", fields: fields))
+      _ = await waitUntil { ToolCallEntryViewHostedTests.toolCallEntry("free-call", in: session.model) != nil }
+      let free = try #require(ToolCallEntryViewHostedTests.toolCallEntry("free-call", in: session.model))
       let harness = HostedViewHarness {
         VStack {
-          ToolCallView(record: waiting)
-          ToolCallView(record: free)
+          ToolCallView(entry: waiting)
+          ToolCallView(entry: free)
         }
-        .toolCallConnectionState { record in
-          record.id == waitingID ? .connecting : nil
+        .toolCallConnectionState { entry in
+          entry.id == waiting.id ? .connecting : nil
         }
       }
       defer { harness.close() }

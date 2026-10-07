@@ -26,11 +26,9 @@ public typealias AgentReconnect = @MainActor () async -> Void
 ///   ``SwiftUI/EnvironmentValues/terminalAuthRunner`` environment value has a
 ///   runner, the row has a Run button. The button calls
 ///   `ConnectionModel.loginWithTerminal(_:runner:)` with that runner, and
-///   never calls `login`. With no runner, the row has no button. When the
-///   thread has the record with the id ``TerminalRecord/authID(for:)`` of the
-///   method, the row shows the record in a ``TerminalView`` with an input
-///   field. Each line that the user types goes to
-///   ``AgentThreadActions/writeTerminalLine(_:to:)``.
+///   never calls `login`. With no runner, the row has no button. The runner
+///   of the host shows the process of the method; the card shows no
+///   terminal.
 /// - A method type that the kit does not know has no row.
 /// - While `authState` is `.authenticated`, the card shows no method row.
 /// - While `authState` is `.failed(AuthFailure)`, the card shows the
@@ -49,9 +47,7 @@ public typealias AgentReconnect = @MainActor () async -> Void
 ///
 /// The host puts the card in its settings surface next to
 /// ``ConnectionsView``. ``AgentThreadView`` shows the card while `authState`
-/// asks for a sign-in. The card finds terminal records in the `thread`
-/// argument, else in the ``SwiftUI/EnvironmentValues/agentThread`` environment
-/// value. With no thread, a terminal row shows no terminal.
+/// asks for a sign-in.
 public struct AgentAuthView: View {
   /// The accessibility identifier of the card.
   public static let identifier = "agent-auth"
@@ -123,29 +119,21 @@ public struct AgentAuthView: View {
 
   /// The connection model whose auth state the card shows.
   let connection: ConnectionModel
-  /// The thread that the host gives, or `nil` to use the environment thread.
-  let suppliedThread: AgentThread?
 
   /// The calls that run.
   @State private var running: Set<Operation> = []
 
-  @Environment(\.threadActions) private var actions
-  @Environment(\.agentThread) private var environmentThread
-  @Environment(\.sessionModel) private var session
   @Environment(\.terminalAuthRunner) private var runner
   @Environment(\.agentReconnect) private var reconnect
   @Environment(\.agentTheme) private var theme
 
   /// Makes the card.
   ///
-  /// - Parameters:
-  ///   - connection: The connection model of the agent. The card reads its
-  ///     auth methods and its auth state, and calls its login and logout.
-  ///   - thread: The thread that has the terminal records of the terminal
-  ///     methods, or `nil` to use the environment thread.
-  public init(connection: ConnectionModel, thread: AgentThread? = nil) {
+  /// - Parameter connection: The connection model of the agent. The card
+  ///   reads its auth methods and its auth state, and calls its login and
+  ///   logout.
+  public init(connection: ConnectionModel) {
     self.connection = connection
-    self.suppliedThread = thread
   }
 
   // MARK: Identifiers
@@ -234,11 +222,6 @@ public struct AgentAuthView: View {
     return String(localized: "The sign-in process ended with exit status \(exitStatus).")
   }
 
-  /// The thread that has the terminal records.
-  private var thread: AgentThread? {
-    suppliedThread ?? environmentThread
-  }
-
   /// Whether the last login succeeded: `authState` is `.authenticated`.
   private var isAuthenticated: Bool {
     guard case .authenticated = connection.authState else { return false }
@@ -289,32 +272,24 @@ public struct AgentAuthView: View {
     .accessibilityIdentifier(Self.identifier)
   }
 
-  /// The row of one method: the name, the description, the button, and the
-  /// terminal of a terminal method.
+  /// The row of one method: the name, the description, and the button.
   ///
   /// - Parameter row: The method to show.
   /// - Returns: The row.
   private func rowView(_ row: Row) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
-      HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
-        VStack(alignment: .leading, spacing: theme.spacing.xs) {
-          Text(row.name)
-            .font(.body.weight(.medium))
-          if let description = row.description {
-            Text(description)
-              .font(.callout)
-              .foregroundStyle(.secondary)
-              .fixedSize(horizontal: false, vertical: true)
-          }
+    HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
+      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+        Text(row.name)
+          .font(.body.weight(.medium))
+        if let description = row.description {
+          Text(description)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
-        Spacer(minLength: theme.spacing.s)
-        methodButton(row)
       }
-      if case .terminal(let method) = row,
-        let record = thread?.terminals[TerminalRecord.authID(for: method.methodId)]
-      {
-        TerminalView(record: record, stdin: { line in write(line, to: record.id) })
-      }
+      Spacer(minLength: theme.spacing.s)
+      methodButton(row)
     }
     .accessibilityElement(children: .contain)
     .accessibilityLabel(row.name)
@@ -454,28 +429,6 @@ public struct AgentAuthView: View {
     Task {
       try? await call()
       running.remove(operation)
-    }
-  }
-
-  /// Sends a line of the terminal input field to the process of a method.
-  ///
-  /// The model has no state for this write. When the write fails and the
-  /// environment has a session model, the failure adds an error entry to its
-  /// transcript. A cancelled write records nothing.
-  ///
-  /// - Parameters:
-  ///   - line: The line that the user typed.
-  ///   - terminal: The identifier of the terminal record.
-  private func write(_ line: String, to terminal: TerminalID) {
-    guard let actions else { return }
-    Task {
-      do {
-        try await actions.writeTerminalLine(line, to: terminal)
-      } catch is CancellationError {
-        // A cancelled write is not a failure.
-      } catch {
-        session?.appendError(reporting: error)
-      }
     }
   }
 }

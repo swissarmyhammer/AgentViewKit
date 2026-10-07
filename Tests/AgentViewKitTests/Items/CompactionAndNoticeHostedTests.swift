@@ -70,7 +70,7 @@
     /// - Returns: The harness.
     static func mountThread(_ session: ScriptedSession) -> HostedViewHarness<some View> {
       HostedViewHarness(size: tallSize) {
-        AgentThreadView(session: session.model, actions: NoopThreadActions())
+        AgentThreadView(session: session.model)
           .transaction { $0.disablesAnimations = true }
       }
     }

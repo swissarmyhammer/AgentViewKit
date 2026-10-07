@@ -41,7 +41,7 @@ import Testing
   /// - Parameter model: The session model.
   /// - Returns: The path.
   static func path(of model: SessionModel) -> FocusPath {
-    .root(AgentCommandTarget.segment(for: .session(model)))
+    .root(AgentCommandTarget.segment(for: model))
   }
 
   /// Shows the thread view of a session and its connection model, and a
@@ -68,7 +68,7 @@ import Testing
     HostedViewHarness(size: windowSize) {
       scoped(
         VStack {
-          AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+          AgentThreadView(session: session.model, connection: session.connection)
           if let composer {
             PromptInputHost(model: composer)
           }
@@ -215,20 +215,21 @@ import Testing
   }
 
   @Test func theSubmitButtonOfTheComposerRunsTheSendCommand() async throws {
-    let thread = AgentThread()
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions, thread: thread) {
+    let harness = HostedViewHarness(size: Self.windowSize) {
       PromptInputHost(model: model)
-        .agentCommandScope(thread: thread)
+        .agentCommandScope(session: session.model)
+        .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.pump()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    #expect(session.promptTexts == [Self.message])
     #expect(model.submitCount == 1)
   }
 
@@ -383,7 +384,7 @@ struct ScopeVisibilityHost: View {
 
   var body: some View {
     if model.isShown {
-      AgentThreadView(session: session, actions: NoopThreadActions())
+      AgentThreadView(session: session)
     } else {
       Color.clear
     }

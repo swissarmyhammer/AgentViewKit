@@ -11,13 +11,11 @@ import Testing
   }
 
   @Test func theDescriptionNamesTheIdentifiedType() {
-    #expect(TerminalID("t1").description == "TerminalRecord(t1)")
     #expect(ConfigOptionID("mode").description == "ConfigOption(mode)")
-    #expect(PlanID("p1").description == "Plan(p1)")
   }
 
   @Test func bothInitializersGiveTheSameIdentifier() {
-    #expect(TerminalID("t1") == TerminalID(rawValue: "t1"))
-    #expect(TerminalID("t1").rawValue == "t1")
+    #expect(ConfigOptionID("mode") == ConfigOptionID(rawValue: "mode"))
+    #expect(ConfigOptionID("mode").rawValue == "mode")
   }
 }

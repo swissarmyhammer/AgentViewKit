@@ -35,9 +35,8 @@ public struct PromptEditorContext {
   /// The closure that stops the current turn, or `nil` while the agent does
   /// not run a turn.
   ///
-  /// The closure calls ``AgentThreadActions/cancel()``, or
-  /// `SessionModel.cancel(meta:)` with a session model. The text does not
-  /// change.
+  /// The closure calls `SessionModel.cancel(meta:)` of the session model of
+  /// the environment. The text does not change.
   public let onCancel: Submit?
 
   /// The slash commands of the session, for the slash completion source.

@@ -40,24 +40,39 @@ struct EditorKitPromptInputHost: View {
       {"name": "plan", "description": "Make a plan"}]}
     """#
 
-  /// Mounts a composer with the EditorKit editor and focuses the editor.
+  /// Mounts a composer with the EditorKit editor over the session model of a
+  /// scripted session, and focuses the editor.
   ///
   /// - Parameters:
   ///   - model: The text model.
-  ///   - actions: The actions of the thread.
-  ///   - thread: The thread.
+  ///   - session: The scripted session.
   ///   - fileRoot: The file root, or `nil`.
   /// - Returns: The harness.
+  /// - Throws: An error when the editor cannot get the focus.
   static func mount(
-    _ model: PromptInputHostedTestModel, actions: NoopThreadActions, thread: AgentThread,
-    fileRoot: URL? = nil
+    _ model: PromptInputHostedTestModel, session: ScriptedSession, fileRoot: URL? = nil
   ) throws -> HostedViewHarness<some View> {
-    let harness = threadViewHarness(size: composerSize, actions: actions, thread: thread) {
+    let harness = HostedViewHarness(size: composerSize) {
       EditorKitPromptInputHost(model: model, fileRoot: fileRoot)
+        .environment(\.sessionModel, session.model)
     }
     harness.pump()
     try #require(harness.focusFirstEditableTextView())
     return harness
+  }
+
+  /// Sends the running state of the agent, and waits until the composer
+  /// shows the Stop button.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness that shows the composer.
+  /// - Throws: The error of the transport.
+  static func startRunning(_ session: ScriptedSession, in harness: HostedViewHarness<some View>) async throws {
+    try await session.sendUpdate(ScriptedSession.runningState)
+    await harness.pump(until: waitTimeout) {
+      harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil
+    }
   }
 
   /// Sends a Return key-down event straight to the text view of the editor,
@@ -82,9 +97,11 @@ struct EditorKitPromptInputHost: View {
 
   // MARK: - Mount
 
-  @Test func theEditorMountsInTheComposerSlot() throws {
+  @Test func theEditorMountsInTheComposerSlot() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: NoopThreadActions(), thread: AgentThread())
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
     #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
@@ -95,17 +112,18 @@ struct EditorKitPromptInputHost: View {
   // MARK: - Keys
 
   @Test func returnSendsTheTextAndClearsTheEditor() async throws {
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: actions, thread: AgentThread())
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
     harness.type(Self.message)
     await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
     try Self.pressReturn(in: harness)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
     #expect(model.submitCount == 1)
     let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
@@ -114,9 +132,10 @@ struct EditorKitPromptInputHost: View {
   }
 
   @Test func shiftReturnInsertsANewlineAndDoesNotSend() async throws {
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: actions, thread: AgentThread())
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
     harness.type(Self.message)
@@ -124,40 +143,42 @@ struct EditorKitPromptInputHost: View {
     try Self.pressReturn(modifiers: .shift, in: harness)
     await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message + "\n" }
 
-    #expect(actions.calls.isEmpty)
+    #expect(session.promptTexts.isEmpty)
     #expect(model.plainText == Self.message + "\n")
   }
 
   @Test func commandReturnSendsTheTextWhileTheTurnRuns() async throws {
-    let thread = AgentThread()
-    thread.apply(.setState(.running))
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: actions, thread: thread)
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
+    try await Self.startRunning(session, in: harness)
 
     harness.type(Self.message)
     await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
     try Self.pressReturn(modifiers: .command, in: harness)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
     #expect(model.submitCount == 1)
   }
 
   @Test func escapeStopsTheRunningTurn() async throws {
-    let thread = AgentThread()
-    thread.apply(.setState(.running))
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: actions, thread: thread)
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
+    try await Self.startRunning(session, in: harness)
 
     try harness.sendKey(.escape)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) {
+      !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
+    }
 
-    #expect(actions.calls == [.cancel])
+    #expect(session.agent.messages(method: ScriptedSession.cancelMethod).count == 1)
   }
 
   // MARK: - Slash commands
@@ -166,15 +187,10 @@ struct EditorKitPromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(Self.commandsUpdate)
-    let actions = NoopThreadActions()
     let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
-      EditorKitPromptInputHost(model: model, fileRoot: nil)
-        .environment(\.sessionModel, session.model)
-    }
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) { session.model.availableCommands != nil }
-    try #require(harness.focusFirstEditableTextView())
 
     harness.type("/")
     await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).count == 2 }
@@ -188,7 +204,7 @@ struct EditorKitPromptInputHost: View {
     await harness.pump(until: Self.waitTimeout) { model.plainText == "/compact " }
 
     #expect(model.plainText == "/compact ")
-    #expect(actions.calls.isEmpty)
+    #expect(session.promptTexts.isEmpty)
     await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).isEmpty }
     #expect(Self.completionLabels(in: harness).isEmpty)
   }
@@ -197,9 +213,10 @@ struct EditorKitPromptInputHost: View {
 
   @Test func anAtSignListsTheFilesAndTheAcceptedFileIsSentAsAnAttachment() async throws {
     let root = try TemporaryFileRoot(files: ["notes.txt", "src/main.swift"])
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: actions, thread: AgentThread(), fileRoot: root.url)
+    let harness = try Self.mount(model, session: session, fileRoot: root.url)
     defer { harness.close() }
 
     harness.type("@")
@@ -214,20 +231,24 @@ struct EditorKitPromptInputHost: View {
     let file = root.url.appending(path: "notes.txt")
     #expect(model.plainText == "@notes.txt ")
     #expect(model.text.runs.compactMap(\.link) == [file])
-    #expect(actions.calls.isEmpty)
+    #expect(session.promptTexts.isEmpty)
 
     try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: "@notes.txt ", attachments: [file]))])
+    #expect(session.promptTexts == ["@notes.txt "])
+    let blocks = try #require(session.promptBlocks.first)
+    #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource_link"])
+    #expect(blocks.last?["uri"]?.stringValue == file.absoluteString)
     #expect(model.plainText.isEmpty)
   }
 
   @Test func anAcceptedDirectoryListsItsEntries() async throws {
     let root = try TemporaryFileRoot(files: ["src/main.swift"])
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(
-      model, actions: NoopThreadActions(), thread: AgentThread(), fileRoot: root.url)
+    let harness = try Self.mount(model, session: session, fileRoot: root.url)
     defer { harness.close() }
 
     harness.type("@s")
@@ -240,8 +261,10 @@ struct EditorKitPromptInputHost: View {
   }
 
   @Test func withoutAFileRootAnAtSignListsNothing() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, actions: NoopThreadActions(), thread: AgentThread())
+    let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
     harness.type("@")

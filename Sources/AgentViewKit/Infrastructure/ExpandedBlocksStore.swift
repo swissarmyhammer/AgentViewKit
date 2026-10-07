@@ -122,10 +122,8 @@ public final class ExpandedBlocksStore {
   // MARK: - Row identifier
 
   // A row with no transcript entry keys its decision by an identifier. The
-  // kit callers are the rows of the old thread path, which have `ThreadItem`
-  // ids (`ToolCallView`, `ReasoningView` and the expand-all command over an
-  // `AgentThread`), and `JSONDisclosure`, whose rows include unknown values
-  // and unknown content blocks. These forms are internal: the public form
+  // kit caller is `JSONDisclosure`, whose rows include unknown values and
+  // unknown content blocks. These forms are internal: the public form
   // takes the transcript entry. No identifier read applies the policy,
   // because the policy reads a transcript entry.
 

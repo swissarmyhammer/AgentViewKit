@@ -1,7 +1,7 @@
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The row of one thread item or one transcript entry (plan.md §3.6, §8;
+/// The row of one transcript entry (plan.md §3.6, §8;
 /// update.md §4.2).
 ///
 /// A row of a `TranscriptEntry` switches over the entry case. For each case,
@@ -17,14 +17,9 @@ import SwiftUI
 /// the entry: the item view reads the content, so a streamed chunk evaluates
 /// the item view and not the row.
 ///
-/// A row of a ``ThreadItem`` of the deprecated thread path reads only its
-/// own record. Thus a patch to the record makes only this row invalid. The
-/// row shows the default view of the kind of the item, with no override.
-///
-/// Two rows are equal when they show the same record object with the same id
-/// and the same revision, or the same entry object. Apply `.equatable()` to
-/// the row, so that a change to the item list does not evaluate the rows that
-/// did not change.
+/// Two rows are equal when they show the same entry object. Apply
+/// `.equatable()` to the row, so that a change to the transcript does not
+/// evaluate the rows that did not change.
 public struct ItemRow: View, Equatable {
   /// The start of the accessibility identifier of each row.
   public static let identifierPrefix = "item-row-"
@@ -39,38 +34,19 @@ public struct ItemRow: View, Equatable {
   /// the content of a transcript entry.
   public static let contentCounterKeyPrefix = "row-content-"
 
-  /// The value that a row shows.
-  private enum Source {
-    /// An item of an ``AgentThread``.
-    case item(ThreadItem)
-
-    /// An entry of the transcript of a `SessionModel`.
-    case entry(TranscriptEntry)
-  }
-
-  /// The value to show.
-  private let source: Source
-
-  /// Makes a row.
-  ///
-  /// - Parameter item: The item to show.
-  public init(item: ThreadItem) {
-    self.source = .item(item)
-  }
+  /// The transcript entry to show.
+  private let entry: TranscriptEntry
 
   /// Makes the row of a transcript entry.
   ///
   /// - Parameter entry: The entry to show.
   public init(entry: TranscriptEntry) {
-    self.source = .entry(entry)
+    self.entry = entry
   }
 
-  /// The text identity of the row: the item id, or the row key of the entry.
+  /// The text identity of the row: the row key of the entry.
   var id: String {
-    switch source {
-    case .item(let item): item.id
-    case .entry(let entry): entry.rowKey
-    }
+    entry.rowKey
   }
 
   /// The accessibility identifier of the row of `id`.
@@ -113,30 +89,18 @@ public struct ItemRow: View, Equatable {
     contentCounterKeyPrefix + id
   }
 
-  /// Tells whether two rows show the same record at the same revision, or the
-  /// same transcript entry object.
+  /// Tells whether two rows show the same transcript entry object.
   ///
-  /// The comparison includes the record object. A new record object with the
-  /// same id and revision, for example after a remove and an insert, is then
-  /// a different row. An entry object keeps its identity for its whole life,
-  /// so two rows of the same entry object are equal.
+  /// An entry object keeps its identity for its whole life, so two rows of
+  /// the same entry object are equal.
   ///
   /// - Parameters:
   ///   - lhs: A row.
   ///   - rhs: A row.
-  /// - Returns: `true` when the two rows show the same record at the same
-  ///   revision, or the same entry object.
+  /// - Returns: `true` when the two rows show the same entry object.
   public static func == (lhs: ItemRow, rhs: ItemRow) -> Bool {
-    switch (lhs.source, rhs.source) {
-    case (.item(let left), .item(let right)):
-      ObjectIdentifier(left.record) == ObjectIdentifier(right.record)
-        && left.record.id == right.record.id
-        && left.record.revision == right.record.revision
-    case (.entry(let left), .entry(let right)):
-      left.id == right.id && ObjectIdentifier(left.object) == ObjectIdentifier(right.object)
-    case (.item, .entry), (.entry, .item):
-      false
-    }
+    lhs.entry.id == rhs.entry.id
+      && ObjectIdentifier(lhs.entry.object) == ObjectIdentifier(rhs.entry.object)
   }
 
   public var body: some View {
@@ -151,28 +115,11 @@ public struct ItemRow: View, Equatable {
       .accessibilityIdentifier(Self.identifier(for: id))
   }
 
-  /// The view of the item or of the entry.
-  @ViewBuilder private var content: some View {
-    switch source {
-    case .item(let item):
-      // The row reads the revision, so that each patch of the record
-      // evaluates this body one time.
-      let _ = item.record.revision
-      itemContent(item)
-    case .entry(let entry):
-      entryContent(entry)
-    }
-  }
-
-  /// The view of a transcript entry: the override of its case, or the
-  /// default view.
+  /// The view of the entry: the override of its case, or the default view.
   ///
   /// The override and the default view get the entry object, so they read
   /// the values of the model directly. Neither one gets a copy of the entry.
-  ///
-  /// - Parameter entry: The entry to show.
-  /// - Returns: The view of the entry.
-  @ViewBuilder private func entryContent(_ entry: TranscriptEntry) -> some View {
+  @ViewBuilder private var content: some View {
     switch entry {
     case .userMessage(let message):
       OverridableItemView(\.userMessageViewOverride, entry: message) { UserMessageView(entry: $0) }
@@ -192,31 +139,6 @@ public struct ItemRow: View, Equatable {
       OverridableItemView(\.errorViewOverride, entry: error) { ErrorView(entry: $0) }
     case .compaction(let compaction):
       OverridableItemView(\.compactionEntryViewOverride, entry: compaction) { CompactionEntryView(entry: $0) }
-    }
-  }
-
-  /// The view of a thread item of the deprecated thread path: the default
-  /// view of its kind.
-  ///
-  /// The item view overrides take transcript entry objects, so a thread item
-  /// shows no override.
-  ///
-  /// - Parameter item: The item to show.
-  /// - Returns: The view of the item.
-  @ViewBuilder private func itemContent(_ item: ThreadItem) -> some View {
-    switch item {
-    case .userMessage(let record):
-      UserMessageView(message: record)
-    case .assistantMessage(let record):
-      AssistantMessageView(message: record)
-    case .reasoning(let record):
-      ThreadReasoningView(record: record)
-    case .toolCall(let record):
-      ToolCallView(record: record)
-    case .error(let record):
-      ErrorView(error: record)
-    case .unknown(let record):
-      UnknownItemView(record: record)
     }
   }
 }
@@ -259,26 +181,5 @@ private struct OverridableItemView<Entry, Fallback: View>: View {
     } else {
       fallback(entry)
     }
-  }
-}
-
-/// Shows a ``ReasoningView`` with the in-progress state and the stream from
-/// the thread of the environment (plan.md §3.5).
-///
-/// This view, and not the row, reads the thread. Thus a change to the last
-/// item or to the run state evaluates only this view, and the row stays
-/// equal.
-private struct ThreadReasoningView: View {
-  /// The record to show.
-  let record: Reasoning
-
-  @Environment(\.agentThread) private var thread
-
-  var body: some View {
-    ReasoningView(
-      record: record,
-      isInProgress: thread?.isLastWhileRunning(record.id) ?? false,
-      streaming: thread?.streaming[record.id]
-    )
   }
 }

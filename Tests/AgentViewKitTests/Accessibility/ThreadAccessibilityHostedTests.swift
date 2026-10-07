@@ -54,10 +54,10 @@ import Testing
   ///   - announcer: The announcer of the environment.
   /// - Returns: The harness, pumped one time.
   static func makeHarness(session: ScriptedSession, announcer: RecordingAnnouncer) -> HostedViewHarness<some View> {
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: hostSize, actions: actions) {
-      AgentThreadView(session: session.model, connection: session.connection, actions: actions)
+    let harness = HostedViewHarness(size: hostSize) {
+      AgentThreadView(session: session.model, connection: session.connection)
         .environment(\.announcer, announcer)
+        .transaction { $0.disablesAnimations = true }
     }
     harness.pump()
     return harness
@@ -197,8 +197,7 @@ import Testing
   }
 
   @Test func aStandaloneResponseLinksItsParagraphs() throws {
-    let message = ThreadFixtures.message(id: "standalone", text: Self.threeParagraphs)
-    let harness = HostedViewHarness(ResponseView(message: message, streaming: nil), size: Self.hostSize)
+    let harness = HostedViewHarness(ResponseView(id: "standalone", markdown: Self.threeParagraphs), size: Self.hostSize)
     defer { harness.close() }
     harness.pump()
 
@@ -208,8 +207,7 @@ import Testing
   }
 
   @Test func aParagraphReadsItsMathAtItsPlaceAndKeepsTheMathElement() {
-    let message = ThreadFixtures.message(id: "math", text: "Let $x^2$ be big.")
-    let harness = HostedViewHarness(ResponseView(message: message, streaming: nil), size: Self.hostSize)
+    let harness = HostedViewHarness(ResponseView(id: "math", markdown: "Let $x^2$ be big."), size: Self.hostSize)
     defer { harness.close() }
     harness.pump()
 
@@ -354,10 +352,10 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let reporter = RecordingFocusReporter()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
-      AgentThreadView(session: session.model, actions: actions)
+    let harness = HostedViewHarness(size: Self.hostSize) {
+      AgentThreadView(session: session.model)
         .environment(\.focusReporter, reporter)
+        .transaction { $0.disablesAnimations = true }
     }
     defer { harness.close() }
     harness.pump()
@@ -381,10 +379,10 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let mover = AccessibilityFocusMover()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
-      AgentThreadView(session: session.model, actions: actions)
+    let harness = HostedViewHarness(size: Self.hostSize) {
+      AgentThreadView(session: session.model)
         .environment(\.accessibilityFocusMover, mover)
+        .transaction { $0.disablesAnimations = true }
     }
     defer { harness.close() }
     harness.pump()
@@ -411,16 +409,5 @@ import Testing
 
   @Test func withNoReduceMotionTheShimmerOfARunningSessionAnimates() async throws {
     try await Self.expectShimmerOfARunningSession(reduceMotion: false, value: ShimmerView.animatingValue)
-  }
-
-  @Test func anInProgressReasoningBlockHasItsProgressInItsLabel() throws {
-    let reasoning = ThreadFixtures.reasoning(id: "accessibility-reasoning")
-    let harness = HostedViewHarness(ReasoningView(record: reasoning, isInProgress: true), size: Self.hostSize)
-    defer { harness.close() }
-    harness.pump()
-
-    let block = try #require(
-      harness.element(identifier: ReasoningView.identifier(for: reasoning.id)))
-    #expect(block.label == "Reasoning, in progress")
   }
 }

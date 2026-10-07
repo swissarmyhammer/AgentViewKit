@@ -1,9 +1,9 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
-import DemoSupport
 import EditorCommands
 import EditorCommandsTestSupport
 import Foundation
+import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
@@ -22,22 +22,29 @@ final class CallCounter {
   /// The number of verbs of the kit.
   static let verbCount = 10
 
-  /// The number of user messages in the jump thread.
+  /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
 
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
 
+  /// The JSON-RPC id of the second permission request of the reject test.
+  static let secondRequestID = 101
+
+  /// The `allow_once` option of ``ScriptedSession/permissionParams``.
+  static let allowOptionID = "yes"
+
   /// The `reject_once` option of ``ScriptedSession/permissionParams``.
   static let rejectOptionID = "no"
+
+  /// The comment of the reject test.
+  static let comment = "Use the test file."
 
   /// A text block that is only for the assistant.
   static let assistantOnlyText = #"{"type":"text","text":"Hidden.","annotations":{"audience":["assistant"]}}"#
 
   /// The objects of one harness test.
   struct Fixture {
-    /// The actions that the commands of a thread scope call.
-    let actions: NoopThreadActions
     /// The target of the scope.
     let target: AgentCommandTarget
     /// The harness with the scope.
@@ -46,22 +53,20 @@ final class CallCounter {
     let path: FocusPath
   }
 
-  /// Makes a harness with one agent command scope for `source`.
+  /// Makes a harness with one agent command scope for `session`.
   ///
   /// - Parameters:
-  ///   - source: The thread or the session model of the scope.
+  ///   - session: The session model of the scope.
   ///   - configure: Changes to the target before the test.
   /// - Returns: The fixture, focused at the scope.
   static func makeFixture(
-    source: ConversationSource,
+    session: SessionModel,
     configure: (AgentCommandTarget) -> Void = { _ in }
   ) -> Fixture {
-    let actions = NoopThreadActions()
     let target = AgentCommandTarget()
-    target.source = source
-    target.actions = actions
+    target.session = session
     configure(target)
-    let segment = AgentCommandTarget.segment(for: source)
+    let segment = AgentCommandTarget.segment(for: session)
     let bindings: [ScopeBinding] =
       AgentCommand.definitions(for: target).map { .command($0) }
       + AgentKeymap.sortedChords.map { .key($0.chord.asSequence, .command($0.verb.id), .cua) }
@@ -70,20 +75,7 @@ final class CallCounter {
     }
     let path = FocusPath.root(segment)
     system.focus(path)
-    return Fixture(actions: actions, target: target, system: system, path: path)
-  }
-
-  /// Makes a harness with one agent command scope for `thread`.
-  ///
-  /// - Parameters:
-  ///   - thread: The thread of the scope.
-  ///   - configure: Changes to the target before the test.
-  /// - Returns: The fixture, focused at the scope.
-  static func makeFixture(
-    thread: AgentThread = AgentThread(),
-    configure: (AgentCommandTarget) -> Void = { _ in }
-  ) -> Fixture {
-    makeFixture(source: .thread(thread), configure: configure)
+    return Fixture(target: target, system: system, path: path)
   }
 
   /// Tells if the command of `verb` is available in `fixture`.
@@ -97,25 +89,33 @@ final class CallCounter {
     return definition.make(nil).availability(in: fixture.system.context()).isAvailable
   }
 
-  /// Makes a thread with a user message and an assistant message for each
-  /// turn. The user message ids are `turn-<n>`.
+  /// Sends a user message and an agent message from the agent for each of
+  /// ``turnCount`` turns, and waits until the model holds each entry.
   ///
-  /// - Returns: The thread.
-  static func turnThread() -> AgentThread {
-    let thread = AgentThread()
+  /// - Parameter session: The scripted session.
+  /// - Returns: The row key of each user message entry, in order.
+  /// - Throws: The error of the transport.
+  static func sendTurns(to session: ScriptedSession) async throws -> [String] {
     for turn in 0..<turnCount {
-      let user = ThreadFixtures.message(id: "turn-\(turn)", text: "Question \(turn).")
-      let answer = ThreadFixtures.message(id: "answer-\(turn)", text: "Answer \(turn).")
-      thread.apply(.insert(.userMessage(user), after: nil))
-      thread.apply(.insert(.assistantMessage(answer), after: nil))
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk(
+          "user_message_chunk", messageID: "turn-\(turn)", block: WireBlockJSON.makeText("Question \(turn).")))
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk(
+          "agent_message_chunk", messageID: "answer-\(turn)", block: WireBlockJSON.makeText("Answer \(turn).")))
     }
-    return thread
+    _ = await waitUntil { session.model.transcript.count == 2 * turnCount }
+    return session.model.transcript.compactMap { entry in
+      if case .userMessage = entry { entry.rowKey } else { nil }
+    }
   }
 
   // MARK: - Registration
 
-  @Test func theScopeListsTheTenCommands() {
-    let fixture = Self.makeFixture()
+  @Test func theScopeListsTheTenCommands() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
 
     let ids = Set(fixture.system.registry.definitions(at: fixture.path).map(\.id))
 
@@ -132,8 +132,10 @@ final class CallCounter {
     #expect(AgentCommandVerb(id: "editor.copy") == nil)
   }
 
-  @Test func theDefinitionsCarryTheDefaultKeys() {
-    let fixture = Self.makeFixture()
+  @Test func theDefinitionsCarryTheDefaultKeys() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
 
     let send = fixture.system.registry.definition(for: AgentCommandVerb.send.id, at: fixture.path)
     let focus = fixture.system.registry.definition(
@@ -143,11 +145,12 @@ final class CallCounter {
     #expect(focus?.keys.isEmpty == true)
   }
 
-  @Test func aSecondRegistrationDoesNotAddTheKeysAgain() {
-    let thread = AgentThread()
+  @Test func aSecondRegistrationDoesNotAddTheKeysAgain() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let target = AgentCommandTarget()
-    target.source = .thread(thread)
-    let path = FocusPath.root(AgentCommandTarget.segment(for: .thread(thread)))
+    target.session = session.model
+    let path = FocusPath.root(AgentCommandTarget.segment(for: session.model))
     var registry = CommandRegistry()
 
     AgentCommandRegistration.register(target, at: path, into: &registry)
@@ -163,25 +166,10 @@ final class CallCounter {
 
   // MARK: - Eligibility
 
-  @Test func cancelIsIneligibleWhileIdleAndEligibleWhileRunning() throws {
-    let thread = AgentThread()
-    let fixture = Self.makeFixture(thread: thread)
-
-    #expect(try !Self.isAvailable(.cancel, in: fixture))
-    #expect(!fixture.system.perform(AgentCommandVerb.cancel.id))
-
-    thread.apply(.setState(.running))
-    #expect(try Self.isAvailable(.cancel, in: fixture))
-
-    thread.apply(.setState(.requiresAction))
-    #expect(try Self.isAvailable(.cancel, in: fixture))
-
-    thread.apply(.setState(.idle(.endTurn)))
-    #expect(try !Self.isAvailable(.cancel, in: fixture))
-  }
-
-  @Test func anUnavailableCommandTellsTheReason() {
-    let fixture = Self.makeFixture()
+  @Test func anUnavailableCommandTellsTheReason() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
 
     let explanation = AgentCommand(verb: .cancel, target: fixture.target, payload: nil)
       .availability(in: fixture.system.context())
@@ -189,8 +177,10 @@ final class CallCounter {
     #expect(explanation == .unavailable(reason: AgentCommandTarget.reason(for: .cancel)))
   }
 
-  @Test func aCommandWithNoTargetIsUnavailable() {
-    let fixture = Self.makeFixture()
+  @Test func aCommandWithNoTargetIsUnavailable() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
 
     let command = AgentCommand(verb: .copyThread, target: nil, payload: nil)
 
@@ -198,8 +188,11 @@ final class CallCounter {
     #expect(!command.run(in: fixture.system.context()))
   }
 
-  @Test func theViewCommandsNeedTheirParts() throws {
-    let fixture = Self.makeFixture(thread: Self.turnThread())
+  @Test func theViewCommandsNeedTheirParts() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    _ = try await Self.sendTurns(to: session)
+    let fixture = Self.makeFixture(session: session.model)
 
     #expect(try !Self.isAvailable(.jumpToNext, in: fixture))
     #expect(try !Self.isAvailable(.scrollToBottom, in: fixture))
@@ -211,26 +204,19 @@ final class CallCounter {
 
   // MARK: - Send and cancel
 
-  @Test func dispatchingSendCallsTheSendAction() async {
-    let fixture = Self.makeFixture()
-
-    let handled = fixture.system.perform(
-      AgentCommandVerb.send.id, payload: AgentCommandPayload.text(Self.message))
-
-    #expect(handled)
-    #expect(await waitUntil { !fixture.actions.calls.isEmpty })
-    #expect(fixture.actions.calls == [.send(UserInput(text: Self.message))])
-  }
-
-  @Test func sendWithBlankTextDoesNothing() {
-    let fixture = Self.makeFixture()
+  @Test func sendWithBlankTextDoesNothing() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
 
     #expect(!fixture.system.perform(AgentCommandVerb.send.id, payload: AgentCommandPayload.text(" \n")))
   }
 
-  @Test func sendWithNoPayloadSubmitsTheComposer() {
+  @Test func sendWithNoPayloadSubmitsTheComposer() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let submits = CallCounter()
-    let fixture = Self.makeFixture { target in
+    let fixture = Self.makeFixture(session: session.model) { target in
       target.composer = AgentComposerHook(
         owner: ObjectIdentifier(target), canSubmit: { true }, submit: { submits.count += 1 },
         load: { _ in }, focus: { true })
@@ -240,26 +226,28 @@ final class CallCounter {
     #expect(submits.count == 1)
   }
 
-  @Test func dispatchingCancelCallsTheCancelAction() async {
-    let thread = AgentThread()
-    let fixture = Self.makeFixture(thread: thread)
-    thread.apply(.setState(.running))
+  @Test func dispatchingCancelSendsSessionCancel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
+    try await Self.sendState(ScriptedSession.runningState, to: session)
 
     #expect(fixture.system.perform(AgentCommandVerb.cancel.id))
-    #expect(await waitUntil { !fixture.actions.calls.isEmpty })
-    #expect(fixture.actions.calls == [.cancel])
+    #expect(await waitUntil { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty })
+    #expect(session.agent.messages(method: ScriptedSession.cancelMethod).count == 1)
   }
 
   // MARK: - Keymap
 
-  @Test func escapeResolvesToCancelWhileRunning() {
-    let thread = AgentThread()
-    let fixture = Self.makeFixture(thread: thread)
+  @Test func escapeResolvesToCancelWhileRunning() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
     let escape = KeySequence(.escape)
 
     #expect(fixture.system.registry.resolveKey(escape, mode: .cua, at: fixture.path) == .unbound)
 
-    thread.apply(.setState(.running))
+    try await Self.sendState(ScriptedSession.runningState, to: session)
     #expect(
       fixture.system.registry.resolveKey(escape, mode: .cua, at: fixture.path)
         == .command(AgentCommandVerb.cancel.id, scope: fixture.path))
@@ -281,104 +269,83 @@ final class CallCounter {
 
   // MARK: - Permission
 
-  @Test func approveSelectsTheAllowOnceOptionOfTheFirstRequest() async {
-    let thread = AgentThread()
-    let fixture = Self.makeFixture(thread: thread)
-    let request = ThreadFixtures.permissionRequest()
-    thread.apply(.addPermission(request))
+  @Test func approveSelectsTheAllowOnceOptionOfTheFirstRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
+    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
 
     #expect(fixture.system.perform(AgentCommandVerb.approvePending.id))
-    #expect(await waitUntil { !fixture.actions.calls.isEmpty })
+    let result = await session.result(ofRequest: Self.agentRequestID)
 
-    let decision = PermissionDecision(
-      outcome: .selected(PermissionOptionID(PermissionOption.Kind.allowOnce.wireValue)))
-    #expect(fixture.actions.calls == [.respondToPermission(request, decision)])
+    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
   }
 
-  @Test func rejectSendsTheOptionAndTheCommentOfThePayload() async {
-    let thread = AgentThread()
-    let fixture = Self.makeFixture(thread: thread)
-    let first = ThreadFixtures.permissionRequest(id: "permission-first")
-    let second = ThreadFixtures.permissionRequest(id: "permission-second")
-    thread.apply(.addPermission(first))
-    thread.apply(.addPermission(second))
-    let option = PermissionOptionID(PermissionOption.Kind.rejectAlways.wireValue)
+  @Test func rejectAnswersTheRequestOfThePayloadAndSendsTheComment() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let fixture = Self.makeFixture(session: model)
+    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
+    try await session.sendRequest(
+      ScriptedSession.permissionMethod, id: Self.secondRequestID, params: ScriptedSession.permissionParams)
+    _ = await waitUntil { model.pendingPermissions.count == 2 }
+    let second = try #require(model.pendingPermissions.last)
     let payload = AgentCommandPayload.permission(
-      request: second.id, option: option, comment: "Use the test file.")
+      request: second.id, option: PermissionOptionId(rawValue: Self.rejectOptionID), comment: Self.comment)
 
     #expect(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
-    #expect(await waitUntil { !fixture.actions.calls.isEmpty })
+    let result = await session.result(ofRequest: Self.secondRequestID)
+    _ = await waitUntil { !session.promptTexts.isEmpty }
 
-    let decision = PermissionDecision(outcome: .selected(option), comment: "Use the test file.")
-    #expect(fixture.actions.calls == [.respondToPermission(second, decision)])
+    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
+    #expect(model.pendingPermissions.count == 1)
+    #expect(session.promptTexts == [Self.comment])
   }
 
-  @Test func theAnswerCommandsNeedAPendingRequestAndAMatchingOption() throws {
-    let thread = AgentThread()
-    let fixture = Self.makeFixture(thread: thread)
-
-    #expect(try !Self.isAvailable(.approvePending, in: fixture))
-    #expect(try !Self.isAvailable(.rejectPending, in: fixture))
-
-    let request = ThreadFixtures.permissionRequest()
-    thread.apply(.addPermission(request))
-    let allow = PermissionOptionID(PermissionOption.Kind.allowOnce.wireValue)
+  @Test func theAnswerCommandsNeedAMatchingOption() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let fixture = Self.makeFixture(session: model)
+    let request = try await session.receivePermissionRequest(id: Self.agentRequestID)
+    let allow = PermissionOptionId(rawValue: Self.allowOptionID)
     let wrongKind = AgentCommandPayload.permission(request: request.id, option: allow)
 
     #expect(!fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: wrongKind))
-    #expect(fixture.actions.calls.isEmpty)
+    #expect(model.pendingPermissions.count == 1)
   }
 
   // MARK: - Thread view commands
 
-  @Test func copyThreadCopiesTheMessagesAsPlainText() {
+  @Test func copyThreadCopiesTheMessagesAsPlainText() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
     let pasteboard = FakePasteboard()
-    let thread = AgentThread()
-    thread.apply(.insert(.userMessage(ThreadFixtures.message(id: "user", text: "Hi.")), after: nil))
-    thread.apply(
-      .insert(.toolCall(ThreadFixtures.toolCall(id: "call", status: .completed)), after: nil))
-    thread.apply(
-      .insert(.assistantMessage(ThreadFixtures.message(id: "agent", text: "Hello.")), after: nil))
-    let fixture = Self.makeFixture(thread: thread) { $0.pasteboard = pasteboard }
+    let fixture = Self.makeFixture(session: model) { $0.pasteboard = pasteboard }
+    #expect(AgentCommandTarget.plainText(of: model).isEmpty)
+    try await session.sendUpdate(
+      WireBlockJSON.makeChunk("user_message_chunk", messageID: "copy-u", block: WireBlockJSON.makeText("Hi.")))
+    try await session.sendUpdate(
+      WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
+    try await session.sendUpdate(
+      WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
+    _ = await waitUntil { model.transcript.count == 3 }
 
     #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
     #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.")
   }
 
-  @Test func theCopyTextOmitsBlocksThatAreNotForTheUser() {
-    let thread = AgentThread()
-    let hidden = ContentBlock(
-      content: .text("Hidden."), annotations: Annotations(audience: [.assistant]))
-    let message = Message(id: "agent", blocks: [ContentBlock(text: "Shown."), hidden])
-    thread.apply(.insert(.assistantMessage(message), after: nil))
-
-    #expect(AgentCommandTarget.plainText(of: thread) == "Assistant:\nShown.")
-    #expect(AgentCommandTarget.plainText(of: AgentThread()).isEmpty)
-  }
-
-  /// The old thread path. A `ThreadItem` has no transcript entry, so the
-  /// test reads the internal identifier form of the store. The session path
-  /// reads the entry form in
-  /// ``toggleExpandAllExpandsEachEntryOfTheSessionModelThenCollapsesEachEntry()``.
-  @Test func toggleExpandAllExpandsEachThreadItemThenCollapsesEachThreadItem() {
-    let store = ExpandedBlocksStore()
-    let thread = Self.turnThread()
-    let fixture = Self.makeFixture(thread: thread) { $0.expandedBlocks = store }
-
-    #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(thread.items.allSatisfy { store.isExpanded(id: $0.id) })
-
-    #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(thread.items.allSatisfy { !store.isExpanded(id: $0.id) })
-  }
-
-  @Test func scrollToBottomPinsTheList() async {
+  @Test func scrollToBottomPinsTheList() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await Self.sendTurns(to: session)
     var targets: [ScrollAnchorTarget] = []
     let anchors = ScrollAnchorManager { targets.append($0) }
-    let thread = Self.turnThread()
-    anchors.noteLastItemChanged(to: thread.lastItemID)
-    anchors.noteVisible(ids: ["turn-0"], distanceFromBottom: .greatestFiniteMagnitude)
-    let fixture = Self.makeFixture(thread: thread) { $0.anchors = anchors }
+    anchors.noteLastItemChanged(to: session.model.transcript.last?.rowKey)
+    anchors.noteVisible(ids: [try #require(userKeys.first)], distanceFromBottom: .greatestFiniteMagnitude)
+    let fixture = Self.makeFixture(session: session.model) { $0.anchors = anchors }
     targets.removeAll()
 
     #expect(fixture.system.perform(AgentCommandVerb.scrollToBottom.id))
@@ -386,28 +353,36 @@ final class CallCounter {
     #expect(await waitUntil { targets == [.bottom] })
   }
 
-  @Test func theJumpCommandsGoToTheNextAndThePreviousTurn() throws {
+  @Test func theJumpCommandsGoToTheNextAndThePreviousTurn() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await Self.sendTurns(to: session)
+    try #require(userKeys.count == Self.turnCount)
+    let keys = session.model.transcript.map(\.rowKey)
     var targets: [ScrollAnchorTarget] = []
     let anchors = ScrollAnchorManager { targets.append($0) }
-    let fixture = Self.makeFixture(thread: Self.turnThread()) { $0.anchors = anchors }
+    let fixture = Self.makeFixture(session: session.model) { $0.anchors = anchors }
 
     #expect(try !Self.isAvailable(.jumpToPrevious, in: fixture))
     #expect(fixture.system.perform(AgentCommandVerb.jumpToNext.id))
-    #expect(targets == [.item("turn-0")])
+    #expect(targets == [.item(userKeys[0])])
 
-    anchors.noteVisible(ids: ["answer-1", "turn-2"], distanceFromBottom: .greatestFiniteMagnitude)
+    // The answer of the second turn and the user message of the third turn.
+    anchors.noteVisible(ids: [keys[3], userKeys[2]], distanceFromBottom: .greatestFiniteMagnitude)
     #expect(fixture.system.perform(AgentCommandVerb.jumpToNext.id))
     #expect(fixture.system.perform(AgentCommandVerb.jumpToPrevious.id))
-    #expect(targets == [.item("turn-0"), .item("turn-2"), .item("turn-1")])
-    #expect(anchors.anchorID == "turn-1")
+    #expect(targets == [.item(userKeys[0]), .item(userKeys[2]), .item(userKeys[1])])
+    #expect(anchors.anchorID == userKeys[1])
 
-    anchors.noteVisible(ids: ["turn-2"], distanceFromBottom: 0)
+    anchors.noteVisible(ids: [userKeys[2]], distanceFromBottom: 0)
     #expect(try !Self.isAvailable(.jumpToNext, in: fixture))
   }
 
-  @Test func focusComposerCallsTheFocusOfTheComposer() {
+  @Test func focusComposerCallsTheFocusOfTheComposer() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let focuses = CallCounter()
-    let fixture = Self.makeFixture { target in
+    let fixture = Self.makeFixture(session: session.model) { target in
       target.composer = AgentComposerHook(
         owner: ObjectIdentifier(target), canSubmit: { false }, submit: {}, load: { _ in },
         focus: {
@@ -419,7 +394,7 @@ final class CallCounter {
     #expect(fixture.system.perform(AgentCommandVerb.focusComposer.id))
     #expect(focuses.count == 1)
 
-    fixture.target.removeComposer(owner: ObjectIdentifier(fixture.actions))
+    fixture.target.removeComposer(owner: ObjectIdentifier(focuses))
     #expect(fixture.target.composer != nil)
     fixture.target.removeComposer(owner: ObjectIdentifier(fixture.target))
     #expect(fixture.target.composer == nil)
@@ -444,7 +419,7 @@ final class CallCounter {
   @Test func cancelFollowsTheAgentStateOfTheSessionModel() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = Self.makeFixture(source: .session(session.model))
+    let fixture = Self.makeFixture(session: session.model)
 
     #expect(try !Self.isAvailable(.cancel, in: fixture))
 
@@ -462,7 +437,7 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let fixture = Self.makeFixture(source: .session(model))
+    let fixture = Self.makeFixture(session: model)
 
     #expect(try !Self.isAvailable(.approvePending, in: fixture))
     #expect(try !Self.isAvailable(.rejectPending, in: fixture))
@@ -483,14 +458,12 @@ final class CallCounter {
   @Test func sendWithATextPayloadSendsAPromptOfTheSessionModel() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = Self.makeFixture(source: .session(session.model))
+    let fixture = Self.makeFixture(session: session.model)
 
     #expect(fixture.system.perform(AgentCommandVerb.send.id, payload: AgentCommandPayload.text(Self.message)))
     #expect(await waitUntil { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty })
 
-    let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
-    #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
-    #expect(fixture.actions.calls.isEmpty)
+    #expect(session.promptTexts == [Self.message])
   }
 
   @Test func theCopyTextOfASessionJoinsTheChunksAndOmitsBlocksThatAreNotForTheUser() async throws {
@@ -514,7 +487,7 @@ final class CallCounter {
     defer { session.close() }
     let model = session.model
     let store = ExpandedBlocksStore()
-    let fixture = Self.makeFixture(source: .session(model)) { $0.expandedBlocks = store }
+    let fixture = Self.makeFixture(session: model) { $0.expandedBlocks = store }
 
     #expect(try !Self.isAvailable(.toggleExpandAll, in: fixture))
     try await session.sendUpdate(
@@ -535,7 +508,7 @@ final class CallCounter {
     defer { session.close() }
     let model = session.model
     let store = ExpandedBlocksStore { _ in true }
-    let fixture = Self.makeFixture(source: .session(model)) { $0.expandedBlocks = store }
+    let fixture = Self.makeFixture(session: model) { $0.expandedBlocks = store }
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "policy-m", block: WireBlockJSON.makeText("Hello.")))
     #expect(await waitUntil { !model.transcript.isEmpty })

@@ -30,16 +30,14 @@ import Testing
     harness.accessibilityElements().filter { $0.identifier == identifier }.count
   }
 
-  /// Mounts a response with one text block that does not stream.
+  /// Mounts a response with one Markdown text.
   ///
   /// - Parameters:
-  ///   - id: The id of the message.
-  ///   - text: The Markdown text of the message.
+  ///   - id: The id of the response view.
+  ///   - text: The Markdown text.
   /// - Returns: The harness that hosts the response.
   static func mountResponse(id: String, text: String) -> HostedViewHarness<ResponseView> {
-    let message = Message(id: id, blocks: [ContentBlock(text: text)])
-    let harness = HostedViewHarness(
-      ResponseView(message: message, streaming: nil), size: hostSize)
+    let harness = HostedViewHarness(ResponseView(id: id, markdown: text), size: hostSize)
     harness.pump()
     return harness
   }
@@ -131,18 +129,5 @@ import Testing
     #expect(Self.count(MathView.inlineIdentifier, in: harness) == 0)
     let texts = harness.accessibilityElements().compactMap { $0.value ?? $0.label }
     #expect(texts.contains { $0.contains(Self.malformedSource) })
-  }
-
-  @Test func inlineMathInTheStreamingTailMountsOneInlineElement() {
-    let id = "math-tail-inline"
-    let streaming = StreamingMessage(id: id, text: "The energy is $\(Self.inlineSource)$ so far")
-    let harness = HostedViewHarness(
-      ResponseView(message: Message(id: id, blocks: []), streaming: streaming),
-      size: Self.hostSize)
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: ResponseView.tailIdentifier) != nil)
-    #expect(Self.count(MathView.inlineIdentifier, in: harness) == 1)
   }
 }

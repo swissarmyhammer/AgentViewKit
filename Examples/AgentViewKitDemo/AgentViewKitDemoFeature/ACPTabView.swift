@@ -314,14 +314,7 @@ struct ACPTabView: View {
   /// - Returns: The detail view.
   private func thread(of session: SessionModel, on agent: DemoAgent) -> some View {
     VStack(spacing: 0) {
-      AgentThreadView(
-        session: session,
-        connection: agent.connection,
-        // The session views send the prompts, the cancel, and the answers
-        // through the two models. The logging actions get only the verbs
-        // that no model has, such as a terminal sign-in.
-        actions: LoggingThreadActions()
-      )
+      AgentThreadView(session: session, connection: agent.connection)
       .messageFooter { entry in MessageActions(entry: entry) }
       ContextUsageView(session: session)
         .frame(maxWidth: .infinity, alignment: .trailing)

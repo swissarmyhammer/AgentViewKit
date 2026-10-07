@@ -1,34 +1,23 @@
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The reasoning of the agent, as a collapsible block (plan.md §5, §9 B).
+/// The reasoning of the agent, as a collapsible block (plan.md §5, §9 B):
+/// the view of a `ThoughtEntry` of a `SessionModel` (update.md §4.2).
 ///
-/// - While the reasoning is in progress, the title is a ``ShimmerView``, and
-///   the block is open. The body streams through ``ResponseView``.
-/// - When the reasoning is complete, the title is "Thought for N s" when the
-///   record has both times, and "Thought" when it does not. The block
-///   collapses, unless the user expanded it.
+/// The block has the complete look: the title is "Thought". The session
+/// model does not tell whether a thought is in progress, so the view shows
+/// the ACP content blocks as the entry holds them, with no kit record between
+/// the entry and the view (``ThoughtEntryBlock``). Only the views that read
+/// `agentState` show that the agent works. The view reads the content of the
+/// entry, so a streamed chunk evaluates only this view. A thought and an
+/// agent message with the same `messageId` are two entries, so they show in
+/// two rows.
 ///
 /// The user decision is in the ``ExpandedBlocksStore`` of the environment,
-/// keyed by the record id or the row key of the entry. A block with no user
-/// decision is open while it is in progress. A complete thought entry uses
-/// the ``ExpandedBlocksStore/defaultExpanded`` policy of the store, which is
-/// closed by default. A complete reasoning record is closed. When the
-/// environment has no store, the view uses a store of its own.
-///
-/// ``AgentThreadView`` finds the in-progress state from the thread: a
-/// reasoning item is in progress when it is the last item and the thread
-/// runs (plan.md §3.5). See ``AgentThread/isLastWhileRunning(_:)``.
-///
-/// The view also shows a `ThoughtEntry` of a `SessionModel` (update.md §4.2).
-/// The block of a thought entry always has the complete look: the session
-/// model does not tell whether a thought is in progress, so the view shows
-/// the ACP content blocks as the entry holds them, with no kit record
-/// between the entry and the view (``ThoughtEntryBlock``). Only the views
-/// that read `agentState` show that the agent works. The view of an entry
-/// reads the content of the entry, so a streamed chunk evaluates only this
-/// view. A thought and an agent message with the same `messageId` are two
-/// entries, so they show in two rows.
+/// keyed by the row key of the entry. A block with no user decision uses the
+/// ``ExpandedBlocksStore/defaultExpanded`` policy of the store, which is
+/// closed by default. When the environment has no store, the view uses a
+/// store of its own.
 public struct ReasoningView: View {
   /// The start of the accessibility identifier of each block.
   public static let identifierPrefix = "reasoning-"
@@ -49,28 +38,8 @@ public struct ReasoningView: View {
   /// so that the chevron points down.
   static let expandedChevronAngle = Angle.degrees(quarterTurnDegrees)
 
-  /// The reasoning that the view shows.
-  private enum Source {
-    /// A reasoning record, with its in-progress state and its stream.
-    case record(Reasoning, isInProgress: Bool, streaming: StreamingMessage?)
-
-    /// A thought entry of a session transcript.
-    case entry(ThoughtEntry)
-  }
-
-  /// The reasoning to show.
-  private let source: Source
-
-  /// Makes a reasoning block.
-  ///
-  /// - Parameters:
-  ///   - record: The reasoning to show.
-  ///   - isInProgress: `true` while the agent still writes the reasoning.
-  ///   - streaming: The stream of the reasoning, or `nil` when it does not
-  ///     stream. Give `thread.streaming[record.id]`.
-  public init(record: Reasoning, isInProgress: Bool, streaming: StreamingMessage? = nil) {
-    self.source = .record(record, isInProgress: isInProgress, streaming: streaming)
-  }
+  /// The thought entry to show.
+  let entry: ThoughtEntry
 
   /// Makes the reasoning block of a thought entry of a session transcript.
   ///
@@ -78,12 +47,12 @@ public struct ReasoningView: View {
   ///
   /// - Parameter entry: The thought to show.
   public init(entry: ThoughtEntry) {
-    self.source = .entry(entry)
+    self.entry = entry
   }
 
   /// The accessibility identifier of the block of `id`.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `reasoning-<id>`.
   public static func identifier(for id: String) -> String {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
@@ -91,7 +60,7 @@ public struct ReasoningView: View {
 
   /// The accessibility identifier of the title of a complete block.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `reasoning-<id>-title`.
   public static func titleIdentifier(for id: String) -> String {
     identifier(for: id) + titleSuffix
@@ -99,7 +68,7 @@ public struct ReasoningView: View {
 
   /// The accessibility identifier of the expand button.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `reasoning-<id>-toggle`.
   public static func toggleIdentifier(for id: String) -> String {
     identifier(for: id) + toggleSuffix
@@ -107,7 +76,7 @@ public struct ReasoningView: View {
 
   /// The accessibility identifier of the body.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `reasoning-<id>-body`.
   public static func bodyIdentifier(for id: String) -> String {
     identifier(for: id) + bodySuffix
@@ -143,43 +112,23 @@ public struct ReasoningView: View {
   }
 
   public var body: some View {
-    switch source {
-    case .record(let record, let isInProgress, let streaming):
-      ReasoningBlock(
-        id: record.id, isInProgress: isInProgress, duration: record.duration, policyEntry: nil
-      ) {
-        // The message id is the record id, because the code block cache and
-        // the evaluation counter use it as a key.
-        ResponseView(
-          message: Message(id: record.id, blocks: [ContentBlock(text: record.text)]), streaming: streaming)
-      }
-    case .entry(let entry):
-      ThoughtEntryBlock(entry: entry)
-    }
+    ThoughtEntryBlock(entry: entry)
   }
 }
 
 /// The collapsible block of one reasoning. See ``ReasoningView``.
 ///
-/// The block shows a title, an expand button, and its content while it is
-/// open. ``ReasoningView`` gives the text of a reasoning record as the
-/// content, and ``ThoughtEntryBlock`` gives the ACP content of a thought
+/// The block shows the complete title, an expand button, and its content
+/// while it is open. ``ThoughtEntryBlock`` gives the ACP content of a thought
 /// entry.
 struct ReasoningBlock<Content: View>: View {
-  /// The id of the reasoning. It keys the user decision in the store and
-  /// the accessibility identifiers.
+  /// The id of the reasoning: the row key of the entry. It keys the
+  /// accessibility identifiers.
   let id: String
 
-  /// `true` while the agent still writes the reasoning.
-  let isInProgress: Bool
-
-  /// The time of the reasoning, or `nil` when it is not known.
-  let duration: TimeInterval?
-
-  /// The transcript entry that the ``ExpandedBlocksStore/defaultExpanded``
-  /// policy of the store reads, or `nil` when the policy does not apply. The
-  /// policy takes a transcript entry, so a reasoning record has no policy.
-  let policyEntry: TranscriptEntry?
+  /// The transcript entry that keys the user decision in the store, and that
+  /// the ``ExpandedBlocksStore/defaultExpanded`` policy of the store reads.
+  let policyEntry: TranscriptEntry
 
   /// Makes the content of the open block. The block calls it in its body
   /// only while it is open, so a closed block does not read the values of
@@ -204,8 +153,7 @@ struct ReasoningBlock<Content: View>: View {
       }
     }
     .contentContainer(identifier: ReasoningView.identifier(for: id))
-    .accessibilityLabel(
-      ReasoningView.accessibilityLabel(isInProgress: isInProgress, duration: duration))
+    .accessibilityLabel(ReasoningView.accessibilityLabel(isInProgress: false, duration: nil))
     // The row is a container with this block as its one child. The second
     // hidden child keeps SwiftUI from merging the block into the row, so
     // the block keeps its identifier. See `contentContainer(identifier:)`.
@@ -214,34 +162,11 @@ struct ReasoningBlock<Content: View>: View {
 
   /// Tells if the block is open.
   ///
-  /// A block with a policy entry gives the entry to the store. A reasoning
-  /// record has no transcript entry, so it gives its id.
-  ///
   /// - Parameter store: The store of the user decisions.
-  /// - Returns: The user decision. With no decision, `true` while in
-  ///   progress, and when complete the store policy, or `false` with no
-  ///   policy entry.
+  /// - Returns: The user decision, or the store policy for the entry when
+  ///   there is no decision.
   private func isExpanded(in store: ExpandedBlocksStore) -> Bool {
-    guard let policyEntry else {
-      return store.decision(for: id) ?? isInProgress
-    }
-    return store.decision(for: policyEntry) ?? (isInProgress || store.defaultExpanded(policyEntry))
-  }
-
-  /// Records a user decision for the block.
-  ///
-  /// A block with a policy entry gives the entry to the store. A reasoning
-  /// record has no transcript entry, so it gives its id.
-  ///
-  /// - Parameters:
-  ///   - expanded: `true` to open the block, `false` to close it.
-  ///   - store: The store of the user decisions.
-  private func setExpanded(to expanded: Bool, in store: ExpandedBlocksStore) {
-    guard let policyEntry else {
-      if expanded { store.expand(id: id) } else { store.collapse(id: id) }
-      return
-    }
-    if expanded { store.expand(entry: policyEntry) } else { store.collapse(entry: policyEntry) }
+    store.isExpanded(entry: policyEntry)
   }
 
   /// The title and the expand button.
@@ -251,7 +176,7 @@ struct ReasoningBlock<Content: View>: View {
   ///   - expanded: `true` while the block is open.
   /// - Returns: The header view.
   private func header(store: ExpandedBlocksStore, expanded: Bool) -> some View {
-    let toggle = { setExpanded(to: !expanded, in: store) }
+    let toggle = { store.toggle(entry: policyEntry) }
     return HStack(spacing: theme.spacing.s) {
       title
       Spacer(minLength: theme.spacing.s)
@@ -270,14 +195,10 @@ struct ReasoningBlock<Content: View>: View {
     .onTapGesture(perform: toggle)
   }
 
-  /// The shimmer while in progress, or the complete title.
-  @ViewBuilder private var title: some View {
-    if isInProgress {
-      ShimmerView(text: ActivityIndicator.thinkingText)
-    } else {
-      Text(ReasoningView.completedTitle(duration: duration))
-        .foregroundStyle(.secondary)
-        .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
-    }
+  /// The complete title.
+  private var title: some View {
+    Text(ReasoningView.completedTitle(duration: nil))
+      .foregroundStyle(.secondary)
+      .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
   }
 }

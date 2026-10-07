@@ -15,20 +15,14 @@ import SwiftUI
 /// text with the raw value (update.md §9.2). The `message(for:)` function
 /// that takes a `StateUpdate` gives the text of each value.
 ///
-/// ``init(state:errorID:onShowError:)`` shows a ``ThreadState``. The bar then
-/// shows only for ``ThreadState/requiresAction`` and for an idle thread that
-/// stopped with ``StopReason/maxTokens``, ``StopReason/maxTurnRequests``,
-/// ``StopReason/refusal``, or ``StopReason/unknown(_:)``.
-///
 /// The bar has the identifier ``bannerIdentifier``. The text of the bar has
 /// the ``Message/identifier`` of its message.
 ///
 /// The bar shows a Show Error button when the host gives an `onShowError`
-/// closure and there is an error to show. Over a session model, that error is
-/// the last `ErrorEntry` in `SessionModel.transcript`; the kit keeps no error
-/// list. Over a thread, it is the error that the host gives as `errorID`. The
-/// host uses the closure to move the conversation to the `ErrorView` of that
-/// error.
+/// closure and the transcript has an error. That error is the last
+/// `ErrorEntry` in `SessionModel.transcript`; the kit keeps no error list.
+/// The host uses the closure to move the conversation to the `ErrorView` of
+/// that error.
 public struct StateBanner: View {
   /// The accessibility identifier of the bar.
   public static let bannerIdentifier = "state-banner"
@@ -52,35 +46,11 @@ public struct StateBanner: View {
     public let identifier: String
   }
 
-  /// The model that gives the state of the bar.
-  enum Source {
-    /// A run state of a thread, the identifier of its related error, and the
-    /// host closure that shows that error.
-    case thread(ThreadState, errorID: String?, onShowError: ((String) -> Void)?)
+  /// The session model whose `agentState` the bar shows.
+  let session: SessionModel
 
-    /// A session model, and the host closure that shows an error entry of its
-    /// transcript.
-    case session(SessionModel, onShowError: ((TranscriptEntry.ID) -> Void)?)
-  }
-
-  /// The model that gives the state of the bar.
-  let source: Source
-
-  /// Makes the bar of a thread state.
-  ///
-  /// - Parameters:
-  ///   - state: The run state of the thread, such as ``AgentThread/state``.
-  ///   - errorID: The identifier of the ``ThreadError`` that relates to the
-  ///     state, or `nil` when there is none.
-  ///   - onShowError: The host closure that shows the error. It gets
-  ///     `errorID`.
-  public init(
-    state: ThreadState,
-    errorID: String? = nil,
-    onShowError: ((String) -> Void)? = nil
-  ) {
-    self.source = .thread(state, errorID: errorID, onShowError: onShowError)
-  }
+  /// The host closure that shows an error entry of the transcript, or `nil`.
+  let onShowError: ((TranscriptEntry.ID) -> Void)?
 
   /// Makes the bar of the agent state of a session model.
   ///
@@ -90,28 +60,8 @@ public struct StateBanner: View {
   ///     for no Show Error button. It gets the identity of the last
   ///     `ErrorEntry` of the transcript.
   public init(session: SessionModel, onShowError: ((TranscriptEntry.ID) -> Void)? = nil) {
-    self.source = .session(session, onShowError: onShowError)
-  }
-
-  /// The text of the bar for a thread state.
-  ///
-  /// - Parameter state: The run state of a thread.
-  /// - Returns: The text, or `nil` when the bar does not show for `state`.
-  public static func message(for state: ThreadState) -> Message? {
-    switch state {
-    case .running, .idle(nil), .idle(.endTurn), .idle(.cancelled):
-      nil
-    case .idle(.unknown(let wireValue)):
-      message(forUnknownStopReason: wireValue)
-    case .requiresAction:
-      requiresActionMessage
-    case .idle(.maxTokens):
-      maxTokensMessage
-    case .idle(.maxTurnRequests):
-      maxTurnRequestsMessage
-    case .idle(.refusal):
-      refusalMessage
-    }
+    self.session = session
+    self.onShowError = onShowError
   }
 
   /// The text of the bar for an agent state of a session model.
@@ -161,15 +111,8 @@ public struct StateBanner: View {
   }
 
   public var body: some View {
-    switch source {
-    case .thread(let state, let errorID, let onShowError):
-      if let message = Self.message(for: state) {
-        bar(message, showError: Self.makeShowErrorAction(for: errorID, onShowError))
-      }
-    case .session(let session, let onShowError):
-      if let state = session.agentState {
-        bar(Self.message(for: state), showError: Self.makeShowErrorAction(in: session, onShowError))
-      }
+    if let state = session.agentState {
+      bar(Self.message(for: state), showError: Self.makeShowErrorAction(in: session, onShowError))
     }
   }
 
@@ -190,20 +133,6 @@ public struct StateBanner: View {
       }
     )
     .accessibilityIdentifier(Self.bannerIdentifier)
-  }
-
-  /// Makes the closure of the Show Error button of a thread state.
-  ///
-  /// - Parameters:
-  ///   - errorID: The identifier of the related error, or `nil`.
-  ///   - onShowError: The host closure, or `nil`.
-  /// - Returns: The closure, or `nil` when the host gave no error or no
-  ///   closure.
-  private static func makeShowErrorAction(
-    for errorID: String?, _ onShowError: ((String) -> Void)?
-  ) -> (() -> Void)? {
-    guard let errorID, let onShowError else { return nil }
-    return { onShowError(errorID) }
   }
 
   /// Makes the closure of the Show Error button of a session model.

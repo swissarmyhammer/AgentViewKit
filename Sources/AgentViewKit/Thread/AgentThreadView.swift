@@ -24,10 +24,12 @@ import SwiftUI
 /// while the last entry of the transcript is an error entry with the code
 /// `-32000` (authentication required).
 ///
-/// The host gives the ``AgentThreadActions`` in the initializer. There is no
-/// default, because actions that do nothing are a quiet failure. The view
-/// gives the actions to its subtree through
-/// ``SwiftUI/EnvironmentValues/threadActions``.
+/// The host gives no actions. Each view in the thread calls the methods of
+/// the session model or of the connection model directly. The two host hooks
+/// are the ``SwiftUI/EnvironmentValues/terminalAuthRunner`` value, which runs
+/// a terminal sign-in, and the ``SwiftUI/EnvironmentValues/agentReconnect``
+/// value, which the Reconnect button calls. No model gives that work, so the
+/// host gives it. See `Docs/decisions/acp-client-kit.md`.
 ///
 /// To replace the view of a transcript entry case, use a typed modifier such
 /// as ``SwiftUI/View/toolCallView(_:)``. The override gets the entry object.
@@ -64,9 +66,6 @@ public struct AgentThreadView: View {
   /// session on, or `nil`.
   let connection: ConnectionModel?
 
-  /// The actions that the views of the thread call.
-  let actions: any AgentThreadActions
-
   /// The store that the view makes when the environment has none.
   @State private var ownExpandedBlocks = ExpandedBlocksStore()
 
@@ -98,15 +97,9 @@ public struct AgentThreadView: View {
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
-  ///   - actions: The actions that the views of the thread call.
-  public init(
-    session: SessionModel,
-    connection: ConnectionModel? = nil,
-    actions: any AgentThreadActions
-  ) {
+  public init(session: SessionModel, connection: ConnectionModel? = nil) {
     self.session = session
     self.connection = connection
-    self.actions = actions
   }
 
   public var body: some View {
@@ -117,9 +110,6 @@ public struct AgentThreadView: View {
       .accessibilityFocusScope()
       .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
       .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
-      // The actions are the outermost value, so that each modifier above, and
-      // the agent command scope, reads the actions of the initializer.
-      .threadActions(actions)
   }
 
   /// The conversation of the session model, with the parts that read the

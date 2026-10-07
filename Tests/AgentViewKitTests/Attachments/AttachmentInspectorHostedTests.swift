@@ -128,7 +128,7 @@ import UniformTypeIdentifiers
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+      AgentThreadView(session: session.model, connection: session.connection)
         .environment(\.inspectorSelection, selection),
       size: Self.hostSize)
     defer { harness.close() }

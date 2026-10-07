@@ -1,5 +1,7 @@
 # The host must give the thread actions
 
+Not current. See `Docs/decisions/acp-client-kit.md`.
+
 Date: 2026-09-19
 
 ## Decision

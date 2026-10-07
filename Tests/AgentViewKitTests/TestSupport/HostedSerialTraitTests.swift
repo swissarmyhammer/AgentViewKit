@@ -6,7 +6,7 @@ import Testing
 /// Tests for ``HostedTestLock`` and ``HostedSerialTrait``.
 @Suite struct HostedSerialTraitTests {
   /// The text that shows that a test file mounts a view in a window.
-  static let hostingMarkers = ["HostedViewHarness(", "threadViewHarness(", "NSWindow("]
+  static let hostingMarkers = ["HostedViewHarness(", "NSWindow("]
 
   /// The text that shows that a test file declares a test.
   static let testMarker = "@Test"

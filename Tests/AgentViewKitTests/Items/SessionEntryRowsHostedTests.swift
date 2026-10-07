@@ -109,7 +109,7 @@
       _ session: ScriptedSession, store: ExpandedBlocksStore = ExpandedBlocksStore()
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: tallSize) {
-        AgentThreadView(session: session.model, actions: NoopThreadActions())
+        AgentThreadView(session: session.model)
           .environment(\.expandedBlocksStore, store)
           .transaction { $0.disablesAnimations = true }
       }
@@ -403,7 +403,7 @@
       let harness = Self.mountThread(session)
       defer { harness.close() }
       let model = session.model
-      let identifier = ErrorView.identifier(for: .acp(code: Self.scriptedErrorCode, message: "failed"))
+      let identifier = ErrorView.identifier
 
       let prompt = Task { try await model.prompt([.text(TextContent(text: "Hello."))]) }
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: identifier) != nil }

@@ -12,32 +12,6 @@ public nonisolated enum ActivityState: Hashable, Sendable {
   /// A tool call runs. The value is the title of the call.
   case runningTool(String)
 
-  /// Finds the state from a thread (plan.md §3.5).
-  ///
-  /// When the thread does not run, the state is ``idle``. When a tool call
-  /// has the status ``ToolCallStatus/inProgress``, the state is
-  /// ``runningTool(_:)`` with the title of the last such call. Otherwise the
-  /// state is ``thinking``. Only the thread path of the kit uses this
-  /// initializer. The removal of the kit session model removes it.
-  ///
-  /// - Parameter thread: The thread.
-  @MainActor
-  public init(thread: AgentThread) {
-    guard thread.state == .running else {
-      self = .idle
-      return
-    }
-    let runningCall = thread.items.last { item in
-      guard case .toolCall(let call) = item else { return false }
-      return call.status == .inProgress
-    }
-    if case .toolCall(let call)? = runningCall {
-      self = .runningTool(call.title)
-    } else {
-      self = .thinking
-    }
-  }
-
   /// Finds the state from the values of a session model.
   ///
   /// The value comes from the model at each call, and nothing keeps it.
@@ -55,7 +29,7 @@ public nonisolated enum ActivityState: Hashable, Sendable {
     }
     let runningCall = session.transcript.lazy.compactMap(\.toolCall).last { $0.status == .inProgress }
     if let runningCall {
-      self = .runningTool(ToolCallView.displayTitle(ToolCallSource.entry(runningCall).title))
+      self = .runningTool(ToolCallView.displayTitle(runningCall.shownTitle))
     } else {
       self = .thinking
     }
@@ -97,8 +71,8 @@ public struct ActivityIndicator: View {
 
   /// Makes an indicator.
   ///
-  /// - Parameter state: The state to show. Use
-  ///   ``ActivityState/init(thread:)`` to find it from a thread.
+  /// - Parameter state: The state to show. ``init(session:)`` finds the
+  ///   state of a session model.
   public init(state: ActivityState) {
     self.source = .state(state)
   }

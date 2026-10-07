@@ -180,4 +180,17 @@ extension ScriptedSession {
     _ = await waitUntil { agent.response(to: Double(id)) != nil }
     return agent.response(to: Double(id))?["result"]
   }
+
+  /// The prompt blocks of each `session/prompt` frame that the agent got.
+  var promptBlocks: [[AgentViewKit.JSONValue]] {
+    agent.messages(method: Self.promptMethod).map { message in
+      if case .array(let blocks) = message["params"]?["prompt"] { blocks } else { [] }
+    }
+  }
+
+  /// The text of each `session/prompt` frame that the agent got, in arrival
+  /// order.
+  var promptTexts: [String] {
+    agent.messages(method: Self.promptMethod).map(ScriptedWireAgent.promptText(of:))
+  }
 }

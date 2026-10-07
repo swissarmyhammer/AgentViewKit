@@ -355,7 +355,6 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 - `AgentGraphView`: multi-agent canvas. *post-v1*
 
 **C2. Infrastructure (non-visual)**
-- `AgentThread`, `ThreadItem`, `ThreadChange`, the three `ThreadSource`s (§3). *net-new*
 - `StreamingMarkdownBalancer`, `ScrollAnchorManager`, `ExpandedBlocksStore`. *net-new*
 - `AgentCommands`: the kit verbs as EditorKit commands with a default keymap. *EditorKit*
 - `GrammarBundle`: TextMate grammars for the top agent languages. *net-new*

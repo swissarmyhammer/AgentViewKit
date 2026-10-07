@@ -11,9 +11,12 @@ import SwiftUI
 /// PromptInputView(text: $draft) { scrollToBottom() }
 /// ```
 ///
-/// A submit sends the text to ``AgentThreadActions/send(_:)`` of the
-/// `threadActions` environment value, clears the text, and then calls
-/// `onSubmit`. A submit does nothing while the text is blank.
+/// The composer reads the session model of the environment
+/// (``SwiftUI/EnvironmentValues/sessionModel``) and calls its methods
+/// directly (update.md §4.2 "Prompt helper", §4.7 "Composer"). A submit sends
+/// the text as `session/prompt` with `SessionModel.prompt(_:meta:)`, clears
+/// the text, and then calls `onSubmit`. A submit does nothing while the text
+/// is blank, or while the environment has no session model.
 ///
 /// The composer has a list of attachments. While the list is not empty, an
 /// ``AttachmentChips`` row shows above the editor. A dropped file, a dropped
@@ -29,11 +32,7 @@ import SwiftUI
 /// handle a message that comes while it runs. Command-Return also submits
 /// the text. Esc stops the turn while the agent runs.
 ///
-/// When the environment has a session model
-/// (``SwiftUI/EnvironmentValues/sessionModel``), the composer uses it in
-/// place of the thread and the thread actions (update.md §4.2 "Prompt
-/// helper", §4.7 "Composer"). A submit sends `session/prompt` with
-/// `SessionModel.prompt(_:meta:)`. The model shows the user message at once
+/// The model shows the user message at once
 /// with the send state `pending`, so the composer adds no row of its own.
 /// Esc and the Stop button send `session/cancel` with
 /// `SessionModel.cancel(meta:)`. The composer reads `agentState` only to show
@@ -55,7 +54,7 @@ import SwiftUI
 ///
 /// ```swift
 /// VStack {
-///   AgentThreadView(session: model, actions: actions)
+///   AgentThreadView(session: model)
 ///   PromptInputView(text: $draft) {}
 /// }
 /// .environment(\.sessionModel, model)
@@ -85,8 +84,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// The builder of the accessory row.
   let accessory: () -> Accessory
 
-  /// The turn verbs of the session model or of the thread actions.
-  @EnvironmentComposerTurn private var turn
+  @Environment(\.sessionModel) private var session
+  @Environment(\.connectionModel) private var connection
   @Environment(\.agentTheme) private var theme
   @Environment(\.agentCommandTarget) private var commandTarget
 
@@ -137,16 +136,23 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   }
 
   /// Whether a submit sends the text now: the text is not blank, and the
-  /// session model of the environment is not closed.
+  /// environment has a session model that is not closed.
   private var canSubmit: Bool {
-    Self.message(from: text) != nil && !turn.isSessionClosed
+    Self.message(from: text) != nil && session?.isClosed == false
+  }
+
+  /// Whether the session model of the environment is closed, so the composer
+  /// sends nothing (update.md §4.7 "Closed thread"). The value reads
+  /// `SessionModel.isClosed` directly.
+  private var isSessionClosed: Bool {
+    session?.isClosed == true
   }
 
   public var body: some View {
     let context = PromptEditorContext(
       text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
-      onCancel: turn.isRunning ? cancelCommand : nil,
-      commands: turn.session?.availableCommands)
+      onCancel: session?.isRunning == true ? cancelCommand : nil,
+      commands: session?.availableCommands)
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       if !attachments.wrappedValue.isEmpty {
         AttachmentChips(attachments: attachments)
@@ -165,7 +171,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     }
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
-    .disabled(turn.isSessionClosed)
+    .disabled(isSessionClosed)
     .attachmentDropDestination(attachments)
     .environment(
       \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
@@ -188,9 +194,12 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   /// Sends the text at once, also while the agent runs a turn. Then clears
   /// the text and calls the host closure.
+  ///
+  /// The prompt blocks follow the prompt capabilities of the connection
+  /// model, read at the time of the submit.
   private func submit() {
-    guard canSubmit, let input = takeInput() else { return }
-    turn.startPrompt(with: input)
+    guard canSubmit, let session, let input = takeInput() else { return }
+    session.startPrompt(with: input, accepting: connection?.promptCapabilities)
     onSubmit()
   }
 
@@ -201,9 +210,10 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     text = AttributedString(message)
   }
 
-  /// Stops the current turn. The text does not change.
+  /// Stops the current turn with `SessionModel.cancel(meta:)`. The text
+  /// does not change.
   private func cancel() {
-    turn.startCancel()
+    session?.startCancel()
   }
 
   /// The files of a submit: the attachment list, then the files that the

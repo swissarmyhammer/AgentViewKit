@@ -10,8 +10,8 @@ extension StateBanner {
   ///
   /// The key is the raw wire value of the stop reason. The FoundationModels
   /// ACP agent sends these values (`PromptExecution`). An ACP extension value
-  /// starts with `_`. Each binding of a stop reason that keeps the raw value,
-  /// such as ``StopReason/unknown(_:)``, uses this one table through
+  /// starts with `_`. The bar of an ACP stop reason that the ACP standard
+  /// does not name (`StopReason.unknown`) reads this table through
   /// ``message(forUnknownStopReason:)``.
   public static let extensionStopReasonMessages: [String: Message] = [
     "_truncated": Message(

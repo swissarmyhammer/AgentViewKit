@@ -126,7 +126,7 @@
       _ session: ScriptedSession, store: ExpandedBlocksStore
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: tallSize) {
-        AgentThreadView(session: session.model, actions: NoopThreadActions())
+        AgentThreadView(session: session.model)
           .toolCallView(named: readFileName) { entry in
             Text(entry.title ?? "").accessibilityIdentifier(registeredIdentifier)
           }

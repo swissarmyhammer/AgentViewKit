@@ -1,13 +1,10 @@
 #if DEBUG
+  import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
   import FoundationModelsACP
   import SwiftUI
   import Testing
-
-  // The tool call record of the old thread path has no transcript entry, so
-  // the tests read the internal identifier form of the store.
-  @testable import AgentViewKit
 
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffViewHostedTests {
     /// The longest time that a test waits for the view to change, in seconds.
@@ -253,16 +250,18 @@
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) == nil)
     }
 
-    @Test func environmentActionsReachADiffInAToolCall() throws {
+    @Test func environmentActionsReachADiffInAToolCall() async throws {
       let log = CallLog()
-      let id = "diff-tool-call"
-      let call = ToolCallRecord(
-        id: id, title: "Edit", kind: .edit, status: .completed,
-        content: [.diff(patch: Self.patch)])
-      let store = ExpandedBlocksStore()
-      store.expand(id: id)
+      let patchText = try #require(String(data: JSONEncoder().encode(Self.patch), encoding: .utf8))
+      let fields = #"""
+        "title": "Edit", "kind": "edit", "status": "completed",
+        "content": [{"type": "diff", "changes": [], "patch": {"format": "git_patch", "text": \#(patchText)}}]
+        """#
+      let (session, call) = try await ToolCallViewHostedTests.openCall(id: "diff-tool-call", fields: fields)
+      defer { session.close() }
+      let store = ToolCallViewHostedTests.makeExpandedStore(for: call)
       let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(record: call)
+        ToolCallView(entry: call)
           .environment(\.expandedBlocksStore, store)
           .diffActions(
             DiffActions(

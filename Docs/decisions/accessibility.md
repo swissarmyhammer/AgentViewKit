@@ -51,9 +51,10 @@ announcement.
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
 | A new pending request | "Action required: <title>" | high |
 
-- `ThreadAnnouncementObserver` is a hidden background of `AgentThreadView`.
-  It reads the state, the tool call progress, and the pending requests. It
-  does not read `AgentThread.streaming`.
+- `SessionAnnouncementObserver` is a hidden background of `AgentThreadView`.
+  It reads the agent state, the tool call progress, and the pending requests
+  of the `SessionModel`. It does not read the content of an entry, so a
+  streamed chunk does not evaluate it.
 - A tool call that the thread did not know before the change gives no
   announcement, so a thread that loads its history is silent.
 - The environment value `announcer` is a `VoiceOverAnnouncer` by default.

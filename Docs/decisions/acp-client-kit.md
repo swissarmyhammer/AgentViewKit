@@ -64,6 +64,28 @@ The owner made these decisions on 2026-10-02:
 The owner also decided on 2026-10-04 to show the `CompactionEntry` rows and
 the `SessionNotice` banners of the client model.
 
+## Host hooks
+
+The owner decided on 2026-10-06 that each view of the kit binds directly to
+`ConnectionModel`, `SessionModel` and the `TranscriptEntry` objects of the
+transcript. The kit keeps no parallel session state and no turn logic. Task
+^gzj5cye removed the old kit session model: `AgentThread`, `ThreadItem`,
+`ThreadChange`, `ItemPatch`, the record types, `StreamingMessage`,
+`StreamingCoalescer`, `ComposerTurn`, the `AgentThreadActions` protocol and
+the `actions:` parameter of `AgentThreadView`.
+
+The host gives the kit only these two environment values. The models do not
+have this behavior:
+
+- `terminalAuthRunner`: runs the `terminal` auth methods of the agent.
+  `AgentAuthView` shows a Run button only when the host gives this value.
+- `agentReconnect`: connects to the agent again after a terminal sign-in.
+  `AgentAuthView` shows a Reconnect button that calls it while `authState`
+  is `.reconnectRequired`.
+
+Each other verb of the views calls the models: a prompt, a cancel, a
+permission answer, an elicitation answer, a config option and a resume.
+
 ## Dependencies
 
 The direct dependencies are FoundationModelsACPClient, FoundationModelsACP,
@@ -83,5 +105,6 @@ These records describe the earlier scope. Each one has the line
 - `Docs/decisions/usage-model.md`
 - `Docs/decisions/branches.md`
 - `Docs/decisions/compaction-ux.md`
+- `Docs/decisions/required-thread-actions.md`
 
 `Docs/decisions/attachment-types.md` does not name the Router as a source.

@@ -2,23 +2,6 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import OSLog
-import SwiftUI
-
-/// The calls that start a thread action from a synchronous view callback,
-/// such as a button action.
-extension AgentThreadActions {
-  /// Starts a main-actor task that sends `input` to the agent.
-  ///
-  /// - Parameter input: The text and the attachments.
-  func startSend(_ input: UserInput) {
-    Task { @MainActor in await send(input) }
-  }
-
-  /// Starts a main-actor task that stops the current turn.
-  func startCancel() {
-    Task { @MainActor in await cancel() }
-  }
-}
 
 /// The log of the composer requests of a session model.
 private let sessionRequestLogger = Logger(subsystem: "AgentViewKit", category: "SessionModel")
@@ -85,6 +68,21 @@ extension SessionModel {
   /// - Parameter text: The text of the prompt.
   func sendPrompt(text: String) async {
     await sendPrompt(with: UserInput(text: text), accepting: nil)
+  }
+
+  /// Starts a main-actor task that sends `input` as `session/prompt` with
+  /// ``sendPrompt(with:accepting:)``.
+  ///
+  /// The composer calls this function at once for each submit, also while
+  /// the agent runs a turn.
+  ///
+  /// - Parameters:
+  ///   - input: The text and the attachments of the prompt.
+  ///   - capabilities: The prompt capabilities of the agent, read from
+  ///     `ConnectionModel.agentCapabilities` at the time of the submit, or
+  ///     `nil` when the agent advertises none.
+  func startPrompt(with input: UserInput, accepting capabilities: PromptCapabilities?) {
+    Task { @MainActor in await sendPrompt(with: input, accepting: capabilities) }
   }
 
   /// Starts a main-actor task that sends `text` as `session/prompt` with
@@ -162,99 +160,5 @@ extension SessionModel {
         appendError(reporting: error)
       }
     }
-  }
-}
-
-/// The turn verbs of a composer view (update.md §4.7 "Composer").
-///
-/// When the environment has a session model, each verb goes through it: a
-/// send calls `SessionModel.prompt(_:meta:)` at once, and a stop calls
-/// `SessionModel.cancel(meta:)`. A composer reads `agentState` only to show
-/// the Stop control. A send reads the prompt capabilities of the connection
-/// model at the time of the send. Else each verb goes through the thread
-/// actions, and the state of the thread tells whether the turn runs. No verb
-/// waits for a prompt to return before it does a different step.
-struct ComposerTurn {
-  /// The session model of the environment, or `nil`.
-  let session: SessionModel?
-
-  /// The connection model of the environment, or `nil`.
-  let connection: ConnectionModel?
-
-  /// The thread of the environment, or `nil`.
-  let thread: AgentThread?
-
-  /// The thread actions of the environment, or `nil`.
-  let actions: (any AgentThreadActions)?
-
-  /// Whether the agent runs a turn, for the Stop control.
-  ///
-  /// With a session model, the value reads `SessionModel.agentState`
-  /// directly. Else it reads the state of the thread.
-  var isRunning: Bool {
-    guard let session else { return thread?.state == .running }
-    return session.isRunning
-  }
-
-  /// Whether the session model of the environment is closed, so the
-  /// composer sends nothing (update.md §4.7 "Closed thread").
-  ///
-  /// The value reads `SessionModel.isClosed` directly. With no session
-  /// model, the value is `false`.
-  var isSessionClosed: Bool {
-    session?.isClosed == true
-  }
-
-  /// Starts a main-actor task that sends `input` at once, also while the
-  /// agent runs a turn.
-  ///
-  /// With a session model, the task calls `SessionModel.prompt(_:meta:)`
-  /// with the blocks that the prompt capabilities of the connection model
-  /// accept. Else it calls ``AgentThreadActions/send(_:)``.
-  ///
-  /// - Parameter input: The text and the attachments.
-  func startPrompt(with input: UserInput) {
-    guard let session else {
-      actions?.startSend(input)
-      return
-    }
-    let capabilities = connection?.promptCapabilities
-    Task { @MainActor in await session.sendPrompt(with: input, accepting: capabilities) }
-  }
-
-  /// Starts a main-actor task that stops the current turn.
-  func startCancel() {
-    guard let session else {
-      actions?.startCancel()
-      return
-    }
-    session.startCancel()
-  }
-}
-
-/// The ``ComposerTurn`` of the environment of a composer view.
-///
-/// The wrapper reads the session model
-/// (``SwiftUI/EnvironmentValues/sessionModel``), the connection model
-/// (``SwiftUI/EnvironmentValues/connectionModel``), the thread
-/// (``SwiftUI/EnvironmentValues/agentThread``), and the thread actions
-/// (``SwiftUI/EnvironmentValues/threadActions``), and gives the turn of these
-/// four values. Each composer view gets its turn here, so that the views make
-/// the turn in one place:
-///
-/// ```swift
-/// @EnvironmentComposerTurn private var turn
-/// ```
-@propertyWrapper
-struct EnvironmentComposerTurn: DynamicProperty {
-  @Environment(\.sessionModel) private var session
-  @Environment(\.connectionModel) private var connection
-  @Environment(\.agentThread) private var thread
-  @Environment(\.threadActions) private var actions
-
-  /// The turn of the session model, the connection model, the thread and the
-  /// thread actions of the environment.
-  var wrappedValue: ComposerTurn {
-    ComposerTurn(session: session, connection: connection, thread: thread, actions: actions)
   }
 }

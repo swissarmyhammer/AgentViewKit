@@ -226,26 +226,26 @@ private struct ActivityEntryRow: View {
         title: ReasoningView.completedTitle(duration: nil), symbolName: Self.thoughtSymbolName,
         tint: Color.secondary)
     case .toolCall(let toolCall):
-      toolCallAppearance(ToolCallSource.entry(toolCall))
+      toolCallAppearance(toolCall)
     case .terminal(let terminal):
       Appearance(
-        title: TerminalSource.entry(terminal).command ?? String(localized: "Terminal"),
+        title: terminal.command ?? String(localized: "Terminal"),
         symbolName: Self.terminalSymbolName, tint: Color.secondary)
     case .error(let error):
-      errorAppearance(ErrorView.content(for: ErrorView.Source.entry(error).kind))
+      errorAppearance(ErrorView.content(code: error.code.wireValue, message: error.message))
     }
   }
 
   /// The appearance of a tool call row.
   ///
-  /// - Parameter source: The tool call.
+  /// - Parameter toolCall: The tool call entry.
   /// - Returns: The title, the symbol of the kind and the color of the
   ///   status.
-  private func toolCallAppearance(_ source: ToolCallSource) -> Appearance {
+  private func toolCallAppearance(_ toolCall: ToolCallEntry) -> Appearance {
     Appearance(
-      title: ToolCallView.displayTitle(source.title),
-      symbolName: ToolKindSymbol.name(for: source.kind),
-      tint: theme.statusColors.color(for: source.status))
+      title: ToolCallView.displayTitle(toolCall.shownTitle),
+      symbolName: ToolKindSymbol.name(for: toolCall.shownKind),
+      tint: theme.statusColors.color(for: toolCall.shownStatus))
   }
 
   /// The appearance of an error row.

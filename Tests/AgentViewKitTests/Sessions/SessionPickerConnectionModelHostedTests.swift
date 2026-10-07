@@ -109,7 +109,7 @@ import Testing
 
     var body: some View {
       if visibility.showsThread {
-        AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+        AgentThreadView(session: session.model, connection: session.connection)
       }
     }
   }

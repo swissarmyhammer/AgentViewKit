@@ -1,4 +1,6 @@
 import EditorCommands
+import FoundationModelsACP
+import FoundationModelsACPClient
 
 /// The verbs of the kit as EditorKit commands (plan.md §4.1, §11 decision 14).
 ///
@@ -107,18 +109,20 @@ public nonisolated enum AgentCommandPayload {
     CommandPayload(values: [textKey: text])
   }
 
-  /// The payload that answers a permission request with an option.
+  /// The payload that answers a pending permission request of a session
+  /// model with an option.
   ///
   /// - Parameters:
-  ///   - request: The identifier of the request.
-  ///   - option: The identifier of the option.
+  ///   - request: The local id of the pending request. The payload holds its
+  ///     `uuidString`.
+  ///   - option: The `optionId` of the ACP option.
   ///   - comment: The comment of the user, or `nil`.
   /// - Returns: The payload.
   public static func permission(
-    request: PermissionRequestID, option: PermissionOptionID, comment: String? = nil
+    request: PendingPermissionRequest.ID, option: PermissionOptionId, comment: String? = nil
   ) -> CommandPayload {
     var values: [String: any Sendable] = [
-      requestKey: request.rawValue, optionKey: option.rawValue,
+      requestKey: request.uuidString, optionKey: option.rawValue,
     ]
     values[commentKey] = comment
     return CommandPayload(values: values)

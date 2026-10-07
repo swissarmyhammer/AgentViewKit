@@ -86,7 +86,7 @@
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
-          AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+          AgentThreadView(session: session.model, connection: session.connection)
           PromptInputHost(model: draft)
         }
         .environment(\.sessionModel, session.model)

@@ -2,7 +2,7 @@ import Foundation
 
 /// The input that the user sends to the agent (plan.md §3.4).
 ///
-/// `AgentThreadActions.send(_:)` takes this value.
+/// The composer sends this value with `SessionModel.prompt(_:meta:)`.
 public nonisolated struct UserInput: Sendable, Hashable {
   /// The text of the input.
   public var text: String

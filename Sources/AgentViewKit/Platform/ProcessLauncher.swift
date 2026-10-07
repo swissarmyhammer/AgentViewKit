@@ -3,8 +3,7 @@ import Foundation
 /// A process that a ``ProcessLauncher`` started.
 ///
 /// Terminal authentication (plan.md §12) runs the agent program with the
-/// arguments and the environment of an auth method, and shows the output in
-/// a terminal record.
+/// arguments and the environment of an auth method.
 public protocol LaunchedProcess: AnyObject {
   /// The output of the process, one chunk at a time. The stream finishes
   /// when the process closes its output.

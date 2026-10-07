@@ -106,9 +106,7 @@ import Testing
   // MARK: - Composer
 
   @Test func theDefaultComposerShowsNoToolMenu() {
-    let harness = threadViewHarness(
-      size: PromptInputViewHostedTests.composerSize, actions: NoopThreadActions()
-    ) {
+    let harness = HostedViewHarness(size: PromptInputViewHostedTests.composerSize) {
       PromptInputHost(model: PromptInputHostedTestModel())
     }
     defer { harness.close() }

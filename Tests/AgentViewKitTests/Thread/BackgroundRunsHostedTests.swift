@@ -36,7 +36,7 @@
     /// - Parameter session: The scripted session.
     /// - Returns: The harness.
     static func makeHarness(session: ScriptedSession) -> HostedViewHarness<some View> {
-      HostedViewHarness(AgentThreadView(session: session.model, actions: NoopThreadActions()), size: tallSize)
+      HostedViewHarness(AgentThreadView(session: session.model), size: tallSize)
     }
 
     /// The agent message object of an entry.

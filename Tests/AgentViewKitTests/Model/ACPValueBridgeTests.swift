@@ -3,17 +3,10 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The ACP values that the records of the old thread path give to the views,
-/// the JSON text of an ACP value, and the text of an ACP location.
+/// The ACP value of a kit JSON value, the JSON text of an ACP value, and the
+/// text of an ACP location.
 @Suite struct ACPValueBridgeTests {
-  /// The text of the plan entry of the bridge test.
-  static let entryText = "Read the file"
-
-  /// The wire string of a priority that the kit does not know.
-  static let unknownPriority = "urgent"
-
-  /// The relative path of the location of the bridge test. A record path can
-  /// be relative.
+  /// The relative path of the location of the bridge test.
   static let relativePath = "Sources/main.swift"
 
   /// The line of the location of the bridge test.
@@ -37,25 +30,6 @@ import Testing
   @Test func aNumberThatIsNotFiniteGivesTheACPNull() {
     #expect(AgentViewKit.JSONValue.number(.infinity).acpValue == .null)
     #expect(AgentViewKit.JSONValue.array([.number(.nan)]).acpValue == .array([.null]))
-  }
-
-  @Test func aKitPlanEntryGivesTheACPEntryWithTheSameValues() {
-    let kit = AgentViewKit.PlanEntry(
-      content: Self.entryText, priority: .unknown(Self.unknownPriority), status: .inProgress)
-
-    #expect(
-      kit.acpEntry
-        == FoundationModelsACP.PlanEntry(
-          content: Self.entryText, priority: .unknown(Self.unknownPriority), status: .inProgress))
-  }
-
-  @Test func aKitLocationGivesTheACPLocationWithTheSamePathAndLine() {
-    let kit = AgentViewKit.ToolCallLocation(path: Self.relativePath, line: Self.locationLine)
-
-    #expect(
-      kit.acpLocation
-        == FoundationModelsACP.ToolCallLocation(
-          path: AbsolutePath(rawValue: Self.relativePath), line: Self.locationLine))
   }
 
   @Test func theACPJSONTextSortsTheKeysAndIndents() {

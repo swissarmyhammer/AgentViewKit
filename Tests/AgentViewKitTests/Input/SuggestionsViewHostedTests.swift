@@ -19,13 +19,12 @@ import Testing
   static func mount(
     _ model: PromptInputHostedTestModel,
     suggestions: [String] = Self.suggestions,
-    thread: AgentThread? = nil
+    session: ScriptedSession? = nil
   ) -> HostedViewHarness<some View> {
-    let harness = threadViewHarness(
-      size: PromptInputViewHostedTests.composerSize, actions: NoopThreadActions(), thread: thread
-    ) {
+    let harness = HostedViewHarness(size: PromptInputViewHostedTests.composerSize) {
       PromptInputHost(model: model)
         .promptSuggestions(suggestions)
+        .environment(\.sessionModel, session?.model)
     }
     harness.pump()
     return harness
@@ -59,17 +58,20 @@ import Testing
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
   }
 
-  @Test func whileTheThreadRunsTheSuggestionsAreHidden() {
-    let thread = AgentThread()
-    thread.apply(.setState(.running))
-    let harness = Self.mount(PromptInputHostedTestModel(), thread: thread)
+  @Test func whileTheAgentRunsTheSuggestionsAreHidden() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mount(PromptInputHostedTestModel(), session: session)
     defer { harness.close() }
+    let chip = SuggestionsView.chipIdentifier(at: 0)
 
-    #expect(harness.element(identifier: SuggestionsView.chipIdentifier(at: 0)) == nil)
-    thread.apply(.setState(.idle(nil)))
-    harness.pump()
+    try await session.sendUpdate(ScriptedSession.runningState)
+    await harness.pump(until: PromptInputViewHostedTests.waitTimeout) { harness.element(identifier: chip) == nil }
+    #expect(harness.element(identifier: chip) == nil)
 
-    #expect(harness.element(identifier: SuggestionsView.chipIdentifier(at: 0)) != nil)
+    try await session.sendUpdate(ScriptedSession.idleState)
+    await harness.pump(until: PromptInputViewHostedTests.waitTimeout) { harness.element(identifier: chip) != nil }
+    #expect(harness.element(identifier: chip) != nil)
   }
 
   @Test func aViewOutsideAComposerShowsNoChip() {

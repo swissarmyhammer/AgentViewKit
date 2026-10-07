@@ -53,24 +53,14 @@ private struct OpenURLButton: View {
 
   // MARK: - Helpers
 
-  /// Makes a message with one text block of the text.
+  /// Makes a response of ``text`` with the citations of the payload, and the
+  /// footer of the payload below it, in one citation scope.
   ///
-  /// - Parameter id: The identifier of the message.
-  /// - Returns: The message.
-  static func message(id: String) -> Message {
-    Message(id: id, blocks: [ContentBlock(text: text)])
-  }
-
-  /// Makes a response with the citations of the payload, and the footer of
-  /// the payload below it, in one citation scope.
-  ///
-  /// - Parameters:
-  ///   - message: The message of the response.
-  ///   - streaming: The stream of the message, or `nil`.
+  /// - Parameter id: The id of the response view.
   /// - Returns: The view.
-  static func citedResponse(message: Message, streaming: StreamingMessage? = nil) -> some View {
+  static func citedResponse(id: String) -> some View {
     VStack {
-      ResponseView(message: message, streaming: streaming, citations: payload)
+      ResponseView(id: id, markdown: text, citations: payload)
       SourcesView(payload: payload)
     }
     .citationScope()
@@ -133,7 +123,7 @@ private struct OpenURLButton: View {
 
   @Test func eachCitedParagraphShowsItsPill() async {
     let harness = HostedViewHarness(
-      Self.citedResponse(message: Self.message(id: "cited-pills")), size: Self.hostSize)
+      Self.citedResponse(id: "cited-pills"), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -145,7 +135,7 @@ private struct OpenURLButton: View {
 
   @Test func aResponseWithNoCitationsShowsNoPill() async {
     let harness = HostedViewHarness(
-      ResponseView(message: Self.message(id: "uncited"), streaming: nil), size: Self.hostSize)
+      ResponseView(id: "uncited", markdown: Self.text), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: ResponseView.paragraphIdentifier(index: 1)) != nil
@@ -157,7 +147,7 @@ private struct OpenURLButton: View {
 
   @Test func aTapOnPillTwoHighlightsRowTwo() async throws {
     let harness = HostedViewHarness(
-      Self.citedResponse(message: Self.message(id: "cited-tap")), size: Self.hostSize)
+      Self.citedResponse(id: "cited-tap"), size: Self.hostSize)
     defer { harness.close() }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
@@ -169,23 +159,6 @@ private struct OpenURLButton: View {
 
     #expect(Self.isHighlighted(harness, index: 2))
     #expect(!Self.isHighlighted(harness, index: 1))
-  }
-
-  @Test func aStreamingMessageShowsThePillsOfItsSettledParagraphs() async throws {
-    let message = Self.message(id: "cited-stream")
-    let thread = AgentThread()
-    thread.apply(.insert(.assistantMessage(message), after: nil))
-    thread.apply(.appendStreaming(id: message.id, text: Self.text + "\n\nMore"))
-    let streaming = try #require(thread.streaming[message.id])
-    let harness = HostedViewHarness(
-      Self.citedResponse(message: message, streaming: streaming), size: Self.hostSize)
-    defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
-    }
-
-    #expect(harness.element(identifier: InlineCitation.identifier(index: 1)) != nil)
-    #expect(harness.element(identifier: InlineCitation.identifier(index: 2)) != nil)
   }
 
   @Test func aStandaloneInlineCitationHighlightsItsRow() async throws {

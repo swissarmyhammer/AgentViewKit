@@ -59,8 +59,7 @@ public enum ThreadAccessibility {
 
   /// The progress of one tool call, for the tool result announcement.
   public struct ToolCallProgress: Equatable, Sendable {
-    /// The text identity of the call: the record id, or the row key of the
-    /// transcript entry.
+    /// The text identity of the call: the row key of the transcript entry.
     public let id: String
     /// The title of the call.
     public let title: String
@@ -78,13 +77,6 @@ public enum ThreadAccessibility {
       self.title = title
       self.status = status
     }
-
-    /// Makes the progress of the call that `source` shows.
-    ///
-    /// - Parameter source: A tool call record or a tool call entry.
-    init(source: ToolCallSource) {
-      self.init(id: source.id, title: source.title, status: source.status)
-    }
   }
 
   /// The progress of each `ToolCallEntry` of `transcript`, in transcript
@@ -98,7 +90,9 @@ public enum ThreadAccessibility {
   /// - Returns: One value for each tool call entry, with the row key of the
   ///   entry as its identity.
   public static func toolCallProgress(in transcript: [TranscriptEntry]) -> [ToolCallProgress] {
-    transcript.compactMap(\.toolCall).map { ToolCallProgress(source: .entry($0)) }
+    transcript.compactMap(\.toolCall).map {
+      ToolCallProgress(id: $0.id.rowKey, title: $0.shownTitle, status: $0.shownStatus)
+    }
   }
 
   /// Tells if a call with `status` has its result.
@@ -109,7 +103,7 @@ public enum ThreadAccessibility {
   static func hasResult(_ status: FoundationModelsACP.ToolCallStatus) -> Bool {
     switch status {
     case .completed, .failed, .cancelled: true
-    case .unknown(let wireValue): wireValue == AgentViewKit.ToolCallStatus.lost.wireValue
+    case .unknown(let wireValue): wireValue == ToolStatusSymbol.lostWireValue
     case .pending, .inProgress: false
     }
   }

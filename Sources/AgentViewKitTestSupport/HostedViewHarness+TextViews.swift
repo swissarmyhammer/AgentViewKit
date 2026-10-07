@@ -1,33 +1,5 @@
-import AgentViewKit
 import AppKit
 import SwiftUI
-
-/// Mounts a thread view with the environment of a hosted test.
-///
-/// The harness gives `actions` to ``SwiftUI/EnvironmentValues/threadActions``
-/// and `thread` to ``SwiftUI/EnvironmentValues/agentThread``, and turns the
-/// animations off, so that a view that animates in shows at once.
-///
-/// - Parameters:
-///   - size: The size of the content.
-///   - actions: The actions that the view calls.
-///   - thread: The thread of the environment, or `nil`.
-///   - content: The builder of the view to mount.
-/// - Returns: The harness.
-public func threadViewHarness<Content: View>(
-  size: CGSize = HostedViewHarness<Content>.defaultSize,
-  actions: any AgentThreadActions,
-  thread: AgentThread? = nil,
-  @ViewBuilder content: () -> Content
-) -> HostedViewHarness<some View> {
-  HostedViewHarness(
-    content()
-      .threadActions(actions)
-      .environment(\.agentThread, thread)
-      .transaction { $0.disablesAnimations = true },
-    size: size
-  )
-}
 
 extension HostedViewHarness {
   /// The first editable text field or text view of `type` under the hosting

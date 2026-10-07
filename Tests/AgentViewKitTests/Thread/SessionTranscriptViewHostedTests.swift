@@ -118,7 +118,7 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: tallSize)
+        AgentThreadView(session: session.model), size: tallSize)
       defer { harness.close() }
       let model = session.model
       for position in 0..<chunkMessageCount {
@@ -151,7 +151,7 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
+        AgentThreadView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
 
       try await session.sendUpdate(Self.chunk("user_message_chunk", messageID: "order-u", text: "Question."))
@@ -171,7 +171,7 @@
       let session = try await ScriptedSession.open { $0.promptEchoOrder = .afterResult }
       defer { session.close() }
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
+        AgentThreadView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
       let model = session.model
 
@@ -193,7 +193,7 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
+        AgentThreadView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
 
       try await session.sendUpdate(
@@ -209,7 +209,7 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
+        AgentThreadView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
       let model = session.model
 
@@ -243,7 +243,7 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
+        AgentThreadView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
       let model = session.model
 
@@ -257,7 +257,6 @@
         let text = try #require(Self.entryText(of: model, at: 0))
         await harness.pump(until: Self.waitTimeout) { Self.showsParagraphs(of: text, in: harness) }
         #expect(Self.showsParagraphs(of: text, in: harness), "\(text)")
-        #expect(harness.element(identifier: ResponseView.tailIdentifier) == nil)
       }
       #expect(ComposerSessionModelHostedTests.isRunning(model))
 
@@ -266,7 +265,6 @@
       harness.pump()
 
       #expect(Self.showsParagraphs(of: Self.streamedChunks.joined(), in: harness))
-      #expect(harness.element(identifier: ResponseView.tailIdentifier) == nil)
     }
 
     @Test func aChunkEvaluatesOnlyTheRowOfItsEntry() async throws {
@@ -317,7 +315,7 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(size: Self.tallSize) {
-        AgentThreadView(session: session.model, actions: NoopThreadActions())
+        AgentThreadView(session: session.model)
           .toolCallView { call in
             Text(ToolCallView.accessibilityLabel(title: call.title ?? "", status: call.status ?? .pending))
               .accessibilityIdentifier(Self.customToolCallIdentifier)
@@ -352,7 +350,7 @@
         if case .toolCall(let call) = entry { call.status == .failed } else { false }
       }
       let harness = HostedViewHarness(size: Self.tallSize) {
-        AgentThreadView(session: session.model, actions: NoopThreadActions())
+        AgentThreadView(session: session.model)
           .environment(\.expandedBlocksStore, store)
           .transaction { $0.disablesAnimations = true }
       }

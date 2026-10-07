@@ -1,256 +1,210 @@
-import AgentViewKit
-import AgentViewKitTestSupport
-import AppKit
-import EditorSwiftUI
-import Foundation
-import SwiftUI
-import Testing
+#if DEBUG
+  import AgentViewKit
+  import AgentViewKitTestSupport
+  import EditorSwiftUI
+  import Foundation
+  import FoundationModelsACPClient
+  import SwiftUI
+  import Testing
 
-@Suite(.serialized, .hostedSerially) @MainActor struct TerminalViewHostedTests {
-  /// The command in the header.
-  static let command = "npm test"
-  /// The working directory in the header.
-  static let cwd = "/Users/dev/project"
-  /// The identifier of the terminal record.
-  static let terminalID = TerminalID("t1")
-  /// The exit code of a command that failed.
-  nonisolated static let failureExitCode = 2
-  /// The exit code of a command that completed.
-  nonisolated static let successExitCode = 0
-  /// The signal that stopped a command.
-  nonisolated static let signal = "SIGTERM"
-  /// The row limit of the capped view in the tests.
-  static let rowLimit = 3
-  /// The number of lines in the long output.
-  static let longLineCount = 10
-  /// The longest time that a test waits for a view update, in seconds.
-  static let timeout: TimeInterval = 5
-  /// The line that the stdin test types.
-  static let inputLine = "yes"
+  /// Hosted tests of one ``TerminalView`` over a `TerminalEntry` of a scripted
+  /// session. `SessionEntryRowsHostedTests` tests the terminal rows of the
+  /// thread.
+  @Suite(.serialized, .hostedSerially) @MainActor struct TerminalViewHostedTests {
+    /// The command in the header.
+    static let command = "npm test"
+    /// The working directory in the header.
+    static let cwd = "/Users/dev/project"
+    /// The exit code of a command that failed.
+    nonisolated static let failureExitCode = 2
+    /// The exit code of a command that completed.
+    nonisolated static let successExitCode = 0
+    /// The signal that stopped a command.
+    nonisolated static let signal = "SIGTERM"
+    /// The row limit of the capped view in the tests.
+    static let rowLimit = 3
+    /// The number of lines in the long output.
+    static let longLineCount = 10
+    /// The longest time that a test waits for a view update, in seconds.
+    static let timeout: TimeInterval = 5
+    /// The `command` and `cwd` members of a `terminal_update`.
+    static let headerFields = #""command": "\#(command)", "cwd": "\#(cwd)""#
 
-  /// Makes a terminal record.
-  ///
-  /// - Parameters:
-  ///   - output: The output text.
-  ///   - exitStatus: The exit status, or `nil` while the command runs.
-  ///   - command: The command.
-  ///   - cwd: The working directory.
-  /// - Returns: The record.
-  static func record(
-    output: String = "",
-    exitStatus: TerminalRecord.ExitStatus? = nil,
-    command: String? = command,
-    cwd: String? = cwd
-  ) -> TerminalRecord {
-    TerminalRecord(
-      id: terminalID, command: command, cwd: cwd, exitStatus: exitStatus,
-      output: Data(output.utf8))
-  }
-
-  // MARK: - Header
-
-  @Test func theHeaderShowsTheCommandAndTheWorkingDirectory() {
-    let harness = HostedViewHarness(TerminalView(record: Self.record(output: "ok")))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal, \(Self.command)")
-    #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == Self.command)
-    #expect(
-      harness.element(identifier: TerminalView.cwdIdentifier)?.label
-        == "Working directory \(Self.cwd)")
-  }
-
-  @Test func aRecordWithNoCommandShowsAPlaceholderAndNoWorkingDirectory() {
-    let harness = HostedViewHarness(
-      TerminalView(record: Self.record(output: "ok", command: nil, cwd: nil)))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal")
-    #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == "Terminal")
-    #expect(harness.element(identifier: TerminalView.cwdIdentifier) == nil)
-  }
-
-  // MARK: - Output
-
-  @Test func theEditorShowsTheOutputWithNoEscapeSequences() {
-    let model = EditorModel("")
-    let record = Self.record(output: "\u{1B}[31mred\u{1B}[0m\n\u{1B}[2Kdone")
-    let harness = HostedViewHarness(TerminalView(record: record, model: model))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(model.text == "red\ndone")
-    #expect(model.isReadOnly)
-  }
-
-  @Test func aNewChunkUpdatesTheEditor() async {
-    let model = EditorModel("")
-    let record = Self.record(output: "one\n")
-    let harness = HostedViewHarness(TerminalView(record: record, model: model))
-    defer { harness.close() }
-    harness.pump()
-
-    record.appendOutput(Data("two\n".utf8))
-    await harness.pump(until: Self.timeout) { model.text == "one\ntwo\n" }
-
-    #expect(model.text == "one\ntwo\n")
-  }
-
-  @Test func invalidUTF8OutputShowsReplacementCharacters() {
-    let model = EditorModel("")
-    var output = Data("a".utf8)
-    output.append(contentsOf: [0xC3, 0x28])
-    let record = TerminalRecord(id: Self.terminalID, output: output)
-    let harness = HostedViewHarness(TerminalView(record: record, model: model))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(model.text == "a\u{FFFD}(")
-  }
-
-  @Test func longOutputShowsTheCapAndShowAllExpandsIt() throws {
-    let model = EditorModel("")
-    let lines = (1...Self.longLineCount).map { "line \($0)" }
-    let record = Self.record(output: lines.joined(separator: "\n"))
-    let harness = HostedViewHarness(
-      TerminalView(record: record, rowLimit: Self.rowLimit, model: model))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(
-      harness.element(identifier: TerminalView.capIdentifier)?.label
-        == "Showing the last \(Self.rowLimit) of \(Self.longLineCount) lines")
-    #expect(model.text == lines.suffix(Self.rowLimit).joined(separator: "\n"))
-
-    try harness.press(identifier: TerminalView.showAllIdentifier)
-    harness.pump()
-
-    #expect(model.text == lines.joined(separator: "\n"))
-    #expect(harness.element(identifier: TerminalView.capIdentifier) == nil)
-  }
-
-  // MARK: - Footer
-
-  @Test func aRunningTerminalShowsProgressAndNoExitStatus() {
-    let harness = HostedViewHarness(TerminalView(record: Self.record()))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.progressIdentifier) != nil)
-    #expect(harness.element(identifier: TerminalView.footerIdentifier) == nil)
-  }
-
-  @Test func anExitReplacesTheProgressWithTheExitCode() async {
-    let record = Self.record()
-    let harness = HostedViewHarness(TerminalView(record: record))
-    defer { harness.close() }
-    harness.pump()
-
-    record.exitStatus = TerminalRecord.ExitStatus(code: Self.failureExitCode)
-    record.bump()
-    await harness.pump(until: Self.timeout) {
-      harness.element(identifier: TerminalView.footerIdentifier) != nil
+    /// The `output` member of a `terminal_update`.
+    ///
+    /// - Parameter data: The bytes of the output.
+    /// - Returns: The JSON member.
+    static func outputField(_ data: Data) -> String {
+      #""output": {"data": "\#(data.base64EncodedString())"}"#
     }
 
-    let footer = harness.element(identifier: TerminalView.footerIdentifier)
-    #expect(footer?.label == "Exit code \(Self.failureExitCode)")
-    #expect(footer?.value == CommandOutputView.ExitOutcome.failure.label)
-    #expect(harness.element(identifier: TerminalView.progressIdentifier) == nil)
+    /// The `output` member of a `terminal_update` with UTF-8 text.
+    ///
+    /// - Parameter text: The output text.
+    /// - Returns: The JSON member.
+    static func outputField(_ text: String) -> String {
+      outputField(Data(text.utf8))
+    }
+
+    /// The first terminal entry of a session model.
+    ///
+    /// - Parameter model: The session model.
+    /// - Returns: The entry, or `nil` while the model has no terminal entry.
+    static func firstTerminal(in model: SessionModel) -> TerminalEntry? {
+      model.transcript.lazy.compactMap { entry -> TerminalEntry? in
+        if case .terminal(let terminal) = entry { terminal } else { nil }
+      }.first
+    }
+
+    /// Opens a scripted session and sends one `terminal_update`.
+    ///
+    /// - Parameter fields: The other members of the update, as JSON members.
+    /// - Returns: The session and the terminal entry.
+    /// - Throws: The error of the transport, or a missing entry.
+    static func openTerminal(_ fields: String) async throws -> (ScriptedSession, TerminalEntry) {
+      let session = try await ScriptedSession.open()
+      try await session.sendUpdate(SessionEntryRowsHostedTests.terminalUpdate(fields))
+      _ = await waitUntil { firstTerminal(in: session.model) != nil }
+      return (session, try #require(firstTerminal(in: session.model)))
+    }
+
+    // MARK: - Header
+
+    @Test func theHeaderShowsTheCommandAndTheWorkingDirectory() async throws {
+      let (session, terminal) = try await Self.openTerminal(Self.headerFields)
+      defer { session.close() }
+      let harness = HostedViewHarness(TerminalView(entry: terminal))
+      defer { harness.close() }
+      harness.pump()
+
+      #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal, \(Self.command)")
+      #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == Self.command)
+      #expect(
+        harness.element(identifier: TerminalView.cwdIdentifier)?.label
+          == "Working directory \(Self.cwd)")
+    }
+
+    @Test func aTerminalWithNoCommandShowsAPlaceholderAndNoWorkingDirectory() async throws {
+      let (session, terminal) = try await Self.openTerminal(Self.outputField("ok"))
+      defer { session.close() }
+      let harness = HostedViewHarness(TerminalView(entry: terminal))
+      defer { harness.close() }
+      harness.pump()
+
+      #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal")
+      #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == "Terminal")
+      #expect(harness.element(identifier: TerminalView.cwdIdentifier) == nil)
+    }
+
+    // MARK: - Output
+
+    @Test func theEditorShowsTheOutputWithNoEscapeSequences() async throws {
+      let (session, terminal) = try await Self.openTerminal(
+        Self.outputField("\u{1B}[31mred\u{1B}[0m\n\u{1B}[2Kdone"))
+      defer { session.close() }
+      let model = EditorModel("")
+      let harness = HostedViewHarness(TerminalView(entry: terminal, model: model))
+      defer { harness.close() }
+      harness.pump()
+
+      #expect(model.text == "red\ndone")
+      #expect(model.isReadOnly)
+    }
+
+    @Test func invalidUTF8OutputShowsReplacementCharacters() async throws {
+      let (session, terminal) = try await Self.openTerminal(Self.outputField(Data([0x61, 0xC3, 0x28])))
+      defer { session.close() }
+      let model = EditorModel("")
+      let harness = HostedViewHarness(TerminalView(entry: terminal, model: model))
+      defer { harness.close() }
+      harness.pump()
+
+      #expect(model.text == "a\u{FFFD}(")
+    }
+
+    @Test func longOutputShowsTheCapAndShowAllExpandsIt() async throws {
+      let lines = (1...Self.longLineCount).map { "line \($0)" }
+      let (session, terminal) = try await Self.openTerminal(Self.outputField(lines.joined(separator: "\n")))
+      defer { session.close() }
+      let model = EditorModel("")
+      let harness = HostedViewHarness(TerminalView(entry: terminal, rowLimit: Self.rowLimit, model: model))
+      defer { harness.close() }
+      harness.pump()
+
+      #expect(
+        harness.element(identifier: TerminalView.capIdentifier)?.label
+          == "Showing the last \(Self.rowLimit) of \(Self.longLineCount) lines")
+      #expect(model.text == lines.suffix(Self.rowLimit).joined(separator: "\n"))
+
+      try harness.press(identifier: TerminalView.showAllIdentifier)
+      harness.pump()
+
+      #expect(model.text == lines.joined(separator: "\n"))
+      #expect(harness.element(identifier: TerminalView.capIdentifier) == nil)
+    }
+
+    // MARK: - Footer
+
+    @Test func anExitReplacesTheProgressWithTheExitCode() async throws {
+      let (session, terminal) = try await Self.openTerminal(Self.headerFields)
+      defer { session.close() }
+      let harness = HostedViewHarness(TerminalView(entry: terminal))
+      defer { harness.close() }
+      harness.pump()
+      #expect(harness.element(identifier: TerminalView.progressIdentifier) != nil)
+      #expect(harness.element(identifier: TerminalView.footerIdentifier) == nil)
+
+      try await session.sendUpdate(
+        SessionEntryRowsHostedTests.terminalUpdate(#""exitStatus": {"exitCode": \#(Self.failureExitCode)}"#))
+      await harness.pump(until: Self.timeout) {
+        harness.element(identifier: TerminalView.footerIdentifier) != nil
+      }
+
+      let footer = harness.element(identifier: TerminalView.footerIdentifier)
+      #expect(footer?.label == "Exit code \(Self.failureExitCode)")
+      #expect(footer?.value == CommandOutputView.ExitOutcome.failure.label)
+      #expect(harness.element(identifier: TerminalView.progressIdentifier) == nil)
+    }
+
+    @Test func theFooterShowsTheSignal() async throws {
+      let (session, terminal) = try await Self.openTerminal(#""exitStatus": {"signal": "\#(Self.signal)"}"#)
+      defer { session.close() }
+      let harness = HostedViewHarness(TerminalView(entry: terminal))
+      defer { harness.close() }
+      harness.pump()
+
+      let footer = harness.element(identifier: TerminalView.footerIdentifier)
+      #expect(footer?.label == "Stopped by \(Self.signal)")
+      #expect(footer?.value == CommandOutputView.ExitOutcome.failure.label)
+    }
+
+    @Test func anExitWithNoCodeAndNoSignalShowsExited() async throws {
+      let (session, terminal) = try await Self.openTerminal(#""exitStatus": {}"#)
+      defer { session.close() }
+      let harness = HostedViewHarness(TerminalView(entry: terminal))
+      defer { harness.close() }
+      harness.pump()
+
+      #expect(harness.element(identifier: TerminalView.footerIdentifier)?.label == "Exited")
+      #expect(harness.element(identifier: TerminalView.progressIdentifier) == nil)
+    }
+
+    @Test(arguments: [
+      (successExitCode as Int?, nil as String?, TerminalView.ExitSummary.code(successExitCode)),
+      (failureExitCode, nil, .code(failureExitCode)),
+      (failureExitCode, signal, .signal(signal)),
+      (nil, nil, .unknown),
+    ])
+    func eachExitStatusHasItsSummary(code: Int?, signal: String?, expected: TerminalView.ExitSummary) {
+      #expect(TerminalView.ExitSummary(code: code, signal: signal) == expected)
+    }
+
+    @Test func theSummariesHaveTheirOutcomesAndLabels() {
+      #expect(TerminalView.ExitSummary.code(Self.successExitCode).outcome == .success)
+      #expect(TerminalView.ExitSummary.code(Self.failureExitCode).outcome == .failure)
+      #expect(TerminalView.ExitSummary.signal(Self.signal).outcome == .failure)
+      #expect(TerminalView.ExitSummary.unknown.outcome == nil)
+      #expect(TerminalView.ExitSummary.unknown.label == "Exited")
+    }
   }
-
-  @Test func theFooterShowsASuccessCode() {
-    let record = Self.record(exitStatus: TerminalRecord.ExitStatus(code: Self.successExitCode))
-    let harness = HostedViewHarness(TerminalView(record: record))
-    defer { harness.close() }
-    harness.pump()
-
-    let footer = harness.element(identifier: TerminalView.footerIdentifier)
-    #expect(footer?.label == "Exit code \(Self.successExitCode)")
-    #expect(footer?.value == CommandOutputView.ExitOutcome.success.label)
-  }
-
-  @Test func theFooterShowsTheSignal() {
-    let record = Self.record(exitStatus: TerminalRecord.ExitStatus(signal: Self.signal))
-    let harness = HostedViewHarness(TerminalView(record: record))
-    defer { harness.close() }
-    harness.pump()
-
-    let footer = harness.element(identifier: TerminalView.footerIdentifier)
-    #expect(footer?.label == "Stopped by \(Self.signal)")
-    #expect(footer?.value == CommandOutputView.ExitOutcome.failure.label)
-  }
-
-  @Test(arguments: [
-    (
-      TerminalRecord.ExitStatus(code: successExitCode),
-      TerminalView.ExitSummary.code(successExitCode)
-    ),
-    (TerminalRecord.ExitStatus(code: failureExitCode), .code(failureExitCode)),
-    (TerminalRecord.ExitStatus(code: failureExitCode, signal: signal), .signal(signal)),
-    (TerminalRecord.ExitStatus(), .unknown),
-  ])
-  func eachExitStatusHasItsSummary(
-    status: TerminalRecord.ExitStatus, expected: TerminalView.ExitSummary
-  ) {
-    #expect(TerminalView.ExitSummary(status) == expected)
-  }
-
-  @Test func theSummariesHaveTheirOutcomesAndLabels() {
-    #expect(TerminalView.ExitSummary.code(Self.successExitCode).outcome == .success)
-    #expect(TerminalView.ExitSummary.code(Self.failureExitCode).outcome == .failure)
-    #expect(TerminalView.ExitSummary.signal(Self.signal).outcome == .failure)
-    #expect(TerminalView.ExitSummary.unknown.outcome == nil)
-    #expect(TerminalView.ExitSummary.unknown.label == "Exited")
-  }
-
-  @Test func anExitWithNoCodeAndNoSignalShowsExited() {
-    let record = Self.record(exitStatus: TerminalRecord.ExitStatus())
-    let harness = HostedViewHarness(TerminalView(record: record))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.footerIdentifier)?.label == "Exited")
-    #expect(harness.element(identifier: TerminalView.progressIdentifier) == nil)
-  }
-
-  // MARK: - Input
-
-  @Test func noStdinShowsNoInputField() {
-    let harness = HostedViewHarness(TerminalView(record: Self.record()))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.inputIdentifier) == nil)
-  }
-
-  @Test func typingAndReturnSendTheLineToStdin() async throws {
-    var lines: [String] = []
-    let harness = HostedViewHarness(
-      TerminalView(record: Self.record(), stdin: { lines.append($0) }))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.inputIdentifier) != nil)
-    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
-
-    harness.type(Self.inputLine)
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.timeout) { !lines.isEmpty }
-
-    #expect(lines == [Self.inputLine])
-    // An empty field can have no accessibility value.
-    let input = try #require(harness.element(identifier: TerminalView.inputIdentifier))
-    #expect((input.value ?? "").isEmpty)
-  }
-
-  @Test func theInputFieldIsDisabledAfterTheExit() {
-    let record = Self.record(exitStatus: TerminalRecord.ExitStatus(code: Self.successExitCode))
-    let harness = HostedViewHarness(TerminalView(record: record, stdin: { _ in }))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: TerminalView.inputIdentifier)?.isEnabled == false)
-  }
-}
+#endif

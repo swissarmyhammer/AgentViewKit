@@ -87,7 +87,7 @@ import Testing
   /// - Returns: The harness.
   static func mountThread(_ session: ScriptedSession) -> HostedViewHarness<some View> {
     HostedViewHarness(size: size) {
-      AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+      AgentThreadView(session: session.model, connection: session.connection)
         .transaction { $0.disablesAnimations = true }
     }
   }
@@ -97,8 +97,9 @@ import Testing
   /// - Parameter connection: The connection model.
   /// - Returns: The harness.
   static func mountAuth(_ connection: ConnectionModel) -> HostedViewHarness<some View> {
-    threadViewHarness(size: size, actions: NoopThreadActions()) {
+    HostedViewHarness(size: size) {
       AgentAuthView(connection: connection)
+        .transaction { $0.disablesAnimations = true }
     }
   }
 

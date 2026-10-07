@@ -35,42 +35,24 @@ silicon, 32 cores, Darwin 27, Swift 6.4, release build).
 
 ## The scenarios
 
-| Scenario | What it measures |
-| --- | --- |
-| Streaming chunk, paragraph split on | One chunk of a 2,000-line message through `ResponseView`: the append, the coalescer flush, the split, and one render of the hosted view |
-| Streaming chunk, paragraph split off | The same chunk through one Textual `StructuredText` of the full message |
+The package has no scenario now. The streaming scenarios of research R1
+measured `StreamingMessage` and `StreamingCoalescer` of the old kit session
+model. That model is removed (`Docs/decisions/acp-client-kit.md`): each view
+of the kit reads the `TranscriptEntry` objects of `SessionModel`, and the
+model coalesces the chunks (`SessionModel.defaultCoalescingCadence`). The
+scenarios and their baselines went with the model. A later task adds an
+observation benchmark of the transcript view over `SessionModel` and records
+its baselines. Until then, `Scripts/check-benchmarks.sh` has no scenario to
+check.
 
-The package has no observation benchmark now. The observation benchmarks of
-research R4 measured a FoundationModels stream through `SessionThreadSource`.
-The kit is an ACP client kit, so these benchmarks and their baselines went
-with the FoundationModels adapter (update.md §7 item 2). A later task adds an
-observation benchmark for the transcript view over `SessionModel`.
+`BenchmarkHost.swift` and `BenchmarkPolicy.swift` stay for that benchmark.
 
-### The streaming corpus
+The package has no observation benchmark of FoundationModels. The observation
+benchmarks of research R4 measured a FoundationModels stream through
+`SessionThreadSource`. The kit is an ACP client kit, so these benchmarks and
+their baselines went with the FoundationModels adapter (update.md §7 item 2).
 
-`StreamingCorpus.swift` makes a message of 2,000 lines: 100 sections of 20
-lines, each with a heading, two prose paragraphs with inline Markdown, a list,
-and a fenced Swift block. A model that streams at 50 tokens per second gives
-2 tokens (8 characters) in one coalescer interval (33 ms). One benchmark chunk
-is the text of one interval.
-
-One iteration is one chunk. Before each measured chunk, the workbench streams
-the chunks between two samples and renders them, outside the measurement.
-Thus the percentiles hold chunks from the start, the middle, and the end of
-the message, at the same places on each run.
-
-### The count metrics
-
-| Metric | What it counts |
-| --- | --- |
-| Body evaluations per chunk | The body evaluations of probe views that read the same observed values as the views of the kit: `settledParagraphs` and `tail` with the split, `text` with no split |
-| Paragraphs parsed per chunk | The paragraphs that Textual parses for the chunk: the new settled paragraphs and the tail with the split, each paragraph with no split |
-
-`BodyEvaluationCounter` exists only in debug builds, and the benchmarks build
-in release mode. Thus the benchmarks count probe views.
-`Tests/AgentViewKitTests/Streaming/ParagraphReuseTests.swift` counts each
-`ParagraphView` in a debug build, and proves that a settled paragraph does not
-evaluate again.
+### The boundary
 
 A package can use only the products of another package. To compile a file of
 a test target or of the test support target, put a symbolic link to the file
@@ -87,17 +69,18 @@ source imports FoundationModels or `AgentViewKitFoundationModels`, or when
 Each scenario checks its own gates, and stops with an error when a gate
 fails. `Scripts/check-benchmarks.sh` fails on such an error.
 
-| Scenario | Gate |
-| --- | --- |
-| Streaming chunk, paragraph split on | The p90 cost of one chunk is less than **4 ms** |
-| Streaming chunk, paragraph split on | A chunk that settles no paragraph does not evaluate the settled paragraph list |
-| Both streaming scenarios | Each chunk that changes the text evaluates the view of the text (the render did the update) |
-
 ## R1: Textual streaming cost
+
+This section is a record. The R1 scenarios and their baselines are removed
+(see "The scenarios"), so the gate does not read these numbers. The
+streaming tail, the lazy stack and `lazyResponseParagraphs` went with the old
+session model. A `ResponseView` now shows the full text of an entry as
+paragraphs, and each paragraph that does not change does not evaluate again
+(`ParagraphReuseTests`).
 
 ### The numbers
 
-The baseline run (`Baselines/`):
+The last baseline run:
 
 | Scenario | p90 wall clock | p90 paragraphs parsed per chunk | p90 body evaluations per chunk |
 | --- | --- | --- | --- |

@@ -65,37 +65,4 @@ import Testing
   @Test func theListValueTellsTheShownAndTotalCounts() {
     #expect(ConversationLayout.listValue(shown: 200, count: 300) == "200 of 300 items")
   }
-
-  // MARK: - Related error
-
-  /// Makes items with one error of each kind in `kinds`, in order. The id of
-  /// each error is `error-` and its position.
-  static func errorItems(_ kinds: [ThreadError.Kind]) -> [ThreadItem] {
-    kinds.enumerated().map { position, kind in
-      .error(ThreadError(id: "error-\(position)", kind: kind))
-    }
-  }
-
-  @Test func aRefusalFindsTheNewestRefusalError() {
-    let items = Self.errorItems([
-      .refusal(explanation: nil), .refusal(explanation: "No."), .unknown(message: "The disk is full."),
-    ])
-
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.refusal)) == "error-1")
-  }
-
-  @Test func aStateWithNoRelatedKindFindsNoError() {
-    let items = Self.errorItems([.refusal(explanation: nil), .unknown(message: "The disk is full.")])
-
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.maxTokens)) == nil)
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.maxTurnRequests)) == nil)
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .requiresAction) == nil)
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .running) == nil)
-  }
-
-  @Test func noMatchingErrorFindsNothing() {
-    let items = Self.errorItems([.unknown(message: "The disk is full.")])
-
-    #expect(ConversationLayout.relatedErrorID(in: items, state: .idle(.refusal)) == nil)
-  }
 }

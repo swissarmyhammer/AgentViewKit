@@ -64,6 +64,17 @@ struct AttachmentComposerHost: View {
   /// The attachments of the render tests.
   private static let twoAttachments = [Attachment(url: sourceURL), Attachment(url: pdfURL)]
 
+  /// The URIs of the resource link blocks of the first `session/prompt`
+  /// frame.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The URIs, in block order.
+  static func linkedFiles(of session: ScriptedSession) -> [String] {
+    (session.promptBlocks.first ?? [])
+      .filter { $0["type"]?.stringValue == "resource_link" }
+      .compactMap { $0["uri"]?.stringValue }
+  }
+
   /// Makes a new empty directory for the files that a test writes.
   ///
   /// - Returns: The location of the directory.
@@ -90,7 +101,7 @@ struct AttachmentComposerHost: View {
 
   @Test func twoAttachmentsRenderTwoChipsAndARemoveLeavesOne() async throws {
     let model = AttachmentChipsTestModel(attachments: Self.twoAttachments)
-    let harness = threadViewHarness(size: Self.rowSize, actions: NoopThreadActions()) {
+    let harness = HostedViewHarness(size: Self.rowSize) {
       AttachmentChips(attachments: Bindable(model).attachments)
     }
     defer { harness.close() }
@@ -196,7 +207,7 @@ struct AttachmentComposerHost: View {
 
   @Test func theComposerShowsTheRowOnlyWhenItHasAttachments() async {
     let model = AttachmentChipsTestModel(attachments: [])
-    let harness = threadViewHarness(size: Self.composerSize, actions: NoopThreadActions()) {
+    let harness = HostedViewHarness(size: Self.composerSize) {
       AttachmentComposerHost(model: model)
     }
     defer { harness.close() }
@@ -211,38 +222,42 @@ struct AttachmentComposerHost: View {
   }
 
   @Test func aSubmitPassesTheAttachmentsAndClearsTheRow() async throws {
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = AttachmentChipsTestModel(text: Self.message, attachments: Self.twoAttachments)
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
+    let harness = HostedViewHarness(size: Self.composerSize) {
       AttachmentComposerHost(model: model)
+        .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.pump()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptBlocks.isEmpty }
 
-    let input = UserInput(text: Self.message, attachments: [Self.sourceURL, Self.pdfURL])
-    #expect(actions.calls == [.send(input)])
+    #expect(session.promptBlocks.count == 1)
+    #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))
     #expect(model.attachments.isEmpty)
   }
 
   @Test func aFileThatIsAChipAndALinkIsSentOneTime() async throws {
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     var text = AttributedString(Self.message)
     text.link = Self.sourceURL
     let model = AttachmentChipsTestModel(attachments: Self.twoAttachments)
     model.text = text
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
+    let harness = HostedViewHarness(size: Self.composerSize) {
       AttachmentComposerHost(model: model)
+        .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.pump()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptBlocks.isEmpty }
 
-    let input = UserInput(text: Self.message, attachments: [Self.sourceURL, Self.pdfURL])
-    #expect(actions.calls == [.send(input)])
+    #expect(session.promptBlocks.count == 1)
+    #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))
   }
 }

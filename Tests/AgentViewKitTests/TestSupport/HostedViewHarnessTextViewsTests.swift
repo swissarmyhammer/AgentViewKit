@@ -1,66 +1,11 @@
-import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import SwiftUI
 import Testing
 
-/// A view that shows whether its environment has a thread, and has a button
-/// that calls the cancel verb of its actions.
-private struct EnvironmentProbeView: View {
-  @Environment(\.agentThread) private var thread
-  @Environment(\.threadActions) private var actions
-
-  var body: some View {
-    VStack {
-      Text(thread == nil ? "no thread" : "thread")
-        .accessibilityIdentifier("probe-thread")
-      Button("Cancel") {
-        guard let actions else { return }
-        Task { await actions.cancel() }
-      }
-      .accessibilityIdentifier("probe-cancel")
-    }
-  }
-}
-
-@Suite(.serialized, .hostedSerially) @MainActor struct ThreadViewHarnessTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
-  @Test func theHarnessGivesTheActionsAndTheThreadToTheView() async throws {
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(actions: actions, thread: AgentThread()) {
-      EnvironmentProbeView()
-    }
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: "probe-thread")?.label == "thread")
-    try harness.press(identifier: "probe-cancel")
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-    #expect(actions.calls == [.cancel])
-  }
-
-  @Test func theHarnessHasNoThreadByDefault() {
-    let harness = threadViewHarness(actions: NoopThreadActions()) {
-      EnvironmentProbeView()
-    }
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: "probe-thread")?.label == "no thread")
-  }
-
-  @Test func theHarnessUsesTheSize() {
-    let size = CGSize(width: 300, height: 100)
-    let harness = threadViewHarness(size: size, actions: NoopThreadActions()) {
-      EnvironmentProbeView()
-    }
-    defer { harness.close() }
-
-    #expect(harness.hostingView.frame.size == size)
-  }
-
+/// The text view helpers of `HostedViewHarness`: the first editable text view,
+/// its focus, and the AppKit views with an accessibility identifier.
+@Suite(.serialized, .hostedSerially) @MainActor struct HostedViewHarnessTextViewsTests {
   @Test func aViewWithNoTextInputHasNoEditableTextView() {
     let harness = HostedViewHarness(Text("Label"))
     defer { harness.close() }

@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import Observation
 import SwiftUI
 import Testing
 
@@ -10,137 +11,134 @@ import Testing
 /// The benchmark package builds in release mode, and
 /// ``BodyEvaluationCounter`` exists only in debug builds. Thus these tests
 /// count the body evaluations of each ``ParagraphView`` in a hosted
-/// ``ResponseView`` while a stream settles one paragraph after the other.
+/// ``ResponseView`` while its Markdown text grows one chunk after the other,
+/// as the text of a transcript entry grows.
 @Suite(.serialized, .hostedSerially) @MainActor struct ParagraphReuseTests {
+  /// The text that the hosted response view shows. A test appends each chunk
+  /// to it, as the session model appends a chunk to the text of an entry.
+  @Observable final class GrowingText {
+    /// The whole text.
+    var text: String
+
+    /// Makes the text.
+    ///
+    /// - Parameter text: The first text.
+    init(_ text: String) {
+      self.text = text
+    }
+  }
+
+  /// The response view of a growing text.
+  struct GrowingResponse: View {
+    /// The id of the response view.
+    let id: String
+
+    /// The text to show.
+    let growing: GrowingText
+
+    var body: some View {
+      ResponseView(id: id, markdown: growing.text)
+    }
+  }
+
   /// The size of the host window. It is tall enough for each paragraph.
   static let hostSize = CGSize(width: 480, height: 1_200)
 
   /// The longest time that a test waits for the view to change, in seconds.
   static let changeWaitSeconds: TimeInterval = 2
 
-  /// The number of paragraphs that the long stream settles.
-  static let streamedParagraphCount = 8
+  /// The number of paragraphs of the long text.
+  static let paragraphCount = 8
 
-  /// The number of streamed paragraphs that stay in the tail. The last
-  /// paragraph has no blank line after it, so it does not settle.
-  static let tailParagraphCount = 1
-
-  /// The chunks of the long stream. Each paragraph comes in three chunks, and
-  /// the first chunk of each paragraph after the first settles the paragraph
-  /// before it.
-  static let streamedChunks: [String] = (0..<streamedParagraphCount).flatMap { index in
+  /// The chunks of the long text. Each paragraph comes in three chunks, and
+  /// the first chunk of each paragraph after the first starts a new
+  /// paragraph.
+  static let chunks: [String] = (0..<paragraphCount).flatMap { index in
     [index == 0 ? "Paragraph" : "\n\nParagraph", " number \(index)", " ends here."]
   }
 
-  /// Makes an assistant message with no content, for a streaming response.
-  ///
-  /// - Parameter id: The identifier of the message.
-  /// - Returns: The message.
-  static func emptyMessage(_ id: String) -> Message {
-    Message(id: id, blocks: [])
-  }
-
-  /// The two layouts of the settled paragraphs: a stack, and a lazy stack in
-  /// a scroll view.
-  nonisolated static let layouts = [false, true]
-
-  /// Mounts the response view of a stream.
+  /// The body evaluation count of each paragraph of `text`, keyed by counter
+  /// key.
   ///
   /// - Parameters:
-  ///   - streaming: The stream.
-  ///   - isLazy: Whether the view is in a scroll view with lazy paragraphs,
-  ///     as in ``ConversationView``.
-  /// - Returns: The harness.
-  static func host(_ streaming: StreamingMessage, isLazy: Bool) -> HostedViewHarness<some View> {
-    HostedViewHarness(size: hostSize) {
-      let response = ResponseView(message: emptyMessage(streaming.id), streaming: streaming)
-      if isLazy {
-        ScrollView { response }
-          .lazyResponseParagraphs()
-      } else {
-        response
-      }
-    }
-  }
-
-  /// The body evaluation count of each settled paragraph of a stream, keyed
-  /// by counter key.
-  ///
-  /// - Parameter streaming: The stream.
-  /// - Returns: The count of each settled paragraph.
-  static func settledCounts(of streaming: StreamingMessage) -> [String: Int] {
+  ///   - text: The whole text of the response view.
+  ///   - id: The id of the response view.
+  /// - Returns: The count of each paragraph.
+  static func counts(of text: String, id: String) -> [String: Int] {
     Dictionary(
-      uniqueKeysWithValues: streaming.settledParagraphs.map { paragraph in
-        let key = ParagraphView.counterKey(messageID: streaming.id, paragraphID: paragraph.id)
+      uniqueKeysWithValues: ParagraphSplitter.paragraphs(text).map { paragraph in
+        let key = ParagraphView.counterKey(messageID: id, paragraphID: paragraph.id)
         return (key, BodyEvaluationCounter.count(key))
       })
   }
 
-  /// Gives one chunk to the stream and waits until the tail evaluates again.
+  /// Appends one chunk to the text, and waits until the last paragraph of
+  /// the new text evaluates.
   ///
   /// - Parameters:
   ///   - chunk: The chunk.
-  ///   - streaming: The stream.
-  ///   - harness: The harness that hosts the view of the stream.
-  static func stream(
-    _ chunk: String, into streaming: StreamingMessage, harness: HostedViewHarness<some View>
+  ///   - growing: The text of the response view.
+  ///   - id: The id of the response view.
+  ///   - harness: The harness that hosts the response view.
+  static func append(
+    _ chunk: String, to growing: GrowingText, id: String, harness: HostedViewHarness<some View>
   ) async {
-    let tailKey = ResponseView.tailCounterKey(messageID: streaming.id)
-    BodyEvaluationCounter.reset(tailKey)
-    streaming.append(chunk)
-    streaming.flush()
+    growing.text += chunk
+    let last = ParagraphSplitter.paragraphs(growing.text).last
+    let lastKey = last.map { ParagraphView.counterKey(messageID: id, paragraphID: $0.id) }
     await harness.pump(until: changeWaitSeconds) {
-      BodyEvaluationCounter.count(tailKey) >= 1
+      lastKey.map { BodyEvaluationCounter.count($0) >= 1 } ?? true
     }
     harness.pump()
   }
 
-  @Test(arguments: layouts)
-  func aChunkThatSettlesAParagraphEvaluatesOnlyTheNewParagraph(isLazy: Bool) async {
-    let id = "paragraph-reuse-settle-\(isLazy)"
-    let streaming = StreamingMessage(id: id, text: "One.\n\nTwo")
-    let harness = Self.host(streaming, isLazy: isLazy)
+  @Test func aChunkThatStartsAParagraphEvaluatesOnlyTheChangedParagraphs() async {
+    let id = "paragraph-reuse-start"
+    let growing = GrowingText("One.\n\nTwo")
+    let harness = HostedViewHarness(GrowingResponse(id: id, growing: growing), size: Self.hostSize)
     defer { harness.close() }
     harness.pump()
-    let firstKey = ParagraphView.counterKey(
-      messageID: id, paragraphID: streaming.settledParagraphs[0].id)
+    let paragraphs = ParagraphSplitter.paragraphs(growing.text)
+    let firstKey = ParagraphView.counterKey(messageID: id, paragraphID: paragraphs[0].id)
     #expect(BodyEvaluationCounter.count(firstKey) >= 1)
     BodyEvaluationCounter.reset(prefix: ParagraphView.counterKeyPrefix + id)
 
-    await Self.stream(".\n\nThree", into: streaming, harness: harness)
+    await Self.append(".\n\nThree", to: growing, id: id, harness: harness)
 
-    #expect(streaming.settledParagraphs.map(\.text) == ["One.", "Two."])
-    let secondKey = ParagraphView.counterKey(
-      messageID: id, paragraphID: streaming.settledParagraphs[1].id)
-    #expect(BodyEvaluationCounter.count(firstKey) == 0, "The settled paragraph evaluated again.")
-    #expect(BodyEvaluationCounter.count(secondKey) >= 1, "The new paragraph did not evaluate.")
+    let thirdKey = ParagraphView.counterKey(
+      messageID: id, paragraphID: ParagraphSplitter.paragraphs(growing.text)[2].id)
+    #expect(BodyEvaluationCounter.count(firstKey) == 0, "The first paragraph evaluated again.")
+    #expect(BodyEvaluationCounter.count(thirdKey) >= 1, "The new paragraph did not evaluate.")
     BodyEvaluationCounter.reset(prefix: ParagraphView.counterKeyPrefix + id)
-    BodyEvaluationCounter.reset(ResponseView.tailCounterKey(messageID: id))
   }
 
-  @Test(arguments: layouts)
-  func aLongStreamNeverEvaluatesASettledParagraphAgain(isLazy: Bool) async {
-    let id = "paragraph-reuse-long-\(isLazy)"
-    let streaming = StreamingMessage(id: id)
-    let harness = Self.host(streaming, isLazy: isLazy)
+  @Test func aLongTextNeverEvaluatesAnEarlierParagraphAgain() async {
+    let id = "paragraph-reuse-long"
+    let growing = GrowingText("")
+    let harness = HostedViewHarness(GrowingResponse(id: id, growing: growing), size: Self.hostSize)
     defer { harness.close() }
     harness.pump()
 
+    // A chunk can change the text of the last paragraph, and so its id. Each
+    // paragraph before the last one keeps its text, its id and its count.
     var previous: [String: Int] = [:]
-    for chunk in Self.streamedChunks {
-      await Self.stream(chunk, into: streaming, harness: harness)
-      let current = Self.settledCounts(of: streaming)
-      for (key, count) in previous {
-        #expect(current[key] == count, "The settled paragraph \(key) evaluated again.")
+    var previousLastKey: String?
+    for chunk in Self.chunks {
+      await Self.append(chunk, to: growing, id: id, harness: harness)
+      let current = Self.counts(of: growing.text, id: id)
+      for (key, count) in previous where key != previousLastKey {
+        #expect(current[key] == count, "The earlier paragraph \(key) evaluated again.")
       }
       for (key, count) in current where previous[key] == nil {
         #expect(count >= 1, "The new paragraph \(key) did not evaluate.")
       }
       previous = current
+      previousLastKey = ParagraphSplitter.paragraphs(growing.text).last.map {
+        ParagraphView.counterKey(messageID: id, paragraphID: $0.id)
+      }
     }
 
-    #expect(streaming.settledParagraphs.count == Self.streamedParagraphCount - Self.tailParagraphCount)
+    #expect(ParagraphSplitter.paragraphs(growing.text).count == Self.paragraphCount)
     BodyEvaluationCounter.reset(prefix: ParagraphView.counterKeyPrefix + id)
-    BodyEvaluationCounter.reset(ResponseView.tailCounterKey(messageID: id))
   }
 }

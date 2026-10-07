@@ -138,10 +138,9 @@ let package = Package(
         "PackageFileSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,
-      // AgentThemeTests reads the token file from disk as data, and
-      // ThreadExporterTests reads the golden export file from disk, so the
-      // build excludes them.
-      exclude: ["Theme/DefaultTokens.json", "Items/Fixtures"],
+      // AgentThemeTests reads the token file from disk as data, so the build
+      // excludes it.
+      exclude: ["Theme/DefaultTokens.json"],
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links only PackageFileSupport,

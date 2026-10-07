@@ -87,6 +87,26 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "ACPThreadActions", "ACPThreadActionsError", "ACPAgentProgram", "SessionUpdateFixtures",
   ]
 
+  /// The kit session model, its records, its stream copy, its turn logic and
+  /// its thread actions, with the test helpers on them. The views bind to the
+  /// client models directly, so the kit keeps no parallel session state.
+  static let removedSessionModelSymbols = [
+    // The kit model and its changes.
+    "AgentThread", "ThreadItem", "ThreadChange", "ItemPatch", "ThreadInfo", "ThreadInfoPatch",
+    "TerminalPatch",
+    // The records.
+    "ThreadRecord", "ToolCallRecord", "TerminalRecord", "UnknownRecord",
+    // The kit stream copy and its second coalescer.
+    "StreamingMessage", "StreamingCoalescer", "isLastWhileRunning",
+    // The kit turn logic of the composer.
+    "ComposerTurn", "EnvironmentComposerTurn",
+    // The thread actions, and the thread path of the views.
+    "AgentThreadActions", "LoggingThreadActions", "threadActions", "ConversationSource",
+    "ToolCallSource", "TerminalSource",
+    // The test helpers on the kit model.
+    "NoopThreadActions", "ThreadFixtures", "threadViewHarness",
+  ]
+
   /// The pattern that finds a call of the removed thread initializer
   /// `AgentThreadView(thread:actions:)`, also a call over two lines.
   ///
@@ -113,6 +133,63 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   static func workingDirectoryInputUse() -> Regex<Substring> {
     #/\b(?:AgentThreadView|SessionStreamBanner)(?:/init)?\([^)]*\bworkingDirectory:/#
       .wordBoundaryKind(.simple)
+  }
+
+  /// The pattern that finds a use of the removed `actions:` input of
+  /// `AgentThreadView`: a call of
+  /// `AgentThreadView(session:connection:actions:)`, also a call over more
+  /// lines, or a DocC link to the initializer.
+  ///
+  /// The views call the methods of the client models, so the host gives no
+  /// actions. A `Regex` is not `Sendable`, so each call makes the value again.
+  /// The pattern uses simple word boundaries, because the default boundaries
+  /// do not break at the `:` in `connection:actions:`.
+  ///
+  /// - Returns: The pattern.
+  static func threadActionsInputUse() -> Regex<Substring> {
+    #/\bAgentThreadView(?:/init)?\([^)]*\bactions:/#
+      .wordBoundaryKind(.simple)
+  }
+
+  /// The directory of the Swift files of the kit library.
+  static let kitSourcesPath = "Sources/AgentViewKit"
+
+  /// The `@Observable` classes that the kit can declare. Each one holds view
+  /// state only, and the comment names that state. No class holds a value
+  /// that `ConnectionModel`, `SessionModel` or a `TranscriptEntry` object
+  /// holds.
+  static let allowedObservableClasses: Set<String> = [
+    // The focus of VoiceOver.
+    "AccessibilityFocusMover",
+    // The selected citation.
+    "CitationSelection",
+    // The selected lines of a diff.
+    "DiffLineSelection",
+    // The open state of the rows, and of one row (`ExpandedBlocksStore.Entry`).
+    "ExpandedBlocksStore", "Entry",
+    // The selected attachment of the inspector.
+    "InspectorSelection",
+    // The scroll position of the conversation.
+    "ScrollAnchorManager",
+  ]
+
+  /// The pattern that finds the declaration of an `@Observable` class and
+  /// captures its name. Other attributes and the modifiers can stand between
+  /// the attribute and `class`.
+  ///
+  /// A `Regex` is not `Sendable`, so each call makes the value again.
+  ///
+  /// - Returns: The pattern.
+  static func observableClassDeclaration() -> Regex<(Substring, Substring)> {
+    #/@Observable\s+(?:@\w+\s+)*(?:(?:public|package|internal|fileprivate|private|final|nonisolated)\s+)*class\s+(\w+)/#
+  }
+
+  /// The names of the `@Observable` classes that a Swift source declares.
+  ///
+  /// - Parameter source: The text of a Swift file.
+  /// - Returns: The class names, in source order.
+  static func observableClassNames(inSource source: String) -> [String] {
+    source.matches(of: observableClassDeclaration()).map { String($0.output.1) }
   }
 
   /// The usage initializer from the fill of the context window.
@@ -247,6 +324,14 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect(found.isEmpty, "\(found)")
   }
 
+  @Test func noFileUsesTheRemovedSessionModel() throws {
+    let found =
+      try Self.uses(of: Self.removedSessionModelSymbols, below: Self.swiftPaths)
+      + Self.uses(of: Self.removedSessionModelSymbols, inFile: Self.readmePath)
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
   @Test func theThreadInitializerPatternFindsACallOverTwoLines() {
     #expect("AgentThreadView(\n  thread: thread, actions: actions)".contains(Self.threadInitializerCall()))
     #expect(!"AgentThreadView(session: session, actions: actions)".contains(Self.threadInitializerCall()))
@@ -289,6 +374,46 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     let users = try Self.fileNames(matching: Self.workingDirectoryInputUse)
 
     #expect(users.isEmpty, "\(users)")
+  }
+
+  @Test func theThreadActionsPatternFindsACallOverTwoLinesAndADocLink() {
+    let pattern = Self.threadActionsInputUse()
+
+    #expect("AgentThreadView(\n  session: s, connection: c,\n  actions: a)".contains(pattern))
+    #expect("``AgentThreadView/init(session:connection:actions:)``".contains(pattern))
+    #expect(!"AgentThreadView(session: s, connection: c)".contains(pattern))
+    #expect(!"PromptInputView(actions: a)".contains(pattern))
+  }
+
+  @Test func noFileGivesThreadActionsToTheThreadView() throws {
+    let users = try Self.fileNames(matching: Self.threadActionsInputUse)
+
+    #expect(users.isEmpty, "\(users)")
+  }
+
+  @Test func observableClassNamesFindsTheNameAfterTheAttributesAndModifiers() {
+    let source = """
+      @MainActor
+      @Observable
+      public final class Store {}
+      @Observable fileprivate final class Row {}
+      /// An `@Observable` class.
+      final class Plain {}
+      """
+
+    #expect(Self.observableClassNames(inSource: source) == ["Store", "Row"])
+  }
+
+  @Test func eachObservableClassOfTheKitHoldsViewStateOnly() throws {
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(Self.kitSourcesPath))
+
+    let names = try files.flatMap { file in
+      Self.observableClassNames(inSource: try String(contentsOf: file, encoding: .utf8))
+    }
+
+    #expect(!names.isEmpty)
+    let notAllowed = names.filter { !Self.allowedObservableClasses.contains($0) }.sorted()
+    #expect(notAllowed.isEmpty, "\(notAllowed)")
   }
 
   @Test func useFindsTheLabelsOfACall() throws {

@@ -58,10 +58,20 @@ struct EntryContentView: View {
     return .text(joined)
   }
 
+  /// The id of the view of the block at `index` of an entry.
+  ///
+  /// - Parameters:
+  ///   - entryID: The start of the id, such as the row key of the entry.
+  ///   - index: The position of the block in the shown blocks.
+  /// - Returns: `<entry id>-<index>`.
+  static func blockID(entryID: String, index: Int) -> String {
+    "\(entryID)-\(index)"
+  }
+
   var body: some View {
     let blocks = Array(Self.joiningAdjacentText(in: content).enumerated())
     ForEach(blocks, id: \.offset) { index, block in
-      ContentBlockView(block: block, id: MessageBodyView.blockID(messageID: id, index: index))
+      ContentBlockView(block: block, id: Self.blockID(entryID: id, index: index))
     }
   }
 }

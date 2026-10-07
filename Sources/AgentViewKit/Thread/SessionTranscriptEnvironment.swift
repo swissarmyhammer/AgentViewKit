@@ -5,7 +5,7 @@ import SwiftUI
 extension EnvironmentValues {
   /// The session model whose transcript the item views show (update.md §4.2).
   ///
-  /// ``AgentThreadView/init(session:connection:actions:)`` sets its model for
+  /// ``AgentThreadView/init(session:connection:)`` sets its model for
   /// its rows.
   /// The composer, the tool call views and the sign-in views read the model
   /// to call its verbs and to show its state. The value is `nil` outside a

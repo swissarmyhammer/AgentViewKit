@@ -375,9 +375,10 @@ import Testing
   static func mountHost(
     _ session: ScriptedSession, reporter: RecordingFocusReporter
   ) -> HostedViewHarness<some View> {
-    let harness = threadViewHarness(size: cardSize, actions: NoopThreadActions()) {
+    let harness = HostedViewHarness(size: cardSize) {
       PendingRequestsHost(session: session.model)
         .environment(\.focusReporter, reporter)
+        .transaction { $0.disablesAnimations = true }
     }
     harness.pump()
     return harness
@@ -447,7 +448,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.cardSize)
+      AgentThreadView(session: session.model), size: Self.cardSize)
     defer { harness.close() }
     harness.pump()
 

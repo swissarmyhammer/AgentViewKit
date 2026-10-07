@@ -58,6 +58,19 @@ struct PromptInputHost: View {
      "availableCommands": [{"name": "plan", "description": "Make a plan"}]}
     """#
 
+  /// Shows a composer over the session model of a scripted session.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - model: The model that holds the text of the composer.
+  /// - Returns: The harness.
+  static func mount(_ session: ScriptedSession, model: PromptInputHostedTestModel) -> HostedViewHarness<some View> {
+    HostedViewHarness(size: composerSize) {
+      PromptInputHost(model: model)
+        .environment(\.sessionModel, session.model)
+    }
+  }
+
   /// The `session/new` result with a `mode` option, for the picker test.
   static let newSessionWithMode = #"""
     {"sessionId": "\#(ScriptedSession.sessionID)",
@@ -68,24 +81,33 @@ struct PromptInputHost: View {
 
   // MARK: - Mount
 
-  @Test func theDefaultComposerMountsTheEditorAndTheSubmitButton() {
-    let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.composerSize, actions: NoopThreadActions()) {
-      PromptInputView(text: Bindable(model).text, onSubmit: {})
+  @Test func theDefaultComposerMountsTheEditorAndTheSubmitButton() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = HostedViewHarness(size: Self.composerSize) {
+      PromptInputView(text: Bindable(PromptInputHostedTestModel(text: Self.message)).text, onSubmit: {})
+        .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.pump()
 
     #expect(harness.element(identifier: StockPromptEditor.identifier) != nil)
-    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
+    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == true)
     #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
   }
 
-  @Test func theSubmitButtonIsDisabledWhileTheTextIsBlank() {
-    let model = PromptInputHostedTestModel(text: "  \n")
-    let harness = threadViewHarness(size: Self.composerSize, actions: NoopThreadActions()) {
-      PromptInputHost(model: model)
-    }
+  @Test func theSubmitButtonIsDisabledWhileTheTextIsBlank() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mount(session, model: PromptInputHostedTestModel(text: "  \n"))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
+  }
+
+  @Test func theSubmitButtonIsDisabledWithNoSessionModel() {
+    let harness = HostedViewHarness(PromptInputHost(model: PromptInputHostedTestModel(text: Self.message)), size: Self.composerSize)
     defer { harness.close() }
     harness.pump()
 
@@ -97,11 +119,7 @@ struct PromptInputHost: View {
       $0.results["session/new"] = Self.newSessionWithMode
     }
     defer { session.close() }
-    let model = PromptInputHostedTestModel()
-    let harness = HostedViewHarness(size: Self.composerSize) {
-      PromptInputHost(model: model)
-        .environment(\.sessionModel, session.model)
-    }
+    let harness = Self.mount(session, model: PromptInputHostedTestModel())
     defer { harness.close() }
     harness.pump()
 
@@ -139,11 +157,10 @@ struct PromptInputHost: View {
   // MARK: - Keys
 
   @Test func returnSendsTheTextAndClearsTheEditor() async throws {
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
-      PromptInputHost(model: model)
-    }
+    let harness = Self.mount(session, model: model)
     defer { harness.close() }
     harness.pump()
 
@@ -151,19 +168,18 @@ struct PromptInputHost: View {
     harness.type(Self.message)
     #expect(model.plainText == Self.message)
     try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
     #expect(model.submitCount == 1)
   }
 
-  @Test func shiftReturnInsertsANewlineAndDoesNotSend() throws {
-    let actions = NoopThreadActions()
+  @Test func shiftReturnInsertsANewlineAndDoesNotSend() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
-      PromptInputHost(model: model)
-    }
+    let harness = Self.mount(session, model: model)
     defer { harness.close() }
     harness.pump()
 
@@ -172,17 +188,16 @@ struct PromptInputHost: View {
     try harness.sendKey(.return, modifiers: .shift)
     harness.pump()
 
-    #expect(actions.calls.isEmpty)
+    #expect(session.promptTexts.isEmpty)
     #expect(model.plainText == Self.message + "\n")
     #expect(model.submitCount == 0)
   }
 
-  @Test func returnWithBlankTextSendsNothing() throws {
-    let actions = NoopThreadActions()
+  @Test func returnWithBlankTextSendsNothing() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
-      PromptInputHost(model: model)
-    }
+    let harness = Self.mount(session, model: model)
     defer { harness.close() }
     harness.pump()
 
@@ -190,87 +205,25 @@ struct PromptInputHost: View {
     try harness.sendKey(.return)
     harness.pump()
 
-    #expect(actions.calls.isEmpty)
+    #expect(session.promptTexts.isEmpty)
     #expect(model.submitCount == 0)
   }
 
-  // MARK: - Submit and stop
+  // MARK: - Submit
 
   @Test func theSubmitButtonSendsTheText() async throws {
-    let actions = NoopThreadActions()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions) {
-      PromptInputHost(model: model)
-    }
+    let harness = Self.mount(session, model: model)
     defer { harness.close() }
     harness.pump()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
+    #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
     #expect(model.submitCount == 1)
-  }
-
-  @Test func whileTheThreadRunsTheStopButtonCallsCancel() async throws {
-    let thread = AgentThread()
-    thread.apply(.setState(.running))
-    let actions = NoopThreadActions()
-    let model = PromptInputHostedTestModel(text: Self.message)
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions, thread: thread) {
-      PromptInputHost(model: model)
-    }
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) == nil)
-    #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil)
-    try harness.press(identifier: DefaultPromptAccessory.stopIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-
-    #expect(actions.calls == [.cancel])
-    #expect(model.plainText == Self.message)
-  }
-
-  @Test func returnWhileTheThreadRunsSendsTheTextAtOnce() async throws {
-    let thread = AgentThread()
-    thread.apply(.setState(.running))
-    let actions = NoopThreadActions()
-    let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.composerSize, actions: actions, thread: thread) {
-      PromptInputHost(model: model)
-    }
-    defer { harness.close() }
-    harness.pump()
-
-    try #require(harness.focusFirstEditableTextView())
-    harness.type(Self.message)
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
-    #expect(model.plainText.isEmpty)
-    #expect(model.submitCount == 1)
-  }
-
-  @Test func theStopButtonGoesBackToSubmitWhenTheTurnEnds() {
-    let thread = AgentThread()
-    thread.apply(.setState(.running))
-    let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(
-      size: Self.composerSize, actions: NoopThreadActions(), thread: thread
-    ) {
-      PromptInputHost(model: model)
-    }
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil)
-    thread.apply(.setState(.idle(nil)))
-    harness.pump()
-
-    #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
-    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
   }
 }

@@ -207,7 +207,7 @@ public struct ThreadMinimapView: View {
     ///   text for each other entry.
     private static func statusValue(of entry: TranscriptEntry) -> String {
       guard let toolCall = entry.toolCall else { return "" }
-      return ToolCallSource.entry(toolCall).status.wireValue
+      return toolCall.shownStatus.wireValue
     }
   #endif
 
@@ -308,7 +308,7 @@ public struct ThreadMinimapView: View {
     case .userMessage: theme.accent
     case .agentMessage: Color.primary
     case .thought, .terminal, .plan: Color.secondary
-    case .toolCall(let toolCall): colors.color(for: ToolCallSource.entry(toolCall).status)
+    case .toolCall(let toolCall): colors.color(for: toolCall.shownStatus)
     case .error: colors.failed
     case .unknown, .compaction:
       Color.secondary.opacity(Self.quietTickOpacity)

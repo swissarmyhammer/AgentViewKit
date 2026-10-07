@@ -24,7 +24,7 @@ import UniformTypeIdentifiers
 ///   again with `SessionModel.prompt(_:meta:)`.
 /// - Edit, for a user message only: puts the text of the message in the
 ///   composer. The composer must be in the same agent command scope
-///   (``SwiftUI/View/agentCommandScope(thread:)``). With no scope, the button
+///   (``SwiftUI/View/agentCommandScope(session:)``). With no scope, the button
 ///   sets the ``SwiftUI/EnvironmentValues/promptText`` binding.
 ///
 /// With no session model in the environment, the row shows only Copy.
@@ -32,15 +32,9 @@ import UniformTypeIdentifiers
 /// Put the row in the footer slot of each message row of the thread view:
 ///
 /// ```swift
-/// AgentThreadView(session: session, actions: actions)
+/// AgentThreadView(session: session)
 ///   .messageFooter { entry in MessageActions(entry: entry) }
 /// ```
-///
-/// The deprecated thread path makes the row for a kit message with
-/// ``init(message:)``. The footer slot takes a transcript entry, so that row
-/// is not in the footer of a thread message. It reads the `agentThread` and
-/// `threadActions` environment values in the same way, and goes away with the
-/// kit session model.
 ///
 /// The text of a message is selectable, one message at a time
 /// (``selectionMode``).
@@ -105,24 +99,10 @@ public struct MessageActions: View {
     String(localized: "Thread")
   }
 
-  /// The message of a row.
-  enum Subject {
-    /// A kit message of a deprecated thread.
-    case message(Message)
-
-    /// A user message entry of a session model.
-    case user(UserMessageEntry)
-
-    /// An agent message entry of a session model.
-    case agent(AgentMessageEntry)
-  }
-
-  /// The message of the row.
-  let subject: Subject
+  /// The message entry of the row.
+  let entry: MessageEntry
 
   @Environment(\.sessionModel) private var session
-  @Environment(\.agentThread) private var thread
-  @Environment(\.threadActions) private var actions
   @Environment(\.pasteboard) private var pasteboard
   @Environment(\.promptText) private var promptText
   @Environment(\.agentCommandTarget) private var commandTarget
@@ -136,7 +116,7 @@ public struct MessageActions: View {
   /// - Parameter entry: The entry of `SessionModel.transcript`. The row
   ///   reads its content at each action.
   public init(entry: UserMessageEntry) {
-    subject = .user(entry)
+    self.entry = .user(entry)
   }
 
   /// Makes the action row of an agent message entry of a session model.
@@ -144,7 +124,7 @@ public struct MessageActions: View {
   /// - Parameter entry: The entry of `SessionModel.transcript`. The row
   ///   reads its content at each action.
   public init(entry: AgentMessageEntry) {
-    subject = .agent(entry)
+    self.entry = .agent(entry)
   }
 
   /// Makes the action row of a message entry of a session model, such as
@@ -154,17 +134,7 @@ public struct MessageActions: View {
   /// - Parameter entry: The user message entry or the agent message entry of
   ///   `SessionModel.transcript`. The row reads its content at each action.
   public init(entry: MessageEntry) {
-    switch entry {
-    case .user(let user): subject = .user(user)
-    case .agent(let agent): subject = .agent(agent)
-    }
-  }
-
-  /// Makes the action row of a kit message of a deprecated thread.
-  ///
-  /// - Parameter message: The message of the row.
-  public init(message: Message) {
-    subject = .message(message)
+    self.entry = entry
   }
 
   public var body: some View {
@@ -190,112 +160,25 @@ public struct MessageActions: View {
 
   /// The buttons for the message, in display order.
   private var actionsToShow: [Action] {
-    guard source != nil else { return [.copy] }
-    return Self.actions(for: role)
-  }
-
-  /// The model that holds the message: the session model of the environment
-  /// for an entry, or the thread of the environment for a kit message.
-  private var source: ConversationSource? {
-    switch subject {
-    case .user, .agent: session.map(ConversationSource.session)
-    case .message: thread.map(ConversationSource.thread)
-    }
-  }
-
-  /// The sender of the message: the entry case, or the item case of the kit
-  /// message in the thread.
-  private var role: MessageRole? {
-    switch subject {
-    case .user: .user
-    case .agent: .assistant
-    case .message(let message): thread.flatMap { Self.role(of: message, in: $0) }
-    }
+    guard session != nil else { return [.copy] }
+    return Self.actions(for: entry.role)
   }
 
   /// The Markdown of the message: the content form of
-  /// `ThreadExporter.markdown(for:)` for an entry, read at each call.
+  /// `ThreadExporter.markdown(for:)`, read at each call.
   private var markdown: String {
-    switch subject {
-    case .user(let entry): ThreadExporter.markdown(for: entry.content)
-    case .agent(let entry): ThreadExporter.markdown(for: entry.content)
-    case .message(let message): ThreadExporter.markdown(for: message)
-    }
-  }
-
-  /// The text that Edit puts in the composer: the Markdown of an entry, or
-  /// the text blocks of a kit message.
-  private var editText: String {
-    guard case .message(let message) = subject else { return markdown }
-    return Self.input(of: message).text
-  }
-
-  /// The identity of the message in the log: the row key of an entry, or the
-  /// id of a kit message.
-  private var logKey: String {
-    switch subject {
-    case .user(let entry): entry.id.rowKey
-    case .agent(let entry): entry.id.rowKey
-    case .message(let message): message.id
-    }
+    ThreadExporter.markdown(for: entry.content)
   }
 
   /// The buttons for a message of `role`, in display order.
   ///
-  /// - Parameter role: The sender of the message, or `nil` when the thread
-  ///   does not hold the message.
+  /// - Parameter role: The sender of the message.
   /// - Returns: The buttons.
-  static func actions(for role: MessageRole?) -> [Action] {
+  static func actions(for role: MessageRole) -> [Action] {
     switch role {
     case .user: [.copy, .copyThread, .export, .edit]
     case .assistant: [.copy, .copyThread, .export, .retry]
-    case nil: [.copy, .copyThread, .export]
     }
-  }
-
-  /// The sender of `message` in `thread`.
-  ///
-  /// - Parameters:
-  ///   - message: The message.
-  ///   - thread: The thread.
-  /// - Returns: The sender, or `nil` when the thread does not hold the message.
-  static func role(of message: Message, in thread: AgentThread) -> MessageRole? {
-    switch thread.item(id: message.id) {
-    case .userMessage: .user
-    case .assistantMessage: .assistant
-    default: nil
-    }
-  }
-
-  /// The input of a user message: its text blocks and its attachments.
-  ///
-  /// - Parameter message: The user message.
-  /// - Returns: The input. A blank line separates two text blocks.
-  static func input(of message: Message) -> UserInput {
-    var texts: [String] = []
-    var attachments: [URL] = []
-    for block in message.blocks {
-      switch block.content {
-      case .text(let text): texts.append(text)
-      case .attachment(let url): attachments.append(url)
-      case .image, .audio, .resourceLink, .resource, .unknown: break
-      }
-    }
-    return UserInput(text: texts.joined(separator: "\n\n"), attachments: attachments)
-  }
-
-  /// The last user message before the message of `id` in `thread`.
-  ///
-  /// - Parameters:
-  ///   - id: The identifier of the message.
-  ///   - thread: The thread.
-  /// - Returns: The user message, or `nil` when there is none.
-  static func lastUserMessage(before id: String, in thread: AgentThread) -> Message? {
-    guard let position = thread.position(of: id) else { return nil }
-    return thread.items[..<position].reversed().lazy.compactMap { item -> Message? in
-      guard case .userMessage(let message) = item else { return nil }
-      return message
-    }.first
   }
 
   /// The last user message entry before the entry of `id` in a transcript.
@@ -331,41 +214,24 @@ public struct MessageActions: View {
   /// Copies the thread through the command scope, or directly when there is
   /// no scope, with the same text as the command.
   ///
-  /// `AgentCommandTarget.plainText(of:)` takes the model as a
-  /// `ConversationSource`, the same form that ``export()`` gives to
-  /// `ThreadExporter.markdown(for:)`.
+  /// `AgentCommandTarget.plainText(of:)` reads the same session model that
+  /// ``export()`` gives to `ThreadExporter.markdown(for:)`.
   private func copyThread() {
-    guard let source, commandTarget?.perform(.copyThread) != true else { return }
-    pasteboard.copyText(AgentCommandTarget.plainText(of: source))
+    guard let session, commandTarget?.perform(.copyThread) != true else { return }
+    pasteboard.copyText(AgentCommandTarget.plainText(of: session))
   }
 
-  /// Shows the file exporter with the Markdown of the model: the message
-  /// entries of the transcript of a session model, or the items of a thread.
-  ///
-  /// The function takes the model in the same form as ``copyThread()``.
+  /// Shows the file exporter with the Markdown of the message entries of the
+  /// transcript of the session model.
   private func export() {
-    guard let source else { return }
-    exportDocument = MarkdownDocument(text: ThreadExporter.markdown(for: source))
-  }
-
-  /// Sends the last user message before this message again.
-  ///
-  /// For an entry, the content of the last `UserMessageEntry` before the
-  /// entry goes out with `SessionModel.prompt(_:meta:)`. For a kit message,
-  /// the input goes through the thread actions.
-  private func retry() {
-    switch subject {
-    case .user(let entry): retryEntry(before: entry.id)
-    case .agent(let entry): retryEntry(before: entry.id)
-    case .message(let message): retryMessage(before: message.id)
-    }
+    guard let session else { return }
+    exportDocument = MarkdownDocument(text: ThreadExporter.markdown(for: session.transcript))
   }
 
   /// Sends the content of the last user message entry before the entry of
-  /// `id` again.
-  ///
-  /// - Parameter id: The identity of the entry of the row.
-  private func retryEntry(before id: TranscriptEntry.ID) {
+  /// this row again, with `SessionModel.prompt(_:meta:)`.
+  private func retry() {
+    let id = entry.id
     guard let session, let user = Self.lastUserEntry(before: id, in: session.transcript) else {
       logger.error("Retry found no user message entry before \(id.rowKey, privacy: .private).")
       return
@@ -373,28 +239,16 @@ public struct MessageActions: View {
     session.startPrompt(content: user.content)
   }
 
-  /// Sends the input of the last user message before the kit message of `id`
-  /// again, through the thread actions.
-  ///
-  /// - Parameter id: The id of the kit message of the row.
-  private func retryMessage(before id: String) {
-    guard let thread, let user = Self.lastUserMessage(before: id, in: thread) else {
-      logger.error("Retry found no user message before \(id, privacy: .private).")
-      return
-    }
-    actions?.startSend(Self.input(of: user))
-  }
-
   /// Puts the text of this message in the composer.
   private func edit() {
-    let text = editText
+    let text = markdown
     if let composer = commandTarget?.composer {
       composer.load(text)
       _ = composer.focus()
     } else if let promptText {
       promptText.wrappedValue = AttributedString(text)
     } else {
-      logger.error("Edit found no composer for \(logKey, privacy: .private).")
+      logger.error("Edit found no composer for \(entry.id.rowKey, privacy: .private).")
     }
   }
 }

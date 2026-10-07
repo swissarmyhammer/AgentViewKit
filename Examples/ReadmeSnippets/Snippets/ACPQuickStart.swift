@@ -34,10 +34,10 @@ struct ACPThread: View {
 
   var body: some View {
     // The session views send the prompts, the cancel, and the answers to the
-    // permission and elicitation cards through the two models. The logging
-    // actions get only the verbs that no model has, such as a terminal
-    // sign-in.
-    AgentThreadView(session: session, connection: connection, actions: LoggingThreadActions())
+    // permission and elicitation cards through the two models. The host gives
+    // only the work that no model does: a terminal sign-in runner with
+    // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
+    AgentThreadView(session: session, connection: connection)
       // The composer reads the two models from the environment.
       .environment(\.sessionModel, session)
       .environment(\.connectionModel, connection)

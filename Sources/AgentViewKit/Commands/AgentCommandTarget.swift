@@ -39,9 +39,8 @@ struct AgentComposerHook {
 /// ``perform(_:payload:)``, so that a palette, a key, and a button run the
 /// same command.
 ///
-/// The target holds the model of the scope, a `SessionModel` or an
-/// ``AgentThread``, and keeps no copy of its values. Each availability check
-/// and each run reads the model again:
+/// The target holds the `SessionModel` of the scope, and keeps no copy of its
+/// values. Each availability check and each run reads the model again:
 ///
 /// - Cancel is available while the `agentState` of the session model is
 ///   `.running` or `.requiresAction`, and it calls
@@ -53,27 +52,17 @@ struct AgentComposerHook {
 ///   transcript. Jump goes to the next or the previous user message entry.
 ///   Expand all gives each entry to the store, so that the store reads the
 ///   expanded policy for the entry.
-///
-/// The deprecated thread path reads the ``AgentThread`` and calls the
-/// ``AgentThreadActions`` in the same way. It goes away with the kit session
-/// model.
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
   static let segmentKind = "agentThread"
 
-  /// The radix of the thread identity in the focus segment: hexadecimal.
-  static let segmentIdentityRadix = 16
-
   /// The line that separates two messages in the copy text: one blank line.
   static let sectionSeparator = "\n\n"
 
-  /// The model that the commands act on, or `nil` when no scope gave one.
-  var source: ConversationSource?
-
-  /// The actions that the commands of a thread call, or `nil` when no scope
-  /// gave them. The commands of a session model call the session model.
-  var actions: (any AgentThreadActions)?
+  /// The session model that the commands act on, or `nil` when no scope
+  /// gave one.
+  var session: SessionModel?
 
   /// The pasteboard that ``AgentCommandVerb/copyThread`` writes to.
   var pasteboard: any Pasteboard = NSPasteboard.general
@@ -96,22 +85,15 @@ final class AgentCommandTarget {
   /// Makes a target with no model.
   init() {}
 
-  /// The focus segment of the scope of `source`.
+  /// The focus segment of the scope of `session`.
   ///
-  /// The identifier of a session model is its `sessionId`. The identifier of
-  /// a thread comes from the identity of the thread object. Thus two thread
-  /// views of two models in one window have two scopes.
+  /// The identifier is the `sessionId` of the session model. Thus two thread
+  /// views of two sessions in one window have two scopes.
   ///
-  /// - Parameter source: The model of the scope.
-  /// - Returns: The segment `agentThread:<identity>`.
-  static func segment(for source: ConversationSource) -> FocusSegment {
-    switch source {
-    case .thread(let thread):
-      let identity = String(UInt(bitPattern: ObjectIdentifier(thread)), radix: segmentIdentityRadix)
-      return FocusSegment(kind: segmentKind, id: identity)
-    case .session(let session):
-      return FocusSegment(kind: segmentKind, id: session.sessionId.rawValue)
-    }
+  /// - Parameter session: The session model of the scope.
+  /// - Returns: The segment `agentThread:<sessionId>`.
+  static func segment(for session: SessionModel) -> FocusSegment {
+    FocusSegment(kind: segmentKind, id: session.sessionId.rawValue)
   }
 
   // MARK: - Dispatch
@@ -146,35 +128,35 @@ final class AgentCommandTarget {
   ///   - payload: The payload of the dispatch, or `nil`.
   /// - Returns: The availability.
   func availability(of verb: AgentCommandVerb, payload: CommandPayload?) -> Availability {
-    guard let source else {
+    guard let session else {
       return .unavailable(reason: String(localized: "The thread is not shown."))
     }
-    guard isAvailable(verb, payload: payload, in: source) else {
+    guard isAvailable(verb, payload: payload, in: session) else {
       return .unavailable(reason: Self.reason(for: verb))
     }
     return .available
   }
 
-  /// Tells if `verb` can run now on `source`.
+  /// Tells if `verb` can run now on `session`.
   ///
   /// - Parameters:
   ///   - verb: The verb.
   ///   - payload: The payload of the dispatch, or `nil`.
-  ///   - source: The model of the scope.
+  ///   - session: The session model of the scope.
   /// - Returns: `true` when the verb can run.
   private func isAvailable(
-    _ verb: AgentCommandVerb, payload: CommandPayload?, in source: ConversationSource
+    _ verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel
   ) -> Bool {
     switch verb {
     case .send: canSend(payload: payload)
-    case .cancel: Self.canCancel(source)
+    case .cancel: Self.isActive(session.agentState)
     case .approvePending: answer(payload: payload, rejects: false) != nil
     case .rejectPending: answer(payload: payload, rejects: true) != nil
     case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
     case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
-    case .copyThread: !Self.plainText(of: source).isEmpty
-    case .toggleExpandAll: expandedBlocks != nil && source.rowCount > 0
-    case .scrollToBottom: anchors != nil && source.lastRowKey != nil
+    case .copyThread: !Self.plainText(of: session).isEmpty
+    case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
+    case .scrollToBottom: anchors != nil && !session.transcript.isEmpty
     case .focusComposer: composer != nil
     }
   }
@@ -195,27 +177,6 @@ final class AgentCommandTarget {
     case .scrollToBottom: String(localized: "The thread list is not shown.")
     case .focusComposer: String(localized: "The composer is not shown.")
     }
-  }
-
-  /// Tells if the agent of `source` does work that a cancel stops.
-  ///
-  /// - Parameter source: The model of the scope.
-  /// - Returns: `true` while the `agentState` of a session model is
-  ///   `.running` or `.requiresAction`, or while a thread is not idle.
-  static func canCancel(_ source: ConversationSource) -> Bool {
-    switch source {
-    case .thread(let thread): !isIdle(thread.state)
-    case .session(let session): isActive(session.agentState)
-    }
-  }
-
-  /// Tells if `state` is an idle state.
-  ///
-  /// - Parameter state: The run state of the thread.
-  /// - Returns: `true` for ``ThreadState/idle(_:)``.
-  static func isIdle(_ state: ThreadState) -> Bool {
-    if case .idle = state { return true }
-    return false
   }
 
   /// Tells if `state` is a state of foreground work.
@@ -240,16 +201,16 @@ final class AgentCommandTarget {
   ///   - payload: The payload of the dispatch, or `nil`.
   /// - Returns: `true` when the verb ran.
   func run(_ verb: AgentCommandVerb, payload: CommandPayload?) -> Bool {
-    guard let source, availability(of: verb, payload: payload).isAvailable else { return false }
+    guard let session, availability(of: verb, payload: payload).isAvailable else { return false }
     switch verb {
-    case .send: send(payload: payload, to: source)
-    case .cancel: cancel(source)
+    case .send: send(payload: payload, to: session)
+    case .cancel: session.startCancel()
     case .approvePending: respond(payload: payload, rejects: false)
     case .rejectPending: respond(payload: payload, rejects: true)
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
-    case .copyThread: pasteboard.copyText(Self.plainText(of: source))
-    case .toggleExpandAll: toggleExpandAll(source)
+    case .copyThread: pasteboard.copyText(Self.plainText(of: session))
+    case .toggleExpandAll: toggleExpandAll(session)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false
     }
@@ -272,45 +233,29 @@ final class AgentCommandTarget {
 
   /// Sends the text of the payload, or submits the composer.
   ///
-  /// A session model gets the text as `session/prompt` at once. A thread
-  /// gets it through ``AgentThreadActions/send(_:)``.
+  /// The session model gets the text as `session/prompt` at once.
   ///
   /// - Parameters:
   ///   - payload: The payload of the dispatch, or `nil`.
-  ///   - source: The model of the scope.
-  private func send(payload: CommandPayload?, to source: ConversationSource) {
+  ///   - session: The session model of the scope.
+  private func send(payload: CommandPayload?, to session: SessionModel) {
     guard let text = AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) else {
       composer?.submit()
       return
     }
-    switch source {
-    case .thread: actions?.startSend(UserInput(text: text))
-    case .session(let session): session.startPrompt(text: text)
-    }
-  }
-
-  /// Stops the work of the agent of `source`.
-  ///
-  /// A session model sends `session/cancel` with `cancel(meta:)`. A thread
-  /// calls ``AgentThreadActions/cancel()``.
-  ///
-  /// - Parameter source: The model of the scope.
-  private func cancel(_ source: ConversationSource) {
-    switch source {
-    case .thread: actions?.startCancel()
-    case .session(let session): session.startCancel()
-    }
+    session.startPrompt(text: text)
   }
 
   // MARK: - Permission
 
-  /// The request and the option that a permission answer selects.
-  private enum PermissionAnswer {
-    /// A request of a thread, and one of its options.
-    case thread(PermissionRequest, AgentViewKit.PermissionOption)
+  /// A pending permission request of the session model, and one of its ACP
+  /// options.
+  private struct PermissionAnswer {
+    /// The local id of the pending request.
+    let id: PendingPermissionRequest.ID
 
-    /// A pending request of a session model, and one of its ACP options.
-    case session(SessionModel, PendingPermissionRequest.ID, FoundationModelsACP.PermissionOption)
+    /// The option that the answer selects.
+    let option: FoundationModelsACP.PermissionOption
   }
 
   /// The request and the option that a permission answer selects.
@@ -328,34 +273,10 @@ final class AgentCommandTarget {
   ///     ``PermissionView``.
   /// - Returns: The answer, or `nil` when there is none.
   private func answer(payload: CommandPayload?, rejects: Bool) -> PermissionAnswer? {
+    guard let session else { return nil }
     let requestID = AgentCommandPayload.string(AgentCommandPayload.requestKey, in: payload)
     let optionID = AgentCommandPayload.string(AgentCommandPayload.optionKey, in: payload)
-    switch source {
-    case .thread(let thread):
-      return Self.answer(in: thread, requestID: requestID, optionID: optionID, rejects: rejects)
-    case .session(let session):
-      return Self.answer(in: session, requestID: requestID, optionID: optionID, rejects: rejects)
-    case nil:
-      return nil
-    }
-  }
-
-  /// The answer to a pending request of a thread.
-  ///
-  /// - Parameters:
-  ///   - thread: The thread.
-  ///   - requestID: The raw id of the request, or `nil` for the first one.
-  ///   - optionID: The raw id of the option, or `nil` for the first one.
-  ///   - rejects: `true` for a reject option, `false` for an allow option.
-  /// - Returns: The answer, or `nil` when there is none.
-  private static func answer(
-    in thread: AgentThread, requestID: String?, optionID: String?, rejects: Bool
-  ) -> PermissionAnswer? {
-    guard let request = select(thread.pendingPermissions, id: requestID, key: \.id.rawValue) else {
-      return nil
-    }
-    let options = PermissionPresentation.order(of: request.options).filter { isReject($0.kind) == rejects }
-    return select(options, id: optionID, key: \.id.rawValue).map { .thread(request, $0) }
+    return Self.answer(in: session, requestID: requestID, optionID: optionID, rejects: rejects)
   }
 
   /// The answer to a pending request of a session model.
@@ -375,7 +296,9 @@ final class AgentCommandTarget {
     }
     let options = PermissionPresentation.order(of: pending.request.options)
       .filter { PermissionPresentation.isReject(kind: $0.kind) == rejects }
-    return select(options, id: optionID, key: \.optionId.rawValue).map { .session(session, pending.id, $0) }
+    return select(options, id: optionID, key: \.optionId.rawValue).map {
+      PermissionAnswer(id: pending.id, option: $0)
+    }
   }
 
   /// The item whose key is `id`, or the first item when there is no `id`.
@@ -390,35 +313,19 @@ final class AgentCommandTarget {
     return items.first { key($0) == id }
   }
 
-  /// Tells if `kind` rejects the operation.
-  ///
-  /// - Parameter kind: The kind of an option of a thread request.
-  /// - Returns: `true` for `reject_once` and `reject_always`.
-  static func isReject(_ kind: AgentViewKit.PermissionOption.Kind) -> Bool {
-    kind == .rejectOnce || kind == .rejectAlways
-  }
-
   /// Sends the answer that the payload selects.
   ///
-  /// A session model gets `selectPermission(_:option:)`, and a comment of the
-  /// payload goes out as the next prompt
-  /// (`SessionModel.answerPermission(_:option:comment:)`). A thread gets the
-  /// decision with the comment through the actions.
+  /// The session model gets `selectPermission(_:option:)`, and a comment of
+  /// the payload goes out as the next prompt
+  /// (`SessionModel.answerPermission(_:option:comment:)`).
   ///
   /// - Parameters:
   ///   - payload: The payload of the dispatch, or `nil`.
   ///   - rejects: `true` for a reject option, `false` for an allow option.
   private func respond(payload: CommandPayload?, rejects: Bool) {
-    guard let answer = answer(payload: payload, rejects: rejects) else { return }
+    guard let session, let answer = answer(payload: payload, rejects: rejects) else { return }
     let comment = AgentCommandPayload.string(AgentCommandPayload.commentKey, in: payload)
-    switch answer {
-    case .thread(let request, let option):
-      guard let actions else { return }
-      let decision = PermissionDecision(outcome: .selected(option.id), comment: comment)
-      Task { await actions.respond(to: request, decision) }
-    case .session(let session, let id, let option):
-      session.answerPermission(id, option: option.optionId, comment: comment)
-    }
+    session.answerPermission(answer.id, option: answer.option.optionId, comment: comment)
   }
 
   // MARK: - Jump
@@ -432,9 +339,12 @@ final class AgentCommandTarget {
   ///   turn.
   /// - Returns: The row key of the turn, or `nil` when there is none.
   private func jumpTarget(forward: Bool) -> String? {
-    guard let source else { return nil }
-    let current = anchors?.visibleIDs.first.flatMap { source.position(of: $0) }
-    let turns = Self.turnRows(of: source)
+    guard let session else { return nil }
+    let transcript = session.transcript
+    let current = anchors?.visibleIDs.first.flatMap { key in
+      transcript.firstIndex { $0.rowKey == key }
+    }
+    let turns = Self.turnRows(of: transcript)
     if forward {
       return turns.first { turn in current.map { turn.position > $0 } ?? true }?.key
     }
@@ -444,19 +354,11 @@ final class AgentCommandTarget {
 
   /// The position and the row key of each user message row, in order.
   ///
-  /// - Parameter source: The model of the scope.
-  /// - Returns: One row for each user message item of a thread, or for each
-  ///   `UserMessageEntry` of a transcript.
-  private static func turnRows(of source: ConversationSource) -> [(position: Int, key: String)] {
-    switch source {
-    case .thread(let thread):
-      thread.items.enumerated().compactMap { position, item in
-        if case .userMessage = item { (position, item.id) } else { nil }
-      }
-    case .session(let session):
-      session.transcript.enumerated().compactMap { position, entry in
-        if case .userMessage = entry { (position, entry.rowKey) } else { nil }
-      }
+  /// - Parameter transcript: The entries of `SessionModel.transcript`.
+  /// - Returns: One row for each `UserMessageEntry` of the transcript.
+  private static func turnRows(of transcript: [TranscriptEntry]) -> [(position: Int, key: String)] {
+    transcript.enumerated().compactMap { position, entry in
+      if case .userMessage = entry { (position, entry.rowKey) } else { nil }
     }
   }
 
@@ -474,39 +376,16 @@ final class AgentCommandTarget {
 
   /// Expands each row, or collapses each row when all rows are expanded.
   ///
-  /// A transcript entry uses the entry form of the store. A thread item has
-  /// no transcript entry, so it uses the identifier form.
+  /// Each entry goes to the store in the entry form. An entry with no
+  /// decision reads the ``ExpandedBlocksStore/defaultExpanded`` policy.
   ///
-  /// - Parameter source: The model of the scope.
-  private func toggleExpandAll(_ source: ConversationSource) {
+  /// - Parameter session: The session model of the scope.
+  private func toggleExpandAll(_ session: SessionModel) {
     guard let store = expandedBlocks else { return }
-    let expandsAll = !Self.isEachRowExpanded(of: source, in: store)
-    switch source {
-    case .thread(let thread):
-      for item in thread.items {
-        if expandsAll { store.expand(id: item.id) } else { store.collapse(id: item.id) }
-      }
-    case .session(let session):
-      for entry in session.transcript {
-        if expandsAll { store.expand(entry: entry) } else { store.collapse(entry: entry) }
-      }
-    }
-  }
-
-  /// Tells if each row of `source` is expanded.
-  ///
-  /// A transcript entry with no decision reads the
-  /// ``ExpandedBlocksStore/defaultExpanded`` policy. The policy takes a
-  /// transcript entry, so a thread item reads only its decision.
-  ///
-  /// - Parameters:
-  ///   - source: The model of the scope.
-  ///   - store: The store of the expanded rows.
-  /// - Returns: `true` when each row is expanded.
-  private static func isEachRowExpanded(of source: ConversationSource, in store: ExpandedBlocksStore) -> Bool {
-    switch source {
-    case .thread(let thread): thread.items.allSatisfy { store.isExpanded(id: $0.id) }
-    case .session(let session): session.transcript.allSatisfy { store.isExpanded(entry: $0) }
+    let transcript = session.transcript
+    let expandsAll = !transcript.allSatisfy { store.isExpanded(entry: $0) }
+    for entry in transcript {
+      if expandsAll { store.expand(entry: entry) } else { store.collapse(entry: entry) }
     }
   }
 
@@ -517,38 +396,6 @@ final class AgentCommandTarget {
 
   /// The role line of an agent message.
   private static var assistantRole: String { String(localized: "Assistant") }
-
-  /// The messages of the model of a scope as plain text.
-  ///
-  /// - Parameter source: The model of the scope.
-  /// - Returns: The text, or an empty string when the model has no message
-  ///   text.
-  static func plainText(of source: ConversationSource) -> String {
-    switch source {
-    case .thread(let thread): plainText(of: thread)
-    case .session(let session): plainText(of: session)
-    }
-  }
-
-  /// The messages of the thread as plain text.
-  ///
-  /// Each user and assistant message gives one section: a role line, then
-  /// the text blocks that are for the user. A blank line separates two
-  /// sections. The text omits the other items.
-  ///
-  /// - Parameter thread: The thread.
-  /// - Returns: The text, or an empty string when the thread has no message
-  ///   text.
-  static func plainText(of thread: AgentThread) -> String {
-    thread.items.compactMap { item -> String? in
-      switch item {
-      case .userMessage(let message): section(role: userRole, texts: texts(of: message))
-      case .assistantMessage(let message): section(role: assistantRole, texts: texts(of: message))
-      case .reasoning, .toolCall, .error, .unknown: nil
-      }
-    }
-    .joined(separator: sectionSeparator)
-  }
 
   /// The message entries of the transcript of a session model as plain text,
   /// in transcript order.
@@ -578,17 +425,6 @@ final class AgentCommandTarget {
     switch role {
     case .user: userRole
     case .assistant: assistantRole
-    }
-  }
-
-  /// The text blocks of a thread message that are for the user.
-  ///
-  /// - Parameter message: The message.
-  /// - Returns: The texts, in order.
-  private static func texts(of message: Message) -> [String] {
-    message.blocks.compactMap { block -> String? in
-      guard block.isVisible(to: .user), case .text(let text) = block.content else { return nil }
-      return text
     }
   }
 

@@ -73,19 +73,6 @@ public nonisolated enum PermissionPresentation {
     sorted(items: options, by: \.kind)
   }
 
-  /// Puts the options of a kit request of the old thread path in the order
-  /// that the card shows them.
-  ///
-  /// `AgentCommandTarget` answers the requests of `AgentThread` with this
-  /// order. The function goes away with the kit request types.
-  ///
-  /// - Parameter options: The kit options, in the order of the request.
-  /// - Returns: The same options, in the order that the card gives the ACP
-  ///   options of the same kinds.
-  static func order(of options: [AgentViewKit.PermissionOption]) -> [AgentViewKit.PermissionOption] {
-    sorted(items: options) { PermissionOptionKind(wireValue: $0.kind.wireValue) }
-  }
-
   /// Sorts items by the ``position(of:)`` of their kinds. The sort is stable.
   ///
   /// - Parameters:

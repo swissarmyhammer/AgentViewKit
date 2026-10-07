@@ -20,9 +20,7 @@ import Testing
     _ model: PromptInputHostedTestModel,
     transcriber: FakeSpeechTranscriber?
   ) -> HostedViewHarness<some View> {
-    let harness = threadViewHarness(
-      size: PromptInputViewHostedTests.composerSize, actions: NoopThreadActions()
-    ) {
+    let harness = HostedViewHarness(size: PromptInputViewHostedTests.composerSize) {
       PromptInputHost(model: model)
         .speechTranscriber(transcriber)
     }

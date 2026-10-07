@@ -42,8 +42,24 @@ comments:
     evidence: swift test - 1316 tests, 128 suites, 0 failures; Scripts/check-readme.sh passed; Scripts/test-examples.sh AgentViewKitDemo - 4 tests, 0 failures
     task: ^qz932n9
   timestamp: 2026-10-07T21:52:24.685098+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4c5zptd49hx05ycmfpaxasf
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 2f6969f): 0 findings, 0 confirmed, 1 refuted. 3 files reviewed. 4 .kanban files were not reviewed because of .reviewignore. The task has no earlier Review Findings section.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-07T21:58:17.677459+00:00
+- actor: claude-code
+  id: 01m4c5zxyq3s20k33n22nj8j2t
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files (DemoAgent, ACPTabView, DemoAgentTests)
+    - test: green — swift test 1316 passed, check-readme passed, test-examples 4 passed
+    - commit: 2f6969f
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-07T21:58:24.983843+00:00
+position_column: done
+position_ordinal: ff8f80
 title: 'Demo: retry after an agent-method sign-in, and show a session after a reconnect from the thread'
 ---
 ## What

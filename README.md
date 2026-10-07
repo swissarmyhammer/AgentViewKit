@@ -11,8 +11,8 @@ kit keeps no copy of the model data. A FoundationModels agent and a
 FoundationModelsRouter agent reach the kit as an ACP agent, through
 FoundationModelsACPAgent.
 
-There are two levels of use. `AgentThreadView(session:connection:actions:)`
-shows the whole surface. The primitives below it give full control.
+There are two levels of use. `AgentThreadView(session:connection:)` shows
+the whole surface. The primitives below it give full control.
 
 ## Install
 
@@ -94,10 +94,10 @@ struct ACPThread: View {
 
   var body: some View {
     // The session views send the prompts, the cancel, and the answers to the
-    // permission and elicitation cards through the two models. The logging
-    // actions get only the verbs that no model has, such as a terminal
-    // sign-in.
-    AgentThreadView(session: session, connection: connection, actions: LoggingThreadActions())
+    // permission and elicitation cards through the two models. The host gives
+    // only the work that no model does: a terminal sign-in runner with
+    // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
+    AgentThreadView(session: session, connection: connection)
       // The composer reads the two models from the environment.
       .environment(\.sessionModel, session)
       .environment(\.connectionModel, connection)
@@ -215,7 +215,7 @@ struct HostThread: View {
 
 ### Override modifiers
 
-`AgentThreadView(session:actions:)` switches over `TranscriptEntry` inside.
+`AgentThreadView(session:connection:)` switches over `TranscriptEntry` inside.
 To replace the view of one case, chain the typed modifier of that case. The
 closure gets the observable entry object of the session model, so the view
 that it makes shows each change of the model. An inner modifier wins over an
@@ -268,15 +268,15 @@ two lists equal.
 - `StructuredItemView`: the fallback of the schema name registry, a collapsible pretty-printed `JSONValue`.
 - `CompactionMarkerView`: marks a transcript rewrite and shows its summary.
 - `UnknownItemView`: the collapsible raw view of an unknown record or block.
-- `ErrorView`: one block for each error kind, each with an action such as Retry or Compact.
+- `ErrorView`: the card of an error entry, with its JSON-RPC code, its message, and its data.
 - `ContentBlockView`: the block family: text, image, audio, resource link, resource, attachment, structured, and unknown.
 
 **Streaming content**
 
-- `ResponseView`: the paragraph-split Markdown view on Textual, with the balancer and the code block hook.
+- `ResponseView`: the paragraph-split Markdown view on Textual, with the code block hook.
 - `CodeBlockView`: a read-only EditorKit editor with copy, filename, and language.
 - `MathView`: inline and block LaTeX.
-- `ReasoningView`: collapsible, with a shimmering title while it runs, and auto-collapse when it stops.
+- `ReasoningView`: the collapsible view of a thought entry.
 - `ActivityIndicator` and `ShimmerView`: the in-progress effects.
 
 **Agent activity**
@@ -284,7 +284,7 @@ two lists equal.
 - `ToolCallView`: title, kind icon, status, locations, raw input and output, and collapsible content.
 - `TerminalView`: an agent-owned terminal with command, cwd, exit status, and ANSI output.
 - `DiffView`: the per-file list with counts, accept or reject per hunk, and attach lines to the prompt, over the EditorKit diff view.
-- `TaskListView`: the plans, keyed by id, with priority and status.
+- `TaskListView`: the checklist of a plan entry, with priority and status.
 - `ActivityTimeline`: tool calls, reasoning, and terminals in time order, with host timestamps.
 - `SubagentTreeView`: the tree of child runs, with status and drill-in.
 - `SourcesView` and `InlineCitation`: the sources of a message and the citation pills in the text.
@@ -293,7 +293,6 @@ two lists equal.
 
 **Infrastructure**
 
-- `AgentThread`, `ThreadItem`, `ThreadChange`: the model, its records, and the changes that a source applies.
 - `StreamingMarkdownBalancer`, `ScrollAnchorManager`, `ExpandedBlocksStore`: the balancer of open Markdown, the scroll anchors, and the expanded state of the blocks.
 - `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`).
 - `GrammarBundle`: the TextMate grammars of the languages that agents write most.
@@ -375,4 +374,4 @@ the scenarios and the commands.
 ## Design documents
 
 - [`plan.md`](plan.md): the architecture, the component inventory, and the decisions.
-- [`Docs/decisions/`](Docs/decisions): one file for each decision, such as the ACP version, the diff renderer, the branches, and the required thread actions.
+- [`Docs/decisions/`](Docs/decisions): one file for each decision, such as the ACP version, the diff renderer, the branches, and the scope of the ACP client kit.

@@ -5,7 +5,7 @@ import SwiftUI
 
 /// A function that gives the `MCPServerStatus` of the MCP server that a tool
 /// call waits for, or `nil` when the call does not wait for a server.
-public typealias ToolCallConnectionStateProvider = @MainActor (ToolCallRecord) -> MCPServerStatus?
+public typealias ToolCallConnectionStateProvider = @MainActor (ToolCallEntry) -> MCPServerStatus?
 
 extension EnvironmentValues {
   /// The function that gives the server status of a tool call that waits
@@ -36,12 +36,11 @@ extension View {
 /// A tool call as a compact row that expands (plan.md §5, §9 C; update.md
 /// §4.7 "Tool call view").
 ///
-/// The view shows a ``ToolCallRecord`` of an ``AgentThread``, or a
-/// `ToolCallEntry` of a `SessionModel`. It uses the ACP kind and status
-/// types for both. See ``ToolKindSymbol`` and ``ToolStatusSymbol``.
+/// The view shows a `ToolCallEntry` of a `SessionModel`. It uses the ACP kind
+/// and status types. See ``ToolKindSymbol`` and ``ToolStatusSymbol``.
 ///
-/// The row shows the symbol of the kind, the `title` as the label, the
-/// duration when the record has both times, and a status symbol:
+/// The row shows the symbol of the kind, the `title` as the label, and a
+/// status symbol:
 ///
 /// - A pending or running call shows a `ProgressView` and a status symbol
 ///   with the variable color effect.
@@ -50,8 +49,8 @@ extension View {
 /// - A failed, cancelled, lost, or unknown call shows its own symbol and
 ///   label. See ``ToolStatusSymbol``.
 ///
-/// When the host gives a server status for a record, the row also shows
-/// a ``ConnectionStatusChip``. See
+/// When the host gives a server status for the entry, the row also shows a
+/// ``ConnectionStatusChip``. See
 /// ``SwiftUI/View/toolCallConnectionState(_:)``.
 ///
 /// A press on the row expands the call. The expanded body shows the
@@ -64,9 +63,8 @@ extension View {
 ///   ``SwiftUI/View/diffRenderer(_:)`` and the actions of
 ///   ``SwiftUI/View/diffActions(_:)``. A structured ACP diff with no
 ///   `git_patch` text shows the file of each change.
-/// - A terminal shows through ``TerminalView``, with the record from the
-///   ``SwiftUI/EnvironmentValues/agentThread``. A terminal that the thread
-///   does not have shows a label with its id.
+/// - A terminal reference shows a label with the id of the terminal. The
+///   `TerminalEntry` of the terminal has its own row in the transcript.
 /// - Unknown content shows through ``UnknownItemView``.
 ///
 /// An entry whose `name` has a registration in the
@@ -79,9 +77,9 @@ extension View {
 /// also while the call is collapsed, because they wait for the user.
 ///
 /// The user decision is in the ``ExpandedBlocksStore`` of the environment,
-/// keyed by the record id or the row key of the entry. An entry with no
-/// decision uses the ``ExpandedBlocksStore/defaultExpanded`` policy of the
-/// store, and a record with no decision is collapsed. The row reads the
+/// keyed by the row key of the entry. An entry with no decision uses the
+/// ``ExpandedBlocksStore/defaultExpanded`` policy of the store. The row reads
+/// the
 /// policy, so a policy that reads the status opens the call when the model
 /// sets that status. When the environment has no store, the view uses a
 /// store of its own.
@@ -129,11 +127,8 @@ public struct ToolCallView: View {
   /// The keys of the exit code in the raw output of an `execute` call.
   static let exitCodeKeys = ["exitCode", "exit_code"]
 
-  /// The number of seconds below which the duration shows one decimal.
-  static let decimalDurationLimit: TimeInterval = 10
-
-  /// The tool call to show.
-  let source: ToolCallSource
+  /// The tool call entry to show.
+  let entry: ToolCallEntry
 
   /// The store that the view uses when the environment has no store.
   @State private var ownStore = ExpandedBlocksStore()
@@ -142,13 +137,6 @@ public struct ToolCallView: View {
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.agentTheme) private var theme
-
-  /// Makes a tool call view.
-  ///
-  /// - Parameter record: The tool call to show.
-  public init(record: ToolCallRecord) {
-    self.source = .record(record)
-  }
 
   /// Makes the tool call view of a tool call entry of a session transcript
   /// (update.md §4.7).
@@ -159,14 +147,14 @@ public struct ToolCallView: View {
   ///
   /// - Parameter entry: The tool call to show.
   public init(entry: ToolCallEntry) {
-    self.source = .entry(entry)
+    self.entry = entry
   }
 
   // MARK: - Identifiers
 
   /// The accessibility identifier of the call of `id`.
   ///
-  /// - Parameter id: The record id, or the row key of the entry.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>`.
   public static func identifier(for id: String) -> String {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: id)
@@ -175,7 +163,7 @@ public struct ToolCallView: View {
   /// The accessibility identifier of a part of the call of `id`.
   ///
   /// - Parameters:
-  ///   - id: The identifier of the record.
+  ///   - id: The row key of the entry.
   ///   - suffix: The end of the identifier, such as ``toggleSuffix``.
   /// - Returns: `tool-call-<id><suffix>`.
   static func suffixedIdentifier(for id: String, suffix: String) -> String {
@@ -184,7 +172,7 @@ public struct ToolCallView: View {
 
   /// The accessibility identifier of the row button that expands the call.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>-toggle`.
   public static func toggleIdentifier(for id: String) -> String {
     suffixedIdentifier(for: id, suffix: toggleSuffix)
@@ -192,7 +180,7 @@ public struct ToolCallView: View {
 
   /// The accessibility identifier of the expanded body.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>-body`.
   public static func bodyIdentifier(for id: String) -> String {
     suffixedIdentifier(for: id, suffix: bodySuffix)
@@ -200,7 +188,7 @@ public struct ToolCallView: View {
 
   /// The accessibility identifier of the location chips.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>-locations`.
   public static func locationsIdentifier(for id: String) -> String {
     suffixedIdentifier(for: id, suffix: locationsSuffix)
@@ -208,7 +196,7 @@ public struct ToolCallView: View {
 
   /// The accessibility identifier of the raw input.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>-input`.
   public static func inputIdentifier(for id: String) -> String {
     suffixedIdentifier(for: id, suffix: inputSuffix)
@@ -216,7 +204,7 @@ public struct ToolCallView: View {
 
   /// The accessibility identifier of the raw output.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>-output`.
   public static func outputIdentifier(for id: String) -> String {
     suffixedIdentifier(for: id, suffix: outputSuffix)
@@ -225,8 +213,8 @@ public struct ToolCallView: View {
   /// The accessibility identifier of one part of the content.
   ///
   /// - Parameters:
-  ///   - id: The identifier of the record.
-  ///   - index: The position of the part in ``ToolCallRecord/content``.
+  ///   - id: The row key of the entry.
+  ///   - index: The position of the part in the content of the entry.
   /// - Returns: `tool-call-<id>-content-<index>`.
   public static func contentIdentifier(for id: String, index: Int) -> String {
     suffixedIdentifier(for: id, suffix: contentInfix + String(index))
@@ -234,7 +222,7 @@ public struct ToolCallView: View {
 
   /// The ``BodyEvaluationCounter`` key of the row of `id`.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-row-<id>`.
   public static func rowCounterKey(for id: String) -> String {
     rowCounterPrefix + id
@@ -242,7 +230,7 @@ public struct ToolCallView: View {
 
   /// The ``BodyEvaluationCounter`` key of the expanded body of `id`.
   ///
-  /// - Parameter id: The identifier of the record.
+  /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-body-<id>`.
   public static func bodyCounterKey(for id: String) -> String {
     bodyCounterPrefix + id
@@ -277,22 +265,6 @@ public struct ToolCallView: View {
   /// - Returns: `title`, or "Tool call" when `title` is empty.
   static func displayTitle(_ title: String) -> String {
     title.isEmpty ? String(localized: "Tool call") : title
-  }
-
-  /// The duration that the row shows.
-  ///
-  /// - Parameters:
-  ///   - start: The time when the call started, or `nil`.
-  ///   - end: The time when the call ended, or `nil`.
-  /// - Returns: `nil` when a time is missing. Otherwise the seconds with one
-  ///   decimal below ten seconds, such as "1.5 s", and whole seconds from ten
-  ///   seconds, such as "12 s". A negative duration shows as zero.
-  public static func durationText(from start: Date?, to end: Date?) -> String? {
-    guard let start, let end else { return nil }
-    let seconds = max(end.timeIntervalSince(start), 0)
-    let decimals = seconds < decimalDurationLimit ? 1 : 0
-    let number = seconds.formatted(.number.precision(.fractionLength(decimals)))
-    return String(localized: "\(number) s")
   }
 
   /// The command in the raw input of an `execute` call.
@@ -335,20 +307,18 @@ public struct ToolCallView: View {
   // MARK: - Body
 
   public var body: some View {
-    let id = source.id
+    let id = entry.id.rowKey
     #if DEBUG
       BodyEvaluationCounter.note(Self.rowCounterKey(for: id))
     #endif
     let store = environmentStore ?? ownStore
-    let expanded = source.isExpanded(in: store)
-    let label = Self.accessibilityLabel(title: source.title, status: source.status)
+    let expanded = store.isExpanded(entry: .toolCall(entry))
+    let label = Self.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus)
     return VStack(alignment: .leading, spacing: theme.spacing.xs) {
       header(id: id, store: store, expanded: expanded, label: label)
-      if case .entry(let entry) = source {
-        LinkedElicitations(entry: entry)
-      }
+      LinkedElicitations(entry: entry)
       if expanded {
-        ToolCallBody(source: source)
+        ToolCallBody(entry: entry)
           .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
     }
@@ -373,7 +343,7 @@ public struct ToolCallView: View {
   ) -> some View {
     HStack(spacing: theme.spacing.s) {
       Button {
-        source.setExpanded(to: !expanded, in: store)
+        store.toggle(entry: .toolCall(entry))
       } label: {
         rowContent(expanded: expanded)
       }
@@ -381,7 +351,7 @@ public struct ToolCallView: View {
       .accessibilityLabel(label)
       .accessibilityValue(expanded ? Text("Expanded") : Text("Collapsed"))
       .accessibilityIdentifier(Self.toggleIdentifier(for: id))
-      if case .record(let record) = source, let status = connectionState?(record) {
+      if let status = connectionState?(entry) {
         ConnectionStatusChip(status: status)
       }
     }
@@ -393,20 +363,14 @@ public struct ToolCallView: View {
   /// - Returns: The content of the button.
   private func rowContent(expanded: Bool) -> some View {
     HStack(spacing: theme.spacing.s) {
-      Image(systemName: ToolKindSymbol.name(for: source.kind))
+      Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
-      Text(Self.displayTitle(source.title))
+      Text(Self.displayTitle(entry.shownTitle))
         .font(theme.proseFont)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      if let duration = Self.durationText(from: source.startedAt, to: source.endedAt) {
-        Text(duration)
-          .font(.caption)
-          .monospacedDigit()
-          .foregroundStyle(.secondary)
-      }
       statusGlyph
       Image(systemName: "chevron.right")
         .fontWeight(theme.symbolWeight)
@@ -418,7 +382,7 @@ public struct ToolCallView: View {
 
   /// The progress indicator and the status symbol.
   private var statusGlyph: some View {
-    let status = source.status
+    let status = entry.shownStatus
     let isLive = ToolStatusSymbol.isLive(status)
     return HStack(spacing: theme.spacing.xs) {
       if isLive {
@@ -444,20 +408,19 @@ public struct ToolCallView: View {
 /// registration in the ``SwiftUI/EnvironmentValues/toolCallRegistry`` shows
 /// the registered view in place of the default body.
 private struct ToolCallBody: View {
-  /// The tool call to show.
-  let source: ToolCallSource
+  /// The tool call entry to show.
+  let entry: ToolCallEntry
 
   @Environment(\.toolCallRegistry) private var registry
-  @Environment(\.agentThread) private var thread
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
-    let id = source.id
+    let id = entry.id.rowKey
     #if DEBUG
       BodyEvaluationCounter.note(ToolCallView.bodyCounterKey(for: id))
     #endif
     return Group {
-      if case .entry(let entry) = source, let renderer = registry.resolve(name: entry.name) {
+      if let renderer = registry.resolve(name: entry.name) {
         renderer(entry)
       } else {
         defaultBody(id: id)
@@ -472,15 +435,15 @@ private struct ToolCallBody: View {
   /// - Parameter id: The text identity of the call.
   /// - Returns: The body view.
   private func defaultBody(id: String) -> some View {
-    let parts = source.parts
-    let locations = source.locations
-    let showsCommandOutput = source.kind == .execute && !parts.contains(where: \.isTerminal)
+    let parts = entry.parts
+    let locations = entry.locations
+    let showsCommandOutput = entry.shownKind == .execute && !parts.contains(where: \.isTerminal)
     return VStack(alignment: .leading, spacing: theme.spacing.s) {
       if !locations.isEmpty {
         LocationChips(locations: locations)
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
       }
-      if let rawInput = source.rawInput {
+      if let rawInput = entry.rawInput {
         jsonBlock(rawInput, title: String(localized: "Input"))
           .contentContainer(identifier: ToolCallView.inputIdentifier(for: id))
       }
@@ -488,7 +451,7 @@ private struct ToolCallBody: View {
         partView(part, index: index, showsCommandOutput: showsCommandOutput)
           .contentContainer(identifier: ToolCallView.contentIdentifier(for: id, index: index))
       }
-      if let rawOutput = source.rawOutput {
+      if let rawOutput = entry.rawOutput {
         jsonBlock(rawOutput, title: String(localized: "Output"))
           .contentContainer(identifier: ToolCallView.outputIdentifier(for: id))
       }
@@ -515,45 +478,24 @@ private struct ToolCallBody: View {
   /// - Returns: The view of the part.
   @ViewBuilder
   private func partView(_ part: ToolCallPart, index: Int, showsCommandOutput: Bool) -> some View {
-    let partID = ToolCallView.contentIdentifier(for: source.id, index: index)
+    let partID = ToolCallView.contentIdentifier(for: entry.id.rowKey, index: index)
     switch part {
     case .block(let block):
-      if showsCommandOutput, let text = Self.text(of: block) {
+      if showsCommandOutput, case .text(let text) = block {
         CommandOutputView(
-          command: ToolCallView.command(from: source.rawInput),
-          output: text,
-          exitCode: ToolCallView.exitCode(from: source.rawOutput))
+          command: ToolCallView.command(from: entry.rawInput),
+          output: text.text,
+          exitCode: ToolCallView.exitCode(from: entry.rawOutput))
       } else {
-        ContentBlockView(source: block, id: partID)
+        ContentBlockView(source: .wire(block), id: partID)
       }
-    case .patch(let patch):
-      DiffView(patch: patch)
     case .diff(let diff):
       DiffView(diff: diff)
     case .terminal(let terminalID):
-      if let terminal = thread?.terminals[TerminalID(terminalID)] {
-        TerminalView(record: terminal)
-      } else {
-        Label(String(localized: "Terminal \(terminalID)"), systemImage: "terminal")
-          .foregroundStyle(.secondary)
-      }
+      Label(String(localized: "Terminal \(terminalID)"), systemImage: "terminal")
+        .foregroundStyle(.secondary)
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, wireValue: raw, id: partID)
-    }
-  }
-
-  /// The text of a text block of the content.
-  ///
-  /// - Parameter block: A kit block of a record, or the ACP block of an entry.
-  /// - Returns: The text, or `nil` for a block that is not text.
-  private static func text(
-    of block: BlockSource<ContentBlock, FoundationModelsACP.ContentBlock>
-  ) -> String? {
-    switch block {
-    case .record(let record):
-      if case .text(let text) = record.content { text } else { nil }
-    case .wire(let wire):
-      if case .text(let text) = wire { text.text } else { nil }
     }
   }
 }

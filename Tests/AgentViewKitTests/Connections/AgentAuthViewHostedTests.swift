@@ -154,23 +154,20 @@ import Testing
   ///
   /// - Parameters:
   ///   - session: The scripted session.
-  ///   - actions: The actions that the terminal input field calls.
-  ///   - thread: The thread of the environment, or `nil`.
   ///   - runner: The terminal auth runner of the environment, or `nil`.
   ///   - reconnect: The Reconnect closure of the environment, or `nil`.
   /// - Returns: The harness.
   static func harness(
     _ session: ScriptedSession,
-    actions: NoopThreadActions = NoopThreadActions(),
-    thread: AgentThread? = nil,
     runner: (any TerminalAuthRunner)? = nil,
     reconnect: AgentReconnect? = nil
   ) -> HostedViewHarness<some View> {
-    threadViewHarness(size: cardSize, actions: actions, thread: thread) {
+    HostedViewHarness(size: cardSize) {
       AgentAuthView(connection: session.connection)
         .environment(\.sessionModel, session.model)
         .terminalAuthRunner(runner)
         .agentReconnect(reconnect)
+        .transaction { $0.disablesAnimations = true }
     }
   }
 
@@ -370,32 +367,7 @@ import Testing
     #expect(harness.element(identifier: AgentAuthView.reconnectIdentifier) == nil)
   }
 
-  @Test func aTerminalRowShowsTheRecordOfTheThreadWithAnInputField() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let actions = NoopThreadActions()
-    let thread = AgentThread()
-    let terminalID = TerminalRecord.authID(for: Self.terminalMethodID)
-    thread.apply(
-      .upsertTerminal(TerminalPatch(id: terminalID, command: .value(Self.terminalCommand), output: .value(Data()))))
-    let harness = Self.harness(session, actions: actions, thread: thread)
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(
-      harness.element(identifier: TerminalView.identifier)?.label
-        == "Terminal, \(Self.terminalCommand)")
-    #expect(harness.element(identifier: TerminalView.inputIdentifier) != nil)
-
-    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
-    harness.type(Self.inputLine)
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
-
-    #expect(actions.calls == [.writeTerminalLine(Self.inputLine, terminalID)])
-  }
-
-  @Test func aTerminalRowWithNoThreadShowsNoTerminal() async throws {
+  @Test func aTerminalRowShowsNoTerminalView() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     let harness = Self.harness(session)

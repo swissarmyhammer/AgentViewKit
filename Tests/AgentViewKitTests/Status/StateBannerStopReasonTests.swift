@@ -1,11 +1,11 @@
 import AgentViewKit
-import AgentViewKitTestSupport
-import SwiftUI
+import Foundation
+import FoundationModelsACP
 import Testing
 
 /// Tests of the bar for the extension stop reasons that an agent sends
 /// (update.md §9.2).
-@Suite(.serialized, .hostedSerially) @MainActor struct StateBannerStopReasonTests {
+@Suite @MainActor struct StateBannerStopReasonTests {
   /// Each extension stop reason of the FoundationModels ACP agent, with the
   /// title that the bar must show for it.
   nonisolated static let knownReasons: [(String, String)] = [
@@ -21,13 +21,23 @@ import Testing
   /// A stop reason that no agent of the kit sends.
   nonisolated static let customReason = "_custom"
 
-  /// Each stop reason that the hosted test shows: the known reasons and one
-  /// unknown reason.
-  nonisolated static let hostedReasons = knownReasons.map(\.0) + [customReason]
+  /// Each stop reason that a test shows: the known reasons and one unknown
+  /// reason.
+  nonisolated static let shownReasons = knownReasons.map(\.0) + [customReason]
+
+  /// Decodes an idle state update with a stop reason.
+  ///
+  /// - Parameter wireValue: The raw wire value of the stop reason.
+  /// - Returns: The state update.
+  /// - Throws: The decoding error.
+  static func idleUpdate(stopReason wireValue: String) throws -> StateUpdate {
+    let json = #"{"state": "idle", "stopReason": "\#(wireValue)"}"#
+    return try JSONDecoder().decode(StateUpdate.self, from: Data(json.utf8))
+  }
 
   @Test(arguments: knownReasons)
   func eachKnownExtensionReasonShowsItsOwnText(wireValue: String, title: String) throws {
-    let message = try #require(StateBanner.message(for: .idle(StopReason(wireValue: wireValue))))
+    let message = StateBanner.message(for: try Self.idleUpdate(stopReason: wireValue))
 
     #expect(message.title == title)
     #expect(message == StateBanner.extensionStopReasonMessages[wireValue])
@@ -38,37 +48,19 @@ import Testing
   }
 
   @Test func anUnknownReasonShowsTheGeneralBarWithTheRawValue() throws {
-    let message = try #require(
-      StateBanner.message(for: .idle(StopReason(wireValue: Self.customReason))))
+    let message = StateBanner.message(for: try Self.idleUpdate(stopReason: Self.customReason))
 
     #expect(message.identifier == StateBanner.unknownStopReasonIdentifier)
     #expect(message.explanation.contains(Self.customReason))
     #expect(StateBanner.extensionStopReasonMessages[Self.customReason] == nil)
   }
 
-  @Test func endTurnShowsNoBar() {
-    #expect(StateBanner.message(for: .idle(StopReason(wireValue: "end_turn"))) == nil)
-  }
-
-  @Test func eachStopReasonBarHasADistinctTitleAndIdentifier() {
-    let messages = Self.hostedReasons.compactMap {
-      StateBanner.message(for: .idle(StopReason(wireValue: $0)))
+  @Test func eachStopReasonBarHasADistinctTitleAndIdentifier() throws {
+    let messages = try Self.shownReasons.map {
+      StateBanner.message(for: try Self.idleUpdate(stopReason: $0))
     }
 
-    #expect(messages.count == Self.hostedReasons.count)
     #expect(Set(messages.map(\.title)).count == messages.count)
     #expect(Set(messages.map(\.identifier)).count == messages.count)
-  }
-
-  @Test(arguments: hostedReasons)
-  func theHostedBarIsFoundByTheIdentifierOfItsReason(wireValue: String) throws {
-    let state = ThreadState.idle(StopReason(wireValue: wireValue))
-    let message = try #require(StateBanner.message(for: state))
-    let harness = HostedViewHarness(StateBanner(state: state))
-    defer { harness.close() }
-    harness.pump()
-
-    let element = try #require(harness.element(identifier: message.identifier))
-    #expect(element.label?.contains(message.title) == true)
   }
 }

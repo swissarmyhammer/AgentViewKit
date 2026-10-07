@@ -86,7 +86,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions()),
+      AgentThreadView(session: session.model, connection: session.connection),
       size: tallSize)
     defer { harness.close() }
 
@@ -116,8 +116,7 @@ import Testing
 
   @Test func theHeaderShowsTheRoleAndTheRelativeTime() {
     let date = Date(timeIntervalSinceNow: -120)
-    let message = ThreadFixtures.message(id: "header-date", text: "Hi.")
-    let harness = HostedViewHarness(AssistantMessageView(message: message, date: date))
+    let harness = HostedViewHarness(MessageHeader(role: .assistant, date: date))
     defer { harness.close() }
     harness.pump()
 
@@ -151,7 +150,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, actions: NoopThreadActions()), size: Self.tallSize)
+      AgentThreadView(session: session.model), size: Self.tallSize)
     defer { harness.close() }
     let image = WireBlockJSON.makeImage(data: try ContentBlockViewHostedTests.pngData(), mimeType: Self.imageMimeType)
     let expectedBlocks = [
@@ -198,14 +197,14 @@ import Testing
     _ = await waitUntil { !model.transcript.isEmpty }
     let key = try #require(model.transcript.first?.rowKey)
     let message = AssistantMessageView.identifier(for: key)
-    let plain = HostedViewHarness(AgentThreadView(session: model, actions: NoopThreadActions()), size: Self.tallSize)
+    let plain = HostedViewHarness(AgentThreadView(session: model), size: Self.tallSize)
     await plain.pump(until: Self.waitTimeout) { plain.element(identifier: message) != nil }
     #expect(plain.element(identifier: message) != nil)
     #expect(plain.element(identifier: Self.footerIdentifier) == nil)
     plain.close()
 
     let harness = HostedViewHarness(size: Self.tallSize) {
-      AgentThreadView(session: model, actions: NoopThreadActions())
+      AgentThreadView(session: model)
         .messageFooter { entry in
           Text("Footer \(entry.id.rowKey)")
             .accessibilityIdentifier(Self.footerIdentifier)

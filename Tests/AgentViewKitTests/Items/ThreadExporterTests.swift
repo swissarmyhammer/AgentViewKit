@@ -1,79 +1,13 @@
-@testable import AgentViewKit
+import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACP
 import FoundationModelsACPClient
-import PackageFileSupport
 import Testing
 
-/// Tests for the Markdown export of a thread and of a message.
+/// Tests for the Markdown export of a transcript and of the content of a
+/// message entry.
 @MainActor struct ThreadExporterTests {
-  /// The golden Markdown file of ``fixtureThread()``.
-  static let goldenPath = "Tests/AgentViewKitTests/Items/Fixtures/thread-export.md"
-
-  /// A text block that is only for the model.
-  static let hiddenBlock = ContentBlock(
-    content: .text("Hidden."), annotations: Annotations(audience: [.assistant]))
-
-  /// Makes a thread with one item of each kind that the export shows, and
-  /// items that the export omits.
-  ///
-  /// - Returns: The thread.
-  static func fixtureThread() -> AgentThread {
-    let thread = AgentThread()
-    let assistant = Message(
-      id: "assistant-1",
-      blocks: [
-        ContentBlock(text: "The README tells how to build."),
-        hiddenBlock,
-        ContentBlock(content: .image(ImageContent(data: Data(), mimeType: "image/png"))),
-        ContentBlock(text: "Run `swift build`."),
-      ])
-    let items: [ThreadItem] = [
-      .userMessage(ThreadFixtures.message(id: "user-1", text: "Read the README.")),
-      .reasoning(
-        Reasoning(
-          id: "reasoning-1", segments: ["I must read the file first.\n\n", "Then I answer."])),
-      .toolCall(ThreadFixtures.toolCall(id: "call-1", status: .completed)),
-      .unknown(UnknownRecord(id: "unknown-1", kind: "future_item", raw: .object([:]))),
-      .assistantMessage(assistant),
-    ]
-    for item in items {
-      thread.apply(.insert(item, after: nil))
-    }
-    return thread
-  }
-
-  @Test func theExportOfTheFixtureThreadEqualsTheGoldenFile() throws {
-    let golden = try PackageFiles.text(of: Self.goldenPath)
-
-    #expect(ThreadExporter.markdown(for: Self.fixtureThread()) == golden)
-  }
-
-  @Test func theExportOfAThreadSourceEqualsTheGoldenFile() throws {
-    let golden = try PackageFiles.text(of: Self.goldenPath)
-
-    #expect(ThreadExporter.markdown(for: .thread(Self.fixtureThread())) == golden)
-  }
-
-  @Test func anEmptyThreadGivesAnEmptyDocument() {
-    #expect(ThreadExporter.markdown(for: AgentThread()).isEmpty)
-  }
-
-  @Test func theMessageMarkdownHasTheTextBlocksForTheUser() {
-    let message = Message(
-      id: "message", blocks: [ContentBlock(text: "Shown."), Self.hiddenBlock, ContentBlock(text: "Also.")])
-
-    #expect(ThreadExporter.markdown(for: message) == "Shown.\n\nAlso.")
-  }
-
-  @Test func aMessageWithNoShownBlockHasNoSection() {
-    let thread = AgentThread()
-    let message = Message(id: "hidden", blocks: [Self.hiddenBlock])
-    thread.apply(.insert(.userMessage(message), after: nil))
-
-    #expect(ThreadExporter.markdown(for: thread).isEmpty)
-  }
-
   // MARK: - Transcript of a session model
 
   /// The text of the user message of ``sendTurn(to:)``.
@@ -124,15 +58,6 @@ import Testing
     #expect(ThreadExporter.markdown(for: session.model.transcript) == Self.turnMarkdown)
   }
 
-  @Test func theExportOfASessionSourceHasOnlyTheMessageEntries() async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-
-    try await Self.sendTurn(to: session)
-
-    #expect(ThreadExporter.markdown(for: .session(session.model)) == Self.turnMarkdown)
-  }
-
   @Test func aMessageEntryThatTheModelAddsIsInTheNextExport() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -151,28 +76,28 @@ import Testing
     #expect(ThreadExporter.markdown(for: [TranscriptEntry]()).isEmpty)
   }
 
-  // MARK: - Parts
+  // MARK: - Content of one entry
 
-  @Test func theFenceIsLongerThanEachBacktickRunInTheText() {
-    #expect(ThreadExporter.fenced("\"a\"") == "```json\n\"a\"\n```")
-    #expect(ThreadExporter.fenced("\"````\"") == "`````json\n\"````\"\n`````")
+  /// Decodes ACP content blocks from JSON.
+  ///
+  /// - Parameter json: The JSON array of the blocks.
+  /// - Returns: The blocks.
+  /// - Throws: The decoding error.
+  static func blocks(_ json: String) throws -> [FoundationModelsACP.ContentBlock] {
+    try JSONDecoder().decode([FoundationModelsACP.ContentBlock].self, from: Data(json.utf8))
   }
 
-  @Test func theQuoteMarksEachLine() {
-    #expect(ThreadExporter.quoted("One\n\nTwo") == "> One\n>\n> Two")
-    #expect(ThreadExporter.quoted("") == nil)
+  @Test func theContentMarkdownHasTheTextBlocksForTheUser() throws {
+    let content = try Self.blocks(
+      #"[{"type": "text", "text": "Shown."}, {"type": "image", "data": "", "mimeType": "image/png"}, "#
+        + #"{"type": "text", "text": "Also."}]"#)
+
+    #expect(ThreadExporter.markdown(for: content) == "Shown.\n\nAlso.")
   }
 
-  @Test func aLocationWithALineHasTheLineInTheSummary() {
-    let call = ToolCallRecord(
-      id: "call", title: "Edit", kind: .edit, status: .failed,
-      locations: [ToolCallLocation(path: "/a.swift", line: 7)], rawOutput: .string("No file."))
+  @Test func contentWithNoTextForTheUserGivesAnEmptyDocument() throws {
+    let content = try Self.blocks("[\(AgentCommandsTests.assistantOnlyText)]")
 
-    #expect(
-      ThreadExporter.toolCallSummary(call)
-        == .object([
-          "title": .string("Edit"), "kind": .string("edit"), "status": .string("failed"),
-          "locations": .array([.string("/a.swift:7")]), "output": .string("No file."),
-        ]))
+    #expect(ThreadExporter.markdown(for: content).isEmpty)
   }
 }

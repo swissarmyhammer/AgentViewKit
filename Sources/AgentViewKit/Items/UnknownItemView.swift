@@ -2,8 +2,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The default view of an item or a content block that the adapter did not
-/// know (plan.md §9 A2; update.md §4.4 "Unknown updates stay visible").
+/// The default view of a transcript entry or a content block that the kit
+/// does not know (plan.md §9 A2; update.md §4.4 "Unknown updates stay visible").
 ///
 /// The view is a collapsible block. Its title holds the raw kind, and its
 /// body is the raw value as pretty-printed JSON. The kit shows the value and
@@ -15,9 +15,6 @@ public struct UnknownItemView: View {
 
   /// The value that the view shows.
   private enum Source {
-    /// An unknown thread item. The body reads its current values.
-    case record(UnknownRecord)
-
     /// An unknown entry of the transcript of a `SessionModel`. The body
     /// reads its current values.
     case entry(UnknownEntry)
@@ -35,17 +32,6 @@ public struct UnknownItemView: View {
 
   /// The start state when the environment has no ``ExpandedBlocksStore``.
   let isExpanded: Bool
-
-  /// Makes the view of an unknown thread item.
-  ///
-  /// - Parameters:
-  ///   - record: The record to show.
-  ///   - isExpanded: The start state when the environment has no
-  ///     ``ExpandedBlocksStore``. The default is collapsed.
-  public init(record: UnknownRecord, isExpanded: Bool = false) {
-    self.source = .record(record)
-    self.isExpanded = isExpanded
-  }
 
   /// Makes the view of an unknown entry of a `SessionModel`.
   ///
@@ -107,8 +93,6 @@ public struct UnknownItemView: View {
   /// of the source.
   private var resolved: (id: String, kind: String, json: String) {
     switch source {
-    case .record(let record):
-      (record.id, record.kind, record.raw.prettyPrinted)
     case .entry(let entry):
       (entry.id.rowKey, entry.type, entry.raw.prettyPrinted)
     case .value(let kind, let raw, let id):

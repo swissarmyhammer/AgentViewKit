@@ -27,7 +27,7 @@ struct ThoughtEntryBlock: View {
     // The body reads the content of the entry also while the block is
     // closed, so that each chunk evaluates this view.
     let content = entry.content
-    return ReasoningBlock(id: key, isInProgress: false, duration: nil, policyEntry: .thought(entry)) {
+    return ReasoningBlock(id: key, policyEntry: .thought(entry)) {
       EntryContentView(content: content, id: key)
     }
   }

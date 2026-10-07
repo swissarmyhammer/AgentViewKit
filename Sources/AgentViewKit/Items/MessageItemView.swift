@@ -59,7 +59,7 @@ extension View {
   /// Give ``MessageActions`` for the message actions:
   ///
   /// ```swift
-  /// AgentThreadView(session: session, actions: actions)
+  /// AgentThreadView(session: session)
   ///   .messageFooter { entry in MessageActions(entry: entry) }
   /// ```
   ///

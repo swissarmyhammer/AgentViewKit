@@ -2,20 +2,12 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The task lists of the agent, one checklist for each plan (plan.md §9 C;
+/// The task list of the agent: the checklist of one plan (plan.md §9 C;
 /// update.md §4.7 "Plan view").
 ///
-/// The view shows the plans of an ``AgentThread``, or one
-/// `PlanTranscriptEntry` of a `SessionModel` at its position in the
-/// transcript.
-///
-/// For ``AgentThread/plans``, the view shows the plans in the order of their
-/// identifiers. Each plan is one section, and the section identity is the plan
-/// identifier. When the agent replaces a plan, the section stays and its
-/// entries change in place.
-///
-/// For a `PlanTranscriptEntry`, the view shows the header and the entries of
-/// the plan, with no list. The client model keeps a plan with a `planId` at
+/// The view shows one `PlanTranscriptEntry` of a `SessionModel` at its
+/// position in the transcript: the header and the entries of the plan, with
+/// no list. The client model keeps a plan with a `planId` at
 /// the position where it first appeared, and a plan with no `planId` is a new
 /// entry (update.md §4.4). Content that the kit does not know shows with its
 /// type, and its JSON shows when the user expands it.
@@ -37,72 +29,35 @@ public struct TaskListView: View {
   /// plan entry of a `SessionModel`.
   public static let unknownContentIdentifierPrefix = "task-plan-unknown-"
 
-  /// The accessibility identifier of the empty state.
-  public static let emptyIdentifier = "task-list-empty"
+  /// The plan entry to show.
+  let entry: PlanTranscriptEntry
 
-  /// The plans that the view shows.
-  enum Source {
-    /// The plans of an ``AgentThread``, keyed by identifier.
-    case plans([PlanID: Plan])
-
-    /// One plan entry of the transcript of a `SessionModel`.
-    case entry(PlanTranscriptEntry)
-  }
-
-  /// The plans to show.
-  let source: Source
-
-  /// Makes the task list.
-  ///
-  /// - Parameter plans: The plans to show, such as ``AgentThread/plans``.
-  public init(plans: [PlanID: Plan]) {
-    self.source = .plans(plans)
-  }
+  @Environment(\.agentTheme) private var theme
 
   /// Makes the task list of one plan entry of a `SessionModel`, for the row
   /// of the entry in the transcript.
   ///
   /// - Parameter entry: The plan entry to show.
   public init(entry: PlanTranscriptEntry) {
-    self.source = .entry(entry)
+    self.entry = entry
   }
 
   // MARK: - Identifiers
-
-  /// The accessibility identifier of the entry at `index` in the plan `id`.
-  ///
-  /// - Parameters:
-  ///   - id: The identifier of the plan.
-  ///   - index: The position of the entry in the plan, from `0`.
-  /// - Returns: `task-entry-<id>-<index>`.
-  public static func entryIdentifier(plan id: PlanID, index: Int) -> String {
-    entryIdentifier(row: id.rawValue, index: index)
-  }
 
   /// The accessibility identifier of the entry at `index` in the plan of the
   /// row `key`.
   ///
   /// - Parameters:
-  ///   - key: The identifier of the plan, or the row key of a plan entry of a
-  ///     `SessionModel`.
+  ///   - key: The row key of a plan entry of a `SessionModel`.
   ///   - index: The position of the entry in the plan, from `0`.
   /// - Returns: `task-entry-<key>-<index>`.
   public static func entryIdentifier(row key: String, index: Int) -> String {
     "\(entryIdentifierPrefix)\(key)-\(index)"
   }
 
-  /// The accessibility identifier of the header of the plan `id`.
-  ///
-  /// - Parameter id: The identifier of the plan.
-  /// - Returns: `task-plan-<id>`.
-  public static func planIdentifier(for id: PlanID) -> String {
-    planIdentifier(row: id.rawValue)
-  }
-
   /// The accessibility identifier of the header of the plan of the row `key`.
   ///
-  /// - Parameter key: The identifier of the plan, or the row key of a plan
-  ///   entry of a `SessionModel`.
+  /// - Parameter key: The row key of a plan entry of a `SessionModel`.
   /// - Returns: `task-plan-<key>`.
   public static func planIdentifier(row key: String) -> String {
     AccessibilityIdentifier.make(prefix: planIdentifierPrefix, value: key)
@@ -115,18 +70,6 @@ public struct TaskListView: View {
   /// - Returns: `task-plan-unknown-<key>`.
   public static func unknownContentIdentifier(row key: String) -> String {
     AccessibilityIdentifier.make(prefix: unknownContentIdentifierPrefix, value: key)
-  }
-
-  /// The ``BodyEvaluationCounter`` key that the section of the plan `id`
-  /// notes one time for each section identity, when the section first shows.
-  ///
-  /// A replaced plan keeps its section, so the count stays at one. A new
-  /// section identity adds one to the count.
-  ///
-  /// - Parameter id: The identifier of the plan.
-  /// - Returns: `task-plan-<id>-state`.
-  public static func sectionStateKey(for id: PlanID) -> String {
-    planIdentifier(for: id) + "-state"
   }
 
   // MARK: - Labels
@@ -171,24 +114,6 @@ public struct TaskListView: View {
     "\(entry.content), \(statusLabel(entry.status)), \(priorityLabel(entry.priority))"
   }
 
-  /// The accessibility label of an entry of a thread plan.
-  ///
-  /// - Parameter entry: The entry.
-  /// - Returns: The label of the ACP entry with the same text, status and
-  ///   priority.
-  public static func entryLabel(_ entry: PlanEntry) -> String {
-    entryLabel(entry.acpEntry)
-  }
-
-  /// The header text of a plan.
-  ///
-  /// - Parameter plan: The plan.
-  /// - Returns: The number of completed entries of the total, such as
-  ///   `2 of 5 done`.
-  public static func headerText(for plan: Plan) -> String {
-    headerText(for: plan.entries.map(\.acpEntry))
-  }
-
   /// The header text of the ACP entries of a plan.
   ///
   /// - Parameter entries: The entries of the plan, as the plan entry of a
@@ -200,102 +125,11 @@ public struct TaskListView: View {
     return String(localized: "\(done) of \(entries.count) done")
   }
 
-  /// The plans in the order that the view shows them: by identifier.
-  ///
-  /// - Parameter plans: The plans, keyed by identifier.
-  /// - Returns: The plans, sorted by the raw value of the identifier.
-  public static func orderedPlans(_ plans: [PlanID: Plan]) -> [Plan] {
-    plans.values.sorted { $0.id.rawValue < $1.id.rawValue }
-  }
-
   // MARK: - Body
 
+  /// The view reads the entry object, so a new plan update for the same
+  /// `planId` changes this view in place.
   public var body: some View {
-    switch source {
-    case .plans(let plans):
-      planList(plans)
-    case .entry(let entry):
-      TranscriptPlanView(entry: entry)
-    }
-  }
-
-  /// The list of the plans of a thread, or the empty state.
-  ///
-  /// - Parameter plans: The plans, keyed by identifier.
-  /// - Returns: The list.
-  @ViewBuilder private func planList(_ plans: [PlanID: Plan]) -> some View {
-    if plans.isEmpty {
-      ContentUnavailableView(
-        "No Tasks",
-        systemImage: "checklist",
-        description: Text("The task list of the agent shows here.")
-      )
-      .accessibilityElement(children: .combine)
-      .accessibilityIdentifier(Self.emptyIdentifier)
-    } else {
-      List(Self.orderedPlans(plans)) { plan in
-        PlanSection(plan: plan)
-      }
-    }
-  }
-}
-
-/// One plan in ``TaskListView``.
-private struct PlanSection: View {
-  /// The plan to show.
-  let plan: Plan
-
-  /// A value that SwiftUI makes one time for each section identity.
-  ///
-  /// The value notes ``TaskListView/sectionStateKey(for:)`` when SwiftUI makes
-  /// it, so that a test can prove that a replaced plan keeps its section.
-  @State private var identityProbe: SectionIdentityProbe
-
-  /// Makes the section.
-  ///
-  /// - Parameter plan: The plan to show.
-  init(plan: Plan) {
-    self.plan = plan
-    _identityProbe = State(wrappedValue: SectionIdentityProbe(planID: plan.id))
-  }
-
-  var body: some View {
-    Section {
-      // A `List` needs row identities that are unique over all sections. The
-      // accessibility identifier has the plan identifier and the position, so
-      // it is the row identity.
-      ForEach(entryRows, id: \.identifier) { row in
-        PlanEntryRow(entry: row.entry)
-          .accessibilityIdentifier(row.identifier)
-      }
-    } header: {
-      Text(TaskListView.headerText(for: plan))
-        .accessibilityIdentifier(TaskListView.planIdentifier(for: plan.id))
-    }
-    .onAppear { identityProbe.noteAppear() }
-  }
-
-  /// The entries of the plan as ACP entries, each with its accessibility
-  /// identifier.
-  private var entryRows: [(identifier: String, entry: FoundationModelsACP.PlanEntry)] {
-    plan.entries.enumerated().map { index, entry in
-      (TaskListView.entryIdentifier(plan: plan.id, index: index), entry.acpEntry)
-    }
-  }
-}
-
-/// One plan entry of a `SessionModel` in ``TaskListView``, at its position in
-/// the transcript.
-///
-/// The view reads the entry object, so a new plan update for the same
-/// `planId` changes this view in place.
-private struct TranscriptPlanView: View {
-  /// The plan entry to show.
-  let entry: PlanTranscriptEntry
-
-  @Environment(\.agentTheme) private var theme
-
-  var body: some View {
     let key = entry.id.rowKey
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       if let unknown = entry.unknownContent {
@@ -315,37 +149,6 @@ private struct TranscriptPlanView: View {
         }
       }
     }
-  }
-}
-
-/// The identity probe of one ``PlanSection``.
-///
-/// `@State` keeps the first value for the life of the section identity and
-/// drops each later value. So the probe notes the key one time, when the
-/// state becomes live, and not in `init`, which SwiftUI calls for each
-/// update.
-@MainActor
-private final class SectionIdentityProbe {
-  /// The identifier of the plan of the section.
-  let planID: PlanID
-
-  /// Whether the probe noted its key.
-  private var didNote = false
-
-  /// Makes a probe.
-  ///
-  /// - Parameter planID: The identifier of the plan of the section.
-  init(planID: PlanID) {
-    self.planID = planID
-  }
-
-  /// Notes the key the first time that the section shows.
-  func noteAppear() {
-    guard !didNote else { return }
-    didNote = true
-    #if DEBUG
-      BodyEvaluationCounter.note(TaskListView.sectionStateKey(for: planID))
-    #endif
   }
 }
 
