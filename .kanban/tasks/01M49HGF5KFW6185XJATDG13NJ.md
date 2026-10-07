@@ -28,6 +28,29 @@ comments:
     - evidence: 6 files — Sources/AgentViewKit/ACP/KitInitializeRequest.swift (new), Sources/DemoSupport/ACPDemoSession.swift, Sources/AgentViewKitTestSupport/ScriptedSession.swift, README.md, Examples/ReadmeSnippets/Snippets/ACPQuickStart.swift (generated), Tests/AgentViewKitTests/ACP/KitInitializeRequestTests.swift (new). Commands: swift test --filter KitInitializeRequestTests (red, then green); swift test (green); Scripts/extract-readme-snippets.sh; Scripts/check-readme.sh (pass); Scripts/test-examples.sh AgentViewKitDemo (pass).
     - next: /review
   timestamp: 2026-10-07T04:40:33.255264+00:00
+- actor: claude-code
+  id: 01m4ab3cqctjh69nq3fpretpye
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 59b8152) — 1 finding (1 confirmed, 0 refuted): Tests/AgentViewKitTests/ACP/KitInitializeRequestTests.swift:30 `test-integrity/no-test-cheating`
+    - next: /implement — fix the finding in the dated `## Review Findings (2026-10-06 23:44)` section
+  timestamp: 2026-10-07T04:49:12.428338+00:00
+- actor: claude-code
+  id: 01m4ab3ea5nrasd45nfja9ec2h
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ClientCapabilities.agentViewKit and InitializeRequest.makeAgentViewKitRequest(info:) (new); the demo, the README snippet and ScriptedSession use it; KitInitializeRequestTests (new)
+    - test: green — swift test, 1387 passed; README and demo UI gates passed
+    - commit: 59b8152
+    - review: findings — Tests/AgentViewKitTests/ACP/KitInitializeRequestTests.swift:30
+  timestamp: 2026-10-07T04:49:14.053944+00:00
+- actor: claude-code
+  id: 01m4achn77btpnbtpgsbwzv7qm
+  text: |-
+    ### implement — changed
+    - evidence: KitInitializeRequestTests.swift: the demo test checks the real properties of the demo request (info name and version as named constants, protocolVersion, elicitation form and url, no auth) through one shared helper, expectOnlyKitCapabilities(in:sourceLocation:); swift test --filter KitInitializeRequestTests passed; full swift test after rm -rf .build passed (1387 tests in 127 suites)
+    - next: review
+  timestamp: 2026-10-07T05:14:28.455923+00:00
 position_column: doing
 position_ordinal: '80'
 title: The host InitializeRequest gives only the capabilities that the kit supports
@@ -66,3 +89,15 @@ Size: 4 source files: `KitInitializeRequest.swift` (new), `ACPDemoSession.swift`
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-06 23:44)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 5 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/ACP/KitInitializeRequestTests.swift:30` `test-integrity/no-test-cheating` — Trivial assertion that cannot fail: the test compares `ACPDemoSession.initializeRequest` with `InitializeRequest.makeAgentViewKitRequest(info: ACPDemoSession.clientInfo)`, but the property is literally defined as that exact factory call, so the assertion is x == x and proves nothing. Change the test to verify that the factory method produces the correct InitializeRequest structure by asserting on actual properties (protocol version, capabilities structure, etc.) rather than comparing the property to what it's defined to be.
