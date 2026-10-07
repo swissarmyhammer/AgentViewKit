@@ -9,6 +9,10 @@ import Testing
 /// backticks at its start, with a comma or `and` between two names, and then
 /// describes them. This suite reads the names of each bullet the same way in
 /// both files and compares the two sets.
+///
+/// The suite also holds the quick starts of the README: the ACP client quick
+/// start and the in-process quick start are compiled snippets, and no Swift
+/// block of the README uses the thread path of the kit.
 @Suite struct ReadmeCoverageTests {
   /// The heading of the inventory in plan.md.
   static let planHeading = "## 9. Component inventory"
@@ -103,6 +107,33 @@ import Testing
     let names = try Self.readmeNames()
 
     #expect(Set(names).count == names.count, "README.md lists a component two times: \(names)")
+  }
+
+  /// The names of the quick start snippets of the README: the ACP client
+  /// and the in-process agent (update.md §7 item 4).
+  static let quickStartNames: Set = ["ACPQuickStart", "InProcessQuickStart"]
+
+  /// The symbols of the thread path that no Swift block of the README uses.
+  /// The views bind to the client models directly.
+  static let threadPathSymbols = ["ACPThreadSource", "AgentThread"]
+
+  /// The call of the deprecated thread initializer of `AgentThreadView`.
+  static let threadInitializerCall = "AgentThreadView(thread:"
+
+  @Test func theReadmeHasEachQuickStart() throws {
+    let names = Set(try ReadmeSnippets.readmeSnippets().map(\.name))
+
+    #expect(Self.quickStartNames.isSubset(of: names), "README.md has the snippets \(names.sorted())")
+  }
+
+  @Test func noSwiftBlockOfTheReadmeUsesTheThreadPath() throws {
+    let blocks = ReadmeSnippets.swiftBlocks(in: try ReadmeSnippets.readme())
+
+    for (position, block) in blocks.enumerated() {
+      let symbols = Self.threadPathSymbols.filter { block.contains(RemovedVocabularyTests.wholeWord($0)) }
+      #expect(symbols.isEmpty, "The Swift block \(position) of README.md uses \(symbols)")
+      #expect(!block.contains(Self.threadInitializerCall), "The Swift block \(position) of README.md uses the thread path")
+    }
   }
 
   @Test func sectionTakesTheLinesBeforeTheNextHeading() throws {

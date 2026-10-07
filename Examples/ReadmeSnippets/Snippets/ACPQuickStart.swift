@@ -2,49 +2,44 @@
 import AgentViewKit
 import FoundationModelsACP
 import FoundationModelsACPClient
-import Observation
 import SwiftUI
 
-/// Connects to an ACP v2 agent, opens a session, and binds it to a thread.
-@Observable
+/// Connects a connection model to an ACP v2 agent and opens one session.
 @MainActor
-final class ACPQuickStart {
-  let thread = AgentThread()
-  private(set) var actions: ACPThreadActions?
-  private(set) var session: SessionModel?
+enum ACPQuickStart {
+  /// The name and the version of the app in its `initialize` request.
+  static let appInfo = Implementation(name: "MyApp", version: "1.0.0")
 
-  @ObservationIgnored private let connection = ConnectionModel()
-  @ObservationIgnored private var tasks: [Task<Void, Never>] = []
-
-  func connect(over transport: any ACPTransport, cwd: String) async throws {
+  /// Connects `connection` over `transport` and opens one session.
+  static func connect(
+    _ connection: ConnectionModel, over transport: any ACPTransport, cwd: AbsolutePath
+  ) async throws -> SessionModel {
     _ = await connection.connect(over: transport)
-    // The request advertises only the capabilities that the kit views show.
-    let request = InitializeRequest.makeAgentViewKitRequest(
-      info: Implementation(name: "MyApp", version: "1.0.0"))
-    // An agent that speaks ACP v1 makes this call throw. The kit speaks v2 only.
-    let response = try await connection.initialize(request)
+    return try await openSession(on: connection, cwd: cwd)
+  }
 
-    let source = try await ACPThreadSource.openNewSession(
-      NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)), on: connection, thread: thread, agentName: "Agent")
-    source.acceptProtocolVersion(response.protocolVersion, requested: request.protocolVersion)
-    guard let session = source.session else { return }
-    tasks = [Task { await source.run() }]
-    actions = ACPThreadActions(thread: thread, session: session, connection: connection)
-    self.session = session
+  /// Sends `initialize` and `session/new` on a connected model.
+  static func openSession(on connection: ConnectionModel, cwd: AbsolutePath) async throws -> SessionModel {
+    // The request advertises only the capabilities that the kit views show.
+    // An agent that speaks ACP v1 makes this call throw. The kit speaks v2 only.
+    _ = try await connection.initialize(InitializeRequest.makeAgentViewKitRequest(info: appInfo))
+    return try await connection.newSession(NewSessionRequest(cwd: cwd))
   }
 }
 
+/// Shows one session. The view gets the two models and keeps nothing else.
 struct ACPThread: View {
-  let model: ACPQuickStart
+  let connection: ConnectionModel
+  let session: SessionModel
 
   var body: some View {
-    if let actions = model.actions {
-      // The session model holds the pending permission and elicitation
-      // requests. The thread view shows a card for each one.
-      AgentThreadView(thread: model.thread, actions: actions)
-        .environment(\.sessionModel, model.session)
-    } else {
-      ProgressView("Connecting")
-    }
+    // The session views send the prompts, the cancel, and the answers to the
+    // permission and elicitation cards through the two models. The logging
+    // actions get only the verbs that no model has, such as a terminal
+    // sign-in.
+    AgentThreadView(session: session, connection: connection, actions: LoggingThreadActions())
+      // The composer reads the two models from the environment.
+      .environment(\.sessionModel, session)
+      .environment(\.connectionModel, connection)
   }
 }

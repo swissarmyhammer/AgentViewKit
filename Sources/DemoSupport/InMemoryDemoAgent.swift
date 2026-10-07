@@ -162,6 +162,27 @@ public enum InMemoryDemoAgent {
   ///   - turn: The number of the turn, from 1.
   /// - Returns: The frames, in send order.
   static func turnFrames(for request: AgentViewKit.JSONValue, turn: Int) -> [String] {
+    turnNotifications(for: request, turn: turn).map { params in
+      AgentViewKit.JSONValue.object([
+        "jsonrpc": .string("2.0"),
+        "method": .string("session/update"),
+        "params": params,
+      ]).jsonString
+    }
+  }
+
+  /// The params of the `session/update` notifications of one turn, after the
+  /// prompt result.
+  ///
+  /// ``turnFrames(for:turn:)`` sends them as raw frames, and
+  /// ``InMemoryDemoACPAgent`` sends them through an `AgentSideConnection`.
+  ///
+  /// - Parameters:
+  ///   - request: The `session/prompt` request frame. Only its `params`
+  ///     member is read.
+  ///   - turn: The number of the turn, from 1.
+  /// - Returns: The params, in send order.
+  static func turnNotifications(for request: AgentViewKit.JSONValue, turn: Int) -> [AgentViewKit.JSONValue] {
     let sessionId = request["params"]?["sessionId"] ?? .string(sessionID)
     let reply = replyText(to: ScriptedWireAgent.promptText(of: request))
     let replyID = AgentViewKit.JSONValue.string(replyID(turn: turn))
@@ -205,11 +226,7 @@ public enum InMemoryDemoAgent {
         ]),
       ]
     return updates.map { update in
-      AgentViewKit.JSONValue.object([
-        "jsonrpc": .string("2.0"),
-        "method": .string("session/update"),
-        "params": .object(["sessionId": sessionId, "update": update]),
-      ]).jsonString
+      AgentViewKit.JSONValue.object(["sessionId": sessionId, "update": update])
     }
   }
 

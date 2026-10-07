@@ -48,62 +48,59 @@ code that we build. See [The README gate](#the-readme-gate).
 
 ### An ACP agent
 
-`ConnectionModel` of FoundationModelsACPClient connects to the agent and opens
-the session. `ACPThreadSource` fills the thread from the `SessionModel` of the
-session: first from the state of the model, then from each `session/update`.
-`ACPThreadActions` sends the prompts and the cancel to the agent through the
-two models. The `SessionModel` holds the pending permission and elicitation
-requests, and the cards of the thread view send each answer to it.
+`ConnectionModel` of FoundationModelsACPClient connects to the agent and holds
+the state of the connection. `ConnectionModel.newSession(_:)` opens a session
+and gives its `SessionModel`. The session model holds the transcript, the
+agent state, and the pending permission and elicitation requests. The views
+of the kit bind to the two models directly. The kit keeps no copy of their
+state.
+
+For an agent program, the transport is the `transport` of an `AgentProcess`.
 
 ```swift
 // readme:compile ACPQuickStart
 import AgentViewKit
 import FoundationModelsACP
 import FoundationModelsACPClient
-import Observation
 import SwiftUI
 
-/// Connects to an ACP v2 agent, opens a session, and binds it to a thread.
-@Observable
+/// Connects a connection model to an ACP v2 agent and opens one session.
 @MainActor
-final class ACPQuickStart {
-  let thread = AgentThread()
-  private(set) var actions: ACPThreadActions?
-  private(set) var session: SessionModel?
+enum ACPQuickStart {
+  /// The name and the version of the app in its `initialize` request.
+  static let appInfo = Implementation(name: "MyApp", version: "1.0.0")
 
-  @ObservationIgnored private let connection = ConnectionModel()
-  @ObservationIgnored private var tasks: [Task<Void, Never>] = []
-
-  func connect(over transport: any ACPTransport, cwd: String) async throws {
+  /// Connects `connection` over `transport` and opens one session.
+  static func connect(
+    _ connection: ConnectionModel, over transport: any ACPTransport, cwd: AbsolutePath
+  ) async throws -> SessionModel {
     _ = await connection.connect(over: transport)
-    // The request advertises only the capabilities that the kit views show.
-    let request = InitializeRequest.makeAgentViewKitRequest(
-      info: Implementation(name: "MyApp", version: "1.0.0"))
-    // An agent that speaks ACP v1 makes this call throw. The kit speaks v2 only.
-    let response = try await connection.initialize(request)
+    return try await openSession(on: connection, cwd: cwd)
+  }
 
-    let source = try await ACPThreadSource.openNewSession(
-      NewSessionRequest(cwd: AbsolutePath(rawValue: cwd)), on: connection, thread: thread, agentName: "Agent")
-    source.acceptProtocolVersion(response.protocolVersion, requested: request.protocolVersion)
-    guard let session = source.session else { return }
-    tasks = [Task { await source.run() }]
-    actions = ACPThreadActions(thread: thread, session: session, connection: connection)
-    self.session = session
+  /// Sends `initialize` and `session/new` on a connected model.
+  static func openSession(on connection: ConnectionModel, cwd: AbsolutePath) async throws -> SessionModel {
+    // The request advertises only the capabilities that the kit views show.
+    // An agent that speaks ACP v1 makes this call throw. The kit speaks v2 only.
+    _ = try await connection.initialize(InitializeRequest.makeAgentViewKitRequest(info: appInfo))
+    return try await connection.newSession(NewSessionRequest(cwd: cwd))
   }
 }
 
+/// Shows one session. The view gets the two models and keeps nothing else.
 struct ACPThread: View {
-  let model: ACPQuickStart
+  let connection: ConnectionModel
+  let session: SessionModel
 
   var body: some View {
-    if let actions = model.actions {
-      // The session model holds the pending permission and elicitation
-      // requests. The thread view shows a card for each one.
-      AgentThreadView(thread: model.thread, actions: actions)
-        .environment(\.sessionModel, model.session)
-    } else {
-      ProgressView("Connecting")
-    }
+    // The session views send the prompts, the cancel, and the answers to the
+    // permission and elicitation cards through the two models. The logging
+    // actions get only the verbs that no model has, such as a terminal
+    // sign-in.
+    AgentThreadView(session: session, connection: connection, actions: LoggingThreadActions())
+      // The composer reads the two models from the environment.
+      .environment(\.sessionModel, session)
+      .environment(\.connectionModel, connection)
   }
 }
 ```
@@ -111,10 +108,52 @@ struct ACPThread: View {
 The kit speaks ACP protocol version 2 only
 ([`Docs/decisions/acp-version.md`](Docs/decisions/acp-version.md)). The agents
 that are available today (Claude Code, Codex, and Gemini CLI) speak version 1.
-The kit refuses such an agent: `initialize` throws, or `ACPThreadSource` adds
-one error record that names the two versions, and the thread gets no update.
+The kit refuses such an agent: `initialize` throws, and no session opens.
 The first agent of the kit is FoundationModelsACPAgent, which speaks version
 2. The demo app uses an in-memory agent that speaks version 2.
+
+### An agent in this process
+
+`InProcessAgent.makeConnection(serving:)` runs an ACP agent in the process of
+the app. It pairs an `InMemoryTransport`, serves the agent on one end with an
+`AgentSideConnection`, and connects a new `ConnectionModel` on the other end.
+The two sides speak the real ACP wire. The helper returns the connection
+model and keeps no state of its own. The kit does not import an agent: the
+app gives it, for example the `RoutedACPAgent` of FoundationModelsACPAgent.
+When the agent closes its connection, `ConnectionModel.state` becomes
+`.disconnected`.
+
+```swift
+// readme:compile InProcessQuickStart
+import AgentViewKit
+import FoundationModelsACP
+import FoundationModelsACPClient
+
+/// Runs an ACP agent in this process and opens one session on it.
+@MainActor
+enum InProcessQuickStart {
+  /// Starts the agent that `makeAgent` makes, and opens one session.
+  ///
+  /// With FoundationModelsACPAgent, the closure binds a `RoutedACPAgent`:
+  ///
+  /// ```swift
+  /// let agent = try await RoutedACPAgent(name: name, router: router)
+  /// let (connection, session) = try await InProcessQuickStart.start(cwd: cwd) { connection in
+  ///   agent.bind(connection: connection)
+  ///   return agent
+  /// }
+  /// ```
+  ///
+  /// Show the session with `ACPThread(connection:session:)` of the quick
+  /// start above.
+  static func start(
+    cwd: AbsolutePath, serving makeAgent: @Sendable (AgentSideConnection) -> any Agent
+  ) async throws -> (connection: ConnectionModel, session: SessionModel) {
+    let connection = await InProcessAgent.makeConnection(serving: makeAgent)
+    return (connection, try await ACPQuickStart.openSession(on: connection, cwd: cwd))
+  }
+}
+```
 
 ## The host app
 
@@ -125,11 +164,16 @@ typed modifiers for the item kinds that your app shows in its own way.
 ```swift
 // readme:compile HostApp
 import AgentViewKit
+import FoundationModelsACPClient
 import SwiftUI
 import UniformTypeIdentifiers
 
 // Add `@main` to make this the entry point of your app.
 struct HostApp: App {
+  /// The connection to the agent. Connect it and open a session with a quick
+  /// start above.
+  @State private var connection = ConnectionModel()
+
   init() {
     // Loads the bundled grammars now, so that the first code block does not wait.
     GrammarBundle.register()
@@ -137,18 +181,22 @@ struct HostApp: App {
 
   var body: some Scene {
     WindowGroup {
-      // A thread that no source drives takes the logging actions.
-      HostThread(thread: AgentThread(), actions: LoggingThreadActions())
+      // The window shows an open session of the connection model.
+      if let session = connection.openSessions.values.first {
+        HostThread(connection: connection, session: session)
+      } else {
+        ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")
+      }
     }
   }
 }
 
 struct HostThread: View {
-  let thread: AgentThread
-  let actions: any AgentThreadActions
+  let connection: ConnectionModel
+  let session: SessionModel
 
   var body: some View {
-    AgentThreadView(thread: thread, actions: actions)
+    ACPThread(connection: connection, session: session)
       // One typed modifier for each transcript entry case. The closure gets
       // the entry object of the session model.
       .toolCallView { call in Text(call.title ?? "") }

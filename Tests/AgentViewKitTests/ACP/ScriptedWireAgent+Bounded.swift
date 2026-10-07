@@ -28,11 +28,32 @@ extension ScriptedWireAgent {
   /// - Parameter operation: The operation to run.
   /// - Returns: The result of `operation`.
   func bounded<Result>(_ operation: () async throws -> Result) async rethrows -> Result {
-    let watchdog = Task { [self] in
-      try? await Task.sleep(for: Self.operationLimit)
+    try await ACPTestTimeLimit.run(stopping: { [self] in stop() }, operation)
+  }
+}
+
+/// The time limit of each ACP test, for each kind of agent.
+enum ACPTestTimeLimit {
+  /// Runs `operation` with the time limit of
+  /// ``ScriptedWireAgent/operationLimit``.
+  ///
+  /// When the time runs out, the function records an issue and calls `stop`.
+  /// The stop must close the agent, so that each request that waits for the
+  /// agent fails, and `operation` ends.
+  ///
+  /// - Parameters:
+  ///   - stop: Stops the agent of the test.
+  ///   - operation: The operation to run.
+  /// - Returns: The result of `operation`.
+  static func run<Result>(
+    stopping stop: @escaping @MainActor () async -> Void,
+    _ operation: () async throws -> Result
+  ) async rethrows -> Result {
+    let watchdog = Task {
+      try? await Task.sleep(for: ScriptedWireAgent.operationLimit)
       guard !Task.isCancelled else { return }
       Issue.record("The operation did not end in time.")
-      stop()
+      await stop()
     }
     defer { watchdog.cancel() }
     return try await operation()

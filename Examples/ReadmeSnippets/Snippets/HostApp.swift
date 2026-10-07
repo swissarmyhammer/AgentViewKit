@@ -1,10 +1,15 @@
 // readme:compile HostApp
 import AgentViewKit
+import FoundationModelsACPClient
 import SwiftUI
 import UniformTypeIdentifiers
 
 // Add `@main` to make this the entry point of your app.
 struct HostApp: App {
+  /// The connection to the agent. Connect it and open a session with a quick
+  /// start above.
+  @State private var connection = ConnectionModel()
+
   init() {
     // Loads the bundled grammars now, so that the first code block does not wait.
     GrammarBundle.register()
@@ -12,18 +17,22 @@ struct HostApp: App {
 
   var body: some Scene {
     WindowGroup {
-      // A thread that no source drives takes the logging actions.
-      HostThread(thread: AgentThread(), actions: LoggingThreadActions())
+      // The window shows an open session of the connection model.
+      if let session = connection.openSessions.values.first {
+        HostThread(connection: connection, session: session)
+      } else {
+        ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")
+      }
     }
   }
 }
 
 struct HostThread: View {
-  let thread: AgentThread
-  let actions: any AgentThreadActions
+  let connection: ConnectionModel
+  let session: SessionModel
 
   var body: some View {
-    AgentThreadView(thread: thread, actions: actions)
+    ACPThread(connection: connection, session: session)
       // One typed modifier for each transcript entry case. The closure gets
       // the entry object of the session model.
       .toolCallView { call in Text(call.title ?? "") }

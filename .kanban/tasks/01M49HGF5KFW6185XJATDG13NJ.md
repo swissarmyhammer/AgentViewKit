@@ -51,8 +51,24 @@ comments:
     - evidence: KitInitializeRequestTests.swift: the demo test checks the real properties of the demo request (info name and version as named constants, protocolVersion, elicitation form and url, no auth) through one shared helper, expectOnlyKitCapabilities(in:sourceLocation:); swift test --filter KitInitializeRequestTests passed; full swift test after rm -rf .build passed (1387 tests in 127 suites)
     - next: review
   timestamp: 2026-10-07T05:14:28.455923+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4acn8gzdcyzyvw4yw0md51q
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 6ada59b) — 0 findings (0 confirmed, 0 refuted; 7 validator runs attempted, 0 failed). All prior review items are checked. The task moved to done.
+    - next: none
+  timestamp: 2026-10-07T05:16:26.527381+00:00
+- actor: claude-code
+  id: 01m4acn9jjgbb2kpst497701p1
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — the demo test checks the real request properties through expectOnlyKitCapabilities
+    - test: green — swift test after a clean build, 1387 passed
+    - commit: 6ada59b
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T05:16:27.602402+00:00
+position_column: done
+position_ordinal: ff8180
 title: The host InitializeRequest gives only the capabilities that the kit supports
 ---
 ## What
