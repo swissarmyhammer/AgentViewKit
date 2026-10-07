@@ -1,40 +1,45 @@
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 
 /// The in-thread card that asks the user for permission to do an operation
-/// (plan.md §9 E, §12).
+/// (plan.md §9 E, §12; update.md §4.2 "Pending requests").
+///
+/// The card shows one `PendingPermissionRequest` of a `SessionModel`. It reads
+/// each value from that request and from the session model in its body, and
+/// keeps no copy of them.
 ///
 /// The card is a glass card with these parts:
 ///
 /// - The title of the request, and its description when it has one.
 /// - The subject. For a tool call, the card shows the title and the kind of
-///   the ``ToolCallRecord`` in the ``SwiftUI/EnvironmentValues/agentThread``.
-///   For a command, the card shows the command, the working directory, and,
-///   when the thread has the related ``TerminalRecord``, a button that shows
-///   the ``TerminalView`` of that record.
+///   the `ToolCallEntry` of the session model. For a command, the card shows
+///   the command, the working directory, and, when the session model has the
+///   related `TerminalEntry`, a button that shows the ``TerminalView`` of that
+///   entry.
 /// - One button for each option of the request, in the order of
-///   ``PermissionPresentation/order(of:)``. The `allow_once` button is
+///   `PermissionPresentation.order(of:)`. The `allow_once` button is
 ///   prominent. The kept answers and the unknown kinds are secondary
-///   (``PermissionPresentation/isSecondary(_:)``).
+///   (``PermissionPresentation/isSecondary(kind:)``).
 /// - A "switch to auto" button when
 ///   ``PermissionPresentation/autoModeOption(in:)`` gives an option for the
-///   config options of the thread, and the request has an `allow_once`
-///   option.
+///   `configOptions` of the session model, and the request has an
+///   `allow_once` option.
 ///
-/// A press on an `allow` option sends the decision at once. A press on a
-/// `reject` option shows a comment field. The Send button of the field, or
-/// Return in the field, sends the decision with the comment. An empty comment
-/// sends no comment. Esc sends ``PermissionDecision/Outcome/cancelled``.
+/// A press on an `allow` option calls `selectPermission(_:option:)` on the
+/// session model at once. A press on a `reject` option shows a comment field.
+/// The Send button of the field, or Return in the field, selects the option.
+/// The wire has no field for a comment, so a comment that is not empty then
+/// goes out as the next prompt (`Docs/decisions/permission-ux.md`). Esc calls
+/// `cancelPermission(_:)`.
 ///
-/// The "switch to auto" button sends the `allow_once` option, then sets the
+/// The "switch to auto" button selects the `allow_once` option, then sets the
 /// mode option to ``PermissionPresentation/autoModeValue``. This is the order
 /// of `Docs/decisions/permission-ux.md`.
 ///
-/// Each answer goes to the session model in
-/// ``SwiftUI/EnvironmentValues/permissionReplies``, which calls
-/// `selectPermission(_:option:)` or `cancelPermission(_:)`. A comment then
-/// goes out as the next prompt. The card sends one answer only. The
-/// "switch to auto" button sets the mode through the `threadActions`
-/// environment value.
+/// The session model removes the request when it resolves, so the host
+/// removes the card. The card answers only while the session model holds the
+/// request: an answer after the request resolved does nothing.
 ///
 /// The view keeps the selected reject option and the comment in state. Give
 /// each request its own view identity, for example with `.id(request.id)`.
@@ -67,18 +72,21 @@ public struct PermissionView: View {
 
   /// The accessibility identifier of the button of an option.
   ///
-  /// - Parameter id: The identifier of the option.
+  /// - Parameter id: The `optionId` of the option.
   /// - Returns: `permission-option-<id>`.
-  public static func optionIdentifier(for id: PermissionOptionID) -> String {
+  public static func optionIdentifier(for id: PermissionOptionId) -> String {
     AccessibilityIdentifier.make(prefix: optionIdentifierPrefix, value: id.rawValue)
   }
 
-  /// The request to answer.
-  let request: PermissionRequest
+  /// The pending request to answer.
+  let request: PendingPermissionRequest
+
+  /// The session model that holds the request.
+  let session: SessionModel
 
   /// The reject option that the user selected, or `nil`. While it has a
   /// value, the card shows the comment field.
-  @State private var selectedReject: PermissionOption?
+  @State private var selectedReject: FoundationModelsACP.PermissionOption?
 
   /// The text of the comment field.
   @State private var comment = ""
@@ -86,41 +94,38 @@ public struct PermissionView: View {
   /// Whether the card shows the related terminal.
   @State private var showsTerminal = false
 
-  /// Whether the card sent its answer.
-  @State private var isAnswered = false
-
   /// Whether the card has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.permissionReplies) private var replies
-  @Environment(\.threadActions) private var actions
-  @Environment(\.agentThread) private var thread
   @Environment(\.agentTheme) private var theme
 
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
 
-  /// Makes the card of `request`.
+  /// Makes the card of a pending permission request.
   ///
-  /// - Parameter request: The request to answer.
-  public init(request: PermissionRequest) {
+  /// - Parameters:
+  ///   - request: A pending request of `session.pendingPermissions`.
+  ///   - session: The session model that holds the request.
+  public init(request: PendingPermissionRequest, session: SessionModel) {
     self.request = request
+    self.session = session
   }
 
   // MARK: Body
 
   public var body: some View {
-    let options = PermissionPresentation.order(of: request.options)
+    let options = PermissionPresentation.order(of: request.request.options)
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       header
-      if let subject = request.subject {
-        subjectView(subject)
+      if let subject = request.request.subject {
+        subjectView(for: subject)
       }
-      optionButtons(options)
+      optionButtons(for: options)
       if let selectedReject {
-        commentRow(selectedReject)
+        commentRow(for: selectedReject)
       }
-      switchToAutoButton(options)
+      switchToAutoButton(for: options)
     }
     .padding(theme.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,9 +134,9 @@ public struct PermissionView: View {
     .focusEffectDisabled()
     .focused($isFocused)
     .defaultFocus($isFocused, true)
-    .onExitCommand { send(PermissionDecision(outcome: .cancelled)) }
+    .onExitCommand { session.cancelPermission(request.id) }
     .accessibilityElement(children: .contain)
-    .accessibilityLabel(request.title)
+    .accessibilityLabel(request.request.title)
     .accessibilityIdentifier(Self.identifier)
     .accessibilityFocusTarget(Self.identifier)
     .onAppear { moveFocus(to: Self.identifier) }
@@ -140,14 +145,14 @@ public struct PermissionView: View {
   /// The title and the description.
   private var header: some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      Label(request.title, systemImage: Self.symbol)
+      Label(request.request.title, systemImage: Self.symbol)
         .font(.headline)
         .fontWeight(theme.symbolWeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(request.title)
+        .accessibilityLabel(request.request.title)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)
-      if let description = request.description {
+      if let description = request.request.description {
         Text(description)
           .font(.callout)
           .foregroundStyle(.secondary)
@@ -160,59 +165,73 @@ public struct PermissionView: View {
 
   /// The view of the subject of the request.
   ///
-  /// - Parameter subject: The subject.
-  /// - Returns: The tool call summary, or the command with its terminal link.
+  /// - Parameter subject: The ACP subject.
+  /// - Returns: The tool call summary, the command with its terminal link, or
+  ///   no view for a subject kind that the kit does not know.
   @ViewBuilder
-  private func subjectView(_ subject: PermissionRequest.Subject) -> some View {
+  private func subjectView(for subject: RequestPermissionSubject) -> some View {
     switch subject {
-    case .toolCall(let id):
-      toolCallSummary(id: id)
+    case .toolCall(let toolCall):
+      toolCallSummary(id: toolCall.toolCall.toolCallId)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(Self.subjectIdentifier)
-    case .command(let command, let cwd, _, let terminalId):
-      VStack(alignment: .leading, spacing: theme.spacing.s) {
-        VStack(alignment: .leading, spacing: theme.spacing.xs) {
-          Label(command, systemImage: Self.commandSymbol)
-            .font(.body.monospaced())
-            .textSelection(.enabled)
-          Label(cwd, systemImage: Self.directorySymbol)
-            .font(.caption.monospaced())
-            .foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Command \(command), in \(cwd)")
-        .accessibilityIdentifier(Self.subjectIdentifier)
-        if let terminalId, let record = thread?.terminals[terminalId] {
-          terminalLink(record)
-        }
-      }
+    case .command(let command):
+      commandSummary(of: command)
+    case .unknown:
+      EmptyView()
     }
   }
 
   /// The title and the kind of the tool call with `id`.
   ///
-  /// - Parameter id: The identifier of the tool call.
-  /// - Returns: The summary. When the thread has no such tool call, the
-  ///   summary shows the identifier.
+  /// - Parameter id: The id of the tool call.
+  /// - Returns: The summary from the `ToolCallEntry` of the session model.
+  ///   When the session model has no such entry, the summary shows the id.
   @ViewBuilder
-  private func toolCallSummary(id: String) -> some View {
-    if case .toolCall(let record) = thread?.item(id: id) {
+  private func toolCallSummary(id: ToolCallId) -> some View {
+    if let entry = toolCallEntry(withID: id) {
       HStack(spacing: theme.spacing.s) {
-        Label(record.title, systemImage: Self.toolCallSymbol)
-        Text(record.kind.wireValue)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(entry.title ?? id.rawValue, systemImage: Self.toolCallSymbol)
+        if let kind = entry.kind {
+          Text(kind.wireValue)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
       }
     } else {
-      Label("Tool call \(id)", systemImage: Self.toolCallSymbol)
+      Label("Tool call \(id.rawValue)", systemImage: Self.toolCallSymbol)
+    }
+  }
+
+  /// The command, its working directory, and the link to its terminal.
+  ///
+  /// - Parameter command: The ACP command subject.
+  /// - Returns: The summary, with the terminal link when the session model
+  ///   has the `TerminalEntry` of the command.
+  private func commandSummary(of command: CommandPermissionSubject) -> some View {
+    VStack(alignment: .leading, spacing: theme.spacing.s) {
+      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+        Label(command.command, systemImage: Self.commandSymbol)
+          .font(.body.monospaced())
+          .textSelection(.enabled)
+        Label(command.cwd.rawValue, systemImage: Self.directorySymbol)
+          .font(.caption.monospaced())
+          .foregroundStyle(.secondary)
+      }
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel("Command \(command.command), in \(command.cwd.rawValue)")
+      .accessibilityIdentifier(Self.subjectIdentifier)
+      if let terminalId = command.terminalId, let entry = terminalEntry(withID: terminalId) {
+        terminalLink(to: entry)
+      }
     }
   }
 
   /// The button that shows or hides the terminal, and the terminal.
   ///
-  /// - Parameter record: The related terminal.
+  /// - Parameter entry: The related terminal entry of the session model.
   /// - Returns: The link and, while it is open, the ``TerminalView``.
-  private func terminalLink(_ record: TerminalRecord) -> some View {
+  private func terminalLink(to entry: TerminalEntry) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       Button(showsTerminal ? "Hide Terminal" : "Show Terminal") {
         showsTerminal.toggle()
@@ -220,37 +239,70 @@ public struct PermissionView: View {
       .buttonStyle(.link)
       .accessibilityIdentifier(Self.terminalLinkIdentifier)
       if showsTerminal {
-        TerminalView(record: record)
+        TerminalView(entry: entry)
       }
     }
+  }
+
+  /// The tool call entry of the session model with the id of a tool call.
+  ///
+  /// - Parameter id: The id of the tool call.
+  /// - Returns: The entry, or `nil` when the transcript has none.
+  private func toolCallEntry(withID id: ToolCallId) -> ToolCallEntry? {
+    transcriptEntry(withID: .toolCall(id)) { entry in
+      if case .toolCall(let toolCall) = entry { toolCall } else { nil }
+    }
+  }
+
+  /// The terminal entry of the session model with the id of a terminal.
+  ///
+  /// - Parameter id: The id of the terminal.
+  /// - Returns: The entry, or `nil` when the transcript has none.
+  private func terminalEntry(withID id: TerminalId) -> TerminalEntry? {
+    transcriptEntry(withID: .terminal(id)) { entry in
+      if case .terminal(let terminal) = entry { terminal } else { nil }
+    }
+  }
+
+  /// The entry of the transcript of the session model with a wire id.
+  ///
+  /// - Parameters:
+  ///   - id: The wire id of the entry.
+  ///   - object: Gives the entry object of the expected kind.
+  /// - Returns: The entry object, or `nil` when the transcript has no entry of
+  ///   that kind with that id.
+  private func transcriptEntry<Entry>(
+    withID id: FoundationModelsACP.SessionEntry.ID, as object: (TranscriptEntry) -> Entry?
+  ) -> Entry? {
+    let identity = TranscriptEntry.ID.wire(id)
+    return session.transcript.first { $0.id == identity }.flatMap(object)
   }
 
   // MARK: Options
 
   /// One button for each option.
   ///
-  /// - Parameter options: The options in display order.
+  /// - Parameter options: The ACP options in display order.
   /// - Returns: The row of buttons.
-  private func optionButtons(_ options: [PermissionOption]) -> some View {
+  private func optionButtons(for options: [FoundationModelsACP.PermissionOption]) -> some View {
     HStack(spacing: theme.spacing.s) {
-      ForEach(options) { option in
-        optionButton(option)
+      ForEach(options, id: \.optionId) { option in
+        optionButton(for: option)
       }
     }
-    .disabled(isAnswered)
   }
 
   /// The button of one option, with the weight of its kind.
   ///
-  /// - Parameter option: The option.
+  /// - Parameter option: The ACP option.
   /// - Returns: The button.
   @ViewBuilder
-  private func optionButton(_ option: PermissionOption) -> some View {
-    let button = Button(option.name) { select(option) }
-      .accessibilityIdentifier(Self.optionIdentifier(for: option.id))
+  private func optionButton(for option: FoundationModelsACP.PermissionOption) -> some View {
+    let button = Button(option.name) { didPress(option: option) }
+      .accessibilityIdentifier(Self.optionIdentifier(for: option.optionId))
     if option.kind == .allowOnce {
       button.buttonStyle(.glassProminent)
-    } else if PermissionPresentation.isSecondary(option.kind) {
+    } else if PermissionPresentation.isSecondary(kind: option.kind) {
       button.buttonStyle(.glass).foregroundStyle(.secondary)
     } else {
       button.buttonStyle(.glass)
@@ -261,97 +313,93 @@ public struct PermissionView: View {
   ///
   /// - Parameter option: The reject option that the user selected.
   /// - Returns: The row.
-  private func commentRow(_ option: PermissionOption) -> some View {
+  private func commentRow(for option: FoundationModelsACP.PermissionOption) -> some View {
     HStack(spacing: theme.spacing.s) {
       TextField("Tell the agent what to do instead", text: $comment)
         .textFieldStyle(.roundedBorder)
-        .onSubmit { sendReject(option) }
+        .onSubmit { sendReject(option: option) }
         .accessibilityIdentifier(Self.commentIdentifier)
-      Button("Send") { sendReject(option) }
+      Button("Send") { sendReject(option: option) }
         .buttonStyle(.glass)
         .accessibilityIdentifier(Self.commentSubmitIdentifier)
     }
-    .disabled(isAnswered)
   }
 
   /// The "switch to auto" button, when the card offers it.
   ///
-  /// - Parameter options: The options in display order.
+  /// - Parameter options: The ACP options in display order.
   /// - Returns: The button, or no view.
   @ViewBuilder
-  private func switchToAutoButton(_ options: [PermissionOption]) -> some View {
-    if let modeOption = PermissionPresentation.autoModeOption(in: thread?.configOptions ?? []),
+  private func switchToAutoButton(for options: [FoundationModelsACP.PermissionOption]) -> some View {
+    if let modeOption = PermissionPresentation.autoModeOption(in: session.configOptions ?? []),
       let allow = options.first(where: { $0.kind == .allowOnce })
     {
       Button("Allow and Switch to Auto Mode") {
         switchToAuto(allow: allow, modeOption: modeOption)
       }
       .buttonStyle(.glass)
-      .disabled(isAnswered)
       .accessibilityIdentifier(Self.switchToAutoIdentifier)
     }
   }
 
   // MARK: Actions
 
-  /// Answers with `option`, or shows the comment field for a reject option.
+  /// Selects `option`, or shows the comment field for a reject option.
   ///
   /// - Parameter option: The option that the user pressed.
-  private func select(_ option: PermissionOption) {
+  private func didPress(option: FoundationModelsACP.PermissionOption) {
     switch option.kind {
     case .rejectOnce, .rejectAlways:
       selectedReject = option
     case .allowOnce, .allowAlways, .unknown:
-      sendSelection(option, comment: nil)
+      answer(with: option, comment: nil)
     }
   }
 
-  /// Answers with the reject option and the text of the comment field.
+  /// Selects the reject option with the text of the comment field.
   ///
   /// - Parameter option: The reject option.
-  private func sendReject(_ option: PermissionOption) {
+  private func sendReject(option: FoundationModelsACP.PermissionOption) {
     let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-    sendSelection(option, comment: text.isEmpty ? nil : text)
+    answer(with: option, comment: text.isEmpty ? nil : text)
   }
 
-  /// Answers with `option`.
+  /// Selects `option` on the session model, then sends the comment as the
+  /// next prompt.
+  ///
+  /// The prompt goes out after `selectPermission(_:option:)` returns. A
+  /// comment has no attachment, so the prompt capabilities do not change its
+  /// one text block.
   ///
   /// - Parameters:
   ///   - option: The option that the user selected.
   ///   - comment: The comment of the user, or `nil`.
-  private func sendSelection(_ option: PermissionOption, comment: String?) {
-    send(PermissionDecision(outcome: .selected(option.id), comment: comment))
+  private func answer(with option: FoundationModelsACP.PermissionOption, comment: String?) {
+    guard selectOnModel(option: option), let comment else { return }
+    let session = session
+    Task { @MainActor in await session.sendPrompt(with: UserInput(text: comment), accepting: nil) }
   }
 
-  /// Answers with `allow`, then sets the mode option to auto through the
-  /// thread actions.
+  /// Selects `allow` on the session model, then sets the mode option to auto.
   ///
   /// - Parameters:
   ///   - allow: The `allow_once` option of the request.
   ///   - modeOption: The option that
   ///     ``PermissionPresentation/autoModeOption(in:)`` gave.
-  private func switchToAuto(allow: PermissionOption, modeOption: ConfigOption) {
-    let actions = actions
-    send(PermissionDecision(outcome: .selected(allow.id))) {
-      await actions?.setConfigOption(modeOption.id, PermissionPresentation.autoModeValue)
-    }
+  private func switchToAuto(allow: FoundationModelsACP.PermissionOption, modeOption: SessionConfigOption) {
+    guard selectOnModel(option: allow) else { return }
+    session.startSetConfigOption(modeOption.configId, to: PermissionPresentation.autoModeValue)
   }
 
-  /// Sends `decision` one time for the card to the session model that holds
-  /// the request, then runs `next`.
+  /// Calls `selectPermission(_:option:)` on the session model while the model
+  /// holds the request.
   ///
-  /// - Parameters:
-  ///   - decision: The answer of the user.
-  ///   - next: The work that runs after the answer.
-  private func send(
-    _ decision: PermissionDecision, then next: @escaping @MainActor () async -> Void = {}
-  ) {
-    guard !isAnswered, let replies else { return }
-    isAnswered = true
-    let request = request
-    Task {
-      await replies.reply(to: request, decision)
-      await next()
-    }
+  /// - Parameter option: The option that the user selected.
+  /// - Returns: `true` when the model held the request, so the selection
+  ///   answered it. `false` when the request already resolved.
+  private func selectOnModel(option: FoundationModelsACP.PermissionOption) -> Bool {
+    guard session.pendingPermissions.contains(where: { $0.id == request.id }) else { return false }
+    session.selectPermission(request.id, option: option.optionId)
+    return true
   }
 }

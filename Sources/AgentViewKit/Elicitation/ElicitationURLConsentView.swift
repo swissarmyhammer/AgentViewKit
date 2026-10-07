@@ -1,12 +1,13 @@
+import FoundationModelsACPClient
 import SwiftUI
 
-/// The consent card of a URL mode elicitation request (plan.md §13.3,
-/// §13.4).
+/// The consent card of a URL mode pending elicitation of a client model
+/// (plan.md §13.3, §13.4; update.md §4.2 "Pending requests").
 ///
-/// The card names the server, shows the message, and shows the full URL with
-/// the host in bold (``URLDisplay/highlighted(_:)``). When the host can look
-/// like a different host, the card also shows the text of
-/// ``URLDisplay/warning(for:)``.
+/// The card names the agent, shows the message, and shows the full URL of the
+/// pending elicitation (`PendingElicitation.url`) with the host in bold
+/// (``URLDisplay/highlighted(_:)``). When the host can look like a different
+/// host, the card also shows the text of ``URLDisplay/warning(for:)``.
 ///
 /// The card never opens or loads the URL by itself. Only a press on
 /// "Open in Browser" opens it:
@@ -15,18 +16,19 @@ import SwiftUI
 ///    on the `authorizationPresenter` environment value. The browser session
 ///    runs in a task, because it ends only when the user closes the browser.
 /// 2. The card then accepts the elicitation with no content: it calls
-///    `acceptElicitation(_:content:)` on the client model in
-///    ``SwiftUI/EnvironmentValues/elicitationReplies``. The answer tells the
-///    server that the user gave consent. It does not wait for the browser.
+///    `acceptElicitation(_:content:)` on the ``PendingElicitationOwner`` that
+///    holds the elicitation. The answer tells the agent that the user gave
+///    consent. It does not wait for the browser.
 /// 3. The card shows a waiting state until the model removes the request.
 ///    The accept removes the request at once, so the host then removes the
 ///    card.
 ///
 /// Before the press, the card shows Cancel, Decline, and Open in Browser. In
 /// the waiting state, the card shows Cancel and Retry. Retry opens the
-/// browser again, and it does not send a second answer. Cancel sends
-/// ``ElicitationResult/cancel`` and stops the browser session of the card.
-/// Esc also sends ``ElicitationResult/cancel``.
+/// browser again, and it does not send a second answer. Cancel calls
+/// `cancelElicitation(_:)` and stops the browser session of the card. Esc
+/// also calls `cancelElicitation(_:)`. A call for an elicitation that already
+/// resolved changes nothing in the model.
 ///
 /// The view keeps its state. Give each request its own view identity, for
 /// example with `.id(request.id)`.
@@ -72,8 +74,11 @@ public struct ElicitationURLConsentView: View {
     case waiting
   }
 
-  /// The request to show.
-  let request: ElicitationRequest
+  /// The pending elicitation to show.
+  let request: PendingElicitation
+
+  /// The model that holds the elicitation.
+  let owner: any PendingElicitationOwner
 
   /// The step of the consent.
   @State private var phase: Phase = .idle
@@ -87,27 +92,22 @@ public struct ElicitationURLConsentView: View {
   /// Whether the card has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.elicitationReplies) private var replies
   @Environment(\.authorizationPresenter) private var presenter
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
   @Environment(\.agentTheme) private var theme
 
-  /// Makes the consent card of `request`.
+  /// Makes the consent card of a pending elicitation.
   ///
-  /// - Parameter request: The request to show. A form mode request shows no
-  ///   URL and no Open in Browser button.
-  public init(request: ElicitationRequest) {
+  /// - Parameters:
+  ///   - request: A pending elicitation of `owner`. An elicitation with no
+  ///     valid URL, such as a form mode elicitation, shows no URL, and its
+  ///     Open in Browser button is disabled.
+  ///   - owner: The model that holds the elicitation: a `SessionModel` or a
+  ///     `ConnectionModel`.
+  public init(request: PendingElicitation, owner: any PendingElicitationOwner) {
     self.request = request
-  }
-
-  /// The URL of a request.
-  ///
-  /// - Parameter request: The request.
-  /// - Returns: The URL of a URL mode request, else `nil`.
-  static func url(of request: ElicitationRequest) -> URL? {
-    guard case .url(let url, _) = request.mode else { return nil }
-    return url
+    self.owner = owner
   }
 
   // MARK: Body
@@ -115,7 +115,7 @@ public struct ElicitationURLConsentView: View {
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       ElicitationHeader(request: request)
-      if let url = Self.url(of: request) {
+      if let url = request.url {
         urlSection(url)
       }
       if phase == .waiting {
@@ -169,11 +169,11 @@ public struct ElicitationURLConsentView: View {
     HStack(spacing: theme.spacing.s) {
       ProgressView()
         .controlSize(.small)
-      Text("Waiting for \(request.server) to finish")
+      Text("Waiting for \(ElicitationHeader.agentServer) to finish")
         .foregroundStyle(.secondary)
     }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Waiting for \(request.server) to finish")
+    .accessibilityLabel("Waiting for \(ElicitationHeader.agentServer) to finish")
     .accessibilityIdentifier(Self.waitingIdentifier)
   }
 
@@ -189,12 +189,12 @@ public struct ElicitationURLConsentView: View {
           .accessibilityIdentifier(Self.declineIdentifier)
         Button("Open in Browser", action: open)
           .buttonStyle(.glassProminent)
-          .disabled(Self.url(of: request) == nil)
+          .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
         Button("Retry", action: openBrowser)
           .buttonStyle(.glassProminent)
-          .accessibilityLabel("Open \(request.server) in the browser again")
+          .accessibilityLabel("Open \(ElicitationHeader.agentServer) in the browser again")
           .accessibilityIdentifier(Self.retryIdentifier)
       }
     }
@@ -204,9 +204,9 @@ public struct ElicitationURLConsentView: View {
 
   /// Opens the browser, sends the consent, and shows the waiting state.
   private func open() {
-    guard phase == .idle, Self.url(of: request) != nil else { return }
+    guard phase == .idle, request.url != nil else { return }
     openBrowser()
-    replies.send(.accept(nil), to: request)
+    owner.acceptElicitation(request.id, content: nil)
     phase = .waiting
   }
 
@@ -218,7 +218,7 @@ public struct ElicitationURLConsentView: View {
   /// session starts only after the previous session stops, so that the stop
   /// of the previous session cannot stop the new session.
   private func openBrowser() {
-    guard let url = Self.url(of: request) else { return }
+    guard let url = request.url else { return }
     let previous = browserTask
     previous?.cancel()
     let presenter = presenter ?? fallbackPresenter
@@ -229,17 +229,16 @@ public struct ElicitationURLConsentView: View {
     }
   }
 
-  /// Sends ``ElicitationResult/decline``.
+  /// Declines the elicitation.
   private func decline() {
-    replies.send(.decline, to: request)
+    owner.declineElicitation(request.id)
   }
 
-  /// Stops the browser session of the card and sends
-  /// ``ElicitationResult/cancel``.
+  /// Stops the browser session of the card and cancels the elicitation.
   private func cancel() {
     browserTask?.cancel()
     browserTask = nil
-    replies.send(.cancel, to: request)
+    owner.cancelElicitation(request.id)
   }
 }
 

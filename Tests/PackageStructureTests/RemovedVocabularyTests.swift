@@ -53,7 +53,23 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "PromptQueue", "PromptQueueView",
     // The kit stream copy of the text of a transcript entry.
     "EntryTextStream", "canStream",
+    // The kit reply copies of the pending requests, and the answered flag of
+    // the permission card.
+    "PermissionReplying", "ElicitationReplying", "permissionReplies", "elicitationReplies",
+    "isAnswered",
   ]
+
+  /// The directories of the pending request cards.
+  static let pendingRequestCardPaths = [
+    "Sources/AgentViewKit/HumanInTheLoop", "Sources/AgentViewKit/Elicitation",
+  ]
+
+  /// The tool call view, which shows the linked elicitation cards.
+  static let toolCallViewPath = "Sources/AgentViewKit/Items/ToolCallView.swift"
+
+  /// The mapping that converts a model value to a kit copy. No pending
+  /// request card calls it.
+  static let mappingSymbol = "SessionUpdateMapping"
 
   /// The usage initializer from the fill of the context window.
   static let usageFromFill = RemovedInitializer(name: "init(used:fill:)", labels: ["used", "fill"])
@@ -143,6 +159,25 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
       Self.uses(of: Self.removedSymbols, on: line)
     }
 
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func thePendingRequestCardsUseNoSessionUpdateMapping() throws {
+    let cardFiles = try Self.pendingRequestCardPaths.flatMap { path in
+      try SourceLineScanner.matches(
+        inSwiftFilesBelow: PackageFiles.file(path),
+        relativeTo: PackageFiles.root
+      ) { line in
+        Self.uses(of: [Self.mappingSymbol], on: line)
+      }
+    }
+    let toolCallView = SourceLineScanner.matches(
+      inSource: try PackageFiles.text(of: Self.toolCallViewPath), file: Self.toolCallViewPath
+    ) { line in
+      Self.uses(of: [Self.mappingSymbol], on: line)
+    }
+
+    let found = cardFiles + toolCallView
     #expect(found.isEmpty, "\(found)")
   }
 

@@ -140,7 +140,7 @@ Permission presets (the `/permissions` command):
 `PermissionPresentation.order(of:)` sorts the options with the same rule, and
 `PermissionView` shows its buttons in that order. The order of the request
 does not decide the order of the buttons.
-`PermissionPresentation.isSecondary(_:)` gives the `secondary` column.
+`PermissionPresentation.isSecondary(kind:)` gives the `secondary` column.
 
 | kind | position | secondary |
 |---|---|---|

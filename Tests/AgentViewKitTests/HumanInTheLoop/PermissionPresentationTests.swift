@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import PackageFileSupport
 import Testing
 
@@ -26,7 +27,10 @@ import Testing
 
   /// A wire string that no ACP kind has, as a source-defined fifth option
   /// would send.
-  private static let sourceDefinedKind = PermissionOption.Kind.unknown("allow_directory")
+  private static let sourceDefinedKind = PermissionOptionKind.unknown("allow_directory")
+
+  /// The four kinds that ACP defines, in the order of the card.
+  private static let knownKinds: [PermissionOptionKind] = [.allowOnce, .allowAlways, .rejectOnce, .rejectAlways]
 
   /// One parsed row of the option table.
   private struct OptionRow: Equatable {
@@ -60,7 +64,7 @@ import Testing
 
   /// The mode state names of the switch-to-auto table, each with the config
   /// options that make that state.
-  private static let modeStates: [String: [ConfigOption]] = [
+  private static let modeStates: [String: [SessionConfigOption]] = [
     "no mode option": [modelOption],
     "no auto choice": [modeOption(current: "default", values: ["default", "plan"])],
     "current auto": [modeOption(current: "auto", values: claudeCodeModes)],
@@ -72,12 +76,33 @@ import Testing
   private static let claudeCodeModes = ["default", "acceptEdits", "plan", "auto"]
 
   /// A config option of the `model` category.
-  private static let modelOption = ConfigOption(
-    id: ConfigOptionID("model"),
+  private static let modelOption = SessionConfigOption(
+    configId: SessionConfigId(rawValue: "model"),
     name: "Model",
     category: .model,
-    kind: .select(current: "fast", choices: .flat([SelectOption(id: "fast", name: "Fast")]))
+    type: makeSelect(current: "fast", options: makeValues(["fast"]))
   )
+
+  /// Makes the JSON value of a flat list of select values.
+  ///
+  /// - Parameter values: The ids of the values, in order. Each value has its
+  ///   id as its name.
+  /// - Returns: The JSON array of the values.
+  private static func makeValues(_ values: [String]) -> FoundationModelsACP.JSONValue {
+    .array(values.map { .object(["value": .string($0), "name": .string($0)]) })
+  }
+
+  /// Makes the payload of a select config option.
+  ///
+  /// - Parameters:
+  ///   - current: The id of the selected value.
+  ///   - options: The JSON value of the values, flat or in groups.
+  /// - Returns: The payload.
+  private static func makeSelect(
+    current: String, options: FoundationModelsACP.JSONValue
+  ) -> SessionConfigOption.Payload {
+    .select(SessionConfigSelect(currentValue: SessionConfigValueId(rawValue: current), options: options))
+  }
 
   /// Makes a select config option of the `mode` category with flat choices.
   ///
@@ -90,12 +115,12 @@ import Testing
     current: String,
     values: [String],
     id: String = "mode"
-  ) -> ConfigOption {
-    ConfigOption(
-      id: ConfigOptionID(id),
+  ) -> SessionConfigOption {
+    SessionConfigOption(
+      configId: SessionConfigId(rawValue: id),
       name: "Mode",
       category: .mode,
-      kind: .select(current: current, choices: .flat(values.map { SelectOption(id: $0, name: $0) }))
+      type: makeSelect(current: current, options: makeValues(values))
     )
   }
 
@@ -159,7 +184,7 @@ import Testing
 
   @Test func optionTableHasOneRowForEachKnownKindAndOneUnknownRow() throws {
     let names = try Self.optionRows().map(\.kind)
-    let expected = PermissionOption.Kind.knownCases.map(\.wireValue) + [Self.unknownKindName]
+    let expected = Self.knownKinds.map(\.wireValue) + [Self.unknownKindName]
     #expect(names.sorted() == expected.sorted())
   }
 
@@ -167,11 +192,11 @@ import Testing
     for row in try Self.optionRows() {
       // The `unknown` row name is not a known wire value, so it reads as an
       // unknown kind.
-      let kind = PermissionOption.Kind(wireValue: row.kind)
+      let kind = PermissionOptionKind(wireValue: row.kind)
       let actual = OptionRow(
         kind: row.kind,
         position: PermissionPresentation.position(of: kind),
-        isSecondary: PermissionPresentation.isSecondary(kind)
+        isSecondary: PermissionPresentation.isSecondary(kind: kind)
       )
       #expect(actual == row)
     }
@@ -201,17 +226,17 @@ import Testing
   // MARK: - order(for:)
 
   @Test func orderPutsTheKnownKindsFirstAndKeepsTheUnknownKindsInRequestOrder() {
-    let kinds: [PermissionOption.Kind] = [
+    let kinds: [PermissionOptionKind] = [
       .rejectAlways, .unknown("second"), .allowOnce, .rejectOnce, .unknown("first"), .allowAlways,
     ]
-    let expected: [PermissionOption.Kind] = [
+    let expected: [PermissionOptionKind] = [
       .allowOnce, .allowAlways, .rejectOnce, .rejectAlways, .unknown("second"), .unknown("first"),
     ]
     #expect(PermissionPresentation.order(for: kinds) == expected)
   }
 
   @Test func orderKeepsRepeatedKinds() {
-    let kinds: [PermissionOption.Kind] = [.rejectOnce, .allowOnce, .rejectOnce]
+    let kinds: [PermissionOptionKind] = [.rejectOnce, .allowOnce, .rejectOnce]
     #expect(PermissionPresentation.order(for: kinds) == [.allowOnce, .rejectOnce, .rejectOnce])
   }
 
@@ -220,21 +245,21 @@ import Testing
   }
 
   @Test func orderOfTheCodexShapeKeepsItsOwnOrder() {
-    let kinds: [PermissionOption.Kind] = [.allowOnce, .allowAlways, .rejectOnce]
+    let kinds: [PermissionOptionKind] = [.allowOnce, .allowAlways, .rejectOnce]
     #expect(PermissionPresentation.order(for: kinds) == kinds)
   }
 
-  // MARK: - isSecondary(_:)
+  // MARK: - isSecondary(kind:)
 
   @Test func oneTimeKindsArePrimary() {
-    #expect(!PermissionPresentation.isSecondary(.allowOnce))
-    #expect(!PermissionPresentation.isSecondary(.rejectOnce))
+    #expect(!PermissionPresentation.isSecondary(kind: .allowOnce))
+    #expect(!PermissionPresentation.isSecondary(kind: .rejectOnce))
   }
 
   @Test func keptKindsAndUnknownKindsAreSecondary() {
-    #expect(PermissionPresentation.isSecondary(.allowAlways))
-    #expect(PermissionPresentation.isSecondary(.rejectAlways))
-    #expect(PermissionPresentation.isSecondary(Self.sourceDefinedKind))
+    #expect(PermissionPresentation.isSecondary(kind: .allowAlways))
+    #expect(PermissionPresentation.isSecondary(kind: .rejectAlways))
+    #expect(PermissionPresentation.isSecondary(kind: Self.sourceDefinedKind))
   }
 
   // MARK: - showsSwitchToAuto(configOptions:)
@@ -250,37 +275,35 @@ import Testing
   }
 
   @Test func groupedModeChoicesShowTheSwitch() {
-    let option = ConfigOption(
-      id: ConfigOptionID("mode"),
+    let groups: FoundationModelsACP.JSONValue = .array([
+      .object(["groupId": .string("ask"), "name": .string("Ask"), "options": Self.makeValues(["default"])]),
+      .object(["groupId": .string("review"), "name": .string("Review"), "options": Self.makeValues(["auto"])]),
+    ])
+    let option = SessionConfigOption(
+      configId: SessionConfigId(rawValue: "mode"),
       name: "Mode",
       category: .mode,
-      kind: .select(
-        current: "default",
-        choices: .grouped([
-          SelectGroup(id: "ask", name: "Ask", options: [SelectOption(id: "default", name: "Manual")]),
-          SelectGroup(id: "review", name: "Review", options: [SelectOption(id: "auto", name: "Auto")]),
-        ])
-      )
+      type: Self.makeSelect(current: "default", options: groups)
     )
     #expect(PermissionPresentation.showsSwitchToAuto(configOptions: [option]))
   }
 
   @Test func aBooleanModeOptionShowsNoSwitch() {
-    let option = ConfigOption(
-      id: ConfigOptionID("auto"),
+    let option = SessionConfigOption(
+      configId: SessionConfigId(rawValue: "auto"),
       name: "Auto",
       category: .mode,
-      kind: .boolean(current: false)
+      type: .boolean(SessionConfigBoolean(currentValue: false))
     )
     #expect(!PermissionPresentation.showsSwitchToAuto(configOptions: [option]))
   }
 
   @Test func anUnknownModeOptionShowsNoSwitch() {
-    let option = ConfigOption(
-      id: ConfigOptionID("mode"),
+    let option = SessionConfigOption(
+      configId: SessionConfigId(rawValue: "mode"),
       name: "Mode",
       category: .mode,
-      kind: .unknown(type: "slider", raw: .object([:]))
+      type: .unknown("slider", .object([:]))
     )
     #expect(!PermissionPresentation.showsSwitchToAuto(configOptions: [option]))
   }
@@ -297,12 +320,15 @@ import Testing
     let first = Self.modeOption(current: "default", values: ["default", "plan"], id: "first")
     let second = Self.modeOption(current: "default", values: Self.claudeCodeModes, id: "second")
     #expect(!PermissionPresentation.showsSwitchToAuto(configOptions: [Self.modelOption, first, second]))
-    #expect(PermissionPresentation.autoModeOption(in: [second, first])?.id == ConfigOptionID("second"))
+    #expect(
+      PermissionPresentation.autoModeOption(in: [second, first])?.configId == SessionConfigId(rawValue: "second"))
   }
 
   @Test func autoModeOptionGivesTheOptionThatTheSwitchSets() {
     let option = Self.modeOption(current: "default", values: Self.claudeCodeModes)
     #expect(PermissionPresentation.autoModeOption(in: [Self.modelOption, option]) == option)
-    #expect(PermissionPresentation.autoModeValue == ConfigValue.id("auto"))
+    #expect(
+      PermissionPresentation.autoModeValue
+        == .id(SessionConfigValueId(rawValue: PermissionPresentation.autoModeID)))
   }
 }

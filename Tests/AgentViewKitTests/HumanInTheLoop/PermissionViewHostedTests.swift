@@ -1,11 +1,18 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import DemoSupport
 import Foundation
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
 /// Hosted tests of ``PermissionView`` and ``PendingRequestsHost``.
+///
+/// Each card test gets a `PendingPermissionRequest` from the session model of
+/// a ``ScriptedSession``, shows it in a ``PermissionView``, and reads the
+/// frames that the scripted agent receives.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewHostedTests {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 2
@@ -13,82 +20,143 @@ import Testing
   /// The size of a hosted card.
   static let cardSize = CGSize(width: 640, height: 480)
 
-  /// The identifier of the request of the fixtures.
-  static let requestID = "permission-1"
+  /// The JSON-RPC id of the permission request of the agent.
+  static let agentRequestID = 100
 
-  /// The identifier of the terminal of the command request.
-  static let terminalID = TerminalID("terminal-1")
+  /// The title of each permission request of the tests.
+  static let title = "Run the tool?"
+
+  /// The id of the tool call of the tool call subject.
+  static let toolCallID = "tool-call-1"
+
+  /// The title of the tool call of the tool call subject.
+  static let toolCallTitle = "Read README.md"
+
+  /// The id of the terminal of the command subject.
+  static let terminalID = "terminal-1"
+
+  /// The command of the command subject.
+  static let command = "swift test"
+
+  /// The working directory of the command subject.
+  static let workingDirectory = "/project"
 
   /// The comment that the reject tests type.
   static let comment = "Use the test file."
 
-  /// The request with one option of each known kind.
-  static var request: PermissionRequest {
-    ThreadFixtures.permissionRequest(id: requestID)
-  }
+  /// The method of a prompt request.
+  static let promptMethod = "session/prompt"
 
-  /// A request for a command with a related terminal.
-  static var commandRequest: PermissionRequest {
-    PermissionRequest(
-      id: PermissionRequestID(requestID),
-      title: "Run the command?",
-      subject: .command(
-        command: "swift test", cwd: "/project", toolCallId: nil, terminalId: terminalID),
-      options: request.options
-    )
-  }
+  /// The method of a set-config-option request.
+  static let setConfigOptionMethod = "session/set_config_option"
 
-  /// The config options of a session in the `ask` mode, with an `auto`
+  /// The id of the mode config option.
+  static let modeID = "mode"
+
+  /// The four known option kinds, in the order of the card.
+  static let knownKinds: [PermissionOptionKind] = [.allowOnce, .allowAlways, .rejectOnce, .rejectAlways]
+
+  /// A kind that no ACP option has, as a source-defined fifth option sends.
+  static let folderKind = PermissionOptionKind.unknown("folder")
+
+  /// The `mode` config option of a session in the `ask` mode, with an `auto`
   /// choice.
-  static var askModeOptions: [ConfigOption] {
-    [
-      ConfigOption(
-        id: modeID, name: "Mode", category: .mode,
-        kind: .select(
-          current: "ask",
-          choices: .flat([SelectOption(id: "ask", name: "Ask"), SelectOption(id: "auto", name: "Auto")])))
-    ]
+  static let askModeOption = #"""
+    {"configId": "mode", "name": "Mode", "category": "mode", "type": "select",
+     "currentValue": "ask",
+     "options": [{"value": "ask", "name": "Ask"}, {"value": "auto", "name": "Auto"}]}
+    """#
+
+  /// The tool call subject of the tool call of the tests.
+  static var toolCallSubject: String {
+    #"{"type": "tool_call", "toolCall": {"toolCallId": "\#(toolCallID)"}}"#
   }
 
-  /// The id of the mode option.
-  static let modeID = ConfigOptionID("mode")
+  /// The command subject with the terminal of the tests.
+  static var commandSubject: String {
+    #"""
+    {"type": "command", "command": "\#(command)", "cwd": "\#(workingDirectory)",
+     "terminalId": "\#(terminalID)"}
+    """#
+  }
 
-  /// Mounts a card with a thread in the environment.
+  // MARK: - Fixtures
+
+  /// The option id of a kind. The options of the tests use the wire value of
+  /// the kind as the id.
+  ///
+  /// - Parameter kind: The kind of the option.
+  /// - Returns: The option id.
+  static func optionID(_ kind: PermissionOptionKind) -> PermissionOptionId {
+    PermissionOptionId(rawValue: kind.wireValue)
+  }
+
+  /// The params of a permission request of the scripted session.
   ///
   /// - Parameters:
-  ///   - request: The request to show.
-  ///   - actions: The actions that record each call.
-  ///   - thread: The thread of the environment.
-  /// - Returns: The harness.
-  static func mount(
-    _ request: PermissionRequest,
-    actions: NoopThreadActions,
-    thread: AgentThread = AgentThread()
-  ) -> HostedViewHarness<some View> {
-    let harness = threadViewHarness(size: cardSize, actions: actions, thread: thread) {
-      PermissionView(request: request)
-        .repliesRecorded(by: actions)
+  ///   - kinds: The kinds of the options, in request order. Each option has
+  ///     the wire value of its kind as its id and its name.
+  ///   - subject: The JSON text of the subject, or `nil` for no subject.
+  /// - Returns: The JSON text of the params.
+  static func makeParams(kinds: [PermissionOptionKind] = knownKinds, subject: String? = nil) -> String {
+    let options = kinds.map { kind in
+      #"{"optionId": "\#(kind.wireValue)", "name": "\#(kind.wireValue)", "kind": "\#(kind.wireValue)"}"#
+    }
+    let subjectMember = subject.map { #", "subject": \#($0)"# } ?? ""
+    return #"""
+      {"sessionId": "\#(ScriptedSession.sessionID)", "title": "\#(title)",
+       "options": [\#(options.joined(separator: ","))]\#(subjectMember)}
+      """#
+  }
+
+  /// Opens a scripted session whose `session/new` result has the `mode`
+  /// option ``askModeOption``.
+  ///
+  /// - Returns: The session.
+  /// - Throws: The error of `initialize` or of `session/new`.
+  static func openSessionInAskMode() async throws -> ScriptedSession {
+    try await ScriptedSession.open { agent in
+      agent.results["session/new"] =
+        #"{"sessionId": "\#(ScriptedSession.sessionID)", "configOptions": [\#(askModeOption)]}"#
+    }
+  }
+
+  /// Gets a permission request from the agent and shows it in a card.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - params: The JSON text of the params of the request.
+  /// - Returns: The harness of the card.
+  /// - Throws: The error of the transport, or an issue when the model holds
+  ///   no request.
+  static func mountCard(
+    in session: ScriptedSession, params: String = makeParams()
+  ) async throws -> HostedViewHarness<some View> {
+    let pending = try await session.receivePermissionRequest(id: agentRequestID, params: params)
+    let harness = HostedViewHarness(size: cardSize) {
+      PermissionView(request: pending, session: session.model)
+        .transaction { $0.disablesAnimations = true }
     }
     harness.pump()
     return harness
   }
 
-  /// The permission decisions that `actions` recorded.
-  static func decisions(_ actions: NoopThreadActions) -> [PermissionDecision] {
-    actions.calls.compactMap { call in
-      guard case .respondToPermission(_, let decision) = call else { return nil }
-      return decision
-    }
+  /// The result that the agent receives for a selected option.
+  ///
+  /// - Parameter kind: The kind of the selected option.
+  /// - Returns: The result.
+  /// - Throws: An error when the JSON text does not decode.
+  static func selectedResult(_ kind: PermissionOptionKind) throws -> AgentViewKit.JSONValue {
+    try AgentViewKit.JSONValue(
+      json: #"{"outcome": {"outcome": "selected", "optionId": "\#(kind.wireValue)"}}"#)
   }
 
-  /// The decision that selects the option with `id`.
-  static func selected(_ id: String, comment: String? = nil) -> PermissionDecision {
-    PermissionDecision(outcome: .selected(PermissionOptionID(id)), comment: comment)
-  }
-
-  /// The wire value of `kind`, which is the option id of the fixtures.
-  static func optionID(_ kind: PermissionOption.Kind) -> String {
-    kind.wireValue
+  /// The texts of the prompts that the agent received, in arrival order.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The texts.
+  static func promptTexts(_ session: ScriptedSession) -> [String] {
+    session.agent.messages(method: promptMethod).map(ScriptedWireAgent.promptText(of:))
   }
 
   /// The identifiers of the option buttons of a harness, in tree order.
@@ -98,11 +166,21 @@ import Testing
     }
   }
 
+  /// Presses the button of the option of `kind`.
+  ///
+  /// - Parameters:
+  ///   - kind: The kind of the option.
+  ///   - harness: The harness of the card.
+  /// - Throws: An error when the card has no such button.
+  static func press(_ kind: PermissionOptionKind, in harness: HostedViewHarness<some View>) throws {
+    try harness.press(identifier: PermissionView.optionIdentifier(for: optionID(kind)))
+  }
+
   // MARK: - Identifiers
 
   @Test func theIdentifiersHaveTheDocumentedForm() {
     #expect(
-      PermissionView.optionIdentifier(for: PermissionOptionID("allow_once"))
+      PermissionView.optionIdentifier(for: PermissionOptionId(rawValue: "allow_once"))
         == "permission-option-allow_once")
     #expect(PermissionView.commentIdentifier == "permission-comment")
     #expect(PermissionView.switchToAutoIdentifier == "permission-switch-auto")
@@ -111,168 +189,171 @@ import Testing
 
   // MARK: - Options
 
-  @Test func fourOptionsMountFourButtonsInOrder() {
-    let harness = Self.mount(Self.request, actions: NoopThreadActions())
+  @Test func fourOptionsMountFourButtonsInOrder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
     #expect(
       Self.optionIdentifiers(harness)
-        == PermissionOption.Kind.knownCases.map {
-          PermissionView.optionIdentifier(for: PermissionOptionID(Self.optionID($0)))
-        })
+        == Self.knownKinds.map { PermissionView.optionIdentifier(for: Self.optionID($0)) })
   }
 
-  @Test func theButtonsFollowTheDecisionOrderForAnyRequestOrder() {
-    var request = Self.request
-    request.options.reverse()
-    request.options.insert(
-      PermissionOption(
-        id: PermissionOptionID("folder"), name: "Always for this folder", kind: .unknown("folder")),
-      at: 0)
-    let harness = Self.mount(request, actions: NoopThreadActions())
+  @Test func theButtonsFollowTheDecisionOrderForAnyRequestOrder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(
+      in: session, params: Self.makeParams(kinds: [Self.folderKind] + Self.knownKinds.reversed()))
     defer { harness.close() }
 
     #expect(
       Self.optionIdentifiers(harness)
-        == ["allow_once", "allow_always", "reject_once", "reject_always", "folder"].map {
-          PermissionView.optionIdentifier(for: PermissionOptionID($0))
-        })
+        == (Self.knownKinds + [Self.folderKind]).map { PermissionView.optionIdentifier(for: Self.optionID($0)) })
   }
 
-  @Test func theCardShowsTheTitleAndTheToolCall() {
-    let thread = AgentThread()
-    thread.apply(
-      .insert(.toolCall(ThreadFixtures.toolCall(id: "tool-call-1", status: .pending)), after: nil))
-    let harness = Self.mount(Self.request, actions: NoopThreadActions(), thread: thread)
+  @Test func theCardShowsTheTitleAndTheToolCallOfTheSessionModel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      #"""
+      {"sessionUpdate": "tool_call_update", "toolCallId": "\#(Self.toolCallID)",
+       "title": "\#(Self.toolCallTitle)", "kind": "read", "status": "pending"}
+      """#)
+    let harness = try await Self.mountCard(in: session, params: Self.makeParams(subject: Self.toolCallSubject))
     defer { harness.close() }
 
-    #expect(harness.element(identifier: PermissionView.titleIdentifier)?.label == "Run the tool?")
+    #expect(harness.element(identifier: PermissionView.titleIdentifier)?.label == Self.title)
     let subject = harness.element(identifier: PermissionView.subjectIdentifier)
-    #expect(subject?.label?.contains("Read README.md") == true)
+    #expect(subject?.label?.contains(Self.toolCallTitle) == true)
   }
 
   @Test func anAllowPressSendsTheOptionWithNoComment() async throws {
-    let actions = NoopThreadActions()
-    let harness = Self.mount(Self.request, actions: actions)
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
-    try harness.press(
-      identifier: PermissionView.optionIdentifier(
-        for: PermissionOptionID(Self.optionID(.allowOnce))))
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    try Self.press(.allowOnce, in: harness)
+    let result = await session.result(ofRequest: Self.agentRequestID)
 
-    #expect(Self.decisions(actions) == [Self.selected(Self.optionID(.allowOnce))])
-    #expect(
-      actions.calls.first.map { call in
-        guard case .respondToPermission(let request, _) = call else { return false }
-        return request == Self.request
-      } == true)
+    #expect(result == (try Self.selectedResult(.allowOnce)))
+    #expect(session.model.pendingPermissions.isEmpty)
+    #expect(Self.promptTexts(session).isEmpty)
   }
 
   // MARK: - Comment
 
   @Test func aRejectPressMountsTheCommentAndSubmitSendsIt() async throws {
-    let actions = NoopThreadActions()
-    let harness = Self.mount(Self.request, actions: actions)
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
     #expect(harness.element(identifier: PermissionView.commentIdentifier) == nil)
 
-    try harness.press(
-      identifier: PermissionView.optionIdentifier(
-        for: PermissionOptionID(Self.optionID(.rejectOnce))))
+    try Self.press(.rejectOnce, in: harness)
     harness.pump()
     #expect(harness.element(identifier: PermissionView.commentIdentifier) != nil)
-    #expect(actions.calls.isEmpty)
+    #expect(session.model.pendingPermissions.count == 1)
 
     #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
     harness.type(Self.comment)
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    let result = await session.result(ofRequest: Self.agentRequestID)
+    #expect(await waitUntil { !Self.promptTexts(session).isEmpty })
 
-    #expect(
-      Self.decisions(actions) == [Self.selected(Self.optionID(.rejectOnce), comment: Self.comment)])
+    #expect(result == (try Self.selectedResult(.rejectOnce)))
+    #expect(Self.promptTexts(session) == [Self.comment])
   }
 
-  @Test func anEmptyCommentSendsNoComment() async throws {
-    let actions = NoopThreadActions()
-    let harness = Self.mount(Self.request, actions: actions)
+  @Test func anEmptyCommentSendsNoPrompt() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
-    try harness.press(
-      identifier: PermissionView.optionIdentifier(
-        for: PermissionOptionID(Self.optionID(.rejectAlways))))
+    try Self.press(.rejectAlways, in: harness)
     harness.pump()
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    let result = await session.result(ofRequest: Self.agentRequestID)
+    harness.pump()
 
-    #expect(Self.decisions(actions) == [Self.selected(Self.optionID(.rejectAlways))])
+    #expect(result == (try Self.selectedResult(.rejectAlways)))
+    #expect(Self.promptTexts(session).isEmpty)
   }
 
   // MARK: - Escape
 
   @Test func escapeSendsCancelled() async throws {
-    let actions = NoopThreadActions()
-    let harness = Self.mount(Self.request, actions: actions)
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
     try harness.sendKey(.escape)
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    let result = await session.result(ofRequest: Self.agentRequestID)
 
-    #expect(Self.decisions(actions) == [PermissionDecision(outcome: .cancelled)])
+    #expect(result == (try AgentViewKit.JSONValue(json: #"{"outcome": {"outcome": "cancelled"}}"#)))
+    #expect(session.model.pendingPermissions.isEmpty)
   }
 
   // MARK: - Switch to auto
 
-  @Test func switchToAutoIsHiddenWithNoModeOption() {
-    let harness = Self.mount(Self.request, actions: NoopThreadActions())
+  @Test func switchToAutoIsHiddenWithNoModeOption() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
     #expect(harness.element(identifier: PermissionView.switchToAutoIdentifier) == nil)
   }
 
-  @Test func switchToAutoIsHiddenWithNoAllowOnceOption() {
-    let thread = AgentThread()
-    thread.apply(.setConfigOptions(Self.askModeOptions))
-    var request = Self.request
-    request.options.removeAll { $0.kind == .allowOnce }
-    let harness = Self.mount(request, actions: NoopThreadActions(), thread: thread)
+  @Test func switchToAutoIsHiddenWithNoAllowOnceOption() async throws {
+    let session = try await Self.openSessionInAskMode()
+    defer { session.close() }
+    let harness = try await Self.mountCard(
+      in: session, params: Self.makeParams(kinds: Self.knownKinds.filter { $0 != .allowOnce }))
     defer { harness.close() }
 
     #expect(harness.element(identifier: PermissionView.switchToAutoIdentifier) == nil)
   }
 
   @Test func switchToAutoAllowsThenSetsTheMode() async throws {
-    let actions = NoopThreadActions()
-    let thread = AgentThread()
-    thread.apply(.setConfigOptions(Self.askModeOptions))
-    let harness = Self.mount(Self.request, actions: actions, thread: thread)
+    let session = try await Self.openSessionInAskMode()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
+    let agent = session.agent
+    let allowedBeforeModeSet = ChangeFlag.observing {
+      _ = session.model.pendingPermissions
+    } when: {
+      MainActor.assumeIsolated { agent.messages(method: Self.setConfigOptionMethod).isEmpty }
+    }
 
     try harness.press(identifier: PermissionView.switchToAutoIdentifier)
-    await harness.pump(until: Self.waitTimeout) { actions.calls.count >= 2 }
+    let result = await session.result(ofRequest: Self.agentRequestID)
+    #expect(await waitUntil { !agent.messages(method: Self.setConfigOptionMethod).isEmpty })
 
-    #expect(
-      actions.calls == [
-        .respondToPermission(Self.request, Self.selected(Self.optionID(.allowOnce))),
-        .setConfigOption(Self.modeID, PermissionPresentation.autoModeValue),
-      ])
+    #expect(result == (try Self.selectedResult(.allowOnce)))
+    #expect(allowedBeforeModeSet.value)
+    let params = agent.messages(method: Self.setConfigOptionMethod).first?["params"]
+    #expect(params?["configId"] == .string(Self.modeID))
+    #expect(params?["value"] == .string(PermissionPresentation.autoModeID))
   }
 
   // MARK: - Terminal
 
-  @Test func theTerminalLinkShowsTheTerminal() throws {
-    let thread = AgentThread()
-    thread.apply(
-      .upsertTerminal(
-        TerminalPatch(
-          id: Self.terminalID, command: .value("swift test"), cwd: .value("/project"),
-          output: .value(Data("Building\n".utf8)))))
-    let harness = Self.mount(Self.commandRequest, actions: NoopThreadActions(), thread: thread)
+  @Test func theTerminalLinkShowsTheTerminalEntryOfTheSessionModel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "\#(Self.command)"}"#)
+    let harness = try await Self.mountCard(in: session, params: Self.makeParams(subject: Self.commandSubject))
     defer { harness.close() }
 
     let subject = harness.element(identifier: PermissionView.subjectIdentifier)
-    #expect(subject?.label?.contains("swift test") == true)
-    #expect(subject?.label?.contains("/project") == true)
+    #expect(subject?.label?.contains(Self.command) == true)
+    #expect(subject?.label?.contains(Self.workingDirectory) == true)
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
 
     try harness.press(identifier: PermissionView.terminalLinkIdentifier)
@@ -281,8 +362,10 @@ import Testing
     #expect(harness.element(identifier: TerminalView.identifier) != nil)
   }
 
-  @Test func aCommandWithNoTerminalRecordHasNoLink() {
-    let harness = Self.mount(Self.commandRequest, actions: NoopThreadActions())
+  @Test func aCommandWithNoTerminalEntryHasNoLink() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session, params: Self.makeParams(subject: Self.commandSubject))
     defer { harness.close() }
 
     #expect(harness.element(identifier: PermissionView.subjectIdentifier) != nil)
@@ -290,9 +373,6 @@ import Testing
   }
 
   // MARK: - Host
-
-  /// The JSON-RPC id of the first request that the scripted agent sends.
-  static let agentRequestID = 100
 
   /// Mounts the host of the session model of `session` with `reporter`.
   static func mountHost(

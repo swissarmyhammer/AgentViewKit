@@ -32,12 +32,28 @@ comments:
     - evidence: 16 files. New: Sources/AgentViewKit/Items/ACPJSONText.swift, Tests/AgentViewKitTests/Model/ACPValueBridgeTests.swift. Changed: Sources/AgentViewKit/Items/{ToolCallSource,ToolCallView,ErrorView,UnknownItemView}.swift, Sources/AgentViewKit/Status/TaskListView.swift, Sources/AgentViewKit/Content/ContentBlockView.swift, Sources/AgentViewKit/Model/{JSONValue,Plan}.swift, Sources/AgentViewKit/Theme/AgentTheme.swift, Tests/AgentViewKitTests/Helpers/SourceLines.swift, Tests/AgentViewKitTests/Items/{SessionEntryRowsHostedTests,ToolCallEntryViewHostedTests,ToolKindSymbolTests}.swift, Tests/AgentViewKitTests/Status/TaskListViewHostedTests.swift, Tests/AgentViewKitTests/Theme/StatusColorsTests.swift. `swift test` green (1356 + 77 + 1, 0 failures); `swift test --filter ACPValueBridgeTests` green (4); `rg SessionUpdateMapping Sources/AgentViewKit/Items Sources/AgentViewKit/Status` finds nothing.
     - next: /review
   timestamp: 2026-10-06T23:39:52.302728+00:00
+- actor: claude-code
+  id: 01m49sxtvk76gs4m5zprs8v6s2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (74e9858) — 0 findings, 0 confirmed, 0 refuted, 14 attempted, 0 failed; 17 files reviewed, 6 .kanban files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-06T23:49:04.499140+00:00
+- actor: claude-code
+  id: 01m49sxw71q3ea9nzp09d1nmfc
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — tool call, error, unknown and plan views read the ACP values; ACPJSONText (new); acpValue and acpEntry bridges for the old thread path; TaskListView and StatusColors take ACP plan types; 16 files
+    - test: green — swift test, 1360 passed; README gate passed
+    - commit: 74e9858
+    - review: clean — 0 findings
+  timestamp: 2026-10-06T23:49:05.889154+00:00
 depends_on:
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
 - 01M443NW9A12NWXYHJFYTTTA85
 - 01M443P38JZMBRSCEPWCS25T9A
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: f980
 title: Show tool call, error, unknown and plan entries from the ACP values of the entry, with no SessionUpdateMapping conversion
 ---
 ## What

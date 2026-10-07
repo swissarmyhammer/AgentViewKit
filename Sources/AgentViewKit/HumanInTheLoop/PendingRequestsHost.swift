@@ -15,8 +15,10 @@ import SwiftUI
 ///   `ConnectionModel`, for example the elicitations of `auth/login`. The
 ///   model removes each one when its client request ends.
 ///
+/// Each card takes the pending value of the model, and keeps no copy of it.
 /// An elicitation card is an ``ElicitationView`` for a form mode request, or
-/// an ``ElicitationURLConsentView`` for a URL mode request. Each card sends
+/// an ``ElicitationURLConsentView`` for a URL mode request. The host shows no
+/// card for an elicitation mode that the kit does not know. Each card sends
 /// the answer of the user to the reply methods of the model that holds the
 /// request.
 ///
@@ -98,20 +100,19 @@ public struct PendingRequestsHost: View {
   }
 
   public var body: some View {
-    let permissions = permissionRequests
-    let elicitations = elicitationRequests
-    let ids = permissions.map(\.id.rawValue) + elicitations.map(\.id.rawValue)
+    let elicitations = pendingElicitations
+    let ids = (pendingPermissions.map(\.id) + elicitations.map(\.id)).map(\.uuidString)
     VStack(alignment: .leading, spacing: theme.spacing.m) {
-      ForEach(permissions) { request in
-        card(for: request.id.rawValue) { PermissionView(request: request) }
+      if case .session(let session) = source {
+        ForEach(session.pendingPermissions) { request in
+          card(for: request.id) { PermissionView(request: request, session: session) }
+        }
       }
       ForEach(elicitations) { request in
-        card(for: request.id.rawValue) { ElicitationCard(request: request) }
+        card(for: request.id) { ElicitationCard(request: request, owner: elicitationOwner) }
       }
     }
     .padding(ids.isEmpty ? 0 : theme.spacing.m)
-    .environment(\.permissionReplies, permissionReplies)
-    .environment(\.elicitationReplies, elicitationReplies)
     .onChange(of: ids) { old, new in
       if let target = Self.focusTarget(old: old, new: new) {
         moveFocus(to: target)
@@ -119,35 +120,29 @@ public struct PendingRequestsHost: View {
     }
   }
 
-  /// The kit requests of the pending permission requests, in arrival order.
-  /// A connection has no permission request.
-  private var permissionRequests: [PermissionRequest] {
+  /// The pending permission requests of the model, in arrival order. A
+  /// connection has no permission request.
+  private var pendingPermissions: [PendingPermissionRequest] {
     switch source {
-    case .session(let session): session.pendingPermissions.map(SessionUpdateMapping.permissionRequest)
+    case .session(let session): session.pendingPermissions
     case .connection: []
     }
   }
 
-  /// The kit requests of the pending elicitations, in arrival order.
-  private var elicitationRequests: [ElicitationRequest] {
+  /// The pending elicitations of the model that have a card, in arrival
+  /// order.
+  private var pendingElicitations: [PendingElicitation] {
     let pending =
       switch source {
       case .session(let session): session.pendingElicitations
       case .connection(let connection): connection.pendingElicitations
       }
-    return pending.compactMap(ElicitationCard.makeRequest(for:))
+    return pending.filter(ElicitationCard.hasCard(for:))
   }
 
-  /// The model that takes the answer to each permission card.
-  private var permissionReplies: (any PermissionReplying)? {
-    switch source {
-    case .session(let session): session
-    case .connection: nil
-    }
-  }
-
-  /// The model that takes the answer to each elicitation card.
-  private var elicitationReplies: any ElicitationReplying {
+  /// The model that holds the elicitations, and takes the answer to each
+  /// elicitation card.
+  private var elicitationOwner: any PendingElicitationOwner {
     switch source {
     case .session(let session): session
     case .connection(let connection): connection
@@ -157,14 +152,14 @@ public struct PendingRequestsHost: View {
   /// The container of the card of one request.
   ///
   /// - Parameters:
-  ///   - requestID: The raw identifier of the request.
+  ///   - requestID: The local id of the pending request.
   ///   - content: The card.
   /// - Returns: The card in a container with the identifier
   ///   `pending-card-<id>`. The container can take the VoiceOver focus.
   private func card(
-    for requestID: String, @ViewBuilder content: () -> some View
+    for requestID: UUID, @ViewBuilder content: () -> some View
   ) -> some View {
-    let identifier = Self.identifier(for: requestID)
+    let identifier = Self.identifier(for: requestID.uuidString)
     return content()
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)

@@ -253,7 +253,7 @@ two lists equal.
 
 **Human in the loop**
 
-- `PermissionView`: a `PermissionRequest` with its options, its subject, and a comment field.
+- `PermissionView`: a pending permission request of a `SessionModel`, with its options, its subject, and a comment field.
 - `PermissionModePicker`: the `mode` config option as a segmented control.
 - `CheckpointView`: the history slider with Restore code, Restore conversation, or both.
 

@@ -5,6 +5,10 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of ``ElicitationURLConsentView``.
+///
+/// Each card test gets a URL mode `PendingElicitation` from the session model
+/// of a ``ScriptedSession``, shows it in an ``ElicitationURLConsentView``, and
+/// reads the response that the scripted agent receives.
 @Suite(.serialized, .hostedSerially) @MainActor struct ElicitationURLConsentViewHostedTests {
   /// The longest time that a test waits for a call, in seconds.
   static let callWaitSeconds: TimeInterval = 1
@@ -15,65 +19,83 @@ import Testing
   /// The size of a hosted pending request host with two cards.
   static let hostSize = CGSize(width: 520, height: 800)
 
+  /// The JSON-RPC id of the elicitation request of the agent.
+  static let agentRequestID = 9
+
+  /// The URL that the default request opens.
+  static let defaultURL = "https://example.com/continue"
+
+  /// The message of each request of the tests.
+  static let message = "Sign in to continue."
+
   /// The objects that a hosted card uses.
   struct Mounted {
     /// The harness of the card.
     let harness: HostedViewHarness<AnyView>
-    /// The actions that record each answer.
-    let actions: NoopThreadActions
+    /// The scripted session whose model holds the request.
+    let session: ScriptedSession
     /// The browser sessions that record each call of the presenter.
     let browser: FakeWebAuthSession
 
-    /// Stops each waiting browser session, then closes the harness.
+    /// Stops each waiting browser session, closes the harness, then stops the
+    /// scripted agent.
     func close() {
       for session in browser.sessions where session.isWaiting {
         session.cancel()
       }
       harness.close()
+      session.close()
+    }
+
+    /// The response frames that the agent received for the request.
+    var responses: [AgentViewKit.JSONValue] {
+      session.agent.received.filter {
+        $0["method"] == nil && $0["id"] == .number(Double(ElicitationURLConsentViewHostedTests.agentRequestID))
+      }
+    }
+
+    /// Waits for the response of the agent to the request.
+    ///
+    /// - Returns: The `result` member of the response, or `nil` when no
+    ///   response came.
+    func result() async -> AgentViewKit.JSONValue? {
+      await session.result(ofRequest: ElicitationURLConsentViewHostedTests.agentRequestID)
     }
   }
 
-  /// Makes a URL mode request.
+  /// The params of a URL mode elicitation of the scripted session.
   ///
-  /// - Parameter url: The location that the request opens.
-  /// - Returns: The request.
-  static func request(url: URL) -> ElicitationRequest {
-    ElicitationRequest(
-      id: ElicitationRequestID("url-test"),
-      server: "Payments",
-      message: "Sign in to continue.",
-      mode: .url(url, elicitationId: "url-test")
-    )
+  /// - Parameter url: The text of the location that the request opens.
+  /// - Returns: The JSON text of the params.
+  static func makeParams(url: String = defaultURL) -> String {
+    #"""
+    {"sessionId": "\#(ScriptedSession.sessionID)", "message": "\#(message)", "mode": "url",
+     "url": "\#(url)", "elicitationId": "url-test"}
+    """#
   }
 
-  /// Mounts a card with a presenter over fake browser sessions that wait
-  /// until they are stopped.
+  /// Gets a URL mode elicitation from the agent and shows its card with a
+  /// presenter over fake browser sessions that wait until they are stopped.
   ///
   /// - Parameters:
-  ///   - request: The request to show.
+  ///   - params: The JSON text of the params of the request.
   ///   - reporter: The reporter that records each focus move.
   /// - Returns: The mounted card.
+  /// - Throws: The error of the transport, or an issue when the model holds
+  ///   no elicitation.
   static func mount(
-    _ request: ElicitationRequest = ThreadFixtures.urlElicitationRequest(),
+    _ params: String = makeParams(),
     reporter: RecordingFocusReporter = RecordingFocusReporter()
-  ) -> Mounted {
-    let actions = NoopThreadActions()
+  ) async throws -> Mounted {
+    let session = try await ScriptedSession.open()
+    let pending = try await session.receiveElicitation(id: agentRequestID, params: params)
     let browser = FakeWebAuthSession(script: .waitsForCancel)
-    let view = ElicitationURLConsentView(request: request)
-      .repliesRecorded(by: actions)
+    let view = ElicitationURLConsentView(request: pending, owner: session.model)
       .environment(\.authorizationPresenter, AuthorizationPresenter(factory: browser))
       .environment(\.focusReporter, reporter)
     let harness = HostedViewHarness(AnyView(view), size: cardSize)
     harness.pump()
-    return Mounted(harness: harness, actions: actions, browser: browser)
-  }
-
-  /// The elicitation results that `actions` recorded.
-  static func results(_ actions: NoopThreadActions) -> [ElicitationResult] {
-    actions.calls.compactMap { call in
-      guard case .respondToElicitation(_, let result) = call else { return nil }
-      return result
-    }
+    return Mounted(harness: harness, session: session, browser: browser)
   }
 
   /// The URLs that the browser sessions of `browser` opened.
@@ -88,7 +110,7 @@ import Testing
   static func open(_ mounted: Mounted) async throws {
     try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
     await mounted.harness.pump(until: callWaitSeconds) {
-      !mounted.actions.calls.isEmpty && mounted.browser.sessions.contains(where: \.isWaiting)
+      !mounted.responses.isEmpty && mounted.browser.sessions.contains(where: \.isWaiting)
     }
   }
 
@@ -106,23 +128,21 @@ import Testing
 
   // MARK: - Content
 
-  @Test func theCardShowsTheServerTheMessageAndTheURL() throws {
-    let request = ThreadFixtures.urlElicitationRequest()
-    let mounted = Self.mount(request)
+  @Test func theCardShowsTheAgentTheMessageAndTheURL() async throws {
+    let mounted = try await Self.mount()
     defer { mounted.close() }
 
     let labels = mounted.harness.accessibilityElements().compactMap(\.label)
-    #expect(labels.contains(ElicitationHeader.title(server: request.server)))
-    #expect(labels.contains(request.message))
+    #expect(labels.contains(ElicitationHeader.title(server: ElicitationHeader.agentServer)))
+    #expect(labels.contains(Self.message))
     let url = try #require(mounted.harness.element(identifier: ElicitationURLConsentView.urlIdentifier))
     // The static text has no title, so its label is its text value.
-    #expect(url.label == "https://example.com/continue")
+    #expect(url.label == Self.defaultURL)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.warningIdentifier) == nil)
   }
 
-  @Test func aPunycodeHostShowsTheWarning() throws {
-    let request = Self.request(url: try #require(URL(string: "https://xn--pple-43d.com/login")))
-    let mounted = Self.mount(request)
+  @Test func aPunycodeHostShowsTheWarning() async throws {
+    let mounted = try await Self.mount(Self.makeParams(url: "https://xn--pple-43d.com/login"))
     defer { mounted.close() }
 
     let warning = try #require(
@@ -130,22 +150,22 @@ import Testing
     #expect(warning.label?.contains("Punycode") == true)
   }
 
-  @Test func theCardOpensNothingBeforeAPress() {
-    let mounted = Self.mount()
+  @Test func theCardOpensNothingBeforeAPress() async throws {
+    let mounted = try await Self.mount()
     defer { mounted.close() }
     mounted.harness.pump()
 
     #expect(mounted.browser.calls.isEmpty)
-    #expect(mounted.actions.calls.isEmpty)
+    #expect(mounted.responses.isEmpty)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.declineIdentifier) != nil)
   }
 
-  @Test func theCardReportsTheFocusOnAppear() {
+  @Test func theCardReportsTheFocusOnAppear() async throws {
     let reporter = RecordingFocusReporter()
-    let mounted = Self.mount(reporter: reporter)
+    let mounted = try await Self.mount(reporter: reporter)
     defer { mounted.close() }
 
     #expect(reporter.moves == [ElicitationURLConsentView.identifier])
@@ -154,8 +174,7 @@ import Testing
   // MARK: - Actions
 
   @Test func openStartsOneBrowserSessionAcceptsAndWaits() async throws {
-    let request = ThreadFixtures.urlElicitationRequest()
-    let mounted = Self.mount(request)
+    let mounted = try await Self.mount()
     defer { mounted.close() }
 
     try await Self.open(mounted)
@@ -163,11 +182,11 @@ import Testing
     #expect(
       mounted.browser.calls == [
         .makeSession(
-          url: try #require(URL(string: "https://example.com/continue")),
+          url: try #require(URL(string: Self.defaultURL)),
           callbackScheme: ElicitationURLConsentView.callbackScheme),
         .start(ephemeral: false),
       ])
-    #expect(Self.results(mounted.actions) == [.accept(nil)])
+    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "accept"}"#)))
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
@@ -175,7 +194,7 @@ import Testing
   }
 
   @Test func retryOpensTheBrowserAgainWithNoSecondAnswer() async throws {
-    let mounted = Self.mount()
+    let mounted = try await Self.mount()
     defer { mounted.close() }
     try await Self.open(mounted)
 
@@ -187,62 +206,52 @@ import Testing
     #expect(Self.openedURLs(mounted.browser).count == 2)
     #expect(mounted.browser.sessions.first?.isWaiting == false)
     #expect(mounted.browser.sessions.last?.isWaiting == true)
-    #expect(Self.results(mounted.actions) == [.accept(nil)])
+    #expect(mounted.responses.count == 1)
   }
 
   @Test func cancelSendsCancel() async throws {
-    let mounted = Self.mount()
+    let mounted = try await Self.mount()
     defer { mounted.close() }
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
-    await mounted.harness.pump(until: Self.callWaitSeconds) { !mounted.actions.calls.isEmpty }
 
-    #expect(Self.results(mounted.actions) == [.cancel])
+    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "cancel"}"#)))
     #expect(mounted.browser.calls.isEmpty)
   }
 
-  @Test func cancelWhileWaitingStopsTheBrowserAndSendsCancel() async throws {
-    let mounted = Self.mount()
+  @Test func cancelWhileWaitingStopsTheBrowserAndSendsNoSecondAnswer() async throws {
+    let mounted = try await Self.mount()
     defer { mounted.close() }
     try await Self.open(mounted)
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
-    await mounted.harness.pump(until: Self.callWaitSeconds) {
-      Self.results(mounted.actions).count == 2 && mounted.browser.calls.contains(.cancel)
-    }
+    await mounted.harness.pump(until: Self.callWaitSeconds) { mounted.browser.calls.contains(.cancel) }
 
-    #expect(Self.results(mounted.actions) == [.accept(nil), .cancel])
     #expect(mounted.browser.calls.last == .cancel)
+    #expect(mounted.responses.count == 1)
+    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "accept"}"#)))
   }
 
   @Test func declineSendsDecline() async throws {
-    let mounted = Self.mount()
+    let mounted = try await Self.mount()
     defer { mounted.close() }
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.declineIdentifier)
-    await mounted.harness.pump(until: Self.callWaitSeconds) { !mounted.actions.calls.isEmpty }
 
-    #expect(Self.results(mounted.actions) == [.decline])
+    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "decline"}"#)))
     #expect(mounted.browser.calls.isEmpty)
   }
 
   @Test func escapeSendsCancel() async throws {
-    let mounted = Self.mount()
+    let mounted = try await Self.mount()
     defer { mounted.close() }
 
     try mounted.harness.sendKey(.escape)
-    await mounted.harness.pump(until: Self.callWaitSeconds) { !mounted.actions.calls.isEmpty }
 
-    #expect(Self.results(mounted.actions) == [.cancel])
+    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "cancel"}"#)))
   }
 
   // MARK: - Host
-
-  /// The params of a URL mode elicitation of the scripted session.
-  static let urlElicitationParams = #"""
-    {"sessionId": "\#(ScriptedSession.sessionID)", "message": "Sign in", "mode": "url",
-     "url": "https://example.com/auth", "elicitationId": "url-1"}
-    """#
 
   @Test func thePendingHostShowsTheConsentCardForAURLRequest() async throws {
     let session = try await ScriptedSession.open()
@@ -250,7 +259,7 @@ import Testing
     let harness = HostedViewHarness(PendingRequestsHost(session: session.model), size: Self.hostSize)
     defer { harness.close() }
 
-    try await session.sendRequest("elicitation/create", id: 1, params: Self.urlElicitationParams)
+    try await session.sendRequest("elicitation/create", id: 1, params: Self.makeParams(url: "https://example.com/auth"))
     try await session.sendRequest("elicitation/create", id: 2, params: ScriptedSession.formElicitationParams)
     await harness.pump(until: Self.callWaitSeconds) {
       harness.element(identifier: ElicitationURLConsentView.identifier) != nil

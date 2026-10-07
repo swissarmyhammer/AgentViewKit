@@ -218,8 +218,9 @@ public nonisolated enum JSONValue: Sendable, Hashable, Codable {
   ///
   /// The views show the ACP JSON values of the transcript entries. A record
   /// of the kit model gives its JSON values to a view through this value, as
-  /// it gives its kind and its status. A number that is not finite gives
-  /// `null`, as in ``prettyPrinted``.
+  /// it gives its kind and its status. ``ElicitationView`` gives the answers of
+  /// its form to the client model through this value. A number that is not
+  /// finite gives `null`, as in ``prettyPrinted``.
   var acpValue: FoundationModelsACP.JSONValue {
     switch self {
     case .null: .null

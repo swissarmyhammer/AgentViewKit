@@ -28,6 +28,18 @@
     /// The comment that the reject tests send.
     static let comment = "Use the test file."
 
+    /// The `allow_once` option of ``ScriptedSession/permissionParams``.
+    static let allowOptionID = PermissionOptionId(rawValue: "yes")
+
+    /// The `reject_once` option of ``ScriptedSession/permissionParams``.
+    static let rejectOptionID = PermissionOptionId(rawValue: "no")
+
+    /// The result that the agent receives for a cancelled permission request.
+    static let cancelledPermissionResult = #"{"outcome": {"outcome": "cancelled"}}"#
+
+    /// The result that the agent receives for a cancelled elicitation.
+    static let cancelledElicitationResult = #"{"action": "cancel"}"#
+
     /// The method of a permission request.
     static let permissionMethod = "session/request_permission"
 
@@ -152,7 +164,7 @@
       }
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
-      try harness.press(identifier: PermissionView.optionIdentifier(for: PermissionOptionID("yes")))
+      try harness.press(identifier: PermissionView.optionIdentifier(for: Self.allowOptionID))
       await harness.pump(until: Self.waitTimeout) { Self.response(to: Self.agentRequestID, in: session) != nil }
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: Self.cardIdentifier(pending.id)) == nil
@@ -188,7 +200,7 @@
       await harness.pump(until: Self.waitTimeout) {
         harness.element(identifier: PermissionView.identifier) != nil
       }
-      try harness.press(identifier: PermissionView.optionIdentifier(for: PermissionOptionID("no")))
+      try harness.press(identifier: PermissionView.optionIdentifier(for: Self.rejectOptionID))
       harness.pump()
       #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
       harness.type(Self.comment)
@@ -204,6 +216,54 @@
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
       #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
       #expect(model.pendingPermissions.isEmpty)
+    }
+
+    @Test func aSelectThroughTheModelRemovesTheCard() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mount(session: session)
+      defer { harness.close() }
+      let pending = try await session.receivePermissionRequest(id: Self.agentRequestID)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: Self.cardIdentifier(pending.id)) != nil
+      }
+      #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
+
+      session.model.selectPermission(pending.id, option: Self.allowOptionID)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: Self.cardIdentifier(pending.id)) == nil
+      }
+
+      #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) == nil)
+      #expect(harness.element(identifier: PermissionView.identifier) == nil)
+      let result = await session.result(ofRequest: Self.agentRequestID)
+      #expect(result == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
+    }
+
+    @Test func cancelAllPendingOnTheModelRemovesTheShownCards() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mount(session: session)
+      defer { harness.close() }
+      let elicitationRequestID = Self.agentRequestID + 1
+      let permission = try await session.receivePermissionRequest(id: Self.agentRequestID)
+      let elicitation = try await session.receiveElicitation(
+        id: elicitationRequestID, params: ScriptedSession.formElicitationParams)
+      let cards = [permission.id, elicitation.id].map(Self.cardIdentifier)
+      await harness.pump(until: Self.waitTimeout) {
+        cards.allSatisfy { harness.element(identifier: $0) != nil }
+      }
+      #expect(cards.allSatisfy { harness.element(identifier: $0) != nil })
+
+      session.model.cancelAllPending()
+      await harness.pump(until: Self.waitTimeout) {
+        cards.allSatisfy { harness.element(identifier: $0) == nil }
+      }
+
+      #expect(cards.allSatisfy { harness.element(identifier: $0) == nil })
+      #expect(await session.result(ofRequest: Self.agentRequestID) == (try Self.json(Self.cancelledPermissionResult)))
+      #expect(
+        await session.result(ofRequest: elicitationRequestID) == (try Self.json(Self.cancelledElicitationResult)))
     }
 
     // MARK: - Elicitation

@@ -34,6 +34,9 @@
     /// The JSON-RPC id of the elicitation request of the agent.
     static let elicitationRequestID = 41
 
+    /// The default branch of the linked form of the accept test.
+    static let defaultBranch = "main"
+
     /// The fields of a running call that reads a file, with no name.
     static let readFields = #"""
       "title": "Read README.md", "kind": "read", "status": "in_progress",
@@ -302,6 +305,42 @@
       #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: askKey)) != nil)
       #expect(harness.element(identifier: ElicitationView.headerIdentifier) != nil)
       #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: otherKey)) == nil)
+    }
+
+    @Test func aLinkedElicitationAcceptSendsTheFormValuesAsTheACPContent() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore()
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+      try await session.sendUpdate(Self.toolCallUpdate(id: "accept-c", fields: Self.readFields))
+      await harness.pump(until: Self.waitTimeout) { Self.rowKey(ofCall: "accept-c", in: session.model) != nil }
+      let key = try #require(Self.rowKey(ofCall: "accept-c", in: session.model))
+
+      let params = #"""
+        {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "accept-c",
+         "message": "Which branch?", "mode": "form",
+         "requestedSchema": {"type": "object",
+                             "properties": {"branch": {"type": "string", "default": "\#(Self.defaultBranch)"}}}}
+        """#
+      let pending = try await session.receiveElicitation(id: Self.elicitationRequestID, params: params)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ElicitationView.submitIdentifier) != nil
+      }
+      #expect(Self.toolCallEntry("accept-c", in: session.model)?.linkedElicitationIDs == [pending.id])
+      #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) != nil)
+
+      try harness.press(identifier: ElicitationView.submitIdentifier)
+      let result = await session.result(ofRequest: Self.elicitationRequestID)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) == nil
+      }
+
+      let expected = try AgentViewKit.JSONValue(
+        json: #"{"action": "accept", "content": {"branch": "\#(Self.defaultBranch)"}}"#)
+      #expect(result == expected)
+      #expect(session.model.pendingElicitations.isEmpty)
+      #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) == nil)
     }
   }
 #endif

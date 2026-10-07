@@ -565,8 +565,10 @@ private struct ToolCallBody: View {
 ///
 /// The view reads `ToolCallEntry.linkedElicitationIDs` and finds each one in
 /// the `pendingElicitations` of the ``SwiftUI/EnvironmentValues/sessionModel``.
-/// It shows one ``ElicitationCard`` for each, in link order. With no session
-/// model in the environment, or with no linked elicitation, it shows nothing.
+/// It gives each `PendingElicitation` to an ``ElicitationCard`` with no
+/// conversion, in link order, and the card answers to the session model. With
+/// no session model in the environment, or with no linked elicitation, it
+/// shows nothing.
 private struct LinkedElicitations: View {
   /// The log of a link that the session model has no pending request for.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "ToolCallView")
@@ -578,19 +580,20 @@ private struct LinkedElicitations: View {
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
-    let requests = session.map { Self.requests(linkedTo: entry, in: $0) } ?? []
-    if !requests.isEmpty {
-      VStack(alignment: .leading, spacing: theme.spacing.s) {
-        ForEach(requests) { request in
-          ElicitationCard(request: request)
+    if let session {
+      let elicitations = Self.elicitations(linkedTo: entry, in: session)
+      if !elicitations.isEmpty {
+        VStack(alignment: .leading, spacing: theme.spacing.s) {
+          ForEach(elicitations) { elicitation in
+            ElicitationCard(request: elicitation, owner: session)
+          }
         }
+        .contentContainer(identifier: ToolCallView.elicitationsIdentifier(for: entry.id.rowKey))
       }
-      .contentContainer(identifier: ToolCallView.elicitationsIdentifier(for: entry.id.rowKey))
-      .environment(\.elicitationReplies, session)
     }
   }
 
-  /// The kit requests of the pending elicitations that are linked to `entry`.
+  /// The pending elicitations that are linked to `entry` and have a card.
   ///
   /// The session model keeps each link only while its elicitation is
   /// pending, so each link has a pending request. A link with no pending
@@ -599,8 +602,10 @@ private struct LinkedElicitations: View {
   /// - Parameters:
   ///   - entry: The tool call entry.
   ///   - session: The session model of the entry.
-  /// - Returns: The requests, in link order.
-  private static func requests(linkedTo entry: ToolCallEntry, in session: SessionModel) -> [ElicitationRequest] {
+  /// - Returns: The pending elicitations of the session model, in link order.
+  private static func elicitations(
+    linkedTo entry: ToolCallEntry, in session: SessionModel
+  ) -> [PendingElicitation] {
     let pending = session.pendingElicitations
     return entry.linkedElicitationIDs.compactMap { id in
       guard let elicitation = pending.first(where: { $0.id == id }) else {
@@ -608,8 +613,9 @@ private struct LinkedElicitations: View {
         logger.error("A tool call links an elicitation that is not pending. The row does not show it.")
         return nil
       }
-      return ElicitationCard.makeRequest(for: elicitation)
+      return elicitation
     }
+    .filter(ElicitationCard.hasCard(for:))
   }
 }
 

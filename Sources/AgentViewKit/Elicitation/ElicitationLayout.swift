@@ -138,7 +138,7 @@ public struct ElicitationLayout: View {
   /// - Returns: The chip.
   private func tab(_ field: ElicitationFieldContext, isSelected: Bool) -> some View {
     let schema = field.schema
-    let answered = ElicitationValidator.isAnswered(field.value.wrappedValue, against: schema)
+    let answered = ElicitationValidator.hasValidAnswer(value: field.value.wrappedValue, against: schema)
     return Button {
       selection = schema.name
     } label: {

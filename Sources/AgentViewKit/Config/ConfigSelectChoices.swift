@@ -3,7 +3,7 @@ import FoundationModelsACP
 import OSLog
 
 /// The log of the config option reads.
-private let configChoicesLogger = Logger(subsystem: "AgentViewKit", category: "ConfigOptions")
+nonisolated private let configChoicesLogger = Logger(subsystem: "AgentViewKit", category: "ConfigOptions")
 
 /// The values that the user can select for a select config option
 /// (update.md §4.2 "Last-value state").
@@ -12,7 +12,7 @@ private let configChoicesLogger = Logger(subsystem: "AgentViewKit", category: "C
 /// groups. FoundationModelsACP gives it as a raw JSON value, so
 /// ``FoundationModelsACP/SessionConfigSelect/choices`` reads the ACP values
 /// from that JSON each time a view asks. The kit keeps no copy.
-enum ConfigSelectChoices: Hashable {
+nonisolated enum ConfigSelectChoices: Hashable {
   /// A list of values with no groups.
   case flat([SessionConfigSelectOption])
 
@@ -29,7 +29,7 @@ enum ConfigSelectChoices: Hashable {
   }
 }
 
-extension SessionConfigSelect {
+nonisolated extension SessionConfigSelect {
   /// The JSON key that only a group of values has.
   private static let groupKey = "groupId"
 

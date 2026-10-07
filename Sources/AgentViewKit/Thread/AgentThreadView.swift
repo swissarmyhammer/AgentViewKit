@@ -175,7 +175,6 @@ public struct AgentThreadView: View {
         ConversationView(thread: thread, anchors: anchors)
         if let hostSession {
           PendingRequestsHost(session: hostSession)
-            .environment(\.agentThread, thread)
         }
       }
       .background { ThreadAnnouncementObserver(thread: thread) }

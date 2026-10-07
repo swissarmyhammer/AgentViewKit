@@ -37,10 +37,13 @@ extension SessionModel {
   /// Starts a main-actor task that sends `session/set_config_option` with
   /// `setConfigOption(_:)`.
   ///
+  /// ``makeConfigBinding(for:current:send:)`` and the "switch to auto"
+  /// button of ``PermissionView`` call this function.
+  ///
   /// - Parameters:
   ///   - id: The id of the option.
   ///   - value: The new value.
-  private func startSetConfigOption(_ id: SessionConfigId, to value: SetSessionConfigOptionRequest.Value) {
+  func startSetConfigOption(_ id: SessionConfigId, to value: SetSessionConfigOptionRequest.Value) {
     let request = SetSessionConfigOptionRequest(configId: id, sessionId: sessionId, value: value)
     startRequest(Self.setConfigOptionMethod) { try await self.setConfigOption(request) }
   }

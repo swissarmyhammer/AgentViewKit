@@ -1,19 +1,23 @@
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 
 // MARK: - Form view
 
-/// The form of a form mode elicitation request (plan.md §13.1, §13.2).
+/// The form of a form mode pending elicitation of a client model (plan.md
+/// §13.1, §13.2; update.md §4.2 "Pending requests").
 ///
-/// The view makes the fields from the `requestedSchema` with
+/// The view makes the fields from the ACP `requestedSchema` with
 /// ``ElicitationFieldSchema/normalize(from:)``. It keeps the answers, starts
 /// each field at its default, and validates on each change. The header slot
-/// names the server, the layout slot shows the fields, and the footer slot
+/// names the agent, the layout slot shows the fields, and the footer slot
 /// shows Submit, Decline, and Cancel. Submit is disabled until
 /// ``ElicitationValidator/isComplete(values:schemas:)`` is `true`. Esc
-/// sends ``ElicitationResult/cancel``. Each answer goes to the reply method
-/// of the client model in ``SwiftUI/EnvironmentValues/elicitationReplies``:
-/// `acceptElicitation(_:content:)`, `declineElicitation(_:)` or
-/// `cancelElicitation(_:)`.
+/// cancels the elicitation. Each answer goes to the reply method of the
+/// ``PendingElicitationOwner`` that holds the elicitation:
+/// `acceptElicitation(_:content:)` with the answers as ACP JSON,
+/// `declineElicitation(_:)` or `cancelElicitation(_:)`. The owner removes the
+/// elicitation when it resolves.
 ///
 /// The view keeps its answers in state. Give each request its own view
 /// identity, for example with `.id(request.id)`, so that a new request
@@ -43,8 +47,11 @@ public struct ElicitationView: View {
     AccessibilityIdentifier.make(prefix: tabIdentifierPrefix, value: name)
   }
 
-  /// The request that the form answers.
-  let request: ElicitationRequest
+  /// The pending elicitation that the form answers.
+  let request: PendingElicitation
+
+  /// The model that holds the elicitation.
+  let owner: any PendingElicitationOwner
 
   /// The fields of the request, in the order of the form.
   let fields: [ElicitationFieldSchema]
@@ -55,7 +62,6 @@ public struct ElicitationView: View {
   /// Whether the form has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.elicitationReplies) private var replies
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
   @Environment(\.elicitationHeaderOverride) private var headerOverride
@@ -64,24 +70,30 @@ public struct ElicitationView: View {
   @Environment(\.elicitationTabThreshold) private var tabThreshold
   @Environment(\.agentTheme) private var theme
 
-  /// Makes the form of `request`.
+  /// Makes the form of a pending elicitation.
   ///
-  /// - Parameter request: The request to answer.
-  public init(request: ElicitationRequest) {
+  /// - Parameters:
+  ///   - request: A pending elicitation of `owner`.
+  ///   - owner: The model that holds the elicitation: a `SessionModel` or a
+  ///     `ConnectionModel`.
+  public init(request: PendingElicitation, owner: any PendingElicitationOwner) {
     self.request = request
+    self.owner = owner
     let fields = Self.fields(of: request)
     self.fields = fields
     _values = State(initialValue: Self.defaultValues(of: fields))
   }
 
-  /// The fields of a request.
+  /// The fields of a pending elicitation.
   ///
-  /// - Parameter request: The request.
-  /// - Returns: The normalized fields of a form request, or no fields for a
-  ///   URL request.
-  static func fields(of request: ElicitationRequest) -> [ElicitationFieldSchema] {
-    guard case .form(let requestedSchema) = request.mode else { return [] }
-    return ElicitationFieldSchema.normalize(from: requestedSchema)
+  /// The fields read the JSON form of the ACP `requestedSchema`.
+  ///
+  /// - Parameter request: The pending elicitation.
+  /// - Returns: The normalized fields of a form mode elicitation, or no fields
+  ///   for another mode.
+  static func fields(of request: PendingElicitation) -> [ElicitationFieldSchema] {
+    guard case .form(let form) = request.request.mode else { return [] }
+    return ElicitationFieldSchema.normalize(from: JSONValue.encodedOrNull(form.requestedSchema))
   }
 
   /// The first answers of a form.
@@ -107,7 +119,7 @@ public struct ElicitationView: View {
     .focusable()
     .focusEffectDisabled()
     .focused($isFocused)
-    .onExitCommand { replies.send(.cancel, to: request) }
+    .onExitCommand { owner.cancelElicitation(request.id) }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.formIdentifier)
     .accessibilityFocusTarget(Self.formIdentifier)
@@ -147,8 +159,8 @@ public struct ElicitationView: View {
     let context = ElicitationFooterContext(
       canSubmit: ElicitationValidator.isComplete(values: values, schemas: fields),
       submit: submit,
-      decline: { replies.send(.decline, to: request) },
-      cancel: { replies.send(.cancel, to: request) }
+      decline: { owner.declineElicitation(request.id) },
+      cancel: { owner.cancelElicitation(request.id) }
     )
     if let footerOverride {
       footerOverride(context)
@@ -176,29 +188,34 @@ public struct ElicitationView: View {
   /// Sends the answers when each field passes validation.
   private func submit() {
     guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
-    replies.send(.accept(.object(values)), to: request)
+    owner.acceptElicitation(request.id, content: JSONValue.object(values).acpValue)
   }
 }
 
 // MARK: - Header
 
-/// The default header of an elicitation form (plan.md §13.1, §13.4).
+/// The default header of an elicitation card (plan.md §13.1, §13.4).
 ///
-/// The header names the server that asks for the input and shows the
-/// message of the request.
+/// The header names the agent that asks for the input and shows the message
+/// of the pending elicitation. An elicitation over ACP comes from the agent,
+/// so the header names ``agentServer``.
 public struct ElicitationHeader: View {
   /// The symbol of the header.
   static let symbol = "questionmark.bubble"
 
-  /// The request of the form.
-  let request: ElicitationRequest
+  /// The name of the server that each header shows. An elicitation over ACP
+  /// comes from the agent.
+  public static let agentServer = String(localized: "The agent")
+
+  /// The pending elicitation of the card.
+  let request: PendingElicitation
 
   @Environment(\.agentTheme) private var theme
 
   /// Makes the default header.
   ///
-  /// - Parameter request: The request of the form.
-  public init(request: ElicitationRequest) {
+  /// - Parameter request: The pending elicitation of the card.
+  public init(request: PendingElicitation) {
     self.request = request
   }
 
@@ -212,9 +229,9 @@ public struct ElicitationHeader: View {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      Label(Self.title(server: request.server), systemImage: Self.symbol)
+      Label(Self.title(server: Self.agentServer), systemImage: Self.symbol)
         .font(.headline)
-      Text(request.message)
+      Text(request.request.message)
         .foregroundStyle(.secondary)
         .textSelection(.enabled)
     }
@@ -235,14 +252,14 @@ public struct ElicitationFooterContext {
   /// `true`.
   public let canSubmit: Bool
 
-  /// Sends the answers with ``ElicitationResult/accept(_:)``. The call does
-  /// nothing when ``canSubmit`` is `false`.
+  /// Accepts the elicitation with the answers. The call does nothing when
+  /// ``canSubmit`` is `false`.
   public let submit: @MainActor () -> Void
 
-  /// Sends ``ElicitationResult/decline``.
+  /// Declines the elicitation.
   public let decline: @MainActor () -> Void
 
-  /// Sends ``ElicitationResult/cancel``.
+  /// Cancels the elicitation.
   public let cancel: @MainActor () -> Void
 
   /// Makes a footer context.
@@ -302,7 +319,7 @@ public struct ElicitationFooter: View {
 // MARK: - Slots
 
 /// A function that makes the header of an elicitation form.
-public typealias ElicitationHeaderRenderer = @MainActor (ElicitationRequest) -> AnyView
+public typealias ElicitationHeaderRenderer = @MainActor (PendingElicitation) -> AnyView
 
 /// A function that makes the footer of an elicitation form.
 public typealias ElicitationFooterRenderer = @MainActor (ElicitationFooterContext) -> AnyView
@@ -322,12 +339,13 @@ extension View {
   ///
   /// A custom header must name the server of the request (plan.md §13.4).
   ///
-  /// - Parameter content: The function that makes the header.
+  /// - Parameter content: The function that makes the header from the
+  ///   pending elicitation of the card.
   /// - Returns: A view that gives the override to its subtree.
   public func elicitationHeader<Content: View>(
-    @ViewBuilder _ content: @escaping @MainActor (ElicitationRequest) -> Content
+    @ViewBuilder _ content: @escaping @MainActor (PendingElicitation) -> Content
   ) -> some View {
-    environment(\.elicitationHeaderOverride) { request in AnyView(content(request)) }
+    environment(\.elicitationHeaderOverride) { pending in AnyView(content(pending)) }
   }
 
   /// Replaces the footer of each elicitation form in this view.

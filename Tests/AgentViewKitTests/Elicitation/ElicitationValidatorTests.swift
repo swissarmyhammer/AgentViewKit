@@ -368,15 +368,15 @@ import Testing
   @Test func onlyAValidAnswerThatIsNotEmptyIsAnswered() {
     let age = field(.number(integer: true, minimum: 1, maximum: 9))
 
-    #expect(!ElicitationValidator.isAnswered(nil, against: age))
-    #expect(!ElicitationValidator.isAnswered(.null, against: age))
-    #expect(!ElicitationValidator.isAnswered(.number(12), against: age))
-    #expect(ElicitationValidator.isAnswered(.number(3), against: age))
+    #expect(!ElicitationValidator.hasValidAnswer(value: nil, against: age))
+    #expect(!ElicitationValidator.hasValidAnswer(value: .null, against: age))
+    #expect(!ElicitationValidator.hasValidAnswer(value: .number(12), against: age))
+    #expect(ElicitationValidator.hasValidAnswer(value: .number(3), against: age))
   }
 
   @Test func anEmptyListIsNotAnsweredAndFalseIsAnswered() {
-    #expect(!ElicitationValidator.isAnswered(.array([]), against: field(multiChoice())))
-    #expect(ElicitationValidator.isAnswered(.array([.string("a")]), against: field(multiChoice())))
-    #expect(ElicitationValidator.isAnswered(.bool(false), against: field(.boolean)))
+    #expect(!ElicitationValidator.hasValidAnswer(value: .array([]), against: field(multiChoice())))
+    #expect(ElicitationValidator.hasValidAnswer(value: .array([.string("a")]), against: field(multiChoice())))
+    #expect(ElicitationValidator.hasValidAnswer(value: .bool(false), against: field(.boolean)))
   }
 }

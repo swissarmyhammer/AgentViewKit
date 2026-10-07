@@ -78,8 +78,8 @@ public nonisolated enum ElicitationValidator {
   ///   - schema: The field schema.
   /// - Returns: `true` when the answer is not empty and passes each
   ///   constraint of the field kind.
-  public static func isAnswered(
-    _ value: JSONValue?,
+  public static func hasValidAnswer(
+    value: JSONValue?,
     against schema: ElicitationFieldSchema
   ) -> Bool {
     guard let value, !isEmpty(value) else { return false }
