@@ -5,16 +5,16 @@ import SwiftUI
 ///
 /// The row shows the ``PermissionModePicker`` of the session model of the
 /// environment (``SwiftUI/EnvironmentValues/sessionModel``), the
-/// ``ToolToggles`` of the ambient ``ConnectionStore``, the
 /// ``SpeechInputButton``, and the submit button in the `.glassProminent`
 /// style. While the thread runs a turn, a Stop button replaces the submit
 /// button and calls ``AgentThreadActions/cancel()``. While the thread does
 /// not run a turn, a ``SuggestionsView`` above the row shows the prompts of
-/// ``SwiftUI/EnvironmentValues/promptSuggestions``.
+/// ``SwiftUI/EnvironmentValues/promptSuggestions``. A host that has a list of
+/// tools puts a ``ToolToggles`` in its own accessory row.
 ///
 /// Each slot is hidden when its data is absent: the suggestions when the
-/// list is empty, the tool toggles when the store has no tool, and the mic
-/// when ``SwiftUI/EnvironmentValues/speechTranscriber`` is `nil`.
+/// list is empty, and the mic when
+/// ``SwiftUI/EnvironmentValues/speechTranscriber`` is `nil`.
 ///
 /// The row reads the thread from ``SwiftUI/EnvironmentValues/agentThread``,
 /// the actions from ``SwiftUI/EnvironmentValues/threadActions``, and the
@@ -57,7 +57,6 @@ public struct DefaultPromptAccessory: View {
             .labelsHidden()
             .fixedSize()
         }
-        ToolToggles()
         Spacer(minLength: theme.spacing.s)
         SpeechInputButton()
         if isRunning {

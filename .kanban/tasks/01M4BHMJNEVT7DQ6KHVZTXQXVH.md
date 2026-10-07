@@ -56,8 +56,24 @@ comments:
     - evidence: 1 file — Sources/DemoSupport/DemoAgent.swift (deleted the unread `process` property and its two `process:` arguments; doc paragraph on `makeProcess`). Commands: `swift test --filter DemoAgentTests` (8 tests in 2 suites pass), `swift test` (third run: 1303 tests in 125 suites and 83 tests in 12 suites pass; only warning is the mlx-swift "missing creator for mutated node"), `Scripts/test-examples.sh AgentViewKitDemo` (TEST SUCCEEDED, 4 tests).
     - next: /review
   timestamp: 2026-10-07T17:14:59.750315+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4bp6wkdvq1z198y5q0zsn9e
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (37b947e), 0 findings (0 confirmed, 0 refuted), 1 file reviewed. All prior Review Findings items are checked.
+    - next: none — the task is in done
+  timestamp: 2026-10-07T17:22:35.757356+00:00
+- actor: claude-code
+  id: 01m4bp6xpvxpp1tkpjenvyabj8
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — the unread process property is deleted from DemoAgent; the transport keeps the agent process alive
+    - test: green — swift test, 1303 passed (load about 44)
+    - commit: 37b947e
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T17:22:36.891410+00:00
+position_column: done
+position_ordinal: ff8980
 title: Move the pins to FoundationModelsACPClient 36f3249 and FoundationModelsACP 163f7eb, and adopt the breaking client API
 ---
 ## What

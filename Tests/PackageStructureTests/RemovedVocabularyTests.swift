@@ -61,6 +61,10 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     // The kit turn grouping and the durations from the host times. The model
     // has no turn and no time.
     "TurnSummary", "TurnSummaryRow", "ThreadTurnSummary", "DiffStat",
+    // The kit connection store. The MCP server views show the `mcpServers`
+    // of the client model. The client also has a `ConnectionState`, so that
+    // name is not in the list.
+    "ConnectionStore", "ConnectionActions", "ConnectionID",
   ]
 
   /// The symbols of the session controller that the demo app removed. The

@@ -27,13 +27,19 @@ import Testing
   }
 }
 
-/// Hosted tests of ``ToolToggles`` with a host list, with a
-/// ``ConnectionStore``, and in the default composer.
+/// Hosted tests of ``ToolToggles`` with a host list, and of the default
+/// composer.
 @Suite(.serialized, .hostedSerially) @MainActor struct ToolTogglesHostedTests {
+  /// The identifier of the search tool.
+  static let searchID = ToolToggleID("search")
+
+  /// The identifier of the issue tool.
+  static let issueID = ToolToggleID("create_issue")
+
   /// The host list of the tests.
   static let tools = [
-    ToolToggle(id: ConnectionsViewHostedTests.searchID, name: "Search code", isEnabled: true),
-    ToolToggle(id: ConnectionsViewHostedTests.issueID, name: "Create issue", isEnabled: false),
+    ToolToggle(id: searchID, name: "Search code", isEnabled: true),
+    ToolToggle(id: issueID, name: "Create issue", isEnabled: false),
   ]
 
   // MARK: - Host list
@@ -46,15 +52,13 @@ import Testing
     defer { harness.close() }
     harness.pump()
 
-    try harness.press(
-      identifier: ToolToggles.toggleIdentifier(for: ConnectionsViewHostedTests.issueID))
-    try harness.press(
-      identifier: ToolToggles.toggleIdentifier(for: ConnectionsViewHostedTests.searchID))
+    try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.issueID))
+    try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.searchID))
 
     #expect(
       recorder.calls == [
-        .init(id: ConnectionsViewHostedTests.issueID, isEnabled: true),
-        .init(id: ConnectionsViewHostedTests.searchID, isEnabled: false),
+        .init(id: Self.issueID, isEnabled: true),
+        .init(id: Self.searchID, isEnabled: false),
       ])
   }
 
@@ -65,10 +69,22 @@ import Testing
     defer { harness.close() }
     harness.pump()
 
-    let element = harness.element(
-      identifier: ToolToggles.toggleIdentifier(for: ConnectionsViewHostedTests.searchID))
+    let element = harness.element(identifier: ToolToggles.toggleIdentifier(for: Self.searchID))
     #expect(element?.label == "Search code")
     #expect(harness.element(identifier: ToolToggles.listIdentifier) != nil)
+  }
+
+  @Test func theListShowsOneSwitchForEachTool() {
+    let harness = HostedViewHarness(
+      ToolToggles(tools: Self.tools, style: .list) { _, _ in },
+      size: ConnectionsViewHostedTests.listSize)
+    defer { harness.close() }
+    harness.pump()
+
+    let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
+      $0.hasPrefix(ToolToggles.toggleIdentifierPrefix)
+    }
+    #expect(Set(identifiers) == ["tool-toggle-search", "tool-toggle-create_issue"])
   }
 
   @Test func anEmptyListShowsNothing() {
@@ -87,79 +103,18 @@ import Testing
     #expect(harness.element(identifier: ToolToggles.menuIdentifier) != nil)
   }
 
-  // MARK: - Store
-
-  @Test func aStoreSwitchSetsTheToolOfItsConnectionAndCallsOnToggle() throws {
-    let store = ConnectionsViewHostedTests.twoConnections()
-    let recorder = ToolToggleRecorder()
-    let harness = HostedViewHarness(
-      ToolToggles(style: .list, onToggle: recorder.record).connectionStore(store),
-      size: ConnectionsViewHostedTests.listSize)
-    defer { harness.close() }
-    harness.pump()
-
-    try harness.press(
-      identifier: ToolToggles.toggleIdentifier(
-        for: ConnectionsViewHostedTests.searchID, in: ConnectionsViewHostedTests.linearID))
-
-    #expect(
-      store.connection(ConnectionsViewHostedTests.linearID)?.tools.map(\.isEnabled) == [false])
-    #expect(
-      store.connection(ConnectionsViewHostedTests.githubID)?.tools.map(\.isEnabled)
-        == [true, false])
-    #expect(recorder.calls == [.init(id: ConnectionsViewHostedTests.searchID, isEnabled: false)])
-  }
-
-  @Test func theStoreShowsOneSwitchForEachToolOfEachConnection() {
-    let store = ConnectionsViewHostedTests.twoConnections()
-    let harness = HostedViewHarness(
-      ToolToggles(style: .list).connectionStore(store),
-      size: ConnectionsViewHostedTests.listSize)
-    defer { harness.close() }
-    harness.pump()
-
-    let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix(ToolToggles.toggleIdentifierPrefix)
-    }
-    #expect(
-      Set(identifiers) == [
-        "tool-toggle-github-search", "tool-toggle-github-create_issue",
-        "tool-toggle-linear-search",
-      ])
-  }
-
-  @Test func aViewWithNoStoreShowsNothing() {
-    let harness = HostedViewHarness(ToolToggles(style: .list))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: ToolToggles.listIdentifier) == nil)
-  }
-
   // MARK: - Composer
 
-  @Test func theComposerShowsTheToolMenuOnlyWhenTheStoreHasATool() {
-    let withTools = threadViewHarness(
+  @Test func theDefaultComposerShowsNoToolMenu() {
+    let harness = threadViewHarness(
       size: PromptInputViewHostedTests.composerSize, actions: NoopThreadActions()
     ) {
       PromptInputHost(model: PromptInputHostedTestModel())
-        .connectionStore(ConnectionsViewHostedTests.twoConnections())
     }
-    withTools.pump()
-    let hasMenu = withTools.element(identifier: ToolToggles.menuIdentifier) != nil
-    withTools.close()
+    defer { harness.close() }
+    harness.pump()
 
-    let withoutTools = threadViewHarness(
-      size: PromptInputViewHostedTests.composerSize, actions: NoopThreadActions()
-    ) {
-      PromptInputHost(model: PromptInputHostedTestModel())
-        .connectionStore(ConnectionStore())
-    }
-    withoutTools.pump()
-    let hasNoMenu = withoutTools.element(identifier: ToolToggles.menuIdentifier) == nil
-    withoutTools.close()
-
-    #expect(hasMenu)
-    #expect(hasNoMenu)
+    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
+    #expect(harness.element(identifier: ToolToggles.menuIdentifier) == nil)
   }
 }

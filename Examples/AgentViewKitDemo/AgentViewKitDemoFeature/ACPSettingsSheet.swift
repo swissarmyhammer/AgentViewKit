@@ -4,12 +4,10 @@ import SwiftUI
 
 /// The settings sheet of the ACP tab.
 ///
-/// The sheet shows the ``ConnectionsView`` of the ambient
-/// ``ConnectionStore``, the ``AgentInfoHeader`` and the ``AgentAuthView`` of
-/// the connection model, and the ``ConfigOptionsView`` of the session model in
-/// the form style. Each view reads the models directly. The demo app writes
-/// no agent connection into a ``ConnectionStore``: the store is for the MCP
-/// servers of the agent.
+/// The sheet shows the ``ConnectionsView`` of the MCP servers of the session
+/// model, the ``AgentInfoHeader`` and the ``AgentAuthView`` of the connection
+/// model, and the ``ConfigOptionsView`` of the session model in the form
+/// style. Each view reads the models directly.
 struct ACPSettingsSheet: View {
   /// The accessibility identifier of the Done button.
   static let doneIdentifier = "demo-settings-done"
@@ -44,8 +42,9 @@ struct ACPSettingsSheet: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: Self.groupSpacing) {
-          GroupBox("Connections") {
+          GroupBox("MCP Servers") {
             ConnectionsView()
+              .environment(\.sessionModel, session)
               .frame(minHeight: Self.connectionsHeight)
           }
           GroupBox("Agent") {

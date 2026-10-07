@@ -1,10 +1,40 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4bpgez9yazvaq352nfebabp
+  text: |-
+    Research:
+    - The client pin 36f3249 has `SessionModel.mcpServers: [MCPServerItem]`. `MCPServerItem` is `@MainActor @Observable`, its `id` is the `name`, and only `status` changes in place. An `_mcp_server_status` update for an unknown name appends an item with origin `config`. Thus each row must read `item.status` in its own body.
+    - `ConnectionStore.swift` also holds `ToolToggle` and `ToolToggleID`. The host-list initializer of `ToolToggles` needs them, so they move to `ToolToggles.swift`.
+    - `ToolCallView` has a second caller of the kit `ConnectionState` and of `ConnectionStatusChip(state:)`: the `toolCallConnectionState` provider. The provider must now give the client `MCPServerStatus?`. Its test in `ToolCallViewHostedTests` changes to match.
+    - `DefaultPromptAccessory` calls `ToolToggles()` (the store initializer). With that initializer removed, the default accessory shows no tool toggles. A host puts `ToolToggles(tools:onToggle:)` in its own accessory.
+    - `AgentConnectionBanner` qualifies `FoundationModelsACPClient.ConnectionState` because of the kit enum. After the removal the qualifier and its comment are not necessary.
+    - The kit views get the session from the `sessionModel` environment value. The demo settings sheet must set it on `ConnectionsView`.
+    - Not in scope (task ^g95wwbs): plan.md §12 text and `Docs/decisions/connection-states.md` still describe the kit store and its state machine.
+  timestamp: 2026-10-07T17:27:49.481469+00:00
+- actor: claude-code
+  id: 01m4bqa1jkymgkjm73y0d67dfs
+  text: |-
+    Implementation landed (TDD).
+    - RED: `RemovedVocabularyTests.sourcesUseNoRemovedSymbol` failed with the three new names. `MCPServersHostedTests` did not compile (no `ConnectionRow.identifier(for: String)`, no `transportIdentifier(for:)`, chip identifier took the kit kind).
+    - GREEN: deleted `ConnectionStore.swift` and `ConnectionStoreTests.swift`. `ToolToggle` and `ToolToggleID` moved to `ToolToggles.swift`. `ConnectionsView` reads `sessionModel?.mcpServers` in the body. `ConnectionRow(server: MCPServerItem)` shows the name, the transport (`stdio`/`HTTP`) and a chip, and reads `server.status` in its own body. `ConnectionStatusChip(status: MCPServerStatus)` switches over the client enum directly (identifier, label, color); the value and the help tag are the `failed` reason.
+    - Callers changed: `ToolCallConnectionStateProvider` now gives `MCPServerStatus?`. `DefaultPromptAccessory` has no `ToolToggles()` (the store initializer is gone). `AgentConnectionBanner` drops the `FoundationModelsACPClient.` qualifier. The demo settings sheet sets `\.sessionModel` on `ConnectionsView` and names the box "MCP Servers". The demo end-to-end failure message changed.
+    - Test helper note: the chip of a row is found in the depth-first element list after the row element and before the next row element.
+    - Not changed here (task ^g95wwbs): README "Components" line for the connection views, plan.md §12 and `Docs/decisions/connection-states.md` still describe the kit store.
+  timestamp: 2026-10-07T17:41:47.731541+00:00
+- actor: claude-code
+  id: 01m4bqa5k8p6ycjc9a9mc96n23
+  text: |-
+    ### implement — changed
+    - evidence: 15 files — Sources/AgentViewKit/Connections/{ConnectionStore.swift (deleted), ConnectionsView.swift, ConnectionRow.swift, ConnectionStatusChip.swift, AgentConnectionBanner.swift}, Sources/AgentViewKit/Input/{ToolToggles.swift, DefaultPromptAccessory.swift}, Sources/AgentViewKit/Items/ToolCallView.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPSettingsSheet.swift, Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift, Tests/AgentViewKitTests/Connections/{MCPServersHostedTests.swift (new), ConnectionsViewHostedTests.swift, ConnectionStoreTests.swift (deleted)}, Tests/AgentViewKitTests/Input/ToolTogglesHostedTests.swift, Tests/AgentViewKitTests/Items/ToolCallViewHostedTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift. Gates: `swift test` 1284 tests in 125 suites + 83 + 1 passed; `Scripts/check-readme.sh` passed; `Scripts/test-examples.sh AgentViewKitDemo` passed (4 UI tests). Only the expected mlx-swift "missing creator for mutated node" warning.
+    - next: /review
+  timestamp: 2026-10-07T17:41:51.848807+00:00
 depends_on:
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
-position_column: todo
-position_ordinal: b280
+position_column: doing
+position_ordinal: '80'
 title: Show the MCP servers and their status from the client model
 ---
 ## What
@@ -24,26 +54,26 @@ Note: the kit tests send `_mcp_server_status` from the scripted agent. Thus the 
 
 The kit must not build a status of its own. The kit must not keep a copy of the list. The views keep view state only (for example selection, open state and a per-button "call in progress" flag).
 
-- [ ] Delete `Sources/AgentViewKit/Connections/ConnectionStore.swift`. This removes `ConnectionStore`, the kit `ConnectionState` enum and its state machine, `Connection`, `ConnectionID`, `ConnectionActions` and the `connectionStore` environment value.
-- [ ] Change `Sources/AgentViewKit/Connections/ConnectionsView.swift`. Read `SessionModel.mcpServers` directly in the body. Make one row for each `MCPServerItem`, in the order of the list. Show the empty state when the list is empty.
-- [ ] Change `Sources/AgentViewKit/Connections/ConnectionRow.swift` and `Sources/AgentViewKit/Connections/ConnectionStatusChip.swift`. The row takes one `MCPServerItem`. The row shows the `name` and the `transport`. The chip shows the `MCPServerStatus` value directly, and the `reason` of `.failed(reason:)` when it is not nil. Do not map the client status into a kit enum.
-- [ ] Change `Sources/AgentViewKit/Input/ToolToggles.swift`. Remove the initializer that reads the ambient `ConnectionStore`. Keep the initializer for a host list of tools. Remove the `ConnectionStore` text from the doc comment of `Sources/AgentViewKit/Input/DefaultPromptAccessory.swift`.
-- [ ] Delete `Tests/AgentViewKitTests/Connections/ConnectionStoreTests.swift`. Change `Tests/AgentViewKitTests/Connections/ConnectionsViewHostedTests.swift` and `Tests/AgentViewKitTests/Input/ToolTogglesHostedTests.swift` so that they do not use `ConnectionStore`.
+- [x] Delete `Sources/AgentViewKit/Connections/ConnectionStore.swift`. This removes `ConnectionStore`, the kit `ConnectionState` enum and its state machine, `Connection`, `ConnectionID`, `ConnectionActions` and the `connectionStore` environment value.
+- [x] Change `Sources/AgentViewKit/Connections/ConnectionsView.swift`. Read `SessionModel.mcpServers` directly in the body. Make one row for each `MCPServerItem`, in the order of the list. Show the empty state when the list is empty.
+- [x] Change `Sources/AgentViewKit/Connections/ConnectionRow.swift` and `Sources/AgentViewKit/Connections/ConnectionStatusChip.swift`. The row takes one `MCPServerItem`. The row shows the `name` and the `transport`. The chip shows the `MCPServerStatus` value directly, and the `reason` of `.failed(reason:)` when it is not nil. Do not map the client status into a kit enum.
+- [x] Change `Sources/AgentViewKit/Input/ToolToggles.swift`. Remove the initializer that reads the ambient `ConnectionStore`. Keep the initializer for a host list of tools. Remove the `ConnectionStore` text from the doc comment of `Sources/AgentViewKit/Input/DefaultPromptAccessory.swift`.
+- [x] Delete `Tests/AgentViewKitTests/Connections/ConnectionStoreTests.swift`. Change `Tests/AgentViewKitTests/Connections/ConnectionsViewHostedTests.swift` and `Tests/AgentViewKitTests/Input/ToolTogglesHostedTests.swift` so that they do not use `ConnectionStore`.
 
 Note: `Sources/DemoSupport/ACPDemoSession.swift` also uses `ConnectionStore`. Task ^r39tgz5 removes `ACPDemoSession`. If that file is still in `Sources/` when this task starts, remove its use of `ConnectionStore` in this task.
 
 ## Acceptance Criteria
-- [ ] No file in `Sources/` contains `ConnectionStore`.
-- [ ] A change of a server status in `SessionModel.mcpServers` shows in the row of that server, with no other step.
-- [ ] The rows come from `SessionModel.mcpServers`: one row for each server, in the order of the list.
+- [x] No file in `Sources/` contains `ConnectionStore`.
+- [x] A change of a server status in `SessionModel.mcpServers` shows in the row of that server, with no other step.
+- [x] The rows come from `SessionModel.mcpServers`: one row for each server, in the order of the list.
 
 ## Tests
-- [ ] `Tests/AgentViewKitTests/Connections/MCPServersHostedTests.swift`: one hosted test for each acceptance criterion, with the scripted agent. The scripted agent sends `_mcp_server_status` session updates. Use this shape: `{"sessionUpdate":"_mcp_server_status","name":"files","transport":"stdio","origin":"client","status":"failed","reason":"..."}`. The scripted agent reports two MCP servers, then changes the status of one server.
-  - [ ] Test 1: host `ConnectionsView` with only the client model in the environment. Set no kit store. The view shows the rows of the scripted servers.
-  - [ ] Test 2: the scripted agent sends a `_mcp_server_status` update with `"status":"failed"` and a `reason` for the server `files`. The hosted test finds the row of `files` and checks that its chip shows the failed status and the reason.
-  - [ ] Test 3: the scripted agent reports two servers. The view shows two rows with the names and the transports of the list, in the order of the list.
-- [ ] `Tests/PackageStructureTests/RemovedVocabularyTests.swift`: add `ConnectionStore`, `ConnectionActions` and `ConnectionID` to the removed-names list. Do not add `ConnectionState`, because the client also has a type with that name. This test fails before the removal and passes after it.
-- [ ] `swift test` passes.
+- [x] `Tests/AgentViewKitTests/Connections/MCPServersHostedTests.swift`: one hosted test for each acceptance criterion, with the scripted agent. The scripted agent sends `_mcp_server_status` session updates. Use this shape: `{"sessionUpdate":"_mcp_server_status","name":"files","transport":"stdio","origin":"client","status":"failed","reason":"..."}`. The scripted agent reports two MCP servers, then changes the status of one server.
+  - [x] Test 1: host `ConnectionsView` with only the client model in the environment. Set no kit store. The view shows the rows of the scripted servers.
+  - [x] Test 2: the scripted agent sends a `_mcp_server_status` update with `"status":"failed"` and a `reason` for the server `files`. The hosted test finds the row of `files` and checks that its chip shows the failed status and the reason.
+  - [x] Test 3: the scripted agent reports two servers. The view shows two rows with the names and the transports of the list, in the order of the list.
+- [x] `Tests/PackageStructureTests/RemovedVocabularyTests.swift`: add `ConnectionStore`, `ConnectionActions` and `ConnectionID` to the removed-names list. Do not add `ConnectionState`, because the client also has a type with that name. This test fails before the removal and passes after it.
+- [x] `swift test` passes.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

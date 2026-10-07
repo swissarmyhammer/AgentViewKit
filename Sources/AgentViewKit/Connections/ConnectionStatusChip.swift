@@ -1,70 +1,111 @@
+import FoundationModelsACPClient
 import SwiftUI
 
-/// A dot and a label that show a ``ConnectionState`` (plan.md §12).
+/// A dot and a label that show the `MCPServerStatus` of an MCP server
+/// (plan.md §12).
 ///
-/// The chip is one accessibility element. Its label is the name of the
-/// state. For ``ConnectionState/error(_:)``, its value is the error text, and
-/// the text is also the help tag.
+/// The chip shows the status of the client model directly. The kit keeps no
+/// status of its own. The chip is one accessibility element. Its label is the
+/// name of the status. For `failed(reason:)` with a reason, its value is the
+/// reason, and the reason is also the help tag.
 public struct ConnectionStatusChip: View {
   /// The start of the accessibility identifier of each chip.
   public static let identifierPrefix = "connection-chip-"
 
-  /// The state to show.
-  let state: ConnectionState
+  /// The status to show.
+  let status: MCPServerStatus
 
   @Environment(\.agentTheme) private var theme
 
   /// Makes a chip.
   ///
-  /// - Parameter state: The state to show.
-  public init(state: ConnectionState) {
-    self.state = state
+  /// - Parameter status: The status of the server, from the client model.
+  public init(status: MCPServerStatus) {
+    self.status = status
   }
 
-  /// The accessibility identifier of a chip that shows a state of `kind`.
+  /// The accessibility identifier of a chip that shows `status`.
   ///
-  /// - Parameter kind: The kind of the state.
-  /// - Returns: `connection-chip-<kind>`, such as
-  ///   `connection-chip-needs-auth`.
-  public static func identifier(for kind: ConnectionState.Kind) -> String {
-    AccessibilityIdentifier.make(prefix: identifierPrefix, value: kind.rawValue)
+  /// The reason of a failed status is not in the identifier.
+  ///
+  /// - Parameter status: The status of the server.
+  /// - Returns: `connection-chip-<status>`, such as
+  ///   `connection-chip-not-reported`.
+  public static func identifier(for status: MCPServerStatus) -> String {
+    AccessibilityIdentifier.make(prefix: identifierPrefix, value: identifierName(for: status))
   }
 
   public var body: some View {
-    let kind = state.kind
+    let label = Self.label(for: status)
+    let reason = Self.reason(of: status)
     HStack(spacing: theme.spacing.xs) {
       Circle()
-        .fill(color(for: kind))
+        .fill(color(for: status))
         .frame(width: theme.spacing.s, height: theme.spacing.s)
-      Text(kind.label)
+      Text(label)
         .font(.caption)
         .foregroundStyle(.secondary)
         .lineLimit(1)
     }
-    .help(state.errorMessage ?? kind.label)
+    .help(reason ?? label)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(kind.label)
-    .accessibilityValue(state.errorMessage ?? "")
+    .accessibilityLabel(label)
+    .accessibilityValue(reason ?? "")
     // An element with no role does not give its value. The trait gives the
     // static text role.
     .accessibilityAddTraits(.isStaticText)
-    .accessibilityIdentifier(Self.identifier(for: kind))
+    .accessibilityIdentifier(Self.identifier(for: status))
   }
 
-  /// The color of the dot for a state of `kind`, from the status colors of
-  /// the theme.
+  /// The name of `status` in an accessibility identifier.
   ///
-  /// - Parameter kind: The kind of the state.
+  /// - Parameter status: The status of the server.
+  /// - Returns: The name, such as `not-reported`.
+  private static func identifierName(for status: MCPServerStatus) -> String {
+    switch status {
+    case .notReported: "not-reported"
+    case .connecting: "connecting"
+    case .connected: "connected"
+    case .failed: "failed"
+    case .closed: "closed"
+    }
+  }
+
+  /// The name of `status` that the user sees and that VoiceOver reads.
+  ///
+  /// - Parameter status: The status of the server.
+  /// - Returns: The name, such as `Not reported`.
+  private static func label(for status: MCPServerStatus) -> String {
+    switch status {
+    case .notReported: "Not reported"
+    case .connecting: "Connecting"
+    case .connected: "Connected"
+    case .failed: "Failed"
+    case .closed: "Closed"
+    }
+  }
+
+  /// The reason of a failed status.
+  ///
+  /// - Parameter status: The status of the server.
+  /// - Returns: The reason that the agent gave, or `nil` for each other
+  ///   status and for a failed status with no reason.
+  private static func reason(of status: MCPServerStatus) -> String? {
+    if case .failed(let reason) = status { reason } else { nil }
+  }
+
+  /// The color of the dot for `status`, from the status colors of the theme.
+  ///
+  /// - Parameter status: The status of the server.
   /// - Returns: The color of the dot.
-  private func color(for kind: ConnectionState.Kind) -> Color {
+  private func color(for status: MCPServerStatus) -> Color {
     let colors = theme.statusColors
-    return switch kind {
-    case .disconnected: colors.pending
+    return switch status {
+    case .notReported: colors.pending
+    case .connecting: colors.running
     case .connected: colors.completed
-    case .needsAuth: theme.accent
-    case .authenticating: colors.running
-    case .expired: colors.cancelled
-    case .error: colors.failed
+    case .failed: colors.failed
+    case .closed: colors.cancelled
     }
   }
 }

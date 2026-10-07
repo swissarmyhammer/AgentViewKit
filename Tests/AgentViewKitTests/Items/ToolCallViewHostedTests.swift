@@ -1,6 +1,7 @@
 #if DEBUG
   import AgentViewKitTestSupport
   import Foundation
+  import FoundationModelsACPClient
   import SwiftUI
   import Testing
 
@@ -215,7 +216,7 @@
 
     // MARK: - Connection
 
-    @Test func theConnectionChipShowsOnlyForACallThatWaitsForAuth() {
+    @Test func theConnectionChipShowsOnlyForACallThatWaitsForAServer() {
       let waitingID = "waiting-call"
       let freeID = "free-call"
       let waiting = ThreadFixtures.toolCall(id: waitingID, status: .pending)
@@ -226,14 +227,14 @@
           ToolCallView(record: free)
         }
         .toolCallConnectionState { record in
-          record.id == waitingID ? .needsAuth : nil
+          record.id == waitingID ? .connecting : nil
         }
       }
       defer { harness.close() }
       harness.pump()
 
       let chips = harness.accessibilityElements().filter {
-        $0.identifier == ConnectionStatusChip.identifier(for: .needsAuth)
+        $0.identifier == ConnectionStatusChip.identifier(for: .connecting)
       }
       #expect(chips.count == 1)
     }

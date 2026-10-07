@@ -129,7 +129,7 @@ final class ACPTabEndToEndTests: XCTestCase {
     XCTAssertTrue(waitForElement(Self.agentAuth), "The sheet has no AgentAuthView.")
     XCTAssertTrue(
       app.element(Self.connectionsEmpty).exists,
-      "ConnectionsView shows a connection. The demo app writes no agent connection into the store.")
+      "ConnectionsView shows an MCP server. The demo agent reports no MCP server.")
     let done = app.element(Self.settingsDone)
     XCTAssertTrue(done.exists)
     done.click()

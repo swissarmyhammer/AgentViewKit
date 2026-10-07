@@ -3,29 +3,29 @@ import FoundationModelsACPClient
 import OSLog
 import SwiftUI
 
-/// A function that gives the connection state of the server that a tool call
-/// waits for, or `nil` when the call does not wait for a connection.
-public typealias ToolCallConnectionStateProvider = @MainActor (ToolCallRecord) -> ConnectionState?
+/// A function that gives the `MCPServerStatus` of the MCP server that a tool
+/// call waits for, or `nil` when the call does not wait for a server.
+public typealias ToolCallConnectionStateProvider = @MainActor (ToolCallRecord) -> MCPServerStatus?
 
 extension EnvironmentValues {
-  /// The function that gives the connection state of a tool call that waits
-  /// for authorization (plan.md §12).
+  /// The function that gives the server status of a tool call that waits
+  /// for an MCP server (plan.md §12).
   ///
   /// ``ToolCallView`` shows a ``ConnectionStatusChip`` when the function
-  /// gives a state. The value is `nil` until a host sets a function with
+  /// gives a status. The value is `nil` until a host sets a function with
   /// ``SwiftUI/View/toolCallConnectionState(_:)``.
   @Entry public var toolCallConnectionState: ToolCallConnectionStateProvider? = nil
 }
 
 extension View {
-  /// Sets the function that gives the connection state of each tool call in
+  /// Sets the function that gives the server status of each tool call in
   /// this view.
   ///
-  /// Give a state for a call that waits for the authorization of a server.
-  /// ``ToolCallView`` then shows a ``ConnectionStatusChip`` in its row. Give
-  /// `nil` for each other call.
+  /// Give the status of the server from `SessionModel.mcpServers` for a call
+  /// that waits for that server. ``ToolCallView`` then shows a
+  /// ``ConnectionStatusChip`` in its row. Give `nil` for each other call.
   ///
-  /// - Parameter provider: The function that gives the connection state of a
+  /// - Parameter provider: The function that gives the server status of a
   ///   tool call, or `nil` for no chip.
   /// - Returns: A view that gives `provider` to its subtree.
   public func toolCallConnectionState(_ provider: ToolCallConnectionStateProvider?) -> some View {
@@ -50,7 +50,7 @@ extension View {
 /// - A failed, cancelled, lost, or unknown call shows its own symbol and
 ///   label. See ``ToolStatusSymbol``.
 ///
-/// When the host gives a connection state for a record, the row also shows
+/// When the host gives a server status for a record, the row also shows
 /// a ``ConnectionStatusChip``. See
 /// ``SwiftUI/View/toolCallConnectionState(_:)``.
 ///
@@ -381,8 +381,8 @@ public struct ToolCallView: View {
       .accessibilityLabel(label)
       .accessibilityValue(expanded ? Text("Expanded") : Text("Collapsed"))
       .accessibilityIdentifier(Self.toggleIdentifier(for: id))
-      if case .record(let record) = source, let state = connectionState?(record) {
-        ConnectionStatusChip(state: state)
+      if case .record(let record) = source, let status = connectionState?(record) {
+        ConnectionStatusChip(status: status)
       }
     }
   }

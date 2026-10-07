@@ -46,12 +46,9 @@ public struct AgentConnectionBanner: View {
 
   /// Makes the text of the banner of a connection state.
   ///
-  /// The kit has a `ConnectionState` of its own for the MCP servers, so the
-  /// client type has its module name.
-  ///
   /// - Parameter state: The connection state of the model.
   /// - Returns: The text, or `nil` when the state shows no banner.
-  private static func makeMessage(for state: FoundationModelsACPClient.ConnectionState) -> StateBanner.Message? {
+  private static func makeMessage(for state: ConnectionState) -> StateBanner.Message? {
     switch state {
     case .disconnected:
       disconnectedMessage
