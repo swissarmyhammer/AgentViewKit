@@ -15,7 +15,7 @@ This file records how the thread views work with VoiceOver. The code is in
   apply the modifier. The modifier makes a namespace only when the
   environment has none, so a view outside a thread also has groups.
 - Each paragraph element (`response-paragraph-N`) and the streaming tail
-  element are in the group of their message. `MessageItemView` gives the
+  element are in the group of their message. `MessageLayout` gives the
   message id to its subtree, so the paragraphs of all the text blocks of one
   message are in one group.
 - Each row of the `LazyVStack` of `ConversationView` (`item-row-<id>`) is in

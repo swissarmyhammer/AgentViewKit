@@ -14,9 +14,6 @@
     /// A size that shows each row of the patch thread.
     static let tallSize = CGSize(width: 480, height: 1_600)
 
-    /// The accessibility identifier of the custom tool call view.
-    static let customToolCallIdentifier = "custom-tool-call"
-
     /// Makes a thread of user messages. The id of each item is `prefix` and
     /// its position.
     ///
@@ -43,32 +40,6 @@
       for item in thread.items {
         #expect(harness.element(identifier: ItemRow.identifier(for: item.id)) != nil)
       }
-    }
-
-    @Test func theToolCallOverrideReplacesOnlyTheToolCallView() {
-      let thread = AgentThread()
-      thread.apply(
-        .insert(.toolCall(ThreadFixtures.toolCall(id: "override-call", status: .completed)), after: nil))
-      thread.apply(
-        .insert(.assistantMessage(ThreadFixtures.message(id: "override-message")), after: nil))
-      let view = AgentThreadView(thread: thread, actions: NoopThreadActions())
-        .toolCallView { call in
-          Text("Custom \(call.title)")
-            .accessibilityIdentifier(Self.customToolCallIdentifier)
-        }
-      let harness = HostedViewHarness(view)
-      defer { harness.close() }
-      harness.pump()
-
-      let custom = harness.accessibilityElements().filter {
-        $0.identifier == Self.customToolCallIdentifier
-      }
-      #expect(custom.count == 1)
-      #expect(custom.first?.label == "Custom Read README.md")
-      #expect(harness.element(identifier: ItemRow.identifier(for: "override-message")) != nil)
-      #expect(
-        harness.element(identifier: AssistantMessageView.identifier(for: "override-message")) != nil)
-      #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: "override-call")) == nil)
     }
 
     @Test func aPatchToOneRecordEvaluatesOnlyItsRow() {

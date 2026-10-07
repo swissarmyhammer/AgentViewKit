@@ -37,11 +37,27 @@ comments:
     - evidence: 14 files. Sources: Activity/ActivityTimeline.swift (rewritten), Activity/TurnSummary.swift (deleted), Thread/ThreadMinimapView.swift, Thread/ConversationView.swift, Thread/TranscriptEntryKind.swift, Model/ThreadItem.swift, Infrastructure/ScrollAnchorManager.swift. Tests: Activity/ActivityTimelineHostedTests.swift (rewritten), Activity/TurnSummaryTests.swift (deleted), Thread/ThreadMinimapViewHostedTests.swift (rewritten), Infrastructure/ScrollAnchorManagerTests.swift, PackageStructureTests/RemovedVocabularyTests.swift. `swift test`: 1380 tests in 126 suites passed, 78 tests in 12 suites passed, 1 test passed; warnings only the expected deprecation and mlx-swift "missing creator" ones. No README, snippet or demo change, so check-readme.sh and test-examples.sh did not run.
     - next: /review
   timestamp: 2026-10-07T03:18:39.102372+00:00
+- actor: claude-code
+  id: 01m4a6ks7yxwaqt8d5tbvrj9k2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 575af8b); 12 files reviewed; counts: 0 findings, 0 confirmed, 0 refuted; 7 validators attempted, 0 failed. The tool rules declined only the two deleted files (TurnSummary.swift, TurnSummaryTests.swift) because these files do not exist.
+    - next: none — task moved to done
+  timestamp: 2026-10-07T03:30:46.654456+00:00
+- actor: claude-code
+  id: 01m4a6kv1m1wft0w5da7bkk5yn
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — TurnSummary deleted; ActivityTimeline(session:) and ThreadMinimapView(session:) show the transcript order; ConversationFollowAnchor; ScrollAnchorManager clears anchorID when pinned again; 12 files
+    - test: green — swift test two runs, 1380 passed each; scroll suites 10 repetitions; demo UI gate passed
+    - commit: 575af8b
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T03:30:48.500947+00:00
 depends_on:
 - 01M443QAWWDY730CX0EDPG4T4Z
 - 01M48MR5W3YAB8VFA4KTJZVCYN
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fe80
 title: 'Remove the kit turn grouping: delete TurnSummary, and bind ActivityTimeline and ThreadMinimapView to the transcript order of SessionModel'
 ---
 ## What

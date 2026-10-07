@@ -1,19 +1,48 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import FoundationModelsACPClient
 import Testing
 
 @Suite @MainActor struct ExpandedBlocksStoreTests {
-  /// A tool call item. The policy in these tests expands it.
-  private static let toolCall = ThreadItem.toolCall(ToolCallRecord(id: "tool-1", title: "Read file"))
+  /// The number of entries of ``openPolicyEntries()``.
+  private static let policyEntryCount = 2
 
-  /// A reasoning item. The policy in these tests does not expand it.
-  private static let reasoning = ThreadItem.reasoning(Reasoning(id: "reasoning-1", segments: ["Think"]))
+  /// A tool call entry and a thought entry of a scripted session. The policy
+  /// in these tests expands the tool call entry, and not the thought entry.
+  private struct PolicyEntries {
+    /// The scripted session that holds the entries.
+    let session: ScriptedSession
 
-  /// Makes a store whose policy expands each tool call and no other item.
+    /// The tool call entry.
+    let toolCall: TranscriptEntry
+
+    /// The thought entry.
+    let thought: TranscriptEntry
+  }
+
+  /// Opens a scripted session, and sends a tool call and a thought from the
+  /// agent.
+  ///
+  /// - Returns: The session and its two entries.
+  /// - Throws: The error of the transport, or an issue when the transcript
+  ///   does not hold the two entries at the time limit.
+  private static func openPolicyEntries() async throws -> PolicyEntries {
+    let session = try await ScriptedSession.open()
+    try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "tool-1", fields: #""title": "Read file""#))
+    try await session.sendUpdate(
+      WireBlockJSON.makeChunk("agent_thought_chunk", messageID: "thought-1", block: WireBlockJSON.makeText("Think")))
+    let model = session.model
+    _ = await waitUntil { model.transcript.count == policyEntryCount }
+    let toolCall = try #require(model.transcript.first { if case .toolCall = $0 { true } else { false } })
+    let thought = try #require(model.transcript.first { if case .thought = $0 { true } else { false } })
+    return PolicyEntries(session: session, toolCall: toolCall, thought: thought)
+  }
+
+  /// Makes a store whose policy expands each tool call entry and no other
+  /// entry.
   private static func makeStoreThatExpandsToolCalls() -> ExpandedBlocksStore {
-    ExpandedBlocksStore { item in
-      if case .toolCall = item { return true }
-      return false
+    ExpandedBlocksStore { entry in
+      if case .toolCall = entry { true } else { false }
     }
   }
 
@@ -64,65 +93,79 @@ import Testing
 
   // MARK: - Default policy
 
-  @Test func theDefaultPolicyExpandsNoItem() {
+  @Test func theDefaultPolicyExpandsNoEntry() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = ExpandedBlocksStore()
 
-    #expect(!store.isExpanded(Self.toolCall))
-    #expect(!store.isExpanded(Self.reasoning))
+    #expect(!store.isExpanded(entries.toolCall))
+    #expect(!store.isExpanded(entries.thought))
   }
 
-  @Test func thePolicyDecidesAnItemWithNoDecision() {
+  @Test func thePolicyDecidesAnEntryWithNoDecision() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
 
-    #expect(store.isExpanded(Self.toolCall))
-    #expect(!store.isExpanded(Self.reasoning))
+    #expect(store.isExpanded(entries.toolCall))
+    #expect(!store.isExpanded(entries.thought))
   }
 
-  @Test func aDecisionWinsOverThePolicy() {
+  @Test func aDecisionWinsOverThePolicy() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
 
-    store.collapse(Self.toolCall.id)
-    store.expand(Self.reasoning.id)
+    store.collapse(entries.toolCall.rowKey)
+    store.expand(entries.thought.rowKey)
 
-    #expect(!store.isExpanded(Self.toolCall))
-    #expect(store.isExpanded(Self.reasoning))
+    #expect(!store.isExpanded(entries.toolCall))
+    #expect(store.isExpanded(entries.thought))
   }
 
-  @Test func aDecisionEqualToTheCollapsedValueInvalidatesAPolicyReader() {
+  @Test func aDecisionEqualToTheCollapsedValueInvalidatesAPolicyReader() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
-    let reader = ChangeFlag.observing { _ = store.isExpanded(Self.toolCall) }
+    let reader = ChangeFlag.observing { _ = store.isExpanded(entries.toolCall) }
 
-    store.collapse(Self.toolCall.id)
+    store.collapse(entries.toolCall.rowKey)
 
     #expect(reader.value)
-    #expect(!store.isExpanded(Self.toolCall))
+    #expect(!store.isExpanded(entries.toolCall))
   }
 
-  @Test func seedRecordsThePolicyValueForTheId() {
+  @Test func seedRecordsThePolicyValueForTheRowKey() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
 
-    store.seed(Self.toolCall)
-    store.seed(Self.reasoning)
+    store.seed(entries.toolCall)
+    store.seed(entries.thought)
 
-    #expect(store.isExpanded(Self.toolCall.id))
-    #expect(!store.isExpanded(Self.reasoning.id))
+    #expect(store.isExpanded(entries.toolCall.rowKey))
+    #expect(!store.isExpanded(entries.thought.rowKey))
   }
 
-  @Test func seedDoesNotReplaceADecision() {
+  @Test func seedDoesNotReplaceADecision() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
-    store.collapse(Self.toolCall.id)
+    store.collapse(entries.toolCall.rowKey)
 
-    store.seed(Self.toolCall)
+    store.seed(entries.toolCall)
 
-    #expect(!store.isExpanded(Self.toolCall.id))
+    #expect(!store.isExpanded(entries.toolCall.rowKey))
   }
 
-  @Test func toggleAfterSeedFlipsThePolicyValue() {
+  @Test func toggleAfterSeedFlipsThePolicyValue() async throws {
+    let entries = try await Self.openPolicyEntries()
+    defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
-    store.seed(Self.toolCall)
+    store.seed(entries.toolCall)
 
-    store.toggle(Self.toolCall.id)
+    store.toggle(entries.toolCall.rowKey)
 
-    #expect(!store.isExpanded(Self.toolCall))
+    #expect(!store.isExpanded(entries.toolCall))
   }
 }

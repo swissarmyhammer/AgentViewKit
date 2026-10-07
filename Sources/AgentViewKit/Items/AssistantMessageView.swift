@@ -3,11 +3,11 @@ import SwiftUI
 
 /// The default view of an assistant message item (plan.md §9 A2).
 ///
-/// The view shows a ``MessageHeader``, the content blocks of the message
-/// through ``ContentBlockView``, and the
-/// ``SwiftUI/EnvironmentValues/messageFooter`` slot. While the message
-/// streams, the text shows through ``ResponseView`` with the stream of the
-/// thread of the environment.
+/// The view shows a ``MessageHeader`` and the content blocks of the message.
+/// The view of an entry also shows the
+/// ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry object.
+/// While a thread message streams, the text shows through ``ResponseView``
+/// with the stream of the thread of the environment.
 ///
 /// The view shows a thread message or an `AgentMessageEntry` of a
 /// `SessionModel` (update.md §4.2). The view of an entry reads the content of
@@ -63,9 +63,9 @@ public struct AssistantMessageView: View, PrefixedAccessibilityIdentifier {
   public var body: some View {
     switch source {
     case .message(let message):
-      MessageItemView(message: message, role: .assistant, date: date)
+      ThreadMessageItemView(message: message, role: .assistant, date: date)
     case .entry(let entry):
-      TranscriptMessageView(id: entry.id, content: entry.content, role: .assistant, date: date)
+      TranscriptMessageView(entry: .agent(entry), date: date)
     }
   }
 }

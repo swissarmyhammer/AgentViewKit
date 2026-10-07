@@ -29,16 +29,18 @@ import UniformTypeIdentifiers
 ///
 /// With no session model in the environment, the row shows only Copy.
 ///
-/// The deprecated thread path makes the row for a kit message with
-/// ``init(message:)``, in the footer slot of the message views:
+/// Put the row in the footer slot of each message row of the thread view:
 ///
 /// ```swift
-/// AgentThreadView(thread: thread, actions: actions)
-///   .messageFooter { message in MessageActions(message: message) }
+/// AgentThreadView(session: session, actions: actions)
+///   .messageFooter { entry in MessageActions(entry: entry) }
 /// ```
 ///
-/// That row reads the `agentThread` and `threadActions` environment values in
-/// the same way, and goes away with the kit session model.
+/// The deprecated thread path makes the row for a kit message with
+/// ``init(message:)``. The footer slot takes a transcript entry, so that row
+/// is not in the footer of a thread message. It reads the `agentThread` and
+/// `threadActions` environment values in the same way, and goes away with the
+/// kit session model.
 ///
 /// The text of a message is selectable, one message at a time
 /// (``selectionMode``).
@@ -143,6 +145,19 @@ public struct MessageActions: View {
   ///   reads its content at each action.
   public init(entry: AgentMessageEntry) {
     subject = .agent(entry)
+  }
+
+  /// Makes the action row of a message entry of a session model, such as
+  /// the entry that the ``SwiftUI/EnvironmentValues/messageFooter`` slot
+  /// gives.
+  ///
+  /// - Parameter entry: The user message entry or the agent message entry of
+  ///   `SessionModel.transcript`. The row reads its content at each action.
+  public init(entry: MessageEntry) {
+    switch entry {
+    case .user(let user): subject = .user(user)
+    case .agent(let agent): subject = .agent(agent)
+    }
   }
 
   /// Makes the action row of a kit message of a deprecated thread.

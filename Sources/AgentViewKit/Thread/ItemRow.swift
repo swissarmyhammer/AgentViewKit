@@ -4,19 +4,22 @@ import SwiftUI
 /// The row of one thread item or one transcript entry (plan.md §3.6, §8;
 /// update.md §4.2).
 ///
-/// The row reads only its own record. Thus a patch to the record makes only
-/// this row invalid. The row switches over ``ThreadItem``. For each kind, it
-/// shows the override of the environment when there is one, and otherwise the
-/// default view of the kind.
-///
-/// A row of a `TranscriptEntry` switches over the entry case. A user message,
-/// an agent message, a thought, a tool call, a terminal, a plan, an unknown
-/// update, a compaction and an error show in ``UserMessageView``,
+/// A row of a `TranscriptEntry` switches over the entry case. For each case,
+/// it shows the override of the environment when there is one (see
+/// ``SwiftUI/EnvironmentValues/toolCallViewOverride`` and the other keys of
+/// the cases), and otherwise the default view of the case. The override gets
+/// the entry object, so it reads the model directly. A user message, an agent
+/// message, a thought, a tool call, a terminal, a plan, an unknown update, a
+/// compaction and an error show by default in ``UserMessageView``,
 /// ``AssistantMessageView``, ``ReasoningView``, ``ToolCallView``,
 /// ``TerminalView``, ``TaskListView``, ``UnknownItemView``,
 /// ``CompactionEntryView`` and ``ErrorView``. The row itself reads nothing of
 /// the entry: the item view reads the content, so a streamed chunk evaluates
 /// the item view and not the row.
+///
+/// A row of a ``ThreadItem`` of the deprecated thread path reads only its
+/// own record. Thus a patch to the record makes only this row invalid. The
+/// row shows the default view of the kind of the item, with no override.
 ///
 /// Two rows are equal when they show the same record object with the same id
 /// and the same revision, or the same entry object. Apply `.equatable()` to
@@ -161,105 +164,100 @@ public struct ItemRow: View, Equatable {
     }
   }
 
-  /// The view of a transcript entry.
+  /// The view of a transcript entry: the override of its case, or the
+  /// default view.
   ///
-  /// Each entry kind shows in its item view, which reads the entry object.
+  /// The override and the default view get the entry object, so they read
+  /// the values of the model directly. Neither one gets a copy of the entry.
   ///
   /// - Parameter entry: The entry to show.
   /// - Returns: The view of the entry.
   @ViewBuilder private func entryContent(_ entry: TranscriptEntry) -> some View {
     switch entry {
     case .userMessage(let message):
-      UserMessageView(entry: message)
+      OverridableItemView(\.userMessageViewOverride, entry: message) { UserMessageView(entry: $0) }
     case .agentMessage(let message):
-      AssistantMessageView(entry: message)
+      OverridableItemView(\.assistantMessageViewOverride, entry: message) { AssistantMessageView(entry: $0) }
     case .thought(let thought):
-      ReasoningView(entry: thought)
+      OverridableItemView(\.reasoningViewOverride, entry: thought) { ReasoningView(entry: $0) }
     case .toolCall(let toolCall):
-      ToolCallView(entry: toolCall)
+      OverridableItemView(\.toolCallViewOverride, entry: toolCall) { ToolCallView(entry: $0) }
     case .terminal(let terminal):
-      TerminalView(entry: terminal)
+      OverridableItemView(\.terminalViewOverride, entry: terminal) { TerminalView(entry: $0) }
     case .plan(let plan):
-      TaskListView(entry: plan)
+      OverridableItemView(\.planViewOverride, entry: plan) { TaskListView(entry: $0) }
     case .unknown(let unknown):
-      UnknownItemView(entry: unknown)
+      OverridableItemView(\.unknownItemViewOverride, entry: unknown) { UnknownItemView(entry: $0) }
     case .error(let error):
-      ErrorView(entry: error)
+      OverridableItemView(\.errorViewOverride, entry: error) { ErrorView(entry: $0) }
     case .compaction(let compaction):
-      CompactionEntryView(entry: compaction)
+      OverridableItemView(\.compactionEntryViewOverride, entry: compaction) { CompactionEntryView(entry: $0) }
     }
   }
 
-  /// The view of a thread item: the override of its kind, or the default
-  /// view.
+  /// The view of a thread item of the deprecated thread path: the default
+  /// view of its kind.
+  ///
+  /// The item view overrides take transcript entry objects, so a thread item
+  /// shows no override.
   ///
   /// - Parameter item: The item to show.
   /// - Returns: The view of the item.
   @ViewBuilder private func itemContent(_ item: ThreadItem) -> some View {
     switch item {
     case .userMessage(let record):
-      OverridableItemView(\.userMessageViewOverride, record: record) { record in
-        UserMessageView(message: record)
-      }
+      UserMessageView(message: record)
     case .assistantMessage(let record):
-      OverridableItemView(\.assistantMessageViewOverride, record: record) { record in
-        AssistantMessageView(message: record)
-      }
+      AssistantMessageView(message: record)
     case .reasoning(let record):
-      OverridableItemView(\.reasoningViewOverride, record: record) { record in
-        ThreadReasoningView(record: record)
-      }
+      ThreadReasoningView(record: record)
     case .toolCall(let record):
-      OverridableItemView(\.toolCallViewOverride, record: record) { record in
-        ToolCallView(record: record)
-      }
+      ToolCallView(record: record)
     case .error(let record):
-      OverridableItemView(\.errorViewOverride, record: record) { record in
-        ErrorView(error: record)
-      }
+      ErrorView(error: record)
     case .unknown(let record):
-      OverridableItemView(\.unknownItemViewOverride, record: record) { record in
-        UnknownItemView(record: record)
-      }
+      UnknownItemView(record: record)
     }
   }
 }
 
-/// Shows the override of one item kind, or the default view of the kind.
+/// Shows the override of one transcript entry case, or the default view of
+/// the case.
 ///
-/// The view reads only the environment key of its kind. Thus a change to the
-/// override of a different kind does not make this view invalid.
-private struct OverridableItemView<Record, Fallback: View>: View {
-  /// The override of the kind, or `nil`.
-  @Environment private var override: ItemViewRenderer<Record>?
+/// The view reads only the environment key of its case. Thus a change to the
+/// override of a different case does not make this view invalid. The view
+/// reads no value of the entry: the override or the default view reads it.
+private struct OverridableItemView<Entry, Fallback: View>: View {
+  /// The override of the case, or `nil`.
+  @Environment private var override: ItemViewRenderer<Entry>?
 
-  /// The record to show.
-  let record: Record
+  /// The entry object to show.
+  let entry: Entry
 
   /// The function that makes the default view.
-  let fallback: (Record) -> Fallback
+  let fallback: (Entry) -> Fallback
 
   /// Makes the view.
   ///
   /// - Parameters:
-  ///   - key: The environment key of the override of the kind.
-  ///   - record: The record to show.
+  ///   - key: The environment key of the override of the case.
+  ///   - entry: The entry object to show.
   ///   - fallback: The function that makes the default view.
   init(
-    _ key: KeyPath<EnvironmentValues, ItemViewRenderer<Record>?>,
-    record: Record,
-    @ViewBuilder fallback: @escaping (Record) -> Fallback
+    _ key: KeyPath<EnvironmentValues, ItemViewRenderer<Entry>?>,
+    entry: Entry,
+    @ViewBuilder fallback: @escaping (Entry) -> Fallback
   ) {
     _override = Environment(key)
-    self.record = record
+    self.entry = entry
     self.fallback = fallback
   }
 
   var body: some View {
     if let override {
-      override(record)
+      override(entry)
     } else {
-      fallback(record)
+      fallback(entry)
     }
   }
 }

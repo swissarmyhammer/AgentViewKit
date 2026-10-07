@@ -22,8 +22,9 @@ import SwiftUI
 /// in the thread calls the actions of the host. For a thread that no source
 /// drives, pass ``LoggingThreadActions``.
 ///
-/// To replace the view of an item kind, use a typed modifier such as
-/// ``SwiftUI/View/toolCallView(_:)``.
+/// To replace the view of a transcript entry case, use a typed modifier such
+/// as ``SwiftUI/View/toolCallView(_:)``. The override gets the entry object.
+/// A thread of the deprecated thread path shows no override.
 ///
 /// The view gives an ``ExpandedBlocksStore`` to its rows. When the
 /// environment has a store, the view uses that store.

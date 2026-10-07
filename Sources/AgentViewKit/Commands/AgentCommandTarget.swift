@@ -51,7 +51,8 @@ struct AgentComposerHook {
 ///   `selectPermission(_:option:)`.
 /// - Copy reads the user message entries and the agent message entries of the
 ///   transcript. Jump goes to the next or the previous user message entry.
-///   Expand all reads the row key of each entry.
+///   Expand all reads the row key of each entry and the expanded policy of
+///   the store for the entry.
 ///
 /// The deprecated thread path reads the ``AgentThread`` and calls the
 /// ``AgentThreadActions`` in the same way. It goes away with the kit session
@@ -488,9 +489,9 @@ final class AgentCommandTarget {
 
   /// Tells if each row of `source` is expanded.
   ///
-  /// A thread item with no decision reads the
+  /// A transcript entry with no decision reads the
   /// ``ExpandedBlocksStore/defaultExpanded`` policy. The policy takes a
-  /// thread item, so a transcript entry reads only its decision.
+  /// transcript entry, so a thread item reads only its decision.
   ///
   /// - Parameters:
   ///   - source: The model of the scope.
@@ -498,8 +499,8 @@ final class AgentCommandTarget {
   /// - Returns: `true` when each row is expanded.
   private static func isEachRowExpanded(of source: ConversationSource, in store: ExpandedBlocksStore) -> Bool {
     switch source {
-    case .thread(let thread): thread.items.allSatisfy { store.isExpanded($0) }
-    case .session(let session): session.transcript.allSatisfy { store.isExpanded($0.rowKey) }
+    case .thread(let thread): thread.items.allSatisfy { store.isExpanded($0.id) }
+    case .session(let session): session.transcript.allSatisfy { store.isExpanded($0) }
     }
   }
 

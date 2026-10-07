@@ -24,15 +24,16 @@ struct HostThread: View {
 
   var body: some View {
     AgentThreadView(thread: thread, actions: actions)
-      // One typed modifier for each item kind. The closure gets the record.
-      .toolCallView { call in Text(call.title) }
+      // One typed modifier for each transcript entry case. The closure gets
+      // the entry object of the session model.
+      .toolCallView { call in Text(call.title ?? "") }
       .reasoningView { _ in EmptyView() }
       // The open-ended kinds take a key: a block kind or a type.
       .contentBlockView(for: .resourceLink) { block in
         if case .resourceLink(let link) = block.content { Text(link.name) }
       }
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
-      // The footer slot of each message.
-      .messageFooter { message in MessageActions(message: message) }
+      // The footer slot of each message entry.
+      .messageFooter { entry in MessageActions(entry: entry) }
   }
 }

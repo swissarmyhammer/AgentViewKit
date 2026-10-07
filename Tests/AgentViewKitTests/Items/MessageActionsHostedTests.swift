@@ -80,8 +80,7 @@ import Testing
     let message = try Self.message(Self.assistant, in: thread)
     let pasteboard = FakePasteboard()
     let harness = threadViewHarness(actions: NoopThreadActions(), thread: thread) {
-      AssistantMessageView(message: message)
-        .messageFooter { MessageActions(message: $0) }
+      MessageActions(message: message)
         .environment(\.pasteboard, pasteboard)
     }
     defer { harness.close() }
@@ -97,8 +96,7 @@ import Testing
     let message = try Self.message(Self.user, in: thread)
     let pasteboard = FakePasteboard()
     let harness = threadViewHarness(actions: NoopThreadActions(), thread: thread) {
-      UserMessageView(message: message)
-        .messageFooter { MessageActions(message: $0) }
+      MessageActions(message: message)
         .environment(\.pasteboard, pasteboard)
     }
     defer { harness.close() }
@@ -109,26 +107,6 @@ import Testing
     #expect(pasteboard.copies == [AgentCommandTarget.plainText(of: thread)])
   }
 
-  @Test func copyThreadInAThreadViewRunsTheCopyThreadCommand() throws {
-    let thread = AgentThread()
-    thread.apply(.insert(.userMessage(ThreadFixtures.message(id: Self.user)), after: nil))
-    let pasteboard = FakePasteboard()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(
-      size: Self.windowSize, actions: actions, thread: thread
-    ) {
-      AgentThreadView(thread: thread, actions: actions)
-        .messageFooter { MessageActions(message: $0) }
-        .environment(\.pasteboard, pasteboard)
-    }
-    defer { harness.close() }
-    harness.pump()
-
-    try harness.press(identifier: MessageActions.Action.copyThread.identifier)
-
-    #expect(pasteboard.copies == ["User:\nHello."])
-  }
-
   // MARK: - Retry and edit
 
   @Test func retrySendsTheLastUserInputBeforeTheMessage() async throws {
@@ -136,8 +114,7 @@ import Testing
     let message = try Self.message(Self.assistant, in: thread)
     let actions = NoopThreadActions()
     let harness = threadViewHarness(actions: actions, thread: thread) {
-      AssistantMessageView(message: message)
-        .messageFooter { MessageActions(message: $0) }
+      MessageActions(message: message)
     }
     defer { harness.close() }
     harness.pump()
@@ -156,8 +133,7 @@ import Testing
       size: Self.windowSize, actions: NoopThreadActions(), thread: thread
     ) {
       VStack {
-        UserMessageView(message: message)
-          .messageFooter { MessageActions(message: $0) }
+        MessageActions(message: message)
         PromptInputHost(model: model)
       }
       .agentCommandScope(thread: thread)
@@ -177,8 +153,7 @@ import Testing
     let model = PromptInputHostedTestModel()
     let text = Binding(get: { model.text }, set: { model.text = $0 })
     let harness = threadViewHarness(actions: NoopThreadActions(), thread: thread) {
-      UserMessageView(message: message)
-        .messageFooter { MessageActions(message: $0) }
+      MessageActions(message: message)
         .environment(\.promptText, text)
     }
     defer { harness.close() }
@@ -418,6 +393,25 @@ import Testing
     harness.pump()
 
     try harness.press(identifier: MessageActions.Action.copyThread.identifier)
+
+    let expected = AgentCommandTarget.plainText(of: .session(turn.session.model))
+    #expect(!expected.isEmpty)
+    #expect(pasteboard.copies == [expected])
+  }
+
+  @Test func copyThreadInTheFooterOfAThreadViewRunsTheCopyThreadCommand() async throws {
+    let turn = try await Self.openTurn()
+    defer { turn.session.close() }
+    let pasteboard = FakePasteboard()
+    let copyThread = MessageActions.Action.copyThread.identifier
+    let harness = Self.mount(turn, pasteboard: pasteboard) {
+      AgentThreadView(session: turn.session.model, actions: NoopThreadActions())
+        .messageFooter { MessageActions(entry: $0) }
+    }
+    defer { harness.close() }
+    await harness.pump(until: Self.waitTimeout) { Self.shownActions(in: harness).contains(copyThread) }
+
+    try harness.press(identifier: copyThread)
 
     let expected = AgentCommandTarget.plainText(of: .session(turn.session.model))
     #expect(!expected.isEmpty)

@@ -1,4 +1,3 @@
-import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -17,32 +16,32 @@ import SwiftUI
 /// that did not change keeps its view, so a chunk evaluates only the last
 /// paragraph.
 ///
-/// The ``SwiftUI/EnvironmentValues/messageFooter`` slot takes a kit message,
-/// so an entry shows no footer.
+/// Below the content, the view shows the
+/// ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry object,
+/// when the environment has a footer.
 ///
 /// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
 /// ``BodyEvaluationCounter``, because it is the view that the content of the
 /// entry evaluates again.
 struct TranscriptMessageView: View {
-  /// The identity of the entry.
-  let id: TranscriptEntry.ID
-
-  /// The content blocks of the entry.
-  let content: [FoundationModelsACP.ContentBlock]
-
-  /// The sender of the message.
-  let role: MessageRole
+  /// The message entry to show.
+  let entry: MessageEntry
 
   /// The time of the message, or `nil` when it is not known.
   let date: Date?
 
+  @Environment(\.messageFooter) private var footer
+
   var body: some View {
-    let key = id.rowKey
+    let key = entry.id.rowKey
     #if DEBUG
       BodyEvaluationCounter.note(ItemRow.contentCounterKey(for: key))
     #endif
-    return MessageLayout(id: key, role: role, date: date) {
-      EntryContentView(content: content, id: key)
+    return MessageLayout(id: key, role: entry.role, date: date) {
+      EntryContentView(content: entry.content, id: key)
+      if let footer {
+        footer(entry)
+      }
     }
   }
 }

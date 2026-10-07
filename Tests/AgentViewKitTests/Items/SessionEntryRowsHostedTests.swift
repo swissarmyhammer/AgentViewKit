@@ -179,6 +179,26 @@
       Self.expectCompleteThought(key: key, in: harness)
     }
 
+    @Test func theExpandedPolicyOpensAThoughtEntry() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore { entry in
+        if case .thought = entry { true } else { false }
+      }
+      let harness = Self.mountThread(session, store: store)
+      defer { harness.close() }
+
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
+      await harness.pump(until: Self.waitTimeout) {
+        SessionTranscriptViewHostedTests.showsParagraphs(of: Self.thoughtText, in: harness)
+      }
+
+      let key = try #require(session.model.transcript.first?.rowKey)
+      #expect(store.decision(for: key) == nil)
+      Self.expectCompleteThought(key: key, in: harness)
+    }
+
     @Test func aThoughtChunkEvaluatesOnlyTheRowOfItsThought() async throws {
       try await SessionTranscriptViewHostedTests.expectAChunkEvaluatesOnlyTheRowOfItsEntry(
         kind: "agent_thought_chunk")

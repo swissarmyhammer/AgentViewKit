@@ -8,8 +8,9 @@ import SwiftUI
 /// evaluates only this view. The open block shows the content through
 /// ``EntryContentView``, and the row key of the entry is the id of the
 /// block. The view keeps no copy of the content, makes no kit record of it,
-/// and keeps no stream. The block has the complete look and no
-/// ``ExpandedBlocksStore/defaultExpanded`` policy.
+/// and keeps no stream. The block has the complete look. With no user
+/// decision, it uses the ``ExpandedBlocksStore/defaultExpanded`` policy of
+/// the store for the thought entry.
 ///
 /// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
 /// ``BodyEvaluationCounter``, because it is the view that the content of the
@@ -26,7 +27,7 @@ struct ThoughtEntryBlock: View {
     // The body reads the content of the entry also while the block is
     // closed, so that each chunk evaluates this view.
     let content = entry.content
-    return ReasoningBlock(id: key, isInProgress: false, duration: nil, policyItem: nil) {
+    return ReasoningBlock(id: key, isInProgress: false, duration: nil, policyEntry: .thought(entry)) {
       EntryContentView(content: content, id: key)
     }
   }

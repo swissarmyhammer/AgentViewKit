@@ -362,10 +362,10 @@ final class CallCounter {
     let fixture = Self.makeFixture(thread: thread) { $0.expandedBlocks = store }
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(thread.items.allSatisfy { store.isExpanded($0) })
+    #expect(thread.items.allSatisfy { store.isExpanded($0.id) })
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
-    #expect(thread.items.allSatisfy { !store.isExpanded($0) })
+    #expect(thread.items.allSatisfy { !store.isExpanded($0.id) })
   }
 
   @Test func scrollToBottomPinsTheList() async {
@@ -525,5 +525,21 @@ final class CallCounter {
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
     #expect(keys.allSatisfy { !store.isExpanded($0) })
+  }
+
+  @Test func toggleExpandAllCollapsesTheEntriesThatThePolicyExpands() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let store = ExpandedBlocksStore { _ in true }
+    let fixture = Self.makeFixture(source: .session(model)) { $0.expandedBlocks = store }
+    try await session.sendUpdate(
+      WireBlockJSON.makeChunk("agent_message_chunk", messageID: "policy-m", block: WireBlockJSON.makeText("Hello.")))
+    #expect(await waitUntil { !model.transcript.isEmpty })
+    #expect(model.transcript.allSatisfy { store.isExpanded($0) })
+
+    #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
+
+    #expect(model.transcript.allSatisfy { !store.isExpanded($0) })
   }
 }

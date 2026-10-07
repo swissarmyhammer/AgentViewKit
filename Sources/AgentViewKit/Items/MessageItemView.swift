@@ -1,132 +1,84 @@
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Textual
 
+/// A message entry of a session transcript: the observable entry object of a
+/// user message or of an agent message (update.md §4.2).
+///
+/// The value holds the object of the session model and no copy of its
+/// values. The ``SwiftUI/EnvironmentValues/messageFooter`` slot gives it to
+/// the footer of each message row, and ``MessageActions`` takes it.
+public enum MessageEntry {
+  /// A `UserMessageEntry` of the transcript.
+  case user(UserMessageEntry)
+
+  /// An `AgentMessageEntry` of the transcript.
+  case agent(AgentMessageEntry)
+
+  /// The stable identity of the entry.
+  public var id: TranscriptEntry.ID {
+    switch self {
+    case .user(let entry): entry.id
+    case .agent(let entry): entry.id
+    }
+  }
+
+  /// The sender of the message.
+  var role: MessageRole {
+    switch self {
+    case .user: .user
+    case .agent: .assistant
+    }
+  }
+
+  /// The ACP content blocks of the entry, as the session model holds them.
+  @MainActor var content: [FoundationModelsACP.ContentBlock] {
+    switch self {
+    case .user(let entry): entry.content
+    case .agent(let entry): entry.content
+    }
+  }
+}
+
 extension EnvironmentValues {
-  /// The footer of each message item: the `messageFooter` slot
+  /// The footer of each message row: the `messageFooter` slot
   /// (plan.md §9 A2).
   ///
-  /// ``UserMessageView`` and ``AssistantMessageView`` show the footer below
-  /// the content. The value is `nil` by default, and the views then show no
-  /// footer. Set the value with ``SwiftUI/View/messageFooter(_:)``.
-  @Entry public var messageFooter: ItemViewRenderer<Message>? = nil
+  /// ``UserMessageView`` and ``AssistantMessageView`` show the footer of a
+  /// message entry below the content. The footer gets the entry object, so
+  /// it reads the model directly. The value is `nil` by default, and the
+  /// views then show no footer. Set the value with
+  /// ``SwiftUI/View/messageFooter(_:)``.
+  @Entry public var messageFooter: ItemViewRenderer<MessageEntry>? = nil
 }
 
 extension View {
-  /// Sets the footer of each message item in this view.
+  /// Sets the footer of each message row in this view.
   ///
-  /// `MessageActions` fills this slot with the message actions.
+  /// Give ``MessageActions`` for the message actions:
   ///
-  /// - Parameter content: The function that makes the footer of a message.
+  /// ```swift
+  /// AgentThreadView(session: session, actions: actions)
+  ///   .messageFooter { entry in MessageActions(entry: entry) }
+  /// ```
+  ///
+  /// - Parameter content: The function that makes the footer of a message
+  ///   entry.
   /// - Returns: A view that gives the footer to its subtree.
   public func messageFooter<Content: View>(
-    @ViewBuilder _ content: @escaping @MainActor (Message) -> Content
+    @ViewBuilder _ content: @escaping @MainActor (MessageEntry) -> Content
   ) -> some View {
-    environment(\.messageFooter) { message in AnyView(content(message)) }
-  }
-}
-
-/// The shared body of ``UserMessageView`` and ``AssistantMessageView``
-/// (plan.md §9 A2).
-///
-/// The view shows a ``MessageHeader``, the content blocks, and the
-/// ``SwiftUI/EnvironmentValues/messageFooter`` slot.
-///
-/// - When the message does not stream, each block shows in a
-///   ``ContentBlockView``, in message order.
-/// - When the message streams, the text shows in one ``ResponseView``, and
-///   each block that is not text shows in a ``ContentBlockView`` below it.
-///   The response view gets the stream of the thread.
-///
-/// The text of the message is selectable, one message at a time
-/// (``MessageActions/selectionMode``).
-///
-/// This view, and not the row, reads the thread. Thus a chunk evaluates only
-/// this view, and the row stays equal. In a scroll view that is not a
-/// ``ConversationView``, apply ``SwiftUI/View/lazyResponseParagraphs(_:)``
-/// to the scroll view content.
-struct MessageItemView: View {
-  /// The message to show.
-  let message: Message
-
-  /// The sender of the message.
-  let role: MessageRole
-
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
-  @Environment(\.agentThread) private var thread
-
-  var body: some View {
-    MessageBodyView(
-      message: message, role: role, date: date, streaming: thread?.streaming[message.id])
-  }
-}
-
-/// The layout of one message of a thread: the header, the content blocks,
-/// and the footer slot, in a ``MessageLayout``.
-///
-/// The caller gives the stream of the message. ``MessageItemView`` reads it
-/// from the thread.
-struct MessageBodyView: View {
-  /// The message to show.
-  let message: Message
-
-  /// The sender of the message.
-  let role: MessageRole
-
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
-  /// The stream of the message, or `nil` when the message does not stream.
-  let streaming: StreamingMessage?
-
-  @Environment(\.messageFooter) private var footer
-
-  /// The id of the view of the block at `index` of a message.
-  ///
-  /// - Parameters:
-  ///   - messageID: The identifier of the message.
-  ///   - index: The position of the block in the message.
-  /// - Returns: `<message id>-<index>`.
-  static func blockID(messageID: String, index: Int) -> String {
-    "\(messageID)-\(index)"
-  }
-
-  var body: some View {
-    let blocks = Array(message.blocks.enumerated())
-    MessageLayout(id: message.id, role: role, date: date) {
-      if let streaming {
-        ResponseView(message: message, streaming: streaming)
-        blockViews(blocks.filter { $0.element.kind != .text })
-      } else {
-        blockViews(blocks)
-      }
-      if let footer {
-        footer(message)
-      }
-    }
-  }
-
-  /// One ``ContentBlockView`` for each block, keyed by its position.
-  ///
-  /// - Parameter blocks: The blocks to show, with their positions in the
-  ///   message.
-  /// - Returns: The block views.
-  private func blockViews(
-    _ blocks: [EnumeratedSequence<[ContentBlock]>.Element]
-  ) -> some View {
-    ForEach(blocks, id: \.offset) { index, block in
-      ContentBlockView(block: block, id: Self.blockID(messageID: message.id, index: index))
-    }
+    environment(\.messageFooter) { entry in AnyView(content(entry)) }
   }
 }
 
 /// The layout of one message: the ``MessageHeader`` and then the content,
 /// in one accessibility container.
 ///
-/// ``MessageBodyView`` puts the blocks and the footer of a thread message in
-/// it. ``TranscriptMessageView`` puts the ACP content of a transcript entry
-/// in it.
+/// ``TranscriptMessageView`` puts the ACP content and the footer of a
+/// transcript entry in it. ``MessageBodyView`` puts the blocks of a message of
+/// the deprecated thread path in it.
 ///
 /// The text of the message is selectable, one message at a time, and each
 /// paragraph of the message is in one linked reading group.

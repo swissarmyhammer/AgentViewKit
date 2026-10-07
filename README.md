@@ -150,34 +150,41 @@ struct HostThread: View {
 
   var body: some View {
     AgentThreadView(thread: thread, actions: actions)
-      // One typed modifier for each item kind. The closure gets the record.
-      .toolCallView { call in Text(call.title) }
+      // One typed modifier for each transcript entry case. The closure gets
+      // the entry object of the session model.
+      .toolCallView { call in Text(call.title ?? "") }
       .reasoningView { _ in EmptyView() }
       // The open-ended kinds take a key: a block kind or a type.
       .contentBlockView(for: .resourceLink) { block in
         if case .resourceLink(let link) = block.content { Text(link.name) }
       }
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
-      // The footer slot of each message.
-      .messageFooter { message in MessageActions(message: message) }
+      // The footer slot of each message entry.
+      .messageFooter { entry in MessageActions(entry: entry) }
   }
 }
 ```
 
 ### Override modifiers
 
-`AgentThreadView` switches over `ThreadItem` inside. To replace the view of
-one kind, chain the typed modifier of that kind. The closure gets the concrete
-record. An inner modifier wins over an outer modifier for the same kind.
+`AgentThreadView(session:actions:)` switches over `TranscriptEntry` inside.
+To replace the view of one case, chain the typed modifier of that case. The
+closure gets the observable entry object of the session model, so the view
+that it makes shows each change of the model. An inner modifier wins over an
+outer modifier for the same case. A thread of the deprecated
+`AgentThreadView(thread:actions:)` shows no override.
 
 | Modifier | The closure gets |
 |---|---|
-| `.userMessageView { message in }` | `Message` |
-| `.assistantMessageView { message in }` | `Message` |
-| `.reasoningView { reasoning in }` | `Reasoning` |
-| `.toolCallView { call in }` | `ToolCallRecord` |
-| `.errorView { error in }` | `ThreadError` |
-| `.unknownItemView { record in }` | `UnknownRecord` |
+| `.userMessageView { entry in }` | `UserMessageEntry` |
+| `.assistantMessageView { entry in }` | `AgentMessageEntry` |
+| `.reasoningView { entry in }` | `ThoughtEntry` |
+| `.toolCallView { entry in }` | `ToolCallEntry` |
+| `.terminalView { entry in }` | `TerminalEntry` |
+| `.planView { entry in }` | `PlanTranscriptEntry` |
+| `.errorView { entry in }` | `ErrorEntry` |
+| `.unknownItemView { entry in }` | `UnknownEntry` |
+| `.compactionEntryView { entry in }` | `CompactionEntry` |
 
 The open-ended kinds take a key:
 
@@ -185,7 +192,7 @@ The open-ended kinds take a key:
 |---|---|
 | `.contentBlockView(for: .kind) { block in }` | `ContentBlock`, for one block kind |
 | `.attachmentView(for: .pdf) { url in }` | `URL`, for one uniform type and its subtypes |
-| `.messageFooter { message in }` | `Message`, for the footer slot of each message |
+| `.messageFooter { entry in }` | `MessageEntry`, the user or agent message entry, for the footer slot of each message |
 | `.diffRenderer { patch, file in }` | the patch and the file, in place of the EditorKit diff view |
 
 A uniform type with no registration falls to the nearest supertype, and then

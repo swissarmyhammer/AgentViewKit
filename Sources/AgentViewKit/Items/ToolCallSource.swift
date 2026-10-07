@@ -116,14 +116,14 @@ enum ToolCallSource {
   /// Tells if the call is expanded.
   ///
   /// - Parameter store: The store of the user decisions.
-  /// - Returns: The user decision. With no decision, a record uses the
-  ///   ``ExpandedBlocksStore/defaultExpanded`` policy of the store, and an
-  ///   entry is collapsed: the policy reads a ``ThreadItem``, and an entry
+  /// - Returns: The user decision. With no decision, an entry uses the
+  ///   ``ExpandedBlocksStore/defaultExpanded`` policy of the store, and a
+  ///   record is collapsed: the policy reads a transcript entry, and a record
   ///   has none.
   func isExpanded(in store: ExpandedBlocksStore) -> Bool {
     switch self {
-    case .record(let record): store.decision(for: record.id) ?? store.defaultExpanded(.toolCall(record))
-    case .entry(let entry): store.decision(for: entry.id.rowKey) ?? false
+    case .record(let record): store.isExpanded(record.id)
+    case .entry(let entry): store.isExpanded(.toolCall(entry))
     }
   }
 }

@@ -1,34 +1,51 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 import UniformTypeIdentifiers
 
-/// The item kinds that have a typed override modifier.
+/// The transcript entry cases that have a typed override modifier.
 enum OverrideKind: String, CaseIterable, Sendable {
   case userMessage
   case assistantMessage
   case reasoning
   case toolCall
+  case terminal
+  case plan
   case error
   case unknownItem
+  case compactionEntry
+
+  /// The accessibility identifier of the marker that the override of this
+  /// kind shows for the entry of `id`.
+  ///
+  /// - Parameter id: The identity of the entry.
+  /// - Returns: `<kind>-<row key>`.
+  func markerIdentifier(for id: TranscriptEntry.ID) -> String {
+    "\(rawValue)-\(id.rowKey)"
+  }
 }
 
 extension View {
-  /// Applies the typed override modifier of `kind` with an empty view.
+  /// Applies the typed override modifier of `kind`. The override shows a
+  /// marker with ``OverrideKind/markerIdentifier(for:)`` of its entry.
   ///
   /// - Parameter kind: The kind to override.
   /// - Returns: The view with the override.
   @ViewBuilder
   func applyOverride(_ kind: OverrideKind) -> some View {
     switch kind {
-    case .userMessage: userMessageView { _ in EmptyView() }
-    case .assistantMessage: assistantMessageView { _ in EmptyView() }
-    case .reasoning: reasoningView { _ in EmptyView() }
-    case .toolCall: toolCallView { _ in EmptyView() }
-    case .error: errorView { _ in EmptyView() }
-    case .unknownItem: unknownItemView { _ in EmptyView() }
+    case .userMessage: userMessageView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .assistantMessage: assistantMessageView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .reasoning: reasoningView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .toolCall: toolCallView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .terminal: terminalView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .plan: planView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .error: errorView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .unknownItem: unknownItemView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .compactionEntry: compactionEntryView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     }
   }
 }
@@ -42,8 +59,11 @@ struct OverrideKeysReader: View {
   @Environment(\.assistantMessageViewOverride) private var assistantMessage
   @Environment(\.reasoningViewOverride) private var reasoning
   @Environment(\.toolCallViewOverride) private var toolCall
+  @Environment(\.terminalViewOverride) private var terminal
+  @Environment(\.planViewOverride) private var plan
   @Environment(\.errorViewOverride) private var error
   @Environment(\.unknownItemViewOverride) private var unknownItem
+  @Environment(\.compactionEntryViewOverride) private var compactionEntry
 
   /// The names of the kinds that have an override, sorted.
   private var setKinds: [String] {
@@ -52,8 +72,11 @@ struct OverrideKeysReader: View {
       (.assistantMessage, assistantMessage != nil),
       (.reasoning, reasoning != nil),
       (.toolCall, toolCall != nil),
+      (.terminal, terminal != nil),
+      (.plan, plan != nil),
       (.error, error != nil),
       (.unknownItem, unknownItem != nil),
+      (.compactionEntry, compactionEntry != nil),
     ]
     return flags.filter(\.1).map(\.0.rawValue).sorted()
   }
@@ -288,29 +311,80 @@ func marker(_ identifier: String) -> some View {
         == "keys:" + kind.rawValue)
   }
 
-  @Test func typedModifierPassesTheRecord() {
-    let record = ThreadError(id: "e1", kind: .unknown(message: "x"))
-    let harness = Self.mount(
-      ErrorOverrideReader(record: record)
-        .errorView { error in marker("error-" + error.id) }
-    )
-    defer { harness.close() }
-    #expect(harness.element(identifier: "error-e1") != nil)
-  }
-}
+  #if DEBUG
+  // MARK: - Entry rows
 
-/// Shows the error override for a record.
-struct ErrorOverrideReader: View {
-  /// The record to show.
-  let record: ThreadError
+  /// The `messageId` of the message and thought entries of the entry row
+  /// test.
+  static let entryMessageID = "override-m"
 
-  @Environment(\.errorViewOverride) private var override
+  /// The `toolCallId` of the tool call entry of the entry row test.
+  static let entryToolCallID = "override-call"
 
-  var body: some View {
-    if let override {
-      override(record)
-    } else {
-      Text("none").accessibilityIdentifier("none")
+  /// The text of the message, thought and compaction entries of the entry
+  /// row test.
+  static let entryText = "Override."
+
+  /// The `session/update` value that makes an entry of `kind`.
+  ///
+  /// - Parameter kind: The entry case.
+  /// - Returns: The JSON text of the update, or `nil` for an error entry,
+  ///   which the client makes itself.
+  static func update(making kind: OverrideKind) -> String? {
+    let text = WireBlockJSON.makeText(entryText)
+    switch kind {
+    case .userMessage:
+      return WireBlockJSON.makeChunk("user_message_chunk", messageID: entryMessageID, block: text)
+    case .assistantMessage:
+      return WireBlockJSON.makeChunk("agent_message_chunk", messageID: entryMessageID, block: text)
+    case .reasoning:
+      return WireBlockJSON.makeChunk("agent_thought_chunk", messageID: entryMessageID, block: text)
+    case .toolCall:
+      return WireBlockJSON.makeToolCallUpdate(id: entryToolCallID, fields: #""status": "pending""#)
+    case .terminal:
+      return SessionEntryRowsHostedTests.terminalUpdate(#""command": "\#(SessionEntryRowsHostedTests.command)""#)
+    case .plan:
+      return SessionEntryRowsHostedTests.planUpdate(firstStatus: "pending")
+    case .unknownItem:
+      return #"{"sessionUpdate": "\#(SessionEntryRowsHostedTests.unknownType)"}"#
+    case .compactionEntry:
+      return WireBlockJSON.makeCompactionSummaryChunk(
+        compactionID: CompactionAndNoticeHostedTests.compactionID, block: text)
+    case .error:
+      return nil
     }
   }
+
+  /// Makes the one entry of `kind` in the transcript of `session`.
+  ///
+  /// - Parameters:
+  ///   - kind: The entry case.
+  ///   - session: A scripted session with an empty transcript.
+  /// - Returns: The entry.
+  /// - Throws: The error of the transport, or an issue when the transcript
+  ///   has no entry at the time limit.
+  static func makeEntry(_ kind: OverrideKind, in session: ScriptedSession) async throws -> TranscriptEntry {
+    if let update = update(making: kind) {
+      try await session.sendUpdate(update)
+    } else {
+      session.model.appendError(code: .invalidParams, message: entryText, data: nil)
+    }
+    let model = session.model
+    _ = await waitUntil { !model.transcript.isEmpty }
+    return try #require(model.transcript.first)
+  }
+
+  @Test(arguments: OverrideKind.allCases)
+  func theOverrideOfEachEntryCaseShowsInTheRowOfTheEntry(kind: OverrideKind) async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let entry = try await Self.makeEntry(kind, in: session)
+
+    let harness = Self.mount(ItemRow(entry: entry).applyOverride(kind))
+    defer { harness.close() }
+
+    #expect(harness.element(identifier: kind.markerIdentifier(for: entry.id)) != nil)
+    #expect(harness.element(identifier: ItemRow.identifier(for: entry.rowKey)) != nil)
+  }
+  #endif
 }

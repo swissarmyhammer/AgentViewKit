@@ -3,11 +3,11 @@ import SwiftUI
 
 /// The default view of a user message item (plan.md §9 A2).
 ///
-/// The view shows a ``MessageHeader``, the content blocks of the message
-/// through ``ContentBlockView``, and the
-/// ``SwiftUI/EnvironmentValues/messageFooter`` slot. While the message
-/// streams, the text shows through ``ResponseView`` with the stream of the
-/// thread of the environment.
+/// The view shows a ``MessageHeader`` and the content blocks of the message.
+/// The view of an entry also shows the
+/// ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry object.
+/// While a thread message streams, the text shows through ``ResponseView``
+/// with the stream of the thread of the environment.
 ///
 /// The view shows a thread message or a `UserMessageEntry` of a
 /// `SessionModel` (update.md §4.2). The view of an entry reads the content of
@@ -72,10 +72,10 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   public var body: some View {
     switch source {
     case .message(let message):
-      MessageItemView(message: message, role: .user, date: date)
+      ThreadMessageItemView(message: message, role: .user, date: date)
     case .entry(let entry):
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
-        TranscriptMessageView(id: entry.id, content: entry.content, role: .user, date: date)
+        TranscriptMessageView(entry: .user(entry), date: date)
         SendStateLabel(state: entry.sendState)
           .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
       }

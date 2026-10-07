@@ -236,22 +236,30 @@ import Testing
 
   // MARK: - Footer
 
-  @Test func theFooterSlotIsEmptyByDefaultAndShowsTheHostFooter() {
-    let message = ThreadFixtures.message(id: "footer-message", text: "Hi.")
-    let plain = HostedViewHarness(UserMessageView(message: message))
-    plain.pump()
+  @Test func theFooterSlotIsEmptyByDefaultAndShowsTheHostFooterOfAnEntry() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.firstChunk)))
+    _ = await waitUntil { !model.transcript.isEmpty }
+    let key = try #require(model.transcript.first?.rowKey)
+    let message = AssistantMessageView.identifier(for: key)
+    let plain = HostedViewHarness(AgentThreadView(session: model, actions: NoopThreadActions()), size: Self.tallSize)
+    await plain.pump(until: Self.waitTimeout) { plain.element(identifier: message) != nil }
+    #expect(plain.element(identifier: message) != nil)
     #expect(plain.element(identifier: Self.footerIdentifier) == nil)
     plain.close()
 
-    let view = UserMessageView(message: message)
-      .messageFooter { message in
-        Text("Footer \(message.id)")
-          .accessibilityIdentifier(Self.footerIdentifier)
-      }
-    let harness = HostedViewHarness(view)
+    let harness = HostedViewHarness(size: Self.tallSize) {
+      AgentThreadView(session: model, actions: NoopThreadActions())
+        .messageFooter { entry in
+          Text("Footer \(entry.id.rowKey)")
+            .accessibilityIdentifier(Self.footerIdentifier)
+        }
+    }
     defer { harness.close() }
-    harness.pump()
+    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: Self.footerIdentifier) != nil }
 
-    #expect(harness.element(identifier: Self.footerIdentifier)?.label == "Footer footer-message")
+    #expect(harness.element(identifier: Self.footerIdentifier)?.label == "Footer \(key)")
   }
 }

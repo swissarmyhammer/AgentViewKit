@@ -10,11 +10,11 @@ import SwiftUI
 ///   collapses, unless the user expanded it.
 ///
 /// The user decision is in the ``ExpandedBlocksStore`` of the environment,
-/// keyed by the record id. A block with no user decision is open while it is
-/// in progress. When it is complete, it uses the
-/// ``ExpandedBlocksStore/defaultExpanded`` policy of the store, which is
-/// closed by default. When the environment has no store, the view uses a
-/// store of its own.
+/// keyed by the record id or the row key of the entry. A block with no user
+/// decision is open while it is in progress. A complete thought entry uses
+/// the ``ExpandedBlocksStore/defaultExpanded`` policy of the store, which is
+/// closed by default. A complete reasoning record is closed. When the
+/// environment has no store, the view uses a store of its own.
 ///
 /// ``AgentThreadView`` finds the in-progress state from the thread: a
 /// reasoning item is in progress when it is the last item and the thread
@@ -27,10 +27,8 @@ import SwiftUI
 /// between the entry and the view (``ThoughtEntryBlock``). Only the views
 /// that read `agentState` show that the agent works. The view of an entry
 /// reads the content of the entry, so a streamed chunk evaluates only this
-/// view. The ``ExpandedBlocksStore/defaultExpanded`` policy takes a thread
-/// item, so it does not apply to a thought entry. A thought and an agent
-/// message with the same `messageId` are two entries, so they show in two
-/// rows.
+/// view. A thought and an agent message with the same `messageId` are two
+/// entries, so they show in two rows.
 public struct ReasoningView: View {
   /// The start of the accessibility identifier of each block.
   public static let identifierPrefix = "reasoning-"
@@ -148,7 +146,7 @@ public struct ReasoningView: View {
     switch source {
     case .record(let record, let isInProgress, let streaming):
       ReasoningBlock(
-        id: record.id, isInProgress: isInProgress, duration: record.duration, policyItem: .reasoning(record)
+        id: record.id, isInProgress: isInProgress, duration: record.duration, policyEntry: nil
       ) {
         // The message id is the record id, because the code block cache and
         // the evaluation counter use it as a key.
@@ -178,10 +176,10 @@ struct ReasoningBlock<Content: View>: View {
   /// The time of the reasoning, or `nil` when it is not known.
   let duration: TimeInterval?
 
-  /// The thread item that the ``ExpandedBlocksStore/defaultExpanded`` policy
-  /// of the store reads, or `nil` when the policy does not apply. The policy
-  /// takes a thread item, so a thought entry has no policy.
-  let policyItem: ThreadItem?
+  /// The transcript entry that the ``ExpandedBlocksStore/defaultExpanded``
+  /// policy of the store reads, or `nil` when the policy does not apply. The
+  /// policy takes a transcript entry, so a reasoning record has no policy.
+  let policyEntry: TranscriptEntry?
 
   /// Makes the content of the open block. The block calls it in its body
   /// only while it is open, so a closed block does not read the values of
@@ -219,12 +217,12 @@ struct ReasoningBlock<Content: View>: View {
   /// - Parameter store: The store of the user decisions.
   /// - Returns: The user decision. With no decision, `true` while in
   ///   progress, and when complete the store policy, or `false` with no
-  ///   policy item.
+  ///   policy entry.
   private func isExpanded(in store: ExpandedBlocksStore) -> Bool {
     if let decision = store.decision(for: id) {
       return decision
     }
-    return isInProgress || policyItem.map(store.defaultExpanded) ?? false
+    return isInProgress || policyEntry.map(store.defaultExpanded) ?? false
   }
 
   /// The title and the expand button.

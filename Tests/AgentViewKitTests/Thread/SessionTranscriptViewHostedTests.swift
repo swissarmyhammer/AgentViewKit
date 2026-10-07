@@ -272,5 +272,103 @@
     @Test func aChunkEvaluatesOnlyTheRowOfItsEntry() async throws {
       try await Self.expectAChunkEvaluatesOnlyTheRowOfItsEntry(kind: "agent_message_chunk")
     }
+
+    // MARK: - Overrides and the expanded policy
+
+    /// The accessibility identifier of the host tool call view of the
+    /// override test.
+    static let customToolCallIdentifier = "custom-tool-call"
+
+    /// The `toolCallId` of the tool call of the override and policy tests.
+    static let overrideCallID = "override-c"
+
+    /// The `messageId` of the agent message of the override test.
+    static let overrideMessageID = "override-m"
+
+    /// The title of the tool call of the override and policy tests.
+    static let overrideCallTitle = "Read"
+
+    /// The text of the content part of the tool call of the override and
+    /// policy tests. The open body of the call shows it.
+    static let overrideCallOutput = "Output."
+
+    /// A `tool_call_update` value that sets the title, the status and one
+    /// text content part of the tool call of the override and policy tests.
+    ///
+    /// - Parameter status: The ACP status, such as `pending`.
+    /// - Returns: The JSON text of the update.
+    static func overrideCallUpdate(status: String) -> String {
+      let content = #"[{"type": "content", "content": \#(WireBlockJSON.makeText(overrideCallOutput))}]"#
+      return WireBlockJSON.makeToolCallUpdate(
+        id: overrideCallID,
+        fields: #""status": "\#(status)", "title": "\#(overrideCallTitle)", "content": \#(content)"#)
+    }
+
+    /// The label of the host tool call view for a call with the title of the
+    /// override test.
+    ///
+    /// - Parameter status: The ACP status of the call.
+    /// - Returns: The label.
+    static func customLabel(status: FoundationModelsACP.ToolCallStatus) -> String {
+      ToolCallView.accessibilityLabel(title: overrideCallTitle, status: status)
+    }
+
+    @Test func aHostToolCallOverrideReplacesOnlyTheToolCallViewAndShowsAStatusChange() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = HostedViewHarness(size: Self.tallSize) {
+        AgentThreadView(session: session.model, actions: NoopThreadActions())
+          .toolCallView { call in
+            Text(ToolCallView.accessibilityLabel(title: call.title ?? "", status: call.status ?? .pending))
+              .accessibilityIdentifier(Self.customToolCallIdentifier)
+          }
+      }
+      defer { harness.close() }
+
+      try await session.sendUpdate(Self.overrideCallUpdate(status: "pending"))
+      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: Self.overrideMessageID, text: "Done."))
+      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 2 }
+      let keys = session.model.transcript.map(\.rowKey)
+      #expect(keys.count == 2)
+      let callKey = try #require(keys.first)
+      let messageKey = try #require(keys.last)
+      #expect(harness.element(identifier: Self.customToolCallIdentifier)?.label == Self.customLabel(status: .pending))
+      #expect(harness.element(identifier: ToolCallView.identifier(for: callKey)) == nil)
+      #expect(harness.element(identifier: AssistantMessageView.identifier(for: messageKey)) != nil)
+
+      try await session.sendUpdate(Self.overrideCallUpdate(status: "completed"))
+      let completed = Self.customLabel(status: .completed)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: Self.customToolCallIdentifier)?.label == completed
+      }
+
+      #expect(harness.element(identifier: Self.customToolCallIdentifier)?.label == completed)
+    }
+
+    @Test func theExpandedPolicyOpensAToolCallEntryWhenTheModelSetsFailed() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let store = ExpandedBlocksStore { entry in
+        if case .toolCall(let call) = entry { call.status == .failed } else { false }
+      }
+      let harness = HostedViewHarness(size: Self.tallSize) {
+        AgentThreadView(session: session.model, actions: NoopThreadActions())
+          .environment(\.expandedBlocksStore, store)
+          .transaction { $0.disablesAnimations = true }
+      }
+      defer { harness.close() }
+
+      try await session.sendUpdate(Self.overrideCallUpdate(status: "in_progress"))
+      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 1 }
+      let key = try #require(session.model.transcript.first?.rowKey)
+      let body = ToolCallView.bodyIdentifier(for: key)
+      #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
+      #expect(harness.element(identifier: body) == nil)
+
+      try await session.sendUpdate(Self.overrideCallUpdate(status: "failed"))
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: body) != nil }
+
+      #expect(harness.element(identifier: body) != nil)
+    }
   }
 #endif

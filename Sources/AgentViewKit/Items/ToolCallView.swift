@@ -79,10 +79,12 @@ extension View {
 /// also while the call is collapsed, because they wait for the user.
 ///
 /// The user decision is in the ``ExpandedBlocksStore`` of the environment,
-/// keyed by the record id or the row key of the entry. A record with no
+/// keyed by the record id or the row key of the entry. An entry with no
 /// decision uses the ``ExpandedBlocksStore/defaultExpanded`` policy of the
-/// store, and an entry with no decision is collapsed. When the environment
-/// has no store, the view uses a store of its own.
+/// store, and a record with no decision is collapsed. The row reads the
+/// policy, so a policy that reads the status opens the call when the model
+/// sets that status. When the environment has no store, the view uses a
+/// store of its own.
 ///
 /// The row reads the status, and the body does not. Thus a status change
 /// evaluates the row and not the expanded body.
