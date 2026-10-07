@@ -117,9 +117,6 @@ import Testing
   /// The views bind to the client models directly.
   static let threadPathSymbols = ["ACPThreadSource", "AgentThread"]
 
-  /// The call of the deprecated thread initializer of `AgentThreadView`.
-  static let threadInitializerCall = "AgentThreadView(thread:"
-
   @Test func theReadmeHasEachQuickStart() throws {
     let names = Set(try ReadmeSnippets.readmeSnippets().map(\.name))
 
@@ -132,7 +129,8 @@ import Testing
     for (position, block) in blocks.enumerated() {
       let symbols = Self.threadPathSymbols.filter { block.contains(RemovedVocabularyTests.wholeWord($0)) }
       #expect(symbols.isEmpty, "The Swift block \(position) of README.md uses \(symbols)")
-      #expect(!block.contains(Self.threadInitializerCall), "The Swift block \(position) of README.md uses the thread path")
+      #expect(
+        !block.contains(RemovedVocabularyTests.threadInitializerCall()), "The Swift block \(position) of README.md uses the thread path")
     }
   }
 

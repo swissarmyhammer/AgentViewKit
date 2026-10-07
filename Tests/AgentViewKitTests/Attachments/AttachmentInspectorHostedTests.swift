@@ -120,16 +120,22 @@ import UniformTypeIdentifiers
     #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
   }
 
-  @Test func theThreadViewShowsTheSelectionOfTheHost() async throws {
+  @Test func theThreadViewOfASessionShowsTheSelectionOfTheHost() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(named: "notes.md", in: directory)
-    let selection = InspectorSelection(attachment: attachment)
+    let selection = InspectorSelection()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let harness = HostedViewHarness(
-      AgentThreadView(thread: AgentThread(), actions: NoopThreadActions())
+      AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
         .environment(\.inspectorSelection, selection),
       size: Self.hostSize)
     defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
+
+    try Self.withoutAnimation { selection.select(attachment) }
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: AttachmentInspector.nameIdentifier) != nil
     }

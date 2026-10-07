@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -73,11 +74,11 @@ struct NoopThreadActionsTests {
 
   @Test func runTerminalAuthRecordsTheMethod() async throws {
     let actions = NoopThreadActions()
-    let method = AuthMethod.Terminal(
-      id: AuthMethodID("setup"),
+    let method = AuthMethodTerminal(
+      methodId: AuthMethodId(rawValue: "setup"),
       name: "Set up",
       args: ["--setup"],
-      env: ["MODE": "login"]
+      env: [EnvVariable(name: "MODE", value: "login")]
     )
 
     try await actions.runTerminalAuth(method)
@@ -89,7 +90,7 @@ struct NoopThreadActionsTests {
     let actions = NoopThreadActions()
     var received: [(String, TerminalID)] = []
     actions.onWriteTerminalLine = { received.append($0) }
-    let terminal = TerminalRecord.authID(for: AuthMethodID("setup"))
+    let terminal = TerminalRecord.authID(for: AuthMethodId(rawValue: "setup"))
 
     try await actions.writeTerminalLine("yes", to: terminal)
 
@@ -99,7 +100,7 @@ struct NoopThreadActionsTests {
   }
 
   @Test func theAuthTerminalIdIsThePrefixAndTheMethodId() {
-    #expect(TerminalRecord.authID(for: AuthMethodID("setup")) == TerminalID("auth-setup"))
+    #expect(TerminalRecord.authID(for: AuthMethodId(rawValue: "setup")) == TerminalID("auth-setup"))
   }
 
   @Test func logoutRecordsTheCall() async throws {

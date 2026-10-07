@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import DemoSupport
 import EditorCommands
 import EditorCommandsUI
 import FoundationModelsACPClient
@@ -35,14 +36,6 @@ import Testing
   /// A size that shows each row of the jump test.
   static let tallSize = CGSize(width: 480, height: 1_200)
 
-  /// The path of the scope of `thread` at the root of a window.
-  ///
-  /// - Parameter thread: The thread.
-  /// - Returns: The path.
-  static func path(of thread: AgentThread) -> FocusPath {
-    .root(AgentCommandTarget.segment(for: .thread(thread)))
-  }
-
   /// The path of the scope of a session model at the root of a window.
   ///
   /// - Parameter model: The session model.
@@ -70,6 +63,34 @@ import Testing
     }
   }
 
+  /// Shows the thread view of a session, and a composer below it when the
+  /// test gives one, in the agent command scope of the session.
+  ///
+  /// The composer reads the session model from the environment, so that a
+  /// submit sends a prompt to the agent.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - system: The command system of the window.
+  ///   - composer: The text of the composer, or `nil` for no composer.
+  /// - Returns: The harness.
+  static func mountInSessionScope(
+    session: ScriptedSession, system: CommandSystem, composer: PromptInputHostedTestModel? = nil
+  ) -> HostedViewHarness<some View> {
+    HostedViewHarness(size: windowSize) {
+      VStack {
+        AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+        if let composer {
+          PromptInputHost(model: composer)
+        }
+      }
+      .environment(\.sessionModel, session.model)
+      .agentCommandScope(session: session.model)
+      .commandSystem(system)
+      .transaction { $0.disablesAnimations = true }
+    }
+  }
+
   /// One text message that the agent sends as one chunk.
   struct ChunkMessage {
     /// The `sessionUpdate` tag, such as `user_message_chunk`.
@@ -94,6 +115,22 @@ import Testing
     }
   }
 
+  /// Sends one user message from the agent, and pumps `harness` until the
+  /// transcript of the session holds it. The scroll and expand commands act
+  /// only on a transcript with an entry.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness to pump while the test waits.
+  /// - Throws: The error of the transport.
+  static func sendScopeMessage(
+    to session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+  ) async throws {
+    try await send([ChunkMessage(kind: "user_message_chunk", messageID: "scope-message", text: message)], to: session)
+    await harness.pump(until: waitTimeout) { !session.model.transcript.isEmpty }
+    harness.pump()
+  }
+
   /// Sends a `state_update` from the agent, and pumps `harness` until the
   /// agent state of the session model changes.
   ///
@@ -111,27 +148,15 @@ import Testing
     await harness.pump(until: waitTimeout) { session.model.agentState != before }
   }
 
-  /// Makes a thread with one user message.
-  ///
-  /// - Returns: The thread.
-  static func messageThread() -> AgentThread {
-    let thread = AgentThread()
-    thread.apply(.insert(.userMessage(ThreadFixtures.message(id: "scope-message")), after: nil))
-    return thread
-  }
-
-  @Test func aMountedThreadViewRegistersTheTenCommands() {
-    let thread = Self.messageThread()
+  @Test func aMountedSessionThreadViewRegistersTheTenCommands() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let system = CommandSystem()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
-        .commandSystem(system)
-    }
+    let harness = Self.mount(session: session, system: system)
     defer { harness.close() }
-    harness.pump()
+    try await Self.sendScopeMessage(to: session, pumping: harness)
 
-    let path = Self.path(of: thread)
+    let path = Self.path(of: session.model)
     let ids = Set(system.registry.definitions(at: path).map(\.id))
     #expect(ids.count == Self.verbCount)
     #expect(system.registry.tree.nodes.contains { $0.path == path })
@@ -139,51 +164,43 @@ import Testing
     #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
   }
 
-  @Test func aThreadViewInAScopeForItsThreadAddsItsPartsToThatScope() {
-    let thread = Self.messageThread()
+  @Test func aSessionThreadViewInAScopeForItsSessionAddsItsPartsToThatScope() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let system = CommandSystem()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
-        .agentCommandScope(thread: thread)
-        .commandSystem(system)
-    }
+    let harness = Self.mountInSessionScope(session: session, system: system)
     defer { harness.close() }
-    harness.pump()
+    try await Self.sendScopeMessage(to: session, pumping: harness)
 
     let scopes = system.registry.tree.nodes.filter {
       $0.path.segments.contains { $0.kind == AgentCommandTarget.segmentKind }
     }
-    #expect(scopes.map(\.path) == [Self.path(of: thread)])
-    #expect(system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: Self.path(of: thread)))
+    #expect(scopes.map(\.path) == [Self.path(of: session.model)])
+    #expect(system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: Self.path(of: session.model)))
   }
 
-  @Test func sendSubmitsTheComposerInTheScope() async {
-    let thread = AgentThread()
-    let actions = NoopThreadActions()
+  @Test func sendSubmitsTheComposerInTheScopeOfASessionAsAPrompt() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let system = CommandSystem()
-    let model = PromptInputHostedTestModel()
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions, thread: thread) {
-      VStack {
-        AgentThreadView(thread: thread, actions: actions)
-        PromptInputHost(model: model)
-      }
-      .agentCommandScope(thread: thread)
-      .commandSystem(system)
-    }
+    let composer = PromptInputHostedTestModel()
+    let harness = Self.mountInSessionScope(session: session, system: system, composer: composer)
     defer { harness.close() }
     harness.pump()
-    let path = Self.path(of: thread)
+    let path = Self.path(of: session.model)
 
     #expect(!system.registry.perform(AgentCommandVerb.send.id, at: path))
-    model.text = AttributedString(Self.message)
+    composer.text = AttributedString(Self.message)
     harness.pump()
     #expect(system.registry.perform(AgentCommandVerb.send.id, at: path))
-    await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
+    await harness.pump(until: Self.waitTimeout) {
+      !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
+    }
 
-    #expect(actions.calls == [.send(UserInput(text: Self.message))])
-    #expect(model.plainText.isEmpty)
-    #expect(model.submitCount == 1)
+    let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
+    #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
+    #expect(composer.plainText.isEmpty)
+    #expect(composer.submitCount == 1)
   }
 
   @Test func theSubmitButtonOfTheComposerRunsTheSendCommand() async throws {
@@ -204,43 +221,36 @@ import Testing
     #expect(model.submitCount == 1)
   }
 
-  @Test func focusComposerMovesTheFocusToTheEditor() throws {
-    let thread = Self.messageThread()
+  @Test func focusComposerMovesTheFocusToTheEditorInTheScopeOfASession() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let system = CommandSystem()
-    let model = PromptInputHostedTestModel()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
-      VStack {
-        AgentThreadView(thread: thread, actions: actions)
-        PromptInputHost(model: model)
-      }
-      .agentCommandScope(thread: thread)
-      .commandSystem(system)
-    }
+    let harness = Self.mountInSessionScope(
+      session: session, system: system, composer: PromptInputHostedTestModel())
     defer { harness.close() }
     harness.pump()
     let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
     harness.window.makeFirstResponder(nil)
     harness.pump()
 
-    #expect(system.registry.perform(AgentCommandVerb.focusComposer.id, at: Self.path(of: thread)))
+    #expect(system.registry.perform(AgentCommandVerb.focusComposer.id, at: Self.path(of: session.model)))
     harness.pump()
 
     #expect(harness.window.firstResponder === editor)
   }
 
-  @Test func theScopeRemovesItsNodeWhenTheViewGoesAway() {
-    let thread = Self.messageThread()
+  @Test func theScopeOfASessionRemovesItsNodeWhenTheViewGoesAway() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
     let system = CommandSystem()
     let model = ScopeVisibilityModel()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.windowSize, actions: actions) {
-      ScopeVisibilityHost(model: model, thread: thread, actions: actions)
+    let harness = HostedViewHarness(size: Self.windowSize) {
+      ScopeVisibilityHost(model: model, session: session.model)
         .commandSystem(system)
     }
     defer { harness.close() }
     harness.pump()
-    let path = Self.path(of: thread)
+    let path = Self.path(of: session.model)
     #expect(system.registry.tree.nodes.contains { $0.path == path })
 
     model.isShown = false
@@ -357,15 +367,12 @@ struct ScopeVisibilityHost: View {
   /// The model that tells if the thread view shows.
   let model: ScopeVisibilityModel
 
-  /// The thread of the view.
-  let thread: AgentThread
-
-  /// The actions that the thread view gives to its subtree.
-  let actions: any AgentThreadActions
+  /// The session model of the thread view.
+  let session: SessionModel
 
   var body: some View {
     if model.isShown {
-      AgentThreadView(thread: thread, actions: actions)
+      AgentThreadView(session: session, actions: NoopThreadActions())
     } else {
       Color.clear
     }

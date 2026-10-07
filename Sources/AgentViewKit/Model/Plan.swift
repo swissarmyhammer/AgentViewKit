@@ -2,9 +2,8 @@ import FoundationModelsACP
 
 /// The identifier of a ``Plan`` in a thread (plan.md §3.2).
 ///
-/// `AgentThread.plans` is keyed by this type. An ACP agent sends one plan for
-/// each session, so the ACP adapter uses one fixed identifier. Other sources
-/// can keep more than one plan.
+/// `AgentThread.plans` is keyed by this type. A thread can keep more than one
+/// plan.
 public typealias PlanID = Identifier<Plan>
 
 /// The task list of an agent (plan.md §3.2).

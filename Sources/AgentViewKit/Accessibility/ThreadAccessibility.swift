@@ -33,29 +33,6 @@ public enum ThreadAccessibility {
     String(localized: "Response cancelled")
   }
 
-  /// The announcement when a turn of an ``AgentThread`` stops.
-  ///
-  /// The deprecated `AgentThreadView(thread:actions:)` path uses this
-  /// function. The removal of the ACP adapter removes it.
-  ///
-  /// - Parameters:
-  ///   - old: The state before the change.
-  ///   - new: The state after the change.
-  /// - Returns: The text, or `nil` when the change does not stop a turn. A
-  ///   turn stops when the state goes from running or requires action to
-  ///   idle. A stop reason with a ``StateBanner`` gives the banner title.
-  public static func turnAnnouncement(old: ThreadState, new: ThreadState) -> String? {
-    guard case .idle(let reason) = new else { return nil }
-    if case .idle = old { return nil }
-    if let banner = StateBanner.message(for: new) {
-      return banner.title
-    }
-    if reason == .cancelled {
-      return responseCancelledText
-    }
-    return responseCompleteText
-  }
-
   /// The announcement when the agent state of a session model goes from
   /// foreground work to idle.
   ///
@@ -107,22 +84,6 @@ public enum ThreadAccessibility {
     /// - Parameter source: A tool call record or a tool call entry.
     init(source: ToolCallSource) {
       self.init(id: source.id, title: source.title, status: source.status)
-    }
-  }
-
-  /// The progress of each tool call in `items`, in item order.
-  ///
-  /// A view that calls this function observes the items and the title and
-  /// status of each tool call record. The deprecated
-  /// `AgentThreadView(thread:actions:)` path uses this function. The removal
-  /// of the ACP adapter removes it.
-  ///
-  /// - Parameter items: The items of a thread.
-  /// - Returns: One value for each tool call item.
-  public static func toolCallProgress(in items: [ThreadItem]) -> [ToolCallProgress] {
-    items.compactMap { item in
-      guard case .toolCall(let record) = item else { return nil }
-      return ToolCallProgress(source: .record(record))
     }
   }
 
@@ -191,22 +152,6 @@ public enum ThreadAccessibility {
       self.id = id
       self.title = title
     }
-  }
-
-  /// The summary of each pending request of `thread`, in the order of the
-  /// cards of ``PendingRequestsHost``.
-  ///
-  /// The deprecated `AgentThreadView(thread:actions:)` path uses this
-  /// function. The removal of the ACP adapter removes it.
-  ///
-  /// - Parameter thread: The thread.
-  /// - Returns: The permission title or the elicitation message of each
-  ///   request.
-  public static func pendingRequests(of thread: AgentThread) -> [PendingRequestSummary] {
-    thread.pendingPermissions.map { PendingRequestSummary(id: $0.id.rawValue, title: $0.title) }
-      + thread.pendingElicitations.map {
-        PendingRequestSummary(id: $0.id.rawValue, title: $0.message)
-      }
   }
 
   /// The summary of each pending request of a session model and of its
@@ -317,35 +262,6 @@ private struct ReadingGroupModifier: ViewModifier {
 }
 
 // MARK: - Announcements
-
-/// The view that tells the ``SwiftUI/EnvironmentValues/announcer`` about the
-/// boundaries of a thread.
-///
-/// The view reads the state, the tool call progress, and the pending
-/// requests of the thread. It does not read ``AgentThread/streaming``, so a
-/// chunk does not evaluate its body. The deprecated
-/// `AgentThreadView(thread:actions:)` path uses this view. The removal of the
-/// ACP adapter removes it.
-struct ThreadAnnouncementObserver: View {
-  /// The thread to observe.
-  let thread: AgentThread
-
-  @Environment(\.announcer) private var announcer
-
-  var body: some View {
-    Color.clear
-      .accessibilityHidden(true)
-      .announcing(changesOf: thread.state, to: announcer, priority: .medium) { old, new in
-        ThreadAccessibility.turnAnnouncement(old: old, new: new).map { [$0] } ?? []
-      }
-      .announcing(
-        changesOf: ThreadAccessibility.toolCallProgress(in: thread.items), to: announcer, priority: .medium,
-        texts: ThreadAccessibility.toolResultAnnouncements(old:new:))
-      .announcing(
-        changesOf: ThreadAccessibility.pendingRequests(of: thread), to: announcer, priority: .high,
-        texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:))
-  }
-}
 
 /// The view that tells the ``SwiftUI/EnvironmentValues/announcer`` about the
 /// boundaries of a session model (update.md §4.2).

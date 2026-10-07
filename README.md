@@ -4,14 +4,15 @@ A SwiftUI component library for agent UIs on macOS 27.
 
 AgentViewKit gives the surfaces that an agent UI needs: streaming responses,
 reasoning, tool calls, terminals, diffs, plans, citations, permissions,
-elicitation, artifacts, config options, and context usage. The views bind to
-one observable model, `AgentThread`. A source adapter fills the model from a
-runtime. The kit has one source: an ACP v2 agent. A FoundationModels agent and
-a FoundationModelsRouter agent reach the kit as an ACP agent, through
+elicitation, artifacts, config options, and context usage. An ACP v2 agent
+streams to FoundationModelsACPClient. The client keeps the observable models
+`ConnectionModel` and `SessionModel`, and the views bind directly to them. The
+kit keeps no copy of the model data. A FoundationModels agent and a
+FoundationModelsRouter agent reach the kit as an ACP agent, through
 FoundationModelsACPAgent.
 
-There are two levels of use. `AgentThreadView(thread:actions:)` shows the
-whole surface. The primitives below it give full control.
+There are two levels of use. `AgentThreadView(session:connection:actions:)`
+shows the whole surface. The primitives below it give full control.
 
 ## Install
 
@@ -21,8 +22,7 @@ The package is pre-1.0 and has no tag. Depend on the `main` branch:
 .package(url: "git@github.com:swissarmyhammer/AgentViewKit.git", branch: "main")
 ```
 
-Then link the kit. The one product holds the views, the model, and the ACP
-adapter:
+Then link the kit. The one product holds the views and the ACP helpers:
 
 ```swift
 .target(
@@ -218,8 +218,7 @@ struct HostThread: View {
 To replace the view of one case, chain the typed modifier of that case. The
 closure gets the observable entry object of the session model, so the view
 that it makes shows each change of the model. An inner modifier wins over an
-outer modifier for the same case. A thread of the deprecated
-`AgentThreadView(thread:actions:)` shows no override.
+outer modifier for the same case.
 
 | Modifier | The closure gets |
 |---|---|
@@ -252,7 +251,7 @@ two lists equal.
 
 **Thread**
 
-- `AgentThreadView`: the drop-in view. It binds an `AgentThread` and shows the whole surface.
+- `AgentThreadView`: the drop-in view. It binds a `SessionModel` and shows the whole surface.
 - `AgentTranscriptView`: the snapshot view of a FoundationModels `Transcript` value. It does not update.
 - `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.

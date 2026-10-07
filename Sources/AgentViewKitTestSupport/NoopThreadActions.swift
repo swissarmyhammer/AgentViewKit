@@ -1,4 +1,5 @@
 import AgentViewKit
+import struct FoundationModelsACP.AuthMethodTerminal
 
 /// An ``AgentThreadActions`` that records each call and does nothing else.
 ///
@@ -21,7 +22,7 @@ public final class NoopThreadActions: AgentThreadActions {
     /// ``AgentThreadActions/login(_:)`` was called.
     case login(AuthMethodID)
     /// ``AgentThreadActions/runTerminalAuth(_:)`` was called.
-    case runTerminalAuth(AuthMethod.Terminal)
+    case runTerminalAuth(AuthMethodTerminal)
     /// ``AgentThreadActions/writeTerminalLine(_:to:)`` was called.
     case writeTerminalLine(String, TerminalID)
     /// ``AgentThreadActions/logout()`` was called.
@@ -57,7 +58,7 @@ public final class NoopThreadActions: AgentThreadActions {
   public var onLogin: ThrowingHandler<AuthMethodID>?
 
   /// Runs after ``runTerminalAuth(_:)``.
-  public var onRunTerminalAuth: ThrowingHandler<AuthMethod.Terminal>?
+  public var onRunTerminalAuth: ThrowingHandler<AuthMethodTerminal>?
 
   /// Runs after ``writeTerminalLine(_:to:)``.
   public var onWriteTerminalLine: ThrowingHandler<(String, TerminalID)>?
@@ -103,7 +104,7 @@ public final class NoopThreadActions: AgentThreadActions {
     try await onLogin?(methodId)
   }
 
-  public func runTerminalAuth(_ method: AuthMethod.Terminal) async throws {
+  public func runTerminalAuth(_ method: AuthMethodTerminal) async throws {
     calls.append(.runTerminalAuth(method))
     try await onRunTerminalAuth?(method)
   }

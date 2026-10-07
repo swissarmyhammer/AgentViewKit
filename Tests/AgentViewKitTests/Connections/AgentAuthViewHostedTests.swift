@@ -43,9 +43,10 @@ import Testing
   /// method.
   static let terminalOnlyMethods = "[\(terminalMethodJSON)]"
 
-  /// The terminal method, as the thread actions get it.
-  static let kitTerminalMethod = AgentViewKit.AuthMethod.Terminal(
-    id: AuthMethodID(terminalMethodID.rawValue), name: "Terminal login", args: ["--login"])
+  /// The terminal method of the model, which the thread actions get with no
+  /// change.
+  static let terminalMethod = AuthMethodTerminal(
+    methodId: terminalMethodID, name: "Terminal login", args: ["--login"])
 
   /// The method of a logout request.
   static let logoutMethod = "auth/logout"
@@ -142,7 +143,7 @@ import Testing
     defer { session.close() }
     let actions = NoopThreadActions()
     let thread = AgentThread()
-    let terminalID = TerminalRecord.authID(for: Self.kitTerminalMethod.id)
+    let terminalID = TerminalRecord.authID(for: Self.terminalMethodID)
     actions.onRunTerminalAuth = { _ in
       thread.apply(
         .upsertTerminal(
@@ -159,7 +160,7 @@ import Testing
       harness.element(identifier: TerminalView.inputIdentifier) != nil
     }
 
-    #expect(actions.calls == [.runTerminalAuth(Self.kitTerminalMethod)])
+    #expect(actions.calls == [.runTerminalAuth(Self.terminalMethod)])
     #expect(
       harness.element(identifier: TerminalView.identifier)?.label
         == "Terminal, \(Self.terminalCommand)")
@@ -172,7 +173,7 @@ import Testing
 
     #expect(
       actions.calls == [
-        .runTerminalAuth(Self.kitTerminalMethod), .writeTerminalLine(Self.inputLine, terminalID),
+        .runTerminalAuth(Self.terminalMethod), .writeTerminalLine(Self.inputLine, terminalID),
       ])
   }
 
@@ -188,7 +189,7 @@ import Testing
     await harness.pump(until: Self.waitTimeout) { !actions.calls.isEmpty }
     harness.pump()
 
-    #expect(actions.calls == [.runTerminalAuth(Self.kitTerminalMethod)])
+    #expect(actions.calls == [.runTerminalAuth(Self.terminalMethod)])
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
   }
 

@@ -74,9 +74,9 @@ Reasons:
   must make these records from other v1 messages.
 - The first agent of the kit is FoundationModelsACPAgent, which speaks v2.
 
-The result: `ACPThreadSource` cannot show Claude Code, Codex, or Gemini CLI
-today. Each of these agents answers `initialize` with `1`, and the source
-shows one error record that names the sent version and the received version.
+The result: the kit cannot show Claude Code, Codex, or Gemini CLI today. Each
+of these agents answers `initialize` with `1`, and the kit refuses the agent
+with an error that names the sent version and the received version.
 
 Do this decision again when one of these events occurs:
 
@@ -94,7 +94,7 @@ alpha.7 change these parts of the wire:
 |---|---|
 | `PromptResponse.messageId` is required. It is the id of the user message that the agent added. The agent echoes that message in a `user_message` update with the same id, before or after the response. | A prompt result with no `messageId` does not decode. The scripted demo agents send a `messageId` and echo the user message. |
 | `ToolCallUpdate.name` is new and optional, with patch rules. It is the program name of the tool. `title` stays the label for people. | The tool call views select the registry entry by `name` and show `title` as the label (a later view task). |
-| `NewSessionResponse.availableCommands` and `ResumeSessionResponse.availableCommands` are new and optional. | `ConnectionModel` seeds the commands of the session model from the response. `ACPThreadSource` seeds the thread from the session model. |
+| `NewSessionResponse.availableCommands` and `ResumeSessionResponse.availableCommands` are new and optional. | `ConnectionModel` seeds the commands of the session model from the response. The views read the commands from the session model. |
 | `ResumeSessionRequest.replayFrom` means the retained history. No value means no replay. `{"type": "start"}` means all retained history. | A resume sends `replayFrom: .start`. The agent decides how much history it retains, so the replayed history can be partial. |
 
 ## Adapter
@@ -102,10 +102,10 @@ alpha.7 change these parts of the wire:
 - `SupportedProtocolVersions.values`
   (`Sources/AgentViewKit/ACP/SupportedProtocolVersions.swift`) lists the
   integers that the kit accepts.
-- `ACPThreadSource.initialize(over:request:)` sends `initialize` through the
-  `ConnectionModel` of FoundationModelsACPClient. When the agent answers with
-  a version that is not in the list, or when the wire package throws
-  `ProtocolVersionMismatchError`, the source adds one `.error` record that
-  names the two versions, and `run()` reads no update.
-- `ACPThreadSource.acceptProtocolVersion(_:requested:)` does the same check
-  for a host that sends `initialize` itself.
+- `ConnectionModel.initializeCheckingProtocolVersion(_:)` sends `initialize`
+  through the `ConnectionModel` of FoundationModelsACPClient. When the agent
+  answers with a version that is not in the list, or when the wire package
+  throws `ProtocolVersionMismatchError`, the call throws
+  `UnsupportedProtocolVersionError`, which names the two versions.
+- `SupportedProtocolVersions.accept(_:requested:)` does the same check for a
+  host that sends `initialize` itself.

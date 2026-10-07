@@ -17,9 +17,8 @@ public nonisolated enum ActivityState: Hashable, Sendable {
   /// When the thread does not run, the state is ``idle``. When a tool call
   /// has the status ``ToolCallStatus/inProgress``, the state is
   /// ``runningTool(_:)`` with the title of the last such call. Otherwise the
-  /// state is ``thinking``. The deprecated `AgentThreadView(thread:actions:)`
-  /// path uses this initializer. The removal of the kit session model removes
-  /// it.
+  /// state is ``thinking``. Only the thread path of the kit uses this
+  /// initializer. The removal of the kit session model removes it.
   ///
   /// - Parameter thread: The thread.
   @MainActor

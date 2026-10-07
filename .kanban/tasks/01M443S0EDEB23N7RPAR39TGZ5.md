@@ -41,6 +41,22 @@ comments:
     - evidence: added Sources/DemoSupport/DemoAgent.swift, Sources/DemoSupport/AgentConnectionBox.swift, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/InMemoryDemoAgentTests.swift, Tests/AgentViewKitTests/ACP/SessionModel+AgentMessageText.swift; changed Sources/DemoSupport/InMemoryDemoACPAgent.swift, Sources/DemoSupport/InMemoryDemoAgent.swift, Sources/DemoSupport/DemoLaunchOptions.swift (doc), Package.swift (comment), Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift, ACPSettingsSheet.swift, Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift, Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb (comment), Tests/AgentViewKitTests/ACP/DemoLaunchOptionsTests.swift, InProcessAgentTests.swift, KitInitializeRequestTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift; deleted Sources/DemoSupport/ACPDemoSession.swift, Tests/AgentViewKitTests/ACP/ACPDemoSessionTests.swift. Gates: `swift test` 1386 tests in 129 suites passed plus 81 PackageStructureTests passed (only the mlx missing-creator warning); `Scripts/check-readme.sh` passed; `Scripts/test-examples.sh AgentViewKitDemo` passed (4 UI tests). The known unstable tests ^zcktrsh and ^vhp5fv7 passed in this run.
     - next: /review
   timestamp: 2026-10-07T06:09:44.224504+00:00
+- actor: claude-code
+  id: 01m4ag7e9d0spmyg1crp9z5rex
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ed7c87a): 0 findings (19 files reviewed; 4 .kanban files are excluded by .reviewignore). The task description has no earlier findings that are not checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-07T06:18:47.981069+00:00
+- actor: claude-code
+  id: 01m4ag7ffxpx3z1y0375rd95y2
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — DemoAgent (new) holds the ConnectionModel; ACPTabView and ACPSettingsSheet show the models with the kit session views; ACPDemoSession and its tests deleted; 4 demo UI tests
+    - test: green — swift test, 1386 passed; README and demo UI gates passed
+    - commit: ed7c87a
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T06:18:49.213821+00:00
 depends_on:
 - 01M443NW9A12NWXYHJFYTTTA85
 - 01M443P38JZMBRSCEPWCS25T9A
@@ -54,8 +70,8 @@ depends_on:
 - 01M443QWQ6X9S6KT61DS8SQ0BF
 - 01M443R0ZPXK0337AT3CX8JHPP
 - 01M49HGF5KFW6185XJATDG13NJ
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff8380
 title: Move the demo app to ConnectionModel and remove ACPDemoSession
 ---
 ## What

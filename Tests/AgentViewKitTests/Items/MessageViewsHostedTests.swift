@@ -71,57 +71,47 @@ import Testing
     harness.accessibilityElements().contains { $0.label?.contains(text) == true }
   }
 
-  /// Makes a thread with one item.
+  /// Sends one text chunk of `kind` to a scripted session, and expects that
+  /// the thread view of the session shows the message entry with `label`.
   ///
-  /// - Parameter item: The item.
-  /// - Returns: The thread.
-  static func thread(with item: ThreadItem) -> AgentThread {
-    let thread = AgentThread()
-    thread.apply(.insert(item, after: nil))
-    return thread
-  }
+  /// - Parameters:
+  ///   - kind: The `sessionUpdate` tag of the chunk, such as
+  ///     `user_message_chunk`.
+  ///   - identifier: Makes the accessibility identifier of the message view
+  ///     from the row key of the entry.
+  ///   - label: The accessibility label that the message view must have.
+  static func expectMessageEntryMounts(
+    kind: String, identifier: @MainActor (String) -> String, label: String
+  ) async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = HostedViewHarness(
+      AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions()),
+      size: tallSize)
+    defer { harness.close() }
 
-  /// Makes a message with a text block and then an unknown block.
-  ///
-  /// - Parameter id: The identifier of the message.
-  /// - Returns: The message.
-  static func twoBlockMessage(id: String) -> Message {
-    Message(
-      id: id,
-      blocks: [
-        ContentBlock(text: "First block."),
-        ContentBlock(content: .unknown(kind: "future_block", raw: .object([:]))),
-      ])
+    try await session.sendUpdate(
+      WireBlockJSON.makeChunk(kind, messageID: entryMessageID, block: WireBlockJSON.makeText(firstChunk)))
+    await harness.pump(until: waitTimeout) { !session.model.transcript.isEmpty }
+    let key = try #require(session.model.transcript.first?.rowKey)
+    await harness.pump(until: waitTimeout) { harness.element(identifier: identifier(key)) != nil }
+
+    #expect(harness.element(identifier: identifier(key))?.label == label)
+    #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: key)) == nil)
   }
 
   // MARK: - Mount
 
-  @Test func aUserMessageMountsWithItsIdentifierAndLabel() {
-    let message = ThreadFixtures.message(id: "user-mount", text: "Hello.")
-    let harness = HostedViewHarness(
-      AgentThreadView(
-        thread: Self.thread(with: .userMessage(message)), actions: NoopThreadActions()))
-    defer { harness.close() }
-    harness.pump()
-
-    let identifier = UserMessageView.identifier(for: message.id)
-    #expect(identifier == "user-message-user-mount")
-    #expect(harness.element(identifier: identifier)?.label == "You said")
-    #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: message.id)) == nil)
+  @Test func aUserMessageEntryMountsWithItsIdentifierAndLabel() async throws {
+    #expect(UserMessageView.identifier(for: "user-mount") == "user-message-user-mount")
+    try await Self.expectMessageEntryMounts(
+      kind: "user_message_chunk", identifier: { UserMessageView.identifier(for: $0) }, label: "You said")
   }
 
-  @Test func anAssistantMessageMountsWithItsIdentifierAndLabel() {
-    let message = ThreadFixtures.message(id: "assistant-mount", text: "Hi.")
-    let harness = HostedViewHarness(
-      AgentThreadView(
-        thread: Self.thread(with: .assistantMessage(message)), actions: NoopThreadActions()))
-    defer { harness.close() }
-    harness.pump()
-
-    let identifier = AssistantMessageView.identifier(for: message.id)
-    #expect(identifier == "assistant-message-assistant-mount")
-    #expect(harness.element(identifier: identifier)?.label == "Assistant said")
-    #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: message.id)) == nil)
+  @Test func anAgentMessageEntryMountsWithItsIdentifierAndLabel() async throws {
+    #expect(AssistantMessageView.identifier(for: "assistant-mount") == "assistant-message-assistant-mount")
+    try await Self.expectMessageEntryMounts(
+      kind: "agent_message_chunk", identifier: { AssistantMessageView.identifier(for: $0) }, label: "Assistant said")
   }
 
   @Test func theHeaderShowsTheRoleAndTheRelativeTime() {
@@ -153,42 +143,6 @@ import Testing
     #expect(
       MessageHeader.relativeText(for: earlier, now: now)
         == formatter.localizedString(for: earlier, relativeTo: now))
-  }
-
-  // MARK: - Blocks
-
-  @Test func aMessageWithTwoBlocksMountsTwoBlockViewsInOrder() {
-    let message = Self.twoBlockMessage(id: "two-blocks")
-    let harness = HostedViewHarness(
-      AgentThreadView(
-        thread: Self.thread(with: .assistantMessage(message)), actions: NoopThreadActions()))
-    defer { harness.close() }
-    harness.pump()
-
-    let blockIdentifiers = harness.accessibilityElements()
-      .compactMap(\.identifier)
-      .filter { $0.hasPrefix(ContentBlockView.identifierPrefix) }
-    #expect(
-      blockIdentifiers == [
-        ContentBlockView.identifier(for: .text), ContentBlockView.identifier(for: .unknown),
-      ])
-  }
-
-  @Test func aStreamingMessageShowsTheStreamAndTheOtherBlocks() async {
-    let message = Self.twoBlockMessage(id: "streaming-blocks")
-    let thread = Self.thread(with: .userMessage(message))
-    thread.apply(.appendStreaming(id: message.id, text: "Streamed text"))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
-    defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: ResponseView.tailIdentifier) != nil
-    }
-
-    let blockIdentifiers = harness.accessibilityElements()
-      .compactMap(\.identifier)
-      .filter { $0.hasPrefix(ContentBlockView.identifierPrefix) }
-    #expect(harness.element(identifier: ResponseView.tailIdentifier) != nil)
-    #expect(blockIdentifiers == [ContentBlockView.identifier(for: .unknown)])
   }
 
   // MARK: - Entries
@@ -227,7 +181,7 @@ import Testing
 
   @Test func theEntryViewsMakeNoKitCopyOfTheEntryContent() throws {
     let files = try Self.entryViewSources.map { try PackageFiles.file($0) }
-    let copy = try Regex(#"SessionUpdateMapping|\bMessage\(|\bReasoning\(|AgentViewKit\.ContentBlock"#)
+    let copy = try Regex(#"\bMessage\(|\bReasoning\(|AgentViewKit\.ContentBlock"#)
 
     let copies = try SourceLines.matching(copy, in: files)
 

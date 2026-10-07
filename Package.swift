@@ -3,9 +3,10 @@
 // AgentViewKit: a SwiftUI agent UI component library (plan.md).
 //
 // update.md §3, D4: one library product and one library target. The
-// `AgentViewKit` target holds the model, the views, and the ACP adapter
-// (`ACPThreadSource` in `Sources/AgentViewKit/ACP/`). It links
-// FoundationModelsACP and FoundationModelsACPClient directly.
+// `AgentViewKit` target holds the views and the ACP helpers in
+// `Sources/AgentViewKit/ACP/`. The views bind directly to the models of
+// FoundationModelsACPClient. The target links FoundationModelsACP and
+// FoundationModelsACPClient directly.
 //
 // The kit is an ACP client kit. It does not depend on FoundationModels,
 // FoundationModelsRouter or FoundationModelsExtras. A FoundationModels agent
@@ -22,9 +23,9 @@ import PackageDescription
 
 /// The library targets default each declaration to `@MainActor` (SE-0466).
 ///
-/// This is the EditorKit rule for UI targets. `AgentThread` is `@MainActor`
-/// (plan.md §3.2), and the ACP adapter writes into it, so the targets that
-/// are not UI use the same default.
+/// This is the EditorKit rule for UI targets. The client models of
+/// FoundationModelsACPClient are `@MainActor`, so the targets that are not UI
+/// use the same default.
 let mainActorIsolated: [SwiftSetting] = [.defaultIsolation(MainActor.self)]
 
 // MARK: - Dependency products
@@ -91,7 +92,7 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/swiftui-math", exact: "0.1.0"),
   ],
   targets: [
-    // The model, the views, and the ACP adapter. No target imports
+    // The views and the ACP helpers. No target imports
     // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
     // ImportBoundaryTests enforces this.
     .target(

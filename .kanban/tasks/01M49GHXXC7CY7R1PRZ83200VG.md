@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4ak7agddd6h020s0td1anhm
+  text: 'Note from ^h1116ab: `ACPThreadActions.swift` is deleted (no host used it; the demo and the README give `LoggingThreadActions`). `AgentThreadActions.runTerminalAuth(_:)` now takes the ACP `AuthMethodTerminal`, and `TerminalRecord.authID(for:)` takes the ACP `AuthMethodId`, so `AgentAuthView` has no conversion of the ACP method into a kit type any more. `AgentProcessLauncher` and `ProcessLauncher` stay (with `AgentProcessLauncherTests`), and the new `terminalAuthRunner` can use them. This task then changes only `AgentAuthView.swift`, `AgentLoginPrompt.swift` and `AgentThreadActions.swift`.'
+  timestamp: 2026-10-07T07:11:09.837710+00:00
 depends_on:
 - 01M443QS68DG8EJ9NEKCCHG10S
 - 01M443RA2PMKC5MXXBNH1116AB

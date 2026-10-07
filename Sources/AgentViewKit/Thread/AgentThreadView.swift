@@ -2,29 +2,36 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The view of a whole thread (plan.md §3.6, §8, §9 A).
+/// The view of the transcript of a `SessionModel` (plan.md §3.6, §8, §9 A;
+/// update.md §4.2, §4.7).
 ///
-/// The view shows the thread in a ``ConversationView``: one ``ItemRow`` for
-/// each item, in a lazy stack that follows the bottom. Each row reads only
-/// its own record. Thus a patch to one record evaluates only the row of that
-/// record.
+/// The view shows the transcript in a ``ConversationView``, in a lazy stack
+/// that follows the bottom. The conversation keys each row on
+/// `TranscriptEntry.id`, and each item view reads its own entry object, so a
+/// streamed chunk draws only the row of its entry.
 ///
-/// Below the conversation, a ``PendingRequestsHost`` shows one card for each
-/// pending permission request and elicitation request of the session model.
-/// A view of a thread reads the session model from
-/// ``SwiftUI/EnvironmentValues/sessionModel``, and shows no card when the
-/// environment has none.
+/// Above the conversation, a ``SessionNoticeBanner`` shows one banner for
+/// each notice of the session model, and a ``SessionStreamBanner`` shows the
+/// stream state: the replay marker, the partial-history note, the
+/// missed-updates banner with its Reload button, and the closed state. Below
+/// the conversation, a ``StateBanner`` shows the agent state, and a
+/// ``PendingRequestsHost`` shows one card for each pending permission request
+/// and elicitation request of the session model. Each banner view and each
+/// card, and not this view, reads its part of the model.
+///
+/// When the host gives the connection model, an ``AgentInfoHeader`` names the
+/// agent from its `initialize` answer, an ``AgentConnectionBanner`` shows the
+/// connection state, and an ``AgentAuthView`` shows below the conversation
+/// while the last entry of the transcript is an error entry with the code
+/// `-32000` (authentication required).
 ///
 /// The host gives the ``AgentThreadActions`` in the initializer. There is no
 /// default, because actions that do nothing are a quiet failure. The view
 /// gives the actions to its subtree through
-/// ``SwiftUI/EnvironmentValues/threadActions``, so each card and each control
-/// in the thread calls the actions of the host. For a thread that no source
-/// drives, pass ``LoggingThreadActions``.
+/// ``SwiftUI/EnvironmentValues/threadActions``.
 ///
 /// To replace the view of a transcript entry case, use a typed modifier such
 /// as ``SwiftUI/View/toolCallView(_:)``. The override gets the entry object.
-/// A thread of the deprecated thread path shows no override.
 ///
 /// The view gives an ``ExpandedBlocksStore`` to its rows. When the
 /// environment has a store, the view uses that store.
@@ -33,52 +40,25 @@ import SwiftUI
 /// See ``SwiftUI/View/attachmentInspector(selection:)``. When the environment
 /// has an ``InspectorSelection``, the view uses that selection.
 ///
-/// The view registers the agent commands of its model (``AgentCommandVerb``)
-/// with the keys of ``AgentKeymap``. See
+/// The view registers the agent commands of the session model
+/// (``AgentCommandVerb``) with the keys of ``AgentKeymap``. See
 /// ``SwiftUI/View/agentCommandScope(session:)``.
 ///
 /// The view is accessible by default (plan.md §6, ``ThreadAccessibility``):
 ///
 /// - It owns the namespace of the linked reading groups of its messages and
 ///   rows (``SwiftUI/View/accessibilityReadingScope()``).
-/// - It tells the ``SwiftUI/EnvironmentValues/announcer`` when a turn
-///   stops, when a tool call gets its result, and when a request needs the
-///   user. A streaming chunk gives no announcement.
+/// - It tells the ``SwiftUI/EnvironmentValues/announcer`` when the agent
+///   state goes to idle, when a tool call gets its result, and when a request
+///   needs the user. A streaming chunk gives no announcement. The
+///   announcements read the session model, and the connection model when the
+///   host gives it, directly.
 /// - It gives an ``AccessibilityFocusMover`` to its subtree
 ///   (``SwiftUI/View/accessibilityFocusScope()``), so that a new request
 ///   card takes the VoiceOver focus.
-///
-/// ``init(session:connection:workingDirectory:actions:)`` shows the
-/// transcript of a `SessionModel` (update.md §4.2, §4.7). The conversation
-/// keys each row on `TranscriptEntry.id`, and each item view reads its own
-/// entry object, so a streamed chunk draws only the row of its entry. Above
-/// the conversation, a ``SessionNoticeBanner`` shows one banner for each
-/// notice of the session model, and a ``SessionStreamBanner`` shows the
-/// stream state: the replay marker, the partial-history note, the
-/// missed-updates banner with its Reload button, and the closed state. Below
-/// the conversation, a ``StateBanner`` shows the agent state. Each banner
-/// view, and not this view, reads its part of the model. When the host gives
-/// the connection model, an ``AgentInfoHeader`` names the agent from its
-/// `initialize` answer, an ``AgentConnectionBanner`` shows the connection
-/// state, and an ``AgentAuthView`` shows below the conversation while the
-/// last entry of the transcript is an error entry with the code `-32000`
-/// (authentication required). The agent commands read the session model
-/// directly (``SwiftUI/View/agentCommandScope(session:)``). The VoiceOver
-/// announcements read the session model, and the connection model when the
-/// host gives it, directly: the change of `agentState` to idle, the status of
-/// each `ToolCallEntry`, and the pending requests (``ThreadAccessibility``).
 public struct AgentThreadView: View {
-  /// The model that the view shows.
-  private enum Source {
-    /// An ``AgentThread``.
-    case thread(AgentThread)
-
-    /// A `SessionModel`.
-    case session(SessionModel)
-  }
-
-  /// The model to show.
-  private let source: Source
+  /// The session model whose transcript the view shows.
+  let session: SessionModel
 
   /// The connection model that closes the session when the view goes away,
   /// and that the Reload button of the missed-updates banner resumes the
@@ -105,25 +85,6 @@ public struct AgentThreadView: View {
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
-  @Environment(\.sessionModel) private var hostSession
-
-  /// Makes the view of a thread.
-  ///
-  /// - Parameters:
-  ///   - thread: The thread to show.
-  ///   - actions: The actions that the views of the thread call. A thread
-  ///     that no source drives takes ``LoggingThreadActions``.
-  @available(
-    *, deprecated,
-    message:
-      "Use init(session:connection:workingDirectory:actions:). The removal of the ACP adapter removes this initializer."
-  )
-  public init(thread: AgentThread, actions: any AgentThreadActions) {
-    self.source = .thread(thread)
-    self.connection = nil
-    self.workingDirectory = nil
-    self.actions = actions
-  }
 
   /// Makes the view of the transcript of a session model.
   ///
@@ -151,7 +112,7 @@ public struct AgentThreadView: View {
     workingDirectory: AbsolutePath? = nil,
     actions: any AgentThreadActions
   ) {
-    self.source = .session(session)
+    self.session = session
     self.connection = connection
     self.workingDirectory = workingDirectory
     self.actions = actions
@@ -170,45 +131,32 @@ public struct AgentThreadView: View {
       .threadActions(actions)
   }
 
-  /// The conversation of the model, with the parts that read the model.
-  @ViewBuilder private var content: some View {
-    switch source {
-    case .thread(let thread):
-      VStack(spacing: 0) {
-        ConversationView(thread: thread, anchors: anchors)
-        if let hostSession {
-          PendingRequestsHost(session: hostSession)
-        }
+  /// The conversation of the session model, with the parts that read the
+  /// model.
+  private var content: some View {
+    VStack(spacing: 0) {
+      if let connection {
+        AgentInfoHeader(connection: connection)
+        AgentConnectionBanner(connection: connection)
       }
-      .background { ThreadAnnouncementObserver(thread: thread) }
-      .agentCommandScope(thread: thread, anchors: anchors)
-    case .session(let session):
-      VStack(spacing: 0) {
-        if let connection {
-          AgentInfoHeader(connection: connection)
-          AgentConnectionBanner(connection: connection)
-        }
-        SessionNoticeBanner(session: session)
-        SessionStreamBanner(session: session, connection: connection, workingDirectory: workingDirectory)
-        ConversationView(session: session, anchors: anchors)
-        if let connection {
-          AgentLoginPrompt(session: session, connection: connection)
-        }
-        PendingRequestsHost(session: session)
+      SessionNoticeBanner(session: session)
+      SessionStreamBanner(session: session, connection: connection, workingDirectory: workingDirectory)
+      ConversationView(session: session, anchors: anchors)
+      if let connection {
+        AgentLoginPrompt(session: session, connection: connection)
       }
-      .background { SessionAnnouncementObserver(session: session, connection: connection) }
-      .agentCommandScope(session: session, anchors: anchors)
-      .onDisappear { closeWhenSupported(session) }
+      PendingRequestsHost(session: session)
     }
+    .background { SessionAnnouncementObserver(session: session, connection: connection) }
+    .agentCommandScope(session: session, anchors: anchors)
+    .onDisappear(perform: closeWhenSupported)
   }
 
-  /// Starts the close of a session when the host gave the connection model,
-  /// the agent serves `session/close`, and the session is not closed.
-  ///
-  /// - Parameter session: The session of the view.
-  private func closeWhenSupported(_ session: SessionModel) {
+  /// Starts the close of the session when the host gave the connection
+  /// model, the agent serves `session/close`, and the session is not closed.
+  private func closeWhenSupported() {
     guard let connection, connection.canCloseSessions, !session.isClosed else { return }
-    Task { await Self.close(session, on: connection) }
+    Task { [session] in await Self.close(session, on: connection) }
   }
 
   /// Sends `session/close` for a session. A close that fails adds an error

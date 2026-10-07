@@ -80,17 +80,6 @@
       #expect(harness.element(identifier: ToolCallView.identifier(for: id))?.label == Self.completedLabel)
     }
 
-    @Test func theThreadViewShowsTheToolCallView() {
-      let id = "thread-call"
-      let (thread, _) = Self.makeCallThread(id: id, status: .completed)
-      let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
-      defer { harness.close() }
-      harness.pump()
-
-      #expect(harness.element(identifier: ToolCallView.identifier(for: id)) != nil)
-      #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: id)) == nil)
-    }
-
     // MARK: - Evaluation counts
 
     @Test func aStatusPatchEvaluatesTheRowAndNotTheExpandedBody() {

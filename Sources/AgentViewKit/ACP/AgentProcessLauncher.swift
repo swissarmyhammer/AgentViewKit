@@ -12,7 +12,7 @@ public enum AgentProcessLauncherError: Error, Equatable, Sendable {
   case programPathHasEqualSign(String)
 }
 
-/// The default ``ProcessLauncher`` of the ACP adapter (plan.md §12).
+/// The default ``ProcessLauncher`` of the kit (plan.md §12).
 ///
 /// The launcher starts each process with `AgentProcess` from
 /// FoundationModelsACPClient. `AgentProcess` puts the process in its own

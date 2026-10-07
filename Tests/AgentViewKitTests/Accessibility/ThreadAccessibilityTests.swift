@@ -10,40 +10,6 @@ import Testing
   typealias Progress = ThreadAccessibility.ToolCallProgress
   typealias Summary = ThreadAccessibility.PendingRequestSummary
 
-  // MARK: - Turn
-
-  @Test func aTurnThatEndsAnnouncesThatTheResponseIsComplete() {
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: .running, new: .idle(.endTurn))
-        == "Response complete")
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: .running, new: .idle(nil)) == "Response complete")
-  }
-
-  @Test func anUnknownStopReasonAnnouncesTheTitleOfItsBanner() throws {
-    let state = ThreadState.idle(.unknown("other"))
-    let banner = try #require(StateBanner.message(for: state))
-    #expect(ThreadAccessibility.turnAnnouncement(old: .requiresAction, new: state) == banner.title)
-  }
-
-  @Test func aCancelledTurnAnnouncesTheCancel() {
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: .running, new: .idle(.cancelled))
-        == "Response cancelled")
-  }
-
-  @Test func aStopReasonWithABannerAnnouncesTheBannerTitle() throws {
-    let banner = try #require(StateBanner.message(for: .idle(.maxTokens)))
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: .running, new: .idle(.maxTokens)) == banner.title)
-  }
-
-  @Test func aChangeThatDoesNotStopATurnIsSilent() {
-    #expect(ThreadAccessibility.turnAnnouncement(old: .idle(nil), new: .running) == nil)
-    #expect(ThreadAccessibility.turnAnnouncement(old: .idle(nil), new: .idle(.endTurn)) == nil)
-    #expect(ThreadAccessibility.turnAnnouncement(old: .running, new: .requiresAction) == nil)
-  }
-
   // MARK: - Turn of a session model
 
   /// The agent state while the agent runs.
@@ -142,17 +108,6 @@ import Testing
       ).isEmpty)
   }
 
-  @Test func theProgressListHasOnlyTheToolCalls() {
-    let call = ThreadFixtures.toolCall(status: .inProgress)
-    let items: [ThreadItem] = [
-      .assistantMessage(ThreadFixtures.message()), .toolCall(call),
-    ]
-    #expect(
-      ThreadAccessibility.toolCallProgress(in: items) == [
-        Progress(id: call.id, title: call.title, status: .inProgress)
-      ])
-  }
-
   @Test func thePendingRequestsOfASessionAndItsConnectionHaveTheOrderOfTheCards() async throws {
     let session = try await ScriptedSession.openWithLoginElicitation(id: Self.agentRequestID)
     defer { session.close() }
@@ -185,20 +140,6 @@ import Testing
         "Action required: New"
       ])
     #expect(ThreadAccessibility.actionRequiredAnnouncements(old: new, new: old).isEmpty)
-  }
-
-  @Test func thePendingRequestsHaveTheOrderOfTheCards() {
-    let thread = AgentThread()
-    let permission = ThreadFixtures.permissionRequest(id: "p")
-    let elicitation = ThreadFixtures.formElicitationRequest(id: "e")
-    thread.apply(.addElicitation(elicitation))
-    thread.apply(.addPermission(permission))
-
-    #expect(
-      ThreadAccessibility.pendingRequests(of: thread) == [
-        Summary(id: "p", title: permission.title),
-        Summary(id: "e", title: elicitation.message),
-      ])
   }
 
   // MARK: - Labels and priorities

@@ -82,17 +82,6 @@ extension View {
     modifier(AgentCommandScope(source: .thread(thread), anchors: nil))
   }
 
-  /// Registers the agent commands of `thread`, with the scroll anchors of
-  /// the thread list.
-  ///
-  /// - Parameters:
-  ///   - thread: The thread that the commands act on.
-  ///   - anchors: The scroll anchors of the thread list.
-  /// - Returns: A view in the scope of the commands.
-  func agentCommandScope(thread: AgentThread, anchors: ScrollAnchorManager) -> some View {
-    modifier(AgentCommandScope(source: .thread(thread), anchors: anchors))
-  }
-
   /// Registers the agent commands of a session model for this view and each
   /// view in it (plan.md §4.1, §11 decision 14).
   ///

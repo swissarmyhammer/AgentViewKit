@@ -57,6 +57,19 @@ import Testing
     thread.apply(.setState(.idle(.endTurn)))
   }
 
+  /// Mounts the row of `reasoning`, with `thread` in the environment. The
+  /// row reads the in-progress state and the stream from the thread.
+  ///
+  /// - Parameters:
+  ///   - reasoning: The reasoning record of the row.
+  ///   - thread: The thread that holds the record.
+  /// - Returns: The harness.
+  static func mountRow(of reasoning: Reasoning, in thread: AgentThread) -> HostedViewHarness<some View> {
+    threadViewHarness(actions: NoopThreadActions(), thread: thread) {
+      ItemRow(item: .reasoning(reasoning))
+    }
+  }
+
   // MARK: - Shimmer
 
   @Test func reduceMotionMakesTheShimmerStatic() {
@@ -86,7 +99,7 @@ import Testing
 
   @Test func theLastReasoningShimmersWhileRunningAndThenShowsItsDuration() async {
     let (thread, reasoning) = Self.thinkingThread()
-    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
+    let harness = Self.mountRow(of: reasoning, in: thread)
     defer { harness.close() }
     await harness.pump(until: Self.waitTimeout) {
       harness.element(identifier: ShimmerView.identifier) != nil
@@ -110,7 +123,7 @@ import Testing
 
   @Test func aUserExpansionSurvivesTheCollapseOnCompletion() async throws {
     let (thread, reasoning) = Self.thinkingThread()
-    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
+    let harness = Self.mountRow(of: reasoning, in: thread)
     defer { harness.close() }
     let toggleID = ReasoningView.toggleIdentifier(for: Self.reasoningID)
     let bodyID = ReasoningView.bodyIdentifier(for: Self.reasoningID)

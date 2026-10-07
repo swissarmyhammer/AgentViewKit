@@ -237,7 +237,7 @@ public struct AgentAuthView: View {
         methodButton(row)
       }
       if case .terminal(let method) = row,
-        let record = thread?.terminals[TerminalRecord.authID(for: AuthMethodID(method.methodId.rawValue))]
+        let record = thread?.terminals[TerminalRecord.authID(for: method.methodId)]
       {
         TerminalView(record: record, stdin: { line in write(line, to: record.id) })
       }
@@ -269,7 +269,7 @@ public struct AgentAuthView: View {
         accessibilityLabel: String(localized: "Run \(method.name)"),
         identifier: Self.runIdentifier(for: method.methodId)
       ) { [actions] in
-        try await Self.runTerminalAuth(method, with: actions)
+        try await actions?.runTerminalAuth(method)
       }
     }
   }
@@ -354,29 +354,6 @@ public struct AgentAuthView: View {
     } catch is RequestError {
       // `authState` holds the refusal, and the card shows it.
     }
-  }
-
-  /// Runs a terminal method with the thread actions.
-  ///
-  /// The thread actions take the kit form of the method, so the call changes
-  /// the ACP method at the time of the press, and keeps no copy.
-  ///
-  /// - Parameters:
-  ///   - method: The terminal method of the model.
-  ///   - actions: The actions of the environment, or `nil`.
-  /// - Throws: The error of the actions.
-  private static func runTerminalAuth(
-    _ method: AuthMethodTerminal, with actions: (any AgentThreadActions)?
-  ) async throws {
-    guard let actions else { return }
-    guard case .terminal(let kitMethod)? = SessionUpdateMapping.authMethod(.terminal(method)) else {
-      assertionFailure("The terminal auth method \(method.methodId.rawValue) does not decode as a terminal method.")
-      logger.error(
-        "The terminal auth method \(method.methodId.rawValue, privacy: .public) does not decode; the Run button does nothing."
-      )
-      return
-    }
-    try await actions.runTerminalAuth(kitMethod)
   }
 
   /// Runs `call`, and records its progress under `operation`.

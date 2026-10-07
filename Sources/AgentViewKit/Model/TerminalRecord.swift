@@ -1,4 +1,5 @@
 import Foundation
+import struct FoundationModelsACP.AuthMethodId
 import Observation
 
 /// The identifier of a ``TerminalRecord`` in a thread (plan.md §3.2).
@@ -117,9 +118,10 @@ extension TerminalRecord {
   /// output of the process to the record with this id. `AgentAuthView` finds
   /// the record with the same id.
   ///
-  /// - Parameter methodID: The identifier of the terminal method.
+  /// - Parameter methodID: The identifier of the terminal method, as the
+  ///   `authMethods` of the connection model give it.
   /// - Returns: `auth-<methodID>`.
-  public nonisolated static func authID(for methodID: AuthMethodID) -> TerminalID {
+  public nonisolated static func authID(for methodID: AuthMethodId) -> TerminalID {
     TerminalID(authIDPrefix + methodID.rawValue)
   }
 }

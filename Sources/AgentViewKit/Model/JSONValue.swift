@@ -6,7 +6,7 @@ import OSLog
 ///
 /// The model and the views do not use the JSON type of the ACP wire package.
 /// So `_meta` fields, unknown content, and elicitation answers use this type.
-/// The ACP adapter converts the wire JSON type to and from it.
+/// ``acpValue`` converts it to the wire JSON type.
 ///
 /// Equality and hashing use the `Dictionary` of an object, so the order of the
 /// keys in the source text is not significant.

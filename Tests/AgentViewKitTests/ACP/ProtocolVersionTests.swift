@@ -6,38 +6,47 @@ import FoundationModelsACPClient
 import PackageFileSupport
 import Testing
 
-/// The `initialize` result of an agent that answers with `version`.
-private func initializeResult(version: UInt16) -> String {
-  #"{"info": {"name": "agent", "version": "1.0.0"}, "protocolVersion": \#(version)}"#
-}
-
-/// The `initialize` request of the kit, with `version`.
-private func initializeRequest(version: ProtocolVersion = .v2) -> InitializeRequest {
-  InitializeRequest(info: Implementation(name: "AgentViewKitTests", version: "1.0.0"), protocolVersion: version)
-}
-
-/// The objects of one test: the scripted agent, the connection model, and a
-/// source on a new thread.
+/// The objects of one test over the in-memory agent: the scripted agent and
+/// a connection model that is connected to it.
 @MainActor
 private struct Harness {
   let agent: ScriptedWireAgent
   let connection = ConnectionModel()
-  let source: ACPThreadSource
 
-  /// Makes a harness whose source reads `updates`.
-  ///
-  /// - Parameter updates: The session updates that the source can read.
-  init(updates: AsyncStream<SessionUpdate> = AsyncStream { $0.finish() }) async {
+  /// Connects a new connection model to a new scripted agent.
+  init() async {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
     _ = await connection.connect(over: clientEnd)
     agent = ScriptedWireAgent(transport: agentEnd)
     agent.start()
-    source = ACPThreadSource(thread: AgentThread(), updates: updates, agentName: "Agent")
+  }
+
+  /// Gives the agent the `initialize` result with `version`.
+  ///
+  /// - Parameter version: The protocol version of the answer.
+  func answerInitialize(with version: ProtocolVersion) {
+    agent.results["initialize"] =
+      #"{"info": {"name": "agent", "version": "1.0.0"}, "protocolVersion": \#(version.rawValue)}"#
+  }
+
+  /// Sends `initialize` with `version` through
+  /// `ConnectionModel.initializeCheckingProtocolVersion(_:)`, with the time
+  /// limit of the ACP tests.
+  ///
+  /// - Parameter version: The protocol version of the request.
+  /// - Returns: The answer of the agent.
+  /// - Throws: The error of the call.
+  func initialize(requesting version: ProtocolVersion = .v2) async throws -> InitializeResponse {
+    let request = InitializeRequest(
+      info: Implementation(name: "AgentViewKitTests", version: "1.0.0"), protocolVersion: version)
+    return try await agent.bounded {
+      try await connection.initializeCheckingProtocolVersion(request)
+    }
   }
 }
 
 /// Checks the R6 decision in `Docs/decisions/acp-version.md` and the
-/// version check of ``ACPThreadSource``.
+/// protocol version check of ``SupportedProtocolVersions``.
 @MainActor
 @Suite struct ProtocolVersionTests {
   /// The decision file, relative to the package root.
@@ -46,18 +55,8 @@ private struct Harness {
   /// The prefix of the line that states the supported versions.
   private static let supportedPrefix = "supported:"
 
-  /// The error records of a thread.
-  private func errors(of thread: AgentThread) -> [ThreadError] {
-    thread.items.compactMap { item in
-      if case .error(let error) = item { error } else { nil }
-    }
-  }
-
-  /// The message of an error record, or `nil` when the kind is not
-  /// `unknown`.
-  private func message(of error: ThreadError) -> String? {
-    if case .unknown(let message) = error.kind { message } else { nil }
-  }
+  /// Protocol version 1, which the kit does not accept.
+  private static let v1 = ProtocolVersion(rawValue: 1)
 
   // MARK: - Decision file
 
@@ -84,29 +83,25 @@ private struct Harness {
 
   @Test func theLatestWireVersionIsSupported() {
     #expect(SupportedProtocolVersions.contains(.latest))
-    #expect(!SupportedProtocolVersions.contains(ProtocolVersion(rawValue: 1)))
+    #expect(!SupportedProtocolVersions.contains(Self.v1))
   }
 
   // MARK: - Direct check
 
-  @Test func aSupportedVersionAddsNoRecord() {
-    let source = ACPThreadSource(thread: AgentThread(), updates: AsyncStream { $0.finish() }, agentName: "Agent")
-
-    #expect(source.acceptProtocolVersion(.v2, requested: .v2))
-    #expect(source.thread.items.isEmpty)
+  @Test func aSupportedVersionIsAccepted() {
+    #expect(throws: Never.self) {
+      try SupportedProtocolVersions.accept(.v2, requested: .v2)
+    }
   }
 
-  @Test func anUnsupportedVersionAddsOneErrorThatNamesBothVersions() throws {
-    let source = ACPThreadSource(thread: AgentThread(), updates: AsyncStream { $0.finish() }, agentName: "Agent")
+  @Test func anUnsupportedVersionThrowsAnErrorThatNamesBothVersions() throws {
+    let error = try #require(throws: UnsupportedProtocolVersionError.self) {
+      try SupportedProtocolVersions.accept(Self.v1, requested: .v2)
+    }
 
-    #expect(!source.acceptProtocolVersion(ProtocolVersion(rawValue: 1), requested: .v2))
-    #expect(!source.acceptProtocolVersion(ProtocolVersion(rawValue: 1), requested: .v2))
-
-    let recorded = errors(of: source.thread)
-    #expect(recorded.count == 1)
-    let text = try #require(recorded.first.flatMap(message(of:)))
-    #expect(text.contains("version 1"))
-    #expect(text.contains("version 2"))
+    #expect(error == UnsupportedProtocolVersionError(received: Self.v1, requested: .v2))
+    #expect(error.description.contains("version 1"))
+    #expect(error.description.contains("version 2"))
   }
 
   // MARK: - Over the in-memory agent
@@ -114,67 +109,45 @@ private struct Harness {
   @Test func initializeReturnsTheResponseOfASupportedAgent() async throws {
     let harness = await Harness()
     defer { harness.agent.stop() }
-    harness.agent.results["initialize"] = initializeResult(version: 2)
+    harness.answerInitialize(with: .v2)
 
-    let response = try await harness.agent.bounded {
-      try await harness.source.initialize(over: harness.connection, request: initializeRequest())
-    }
+    let response = try await harness.initialize()
 
-    #expect(response?.protocolVersion == .v2)
+    #expect(response.protocolVersion == .v2)
     #expect(harness.connection.initializeResponse == response)
-    #expect(harness.source.thread.items.isEmpty)
-    #expect(harness.agent.messages(method: "initialize").first?["params"]?["protocolVersion"] == .number(2))
+    let sentVersion = harness.agent.messages(method: "initialize").first?["params"]?["protocolVersion"]
+    #expect(sentVersion == .number(Double(ProtocolVersion.v2.rawValue)))
   }
 
-  @Test func aV1AgentIsRefusedWithOneErrorAndNoUpdate() async throws {
-    let update = try SessionUpdateFixtures.decode(SessionUpdateFixtures.agentMessage)
-    let updates = AsyncStream<SessionUpdate> { continuation in
-      continuation.yield(update)
-      continuation.finish()
-    }
-    let harness = await Harness(updates: updates)
+  @Test func aV1AgentIsRefusedWithAnErrorThatNamesBothVersions() async throws {
+    let harness = await Harness()
     defer { harness.agent.stop() }
-    harness.agent.results["initialize"] = initializeResult(version: 1)
+    harness.answerInitialize(with: Self.v1)
 
-    let response = try await harness.agent.bounded {
-      try await harness.source.initialize(over: harness.connection, request: initializeRequest())
+    await #expect(throws: UnsupportedProtocolVersionError(received: Self.v1, requested: .v2)) {
+      try await harness.initialize()
     }
-    await harness.source.run()
-
-    #expect(response == nil)
-    let items = harness.source.thread.items
-    #expect(items.count == 1)
-    let recorded = errors(of: harness.source.thread)
-    #expect(recorded.count == 1)
-    let text = try #require(recorded.first.flatMap(message(of:)))
-    #expect(text.contains("version 1"))
-    #expect(text.contains("version 2"))
   }
 
   @Test func anAgentThatAnswersAnUnsupportedRequestedVersionIsRefused() async throws {
     let harness = await Harness()
     defer { harness.agent.stop() }
-    harness.agent.results["initialize"] = initializeResult(version: 1)
+    harness.answerInitialize(with: Self.v1)
 
-    let response = try await harness.agent.bounded {
-      try await harness.source.initialize(
-        over: harness.connection, request: initializeRequest(version: ProtocolVersion(rawValue: 1)))
+    await #expect(throws: UnsupportedProtocolVersionError(received: Self.v1, requested: Self.v1)) {
+      try await harness.initialize(requesting: Self.v1)
     }
-
-    #expect(response == nil)
-    #expect(errors(of: harness.source.thread).count == 1)
   }
 
-  @Test func aTransportFailureThrowsAndAddsNoRecord() async {
+  @Test func aTransportFailureThrowsTheErrorOfTheConnection() async throws {
     let harness = await Harness()
     defer { harness.agent.stop() }
     harness.agent.failingMethods = ["initialize"]
 
-    await #expect(throws: (any Error).self) {
-      try await harness.agent.bounded {
-        try await harness.source.initialize(over: harness.connection, request: initializeRequest())
-      }
+    let error = try await #require(throws: (any Error).self) {
+      try await harness.initialize()
     }
-    #expect(harness.source.thread.items.isEmpty)
+
+    #expect(!(error is UnsupportedProtocolVersionError))
   }
 }

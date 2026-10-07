@@ -18,7 +18,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
 }
 
 /// Holds `Sources/` free of the symbols that the ACP client kit removed
-/// (update.md §3, §6).
+/// (update.md §3, §6). Some lists also hold the tests, the examples and the
+/// README free of their symbols.
 ///
 /// Each removal task adds its symbols to ``removedSymbols``. The scan reads
 /// each Swift file as text, and finds a symbol only as a whole word. Thus
@@ -67,21 +68,30 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// no agent connection into a `ConnectionStore`.
   static let removedDemoSymbols = ["ACPDemoSession", "agentConnectionID"]
 
-  /// The directories of the demo app, of its support target, and of their
-  /// tests.
-  static let demoPaths = [sourcesPath, "Tests/AgentViewKitTests", "Examples"]
+  /// The directories of the Swift files of the kit, of the demo app, of
+  /// their support targets, and of their tests.
+  static let swiftPaths = [sourcesPath, "Tests/AgentViewKitTests", "Examples"]
 
-  /// The directories of the pending request cards.
-  static let pendingRequestCardPaths = [
-    "Sources/AgentViewKit/HumanInTheLoop", "Sources/AgentViewKit/Elicitation",
+  /// The README of the package.
+  static let readmePath = "README.md"
+
+  /// The ACP adapter that folded the session updates into a kit thread, and
+  /// the fixtures of its tests. The views bind to the client models
+  /// directly, so no kit code converts a model value into a kit copy.
+  static let removedAdapterSymbols = [
+    "ACPThreadSource", "SessionUpdateMapping", "ACPSessionList", "TranscriptSeed",
+    "ACPThreadActions", "ACPThreadActionsError", "ACPAgentProgram", "SessionUpdateFixtures",
   ]
 
-  /// The tool call view, which shows the linked elicitation cards.
-  static let toolCallViewPath = "Sources/AgentViewKit/Items/ToolCallView.swift"
-
-  /// The mapping that converts a model value to a kit copy. No pending
-  /// request card calls it.
-  static let mappingSymbol = "SessionUpdateMapping"
+  /// The pattern that finds a call of the removed thread initializer
+  /// `AgentThreadView(thread:actions:)`, also a call over two lines.
+  ///
+  /// A `Regex` is not `Sendable`, so each call makes the value again.
+  ///
+  /// - Returns: The pattern.
+  static func threadInitializerCall() -> Regex<Substring> {
+    #/AgentThreadView\(\s*thread:/#
+  }
 
   /// The usage initializer from the fill of the context window.
   static let usageFromFill = RemovedInitializer(name: "init(used:fill:)", labels: ["used", "fill"])
@@ -188,22 +198,47 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect(found.isEmpty, "\(found)")
   }
 
+  /// Finds each use of a removed symbol in one file.
+  ///
+  /// - Parameters:
+  ///   - symbols: The removed symbols.
+  ///   - path: The file, relative to the package root.
+  /// - Returns: The uses, in line order.
+  /// - Throws: The error of the read when the file cannot be read.
+  static func uses(of symbols: [String], inFile path: String) throws -> [RemovedSymbolUse] {
+    SourceLineScanner.matches(inSource: try PackageFiles.text(of: path), file: path) { line in
+      Self.uses(of: symbols, on: line)
+    }
+  }
+
   @Test func theDemoAppAndItsTestsUseNoRemovedDemoSymbol() throws {
-    let found = try Self.uses(of: Self.removedDemoSymbols, below: Self.demoPaths)
+    let found = try Self.uses(of: Self.removedDemoSymbols, below: Self.swiftPaths)
 
     #expect(found.isEmpty, "\(found)")
   }
 
-  @Test func thePendingRequestCardsUseNoSessionUpdateMapping() throws {
-    let cardFiles = try Self.uses(of: [Self.mappingSymbol], below: Self.pendingRequestCardPaths)
-    let toolCallView = SourceLineScanner.matches(
-      inSource: try PackageFiles.text(of: Self.toolCallViewPath), file: Self.toolCallViewPath
-    ) { line in
-      Self.uses(of: [Self.mappingSymbol], on: line)
+  @Test func noFileUsesTheRemovedACPAdapter() throws {
+    let found =
+      try Self.uses(of: Self.removedAdapterSymbols, below: Self.swiftPaths)
+      + Self.uses(of: Self.removedAdapterSymbols, inFile: Self.readmePath)
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func theThreadInitializerPatternFindsACallOverTwoLines() {
+    #expect("AgentThreadView(\n  thread: thread, actions: actions)".contains(Self.threadInitializerCall()))
+    #expect(!"AgentThreadView(session: session, actions: actions)".contains(Self.threadInitializerCall()))
+  }
+
+  @Test func noFileCallsTheRemovedThreadInitializer() throws {
+    let swiftFiles = try Self.swiftPaths.flatMap { try PackageFiles.swiftFiles(in: PackageFiles.file($0)) }
+    let files = swiftFiles + [try PackageFiles.file(Self.readmePath)]
+
+    let callers = try files.filter { file in
+      try String(contentsOf: file, encoding: .utf8).contains(Self.threadInitializerCall())
     }
 
-    let found = cardFiles + toolCallView
-    #expect(found.isEmpty, "\(found)")
+    #expect(callers.isEmpty, "\(callers.map(\.lastPathComponent))")
   }
 
   @Test func useFindsTheLabelsOfACall() throws {

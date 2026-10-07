@@ -25,33 +25,17 @@ import Testing
   /// The identifier of the second message.
   static let secondMessageID = "reading-message-2"
 
-  /// The identifier of the permission request of the fixtures.
-  static let requestID = "accessibility-permission-1"
-
   /// The text of a message with three paragraphs.
   static let threeParagraphs = "One.\n\nTwo.\n\nThree."
 
-  /// Mounts an ``AgentThreadView`` of `thread` with the recording fakes.
-  ///
-  /// - Parameters:
-  ///   - thread: The thread to show.
-  ///   - announcer: The announcer of the environment.
-  ///   - reporter: The focus reporter of the environment.
-  /// - Returns: The harness, pumped one time.
-  static func mount(
-    _ thread: AgentThread,
-    announcer: RecordingAnnouncer = RecordingAnnouncer(),
-    reporter: RecordingFocusReporter = RecordingFocusReporter()
-  ) -> HostedViewHarness<some View> {
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: hostSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
-        .environment(\.announcer, announcer)
-        .environment(\.focusReporter, reporter)
-    }
-    harness.pump()
-    return harness
-  }
+  /// The number of paragraphs of ``threeParagraphs``.
+  static let paragraphCount = 3
+
+  /// The text of the second message, with one paragraph.
+  static let secondMessageText = "Four."
+
+  /// The number of agent messages that the reading group tests send.
+  static let readingMessageCount = 2
 
   /// The title of the tool call that the session tests send.
   static let toolTitle = "Build"
@@ -79,14 +63,62 @@ import Testing
     return harness
   }
 
-  /// Makes one `agent_message_chunk` update of the message
-  /// ``streamedMessageID``.
+  /// Makes one `agent_message_chunk` update.
   ///
-  /// - Parameter text: The text of the chunk.
+  /// - Parameters:
+  ///   - text: The text of the chunk.
+  ///   - messageID: The `messageId` of the message of the chunk.
   /// - Returns: The update.
-  static func makeChunkUpdate(text: String) -> SessionUpdate {
+  static func makeChunkUpdate(text: String, messageID: String = streamedMessageID) -> SessionUpdate {
     .agentMessageChunk(
-      ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: streamedMessageID)))
+      ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: messageID)))
+  }
+
+  /// Sends two agent messages from the agent of `session`, and pumps
+  /// `harness` until the thread shows the row of each message. The first
+  /// message has three paragraphs.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness that shows the thread of the session.
+  /// - Returns: The row key of each message entry, in transcript order.
+  /// - Throws: The error of the transport.
+  static func sendTwoMessages(
+    to session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+  ) async throws -> [String] {
+    try await session.send(update: makeChunkUpdate(text: threeParagraphs, messageID: firstMessageID))
+    try await session.send(update: makeChunkUpdate(text: secondMessageText, messageID: secondMessageID))
+    await harness.pump(until: waitTimeout) {
+      session.model.transcript.count == readingMessageCount
+        && session.model.transcript.allSatisfy { harness.element(identifier: ItemRow.identifier(for: $0.rowKey)) != nil }
+    }
+    harness.pump()
+    return session.model.transcript.map(\.rowKey)
+  }
+
+  /// Expects that the shimmer of the activity indicator of a running session
+  /// has `value` while the Reduce Motion setting is `reduceMotion`.
+  ///
+  /// - Parameters:
+  ///   - reduceMotion: The Reduce Motion setting of the environment.
+  ///   - value: The accessibility value that the shimmer must have.
+  static func expectShimmerOfARunningSession(reduceMotion: Bool, value: String) async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = HostedViewHarness(size: hostSize) {
+      ActivityIndicator(session: session.model)
+        .environment(\._accessibilityReduceMotion, reduceMotion)
+    }
+    defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: ShimmerView.identifier) == nil)
+
+    try await session.sendUpdate(ScriptedSession.runningState)
+    await harness.pump(until: waitTimeout) {
+      harness.element(identifier: ShimmerView.identifier) != nil
+    }
+
+    #expect(harness.element(identifier: ShimmerView.identifier)?.value == value)
   }
 
   /// Tells whether `entry` is a tool call entry with the status `completed`.
@@ -141,28 +173,16 @@ import Testing
     harness.pump()
   }
 
-  /// A thread with two assistant messages. The first message has three
-  /// paragraphs.
-  static func twoMessageThread() -> AgentThread {
-    let thread = AgentThread()
-    thread.apply(
-      .insert(
-        .assistantMessage(ThreadFixtures.message(id: firstMessageID, text: threeParagraphs)),
-        after: nil))
-    thread.apply(
-      .insert(
-        .assistantMessage(ThreadFixtures.message(id: secondMessageID, text: "Four.")),
-        after: firstMessageID))
-    return thread
-  }
-
   // MARK: - Reading groups
 
-  @Test func eachParagraphOfAMessageLinksTheOtherParagraphs() throws {
-    let harness = Self.mount(Self.twoMessageThread())
+  @Test func eachParagraphOfAnAgentMessageEntryLinksTheOtherParagraphs() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.makeHarness(session: session, announcer: RecordingAnnouncer())
     defer { harness.close() }
+    _ = try await Self.sendTwoMessages(to: session, pumping: harness)
 
-    let identifiers = (0..<3).map(ResponseView.paragraphIdentifier(index:))
+    let identifiers = (0..<Self.paragraphCount).map(ResponseView.paragraphIdentifier(index:))
     for identifier in identifiers {
       let paragraph = try #require(harness.element(identifier: identifier))
       let linked = Set(paragraph.linkedElements.compactMap(\.identifier))
@@ -171,13 +191,18 @@ import Testing
     }
   }
 
-  @Test func eachRowOfTheThreadLinksTheOtherRows() throws {
-    let harness = Self.mount(Self.twoMessageThread())
+  @Test func eachRowOfTheThreadOfASessionLinksTheOtherRows() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.makeHarness(session: session, announcer: RecordingAnnouncer())
     defer { harness.close() }
+    let keys = try await Self.sendTwoMessages(to: session, pumping: harness)
+    let firstKey = try #require(keys.first)
+    let secondKey = try #require(keys.last)
 
-    let first = try #require(harness.element(identifier: ItemRow.identifier(for: Self.firstMessageID)))
+    let first = try #require(harness.element(identifier: ItemRow.identifier(for: firstKey)))
     let linked = first.linkedElements.compactMap(\.identifier)
-    #expect(linked.contains(ItemRow.identifier(for: Self.secondMessageID)))
+    #expect(linked.contains(ItemRow.identifier(for: secondKey)))
   }
 
   @Test func aStandaloneResponseLinksItsParagraphs() throws {
@@ -200,69 +225,6 @@ import Testing
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains("Let x^2 be big."))
     #expect(harness.element(identifier: MathView.identifier(display: false))?.label == "x^2")
-  }
-
-  // MARK: - Announcements
-
-  @Test func streamingChunksAreSilentAndATurnCompletionAnnouncesOneTime() async {
-    let thread = AgentThread()
-    let announcer = RecordingAnnouncer()
-    let harness = Self.mount(thread, announcer: announcer)
-    defer { harness.close() }
-
-    thread.apply(.setState(.running))
-    thread.apply(.insert(.assistantMessage(Message(id: Self.firstMessageID, blocks: [])), after: nil))
-    for index in 0..<Self.chunkCount {
-      thread.apply(.appendStreaming(id: Self.firstMessageID, text: "Chunk \(index). "))
-      harness.pump()
-    }
-    #expect(announcer.announcements.isEmpty)
-
-    thread.apply(.closeStreaming(id: Self.firstMessageID))
-    thread.apply(.setState(.idle(.endTurn)))
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
-    harness.pump()
-
-    #expect(
-      announcer.announcements == [
-        RecordingAnnouncer.Announcement(message: "Response complete", priority: .medium)
-      ])
-  }
-
-  @Test func anActionRequiredAnnouncesOneTimeWithHighPriority() async {
-    let thread = AgentThread()
-    let announcer = RecordingAnnouncer()
-    let harness = Self.mount(thread, announcer: announcer)
-    defer { harness.close() }
-    let request = ThreadFixtures.permissionRequest(id: Self.requestID)
-
-    thread.apply(.addPermission(request))
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
-    harness.pump()
-
-    #expect(
-      announcer.announcements == [
-        RecordingAnnouncer.Announcement(
-          message: "Action required: \(request.title)", priority: .high)
-      ])
-  }
-
-  @Test func aToolResultAnnouncesTheTitleAndTheStatus() async {
-    let thread = AgentThread()
-    let call = ThreadFixtures.toolCall(status: .inProgress)
-    thread.apply(.insert(.toolCall(call), after: nil))
-    let announcer = RecordingAnnouncer()
-    let harness = Self.mount(thread, announcer: announcer)
-    defer { harness.close() }
-    #expect(announcer.announcements.isEmpty)
-
-    thread.apply(.patch(id: call.id, .toolCall(status: .value(.completed))))
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
-
-    #expect(
-      announcer.announcements.map(\.message) == [
-        ToolCallView.accessibilityLabel(title: call.title, status: .completed)
-      ])
   }
 
   // MARK: - Announcements of a session model
@@ -451,55 +413,22 @@ import Testing
 
   // MARK: - Reduce Motion
 
-  @Test func reduceMotionStopsTheShimmerInAThread() async {
-    let (thread, _) = Self.runningReasoningThread()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
-        .environment(\._accessibilityReduceMotion, true)
-    }
-    defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: ShimmerView.identifier) != nil
-    }
-
-    #expect(harness.element(identifier: ShimmerView.identifier)?.value == ShimmerView.staticValue)
+  @Test func reduceMotionStopsTheShimmerOfARunningSession() async throws {
+    try await Self.expectShimmerOfARunningSession(reduceMotion: true, value: ShimmerView.staticValue)
   }
 
-  @Test func withNoReduceMotionTheShimmerAnimatesInAThread() async {
-    let (thread, _) = Self.runningReasoningThread()
-    let actions = NoopThreadActions()
-    let harness = threadViewHarness(size: Self.hostSize, actions: actions) {
-      AgentThreadView(thread: thread, actions: actions)
-        .environment(\._accessibilityReduceMotion, false)
-    }
-    defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: ShimmerView.identifier) != nil
-    }
-
-    #expect(
-      harness.element(identifier: ShimmerView.identifier)?.value == ShimmerView.animatingValue)
+  @Test func withNoReduceMotionTheShimmerOfARunningSessionAnimates() async throws {
+    try await Self.expectShimmerOfARunningSession(reduceMotion: false, value: ShimmerView.animatingValue)
   }
 
-  @Test func aReasoningBlockHasItsProgressInItsLabel() throws {
-    let (thread, reasoning) = Self.runningReasoningThread()
-    let harness = Self.mount(thread)
+  @Test func anInProgressReasoningBlockHasItsProgressInItsLabel() throws {
+    let reasoning = ThreadFixtures.reasoning(id: "accessibility-reasoning")
+    let harness = HostedViewHarness(ReasoningView(record: reasoning, isInProgress: true), size: Self.hostSize)
     defer { harness.close() }
+    harness.pump()
 
     let block = try #require(
       harness.element(identifier: ReasoningView.identifier(for: reasoning.id)))
     #expect(block.label == "Reasoning, in progress")
-  }
-
-  /// A running thread whose last item is a reasoning record.
-  ///
-  /// - Returns: The thread and the record.
-  static func runningReasoningThread() -> (AgentThread, Reasoning) {
-    let thread = AgentThread()
-    let reasoning = ThreadFixtures.reasoning(id: "accessibility-reasoning")
-    thread.apply(.insert(.reasoning(reasoning), after: nil))
-    thread.apply(.setState(.running))
-    return (thread, reasoning)
   }
 }

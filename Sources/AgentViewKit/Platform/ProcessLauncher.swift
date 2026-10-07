@@ -25,8 +25,8 @@ public protocol LaunchedProcess: AnyObject {
 
 /// The object that starts a process for terminal authentication.
 ///
-/// The protocol has no ACP type. The ACP adapter supplies the default
-/// launcher, ``AgentProcessLauncher``, which wraps `AgentProcess` from
+/// The protocol has no ACP type. The kit supplies the default launcher,
+/// ``AgentProcessLauncher``, which wraps `AgentProcess` from
 /// FoundationModelsACPClient. A test gives a recording fake.
 public protocol ProcessLauncher: AnyObject {
   /// Starts `program` with `arguments` and `environment`.

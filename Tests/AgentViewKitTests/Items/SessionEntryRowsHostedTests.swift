@@ -39,16 +39,6 @@
     /// The member name in the data of the appended error.
     static let errorDataField = "missingField"
 
-    /// The sources of the views that show the ACP values of the tool call,
-    /// error, unknown and plan entries.
-    static let entryValueViewSources = [
-      "Sources/AgentViewKit/Items/ToolCallSource.swift",
-      "Sources/AgentViewKit/Items/ToolCallView.swift",
-      "Sources/AgentViewKit/Items/ErrorView.swift",
-      "Sources/AgentViewKit/Items/UnknownItemView.swift",
-      "Sources/AgentViewKit/Status/TaskListView.swift",
-    ]
-
     /// The label of the second plan entry, which no plan update changes.
     static let shipEntryLabel = "Ship, Pending, Low priority"
 
@@ -403,16 +393,6 @@
       await harness.pump(until: Self.waitTimeout) { Self.labels(in: harness).contains { $0.contains(member) } }
 
       #expect(Self.labels(in: harness).contains { $0.contains(member) })
-    }
-
-    // MARK: - Sources
-
-    @Test func theEntryValueViewsMakeNoKitCopyOfTheEntryValues() throws {
-      let copy = try Regex("SessionUpdateMapping")
-
-      let copies = try SourceLines.matching(copy, inPackageFiles: Self.entryValueViewSources)
-
-      #expect(copies.isEmpty, "An entry view copies the ACP values of the entry into kit values: \(copies)")
     }
 
     // MARK: - Error

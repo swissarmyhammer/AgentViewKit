@@ -162,15 +162,4 @@ import Testing
     #expect(harness.element(identifier: "error-refusal") == nil)
     #expect(harness.element(identifier: "error-unknown") != nil)
   }
-
-  @Test func anErrorItemRowShowsTheErrorView() {
-    let thread = AgentThread()
-    thread.apply(.insert(.error(ThreadError(id: "error-1", kind: .refusal(explanation: nil))), after: nil))
-    let harness = HostedViewHarness(AgentThreadView(thread: thread, actions: NoopThreadActions()))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: "error-refusal") != nil)
-    #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: "error-1")) == nil)
-  }
 }
