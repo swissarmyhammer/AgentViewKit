@@ -102,13 +102,15 @@ public enum BackgroundRunScript {
       change: .agentMessageText(messageID: fullMessageID, text: fullMessageText))
   }
 
-  /// Makes one `agent_message_chunk` update with a text block.
+  /// Makes one `agent_message_chunk` update with a text block. The script
+  /// uses it for each of its chunks, and a view test uses it to stream an
+  /// agent message of its own.
   ///
   /// - Parameters:
   ///   - messageID: The `messageId` of the agent message.
   ///   - text: The text of the chunk.
   /// - Returns: The update.
-  private static func makeChunkUpdate(messageID: String, text: String) -> SessionUpdate {
+  public static func makeChunkUpdate(messageID: String, text: String) -> SessionUpdate {
     .agentMessageChunk(ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: messageID)))
   }
 

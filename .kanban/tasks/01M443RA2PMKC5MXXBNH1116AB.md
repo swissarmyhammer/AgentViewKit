@@ -41,6 +41,37 @@ comments:
     - Bridges kept, because the thread path still calls them until ^gzj5cye: `JSONValue.acpValue` (ToolCallSource .record, ElicitationView), `PlanEntry.acpEntry` (TaskListView), `ToolKind.acpKind` and `ToolCallStatus.acpStatus` (ToolCallSource .record), `PermissionPresentation.order(of: [AgentViewKit.PermissionOption])` (AgentCommandTarget thread path), the internal `ExpandedBlocksStore` id forms (ReasoningView, JSONDisclosure, ToolCallSource, AgentCommandTarget). None lost all callers.
     - next: /review
   timestamp: 2026-10-07T07:11:21.112512+00:00
+- actor: claude-code
+  id: 01m4am9yvzx580ywze4bjp06je
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 2d0b517), 2 findings (2 confirmed, 1 refuted) — Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift:72 (reuse/reuse), Tests/AgentViewKitTests/Commands/AgentCommandScopeHostedTests.swift:155 (completeness/invariant-propagation)
+    - next: /implement — do the two items in the "Review Findings (2026-10-07 02:16)" section
+  timestamp: 2026-10-07T07:30:04.799063+00:00
+- actor: claude-code
+  id: 01m4ama0w4zd2pf4gak7sdsa0c
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ACPThreadSource, SessionUpdateMapping, TranscriptSeed and ACPThreadActions deleted; AgentThreadView(thread:actions:) deleted; protocol version check in SupportedProtocolVersions; old-path tests moved to the session path or deleted when covered; 49 paths
+    - test: green — swift test, 1293 passed; README and demo UI gates passed
+    - commit: 2d0b517
+    - review: findings — Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift:72, Tests/AgentViewKitTests/Commands/AgentCommandScopeHostedTests.swift:155
+  timestamp: 2026-10-07T07:30:06.852886+00:00
+- actor: claude-code
+  id: 01m4amp68gx8xrn8ha3ekkdz3a
+  text: |-
+    Review findings (2026-10-07 02:16), both done:
+    - reuse/reuse: `BackgroundRunScript.makeChunkUpdate(messageID:text:)` in AgentViewKitTestSupport is now `public`. ThreadAccessibilityHostedTests calls it, and its own copy is deleted. A search of the test target found no other typed `.agentMessageChunk(ContentChunk(...))` helper. The JSON-text chunk helpers (`WireBlockJSON.makeChunk`, `SessionTranscriptViewHostedTests.chunk`) make wire JSON, not a `SessionUpdate` value, so they are a different helper.
+    - completeness/invariant-propagation: the test `aMountedSessionThreadViewRegistersTheTenCommands` has a purpose: it proves that the session path of `AgentThreadView` applies `agentCommandScope` itself (^19kd9gm). An outer scope would hide a regression, so the test keeps no outer scope. `mount` and `mountInSessionScope` are now one helper, `mount(session:system:outerScope:composer:pasteboard:)`. It always gives the `connection` input, the `\.sessionModel` environment and the pasteboard. A `@ViewBuilder` helper `scoped(_:in:)` applies the outer scope only when `outerScope` is true. The test has a doc comment that says it mounts no outer scope on purpose. The cancel, approve and copy tests keep their old setup (`outerScope: false`). The two scope tests and the composer tests use `outerScope: true`.
+    - Mutation check: I removed `.agentCommandScope(session: session, anchors: anchors)` from `AgentThreadView` one time. The test failed with 4 issues (the scope tree was empty). Then I restored the line; `git diff` shows no change in AgentThreadView.swift.
+  timestamp: 2026-10-07T07:36:45.584185+00:00
+- actor: claude-code
+  id: 01m4amp94skdb1mw00emd6gaze
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Sources/AgentViewKitTestSupport/BackgroundRunScript.swift, Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift, Tests/AgentViewKitTests/Commands/AgentCommandScopeHostedTests.swift. `swift test --filter 'AgentCommandScopeHostedTests|ThreadAccessibilityHostedTests|BackgroundRun'`: 28 tests in 3 suites passed. Mutation run (scope removed from AgentThreadView): `aMountedSessionThreadViewRegistersTheTenCommands` failed with 4 issues, then the scope was restored. Full `swift test`: 1293 tests in 125 suites and 83 tests in 12 suites passed; the only warning is the known mlx-swift `missing creator for mutated node` build warning. The unstable tests ^zcktrsh and ^vhp5fv7 did not fail and were not changed. Both review findings are `- [x]`. No commit, no push.
+    - next: /review
+  timestamp: 2026-10-07T07:36:48.537519+00:00
 depends_on:
 - 01M443S0EDEB23N7RPAR39TGZ5
 - 01M443RTQWKFHNWK4SH96PTE46
@@ -73,3 +104,19 @@ When all view groups, the demo app and the README snippets use `SessionModel` an
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 02:16)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 40 file(s) reviewed, 8 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/acp-version.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+
+> ⚠️ tool rules `code-hygiene/disallowed-constructs-swift`, `code-hygiene/function-length-swift`, `code-hygiene/idioms-swift`, `code-hygiene/magic-numbers-swift` and `code-hygiene/missing-docs-swift` each declined the nine files that this change deletes (no file at the path): Sources/AgentViewKit/ACP/ACPThreadActions.swift, Sources/AgentViewKit/ACP/ACPThreadSource.swift, Sources/AgentViewKit/ACP/SessionUpdateMapping.swift, Sources/AgentViewKit/ACP/TranscriptSeed.swift, Tests/AgentViewKitTests/ACP/ACPThreadActionsTests.swift, Tests/AgentViewKitTests/ACP/ACPThreadSourceTests.swift, Tests/AgentViewKitTests/ACP/SessionUpdateFixtures.swift, Tests/AgentViewKitTests/ACP/SessionUpdateMappingTests.swift, Tests/AgentViewKitTests/Thread/AgentThreadViewHostedTests.swift.
+
+- [x] `Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityHostedTests.swift:72` `reuse/reuse` — Function `makeChunkUpdate` reinvents a utility that already exists elsewhere with 0.96 semantic similarity. A shared implementation should be called instead of duplicating the capability. Import and call the existing `makeChunkUpdate` from `BackgroundRunScript` instead of redefining it, or extract both into a shared test utility if the context differs enough to warrant separate implementations.
+- [x] `Tests/AgentViewKitTests/Commands/AgentCommandScopeHostedTests.swift:155` `completeness/invariant-propagation` — The new test `aMountedSessionThreadViewRegistersTheTenCommands` calls the unchanged `mount` helper which does not apply the `.agentCommandScope` modifier or pass `connection` to AgentThreadView, while the refactoring updates all session-based tests to use `mountInSessionScope` that applies both. The test's later assertions (lines 161–164) expect commands to be registered, which requires the scope setup that `mount` does not provide. Change line 155 to use `Self.mountInSessionScope(session: session, system: system)` instead of `Self.mount(...)` to match the refactoring pattern and enable proper command registration.

@@ -63,17 +63,6 @@ import Testing
     return harness
   }
 
-  /// Makes one `agent_message_chunk` update.
-  ///
-  /// - Parameters:
-  ///   - text: The text of the chunk.
-  ///   - messageID: The `messageId` of the message of the chunk.
-  /// - Returns: The update.
-  static func makeChunkUpdate(text: String, messageID: String = streamedMessageID) -> SessionUpdate {
-    .agentMessageChunk(
-      ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: messageID)))
-  }
-
   /// Sends two agent messages from the agent of `session`, and pumps
   /// `harness` until the thread shows the row of each message. The first
   /// message has three paragraphs.
@@ -86,8 +75,10 @@ import Testing
   static func sendTwoMessages(
     to session: ScriptedSession, pumping harness: HostedViewHarness<some View>
   ) async throws -> [String] {
-    try await session.send(update: makeChunkUpdate(text: threeParagraphs, messageID: firstMessageID))
-    try await session.send(update: makeChunkUpdate(text: secondMessageText, messageID: secondMessageID))
+    try await session.send(
+      update: BackgroundRunScript.makeChunkUpdate(messageID: firstMessageID, text: threeParagraphs))
+    try await session.send(
+      update: BackgroundRunScript.makeChunkUpdate(messageID: secondMessageID, text: secondMessageText))
     await harness.pump(until: waitTimeout) {
       session.model.transcript.count == readingMessageCount
         && session.model.transcript.allSatisfy { harness.element(identifier: ItemRow.identifier(for: $0.rowKey)) != nil }
@@ -239,7 +230,8 @@ import Testing
     try await session.sendUpdate(ScriptedSession.runningState)
     await harness.pump(until: Self.waitTimeout) { session.model.agentState != nil }
     for index in 0..<Self.chunkCount {
-      try await session.send(update: Self.makeChunkUpdate(text: "Chunk \(index). "))
+      try await session.send(
+        update: BackgroundRunScript.makeChunkUpdate(messageID: Self.streamedMessageID, text: "Chunk \(index). "))
       harness.pump()
     }
     await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }

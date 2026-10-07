@@ -44,27 +44,9 @@ import Testing
     .root(AgentCommandTarget.segment(for: .session(model)))
   }
 
-  /// Shows the thread view of a session with a command system and a
+  /// Shows the thread view of a session and its connection model, and a
+  /// composer below it when the test gives one, with a command system and a
   /// pasteboard.
-  ///
-  /// - Parameters:
-  ///   - session: The scripted session.
-  ///   - system: The command system of the window.
-  ///   - pasteboard: The pasteboard of the copy command.
-  /// - Returns: The harness.
-  static func mount(
-    session: ScriptedSession, system: CommandSystem, pasteboard: FakePasteboard = FakePasteboard()
-  ) -> HostedViewHarness<some View> {
-    HostedViewHarness(size: windowSize) {
-      AgentThreadView(session: session.model, actions: NoopThreadActions())
-        .environment(\.pasteboard, pasteboard)
-        .commandSystem(system)
-        .transaction { $0.disablesAnimations = true }
-    }
-  }
-
-  /// Shows the thread view of a session, and a composer below it when the
-  /// test gives one, in the agent command scope of the session.
   ///
   /// The composer reads the session model from the environment, so that a
   /// submit sends a prompt to the agent.
@@ -72,22 +54,46 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - system: The command system of the window.
+  ///   - outerScope: `true` to put the thread view in an agent command scope
+  ///     of the session that the host applies. `false` to apply no outer
+  ///     scope, so that only the scope of ``AgentThreadView`` itself
+  ///     registers the commands.
   ///   - composer: The text of the composer, or `nil` for no composer.
+  ///   - pasteboard: The pasteboard of the copy command.
   /// - Returns: The harness.
-  static func mountInSessionScope(
-    session: ScriptedSession, system: CommandSystem, composer: PromptInputHostedTestModel? = nil
+  static func mount(
+    session: ScriptedSession, system: CommandSystem, outerScope: Bool,
+    composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard()
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: windowSize) {
-      VStack {
-        AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
-        if let composer {
-          PromptInputHost(model: composer)
-        }
-      }
+      scoped(
+        VStack {
+          AgentThreadView(session: session.model, connection: session.connection, actions: NoopThreadActions())
+          if let composer {
+            PromptInputHost(model: composer)
+          }
+        },
+        in: outerScope ? session.model : nil
+      )
       .environment(\.sessionModel, session.model)
-      .agentCommandScope(session: session.model)
+      .environment(\.pasteboard, pasteboard)
       .commandSystem(system)
       .transaction { $0.disablesAnimations = true }
+    }
+  }
+
+  /// Puts `content` in the agent command scope of `session`, or leaves it as
+  /// it is when `session` is `nil`.
+  ///
+  /// - Parameters:
+  ///   - content: The view to put in the scope.
+  ///   - session: The session model of the scope, or `nil` for no scope.
+  /// - Returns: The view.
+  @ViewBuilder static func scoped(_ content: some View, in session: SessionModel?) -> some View {
+    if let session {
+      content.agentCommandScope(session: session)
+    } else {
+      content
     }
   }
 
@@ -148,11 +154,16 @@ import Testing
     await harness.pump(until: waitTimeout) { session.model.agentState != before }
   }
 
+  /// The test mounts no outer agent command scope on purpose. The session
+  /// path of ``AgentThreadView`` applies the scope itself, and this test
+  /// proves it. An outer scope from the host would register the same
+  /// commands, and then the test would not find a thread view that lost its
+  /// own scope.
   @Test func aMountedSessionThreadViewRegistersTheTenCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mount(session: session, system: system)
+    let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
     try await Self.sendScopeMessage(to: session, pumping: harness)
 
@@ -168,7 +179,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mountInSessionScope(session: session, system: system)
+    let harness = Self.mount(session: session, system: system, outerScope: true)
     defer { harness.close() }
     try await Self.sendScopeMessage(to: session, pumping: harness)
 
@@ -184,7 +195,7 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let composer = PromptInputHostedTestModel()
-    let harness = Self.mountInSessionScope(session: session, system: system, composer: composer)
+    let harness = Self.mount(session: session, system: system, outerScope: true, composer: composer)
     defer { harness.close() }
     harness.pump()
     let path = Self.path(of: session.model)
@@ -225,8 +236,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mountInSessionScope(
-      session: session, system: system, composer: PromptInputHostedTestModel())
+    let harness = Self.mount(
+      session: session, system: system, outerScope: true, composer: PromptInputHostedTestModel())
     defer { harness.close() }
     harness.pump()
     let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
@@ -265,7 +276,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mount(session: session, system: system)
+    let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
     harness.pump()
     let path = Self.path(of: session.model)
@@ -289,7 +300,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mount(session: session, system: system)
+    let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
     let pending = try await session.sendPermissionRequest(
       id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
@@ -311,7 +322,7 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let pasteboard = FakePasteboard()
-    let harness = Self.mount(session: session, system: system, pasteboard: pasteboard)
+    let harness = Self.mount(session: session, system: system, outerScope: false, pasteboard: pasteboard)
     defer { harness.close() }
     let messages = [
       ChunkMessage(kind: "user_message_chunk", messageID: "copy-u1", text: "Hi."),
