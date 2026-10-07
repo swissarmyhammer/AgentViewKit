@@ -40,6 +40,51 @@ comments:
     - time-limit failures: none. Load not measured.
     - next: review/commit. No file was changed by this step.
   timestamp: 2026-10-07T20:47:18.830984+00:00
+- actor: claude-code
+  id: 01m4c2kqxmnc8tdt5e7djj85vb
+  text: |-
+    ### review — findings
+    - scope: `review sha HEAD~1..HEAD` (commit dd0ffae). 9 files reviewed, 4 `.kanban/` files not reviewed because of `.reviewignore`.
+    - counts: 1 finding, 1 confirmed, 2 refuted.
+    - evidence: Sources/AgentViewKit/Status/SessionStreamBanner.swift:127 (`duplication/duplication`). I examined the code. `makeReloadAction` and `SessionListView.resume(_:)` (Sources/AgentViewKit/Sessions/SessionListView.swift:293) both make the same `ResumeSessionRequest` from cwd, sessionId, additionalDirectories and `.start(ReplayFromStart())`. The only difference is that the banner changes an empty list to `nil`.
+    - next: make one shared helper that builds the `ResumeSessionRequest`, call it from the two sites, and remove the inline copies. Then run `/review 0vyzmm0` again.
+  timestamp: 2026-10-07T20:59:19.860237+00:00
+- actor: claude-code
+  id: 01m4c2m3gv20kefse1cgrt702a
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 9 files (AgentThreadView, SessionTranscriptEnvironment, SessionStreamBanner, SessionListView, ScriptedSession, ACPTabView, tests)
+    - test: green — swift test 1310 passed, check-readme passed, test-examples 4 passed
+    - commit: dd0ffae
+    - review: findings — Sources/AgentViewKit/Status/SessionStreamBanner.swift:127
+  timestamp: 2026-10-07T20:59:31.739582+00:00
+- actor: claude-code
+  id: 01m4c3pdxvcbn2hm2fafz8r7j4
+  text: |-
+    Finding work (duplication of the resume request):
+    - New helper: `ResumeSessionRequest.makeAgentViewKitRequest(sessionId:cwd:additionalDirectories:replayFrom:)` (internal) in `Sources/AgentViewKit/Sessions/ResumeSessionRequest+AgentViewKit.swift`. The name follows `InitializeRequest.makeAgentViewKitRequest(info:terminalAuthRunner:)`. It only makes the value and keeps no state.
+    - One rule for an empty list: the request has no `additionalDirectories` (`nil`), as the banner did before. The picker gives `info.additionalDirectories ?? []`, so a row with an empty list now sends no field. Before, the picker sent `[]`. ACP and the client give the same meaning to both (the client `hasAdditionalDirectories` is `!(list ?? []).isEmpty`), so no behavior of the agent changes.
+    - `SessionStreamBanner.makeReloadAction` and `SessionListView.resume(_:)` call the helper. The two inline copies are removed. The doc comment of `SessionListView` tells the empty-list rule.
+    - RED: `ResumeSessionRequestTests` did not compile ("type 'ResumeSessionRequest' has no member 'makeAgentViewKitRequest'"). GREEN after the helper.
+    - Other `ResumeSessionRequest(` calls: none in `Sources/` or `Examples/`. Three are in tests: `Tests/AgentViewKitTests/ACP/DemoAgentTests.swift` (two) and `Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift` (`replayFromStartRequest`). They are test inputs that drive the demo agent or the client directly, not a kit view. They stay as they are, so that those tests do not depend on the kit code.
+  timestamp: 2026-10-07T21:18:16.507967+00:00
+- actor: claude-code
+  id: 01m4c3phcjk3p4g7949n0a35j7
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Sessions/ResumeSessionRequest+AgentViewKit.swift (new), Sources/AgentViewKit/Status/SessionStreamBanner.swift, Sources/AgentViewKit/Sessions/SessionListView.swift, Tests/AgentViewKitTests/Sessions/ResumeSessionRequestTests.swift (new, 3 tests). Filtered run `swift test --filter "ResumeSessionRequestTests|SessionStateBannersHostedTests|SessionPickerConnectionModelHostedTests|RemovedVocabularyTests"`: 13 tests in 1 suite and 26 tests in 3 suites pass. `swift test`: 1313 tests in 128 suites, 85 tests in 12 suites, 1 test pass, 0 failures. `Scripts/check-readme.sh` passed. `Scripts/test-examples.sh AgentViewKitDemo`: 4 tests, TEST SUCCEEDED. Warnings: only the expected mlx-swift "missing creator for mutated node" and the Xcode "Metadata extraction skipped". No time-limit failure.
+    - finding checked: Sources/AgentViewKit/Status/SessionStreamBanner.swift:127 duplication/duplication.
+    - next: /review
+  timestamp: 2026-10-07T21:18:20.050007+00:00
+- actor: claude-code
+  id: 01m4c42rhqnn46kt3vw0wh8hv3
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1313 tests in 128 suites passed, 0 failed, 0 skipped. `Scripts/check-readme.sh` — passed (3 snippets compile). `Scripts/test-examples.sh AgentViewKitDemo` — passed (4 UI tests, 0 failures).
+    - warnings: only the expected mlx-swift "missing creator for mutated node" warning and the Xcode "Metadata extraction skipped" notice.
+    - run on the working tree. No code changed. No commit.
+    - next: review.
+  timestamp: 2026-10-07T21:25:00.599077+00:00
 depends_on:
 - 01M443RA2PMKC5MXXBNH1116AB
 - 01M4BHMJNEVT7DQ6KHVZTXQXVH
@@ -77,3 +122,12 @@ Size: 4 source files: `AgentThreadView.swift`, `SessionStreamBanner.swift`, `Ses
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 15:47)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Status/SessionStreamBanner.swift:127` `duplication/duplication` — The Reload action in makeReloadAction builds the same ResumeSessionRequest as SessionListView.resume: the same cwd, sessionId, additionalDirectories and replayFrom: .start(ReplayFromStart()) fields, in the same order. The ACP v2 rule that a resume must repeat the cwd and the full list of additional directories is now written in two places. A later change to one copy can leave the other one out of date. Extract one shared helper that builds a ResumeSessionRequest from the cwd, sessionId and additional directories, with replayFrom as a parameter. Call it from both sites and delete the inline copies. The only real difference is that the banner maps an empty directory list to nil, so that mapping can go into the helper or stay at the banner call site as the one parameter.

@@ -122,11 +122,10 @@ public struct SessionStreamBanner: View {
     return StatusBar.Action(
       title: String(localized: "Reload"), identifier: Self.reloadIdentifier, isEnabled: isEnabled
     ) { [session] in
-      let directories = session.additionalDirectories
-      let request = ResumeSessionRequest(
-        cwd: cwd,
+      let request = ResumeSessionRequest.makeAgentViewKitRequest(
         sessionId: session.sessionId,
-        additionalDirectories: directories.isEmpty ? nil : directories,
+        cwd: cwd,
+        additionalDirectories: session.additionalDirectories,
         replayFrom: .start(ReplayFromStart()))
       session.startRequest("session/resume") { _ = try await connection.resumeSession(request) }
     }
