@@ -31,10 +31,6 @@ public struct DemoAgent {
   /// The working directory of each new session, from the launch options.
   public let workingDirectory: AbsolutePath
 
-  /// The agent process, or `nil` for the in-process agent. The value keeps
-  /// the process while the demo app uses it.
-  private let process: AgentProcess?
-
   /// Starts the agent of `options`, connects a new `ConnectionModel`, and
   /// sends `initialize` with ``initializeRequest``.
   ///
@@ -77,11 +73,15 @@ public struct DemoAgent {
     let connection = await InProcessAgent.makeConnection { agentConnection in
       InMemoryDemoACPAgent(connection: agentConnection)
     }
-    return DemoAgent(connection: connection, workingDirectory: workingDirectory, process: nil)
+    return DemoAgent(connection: connection, workingDirectory: workingDirectory)
   }
 
   /// Starts an agent program as an `AgentProcess`, and connects a new
   /// `ConnectionModel` over its standard input and output.
+  ///
+  /// The transport of the process keeps the process while the connection
+  /// reads it, so this type keeps no `AgentProcess` value. When the read of
+  /// the transport stops, the process gets a group kill.
   ///
   /// - Parameters:
   ///   - command: The absolute path of the agent program.
@@ -92,7 +92,7 @@ public struct DemoAgent {
     let process = try AgentProcess(command: command, arguments: DemoLaunchOptions.agentArguments(for: command))
     let connection = ConnectionModel()
     _ = await connection.connect(over: process.transport)
-    return DemoAgent(connection: connection, workingDirectory: workingDirectory, process: process)
+    return DemoAgent(connection: connection, workingDirectory: workingDirectory)
   }
 
   /// Sends `session/new` in ``workingDirectory``.

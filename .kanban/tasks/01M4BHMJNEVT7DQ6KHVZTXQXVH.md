@@ -23,6 +23,39 @@ comments:
     - extra: client 8c12a70 changed `canLogout` to "the agent lists an auth method of any type". AgentAuthViewHostedTests.signOutIsHiddenWhenTheAgentCannotLogOut now uses an agent with no auth method.
     - next: /review
   timestamp: 2026-10-07T16:28:54.981732+00:00
+- actor: claude-code
+  id: 01m4bm505hz328xmwh7kvm5rp0
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (e90e464), 1 finding (1 confirmed, 0 refuted): Sources/DemoSupport/DemoAgent.swift:36 `code-hygiene/dead-code-swift` — var.instance `process` is assignOnlyProperty.
+    - next: /implement the open item in the `## Review Findings (2026-10-07 11:37)` section
+  timestamp: 2026-10-07T16:46:36.721007+00:00
+- actor: claude-code
+  id: 01m4bm520kegm451zwhcf13gqz
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — pins FoundationModelsACPClient be7e615 to 36f3249 and FoundationModelsACP fe0d82d to 163f7eb; startSelectPermission / startCancelPermission; AuthFailure; toolCallId in tests; disconnect() in the demo; InProcessClientTransport (temporary, removal is ^ckfqs1s)
+    - test: green — swift test, 1303 passed; README and demo UI gates passed
+    - commit: e90e464
+    - review: findings — Sources/DemoSupport/DemoAgent.swift:36
+  timestamp: 2026-10-07T16:46:38.611516+00:00
+- actor: claude-code
+  id: 01m4bnrw4gfjz68xrnqezt2897
+  text: |-
+    Finding `DemoAgent.swift` `process` (assignOnlyProperty): research and fix.
+    - Why the property was there: the doc said "The value keeps the process while the demo app uses it." The property did not do that work. `AgentProcess` is a struct. Its `transport` (`AgentStdioTransport`) holds a strong reference to the shared `AgentProcessState`, and the `onTermination` closure of the byte stream also captures that state. `ConnectionModel.connect(over:)` keeps the transport in its `ClientSideConnection` while it reads. Thus the transport keeps the process alive, not the `DemoAgent` property.
+    - How the process ends: `DemoAgent.stop()` calls `ConnectionModel.disconnect()`. The close stops the read of the transport, the byte stream ends, and `onTermination` calls `AgentProcessState.terminateCurrent()` (group kill and reap). The `deinit` of the state is a second path. No read of the property is necessary.
+    - Fix: delete the property and the `process:` argument of the two initializer calls. Added a doc paragraph on `makeProcess` that says the transport keeps the process, so the type keeps no `AgentProcess` value. No `stop()` read or exit-status report was added: that would be a new need that nothing asks for.
+    - No new test: the change removes an unread stored property and changes no behavior. The existing `DemoAgentTests` cover the start and the stop.
+    - Test runs: the first two full `swift test` runs failed with 15 and 17 issues. All were time-limit issues ("The operation did not end in time.") in `DemoAgentMessageIdTests`, `StreamingMessageTests` and (second run) `DemoAgentTests`, all at the same instant (about 40 s and 15.7 s), while the machine load average was 50 to 60 from the sourcekit-lsp and index builds of other sah sessions (32 cores). These suites do not use the `DemoAgent` struct except `DemoAgentTests`. The failed suites passed alone (24 tests), and the third full run passed.
+  timestamp: 2026-10-07T17:14:56.528088+00:00
+- actor: claude-code
+  id: 01m4bnrz962pj0mcc2s86bb0qq
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Sources/DemoSupport/DemoAgent.swift (deleted the unread `process` property and its two `process:` arguments; doc paragraph on `makeProcess`). Commands: `swift test --filter DemoAgentTests` (8 tests in 2 suites pass), `swift test` (third run: 1303 tests in 125 suites and 83 tests in 12 suites pass; only warning is the mlx-swift "missing creator for mutated node"), `Scripts/test-examples.sh AgentViewKitDemo` (TEST SUCCEEDED, 4 tests).
+    - next: /review
+  timestamp: 2026-10-07T17:14:59.750315+00:00
 position_column: doing
 position_ordinal: '80'
 title: Move the pins to FoundationModelsACPClient 36f3249 and FoundationModelsACP 163f7eb, and adopt the breaking client API
@@ -62,3 +95,17 @@ Note: the `sah serve` process runs sourcekit-lsp. sourcekit-lsp writes index dat
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 11:37)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 15 file(s) reviewed, 17 not reviewed.
+
+> 14 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 14 file(s)
+
+> 3 file(s) not reviewed — no validator matched:
+> - `Benchmarks/Package.resolved` — no validator matches this file
+> - `Package.resolved` — no validator matches this file
+> - `README.md` — no validator matches this file
+
+- [x] `Sources/DemoSupport/DemoAgent.swift:36` `code-hygiene/dead-code-swift` — var.instance `process` is assignOnlyProperty.
