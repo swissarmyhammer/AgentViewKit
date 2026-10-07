@@ -63,11 +63,27 @@ comments:
     - evidence: 13 files. Sources: Infrastructure/ExpandedBlocksStore.swift, Commands/AgentCommandTarget.swift, Items/ToolCallSource.swift, Items/ToolCallView.swift, Items/ReasoningView.swift, Items/JSONDisclosure.swift. Tests: Infrastructure/ExpandedBlocksStoreTests.swift, Commands/AgentCommandsTests.swift, Items/SessionEntryRowsHostedTests.swift, Items/ToolCallEntryViewHostedTests.swift, Items/ToolCallViewHostedTests.swift, Items/UnknownItemViewHostedTests.swift, Diff/DiffViewHostedTests.swift. Commands: swift test --filter ExpandedBlocksStoreTests (RED, no entry overload); swift test --filter of the 9 affected suites (110 tests passed); swift test (1385 tests in 126 suites, 78 in 12, 1 in 1 passed; only the mlx-swift "missing creator" warning). 7 of 7 findings checked.
     - next: /review
   timestamp: 2026-10-07T04:20:33.814958+00:00
+- actor: claude-code
+  id: 01m4aa035qqcxtzf1ce1xenhhj
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (06abe0d): 0 findings (0 confirmed, 0 refuted; 14 attempted, 0 failed). 13 files reviewed; 2 .kanban files not reviewed (.reviewignore). All 7 prior items in "## Review Findings (2026-10-06 22:53)" are checked. Task moved to done.
+    - next: none
+  timestamp: 2026-10-07T04:29:55.767483+00:00
+- actor: claude-code
+  id: 01m4aa04fsztxdmdw9k83fmjzc
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — each public ExpandedBlocksStore method takes the TranscriptEntry; internal id forms only for the old thread path and JSONDisclosure; callers and tests updated; 13 files
+    - test: green — swift test, 1385 passed; README gate passed
+    - commit: 06abe0d
+    - review: clean — 0 findings
+  timestamp: 2026-10-07T04:29:57.113222+00:00
 depends_on:
 - 01M48MQS1Q5HBNDFMBD2CT0C6C
 - 01M48MR5W3YAB8VFA4KTJZVCYN
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff80
 title: Key the item view overrides, the message footer and the expanded-blocks policy on the transcript entry objects
 ---
 ## What

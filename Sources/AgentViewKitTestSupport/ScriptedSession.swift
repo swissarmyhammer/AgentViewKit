@@ -85,6 +85,9 @@ public final class ScriptedSession {
     """#
   }
 
+  /// The `info` that the client sends in its `initialize` request.
+  public static let clientInfo = Implementation(name: "AgentViewKitTestSupport", version: "1.0.0")
+
   /// The `session/new` result of the agent.
   static let newSessionResult = #"{"sessionId": "\#(sessionID)"}"#
 
@@ -132,9 +135,7 @@ public final class ScriptedSession {
     agent.start()
     let connection = ConnectionModel(coalescingCadence: .zero)
     _ = await connection.connect(over: clientEnd, bufferLimits: bufferLimits)
-    _ = try await connection.initialize(
-      InitializeRequest(
-        info: Implementation(name: "AgentViewKitTestSupport", version: "1.0.0"), protocolVersion: .v2))
+    _ = try await connection.initialize(InitializeRequest.makeAgentViewKitRequest(info: clientInfo))
     let model = try await connection.newSession(
       NewSessionRequest(cwd: AbsolutePath(rawValue: workingDirectory)))
     return ScriptedSession(agent: agent, connection: connection, model: model)

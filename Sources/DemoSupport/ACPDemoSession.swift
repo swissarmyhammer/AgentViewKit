@@ -106,13 +106,12 @@ public final class ACPDemoSession {
     ])
   }
 
+  /// The `info` that the demo app sends in its `initialize` request.
+  static let clientInfo = Implementation(name: "AgentViewKitDemo", version: "1.0.0")
+
   /// The `initialize` request of the demo app.
   static var initializeRequest: InitializeRequest {
-    InitializeRequest(
-      info: Implementation(name: "AgentViewKitDemo", version: "1.0.0"),
-      protocolVersion: ACPClient.supportedProtocolVersion,
-      capabilities: ACPClient.advertisedCapabilities
-    )
+    InitializeRequest.makeAgentViewKitRequest(info: clientInfo)
   }
 
   // MARK: - Connection

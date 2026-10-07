@@ -76,10 +76,9 @@ final class ACPQuickStart {
 
   func connect(over transport: any ACPTransport, cwd: String) async throws {
     _ = await connection.connect(over: transport)
-    let request = InitializeRequest(
-      info: Implementation(name: "MyApp", version: "1.0.0"),
-      protocolVersion: ACPClient.supportedProtocolVersion,
-      capabilities: ACPClient.advertisedCapabilities)
+    // The request advertises only the capabilities that the kit views show.
+    let request = InitializeRequest.makeAgentViewKitRequest(
+      info: Implementation(name: "MyApp", version: "1.0.0"))
     // An agent that speaks ACP v1 makes this call throw. The kit speaks v2 only.
     let response = try await connection.initialize(request)
 
