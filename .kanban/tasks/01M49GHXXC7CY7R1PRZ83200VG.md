@@ -47,6 +47,48 @@ comments:
     - notes: No test failed. No time-limit failure, so no uptime check. The only warning in the swift output is the expected mlx-swift "missing creator for mutated node". Xcode appintentsmetadataprocessor printed "Metadata extraction skipped, no AppIntents.framework dependency found". This is an Xcode tool notice, not a skipped test.
     - next: review
   timestamp: 2026-10-07T18:47:54.294985+00:00
+- actor: claude-code
+  id: 01m4bvet1d80a1pe97e957bc32
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 145789b). 1 finding (1 confirmed, 4 refuted). Sources/AgentViewKit/Connections/AgentAuthView.swift:234 — no test runs a non-zero exit status through the card. The reviewer checked this against AgentAuthViewHostedTests.swift: the tests use only exit status 0 and `nil`.
+    - next: add a hosted test with FakeTerminalAuthRunner(exitStatus: 1). Make sure that the failure text is "The sign-in process ended with exit status 1." and that no Reconnect text shows. Then run /review again.
+  timestamp: 2026-10-07T18:54:18.157910+00:00
+- actor: claude-code
+  id: 01m4bvf4jy02h6qvybzez0gk3q
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 15 files; the `unsupported` failure text moved to ^vewxkf3 (blocked-upstream, client gap)
+    - test: green — swift test 1292 passed, check-readme passed, test-examples 4 passed
+    - commit: 145789b
+    - review: findings — Sources/AgentViewKit/Connections/AgentAuthView.swift:234
+  timestamp: 2026-10-07T18:54:28.958528+00:00
+- actor: claude-code
+  id: 01m4bw3rkk4rkzkcxh6544s6ma
+  text: |-
+    Review finding fixed (test only, no production change).
+    - `terminalText(exitStatus:message:)` in `AgentAuthView.swift` has three branches. The tests ran two of them (status `nil` with no message, and through the reconnect test status 0). The non-zero status branch and the message branch had no test. The message branch is the same cause: `loginWithTerminal` records `message: String(describing: error)` when the runner throws.
+    - New in `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift`: `aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus` (runner status `failureStatus` = 1; text "The sign-in process ended with exit status 1."; no Reconnect text) and `aRunnerThatCannotStartTheProgramShowsTheMessageOfItsError` (a test-local `ThrowingTerminalAuthRunner` throws `LaunchError`; the card shows `launchErrorText`; no Reconnect text). The helper `runTerminalSignIn(with:)` and `terminalFailureState(_:)` remove the copied setup; `aRunnerWithNoExitStatusShowsTheTerminalFailureText` now uses them too.
+    - Proof that the tests can fail: I replaced the body of `terminalText` for a short time with the no-status text only. Both new tests failed on the failure text. Then I put the code back (no diff in `AgentAuthView.swift`).
+    - Discovery: under the MainActor default isolation, a `nonisolated` nested type cannot read a static of the `@MainActor` suite. `launchErrorText` is `nonisolated static let` for this reason.
+    - Discovery: the `files` tool `replace_all` edit replaced only one match per call in this run.
+  timestamp: 2026-10-07T19:05:44.819250+00:00
+- actor: claude-code
+  id: 01m4bw3wbvhg43d1yn4sfk32h8
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift (2 new tests, 1 test moved to a shared helper). `swift test --filter AgentAuthViewHostedTests`: 15 tests in 1 suite passed. `swift test`: 1294 tests in 125 suites, 83 tests in 12 suites and 1 test in 1 suite passed; 0 failed. The only warning is the expected mlx-swift "missing creator for mutated node". No time-limit failure. The review finding item is checked.
+    - next: review
+  timestamp: 2026-10-07T19:05:48.667208+00:00
+- actor: claude-code
+  id: 01m4bwgxde06vzj9grkegc5mr5
+  text: |-
+    ### test - green
+    - evidence: `swift test` - 1294 tests in 125 suites passed, 0 failed, 0 skipped. `Scripts/check-readme.sh` - passed (3 snippets, exit 0). `Scripts/test-examples.sh AgentViewKitDemo` - PASS, 4 UI tests, 0 failures.
+    - warnings: the mlx-swift warning "missing creator for mutated node" is expected. The Xcode tool prints "Metadata extraction skipped, no AppIntents.framework dependency found" in the example build. This is a message of the build tool, not a source warning and not a skipped test.
+    - no time-limit failure. No code change. No commit.
+    - next: review
+  timestamp: 2026-10-07T19:12:55.726398+00:00
 depends_on:
 - 01M443QS68DG8EJ9NEKCCHG10S
 - 01M443RA2PMKC5MXXBNH1116AB
@@ -97,3 +139,12 @@ Size: 4 source files: `AgentAuthView.swift`, `AgentLoginPrompt.swift`, `Sources/
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 13:48)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 15 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Sources/AgentViewKit/Connections/AgentAuthView.swift:234` `completeness/inverse-operation-coverage` — The terminal failure text for a non-nil, non-zero exit status is never tested. The success path (exit 0) and the no-status path (nil) are tested, but no test runs a non-zero exit status through the card to check the text it shows. Add one test that runs FakeTerminalAuthRunner with a non-zero exit status, such as 1. Assert that the failure text reads 'The sign-in process ended with exit status 1.' and that no Reconnect text appears.

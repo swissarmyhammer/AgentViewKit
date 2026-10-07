@@ -56,6 +56,9 @@ import Testing
   /// The exit status of a terminal process that succeeded.
   static let successStatus: Int32 = 0
 
+  /// The exit status of a terminal process that failed.
+  static let failureStatus: Int32 = 1
+
   /// The method of a logout request.
   static let logoutMethod = "auth/logout"
 
@@ -80,6 +83,40 @@ import Testing
 
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
+
+  /// The text of the error that the throwing runner gives when the agent
+  /// program does not start.
+  nonisolated static let launchErrorText = "The agent program did not start."
+
+  /// The title that the card shows for a failed terminal sign-in.
+  static let terminalFailureTitle = "Terminal sign-in failed"
+
+  /// The error of a runner that cannot start the agent program.
+  nonisolated struct LaunchError: Error, CustomStringConvertible {
+    /// The text of the error: ``AgentAuthViewHostedTests/launchErrorText``.
+    var description: String { AgentAuthViewHostedTests.launchErrorText }
+  }
+
+  /// A `TerminalAuthRunner` that cannot start the agent program: each run
+  /// throws ``LaunchError``.
+  nonisolated struct ThrowingTerminalAuthRunner: TerminalAuthRunner {
+    /// Starts no process and throws ``LaunchError``.
+    func runTerminalAuth(arguments: [String], environment: [String: String]) async throws -> Int32? {
+      throw LaunchError()
+    }
+  }
+
+  /// What the card shows after a terminal sign-in that failed.
+  struct TerminalFailure {
+    /// The auth state of the model.
+    let authState: AuthState
+    /// The label of the failure title, or `nil` when the card shows none.
+    let title: String?
+    /// The label of the failure text, or `nil` when the card shows none.
+    let text: String?
+    /// Whether the card shows the text that asks for a reconnect.
+    let showsReconnectText: Bool
+  }
 
   /// A host closure that counts its calls, for the Reconnect button.
   @MainActor final class ReconnectRecorder {
@@ -151,6 +188,40 @@ import Testing
       session.connection.authState != .required(session.connection.authMethods)
     }
     harness.pump()
+  }
+
+  /// Runs the terminal method with `runner` in a new card, and waits until
+  /// the card shows a failure.
+  ///
+  /// - Parameter runner: The runner of the host.
+  /// - Returns: The auth state and the texts that the card shows after the
+  ///   run.
+  static func runTerminalSignIn(with runner: any TerminalAuthRunner) async throws -> TerminalFailure {
+    let session = try await openSession(runner: runner)
+    defer { session.close() }
+    let harness = Self.harness(session, runner: runner)
+    defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
+
+    try await pressRunAndWait(in: harness, of: session)
+    await harness.pump(until: waitTimeout) {
+      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
+    }
+
+    return TerminalFailure(
+      authState: session.connection.authState,
+      title: harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label,
+      text: harness.element(identifier: AgentAuthView.failureIdentifier)?.label,
+      showsReconnectText: harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil)
+  }
+
+  /// The failure state of a terminal sign-in that ended with `reason`.
+  ///
+  /// - Parameter reason: The reason of the failure.
+  /// - Returns: `.failed` with the terminal method and `reason`.
+  static func terminalFailureState(_ reason: AuthFailure.Reason) -> AuthState {
+    .failed(AuthFailure(operation: .terminalLogin(terminalMethodID), reason: reason))
   }
 
   // MARK: - Layout
@@ -228,29 +299,30 @@ import Testing
   }
 
   @Test func aRunnerWithNoExitStatusShowsTheTerminalFailureText() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: nil)
-    let session = try await Self.openSession(runner: runner)
-    defer { session.close() }
-    let harness = Self.harness(session, runner: runner)
-    defer { harness.close() }
-    harness.pump()
-    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
+    let failure = try await Self.runTerminalSignIn(with: FakeTerminalAuthRunner(exitStatus: nil))
 
-    try await Self.pressRunAndWait(in: harness, of: session)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
-    }
+    #expect(failure.authState == Self.terminalFailureState(.terminal(exitStatus: nil, message: nil)))
+    #expect(failure.text == "The sign-in process ended with no exit status.")
+    #expect(failure.title == Self.terminalFailureTitle)
+    #expect(!failure.showsReconnectText)
+  }
 
-    #expect(
-      session.connection.authState
-        == .failed(
-          AuthFailure(
-            operation: .terminalLogin(Self.terminalMethodID), reason: .terminal(exitStatus: nil, message: nil))))
-    #expect(
-      harness.element(identifier: AgentAuthView.failureIdentifier)?.label
-        == "The sign-in process ended with no exit status.")
-    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Terminal sign-in failed")
-    #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) == nil)
+  @Test func aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus() async throws {
+    let failure = try await Self.runTerminalSignIn(with: FakeTerminalAuthRunner(exitStatus: Self.failureStatus))
+
+    #expect(failure.authState == Self.terminalFailureState(.terminal(exitStatus: Self.failureStatus, message: nil)))
+    #expect(failure.text == "The sign-in process ended with exit status 1.")
+    #expect(failure.title == Self.terminalFailureTitle)
+    #expect(!failure.showsReconnectText)
+  }
+
+  @Test func aRunnerThatCannotStartTheProgramShowsTheMessageOfItsError() async throws {
+    let failure = try await Self.runTerminalSignIn(with: ThrowingTerminalAuthRunner())
+
+    #expect(failure.authState == Self.terminalFailureState(.terminal(exitStatus: nil, message: Self.launchErrorText)))
+    #expect(failure.text == Self.launchErrorText)
+    #expect(failure.title == Self.terminalFailureTitle)
+    #expect(!failure.showsReconnectText)
   }
 
   @Test func anExitStatusOfZeroAsksForAReconnectAndTheButtonCallsTheHostClosure() async throws {
