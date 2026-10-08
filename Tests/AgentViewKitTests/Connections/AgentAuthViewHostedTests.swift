@@ -356,6 +356,7 @@ import Testing
 
     #expect(failure.authState == Self.terminalFailureState(reason))
     #expect(failure.text == reason.message)
+    #expect(failure.text?.contains(String(Self.failureStatus)) == true)
     #expect(failure.title == Self.terminalFailureTitle)
     #expect(!failure.showsReconnectText)
   }
@@ -366,6 +367,7 @@ import Testing
 
     #expect(failure.authState == Self.terminalFailureState(reason))
     #expect(failure.text == reason.message)
+    #expect(failure.text?.contains(Self.launchErrorText) == true)
     #expect(failure.title == Self.terminalFailureTitle)
     #expect(!failure.showsReconnectText)
   }

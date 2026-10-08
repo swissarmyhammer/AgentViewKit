@@ -18,6 +18,43 @@ comments:
     - evidence: Sources/AgentViewKit/Connections/AgentAuthView.swift, Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift. RED: `swift test --filter AgentAuthViewHostedTests` on the HEAD source, 17 tests, 2 failures (the two terminal text tests). GREEN: `swift test`, 1025 tests in 110 suites passed, 0 failures. One SwiftPM build warning comes from the dependency bundle `mlx-swift_Cmlx.bundle` ("missing creator for mutated node"), not from kit code.
     - next: /review
   timestamp: 2026-10-08T12:23:07.142748+00:00
+- actor: claude-code
+  id: 01m4dqs6fzcd07tjk2mrpwhhbs
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (8f49c7b); 1 finding, 1 confirmed, 0 refuted — Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift:357 (completeness/public-output-contract)
+    - next: Make the test aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus examine the exit status in the shown text, or change its name. Then do the review again.
+  timestamp: 2026-10-08T12:28:33.151671+00:00
+- actor: claude-code
+  id: 01m4dqskw9em97reys4nrjy71d
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 2 files (AgentAuthView.swift, AgentAuthViewHostedTests.swift)
+    - test: green — swift test, 1025 tests in 110 suites passed
+    - commit: 8f49c7b
+    - review: findings — Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift:357
+  timestamp: 2026-10-08T12:28:46.857571+00:00
+- actor: claude-code
+  id: 01m4dr2ftvvcvn77q3sh749072
+  text: |-
+    Fixed the review finding. Moved the card back to doing.
+
+    Client check: in FoundationModelsACPClient e1cac1d, `AuthFailure.Reason.message` for `.terminal(exitStatus:message:)` gives `message` when it is not nil. If `message` is nil, it gives "The sign-in process stopped with exit status N." (or "did not stop normally." when there is no status). Thus the text contains the status.
+
+    Test change in `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift`:
+    - `aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus` keeps `failure.text == reason.message` and also asserts `failure.text?.contains(String(Self.failureStatus)) == true`.
+    - Same cause in the file: `aRunnerThatCannotStartTheProgramShowsTheMessageOfItsError` asserted only `failure.text == reason.message`, so it did not examine the message of the error. It now also asserts `failure.text?.contains(Self.launchErrorText) == true`.
+    - I examined each other test name in the file. Each other test examines the value that its name gives.
+
+    RED note: the new assertions test client behavior that is already correct, so no kit change can make them fail first. They fail if the client text drops the status or the error message.
+  timestamp: 2026-10-08T12:33:37.627784+00:00
+- actor: claude-code
+  id: 01m4dr2hjc78e7gj2cx5c0kq4q
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift. `swift test`: 1025 tests in 110 suites passed, 0 failures. One SwiftPM build warning comes from the dependency bundle `mlx-swift_Cmlx.bundle` ("missing creator for mutated node"), not from kit code.
+    - next: /review
+  timestamp: 2026-10-08T12:33:39.404072+00:00
 depends_on:
 - 01M4BTQV4WZHK4CE5F6VEWXKF3
 position_column: doing
@@ -56,3 +93,12 @@ Result: no other kit view has a text table that copies a client text.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-08 07:27)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift:357` `completeness/public-output-contract` — The test named aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus no longer checks the exit status. It asserts only that the shown text equals reason.message, where reason is built from the same exitStatus input. The old kit text showed the status. The new assertion would still pass if the client model's message dropped the status, so a dropped status is not caught. Assert that the shown text contains the exit status, for example by checking that failure.text contains String(Self.failureStatus), or rename the test to drop the status claim if the client model's message is the contract. Confirm that AuthFailure.Reason.message for .terminal(exitStatus:message:) includes the status.
