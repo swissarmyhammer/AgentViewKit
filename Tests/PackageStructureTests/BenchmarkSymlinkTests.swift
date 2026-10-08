@@ -9,8 +9,9 @@ import Testing
 ///
 /// The observation benchmark of the transcript view opens a `SessionModel`
 /// over the scripted agent of `DemoSupport`, with `ScriptedSession` of
-/// `AgentViewKitTestSupport`. Neither target is a product, so the benchmark
-/// target compiles the two files through links.
+/// `AgentViewKitTestSupport`. `ScriptedSession` makes its chunk updates with
+/// `BackgroundRunScript` of the same target. Neither target is a product, so
+/// the benchmark target compiles the three files through links.
 struct BenchmarkSymlinkTests {
   /// The directory of the benchmark target, relative to the package root.
   static let benchmarkSources = "Benchmarks/Benchmarks/AgentViewKitBenchmarks"
@@ -20,6 +21,7 @@ struct BenchmarkSymlinkTests {
   static let linkedSources: Set<String> = [
     "Sources/DemoSupport/ScriptedWireAgent.swift",
     "Sources/AgentViewKitTestSupport/ScriptedSession.swift",
+    "Sources/AgentViewKitTestSupport/BackgroundRunScript.swift",
   ]
 
   /// The links of the benchmark target, as (link, target) pairs.

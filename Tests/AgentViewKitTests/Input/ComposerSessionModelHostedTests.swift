@@ -76,9 +76,15 @@
     /// of a prompt.
     static let markerMessageID = "composer-marker"
 
-    /// An `agent_message_chunk` value. The agent sends it after the frames of
-    /// a prompt, so that a test knows that the client read those frames.
-    static let markerUpdate = ScriptedSession.agentMessageChunkUpdate(messageID: markerMessageID, text: "Done.")
+    /// Makes the `agent_message_chunk` value that the agent sends after the
+    /// frames of a prompt, so that a test knows that the client read those
+    /// frames.
+    ///
+    /// - Returns: The update.
+    /// - Throws: The error of the encoder.
+    static func makeMarkerUpdate() throws -> JSONValue {
+      try ScriptedSession.agentMessageChunkUpdate(messageID: markerMessageID, text: "Done.")
+    }
 
     /// The label of the send state of each state.
     static let sendStateLabels: [SendState: String] = [
@@ -207,11 +213,12 @@
 
     @Test(arguments: [ScriptedWireAgent.PromptEchoOrder.beforeResult, .afterResult])
     func aSentPromptShowsAsPendingAtOnceAndThenAsSent(order: ScriptedWireAgent.PromptEchoOrder) async throws {
+      let markerUpdate = try Self.makeMarkerUpdate()
       let session = try await ScriptedSession.open {
         $0.promptEchoOrder = order
         $0.heldMethods = [ScriptedSession.promptMethod]
         $0.followUps[ScriptedSession.promptMethod] = { request, _ in
-          [Self.updateFrame(carrying: Self.markerUpdate, for: request)]
+          [Self.updateFrame(carrying: markerUpdate, for: request)]
         }
       }
       defer { session.close() }

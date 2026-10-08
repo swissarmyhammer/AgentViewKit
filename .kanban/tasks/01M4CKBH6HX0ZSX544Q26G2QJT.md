@@ -64,6 +64,40 @@ comments:
     - evidence: 5 files — Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/TestSupport/ScriptedSessionTests.swift, Tests/AgentViewKitTests/Config/ConfigOptionsSessionModelHostedTests.swift, Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift. `swift test`: 1028 tests in 110 suites passed, 0 failures. One dependency warning from the build system (mlx-swift_Cmlx.bundle), which is not from this change. `swift build --package-path Benchmarks`: exit 0. 4 of 4 review findings checked.
     - next: /review
   timestamp: 2026-10-08T13:01:05.777262+00:00
+- actor: claude-code
+  id: 01m4dt194tdyexwm43dqgeb8s7
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (df38a91): 1 finding, 1 confirmed, 1 refuted. Open: Sources/AgentViewKitTestSupport/ScriptedSession.swift:254 (duplication/duplication).
+    - next: Make agentMessageChunkUpdate return JSONValue(encoding: BackgroundRunScript.makeChunkUpdate(messageID:text:)). Then run the tests, commit, and review again.
+  timestamp: 2026-10-08T13:07:55.162633+00:00
+- actor: claude-code
+  id: 01m4dt1jzgnaexhp0gr9459kv1
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 5 files (ScriptedSession.swift, ScriptedSessionTests.swift, three hosted test files)
+    - test: green — swift test, 1028 tests in 110 suites passed; Benchmarks build complete
+    - commit: df38a91
+    - review: findings — Sources/AgentViewKitTestSupport/ScriptedSession.swift:254
+  timestamp: 2026-10-08T13:08:05.232969+00:00
+- actor: claude-code
+  id: 01m4dtjtgpdqh6xqgxwwmsfy9w
+  text: |-
+    Review finding fixed (ScriptedSession.swift agentMessageChunkUpdate):
+    - `ScriptedSession.agentMessageChunkUpdate(messageID:text:)` now returns `try JSONValue(encoding: BackgroundRunScript.makeChunkUpdate(messageID:text:))`. The hand-built object is deleted. BackgroundRunScript.swift is not changed.
+    - `JSONValue(encoding:)` throws, so `agentMessageChunkUpdate` now throws. Callers changed: (1) `SessionStateBannersHostedTests.chunkFrame(index:)` throws. `openOverflowingSession` makes the frames before `ScriptedSession.open`, because the `leadIns` closure cannot throw. (2) The static `markerUpdate` of the composer tests is now `makeMarkerUpdate() throws`. The test makes the value before it sets the `followUps` closure, because that closure cannot throw. (3) `ScriptedSessionTests` uses `try`.
+    - Key check: new test `anAgentMessageChunkUpdateHasTheMembersOfATextChunkOnTheWire` examines the member names: `sessionUpdate`, `messageId`, `content`, and in `content`: `type`, `text`. It passed before the change (baseline) and after the change. Thus the encoded JSON has the same keys as the old hand-built value.
+    - Module dependencies: in the root package, `ScriptedSession.swift` and `BackgroundRunScript.swift` are in the same target (AgentViewKitTestSupport). Thus the call is permitted there. The Benchmarks package compiles `ScriptedSession.swift` through a symbolic link, without `BackgroundRunScript.swift`. Thus the Benchmarks build failed without a change. As `Benchmarks/README.md` ("The boundary") tells, I added a link `Benchmarks/Benchmarks/AgentViewKitBenchmarks/BackgroundRunScript.swift`. I updated `BenchmarkSymlinkTests.linkedSources`, the README table and text, the `Benchmarks/Package.swift` comment, and the file header of `ScriptedSession.swift`. BackgroundRunScript.swift has no class and imports only FoundationModelsACP, so it compiles in the benchmark module with no default isolation.
+    - Other hand-built wire shapes in ScriptedSession.swift: the `initialize` result, the `session/new` result, `permissionParams`, `formElicitationParams` and `requestFrame` are JSON text. No public builder in DemoSupport or in the test support makes these shapes (`ScriptedWireAgent.resultFrame` is private and makes a result frame, not a request frame). Thus no other copy was removed.
+    - The ARCHITECTURE.md file does not exist.
+  timestamp: 2026-10-08T13:17:30.006203+00:00
+- actor: claude-code
+  id: 01m4dtjxnsw2f9en6sbzcw6hg8
+  text: |-
+    ### implement — changed
+    - evidence: 8 files — Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/TestSupport/ScriptedSessionTests.swift, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift, Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift, Tests/PackageStructureTests/BenchmarkSymlinkTests.swift, Benchmarks/README.md, Benchmarks/Package.swift, new link Benchmarks/Benchmarks/AgentViewKitBenchmarks/BackgroundRunScript.swift. `swift test`: 1029 tests in 110 suites passed, 93 tests in 11 suites passed, 1 test in 1 suite passed, 0 failures. One dependency warning from the build system (mlx-swift_Cmlx.bundle), which is not from this change. `swift build --package-path Benchmarks`: exit 0. 1 of 1 open review finding checked.
+    - next: /review
+  timestamp: 2026-10-08T13:17:33.241632+00:00
 position_column: doing
 position_ordinal: '80'
 title: Use ScriptedWireAgent.makeSessionUpdateFrame in the older hosted tests
@@ -90,3 +124,12 @@ Three older hosted test files write the `session/update` JSON-RPC envelope as te
 - [x] `Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:74` `duplication/duplication` — The chunkFrame update object repeats the agent_message_chunk object of markerUpdate. Both build the same JSON with sessionUpdate, messageId and a text content. Only the messageId and the text differ. A later fix to the update shape must be made in two places. Extract one shared function in the test support, for example agentMessageChunkUpdate(messageID:text:), that returns the JSONValue object. Call it from chunkFrame (with messageID "early-\(index)" and text "Early.") and from markerUpdate (with messageID markerMessageID and text "Done."). Delete the copied object literal from both sites.
 - [x] `Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:74` `reuse/reuse` — The marked lines build an agent_message_chunk JSONValue with the same keys and text shape as the markerUpdate value in the composer tests. Only the messageId and the text differ. A parameterized helper would keep one definition of this update shape. Add one helper, for example agentMessageChunk(messageID:text:), in a shared test file. Use it for markerUpdate and for the update built in chunkFrame, and pass the messageId and text as parameters.
 - [x] `Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift:79` `reuse/reuse` — The marked lines wrap the agent message chunk in a params object with sessionId and call makeSessionUpdateFrame. This repeats the sessionId wrapping that the other two hosted test files also write by hand. Call a shared sessionUpdateFrame helper, placed in ScriptedSession.swift next to requestFrame, instead of building the params object here.
+
+## Review Findings (2026-10-08 08:05)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKitTestSupport/ScriptedSession.swift:254` `duplication/duplication` — agentMessageChunkUpdate builds an agent_message_chunk JSON value by hand, which repeats the shape already built by BackgroundRunScript.makeChunkUpdate. Two copies of one wire shape can drift apart. Delete the hand-built JSONValue object and return JSONValue(encoding: BackgroundRunScript.makeChunkUpdate(messageID: messageID, text: text)). The existing JSONValue(encoding:) initializer at ScriptedSession.swift:196 is already used for this. Check that the encoded JSON has the same keys as before. Do not edit BackgroundRunScript.swift, because it is outside this change.

@@ -68,9 +68,10 @@
     ///
     /// - Parameter index: The number of the chunk, which makes its message id.
     /// - Returns: The JSON text of the frame.
-    static func chunkFrame(index: Int) -> String {
+    /// - Throws: The error of the encoder.
+    static func chunkFrame(index: Int) throws -> String {
       ScriptedSession.sessionUpdateFrame(
-        update: ScriptedSession.agentMessageChunkUpdate(messageID: "early-\(index)", text: "Early."))
+        update: try ScriptedSession.agentMessageChunkUpdate(messageID: "early-\(index)", text: "Early."))
     }
 
     /// Shows the thread of a session and a composer below it. The thread gets
@@ -178,10 +179,12 @@
     /// - Parameter additionalDirectories: The additional workspace roots of
     ///   the `session/new` request.
     /// - Returns: The open session.
-    /// - Throws: The error of `initialize` or of `session/new`.
+    /// - Throws: The error of the encoder, of `initialize` or of
+    ///   `session/new`.
     static func openOverflowingSession(additionalDirectories: [AbsolutePath] = []) async throws -> ScriptedSession {
-      try await ScriptedSession.open(bufferLimits: smallBufferLimits, additionalDirectories: additionalDirectories) {
-        $0.leadIns["session/new"] = { _, _ in (1...overflowUpdateCount).map(chunkFrame(index:)) }
+      let chunkFrames = try (1...overflowUpdateCount).map(chunkFrame(index:))
+      return try await ScriptedSession.open(bufferLimits: smallBufferLimits, additionalDirectories: additionalDirectories) {
+        $0.leadIns["session/new"] = { _, _ in chunkFrames }
         $0.heldMethods = [ScriptedSession.resumeMethod]
       }
     }

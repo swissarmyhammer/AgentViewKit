@@ -1,7 +1,8 @@
 import AgentViewKit
-// The benchmark target of `Benchmarks/` compiles this file and
-// `ScriptedWireAgent.swift` through links, in one module with no
-// `DemoSupport` module (`Benchmarks/README.md`, "The boundary").
+// The benchmark target of `Benchmarks/` compiles this file,
+// `BackgroundRunScript.swift` and `ScriptedWireAgent.swift` through links, in
+// one module with no `DemoSupport` module (`Benchmarks/README.md`, "The
+// boundary").
 #if canImport(DemoSupport)
   import DemoSupport
 #endif
@@ -245,18 +246,17 @@ public final class ScriptedSession {
     ScriptedWireAgent.makeSessionUpdateFrame(params: .object(["sessionId": sessionId, "update": update]))
   }
 
-  /// An `agent_message_chunk` update with one text block.
+  /// An `agent_message_chunk` update with one text block, as a JSON value.
+  /// The update comes from
+  /// ``BackgroundRunScript/makeChunkUpdate(messageID:text:)``.
   ///
   /// - Parameters:
   ///   - messageID: The `messageId` of the agent message.
   ///   - text: The text of the chunk.
   /// - Returns: The update.
-  public static func agentMessageChunkUpdate(messageID: String, text: String) -> JSONValue {
-    .object([
-      "sessionUpdate": .string("agent_message_chunk"),
-      "messageId": .string(messageID),
-      "content": .object(["type": .string("text"), "text": .string(text)]),
-    ])
+  /// - Throws: The error of the encoder.
+  public static func agentMessageChunkUpdate(messageID: String, text: String) throws -> JSONValue {
+    try JSONValue(encoding: BackgroundRunScript.makeChunkUpdate(messageID: messageID, text: text))
   }
 
   /// Sends one JSON-RPC request from the agent to the client.

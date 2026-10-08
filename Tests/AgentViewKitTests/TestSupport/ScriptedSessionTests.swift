@@ -42,8 +42,15 @@ import Testing
     #expect(frame["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
   }
 
+  @Test func anAgentMessageChunkUpdateHasTheMembersOfATextChunkOnTheWire() throws {
+    let update = try ScriptedSession.agentMessageChunkUpdate(messageID: "chunk-m", text: "Hello.")
+
+    #expect(Self.memberNames(of: update) == ["sessionUpdate", "messageId", "content"])
+    #expect(Self.memberNames(of: try #require(update["content"])) == ["type", "text"])
+  }
+
   @Test func anAgentMessageChunkUpdateDecodesAsATextChunkOfItsMessage() throws {
-    let json = ScriptedSession.agentMessageChunkUpdate(messageID: "chunk-m", text: "Hello.").jsonString
+    let json = try ScriptedSession.agentMessageChunkUpdate(messageID: "chunk-m", text: "Hello.").jsonString
 
     let update = try JSONDecoder().decode(SessionUpdate.self, from: Data(json.utf8))
 
@@ -55,5 +62,15 @@ import Testing
     defer { session.close() }
 
     #expect(session.model.sessionId == SessionId(rawValue: "custom"))
+  }
+
+  /// The member names of a JSON object.
+  ///
+  /// - Parameter value: The JSON value.
+  /// - Returns: The member names, or an empty set when the value is not an
+  ///   object.
+  static func memberNames(of value: JSONValue) -> Set<String> {
+    guard case .object(let members) = value else { return [] }
+    return Set(members.keys)
   }
 }

@@ -48,8 +48,9 @@ let package = Package(
         .product(name: "Benchmark", package: "benchmark"),
         .product(name: "AgentViewKit", package: "AgentViewKit"),
         // The observation benchmark opens a `SessionModel` over the scripted
-        // agent of the root package (`ScriptedWireAgent.swift` and
-        // `ScriptedSession.swift`, through links).
+        // agent of the root package (`ScriptedWireAgent.swift`,
+        // `ScriptedSession.swift` and `BackgroundRunScript.swift`, through
+        // links).
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],

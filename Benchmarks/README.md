@@ -66,19 +66,22 @@ their baselines went with the FoundationModels adapter (plan.md §8, §14 R4).
 A package can use only the products of another package. To compile a file of
 a test target or of the test support target, put a symbolic link to the file
 in `Benchmarks/AgentViewKitBenchmarks/`, and edit the file in the root
-package. The target links two files:
+package. The target links three files:
 
 | Link | File of the root package |
 | --- | --- |
 | `ScriptedWireAgent.swift` | `Sources/DemoSupport/ScriptedWireAgent.swift` |
 | `ScriptedSession.swift` | `Sources/AgentViewKitTestSupport/ScriptedSession.swift` |
+| `BackgroundRunScript.swift` | `Sources/AgentViewKitTestSupport/BackgroundRunScript.swift` |
 
-The two files compile in one module of this package, which has no
-`DemoSupport` module and no default isolation. Thus `ScriptedSession.swift`
-imports `DemoSupport` only when the module exists, and each class of the two
-files states `@MainActor`. The benchmark target cannot use the default
-isolation of the root package: the boilerplate file that the benchmark plugin
-writes into the target does not compile with it.
+`ScriptedSession.swift` makes its `agent_message_chunk` updates with
+`BackgroundRunScript.swift`, so the target links both files. The three files
+compile in one module of this package, which has no `DemoSupport` module and
+no default isolation. Thus `ScriptedSession.swift` imports `DemoSupport` only
+when the module exists, and each class of the three files states
+`@MainActor`. The benchmark target cannot use the default isolation of the
+root package: the boilerplate file that the benchmark plugin writes into the
+target does not compile with it.
 
 `BenchmarkSymlinkTests` in `PackageStructureTests` fails when a link points at
 a file that moved, and when the set of links changes.
