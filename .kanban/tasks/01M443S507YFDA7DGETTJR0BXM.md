@@ -45,6 +45,58 @@ comments:
     evidence: swift test 1021/110 suites passed; check-readme passed; test-examples AgentViewKitDemo 4 UI tests passed; Benchmarks build complete; check-benchmarks passed; load 5.89 11.49 13.84 before, 7.93 9.80 12.44 after
     task: ^tjr0bxm
   timestamp: 2026-10-08T03:07:55.707515+00:00
+- actor: claude-code
+  id: 01m4cr5a0bqaz8zz2yth78dtkz
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD; 2 findings (2 confirmed, 2 refuted) — Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift:62, Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift:137
+    - check: line 62 is correct. If `streamChunks()` throws, `checkAndClose()` does not run, and the session and the host stay open. The same cause is in `ObservationIteration.open`: if the first-entry wait gate throws, the open session does not close. Line 137 is correct. The SwiftLint tool rule flags the literal `10` in the `Duration.seconds(10)` call argument.
+    - next: /implement ^tjr0bxm to fix the two open items in the 2026-10-07 22:08 Review Findings section, then review again.
+  timestamp: 2026-10-08T03:15:55.531426+00:00
+- actor: claude-code
+  id: 01m4cr6151qjrpbpj6tae57372
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 17 paths (benchmark, redraw-scope test, guard tests, baselines)
+    - test: green — swift test 1021 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed, check-benchmarks passed at load 6–14
+    - commit: d65b9e8
+    - review: findings — Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift:62, Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift:137
+  timestamp: 2026-10-08T03:16:19.233792+00:00
+- actor: claude-code
+  id: 01m4cs10gtgzb724c1ayvav7ef
+  text: |-
+    Implementation notes for the 2026-10-07 22:08 review findings:
+    - Error-path close: `ObservationIteration` has a new `close()` that closes the host and the session. `checkAndClose()` uses it on the success path. The benchmark closure puts start, `streamChunks()` and stop in a do/catch. The catch calls `await iteration.close()` and throws the error again. `open(cadence:)` moves the first-chunk send and the first-entry wait gate into a new private `openMessage(in:)`. A do/catch around that call closes the session on an error, and then throws the error again. `defer` cannot await, so the code uses do/catch. After the entry is found, nothing in `open` can throw.
+    - Magic number: a new `waitTimeLimitSeconds = 10` constant. `waitTimeLimit` is now `Duration.seconds(waitTimeLimitSeconds)`.
+    - RED/GREEN for the magic number: swiftlint `no_magic_numbers` with `allowed_numbers: [0, 1, -1, 100]` found 1 violation (the `10`) before the change, and 0 violations in the whole file after it.
+    - No unit test for the error-path close: the Benchmarks package has no test target, and the error path needs a transport that fails. The fix is checked by the build and by the benchmark gate.
+  timestamp: 2026-10-08T03:31:03.322677+00:00
+- actor: claude-code
+  id: 01m4cs14absvafc8z64kwthqb8
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift. swiftlint no_magic_numbers: 0 violations (1 before). `swift build --package-path Benchmarks`: build complete, 0 warnings. `Scripts/check-benchmarks.sh`: exit 0 on the first run, no threshold or baseline change; load 15.09 11.19 10.97 before, 11.94 11.86 11.33 after. `swift test`: 1 + 96 + 1021 tests passed (1021 in 110 suites), 0 failures; only the expected mlx-swift "missing creator" warning. `Scripts/check-readme.sh`: passed. `Scripts/test-examples.sh AgentViewKitDemo`: 4 tests, 0 failures, TEST SUCCEEDED. Both review findings are checked.
+    - next: /review. Nothing is committed.
+  timestamp: 2026-10-08T03:31:07.211587+00:00
+- actor: claude-code
+  id: 01m4csn0043bj9nfv350nn1fyj
+  text: |-
+    ### test — green
+    - All five checks passed on the working tree. No code changed.
+    - swift test: 1021 tests in 110 suites passed. 0 failures. 0 skipped.
+    - Scripts/check-readme.sh: passed. 3 snippets compile.
+    - Scripts/test-examples.sh AgentViewKitDemo: passed. 4 UI tests, 0 failures.
+    - swift build --package-path Benchmarks: build complete.
+    - Scripts/check-benchmarks.sh: passed on the first run. Each scenario is in the main baseline thresholds. No threshold or baseline changed.
+    - Load average (1, 5, 15 min): 17.09 12.20 11.46 before the benchmark build and gate. 7.25 9.75 10.57 after.
+    - Only known notices appeared: mlx-swift "missing creator for mutated node" and Xcode "Metadata extraction skipped".
+    - next: review
+
+    step: test
+    outcome: green
+    evidence: swift test - 1021 passed in 110 suites, 0 failed, 0 skipped; check-readme.sh pass; test-examples.sh AgentViewKitDemo - 4 UI tests, 0 failures; swift build --package-path Benchmarks complete; check-benchmarks.sh pass on first run; load before benchmarks 17.09 12.20 11.46, after 7.25 9.75 10.57
+    task: ^tjr0bxm
+  timestamp: 2026-10-08T03:41:58.148637+00:00
 depends_on:
 - 01M443RKGV6F3SAJAVGGZJ5CYE
 position_column: doing
@@ -71,3 +123,19 @@ The FoundationModels observation benchmark is removed. Add a benchmark that meas
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 22:08)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 8 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 4 file(s) not reviewed — no validator matched:
+> - `Benchmarks/.benchmarkBaselines/AgentViewKitBenchmarks/main/results.json` — no validator matches this file
+> - `Benchmarks/Baselines/AgentViewKitBenchmarks.Transcript_stream,_cadence_zero.p90.json` — no validator matches this file
+> - `Benchmarks/Baselines/AgentViewKitBenchmarks.Transcript_stream,_default_cadence.p90.json` — no validator matches this file
+> - `Benchmarks/README.md` — no validator matches this file
+
+- [x] `Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift:62` `completeness/inverse-operation-coverage` — The open/close pair is not closed on the error path. `ObservationIteration.open` opens a `ScriptedSession`, and `checkAndClose()` closes the host and the session. If `streamChunks()` throws (the transport fails, or the 10 s wait gate fails), `checkAndClose()` never runs, so the session and the host stay open for the rest of the run. Close the iteration on every path. Use a `defer`-style cleanup in the benchmark closure, or close the host and the session in a `catch` before the error is rethrown. Keep the gate check (`checkAndClose`) as the success-path check that reads the evaluation count.
+- [x] `Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift:137` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

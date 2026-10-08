@@ -58,9 +58,15 @@ enum SessionModelObservationBenchmarks {
       configuration: BenchmarkPolicy.configuration(iterations: iterations)
     ) { benchmark in
       let iteration = try await ObservationIteration.open(cadence: cadence)
-      benchmark.startMeasurement()
-      try await iteration.streamChunks()
-      benchmark.stopMeasurement()
+      do {
+        benchmark.startMeasurement()
+        try await iteration.streamChunks()
+        benchmark.stopMeasurement()
+      } catch {
+        // `defer` cannot await, so the error path closes the iteration here.
+        await iteration.close()
+        throw error
+      }
       try await iteration.checkAndClose()
     }
   }
@@ -133,8 +139,12 @@ final class ObservationIteration {
   /// The size of the host window.
   static let hostSize = CGSize(width: hostWidth, height: hostHeight)
 
+  /// The longest time that one wait can take before the gate fails, in
+  /// seconds.
+  static let waitTimeLimitSeconds = 10
+
   /// The longest time that one wait can take before the gate fails.
-  static let waitTimeLimit = Duration.seconds(10)
+  static let waitTimeLimit = Duration.seconds(waitTimeLimitSeconds)
 
   /// The time between two renders while the model applies the chunks.
   static let renderInterval = Duration.milliseconds(1)
@@ -178,13 +188,18 @@ final class ObservationIteration {
   /// - Parameter cadence: The coalescing cadence of the session model.
   /// - Returns: The iteration, with no counted evaluation.
   /// - Throws: The error of the session, or ``BenchmarkGateFailure`` when the
-  ///   model shows no agent message before the time limit.
+  ///   model shows no agent message before the time limit. On an error after
+  ///   the session opens, this function closes the session before it throws
+  ///   the error again.
   static func open(cadence: ObservationCadence) async throws -> ObservationIteration {
     let session = try await ScriptedSession.open(coalescingCadence: cadence.coalescingCadence)
-    try await session.send(update: makeUpdate(text: firstChunk))
-    try await wait(failure: noEntryFailure, render: {}) { agentMessage(in: session.model) != nil }
-    guard let entry = agentMessage(in: session.model) else {
-      throw BenchmarkGateFailure(description: noEntryFailure)
+    let entry: AgentMessageEntry
+    do {
+      entry = try await openMessage(in: session)
+    } catch {
+      // `defer` cannot await, so the error path closes the session here.
+      session.close()
+      throw error
     }
     let contentCount = EvaluationCount()
     let host = BenchmarkHost(
@@ -211,16 +226,38 @@ final class ObservationIteration {
   }
 
   /// Closes the host and the session, and checks that the render evaluated
-  /// the content of the entry.
+  /// the content of the entry. This is the check of the success path.
   ///
   /// - Throws: ``BenchmarkGateFailure`` when no render read the content.
   func checkAndClose() throws {
     let evaluations = contentCount.take()
-    host.close()
-    session.close()
+    close()
     guard evaluations > 0 else {
       throw BenchmarkGateFailure(description: "The stream did not render the content of the entry.")
     }
+  }
+
+  /// Closes the host and the session. The success path and the error path
+  /// of an iteration both call this.
+  func close() {
+    host.close()
+    session.close()
+  }
+
+  /// Sends the first chunk of the agent message, and waits until the model
+  /// shows the message.
+  ///
+  /// - Parameter session: The open session.
+  /// - Returns: The agent message entry.
+  /// - Throws: The error of the transport, or ``BenchmarkGateFailure`` when
+  ///   the model shows no agent message before the time limit.
+  private static func openMessage(in session: ScriptedSession) async throws -> AgentMessageEntry {
+    try await session.send(update: makeUpdate(text: firstChunk))
+    try await wait(failure: noEntryFailure, render: {}) { agentMessage(in: session.model) != nil }
+    guard let entry = agentMessage(in: session.model) else {
+      throw BenchmarkGateFailure(description: noEntryFailure)
+    }
+    return entry
   }
 
   /// Makes the text of the chunk at `index` of the stream.
