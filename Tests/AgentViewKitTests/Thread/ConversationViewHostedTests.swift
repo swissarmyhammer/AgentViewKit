@@ -41,12 +41,21 @@
 
     /// Opens a scripted session whose transcript has `count` agent messages.
     ///
+    /// When the model does not show each message, the helper closes the
+    /// session before it throws.
+    ///
     /// - Parameter count: The number of agent messages.
     /// - Returns: The session, after the model shows each message.
-    /// - Throws: The error of the scripted session.
+    /// - Throws: The error of the scripted session, or an issue when the
+    ///   model does not show each message at the time limit.
     static func openSession(messages count: Int) async throws -> ScriptedSession {
       let session = try await ScriptedSession.open()
-      try await sendMessages(count, to: session)
+      do {
+        try await sendMessages(count, to: session)
+      } catch {
+        session.close()
+        throw error
+      }
       return session
     }
 
@@ -56,7 +65,8 @@
     /// - Parameters:
     ///   - count: The number of agent messages.
     ///   - session: The scripted session.
-    /// - Throws: The error of the scripted session.
+    /// - Throws: The error of the scripted session, or an issue when the
+    ///   model does not show each message at the time limit.
     static func sendMessages(_ count: Int, to session: ScriptedSession) async throws {
       let total = session.model.transcript.count + count
       for index in 0..<count {
@@ -64,7 +74,7 @@
           SessionTranscriptViewHostedTests.chunk(
             "agent_message_chunk", messageID: "\(messagePrefix)\(index)", text: "Done."))
       }
-      _ = await waitUntil { session.model.transcript.count == total }
+      try #require(await waitUntil { session.model.transcript.count == total })
     }
 
     /// Adds an agent message with ``insertedMessageID`` at the end of the
@@ -72,15 +82,14 @@
     ///
     /// - Parameter session: The scripted session.
     /// - Returns: The row key of the new entry.
-    /// - Throws: The error of the scripted session, or an error when the
-    ///   model does not show the new entry.
+    /// - Throws: The error of the scripted session, or an issue when the
+    ///   model does not show the new entry at the time limit.
     static func insertMessage(into session: ScriptedSession) async throws -> String {
       let count = session.model.transcript.count
-      try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk(
-          "agent_message_chunk", messageID: insertedMessageID, text: "One more."))
-      _ = await waitUntil { session.model.transcript.count > count }
-      return try #require(session.model.transcript.last?.rowKey)
+      return try await session.receiveEntry(
+        update: SessionTranscriptViewHostedTests.chunk(
+          "agent_message_chunk", messageID: insertedMessageID, text: "One more."),
+        lookingUp: { model in model.transcript.count > count ? model.transcript.last?.rowKey : nil })
     }
 
     /// Mounts a conversation of ``scrollEntryCount`` entries and waits until

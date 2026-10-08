@@ -52,6 +52,75 @@ comments:
     - changes: none. Nothing committed.
     - next: review
   timestamp: 2026-10-07T23:50:11.040109+00:00
+- actor: claude-code
+  id: 01m4cdac0faw244wgpv1kbvjkg
+  text: |-
+    ### review — findings
+    - scope: review sha HEAD~1..HEAD (commit da9fba6). Counts: 3 findings, 3 confirmed, 8 refuted.
+    - evidence: Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift:64 (reuse/reuse), Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift:67 (completeness/public-output-contract), Tests/PackageStructureTests/RemovedVocabularyTests.swift:184 (completeness/invariant-propagation).
+    - check: each finding was checked against the code. `openTerminal`, `openCall` and `sendMessages` are new in this commit (not in HEAD~1), so the rule that drops refactors of old tests does not apply. The `observableClassDeclaration` regex is `@\w+\s+` with no argument list.
+    - note: the 235 "found no file" notices of the code-hygiene Swift rules refer to the 47 files that this commit deletes. The task records them as one summary line; they are not findings.
+    - next: the implementer corrects the 3 open items. Then run /review again. The same cause (`_ = await waitUntil`) is also in `openTerminal` and `openCall`; correct it in each helper.
+
+    step: review
+    outcome: findings
+    evidence: 3 findings — Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift:64, Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift:67, Tests/PackageStructureTests/RemovedVocabularyTests.swift:184
+    task: ^gzj5cye
+  timestamp: 2026-10-08T00:06:27.087096+00:00
+- actor: claude-code
+  id: 01m4cday75yqx1pqbmy6z73kvm
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 149 files (kit session model removed)
+    - test: green — swift test 1091 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed
+    - commit: da9fba6
+    - review: findings — Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift:64, Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift:67, Tests/PackageStructureTests/RemovedVocabularyTests.swift:184
+  timestamp: 2026-10-08T00:06:45.733379+00:00
+- actor: claude-code
+  id: 01m4cedskdevjmbpbz43edhryb
+  text: |-
+    ### implement — changed
+
+    The 3 review findings are corrected. The card is in `doing`.
+
+    **Finding 1 (reuse): one open-and-wait helper**
+    - New file `Tests/AgentViewKitTests/Helpers/ScriptedSessionEntries.swift`. It adds two helpers on `ScriptedSession`:
+      - `openWithEntry(update:lookingUp:)` opens a session, sends one update, and waits until the lookup finds the entry. When a step fails, it closes the session before it throws.
+      - `receiveEntry(update:lookingUp:)` sends one update on an open session and waits for the entry. The name follows `receivePermissionRequest(id:)` and `receiveElicitation(id:params:)`.
+    - `openTerminal` and `openCall` now call `openWithEntry`. The second tool call of `theConnectionChipShowsOnlyForACallThatWaitsForAServer` and `insertMessage` of ConversationViewHostedTests now call `receiveEntry`.
+
+    **Finding 2 (a timeout that the helper ignored)**
+    - The helpers now use `try #require(await waitUntil { ... })`, so a timeout stops the test at the point of the loss.
+    - Changed: `sendMessages`, `insertMessage` (through `receiveEntry`), `openTerminal`, `openCall`, and the new code of this commit in AgentCommandsTests: `sendTurns`, and three test lines (two pending permissions, the prompt text, three transcript entries).
+    - `openSession(messages:)` closes the session when `sendMessages` throws.
+    - Not changed: `_ = await waitUntil` in older code that the findings do not name: `ScriptedSessionRequests.swift`, `ThreadMinimapViewHostedTests`, `ThreadExporterTests`, `MessageActionsHostedTests`, `ExpandedBlocksStoreTests`, `RegistryResolutionTests`, `MessageViewsHostedTests`, `WireContentBlockViewHostedTests`, and one line in `AgentCommandsTests` (the plain text test). The rule is: do not refactor older tests that the findings do not name.
+
+    **Finding 3 (attribute with arguments)**
+    - RED: I added an assertion to `observableClassNamesFindsTheNameAfterTheAttributesAndModifiers` with `@available(macOS 14, *)` between `@Observable` and `final class Gated`. Before the regex change, it failed: the result was `[]`.
+    - GREEN: the pattern is now `(?:@\w+(?:\([^)]*\))?\s+)*`. The doc comment names the argument list. The test passes.
+
+    **Evidence**
+    - Filtered run (TerminalViewHostedTests, ToolCallViewHostedTests, ConversationViewHostedTests, AgentCommandsTests, RemovedVocabularyTests): 18 tests passed in 1 suite, and 51 tests passed in 4 suites.
+    - `swift test`: 1091 tests passed in 115 suites, 91 tests passed in 12 suites, and 1 test passed in 1 suite. 0 failures. The only warning is the expected mlx-swift "missing creator for mutated node".
+    - `Scripts/check-readme.sh`: passed.
+    - `Scripts/test-examples.sh AgentViewKitDemo`: 4 UI tests, 0 failures, PASS.
+    - There was no time-limit failure, so I did not run `uptime`.
+
+    step: implement
+    outcome: changed
+    evidence: 6 files — Tests/AgentViewKitTests/Helpers/ScriptedSessionEntries.swift (new), Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift, Tests/AgentViewKitTests/Items/ToolCallViewHostedTests.swift, Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift, Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift; swift test 1091 + 91 + 1 passed
+    task: ^gzj5cye
+    - next: review
+  timestamp: 2026-10-08T00:25:47.885951+00:00
+- actor: claude-code
+  id: 01m4cer8ncy6gg052xbjfsyw7m
+  text: |-
+    ### test — green
+    - evidence: swift test: 1091 tests in 115 suites passed, 0 failed, 0 skipped. Scripts/check-readme.sh: README gate passed (3 snippets), exit 0. Scripts/test-examples.sh AgentViewKitDemo: 4 UI tests, 0 failures, exit 0. swift build --package-path Benchmarks: build complete, exit 0.
+    - warnings seen: only the expected mlx-swift "missing creator for mutated node" line and the Xcode "Metadata extraction skipped, no AppIntents.framework dependency found" line.
+    - no time-limit failure. No code changed. Nothing committed.
+    - next: review.
+  timestamp: 2026-10-08T00:31:30.988853+00:00
 depends_on:
 - 01M443RA2PMKC5MXXBNH1116AB
 - 01M48MQ0BVDHNY798PTF3VYEQH
@@ -94,3 +163,28 @@ Note (2026-10-07): ^83200vg removed `runTerminalAuth`. The terminal sign-in now 
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
+
+## Review Findings (2026-10-07 18:50)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 138 file(s) reviewed, 14 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 10 file(s) not reviewed — no validator matched:
+> - `Benchmarks/.benchmarkBaselines/AgentViewKitBenchmarks/main/results.json` — no validator matches this file
+> - `Benchmarks/Baselines/AgentViewKitBenchmarks.Streaming_chunk,_paragraph_split_off.p90.json` — no validator matches this file
+> - `Benchmarks/Baselines/AgentViewKitBenchmarks.Streaming_chunk,_paragraph_split_on.p90.json` — no validator matches this file
+> - `Benchmarks/README.md` — no validator matches this file
+> - `Docs/decisions/accessibility.md` — no validator matches this file
+> - `Docs/decisions/acp-client-kit.md` — no validator matches this file
+> - `Docs/decisions/required-thread-actions.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+> - `Tests/AgentViewKitTests/Items/Fixtures/thread-export.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+> 235 tool-rule notices (47 each from `code-hygiene/disallowed-constructs-swift`, `function-length-swift`, `idioms-swift`, `magic-numbers-swift` and `missing-docs-swift`): each rule "found no file" at one of the 47 files that this change deletes, so it could not read that file. These notices are not findings.
+
+- [x] `Tests/AgentViewKitTests/Terminal/TerminalViewHostedTests.swift:64` `reuse/reuse` — `openTerminal` duplicates the open, send, wait, and look-up sequence of `openCall` in ToolCallViewHostedTests. Each file now keeps its own copy of the same scripted-session setup. Share one open-and-wait helper between the two test files, parameterized by the update JSON and the entry lookup, and call it from both `openTerminal` and `openCall`.
+- [x] `Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift:67` `completeness/public-output-contract` — `sendMessages` discards the result of `waitUntil`, so a timeout is silently ignored. If the model never shows the sent messages, the helper returns normally and the calling test continues with stale state. The error is silenced instead of reported, which the same kind of check flags in product code. Make the helper fail on timeout: `#expect(await waitUntil { session.model.transcript.count == total })`, or have it throw when `waitUntil` returns false, so the test reports the missing messages at the point where they were lost.
+- [x] `Tests/PackageStructureTests/RemovedVocabularyTests.swift:184` `completeness/invariant-propagation` — The `observableClassDeclaration` pattern accepts only bare attributes (`@\w+`) between `@Observable` and `class`. The doc comment says other attributes can stand there, but an attribute with arguments, such as `@available(macOS 14, *)`, breaks the match. A class declared that way is silently excluded from the `@Observable` allow-list check. Allow an optional parenthesized argument list after each attribute name, for example `(?:@\w+(?:\([^)]*\))?\s+)*`, and add one assertion with `@available(macOS 14, *)` between `@Observable` and `final class` to the existing test.

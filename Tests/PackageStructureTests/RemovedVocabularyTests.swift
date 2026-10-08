@@ -175,13 +175,14 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
 
   /// The pattern that finds the declaration of an `@Observable` class and
   /// captures its name. Other attributes and the modifiers can stand between
-  /// the attribute and `class`.
+  /// the attribute and `class`. An attribute can have an argument list, such
+  /// as `@available(macOS 14, *)`.
   ///
   /// A `Regex` is not `Sendable`, so each call makes the value again.
   ///
   /// - Returns: The pattern.
   static func observableClassDeclaration() -> Regex<(Substring, Substring)> {
-    #/@Observable\s+(?:@\w+\s+)*(?:(?:public|package|internal|fileprivate|private|final|nonisolated)\s+)*class\s+(\w+)/#
+    #/@Observable\s+(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|package|internal|fileprivate|private|final|nonisolated)\s+)*class\s+(\w+)/#
   }
 
   /// The names of the `@Observable` classes that a Swift source declares.
@@ -402,6 +403,12 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
       """
 
     #expect(Self.observableClassNames(inSource: source) == ["Store", "Row"])
+    let withArguments = """
+      @Observable
+      @available(macOS 14, *)
+      final class Gated {}
+      """
+    #expect(Self.observableClassNames(inSource: withArguments) == ["Gated"])
   }
 
   @Test func eachObservableClassOfTheKitHoldsViewStateOnly() throws {

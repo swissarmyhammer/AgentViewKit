@@ -94,7 +94,8 @@ final class CallCounter {
   ///
   /// - Parameter session: The scripted session.
   /// - Returns: The row key of each user message entry, in order.
-  /// - Throws: The error of the transport.
+  /// - Throws: The error of the transport, or an issue when the model does
+  ///   not hold each entry at the time limit.
   static func sendTurns(to session: ScriptedSession) async throws -> [String] {
     for turn in 0..<turnCount {
       try await session.sendUpdate(
@@ -104,7 +105,7 @@ final class CallCounter {
         WireBlockJSON.makeChunk(
           "agent_message_chunk", messageID: "answer-\(turn)", block: WireBlockJSON.makeText("Answer \(turn).")))
     }
-    _ = await waitUntil { session.model.transcript.count == 2 * turnCount }
+    try #require(await waitUntil { session.model.transcript.count == 2 * turnCount })
     return session.model.transcript.compactMap { entry in
       if case .userMessage = entry { entry.rowKey } else { nil }
     }
@@ -289,14 +290,14 @@ final class CallCounter {
     _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
     try await session.sendRequest(
       ScriptedSession.permissionMethod, id: Self.secondRequestID, params: ScriptedSession.permissionParams)
-    _ = await waitUntil { model.pendingPermissions.count == 2 }
+    try #require(await waitUntil { model.pendingPermissions.count == 2 })
     let second = try #require(model.pendingPermissions.last)
     let payload = AgentCommandPayload.permission(
       request: second.id, option: PermissionOptionId(rawValue: Self.rejectOptionID), comment: Self.comment)
 
     #expect(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
     let result = await session.result(ofRequest: Self.secondRequestID)
-    _ = await waitUntil { !session.promptTexts.isEmpty }
+    #expect(await waitUntil { !session.promptTexts.isEmpty })
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
     #expect(model.pendingPermissions.count == 1)
@@ -331,7 +332,7 @@ final class CallCounter {
       WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
-    _ = await waitUntil { model.transcript.count == 3 }
+    try #require(await waitUntil { model.transcript.count == 3 })
 
     #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
     #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.")

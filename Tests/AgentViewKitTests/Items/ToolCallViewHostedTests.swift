@@ -38,12 +38,12 @@
     ///   - id: The `toolCallId` of the call.
     ///   - fields: The other fields of the `tool_call_update`, as JSON members.
     /// - Returns: The session and the entry of the call.
-    /// - Throws: The error of the transport, or a missing entry.
+    /// - Throws: The error of the transport, or an issue when the model holds
+    ///   no such entry at the time limit.
     static func openCall(id: String, fields: String) async throws -> (ScriptedSession, ToolCallEntry) {
-      let session = try await ScriptedSession.open()
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: fields))
-      _ = await waitUntil { ToolCallEntryViewHostedTests.toolCallEntry(id, in: session.model) != nil }
-      return (session, try #require(ToolCallEntryViewHostedTests.toolCallEntry(id, in: session.model)))
+      try await ScriptedSession.openWithEntry(
+        update: WireBlockJSON.makeToolCallUpdate(id: id, fields: fields),
+        lookingUp: { ToolCallEntryViewHostedTests.toolCallEntry(id, in: $0) })
     }
 
     /// Makes a store in which `call` is expanded.
@@ -184,9 +184,9 @@
       let fields = #""title": "Search", "kind": "search", "status": "pending""#
       let (session, waiting) = try await Self.openCall(id: "waiting-call", fields: fields)
       defer { session.close() }
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "free-call", fields: fields))
-      _ = await waitUntil { ToolCallEntryViewHostedTests.toolCallEntry("free-call", in: session.model) != nil }
-      let free = try #require(ToolCallEntryViewHostedTests.toolCallEntry("free-call", in: session.model))
+      let free = try await session.receiveEntry(
+        update: WireBlockJSON.makeToolCallUpdate(id: "free-call", fields: fields),
+        lookingUp: { ToolCallEntryViewHostedTests.toolCallEntry("free-call", in: $0) })
       let harness = HostedViewHarness {
         VStack {
           ToolCallView(entry: waiting)

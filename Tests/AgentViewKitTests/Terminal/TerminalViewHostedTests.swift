@@ -60,12 +60,11 @@
     ///
     /// - Parameter fields: The other members of the update, as JSON members.
     /// - Returns: The session and the terminal entry.
-    /// - Throws: The error of the transport, or a missing entry.
+    /// - Throws: The error of the transport, or an issue when the model holds
+    ///   no terminal entry at the time limit.
     static func openTerminal(_ fields: String) async throws -> (ScriptedSession, TerminalEntry) {
-      let session = try await ScriptedSession.open()
-      try await session.sendUpdate(SessionEntryRowsHostedTests.terminalUpdate(fields))
-      _ = await waitUntil { firstTerminal(in: session.model) != nil }
-      return (session, try #require(firstTerminal(in: session.model)))
+      try await ScriptedSession.openWithEntry(
+        update: SessionEntryRowsHostedTests.terminalUpdate(fields), lookingUp: firstTerminal(in:))
     }
 
     // MARK: - Header
