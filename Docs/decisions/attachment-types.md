@@ -57,8 +57,9 @@ for its type and each subtype.
 ### FoundationModels
 
 - A prompt holds `Transcript.Segment` values. The attachment segment
-  (`Transcript.AttachmentSegment`) holds image content only. The kit maps it
-  to an image block (plan.md §3.3).
+  (`Transcript.AttachmentSegment`) holds image content only. The
+  FoundationModels source of the earlier kit mapped it to an image block. The
+  ACP client kit has no FoundationModels source (`acp-client-kit.md`).
 
 ### ACP v2
 

@@ -2,15 +2,15 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The task list of the agent: the checklist of one plan (plan.md §9 C;
-/// update.md §4.7 "Plan view").
+/// The task list of the agent: the checklist of one plan (plan.md §3.8
+/// "Plan view", §9 C).
 ///
 /// The view shows one `PlanTranscriptEntry` of a `SessionModel` at its
 /// position in the transcript: the header and the entries of the plan, with
 /// no list. The client model keeps a plan with a `planId` at
 /// the position where it first appeared, and a plan with no `planId` is a new
-/// entry (update.md §4.4). Content that the kit does not know shows with its
-/// type, and its JSON shows when the user expands it.
+/// entry (plan.md §3.7 "Plans"). Content that the kit does not know shows
+/// with its type, and its JSON shows when the user expands it.
 ///
 /// Each entry shows a status symbol, the text of the task, and a priority
 /// tint. An entry in progress shows a `ProgressView`. A cancelled entry shows

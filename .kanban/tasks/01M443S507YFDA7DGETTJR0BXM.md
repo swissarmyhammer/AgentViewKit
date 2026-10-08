@@ -97,10 +97,26 @@ comments:
     evidence: swift test - 1021 passed in 110 suites, 0 failed, 0 skipped; check-readme.sh pass; test-examples.sh AgentViewKitDemo - 4 UI tests, 0 failures; swift build --package-path Benchmarks complete; check-benchmarks.sh pass on first run; load before benchmarks 17.09 12.20 11.46, after 7.25 9.75 10.57
     task: ^tjr0bxm
   timestamp: 2026-10-08T03:41:58.148637+00:00
+- actor: claude-code
+  id: 01m4csx85ys3adapmr46ee5x3k
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (ec8f4b4): 0 findings (7 attempted, 1 refuted, 0 failed). 1 file reviewed: Benchmarks/Benchmarks/AgentViewKitBenchmarks/SessionModelObservationBenchmarks.swift. The 2 prior findings (2026-10-07 22:08) are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-08T03:46:28.670214+00:00
+- actor: claude-code
+  id: 01m4csxqgpe97kqzt6tb1m7zfc
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (SessionModelObservationBenchmarks.swift: close on each error path, named wait limit)
+    - test: green — swift test 1021 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed, check-benchmarks passed at load 7–17
+    - commit: ec8f4b4
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-08T03:46:44.374660+00:00
 depends_on:
 - 01M443RKGV6F3SAJAVGGZJ5CYE
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff9280
 title: Add an observation benchmark for the transcript view over SessionModel
 ---
 ## What

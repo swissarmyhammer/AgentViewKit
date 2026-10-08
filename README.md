@@ -1,18 +1,35 @@
 # AgentViewKit
 
-A SwiftUI component library for agent UIs on macOS 27.
+The SwiftUI view kit for the UI of an ACP client on macOS 27.
 
 AgentViewKit gives the surfaces that an agent UI needs: streaming responses,
 reasoning, tool calls, terminals, diffs, plans, citations, permissions,
 elicitation, artifacts, config options, and context usage. An ACP v2 agent
 streams to FoundationModelsACPClient. The client keeps the observable models
-`ConnectionModel` and `SessionModel`, and the views bind directly to them. The
-kit keeps no copy of the model data. A FoundationModels agent and a
-FoundationModelsRouter agent reach the kit as an ACP agent, through
-FoundationModelsACPAgent.
+`ConnectionModel` and `SessionModel`, and each view binds directly to them: a
+view shows what the model holds, and it calls the methods of the model. The
+kit keeps no copy of the model data and no turn logic
+([`Docs/decisions/acp-client-kit.md`](Docs/decisions/acp-client-kit.md)). A
+FoundationModels agent and a FoundationModelsRouter agent reach the kit as an
+ACP agent, through FoundationModelsACPAgent.
 
 There are two levels of use. `AgentThreadView(session:connection:)` shows
-the whole surface. The primitives below it give full control.
+the whole surface. The primitives below it give full control. To start, use
+one of the two quick starts: [an ACP agent](#an-acp-agent) program, or
+[an agent in this process](#an-agent-in-this-process).
+
+The direct dependencies are:
+
+- FoundationModelsACPClient: the observable models `ConnectionModel` and
+  `SessionModel`.
+- FoundationModelsACP: the ACP v2 schema types, `ClientSideConnection` and
+  `InMemoryTransport`.
+- EditorKit: code blocks, diffs, the composer editor, and the commands.
+- Textual: Markdown.
+- swiftui-math: math.
+
+[`Docs/decisions/dependencies.md`](Docs/decisions/dependencies.md) gives the
+versions and the products.
 
 ## Install
 
@@ -252,24 +269,22 @@ two lists equal.
 
 **Thread**
 
-- `AgentThreadView`: the drop-in view. It binds a `SessionModel` and shows the whole surface.
-- `AgentTranscriptView`: the snapshot view of a FoundationModels `Transcript` value. It does not update.
+- `AgentThreadView`: the drop-in view. It binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and shows the whole surface.
 - `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.
-- `BranchNavigator`: regenerate, and the paging of the branches of a message.
-- `ThreadMinimapView`: the rail of turns, tool calls, and errors. A drag moves the thread.
-- `StateBanner`: shows `requiresAction` and a stop reason that needs attention.
-- `SessionListView`: the sessions of `session/list`, with cursor paging.
+- `ThreadMinimapView`: the rail of the transcript entries, with the tool call status. A drag moves the thread.
+- `StateBanner`: shows `requiresAction` and a stop reason that needs attention, also the extension stop reasons.
+- `SessionStreamBanner`: the replay marker, the partial-history note, the missed-updates banner with Reload, and the closed state.
+- `SessionNoticeBanner`: one banner for each notice of the session model.
+- `SessionListView`: the sessions of `ConnectionModel.sessions`, with cursor paging.
 
-**Item views**
+**Entry views**
 
-- `SystemPromptView`: the instructions, collapsed by default.
 - `UserMessageView` and `AssistantMessageView`: the content blocks of a message, with the footer slot.
-- `StructuredItemView`: the fallback of the schema name registry, a collapsible pretty-printed `JSONValue`.
-- `CompactionMarkerView`: marks a transcript rewrite and shows its summary.
-- `UnknownItemView`: the collapsible raw view of an unknown record or block.
+- `CompactionEntryView`: marks a context compaction at its position, with its status and its summary.
+- `UnknownItemView`: the collapsible raw view of an unknown entry or block.
 - `ErrorView`: the card of an error entry, with its JSON-RPC code, its message, and its data.
-- `ContentBlockView`: the block family: text, image, audio, resource link, resource, attachment, structured, and unknown.
+- `ContentBlockView`: the block family: text, image, audio, resource link, resource, and unknown.
 
 **Streaming content**
 
@@ -285,10 +300,9 @@ two lists equal.
 - `TerminalView`: an agent-owned terminal with command, cwd, exit status, and ANSI output.
 - `DiffView`: the per-file list with counts, accept or reject per hunk, and attach lines to the prompt, over the EditorKit diff view.
 - `TaskListView`: the checklist of a plan entry, with priority and status.
-- `ActivityTimeline`: tool calls, reasoning, and terminals in time order, with host timestamps.
-- `SubagentTreeView`: the tree of child runs, with status and drill-in.
+- `ActivityTimeline`: thoughts, tool calls, terminals, and errors in transcript order.
 - `SourcesView` and `InlineCitation`: the sources of a message and the citation pills in the text.
-- `ContextUsageView`: the context usage meter. It merges FoundationModels usage and ACP `usage_update`.
+- `ContextUsageView`: the context usage meter from `SessionModel.usage`, with the cost.
 - `AgentGraphView`: the multi-agent canvas. This view is not in v1.
 
 **Infrastructure**
@@ -301,20 +315,20 @@ two lists equal.
 
 - `PromptInputView`: the composer on EditorKit, with slash commands, `@file`, attachments, tool toggles, and the mic.
 - `ConfigOptionsView`: the picker of `configOptions`, grouped by category.
-- `PromptQueueView`: the queued messages while a turn runs, with reorder, edit, drop, and send now.
 - `SuggestionsView` and `SpeechInputButton`: the suggestion chips and the speech input.
 
 **Human in the loop**
 
 - `PermissionView`: a pending permission request of a `SessionModel`, with its options, its subject, and a comment field.
 - `PermissionModePicker`: the `mode` config option as a segmented control.
-- `CheckpointView`: the history slider with Restore code, Restore conversation, or both.
+- `PendingRequestsHost`: one card for each pending request of a `SessionModel`, or each request-scoped elicitation of a `ConnectionModel`.
 
 **Connections and authorization**
 
-- `AuthorizationView`: the in-thread card that connects an MCP server.
+- `AgentConnectionBanner`: the banner of `ConnectionModel.state`.
+- `AgentInfoHeader`: the name and the version of the agent from its `initialize` answer.
 - `AgentAuthView`: the auth methods of an ACP agent, with sign-out.
-- `ConnectionsView`, `ConnectionRow`, `ConnectionStatusChip`: the list of connections, one row, and one status chip.
+- `ConnectionsView`, `ConnectionRow`, `ConnectionStatusChip`: the MCP servers of a session, one row, and one status chip.
 - `AuthorizationPresenter`: opens an authorization URL in `ASWebAuthenticationSession`.
 
 **Elicitation**
@@ -374,4 +388,4 @@ the scenarios and the commands.
 ## Design documents
 
 - [`plan.md`](plan.md): the architecture, the component inventory, and the decisions.
-- [`Docs/decisions/`](Docs/decisions): one file for each decision, such as the ACP version, the diff renderer, the branches, and the scope of the ACP client kit.
+- [`Docs/decisions/`](Docs/decisions): one file for each decision, such as the ACP version, the diff renderer, the connection states, and the scope and the binding rule of the ACP client kit.

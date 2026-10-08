@@ -1,7 +1,7 @@
 import Foundation
 import FoundationModelsACP
 
-/// The SF Symbol of each ACP `ToolKind` (plan.md §5, §9 C; update.md §4.7).
+/// The SF Symbol of each ACP `ToolKind` (plan.md §3.8, §5, §9 C).
 ///
 /// ``ToolCallView`` shows this symbol at the start of the row. Each kind has
 /// a different symbol. All unknown kinds share one symbol.
@@ -27,8 +27,8 @@ public nonisolated enum ToolKindSymbol {
   }
 }
 
-/// The SF Symbol and the label of each ACP `ToolCallStatus` (plan.md §5,
-/// §9 C; update.md §4.7).
+/// The SF Symbol and the label of each ACP `ToolCallStatus` (plan.md §3.8,
+/// §5, §9 C).
 ///
 /// ``ToolCallView`` shows the symbol at the end of the row, and VoiceOver
 /// reads the label. Each status has a different symbol and a different

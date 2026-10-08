@@ -107,7 +107,9 @@ Permission presets (the `/permissions` command):
   choices are the ids of the agent, such as `default`, `acceptEdits`, `plan`,
   and `auto`. ACP has no standard id list.
 - The ACP wire has no directory-scoped grant and no field for a comment. The
-  kit sends a comment as the next user message (plan.md §3.4).
+  kit sends a comment as the next user message (plan.md §3.7). The card
+  selects the option with `SessionModel.selectPermission(_:option:)`, waits
+  for that call, and then sends the comment with `SessionModel.prompt(_:meta:)`.
 
 ## Mapping
 
@@ -167,11 +169,11 @@ There is no fifth, directory-scoped option in v1.
 
 - No product in the survey has an "always for this folder" answer. Claude
   Code keeps a rule for the repository. Codex keeps a command prefix.
-- ACP has no such kind. The FoundationModelsRouter has no permission store.
-  `../FoundationModelsACPAgent/plan.md` has no store for kept answers.
-- Thus no v1 source supplies the option. When a source sends a kind that the
+- ACP has no such kind. `../FoundationModelsACPAgent/plan.md` has no store
+  for kept answers.
+- Thus no v1 agent supplies the option. When an agent sends a kind that the
   kit does not know, the card shows it last, as a secondary option, with the
-  label of the source.
+  label of the agent.
 
 ### Switch to auto
 

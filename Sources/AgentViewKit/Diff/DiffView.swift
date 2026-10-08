@@ -91,7 +91,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       actions: Self.ownActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach))
   }
 
-  /// Makes the diff view of an ACP diff (update.md §9.4).
+  /// Makes the diff view of an ACP diff (plan.md §3.8 "Tool call view").
   ///
   /// A diff with `git_patch` text shows that patch, as
   /// ``init(patch:onAccept:onReject:onAttach:)`` does. A diff with no

@@ -50,8 +50,8 @@
     let notes: AgentViewKit.Attachment
   }
 
-  /// The composer over a `SessionModel` (update.md §4.2 "Prompt helper", §4.7
-  /// "Composer", §5 `PromptResponse.messageId`).
+  /// The composer over a `SessionModel` (plan.md §3.2 "Prompt helper", §3.8
+  /// "Composer").
   ///
   /// Each test shows the transcript of the session and a composer below it.
   /// The composer reads the session model from the environment, and it gets

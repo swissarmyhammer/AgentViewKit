@@ -6,7 +6,7 @@
   import Testing
 
   /// The redraw scope of the thread view when many chunks stream into one
-  /// agent message of a `SessionModel` (update.md §7 item 2).
+  /// agent message of a `SessionModel` (plan.md §8, §14 R4).
   ///
   /// The session model coalesces the chunks at
   /// `SessionModel.defaultCoalescingCadence`. Each row binds directly to its

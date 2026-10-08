@@ -4,7 +4,7 @@ import FoundationModelsACP
 import Testing
 
 /// Tests of the bar for the extension stop reasons that an agent sends
-/// (update.md §9.2).
+/// (plan.md §3.8 "Agent state and stop reasons").
 @Suite @MainActor struct StateBannerStopReasonTests {
   /// Each extension stop reason of the FoundationModels ACP agent, with the
   /// title that the bar must show for it.

@@ -33,8 +33,8 @@ extension View {
   }
 }
 
-/// A tool call as a compact row that expands (plan.md §5, §9 C; update.md
-/// §4.7 "Tool call view").
+/// A tool call as a compact row that expands (plan.md §3.8
+/// "Tool call view", §5, §9 C).
 ///
 /// The view shows a `ToolCallEntry` of a `SessionModel`. It uses the ACP kind
 /// and status types. See ``ToolKindSymbol`` and ``ToolStatusSymbol``.
@@ -139,7 +139,7 @@ public struct ToolCallView: View {
   @Environment(\.agentTheme) private var theme
 
   /// Makes the tool call view of a tool call entry of a session transcript
-  /// (update.md §4.7).
+  /// (plan.md §3.8).
   ///
   /// The view shows the `title` of the entry as its label. The identifiers
   /// and the counter keys of the view use the row key of the entry. See
@@ -501,7 +501,7 @@ private struct ToolCallBody: View {
 }
 
 /// The cards of the pending elicitations that are linked to a tool call entry
-/// (update.md §4.2 "Pending requests", §4.7 "Tool call view").
+/// (plan.md §3.2 "Pending requests", §3.8 "Tool call view").
 ///
 /// The view reads `ToolCallEntry.linkedElicitationIDs` and finds each one in
 /// the `pendingElicitations` of the ``SwiftUI/EnvironmentValues/sessionModel``.

@@ -4,7 +4,7 @@ import SwiftUI
 import Textual
 
 /// A message entry of a session transcript: the observable entry object of a
-/// user message or of an agent message (update.md §4.2).
+/// user message or of an agent message (plan.md §3.2).
 ///
 /// The value holds the object of the session model and no copy of its
 /// values. The ``SwiftUI/EnvironmentValues/messageFooter`` slot gives it to

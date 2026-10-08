@@ -110,7 +110,7 @@ enum CapabilityCase: String, CaseIterable, CustomTestStringConvertible {
 }
 
 /// The content build of the composer for each set of prompt capabilities
-/// (update.md §9.4).
+/// (plan.md §3.8 "Prompt capabilities").
 @Suite struct PromptCapabilitiesTests {
   /// The text of each prompt.
   static let message = "Look"

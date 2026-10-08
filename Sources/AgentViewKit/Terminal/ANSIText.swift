@@ -93,8 +93,8 @@ public nonisolated enum ANSIText {
   /// Converts the output text of a terminal to attributed text.
   ///
   /// Use this function for text that is already decoded, such as the
-  /// computed `text` of a `TerminalEntry` (update.md §4.4). The function does
-  /// not decode bytes.
+  /// computed `text` of a `TerminalEntry` (plan.md §3.7 "Terminals"). The
+  /// function does not decode bytes.
   ///
   /// - Parameter text: The output text, with its escape sequences.
   /// - Returns: The text with the SGR styles as attributes, and with no

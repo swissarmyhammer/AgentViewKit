@@ -12,8 +12,8 @@ import SwiftUI
 /// the kit calls this closure and keeps no transport and no failed operation.
 public typealias AgentReconnect = @MainActor () async -> Void
 
-/// The card that signs the user in to an ACP agent (plan.md §9 E2, §12;
-/// update.md §4.3 "Initialize and auth").
+/// The card that signs the user in to an ACP agent (plan.md §3.3
+/// "Initialize and auth", §9 E2, §12).
 ///
 /// The card binds directly to a `ConnectionModel`. The body reads
 /// `authMethods`, `authState`, `canLogin` and `canLogout` of the model, and

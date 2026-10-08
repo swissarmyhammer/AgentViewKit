@@ -2,8 +2,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 
 /// A client model that holds pending elicitations and takes the answer of the
-/// user to each one (update.md §3 D7, §4.2 "Pending requests", §4.3
-/// "Request-scoped elicitations").
+/// user to each one (plan.md §3.2 "Pending requests", §3.3
+/// "Request-scoped elicitations", §11 decision 4).
 ///
 /// `SessionModel` holds the elicitations of a session, and `ConnectionModel`
 /// holds the request-scoped elicitations. ``ElicitationView`` and

@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 //
 // AgentViewKitBenchmarks: the observation benchmark of the transcript view
-// over `SessionModel` (update.md §7 item 2), in a separate SwiftPM package.
+// over `SessionModel` (plan.md §8, §14 R4), in a separate SwiftPM package.
 //
 // This package is separate from the root package, as in
 // `../EditorKit/Benchmarks`. It depends on AgentViewKit by path. Thus:

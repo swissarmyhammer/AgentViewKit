@@ -8,7 +8,7 @@
   import Testing
 
   /// The compaction rows and the notice banners of a `SessionModel`
-  /// (update.md §4.2, §4.3; the owner decision of 2026-10-04 in
+  /// (plan.md §3.2 "Notices"; the owner decision of 2026-10-04 in
   /// Docs/decisions/acp-client-kit.md).
   @Suite(.serialized, .hostedSerially) @MainActor struct CompactionAndNoticeHostedTests {
     /// The longest time that a test waits for a change, in seconds.

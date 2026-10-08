@@ -7,8 +7,8 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// The connection views of a `ConnectionModel` (update.md §4.3, §4.7
-/// "Connection banner", §9.4).
+/// The connection views of a `ConnectionModel` (plan.md §3.3, §3.8
+/// "Connection banner", "Login on error `-32000`").
 ///
 /// Each test drives a scripted agent, and the views read the model directly.
 /// The connection banner reads `state`, the header reads the agent info of the

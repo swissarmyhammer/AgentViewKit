@@ -8,7 +8,7 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// The auth card over a `ConnectionModel` (update.md §4.3).
+/// The auth card over a `ConnectionModel` (plan.md §3.3).
 ///
 /// The card reads `authMethods`, `authState`, `canLogin` and `canLogout` of
 /// the model of a scripted agent, and calls `login(_:)`, `logout(_:)` and

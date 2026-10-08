@@ -9,7 +9,7 @@
   import Testing
 
   /// The rows of the thought, terminal, plan, unknown and error entries of a
-  /// `SessionModel` (update.md §4.4, §4.7 "Error rows", "Terminal view",
+  /// `SessionModel` (plan.md §3.7, §3.8 "Error rows", "Terminal view",
   /// "Plan view").
   @Suite(.serialized, .hostedSerially) @MainActor struct SessionEntryRowsHostedTests {
     /// The longest time that a test waits for a change, in seconds.

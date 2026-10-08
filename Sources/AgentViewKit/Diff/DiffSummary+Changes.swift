@@ -2,7 +2,7 @@ import Foundation
 import FoundationModelsACP
 import OSLog
 
-/// The files of a structured ACP diff (update.md §9.4).
+/// The files of a structured ACP diff (plan.md §3.8 "Tool call view").
 ///
 /// An ACP `Diff` has a list of structured changes, and it can have patch text.
 /// When it has no `git_patch` text, ``DiffView`` shows the file of each

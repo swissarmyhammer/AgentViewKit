@@ -16,7 +16,7 @@ The source is the ACP v2 `SessionUpdate.usage_update` (`UsageUpdate` with
 The first version of this record also merged the FoundationModels
 `LanguageModelSession.Usage` and the Private Cloud Compute `QuotaUsage`. The
 kit is now an ACP client kit, so those sources and their fields are gone
-(update.md §6).
+(`Docs/decisions/acp-client-kit.md`).
 
 ## Sources read
 

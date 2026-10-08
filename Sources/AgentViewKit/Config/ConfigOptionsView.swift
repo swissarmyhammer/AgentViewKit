@@ -3,7 +3,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The controls for the config options of a session, grouped by category
-/// (plan.md §9 D, §11 decision 16; update.md §4.2 "Last-value state").
+/// (plan.md §3.2 "Last-value state", §9 D, §11 decision 16).
 ///
 /// The view reads `SessionModel.configOptions` (the ACP
 /// `SessionConfigOption` values) in its body. It keeps no copy of the

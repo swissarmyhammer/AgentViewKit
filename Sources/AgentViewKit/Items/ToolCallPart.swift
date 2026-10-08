@@ -3,7 +3,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 
 /// The values of a `ToolCallEntry` that the tool call views show when the
-/// agent did not send them (update.md §4.7 "Tool call view").
+/// agent did not send them (plan.md §3.8 "Tool call view").
 ///
 /// Each property reads only its own field of the entry object, at the time
 /// of the body. Thus the row of a ``ToolCallView``, which reads the title,

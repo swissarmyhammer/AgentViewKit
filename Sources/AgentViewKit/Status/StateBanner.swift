@@ -2,8 +2,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// A glass bar that tells the user the state of the agent (plan.md §9 A,
-/// update.md §4.7 "Agent state").
+/// A glass bar that tells the user the state of the agent (plan.md §3.8
+/// "Agent state and stop reasons", §9 A).
 ///
 /// ``init(session:onShowError:)`` binds the bar to a `SessionModel`. The
 /// body reads `SessionModel.agentState` directly, and the bar shows one
@@ -12,8 +12,9 @@ import SwiftUI
 /// know (`.unknown`). A new value replaces the message. While the model has
 /// no state, the view is empty. A stop reason that the ACP standard does not
 /// name shows the text from ``extensionStopReasonMessages``, or a general
-/// text with the raw value (update.md §9.2). The `message(for:)` function
-/// that takes a `StateUpdate` gives the text of each value.
+/// text with the raw value (plan.md §3.8 "Agent state and stop reasons").
+/// The `message(for:)` function that takes a `StateUpdate` gives the text of
+/// each value.
 ///
 /// The bar has the identifier ``bannerIdentifier``. The text of the bar has
 /// the ``Message/identifier`` of its message.

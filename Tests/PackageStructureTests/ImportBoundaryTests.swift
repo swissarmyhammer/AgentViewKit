@@ -2,7 +2,7 @@ import Foundation
 import PackageFileSupport
 import Testing
 
-/// The import boundaries of the ACP client kit (update.md §1, §3 D4).
+/// The import boundaries of the ACP client kit (plan.md §1, §11 decision 1).
 ///
 /// The kit is one target that links the ACP packages. No target in
 /// `Sources/` imports the FoundationModels framework or the FoundationModels
@@ -17,7 +17,8 @@ import Testing
     "FoundationModelsExtras",
   ]
 
-  /// The module that the `AgentViewKit` target now holds (update.md §3, D4).
+  /// The module that the `AgentViewKit` target now holds (plan.md §11
+  /// decision 1).
   static let mergedModule = "AgentViewKitACP"
 
   /// The package directories that hold Swift files.

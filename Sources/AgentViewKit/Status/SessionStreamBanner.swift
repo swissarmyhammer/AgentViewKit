@@ -2,9 +2,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The banners of the stream state of a `SessionModel` (update.md §4.2
-/// "Stream state", §4.7 "Resume", "Missed updates", "Closed thread", §5
-/// `replayFrom`).
+/// The banners of the stream state of a `SessionModel` (plan.md §3.2
+/// "Stream state", §3.8 "Resume", "Missed updates", "Closed thread").
 ///
 /// The body reads the stream state of the model directly, and keeps no copy
 /// of it. The connection model changes that state, and the banners follow:

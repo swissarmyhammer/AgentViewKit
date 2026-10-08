@@ -9,7 +9,7 @@ import SwiftUI
 import Testing
 
 /// The session picker and the thread close over a `ConnectionModel`
-/// (update.md §4.3, §4.7 "Session picker", "Capabilities", §8 item 2).
+/// (plan.md §3.3, §3.8 "Session picker", "Capabilities", "Close").
 ///
 /// Each test opens a ``ScriptedSession``. The view reads the session list,
 /// the cursor flag and the capability flags of its connection model. The

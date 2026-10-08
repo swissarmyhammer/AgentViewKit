@@ -8,7 +8,7 @@
   import Testing
 
   /// The tool call view over a `ToolCallEntry` of a `SessionModel`
-  /// (update.md §4.7 "Tool call view", §5 `ToolCallUpdate.name`, §9.4).
+  /// (plan.md §3.8 "Tool call view").
   @Suite(.serialized, .hostedSerially) @MainActor struct ToolCallEntryViewHostedTests {
     /// The longest time that a test waits for a change, in seconds.
     static let waitTimeout: TimeInterval = 5

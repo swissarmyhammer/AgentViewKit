@@ -2,7 +2,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The reasoning block of one thought entry of a session transcript
-/// (update.md §4.2). See ``ReasoningView``.
+/// (plan.md §3.2). See ``ReasoningView``.
 ///
 /// The view reads the ACP content blocks of the entry, so a streamed chunk
 /// evaluates only this view. The open block shows the content through

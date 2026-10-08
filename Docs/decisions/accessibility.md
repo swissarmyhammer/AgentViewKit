@@ -47,16 +47,22 @@ announcement.
 
 | Boundary | Text | Priority |
 |----------|------|----------|
-| A turn stops (running or requires action to idle) | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
+| `SessionModel.agentState` changes from `.running` or `.requiresAction` to `.idle` | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
-| A new pending request | "Action required: <title>" | high |
+| A new pending request of the models | "Action required: <title>" | high |
 
 - `SessionAnnouncementObserver` is a hidden background of `AgentThreadView`.
-  It reads the agent state, the tool call progress, and the pending requests
-  of the `SessionModel`. It does not read the content of an entry, so a
-  streamed chunk does not evaluate it.
-- A tool call that the thread did not know before the change gives no
-  announcement, so a thread that loads its history is silent.
+  It reads `agentState`, the status of each `ToolCallEntry` of the
+  transcript, and the pending requests of `SessionModel` and of
+  `ConnectionModel` (`pendingPermissions` and `pendingElicitations`). It
+  keeps no copy of these values and no turn of its own. Each announcement
+  compares only the old and the new value of one change of the model. It
+  does not read the content of an entry, so a streamed chunk does not
+  evaluate it.
+- A tool call that the session model did not have before the change gives
+  no announcement. While `SessionModel.isReplaying` is true, the replay of a
+  resume gives no stop announcement and no tool result announcement. Thus a
+  session that loads its history is silent.
 - The environment value `announcer` is a `VoiceOverAnnouncer` by default.
   It posts `AccessibilityNotification.Announcement` with the
   `accessibilitySpeechAnnouncementPriority` attribute: low, default, or high.
@@ -73,8 +79,10 @@ announcement.
 - The kit views tell the mover and the host `focusReporter` through one
   action (`AccessibilityFocusMove`). There is one `focusReporter`
   environment value.
-- `PendingRequestsHost` moves the focus to the `pending-card-<id>` container
-  of a new request, and to `prompt-editor` when no card stays.
+- `PendingRequestsHost` shows one card for each pending request of the
+  models. It moves the focus to the `pending-card-<id>` container of a new
+  request, and to `prompt-editor` when no card stays. It keeps no list of
+  the requests: the models remove a request when it resolves.
   `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` also
   report their own identifier when they appear. Thus a reporter records the
   container and the card for a new permission request.

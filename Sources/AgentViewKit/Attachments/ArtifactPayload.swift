@@ -1,6 +1,6 @@
 import Foundation
 
-/// A file or document that the agent made (plan.md §3.3).
+/// A file or document that the agent made (plan.md §9 F).
 ///
 /// The payload has a ``url``, an ``inlineText``, or both. ``ArtifactView``
 /// shows it.

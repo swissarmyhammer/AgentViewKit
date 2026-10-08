@@ -3,8 +3,8 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The `mode` config option of a session as a segmented control, for the
-/// accessory of the composer (plan.md §9 E, §11 decision 16; update.md §4.2
-/// "Last-value state").
+/// accessory of the composer (plan.md §3.2 "Last-value state",
+/// §9 E, §11 decision 16).
 ///
 /// The view reads `SessionModel.configOptions` in its body, and shows the
 /// first select option of the `mode` category, with one segment for each

@@ -18,8 +18,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
 }
 
 /// Holds `Sources/` free of the symbols that the ACP client kit removed
-/// (update.md §3, §6). Some lists also hold the tests, the examples and the
-/// README free of their symbols.
+/// (`Docs/decisions/acp-client-kit.md`). Some lists also hold the tests, the
+/// examples and the README free of their symbols.
 ///
 /// Each removal task adds its symbols to ``removedSymbols``. The scan reads
 /// each Swift file as text, and finds a symbol only as a whole word. Thus

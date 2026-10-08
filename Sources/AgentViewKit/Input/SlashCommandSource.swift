@@ -3,8 +3,8 @@ import EditorExtensions
 import FoundationModelsACP
 
 /// The EditorKit completion source for the slash commands of a session
-/// (plan.md §4.1, §9 D; update.md §4.2 "Last-value state", §4.4 "Commands
-/// not reported").
+/// (plan.md §3.2 "Last-value state", §3.7 `Commands "not reported"`, §4.1,
+/// §9 D).
 ///
 /// The source reads the ACP commands that `SessionModel.availableCommands`
 /// holds. It keeps the value that the model gives and no other copy. The

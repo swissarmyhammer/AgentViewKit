@@ -1,7 +1,7 @@
 import Foundation
 
 /// The sources of a response and the places in the response that cite them
-/// (plan.md §3.3, §9 C).
+/// (plan.md §9 C).
 ///
 /// ``SourcesView`` shows the sources. ``ResponseView`` shows an
 /// ``InlineCitation`` pill at each marker.

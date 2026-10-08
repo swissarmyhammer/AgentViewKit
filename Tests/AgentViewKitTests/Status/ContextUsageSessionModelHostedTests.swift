@@ -5,8 +5,9 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// The context usage view over a `SessionModel` (update.md §4.2 "Last-value
-/// state", §4.5).
+/// The context usage view over a `SessionModel` (plan.md §3.2 "Last-value
+/// state"; `Docs/decisions/acp-client-kit.md`, section "ACP values in the
+/// views").
 ///
 /// Each test shows a ``ContextUsageView`` over the model of a
 /// ``ScriptedSession``. The scripted agent sends `usage_update` values, and

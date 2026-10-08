@@ -3,7 +3,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 extension EnvironmentValues {
-  /// The session model whose transcript the item views show (update.md §4.2).
+  /// The session model whose transcript the item views show (plan.md §3.2).
   ///
   /// ``AgentThreadView/init(session:connection:)`` sets its model for
   /// its rows.
@@ -12,7 +12,7 @@ extension EnvironmentValues {
   /// thread view over a session model.
   @Entry public var sessionModel: SessionModel? = nil
 
-  /// The connection model of the agent of the session (update.md §4.3).
+  /// The connection model of the agent of the session (plan.md §3.3).
   ///
   /// The composer reads the prompt capabilities of the agent from
   /// `ConnectionModel.agentCapabilities` at the time of use, and keeps no copy

@@ -7,7 +7,7 @@ import SwiftUI
 /// the ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry
 /// object.
 ///
-/// The view shows a `UserMessageEntry` of a `SessionModel` (update.md §4.2).
+/// The view shows a `UserMessageEntry` of a `SessionModel` (plan.md §3.2).
 /// The view reads the content of the entry, so a change to the entry
 /// evaluates only this view. Its identifier uses the row key of the entry,
 /// which does not change when a pending message gets its `messageId`.
@@ -56,7 +56,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   }
 
   /// The send state of a user message entry: pending, sent, or failed
-  /// (update.md §4.2 "Prompt helper").
+  /// (plan.md §3.2 "Prompt helper").
   ///
   /// The label is one accessibility element. Its label is the title of the
   /// state.

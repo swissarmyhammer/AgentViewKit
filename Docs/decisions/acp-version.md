@@ -1,6 +1,6 @@
 # ACP protocol version (R6)
 
-Status: decided. Source: plan.md §3.3, §11 decision 20, and §14 R6.
+Status: decided. Source: plan.md §3.7, §11 decision 20, and §14 R6.
 
 This file records the ACP versions that agents and clients speak today, and
 the versions that the ACP adapter of `AgentViewKit` accepts.
@@ -21,7 +21,7 @@ supported: `2`
   behind the `unstable_protocol_v2` feature.
 - v2 is a draft. The migration guide tells each side to keep v1 and to add v2
   behind version negotiation and feature flags. The kit builds against
-  `schema-v2.0.0-alpha.7`: FoundationModelsACP `fe0d82d` (update.md §5). The
+  `schema-v2.0.0-alpha.7`: FoundationModelsACP `fe0d82d` (plan.md §3.8). The
   earlier pin was `schema-v2.0.0-alpha.3`.
 - When a client sends `2` and the agent answers `1`, the client continues
   with v1 or disconnects.
@@ -68,10 +68,10 @@ Reasons:
   `ProtocolVersionMismatchError` when the agent answers with a version that
   the client did not send. A v1 adapter needs a v1 wire package first. That
   work belongs to the FoundationModelsACP repository, not to this kit.
-- The thread model follows the v2 update stream (plan.md §3.2, §11 decision
+- The client models follow the v2 update stream (plan.md §3.2, §11 decision
   3). v1 has no `tool_call_update` upsert with `PatchField`, no agent-owned
   terminals, no `state_update`, and no `usage_update` with cost. A v1 adapter
-  must make these records from other v1 messages.
+  must make these values from other v1 messages.
 - The first agent of the kit is FoundationModelsACPAgent, which speaks v2.
 
 The result: the kit cannot show Claude Code, Codex, or Gemini CLI today. Each

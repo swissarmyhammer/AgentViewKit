@@ -7,8 +7,8 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The config views over a `SessionModel` (update.md §4.2 "Last-value
-/// state", §4.3 `setConfigOption(_:)`).
+/// The config views over a `SessionModel` (plan.md §3.2 "Last-value
+/// state", "Other requests").
 ///
 /// Each test shows a ``ConfigOptionsView`` or a ``PermissionModePicker`` over
 /// the model of a ``ScriptedSession``. The scripted agent gives the options

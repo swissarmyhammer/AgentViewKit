@@ -5,7 +5,7 @@ import SwiftUI
 // MARK: - Form view
 
 /// The form of a form mode pending elicitation of a client model (plan.md
-/// §13.1, §13.2; update.md §4.2 "Pending requests").
+/// §3.2 "Pending requests", §13.1, §13.2).
 ///
 /// The view makes the fields from the ACP `requestedSchema` with
 /// ``ElicitationFieldSchema/normalize(from:)``. It keeps the answers, starts

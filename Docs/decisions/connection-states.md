@@ -1,79 +1,76 @@
 # Connection states and the connections list
 
 status: accepted
-date: 2026-09-16
-plan: plan.md §12
+date: 2026-09-16, changed 2026-10-08 (task ^g95wwbs)
+plan: plan.md §3.4, §12
 
 ## Question
 
-plan.md §12 names six connection states. It does not give each allowed
-edge. Which transitions does `ConnectionStore.transition(_:to:)` accept, and
-what does the list show for each state?
+The kit shows two kinds of connection: the connection to the ACP agent, and
+the connection of the agent to each MCP server of a session. Which states
+does each kind have, and which view shows them?
 
 ## Decision
 
-The store accepts only the edges in this table. Each other edge does not
-change the store and writes an error entry to the `AgentViewKit` log, category
-`ConnectionStore`.
+The kit keeps no connection state of its own. Both kinds of state are in the
+client models of FoundationModelsACPClient, and the views read them directly
+(`Docs/decisions/acp-client-kit.md`, section "Binding rule").
 
-| From | To |
-|---|---|
-| `disconnected` | `connected`, `needs-auth`, `error` |
-| `connected` | `needs-auth`, `expired`, `error`, `disconnected` |
-| `needs-auth` | `authenticating`, `error`, `disconnected` |
-| `authenticating` | `connected`, `needs-auth`, `error`, `disconnected` |
-| `expired` | `authenticating`, `needs-auth`, `error`, `disconnected` |
-| `error` | `connected`, `needs-auth`, `error`, `disconnected` |
+### The agent connection
 
-The reasons for the edges:
+The agent connection states are `ConnectionModel.state`, a
+`ConnectionState`:
 
-- A connect from `disconnected` gets a success, a `401`, or a different
-  failure.
-- A `401` or a `403 insufficient_scope` reply on a connected server gives
-  `needs-auth`. This is the step-up case. A refresh failure gives `expired`.
-- The Connect action on `needs-auth` or `expired` opens the browser, so the
-  state goes to `authenticating`. A cancelled browser session goes back to
-  `needs-auth`. A successful retry goes to `connected`.
-- The Disconnect action goes to `disconnected` from each state that is not
-  `disconnected`. An `error` can go to `error` with a new text.
+| State | Meaning | `AgentConnectionBanner` |
+|---|---|---|
+| `.disconnected` | The start value, and the value after the connection closes. | A banner tells that no connection to the agent is open. |
+| `.connecting` | `connect(over:logger:bufferLimits:client:)` runs. | No banner. |
+| `.connected` | The connection is open. | No banner. |
+| `.failed` | The connection failed, with the error. | A banner tells that the connection failed, with the text of the error. |
 
-## Other choices
+- The model changes the state. The kit does not set it and has no table of
+  allowed edges.
+- When the connection closes, the model closes each open `SessionModel`
+  (each one gets `isClosed`, and its pending requests are cancelled).
+  `SessionStreamBanner` then shows the closed state of the session.
+- The model never connects again on its own. Thus the banner has no button.
+  The host connects again with a new transport. After a terminal sign-in,
+  the host gives the `agentReconnect` hook (`acp-client-kit.md`, section
+  "Host hooks").
+- The text of each banner has its own accessibility identifier:
+  `agent-connection-disconnected` and `agent-connection-failed`.
 
-- `ConnectionState` has no `unknown` case. The host makes the state; the kit
-  does not read it from a wire string. `ThreadState` uses the same rule.
-- When a `ConnectionActions` call throws, the store moves the connection to
-  `error` with the text of the error.
-- The accessibility identifier of a tool toggle is
-  `connection-tool-<connection id>-<tool id>`. Two MCP servers can have a tool
-  with the same name, so the tool identifier alone is not unique.
-- The Connect button shows for `disconnected`, `needs-auth`, `expired`, and
-  `error`. The Disconnect button shows for `connected` and `authenticating`.
-- A tool toggle uses the stock toggle style, a check box. On macOS 27 the
-  switch style gives no accessibility label for the switch.
+### The MCP servers of a session
+
+The status of each MCP server is the `status` of an `MCPServerItem` in
+`SessionModel.mcpServers`, an `MCPServerStatus`:
+
+| Status | Label | Dot color of `AgentTheme.statusColors` |
+|---|---|---|
+| `.notReported` | Not reported | `pending` |
+| `.connecting` | Connecting | `running` |
+| `.connected` | Connected | `completed` |
+| `.failed` | Failed, with the reason as the value and the help tag | `failed` |
+| `.closed` | Closed | `cancelled` |
+
+- `ConnectionsView` reads `SessionModel.mcpServers` of the `sessionModel`
+  environment value in its body. It shows one `ConnectionRow` for each
+  server, in the order of the list. It shows an empty state when the
+  environment has no session model or the list is empty.
+- `ConnectionRow` shows the `name` and the `transport` of the server
+  (`stdio` or `HTTP`) and a `ConnectionStatusChip` with its `status`.
 - The status chip has the static text trait. An element with no role does
-  not give its accessibility value, and the value of an `error` chip is the
-  error text.
+  not give its accessibility value, and the value of a failed chip is the
+  reason.
+- `ToolCallView` shows a `ConnectionStatusChip` for a tool call that waits
+  for a server, when the host gives `toolCallConnectionState`. ACP does not
+  link a tool call to a server, so only the host can give that link.
 
-## The in-thread card
+## Removed
 
-`AuthorizationView` shows one `AuthorizationRequest`. These rules apply:
-
-- The card finds the server in the `ConnectionStore` by the connection
-  identifier that is equal to `serverName`. If no identifier is equal, it uses
-  the first connection with the display name `serverName`. If the store has no
-  such server, or the environment has no store, the chip shows `needs-auth`.
-  A request exists only for a server that needs authorization.
-- The card does not change the store. While `connect(_:)` runs, only the chip
-  of the card shows `authenticating`. The host reports the real state with
-  `transition(_:to:)`.
-- While `connect(_:)` runs, the Connect button is disabled and shows a
-  progress view. SwiftUI merges the button into the progress view, so the
-  element has the `AXBusyIndicator` role at that time.
-- When `connect(_:)` throws, the card shows the error text and a Retry button
-  in place of the Connect button. A `CancellationError` shows no error.
-- The accessibility identifiers are `authorization-card-<id>`,
-  `authorization-title-<id>`, `authorization-scope-<id>-<scope>`,
-  `authorization-connect-<id>`, `authorization-retry-<id>`, and
-  `authorization-error-<id>`.
-- `PendingRequestsHost` (the PermissionView task) shows one card for each
-  entry in `thread.pendingAuthorizations`.
+The earlier decision of 2026-09-16 described a kit `ConnectionStore` with six
+states, an edge table, Connect and Disconnect buttons, tool toggles and an
+in-thread `AuthorizationView` card. No ACP producer feeds these values, and a
+store of the kit is parallel state. The ACP client kit removed them. The MCP
+authorization of a server is the work of the agent. The kit shows the status
+that the agent reports.

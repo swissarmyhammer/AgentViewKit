@@ -88,8 +88,8 @@ extension View {
   }
 }
 
-/// The scrolled list of the transcript of a `SessionModel` (plan.md §8, §9 A;
-/// update.md §4.2, §4.7).
+/// The scrolled list of the transcript of a `SessionModel` (plan.md §3.2,
+/// §3.8, §8, §9 A).
 ///
 /// A `ForEach` keyed on `TranscriptEntry.id` makes one ``ItemRow`` for each
 /// entry in a lazy stack, so a row keeps its identity when a pending user
@@ -257,7 +257,7 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// The rows of the last `shownCount` entries.
   ///
-  /// The row identity is `TranscriptEntry.id` (update.md §4.7). The scroll
+  /// The row identity is `TranscriptEntry.id` (plan.md §3.8). The scroll
   /// target of each row is its text key, because the scroll anchors use
   /// text.
   ///

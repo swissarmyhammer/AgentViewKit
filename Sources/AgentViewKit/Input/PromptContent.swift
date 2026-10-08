@@ -15,7 +15,7 @@ extension ConnectionModel {
 }
 
 /// The prompt content of a user input for the prompt capabilities of an agent
-/// (update.md §9.4).
+/// (plan.md §3.8 "Prompt capabilities").
 ///
 /// The caller reads the capabilities from the connection model
 /// (`ConnectionModel.promptCapabilities`) at the time of use, and keeps no

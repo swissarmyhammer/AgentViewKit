@@ -3,7 +3,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 
 nonisolated extension TranscriptEntry.ID {
-  /// The text form of the row identity (update.md §4.2 "Row identity").
+  /// The text form of the row identity (plan.md §3.2 "Row identity").
   ///
   /// The view uses `TranscriptEntry.ID` as the row identity. The accessibility
   /// identifiers, the ``BodyEvaluationCounter`` keys and the

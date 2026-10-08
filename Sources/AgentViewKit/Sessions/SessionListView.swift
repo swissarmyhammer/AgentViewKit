@@ -3,7 +3,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The session picker of an agent: the session list of a `ConnectionModel`
-/// (plan.md §9 A, update.md §4.3, §4.7 "Session picker", "Capabilities").
+/// (plan.md §3.3, §3.8 "Session picker", "Capabilities", §9 A).
 ///
 /// The view shows `ConnectionModel.sessions` and calls the methods of the
 /// model. It keeps no copy of the list and no page cursor. When the view

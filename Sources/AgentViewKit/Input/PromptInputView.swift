@@ -13,7 +13,7 @@ import SwiftUI
 ///
 /// The composer reads the session model of the environment
 /// (``SwiftUI/EnvironmentValues/sessionModel``) and calls its methods
-/// directly (update.md §4.2 "Prompt helper", §4.7 "Composer"). A submit sends
+/// directly (plan.md §3.2 "Prompt helper", §3.8 "Composer"). A submit sends
 /// the text as `session/prompt` with `SessionModel.prompt(_:meta:)`, clears
 /// the text, and then calls `onSubmit`. A submit does nothing while the text
 /// is blank, or while the environment has no session model.
@@ -39,7 +39,7 @@ import SwiftUI
 /// the Stop control. The editor gets `SessionModel.availableCommands` as
 /// ``PromptEditorContext/commands``. With no session model, the editor gets
 /// `nil`: no command menu. While `SessionModel.isClosed` is true, the
-/// composer is disabled and a submit sends nothing (update.md §4.7 "Closed
+/// composer is disabled and a submit sends nothing (plan.md §3.8 "Closed
 /// thread"). The composer reads `isClosed` directly and keeps no copy.
 ///
 /// The blocks of a prompt and the attachment chips follow the prompt
@@ -142,7 +142,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   }
 
   /// Whether the session model of the environment is closed, so the composer
-  /// sends nothing (update.md §4.7 "Closed thread"). The value reads
+  /// sends nothing (plan.md §3.8 "Closed thread"). The value reads
   /// `SessionModel.isClosed` directly.
   private var isSessionClosed: Bool {
     session?.isClosed == true

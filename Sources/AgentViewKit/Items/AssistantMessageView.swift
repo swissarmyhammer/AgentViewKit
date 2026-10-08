@@ -7,8 +7,8 @@ import SwiftUI
 /// the ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry
 /// object.
 ///
-/// The view shows an `AgentMessageEntry` of a `SessionModel` (update.md
-/// §4.2). The view reads the content of the entry, so a streamed chunk
+/// The view shows an `AgentMessageEntry` of a `SessionModel` (plan.md
+/// §3.2). The view reads the content of the entry, so a streamed chunk
 /// evaluates only this view. The view shows the text as the entry holds it,
 /// with the same look while the agent runs and after it stops. Only the views
 /// that read `agentState` show that the agent works.

@@ -2,7 +2,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The shared body of ``UserMessageView`` and ``AssistantMessageView`` for a
-/// transcript entry of a `SessionModel` (update.md §4.2).
+/// transcript entry of a `SessionModel` (plan.md §3.2).
 ///
 /// The view shows the ACP content blocks of the entry in a
 /// ``MessageLayout``, keyed by the

@@ -6,7 +6,7 @@ import OSLog
 nonisolated private let configChoicesLogger = Logger(subsystem: "AgentViewKit", category: "ConfigOptions")
 
 /// The values that the user can select for a select config option
-/// (update.md §4.2 "Last-value state").
+/// (plan.md §3.2 "Last-value state").
 ///
 /// The ACP v2 `SessionConfigSelectOptions` is a flat list or a list of
 /// groups. FoundationModelsACP gives it as a raw JSON value, so

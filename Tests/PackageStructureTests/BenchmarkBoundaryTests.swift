@@ -2,7 +2,7 @@ import Foundation
 import PackageFileSupport
 import Testing
 
-/// The import boundary of the `Benchmarks/` package (update.md §7 item 2).
+/// The import boundary of the `Benchmarks/` package (plan.md §8, §14 R4).
 ///
 /// The kit is an ACP client kit. The benchmarks measure the kit, so they must
 /// not use the FoundationModels framework or the FoundationModels adapter of

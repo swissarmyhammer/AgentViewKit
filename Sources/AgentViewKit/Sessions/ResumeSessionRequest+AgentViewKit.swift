@@ -1,7 +1,7 @@
 import FoundationModelsACP
 
 extension ResumeSessionRequest {
-  /// Makes the `session/resume` request that a kit view sends (update.md §4.7
+  /// Makes the `session/resume` request that a kit view sends (plan.md §3.8
   /// "Resume").
   ///
   /// ACP v2 requires a resume to send the same `cwd` and the full list of

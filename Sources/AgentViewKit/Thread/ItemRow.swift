@@ -1,8 +1,8 @@
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The row of one transcript entry (plan.md §3.6, §8;
-/// update.md §4.2).
+/// The row of one transcript entry (plan.md §3.2, §3.6,
+/// §8).
 ///
 /// A row of a `TranscriptEntry` switches over the entry case. For each case,
 /// it shows the override of the environment when there is one (see

@@ -2,7 +2,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The consent card of a URL mode pending elicitation of a client model
-/// (plan.md §13.3, §13.4; update.md §4.2 "Pending requests").
+/// (plan.md §3.2 "Pending requests", §13.3, §13.4).
 ///
 /// The card names the agent, shows the message, and shows the full URL of the
 /// pending elicitation (`PendingElicitation.url`) with the host in bold

@@ -1,5 +1,5 @@
 /// A string identifier that is typed by the thing that it identifies
-/// (plan.md §3.2).
+/// (`Docs/decisions/acp-client-kit.md`, section "ACP values in the views").
 ///
 /// The `Tag` type is not stored. It makes two identifier types different,
 /// so that the compiler stops an ``AttachmentID`` where a ``ToolToggleID``

@@ -5,8 +5,8 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// The slash command menu of the composer over a `SessionModel` (update.md
-/// §4.2 "Last-value state", §4.4 "Commands not reported", §5).
+/// The slash command menu of the composer over a `SessionModel` (plan.md
+/// §3.2 "Last-value state", §3.7 `Commands "not reported"`).
 ///
 /// Each test shows a composer with the EditorKit editor. The composer reads
 /// the session model from the environment. The scripted agent sets the

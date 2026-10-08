@@ -4,7 +4,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-/// The text key of the row of a transcript entry (update.md §4.2 "Row
+/// The text key of the row of a transcript entry (plan.md §3.2 "Row
 /// identity").
 @Suite struct TranscriptRowKeyTests {
   @Test func aThoughtAndAnAgentMessageWithOneMessageIDHaveTwoKeys() {

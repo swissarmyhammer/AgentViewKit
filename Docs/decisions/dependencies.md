@@ -1,6 +1,6 @@
 # Dependencies
 
-Status: decided. Source: plan.md §4, update.md §1 and §3, and
+Status: decided. Source: plan.md §1, §4 and §11 decision 1, and
 `Docs/decisions/acp-client-kit.md`.
 
 This file records each direct package dependency, its version requirement,
@@ -60,8 +60,8 @@ of each row, and compares the set with the direct dependencies of the kit.
 | `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `FoundationModelsACP`, `FoundationModelsACPClient` |
 
 `AgentViewKit` is the one library target and the one library product
-(update.md §3, D4).
+(plan.md §11 decision 1).
 
 `Tests/PackageStructureTests/ImportBoundaryTests.swift` enforces the
 forbidden list: no target in `Sources/` imports `FoundationModels`,
-`FoundationModelsRouter` or `FoundationModelsExtras` (update.md §3, D4).
+`FoundationModelsRouter` or `FoundationModelsExtras` (plan.md §11 decision 1).

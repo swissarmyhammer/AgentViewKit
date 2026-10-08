@@ -2,8 +2,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The config option requests of a session model (update.md §4.2 "Other
-/// requests", §4.3 `setConfigOption(_:)`).
+/// The config option requests of a session model (plan.md §3.2 "Other
+/// requests").
 extension SessionModel {
   /// The ACP method of the set-config-option request.
   private static let setConfigOptionMethod = "session/set_config_option"

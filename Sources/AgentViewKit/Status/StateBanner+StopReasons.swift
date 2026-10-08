@@ -6,7 +6,7 @@ extension StateBanner {
   public static let unknownStopReasonIdentifier = "state-banner-stop-reason-unknown"
 
   /// The text of the bar for each extension stop reason that the kit knows
-  /// (update.md §9.2).
+  /// (plan.md §3.8 "Agent state and stop reasons").
   ///
   /// The key is the raw wire value of the stop reason. The FoundationModels
   /// ACP agent sends these values (`PromptExecution`). An ACP extension value

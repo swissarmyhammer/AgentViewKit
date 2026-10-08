@@ -2,8 +2,8 @@ import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
-/// A terminal that the agent owns, with its output (plan.md §9 C; update.md
-/// §4.7 "Terminal view").
+/// A terminal that the agent owns, with its output (plan.md §3.8
+/// "Terminal view", §9 C).
 ///
 /// The view shows a `TerminalEntry` of a `SessionModel`. It reads the entry
 /// object, so a change to the object updates the view. The view shows the
@@ -121,7 +121,7 @@ public struct TerminalView: View {
 
   @Environment(\.agentTheme) private var theme
 
-  /// Makes the view of a terminal entry of a `SessionModel` (update.md §4.7
+  /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
   /// "Terminal view").
   ///
   /// The view shows the computed `text` of the entry.

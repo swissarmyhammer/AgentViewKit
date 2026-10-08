@@ -10,7 +10,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 
 /// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
-/// tests (update.md §4.2).
+/// tests (plan.md §3.2).
 ///
 /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``
 /// connects a `ConnectionModel` to the agent over an `InMemoryTransport`

@@ -2,6 +2,11 @@
 
 Not current. See `Docs/decisions/acp-client-kit.md`.
 
+The kit has no thread actions now. Each view calls the methods of
+`ConnectionModel` and `SessionModel` directly, and the host gives only the
+two hooks of the section "Host hooks" of that record. This file keeps the
+earlier decision as a record.
+
 Date: 2026-09-19
 
 ## Decision

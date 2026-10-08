@@ -2,7 +2,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The banners of the notices of a `SessionModel` (update.md §4.3
+/// The banners of the notices of a `SessionModel` (plan.md §3.2
 /// "Notices"; the owner decision of 2026-10-04 in
 /// `Docs/decisions/acp-client-kit.md`).
 ///

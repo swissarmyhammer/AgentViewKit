@@ -1,8 +1,8 @@
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The banner of the connection state of a `ConnectionModel` (update.md §4.3
-/// "The connection state", §4.7 "Connection banner", §9.4).
+/// The banner of the connection state of a `ConnectionModel` (plan.md §3.3
+/// "The connection state", §3.8 "Connection banner").
 ///
 /// The body reads `ConnectionModel.state` directly, and keeps no copy of it.
 /// When the transport closes, the model changes its state, and the banner

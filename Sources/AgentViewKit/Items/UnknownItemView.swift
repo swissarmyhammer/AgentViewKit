@@ -3,7 +3,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The default view of a transcript entry or a content block that the kit
-/// does not know (plan.md §9 A2; update.md §4.4 "Unknown updates stay visible").
+/// does not know (plan.md §3.7 "Unknown updates stay visible", §9 A2).
 ///
 /// The view is a collapsible block. Its title holds the raw kind, and its
 /// body is the raw value as pretty-printed JSON. The kit shows the value and

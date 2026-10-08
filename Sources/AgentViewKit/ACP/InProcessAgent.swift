@@ -3,7 +3,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 
 /// Runs an ACP agent in the process of the host, and connects a
-/// `ConnectionModel` to it (update.md §8 item 4).
+/// `ConnectionModel` to it (plan.md §3.9).
 ///
 /// The helper pairs `InMemoryTransport.pair()`. It gives one end to an
 /// `AgentSideConnection` that serves the `Agent` of the host, and connects a

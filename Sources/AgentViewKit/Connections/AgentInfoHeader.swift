@@ -1,8 +1,8 @@
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The header that names the agent of a `ConnectionModel` (update.md §4.3
-/// "Initialize and auth", §9.4).
+/// The header that names the agent of a `ConnectionModel` (plan.md §3.3
+/// "Initialize and auth", §3.8 "Connection banner").
 ///
 /// The body reads `ConnectionModel.initializeResponse` directly, and keeps no
 /// copy of it. The agent sends its name and its version in the `info` member

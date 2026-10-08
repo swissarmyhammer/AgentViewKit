@@ -20,7 +20,7 @@ import SwiftUI
 /// ``SwiftUI/EnvironmentValues/sessionModel`` and the submit action from
 /// ``SwiftUI/EnvironmentValues/promptSubmitAction``. The Stop button shows
 /// while the `agentState` of the session model is `running`, and it sends
-/// `session/cancel` with `SessionModel.cancel(meta:)` (update.md §4.2 "Other
+/// `session/cancel` with `SessionModel.cancel(meta:)` (plan.md §3.2 "Other
 /// requests"). The
 /// attachment chips come in their own task. This row has no control for them
 /// yet.

@@ -3,7 +3,7 @@ import FoundationModelsACPClient
 
 extension SessionModel {
   /// Adds an error entry for a failed request that the model did not record
-  /// (update.md §4.2 "Other requests", §4.7 "Error rows").
+  /// (plan.md §3.2 "Other requests", §3.8 "Error rows").
   ///
   /// `prompt(_:meta:)` records its own failure. Use this function for each
   /// other request of the kit that fails, for example `session/cancel`,

@@ -7,7 +7,7 @@ import Testing
 /// The test reads `Package.swift` as text. The manifest spells each library
 /// product and each dependency product in full, so the text is the contract.
 @Suite struct ManifestTests {
-  /// The one library product of the package (update.md §3, D4).
+  /// The one library product of the package (plan.md §11 decision 1).
   static let libraryProduct = "AgentViewKit"
 
   /// The ACP products that the `AgentViewKit` target links.
@@ -16,7 +16,7 @@ import Testing
     "FoundationModelsACPClient",
   ]
 
-  /// The packages that the kit does not depend on directly (update.md §1).
+  /// The packages that the kit does not depend on directly (plan.md §1).
   ///
   /// A Router agent reaches the kit through FoundationModelsACPAgent and ACP.
   /// FoundationModelsExtras stays in the package graph only as a dependency of

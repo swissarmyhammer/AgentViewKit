@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# The benchmark gate of plan.md §8 (update.md §7 item 2).
+# The benchmark gate of plan.md §8 and §14 R4.
 #
 # The script runs each scenario of the `Benchmarks/` package, and compares
 # the run with the committed baseline `main`. Each benchmark declares its

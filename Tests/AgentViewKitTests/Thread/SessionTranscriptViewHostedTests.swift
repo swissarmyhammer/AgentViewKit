@@ -6,8 +6,8 @@
   import SwiftUI
   import Testing
 
-  /// The thread view over the transcript of a `SessionModel` (update.md §4.2,
-  /// §4.7 "Row identity").
+  /// The thread view over the transcript of a `SessionModel` (plan.md §3.2,
+  /// §3.8 "Row identity").
   @Suite(.serialized, .hostedSerially) @MainActor struct SessionTranscriptViewHostedTests {
     /// The longest time that a test waits for a change, in seconds.
     static let waitTimeout: TimeInterval = 5

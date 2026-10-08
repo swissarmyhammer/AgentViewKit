@@ -148,7 +148,7 @@ import Testing
   }
 
   /// `TerminalEntry.text` is already decoded text, so the parser reads a
-  /// string with no byte decode (update.md §4.4).
+  /// string with no byte decode (plan.md §3.7 "Terminals").
   @Test func textThatIsAlreadyDecodedGivesTheSameRunsAsItsBytes() {
     let text = "\(Self.escape)[31mred\(Self.escape)[0m plain"
 

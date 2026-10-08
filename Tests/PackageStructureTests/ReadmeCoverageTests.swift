@@ -110,7 +110,7 @@ import Testing
   }
 
   /// The names of the quick start snippets of the README: the ACP client
-  /// and the in-process agent (update.md §7 item 4).
+  /// and the in-process agent (plan.md §1).
   static let quickStartNames: Set = ["ACPQuickStart", "InProcessQuickStart"]
 
   /// The symbols of the thread path that no Swift block of the README uses.

@@ -2,8 +2,8 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The view that shows the pending requests of a client model
-/// (update.md §3 D7, §4.2 "Pending requests", §4.3 "Request-scoped
-/// elicitations", §4.6 item 3).
+/// (plan.md §3.2 "Pending requests", §3.3 "Request-scoped elicitations",
+/// §11 decision 4).
 ///
 /// The host keeps no copy of the requests. It reads them from the model in
 /// each body, and the model removes a request when it resolves.

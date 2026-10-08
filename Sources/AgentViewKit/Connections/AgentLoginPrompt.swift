@@ -2,7 +2,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The login card that a thread shows when the agent requires
-/// authentication (update.md §9.4 "Error `-32000` does not start a login").
+/// authentication (plan.md §3.8 "Login on error `-32000`").
 ///
 /// The view binds directly to `ConnectionModel.authState`. The model sets
 /// `.required(authMethods)` from the `initialize` answer, after a logout, and

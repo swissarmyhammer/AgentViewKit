@@ -128,7 +128,7 @@ extension KeyedViewRegistry where Key == UTType, Value == URL {
 // MARK: - Tool call registry
 
 /// The body views of tool calls, keyed by the program name of the tool
-/// (update.md §5 `ToolCallUpdate.name`).
+/// (plan.md §3.8 "Tool call view").
 ///
 /// Register a view with ``SwiftUI/View/toolCallView(named:_:)``. The view
 /// function gets the `ToolCallEntry` of the call. ``ToolCallView`` shows the

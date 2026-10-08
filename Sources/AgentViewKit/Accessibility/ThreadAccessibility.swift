@@ -258,7 +258,7 @@ private struct ReadingGroupModifier: ViewModifier {
 // MARK: - Announcements
 
 /// The view that tells the ``SwiftUI/EnvironmentValues/announcer`` about the
-/// boundaries of a session model (update.md §4.2).
+/// boundaries of a session model (plan.md §3.2).
 ///
 /// The view reads the observable values of the client models directly, and
 /// keeps no state of its own. Each announcement reacts to one change of a

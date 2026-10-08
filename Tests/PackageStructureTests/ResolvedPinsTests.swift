@@ -3,7 +3,7 @@ import PackageFileSupport
 import Testing
 
 /// Holds the pins of the in-family ACP packages equal in the three
-/// `Package.resolved` files (update.md §7 item 3).
+/// `Package.resolved` files (`Docs/decisions/dependencies.md`).
 ///
 /// The root package, the benchmark package and the demo Xcode project each
 /// resolve their dependencies. When one file pins another revision, the demo

@@ -2,8 +2,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The default view of an `ErrorEntry` of a `SessionModel` (plan.md §9 A2;
-/// update.md §4.7 "Error rows").
+/// The default view of an `ErrorEntry` of a `SessionModel` (plan.md §3.8
+/// "Error rows", §9 A2).
 ///
 /// The view is a glass card with a symbol, a title, and a detail with the
 /// JSON-RPC code and the message of the entry. When the entry has `data`, the

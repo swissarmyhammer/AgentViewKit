@@ -2,7 +2,7 @@
 
 This package measures the streaming path of plan.md §8: the cost of the
 transcript view when many chunks stream into one agent message of a
-`SessionModel` (update.md §7 item 2). It records the numbers as a committed
+`SessionModel` (plan.md §8, §14 R4). It records the numbers as a committed
 baseline, and `Scripts/check-benchmarks.sh` fails when a change makes the path
 slower than the baseline permits.
 
@@ -59,7 +59,7 @@ transcript of 10 rows evaluate the row of that message only.
 The package has no observation benchmark of FoundationModels. The observation
 benchmarks of research R4 measured a FoundationModels stream through
 `SessionThreadSource`. The kit is an ACP client kit, so these benchmarks and
-their baselines went with the FoundationModels adapter (update.md §7 item 2).
+their baselines went with the FoundationModels adapter (plan.md §8, §14 R4).
 
 ### The boundary
 

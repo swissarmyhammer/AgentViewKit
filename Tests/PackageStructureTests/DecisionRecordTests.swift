@@ -1,12 +1,15 @@
+import Foundation
 import PackageFileSupport
 import Testing
 
-/// Holds the decision records in step with the ACP client kit scope
-/// (update.md §10, items 2, 4 and 7).
+/// Holds the documents in step with the ACP client kit scope
+/// (`Docs/decisions/acp-client-kit.md`).
 ///
-/// The record `acp-client-kit.md` gives the scope. The dependency record
-/// lists only the direct dependencies of the kit. Each record that the new
-/// scope replaces has one line that points to the new record.
+/// The record `acp-client-kit.md` gives the scope and the binding rule. The
+/// dependency record lists only the direct dependencies of the kit. Each
+/// record that the new scope replaces has one line that points to the new
+/// record. `plan.md`, `README.md` and each current record name no removed part
+/// of the kit. No file cites the deleted update plan.
 @Suite struct DecisionRecordTests {
   /// The record of the scope, relative to the package root.
   static let clientKitRecordPath = "Docs/decisions/acp-client-kit.md"
@@ -60,6 +63,75 @@ import Testing
   /// The name of the removed source that no attachment row can name.
   static let removedSource = "Router"
 
+  /// The heading of the section of the scope record that gives the binding
+  /// rule of the views.
+  static let bindingRuleHeading = "## Binding rule"
+
+  /// The directory of the decision records, relative to the package root.
+  static let decisionsPath = "Docs/decisions"
+
+  /// The file extension of a decision record.
+  static let recordExtension = "md"
+
+  /// The documents that describe the kit as it is now, other than the
+  /// current decision records.
+  static let documentPaths = ["plan.md", "README.md"]
+
+  /// The removed parts of the kit that no current document names as a word:
+  /// the kit session model, the two removed targets, the kit turn grouping
+  /// and the kit stream copy. The views bind to the client models directly.
+  static let removedPartNames = [
+    "AgentThread", "AgentViewKitRouter", "AgentViewKitFoundationModels", "TurnSummary", "StreamingMessage",
+  ]
+
+  /// The update plan that the documents task deleted. Its content is now in
+  /// `plan.md` §3 and in the decision records.
+  static let updatePlanPath = "update.md"
+
+  /// The directories whose Swift files cite no deleted update plan.
+  ///
+  /// `Tests/PackageStructureTests` is not in the list, because this suite
+  /// names the file in ``updatePlanPath``.
+  static let updatePlanScanDirectories = RemovedVocabularyTests.swiftPaths + ["Benchmarks/Benchmarks"]
+
+  /// The text files other than the documents and the records that cite no
+  /// deleted update plan: the manifests, the scripts and the benchmark
+  /// README.
+  static let updatePlanScanFiles = [
+    "Package.swift", "Benchmarks/Package.swift", "Benchmarks/README.md", "Scripts/check-benchmarks.sh",
+    "Scripts/check-readme.sh", "Scripts/extract-readme-snippets.sh", "Scripts/test-examples.sh",
+  ]
+
+  /// The path of each decision record, relative to the package root, in name
+  /// order.
+  ///
+  /// - Returns: The paths of the Markdown files in ``decisionsPath``.
+  /// - Throws: The error of the read when the directory cannot be read.
+  static func recordPaths() throws -> [String] {
+    try FileManager.default.contentsOfDirectory(atPath: PackageFiles.file(decisionsPath).path(percentEncoded: false))
+      .filter { $0.hasSuffix(".\(recordExtension)") }
+      .sorted()
+      .map { "\(decisionsPath)/\($0)" }
+  }
+
+  /// Tells whether a record is marked as not current.
+  ///
+  /// - Parameter path: The path of the record, relative to the package root.
+  /// - Returns: `true` when a line of the record is ``notCurrentLine``.
+  /// - Throws: The error of the read when the record cannot be read.
+  static func isNotCurrent(_ path: String) throws -> Bool {
+    try PackageFiles.text(of: path).split(separator: "\n").contains { $0 == notCurrentLine }
+  }
+
+  /// The documents that describe the kit as it is now: ``documentPaths`` and
+  /// each decision record that is not marked as not current.
+  ///
+  /// - Returns: The paths, relative to the package root.
+  /// - Throws: The error of the read when a record cannot be read.
+  static func currentDocumentPaths() throws -> [String] {
+    documentPaths + (try recordPaths().filter { !(try isNotCurrent($0)) })
+  }
+
   /// The package identity in each row of the dependency table.
   ///
   /// - Returns: The first cell of each row, in file order.
@@ -98,9 +170,7 @@ import Testing
 
   @Test(arguments: notCurrentRecordPaths)
   func theOldRecordHasTheNotCurrentLine(path: String) throws {
-    let lines = try PackageFiles.text(of: path).split(separator: "\n").map(String.init)
-
-    #expect(lines.contains(Self.notCurrentLine), "\(path) has no line \"\(Self.notCurrentLine)\"")
+    #expect(try Self.isNotCurrent(path), "\(path) has no line \"\(Self.notCurrentLine)\"")
   }
 
   @Test func theAttachmentTableNamesNoRouterSource() throws {
@@ -109,5 +179,42 @@ import Testing
 
     #expect(!rows.isEmpty)
     #expect(rows.allSatisfy { row in !row.contains { $0.contains(Self.removedSource) } })
+  }
+
+  @Test func theClientKitRecordHasTheBindingRuleSection() throws {
+    let lines = try PackageFiles.text(of: Self.clientKitRecordPath).split(separator: "\n")
+
+    #expect(lines.contains { $0 == Self.bindingRuleHeading })
+  }
+
+  @Test func theCurrentDocumentsIncludeTheScopeRecordAndSkipTheOldRecords() throws {
+    let paths = try Self.currentDocumentPaths()
+
+    #expect(paths.contains(Self.clientKitRecordPath))
+    #expect(Set(paths).isDisjoint(with: Self.notCurrentRecordPaths), "\(paths)")
+    #expect(Set(Self.documentPaths).isSubset(of: paths))
+  }
+
+  @Test func noCurrentDocumentNamesARemovedPart() throws {
+    let found = try Self.currentDocumentPaths().flatMap { path in
+      try RemovedVocabularyTests.uses(of: Self.removedPartNames, inFile: path)
+    }
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func theUpdatePlanIsDeleted() throws {
+    let path = try PackageFiles.file(Self.updatePlanPath).path(percentEncoded: false)
+
+    #expect(!FileManager.default.fileExists(atPath: path))
+  }
+
+  @Test func noFileCitesTheDeletedUpdatePlan() throws {
+    let textFiles = try Self.updatePlanScanFiles + Self.recordPaths() + Self.documentPaths
+    let found =
+      try RemovedVocabularyTests.uses(of: [Self.updatePlanPath], below: Self.updatePlanScanDirectories)
+      + textFiles.flatMap { try RemovedVocabularyTests.uses(of: [Self.updatePlanPath], inFile: $0) }
+
+    #expect(found.isEmpty, "\(found)")
   }
 }

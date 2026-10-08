@@ -9,8 +9,8 @@
   import SwiftUI
   import Testing
 
-  /// The pending request cards over the client models (update.md §3 D7, §4.2
-  /// "Pending requests", §4.3 "Request-scoped elicitations", §4.6 item 3).
+  /// The pending request cards over the client models (plan.md §3.2
+  /// "Pending requests", §3.3 "Request-scoped elicitations", §11 decision 4).
   ///
   /// Each test shows a ``PendingRequestsHost`` over a `SessionModel` or a
   /// `ConnectionModel` of a ``ScriptedSession``. The scripted agent sends the

@@ -3,7 +3,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The in-thread card that asks the user for permission to do an operation
-/// (plan.md §9 E, §12; update.md §4.2 "Pending requests").
+/// (plan.md §3.2 "Pending requests", §9 E, §12).
 ///
 /// The card shows one `PendingPermissionRequest` of a `SessionModel`. It reads
 /// each value from that request and from the session model in its body, and

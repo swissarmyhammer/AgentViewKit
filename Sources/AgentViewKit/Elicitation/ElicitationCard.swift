@@ -3,8 +3,8 @@ import FoundationModelsACPClient
 import OSLog
 import SwiftUI
 
-/// The card of one pending elicitation of a client model (plan.md §13.2,
-/// §13.3; update.md §4.2 "Pending requests").
+/// The card of one pending elicitation of a client model (plan.md §3.2
+/// "Pending requests", §13.2, §13.3).
 ///
 /// The card is an ``ElicitationView`` for a form mode request, or an
 /// ``ElicitationURLConsentView`` for a URL mode request.

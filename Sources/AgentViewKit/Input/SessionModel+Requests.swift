@@ -7,8 +7,8 @@ import OSLog
 private let sessionRequestLogger = Logger(subsystem: "AgentViewKit", category: "SessionModel")
 
 /// The composer requests of a session model, and the shared start of the
-/// other requests that a kit view sends (update.md §4.2 "Prompt helper",
-/// "Other requests", §4.7 "Composer").
+/// other requests that a kit view sends (plan.md §3.2 "Prompt helper",
+/// "Other requests", §3.8 "Composer").
 extension SessionModel {
   /// Sends `input` as `session/prompt` with `prompt(_:meta:)`, and returns
   /// when the prompt returns.

@@ -1,7 +1,7 @@
 import FoundationModelsACP
 
 /// The `session/update` values of a prompt with background runs, in send
-/// order, for the view tests (update.md §9.3).
+/// order, for the view tests (plan.md §3.8 "Background runs").
 ///
 /// The agent reports `running` and streams one answer in chunks. Then it
 /// reports two background tool calls, sends one full agent message with a new

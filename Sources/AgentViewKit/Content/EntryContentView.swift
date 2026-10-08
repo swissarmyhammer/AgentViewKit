@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The content blocks of one transcript entry of a `SessionModel`, such as the
 /// content of an agent message, of a thought, or the summary of a compaction
-/// (update.md §4.2).
+/// (plan.md §3.2).
 ///
 /// The view gets the ACP blocks as the entry holds them, and it keeps no copy.
 /// Each evaluation joins the adjacent text chunks again

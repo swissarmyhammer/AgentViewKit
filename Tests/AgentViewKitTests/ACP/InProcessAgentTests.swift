@@ -6,7 +6,7 @@ import FoundationModelsACPClient
 import Testing
 
 /// Tests of ``InProcessAgent``: the helper connects a `ConnectionModel` to an
-/// ACP agent that runs in the process of the host (update.md §8 item 4).
+/// ACP agent that runs in the process of the host (plan.md §3.9).
 ///
 /// The agent is ``InMemoryDemoACPAgent``, the `Agent` form of the in-memory
 /// demo agent. Each test reads the state of the returned `ConnectionModel`

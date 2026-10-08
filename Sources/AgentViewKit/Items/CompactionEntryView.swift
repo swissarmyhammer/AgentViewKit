@@ -2,7 +2,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The row of a context compaction of a `SessionModel` (update.md §4.2; the
+/// The row of a context compaction of a `SessionModel` (plan.md §3.2; the
 /// owner decision of 2026-10-04 in `Docs/decisions/acp-client-kit.md`).
 ///
 /// A compaction changes only the model context of the agent. The transcript

@@ -2,7 +2,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The reasoning of the agent, as a collapsible block (plan.md §5, §9 B):
-/// the view of a `ThoughtEntry` of a `SessionModel` (update.md §4.2).
+/// the view of a `ThoughtEntry` of a `SessionModel` (plan.md §3.2).
 ///
 /// The block has the complete look: the title is "Thought". The session
 /// model does not tell whether a thought is in progress, so the view shows

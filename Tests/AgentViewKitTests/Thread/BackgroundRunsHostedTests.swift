@@ -9,7 +9,7 @@
   import Testing
 
   /// The thread view over a session model while the agent ends its background
-  /// runs after the streamed answer (update.md §9.3).
+  /// runs after the streamed answer (plan.md §3.8 "Background runs").
   ///
   /// The kit keeps no state for this order. Each row and the state banner
   /// show only what the session model reports.

@@ -5,7 +5,7 @@ import Testing
 
 /// Tests of `ResumeSessionRequest.makeAgentViewKitRequest(sessionId:cwd:additionalDirectories:replayFrom:)`:
 /// the one `session/resume` request that the Reload button and the session
-/// picker send (update.md §4.7 "Resume").
+/// picker send (plan.md §3.8 "Resume").
 @Suite struct ResumeSessionRequestTests {
   /// The session that the requests resume.
   static let sessionId = SessionId(rawValue: "session-1")

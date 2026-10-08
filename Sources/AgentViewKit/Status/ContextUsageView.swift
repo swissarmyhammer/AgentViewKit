@@ -2,7 +2,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The context window use of a session, with its cost (update.md §4.2
+/// The context window use of a session, with its cost (plan.md §3.2
 /// "Last-value state").
 ///
 /// The view reads `SessionModel.usage`, the last `usage_update` of the

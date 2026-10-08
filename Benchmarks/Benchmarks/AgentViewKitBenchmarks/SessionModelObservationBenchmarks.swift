@@ -1,7 +1,7 @@
 //
 // SessionModelObservationBenchmarks: the cost of the transcript view when
-// 1,000 chunks stream into one agent message of a `SessionModel` (update.md
-// §7 item 2).
+// 1,000 chunks stream into one agent message of a `SessionModel` (plan.md
+// §8, §14 R4).
 //
 // Each iteration opens a `SessionModel` over the scripted agent of the root
 // package (`ScriptedSession`), and hosts `AgentThreadView` over the model in

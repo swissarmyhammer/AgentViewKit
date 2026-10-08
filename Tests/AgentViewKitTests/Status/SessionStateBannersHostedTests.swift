@@ -7,8 +7,9 @@
   import SwiftUI
   import Testing
 
-  /// The state banners of a `SessionModel` (update.md §4.2 `agentState`, §4.7
-  /// "Agent state", "Resume", "Missed updates", "Closed thread", §9.2).
+  /// The state banners of a `SessionModel` (plan.md §3.2 `agentState`, §3.8
+  /// "Agent state and stop reasons", "Resume", "Missed updates", "Closed
+  /// thread").
   ///
   /// Each test shows the thread of a scripted session and a composer below it.
   /// The banners read the model directly, so the scripted agent changes the

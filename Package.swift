@@ -2,7 +2,7 @@
 //
 // AgentViewKit: a SwiftUI agent UI component library (plan.md).
 //
-// update.md §3, D4: one library product and one library target. The
+// plan.md §11 decision 1: one library product and one library target. The
 // `AgentViewKit` target holds the views and the ACP helpers in
 // `Sources/AgentViewKit/ACP/`. The views bind directly to the models of
 // FoundationModelsACPClient. The target links FoundationModelsACP and
@@ -11,7 +11,7 @@
 // The kit is an ACP client kit. It does not depend on FoundationModels,
 // FoundationModelsRouter or FoundationModelsExtras. A FoundationModels agent
 // and a Router agent reach the kit through FoundationModelsACPAgent and ACP
-// (update.md §1).
+// (plan.md §1).
 //
 // PackageStructureTests reads this file as text. Spell each library product
 // and each dependency product in full, as `.library(name:` and
@@ -48,7 +48,7 @@ let editorKitProducts: [Target.Dependency] = [
 ]
 
 /// The ACP products: the wire types and the client connection. The kit
-/// target links them directly (update.md §3, D4).
+/// target links them directly (plan.md §11 decision 1).
 let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
@@ -114,7 +114,7 @@ let package = Package(
     // (`DemoAgent`), and the launch options of the demo app. The ACP tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
     // sources into the app. The target is not a product, because the package
-    // has exactly one library product (update.md §3, D4).
+    // has exactly one library product (plan.md §11 decision 1).
     .target(
       name: "DemoSupport",
       dependencies: ["AgentViewKit"] + acpProducts,

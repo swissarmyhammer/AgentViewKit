@@ -1,8 +1,8 @@
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The view of the transcript of a `SessionModel` (plan.md §3.6, §8, §9 A;
-/// update.md §4.2, §4.7).
+/// The view of the transcript of a `SessionModel` (plan.md §3.2, §3.6,
+/// §3.8, §8, §9 A).
 ///
 /// The view shows the transcript in a ``ConversationView``, in a lazy stack
 /// that follows the bottom. The conversation keys each row on
@@ -83,7 +83,7 @@ public struct AgentThreadView: View {
   /// Makes the view of the transcript of a session model.
   ///
   /// When the host gives the connection model of the session, the view
-  /// closes the session when the view goes away (update.md §8 item 2): it
+  /// closes the session when the view goes away (plan.md §3.8 "Close"): it
   /// calls `ConnectionModel.close(_:)` when `canCloseSessions` is true and
   /// the session is not closed. A close that fails adds an error entry to
   /// the transcript of the session.
