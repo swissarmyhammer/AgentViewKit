@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4cwekdpzeb9bk2m5rwyn5th
+  text: 'Upstream task made on the FoundationModelsACPClient board: ^xz6sdn0 "AgentProcess: environment and working directory parameters, and the exit status". The client session had ended, so the task was written with the kanban CLI in the client repository. This task stays blocked-upstream until ^xz6sdn0 is pushed.'
+  timestamp: 2026-10-08T04:30:54.390953+00:00
 position_column: todo
 position_ordinal: bc80
 title: Ask FoundationModelsACPClient for the environment, the working directory and the exit status of AgentProcess

@@ -32,20 +32,25 @@ import Testing
   /// The wire value of the HTTP transport.
   static let httpTransport = "http"
 
+  /// The name of a server that the agent reports with no transport.
+  static let unknownTransportName = "remote"
+
   /// Makes the JSON text of one `_mcp_server_status` session update.
   ///
   /// - Parameters:
   ///   - name: The name of the server.
-  ///   - transport: The wire value of the transport: `stdio` or `http`.
+  ///   - transport: The wire value of the transport: `stdio` or `http`, or
+  ///     `nil` for an update with no `transport` member.
   ///   - status: The wire value of the status.
   ///   - reason: The reason of a `failed` status, or `nil` for no reason.
   /// - Returns: The JSON text of the update.
   static func makeStatusUpdate(
-    name: String, transport: String, status: String, reason: String? = nil
+    name: String, transport: String?, status: String, reason: String? = nil
   ) -> String {
+    let transportMember = transport.map { #""transport":"\#($0)","# } ?? ""
     let reasonMember = reason.map { #","reason":"\#($0)""# } ?? ""
     return #"""
-      {"sessionUpdate":"_mcp_server_status","name":"\#(name)","transport":"\#(transport)",\#
+      {"sessionUpdate":"_mcp_server_status","name":"\#(name)",\#(transportMember)\#
       "origin":"client","status":"\#(status)"\#(reasonMember)}
       """#
   }
@@ -162,5 +167,20 @@ import Testing
     #expect(names.map { harness.element(identifier: ConnectionRow.identifier(for: $0))?.label } == names)
     let transports = names.map { harness.element(identifier: ConnectionRow.transportIdentifier(for: $0))?.label }
     #expect(transports == ["HTTP", "stdio"])
+  }
+
+  @Test func aServerWithNoTransportShowsItsRowWithNoTransportText() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mount(session: session)
+    defer { harness.close() }
+    let rowIdentifier = ConnectionRow.identifier(for: Self.unknownTransportName)
+
+    try await session.sendUpdate(
+      Self.makeStatusUpdate(name: Self.unknownTransportName, transport: nil, status: "connected"))
+    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: rowIdentifier) != nil }
+
+    #expect(harness.element(identifier: rowIdentifier)?.label == Self.unknownTransportName)
+    #expect(harness.element(identifier: ConnectionRow.transportIdentifier(for: Self.unknownTransportName)) == nil)
   }
 }

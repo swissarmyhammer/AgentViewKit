@@ -91,6 +91,27 @@ import Testing
   /// The title that the card shows for a failed terminal sign-in.
   static let terminalFailureTitle = "Terminal sign-in failed"
 
+  /// The title that the card shows for a failed sign-in.
+  static let signInFailureTitle = "Sign-in failed"
+
+  /// The title that the card shows for a failed sign-out.
+  static let signOutFailureTitle = "Sign-out failed"
+
+  /// The id of a method that the agent does not list.
+  static let unlistedMethodID = AuthMethodId(rawValue: "unlisted-login")
+
+  /// The text that the client model gives for an auth operation that the
+  /// agent does not advertise.
+  static let unsupportedFailureText = "The agent cannot do this authentication operation."
+
+  /// The texts that the card shows for a failure in `authState`.
+  struct FailureTexts: Equatable {
+    /// The label of the failure title, or `nil` when the card shows none.
+    let title: String?
+    /// The label of the failure text, or `nil` when the card shows none.
+    let text: String?
+  }
+
   /// The error of a runner that cannot start the agent program.
   nonisolated struct LaunchError: Error, CustomStringConvertible {
     /// The text of the error: ``AgentAuthViewHostedTests/launchErrorText``.
@@ -211,6 +232,34 @@ import Testing
       title: harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label,
       text: harness.element(identifier: AgentAuthView.failureIdentifier)?.label,
       showsReconnectText: harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil)
+  }
+
+  /// Shows the card of `session`, runs an auth call that the agent does not
+  /// advertise, and waits until the card shows a failure.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session of the card.
+  ///   - error: The error that `call` must throw.
+  ///   - call: The auth call on the connection model of `session`.
+  /// - Returns: The texts of the failure that the card shows.
+  static func runUnsupportedCall(
+    in session: ScriptedSession,
+    expecting error: ConnectionModelError,
+    call: @MainActor (ConnectionModel) async throws -> Void
+  ) async -> FailureTexts {
+    let harness = Self.harness(session)
+    defer { harness.close() }
+    harness.pump()
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
+
+    await #expect(throws: error) { try await call(session.connection) }
+    await harness.pump(until: waitTimeout) {
+      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
+    }
+
+    return FailureTexts(
+      title: harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label,
+      text: harness.element(identifier: AgentAuthView.failureIdentifier)?.label)
   }
 
   /// The failure state of a terminal sign-in that ended with `reason`.
@@ -427,8 +476,47 @@ import Testing
     }
 
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier)?.label == Self.scriptedErrorMessage)
-    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Sign-out failed")
+    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == Self.signOutFailureTitle)
     #expect(session.model.transcript.isEmpty)
     #expect(harness.element(identifier: AgentAuthView.signOutIdentifier)?.isEnabled == true)
+  }
+
+  // MARK: - Unsupported operations
+
+  @Test func aLoginWithAnUnlistedMethodShowsTheUnsupportedFailureText() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+
+    let failure = await Self.runUnsupportedCall(
+      in: session, expecting: .unsupported(method: ConnectionModelViewsHostedTests.loginMethod)
+    ) { try await $0.login(LoginAuthRequest(methodId: Self.unlistedMethodID)) }
+
+    #expect(failure == FailureTexts(title: Self.signInFailureTitle, text: Self.unsupportedFailureText))
+    #expect(session.agent.messages(method: ConnectionModelViewsHostedTests.loginMethod).isEmpty)
+  }
+
+  @Test func aLogoutThatTheAgentDoesNotServeShowsTheUnsupportedFailureText() async throws {
+    let session = try await Self.openSession(authMethods: Self.noMethods)
+    defer { session.close() }
+
+    let failure = await Self.runUnsupportedCall(
+      in: session, expecting: .unsupported(method: Self.logoutMethod)
+    ) { try await $0.logout(LogoutAuthRequest()) }
+
+    #expect(failure == FailureTexts(title: Self.signOutFailureTitle, text: Self.unsupportedFailureText))
+    #expect(session.agent.messages(method: Self.logoutMethod).isEmpty)
+  }
+
+  @Test func aTerminalLoginWithNoTerminalCapabilityShowsTheUnsupportedFailureText() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let session = try await Self.openSession()
+    defer { session.close() }
+
+    let failure = await Self.runUnsupportedCall(
+      in: session, expecting: .unsupported(method: ConnectionModelError.terminalAuthOperation)
+    ) { try await $0.loginWithTerminal(Self.terminalMethodID, runner: runner) }
+
+    #expect(failure == FailureTexts(title: Self.terminalFailureTitle, text: Self.unsupportedFailureText))
+    #expect(runner.runs.isEmpty)
   }
 }

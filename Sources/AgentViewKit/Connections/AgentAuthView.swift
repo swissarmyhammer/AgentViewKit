@@ -32,7 +32,9 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// - A method type that the kit does not know has no row.
 /// - While `authState` is `.authenticated`, the card shows no method row.
 /// - While `authState` is `.failed(AuthFailure)`, the card shows the
-///   operation that failed and the text of the reason under the rows.
+///   operation that failed and the text of the reason under the rows. The
+///   model also records there a login, a logout or a terminal login that
+///   the agent does not advertise, with the `unsupported` reason.
 /// - While `authState` is `.reconnectRequired`, the card tells the user to
 ///   connect to the agent again. When the
 ///   ``SwiftUI/EnvironmentValues/agentReconnect`` environment value has a
@@ -199,12 +201,14 @@ public struct AgentAuthView: View {
   /// The text of the reason of a failure.
   ///
   /// - Parameter reason: The reason of the failure.
-  /// - Returns: The message of the JSON-RPC error, or the text of the end of
-  ///   the terminal process.
+  /// - Returns: The message of the JSON-RPC error, the text of the end of the
+  ///   terminal process, or the `message` that the client model gives for an
+  ///   operation that the agent does not advertise.
   private static func text(of reason: AuthFailure.Reason) -> String {
     switch reason {
     case .request(let error): error.message
     case .terminal(let exitStatus, let message): terminalText(exitStatus: exitStatus, message: message)
+    case .unsupported: reason.message
     }
   }
 

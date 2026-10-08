@@ -33,14 +33,14 @@ import Testing
 
   /// The revision of each in-family ACP package, keyed by identity.
   ///
-  /// FoundationModelsACPClient `36f3249` has the async `selectPermission` and
-  /// `cancelPermission`, `AuthState.failed(AuthFailure)`, `disconnect()`,
-  /// `ToolCallEntry.toolCallId`, and the MCP server and directory values of
-  /// `SessionModel`. FoundationModelsACP `163f7eb` is the revision that this
-  /// client resolves.
+  /// FoundationModelsACPClient `e1cac1d` records an unsupported login, logout
+  /// or terminal login in `authState` as `AuthFailure.Reason.unsupported`,
+  /// gives the text of each reason in `AuthFailure.Reason.message`, and gives
+  /// an `MCPServerItem` with no transport for a status update that has none.
+  /// FoundationModelsACP `b2cec56` is the revision that this client resolves.
   static let expectedRevisions = [
-    "foundationmodelsacp": "163f7ebbebc5c831319a618cf8ba7edde982e483",
-    "foundationmodelsacpclient": "36f32491217056108554fe1533ce80099a6a6ff8",
+    "foundationmodelsacp": "b2cec56fc42cd5b1c4e25cfb8fe8773857bbbf65",
+    "foundationmodelsacpclient": "e1cac1d15bde57e2d92d6f8fce62a254978129da",
   ]
 
   /// Tells whether the demo project was generated in this checkout.

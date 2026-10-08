@@ -4,7 +4,8 @@ import SwiftUI
 /// One MCP server in ``ConnectionsView`` (plan.md §12).
 ///
 /// The row shows the `name` and the `transport` of an `MCPServerItem` of
-/// the client model, and a ``ConnectionStatusChip`` with its `status`. The
+/// the client model, and a ``ConnectionStatusChip`` with its `status`. An
+/// item with no `transport` has no transport text. The
 /// row reads the item in its body. Thus a status change of the item shows in
 /// this row with no other step.
 public struct ConnectionRow: View {
@@ -50,10 +51,12 @@ public struct ConnectionRow: View {
         Text(server.name)
           .font(.headline)
           .lineLimit(1)
-        Text(Self.label(for: server.transport))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .accessibilityIdentifier(Self.transportIdentifier(for: server.name))
+        if let transport = server.transport {
+          Text(Self.label(for: transport))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier(Self.transportIdentifier(for: server.name))
+        }
       }
       Spacer(minLength: theme.spacing.s)
       ConnectionStatusChip(status: server.status)

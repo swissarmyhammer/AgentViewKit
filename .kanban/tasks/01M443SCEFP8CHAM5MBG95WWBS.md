@@ -40,12 +40,28 @@ comments:
     - no time-limit failure. No code was changed. Nothing was committed.
     - next: review.
   timestamp: 2026-10-08T04:28:13.845207+00:00
+- actor: claude-code
+  id: 01m4cwmtwpcmcv4ym9d38dngpj
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ae889b0). 0 findings, 0 confirmed, 0 refuted. 15 validator runs, 0 failed. No validator matches the Markdown files (plan.md, README.md, Docs/decisions/*.md, Benchmarks/README.md, update.md). The engine skipped them. Five Swift hygiene rules did not examine Tests/PackageStructureTests/UpdatePlanNamesTests.swift because the commit deletes that file.
+    - next: none. The task is in done.
+  timestamp: 2026-10-08T04:34:18.646659+00:00
+- actor: claude-code
+  id: 01m4cwncj2p7rp7xrcgqvdg0yy
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 108 files (plan.md, README.md, decision records, comments that cited update.md, DecisionRecordTests; update.md deleted); new tasks ^808vyvy, ^ma57bws
+    - test: green — swift test 1021 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed
+    - commit: ae889b0
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-08T04:34:36.738903+00:00
 depends_on:
 - 01M44449VVAEJBQER0A71K836Q
 - 01M443RTQWKFHNWK4SH96PTE46
 - 01M443S0EDEB23N7RPAR39TGZ5
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff9380
 title: Rewrite plan.md, the remaining decision records and the README for an ACP client kit
 ---
 ## What

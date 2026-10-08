@@ -1,5 +1,5 @@
 {
-  "originHash" : "1e986e917e934ebb37e24c77634bbbaa8d958079d58bcb4ecf4ba73233dde310",
+  "originHash" : "5d669ef0d95aa664910a2a2788acf773ba725302fabd4b06b2436cf0508defa9",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -34,7 +34,7 @@
       "location" : "git@github.com:swissarmyhammer/FoundationModelsACP.git",
       "state" : {
         "branch" : "main",
-        "revision" : "163f7ebbebc5c831319a618cf8ba7edde982e483"
+        "revision" : "b2cec56fc42cd5b1c4e25cfb8fe8773857bbbf65"
       }
     },
     {
@@ -43,7 +43,7 @@
       "location" : "git@github.com:swissarmyhammer/FoundationModelsACPClient.git",
       "state" : {
         "branch" : "main",
-        "revision" : "36f32491217056108554fe1533ce80099a6a6ff8"
+        "revision" : "e1cac1d15bde57e2d92d6f8fce62a254978129da"
       }
     },
     {
@@ -53,33 +53,6 @@
       "state" : {
         "branch" : "main",
         "revision" : "130eb40c0177e4bfcc795886c19b19b44108d95d"
-      }
-    },
-    {
-      "identity" : "grpc-swift-2",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/grpc/grpc-swift-2.git",
-      "state" : {
-        "revision" : "ac33066eb6edb1a21a6ca172ea8184a9b06f3cc7",
-        "version" : "2.4.3"
-      }
-    },
-    {
-      "identity" : "grpc-swift-nio-transport",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/grpc/grpc-swift-nio-transport.git",
-      "state" : {
-        "revision" : "ff4420d7c33cc998a590b0761630d67f76bc291e",
-        "version" : "2.10.0"
-      }
-    },
-    {
-      "identity" : "grpc-swift-protobuf",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/grpc/grpc-swift-protobuf.git",
-      "state" : {
-        "revision" : "176c5a434fd76f6f479848d1a8f7d44967534168",
-        "version" : "2.4.1"
       }
     },
     {

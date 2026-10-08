@@ -1,8 +1,13 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4cwf8dc4za92r7dtat3cxkg
+  text: Unblocked (2026-10-08). Client task 8mx2fve is done (2026-10-07 17:57), and FoundationModelsACPClient origin/main is e1cac1d. Task ^vewxkf3 moves the client pin to e1cac1d and the ACP pin to the revision that the client resolves, so this task now depends on ^vewxkf3 and does not move the pins again. Check that the pinned FoundationModelsACP has the a25yvy1 InMemoryTransport fix before you remove InProcessClientTransport.
+  timestamp: 2026-10-08T04:31:15.884194+00:00
 depends_on:
-- 01M4BHMJNEVT7DQ6KHVZTXQXVH
+- 01M4BTQV4WZHK4CE5F6VEWXKF3
 position_column: todo
 position_ordinal: b880
 title: Remove the in-process wrapper transport when the InMemoryTransport fix is pinned
@@ -23,4 +28,4 @@ Task ^ztxqxvh added `InProcessClientTransport` in `Sources/AgentViewKit/ACP/InPr
 - [ ] `swift test` passes.
 
 ## Workflow
-- Use `/tdd` — write failing tests first, then implement to make them pass. #blocked-upstream
+- Use `/tdd` — write failing tests first, then implement to make them pass.
