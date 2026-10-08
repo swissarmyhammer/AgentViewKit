@@ -85,10 +85,16 @@ import Testing
 
   /// The `session/update` frame of a `config_option_update` for the session.
   ///
+  /// The frame comes from
+  /// ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
+  ///
   /// - Parameter options: The JSON text of each option.
   /// - Returns: The JSON text of the frame.
-  static func configUpdateFrame(options: [String]) -> String {
-    #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(ScriptedSession.sessionID)","update":\#(configUpdate(options: options))}}"#
+  /// - Throws: The error of the JSON parser when an option is not valid JSON.
+  static func configUpdateFrame(options: [String]) throws -> String {
+    let update = try JSONValue(json: configUpdate(options: options))
+    return ScriptedWireAgent.makeSessionUpdateFrame(
+      params: .object(["sessionId": .string(ScriptedSession.sessionID), "update": update]))
   }
 
   /// Opens a scripted session whose `session/new` result has options.
@@ -247,13 +253,12 @@ import Testing
   // MARK: - Set config option
 
   @Test func aChangeSendsSetConfigOptionAndTheViewShowsTheValueThatTheModelReports() async throws {
+    let reported = Self.modelOption.replacingOccurrences(
+      of: #""currentValue": "fast-1""#, with: #""currentValue": "deep-1""#)
+    let reportedFrame = try Self.configUpdateFrame(options: [reported, Self.webOption, Self.modeOption(current: "ask")])
     let session = try await Self.openSession { agent in
       agent.heldMethods = [Self.setMethod]
-      agent.followUps[Self.setMethod] = { _, _ in
-        let reported = Self.modelOption.replacingOccurrences(
-          of: #""currentValue": "fast-1""#, with: #""currentValue": "deep-1""#)
-        return [Self.configUpdateFrame(options: [reported, Self.webOption, Self.modeOption(current: "ask")])]
-      }
+      agent.followUps[Self.setMethod] = { _, _ in [reportedFrame] }
     }
     defer { session.close() }
     let harness = Self.mount(session: session)

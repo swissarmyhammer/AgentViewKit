@@ -78,8 +78,11 @@
 
     /// An `agent_message_chunk` value. The agent sends it after the frames of
     /// a prompt, so that a test knows that the client read those frames.
-    static let markerUpdate =
-      #"{"sessionUpdate":"agent_message_chunk","messageId":"\#(markerMessageID)","content":{"type":"text","text":"Done."}}"#
+    static let markerUpdate = JSONValue.object([
+      "sessionUpdate": .string("agent_message_chunk"),
+      "messageId": .string(markerMessageID),
+      "content": .object(["type": .string("text"), "text": .string("Done.")]),
+    ])
 
     /// The label of the send state of each state.
     static let sendStateLabels: [SendState: String] = [
@@ -475,16 +478,16 @@
       agent.messages(method: ScriptedSession.promptMethod).compactMap { $0["params"]?["prompt"]?[0]?["text"]?.stringValue }
     }
 
-    /// A `session/update` frame of the session of a request.
+    /// A `session/update` frame of the session of a request. The frame comes
+    /// from ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
     ///
     /// - Parameters:
-    ///   - update: The JSON text of the update.
+    ///   - update: The update.
     ///   - request: The request frame whose session gets the update.
     /// - Returns: The JSON text of the frame.
-    static func updateFrame(carrying update: String, for request: JSONValue) -> String {
-      let sessionID = request["params"]?["sessionId"]?.stringValue ?? ""
-      return
-        #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#
+    static func updateFrame(carrying update: JSONValue, for request: JSONValue) -> String {
+      let sessionID = request["params"]?["sessionId"] ?? .null
+      return ScriptedWireAgent.makeSessionUpdateFrame(params: .object(["sessionId": sessionID, "update": update]))
     }
   }
 #endif

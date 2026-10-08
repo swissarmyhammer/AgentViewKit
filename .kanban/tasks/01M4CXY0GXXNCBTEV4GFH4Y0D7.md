@@ -55,10 +55,26 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift. `swift test`: 1025 tests in 110 suites passed, 0 failures. One SwiftPM build warning comes from the dependency bundle `mlx-swift_Cmlx.bundle` ("missing creator for mutated node"), not from kit code.
     - next: /review
   timestamp: 2026-10-08T12:33:39.404072+00:00
+- actor: claude-code
+  id: 01m4drcesdqbasqk7hnbd8tbg5
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (7b64037). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 1 file reviewed. The ignore rule excluded 2 .kanban files. All prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-08T12:39:04.237116+00:00
+- actor: claude-code
+  id: 01m4drd10pn08wj9b1txkga6ww
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (AgentAuthViewHostedTests.swift)
+    - test: green — swift test, 1025 tests in 110 suites passed
+    - commit: 7b64037
+    - review: clean — 0 findings, prior finding checked
+  timestamp: 2026-10-08T12:39:22.902244+00:00
 depends_on:
 - 01M4BTQV4WZHK4CE5F6VEWXKF3
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff9680
 title: Show AuthFailure.Reason.message for each sign-in failure reason, with no kit text table
 ---
 ## What
