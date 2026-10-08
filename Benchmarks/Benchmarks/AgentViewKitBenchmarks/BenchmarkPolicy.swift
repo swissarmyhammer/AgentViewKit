@@ -16,25 +16,8 @@
 // than 1. Thus no tolerance can become larger than the regression that the
 // gate must catch.
 //
-// The custom count metrics (body evaluations, paragraphs parsed) do not
-// change with the machine:
-//
-//   - A LARGE count uses the relative instruction tolerance.
-//   - A SMALL count (a few changes for each chunk) moves by one when two
-//     observation changes fall into one main actor pass. A change from 2 to
-//     3 is +50 %, so a small count uses an absolute tolerance.
-//
 
 import Benchmark
-
-/// A custom count metric and its thresholds.
-struct CountMetric {
-  /// The metric.
-  let metric: BenchmarkMetric
-
-  /// The thresholds of the metric.
-  let thresholds: BenchmarkThresholds
-}
 
 /// The metrics, the thresholds, and the run shape of each benchmark.
 enum BenchmarkPolicy {
@@ -49,59 +32,19 @@ enum BenchmarkPolicy {
   /// to machine variance.
   static let wallClockVarianceShare = 0.75
 
-  /// The share of ``gatedRegressionPercent`` that the count gates give to
-  /// variance. A count changes only when the code changes.
-  static let countVarianceShare = 0.25
+  /// The share of ``gatedRegressionPercent`` that the instruction gate gives
+  /// to variance. The instruction count changes only when the code changes.
+  static let instructionVarianceShare = 0.25
 
   /// The relative wall clock tolerance, in percent.
   static let wallClockTolerancePercent = gatedRegressionPercent * wallClockVarianceShare
 
-  /// The relative tolerance of the instruction count and of the custom
-  /// counts, in percent.
-  static let countTolerancePercent = gatedRegressionPercent * countVarianceShare
+  /// The relative tolerance of the instruction count, in percent.
+  static let instructionTolerancePercent = gatedRegressionPercent * instructionVarianceShare
 
   /// The percentiles that the gate reads. The p99 and the p100 are not
   /// gated, because one scheduling stall moves them.
   static var gatedPercentiles: [BenchmarkResult.Percentile] { [.p50, .p90] }
-
-  /// The absolute tolerance of a small count.
-  static let smallCountTolerance = 2
-
-  // MARK: - Custom metrics
-
-  /// The SwiftUI body evaluations of the probes for one chunk. The probes
-  /// read the same observed values as the views of ``AgentViewKit``.
-  static var bodyEvaluations: CountMetric {
-    smallCount("Body evaluations per chunk")
-  }
-
-  /// The paragraphs that Textual parses for one chunk. The chunks are at the
-  /// same places in each run, so the count does not move.
-  static var paragraphsParsed: CountMetric {
-    largeCount("Paragraphs parsed per chunk")
-  }
-
-  /// A small count metric, with the absolute tolerance.
-  ///
-  /// - Parameter name: The name of the metric.
-  /// - Returns: The metric and its thresholds.
-  private static func smallCount(_ name: String) -> CountMetric {
-    CountMetric(
-      metric: .custom(name, polarity: .prefersSmaller, useScalingFactor: false),
-      thresholds: BenchmarkThresholds(
-        absolute: Dictionary(
-          uniqueKeysWithValues: gatedPercentiles.map { ($0, smallCountTolerance) })))
-  }
-
-  /// A large count metric, with the relative count tolerance.
-  ///
-  /// - Parameter name: The name of the metric.
-  /// - Returns: The metric and its thresholds.
-  private static func largeCount(_ name: String) -> CountMetric {
-    CountMetric(
-      metric: .custom(name, polarity: .prefersSmaller, useScalingFactor: false),
-      thresholds: relativeThresholds(percent: countTolerancePercent))
-  }
 
   // MARK: - Run shape
 
@@ -116,27 +59,19 @@ enum BenchmarkPolicy {
 
   /// The configuration of a benchmark.
   ///
-  /// - Parameters:
-  ///   - iterations: The measured iterations.
-  ///   - countMetrics: The custom count metrics that the benchmark records.
-  /// - Returns: The shared policy with the iteration count and the metrics.
-  static func configuration(
-    iterations: Int, countMetrics: [CountMetric]
-  ) -> Benchmark.Configuration {
-    let timeMetrics: [BenchmarkMetric] = [.wallClock, .instructions, .throughput]
-    let timeThresholds: [BenchmarkMetric: BenchmarkThresholds] = [
-      .wallClock: relativeThresholds(percent: wallClockTolerancePercent),
-      .instructions: relativeThresholds(percent: countTolerancePercent),
-      .throughput: .none,
-    ]
-    let countThresholds = Dictionary(
-      uniqueKeysWithValues: countMetrics.map { ($0.metric, $0.thresholds) })
-    return Benchmark.Configuration(
-      metrics: timeMetrics + countMetrics.map(\.metric),
+  /// - Parameter iterations: The measured iterations.
+  /// - Returns: The shared policy with the iteration count.
+  static func configuration(iterations: Int) -> Benchmark.Configuration {
+    Benchmark.Configuration(
+      metrics: [.wallClock, .instructions, .throughput],
       warmupIterations: warmupIterations,
       maxDuration: maxDuration,
       maxIterations: iterations,
-      thresholds: timeThresholds.merging(countThresholds) { time, _ in time }
+      thresholds: [
+        .wallClock: relativeThresholds(percent: wallClockTolerancePercent),
+        .instructions: relativeThresholds(percent: instructionTolerancePercent),
+        .throughput: .none,
+      ]
     )
   }
 

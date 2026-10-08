@@ -29,6 +29,20 @@ import Testing
     #expect(violations.isEmpty, "\(violations)")
   }
 
+  /// The observation benchmark measures the binding of the transcript view
+  /// to the `TranscriptEntry` objects of `SessionModel`. A benchmark class
+  /// that is `@Observable` could stand between the entry and the row view,
+  /// so no benchmark source declares one.
+  @Test func benchmarkSourcesDeclareNoObservableClass() throws {
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(Self.benchmarkSources))
+    #expect(!files.isEmpty, "The scan found no benchmark source")
+    for file in files {
+      let source = try String(contentsOf: file, encoding: .utf8)
+      let names = RemovedVocabularyTests.observableClassNames(inSource: source)
+      #expect(names.isEmpty, "\(file.lastPathComponent) declares \(names)")
+    }
+  }
+
   @Test func benchmarkManifestLinksNoFoundationModelsProduct() throws {
     let manifest = try PackageFiles.text(of: Self.benchmarkManifest)
     let products = Set(

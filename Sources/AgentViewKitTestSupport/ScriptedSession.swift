@@ -1,5 +1,10 @@
 import AgentViewKit
-import DemoSupport
+// The benchmark target of `Benchmarks/` compiles this file and
+// `ScriptedWireAgent.swift` through links, in one module with no
+// `DemoSupport` module (`Benchmarks/README.md`, "The boundary").
+#if canImport(DemoSupport)
+  import DemoSupport
+#endif
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -7,12 +12,17 @@ import FoundationModelsACPClient
 /// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
 /// tests (update.md §4.2).
 ///
-/// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:configure:)``
+/// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``
 /// connects a `ConnectionModel` to the agent over an `InMemoryTransport`
 /// pair, sends `initialize`, and opens one new session.
-/// The connection model has a coalescing cadence of zero, so each chunk
-/// changes its entry at once. A test sends `session/update` frames with
+/// By default the connection model has a coalescing cadence of zero, so each
+/// chunk changes its entry at once. A test sends `session/update` frames with
 /// ``sendUpdate(_:)`` and reads the transcript of ``model``.
+///
+/// The class states `@MainActor`, because the benchmark target of
+/// `Benchmarks/` compiles this file through a link with no default
+/// isolation.
+@MainActor
 public final class ScriptedSession {
   /// The id of the session that the agent opens.
   public static let sessionID = "scripted-session"
@@ -34,7 +44,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with prompt capabilities.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:configure:)``:
+  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -57,7 +67,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with auth methods.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:configure:)``:
+  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -135,6 +145,10 @@ public final class ScriptedSession {
   ///   - terminalAuthRunner: The runner of the host, or `nil`. With a
   ///     runner, the `initialize` request advertises `auth.terminal`, so
   ///     that the model can run a `terminal` method of the agent.
+  ///   - coalescingCadence: The cadence between the coalesced flushes of the
+  ///     chunks of the session model. The default is zero, so each chunk
+  ///     changes its entry at once. A test or a benchmark of the coalescing
+  ///     gives `SessionModel.defaultCoalescingCadence`.
   ///   - configure: Changes the agent before it starts, for example its
   ///     results or its prompt echo order.
   /// - Returns: The helper with the open session.
@@ -143,6 +157,7 @@ public final class ScriptedSession {
     bufferLimits: SessionUpdateBufferLimits = .default,
     additionalDirectories: [AbsolutePath] = [],
     terminalAuthRunner: (any TerminalAuthRunner)? = nil,
+    coalescingCadence: Duration = .zero,
     configure: (ScriptedWireAgent) -> Void = { _ in }
   ) async throws -> ScriptedSession {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
@@ -152,7 +167,7 @@ public final class ScriptedSession {
     agent.results["session/new"] = newSessionResult
     configure(agent)
     agent.start()
-    let connection = ConnectionModel(coalescingCadence: .zero)
+    let connection = ConnectionModel(coalescingCadence: coalescingCadence)
     _ = await connection.connect(over: clientEnd, bufferLimits: bufferLimits)
     _ = try await connection.initialize(
       InitializeRequest.makeAgentViewKitRequest(info: clientInfo, terminalAuthRunner: terminalAuthRunner))

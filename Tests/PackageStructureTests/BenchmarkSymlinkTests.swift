@@ -7,11 +7,20 @@ import Testing
 /// at nothing, and then the `Benchmarks/` package does not build. The
 /// benchmark tool hides that error, so this test finds it in `swift test`.
 ///
-/// The target has no link now: the links went with the FoundationModels
-/// benchmarks. The test stays for a link that a later benchmark adds.
+/// The observation benchmark of the transcript view opens a `SessionModel`
+/// over the scripted agent of `DemoSupport`, with `ScriptedSession` of
+/// `AgentViewKitTestSupport`. Neither target is a product, so the benchmark
+/// target compiles the two files through links.
 struct BenchmarkSymlinkTests {
   /// The directory of the benchmark target, relative to the package root.
   static let benchmarkSources = "Benchmarks/Benchmarks/AgentViewKitBenchmarks"
+
+  /// The files that the links of the benchmark target point at, relative to
+  /// the package root.
+  static let linkedSources: Set<String> = [
+    "Sources/DemoSupport/ScriptedWireAgent.swift",
+    "Sources/AgentViewKitTestSupport/ScriptedSession.swift",
+  ]
 
   /// The links of the benchmark target, as (link, target) pairs.
   ///
@@ -30,6 +39,12 @@ struct BenchmarkSymlinkTests {
         .standardizedFileURL
       return (link: entry, target: target)
     }
+  }
+
+  @Test func theBenchmarkTargetLinksTheScriptedSessionSources() throws {
+    let root = PackageFiles.root.standardizedFileURL.path()
+    let targets = try Self.links().map { String($0.target.path().dropFirst(root.count)) }
+    #expect(Set(targets) == Self.linkedSources)
   }
 
   @Test func eachLinkOfTheBenchmarkTargetPointsAtAFile() throws {

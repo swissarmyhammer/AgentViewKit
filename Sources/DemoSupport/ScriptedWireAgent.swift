@@ -35,6 +35,11 @@ private let jsonRPCVersion = "2.0"
 /// The ACP tests and the demo app use this agent. The demo app binds it with
 /// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
 /// its end-to-end test needs no agent binary.
+///
+/// The class states `@MainActor`, because the benchmark target of
+/// `Benchmarks/` compiles this file through a link with no default
+/// isolation.
+@MainActor
 public final class ScriptedWireAgent {
   /// Gives the frames that the agent sends before or after it answers one
   /// request.

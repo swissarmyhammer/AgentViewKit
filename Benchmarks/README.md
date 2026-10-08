@@ -1,9 +1,10 @@
 # AgentViewKit benchmarks
 
-This package measures the streaming paths of plan.md §8. It gives the numbers
-for research R1 (the cost of Textual when a response streams). It records the
-numbers as a committed baseline, and `Scripts/check-benchmarks.sh` fails when a
-change makes a path slower than the baseline permits.
+This package measures the streaming path of plan.md §8: the cost of the
+transcript view when many chunks stream into one agent message of a
+`SessionModel` (update.md §7 item 2). It records the numbers as a committed
+baseline, and `Scripts/check-benchmarks.sh` fails when a change makes the path
+slower than the baseline permits.
 
 This is a **separate SwiftPM package** that depends on AgentViewKit by path, as
 `../EditorKit/Benchmarks` is. The root package does not get the benchmark
@@ -19,33 +20,41 @@ swift package --package-path Benchmarks --disable-sandbox benchmark
 
 # One scenario.
 swift package --package-path Benchmarks --disable-sandbox benchmark \
-    --filter "Streaming chunk, paragraph split on"
+    --filter "Transcript stream, default cadence"
 
 # The gate.
 ./Scripts/check-benchmarks.sh
 ```
 
-The streaming scenarios mount SwiftUI views in an off-screen window. The
-window server is not available in the sandbox of a package plugin, and a
-SwiftUI render in the sandbox stops the process. Thus each command uses
-`--disable-sandbox`.
+The scenarios mount SwiftUI views in an off-screen window. The window server
+is not available in the sandbox of a package plugin, and a SwiftUI render in
+the sandbox stops the process. Thus each command uses `--disable-sandbox`.
 
-The full suite takes about 50 seconds on the development machine (Apple
-silicon, 32 cores, Darwin 27, Swift 6.4, release build).
+The full suite takes about 2 minutes on the development machine (Apple
+silicon, 32 cores, Darwin 27, Swift 6.4, release build), and the gate takes
+about 5 minutes with the build. The scenario with the cadence zero uses most
+of the time.
 
 ## The scenarios
 
-The package has no scenario now. The streaming scenarios of research R1
-measured `StreamingMessage` and `StreamingCoalescer` of the old kit session
-model. That model is removed (`Docs/decisions/acp-client-kit.md`): each view
-of the kit reads the `TranscriptEntry` objects of `SessionModel`, and the
-model coalesces the chunks (`SessionModel.defaultCoalescingCadence`). The
-scenarios and their baselines went with the model. A later task adds an
-observation benchmark of the transcript view over `SessionModel` and records
-its baselines. Until then, `Scripts/check-benchmarks.sh` has no scenario to
-check.
+`SessionModelObservationBenchmarks.swift` has two scenarios. Each iteration
+opens a `SessionModel` over the scripted agent of the root package, and
+hosts `AgentThreadView` over the model. Outside the measurement, the agent
+sends the first chunk of one agent message. The measured part is: the agent
+sends 1,000 `agent_message_chunk` updates to that message, the model applies
+them, and the window renders until the entry holds each chunk.
 
-`BenchmarkHost.swift` and `BenchmarkPolicy.swift` stay for that benchmark.
+| Scenario | Cadence of the model |
+| --- | --- |
+| `Transcript stream, cadence zero` | `.zero`: the model applies each chunk at once |
+| `Transcript stream, default cadence` | `SessionModel.defaultCoalescingCadence` (33 ms), as in an app |
+
+The view binds directly to the `TranscriptEntry` objects of the model
+(`Docs/decisions/acp-client-kit.md`). The chunks go through the coalescing of
+the model, and through no coalescer and no text copy of the kit.
+`SessionModelRedrawScopeTests` in `AgentViewKitTests` proves the redraw scope
+of the same path in a debug build: 100 chunks into one agent message of a
+transcript of 10 rows evaluate the row of that message only.
 
 The package has no observation benchmark of FoundationModels. The observation
 benchmarks of research R4 measured a FoundationModels stream through
@@ -57,25 +66,71 @@ their baselines went with the FoundationModels adapter (update.md §7 item 2).
 A package can use only the products of another package. To compile a file of
 a test target or of the test support target, put a symbolic link to the file
 in `Benchmarks/AgentViewKitBenchmarks/`, and edit the file in the root
-package. `BenchmarkSymlinkTests` in `PackageStructureTests` fails when a link
-points at a file that moved. The target has no link now.
+package. The target links two files:
+
+| Link | File of the root package |
+| --- | --- |
+| `ScriptedWireAgent.swift` | `Sources/DemoSupport/ScriptedWireAgent.swift` |
+| `ScriptedSession.swift` | `Sources/AgentViewKitTestSupport/ScriptedSession.swift` |
+
+The two files compile in one module of this package, which has no
+`DemoSupport` module and no default isolation. Thus `ScriptedSession.swift`
+imports `DemoSupport` only when the module exists, and each class of the two
+files states `@MainActor`. The benchmark target cannot use the default
+isolation of the root package: the boilerplate file that the benchmark plugin
+writes into the target does not compile with it.
+
+`BenchmarkSymlinkTests` in `PackageStructureTests` fails when a link points at
+a file that moved, and when the set of links changes.
 
 `BenchmarkBoundaryTests` in `PackageStructureTests` fails when a benchmark
-source imports FoundationModels or `AgentViewKitFoundationModels`, or when
-`Package.swift` links the `AgentViewKitFoundationModels` product.
+source imports FoundationModels or `AgentViewKitFoundationModels`, when
+`Package.swift` links the `AgentViewKitFoundationModels` product, and when a
+benchmark source declares an `@Observable` class. Such a class could stand
+between the entry and the row view of the measured path.
 
 ## The gates
 
 Each scenario checks its own gates, and stops with an error when a gate
-fails. `Scripts/check-benchmarks.sh` fails on such an error.
+fails. `Scripts/check-benchmarks.sh` fails on such an error. The gates of the
+observation scenarios:
+
+- The entry holds each chunk before the time limit (10 seconds).
+- The render evaluated the view that reads the content of the entry. A probe
+  view reads the same `content` of the entry as the message view, and counts
+  its body evaluations, because `BodyEvaluationCounter` exists only in debug
+  builds.
+
+## The observation numbers
+
+The baseline run, at a load average of 7 to 11 on the development machine:
+
+| Scenario | p90 wall clock for 1,000 chunks | p90 instructions |
+| --- | --- | --- |
+| Cadence zero | **10.9 s** | 97.3 G |
+| Default cadence | **209 ms** | 2.73 G |
+
+With the cadence zero, each chunk changes the entry at once, and each change
+renders the message again: about 10 ms for one chunk, on average over the
+stream. The message view joins the chunks and splits the text into
+paragraphs again for each change (`TranscriptMessageView`), so the cost of
+one render can grow with the message. With the default cadence, the model writes
+the entry one time for each flush, and the whole stream costs 50 times less.
+A host that gives a cadence of zero to `ConnectionModel` gets the first cost.
+
+The scenario with the cadence zero records only 3 samples in its 30 seconds,
+so its p50 and its p90 are near each other. The instruction count is the same
+in each sample, so the instruction gate stays exact.
 
 ## R1: Textual streaming cost
 
-This section is a record. The R1 scenarios and their baselines are removed
-(see "The scenarios"), so the gate does not read these numbers. The
-streaming tail, the lazy stack and `lazyResponseParagraphs` went with the old
-session model. A `ResponseView` now shows the full text of an entry as
-paragraphs, and each paragraph that does not change does not evaluate again
+This section is a record. The R1 scenarios measured `StreamingMessage` and
+`StreamingCoalescer` of the old kit session model. That model is removed
+(`Docs/decisions/acp-client-kit.md`), and the scenarios and their baselines
+went with it, so the gate does not read these numbers. The streaming tail,
+the lazy stack and `lazyResponseParagraphs` went with the old session model.
+A `ResponseView` now shows the full text of an entry as paragraphs, and each
+paragraph that does not change does not evaluate again
 (`ParagraphReuseTests`).
 
 ### The numbers
@@ -126,10 +181,10 @@ the largest part of the cost.
 
 ## R4: observation granularity
 
-This section is a record. The R4 scenarios and their baselines are removed
-(see "The scenarios"), so the gate does not read these numbers. The decision
-applies to `SessionThreadSource` while the FoundationModels adapter is in the
-package.
+This section is a record. The R4 scenarios and their baselines went with the
+FoundationModels adapter (see "The scenarios"), so the gate does not read
+these numbers. The decision applies to `SessionThreadSource` while the
+FoundationModels adapter is in the package.
 
 ### The numbers
 
@@ -182,9 +237,6 @@ of `../EditorKit/Benchmarks`:
 - **Instructions**: the primary gate. Tolerance **25 %** at p50 and p90.
 - **Wall clock**: the secondary gate. Tolerance **75 %** at p50 and p90.
 - **Throughput**: recorded, not gated.
-- **Large counts** (paragraphs parsed): tolerance **25 %**.
-- **Small counts** (body evaluations): an absolute tolerance of **2**,
-  because a change of one main actor pass moves a count of 3 by one.
 
 ## The baseline-update flow
 
@@ -216,9 +268,9 @@ pass.
 
 ## Adding a scenario
 
-1. Put the scenario in the file for its area, or add a file with a
-   `register…` function and call it from `Main.swift`.
-2. Use `BenchmarkPolicy.configuration(iterations:countMetrics:)`. Do not
+1. Put the scenario in the file for its area, or add a file with a type that
+   has a `register()` function, and call it from `Main.swift`.
+2. Use `BenchmarkPolicy.configuration(iterations:)`. Do not
    write a threshold of your own.
 3. Build the workload outside the measurement. Only the path under test goes
    between `startMeasurement()` and `stopMeasurement()`.

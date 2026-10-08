@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# The benchmark gate of plan.md §8 (research R1).
+# The benchmark gate of plan.md §8 (update.md §7 item 2).
 #
 # The script runs each scenario of the `Benchmarks/` package, and compares
 # the run with the committed baseline `main`. Each benchmark declares its
@@ -10,8 +10,8 @@
 #
 #   * a metric is WORSE than the baseline by more than its threshold, or
 #   * a scenario stops with an error. The scenarios check their own gates
-#     (the p90 chunk cost, the settled paragraphs, the render of each
-#     chunk) and stop with an error when a gate fails. The benchmark tool
+#     (the entry holds each chunk, and the render read the entry) and stop
+#     with an error when a gate fails. The benchmark tool
 #     can then exit with status 0, so the script also reads the report.
 #
 # A metric that is BETTER than the baseline passes with a warning: record

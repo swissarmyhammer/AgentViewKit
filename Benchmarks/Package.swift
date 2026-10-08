@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 //
-// AgentViewKitBenchmarks: the streaming benchmarks of plan.md §8 and
-// research R1, in a separate SwiftPM package.
+// AgentViewKitBenchmarks: the observation benchmark of the transcript view
+// over `SessionModel` (update.md §7 item 2), in a separate SwiftPM package.
 //
 // This package is separate from the root package, as in
 // `../EditorKit/Benchmarks`. It depends on AgentViewKit by path. Thus:
@@ -16,8 +16,8 @@
 //   swift package --package-path Benchmarks --disable-sandbox benchmark
 //   Scripts/check-benchmarks.sh
 //
-// The streaming benchmarks render SwiftUI views in a window, and the plugin
-// sandbox has no window server. Thus the commands use `--disable-sandbox`.
+// The benchmarks render SwiftUI views in a window, and the plugin sandbox has
+// no window server. Thus the commands use `--disable-sandbox`.
 //
 // `Benchmarks/README.md` has the decisions, the numbers, and the baseline
 // update steps.
@@ -35,9 +35,11 @@ let package = Package(
     // The benchmark runner, the baseline store, and the `benchmark` command
     // plugin. The pin is exact and is the same as in EditorKit.
     .package(url: "https://github.com/ordo-one/benchmark.git", exact: "1.36.2"),
-    // Textual, for the benchmark with no paragraph split. The pin is the
-    // same as in the root manifest.
-    .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
+    // The ACP wire types and the client models. The URLs and the branch are
+    // the same as in the root manifest, so the two packages resolve the same
+    // revisions (`ResolvedPinsTests`).
+    .package(url: "git@github.com:swissarmyhammer/FoundationModelsACP.git", branch: "main"),
+    .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPClient.git", branch: "main"),
   ],
   targets: [
     .executableTarget(
@@ -45,7 +47,11 @@ let package = Package(
       dependencies: [
         .product(name: "Benchmark", package: "benchmark"),
         .product(name: "AgentViewKit", package: "AgentViewKit"),
-        .product(name: "Textual", package: "textual"),
+        // The observation benchmark opens a `SessionModel` over the scripted
+        // agent of the root package (`ScriptedWireAgent.swift` and
+        // `ScriptedSession.swift`, through links).
+        .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+        .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],
       path: "Benchmarks/AgentViewKitBenchmarks",
       plugins: [
