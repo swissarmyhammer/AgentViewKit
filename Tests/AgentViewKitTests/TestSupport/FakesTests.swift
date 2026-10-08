@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import AuthenticationServices
 import Foundation
+import FoundationModelsACPClient
 import Testing
 
 @Suite @MainActor struct FakesTests {
@@ -136,7 +137,7 @@ import Testing
 
   @Test func fakeProcessLauncherRecordsTheLaunchAndFeedsOutput() async throws {
     let chunks = [Data("Open this URL\n".utf8), Data("Signed in\n".utf8)]
-    let launcher = FakeProcessLauncher(scriptedOutput: chunks, scriptedExitStatus: 3)
+    let launcher = FakeProcessLauncher(scriptedOutput: chunks, scriptedExitStatus: .exited(code: 3))
     let kitLauncher: any ProcessLauncher = launcher
 
     let process = try kitLauncher.launch(
@@ -150,7 +151,7 @@ import Testing
     }
 
     #expect(received == chunks)
-    #expect(process.exitStatus == 3)
+    #expect(process.exitStatus == .exited(code: 3))
     #expect(
       launcher.calls == [
         .launch(program: "/usr/local/bin/agent", arguments: ["--login"], environment: ["AGENT_AUTH": "terminal"])

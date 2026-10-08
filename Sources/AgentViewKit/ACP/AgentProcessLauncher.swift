@@ -4,12 +4,9 @@ import OSLog
 
 /// The errors of ``AgentProcessLauncher``.
 public enum AgentProcessLauncherError: Error, Equatable, Sendable {
-  /// The name of an environment variable is empty or has an equal sign.
+  /// The name of an environment variable is empty or has an equal sign. The
+  /// environment block of the process would read such a name wrongly.
   case invalidEnvironmentName(String)
-
-  /// The program path has an equal sign. `env` reads such a path as a
-  /// variable, so the launcher cannot give an environment to the program.
-  case programPathHasEqualSign(String)
 }
 
 /// The default ``ProcessLauncher`` of the kit (plan.md §12).
@@ -18,60 +15,64 @@ public enum AgentProcessLauncherError: Error, Equatable, Sendable {
 /// FoundationModelsACPClient. `AgentProcess` puts the process in its own
 /// process group, and stops and reaps the process on each teardown path.
 ///
-/// `AgentProcess` gives the environment of the host to the process and has
-/// no environment parameter. When the launch has environment variables, the
-/// launcher starts ``environmentProgram`` with each `NAME=value` pair and then
-/// the program and its arguments.
+/// The launcher starts the program itself. It gives the environment and the
+/// working directory to the `environment` and `currentDirectory` parameters
+/// of `AgentProcess`:
 ///
-/// Limits of `AgentProcess`:
+/// - With no launch variables, the process gets the environment of the host.
+/// - With launch variables, the process gets the environment of the host
+///   with the launch variables added. A launch variable replaces a host
+///   variable that has the same name.
+/// - The process starts in ``currentDirectory``, or in the working directory
+///   of the host when it is `nil`.
 ///
-/// - The output of the process is its standard output only. The standard
-///   error stream goes to the standard error stream of the host.
-/// - `AgentProcess` does not keep the exit status when it reaps the process,
-///   so ``LaunchedProcess/exitStatus`` is always `nil`.
+/// ``LaunchedProcess/exitStatus`` is the `exitStatus` of `AgentProcess`. The
+/// output of the process is its standard output only. The standard error
+/// stream goes to the standard error stream of the host.
 public final class AgentProcessLauncher: ProcessLauncher {
-  /// The program that sets the environment variables of a launch.
-  public static let environmentProgram = "/usr/bin/env"
-
-  /// The character between the name and the value of an `env` argument.
+  /// The character between the name and the value of an environment entry.
   private static let assignment: Character = "="
 
+  /// The working directory of each process, or `nil` for the working
+  /// directory of the host.
+  public let currentDirectory: String?
+
   /// Makes a launcher.
-  public init() {}
+  ///
+  /// - Parameter currentDirectory: The working directory of each process, or
+  ///   `nil` for the working directory of the host. A relative path is
+  ///   relative to the working directory of the host.
+  public init(currentDirectory: String? = nil) {
+    self.currentDirectory = currentDirectory
+  }
 
   public func launch(program: String, arguments: [String], environment: [String: String]) throws
     -> any LaunchedProcess
   {
-    let command = try Self.command(program: program, arguments: arguments, environment: environment)
-    let process = try AgentProcess(command: command.program, arguments: command.arguments)
+    let process = try AgentProcess(
+      command: program,
+      arguments: arguments,
+      environment: try Self.processEnvironment(adding: environment),
+      currentDirectory: currentDirectory
+    )
     return AgentLaunchedProcess(process: process)
   }
 
-  /// The program and the arguments that start `program` with `environment`.
+  /// The whole environment of a process that gets the launch variables
+  /// `additions`.
   ///
-  /// - Parameters:
-  ///   - program: The absolute path of the executable.
-  ///   - arguments: The arguments to give to the program.
-  ///   - environment: The environment variables to add for the program.
-  /// - Returns: `program` and `arguments` when `environment` is empty.
-  ///   Otherwise, ``environmentProgram`` with the sorted `NAME=value` pairs,
-  ///   then `program`, then `arguments`.
-  /// - Throws: ``AgentProcessLauncherError`` when `env` cannot read the
-  ///   names or the program path.
-  static func command(program: String, arguments: [String], environment: [String: String]) throws
-    -> (program: String, arguments: [String])
-  {
-    guard !environment.isEmpty else { return (program, arguments) }
-    guard !program.contains(assignment) else {
-      throw AgentProcessLauncherError.programPathHasEqualSign(program)
+  /// - Parameter additions: The environment variables to add for the program.
+  /// - Returns: `nil` when `additions` is empty, so that `AgentProcess` gives
+  ///   the environment of the host. Otherwise, the environment of the host
+  ///   with `additions` added.
+  /// - Throws: ``AgentProcessLauncherError/invalidEnvironmentName(_:)`` for a
+  ///   name that is empty or has an equal sign.
+  private static func processEnvironment(adding additions: [String: String]) throws -> [String: String]? {
+    guard !additions.isEmpty else { return nil }
+    for name in additions.keys where name.isEmpty || name.contains(assignment) {
+      throw AgentProcessLauncherError.invalidEnvironmentName(name)
     }
-    let pairs = try environment.sorted { $0.key < $1.key }.map { name, value in
-      guard !name.isEmpty, !name.contains(assignment) else {
-        throw AgentProcessLauncherError.invalidEnvironmentName(name)
-      }
-      return "\(name)\(assignment)\(value)"
-    }
-    return (environmentProgram, pairs + [program] + arguments)
+    return ProcessInfo.processInfo.environment.merging(additions) { _, addition in addition }
   }
 }
 
@@ -83,11 +84,12 @@ public final class AgentProcessLauncher: ProcessLauncher {
 final class AgentLaunchedProcess: LaunchedProcess {
   let output: AsyncStream<Data>
 
-  /// Always `nil`: `AgentProcess` does not keep the exit status.
-  var exitStatus: Int32? { nil }
+  /// The `exitStatus` of the agent process. The teardown of `AgentProcess`
+  /// records it before ``output`` finishes.
+  var exitStatus: AgentExitStatus? { process.exitStatus }
 
   /// The started agent process.
-  private let process: AgentProcess
+  let process: AgentProcess
 
   /// The continuation of the queue of bytes to write.
   private let writes: AsyncStream<Data>.Continuation

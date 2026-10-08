@@ -1,5 +1,6 @@
 import AgentViewKit
 import Foundation
+import FoundationModelsACPClient
 
 /// A ``ProcessLauncher`` that starts no process.
 ///
@@ -43,7 +44,7 @@ public final class FakeProcessLauncher: ProcessLauncher {
   public var scriptedOutput: [Data]
 
   /// The exit status of each later process.
-  public var scriptedExitStatus: Int32
+  public var scriptedExitStatus: AgentExitStatus
 
   /// The error that each later launch throws, or `nil` to launch.
   public var launchError: LaunchError?
@@ -67,7 +68,9 @@ public final class FakeProcessLauncher: ProcessLauncher {
   ///   - scriptedExitStatus: The exit status of each process.
   ///   - keepsOutputOpen: Whether the output of each process stays open
   ///     after the scripted chunks.
-  public init(scriptedOutput: [Data] = [], scriptedExitStatus: Int32 = 0, keepsOutputOpen: Bool = false) {
+  public init(
+    scriptedOutput: [Data] = [], scriptedExitStatus: AgentExitStatus = .exited(code: 0), keepsOutputOpen: Bool = false
+  ) {
     self.scriptedOutput = scriptedOutput
     self.scriptedExitStatus = scriptedExitStatus
     self.keepsOutputOpen = keepsOutputOpen
@@ -118,7 +121,7 @@ public final class FakeProcessLauncher: ProcessLauncher {
 
     /// The scripted exit status. The status is set from the start, also
     /// while the output stays open.
-    public let exitStatus: Int32?
+    public let exitStatus: AgentExitStatus?
 
     /// The bytes of each write, in call order.
     public private(set) var writes: [Data] = []
@@ -134,7 +137,7 @@ public final class FakeProcessLauncher: ProcessLauncher {
     ///   - exitStatus: The exit status.
     ///   - keepsOutputOpen: Whether the output stays open after the chunks.
     fileprivate init(
-      launcher: FakeProcessLauncher, output chunks: [Data], exitStatus: Int32, keepsOutputOpen: Bool
+      launcher: FakeProcessLauncher, output chunks: [Data], exitStatus: AgentExitStatus, keepsOutputOpen: Bool
     ) {
       self.launcher = launcher
       (output, continuation) = AsyncStream.makeStream(of: Data.self)

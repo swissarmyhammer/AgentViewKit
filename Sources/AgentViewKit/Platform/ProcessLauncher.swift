@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModelsACPClient
 
 /// A process that a ``ProcessLauncher`` started.
 ///
@@ -9,8 +10,9 @@ public protocol LaunchedProcess: AnyObject {
   /// when the process closes its output.
   var output: AsyncStream<Data> { get }
 
-  /// The exit status, or `nil` while the process runs.
-  var exitStatus: Int32? { get }
+  /// How the process ended, or `nil` while the process runs. The value is
+  /// the `AgentExitStatus` of FoundationModelsACPClient, with no kit copy.
+  var exitStatus: AgentExitStatus? { get }
 
   /// Writes `data` to the standard input of the process.
   ///
@@ -24,7 +26,7 @@ public protocol LaunchedProcess: AnyObject {
 
 /// The object that starts a process for terminal authentication.
 ///
-/// The protocol has no ACP type. The kit supplies the default launcher,
+/// The protocol has no ACP wire type. The kit supplies the default launcher,
 /// ``AgentProcessLauncher``, which wraps `AgentProcess` from
 /// FoundationModelsACPClient. A test gives a recording fake.
 public protocol ProcessLauncher: AnyObject {

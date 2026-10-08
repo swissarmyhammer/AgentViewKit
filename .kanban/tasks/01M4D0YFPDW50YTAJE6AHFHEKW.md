@@ -45,8 +45,24 @@ comments:
     - evidence: 5 files. Package.resolved, Benchmarks/Package.resolved, Sources/AgentViewKit/ACP/SessionModel+ReportedError.swift (deleted), Tests/AgentViewKitTests/Items/SessionEntryRowsHostedTests.swift, Tests/PackageStructureTests/ResolvedPinsTests.swift. The git-ignored demo pin file also changed. New test: RED (label "Internal error"), then GREEN. `swift test`: 1030 tests in 110 suites, 93 tests in 11 suites, and 1 test in 1 suite passed, 0 failed, 0 skipped. `swift build --package-path Benchmarks`: Build complete. `xcodebuild -skipMacroValidation -skipPackagePluginValidation build -scheme AgentViewKitDemo -destination 'platform=macOS'`: BUILD SUCCEEDED.
     - next: /review. The task stays in doing.
   timestamp: 2026-10-08T20:05:54.266424+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4ejxe1f6p9ccf023p48e2wd
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (fcab230). Counts: findings 0, confirmed 0, refuted 1, attempted 7, failed 0. The engine reviewed 4 files. Five Swift tool rules did not read Sources/AgentViewKit/ACP/SessionModel+ReportedError.swift, because this commit deleted the file.
+    - next: none. The task is in done.
+  timestamp: 2026-10-08T20:22:43.503613+00:00
+- actor: claude-code
+  id: 01m4ejy3cd77q0h5rmgsc1285w
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — pin to FoundationModelsACPClient 74fc2df, kit copy deleted, closed-connection test added
+    - test: green — swift test, 1030 tests in 110 suites passed (one flaky test recorded as ^vyqyvwv); Benchmarks build complete
+    - commit: fcab230
+    - review: clean — 0 findings
+  timestamp: 2026-10-08T20:23:05.357405+00:00
+position_column: done
+position_ordinal: ff9880
 title: Ask FoundationModelsACPClient to make RequestError(reporting:) public, and remove the kit copy
 ---
 ## What
