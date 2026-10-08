@@ -11,6 +11,12 @@ private let internalErrorCode = -32603
 /// The method of a prompt request.
 private let promptMethod = "session/prompt"
 
+/// The method of a session update notification.
+private let sessionUpdateMethod = "session/update"
+
+/// The JSON-RPC version of each notification frame.
+private let jsonRPCVersion = "2.0"
+
 /// An ACP agent that reads the raw JSON-RPC frames of the client and
 /// records them.
 ///
@@ -318,10 +324,22 @@ public final class ScriptedWireAgent {
       "content": textBlock(text: promptText(of: request)),
     ])
     let sessionId = request["params"]?["sessionId"] ?? .null
-    return JSONValue.object([
-      "jsonrpc": .string("2.0"),
-      "method": .string("session/update"),
-      "params": .object(["sessionId": sessionId, "update": update]),
+    return makeSessionUpdateFrame(params: .object(["sessionId": sessionId, "update": update]))
+  }
+
+  /// Makes a `session/update` notification frame from the agent.
+  ///
+  /// Each scripted agent and each test helper that sends a `session/update`
+  /// frame makes it here, so that the frame has one shape.
+  ///
+  /// - Parameter params: The params of the notification: the `sessionId`
+  ///   and the `update` members.
+  /// - Returns: The JSON text of the frame.
+  public static func makeSessionUpdateFrame(params: JSONValue) -> String {
+    JSONValue.object([
+      "jsonrpc": .string(jsonRPCVersion),
+      "method": .string(sessionUpdateMethod),
+      "params": params,
     ]).jsonString
   }
 

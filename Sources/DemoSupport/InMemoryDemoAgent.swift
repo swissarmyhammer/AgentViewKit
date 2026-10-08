@@ -178,13 +178,7 @@ public enum InMemoryDemoAgent {
   ///   - turn: The number of the turn, from 1.
   /// - Returns: The frames, in send order.
   static func turnFrames(for request: JSONValue, turn: Int) -> [String] {
-    turnNotifications(for: request, turn: turn).map { params in
-      JSONValue.object([
-        "jsonrpc": .string("2.0"),
-        "method": .string("session/update"),
-        "params": params,
-      ]).jsonString
-    }
+    turnNotifications(for: request, turn: turn).map(ScriptedWireAgent.makeSessionUpdateFrame(params:))
   }
 
   /// The params of the `session/update` notifications of one turn, after the

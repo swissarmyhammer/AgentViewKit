@@ -1,6 +1,5 @@
 import AgentViewKit
 import AgentViewKitTestSupport
-import AppKit
 import Foundation
 import SwiftUI
 import Testing
@@ -52,9 +51,6 @@ struct AttachmentComposerHost: View {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 5
 
-  /// The side of the image that the image tests write, in pixels.
-  static let imageSide = 1
-
   /// A source file. The file does not have to exist.
   static let sourceURL = URL(filePath: "/tmp/attachment-chips/Main.swift")
 
@@ -83,18 +79,6 @@ struct AttachmentComposerHost: View {
       .appending(path: "AttachmentChipsHostedTests-\(UUID().uuidString)", directoryHint: .isDirectory)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     return directory
-  }
-
-  /// The PNG data of a small image.
-  ///
-  /// - Returns: The encoded image.
-  static func pngData() throws -> Data {
-    let bitmap = try #require(
-      NSBitmapImageRep(
-        bitmapDataPlanes: nil, pixelsWide: imageSide, pixelsHigh: imageSide, bitsPerSample: 8,
-        samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
-        bytesPerRow: 0, bitsPerPixel: 0))
-    return try #require(bitmap.representation(using: .png, properties: [:]))
   }
 
   // MARK: - Render and remove
@@ -168,7 +152,7 @@ struct AttachmentComposerHost: View {
     var attachments: [Attachment] = []
     let directory = try Self.makeDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let data = try Self.pngData()
+    let data = try TestImage.makePNGData()
 
     let added = AttachmentChips.add([.image(data)], to: &attachments, directory: directory)
 
@@ -184,7 +168,7 @@ struct AttachmentComposerHost: View {
     var attachments: [Attachment] = []
     let directory = try Self.makeDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let data = try Self.pngData()
+    let data = try TestImage.makePNGData()
 
     AttachmentChips.add([.image(data), .image(data)], to: &attachments, directory: directory)
 

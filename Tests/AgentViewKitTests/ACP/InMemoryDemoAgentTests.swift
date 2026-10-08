@@ -30,4 +30,37 @@ struct InMemoryDemoAgentTests {
     #expect(ScriptedWireAgent.promptText(of: request) == "hello")
     #expect(ScriptedWireAgent.promptText(of: .object([:])).isEmpty)
   }
+
+  @Test func aSessionUpdateFrameHoldsTheParamsInAJSONRPCNotification() throws {
+    let params = JSONValue.object([
+      "sessionId": .string(InMemoryDemoAgent.sessionID),
+      "update": .object(["sessionUpdate": .string("state_update"), "state": .string("idle")]),
+    ])
+
+    let frame = try JSONValue(json: ScriptedWireAgent.makeSessionUpdateFrame(params: params))
+
+    #expect(
+      frame
+        == .object([
+          "jsonrpc": .string("2.0"),
+          "method": .string("session/update"),
+          "params": params,
+        ]))
+  }
+
+  @Test func eachTurnFrameIsTheSessionUpdateFrameOfItsNotification() {
+    let request = JSONValue.object([
+      "params": .object([
+        "sessionId": .string(InMemoryDemoAgent.sessionID),
+        "prompt": .array([ScriptedWireAgent.textBlock(text: "hello")]),
+      ])
+    ])
+
+    let frames = InMemoryDemoAgent.turnFrames(for: request, turn: 1)
+
+    let expected = InMemoryDemoAgent.turnNotifications(for: request, turn: 1)
+      .map(ScriptedWireAgent.makeSessionUpdateFrame(params:))
+    #expect(!frames.isEmpty)
+    #expect(frames == expected)
+  }
 }

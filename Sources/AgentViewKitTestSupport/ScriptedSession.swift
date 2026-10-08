@@ -1,3 +1,4 @@
+import AgentViewKit
 import DemoSupport
 import Foundation
 import FoundationModelsACP
@@ -166,11 +167,9 @@ public final class ScriptedSession {
   ///
   /// - Parameter update: The JSON text of the update, such as
   ///   `{"sessionUpdate": "agent_message_chunk", ...}`.
-  /// - Throws: The error of the transport.
+  /// - Throws: The error of the JSON parser or of the transport.
   public func sendUpdate(_ update: String) async throws {
-    let sessionID = model.sessionId.rawValue
-    try await agent.send(
-      #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#)
+    try await send(updateValue: JSONValue(json: update))
   }
 
   /// Sends one typed `session/update` value of the session from the agent.
@@ -179,8 +178,17 @@ public final class ScriptedSession {
   ///   ``BackgroundRunScript``.
   /// - Throws: The error of the encoder or of the transport.
   public func send(update: SessionUpdate) async throws {
-    let json = String(decoding: try JSONEncoder().encode(update), as: UTF8.self)
-    try await sendUpdate(json)
+    try await send(updateValue: JSONValue(encoding: update))
+  }
+
+  /// Sends one `session/update` frame of the session from the agent. The
+  /// frame comes from ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
+  ///
+  /// - Parameter updateValue: The `update` member of the params.
+  /// - Throws: The error of the transport.
+  private func send(updateValue: JSONValue) async throws {
+    let params = JSONValue.object(["sessionId": .string(model.sessionId.rawValue), "update": updateValue])
+    try await agent.send(ScriptedWireAgent.makeSessionUpdateFrame(params: params))
   }
 
   /// The params of a permission request of the session, with the

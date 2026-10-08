@@ -1,5 +1,4 @@
 import AgentViewKitTestSupport
-import AppKit
 import Foundation
 import FoundationModelsACP
 import PackageFileSupport
@@ -63,16 +62,6 @@ import Testing
   /// The name of the block file in the file tests.
   static let fileName = "clip.wav"
 
-  /// The width and the height of the test image, in pixels.
-  static let pngSide = 4
-
-  /// The number of bits of each sample of the test image.
-  static let pngBitsPerSample = 8
-
-  /// The number of samples of each pixel of the test image: red, green,
-  /// blue, and alpha.
-  static let pngSamplesPerPixel = 4
-
   /// The accessibility identifier of the registered views in the tests.
   static let customIdentifier = "custom-wire-block"
 
@@ -135,7 +124,7 @@ import Testing
 
   @Test func aPressOnAWireImageSelectsItsBytesInTheInspector() async throws {
     let selection = InspectorSelection()
-    let png = try Self.pngData()
+    let png = try TestImage.makePNGData()
     let image = FoundationModelsACP.ImageContent(
       data: png.base64EncodedString(), mimeType: MediaType(rawValue: "image/png"), uri: Self.imageURI)
     let harness = HostedViewHarness(
@@ -364,19 +353,6 @@ import Testing
     harness.accessibilityElements().compactMap(\.label)
   }
 
-  /// Makes the bytes of a small PNG image.
-  ///
-  /// - Returns: The PNG data.
-  /// - Throws: An error when AppKit cannot make the image.
-  static func pngData() throws -> Data {
-    let representation = try #require(
-      NSBitmapImageRep(
-        bitmapDataPlanes: nil, pixelsWide: pngSide, pixelsHigh: pngSide, bitsPerSample: pngBitsPerSample,
-        samplesPerPixel: pngSamplesPerPixel, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
-        bytesPerRow: 0, bitsPerPixel: 0))
-    return try #require(representation.representation(using: .png, properties: [:]))
-  }
-
   /// Makes the resource link block of the tests.
   ///
   /// - Parameter annotations: The annotations of the block.
@@ -404,7 +380,7 @@ import Testing
     case .image:
       .image(
         FoundationModelsACP.ImageContent(
-          data: try pngData().base64EncodedString(),
+          data: try TestImage.makePNGData().base64EncodedString(),
           mimeType: MediaType(rawValue: "image/png"), annotations: annotations))
     case .audio:
       .audio(

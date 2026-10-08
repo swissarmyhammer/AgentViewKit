@@ -137,7 +137,7 @@
     /// - Throws: The error of a file write.
     private static func makeAttachedFiles() throws -> ComposerAttachedFiles {
       let directory = try AttachmentChipsHostedTests.makeDirectory()
-      let image = try AttachmentChips.writeImage(AttachmentChipsHostedTests.pngData(), in: directory)
+      let image = try AttachmentChips.writeImage(TestImage.makePNGData(), in: directory)
       let notesURL = directory.appending(path: "notes.txt")
       try Data(notesText.utf8).write(to: notesURL)
       return ComposerAttachedFiles(

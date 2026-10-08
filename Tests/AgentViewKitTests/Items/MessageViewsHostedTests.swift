@@ -152,7 +152,7 @@ import Testing
     let harness = HostedViewHarness(
       AgentThreadView(session: session.model), size: Self.tallSize)
     defer { harness.close() }
-    let image = WireBlockJSON.makeImage(data: try WireContentBlockViewHostedTests.pngData(), mimeType: Self.imageMimeType)
+    let image = WireBlockJSON.makeImage(data: try TestImage.makePNGData(), mimeType: Self.imageMimeType)
     let expectedBlocks = [
       ContentBlockView.identifier(for: .image), ContentBlockView.identifier(for: .resourceLink),
       ContentBlockView.identifier(for: .text),
