@@ -1,4 +1,3 @@
-import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -24,9 +23,10 @@ import FoundationModelsACPClient
 /// ```
 ///
 /// The host closes the connection with `ConnectionModel.disconnect()`. The
-/// model then stops the read of its end of the pair, and the helper closes
-/// the input of the agent side. The agent side reads the end of its input
-/// and stops, as an agent process that `disconnect()` ends.
+/// model then stops the read of its end of the pair, and
+/// `InMemoryTransport.pair()` ends the input of the agent side. The agent
+/// side reads the end of its input and stops, as an agent process that
+/// `disconnect()` ends.
 ///
 /// The agent side can also stop first, when the agent closes its connection
 /// (`AgentSideConnection.close()`). Then the helper closes the two ends of
@@ -59,57 +59,7 @@ public enum InProcessAgent {
       clientEnd.close()
     }
     let model = ConnectionModel()
-    _ = await model.connect(over: InProcessClientTransport(end: clientEnd))
+    _ = await model.connect(over: clientEnd)
     return model
-  }
-}
-
-/// The client end of the in-memory pair of ``InProcessAgent``.
-///
-/// The transport gives the bytes of the agent to the client, and writes the
-/// bytes of the client to the agent. When the client stops the read of
-/// ``bytes``, for example in `ConnectionModel.disconnect()`, the transport
-/// closes its end. The agent side then reads the end of its input. Thus a
-/// disconnect stops an in-process agent, as it stops an agent process.
-nonisolated struct InProcessClientTransport: ACPTransport {
-  /// The bytes from the agent side.
-  let bytes: AsyncThrowingStream<Data, any Error>
-
-  /// The client end of the in-memory pair.
-  private let end: InMemoryTransport
-
-  /// Makes the transport over the client end of an in-memory pair.
-  ///
-  /// A task gives each chunk of `end` to ``bytes``. When the read of
-  /// ``bytes`` stops, or when the agent side closes, the task stops and the
-  /// transport closes `end`.
-  ///
-  /// - Parameter end: The client end of the pair.
-  init(end: InMemoryTransport) {
-    self.end = end
-    let (stream, continuation) = AsyncThrowingStream<Data, any Error>.makeStream()
-    let forward = Task {
-      do {
-        for try await chunk in end.bytes {
-          continuation.yield(chunk)
-        }
-        continuation.finish()
-      } catch {
-        continuation.finish(throwing: error)
-      }
-    }
-    continuation.onTermination = { _ in
-      forward.cancel()
-      end.close()
-    }
-    bytes = stream
-  }
-
-  /// Writes one chunk to the agent side.
-  ///
-  /// - Parameter data: The bytes to send, already framed.
-  /// - Throws: `InMemoryTransport.ClosedError` after a close.
-  func write(_ data: Data) async throws {
-    try await end.write(data)
   }
 }

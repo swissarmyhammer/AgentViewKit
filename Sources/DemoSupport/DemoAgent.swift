@@ -331,9 +331,9 @@ public final class DemoAgent {
   /// returns, the state of ``connection`` is `.disconnected`.
   ///
   /// The disconnect stops the read of the transport. For the in-process
-  /// agent, ``InProcessAgent`` then closes the input of the agent side, and
-  /// the agent stops. An agent process gets a group kill when its transport
-  /// stops.
+  /// agent, the `InMemoryTransport.pair()` of ``InProcessAgent`` then ends
+  /// the input of the agent side, and the agent stops. An agent process gets
+  /// a group kill when its transport stops.
   public func stop() async {
     await connection.disconnect()
   }

@@ -68,12 +68,30 @@ import Testing
     #expect(await waitUntil { model.state == .disconnected })
   }
 
-  @Test func aDisconnectOfTheModelClosesTheAgentSide() async {
+  /// A disconnect of the model stops the read of the client end of the pair.
+  /// `InMemoryTransport.pair()` then ends the input of the agent side, so the
+  /// agent side closes because of the end of its input. When the pair does
+  /// not end the input, the time limit stops the agent side, and the reason
+  /// is `closedLocally`.
+  @Test func aDisconnectOfTheModelClosesTheAgentSide() async throws {
     let (model, agent) = await Self.makeDemoConnection()
 
     await model.disconnect()
 
-    await ACPTestTimeLimit.run(stopping: agent.close) { await agent.waitUntilClosed() }
+    let reason = try #require(await ACPTestTimeLimit.run(stopping: agent.close) { await agent.closed })
+    #expect(Self.isEndOfInput(reason))
     #expect(model.state == .disconnected)
+  }
+
+  /// Tells if a connection closed because its input ended.
+  ///
+  /// `ConnectionCloseReason` is not `Equatable`, because a transport failure
+  /// holds `any Error`.
+  ///
+  /// - Parameter reason: The reason of the close.
+  /// - Returns: `true` when the reason is `endOfInput`.
+  private static func isEndOfInput(_ reason: ConnectionCloseReason) -> Bool {
+    if case .endOfInput = reason { return true }
+    return false
   }
 }

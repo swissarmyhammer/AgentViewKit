@@ -65,6 +65,10 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     // of the client model. The client also has a `ConnectionState`, so that
     // name is not in the list.
     "ConnectionStore", "ConnectionActions", "ConnectionID",
+    // The client transport of the in-process helper. `InMemoryTransport.pair()`
+    // ends the input of the agent side when the client stops its read, so
+    // the helper connects the model over the client end of the pair.
+    "InProcessClientTransport",
   ]
 
   /// The symbols of the session controller that the demo app removed. The

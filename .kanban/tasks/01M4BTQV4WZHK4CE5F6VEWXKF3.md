@@ -44,10 +44,26 @@ comments:
     - evidence: swift test: 1025 tests in 110 suites passed, 0 failed, 0 skipped, no warning except the expected mlx-swift "missing creator for mutated node". Scripts/check-readme.sh: README gate passed (3 snippets). Scripts/test-examples.sh AgentViewKitDemo: 4 UI tests, 0 failures, TEST SUCCEEDED, example gate passed. swift build --package-path Benchmarks: Build complete. No time-limit failure, so no uptime run.
     - next: commit (no code was changed by this step).
   timestamp: 2026-10-08T05:03:23.239656+00:00
+- actor: claude-code
+  id: 01m4cyk70rbc5sgpegx3xf8b8d
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b0e2003). 0 findings, 0 confirmed, 0 refuted. 7 validator passes, 0 failed. 5 files reviewed. Package.resolved and Benchmarks/Package.resolved: no validator applies. The .kanban files are excluded by .reviewignore.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-08T05:08:22.680083+00:00
+- actor: claude-code
+  id: 01m4cykpw8w0xaytw8exrk9pqb
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 7 files (pins client e1cac1d / ACP b2cec56, AgentAuthView, ConnectionRow, hosted tests, ResolvedPinsTests); new task ^fh4y0d7 (decided by the binding rule) and client task ^wg6efj4
+    - test: green — swift test 1025 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed
+    - commit: b0e2003
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-08T05:08:38.920153+00:00
 depends_on:
 - 01M49GHXXC7CY7R1PRZ83200VG
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff9480
 title: Show the unsupported sign-in failures from the client auth state
 ---
 ## Start condition
