@@ -1,5 +1,6 @@
 import EditorCore
 import EditorSwiftUI
+import FoundationModelsACP
 import SwiftUI
 
 // MARK: - Field view
@@ -621,10 +622,10 @@ public struct ElicitationSingleChoiceField: View {
   private func radioGroup(_ choices: [ElicitationFieldSchema.Choice]) -> some View {
     let name = context.schema.name
     return VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      ForEach(choices) { choice in
-        let isSelected = selection == choice.value
+      ForEach(choices, id: \.const) { choice in
+        let isSelected = selection == choice.const
         Button {
-          context.value.wrappedValue = .string(choice.value)
+          context.value.wrappedValue = .string(choice.const)
         } label: {
           Label(
             choice.title,
@@ -636,7 +637,7 @@ public struct ElicitationSingleChoiceField: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected ? "selected" : "")
         .accessibilityIdentifier(
-          ElicitationFieldView.choiceIdentifier(for: name, value: choice.value))
+          ElicitationFieldView.choiceIdentifier(for: name, value: choice.const))
       }
     }
     .accessibilityElement(children: .contain)
@@ -658,8 +659,8 @@ public struct ElicitationSingleChoiceField: View {
       )
     ) {
       Text(Self.noSelectionTitle).tag(String?.none)
-      ForEach(choices) { choice in
-        Text(choice.title).tag(Optional(choice.value))
+      ForEach(choices, id: \.const) { choice in
+        Text(choice.title).tag(Optional(choice.const))
       }
     }
     .pickerStyle(.menu)
@@ -727,20 +728,20 @@ public struct ElicitationMultiChoiceField: View {
     let isAtLimit = Self.isAtLimit(selectedCount: selected.count, maxItems: maxItems)
     let name = context.schema.name
     return VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      ForEach(choices) { choice in
-        let isOn = selected.contains(choice.value)
+      ForEach(choices, id: \.const) { choice in
+        let isOn = selected.contains(choice.const)
         Toggle(
           choice.title,
           isOn: Binding(
             get: { isOn },
-            set: { write(choice.value, isOn: $0, choices: choices) }
+            set: { write(choice.const, isOn: $0, choices: choices) }
           )
         )
         .toggleStyle(.checkbox)
         .disabled(isAtLimit && !isOn)
         .help(choice.description ?? choice.title)
         .accessibilityIdentifier(
-          ElicitationFieldView.choiceIdentifier(for: name, value: choice.value))
+          ElicitationFieldView.choiceIdentifier(for: name, value: choice.const))
       }
     }
     .accessibilityElement(children: .contain)
@@ -762,7 +763,7 @@ public struct ElicitationMultiChoiceField: View {
     } else {
       values.remove(value)
     }
-    let ordered = choices.map(\.value).filter(values.contains)
+    let ordered = choices.map(\.const).filter(values.contains)
     context.value.wrappedValue = .array(ordered.map(JSONValue.string))
   }
 }

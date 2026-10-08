@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import Testing
 
 /// Tests for `ElicitationValidator` (plan.md §13.1).
@@ -40,7 +41,7 @@ import Testing
     -> ElicitationFieldSchema.Kind
   {
     .multiChoice(
-      ["a", "b", "c"].map { Choice(value: $0, title: $0) },
+      ["a", "b", "c"].map { Choice(const: $0, title: $0) },
       minItems: minItems,
       maxItems: maxItems
     )
@@ -293,7 +294,7 @@ import Testing
   // MARK: - Single choice
 
   @Test func aSingleChoiceMustBeOneOfTheChoices() {
-    let schema = field(.singleChoice([Choice(value: "a", title: "A")]))
+    let schema = field(.singleChoice([Choice(const: "a", title: "A")]))
 
     #expect(passes(.string("a"), schema))
     #expect(

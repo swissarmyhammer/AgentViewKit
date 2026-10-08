@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -65,7 +66,7 @@ struct HostedTextField: View {
 
   /// Makes `count` choices with the values `c0`, `c1`, and so on.
   static func choices(_ count: Int) -> [ElicitationFieldSchema.Choice] {
-    (0..<count).map { .init(value: "c\($0)", title: "Choice \($0)") }
+    (0..<count).map { .init(const: "c\($0)", title: "Choice \($0)") }
   }
 
   /// Mounts one field.

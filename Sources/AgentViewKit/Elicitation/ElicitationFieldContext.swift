@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import SwiftUI
 
 /// The data that the kit gives to each elicitation field view

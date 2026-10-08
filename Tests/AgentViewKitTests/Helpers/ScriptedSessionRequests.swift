@@ -176,13 +176,13 @@ extension ScriptedSession {
   /// - Parameter id: The JSON-RPC id of the request of the agent.
   /// - Returns: The `result` member of the response, or `nil` when no response
   ///   came before the time limit.
-  func result(ofRequest id: Int) async -> AgentViewKit.JSONValue? {
+  func result(ofRequest id: Int) async -> JSONValue? {
     _ = await waitUntil { agent.response(to: Double(id)) != nil }
     return agent.response(to: Double(id))?["result"]
   }
 
   /// The prompt blocks of each `session/prompt` frame that the agent got.
-  var promptBlocks: [[AgentViewKit.JSONValue]] {
+  var promptBlocks: [[JSONValue]] {
     agent.messages(method: Self.promptMethod).map { message in
       if case .array(let blocks) = message["params"]?["prompt"] { blocks } else { [] }
     }

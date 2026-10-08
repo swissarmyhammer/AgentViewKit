@@ -12,8 +12,8 @@ import SwiftUI
 /// so the link opens in the browser of the user. A link with a URI that is
 /// not a URL shows the name and the URI as text.
 ///
-/// The view shows a kit ``ResourceLink``, or an ACP `ResourceLink` that a
-/// transcript entry holds.
+/// The view shows an ACP `ResourceLink`, such as a link that a transcript
+/// entry holds.
 public struct LinkView: View {
   /// The accessibility identifier of the card.
   public static let cardIdentifier = "link-card"
@@ -21,39 +21,25 @@ public struct LinkView: View {
   /// The largest width of the card, in points.
   private static let maximumCardWidth: CGFloat = 400
 
-  /// The link to show: a kit link of a thread message, or an ACP link that
-  /// a transcript entry holds.
-  let source: BlockSource<ResourceLink, FoundationModelsACP.ResourceLink>
+  /// The ACP link to show.
+  let link: FoundationModelsACP.ResourceLink
 
   /// The loaded first icon of the link, or `nil`.
   @State private var icon: NSImage?
 
   @Environment(\.openURL) private var openURL
 
-  /// Makes the view of a resource link.
-  ///
-  /// - Parameter link: The link to show.
-  public init(link: ResourceLink) {
-    self.source = .record(link)
-  }
-
-  /// Makes the view of an ACP resource link of a transcript entry.
+  /// Makes the view of an ACP resource link.
   ///
   /// - Parameter link: The ACP link to show, as the entry holds it.
   public init(link: FoundationModelsACP.ResourceLink) {
-    self.source = .wire(link)
-  }
-
-  /// The name, the URI, and the source of the first icon of the link.
-  private var parts: (name: String, uri: String, iconSource: String?) {
-    switch source {
-    case .record(let link): (link.name, link.uri, link.icons.first?.src)
-    case .wire(let link): (link.name, link.uri, link.icons?.first?.src)
-    }
+    self.link = link
   }
 
   public var body: some View {
-    let (name, uri, iconSource) = parts
+    let name = link.name
+    let uri = link.uri
+    let iconSource = link.icons?.first?.src
     if let url = URL(string: uri) {
       Button {
         openURL(url)

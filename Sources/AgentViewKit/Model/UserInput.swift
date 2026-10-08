@@ -9,9 +9,10 @@ public nonisolated struct UserInput: Sendable, Hashable {
 
   /// The locations of the files that the user attached, in order.
   ///
-  /// The list holds URLs, as the `attachment(URL)` content block does
-  /// (plan.md §3.2). ``PromptInputView`` sends the URL of each ``Attachment``
-  /// of its list.
+  /// ACP has no value for a draft with local files. The composer makes the
+  /// ACP content blocks of the prompt from these URLs when it sends the
+  /// input. ``PromptInputView`` sends the URL of each ``Attachment`` of its
+  /// list.
   public var attachments: [URL]
 
   /// Makes a user input.

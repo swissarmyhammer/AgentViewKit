@@ -2,6 +2,7 @@ import AgentViewKitTestSupport
 import AppKit
 import Foundation
 import FoundationModelsACP
+import PackageFileSupport
 import SwiftUI
 import Testing
 
@@ -47,11 +48,30 @@ import Testing
   /// Data that is not valid base64 text.
   static let notBase64 = "not base64 !"
 
+  /// Bytes that are valid base64 data but not an image.
+  static let notImageBytes = Data("not an image".utf8)
+
   /// The bytes of the sound in the tests.
   static let audioBytes = Data([0, 1, 2, 3])
 
   /// The bytes of the binary resource in the tests.
   static let archiveBytes = Data([1, 2, 3])
+
+  /// The bytes of the block file in the file tests.
+  static let fileBytes = Data("block bytes".utf8)
+
+  /// The name of the block file in the file tests.
+  static let fileName = "clip.wav"
+
+  /// The width and the height of the test image, in pixels.
+  static let pngSide = 4
+
+  /// The number of bits of each sample of the test image.
+  static let pngBitsPerSample = 8
+
+  /// The number of samples of each pixel of the test image: red, green,
+  /// blue, and alpha.
+  static let pngSamplesPerPixel = 4
 
   /// The accessibility identifier of the registered views in the tests.
   static let customIdentifier = "custom-wire-block"
@@ -73,7 +93,7 @@ import Testing
     let block = try Self.makeWireBlock(of: kind)
     let harness = HostedViewHarness(ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    let identifier = ContentBlockView.identifier(of: kind)
+    let identifier = ContentBlockView.identifier(for: kind)
     await harness.pump(until: Self.waitSeconds) {
       harness.element(identifier: identifier) != nil
     }
@@ -82,9 +102,9 @@ import Testing
   }
 
   @Test func theIdentifierOfAWireKindHasThePrefixAndTheKindName() {
-    #expect(ContentBlockView.identifier(of: .text) == "content-block-text")
-    #expect(ContentBlockView.identifier(of: .resourceLink) == "content-block-resourceLink")
-    #expect(ContentBlockView.identifier(of: .unknown) == "content-block-unknown")
+    #expect(ContentBlockView.identifier(for: .text) == "content-block-text")
+    #expect(ContentBlockView.identifier(for: .resourceLink) == "content-block-resourceLink")
+    #expect(ContentBlockView.identifier(for: .unknown) == "content-block-unknown")
   }
 
   @Test func theKindOfEachWireBlockIsTheKindItWasMadeFor() throws {
@@ -115,7 +135,7 @@ import Testing
 
   @Test func aPressOnAWireImageSelectsItsBytesInTheInspector() async throws {
     let selection = InspectorSelection()
-    let png = try ContentBlockViewHostedTests.pngData()
+    let png = try Self.pngData()
     let image = FoundationModelsACP.ImageContent(
       data: png.base64EncodedString(), mimeType: MediaType(rawValue: "image/png"), uri: Self.imageURI)
     let harness = HostedViewHarness(
@@ -131,11 +151,24 @@ import Testing
 
     let attachment = try #require(selection.attachment)
     #expect(attachment.name == Self.imageName)
+    #expect(attachment.type.conforms(to: .png))
     #expect(try Data(contentsOf: attachment.url) == png)
   }
 
   @Test func aWireImageWithDataThatIsNotBase64ShowsThePlaceholder() {
     let image = FoundationModelsACP.ImageContent(data: Self.notBase64, mimeType: MediaType(rawValue: "image/png"))
+    let harness = HostedViewHarness(
+      ContentBlockView(block: .image(image), id: Self.blockID), size: Self.hostSize)
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(harness.element(identifier: ImageView.placeholderIdentifier) != nil)
+    #expect(harness.element(identifier: ImageView.imageIdentifier) == nil)
+  }
+
+  @Test func aWireImageWithBytesThatAreNotAnImageShowsThePlaceholder() {
+    let image = FoundationModelsACP.ImageContent(
+      data: Self.notImageBytes.base64EncodedString(), mimeType: MediaType(rawValue: "image/png"))
     let harness = HostedViewHarness(
       ContentBlockView(block: .image(image), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
@@ -239,7 +272,7 @@ import Testing
     harness.pump()
 
     #expect(harness.element(identifier: Self.customIdentifier) != nil)
-    #expect(harness.element(identifier: ContentBlockView.identifier(of: kind)) == nil)
+    #expect(harness.element(identifier: ContentBlockView.identifier(for: kind)) == nil)
   }
 
   @Test func aRegisteredLinkViewGetsTheWireBlock() {
@@ -278,6 +311,37 @@ import Testing
     #expect(harness.element(identifier: ItemRow.identifier(for: entry.rowKey)) != nil)
   }
 
+  // MARK: - Files
+
+  @Test func aWrittenBlockFileKeepsTheBytesAndTheName() async throws {
+    let first = try #require(await ContentBlockFile.write(Self.fileBytes, named: Self.fileName))
+    let second = try #require(await ContentBlockFile.write(Self.fileBytes, named: Self.fileName))
+
+    #expect(first == second)
+    #expect(first.lastPathComponent == Self.fileName)
+    #expect(try Data(contentsOf: first) == Self.fileBytes)
+  }
+
+  @Test func theFileNameComesFromTheURIOrTheMIMEType() {
+    #expect(
+      ContentBlockFile.fileName(uri: "https://example.com/a/chart.png", mimeType: "image/png", stem: "image")
+        == "chart.png")
+    #expect(ContentBlockFile.fileName(uri: nil, mimeType: "image/png", stem: "image") == "image.png")
+    #expect(ContentBlockFile.fileName(uri: "https://example.com/", mimeType: "audio/wav", stem: "audio") == "audio.wav")
+    #expect(ContentBlockFile.fileName(uri: nil, mimeType: "no/such-type", stem: "audio") == "audio")
+  }
+
+  // MARK: - Web views
+
+  @Test func noSourceFileUsesAWebView() throws {
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file("Sources"))
+    for file in files {
+      let text = try String(contentsOf: file, encoding: .utf8)
+      #expect(!text.contains("import WebKit"), "\(file.lastPathComponent) imports WebKit.")
+      #expect(!text.contains("WKWebView"), "\(file.lastPathComponent) uses WKWebView.")
+    }
+  }
+
   // MARK: - Helpers
 
   /// Makes the registered view of a resource link block in the tests: a text
@@ -298,6 +362,19 @@ import Testing
   /// - Returns: Each label.
   static func labels<Content: View>(in harness: HostedViewHarness<Content>) -> [String] {
     harness.accessibilityElements().compactMap(\.label)
+  }
+
+  /// Makes the bytes of a small PNG image.
+  ///
+  /// - Returns: The PNG data.
+  /// - Throws: An error when AppKit cannot make the image.
+  static func pngData() throws -> Data {
+    let representation = try #require(
+      NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: pngSide, pixelsHigh: pngSide, bitsPerSample: pngBitsPerSample,
+        samplesPerPixel: pngSamplesPerPixel, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+        bytesPerRow: 0, bitsPerPixel: 0))
+    return try #require(representation.representation(using: .png, properties: [:]))
   }
 
   /// Makes the resource link block of the tests.
@@ -327,7 +404,7 @@ import Testing
     case .image:
       .image(
         FoundationModelsACP.ImageContent(
-          data: try ContentBlockViewHostedTests.pngData().base64EncodedString(),
+          data: try pngData().base64EncodedString(),
           mimeType: MediaType(rawValue: "image/png"), annotations: annotations))
     case .audio:
       .audio(

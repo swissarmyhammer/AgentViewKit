@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import Testing
 
 @testable import DemoSupport
@@ -16,7 +17,7 @@ struct InMemoryDemoAgentTests {
   }
 
   @Test func thePromptTextJoinsTheTextBlocks() {
-    let request = AgentViewKit.JSONValue.object([
+    let request = JSONValue.object([
       "params": .object([
         "prompt": .array([
           .object(["type": .string("text"), "text": .string("he")]),

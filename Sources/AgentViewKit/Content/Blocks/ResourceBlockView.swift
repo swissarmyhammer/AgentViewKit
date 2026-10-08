@@ -9,71 +9,31 @@ import UniformTypeIdentifiers
 /// contents show as an ``AttachmentChip`` with the name, the type icon, and
 /// the size of the resource.
 ///
-/// The view shows a kit ``EmbeddedResource``, or an ACP `EmbeddedResource`
-/// that a transcript entry holds. The view of an ACP resource reads the
-/// members of its raw JSON when it shows it. An ACP resource with no `uri`,
-/// or with no `text` and no base64 `blob`, shows its JSON in an
-/// ``UnknownItemView``.
+/// The view shows an ACP `EmbeddedResource` that a transcript entry holds.
+/// The view reads the members of its raw JSON when it shows it. A resource
+/// with no `uri`, or with no `text` and no base64 `blob`, shows its JSON in
+/// an ``UnknownItemView``.
 struct ResourceBlockView: View {
-  /// The kind name of the raw view of an ACP resource that the view cannot
-  /// read.
-  private static let wireKind = "resource"
+  /// The kind name of the raw view of a resource that the view cannot read.
+  private static let rawKind = "resource"
 
   /// The file name stem of a resource with no file name in its URI.
   private static let fileStem = "resource"
 
-  /// The resource to show: a kit resource of a thread message, or an ACP
-  /// resource that a transcript entry holds, with the id that keys the
-  /// expanded state of its raw view.
-  let source: BlockSource<EmbeddedResource, (resource: FoundationModelsACP.EmbeddedResource, id: String)>
+  /// The ACP resource to show, as the transcript entry holds it.
+  let resource: FoundationModelsACP.EmbeddedResource
 
-  /// Makes the view of a kit resource.
-  ///
-  /// - Parameter resource: The resource to show.
-  init(resource: EmbeddedResource) {
-    self.source = .record(resource)
-  }
-
-  /// Makes the view of an ACP resource of a transcript entry.
-  ///
-  /// - Parameters:
-  ///   - resource: The ACP resource to show, as the entry holds it.
-  ///   - id: The id of the block view. It keys the expanded state of the raw
-  ///     view of a resource that the view cannot read.
-  init(resource: FoundationModelsACP.EmbeddedResource, id: String) {
-    self.source = .wire((resource: resource, id: id))
-  }
+  /// The id of the block view. It keys the expanded state of the raw view of
+  /// a resource that the view cannot read.
+  let id: String
 
   var body: some View {
-    switch source {
-    case .record(let resource):
-      switch resource.contents {
-      case .text(let text):
-        Self.textView(text: text, uri: resource.uri, mimeType: resource.mimeType)
-      case .blob(let data):
-        Self.blobChip(data: data, uri: resource.uri, mimeType: resource.mimeType)
-      }
-    case .wire(let wire):
-      Self.wireView(of: wire.resource, id: wire.id)
-    }
-  }
-
-  /// The view of an ACP resource.
-  ///
-  /// - Parameters:
-  ///   - resource: The ACP resource.
-  ///   - id: The id that keys the expanded state of the raw view.
-  /// - Returns: The text view, the chip, or the raw view of a resource that
-  ///   the view cannot read.
-  @ViewBuilder private static func wireView(
-    of resource: FoundationModelsACP.EmbeddedResource, id: String
-  ) -> some View {
     if let uri = resource.resourceURI, let text = resource.resourceText {
-      textView(text: text, uri: uri, mimeType: resource.resourceMimeType)
+      Self.textView(text: text, uri: uri, mimeType: resource.resourceMimeType)
     } else if let uri = resource.resourceURI, let data = resource.resourceBlob {
-      blobChip(data: data, uri: uri, mimeType: resource.resourceMimeType)
+      Self.blobChip(data: data, uri: uri, mimeType: resource.resourceMimeType)
     } else {
-      UnknownItemView(kind: wireKind, wireValue: resource.resource, id: id)
+      UnknownItemView(kind: Self.rawKind, raw: resource.resource, id: id)
     }
   }
 

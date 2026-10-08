@@ -134,7 +134,7 @@ public actor InMemoryDemoACPAgent: Agent {
   // MARK: - Script
 
   /// The empty result object of each request that returns no data.
-  private static let emptyResult = AgentViewKit.JSONValue.object([:])
+  private static let emptyResult = JSONValue.object([:])
 
   /// The detail of the error of a request that came after the release of the
   /// connection.
@@ -151,7 +151,7 @@ public actor InMemoryDemoACPAgent: Agent {
   /// - Returns: The notifications, in send order.
   /// - Throws: The error of the encoder or of the decoder.
   private static func turnUpdates(for request: PromptRequest, turn: Int) async throws -> [UpdateSessionNotification] {
-    let frame = AgentViewKit.JSONValue.object(["params": try AgentViewKit.JSONValue(encoding: request)])
+    let frame = JSONValue.object(["params": try JSONValue(encoding: request)])
     return try await InMemoryDemoAgent.turnNotifications(for: frame, turn: turn).map(decoded)
   }
 
@@ -160,7 +160,7 @@ public actor InMemoryDemoACPAgent: Agent {
   /// - Parameter json: The JSON form of the value.
   /// - Returns: The value.
   /// - Throws: `DecodingError` when the JSON form does not match the type.
-  private static func decoded<Value: Decodable>(_ json: AgentViewKit.JSONValue) throws -> Value {
+  private static func decoded<Value: Decodable>(_ json: JSONValue) throws -> Value {
     try JSONDecoder().decode(Value.self, from: Data(json.jsonString.utf8))
   }
 }

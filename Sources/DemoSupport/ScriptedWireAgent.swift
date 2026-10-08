@@ -35,7 +35,7 @@ public final class ScriptedWireAgent {
   ///
   /// The first argument is the request frame. The second argument is the
   /// number of requests with the same method, this request included.
-  public typealias FollowUp = (AgentViewKit.JSONValue, Int) -> [String]
+  public typealias FollowUp = (JSONValue, Int) -> [String]
 
   /// The position of the echoed user message of a prompt, relative to the
   /// prompt result.
@@ -96,7 +96,7 @@ public final class ScriptedWireAgent {
   public var leadIns: [String: FollowUp] = [:]
 
   /// Each frame from the client, in arrival order.
-  public private(set) var received: [AgentViewKit.JSONValue] = []
+  public private(set) var received: [JSONValue] = []
 
   /// The task that reads the frames.
   private var reader: Task<Void, Never>?
@@ -166,7 +166,7 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter method: The JSON-RPC method.
   /// - Returns: The frames.
-  public func messages(method: String) -> [AgentViewKit.JSONValue] {
+  public func messages(method: String) -> [JSONValue] {
     received.filter { $0["method"]?.stringValue == method }
   }
 
@@ -190,7 +190,7 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter id: The JSON-RPC id of the request of the agent.
   /// - Returns: The response frame.
-  public func response(to id: Double) -> AgentViewKit.JSONValue? {
+  public func response(to id: Double) -> JSONValue? {
     index(ofResponseTo: id).map { received[$0] }
   }
 
@@ -212,7 +212,7 @@ public final class ScriptedWireAgent {
   /// method, holds the answer when ``heldMethods`` has the method, answers
   /// it, and then sends the follow-up frames of its method.
   private func handle(_ line: Data) async {
-    guard let frame = try? JSONDecoder().decode(AgentViewKit.JSONValue.self, from: line) else { return }
+    guard let frame = try? JSONDecoder().decode(JSONValue.self, from: line) else { return }
     received.append(frame)
     guard let method = frame["method"]?.stringValue, let id = frame["id"] else { return }
     let idText = String(decoding: (try? JSONEncoder().encode(id)) ?? Data(), as: UTF8.self)
@@ -237,7 +237,7 @@ public final class ScriptedWireAgent {
   ///   - frames: The lead-in or the follow-up, or `nil` for no frame.
   ///   - request: The request frame.
   ///   - method: The method of the request.
-  private func send(_ frames: FollowUp?, for request: AgentViewKit.JSONValue, method: String) async {
+  private func send(_ frames: FollowUp?, for request: JSONValue, method: String) async {
     guard let frames else { return }
     for frame in frames(request, messages(method: method).count) {
       try? await send(frame)
@@ -255,8 +255,8 @@ public final class ScriptedWireAgent {
   /// - Parameters:
   ///   - request: The request frame.
   ///   - idText: The JSON text of the id of the request.
-  private func answerPrompt(request: AgentViewKit.JSONValue, idText: String) async {
-    let messageID = AgentViewKit.JSONValue.string(UUID().uuidString)
+  private func answerPrompt(request: JSONValue, idText: String) async {
+    let messageID = JSONValue.string(UUID().uuidString)
     let result = Self.resultFrame(idText: idText, result: promptResult(messageID: messageID))
     let echo = Self.echoFrame(of: request, messageID: messageID)
     let frames =
@@ -287,11 +287,11 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter messageID: The ID of the user message of the prompt.
   /// - Returns: The JSON text of the result.
-  private func promptResult(messageID: AgentViewKit.JSONValue) -> String {
+  private func promptResult(messageID: JSONValue) -> String {
     let scripted = Data(nextResult(for: promptMethod).utf8)
-    var fields = (try? JSONDecoder().decode([String: AgentViewKit.JSONValue].self, from: scripted)) ?? [:]
+    var fields = (try? JSONDecoder().decode([String: JSONValue].self, from: scripted)) ?? [:]
     fields["messageId"] = messageID
-    return AgentViewKit.JSONValue.object(fields).jsonString
+    return JSONValue.object(fields).jsonString
   }
 
   /// A JSON-RPC response frame with a result.
@@ -311,14 +311,14 @@ public final class ScriptedWireAgent {
   ///   - request: The `session/prompt` request frame.
   ///   - messageID: The ID of the user message of the prompt.
   /// - Returns: The frame.
-  private static func echoFrame(of request: AgentViewKit.JSONValue, messageID: AgentViewKit.JSONValue) -> String {
-    let update = AgentViewKit.JSONValue.object([
+  private static func echoFrame(of request: JSONValue, messageID: JSONValue) -> String {
+    let update = JSONValue.object([
       "sessionUpdate": .string("user_message_chunk"),
       "messageId": messageID,
       "content": textBlock(text: promptText(of: request)),
     ])
     let sessionId = request["params"]?["sessionId"] ?? .null
-    return AgentViewKit.JSONValue.object([
+    return JSONValue.object([
       "jsonrpc": .string("2.0"),
       "method": .string("session/update"),
       "params": .object(["sessionId": sessionId, "update": update]),
@@ -329,7 +329,7 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter request: The request frame.
   /// - Returns: The joined text.
-  public static func promptText(of request: AgentViewKit.JSONValue) -> String {
+  public static func promptText(of request: JSONValue) -> String {
     guard case .array(let blocks)? = request["params"]?["prompt"] else { return "" }
     return blocks.compactMap { block in
       block["type"]?.stringValue == "text" ? block["text"]?.stringValue : nil
@@ -340,7 +340,7 @@ public final class ScriptedWireAgent {
   ///
   /// - Parameter text: The text of the block.
   /// - Returns: The block.
-  static func textBlock(text: String) -> AgentViewKit.JSONValue {
+  static func textBlock(text: String) -> JSONValue {
     .object(["type": .string("text"), "text": .string(text)])
   }
 }

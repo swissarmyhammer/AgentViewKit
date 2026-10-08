@@ -1,3 +1,5 @@
+import FoundationModelsACP
+
 /// One field of an elicitation form (plan.md §13.1).
 ///
 /// ``normalize(from:)`` makes the fields from the `requestedSchema` of a form
@@ -136,37 +138,11 @@ extension ElicitationFieldSchema {
 
   /// One choice of a single-choice or multi-choice field (plan.md §13.1).
   ///
-  /// Each choice encoding of the schema gives this type. A choice and a
-  /// config select value have the same shape, so the two use one type. The
-  /// elicitation names ``SelectOption/value`` and ``SelectOption/title`` are
-  /// other names for ``SelectOption/id`` and ``SelectOption/name``.
-  public typealias Choice = SelectOption
-}
-
-extension SelectOption {
-  /// Makes a choice of an elicitation field.
-  ///
-  /// - Parameters:
-  ///   - value: The string that the answer contains. This is ``id``.
-  ///   - title: The label of the choice. This is ``name``.
-  ///   - description: The help text of the choice.
-  public nonisolated init(value: String, title: String, description: String? = nil) {
-    self.init(id: value, name: title, description: description)
-  }
-
-  /// The string that an elicitation answer contains when this choice is
-  /// selected. This is ``id``.
-  public nonisolated var value: String {
-    get { id }
-    set { id = newValue }
-  }
-
-  /// The label of an elicitation choice. For an untitled choice, this is
-  /// ``value``. This is ``name``.
-  public nonisolated var title: String {
-    get { name }
-    set { name = newValue }
-  }
+  /// Each choice encoding of the schema gives the ACP `EnumOption`: `const`
+  /// is the string that the answer contains, `title` is the label, and
+  /// `description` is the help text. An untitled choice uses its value as
+  /// its title.
+  public typealias Choice = FoundationModelsACP.EnumOption
 }
 
 // MARK: - Normalization
@@ -313,7 +289,7 @@ extension ElicitationFieldSchema {
     let choices = elements.compactMap { option -> Choice? in
       guard let value = option["const"]?.stringValue else { return nil }
       return Choice(
-        value: value,
+        const: value,
         title: option["title"]?.stringValue ?? value,
         description: option["description"]?.stringValue
       )
@@ -333,7 +309,7 @@ extension ElicitationFieldSchema {
     guard let strings = values?.strings, !strings.isEmpty else { return nil }
     let titles = names?.strings ?? []
     return strings.enumerated().map { index, value in
-      Choice(value: value, title: titles.indices.contains(index) ? titles[index] : value)
+      Choice(const: value, title: titles.indices.contains(index) ? titles[index] : value)
     }
   }
 

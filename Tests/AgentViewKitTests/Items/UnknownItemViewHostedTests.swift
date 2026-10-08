@@ -1,7 +1,9 @@
-import AgentViewKit
 import AgentViewKitTestSupport
+import FoundationModelsACP
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 @Suite(.serialized, .hostedSerially) @MainActor struct UnknownItemViewHostedTests {
   /// The kind of the test value.

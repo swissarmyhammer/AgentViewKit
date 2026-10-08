@@ -1,4 +1,5 @@
 import AppKit
+import FoundationModelsACP
 import SwiftUI
 
 /// The collapsible "Sources" footer of a response (plan.md §9 C).
@@ -146,12 +147,12 @@ private struct SourceRow: View {
     .contentContainer(identifier: SourcesView.rowIdentifier(index: index))
   }
 
-  /// The resource link of the source, for the ``LinkView`` card.
+  /// The ACP resource link of the source, for the ``LinkView`` card.
   private var link: ResourceLink {
     ResourceLink(
       name: source.title,
       uri: source.url.absoluteString,
-      icons: source.iconURL.map { [ResourceIcon(src: $0.absoluteString)] } ?? []
+      icons: source.iconURL.map { [Icon(src: $0.absoluteString)] }
     )
   }
 }

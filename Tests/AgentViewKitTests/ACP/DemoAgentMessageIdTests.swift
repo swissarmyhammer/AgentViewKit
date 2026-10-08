@@ -47,8 +47,8 @@ private struct RawClient {
   ///   - method: The JSON-RPC method.
   ///   - id: The JSON-RPC id.
   ///   - params: The parameters.
-  func request(method: String, id: Double, params: AgentViewKit.JSONValue) async throws {
-    let frame = AgentViewKit.JSONValue.object([
+  func request(method: String, id: Double, params: JSONValue) async throws {
+    let frame = JSONValue.object([
       "jsonrpc": .string("2.0"), "id": .number(id), "method": .string(method), "params": params,
     ])
     try await transport.write(Data((frame.jsonString + "\n").utf8))
@@ -58,7 +58,7 @@ private struct RawClient {
   ///
   /// - Parameter id: The JSON-RPC id.
   func prompt(id: Double) async throws {
-    let params = AgentViewKit.JSONValue.object([
+    let params = JSONValue.object([
       "sessionId": .string(sessionID),
       "prompt": .array([.object(["type": .string("text"), "text": .string(promptText)])]),
     ])
@@ -69,15 +69,15 @@ private struct RawClient {
   ///
   /// - Parameter isLast: Tells if a frame is the last frame to read.
   /// - Returns: The frames in arrival order, the last frame included.
-  func frames(through isLast: (AgentViewKit.JSONValue) -> Bool) async throws -> [AgentViewKit.JSONValue] {
-    var frames: [AgentViewKit.JSONValue] = []
+  func frames(through isLast: (JSONValue) -> Bool) async throws -> [JSONValue] {
+    var frames: [JSONValue] = []
     var buffer = Data()
     for try await chunk in transport.bytes {
       buffer.append(chunk)
       while let end = buffer.firstIndex(of: frameEnd) {
         let line = Data(buffer[buffer.startIndex..<end])
         buffer = Data(buffer[buffer.index(after: end)...])
-        let frame = try JSONDecoder().decode(AgentViewKit.JSONValue.self, from: line)
+        let frame = try JSONDecoder().decode(JSONValue.self, from: line)
         frames.append(frame)
         if isLast(frame) { return frames }
       }
@@ -87,13 +87,13 @@ private struct RawClient {
 }
 
 /// Tells if `frame` is the response to the request with `id`.
-private func isResponse(frame: AgentViewKit.JSONValue, to id: Double) -> Bool {
+private func isResponse(frame: JSONValue, to id: Double) -> Bool {
   frame["method"] == nil && frame["id"] == .number(id)
 }
 
 /// The update of a `session/update` frame that echoes a user message, or
 /// `nil`.
-private func userMessageEcho(in frame: AgentViewKit.JSONValue) -> AgentViewKit.JSONValue? {
+private func userMessageEcho(in frame: JSONValue) -> JSONValue? {
   guard frame["method"]?.stringValue == "session/update",
     let update = frame["params"]?["update"],
     let kind = update["sessionUpdate"]?.stringValue,
@@ -105,7 +105,7 @@ private func userMessageEcho(in frame: AgentViewKit.JSONValue) -> AgentViewKit.J
 /// The frames of one prompt, read from an agent.
 private struct PromptFrames {
   /// The frames in arrival order.
-  let frames: [AgentViewKit.JSONValue]
+  let frames: [JSONValue]
 
   /// The position of the response to the prompt.
   let responseIndex: Int
@@ -118,7 +118,7 @@ private struct PromptFrames {
   /// - Parameters:
   ///   - frames: The frames in arrival order.
   ///   - promptID: The JSON-RPC id of the prompt.
-  init(frames: [AgentViewKit.JSONValue], promptID: Double) throws {
+  init(frames: [JSONValue], promptID: Double) throws {
     self.frames = frames
     responseIndex = try #require(frames.firstIndex { isResponse(frame: $0, to: promptID) })
     echoIndexes = frames.indices.filter { userMessageEcho(in: frames[$0]) != nil }
@@ -130,7 +130,7 @@ private struct PromptFrames {
   }
 
   /// The one echoed user message.
-  var echo: AgentViewKit.JSONValue? {
+  var echo: JSONValue? {
     echoIndexes.count == 1 ? userMessageEcho(in: frames[echoIndexes[0]]) : nil
   }
 }

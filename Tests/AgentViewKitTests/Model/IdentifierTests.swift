@@ -4,18 +4,18 @@ import Testing
 
 @Suite struct IdentifierTests {
   @Test func anIdentifierEncodesAsItsString() throws {
-    let data = try JSONEncoder().encode(ConfigOptionID("mode"))
+    let data = try JSONEncoder().encode(ToolToggleID("mode"))
 
     #expect(String(decoding: data, as: UTF8.self) == #""mode""#)
-    #expect(try JSONDecoder().decode(ConfigOptionID.self, from: data) == ConfigOptionID("mode"))
+    #expect(try JSONDecoder().decode(ToolToggleID.self, from: data) == ToolToggleID("mode"))
   }
 
   @Test func theDescriptionNamesTheIdentifiedType() {
-    #expect(ConfigOptionID("mode").description == "ConfigOption(mode)")
+    #expect(ToolToggleID("mode").description == "ToolToggle(mode)")
   }
 
   @Test func bothInitializersGiveTheSameIdentifier() {
-    #expect(ConfigOptionID("mode") == ConfigOptionID(rawValue: "mode"))
-    #expect(ConfigOptionID("mode").rawValue == "mode")
+    #expect(ToolToggleID("mode") == ToolToggleID(rawValue: "mode"))
+    #expect(ToolToggleID("mode").rawValue == "mode")
   }
 }

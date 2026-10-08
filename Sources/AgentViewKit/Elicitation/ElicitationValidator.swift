@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModelsACP
 
 /// The validation result of one elicitation field (plan.md §13.1, §13.2).
 ///
@@ -121,7 +122,7 @@ public nonisolated enum ElicitationValidator {
     case .boolean:
       return value.boolValue == nil ? [Message.notBoolean] : []
     case .singleChoice(let choices):
-      guard let text = value.stringValue, choices.contains(where: { $0.value == text }) else {
+      guard let text = value.stringValue, choices.contains(where: { $0.const == text }) else {
         return [Message.notAChoice]
       }
       return []
@@ -191,7 +192,7 @@ public nonisolated enum ElicitationValidator {
   ) -> [String] {
     guard case .array(let elements) = value else { return [Message.notAList] }
     var errors: [String] = []
-    let values = Set(choices.map(\.value))
+    let values = Set(choices.map(\.const))
     let allAreChoices = elements.allSatisfy { element in
       element.stringValue.map(values.contains) ?? false
     }

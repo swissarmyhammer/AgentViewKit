@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -65,7 +66,7 @@ import Testing
     ///
     /// - Returns: The `result` member of the response, or `nil` when no
     ///   response came.
-    func result() async -> AgentViewKit.JSONValue? {
+    func result() async -> JSONValue? {
       await session.result(ofRequest: ElicitationViewHostedTests.agentRequestID)
     }
   }
@@ -281,7 +282,7 @@ import Testing
     try harness.press(identifier: ElicitationView.submitIdentifier)
     let result = await mounted.result()
 
-    #expect(result == (try AgentViewKit.JSONValue(json: #"{"action": "accept", "content": {"color": "red", "count": 3}}"#)))
+    #expect(result == (try JSONValue(json: #"{"action": "accept", "content": {"color": "red", "count": 3}}"#)))
     #expect(mounted.session.model.pendingElicitations.isEmpty)
   }
 
@@ -291,7 +292,7 @@ import Testing
 
     try mounted.harness.press(identifier: ElicitationView.declineIdentifier)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "decline"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
   }
 
   @Test func cancelSendsCancel() async throws {
@@ -300,7 +301,7 @@ import Testing
 
     try mounted.harness.press(identifier: ElicitationView.cancelIdentifier)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
 
   @Test func escapeSendsCancel() async throws {
@@ -309,7 +310,7 @@ import Testing
 
     try mounted.harness.sendKey(.escape)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
 
   // MARK: - Footer
@@ -339,7 +340,7 @@ import Testing
 
     try harness.press(identifier: Self.customFooterIdentifier)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "decline"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
   }
 
   // MARK: - Focus

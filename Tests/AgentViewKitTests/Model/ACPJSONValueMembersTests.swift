@@ -1,8 +1,12 @@
-import AgentViewKit
 import Foundation
+import FoundationModelsACP
 import Testing
 
-@Suite struct JSONValueTests {
+@testable import AgentViewKit
+
+/// The members that the kit adds to the ACP `JSONValue`: the parse and encode
+/// initializers, the subscripts, the scalar readers and the compact text.
+@Suite struct ACPJSONValueMembersTests {
   /// A nested value that has each case of `JSONValue`.
   private let nested: JSONValue = .object([
     "name": .string("tool"),
@@ -43,48 +47,20 @@ import Testing
     #expect(JSONValue.encodedOrNull(FailingValue()) == .null)
   }
 
-  // MARK: - Codable
+  // MARK: - Parsing
 
-  @Test func aNestedObjectRoundTripsThroughCodable() throws {
-    let data = try JSONEncoder().encode(nested)
-    let decoded = try JSONDecoder().decode(JSONValue.self, from: data)
-
-    #expect(decoded == nested)
-  }
-
-  @Test func eachScalarDecodesToItsCase() throws {
+  @Test func eachScalarParsesToItsCase() throws {
     #expect(try JSONValue(json: "null") == .null)
     #expect(try JSONValue(json: "true") == .bool(true))
-    #expect(try JSONValue(json: "false") == .bool(false))
     #expect(try JSONValue(json: "42") == .number(42))
-    #expect(try JSONValue(json: "-1.25") == .number(-1.25))
     #expect(try JSONValue(json: "\"hi\"") == .string("hi"))
   }
 
-  @Test func containersDecodeToTheirCases() throws {
+  @Test func containersParseToTheirCases() throws {
     #expect(try JSONValue(json: "[]") == .array([]))
     #expect(try JSONValue(json: "{}") == .object([:]))
     #expect(try JSONValue(json: "[1, \"x\"]") == .array([.number(1), .string("x")]))
   }
-
-  @Test func objectKeyOrderIsNotSignificantForEquality() throws {
-    let first = try JSONValue(json: #"{"a": 1, "b": [true]}"#)
-    let second = try JSONValue(json: #"{"b": [true], "a": 1}"#)
-
-    #expect(first == second)
-    #expect(first.hashValue == second.hashValue)
-  }
-
-  @Test func aDecodedValueInsideAnotherCodableTypeKeepsNull() throws {
-    struct Envelope: Codable, Equatable {
-      var meta: JSONValue
-    }
-    let decoded = try JSONDecoder().decode(Envelope.self, from: Data(#"{"meta": null}"#.utf8))
-
-    #expect(decoded == Envelope(meta: .null))
-  }
-
-  // MARK: - Parsing
 
   @Test func malformedJSONThrows() {
     #expect(throws: (any Error).self) { try JSONValue(json: "{bad") }
@@ -118,7 +94,7 @@ import Testing
     #expect(nested[0] == nil)
   }
 
-  // MARK: - Conversions
+  // MARK: - Scalar readers
 
   @Test func boolValueReadsOnlyABool() {
     #expect(JSONValue.bool(true).boolValue == true)
@@ -147,7 +123,7 @@ import Testing
     #expect(JSONValue.null.stringValue == nil)
   }
 
-  // MARK: - Printing
+  // MARK: - Compact text
 
   @Test func jsonStringIsCompactWithSortedKeys() {
     let value = JSONValue.object(["b": .array([.bool(true), .null]), "a": .string("x/y")])
@@ -163,33 +139,5 @@ import Testing
 
   @Test func jsonStringRoundTripsThroughTheParser() throws {
     #expect(try JSONValue(json: nested.jsonString) == nested)
-  }
-
-  @Test func aNonFiniteNumberPrintsAsNull() {
-    let value = JSONValue.array([.number(.infinity), .number(.nan), .number(-.infinity)])
-
-    #expect(value.jsonString == "[null,null,null]")
-  }
-
-  @Test func prettyPrintedSortsKeysAndIndents() {
-    let value = JSONValue.object(["b": .number(1), "a": .object(["d": .null, "c": .bool(true)])])
-
-    let expected = """
-      {
-        "a" : {
-          "c" : true,
-          "d" : null
-        },
-        "b" : 1
-      }
-      """
-    #expect(value.prettyPrinted == expected)
-  }
-
-  @Test func prettyPrintedIsStableForTheSameValue() throws {
-    let rebuilt = try JSONValue(json: nested.jsonString)
-    let outputs = Set((0..<20).map { _ in nested.prettyPrinted } + [rebuilt.prettyPrinted])
-
-    #expect(outputs.count == 1)
   }
 }

@@ -86,6 +86,34 @@ have this behavior:
 Each other verb of the views calls the models: a prompt, a cancel, a
 permission answer, an elicitation answer, a config option and a resume.
 
+## ACP values in the views
+
+Task ^71k836q removed the kit copies of the ACP value types: `JSONValue`,
+`ContentBlock` and its parts (`Annotations`, `Audience`, `ImageContent`,
+`AudioContent`, `ResourceLink`, `ResourceIcon`, `EmbeddedResource`),
+`ThreadState` with its `StopReason`, `SlashCommand`, `ConfigOption` with
+`ConfigValue`, `SelectOption`, `SelectGroup` and `SelectChoices`,
+`ContextUsage`, `PatchField` and `WireValueEnum`. Earlier tasks removed the
+kit `ToolKind`, `ToolCallStatus`, `PlanEntry`, `AuthMethod` and
+`SessionSummary`. The views read the ACP values of FoundationModelsACP that
+the client models hold. No kit function converts an ACP value to a kit value
+of the same meaning. `RemovedVocabularyTests` fails when a source of the kit
+declares a type with the name of one of these ACP types.
+
+The kit adds members to the ACP `JSONValue` in an extension
+(`JSONValue+Members.swift` and `ACPJSONText.swift`): parse, encode,
+subscripts, scalar readers and JSON text. An extension is not a copy.
+
+The kit keeps these types, because a view needs a value that ACP does not
+define:
+
+| Type | Reason |
+|---|---|
+| `UserInput` | The draft of the composer: the text and the URLs of local files. ACP has no value for a draft. The composer makes the ACP content blocks from it when it sends the prompt. |
+| `Identifier`, `AttachmentID`, `ToolToggleID` | Typed ids for kit view state: the attachments of the composer and the tool toggles. ACP has no such values. |
+| `ISO8601Time` | Reads the time text of ACP values. It holds no value. |
+| `ElicitationFieldSchema` | The control kind of one form field, normalized from the four choice encodings of the requested schema. ACP has no single value for a control. Each choice is the ACP `EnumOption`. |
+
 ## Dependencies
 
 The direct dependencies are FoundationModelsACPClient, FoundationModelsACP,

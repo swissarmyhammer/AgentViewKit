@@ -2,7 +2,7 @@
 /// (plan.md §3.2).
 ///
 /// The `Tag` type is not stored. It makes two identifier types different,
-/// so that the compiler stops an ``AttachmentID`` where a ``ConfigOptionID``
+/// so that the compiler stops an ``AttachmentID`` where a ``ToolToggleID``
 /// is necessary. The ``description`` shows the name of `Tag`. The JSON form is the identifier string.
 public nonisolated struct Identifier<Tag>: Sendable, Hashable, RawRepresentable, Codable,
   CustomStringConvertible
@@ -25,7 +25,7 @@ public nonisolated struct Identifier<Tag>: Sendable, Hashable, RawRepresentable,
   }
 
   /// The name of the identified type and the identifier string, such as
-  /// `ConfigOption(mode)`.
+  /// `ToolToggle(plan)`.
   public var description: String {
     "\(Tag.self)(\(rawValue))"
   }

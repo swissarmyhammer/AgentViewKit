@@ -165,7 +165,7 @@ import Testing
   static let firstSessionID = "first-session"
 
   /// The JSON value of an empty capability object, `{}`.
-  static let emptyCapability = AgentViewKit.JSONValue.object([:])
+  static let emptyCapability = JSONValue.object([:])
 
   /// The demo agent and the two scripted agents of one test.
   struct Scenario {

@@ -487,7 +487,7 @@ private struct ToolCallBody: View {
           output: text.text,
           exitCode: ToolCallView.exitCode(from: entry.rawOutput))
       } else {
-        ContentBlockView(source: .wire(block), id: partID)
+        ContentBlockView(block: block, id: partID)
       }
     case .diff(let diff):
       DiffView(diff: diff)
@@ -495,7 +495,7 @@ private struct ToolCallBody: View {
       Label(String(localized: "Terminal \(terminalID)"), systemImage: "terminal")
         .foregroundStyle(.secondary)
     case .unknown(let kind, let raw):
-      UnknownItemView(kind: kind, wireValue: raw, id: partID)
+      UnknownItemView(kind: kind, raw: raw, id: partID)
     }
   }
 }

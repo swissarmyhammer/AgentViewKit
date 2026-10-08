@@ -121,6 +121,22 @@ comments:
     - no time-limit failure. No code changed. Nothing committed.
     - next: review.
   timestamp: 2026-10-08T00:31:30.988853+00:00
+- actor: claude-code
+  id: 01m4cf0zrjsxgdzq7hea3wbbx2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (33daeae): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 6 files reviewed. The 3 prior findings of 2026-10-07 18:50 are all checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-08T00:36:16.786309+00:00
+- actor: claude-code
+  id: 01m4cf1tb5y4q9qr6meq9an101
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 6 test files (ScriptedSessionEntries helper new, TerminalViewHostedTests, ToolCallViewHostedTests, ConversationViewHostedTests, AgentCommandsTests, RemovedVocabularyTests)
+    - test: green — swift test 1091 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed
+    - commit: 33daeae
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-08T00:36:44.005190+00:00
 depends_on:
 - 01M443RA2PMKC5MXXBNH1116AB
 - 01M48MQ0BVDHNY798PTF3VYEQH
@@ -134,8 +150,8 @@ depends_on:
 - 01M49GHXXC7CY7R1PRZ83200VG
 - 01M49HGZQP3HMVTY4MC20J25QH
 - 01M49HHYXB9KWKB949M0VYZMM0
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff9080
 title: 'Remove the kit session model: AgentThread, ThreadItem, ThreadChange, ItemPatch and the records'
 ---
 ## What

@@ -143,8 +143,8 @@ import Testing
   /// - Parameter kind: The kind of the selected option.
   /// - Returns: The result.
   /// - Throws: An error when the JSON text does not decode.
-  static func selectedResult(_ kind: PermissionOptionKind) throws -> AgentViewKit.JSONValue {
-    try AgentViewKit.JSONValue(
+  static func selectedResult(_ kind: PermissionOptionKind) throws -> JSONValue {
+    try JSONValue(
       json: #"{"outcome": {"outcome": "selected", "optionId": "\#(kind.wireValue)"}}"#)
   }
 
@@ -290,7 +290,7 @@ import Testing
     try harness.sendKey(.escape)
     let result = await session.result(ofRequest: Self.agentRequestID)
 
-    #expect(result == (try AgentViewKit.JSONValue(json: #"{"outcome": {"outcome": "cancelled"}}"#)))
+    #expect(result == (try JSONValue(json: #"{"outcome": {"outcome": "cancelled"}}"#)))
     #expect(session.model.pendingPermissions.isEmpty)
   }
 

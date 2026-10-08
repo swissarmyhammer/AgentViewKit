@@ -50,12 +50,12 @@
     /// two frames. `@Test(arguments:)` reads the range outside the main actor.
     nonisolated static let frameOrderRuns = 1...100
 
-    /// Decodes JSON text into a kit JSON value.
+    /// Decodes JSON text into an ACP JSON value.
     ///
     /// - Parameter text: The JSON text.
     /// - Returns: The value.
-    static func json(_ text: String) throws -> AgentViewKit.JSONValue {
-      try JSONDecoder().decode(AgentViewKit.JSONValue.self, from: Data(text.utf8))
+    static func json(_ text: String) throws -> JSONValue {
+      try JSONDecoder().decode(JSONValue.self, from: Data(text.utf8))
     }
 
     /// The response frame that the agent received for the request with `id`.
@@ -64,7 +64,7 @@
     ///   - id: The JSON-RPC id of the request of the agent.
     ///   - session: The scripted session.
     /// - Returns: The frame, or `nil`.
-    static func response(to id: Int, in session: ScriptedSession) -> AgentViewKit.JSONValue? {
+    static func response(to id: Int, in session: ScriptedSession) -> JSONValue? {
       session.agent.response(to: Double(id))
     }
 

@@ -113,7 +113,7 @@ public enum InMemoryDemoAgent {
   // MARK: - Results
 
   /// The `initialize` result.
-  static var initializeResult: AgentViewKit.JSONValue {
+  static var initializeResult: JSONValue {
     .object([
       "info": .object(["name": .string(name), "version": .string("1.0.0")]),
       "protocolVersion": .number(Double(ProtocolVersion.v2.rawValue)),
@@ -130,7 +130,7 @@ public enum InMemoryDemoAgent {
   }
 
   /// The config options of each session: a mode option.
-  static var configOptions: AgentViewKit.JSONValue {
+  static var configOptions: JSONValue {
     .array([
       .object([
         "configId": .string(modeOptionID),
@@ -147,17 +147,17 @@ public enum InMemoryDemoAgent {
   }
 
   /// The `session/new` result.
-  static var newSessionResult: AgentViewKit.JSONValue {
+  static var newSessionResult: JSONValue {
     .object(["sessionId": .string(sessionID), "configOptions": configOptions])
   }
 
   /// The `session/resume` result.
-  static var resumeSessionResult: AgentViewKit.JSONValue {
+  static var resumeSessionResult: JSONValue {
     .object(["configOptions": configOptions])
   }
 
   /// The `session/list` result.
-  static var listSessionsResult: AgentViewKit.JSONValue {
+  static var listSessionsResult: JSONValue {
     .object([
       "sessions": .array([
         .object([
@@ -177,9 +177,9 @@ public enum InMemoryDemoAgent {
   ///   - request: The `session/prompt` request frame.
   ///   - turn: The number of the turn, from 1.
   /// - Returns: The frames, in send order.
-  static func turnFrames(for request: AgentViewKit.JSONValue, turn: Int) -> [String] {
+  static func turnFrames(for request: JSONValue, turn: Int) -> [String] {
     turnNotifications(for: request, turn: turn).map { params in
-      AgentViewKit.JSONValue.object([
+      JSONValue.object([
         "jsonrpc": .string("2.0"),
         "method": .string("session/update"),
         "params": params,
@@ -198,11 +198,11 @@ public enum InMemoryDemoAgent {
   ///     member is read.
   ///   - turn: The number of the turn, from 1.
   /// - Returns: The params, in send order.
-  static func turnNotifications(for request: AgentViewKit.JSONValue, turn: Int) -> [AgentViewKit.JSONValue] {
+  static func turnNotifications(for request: JSONValue, turn: Int) -> [JSONValue] {
     let sessionId = request["params"]?["sessionId"] ?? .string(sessionID)
     let reply = replyText(to: ScriptedWireAgent.promptText(of: request))
-    let replyID = AgentViewKit.JSONValue.string(replyID(turn: turn))
-    let updates: [AgentViewKit.JSONValue] =
+    let replyID = JSONValue.string(replyID(turn: turn))
+    let updates: [JSONValue] =
       [
         .object(["sessionUpdate": .string("state_update"), "state": .string("running")])
       ]
@@ -249,7 +249,7 @@ public enum InMemoryDemoAgent {
   ///
   /// - Parameter sessionId: The id of the resumed session.
   /// - Returns: The params, in send order.
-  static func historyNotifications(sessionId: AgentViewKit.JSONValue) -> [AgentViewKit.JSONValue] {
+  static func historyNotifications(sessionId: JSONValue) -> [JSONValue] {
     let updates = [
       messageUpdate(kind: "user_message", id: .string(historyPromptID), text: historyPrompt),
       messageUpdate(kind: "agent_message", id: .string(historyReplyID), text: historyReply),
@@ -264,10 +264,10 @@ public enum InMemoryDemoAgent {
   ///   - sessionId: The id of the session of the updates.
   /// - Returns: The params, in send order.
   private static func notificationParams(
-    of updates: [AgentViewKit.JSONValue], sessionId: AgentViewKit.JSONValue
-  ) -> [AgentViewKit.JSONValue] {
+    of updates: [JSONValue], sessionId: JSONValue
+  ) -> [JSONValue] {
     updates.map { update in
-      AgentViewKit.JSONValue.object(["sessionId": sessionId, "update": update])
+      JSONValue.object(["sessionId": sessionId, "update": update])
     }
   }
 
@@ -279,8 +279,8 @@ public enum InMemoryDemoAgent {
   ///   - text: The text of the message.
   /// - Returns: The update.
   private static func messageUpdate(
-    kind: String, id: AgentViewKit.JSONValue, text: String
-  ) -> AgentViewKit.JSONValue {
+    kind: String, id: JSONValue, text: String
+  ) -> JSONValue {
     .object([
       "sessionUpdate": .string(kind),
       "messageId": id,
@@ -289,7 +289,7 @@ public enum InMemoryDemoAgent {
   }
 
   /// A plan entry with the `medium` priority.
-  private static func planEntry(_ content: String, status: String) -> AgentViewKit.JSONValue {
+  private static func planEntry(_ content: String, status: String) -> JSONValue {
     .object(["content": .string(content), "priority": .string("medium"), "status": .string(status)])
   }
 

@@ -139,7 +139,7 @@ import Testing
   ///
   /// - Parameter session: The scripted session.
   /// - Returns: The params, in arrival order.
-  static func setParams(in session: ScriptedSession) -> [AgentViewKit.JSONValue] {
+  static func setParams(in session: ScriptedSession) -> [JSONValue] {
     session.agent.messages(method: setMethod).compactMap { $0["params"] }
   }
 

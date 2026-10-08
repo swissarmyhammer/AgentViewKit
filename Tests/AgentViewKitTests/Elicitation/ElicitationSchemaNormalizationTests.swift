@@ -1,4 +1,5 @@
 import AgentViewKit
+import FoundationModelsACP
 import Testing
 
 /// Tests for `ElicitationFieldSchema.normalize(from:)` (plan.md §13.1).
@@ -11,8 +12,8 @@ import Testing
 
   /// The choices that each choice fixture declares.
   nonisolated private static let expectedChoices: [Choice] = [
-    Choice(value: "red", title: "Red"),
-    Choice(value: "green", title: "Green"),
+    Choice(const: "red", title: "Red"),
+    Choice(const: "green", title: "Green"),
   ]
 
   /// Parses the JSON text of a fixture.
@@ -55,8 +56,8 @@ import Testing
     #expect(
       field.kind
         == .singleChoice([
-          Choice(value: "red", title: "red"),
-          Choice(value: "green", title: "green"),
+          Choice(const: "red", title: "red"),
+          Choice(const: "green", title: "green"),
         ]))
   }
 
@@ -81,8 +82,8 @@ import Testing
       #"{"type": "array", "items": {"type": "string", "enum": ["Red", "Green"]}}"#)
     let plainEnum = try onlyField(#"{"type": "string", "enum": ["Red", "Green"]}"#)
     let untitledChoices = [
-      Choice(value: "Red", title: "Red"),
-      Choice(value: "Green", title: "Green"),
+      Choice(const: "Red", title: "Red"),
+      Choice(const: "Green", title: "Green"),
     ]
 
     #expect(choices(of: legacyEnumNames) == Self.expectedChoices)
@@ -99,8 +100,8 @@ import Testing
     #expect(
       field.kind
         == .singleChoice([
-          Choice(value: "red", title: "Red"),
-          Choice(value: "green", title: "green"),
+          Choice(const: "red", title: "Red"),
+          Choice(const: "green", title: "green"),
         ]))
   }
 
@@ -109,7 +110,7 @@ import Testing
       #"{"type": "string", "oneOf": [{"const": "a", "title": "A", "description": "The first."}]}"#)
 
     #expect(
-      field.kind == .singleChoice([Choice(value: "a", title: "A", description: "The first.")]))
+      field.kind == .singleChoice([Choice(const: "a", title: "A", description: "The first.")]))
   }
 
   @Test func anArrayPropertyGivesAMultiChoiceWithItemBounds() throws {
@@ -121,25 +122,13 @@ import Testing
       field.kind
         == .multiChoice(
           [
-            Choice(value: "a", title: "a"),
-            Choice(value: "b", title: "b"),
-            Choice(value: "c", title: "c"),
+            Choice(const: "a", title: "a"),
+            Choice(const: "b", title: "b"),
+            Choice(const: "c", title: "c"),
           ],
           minItems: 1,
           maxItems: 2
         ))
-  }
-
-  @Test func aChoiceIsASelectOptionWithElicitationNames() {
-    var choice = Choice(value: "a", title: "A", description: "The first.")
-
-    #expect(choice == SelectOption(id: "a", name: "A", description: "The first."))
-    #expect(choice.id == "a")
-
-    choice.value = "b"
-    choice.title = "B"
-
-    #expect(choice == SelectOption(id: "b", name: "B", description: "The first."))
   }
 
   // MARK: - Primitive kinds

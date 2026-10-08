@@ -148,7 +148,7 @@
     ///
     /// - Parameter agent: The scripted agent.
     /// - Returns: The blocks, or an empty list when the agent got no prompt.
-    static func promptBlocks(of agent: ScriptedWireAgent) -> [AgentViewKit.JSONValue] {
+    static func promptBlocks(of agent: ScriptedWireAgent) -> [JSONValue] {
       guard case .array(let blocks) = agent.messages(method: ScriptedSession.promptMethod).first?["params"]?["prompt"] else {
         return []
       }
@@ -481,7 +481,7 @@
     ///   - update: The JSON text of the update.
     ///   - request: The request frame whose session gets the update.
     /// - Returns: The JSON text of the frame.
-    static func updateFrame(carrying update: String, for request: AgentViewKit.JSONValue) -> String {
+    static func updateFrame(carrying update: String, for request: JSONValue) -> String {
       let sessionID = request["params"]?["sessionId"]?.stringValue ?? ""
       return
         #"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"\#(sessionID)","update":\#(update)}}"#

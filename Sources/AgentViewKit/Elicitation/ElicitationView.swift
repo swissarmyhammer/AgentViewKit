@@ -188,7 +188,7 @@ public struct ElicitationView: View {
   /// Sends the answers when each field passes validation.
   private func submit() {
     guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
-    owner.acceptElicitation(request.id, content: JSONValue.object(values).acpValue)
+    owner.acceptElicitation(request.id, content: JSONValue.object(values))
   }
 }
 

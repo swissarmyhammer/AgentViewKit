@@ -362,7 +362,7 @@
         harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) == nil
       }
 
-      let expected = try AgentViewKit.JSONValue(
+      let expected = try JSONValue(
         json: #"{"action": "accept", "content": {"branch": "\#(Self.defaultBranch)"}}"#)
       #expect(result == expected)
       #expect(session.model.pendingElicitations.isEmpty)

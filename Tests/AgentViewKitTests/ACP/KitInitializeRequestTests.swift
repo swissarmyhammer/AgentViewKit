@@ -13,7 +13,7 @@ import Testing
 /// when the host gives a terminal auth runner.
 struct KitInitializeRequestTests {
   /// The JSON value of an empty capability object, such as `{}`.
-  static let emptyCapability = AgentViewKit.JSONValue.object([:])
+  static let emptyCapability = JSONValue.object([:])
 
   /// The name that the demo app sends in the `info` of its request.
   static let demoName = "AgentViewKitDemo"
@@ -31,7 +31,7 @@ struct KitInitializeRequestTests {
   /// - Throws: The error of `#require` when the params have no
   ///   `capabilities` or no `elicitation`.
   static func expectOnlyKitCapabilities(
-    in params: AgentViewKit.JSONValue,
+    in params: JSONValue,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     let capabilities = try #require(params["capabilities"], sourceLocation: sourceLocation)
@@ -57,7 +57,7 @@ struct KitInitializeRequestTests {
     #expect(request.info.name == Self.demoName)
     #expect(request.info.version == Self.demoVersion)
     #expect(request.protocolVersion == ACPClient.supportedProtocolVersion)
-    try Self.expectOnlyKitCapabilities(in: AgentViewKit.JSONValue(encoding: request))
+    try Self.expectOnlyKitCapabilities(in: JSONValue(encoding: request))
   }
 
   @Test func aHostWithATerminalAuthRunnerAdvertisesTerminalAuth() async throws {

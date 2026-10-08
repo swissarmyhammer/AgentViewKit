@@ -107,6 +107,106 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "NoopThreadActions", "ThreadFixtures", "threadViewHarness",
   ]
 
+  /// The kit copies of the ACP value types, and the kit types that only served
+  /// these copies. The views read the ACP values that the client models hold,
+  /// so no kit code converts an ACP value into a kit copy.
+  static let removedValueCopySymbols = [
+    // The thread state, the commands, the config options and the usage.
+    "ThreadState", "SlashCommand", "ConfigOption", "ConfigOptionID", "ConfigValue",
+    "SelectChoices", "SelectOption", "SelectGroup", "ContextUsage",
+    // The patch field, the wire value protocol and the session summary.
+    "PatchField", "WireValueEnum", "SessionSummary",
+    // The kit content block parts, and the view input of the two block kinds.
+    "ResourceIcon", "BlockSource",
+  ]
+
+  /// The names of the ACP value types that the kit copied. No source of the
+  /// kit library declares a type with one of these names, so each name in a
+  /// kit source is the ACP type.
+  static let acpValueTypeNames = [
+    "JSONValue", "StopReason", "ToolKind", "ToolCallStatus", "ContentBlock",
+    "Annotations", "ImageContent", "AudioContent", "ResourceLink", "EmbeddedResource",
+    "PlanEntry", "AuthMethod", "SessionInfo", "AvailableCommand", "SessionConfigOption",
+    "PatchField",
+  ]
+
+  /// The pattern that finds the declaration of a type with a name: a
+  /// `struct`, an `enum`, a `class`, an `actor`, a `protocol` or a
+  /// `typealias`.
+  ///
+  /// A `Regex` is not `Sendable`, so each call makes the value again.
+  ///
+  /// - Parameter name: The type name.
+  /// - Returns: The pattern.
+  static func typeDeclaration(named name: String) -> Regex<Substring> {
+    Regex {
+      Anchor.wordBoundary
+      ChoiceOf {
+        "struct"
+        "enum"
+        "class"
+        "actor"
+        "protocol"
+        "typealias"
+      }
+      OneOrMore(.whitespace)
+      name
+      Anchor.wordBoundary
+    }
+  }
+
+  /// Finds each declaration of a type with one of some names on one line of a
+  /// Swift file.
+  ///
+  /// - Parameters:
+  ///   - names: The type names.
+  ///   - line: The line.
+  /// - Returns: The declarations, in name order.
+  static func declarations(of names: [String], on line: SourceLine) -> [RemovedSymbolUse] {
+    uses(of: names, on: line, matching: typeDeclaration(named:))
+  }
+
+  @Test func declarationsFindEachKindOfTypeDeclaration() {
+    let source = """
+      public nonisolated enum JSONValue: Sendable {
+      struct ContentBlock {
+      typealias StopReason = Int
+      extension FoundationModelsACP.JSONValue {
+      struct ContentBlockView: View {
+      let block: ContentBlock
+      """
+
+    let found = SourceLineScanner.matches(inSource: source, file: "A.swift") { line in
+      Self.declarations(of: ["JSONValue", "ContentBlock", "StopReason"], on: line)
+    }
+
+    #expect(
+      found == [
+        RemovedSymbolUse(file: "A.swift", line: 1, symbol: "JSONValue"),
+        RemovedSymbolUse(file: "A.swift", line: 2, symbol: "ContentBlock"),
+        RemovedSymbolUse(file: "A.swift", line: 3, symbol: "StopReason"),
+      ])
+  }
+
+  @Test func theKitDeclaresNoTypeWithTheNameOfAnACPValueType() throws {
+    let found = try SourceLineScanner.matches(
+      inSwiftFilesBelow: PackageFiles.file(Self.kitSourcesPath),
+      relativeTo: PackageFiles.root
+    ) { line in
+      Self.declarations(of: Self.acpValueTypeNames, on: line)
+    }
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func noFileUsesTheRemovedValueCopies() throws {
+    let found =
+      try Self.uses(of: Self.removedValueCopySymbols, below: Self.swiftPaths)
+      + Self.uses(of: Self.removedValueCopySymbols, inFile: Self.readmePath)
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
   /// The pattern that finds a call of the removed thread initializer
   /// `AgentThreadView(thread:actions:)`, also a call over two lines.
   ///
@@ -221,10 +321,16 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// - Parameters:
   ///   - symbols: The removed symbols.
   ///   - line: The line.
+  ///   - makePattern: Makes the pattern of one symbol. The default finds the
+  ///     symbol as a whole word.
   /// - Returns: The uses, in symbol order.
-  static func uses(of symbols: [String], on line: SourceLine) -> [RemovedSymbolUse] {
+  static func uses(
+    of symbols: [String],
+    on line: SourceLine,
+    matching makePattern: (String) -> Regex<Substring> = wholeWord
+  ) -> [RemovedSymbolUse] {
     symbols
-      .filter { line.text.contains(wholeWord($0)) }
+      .filter { line.text.contains(makePattern($0)) }
       .map { RemovedSymbolUse(file: line.file, line: line.number, symbol: $0) }
   }
 

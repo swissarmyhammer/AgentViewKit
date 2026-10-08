@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -48,7 +49,7 @@ import Testing
     }
 
     /// The response frames that the agent received for the request.
-    var responses: [AgentViewKit.JSONValue] {
+    var responses: [JSONValue] {
       session.agent.received.filter {
         $0["method"] == nil && $0["id"] == .number(Double(ElicitationURLConsentViewHostedTests.agentRequestID))
       }
@@ -58,7 +59,7 @@ import Testing
     ///
     /// - Returns: The `result` member of the response, or `nil` when no
     ///   response came.
-    func result() async -> AgentViewKit.JSONValue? {
+    func result() async -> JSONValue? {
       await session.result(ofRequest: ElicitationURLConsentViewHostedTests.agentRequestID)
     }
   }
@@ -186,7 +187,7 @@ import Testing
           callbackScheme: ElicitationURLConsentView.callbackScheme),
         .start(ephemeral: false),
       ])
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "accept"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
@@ -215,7 +216,7 @@ import Testing
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
     #expect(mounted.browser.calls.isEmpty)
   }
 
@@ -229,7 +230,7 @@ import Testing
 
     #expect(mounted.browser.calls.last == .cancel)
     #expect(mounted.responses.count == 1)
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "accept"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
   }
 
   @Test func declineSendsDecline() async throws {
@@ -238,7 +239,7 @@ import Testing
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.declineIdentifier)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "decline"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
     #expect(mounted.browser.calls.isEmpty)
   }
 
@@ -248,7 +249,7 @@ import Testing
 
     try mounted.harness.sendKey(.escape)
 
-    #expect(await mounted.result() == (try AgentViewKit.JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
 
   // MARK: - Host
