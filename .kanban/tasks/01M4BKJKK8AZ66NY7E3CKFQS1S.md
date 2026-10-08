@@ -47,10 +47,26 @@ comments:
     - time limit: no time-limit failure. ACPTestTimeLimit is not changed.
     - next: review.
   timestamp: 2026-10-08T05:32:36.985982+00:00
+- actor: claude-code
+  id: 01m4d08m8a5x78tr83mwn7gbhe
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 57f2e5a). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. The engine did not review README.md (no validator matches it) and 4 files in .kanban/ (.reviewignore). The task has no prior Review Findings sections.
+    - next: none. The task is in done.
+  timestamp: 2026-10-08T05:37:32.938409+00:00
+- actor: claude-code
+  id: 01m4d090gf65cb1qv1kp68bx08
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files (InProcessAgent.swift, AgentConnectionBox.swift, DemoAgent.swift, InProcessAgentTests, RemovedVocabularyTests, README.md)
+    - test: green — swift test 1025 passed, check-readme passed, test-examples 4 passed, Benchmarks build passed; ACP checkout clean at b2cec56
+    - commit: 57f2e5a
+    - review: clean — 0 findings; task is done
+  timestamp: 2026-10-08T05:37:45.487699+00:00
 depends_on:
 - 01M4BTQV4WZHK4CE5F6VEWXKF3
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ff9580
 title: Remove the in-process wrapper transport when the InMemoryTransport fix is pinned
 ---
 ## What

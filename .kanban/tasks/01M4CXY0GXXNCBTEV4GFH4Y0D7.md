@@ -1,10 +1,27 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4dqf59rh69j5z02byq2gde8
+  text: |-
+    Picked up again. Earlier sessions left the source and test changes in the working tree. I read them and kept them as they are: `AgentAuthView.failureView(_:)` shows `failure.reason.message`, `text(of:)` and `terminalText(exitStatus:message:)` are gone, and the hosted tests read each expected text from `AuthFailure.Reason.message` (the `unsupportedFailureText` copy is also gone).
+
+    RED check: I put back the HEAD version of `AgentAuthView.swift` and ran `swift test --filter AgentAuthViewHostedTests`. Two tests failed as expected: `aRunnerWithNoExitStatusShowsTheTerminalFailureText` and `aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus` (`failure.text == reason.message`). The runner-error test and the unsupported tests passed before the change too, because the old kit code already gave the same text for those reasons. Then I put back the new source.
+
+    Survey of the other kit views: no other view has a text table that copies a client text. The list of each item that I checked is in the description, under "Survey of the other kit views". The kit has no string catalog, so there is no catalog entry to remove.
+  timestamp: 2026-10-08T12:23:04.248297+00:00
+- actor: claude-code
+  id: 01m4dqf846ad5f5z764shzd950
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Connections/AgentAuthView.swift, Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift. RED: `swift test --filter AgentAuthViewHostedTests` on the HEAD source, 17 tests, 2 failures (the two terminal text tests). GREEN: `swift test`, 1025 tests in 110 suites passed, 0 failures. One SwiftPM build warning comes from the dependency bundle `mlx-swift_Cmlx.bundle` ("missing creator for mutated node"), not from kit code.
+    - next: /review
+  timestamp: 2026-10-08T12:23:07.142748+00:00
 depends_on:
 - 01M4BTQV4WZHK4CE5F6VEWXKF3
-position_column: todo
-position_ordinal: bd80
+position_column: doing
+position_ordinal: '80'
 title: Show AuthFailure.Reason.message for each sign-in failure reason, with no kit text table
 ---
 ## What
@@ -14,17 +31,28 @@ Decision (2026-10-08, from the owner binding rule): the kit views bind directly 
 
 Found in ^vewxkf3.
 
-- [ ] `AgentAuthView` shows `failure.reason.message` for each reason. Remove `text(of:)` and `terminalText(exitStatus:message:)`, and any kit string that copies a client text.
-- [ ] Change the expected texts of `aRunnerWithNoExitStatusShowsTheTerminalFailureText`, `aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus` and the runner-error test in `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift` to the client texts. Read each expected text from `AuthFailure.Reason.message` of the same reason, so that the test does not copy the client text.
-- [ ] Check the other kit views for text tables that copy a client text for a model value, and record each one on this card.
+- [x] `AgentAuthView` shows `failure.reason.message` for each reason. Remove `text(of:)` and `terminalText(exitStatus:message:)`, and any kit string that copies a client text.
+- [x] Change the expected texts of `aRunnerWithNoExitStatusShowsTheTerminalFailureText`, `aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus` and the runner-error test in `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift` to the client texts. Read each expected text from `AuthFailure.Reason.message` of the same reason, so that the test does not copy the client text.
+- [x] Check the other kit views for text tables that copy a client text for a model value, and record each one on this card.
+
+## Survey of the other kit views
+The client (FoundationModelsACPClient e1cac1d and FoundationModelsACP) gives a UI text for these values only: `AuthFailure.Reason.message`, `SessionNotice.title` and `SessionNotice.description`, `TerminalEntry.text`, `AgentProcessError.description` and `ProtocolVersionMismatchError.description`. No other client type gives a text (no `LocalizedError`, no `label`, no `title` for an enum).
+
+Result: no other kit view has a text table that copies a client text.
+- `SessionNoticeBanner` shows `notice.title` and `notice.description` of the client. Its `severityLabel(_:)` table names `Unstable.NoticeSeverity`. The client gives no text for a severity, so this table copies no client text.
+- `TerminalView` shows `entry.text` of the client. It does not decode `entry.bytes` itself.
+- `ActivityTimeline` and `ErrorView` show `RequestError.message` of the client in `ErrorView.content(code:message:)`. The kit adds only the code prefix.
+- `UnsupportedProtocolVersionError.description` (not a view) gives a kit text from `SupportedProtocolVersions.refusalMessage(received:requested:)`. That text also names the list of versions that the kit accepts, and the kit also throws this error for a version that the wire package accepts. Thus it is a kit text, not a copy of `ProtocolVersionMismatchError.description`.
+- The kit does not show `AgentProcessError.description`.
+- The other kit text tables (`StateBanner` stop reasons and states, `WorkStatusLabel`, `TaskListView` priorities, `ToolKindSymbol`, `ConfigOptionsView` categories, `DiffSummary` change operations, the `AgentAuthView` operation titles) name values for which the client gives no text.
 
 ## Acceptance Criteria
-- [ ] `AgentAuthView` has no text table for `AuthFailure.Reason`.
-- [ ] The sign-in card shows the client text for each failure reason.
+- [x] `AgentAuthView` has no text table for `AuthFailure.Reason`.
+- [x] The sign-in card shows the client text for each failure reason.
 
 ## Tests
-- [ ] The hosted tests in `AgentAuthViewHostedTests.swift` fail before the change and pass after it.
-- [ ] `swift test` passes.
+- [x] The hosted tests in `AgentAuthViewHostedTests.swift` fail before the change and pass after it.
+- [x] `swift test` passes.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

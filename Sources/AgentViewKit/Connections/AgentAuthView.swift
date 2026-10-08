@@ -32,9 +32,10 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// - A method type that the kit does not know has no row.
 /// - While `authState` is `.authenticated`, the card shows no method row.
 /// - While `authState` is `.failed(AuthFailure)`, the card shows the
-///   operation that failed and the text of the reason under the rows. The
-///   model also records there a login, a logout or a terminal login that
-///   the agent does not advertise, with the `unsupported` reason.
+///   operation that failed and `AuthFailure.Reason.message` of the client
+///   model under the rows. The model also records there a login, a logout
+///   or a terminal login that the agent does not advertise, with the
+///   `unsupported` reason.
 /// - While `authState` is `.reconnectRequired`, the card tells the user to
 ///   connect to the agent again. When the
 ///   ``SwiftUI/EnvironmentValues/agentReconnect`` environment value has a
@@ -188,6 +189,9 @@ public struct AgentAuthView: View {
 
   /// The title of a failure: the operation that failed.
   ///
+  /// The client model gives no text for `AuthFailure.Operation`, so the kit
+  /// keeps this title.
+  ///
   /// - Parameter operation: The operation of the failure.
   /// - Returns: The text that names the operation.
   private static func title(of operation: AuthFailure.Operation) -> String {
@@ -196,34 +200,6 @@ public struct AgentAuthView: View {
     case .logout: String(localized: "Sign-out failed")
     case .terminalLogin: String(localized: "Terminal sign-in failed")
     }
-  }
-
-  /// The text of the reason of a failure.
-  ///
-  /// - Parameter reason: The reason of the failure.
-  /// - Returns: The message of the JSON-RPC error, the text of the end of the
-  ///   terminal process, or the `message` that the client model gives for an
-  ///   operation that the agent does not advertise.
-  private static func text(of reason: AuthFailure.Reason) -> String {
-    switch reason {
-    case .request(let error): error.message
-    case .terminal(let exitStatus, let message): terminalText(exitStatus: exitStatus, message: message)
-    case .unsupported: reason.message
-    }
-  }
-
-  /// The text of a terminal process that failed.
-  ///
-  /// - Parameters:
-  ///   - exitStatus: The exit status of the process, or `nil` when the
-  ///     process did not exit normally.
-  ///   - message: The message of the model, or `nil`.
-  /// - Returns: The message, when there is one. Otherwise a text that gives
-  ///   the exit status, or that tells that there is none.
-  private static func terminalText(exitStatus: Int32?, message: String?) -> String {
-    if let message { return message }
-    guard let exitStatus else { return String(localized: "The sign-in process ended with no exit status.") }
-    return String(localized: "The sign-in process ended with exit status \(exitStatus).")
   }
 
   /// Whether the last login succeeded: `authState` is `.authenticated`.
@@ -332,6 +308,9 @@ public struct AgentAuthView: View {
 
   /// The operation and the reason of a failure in `authState`.
   ///
+  /// The text of the reason is `AuthFailure.Reason.message` of the client
+  /// model. The kit keeps no text of its own for a reason.
+  ///
   /// - Parameter failure: The failure of the last auth operation.
   /// - Returns: The two texts.
   private func failureView(_ failure: AuthFailure) -> some View {
@@ -339,7 +318,7 @@ public struct AgentAuthView: View {
       Text(Self.title(of: failure.operation))
         .font(.callout.weight(.semibold))
         .accessibilityIdentifier(Self.failureTitleIdentifier)
-      Text(Self.text(of: failure.reason))
+      Text(failure.reason.message)
         .font(.callout)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier(Self.failureIdentifier)

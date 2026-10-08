@@ -100,10 +100,6 @@ import Testing
   /// The id of a method that the agent does not list.
   static let unlistedMethodID = AuthMethodId(rawValue: "unlisted-login")
 
-  /// The text that the client model gives for an auth operation that the
-  /// agent does not advertise.
-  static let unsupportedFailureText = "The agent cannot do this authentication operation."
-
   /// The texts that the card shows for a failure in `authState`.
   struct FailureTexts: Equatable {
     /// The label of the failure title, or `nil` when the card shows none.
@@ -345,28 +341,31 @@ import Testing
   }
 
   @Test func aRunnerWithNoExitStatusShowsTheTerminalFailureText() async throws {
+    let reason = AuthFailure.Reason.terminal(exitStatus: nil, message: nil)
     let failure = try await Self.runTerminalSignIn(with: FakeTerminalAuthRunner(exitStatus: nil))
 
-    #expect(failure.authState == Self.terminalFailureState(.terminal(exitStatus: nil, message: nil)))
-    #expect(failure.text == "The sign-in process ended with no exit status.")
+    #expect(failure.authState == Self.terminalFailureState(reason))
+    #expect(failure.text == reason.message)
     #expect(failure.title == Self.terminalFailureTitle)
     #expect(!failure.showsReconnectText)
   }
 
   @Test func aNonZeroExitStatusShowsTheTerminalFailureTextWithTheStatus() async throws {
+    let reason = AuthFailure.Reason.terminal(exitStatus: Self.failureStatus, message: nil)
     let failure = try await Self.runTerminalSignIn(with: FakeTerminalAuthRunner(exitStatus: Self.failureStatus))
 
-    #expect(failure.authState == Self.terminalFailureState(.terminal(exitStatus: Self.failureStatus, message: nil)))
-    #expect(failure.text == "The sign-in process ended with exit status 1.")
+    #expect(failure.authState == Self.terminalFailureState(reason))
+    #expect(failure.text == reason.message)
     #expect(failure.title == Self.terminalFailureTitle)
     #expect(!failure.showsReconnectText)
   }
 
   @Test func aRunnerThatCannotStartTheProgramShowsTheMessageOfItsError() async throws {
+    let reason = AuthFailure.Reason.terminal(exitStatus: nil, message: Self.launchErrorText)
     let failure = try await Self.runTerminalSignIn(with: ThrowingTerminalAuthRunner())
 
-    #expect(failure.authState == Self.terminalFailureState(.terminal(exitStatus: nil, message: Self.launchErrorText)))
-    #expect(failure.text == Self.launchErrorText)
+    #expect(failure.authState == Self.terminalFailureState(reason))
+    #expect(failure.text == reason.message)
     #expect(failure.title == Self.terminalFailureTitle)
     #expect(!failure.showsReconnectText)
   }
@@ -487,11 +486,14 @@ import Testing
     let session = try await Self.openSession()
     defer { session.close() }
 
+    let method = ConnectionModelViewsHostedTests.loginMethod
     let failure = await Self.runUnsupportedCall(
-      in: session, expecting: .unsupported(method: ConnectionModelViewsHostedTests.loginMethod)
+      in: session, expecting: .unsupported(method: method)
     ) { try await $0.login(LoginAuthRequest(methodId: Self.unlistedMethodID)) }
 
-    #expect(failure == FailureTexts(title: Self.signInFailureTitle, text: Self.unsupportedFailureText))
+    #expect(
+      failure
+        == FailureTexts(title: Self.signInFailureTitle, text: AuthFailure.Reason.unsupported(method: method).message))
     #expect(session.agent.messages(method: ConnectionModelViewsHostedTests.loginMethod).isEmpty)
   }
 
@@ -499,11 +501,14 @@ import Testing
     let session = try await Self.openSession(authMethods: Self.noMethods)
     defer { session.close() }
 
+    let method = Self.logoutMethod
     let failure = await Self.runUnsupportedCall(
-      in: session, expecting: .unsupported(method: Self.logoutMethod)
+      in: session, expecting: .unsupported(method: method)
     ) { try await $0.logout(LogoutAuthRequest()) }
 
-    #expect(failure == FailureTexts(title: Self.signOutFailureTitle, text: Self.unsupportedFailureText))
+    #expect(
+      failure
+        == FailureTexts(title: Self.signOutFailureTitle, text: AuthFailure.Reason.unsupported(method: method).message))
     #expect(session.agent.messages(method: Self.logoutMethod).isEmpty)
   }
 
@@ -512,11 +517,14 @@ import Testing
     let session = try await Self.openSession()
     defer { session.close() }
 
+    let method = ConnectionModelError.terminalAuthOperation
     let failure = await Self.runUnsupportedCall(
-      in: session, expecting: .unsupported(method: ConnectionModelError.terminalAuthOperation)
+      in: session, expecting: .unsupported(method: method)
     ) { try await $0.loginWithTerminal(Self.terminalMethodID, runner: runner) }
 
-    #expect(failure == FailureTexts(title: Self.terminalFailureTitle, text: Self.unsupportedFailureText))
+    #expect(
+      failure
+        == FailureTexts(title: Self.terminalFailureTitle, text: AuthFailure.Reason.unsupported(method: method).message))
     #expect(runner.runs.isEmpty)
   }
 }
