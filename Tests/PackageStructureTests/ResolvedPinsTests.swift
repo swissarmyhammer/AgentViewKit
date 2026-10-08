@@ -33,14 +33,15 @@ import Testing
 
   /// The revision of each in-family ACP package, keyed by identity.
   ///
-  /// FoundationModelsACPClient `e1cac1d` records an unsupported login, logout
-  /// or terminal login in `authState` as `AuthFailure.Reason.unsupported`,
-  /// gives the text of each reason in `AuthFailure.Reason.message`, and gives
-  /// an `MCPServerItem` with no transport for a status update that has none.
+  /// FoundationModelsACPClient `74fc2df` makes `RequestError.init(reporting:)`
+  /// public and adds `SessionModel.appendError(reporting:)`, so the error
+  /// entry of a kit request has the text of the client. It also reads
+  /// `AuthFailure.Reason.message` from a string catalog, and gives
+  /// `AgentProcess` an environment, a current directory and an exit status.
   /// FoundationModelsACP `b2cec56` is the revision that this client resolves.
   static let expectedRevisions = [
     "foundationmodelsacp": "b2cec56fc42cd5b1c4e25cfb8fe8773857bbbf65",
-    "foundationmodelsacpclient": "e1cac1d15bde57e2d92d6f8fce62a254978129da",
+    "foundationmodelsacpclient": "74fc2df9927e160cbd6b25a425dee62fe7386b95",
   ]
 
   /// Tells whether the demo project was generated in this checkout.

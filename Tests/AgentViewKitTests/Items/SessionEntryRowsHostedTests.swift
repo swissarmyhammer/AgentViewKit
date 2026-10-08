@@ -434,6 +434,32 @@
       #expect(Self.showsErrorData(in: harness))
     }
 
+    /// The client gives the text of a connection that closes before the
+    /// answer. The test reads that text from `RequestError(reporting:)` of the
+    /// client, and does not copy it. The file has no `@testable` import, so
+    /// the test presses a config choice to send the kit request.
+    @Test func aConnectionThatClosesBeforeTheAnswerShowsTheClientTextInTheErrorRow() async throws {
+      let config = ConfigOptionsSessionModelHostedTests.self
+      let session = try await config.openSession { $0.heldMethods = [config.setMethod] }
+      defer { session.close() }
+      let harness = HostedViewHarness(size: Self.tallSize) {
+        VStack {
+          ConfigOptionsView(session: session.model, style: .form)
+          AgentThreadView(session: session.model)
+        }
+      }
+      defer { harness.close() }
+      let clientText = RequestError(reporting: ConnectionError.closed).message
+
+      try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: config.modelID, value: "deep-1"))
+      await harness.pump(until: Self.waitTimeout) { !config.setParams(in: session).isEmpty }
+      session.close()
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: ErrorView.identifier) != nil }
+
+      let label = try #require(harness.element(identifier: ErrorView.identifier)?.label)
+      #expect(label.contains(clientText), "The error row shows \"\(label)\".")
+    }
+
     /// Tells whether the data element of the error card shows the data of the
     /// appended error.
     ///

@@ -6,6 +6,13 @@ comments:
   id: 01m4cwen2hznv7995ftncb1xt7
   text: 'Upstream task made on the FoundationModelsACPAgent board: ^h72a557 "Make the serve and compose helper of the agent public in the library target". It was written with the kanban CLI in the agent repository. This task stays blocked-upstream until ^h72a557 is pushed.'
   timestamp: 2026-10-08T04:30:56.081751+00:00
+- actor: claude-code
+  id: 01m4dtzwdcvt5w14yvhf1k8xk4
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — the upstream request exists: FoundationModelsACPAgent task 01M4CWED7MJFK6NEGGYH72A557 "Make the serve and compose helper of the agent public in the library target", column todo. FoundationModelsACPAgent HEAD c83355c has no public serve or compose helper.
+    - next: when the upstream helper is public and pushed, change the README in-process quick start and run the README scripts. A person must start this task again.
+  timestamp: 2026-10-08T13:24:37.932162+00:00
 position_column: todo
 position_ordinal: bb80
 title: Ask FoundationModelsACPAgent to make its serve and compose helper public

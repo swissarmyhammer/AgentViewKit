@@ -19,8 +19,12 @@
     /// The number of entries in the transcript of the modifier test.
     static let smallEntryCount = 25
 
-    /// The longest time that a test waits for a view change, in seconds.
-    static let waitTimeout: TimeInterval = 5
+    /// The longest time that a test waits for a view change, in seconds. A
+    /// wait ends when its condition is true, so a long limit costs no time
+    /// on a pass. The limit is long because a full test run loads the
+    /// machine, and then a list scroll takes more than five seconds to
+    /// settle.
+    static let waitTimeout: TimeInterval = 30
 
     /// The message id of the agent message that the scroll tests add.
     static let insertedMessageID = "inserted-message"

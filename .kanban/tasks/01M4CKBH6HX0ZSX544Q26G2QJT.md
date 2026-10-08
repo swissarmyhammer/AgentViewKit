@@ -98,8 +98,24 @@ comments:
     - evidence: 8 files — Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/TestSupport/ScriptedSessionTests.swift, Tests/AgentViewKitTests/Status/SessionStateBannersHostedTests.swift, Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift, Tests/PackageStructureTests/BenchmarkSymlinkTests.swift, Benchmarks/README.md, Benchmarks/Package.swift, new link Benchmarks/Benchmarks/AgentViewKitBenchmarks/BackgroundRunScript.swift. `swift test`: 1029 tests in 110 suites passed, 93 tests in 11 suites passed, 1 test in 1 suite passed, 0 failures. One dependency warning from the build system (mlx-swift_Cmlx.bundle), which is not from this change. `swift build --package-path Benchmarks`: exit 0. 1 of 1 open review finding checked.
     - next: /review
   timestamp: 2026-10-08T13:17:33.241632+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4dtykj27tbj5ab125q9szgq
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d49c3a5). 7 files reviewed. findings 0, confirmed 0, refuted 0, failed 0. All prior review findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-08T13:23:56.098283+00:00
+- actor: claude-code
+  id: 01m4dtyva7evs2811sna0yk7ty
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — 8 files (ScriptedSession.swift, tests, Benchmarks link and docs)
+    - test: green — swift test, 1029 tests in 110 suites passed; Benchmarks build complete
+    - commit: d49c3a5
+    - review: clean — 0 findings, all 5 prior findings checked
+  timestamp: 2026-10-08T13:24:04.039611+00:00
+position_column: done
+position_ordinal: ff9780
 title: Use ScriptedWireAgent.makeSessionUpdateFrame in the older hosted tests
 ---
 ## What
