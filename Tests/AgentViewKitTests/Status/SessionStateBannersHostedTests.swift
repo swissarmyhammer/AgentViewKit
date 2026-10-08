@@ -1,7 +1,6 @@
 #if DEBUG
   import AgentViewKit
   import AgentViewKitTestSupport
-  import DemoSupport
   import Foundation
   import FoundationModelsACP
   import FoundationModelsACPClient
@@ -65,19 +64,13 @@
     }
 
     /// The `session/update` frame of one agent message chunk of the scripted
-    /// session. The frame comes from
-    /// ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
+    /// session.
     ///
     /// - Parameter index: The number of the chunk, which makes its message id.
     /// - Returns: The JSON text of the frame.
     static func chunkFrame(index: Int) -> String {
-      let update = JSONValue.object([
-        "sessionUpdate": .string("agent_message_chunk"),
-        "messageId": .string("early-\(index)"),
-        "content": .object(["type": .string("text"), "text": .string("Early.")]),
-      ])
-      return ScriptedWireAgent.makeSessionUpdateFrame(
-        params: .object(["sessionId": .string(ScriptedSession.sessionID), "update": update]))
+      ScriptedSession.sessionUpdateFrame(
+        update: ScriptedSession.agentMessageChunkUpdate(messageID: "early-\(index)", text: "Early."))
     }
 
     /// Shows the thread of a session and a composer below it. The thread gets

@@ -196,14 +196,12 @@ public final class ScriptedSession {
     try await send(updateValue: JSONValue(encoding: update))
   }
 
-  /// Sends one `session/update` frame of the session from the agent. The
-  /// frame comes from ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
+  /// Sends one `session/update` frame of the session from the agent.
   ///
   /// - Parameter updateValue: The `update` member of the params.
   /// - Throws: The error of the transport.
   private func send(updateValue: JSONValue) async throws {
-    let params = JSONValue.object(["sessionId": .string(model.sessionId.rawValue), "update": updateValue])
-    try await agent.send(ScriptedWireAgent.makeSessionUpdateFrame(params: params))
+    try await agent.send(Self.sessionUpdateFrame(sessionId: .string(model.sessionId.rawValue), update: updateValue))
   }
 
   /// The params of a permission request of the session, with the
@@ -231,6 +229,34 @@ public final class ScriptedSession {
   /// - Returns: The JSON text of the frame.
   public static func requestFrame(_ method: String, id: Int, params: String) -> String {
     #"{"jsonrpc":"2.0","id":\#(id),"method":"\#(method)","params":\#(params)}"#
+  }
+
+  /// A `session/update` notification frame from the agent to the client.
+  /// The frame comes from
+  /// ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
+  ///
+  /// - Parameters:
+  ///   - sessionId: The `sessionId` member of the params. The default is
+  ///     ``sessionID``. A follow-up of the agent can give the `sessionId`
+  ///     of its request.
+  ///   - update: The `update` member of the params.
+  /// - Returns: The JSON text of the frame.
+  public static func sessionUpdateFrame(sessionId: JSONValue = .string(sessionID), update: JSONValue) -> String {
+    ScriptedWireAgent.makeSessionUpdateFrame(params: .object(["sessionId": sessionId, "update": update]))
+  }
+
+  /// An `agent_message_chunk` update with one text block.
+  ///
+  /// - Parameters:
+  ///   - messageID: The `messageId` of the agent message.
+  ///   - text: The text of the chunk.
+  /// - Returns: The update.
+  public static func agentMessageChunkUpdate(messageID: String, text: String) -> JSONValue {
+    .object([
+      "sessionUpdate": .string("agent_message_chunk"),
+      "messageId": .string(messageID),
+      "content": .object(["type": .string("text"), "text": .string(text)]),
+    ])
   }
 
   /// Sends one JSON-RPC request from the agent to the client.

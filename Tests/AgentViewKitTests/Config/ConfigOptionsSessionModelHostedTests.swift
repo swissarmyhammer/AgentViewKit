@@ -85,16 +85,11 @@ import Testing
 
   /// The `session/update` frame of a `config_option_update` for the session.
   ///
-  /// The frame comes from
-  /// ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
-  ///
   /// - Parameter options: The JSON text of each option.
   /// - Returns: The JSON text of the frame.
   /// - Throws: The error of the JSON parser when an option is not valid JSON.
   static func configUpdateFrame(options: [String]) throws -> String {
-    let update = try JSONValue(json: configUpdate(options: options))
-    return ScriptedWireAgent.makeSessionUpdateFrame(
-      params: .object(["sessionId": .string(ScriptedSession.sessionID), "update": update]))
+    try ScriptedSession.sessionUpdateFrame(update: JSONValue(json: configUpdate(options: options)))
   }
 
   /// Opens a scripted session whose `session/new` result has options.
