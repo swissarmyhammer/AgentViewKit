@@ -20,11 +20,9 @@
     static let smallEntryCount = 25
 
     /// The longest time that a test waits for a view change, in seconds. A
-    /// wait ends when its condition is true, so a long limit costs no time
-    /// on a pass. The limit is long because a full test run loads the
-    /// machine, and then a list scroll takes more than five seconds to
-    /// settle.
-    static let waitTimeout: TimeInterval = 30
+    /// wait ends when its condition is true, so the limit costs no time on a
+    /// pass.
+    static let waitTimeout: TimeInterval = 5
 
     /// The message id of the agent message that the scroll tests add.
     static let insertedMessageID = "inserted-message"
@@ -41,6 +39,27 @@
     /// - Returns: The value, or `nil` when the list is not in the tree.
     static func listValue<Content: View>(in harness: HostedViewHarness<Content>) -> String? {
       harness.element(identifier: ConversationLayout.listIdentifier)?.value
+    }
+
+    /// Whether the row of the entry with `key` is in the visible part of the
+    /// list.
+    ///
+    /// The check compares the accessibility frames of the row and the list,
+    /// which show the layout now. It does not read
+    /// ``ScrollAnchorManager/visibleIDs``. After a long jump, the lazy stack
+    /// can lay out a row first at an old position and then move it. SwiftUI
+    /// reports the rows in view for the first layout, and it does not report
+    /// again when only the rows move. Then `visibleIDs` stays stale until the
+    /// next scroll, although the row is in view.
+    ///
+    /// - Parameters:
+    ///   - key: The row key of the entry.
+    ///   - harness: The harness that shows the conversation.
+    /// - Returns: `true` when part of the row is in the list frame.
+    static func showsRow<Content: View>(_ key: String, in harness: HostedViewHarness<Content>) -> Bool {
+      let list = harness.frame(identifier: ConversationLayout.listIdentifier)
+      let row = harness.frame(identifier: ItemRow.identifier(for: key))
+      return if let list, let row { !list.intersection(row).isEmpty } else { false }
     }
 
     /// Opens a scripted session whose transcript has `count` agent messages.
@@ -295,7 +314,7 @@
       harness.pump()
       let lastKey = session.model.transcript.last?.rowKey
       await harness.pump(until: Self.waitTimeout) { anchors.visibleIDs.last == lastKey }
-      #expect(!anchors.visibleIDs.contains(errorKey))
+      #expect(!Self.showsRow(errorKey, in: harness))
 
       try await session.sendUpdate(
         SessionStateBannersHostedTests.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
@@ -303,9 +322,9 @@
         harness.element(identifier: StateBanner.showErrorIdentifier) != nil
       }
       try harness.press(identifier: StateBanner.showErrorIdentifier)
-      await harness.pump(until: Self.waitTimeout) { anchors.visibleIDs.contains(errorKey) }
+      await harness.pump(until: Self.waitTimeout) { Self.showsRow(errorKey, in: harness) }
 
-      #expect(anchors.visibleIDs.contains(errorKey))
+      #expect(Self.showsRow(errorKey, in: harness))
       #expect(harness.element(identifier: ItemRow.identifier(for: errorKey)) != nil)
     }
 

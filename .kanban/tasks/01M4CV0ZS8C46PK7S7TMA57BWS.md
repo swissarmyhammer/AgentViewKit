@@ -43,8 +43,24 @@ comments:
     - evidence: 5 files — Sources/AgentViewKit/ACP/AgentProcessLauncher.swift, Sources/AgentViewKit/Platform/ProcessLauncher.swift, Sources/AgentViewKitTestSupport/FakeProcessLauncher.swift, Tests/AgentViewKitTests/ACP/AgentProcessLauncherTests.swift, Tests/AgentViewKitTests/TestSupport/FakesTests.swift. `swift test`: 1034 tests in 110 suites, 93 tests in 11 suites and 1 test in 1 suite pass, 0 failures. `swift build --package-path Benchmarks`: Build complete. The demo app does not use the launcher, so no xcodebuild run was necessary.
     - next: /review
   timestamp: 2026-10-08T20:36:40.577313+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4emackxn4vk9pv83kahp2sf
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 096d782). 5 files reviewed. 7 validator runs, 0 failed. Counts: 0 findings, 0 confirmed, 0 refuted. The ignore rule (.reviewignore) excluded 4 .kanban files.
+    - next: The task is in done. No work remains on this task.
+  timestamp: 2026-10-08T20:47:16.605210+00:00
+- actor: claude-code
+  id: 01m4emawx8h1qpfqyemzqckchk
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 5 files (AgentProcessLauncher, ProcessLauncher, FakeProcessLauncher, two test files)
+    - test: green — swift test, 1034 tests in 110 suites passed; Benchmarks build complete
+    - commit: 096d782
+    - review: clean — 0 findings
+  timestamp: 2026-10-08T20:47:33.288542+00:00
+position_column: done
+position_ordinal: ff9980
 title: Ask FoundationModelsACPClient for the environment, the working directory and the exit status of AgentProcess
 ---
 ## What

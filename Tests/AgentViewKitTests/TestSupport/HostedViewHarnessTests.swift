@@ -47,6 +47,40 @@ struct LinkedLabelsView: View {
   }
 }
 
+/// Two boxes of a known size, one above the other, with no space between
+/// them.
+struct SizedBoxesView: View {
+  /// The size of each box, in points.
+  static let boxSize = CGSize(width: 120, height: 30)
+
+  /// The accessibility identifier of the top box.
+  static let topIdentifier = "top-box"
+
+  /// The accessibility identifier of the bottom box.
+  static let bottomIdentifier = "bottom-box"
+
+  var body: some View {
+    VStack(spacing: 0) {
+      box(Self.topIdentifier)
+      box(Self.bottomIdentifier)
+    }
+  }
+
+  /// One box that is an accessibility element.
+  ///
+  /// - Parameter identifier: The accessibility identifier of the box.
+  /// - Returns: The box.
+  private func box(_ identifier: String) -> some View {
+    // A shape takes the full size that the frame gives it, so the element
+    // has the size of the box.
+    Rectangle()
+      .frame(width: Self.boxSize.width, height: Self.boxSize.height)
+      .accessibilityElement()
+      .accessibilityLabel(identifier)
+      .accessibilityIdentifier(identifier)
+  }
+}
+
 @Suite(.serialized, .hostedSerially) @MainActor struct HostedViewHarnessTests {
   @Test func readsTheLabelOfMountedText() {
     let harness = HostedViewHarness(Text("hi"))
@@ -65,6 +99,20 @@ struct LinkedLabelsView: View {
     let element = harness.element(identifier: "named-text")
     #expect(element?.label == "named")
     #expect(harness.element(identifier: "missing") == nil)
+  }
+
+  @Test func readsTheFrameOfAnElement() throws {
+    let harness = HostedViewHarness(SizedBoxesView())
+    defer { harness.close() }
+    harness.pump()
+
+    let top = try #require(harness.frame(identifier: SizedBoxesView.topIdentifier))
+    let bottom = try #require(harness.frame(identifier: SizedBoxesView.bottomIdentifier))
+    #expect(top.size == SizedBoxesView.boxSize)
+    #expect(bottom.size == SizedBoxesView.boxSize)
+    // The frame is in screen points, where y grows up.
+    #expect(top.minY == bottom.maxY)
+    #expect(harness.frame(identifier: "missing") == nil)
   }
 
   @Test func readsTheElementsOfAMenuButton() {

@@ -13,6 +13,10 @@ comments:
     - implement: stuck — the upstream request exists: FoundationModelsACPAgent task 01M4CWED7MJFK6NEGGYH72A557 "Make the serve and compose helper of the agent public in the library target", column todo. FoundationModelsACPAgent HEAD c83355c has no public serve or compose helper.
     - next: when the upstream helper is public and pushed, change the README in-process quick start and run the README scripts. A person must start this task again.
   timestamp: 2026-10-08T13:24:37.932162+00:00
+- actor: claude-code
+  id: 01m4g8yv7mvjzy9wsrq0jnn9br
+  text: 'Upstream status, 2026-10-09: the FoundationModelsACPAgent /finish session will do task 01M4CWED7MJFK6NEGGYH72A557 after its current task. It recorded the shape that the kit needs: a public helper that returns `any Agent` bound to a given `AgentSideConnection`, with no own transport or serve loop. It will tell us if `compose` must throw or be async, and it will send the commit sha after the push. The push needs approval from its user.'
+  timestamp: 2026-10-09T12:07:12.884418+00:00
 position_column: todo
 position_ordinal: bb80
 title: Ask FoundationModelsACPAgent to make its serve and compose helper public

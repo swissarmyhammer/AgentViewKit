@@ -193,6 +193,19 @@ public final class HostedViewHarness<Content: View> {
     liveElement(identifier: identifier).map { Self.snapshot(of: $0, includingLinks: true) }
   }
 
+  /// The frame of the first accessibility element with `identifier`.
+  ///
+  /// The frame is the area that the element has on the screen now, in
+  /// screen points. The y axis goes up. The frame of a row in a scroll view
+  /// moves when the view scrolls, so a test can compare it with the frame of
+  /// the scroll view to learn if the row is in view.
+  ///
+  /// - Parameter identifier: The accessibility identifier to find.
+  /// - Returns: The frame, or `nil` when no element has `identifier`.
+  public func frame(identifier: String) -> CGRect? {
+    liveElement(identifier: identifier).map(Self.frame(of:))
+  }
+
   /// Does the press action of the element with `identifier`, then pumps the
   /// run loop.
   ///
@@ -476,6 +489,15 @@ public final class HostedViewHarness<Content: View> {
   private static func objectAttribute(_ selector: Selector, of element: NSObject) -> Any? {
     guard element.responds(to: selector) else { return nil }
     return element.perform(selector)?.takeUnretainedValue()
+  }
+
+  /// The accessibility frame of `element`, in screen points.
+  ///
+  /// - Parameter element: The element.
+  /// - Returns: The frame, or `CGRect.zero` when the element does not answer
+  ///   the getter.
+  private static func frame(of element: NSObject) -> CGRect {
+    (element as AnyObject).accessibilityFrame?() ?? .zero
   }
 
   /// Does the press action of `element`.
