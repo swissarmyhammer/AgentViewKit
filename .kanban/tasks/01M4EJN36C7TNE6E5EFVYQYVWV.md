@@ -47,6 +47,37 @@ comments:
     - evidence: cause found — the scroll goes to the error row, but `onScrollTargetVisibilityChange` reports the rows of a first lazy-stack layout pass (with an old position for the kept error row view) and does not report again after the correction, so `anchors.visibleIDs` stays stale. Files: Sources/AgentViewKitTestSupport/HostedViewHarness.swift (new `frame(identifier:)`), Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift (new `readsTheFrameOfAnElement`, red then green), Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift (`showsRow(_:in:)`, the test checks the frames, `waitTimeout` 30 s back to 5 s). Reproduction load (6 parallel processes x 30 repetitions): 180/180 pass (before: 4 of 6 processes failed). 5 full `swift test` runs one after the other: 5 of 5 exit 0, each 1035 + 93 + 1 tests passed, the target test passed each time; only the known mlx-swift build warning.
     - next: /review
   timestamp: 2026-10-09T15:37:08.641963+00:00
+- actor: claude-code
+  id: 01m4gpb9ejpr2djs83jgc00tnq
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (153f57b). 1 finding: Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift:54 (code-hygiene/magic-numbers-swift).
+    - next: Replace the magic numbers in HostedViewHarnessTests.swift with named constants. Then review again.
+  timestamp: 2026-10-09T16:01:12.146924+00:00
+- actor: claude-code
+  id: 01m4gpbjgy8mzzmkwvexx0349d
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 3 files (HostedViewHarness.swift, HostedViewHarnessTests.swift, ConversationViewHostedTests.swift); cause: stale visibleIDs report
+    - test: green — swift test, 1035 tests in 110 suites passed; Benchmarks build complete
+    - commit: 153f57b
+    - review: findings — Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift:54 (code-hygiene/magic-numbers-swift)
+  timestamp: 2026-10-09T16:01:21.438044+00:00
+- actor: claude-code
+  id: 01m4gq5ad6sy7t1zj340n5k12d
+  text: |-
+    Review finding correction:
+    - swiftlint `no_magic_numbers` (allowed_numbers [0, 1, -1, 100], the same config as the validator) on the 3 files of 153f57b found 2 literals, both at HostedViewHarnessTests.swift line of `SizedBoxesView.boxSize`: `120` and `30`. HostedViewHarness.swift and ConversationViewHostedTests.swift had no finding (`waitTimeout` and the other numbers are already named `static let` values, `spacing: 0` and `.zero` are allowed).
+    - Change: `SizedBoxesView` now has `static let boxWidth: CGFloat = 120` and `static let boxHeight: CGFloat = 30`, each with a doc comment, and `boxSize` is `CGSize(width: boxWidth, height: boxHeight)`. This is the same style as `SliderView.lowerBound` and `upperBound` in the same file.
+    - swiftlint on the 3 files after the change: 0 violations.
+  timestamp: 2026-10-09T16:15:25.094911+00:00
+- actor: claude-code
+  id: 01m4gq5csm0j1saj4zm25w22rm
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift (named constants `boxWidth` and `boxHeight`). swiftlint no_magic_numbers on the 3 files of 153f57b: 0 violations. `swift test`: exit 0; 1 test in 1 suite passed, 93 tests in 11 suites passed, 1035 tests in 110 suites passed; only the known mlx-swift build warning "missing creator for mutated node". The finding is checked.
+    - next: /review
+  timestamp: 2026-10-09T16:15:27.540930+00:00
 position_column: doing
 position_ordinal: '80'
 title: Make ConversationViewHostedTests.theShowErrorButtonMovesToTheErrorEntry stable in the full suite run
@@ -64,3 +95,12 @@ The tester increased `waitTimeout` in this file from 5 seconds to 30 seconds. Th
 
 ## Tests
 - [x] `swift test` passes.
+
+## Review Findings (2026-10-09 10:45)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift:54` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

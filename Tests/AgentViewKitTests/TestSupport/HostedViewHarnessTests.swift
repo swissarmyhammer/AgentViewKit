@@ -50,8 +50,14 @@ struct LinkedLabelsView: View {
 /// Two boxes of a known size, one above the other, with no space between
 /// them.
 struct SizedBoxesView: View {
+  /// The width of each box, in points.
+  static let boxWidth: CGFloat = 120
+
+  /// The height of each box, in points.
+  static let boxHeight: CGFloat = 30
+
   /// The size of each box, in points.
-  static let boxSize = CGSize(width: 120, height: 30)
+  static let boxSize = CGSize(width: boxWidth, height: boxHeight)
 
   /// The accessibility identifier of the top box.
   static let topIdentifier = "top-box"
