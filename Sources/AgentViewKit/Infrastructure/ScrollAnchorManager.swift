@@ -48,6 +48,13 @@ public final class ScrollAnchorManager {
   public private(set) var anchorID: String?
 
   /// The identifiers of the items in view, in the order that the list gave.
+  ///
+  /// After ``noteJump(to:)``, the value is the item of the jump, until the
+  /// list reports a set of rows with that item. After a long jump, a lazy
+  /// list can report the rows of a layout pass before it placed the item,
+  /// and then not report again until the next scroll. The manager does not
+  /// keep the rows of that first report. Thus ``saveAnchor()`` and the jump
+  /// commands start from the item of the jump.
   public private(set) var visibleIDs: [String] = []
 
   /// The number of items appended since the list became unpinned.
@@ -61,6 +68,10 @@ public final class ScrollAnchorManager {
 
   /// The identifier of the last item in the list, or `nil` for an empty list.
   @ObservationIgnored private var lastItemID: String?
+
+  /// The item of the last jump, until the next report of new rows, or `nil`
+  /// when the manager does not wait for the rows of a jump.
+  @ObservationIgnored private var jumpItemID: String?
 
   /// The task that sends the requested scroll to the bottom, or `nil` when no
   /// scroll is requested.
@@ -95,14 +106,24 @@ public final class ScrollAnchorManager {
   /// ``tolerance``. A change to pinned sets ``newItemsSinceUnpinned`` to zero
   /// and clears ``anchorID``.
   ///
+  /// After ``noteJump(to:)``, the first report with identifiers that are not
+  /// ``visibleIDs`` replaces ``visibleIDs`` only when it includes the item of
+  /// the jump, or when it pins the list. A report without the item comes
+  /// from a layout pass before the list placed the item. The report after it
+  /// replaces ``visibleIDs`` again. A report equal to ``visibleIDs``, such as
+  /// the report of a scroll geometry change, changes only the pin state.
+  ///
   /// - Parameters:
   ///   - ids: The identifiers of the items in view, from
   ///     `onScrollTargetVisibilityChange`.
   ///   - distanceFromBottom: The distance, in points, from the bottom edge of
   ///     the last visible item to the bottom edge of the viewport.
   public func noteVisible(ids: [String], distanceFromBottom: CGFloat = 0) {
-    visibleIDs = ids
-    setPinned(isAtBottom(visibleIDs: ids, distanceFromBottom: distanceFromBottom))
+    let isAtBottom = isAtBottom(visibleIDs: ids, distanceFromBottom: distanceFromBottom)
+    if acceptsReport(of: ids) || isAtBottom {
+      visibleIDs = ids
+    }
+    setPinned(isAtBottom)
   }
 
   /// Records items that the list appended.
@@ -182,11 +203,20 @@ public final class ScrollAnchorManager {
   /// The call cancels a scroll to the bottom that ``requestScrollToBottom()``
   /// requested and did not send yet, so that this scroll does not move the
   /// list away from the item. A later ``restoreAnchor()`` keeps the item in
-  /// view across a list update. The thread minimap calls this function.
+  /// view across a list update. The Show Error button of
+  /// ``ConversationView``, the thread minimap and the jump commands call this
+  /// function.
+  ///
+  /// The call also sets ``visibleIDs`` to the item, and the manager waits
+  /// for the rows of the jump (see ``noteVisible(ids:distanceFromBottom:)``).
+  /// Thus a ``saveAnchor()`` right after the jump, such as for a Load
+  /// Earlier press, keeps the item as the anchor.
   ///
   /// - Parameter id: The identifier of the item that the user picked.
   public func noteJump(to id: String) {
     anchorID = id
+    visibleIDs = [id]
+    jumpItemID = id
     pendingScroll?.cancel()
     pendingScroll = nil
   }
@@ -215,6 +245,18 @@ public final class ScrollAnchorManager {
   private func isAtBottom(visibleIDs: [String], distanceFromBottom: CGFloat) -> Bool {
     guard let lastItemID else { return true }
     return visibleIDs.last == lastItemID && distanceFromBottom <= tolerance
+  }
+
+  /// Tells if a report of the rows in view replaces ``visibleIDs``, and ends
+  /// the wait for the rows of a jump at the first new report.
+  ///
+  /// - Parameter ids: The identifiers of the items in view.
+  /// - Returns: `false` when `ids` is the first new report after a jump and
+  ///   does not include the item of the jump, else `true`.
+  private func acceptsReport(of ids: [String]) -> Bool {
+    guard ids != visibleIDs, let jumpItemID else { return true }
+    self.jumpItemID = nil
+    return ids.contains(jumpItemID)
   }
 
   /// Sets ``isPinnedToBottom``, and clears the new item count and the kept

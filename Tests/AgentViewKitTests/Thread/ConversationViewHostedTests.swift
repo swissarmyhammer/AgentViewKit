@@ -46,11 +46,11 @@
     ///
     /// The check compares the accessibility frames of the row and the list,
     /// which show the layout now. It does not read
-    /// ``ScrollAnchorManager/visibleIDs``. After a long jump, the lazy stack
-    /// can lay out a row first at an old position and then move it. SwiftUI
-    /// reports the rows in view for the first layout, and it does not report
-    /// again when only the rows move. Then `visibleIDs` stays stale until the
-    /// next scroll, although the row is in view.
+    /// ``ScrollAnchorManager/visibleIDs``: a jump sets `visibleIDs` to the
+    /// item of the jump at once, before the list moves. Also, after a long
+    /// jump, the lazy stack can lay out a row first at an old position and
+    /// then move it. SwiftUI reports the rows in view for the first layout,
+    /// and it does not report again when only the rows move.
     ///
     /// - Parameters:
     ///   - key: The row key of the entry.
@@ -326,6 +326,8 @@
 
       #expect(Self.showsRow(errorKey, in: harness))
       #expect(harness.element(identifier: ItemRow.identifier(for: errorKey)) != nil)
+      // A Load Earlier press now keeps the error row as the anchor.
+      #expect(anchors.visibleIDs.contains(errorKey))
     }
 
     @Test func aSessionWithNoStateUpdateShowsNoBanner() async throws {

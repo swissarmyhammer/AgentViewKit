@@ -226,8 +226,13 @@
       let top = harness.hostingView.isFlipped ? bounds.minY + Self.railInset : bounds.maxY - Self.railInset
       let point = NSPoint(x: bounds.maxX - Self.railInset, y: top)
       Self.click(at: harness.hostingView.convert(point, to: nil), in: harness)
-      await harness.pump(until: Self.waitTimeout) { anchors.visibleIDs.contains(firstKey) }
+      // The jump sets the visible identifiers at once, so the wait reads the
+      // frame of the row.
+      await harness.pump(until: Self.waitTimeout) {
+        ConversationViewHostedTests.showsRow(firstKey, in: harness)
+      }
 
+      #expect(ConversationViewHostedTests.showsRow(firstKey, in: harness))
       #expect(anchors.anchorID == firstKey)
       #expect(anchors.visibleIDs.contains(firstKey))
     }

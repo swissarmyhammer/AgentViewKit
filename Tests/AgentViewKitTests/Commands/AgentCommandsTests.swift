@@ -367,6 +367,9 @@ final class CallCounter {
     #expect(try !Self.isAvailable(.jumpToPrevious, in: fixture))
     #expect(fixture.system.perform(AgentCommandVerb.jumpToNext.id))
     #expect(targets == [.item(userKeys[0])])
+    // The list reports the rows of the jump. Until this report, the manager
+    // keeps the jump item as the visible item.
+    anchors.noteVisible(ids: [keys[0], keys[1]], distanceFromBottom: .greatestFiniteMagnitude)
 
     // The answer of the second turn and the user message of the third turn.
     anchors.noteVisible(ids: [keys[3], userKeys[2]], distanceFromBottom: .greatestFiniteMagnitude)

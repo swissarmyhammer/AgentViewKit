@@ -332,4 +332,67 @@ import Testing
     #expect(manager.isPinnedToBottom)
     #expect(manager.anchorID == nil)
   }
+
+  // MARK: - Jump report
+
+  /// Makes a manager whose list shows the last two of five items, and jumps
+  /// it to the item "c".
+  ///
+  /// - Parameter recorder: The recorder that gets the scroll targets.
+  /// - Returns: The manager, after the jump and before the next report.
+  private static func makeJumpedManager(recorder: ScrollRecorder) -> ScrollAnchorManager {
+    let manager = makeManager(recorder: recorder)
+    manager.noteAppended(ids: ["a", "b", "c", "d", "e"])
+    manager.noteVisible(ids: ["d", "e"])
+    manager.noteJump(to: "c")
+    return manager
+  }
+
+  @Test func aJumpSetsTheVisibleIdsToTheItem() {
+    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+
+    #expect(manager.visibleIDs == ["c"])
+  }
+
+  @Test func aSaveAfterAJumpAndAReportWithoutTheItemKeepsTheItem() {
+    let recorder = ScrollRecorder()
+    let manager = Self.makeJumpedManager(recorder: recorder)
+
+    // A layout pass before the list placed the item reports other rows.
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+    manager.saveAnchor()
+    manager.restoreAnchor()
+
+    #expect(manager.visibleIDs == ["c"])
+    #expect(!manager.isPinnedToBottom)
+    #expect(recorder.targets == [.item("c")])
+  }
+
+  @Test func aReportEqualToTheVisibleIdsDoesNotEndTheWaitForTheJumpReport() {
+    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+
+    // The scroll geometry callback reports the same identifiers again.
+    manager.noteVisible(ids: ["c"], distanceFromBottom: Self.distanceOutsideTolerance)
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.visibleIDs == ["c"])
+  }
+
+  @Test func aJumpReportWithTheItemReplacesTheVisibleIds() {
+    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+
+    manager.noteVisible(ids: ["b", "c"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.visibleIDs == ["b", "c"])
+  }
+
+  @Test func theReportAfterAReportWithoutTheItemReplacesTheVisibleIds() {
+    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    // The user scrolls.
+    manager.noteVisible(ids: ["b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.visibleIDs == ["b"])
+  }
 }

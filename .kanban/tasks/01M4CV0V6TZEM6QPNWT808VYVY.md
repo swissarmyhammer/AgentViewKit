@@ -17,6 +17,10 @@ comments:
   id: 01m4g8yv7mvjzy9wsrq0jnn9br
   text: 'Upstream status, 2026-10-09: the FoundationModelsACPAgent /finish session will do task 01M4CWED7MJFK6NEGGYH72A557 after its current task. It recorded the shape that the kit needs: a public helper that returns `any Agent` bound to a given `AgentSideConnection`, with no own transport or serve loop. It will tell us if `compose` must throw or be async, and it will send the commit sha after the push. The push needs approval from its user.'
   timestamp: 2026-10-09T12:07:12.884418+00:00
+- actor: claude-code
+  id: 01m4hfbet3s8s3fa3t41gc590w
+  text: 'Upstream status, 2026-10-09: FoundationModelsACPAgent implemented the public helper. It is not committed or pushed yet. Shape: `ComposedAgent` is a public `Sendable` struct. Step 1 (host, async throws, one time): `let composed = try await ComposedAgent.compose(name: try DotfolderName("my-host"), workingDirectory: projectDirectory)`; optional parameters are `environment`, `modelSource` (`.live` or `.stub`), `stubChunkDelay` and `reporting progress`. Step 2 (sync, does not throw, no transport): `InProcessAgent.makeConnection { connection in composed.agent(boundTo: connection) }`. Step 3, after the connection closes: `await composed.waitForConnectionTeardown()`. The README in-process quick start must show these three steps. Wait for the commit sha before the work starts.'
+  timestamp: 2026-10-09T23:18:12.035113+00:00
 position_column: todo
 position_ordinal: bb80
 title: Ask FoundationModelsACPAgent to make its serve and compose helper public
