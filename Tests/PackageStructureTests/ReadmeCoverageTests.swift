@@ -12,7 +12,9 @@ import Testing
 ///
 /// The suite also holds the quick starts of the README: the ACP client quick
 /// start and the in-process quick start are compiled snippets, and no Swift
-/// block of the README uses the thread path of the kit.
+/// block of the README uses the thread path of the kit. The in-process quick
+/// start shows the public `ComposedAgent` helper of FoundationModelsACPAgent,
+/// and does not build a `RoutedACPAgent` by hand.
 @Suite struct ReadmeCoverageTests {
   /// The heading of the inventory in plan.md.
   static let planHeading = "## 9. Component inventory"
@@ -111,7 +113,7 @@ import Testing
 
   /// The names of the quick start snippets of the README: the ACP client
   /// and the in-process agent (plan.md §1).
-  static let quickStartNames: Set = ["ACPQuickStart", "InProcessQuickStart"]
+  static let quickStartNames: Set = ["ACPQuickStart", inProcessQuickStartName]
 
   /// The symbols of the thread path that no Swift block of the README uses.
   /// The views bind to the client models directly.
@@ -121,6 +123,43 @@ import Testing
     let names = Set(try ReadmeSnippets.readmeSnippets().map(\.name))
 
     #expect(Self.quickStartNames.isSubset(of: names), "README.md has the snippets \(names.sorted())")
+  }
+
+  /// The name of the in-process quick start snippet of the README.
+  static let inProcessQuickStartName = "InProcessQuickStart"
+
+  /// The three steps of the public `ComposedAgent` helper of
+  /// FoundationModelsACPAgent that the in-process quick start shows: compose
+  /// the agent, bind it to the connection, and wait for its teardown.
+  static let composedAgentSteps = [
+    "ComposedAgent.compose(", "composed.agent(boundTo:", "composed.waitForConnectionTeardown()",
+  ]
+
+  /// The call that builds the agent of FoundationModelsACPAgent by hand. The
+  /// public `ComposedAgent` helper replaces it.
+  static let routedAgentInitializerCall = "RoutedACPAgent("
+
+  /// The body of the in-process quick start snippet of the README.
+  ///
+  /// - Throws: A failed requirement when the README has no such snippet.
+  static func inProcessQuickStart() throws -> String {
+    let snippets = try ReadmeSnippets.readmeSnippets()
+    return try #require(snippets.first { $0.name == inProcessQuickStartName }).body
+  }
+
+  @Test func theInProcessQuickStartShowsEachStepOfTheComposedAgent() throws {
+    let body = try Self.inProcessQuickStart()
+    let missing = Self.composedAgentSteps.filter { !body.contains($0) }
+
+    #expect(missing.isEmpty, "The in-process quick start does not show \(missing)")
+  }
+
+  @Test func theInProcessQuickStartDoesNotBuildTheRoutedAgentByHand() throws {
+    let body = try Self.inProcessQuickStart()
+
+    #expect(
+      !body.contains(Self.routedAgentInitializerCall),
+      "The in-process quick start builds a RoutedACPAgent instead of using ComposedAgent")
   }
 
   @Test func noSwiftBlockOfTheReadmeUsesTheThreadPath() throws {

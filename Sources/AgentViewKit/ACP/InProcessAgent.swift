@@ -13,13 +13,20 @@ import FoundationModelsACPClient
 /// bind to the model directly: the connection state is
 /// `ConnectionModel.state`, and each open session is a `SessionModel` of the
 /// model. The kit does not import an agent package. The host gives the
-/// agent, for example the `RoutedACPAgent` of FoundationModelsACPAgent:
+/// agent. With FoundationModelsACPAgent, the host uses its public
+/// `ComposedAgent` in three steps:
 ///
 /// ```swift
+/// // 1. Compose the agent one time, before the connection opens.
+/// let composed = try await ComposedAgent.compose(
+///   name: try DotfolderName("my-host"), workingDirectory: projectDirectory)
+/// // 2. Bind the agent to the agent side of the connection.
 /// let model = await InProcessAgent.makeConnection { connection in
-///   agent.bind(connection: connection)
-///   return agent
+///   composed.agent(boundTo: connection)
 /// }
+/// // 3. Close the connection. Then let the agent close its sessions.
+/// await model.disconnect()
+/// await composed.waitForConnectionTeardown()
 /// ```
 ///
 /// The host closes the connection with `ConnectionModel.disconnect()`. The

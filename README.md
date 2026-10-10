@@ -136,7 +136,9 @@ the app. It pairs an `InMemoryTransport`, serves the agent on one end with an
 `AgentSideConnection`, and connects a new `ConnectionModel` on the other end.
 The two sides speak the real ACP wire. The helper returns the connection
 model and keeps no state of its own. The kit does not import an agent: the
-app gives it, for example the `RoutedACPAgent` of FoundationModelsACPAgent.
+app gives it. With FoundationModelsACPAgent, the app composes the agent with
+the public `ComposedAgent`, binds it with `ComposedAgent.agent(boundTo:)`, and
+calls `ComposedAgent.waitForConnectionTeardown()` after the connection closes.
 To stop the agent, call `ConnectionModel.disconnect()`: the model stops the read
 of its end of the pair, the pair then ends the input of the agent side, and the
 agent stops. When the agent closes its connection first,
@@ -153,15 +155,24 @@ import FoundationModelsACPClient
 enum InProcessQuickStart {
   /// Starts the agent that `makeAgent` makes, and opens one session.
   ///
-  /// With FoundationModelsACPAgent, the closure binds a `RoutedACPAgent`:
+  /// With FoundationModelsACPAgent, its public `ComposedAgent` gives the
+  /// agent in three steps:
   ///
   /// ```swift
-  /// let agent = try await RoutedACPAgent(name: name, router: router)
-  /// let (connection, session) = try await InProcessQuickStart.start(cwd: cwd) { connection in
-  ///   agent.bind(connection: connection)
-  ///   return agent
+  /// // 1. Compose the agent one time, before the connection opens.
+  /// let composed = try await ComposedAgent.compose(
+  ///   name: try DotfolderName("my-host"), workingDirectory: projectDirectory)
+  /// // 2. Bind the agent to the agent side of the connection.
+  /// let (connection, session) = try await InProcessQuickStart.start(cwd: cwd) { agentConnection in
+  ///   composed.agent(boundTo: agentConnection)
   /// }
+  /// // 3. Close the connection. Then let the agent close its sessions.
+  /// await connection.disconnect()
+  /// await composed.waitForConnectionTeardown()
   /// ```
+  ///
+  /// The kit does not import FoundationModelsACPAgent, so this example is a
+  /// comment and the snippet build does not compile it.
   ///
   /// Show the session with `ACPThread(connection:session:)` of the quick
   /// start above.

@@ -8,15 +8,24 @@ import FoundationModelsACPClient
 enum InProcessQuickStart {
   /// Starts the agent that `makeAgent` makes, and opens one session.
   ///
-  /// With FoundationModelsACPAgent, the closure binds a `RoutedACPAgent`:
+  /// With FoundationModelsACPAgent, its public `ComposedAgent` gives the
+  /// agent in three steps:
   ///
   /// ```swift
-  /// let agent = try await RoutedACPAgent(name: name, router: router)
-  /// let (connection, session) = try await InProcessQuickStart.start(cwd: cwd) { connection in
-  ///   agent.bind(connection: connection)
-  ///   return agent
+  /// // 1. Compose the agent one time, before the connection opens.
+  /// let composed = try await ComposedAgent.compose(
+  ///   name: try DotfolderName("my-host"), workingDirectory: projectDirectory)
+  /// // 2. Bind the agent to the agent side of the connection.
+  /// let (connection, session) = try await InProcessQuickStart.start(cwd: cwd) { agentConnection in
+  ///   composed.agent(boundTo: agentConnection)
   /// }
+  /// // 3. Close the connection. Then let the agent close its sessions.
+  /// await connection.disconnect()
+  /// await composed.waitForConnectionTeardown()
   /// ```
+  ///
+  /// The kit does not import FoundationModelsACPAgent, so this example is a
+  /// comment and the snippet build does not compile it.
   ///
   /// Show the session with `ACPThread(connection:session:)` of the quick
   /// start above.

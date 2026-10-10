@@ -80,8 +80,24 @@ comments:
     - evidence: 1 file — Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift. `swift test --filter ScrollAnchorManagerTests`: 29 tests in 1 suite passed. Full `swift test` (load average 104): 93 tests in 11 suites passed, 1040 tests in 110 suites passed, 0 failures. Only the known mlx-swift build warning "missing creator for mutated node".
     - next: /review
   timestamp: 2026-10-10T00:38:28.122909+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4hn75wz9emd6eq7p3cqyv7b
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit afb9821). 0 findings, 0 confirmed, 0 refuted, 7 validators attempted, 0 failed. 1 file reviewed. The prior finding is checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-10T01:00:43.295698+00:00
+- actor: claude-code
+  id: 01m4hn7ds5m8m3kn3zrp2py6ew
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (ScrollAnchorManager.swift: acceptsReport(of:) is a pure predicate; noteVisible clears jumpItemID)
+    - test: green — swift test, 1040 tests in 110 suites passed (load average 77)
+    - commit: afb9821
+    - review: clean — 0 findings, prior finding checked
+  timestamp: 2026-10-10T01:00:51.365455+00:00
+position_column: done
+position_ordinal: ff9b80
 title: Decide if ScrollAnchorManager.visibleIDs must be correct after a long jump in ConversationView
 ---
 ## What
