@@ -47,6 +47,39 @@ comments:
     - evidence: 5 files — Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift, Tests/AgentViewKitTests/Infrastructure/ScrollAnchorManagerTests.swift (5 new tests, 3 RED then GREEN), Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift, Tests/AgentViewKitTests/Thread/ThreadMinimapViewHostedTests.swift, Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift. `swift test --filter ScrollAnchorManagerTests`: 29 of 29 passed. Full `swift test` (load average 29 to 80): 1 + 93 tests passed; AgentViewKitTests 1040 tests in 110 suites, with 18 and then 33 issues, all in the demo agent suites at the 5 s bound at the start of the run (new card ^kmkd5rx); each changed test passed (ScrollAnchorManagerTests, AgentCommandsTests, ConversationViewHostedTests, ThreadMinimapViewHostedTests, AgentCommandScopeHostedTests). The failed suites alone: 34 tests in 5 suites passed. `swift build --package-path Benchmarks`: build complete (only the known mlx-swift warning "missing creator for mutated node"). `Scripts/check-benchmarks.sh` under load 29 to 48: instruction gate passed; wall clock p90 of "Transcript stream, default cadence" 573 ms vs 209 ms (load). Single run of that scenario under load 40: instructions p90 2802 M vs baseline 2728 M (+2.7 %, gate 25 %), wall clock p90 288 ms vs 209 ms (+38 %, gate 75 %), so it passes.
     - next: /review
   timestamp: 2026-10-09T22:37:56.164353+00:00
+- actor: claude-code
+  id: 01m4hhnjhx856wmahk0v1m8h9p
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (480b95e): 1 finding (1 confirmed, 0 refuted) — Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift:256 swift/fluent-usage
+    - next: Rename acceptsReport(of:) to an imperative verb phrase, or move the clear of jumpItemID into noteVisible(ids:distanceFromBottom:). Then run the review again.
+  timestamp: 2026-10-09T23:58:40.701534+00:00
+- actor: claude-code
+  id: 01m4hhnyxcv6wddwxwgxmmvqnk
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files (ScrollAnchorManager.swift and 4 test files)
+    - test: green — swift test, 1040 tests in 110 suites passed (load average 38-53); Benchmarks build complete
+    - commit: 480b95e
+    - review: findings — Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift:256 (swift/fluent-usage)
+  timestamp: 2026-10-09T23:58:53.356984+00:00
+- actor: claude-code
+  id: 01m4hkybt6wkpcew6zf5zs1928
+  text: |-
+    Fix for the finding `swift/fluent-usage` on `acceptsReport(of:)` (the second form, as the request prefers):
+    - `acceptsReport(of:)` is now a pure predicate. It only returns a Bool. Its doc comment tells that it does not change state.
+    - `noteVisible(ids:distanceFromBottom:)` computes `isNewReport` (`ids != visibleIDs`) before it can replace `visibleIDs`, and then sets `jumpItemID = nil` when `isNewReport` is true. This is the same condition as before (the old guard cleared `jumpItemID` only for a new report). A clear when `jumpItemID` is already `nil` changes nothing. Thus the behavior is the same.
+    - Check of the other functions that 480b95e added or changed in ScrollAnchorManager.swift: `noteVisible(ids:distanceFromBottom:)` and `noteJump(to:)` are imperative verb phrases with side effects, which is correct. `isAtBottom(visibleIDs:distanceFromBottom:)` is a pure query (480b95e did not change it). No other function has a query name with a side effect.
+    - No new test: the change is a refactor with the same behavior. The existing tests `theReportAfterAReportWithoutTheItemReplacesTheVisibleIds` and `aReportEqualToTheVisibleIdsDoesNotEndTheWaitForTheJumpReport` cover the clear of `jumpItemID`.
+    - Load: the load average stayed at 44 to 104 for the full 30 minute wait. The full run started at load 104.53 and passed.
+  timestamp: 2026-10-10T00:38:25.862749+00:00
+- actor: claude-code
+  id: 01m4hkye0t5gjh5wdgasqr42hk
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift. `swift test --filter ScrollAnchorManagerTests`: 29 tests in 1 suite passed. Full `swift test` (load average 104): 93 tests in 11 suites passed, 1040 tests in 110 suites passed, 0 failures. Only the known mlx-swift build warning "missing creator for mutated node".
+    - next: /review
+  timestamp: 2026-10-10T00:38:28.122909+00:00
 position_column: doing
 position_ordinal: '80'
 title: Decide if ScrollAnchorManager.visibleIDs must be correct after a long jump in ConversationView
@@ -63,3 +96,12 @@ Effects: `saveAnchor()` uses `visibleIDs.first`, so a Load Earlier press after s
 
 ## How to reproduce
 Run 6 test-bundle processes at the same time with `swiftpm-testing-helper`, `--filter theShowErrorButtonMovesToTheErrorEntry --repetitions 30 --repeat-until fail`, and an assertion on `anchors.visibleIDs.contains(errorKey)` after the press. See the comments on ^vyqyvwv.
+
+## Review Findings (2026-10-09 18:44)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift:256` `swift/fluent-usage` — The predicate acceptsReport(of:) reads as a side-effect-free query, but it clears jumpItemID on the first new report. A caller that reads the name cannot know that the call changes state. The rule says operations with side effects are imperative verb phrases, so the name hides the effect. Rename the function to an imperative verb phrase that states the effect, such as takeReportIfAccepted(of:) or endJumpWait(for:), so the name says the call clears the jump wait. Or move the clear of jumpItemID out of the predicate into noteVisible(ids:distanceFromBottom:), so the function only returns a Bool.

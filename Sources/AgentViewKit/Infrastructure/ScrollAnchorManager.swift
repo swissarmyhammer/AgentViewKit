@@ -120,8 +120,12 @@ public final class ScrollAnchorManager {
   ///     the last visible item to the bottom edge of the viewport.
   public func noteVisible(ids: [String], distanceFromBottom: CGFloat = 0) {
     let isAtBottom = isAtBottom(visibleIDs: ids, distanceFromBottom: distanceFromBottom)
+    let isNewReport = ids != visibleIDs
     if acceptsReport(of: ids) || isAtBottom {
       visibleIDs = ids
+    }
+    if isNewReport {
+      jumpItemID = nil
     }
     setPinned(isAtBottom)
   }
@@ -247,15 +251,17 @@ public final class ScrollAnchorManager {
     return visibleIDs.last == lastItemID && distanceFromBottom <= tolerance
   }
 
-  /// Tells if a report of the rows in view replaces ``visibleIDs``, and ends
-  /// the wait for the rows of a jump at the first new report.
+  /// Tells if a report of the rows in view replaces ``visibleIDs``.
+  ///
+  /// The function does not change state.
+  /// ``noteVisible(ids:distanceFromBottom:)`` ends the wait for the rows of a
+  /// jump at the first new report.
   ///
   /// - Parameter ids: The identifiers of the items in view.
   /// - Returns: `false` when `ids` is the first new report after a jump and
   ///   does not include the item of the jump, else `true`.
   private func acceptsReport(of ids: [String]) -> Bool {
     guard ids != visibleIDs, let jumpItemID else { return true }
-    self.jumpItemID = nil
     return ids.contains(jumpItemID)
   }
 
