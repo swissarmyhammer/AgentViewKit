@@ -3,5 +3,9 @@
 .swiftpm/
 *.xcodeproj
 DerivedData/
+# Dependency pins are not committed.
+Package.resolved
 # The per-session state of the ralph Stop hook.
 .ralph/
+# Logs of local tools.
+*.log
