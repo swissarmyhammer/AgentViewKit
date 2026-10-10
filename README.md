@@ -376,7 +376,6 @@ and gives no output.
 ```bash
 swift test                  # the unit tests, the hosted view tests, and the README snippets
 Scripts/check-readme.sh     # the README gate
-Scripts/check-benchmarks.sh # the benchmark gate
 Scripts/test-examples.sh    # the demo UI tests
 ```
 
@@ -388,14 +387,6 @@ this file to `Examples/ReadmeSnippets/Snippets/<Name>.swift`. The
 `Scripts/check-readme.sh` extracts the blocks again, fails when the result
 differs from the committed files, and builds the target. When you change a
 block, run the extraction script and commit the result.
-
-### The benchmark gate
-
-The benchmarks are a separate package in [`Benchmarks/`](Benchmarks). They
-measure the streaming paths and compare each run with the committed baseline.
-`Scripts/check-benchmarks.sh` fails when a change makes a path slower than
-the baseline permits. [`Benchmarks/README.md`](Benchmarks/README.md) names
-the scenarios and the commands.
 
 ## Design documents
 

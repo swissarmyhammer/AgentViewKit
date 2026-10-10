@@ -305,7 +305,6 @@ The thread is a long, append-heavy list in `ScrollView { LazyVStack { ForEach �
 - **Windowing.** `LazyVStack` cells persist, so a long thread grows memory. Window older entries behind a "load earlier" row. `List` stays a documented escape hatch behind a flag.
 - **Scroll anchoring.** `ScrollAnchorManager` tracks pinned-to-bottom with a tolerance, restores an item anchor across updates, drives the scroll-to-bottom pill with a new-message count, and coalesces auto-scrolls during streaming. Use `onScrollTargetVisibilityChange`, not absolute offsets.
 - **Heavy text out of the cells.** Code, diffs, and terminals render inside EditorKit. Prose is cached. Cells stay thin.
-- **The benchmark gate.** `Benchmarks/` measures the Textual streaming paths and the observation of a `SessionModel` transcript, with committed baselines (`Benchmarks/README.md`, `Scripts/check-benchmarks.sh`).
 
 ## 9. Component inventory
 
@@ -488,10 +487,10 @@ Free text defaults to EditorKit. This is the opposite default from `PromptInputV
 
 Ordered by design impact. Each item names the question and the method. Each item is done. The result is in the named record or section.
 
-- **R1. Textual streaming cost.** Bench at 50 tokens per second on a 2,000-line message with the paragraph split and the balancer. Decide if the tail needs a lighter renderer. Result: no lighter renderer (`Benchmarks/README.md`).
+- **R1. Textual streaming cost.** Measure the cost at 50 tokens per second on a 2,000-line message with the paragraph split and the balancer. Decide if the tail needs a lighter renderer. Result: no lighter renderer. With the paragraph split, the p90 cost of one chunk was 3.3 ms at each point of the message. With no split, it was 86 ms, and it grew with the message. A temporary benchmark package measured these numbers. That package is removed. `ParagraphReuseTests` keeps the guarantee: a settled paragraph does not evaluate again when the text grows.
 - **R2. Grammar bundle.** List the languages agents emit most. Find MIT TextMate or tree-sitter grammars. Measure size. Decide kit bundle or EditorKit link. Result: `GrammarBundle`.
 - **R3. EditorKit unified-diff feature.** Write the feature spec for EditorKit: input is unified diff text; output is inline and side-by-side, with gutter marks, line colors, and hunk folding. Result: the `EditorDiff` product of EditorKit (`Docs/decisions/diff-renderer.md`).
-- **R4. Observation granularity.** Measure the redraws of the transcript view while chunks stream into one agent message of a `SessionModel`. Result: the `SessionModel` observation benchmark (`Benchmarks/README.md`).
+- **R4. Observation granularity.** Measure the redraws of the transcript view while chunks stream into one agent message of a `SessionModel`. Result: each row binds directly to its `TranscriptEntry` object, so a chunk draws again only the row of its entry (§8). For 1,000 chunks into one message, the p90 wall clock was 209 ms with the default cadence of 33 ms, and 10.9 s with the cadence zero. A temporary benchmark package measured these numbers. That package is removed. `SessionModelRedrawScopeTests` keeps the guarantee: 100 chunks into one agent message of a transcript of 10 rows evaluate the row of that message only.
 - **R5. Runtime contract.** Decided: the contract is ACP. The client models of FoundationModelsACPClient are the runtime surface (§3, `Docs/decisions/acp-client-kit.md`). There is no `schemaName` catalog to agree with a runtime.
 - **R6. ACP version.** List which agents speak v1 and which speak v2 today. Decide on a v1 adapter. Decided: v2 only (`Docs/decisions/acp-version.md`).
 - **R7. Terminal output.** Pick an ANSI and VT parser, or strip escapes. Check licenses. Result: `ANSIText`.

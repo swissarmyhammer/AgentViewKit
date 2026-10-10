@@ -36,8 +36,24 @@ comments:
     - evidence: 5 files — README.md, Examples/ReadmeSnippets/Snippets/InProcessQuickStart.swift, Sources/AgentViewKit/ACP/InProcessAgent.swift, Tests/PackageStructureTests/ReadmeCoverageTests.swift, and this card. `Scripts/extract-readme-snippets.sh`: wrote 3 snippets. `Scripts/check-readme.sh`: passed. `swift test --filter ReadmeCoverageTests`: RED 2 of 12 failed, then GREEN 12 of 12 passed. `swift test`: 1040 tests in 110 suites passed, 0 failures (load average 33.08 at start, 28.77 at end). The build prints one SwiftPM build-graph warning, "missing creator for mutated node" for the mlx-swift_Cmlx.bundle of a dependency. It is not from the source of the kit, and it was also in the build before this change.
     - next: /review.
   timestamp: 2026-10-10T07:33:09.668595+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4jce5zc993ab34hs43yj1my
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 9e035f9). Counts: 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed. 3 files reviewed. Not reviewed: 4 .kanban files (ignore rule) and README.md (no validator matches this file).
+    - next: none. The task is in done.
+  timestamp: 2026-10-10T07:46:29.996660+00:00
+- actor: claude-code
+  id: 01m4jcefqwrk1weadgpsgj0mxx
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — README.md, InProcessQuickStart.swift snippet, InProcessAgent.swift doc comment, ReadmeCoverageTests.swift (2 new tests, RED then GREEN)
+    - test: green — swift test, 1040 tests in 110 suites passed; Scripts/check-readme.sh passed
+    - commit: 9e035f9
+    - review: clean — 0 findings (no validator matches README.md)
+  timestamp: 2026-10-10T07:46:39.996712+00:00
+position_column: done
+position_ordinal: ff9c80
 title: Ask FoundationModelsACPAgent to make its serve and compose helper public
 ---
 ## What

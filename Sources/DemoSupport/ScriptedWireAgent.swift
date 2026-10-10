@@ -36,9 +36,8 @@ private let jsonRPCVersion = "2.0"
 /// the `--in-memory-agent` launch argument (``InMemoryDemoAgent``), so that
 /// its end-to-end test needs no agent binary.
 ///
-/// The class states `@MainActor`, because the benchmark target of
-/// `Benchmarks/` compiles this file through a link with no default
-/// isolation.
+/// The class states `@MainActor`. The default isolation of the target gives
+/// the same isolation.
 @MainActor
 public final class ScriptedWireAgent {
   /// Gives the frames that the agent sends before or after it answers one

@@ -5,11 +5,10 @@ import Observation
 import SwiftUI
 import Testing
 
-/// The fast unit form of the benchmark gate "settled paragraphs are not
-/// evaluated again" (plan.md §8, research R1, `Benchmarks/README.md`).
+/// The guarantee "settled paragraphs are not evaluated again" (plan.md §8,
+/// research R1).
 ///
-/// The benchmark package builds in release mode, and
-/// ``BodyEvaluationCounter`` exists only in debug builds. Thus these tests
+/// ``BodyEvaluationCounter`` exists only in debug builds. These tests
 /// count the body evaluations of each ``ParagraphView`` in a hosted
 /// ``ResponseView`` while its Markdown text grows one chunk after the other,
 /// as the text of a transcript entry grows.

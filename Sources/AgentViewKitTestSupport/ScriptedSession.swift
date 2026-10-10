@@ -1,11 +1,5 @@
 import AgentViewKit
-// The benchmark target of `Benchmarks/` compiles this file,
-// `BackgroundRunScript.swift` and `ScriptedWireAgent.swift` through links, in
-// one module with no `DemoSupport` module (`Benchmarks/README.md`, "The
-// boundary").
-#if canImport(DemoSupport)
-  import DemoSupport
-#endif
+import DemoSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -20,9 +14,8 @@ import FoundationModelsACPClient
 /// chunk changes its entry at once. A test sends `session/update` frames with
 /// ``sendUpdate(_:)`` and reads the transcript of ``model``.
 ///
-/// The class states `@MainActor`, because the benchmark target of
-/// `Benchmarks/` compiles this file through a link with no default
-/// isolation.
+/// The class states `@MainActor`. The default isolation of the target gives
+/// the same isolation.
 @MainActor
 public final class ScriptedSession {
   /// The id of the session that the agent opens.
@@ -148,8 +141,8 @@ public final class ScriptedSession {
   ///     that the model can run a `terminal` method of the agent.
   ///   - coalescingCadence: The cadence between the coalesced flushes of the
   ///     chunks of the session model. The default is zero, so each chunk
-  ///     changes its entry at once. A test or a benchmark of the coalescing
-  ///     gives `SessionModel.defaultCoalescingCadence`.
+  ///     changes its entry at once. A test of the coalescing gives
+  ///     `SessionModel.defaultCoalescingCadence`.
   ///   - configure: Changes the agent before it starts, for example its
   ///     results or its prompt echo order.
   /// - Returns: The helper with the open session.

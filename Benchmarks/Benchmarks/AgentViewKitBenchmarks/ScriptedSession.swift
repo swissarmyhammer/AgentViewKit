@@ -1,1 +1,0 @@
-../../../Sources/AgentViewKitTestSupport/ScriptedSession.swift

@@ -8,10 +8,6 @@
 # Jobs:
 #   - ci: the shared build and test job. It runs `swift build --build-tests`
 #     and `swift test` with the Xcode and Swift toolchain of the runner.
-#   - benchmarks: the performance gate. `Scripts/check-benchmarks.sh` runs the
-#     `Benchmarks/` package against its committed baseline and fails on a
-#     regression past the threshold. The script is the whole gate, so a
-#     developer runs the identical check locally.
 #   - readme: the README gate. `Scripts/check-readme.sh` writes the snippets of
 #     README.md again, compares them with the committed files, and builds the
 #     `ReadmeSnippetsTests` target.
@@ -32,24 +28,6 @@ concurrency:
 jobs:
   ci:
     uses: swissarmyhammer/workflows/.github/workflows/swift-ci.yaml@main
-
-  # The performance gate. `Scripts/check-benchmarks.sh` holds the whole gate:
-  # the run with `--disable-sandbox`, the comparison with the committed
-  # baseline in `Benchmarks/`, and the threshold policy. `needs: ci` makes the
-  # gate run only after the build and the tests are green.
-  #
-  # The benchmarks host SwiftUI views, so the runner needs a window server: the
-  # service user of the runner must have a logged-in session.
-  benchmarks:
-    name: Benchmarks (regression gate)
-    needs: ci
-    runs-on: [self-hosted, macOS]
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Run every benchmark and fail on a regression past threshold
-        run: ./Scripts/check-benchmarks.sh
 
   # The README gate (plan.md §1). `Scripts/check-readme.sh` holds the whole
   # gate. A README snippet that is not in `Examples/ReadmeSnippets/Snippets`,

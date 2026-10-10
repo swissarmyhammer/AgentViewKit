@@ -11,7 +11,7 @@
   /// The session model coalesces the chunks at
   /// `SessionModel.defaultCoalescingCadence`. Each row binds directly to its
   /// `TranscriptEntry` object, so a flush evaluates the row of the streamed
-  /// entry only. `Benchmarks/` measures the time of the same path.
+  /// entry only.
   @Suite(.serialized, .hostedSerially) @MainActor struct SessionModelRedrawScopeTests {
     /// The longest time that the test waits for a change, in seconds.
     static let waitTimeout: TimeInterval = 5

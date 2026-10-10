@@ -92,14 +92,12 @@ import Testing
   ///
   /// `Tests/PackageStructureTests` is not in the list, because this suite
   /// names the file in ``updatePlanPath``.
-  static let updatePlanScanDirectories = RemovedVocabularyTests.swiftPaths + ["Benchmarks/Benchmarks"]
+  static let updatePlanScanDirectories = RemovedVocabularyTests.swiftPaths
 
   /// The text files other than the documents and the records that cite no
-  /// deleted update plan: the manifests, the scripts and the benchmark
-  /// README.
+  /// deleted update plan: the manifest and the scripts.
   static let updatePlanScanFiles = [
-    "Package.swift", "Benchmarks/Package.swift", "Benchmarks/README.md", "Scripts/check-benchmarks.sh",
-    "Scripts/check-readme.sh", "Scripts/extract-readme-snippets.sh", "Scripts/test-examples.sh",
+    "Package.swift", "Scripts/check-readme.sh", "Scripts/extract-readme-snippets.sh", "Scripts/test-examples.sh",
   ]
 
   /// The path of each decision record, relative to the package root, in name
