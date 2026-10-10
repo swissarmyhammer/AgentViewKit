@@ -1,8 +1,63 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: bc80
+comments:
+- actor: claude-code
+  id: 01m4k6tzkjyw4m9ckj2trap21n
+  text: 'New fact from the owner (2026-10-10): a large part of the machine load was `sourcekit-lsp` background indexing. The `sah` sourcekit-lsp of this repository wrote `Benchmarks/.build/index-build`. It recursed into the dependency checkouts and their `Examples` packages (for example `checkouts/swift-otel/Examples/.../.build/index-build/checkouts/grpc-swift-2/Examples/echo/.build/index-build/...`). That directory reached 853 GB to 1.3 TB. The owner stopped that process. A separate `rm -rf Benchmarks` runs now. Do not touch `Benchmarks/`. Other repositories have their own sourcekit-lsp processes. Do not stop them.'
+  timestamp: 2026-10-10T15:27:52.434852+00:00
+- actor: claude-code
+  id: 01m4kfv8d2rrcmycfgp3b38vam
+  text: |-
+    Research and reproduction (2026-10-10). Scripts and logs are in the session scratchpad. No source file is changed.
+
+    What reproduces the failure:
+    - Real path: `swift test --skip-build` while 64 CPU busy loops and 24 `dd` loops (each writes and deletes a 4 GB file) run. Load average 71 to 85. Result: 1040 tests, 45 issues, 20 "did not end in time". The failed suites are the same as on the card: DemoAgentMessageIdTests, DemoAgentTerminalSignInTests, TerminalAppAuthRunnerTests. Each failed test ended after 28.5 s.
+    - Same bundle with `swiftpm-testing-helper`, output through a pipe, event stream on a RAM disk (so that the trace adds no disk wait): the first run failed (9 timeouts, 22 issues). The event stream shows NO test end from 1.1 s to 11.7 s. Then all bounded tests of the demo suites record the timeout at 12.6 s, at the same time.
+
+    What does NOT reproduce it:
+    - CPU load only: `swift test` with 96 busy loops, load average 107: pass, 0 timeouts. Also 3 parallel bundles with 64 busy loops (load 85): 0 timeouts.
+    - Disk load only: 10 runs (6 + 4 parallel bundles) with 16 or 32 `dd` loops, output to a file: all pass.
+    - The demo suites alone under CPU and disk load: pass in 1.3 s (3 of 3), and 0.95 s on the RAM-disk trace.
+    - No load: `swift test` passes (1 + 90 + 1040 tests).
+
+    Why the bound fails:
+    - The test target has `.defaultIsolation(MainActor.self)`, so almost each test, the watchdog task of `ACPTestTimeLimit.run` and each step of the ACP operation run on the one main thread.
+    - Under the combined load, the main thread of the test process does no work for 2 to 10 s (no test of any suite ends in that time). The watchdog compares wall time. When the main thread comes back, the watchdog job is already due, and it runs before the next step of the operation. Thus each bounded test fails at the same instant.
+    - The stall also occurs with no hosted test in the run (`--skip Hosted...`): gaps of 1.5 to 4.4 s, and 1 of 3 runs failed. It occurs in each subset that I tried (the file-writing suites, the other suites). The gap gets larger with more tests and more external load. Thus I found no one test or helper of this package that makes the stall.
+
+    What did not work, and measurement artifacts:
+    - An event stream file on the loaded disk makes failures by itself: with the event stream on the loaded disk, disk load only failed 1 of 3 and 2 of 3. Without it, 10 of 10 passed. Use a RAM disk (`hdiutil attach -nomount ram://4194304`, `diskutil erasevolume APFS AVKRam`) for traces under load.
+    - `sample` on the test process changes the result: 3 sampled runs under the same load passed. Under disk load, `sample` got only 12 samples in 10 s and 2 of 3 sampled processes stopped. So I could not get the stack of the main thread in a failed run.
+    - A slow reader on the output pipe of the bundle (4 KB each 0.5 s) also makes the bound fail: the threads of the cooperative pool wait in `flockfile` in `Event.ConsoleOutputRecorder` of swift-testing. But `swift test` reads the pipe of the test process itself (lsof: fd 1 and 2 of `swiftpm-testing-helper` are pipes to `swift-package`), and `swift test` with the same slow reader passed. Thus this is not the path of the real failure.
+    - Logs of the ACP client: each request writes one `info` "enter" record to stderr with the default swift-log handler (1055 lines of 3835 in a full run), on the main actor. A no-op `LoggingSystem.bootstrap` (temporary, removed) made the slow-reader failure smaller (22/27 to 11/2 timeouts), not zero.
+    - Small `fsync` writes in the temporary directory under 24 `dd` loops took at most 0.13 s. Thus the `fsync` of `Data.write(to:)` in test helpers is not a 10-s stall by itself.
+
+    Discovery: a deadlock in FoundationModelsACPClient. One run (slow-reader experiment) stopped for 30 minutes. The main thread was in `SessionModel.deinit` -> task cancel (holds the task status lock) -> AsyncStream `onTermination` -> `EventBroadcaster.detach` (waits for the broadcaster lock). A cooperative thread was in `EventBroadcaster.withState` (holds the broadcaster lock) -> `AsyncStream.Continuation.yield` -> continuation resume (waits for the task status lock). Test: ThreadExporterTests.theExportOfATranscriptHasOnlyTheMessageEntriesInTranscriptOrder. I added a separate card for it.
+  timestamp: 2026-10-10T18:05:18.626394+00:00
+- actor: claude-code
+  id: 01m4kfvzganqxc544h0av0hhxx
+  text: |-
+    ### implement — stuck
+    - evidence: The failure reproduces only with external CPU AND disk load (`swift test --skip-build`, 64 busy loops + 24 dd loops, load average 71 to 85: 45 issues, 20 timeouts, the card's suites). CPU load only (load 107) and disk load only (10 runs) pass. The demo suites alone pass under the same load (1.3 s). Under the load, the main thread of the test process does no work for 2 to 10 s (no test end in that time, also with no hosted test). Each test runs on the main actor (`.defaultIsolation(MainActor.self)`), and the wall-clock watchdog of `ACPTestTimeLimit.run` counts that time. I found no one test or helper of this package that makes the stall, and `sample` makes the failure go away, so I could not get the blocked stack. Thus the cause is load from other processes that the package cannot control. No source file is changed. `swift test` (no load, load average 8.33 to 4.75): exit 0, 1 + 90 + 1040 tests passed, only the known mlx-swift "missing creator for mutated node" warning.
+    - blocker: A person must decide one of these:
+      1. Change the watchdog to count only time when the main actor runs (for example 50 ticks of 100 ms on the main actor in place of one 5-s sleep). The limit stays 5, so `ScriptedWireAgentBoundedTests` passes. But this does not see a main-actor stall, and the doc comment of `operationLimitSeconds` (from ^pbgn012) says that the bound must not hide a main-actor stall.
+      2. Keep the bound. Run the full `swift test` only when the machine has no heavy CPU and disk load from other work.
+    - new card: ^06hz99g (EventBroadcaster lock-order deadlock in FoundationModelsACPClient).
+    - next: a person decides 1 or 2. The task stays in doing.
+  timestamp: 2026-10-10T18:05:42.282128+00:00
+- actor: claude-code
+  id: 01m4kfws0jh1075rmn6db4w6d1
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — the failure occurs only with external CPU and disk load at the same time (load average 71 to 85). The main thread stops for 2 to 10 s, and the wall-clock watchdog counts that time. No cause in package code found. No files changed.
+    - test: not run
+    - commit: not run
+    - review: not run
+    - next: a person decides: (1) a watchdog that counts only main-actor time, or (2) keep the bound and run the full suite only at low load.
+  timestamp: 2026-10-10T18:06:08.402304+00:00
+position_column: doing
+position_ordinal: '80'
 title: Make the demo agent suites pass in the full swift test run under high machine load
 ---
 ## What

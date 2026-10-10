@@ -20,8 +20,24 @@ comments:
     - evidence: removed 16 tracked files (13 in `Benchmarks/`, `Scripts/check-benchmarks.sh`, `BenchmarkSymlinkTests.swift`, `BenchmarkBoundaryTests.swift`); changed 9 files (`.github/workflows/ci.yml`, `README.md`, `plan.md`, `Sources/AgentViewKitTestSupport/ScriptedSession.swift`, `Sources/DemoSupport/ScriptedWireAgent.swift`, `Tests/AgentViewKitTests/Streaming/ParagraphReuseTests.swift`, `Tests/AgentViewKitTests/Thread/SessionModelRedrawScopeTests.swift`, `Tests/PackageStructureTests/ResolvedPinsTests.swift`, `Tests/PackageStructureTests/DecisionRecordTests.swift`). `Scripts/check-readme.sh` passed. `swift test`: 1040 tests in 110 suites passed, 0 failures, load average about 36 to 51. The build printed one warning that this change did not cause: "missing creator for mutated node" for the `mlx-swift_Cmlx.bundle` dependency bundle.
     - next: /review. The task stays in `doing`. No commit.
   timestamp: 2026-10-10T14:29:56.353099+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4k42zhzmk0ms7j048edhk91
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 8723fde). Counts: 0 findings, 0 confirmed, 0 refuted, 8 attempted, 0 failed. The engine examined 18 files. It did not examine 11 files: 4 files in .kanban/ (ignore rule) and 7 files that no validator matches. The Swift validators did not examine the deleted Swift files, because those files do not exist after the commit.
+    - next: The task is in done. No work remains.
+  timestamp: 2026-10-10T14:39:48.799301+00:00
+- actor: claude-code
+  id: 01m4k43bt19c1yvfp7ptj806fr
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 16 files removed, 9 files changed
+    - test: green — swift test, 1040 tests in 110 suites passed; Scripts/check-readme.sh passed
+    - commit: 8723fde
+    - review: clean — 0 findings (no validator matches README.md or plan.md)
+  timestamp: 2026-10-10T14:40:01.345648+00:00
+position_column: done
+position_ordinal: ff9d80
 title: Remove the Benchmarks package and the benchmark gate
 ---
 ## What
