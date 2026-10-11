@@ -492,7 +492,7 @@ private struct ToolCallBody: View {
     case .diff(let diff):
       DiffView(diff: diff)
     case .terminal(let terminalID):
-      Label(String(localized: "Terminal \(terminalID)"), systemImage: "apple.terminal")
+      Label(String(localized: "Terminal \(terminalID)"), systemImage: SharedSymbol.terminal)
         .foregroundStyle(.secondary)
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: partID)

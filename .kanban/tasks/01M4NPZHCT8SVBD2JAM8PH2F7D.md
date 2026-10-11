@@ -31,6 +31,41 @@ comments:
     - evidence: 17 files — Tests/PackageStructureTests/{SymbolNameTests,SymbolNameScanner,SystemSymbolData,SourceLineScanner}.swift; Sources/AgentViewKit/{Activity/ActivityTimeline,Attachments/ArtifactView,Code/CodeBlockView,Connections/AgentAuthView,Content/CommandOutputView,Elicitation/ElicitationFieldViews,HumanInTheLoop/PermissionView,Input/SpeechInputButton,Items/MessageActions,Items/ToolCallView,Items/ToolKindSymbol,Status/SessionStreamBanner,Terminal/TerminalView}.swift. swift test: 1147 tests pass (1 + 100 + 1046), 0 failures, 1 existing known issue. Load average 27.59 before, 23.16 after.
     - next: /review
   timestamp: 2026-10-11T16:15:04.322690+00:00
+- actor: claude-code
+  id: 01m4nwdcy1vmzg9z23f921teb1
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (fb26a6d). 7 findings (7 confirmed, 1 refuted). Content/CommandOutputView.swift:207, HumanInTheLoop/PermissionView.swift:75, Items/ToolCallView.swift:495, Items/ToolKindSymbol.swift:20, Terminal/TerminalView.swift:201, Tests/PackageStructureTests/SymbolNameScanner.swift:377, :381.
+    - next: Do the 7 items in the "Review Findings (2026-10-11 11:19)" section. The task stays in review.
+  timestamp: 2026-10-11T16:23:24.865975+00:00
+- actor: claude-code
+  id: 01m4nwdy06yqvnjypxwcceqx0g
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 11 old names replaced in 13 source files, person.badge.key replaced, SymbolNameTests added
+    - test: green — swift test, 1147 tests passed, 1 expected known issue, load average 17 to 23
+    - commit: fb26a6d
+    - review: findings — Sources/AgentViewKit/Content/CommandOutputView.swift:207, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift:75, Sources/AgentViewKit/Items/ToolCallView.swift:495, Sources/AgentViewKit/Items/ToolKindSymbol.swift:20, Sources/AgentViewKit/Terminal/TerminalView.swift:201, Tests/PackageStructureTests/SymbolNameScanner.swift:377, Tests/PackageStructureTests/SymbolNameScanner.swift:381
+  timestamp: 2026-10-11T16:23:42.342889+00:00
+- actor: claude-code
+  id: 01m4nww6f9kayf21f4y12chxmh
+  text: |-
+    Review findings fixed (implement step, pass 2).
+    - New file Sources/AgentViewKit/Items/SharedSymbol.swift: internal `nonisolated enum SharedSymbol` with `terminal = "apple.terminal"` and `copy = "document.on.document"`. The later symbol table card can add constants to it.
+    - Terminal symbol: ToolKindSymbol `.execute`, PermissionView.commandSymbol, ToolCallView terminal part, TerminalView header and the ActivityTimeline terminal row now read SharedSymbol.terminal. ActivityEntryRow.terminalSymbolName is removed.
+    - Copy symbol: MessageActions.Action.copy, CommandOutputView and CodeBlockView now read SharedSymbol.copy.
+    - A search of Sources and Examples finds each of the two literals only in SharedSymbol.swift.
+    - New test SymbolNameTests.eachSharedSymbolNameIsWrittenOnlyInTheSharedSymbolFile. RED 1: the file did not exist. RED 2: after the enum was added, the test found the repeated literals. GREEN after the call sites changed.
+    - SymbolNameScanner.swift: the `2` values were the lengths of `/*` and `*/`. New constants lineCommentOpener, blockCommentOpener, blockCommentCloser; commentEnd uses their `count`. The other numbers in the file are 0, 1, -1 (allowed by magic-numbers-swift) and the named multiLineQuoteCount.
+    - Full swift test: 1 + 101 + 1046 tests pass, 0 failures, the 1 known issue of HostedLayoutExpectationsTests. Only warning: the SwiftPM "missing creator for mutated node" line for the mlx-swift_Cmlx bundle in .build. Load average before 26.95 22.57 27.20, after 37.76 29.03 28.94. No UI tests were run.
+  timestamp: 2026-10-11T16:31:29.769455+00:00
+- actor: claude-code
+  id: 01m4nww9bngjq4ynwk9ksa885h
+  text: |-
+    ### implement — changed
+    - evidence: 11 files — Sources/AgentViewKit/Items/SharedSymbol.swift (new); Sources/AgentViewKit/{Activity/ActivityTimeline,Code/CodeBlockView,Content/CommandOutputView,HumanInTheLoop/PermissionView,Items/MessageActions,Items/ToolCallView,Items/ToolKindSymbol,Terminal/TerminalView}.swift; Tests/PackageStructureTests/{SymbolNameScanner,SymbolNameTests}.swift. swift test: 1148 tests pass (1 + 101 + 1046), 0 failures, 1 existing known issue. Load average 26.95 before, 37.76 after. 7 of 7 findings checked.
+    - next: /review
+  timestamp: 2026-10-11T16:31:32.725041+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'SF Symbols: replace the 11 old symbol names and the restricted passkey symbol'
@@ -58,3 +93,19 @@ A check against the system symbol data (`CoreGlyphs.bundle`: `name_aliases.strin
 - The passkey symbol changed to `person.badge.shield.checkmark`.
 - The test reads the old names and the restricted names from the system files at test time. It does not use a fixed list.
 - Open for the concept card: `ToolKindSymbol` `.switchMode` and the max-turn-requests banner (`Status/StateBanner.swift`) now use the same symbol `arrow.trianglehead.2.clockwise.rotate.90`. No test fails on this, so this card does not change it.
+- The terminal symbol and the copy symbol are now in one place: `Items/SharedSymbol.swift` (`SharedSymbol.terminal`, `SharedSymbol.copy`). The later symbol table card can add more constants to this enum. The test `SymbolNameTests.eachSharedSymbolNameIsWrittenOnlyInTheSharedSymbolFile` fails when a source file writes a name of `SharedSymbol` again.
+
+## Review Findings (2026-10-11 11:19)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 17 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Sources/AgentViewKit/Content/CommandOutputView.swift:207` `reuse/reuse` — The Copy output button repeats the literal "document.on.document", which is the same copy symbol that `MessageActions.Action.copy` already defines. Use one shared copy-symbol constant for both copy buttons.
+- [x] `Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift:75` `reuse/reuse` — `commandSymbol` re-declares the SF Symbol `apple.terminal`, which is already the value of `ActivityEntryRow.terminalSymbolName`. Two copies of one symbol name can drift apart when a future change edits one and not the other. Keep one shared symbol constant for the terminal symbol, next to `ToolKindSymbol`, and have `commandSymbol`, `terminalSymbolName`, and the other call sites read it. `ActivityEntryRow` is file-private, so the constant must move out of it to be shared.
+- [x] `Sources/AgentViewKit/Items/ToolCallView.swift:495` `reuse/reuse` — The terminal part row hard-codes "apple.terminal" again, although the same symbol is already defined in three places in the changed set (`ActivityEntryRow.terminalSymbolName` and `ToolKindSymbol.name(for: .execute)`). Read the shared terminal symbol constant (see the PermissionView finding) instead of the literal.
+- [x] `Sources/AgentViewKit/Items/ToolKindSymbol.swift:20` `reuse/reuse` — The `.execute` case repeats the literal "apple.terminal" that other changed files also declare, so the terminal symbol now lives in four places. Make the `.execute` case return the shared terminal symbol constant, so `ToolKindSymbol` is the one source for it.
+- [x] `Sources/AgentViewKit/Terminal/TerminalView.swift:201` `reuse/reuse` — The terminal header image hard-codes "apple.terminal" in a view that duplicates the symbol already used by the activity row and the permission card. Use the shared terminal symbol constant so all terminal surfaces change together.
+- [x] `Tests/PackageStructureTests/SymbolNameScanner.swift:377` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/PackageStructureTests/SymbolNameScanner.swift:381` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

@@ -17,7 +17,7 @@ public nonisolated enum ToolKindSymbol {
     case .delete: "trash"
     case .move: "arrow.left.arrow.right"
     case .search: "magnifyingglass"
-    case .execute: "apple.terminal"
+    case .execute: SharedSymbol.terminal
     case .think: "brain"
     case .fetch: "globe"
     case .switchMode: "arrow.trianglehead.2.clockwise.rotate.90"

@@ -175,9 +175,6 @@ private struct ActivityEntryRow: View {
   /// The SF Symbol name of a thought row.
   static let thoughtSymbolName = "brain"
 
-  /// The SF Symbol name of a terminal row.
-  static let terminalSymbolName = "apple.terminal"
-
   /// The entry to show.
   let entry: TimelineEntry
 
@@ -230,7 +227,7 @@ private struct ActivityEntryRow: View {
     case .terminal(let terminal):
       Appearance(
         title: terminal.command ?? String(localized: "Terminal"),
-        symbolName: Self.terminalSymbolName, tint: Color.secondary)
+        symbolName: SharedSymbol.terminal, tint: Color.secondary)
     case .error(let error):
       errorAppearance(ErrorView.content(code: error.code.wireValue, message: error.message))
     }

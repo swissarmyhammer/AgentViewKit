@@ -103,7 +103,7 @@ public struct CodeBlockView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      Button("Copy code", systemImage: "document.on.document") {
+      Button("Copy code", systemImage: SharedSymbol.copy) {
         pasteboard.copyText(code)
       }
       .labelStyle(.iconOnly)

@@ -155,4 +155,23 @@ import Testing
 
     #expect(found.isEmpty, "\(found)")
   }
+
+  // MARK: - The shared symbols
+
+  /// The file of the symbols that more than one view shows.
+  static let sharedSymbolFile = "Sources/AgentViewKit/Items/SharedSymbol.swift"
+
+  @Test func eachSharedSymbolNameIsWrittenOnlyInTheSharedSymbolFile() throws {
+    let sharedFile = try PackageFiles.file(Self.sharedSymbolFile)
+    let shared = SymbolNameScanner(source: try String(contentsOf: sharedFile, encoding: .utf8))
+      .names(file: Self.sharedSymbolFile)
+    let sharedNames = Set(shared.map(\.name))
+
+    let repeated = try Self.symbolNames().filter { use in
+      sharedNames.contains(use.name) && use.file != Self.sharedSymbolFile
+    }
+
+    #expect(!sharedNames.isEmpty)
+    #expect(repeated.isEmpty, "Use the SharedSymbol constant: \(repeated)")
+  }
 }

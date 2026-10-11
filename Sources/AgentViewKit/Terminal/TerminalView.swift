@@ -198,7 +198,7 @@ public struct TerminalView: View {
   /// The row with the command and the working directory.
   private var header: some View {
     HStack(spacing: theme.spacing.s) {
-      Image(systemName: "apple.terminal")
+      Image(systemName: SharedSymbol.terminal)
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal"))

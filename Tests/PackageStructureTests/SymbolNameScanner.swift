@@ -227,6 +227,12 @@ enum SwiftLiteralLexer {
   static let space = UInt8(ascii: " ")
   /// The number of quotes that open a multi-line literal.
   static let multiLineQuoteCount = 3
+  /// The bytes that open a line comment: `//`.
+  static let lineCommentOpener = [slash, slash]
+  /// The bytes that open a block comment: `/*`.
+  static let blockCommentOpener = [slash, star]
+  /// The bytes that close a block comment: `*/`.
+  static let blockCommentCloser = [star, slash]
 
   /// The bytes that open a bracket.
   static let openers: Set<UInt8> = [openParenthesis, UInt8(ascii: "["), openBrace]
@@ -370,14 +376,14 @@ enum SwiftLiteralLexer {
   ///   after the `*/` of a block comment, or `nil` when no comment starts at
   ///   `start`.
   private static func commentEnd(in bytes: [UInt8], at start: Int) -> Int? {
-    if has([slash, slash], in: bytes, at: start) {
+    if has(lineCommentOpener, in: bytes, at: start) {
       return bytes[start...].firstIndex(of: newline) ?? bytes.count
     }
-    guard has([slash, star], in: bytes, at: start) else { return nil }
-    var index = start + 2
-    while index < bytes.count, !has([star, slash], in: bytes, at: index) {
+    guard has(blockCommentOpener, in: bytes, at: start) else { return nil }
+    var index = start + blockCommentOpener.count
+    while index < bytes.count, !has(blockCommentCloser, in: bytes, at: index) {
       index += 1
     }
-    return min(index + 2, bytes.count)
+    return min(index + blockCommentCloser.count, bytes.count)
   }
 }
