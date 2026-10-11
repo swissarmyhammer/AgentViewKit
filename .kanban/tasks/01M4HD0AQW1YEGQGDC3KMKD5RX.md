@@ -79,8 +79,24 @@ comments:
     - evidence: 2 files removed (`Tests/AgentViewKitTests/ACP/ScriptedWireAgent+Bounded.swift`, `Tests/AgentViewKitTests/ACP/ScriptedWireAgentBoundedTests.swift`); 6 files changed (`AgentProcessLauncherTests.swift`, `DemoAgentTests.swift`, `DemoAgentMessageIdTests.swift`, `InProcessAgentTests.swift`, `ProtocolVersionTests.swift`, `TerminalAppAuthRunnerTests.swift`). `swift build --build-tests`: complete, only the known mlx-swift "missing creator for mutated node" warning. Full `swift test`: exit 0, 89 tests in 9 suites passed and 1041 tests in 109 suites passed, 0 failures. Load average before 37.76 29.27 26.62, after 48.49 38.77 31.04.
     - next: /review. The task stays in doing.
   timestamp: 2026-10-11T12:32:25.290722+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4nfhmry51cgvjgfq6fwk6fz
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 0576833). Counts: 0 findings, 0 confirmed, 0 refuted. 8 files reviewed. 4 `.kanban/` files are excluded by `.reviewignore`. The declined items are only for the two deleted files (`ScriptedWireAgent+Bounded.swift`, `ScriptedWireAgentBoundedTests.swift`). No finding asks to add a time limit back. Thus there is no conflict with the decision of the owner.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-11T12:38:32.478743+00:00
+- actor: claude-code
+  id: 01m4nfhypctqbh2azy0sjhzfkj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — time limit removed by owner decision; 2 files deleted, 6 test files changed
+    - test: green — swift test, 1041 + 89 + 1 tests passed, load average 41 to 48; only the known mlx-swift dependency warning
+    - commit: 0576833
+    - review: clean — 0 findings (8 files); task in done
+  timestamp: 2026-10-11T12:38:42.636788+00:00
+position_column: done
+position_ordinal: ffa080
 title: Make the demo agent suites pass in the full swift test run under high machine load
 ---
 ## What
