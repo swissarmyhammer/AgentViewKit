@@ -73,7 +73,7 @@ struct EditorKitDiffRenderer: View {
         .diffLayout(layout.documentLayout)
     case .failure(let error):
       let text = String(localized: "Cannot read the patch at line \(Self.line(of: error))")
-      Label(text, systemImage: "exclamationmark.triangle")
+      Label(text, systemImage: SharedSymbol.error)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)

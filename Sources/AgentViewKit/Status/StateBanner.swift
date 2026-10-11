@@ -83,7 +83,7 @@ public struct StateBanner: View {
       Message(
         title: String(localized: "The agent reported an unknown state"),
         explanation: String(localized: "The agent sent the state \(wireValue)."),
-        symbolName: "questionmark.circle.fill",
+        symbolName: SharedSymbol.unknown,
         identifier: "state-banner-state-unknown")
     }
   }
@@ -161,35 +161,35 @@ extension StateBanner {
   private static let runningMessage = Message(
     title: String(localized: "The agent is working"),
     explanation: String(localized: "The agent runs the turn. Wait for the answer, or stop the turn."),
-    symbolName: "ellipsis.circle.fill",
+    symbolName: SharedSymbol.inProgress,
     identifier: "state-banner-running")
 
   /// The text for an idle agent that gave no stop reason.
   private static let readyMessage = Message(
     title: String(localized: "The agent is ready"),
     explanation: String(localized: "Send a message to start a turn."),
-    symbolName: "checkmark.circle",
+    symbolName: SharedSymbol.completed,
     identifier: "state-banner-ready")
 
   /// The text for a turn that ended with `end_turn`.
   private static let turnCompleteMessage = Message(
     title: String(localized: "The turn is complete"),
     explanation: String(localized: "The agent finished the turn. Send a message to continue."),
-    symbolName: "checkmark.circle.fill",
+    symbolName: SharedSymbol.completed,
     identifier: "state-banner-end-turn")
 
   /// The text for a turn that ended with `cancelled`.
   private static let cancelledMessage = Message(
     title: String(localized: "The turn was cancelled"),
     explanation: String(localized: "The agent stopped the turn because of the cancel request."),
-    symbolName: "stop.circle.fill",
+    symbolName: SharedSymbol.cancelled,
     identifier: "state-banner-cancelled")
 
   /// The text for an agent that waits for the user.
   private static let requiresActionMessage = Message(
     title: String(localized: "The agent needs your input"),
     explanation: String(localized: "Answer the request to let the agent continue."),
-    symbolName: "hand.raised.fill",
+    symbolName: SharedSymbol.userAction,
     identifier: "state-banner-requires-action")
 
   /// The text for a turn that ended with `max_tokens`.
@@ -197,7 +197,7 @@ extension StateBanner {
     title: String(localized: "The response is incomplete"),
     explanation: String(
       localized: "The model used its maximum number of output tokens. Ask it to continue."),
-    symbolName: "text.badge.xmark",
+    symbolName: SharedSymbol.maxTokens,
     identifier: "state-banner-max-tokens")
 
   /// The text for a turn that ended with `max_turn_requests`.
@@ -205,14 +205,14 @@ extension StateBanner {
     title: String(localized: "The turn stopped"),
     explanation: String(
       localized: "The turn used its maximum number of model requests. Send a message to continue."),
-    symbolName: "arrow.trianglehead.2.clockwise.rotate.90",
+    symbolName: SharedSymbol.maxTurnRequests,
     identifier: "state-banner-max-turn-requests")
 
   /// The text for a turn that ended with `refusal`.
   private static let refusalMessage = Message(
     title: String(localized: "The model refused to continue"),
     explanation: String(localized: "Change the request and send it again."),
-    symbolName: "exclamationmark.bubble.fill",
+    symbolName: SharedSymbol.refusal,
     identifier: "state-banner-refusal")
 
   /// The accessibility identifier of the text for a turn that ended with
@@ -230,7 +230,7 @@ extension StateBanner {
       title: String(localized: "The turn failed"),
       explanation: error.map { String(localized: "The agent reported this failure: \($0.message)") }
         ?? String(localized: "The turn stopped because of a failure in the agent. Send the request again."),
-      symbolName: "exclamationmark.triangle.fill",
+      symbolName: SharedSymbol.error,
       identifier: failedTurnIdentifier)
   }
 }

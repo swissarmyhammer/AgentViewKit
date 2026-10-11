@@ -37,7 +37,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   public static let errorIdentifier = "compaction-error"
 
   /// The SF Symbol name of the row.
-  private static let symbolName = "arrow.down.right.and.arrow.up.left"
+  private static let symbolName = SharedSymbol.compaction
 
   /// The text after the row key in the start of the id of each summary
   /// block view.

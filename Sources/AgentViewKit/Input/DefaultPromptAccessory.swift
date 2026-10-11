@@ -72,7 +72,7 @@ public struct DefaultPromptAccessory: View {
     Button {
       submit()
     } label: {
-      Label(String(localized: "Send"), systemImage: "arrow.up")
+      Label(String(localized: "Send"), systemImage: SharedSymbol.send)
         .labelStyle(.iconOnly)
         .fontWeight(theme.symbolWeight)
     }
@@ -88,7 +88,7 @@ public struct DefaultPromptAccessory: View {
     Button {
       session?.startCancel()
     } label: {
-      Label(String(localized: "Stop"), systemImage: "stop.fill")
+      Label(String(localized: "Stop"), systemImage: SharedSymbol.stop)
         .labelStyle(.iconOnly)
         .fontWeight(theme.symbolWeight)
     }

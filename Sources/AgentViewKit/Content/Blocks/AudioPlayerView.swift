@@ -58,7 +58,7 @@ public struct AudioPlayerView: View {
       MediaPlayerPreview(url: url, height: PreviewLayout.audioPlayerHeight)
         .accessibilityLabel("Audio")
     case .failed:
-      Label("The audio cannot play", systemImage: "speaker.slash")
+      Label("The audio cannot play", systemImage: SharedSymbol.audioFailure)
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(Self.failureIdentifier)
     }

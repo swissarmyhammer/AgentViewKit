@@ -152,7 +152,7 @@ public struct SessionListView: View {
         Button {
           Task { await refresh() }
         } label: {
-          Label("Refresh", systemImage: "arrow.clockwise")
+          Label("Refresh", systemImage: SharedSymbol.reload)
             .labelStyle(.iconOnly)
         }
         .help("Refresh")
@@ -160,7 +160,7 @@ public struct SessionListView: View {
       }
       if let onNewSession {
         Button(action: onNewSession) {
-          Label("New Session", systemImage: "square.and.pencil")
+          Label("New Session", systemImage: SharedSymbol.newSession)
             .labelStyle(.iconOnly)
         }
         .help("New Session")
@@ -176,7 +176,7 @@ public struct SessionListView: View {
     if !connection.canListSessions {
       ContentUnavailableView(
         "Session List Not Available",
-        systemImage: "list.bullet.rectangle",
+        systemImage: SharedSymbol.sessionList,
         description: Text("The agent does not list its sessions.")
       )
       .accessibilityElement(children: .combine)
@@ -184,7 +184,7 @@ public struct SessionListView: View {
     } else if connection.sessions.isEmpty {
       ContentUnavailableView(
         "No Sessions",
-        systemImage: "bubble.left.and.bubble.right",
+        systemImage: SharedSymbol.conversation,
         description: Text("The sessions of the agent show here.")
       )
       .accessibilityElement(children: .combine)
@@ -235,7 +235,7 @@ public struct SessionListView: View {
         Button(role: .destructive) {
           Task { await perform { try await connection.deleteSession(info.sessionId) } }
         } label: {
-          Label("Delete", systemImage: "trash")
+          Label("Delete", systemImage: SharedSymbol.delete)
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.borderless)

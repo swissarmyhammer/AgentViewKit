@@ -68,13 +68,13 @@ public struct PermissionView: View {
   public static let terminalLinkIdentifier = "permission-terminal-link"
 
   /// The symbol of the title.
-  static let symbol = "hand.raised"
+  static let symbol = SharedSymbol.userAction
   /// The symbol of a tool call subject.
-  static let toolCallSymbol = "wrench.and.screwdriver"
+  static let toolCallSymbol = SharedSymbol.tool
   /// The symbol of a command subject.
   static let commandSymbol = SharedSymbol.terminal
   /// The symbol of the working directory.
-  static let directorySymbol = "folder"
+  static let directorySymbol = SharedSymbol.folder
 
   /// The accessibility identifier of the button of an option.
   ///

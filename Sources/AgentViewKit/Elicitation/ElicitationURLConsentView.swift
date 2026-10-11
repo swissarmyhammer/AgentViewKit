@@ -72,7 +72,7 @@ public struct ElicitationURLConsentView: View {
   static let ephemeral = false
 
   /// The symbol of the warning.
-  static let warningSymbol = "exclamationmark.triangle.fill"
+  static let warningSymbol = SharedSymbol.warning
 
   /// The step of the consent.
   enum Phase: Equatable {

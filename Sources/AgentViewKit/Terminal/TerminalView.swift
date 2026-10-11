@@ -98,14 +98,11 @@ public struct TerminalView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .code: outcome?.symbolName ?? Self.unknownSymbolName
-      case .signal: "bolt.horizontal.circle.fill"
-      case .unknown: Self.unknownSymbolName
+      case .code: outcome?.symbolName ?? SharedSymbol.unknown
+      case .signal: SharedSymbol.signal
+      case .unknown: SharedSymbol.unknown
       }
     }
-
-    /// The SF Symbol name of an exit with no known outcome.
-    static let unknownSymbolName = "stop.circle"
   }
 
   /// The terminal entry to show.

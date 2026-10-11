@@ -72,10 +72,10 @@ public struct MessageActions: View {
     var systemImage: String {
       switch self {
       case .copy: SharedSymbol.copy
-      case .copyThread: "document.on.clipboard"
-      case .export: "square.and.arrow.up"
-      case .retry: "arrow.clockwise"
-      case .edit: "pencil"
+      case .copyThread: SharedSymbol.copyThread
+      case .export: SharedSymbol.share
+      case .retry: SharedSymbol.reload
+      case .edit: SharedSymbol.edit
       }
     }
   }

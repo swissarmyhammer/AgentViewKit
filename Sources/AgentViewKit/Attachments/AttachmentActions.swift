@@ -51,17 +51,17 @@ struct AttachmentActions: View {
 
   var body: some View {
     HStack {
-      Button("Open", systemImage: "arrow.up.forward.app", action: didTapOpen)
+      Button("Open", systemImage: SharedSymbol.open, action: didTapOpen)
         .accessibilityIdentifier(Action.open.identifier(prefix: identifierPrefix))
-      Button("Reveal in Finder", systemImage: "folder", action: didTapReveal)
+      Button("Reveal in Finder", systemImage: SharedSymbol.folder, action: didTapReveal)
         .accessibilityIdentifier(Action.reveal.identifier(prefix: identifierPrefix))
       ShareLink(item: attachment.url) {
-        Label("Share", systemImage: "square.and.arrow.up")
+        Label("Share", systemImage: SharedSymbol.share)
       }
       .accessibilityIdentifier(Action.share.identifier(prefix: identifierPrefix))
-      Button("Save", systemImage: "square.and.arrow.down") { isExporting = true }
+      Button("Save", systemImage: SharedSymbol.save) { isExporting = true }
         .accessibilityIdentifier(Action.save.identifier(prefix: identifierPrefix))
-      Button("Quick Look", systemImage: "eye") { quickLookURL = attachment.url }
+      Button("Quick Look", systemImage: SharedSymbol.quickLook) { quickLookURL = attachment.url }
         .accessibilityIdentifier(Action.quickLook.identifier(prefix: identifierPrefix))
     }
     .labelStyle(.iconOnly)

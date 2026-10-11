@@ -85,7 +85,7 @@ public struct AgentAuthView: View {
   public static let signOutIdentifier = "agent-auth-sign-out"
 
   /// The symbol of the title.
-  static let symbol = "person.badge.shield.checkmark"
+  static let symbol = SharedSymbol.signIn
 
   /// A call that the card runs, as the key of its progress.
   enum Operation: Hashable {

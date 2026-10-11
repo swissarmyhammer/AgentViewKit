@@ -12,17 +12,17 @@ public nonisolated enum ToolKindSymbol {
   /// - Returns: The SF Symbol name.
   public static func name(for kind: FoundationModelsACP.ToolKind) -> String {
     switch kind {
-    case .read: "text.document"
-    case .edit: "pencil"
-    case .delete: "trash"
-    case .move: "arrow.left.arrow.right"
-    case .search: "magnifyingglass"
+    case .read: SharedSymbol.read
+    case .edit: SharedSymbol.edit
+    case .delete: SharedSymbol.delete
+    case .move: SharedSymbol.move
+    case .search: SharedSymbol.search
     case .execute: SharedSymbol.terminal
-    case .think: "brain"
-    case .fetch: "globe"
-    case .switchMode: "arrow.trianglehead.2.clockwise.rotate.90"
-    case .other: "wrench.and.screwdriver"
-    case .unknown: "questionmark.square.dashed"
+    case .think: SharedSymbol.reasoning
+    case .fetch: SharedSymbol.web
+    case .switchMode: SharedSymbol.switchMode
+    case .other: SharedSymbol.tool
+    case .unknown: SharedSymbol.unknown
     }
   }
 }
@@ -46,13 +46,13 @@ public nonisolated enum ToolStatusSymbol {
   /// - Returns: The SF Symbol name.
   public static func name(for status: FoundationModelsACP.ToolCallStatus) -> String {
     switch status {
-    case .pending: "hourglass"
-    case .inProgress: "ellipsis.circle"
-    case .completed: "checkmark.circle.fill"
-    case .failed: "xmark.octagon.fill"
-    case .cancelled: "slash.circle"
-    case .unknown(Self.lostWireValue): "exclamationmark.triangle.fill"
-    case .unknown: "questionmark.circle"
+    case .pending: SharedSymbol.pending
+    case .inProgress: SharedSymbol.inProgress
+    case .completed: SharedSymbol.completed
+    case .failed: SharedSymbol.error
+    case .cancelled: SharedSymbol.cancelled
+    case .unknown(Self.lostWireValue): SharedSymbol.warning
+    case .unknown: SharedSymbol.unknown
     }
   }
 

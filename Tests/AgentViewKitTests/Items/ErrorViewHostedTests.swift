@@ -1,5 +1,6 @@
-import AgentViewKit
 import Testing
+
+@testable import AgentViewKit
 
 /// Tests of the card content of ``ErrorView``. The hosted tests of the error
 /// rows of a session are in `SessionEntryRowsHostedTests`.
@@ -12,7 +13,7 @@ import Testing
 
     #expect(content.title == "The agent sent an error")
     #expect(content.detail == "Error -32603: The disk is full.")
-    #expect(content.symbolName == "exclamationmark.triangle.fill")
+    #expect(content.symbolName == SharedSymbol.error)
   }
 
   @Test func differentCodesGiveDifferentDetails() {

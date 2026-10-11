@@ -56,7 +56,7 @@ public struct ImageView: View {
         .modifier(SelectOnTap { select(data: data) })
         .accessibilityIdentifier(Self.imageIdentifier)
     } else {
-      Label(name, systemImage: "photo.badge.exclamationmark")
+      Label(name, systemImage: SharedSymbol.imageFailure)
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(Self.placeholderIdentifier)
     }

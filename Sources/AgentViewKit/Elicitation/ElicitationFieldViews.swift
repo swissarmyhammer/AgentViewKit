@@ -485,7 +485,7 @@ public struct ElicitationDateField: View {
         )
         .labelsHidden()
         .accessibilityIdentifier(context.controlIdentifier)
-        Button("Remove Date", systemImage: "xmark.circle") {
+        Button("Remove Date", systemImage: SharedSymbol.remove) {
           value.wrappedValue = nil
         }
         .labelStyle(.iconOnly)
@@ -630,7 +630,7 @@ public struct ElicitationSingleChoiceField: View {
         } label: {
           Label(
             choice.title,
-            systemImage: isSelected ? "inset.filled.circle" : "circle"
+            systemImage: isSelected ? SharedSymbol.selected : SharedSymbol.notChosen
           )
         }
         .buttonStyle(.plain)

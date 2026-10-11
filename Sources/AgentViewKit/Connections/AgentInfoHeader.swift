@@ -29,7 +29,7 @@ public struct AgentInfoHeader: View {
   public static let versionIdentifier = "agent-info-version"
 
   /// The symbol of the header.
-  static let symbol = "cpu"
+  static let symbol = SharedSymbol.agent
 
   /// The connection model whose agent info the header shows.
   let connection: ConnectionModel

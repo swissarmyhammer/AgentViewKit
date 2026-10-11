@@ -60,7 +60,7 @@ public struct ToolToggles: View {
   public static let toggleIdentifierPrefix = "tool-toggle-"
 
   /// The SF Symbol of the menu button.
-  static let menuSymbolName = "wrench.and.screwdriver"
+  static let menuSymbolName = SharedSymbol.tool
 
   /// The host list, in the order to show.
   let tools: [ToolToggle]

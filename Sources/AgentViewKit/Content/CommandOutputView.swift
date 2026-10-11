@@ -69,8 +69,8 @@ public struct CommandOutputView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .success: "checkmark.circle.fill"
-      case .failure: "xmark.octagon.fill"
+      case .success: SharedSymbol.completed
+      case .failure: SharedSymbol.error
       }
     }
   }

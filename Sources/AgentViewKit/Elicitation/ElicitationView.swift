@@ -201,7 +201,7 @@ public struct ElicitationView: View {
 /// so the header names ``agentServer``.
 public struct ElicitationHeader: View {
   /// The symbol of the header.
-  static let symbol = "questionmark.bubble"
+  static let symbol = SharedSymbol.question
 
   /// The name of the server that each header shows. An elicitation over ACP
   /// comes from the agent.

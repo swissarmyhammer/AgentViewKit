@@ -62,7 +62,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   ///
   /// The label is one accessibility element. Its label is the title of the
   /// state.
-  private struct SendStateLabel: View {
+  struct SendStateLabel: View {
     /// The send state to show.
     let state: SendState
 
@@ -84,12 +84,12 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     /// The SF Symbol of a send state.
     ///
     /// - Parameter state: The send state.
-    /// - Returns: A clock, a check mark, or a warning sign.
+    /// - Returns: The pending, the completed, or the error symbol.
     static func symbol(of state: SendState) -> String {
       switch state {
-      case .pending: "clock"
-      case .sent: "checkmark"
-      case .failed: "exclamationmark.triangle"
+      case .pending: SharedSymbol.pending
+      case .sent: SharedSymbol.completed
+      case .failed: SharedSymbol.error
       }
     }
 

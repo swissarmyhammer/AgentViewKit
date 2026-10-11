@@ -23,7 +23,7 @@ public enum ConversationLayout {
   static let visibilityThreshold = 0.01
 
   /// The SF Symbol name of the load-earlier row.
-  static let loadEarlierSymbolName = "arrow.up"
+  static let loadEarlierSymbolName = SharedSymbol.loadEarlier
 
   /// The number of items that the list shows.
   ///
@@ -401,7 +401,7 @@ public struct ConversationEmptyState: View {
   public var body: some View {
     ContentUnavailableView(
       "No Messages",
-      systemImage: "bubble.left.and.bubble.right",
+      systemImage: SharedSymbol.conversation,
       description: Text("Send a message to start the conversation.")
     )
     .accessibilityIdentifier(ConversationLayout.emptyStateIdentifier)

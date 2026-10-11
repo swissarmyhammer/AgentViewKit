@@ -54,7 +54,7 @@ public struct ErrorView: View {
     Content(
       title: String(localized: "The agent sent an error"),
       detail: String(localized: "Error \(String(code)): \(message)"),
-      symbolName: "exclamationmark.triangle.fill")
+      symbolName: SharedSymbol.error)
   }
 
   public var body: some View {

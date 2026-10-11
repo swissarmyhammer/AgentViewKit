@@ -128,6 +128,14 @@ import Testing
     #expect(aliases["doc.on.doc"] == "document.on.document")
   }
 
+  @Test func theAvailableNamesHoldACurrentNameAndAnOldName() throws {
+    let names = try SystemSymbolData.availableNames()
+
+    #expect(names.contains("document.on.document"))
+    #expect(names.contains("doc.on.doc"))
+    #expect(!names.contains("Result lost"))
+  }
+
   @Test func theRestrictionsHoldThePasskeySymbol() throws {
     let restrictions = try SystemSymbolData.restrictions()
 
@@ -156,22 +164,55 @@ import Testing
     #expect(found.isEmpty, "\(found)")
   }
 
-  // MARK: - The shared symbols
+  // MARK: - The symbol table
 
-  /// The file of the symbols that more than one view shows.
+  /// The directory of the kit. Each symbol name of the kit is in the symbol
+  /// table.
+  static let kitPath = "Sources/AgentViewKit"
+
+  /// The file of the symbol table of the kit.
   static let sharedSymbolFile = "Sources/AgentViewKit/Items/SharedSymbol.swift"
 
-  @Test func eachSharedSymbolNameIsWrittenOnlyInTheSharedSymbolFile() throws {
-    let sharedFile = try PackageFiles.file(Self.sharedSymbolFile)
-    let shared = SymbolNameScanner(source: try String(contentsOf: sharedFile, encoding: .utf8))
+  /// The symbol names that the symbol table writes.
+  ///
+  /// - Returns: The uses, in source order.
+  /// - Throws: The error when the file cannot be read.
+  static func tableNames() throws -> [SymbolNameUse] {
+    let tableFile = try PackageFiles.file(Self.sharedSymbolFile)
+    return SymbolNameScanner(source: try String(contentsOf: tableFile, encoding: .utf8))
       .names(file: Self.sharedSymbolFile)
-    let sharedNames = Set(shared.map(\.name))
+  }
 
-    let repeated = try Self.symbolNames().filter { use in
-      sharedNames.contains(use.name) && use.file != Self.sharedSymbolFile
-    }
+  /// The test compares only the names that show a system symbol. The scan
+  /// also finds the other literals of a symbol type, such as the wire value
+  /// and the labels of `ToolStatusSymbol`, and these are not in the lists of
+  /// the system.
+  @Test func eachSymbolNameOfTheKitIsWrittenOnlyInTheSymbolTable() throws {
+    let availableNames = try SystemSymbolData.availableNames()
+    let kitNames = try SymbolNameScanner.names(
+      inSwiftFilesBelow: PackageFiles.file(Self.kitPath), relativeTo: PackageFiles.root
+    ).filter { availableNames.contains($0.name) }
 
-    #expect(!sharedNames.isEmpty)
-    #expect(repeated.isEmpty, "Use the SharedSymbol constant: \(repeated)")
+    let outside = kitNames.filter { $0.file != Self.sharedSymbolFile }
+
+    #expect(!kitNames.isEmpty)
+    #expect(outside.isEmpty, "Add the name to SharedSymbol and read it from there: \(outside)")
+  }
+
+  @Test func eachNameOfTheSymbolTableShowsASymbol() throws {
+    let availableNames = try SystemSymbolData.availableNames()
+
+    let unknown = try Self.tableNames().filter { !availableNames.contains($0.name) }
+
+    #expect(unknown.isEmpty, "\(unknown)")
+  }
+
+  @Test func theSymbolTableWritesEachNameOnce() throws {
+    let names = try Self.tableNames().map(\.name)
+
+    let repeated = Dictionary(grouping: names, by: \.self).filter { $0.value.count > 1 }.keys.sorted()
+
+    #expect(!names.isEmpty)
+    #expect(repeated.isEmpty, "Two constants of SharedSymbol have the same name: \(repeated)")
   }
 }

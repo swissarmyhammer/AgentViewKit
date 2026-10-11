@@ -183,7 +183,7 @@ public struct AttachmentChips: View {
             Button {
               remove(attachment.id)
             } label: {
-              Label(String(localized: "Remove"), systemImage: "xmark.circle.fill")
+              Label(String(localized: "Remove"), systemImage: SharedSymbol.remove)
                 .labelStyle(.iconOnly)
             }
             .buttonStyle(.borderless)
@@ -210,7 +210,7 @@ public struct AttachmentChips: View {
   /// - Parameter attachment: The attachment that the agent does not accept.
   /// - Returns: The mark.
   private func notAcceptedMark(for attachment: Attachment) -> some View {
-    Label(String(localized: "Not accepted"), systemImage: "exclamationmark.triangle.fill")
+    Label(String(localized: "Not accepted"), systemImage: SharedSymbol.warning)
       .labelStyle(.iconOnly)
       .foregroundStyle(editorTheme.severityWarning)
       .help(String(localized: "The agent does not accept this kind of file. The prompt does not send it."))

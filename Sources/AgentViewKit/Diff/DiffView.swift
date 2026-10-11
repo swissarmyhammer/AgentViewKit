@@ -178,12 +178,12 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// - Returns: The SF Symbol name.
   static func symbolName(for operation: DiffSummary.Operation) -> String {
     switch operation {
-    case .added: "plus.square"
-    case .deleted: "minus.square"
-    case .modified: "pencil"
-    case .renamed: "arrow.right.square"
-    case .copied: "plus.square.on.square"
-    case .unknown: "questionmark.square"
+    case .added: SharedSymbol.addedFile
+    case .deleted: SharedSymbol.deletedFile
+    case .modified: SharedSymbol.modifiedFile
+    case .renamed: SharedSymbol.renamedFile
+    case .copied: SharedSymbol.copiedFile
+    case .unknown: SharedSymbol.unknown
     }
   }
 
@@ -304,7 +304,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
         let lines = selection.lines.isEmpty ? file.changedLines : selection.lines
         onAttach(DiffAttachment(file: file.path, lines: lines))
       } label: {
-        Label(String(localized: "Attach to prompt"), systemImage: "paperclip")
+        Label(String(localized: "Attach to prompt"), systemImage: SharedSymbol.attach)
       }
       .accessibilityIdentifier(Self.attachIdentifier)
     }

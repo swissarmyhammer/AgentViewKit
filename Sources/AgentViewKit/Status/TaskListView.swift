@@ -92,6 +92,21 @@ public struct TaskListView: View {
     }
   }
 
+  /// The SF Symbol name of a status. An entry in progress shows a spinner in
+  /// place of its symbol.
+  ///
+  /// - Parameter status: The ACP status of an entry.
+  /// - Returns: The symbol name.
+  static func statusSymbol(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
+    switch status {
+    case .pending: SharedSymbol.pending
+    case .inProgress: SharedSymbol.inProgress
+    case .completed: SharedSymbol.completed
+    case .cancelled: SharedSymbol.cancelled
+    case .unknown: SharedSymbol.unknown
+    }
+  }
+
   /// The name of a priority, for the entry label and the help tag of the
   /// priority tint.
   ///
@@ -171,7 +186,7 @@ private struct PlanEntryRow: View {
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
       Spacer(minLength: theme.spacing.s)
-      Image(systemName: "flag.fill")
+      Image(systemName: SharedSymbol.priority)
         .foregroundStyle(editorTheme.tint(for: entry.priority))
         .fontWeight(theme.symbolWeight)
         .help(TaskListView.priorityLabel(entry.priority))
@@ -188,21 +203,10 @@ private struct PlanEntryRow: View {
       ProgressView()
         .controlSize(.mini)
     } else {
-      Image(systemName: symbolName)
+      Image(systemName: TaskListView.statusSymbol(entry.status))
         .symbolRenderingMode(.hierarchical)
         .foregroundStyle(editorTheme.statusColor(for: entry.status))
         .fontWeight(theme.symbolWeight)
-    }
-  }
-
-  /// The SF Symbol name of a status that is not in progress.
-  private var symbolName: String {
-    switch entry.status {
-    case .pending: "circle"
-    case .inProgress: "circle.dotted"
-    case .completed: "checkmark.circle.fill"
-    case .cancelled: "xmark.circle"
-    case .unknown: "questionmark.circle"
     }
   }
 }

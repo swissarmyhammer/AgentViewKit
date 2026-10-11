@@ -181,7 +181,7 @@ struct ReasoningBlock<Content: View>: View {
       title
       Spacer(minLength: theme.spacing.s)
       Button(action: toggle) {
-        Image(systemName: "chevron.right")
+        Image(systemName: SharedSymbol.disclosure)
           .fontWeight(theme.symbolWeight)
           .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
       }

@@ -37,7 +37,7 @@ public struct ActivityTimeline: View {
   static let detailSuffix = "-detail"
 
   /// The SF Symbol name of the empty state.
-  static let emptySymbolName = "clock"
+  static let emptySymbolName = SharedSymbol.activity
 
   /// The session model whose transcript the timeline shows.
   let session: SessionModel
@@ -175,7 +175,7 @@ private struct ActivityEntryRow: View {
   }
 
   /// The SF Symbol name of a thought row.
-  static let thoughtSymbolName = "brain"
+  static let thoughtSymbolName = SharedSymbol.reasoning
 
   /// The entry to show.
   let entry: TimelineEntry

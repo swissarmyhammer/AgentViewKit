@@ -375,7 +375,7 @@ public struct ToolCallView: View {
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
       statusGlyph
-      Image(systemName: "chevron.right")
+      Image(systemName: SharedSymbol.disclosure)
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
@@ -586,7 +586,7 @@ private struct LocationChips: View {
     let fullText = FoundationModelsACP.ToolCallLocation.text(path: path, line: location.line)
     let shortText = FoundationModelsACP.ToolCallLocation.text(
       path: URL(fileURLWithPath: path).lastPathComponent, line: location.line)
-    return Label(shortText, systemImage: "document")
+    return Label(shortText, systemImage: SharedSymbol.document)
       .font(.caption)
       .lineLimit(1)
       .truncationMode(.middle)

@@ -25,6 +25,34 @@ enum SystemSymbolData {
   /// to one Apple product or feature.
   static let restrictionsFile = "symbol_restrictions.strings"
 
+  /// The file of the names that show a symbol. Its `symbols` table holds each
+  /// current name and each old name, with the release that added the name as
+  /// the value.
+  static let availabilityFile = "name_availability.plist"
+
+  /// The key of the table of the names in ``availabilityFile``.
+  static let symbolsKey = "symbols"
+
+  /// The error when the availability file has no table of names.
+  struct NoNameTable: Error, Equatable {
+    /// The name of the data file.
+    let file: String
+  }
+
+  /// The names that show a symbol: each current name and each old name.
+  ///
+  /// - Returns: The names.
+  /// - Throws: The error of the read when the file cannot be read, or
+  ///   ``NoNameTable`` when the file has no `symbols` table.
+  static func availableNames() throws -> Set<String> {
+    let data = try Data(contentsOf: resources.appending(path: availabilityFile))
+    let value = try PropertyListSerialization.propertyList(from: data, format: nil)
+    guard let symbols = (value as? [String: Any])?[symbolsKey] as? [String: Any] else {
+      throw NoNameTable(file: availabilityFile)
+    }
+    return Set(symbols.keys)
+  }
+
   /// The old names.
   ///
   /// - Returns: Each old name, with its current name as the value.

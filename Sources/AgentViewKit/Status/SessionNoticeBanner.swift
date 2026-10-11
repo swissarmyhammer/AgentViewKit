@@ -72,7 +72,7 @@ public struct SessionNoticeBanner: View {
 }
 
 /// The banner of one notice in ``SessionNoticeBanner``.
-private struct NoticeBanner: View {
+struct NoticeBanner: View {
   /// The notice to show.
   let notice: SessionNotice
 
@@ -100,11 +100,12 @@ private struct NoticeBanner: View {
   ///
   /// - Parameter severity: The severity of a notice.
   /// - Returns: The symbol name.
-  private static func symbolName(for severity: NoticeSeverity) -> String {
+  static func symbolName(for severity: NoticeSeverity) -> String {
     switch severity {
-    case .info, .unknown: "info.circle.fill"
-    case .warning: "exclamationmark.triangle.fill"
-    case .error: "xmark.octagon.fill"
+    case .info: SharedSymbol.information
+    case .warning: SharedSymbol.warning
+    case .error: SharedSymbol.error
+    case .unknown: SharedSymbol.unknown
     }
   }
 
@@ -142,7 +143,7 @@ private struct NoticeBanner: View {
       .accessibilityLabel(Self.label(for: notice))
       .accessibilityIdentifier(SessionNoticeBanner.identifier(for: notice.id))
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Dismiss"), systemImage: "xmark", action: dismiss)
+      Button(String(localized: "Dismiss"), systemImage: SharedSymbol.dismiss, action: dismiss)
         .labelStyle(.iconOnly)
         .buttonStyle(.glass)
         .accessibilityIdentifier(SessionNoticeBanner.dismissIdentifier(for: notice.id))

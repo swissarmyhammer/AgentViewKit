@@ -25,7 +25,7 @@ public struct ConnectionsView: View {
     } else {
       ContentUnavailableView(
         "No MCP Servers",
-        systemImage: "point.3.connected.trianglepath.dotted",
+        systemImage: SharedSymbol.connection,
         description: Text("The MCP servers of the session show here.")
       )
       .accessibilityElement(children: .combine)

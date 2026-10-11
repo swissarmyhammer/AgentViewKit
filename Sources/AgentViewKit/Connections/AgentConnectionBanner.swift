@@ -48,7 +48,7 @@ public struct AgentConnectionBanner: View {
   ///
   /// - Parameter state: The connection state of the model.
   /// - Returns: The text, or `nil` when the state shows no banner.
-  private static func makeMessage(for state: ConnectionState) -> StateBanner.Message? {
+  static func makeMessage(for state: ConnectionState) -> StateBanner.Message? {
     switch state {
     case .disconnected:
       disconnectedMessage
@@ -56,7 +56,7 @@ public struct AgentConnectionBanner: View {
       StateBanner.Message(
         title: String(localized: "The connection to the agent failed"),
         explanation: error.localizedDescription,
-        symbolName: "exclamationmark.triangle.fill",
+        symbolName: SharedSymbol.error,
         identifier: failedIdentifier)
     case .connecting, .connected:
       nil
@@ -67,6 +67,6 @@ public struct AgentConnectionBanner: View {
   private static let disconnectedMessage = StateBanner.Message(
     title: String(localized: "The agent is not connected"),
     explanation: String(localized: "No connection to the agent is open. The agent receives no messages."),
-    symbolName: "bolt.horizontal.circle",
+    symbolName: SharedSymbol.disconnected,
     identifier: disconnectedIdentifier)
 }

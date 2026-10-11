@@ -348,7 +348,7 @@ struct ACPTabView: View {
   ///   - identifier: The accessibility identifier of the text.
   /// - Returns: The label.
   private func failureLabel(_ error: any Error, identifier: String) -> some View {
-    Label(String(describing: error), systemImage: "exclamationmark.triangle")
+    Label(String(describing: error), systemImage: "xmark.octagon.fill")
       .foregroundStyle(.red)
       .padding()
       .accessibilityIdentifier(identifier)

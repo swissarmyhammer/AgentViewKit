@@ -96,7 +96,7 @@ public struct ConfigOptionsView: View {
   ]
 
   /// The SF Symbol of the menu button.
-  static let menuSymbolName = "slider.horizontal.3"
+  static let menuSymbolName = SharedSymbol.options
 
   /// The session model whose options the view shows.
   let session: SessionModel

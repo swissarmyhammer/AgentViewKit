@@ -87,7 +87,7 @@ public struct SourcesView: View {
       Label {
         Text("Sources (\(payload.sources.count))")
       } icon: {
-        Image(systemName: "books.vertical")
+        Image(systemName: SharedSymbol.sources)
       }
       .font(.subheadline)
       .foregroundStyle(.secondary)

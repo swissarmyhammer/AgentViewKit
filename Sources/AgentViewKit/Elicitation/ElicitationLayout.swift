@@ -78,9 +78,9 @@ public struct ElicitationLayout: View {
   public nonisolated static let defaultTabThreshold = 1
 
   /// The symbol of a tab with an answer.
-  static let answeredSymbol = "checkmark.circle.fill"
+  static let answeredSymbol = SharedSymbol.completed
   /// The symbol of a tab with no answer.
-  static let notAnsweredSymbol = "circle"
+  static let notAnsweredSymbol = SharedSymbol.notChosen
   /// The opacity of the background of the selected tab.
   static let selectedTabOpacity = 0.2
 

@@ -41,7 +41,7 @@ public struct ArtifactView: View {
     let attachment = Self.attachment(of: artifact)
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       HStack(spacing: theme.spacing.s) {
-        Label(artifact.title, systemImage: "richtext.page")
+        Label(artifact.title, systemImage: SharedSymbol.artifact)
           .font(.headline)
           .lineLimit(1)
           .accessibilityIdentifier(Self.titleIdentifier)

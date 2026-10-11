@@ -18,43 +18,43 @@ extension StateBanner {
       title: String(localized: "The response was cut off"),
       explanation: String(
         localized: "The output stopped at the token limit. Ask the model to continue."),
-      symbolName: "scissors",
+      symbolName: SharedSymbol.truncated,
       identifier: "state-banner-stop-reason-truncated"),
     "_ended_in_reasoning": Message(
       title: String(localized: "The model stopped during its reasoning"),
       explanation: String(
         localized: "The model did not write an answer after its reasoning. Send the request again."),
-      symbolName: "brain",
+      symbolName: SharedSymbol.reasoning,
       identifier: "state-banner-stop-reason-ended-in-reasoning"),
     "_repeated": Message(
       title: String(localized: "The model repeated itself"),
       explanation: String(
         localized: "The model wrote the same text again and again. Change the request."),
-      symbolName: "repeat",
+      symbolName: SharedSymbol.repeated,
       identifier: "state-banner-stop-reason-repeated"),
     "_reasoning_limit": Message(
       title: String(localized: "The reasoning was too long"),
       explanation: String(
         localized: "The model used all of its reasoning tokens. Send a smaller request."),
-      symbolName: "gauge.with.dots.needle.100percent",
+      symbolName: SharedSymbol.reasoningLimit,
       identifier: "state-banner-stop-reason-reasoning-limit"),
     "_error": Message(
       title: String(localized: "The agent had an error"),
       explanation: String(
         localized: "The turn stopped because of an error in the agent. Send the request again."),
-      symbolName: "xmark.octagon.fill",
+      symbolName: SharedSymbol.error,
       identifier: "state-banner-stop-reason-error"),
     "_no_output": Message(
       title: String(localized: "The model gave no answer"),
       explanation: String(
         localized: "The turn ended, but the model wrote no text. Send the request again."),
-      symbolName: "ellipsis.bubble",
+      symbolName: SharedSymbol.noOutput,
       identifier: "state-banner-stop-reason-no-output"),
     "_stalled": Message(
       title: String(localized: "The response stopped"),
       explanation: String(
         localized: "The model did not write text for too long. Send the request again."),
-      symbolName: "pause.circle.fill",
+      symbolName: SharedSymbol.stalled,
       identifier: "state-banner-stop-reason-stalled"),
   ]
 
@@ -70,7 +70,7 @@ extension StateBanner {
       ?? Message(
         title: String(localized: "The turn stopped for an unknown reason"),
         explanation: String(localized: "The agent sent the stop reason \(wireValue)."),
-        symbolName: "questionmark.circle.fill",
+        symbolName: SharedSymbol.unknown,
         identifier: unknownStopReasonIdentifier)
   }
 }
