@@ -10,29 +10,57 @@ import UniformTypeIdentifiers
 /// A registration for a key replaces the prior registration for the same
 /// key. Thus the last writer wins. The three keyed registries of the kit use
 /// this table.
+///
+/// Each registration has its own identity: its key and a new token. A view that
+/// skips its body with an Equatable check compares the identity, because a
+/// function value has no equality. A new registration for a key thus changes
+/// the identity, also when a host gives a new function for the same key.
+/// SwiftUI applies a registration modifier again each time that it evaluates
+/// the view that holds the modifier, so each such evaluation also gives a new
+/// identity.
 public struct KeyedViewRegistry<Key: Hashable & Sendable, Value>: Sendable {
   /// A function that makes the view of one value.
   public typealias Renderer = @MainActor (Value) -> AnyView
 
-  /// The renderers, keyed by their key.
-  private var renderers: [Key: Renderer] = [:]
+  /// One registration: the renderer of a key and the identity of the
+  /// registration.
+  struct Registration: Identifiable, Sendable {
+    /// The identity of one registration: its key and its token.
+    struct ID: Hashable, Sendable {
+      /// The key of the registration.
+      let key: Key
+
+      /// The token of the registration. Each call to
+      /// ``KeyedViewRegistry/register(_:_:)`` makes a new token.
+      let token: UUID
+    }
+
+    /// The identity of the registration.
+    let id: ID
+
+    /// The function that makes the view.
+    let renderer: Renderer
+  }
+
+  /// The registrations, keyed by their key.
+  private var registrations: [Key: Registration] = [:]
 
   /// Makes an empty registry.
   public init() {}
 
   /// The keys that have a registration, in no specified order.
   public var keys: some Collection<Key> {
-    renderers.keys
+    registrations.keys
   }
 
   /// Registers the renderer of `key`. The renderer replaces the prior
-  /// renderer of `key`.
+  /// renderer of `key`, and the registration gets a new identity.
   ///
   /// - Parameters:
   ///   - key: The key of the renderer.
   ///   - renderer: The function that makes the view.
   public mutating func register(_ key: Key, _ renderer: @escaping Renderer) {
-    renderers[key] = renderer
+    registrations[key] = Registration(id: Registration.ID(key: key, token: UUID()), renderer: renderer)
   }
 
   /// The renderer of `key`, or `nil` when `key` has no registration.
@@ -40,7 +68,15 @@ public struct KeyedViewRegistry<Key: Hashable & Sendable, Value>: Sendable {
   /// - Parameter key: The key to find.
   /// - Returns: The last renderer that was registered for `key`.
   public func renderer(for key: Key) -> Renderer? {
-    renderers[key]
+    registration(for: key)?.renderer
+  }
+
+  /// The registration of `key`, or `nil` when `key` has no registration.
+  ///
+  /// - Parameter key: The key to find.
+  /// - Returns: The last registration for `key`.
+  func registration(for key: Key) -> Registration? {
+    registrations[key]
   }
 }
 
@@ -145,7 +181,17 @@ extension KeyedViewRegistry where Key == String, Value == ToolCallEntry {
   /// - Returns: The innermost registration for `name`, or `nil` when `name`
   ///   is `nil` or has no registration.
   public func resolve(name: String?) -> Renderer? {
-    name.flatMap { renderer(for: $0) }
+    registration(named: name)?.renderer
+  }
+
+  /// The registration of a tool name, with its identity.
+  ///
+  /// - Parameter name: The program name of the tool, or `nil` for a call
+  ///   with no name.
+  /// - Returns: The innermost registration for `name`, or `nil` when `name`
+  ///   is `nil` or has no registration.
+  func registration(named name: String?) -> Registration? {
+    name.flatMap { registration(for: $0) }
   }
 }
 

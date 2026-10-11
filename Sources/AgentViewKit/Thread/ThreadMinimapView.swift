@@ -59,8 +59,9 @@ public struct ThreadMinimapView: View {
     /// The part of the rail width that a live tick fills.
     static let liveWidthFraction: CGFloat = 0.5
 
-    /// The part of the tick height that a cancelled tick fills.
-    static let cancelledHeightFraction: CGFloat = 1.0 / 3.0
+    /// The number of equal bands of the tick height for a cancelled tick: a
+    /// clear band, the bar, and a clear band.
+    static let cancelledBandCount: CGFloat = 3
 
     /// The shape of the mark in the tick rectangle `rect`.
     ///
@@ -81,8 +82,8 @@ public struct ThreadMinimapView: View {
           wedge.closeSubpath()
         }
       case .cancelled:
-        let height = rect.height * Self.cancelledHeightFraction
-        return Path(CGRect(x: rect.minX, y: rect.midY - height / 2, width: rect.width, height: height))
+        let band = rect.height / Self.cancelledBandCount
+        return Path(rect.insetBy(dx: 0, dy: band))
       }
     }
   }
@@ -439,26 +440,6 @@ public struct ThreadMinimapView: View {
     case .unknown, .compaction:
       Color.secondary.opacity(Self.quietTickOpacity)
     }
-  }
-}
-
-extension View {
-  /// Makes this view one accessibility element of the rail with a label and a
-  /// value.
-  ///
-  /// - Parameters:
-  ///   - label: The label of the element.
-  ///   - value: The value of the element.
-  ///   - identifier: The accessibility identifier of the element.
-  /// - Returns: The element.
-  fileprivate func valueElement(label: Text, value: Text, identifier: String) -> some View {
-    accessibilityElement()
-      .accessibilityLabel(label)
-      .accessibilityValue(value)
-      // An element with no role does not give its value. The trait gives the
-      // static text role.
-      .accessibilityAddTraits(.isStaticText)
-      .accessibilityIdentifier(identifier)
   }
 }
 

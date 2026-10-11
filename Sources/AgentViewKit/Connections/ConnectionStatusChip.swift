@@ -70,13 +70,7 @@ public struct ConnectionStatusChip: View {
         .lineLimit(1)
     }
     .help(reason ?? label)
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(label)
-    .accessibilityValue(reason ?? "")
-    // An element with no role does not give its value. The trait gives the
-    // static text role.
-    .accessibilityAddTraits(.isStaticText)
-    .accessibilityIdentifier(Self.identifier(for: status))
+    .valueElement(label: Text(label), value: Text(reason ?? ""), identifier: Self.identifier(for: status))
   }
 
   /// The name of `status` in an accessibility identifier.

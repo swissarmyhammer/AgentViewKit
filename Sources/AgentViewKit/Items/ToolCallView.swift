@@ -86,8 +86,9 @@ extension View {
 /// sets that status. When the environment has no store, the view uses a
 /// store of its own.
 ///
-/// The row reads the status, and the body does not. Thus a status change
-/// evaluates the row and not the expanded body.
+/// The row and the label of the call read the status. The view itself and the
+/// expanded body do not. Thus a status change evaluates the row and the label,
+/// and not the expanded body.
 public struct ToolCallView: View {
   /// The start of the accessibility identifier of each call.
   public static let identifierPrefix = "tool-call-"
@@ -136,11 +137,8 @@ public struct ToolCallView: View {
   @State private var ownStore = ExpandedBlocksStore()
 
   @Environment(\.expandedBlocksStore) private var environmentStore
-  @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.toolCallRegistry) private var toolCallRegistry
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.agentTheme) private var theme
-  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the tool call view of a tool call entry of a session transcript
   /// (plan.md §3.8).
@@ -312,50 +310,77 @@ public struct ToolCallView: View {
 
   public var body: some View {
     let id = entry.id.rowKey
-    #if DEBUG
-      BodyEvaluationCounter.note(Self.rowCounterKey(for: id))
-    #endif
     let store = environmentStore ?? ownStore
     let expanded = store.isExpanded(entry: .toolCall(entry))
-    let label = Self.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus)
     return VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      header(id: id, store: store, expanded: expanded, label: label)
+      ToolCallHeader(entry: entry, store: store, expanded: expanded)
       LinkedElicitations(entry: entry)
       if expanded {
-        ToolCallBody(entry: entry, renderer: toolCallRegistry.resolve(name: entry.name), theme: theme)
+        ToolCallBody(entry: entry, registration: toolCallRegistry.registration(named: entry.name), theme: theme)
           .equatable()
           .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
     }
     .contentContainer(identifier: Self.identifier(for: id))
-    .accessibilityLabel(label)
+    .modifier(ToolCallLabel(entry: entry))
     // The row is a container with this call as its one child. The second
     // hidden child keeps SwiftUI from merging the call into the row, so the
     // call keeps its identifier. See `contentContainer(identifier:)`.
     .background { Color.clear.accessibilityHidden(true) }
   }
+}
 
-  /// The row: the button that expands the call, and the connection chip.
-  ///
-  /// - Parameters:
-  ///   - id: The text identity of the call.
-  ///   - store: The store of the user decisions.
-  ///   - expanded: `true` while the call is expanded.
-  ///   - label: The label that VoiceOver reads for the call.
-  /// - Returns: The row view.
-  private func header(
-    id: String, store: ExpandedBlocksStore, expanded: Bool, label: String
-  ) -> some View {
-    HStack(spacing: theme.spacing.s) {
+/// The label that VoiceOver reads for a ``ToolCallView``: the title and the
+/// status of the call.
+///
+/// The modifier reads the status, and ``ToolCallView`` does not. Thus a status
+/// change evaluates the modifier, and the content of the call stays as it is.
+private struct ToolCallLabel: ViewModifier {
+  /// The tool call entry.
+  let entry: ToolCallEntry
+
+  // `Self.Content` names the content of the modifier, and not the content
+  // type of FoundationModelsACP.
+  func body(content: Self.Content) -> some View {
+    content.accessibilityLabel(
+      ToolCallView.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus))
+  }
+}
+
+/// The row of a ``ToolCallView``: the button that expands the call, and the
+/// connection chip.
+///
+/// The row reads the status of the entry. The ``BodyEvaluationCounter`` key of
+/// the row is ``ToolCallView/rowCounterKey(for:)``.
+private struct ToolCallHeader: View {
+  /// The tool call entry.
+  let entry: ToolCallEntry
+
+  /// The store of the user decisions.
+  let store: ExpandedBlocksStore
+
+  /// `true` while the call is expanded.
+  let expanded: Bool
+
+  @Environment(\.toolCallConnectionState) private var connectionState
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.agentTheme) private var theme
+
+  var body: some View {
+    let id = entry.id.rowKey
+    #if DEBUG
+      BodyEvaluationCounter.note(ToolCallView.rowCounterKey(for: id))
+    #endif
+    return HStack(spacing: theme.spacing.s) {
       Button {
         store.toggle(entry: .toolCall(entry))
       } label: {
-        rowContent(expanded: expanded)
+        rowContent
       }
       .buttonStyle(.plain)
-      .accessibilityLabel(label)
+      .accessibilityLabel(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus))
       .accessibilityValue(expanded ? Text("Expanded") : Text("Collapsed"))
-      .accessibilityIdentifier(Self.toggleIdentifier(for: id))
+      .accessibilityIdentifier(ToolCallView.toggleIdentifier(for: id))
       if let status = connectionState?(entry) {
         ConnectionStatusChip(status: status)
       }
@@ -363,15 +388,12 @@ public struct ToolCallView: View {
   }
 
   /// The symbols and the text inside the row button.
-  ///
-  /// - Parameter expanded: `true` while the call is expanded.
-  /// - Returns: The content of the button.
-  private func rowContent(expanded: Bool) -> some View {
+  private var rowContent: some View {
     HStack(spacing: theme.spacing.s) {
       Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
-      Text(Self.displayTitle(entry.shownTitle))
+      Text(ToolCallView.displayTitle(entry.shownTitle))
         .font(theme.proseFont)
         .lineLimit(1)
         .truncationMode(.middle)
@@ -385,7 +407,8 @@ public struct ToolCallView: View {
     .contentShape(Rectangle())
   }
 
-  /// The progress indicator and the status symbol.
+  /// The progress indicator and the status symbol, with the symbol effects
+  /// of the row.
   private var statusGlyph: some View {
     let status = entry.shownStatus
     let isLive = ToolStatusSymbol.isLive(status)
@@ -394,9 +417,7 @@ public struct ToolCallView: View {
         ProgressView()
           .controlSize(.mini)
       }
-      Image(systemName: ToolStatusSymbol.name(for: status))
-        .fontWeight(theme.symbolWeight)
-        .foregroundStyle(editorTheme.statusColor(for: status))
+      ToolStatusImage(status: status)
         .contentTransition(.symbolEffect(.replace))
         .symbolEffect(.variableColor.iterative, isActive: isLive)
         .symbolEffect(.bounce, value: status == .completed)
@@ -413,11 +434,16 @@ public struct ToolCallView: View {
 /// registration in the ``SwiftUI/EnvironmentValues/toolCallRegistry`` shows
 /// the registered view in place of the default body.
 ///
-/// The view has no environment property. The row reads the registry and the
-/// theme, and gives them to the view as values. SwiftUI can evaluate the body
-/// of a view that reads the environment again after a change of the parent,
-/// with no Equatable check. A view with no environment property evaluates
+/// The view has no environment property. ``ToolCallView`` reads the registry
+/// and the theme, and gives them to the view as values. SwiftUI can evaluate
+/// the body of a view that reads the environment again after a change of the
+/// parent, with no Equatable check. A view with no environment property evaluates
 /// again only when `==` gives `false`. Apply `.equatable()` to the view.
+///
+/// The view keeps the function of the registration and the identity of the
+/// registration as two values. In a hosted test, a stored registration value
+/// with the function inside it made SwiftUI evaluate the body with no `==`
+/// check. With two values, SwiftUI calls `==`.
 private struct ToolCallBody: View, Equatable {
   /// The tool call entry to show.
   let entry: ToolCallEntry
@@ -426,11 +452,33 @@ private struct ToolCallBody: View, Equatable {
   /// default body.
   let renderer: ToolCallRegistry.Renderer?
 
+  /// The identity of the registration of ``renderer``, or `nil` for the
+  /// default body.
+  let registrationID: ToolCallRegistry.Registration.ID?
+
   /// The theme of the kit.
   let theme: AgentTheme
 
+  /// Makes the body of an entry.
+  ///
+  /// - Parameters:
+  ///   - entry: The tool call entry to show.
+  ///   - registration: The registration of the tool name of the entry, or
+  ///     `nil` for the default body.
+  ///   - theme: The theme of the kit.
+  init(entry: ToolCallEntry, registration: ToolCallRegistry.Registration?, theme: AgentTheme) {
+    self.entry = entry
+    self.renderer = registration?.renderer
+    self.registrationID = registration?.id
+    self.theme = theme
+  }
+
   /// Tells whether two bodies show the same entry object in the same theme,
-  /// and both use a registered view or both use the default body.
+  /// with the same registration of the tool name.
+  ///
+  /// A function value has no equality, so the check compares the identity of
+  /// the registration. A new registration for the tool name has a new
+  /// identity, so the body shows the new registered view.
   ///
   /// - Parameters:
   ///   - lhs: A body.
@@ -439,7 +487,7 @@ private struct ToolCallBody: View, Equatable {
   static func == (lhs: ToolCallBody, rhs: ToolCallBody) -> Bool {
     lhs.entry === rhs.entry
       && lhs.theme == rhs.theme
-      && (lhs.renderer == nil) == (rhs.renderer == nil)
+      && lhs.registrationID == rhs.registrationID
   }
 
   var body: some View {

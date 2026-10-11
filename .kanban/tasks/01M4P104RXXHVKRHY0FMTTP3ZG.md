@@ -22,9 +22,13 @@ comments:
 
     Turn times are NOT in this work; the owner has not decided. Do the entry decorator now; leave the turn-duration item open until the client session reports the decision.
   timestamp: 2026-10-11T20:32:07.036804+00:00
+- actor: claude-code
+  id: 01m4pfmb08qd54065sag1ymdkh
+  text: '2026-10-11: Decision of the owner (through the FoundationModelsACPClient session): the client will not add turns or turn times, and the turn concept will be removed from the client. This card has no turn item now. Use only the per-entry `EntryTiming` values (`startedAt`, `endedAt`, `duration`). "Thought for N seconds" uses `duration` of the thought entry. The card is fully unblocked.'
+  timestamp: 2026-10-11T21:59:15.208981+00:00
 position_column: todo
 position_ordinal: '8580'
-title: 'Message timing: show entry and turn times from the client model'
+title: 'Message timing: show entry times from the client model'
 ---
 ## What
 Decision of the owner (2026-10-11), from `comparison.md` (row "Message timing" and row "Thought for N seconds", section 4 note "Do not show Thought for N seconds. The model has no times"): the kit shows message timing. assistant-ui has a message timing element. Vercel AI Elements `Reasoning` shows "Thought for N seconds".
@@ -37,7 +41,7 @@ The times come from the FoundationModelsACPClient models, not from the kit. The 
 - [ ] When the client commit is pushed, move the FoundationModelsACPClient pin.
 - [ ] A timing decorator: a view modifier (for example `.entryTiming(_ entry:)` or `.transcriptTiming()`) that wraps a transcript row with a small view that shows when the entry started and, when it ended, its duration. It reads the times from the client entry. It has no style protocol and no style override (owner decision 2026-10-11): its colors and fonts come from the EditorKit theme.
 - [ ] A way to attach the decorator to every row of `ConversationView` and `AgentThreadView` in one place (for example an environment value or a row decorator slot), so that the host does not wrap each row by hand. The default is no decorator.
-- [ ] The same decorator works on user messages, agent messages, thoughts and tool calls. The turn duration shows at the end of the turn through the same pattern.
+- [ ] The same decorator works on user messages, agent messages, thoughts and tool calls. There is no turn time: the owner decided (2026-10-11) that the client has no turn concept. Do not add a turn object, prompt-to-stop times, time to first token or a turn duration.
 - [ ] `ReasoningView`: "Thought for N seconds" comes from the thought entry duration. Remove the kit `duration` parameter that is always `nil` (`Sources/AgentViewKit/Items/ReasoningView.swift:91`, `:105`, `:156`, `:200`), or bind it to the client value.
 - [ ] Replayed entries with no time show no time (the decorator shows nothing).
 - [ ] Format with the system formatters (`Date.FormatStyle`, `Duration.UnitsFormatStyle`), localized; VoiceOver reads the time with the message.

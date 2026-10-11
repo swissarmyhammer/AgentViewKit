@@ -27,6 +27,17 @@
     /// The id of the terminal of the terminal test.
     static let terminalID = "terminal-under-test"
 
+    /// The program name of the tool that the swap test registers.
+    static let registeredName = "read_file"
+
+    /// The accessibility identifier of the first registered view of the swap
+    /// test.
+    static let firstRegisteredIdentifier = "first-registered-view"
+
+    /// The accessibility identifier of the second registered view of the swap
+    /// test.
+    static let secondRegisteredIdentifier = "second-registered-view"
+
     /// The fields of a running call that reads a file, with a raw input and
     /// one text content part.
     static let readFields = #"""
@@ -127,6 +138,31 @@
       #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
       #expect(BodyEvaluationCounter.count(rowKey) >= 1)
       #expect(BodyEvaluationCounter.count(bodyKey) == 0)
+    }
+
+    // MARK: - Registry
+
+    @Test func aSwapOfTheRegisteredViewRefreshesTheExpandedBody() async throws {
+      let fields = #""name": "\#(Self.registeredName)", "# + Self.readFields
+      let (session, call) = try await Self.openCall(id: "swap-call", fields: fields)
+      defer { session.close() }
+      let choice = RegisteredViewChoice(identifier: Self.firstRegisteredIdentifier)
+      let harness = HostedViewHarness(size: Self.tallSize) {
+        RegisteredViewSwapHost(call: call, store: Self.makeExpandedStore(for: call), choice: choice)
+      }
+      defer { harness.close() }
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: Self.firstRegisteredIdentifier) != nil
+      }
+      #expect(harness.element(identifier: Self.firstRegisteredIdentifier) != nil)
+
+      choice.identifier = Self.secondRegisteredIdentifier
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: Self.secondRegisteredIdentifier) != nil
+      }
+
+      #expect(harness.element(identifier: Self.secondRegisteredIdentifier) != nil)
+      #expect(harness.element(identifier: Self.firstRegisteredIdentifier) == nil)
     }
 
     // MARK: - Expand
@@ -230,6 +266,48 @@
         $0.identifier == ConnectionStatusChip.identifier(for: .connecting)
       }
       #expect(chips.count == 1)
+    }
+  }
+
+  /// The registered view that ``RegisteredViewSwapHost`` gives, as the
+  /// accessibility identifier of that view.
+  @Observable @MainActor final class RegisteredViewChoice {
+    /// The accessibility identifier of the registered view.
+    var identifier: String
+
+    /// Makes a choice.
+    ///
+    /// - Parameter identifier: The accessibility identifier of the first
+    ///   registered view.
+    init(identifier: String) {
+      self.identifier = identifier
+    }
+  }
+
+  /// One expanded ``ToolCallView`` with a registered view for
+  /// ``ToolCallViewHostedTests/registeredName``.
+  ///
+  /// The host reads ``RegisteredViewChoice/identifier`` in its own body, and
+  /// registers a new view function for each value. The registered view does
+  /// not read the choice, so only a new registration can change it.
+  struct RegisteredViewSwapHost: View {
+    /// The tool call entry to show.
+    let call: ToolCallEntry
+
+    /// The store in which the call is expanded.
+    let store: ExpandedBlocksStore
+
+    /// The registered view to give.
+    let choice: RegisteredViewChoice
+
+    var body: some View {
+      let identifier = choice.identifier
+      ToolCallView(entry: call)
+        .toolCallView(named: ToolCallViewHostedTests.registeredName) { _ in
+          Text(verbatim: identifier).accessibilityIdentifier(identifier)
+        }
+        .environment(\.expandedBlocksStore, store)
+        .transaction { $0.disablesAnimations = true }
     }
   }
 #endif

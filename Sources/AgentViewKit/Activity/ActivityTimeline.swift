@@ -217,9 +217,7 @@ private struct ActivityEntryRow: View {
             .truncationMode(.middle)
           Spacer(minLength: theme.spacing.s)
           if let status = appearance.status {
-            Image(systemName: ToolStatusSymbol.name(for: status))
-              .fontWeight(theme.symbolWeight)
-              .foregroundStyle(editorTheme.statusColor(for: status))
+            ToolStatusImage(status: status)
           }
         }
         .contentShape(Rectangle())
