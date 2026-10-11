@@ -22,8 +22,24 @@ comments:
     - evidence: 15 tracked files plus the two git-ignored pin files. Pins: `Package.resolved` and `Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` (FoundationModelsACP 5f94484, FoundationModelsACPClient 24643be). Sources: `Sources/AgentViewKit/Status/StateBanner.swift`, `Sources/AgentViewKit/Accessibility/ThreadAccessibility.swift`, `Sources/AgentViewKit/Theme/AgentTheme.swift`, `Sources/AgentViewKit/Items/CompactionEntryView.swift`, `Sources/AgentViewKit/Status/SessionNoticeBanner.swift`. Tests: `StateBannerStopReasonTests.swift`, `ThreadAccessibilityTests.swift`, `SessionStateBannersHostedTests.swift`, `StatusColorsTests.swift`, `CompactionAndNoticeHostedTests.swift`, `TranscriptRowKeyTests.swift`. Docs: `Docs/decisions/acp-version.md`, `plan.md`. `swift build --build-tests`: Build complete. Full `swift test` (run after the last change): 1042 tests in 110 suites passed, 89 tests in 9 suites passed, 1 test in 1 suite passed, XCTest 0 tests; exit 0. Load average during the run: 22.79 before, 19.81 after. One build warning from the mlx-swift package: `warning: missing creator for mutated node: ('/Users/wballard/github/swissarmyhammer/AgentViewKit/.build/out/Products/Debug/mlx-swift_Cmlx.bundle/Contents/MacOS')`. Subtasks 6 of 6 checked.
     - next: /review. The task stays in doing. Not committed. After the commit, check the third subtask of ^06hz99g.
   timestamp: 2026-10-11T12:10:27.429276+00:00
-position_column: doing
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m4ne9z7fk7jc52s5nhd86522
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit f3f5c2d). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 11 files reviewed. Files not reviewed: 4 `.kanban/` files (ignore rule), `Docs/decisions/acp-version.md` and `plan.md` (no validator matches).
+    - next: none. The task is in done.
+  timestamp: 2026-10-11T12:16:52.463848+00:00
+- actor: claude-code
+  id: 01m4nea8res1dewmwvc81vhjv9
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 15 tracked files (pins, Unstable renames, StateBanner stop reason error, acp-version.md)
+    - test: green — swift test, 1042 tests in 110 suites passed, load average 15 to 30; only the known mlx-swift dependency warning
+    - commit: f3f5c2d
+    - review: clean — 0 findings (7 validator runs, 11 files); task in done
+  timestamp: 2026-10-11T12:17:02.222848+00:00
+position_column: done
+position_ordinal: ff9e80
 title: Move AgentViewKit to FoundationModelsACP 5f94484 (ACP schema alpha.8) and FoundationModelsACPClient 24643be
 ---
 ## What

@@ -66,6 +66,13 @@ comments:
     - review: not run
     - next: do the migration in ^j6qef6x, then update the pin and check the third subtask.
   timestamp: 2026-10-11T11:56:38.177586+00:00
+- actor: claude-code
+  id: 01m4nebcj5k0jx6mc8tnqjhha6
+  text: |-
+    ### implement — no-change
+    - evidence: Read only. The root `Package.resolved` pins FoundationModelsACP `5f94484eaed1f47e1432b689b9bda8194ecb95a0` and FoundationModelsACPClient `24643be3817912251e93705443012013b6b6e177`. The `.build/checkouts/FoundationModelsACP` HEAD is `5f94484`, with no local changes. Its `EventBroadcaster.swift` has the outbox, the `delivery` lock (`withState` takes it around the state step and the yield), and `detach` takes only `state.withLock`. Third subtask checked: done in f3f5c2d (^j6qef6x). Subtasks: 3 of 3. No source file changed. Only the card changed. No commit.
+    - next: the task stays in doing. It is ready for review.
+  timestamp: 2026-10-11T12:17:38.885883+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Find and report the EventBroadcaster lock-order deadlock of FoundationModelsACP
@@ -82,7 +89,7 @@ The hang occurred one time, when the output of the test process went through a s
 
 - [x] Write a test in FoundationModelsACP that releases a subscribed `SessionModel` (or cancels the task that iterates a subscribed stream) while the router delivers updates to it, and that stops in the deadlock. (Done in FoundationModelsACP `main` at commit `5f94484`, parent `2268ced`, task ^mwxhbzz there: `EventBroadcasterTests.aCancelWhileAYieldResumesTheConsumerDoesNotDeadlock`. The same commit has the fix: each step collects its events in an outbox under the state lock, and yields after the lock is released. A separate delivery lock keeps the event order. `detach` takes only the state lock.)
 - [x] Report the deadlock to the owner of FoundationModelsACP with the two stacks (do not change the dependency checkout in this repository).
-- [ ] When the fixed version is out, update the dependency of AgentViewKit. (Blocked: FoundationModelsACP `5f94484` also has the ACP schema `schema-v2.0.0-alpha.8`, and AgentViewKit does not build with it. See the blocker comment of 2026-10-11.)
+- [x] When the fixed version is out, update the dependency of AgentViewKit. (Done in f3f5c2d (^j6qef6x). The root `Package.resolved` pins FoundationModelsACP `5f94484` and FoundationModelsACPClient `24643be`. The `.build/checkouts` FoundationModelsACP `EventBroadcaster.swift` has the fix: outbox, delivery lock, and `detach` takes only the state lock.)
 
 ## Report for the owner of FoundationModelsACP
 Sent to the FoundationModelsACP session (foundationmodelsacp-be) on 2026-10-11. Checked against `main` at 2268ced. The checkout of AgentViewKit has the same `EventBroadcaster.swift`.
