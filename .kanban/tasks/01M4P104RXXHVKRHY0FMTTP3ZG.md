@@ -57,6 +57,39 @@ comments:
     - evidence: 14 files. New: Sources/AgentViewKit/Items/EntryTimingView.swift, Tests/AgentViewKitTests/Items/EntryTimingHostedTests.swift (8 tests), Tests/AgentViewKitTests/Items/EntryTimingTextTests.swift (7 tests), Tests/AgentViewKitTests/Helpers/SettableClock.swift. Changed: Sources/AgentViewKit/Items/ReasoningView.swift, Items/SharedSymbol.swift, Thread/ItemRow.swift, Activity/ActivityTimeline.swift, Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, Tests/AgentViewKitTests/Activity/ActivityTimelineHostedTests.swift, README.md, Examples/ReadmeSnippets/Snippets/HostApp.swift, comparison.md; Package.resolved (git-ignored) client pin 3c3adb9. Full `swift test`: 1096 tests in 120 suites passed (1 known issue that was there before), and the PackageStructure run had 1 failure (ResolvedPinsTests: stale pins of the git-ignored demo project); after `generate_xcodeproj.rb`, ResolvedPinsTests 2/2 passed. Load average 87.07 at the start of the full run, 67.67 at the end.
     - next: /review
   timestamp: 2026-10-11T23:21:48.916783+00:00
+- actor: claude-code
+  id: 01m4pmwsw8ray2dce5zq1tq9v6
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (e481e38); 4 findings (4 confirmed, 1 refuted) — Sources/AgentViewKit/Items/EntryTimingView.swift:120, Sources/AgentViewKit/Items/ReasoningView.swift:98, Sources/AgentViewKit/Items/ReasoningView.swift:116 (two findings)
+    - next: Implement one shared helper for the wide duration text. Call it from ReasoningView.completedTitle, ReasoningView.accessibilityLabel and EntryTimingView.accessibilityLabel. Then review again.
+  timestamp: 2026-10-11T23:31:15.464375+00:00
+- actor: claude-code
+  id: 01m4pmxaj1ma9meez3ve0v5d7v
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — timing decorator, Thought for N seconds, client pin 3c3adb9, 15 tests
+    - test: green — swift test, 1096 tests passed, 1 expected known issue, load average 58 to 70
+    - commit: e481e38
+    - review: findings — Sources/AgentViewKit/Items/EntryTimingView.swift:120, Sources/AgentViewKit/Items/ReasoningView.swift:98, Sources/AgentViewKit/Items/ReasoningView.swift:116 (two findings)
+  timestamp: 2026-10-11T23:31:32.545856+00:00
+- actor: claude-code
+  id: 01m4pnaybxmhgcdt43jyba1mhj
+  text: |-
+    2026-10-11 implement (iteration 2): the 4 review findings are fixed.
+    - New public helper `EntryTimingView.spokenDuration(_:locale:) -> String?`, next to `shownDuration`. It does the shown-duration guard and the wide `durationText` in one function. It gives nil when the view shows no duration.
+    - `ReasoningView.completedTitle`, `ReasoningView.accessibilityLabel` and `EntryTimingView.accessibilityLabel` call it as `spokenDuration(...).map { String(localized: "...\($0)") } ?? String(localized: "<fallback>")`. Each localized literal stays at its own call site, so the localization keys do not change ("Thought for %@", "Reasoning, %@", "Started at %@, took %@").
+    - Not done: the `durationPhrase(prefix:fallback:)` shape of one finding. A prefix string as an argument does not keep each full phrase as one localization key. The `.map ?? fallback` form puts the guard, the wide format and the join in the helper plus one expression, with no repeated guard.
+    - The visible line of `EntryTimingView` uses `.abbreviated` units, not the wide text, so it does not use the helper.
+    - 2 new tests in `EntryTimingTextTests` (RED was a build failure because the member did not exist; then GREEN).
+  timestamp: 2026-10-11T23:38:58.813337+00:00
+- actor: claude-code
+  id: 01m4pnb1ap9yb4y69aac4dwycr
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Sources/AgentViewKit/Items/EntryTimingView.swift, Sources/AgentViewKit/Items/ReasoningView.swift, Tests/AgentViewKitTests/Items/EntryTimingTextTests.swift. Full `swift test` exit 0: 1098 tests in 120 suites passed (1 known issue that was there before, HostedLayoutExpectationsTests), plus 104 tests in 10 suites and 1 test in 1 suite passed. Only warning: the SwiftPM mlx-swift_Cmlx.bundle "missing creator" line that was there before. Load average 79.45 at the start, 75.13 at the end. 4 of 4 findings checked.
+    - next: /review
+  timestamp: 2026-10-11T23:39:01.846772+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Message timing: show entry times from the client model'
@@ -78,3 +111,19 @@ The times come from the FoundationModelsACPClient models, not from the kit. The 
 - [x] Format with the system formatters (`Date.FormatStyle`, `Duration.UnitsFormatStyle`), localized; VoiceOver reads the time with the message.
 - [x] Tests with the injectable clock of the client: the decorator shows the expected time and duration; with no decorator, no time shows; a replayed entry shows none.
 - [x] README: show how to attach the decorator. Update `comparison.md` (rows "Message timing" and "Thought for N seconds", the note in section 4, and section 5 cross-cutting concerns).
+
+## Review Findings (2026-10-11 18:26)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 8 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `comparison.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Items/EntryTimingView.swift:120` `duplication/duplication` — EntryTimingView.accessibilityLabel uses the same shape as ReasoningView.completedTitle and ReasoningView.accessibilityLabel: a guard on shownDuration, a wide durationText, and a localized prefix string. This is the third copy of one pattern, so a fix to the duration wording would have to reach all three. Use the shared helper proposed for ReasoningView.swift:116 so that the wide duration phrase and the shown-duration guard live in one function. The start-time text stays in this function, passed in as the prefix argument. Keep each localized string literal at its own call site so the strings remain extractable.
+- [x] `Sources/AgentViewKit/Items/ReasoningView.swift:98` `reuse/reuse` — The completedTitle function repeats the shown-duration and wide-text steps that the new helper would hold. It is a second copy of the same step, next to the one at line 116. Use the shared wide-duration helper proposed for line 116, so that completedTitle, the reasoning label and the entry label get their duration text from one function.
+- [x] `Sources/AgentViewKit/Items/ReasoningView.swift:116` `duplication/duplication` — ReasoningView.accessibilityLabel repeats the body of completedTitle. Both take the shown duration, return the fallback "Thought" or "Reasoning" when no duration is shown, format the duration with durationText(width: .wide), and wrap it in a localized prefix. If one copy changes, the other can drift. Extract one private helper, for example durationPhrase(_ prefix: String, fallback: String, duration: TimeInterval?) -> String, that does the guard, the wide formatting and the localized join. Call it from completedTitle and from accessibilityLabel with the two strings as arguments. Localization keys must stay exact, so pass the literal localized string or use a LocalizedStringResource per call site.
+- [x] `Sources/AgentViewKit/Items/ReasoningView.swift:116` `reuse/reuse` — The new accessibilityLabel repeats the same steps as completedTitle: it gets the shown duration, then formats it with the wide unit style. The same two steps are also in completedTitle (line 98-99) and in EntryTimingView.accessibilityLabel. Three copies of this step can drift apart. Add one helper next to shownDuration, for example `EntryTimingView.spokenDuration(_:locale:) -> String?`, that returns the wide text of the shown duration or nil. Have completedTitle, ReasoningView.accessibilityLabel and EntryTimingView.accessibilityLabel call it. Each keeps its own fallback text.

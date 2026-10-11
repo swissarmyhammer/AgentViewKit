@@ -104,6 +104,23 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     return duration
   }
 
+  /// The text of the duration that a label shows, with whole words, for a
+  /// label that VoiceOver reads or for a title.
+  ///
+  /// Each caller puts the text in its own localized phrase and gives its own
+  /// text when the result is `nil`.
+  ///
+  /// - Parameters:
+  ///   - duration: The duration of an entry, in seconds, or `nil` when the
+  ///     entry has no end time.
+  ///   - locale: The locale of the text.
+  /// - Returns: The ``durationText(for:width:locale:)`` of the
+  ///   ``shownDuration(_:)`` with `.wide` units, such as "1 minute, 15
+  ///   seconds", or `nil` when the view shows no duration.
+  public static func spokenDuration(_ duration: TimeInterval?, locale: Locale = .autoupdatingCurrent) -> String? {
+    shownDuration(duration).map { durationText(for: $0, width: .wide, locale: locale) }
+  }
+
   /// The label that VoiceOver reads for the time of an entry.
   ///
   /// - Parameters:
@@ -117,11 +134,8 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent
   ) -> String {
     let start = startText(for: startedAt, locale: locale)
-    guard let shown = shownDuration(duration) else {
-      return String(localized: "Started at \(start)")
-    }
-    let took = durationText(for: shown, width: .wide, locale: locale)
-    return String(localized: "Started at \(start), took \(took)")
+    return spokenDuration(duration, locale: locale).map { String(localized: "Started at \(start), took \($0)") }
+      ?? String(localized: "Started at \(start)")
   }
 
   public var body: some View {

@@ -92,12 +92,11 @@ public struct ReasoningView: View {
   ///   time.
   /// - Returns: "Thought for D", with the duration in whole units of the
   ///   system duration formatter, such as "Thought for 3 seconds", or
-  ///   "Thought" when ``EntryTimingView/shownDuration(_:)`` shows no
-  ///   duration.
+  ///   "Thought" when ``EntryTimingView/spokenDuration(_:locale:)`` gives
+  ///   no duration text.
   public static func completedTitle(duration: TimeInterval?) -> String {
-    guard let shown = EntryTimingView.shownDuration(duration) else { return String(localized: "Thought") }
-    let text = EntryTimingView.durationText(for: shown, width: .wide)
-    return String(localized: "Thought for \(text)")
+    EntryTimingView.spokenDuration(duration).map { String(localized: "Thought for \($0)") }
+      ?? String(localized: "Thought")
   }
 
   /// The label that VoiceOver reads for a block (plan.md §6).
@@ -113,9 +112,8 @@ public struct ReasoningView: View {
     if isInProgress {
       return String(localized: "Reasoning, in progress")
     }
-    guard let shown = EntryTimingView.shownDuration(duration) else { return String(localized: "Reasoning") }
-    let text = EntryTimingView.durationText(for: shown, width: .wide)
-    return String(localized: "Reasoning, \(text)")
+    return EntryTimingView.spokenDuration(duration).map { String(localized: "Reasoning, \($0)") }
+      ?? String(localized: "Reasoning")
   }
 
   public var body: some View {

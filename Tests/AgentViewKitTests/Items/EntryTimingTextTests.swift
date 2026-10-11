@@ -50,6 +50,15 @@ import Testing
     #expect(EntryTimingView.shownDuration(Self.almostOneSecond) == Self.almostOneSecond)
   }
 
+  @Test func theSpokenDurationIsTheWideTextOfTheShownDuration() {
+    #expect(EntryTimingView.spokenDuration(Self.minuteAndQuarter, locale: Self.locale) == "1 minute, 15 seconds")
+  }
+
+  @Test func aDurationThatIsNotShownHasNoSpokenText() {
+    #expect(EntryTimingView.spokenDuration(Self.tooShort, locale: Self.locale) == nil)
+    #expect(EntryTimingView.spokenDuration(nil, locale: Self.locale) == nil)
+  }
+
   @Test func theLabelTellsTheStartAndTheDuration() {
     let start = EntryTimingView.startText(for: Self.start, locale: Self.locale)
 
