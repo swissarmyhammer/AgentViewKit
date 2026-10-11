@@ -71,7 +71,7 @@ The models are in FoundationModelsACPClient. The pins of the two ACP packages ar
   | `.terminal` | `TerminalEntry` | `bytes`, and the computed `text` |
   | `.plan` | `PlanTranscriptEntry` | `planId`, `entries` |
   | `.unknown` | `UnknownEntry` | the type string and the raw JSON |
-  | `.compaction` | `CompactionEntry` | the compaction status and its summary (unstable ACP) |
+  | `.compaction` | `CompactionEntry` | the compaction status and its summary (stable ACP since schema alpha.8) |
   | `.error` | `ErrorEntry` | `code`, `message`, `data` |
 
   Each entry object also has `meta`. A streamed chunk changes only its own entry object. Thus only that row draws again.
@@ -79,7 +79,7 @@ The models are in FoundationModelsACPClient. The pins of the two ACP packages ar
 - **Row identity.** `TranscriptEntry.id` is a `TranscriptEntry.ID`: `.wire` with the `SessionEntry.ID` for an entry from the wire, or `.local` with a `UUID` for an entry that the client made. The identity does not change when a local user message gets its `messageId`. **The views use `TranscriptEntry.id` as the row identity**, not `SessionEntry.ID` and not `MessageId`. A thought and an agent message with the same `MessageId` are two entries.
 - **Last-value state:** `availableCommands` (an optional array of `AvailableCommand`), `configOptions` (an optional array of `SessionConfigOption`), `usage` (an optional `UsageUpdate`), `agentState`, `sessionInfo` (a `SessionInfoUpdate` with the title and `updatedAt`, folded as a patch) and `mcpServers` (an array of `MCPServerItem`).
   - `agentState` is an optional `StateUpdate`: `.running`, `.idle` with an `IdleStateUpdate` that has an optional `stopReason`, `.requiresAction`, and `.unknown` with the wire string and the raw `JSONValue`.
-- **Notices (unstable ACP):** `notices` is an array of `SessionNotice`, in arrival order. A notice is not in the transcript, and no replay gives it again. `dismissNotice(_:)` removes one notice. The start of a resume and the close remove all notices.
+- **Notices (stable ACP since schema alpha.8):** `notices` is an array of `SessionNotice`, in arrival order. A notice is not in the transcript, and no replay gives it again. `dismissNotice(_:)` removes one notice. The start of a resume and the close remove all notices.
 - **Stream state:** `hasMissedUpdates`, `isReplaying`, `history` (a `SessionHistory`: `.live` or `.retained(replayFrom:)`) and `isClosed`. Only the connection model changes them.
 - **Pending requests:** `pendingPermissions` (an array of `PendingPermissionRequest`) and `pendingElicitations` (an array of `PendingElicitation`) for the session. The reply methods are `selectPermission(_:option:)`, `cancelPermission(_:)`, `acceptElicitation(_:content:)`, `declineElicitation(_:)` and `cancelElicitation(_:)`. `cancelAllPending()` cancels each pending request. A session elicitation with a `toolCallId` is linked to its tool call entry, in `ToolCallEntry.linkedElicitationIDs`, while it is pending.
 - **Prompt helper.** `prompt(_:meta:)` adds a local `UserMessageEntry` with the `sendState` `.pending` before it sends `session/prompt`. `PendingPromptCorrelator` links the entry to the `messageId` of the `PromptResponse` or of the echoed `user_message`, in each order. The entry then gets `.sent`, and keeps its object and its identity. The echo adds no second entry. If the request fails, the entry gets `.failed`, the model adds a local `ErrorEntry` with the JSON-RPC code, message and data, and the call throws the error again.

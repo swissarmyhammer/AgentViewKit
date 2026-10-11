@@ -30,9 +30,45 @@ comments:
     - review: not run
     - next: a person sends the report to the owner of FoundationModelsACP, or starts a session there for the failing test and the fix.
   timestamp: 2026-10-10T18:08:14.507605+00:00
+- actor: claude-code
+  id: 01m4nc7qfz2bjr25t3jqpfg026
+  text: '2026-10-11: The full report was sent to the FoundationModelsACP session (foundationmodelsacp-be). That session must add its own task, write the failing test, make the fix, and send back the commit. The title now names FoundationModelsACP. Next: when the fixed commit is pushed, update the AgentViewKit dependency.'
+  timestamp: 2026-10-11T11:40:41.855679+00:00
+- actor: claude-code
+  id: 01m4nd4596ch8zp528znexnqsa
+  text: |-
+    2026-10-11, blocker for the third subtask (dependency update).
+
+    - First subtask checked: the test and the fix are in FoundationModelsACP `main` at `5f94484` (parent `2268ced`, task ^mwxhbzz there).
+    - How the pin works: `Package.swift` pins FoundationModelsACP and FoundationModelsACPClient with `branch: "main"`. `Package.resolved` is git-ignored. FoundationModelsACPClient pins FoundationModelsACP with `branch: "main"` and no revision, so no intermediate package blocks the revision. FoundationModelsACPAgent is not in the graph.
+    - I set FoundationModelsACP to `5f94484`. The checkout had the fixed `EventBroadcaster.swift` (outbox, `delivery` lock, `detach` takes only the state lock).
+    - The build failed. FoundationModelsACPClient `74fc2df` does not compile with `5f94484`: `'CompactionStatus' is not a member type of enum 'FoundationModelsACP.Unstable'`. Cause: `dc336cb` in `b2cec56..5f94484` re-vendors the schema to `schema-v2.0.0-alpha.8` and moves the `Unstable` types.
+    - I set FoundationModelsACPClient to its `main` `24643be` (breaking refactor, "move to stable ACP types"). Then FoundationModelsACPClient compiled, but AgentViewKit failed: `Sources/AgentViewKit/Theme/AgentTheme.swift`: `'CompactionStatus' is not a member type of enum 'FoundationModelsACP.Unstable'`, and the same for `NoticeSeverity`.
+    - Thus the update is a schema migration (alpha.7 to alpha.8), with source changes, behavior changes in 19 commits, and a change of the recorded schema pin in `Docs/decisions/acp-version.md`. That is more than this card orders, so I did not do it. I made task ^j6qef6x with the facts and the work.
+    - I put the pins back to FoundationModelsACP `b2cec56` and FoundationModelsACPClient `74fc2df`, and copied the root `Package.resolved` into the demo project again. `swift build --build-tests`: Build complete. `swift test --skip-build --filter ResolvedPinsTests`: 2 tests passed.
+    - Local tool problem: `swift package update FoundationModelsACP` stopped with `'editorkit': ... couldn't be removed`, because the sourcekit-lsp of `sah serve` (pid 12020) builds in `.build/checkouts/EditorKit/.build/index-build`. The failed update also removed the `editorkit` entry from `.build/workspace-state.json`. I added the entry again (same revision `235cbb7`), and then `swift package resolve` worked. To change a pin, edit the git-ignored `Package.resolved` and run `swift package resolve`; do not use `swift package update` while that indexer runs. I did not stop any process.
+    - Next: a person decides if ^j6qef6x is done now. When ^j6qef6x is done, check the third subtask of this card.
+  timestamp: 2026-10-11T11:56:13.478180+00:00
+- actor: claude-code
+  id: 01m4nd48ehn6w0n1wq4d6zeakd
+  text: |-
+    ### implement — stuck
+    - evidence: no tracked source file changed. Card description: first subtask checked (FoundationModelsACP `5f94484`). The pin update to `5f94484` needs FoundationModelsACPClient `24643be` and a schema alpha.8 migration of AgentViewKit (build error `'CompactionStatus' is not a member type of enum 'FoundationModelsACP.Unstable'` in `Sources/AgentViewKit/Theme/AgentTheme.swift`). Pins put back to `b2cec56` / `74fc2df`; `swift build --build-tests` complete; `swift test --skip-build --filter ResolvedPinsTests` 2 of 2 passed. New task ^j6qef6x has the migration.
+    - next: a person decides on ^j6qef6x. After it is done, check the third subtask here. The task stays in doing.
+  timestamp: 2026-10-11T11:56:16.721338+00:00
+- actor: claude-code
+  id: 01m4nd4xd1fahtcwgdgjmq9hz8
+  text: |-
+    ### finish iteration 2 — stuck
+    - implement: stuck — FoundationModelsACP 5f94484 needs FoundationModelsACPClient 24643be and a migration of AgentViewKit to schema alpha.8 (AgentTheme.swift: 'CompactionStatus' is not a member type of enum 'FoundationModelsACP.Unstable'). The pins are set back to b2cec56 / 74fc2df. No tracked source file changed.
+    - test: not run
+    - commit: not run
+    - review: not run
+    - next: do the migration in ^j6qef6x, then update the pin and check the third subtask.
+  timestamp: 2026-10-11T11:56:38.177586+00:00
 position_column: doing
 position_ordinal: '8180'
-title: Find and report the EventBroadcaster lock-order deadlock of FoundationModelsACPClient
+title: Find and report the EventBroadcaster lock-order deadlock of FoundationModelsACP
 ---
 ## What
 A test process of AgentViewKitTests stopped for 30 minutes (found while ^kmkd5rx was researched, 2026-10-10). `sample` showed two threads that wait for each other:
@@ -44,12 +80,12 @@ Thus the broadcaster yields to a continuation while it holds its lock, and the c
 
 The hang occurred one time, when the output of the test process went through a slow pipe reader. It can occur in each run where a `SessionModel` is released while a notification for it arrives.
 
-- [ ] Write a test in FoundationModelsACP that releases a subscribed `SessionModel` (or cancels the task that iterates a subscribed stream) while the router delivers updates to it, and that stops in the deadlock.
-- [ ] Report the deadlock to the owner of FoundationModelsACP with the two stacks (do not change the dependency checkout in this repository).
-- [ ] When the fixed version is out, update the dependency of AgentViewKit.
+- [x] Write a test in FoundationModelsACP that releases a subscribed `SessionModel` (or cancels the task that iterates a subscribed stream) while the router delivers updates to it, and that stops in the deadlock. (Done in FoundationModelsACP `main` at commit `5f94484`, parent `2268ced`, task ^mwxhbzz there: `EventBroadcasterTests.aCancelWhileAYieldResumesTheConsumerDoesNotDeadlock`. The same commit has the fix: each step collects its events in an outbox under the state lock, and yields after the lock is released. A separate delivery lock keeps the event order. `detach` takes only the state lock.)
+- [x] Report the deadlock to the owner of FoundationModelsACP with the two stacks (do not change the dependency checkout in this repository).
+- [ ] When the fixed version is out, update the dependency of AgentViewKit. (Blocked: FoundationModelsACP `5f94484` also has the ACP schema `schema-v2.0.0-alpha.8`, and AgentViewKit does not build with it. See the blocker comment of 2026-10-11.)
 
 ## Report for the owner of FoundationModelsACP
-Send this text to the session or person that owns FoundationModelsACP. Checked against `main` at 2268ced. The checkout of AgentViewKit has the same `EventBroadcaster.swift`.
+Sent to the FoundationModelsACP session (foundationmodelsacp-be) on 2026-10-11. Checked against `main` at 2268ced. The checkout of AgentViewKit has the same `EventBroadcaster.swift`.
 
 **Title:** ABBA deadlock: `EventBroadcaster` yields to a stream continuation while it holds its `Mutex`.
 

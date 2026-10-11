@@ -49,7 +49,9 @@ import Testing
   }
 
   @Test func aSessionStopReasonWithABannerAnnouncesTheBannerTitle() {
-    let reasons: [FoundationModelsACP.StopReason] = [.maxTokens, .maxTurnRequests, .refusal, .unknown("_truncated")]
+    let reasons: [FoundationModelsACP.StopReason] = [
+      .maxTokens, .maxTurnRequests, .refusal, .error, .unknown("_truncated"),
+    ]
     for reason in reasons {
       let idle = Self.makeIdle(reason)
       #expect(ThreadAccessibility.turnAnnouncement(old: Self.running, new: idle) == StateBanner.message(for: idle).title)

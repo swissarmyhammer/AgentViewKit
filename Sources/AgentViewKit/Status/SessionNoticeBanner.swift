@@ -15,7 +15,7 @@ import SwiftUI
 ///
 /// A notice is not in the transcript, so the banners are not rows of the
 /// conversation. ``AgentThreadView`` shows them above the conversation.
-/// Notices are unstable ACP.
+/// Notices are stable ACP since schema alpha.8.
 ///
 /// The accessibility label of each banner is the severity, the title and the
 /// description, such as `Warning, Quota low, Half of the quota is used.`
@@ -84,7 +84,7 @@ private struct NoticeBanner: View {
   /// - Parameter severity: The severity of a notice.
   /// - Returns: The name of the severity. A severity that the kit does not
   ///   know gives its wire value.
-  private static func severityLabel(_ severity: Unstable.NoticeSeverity) -> String {
+  private static func severityLabel(_ severity: NoticeSeverity) -> String {
     switch severity {
     case .info: String(localized: "Information")
     case .warning: String(localized: "Warning")
@@ -97,7 +97,7 @@ private struct NoticeBanner: View {
   ///
   /// - Parameter severity: The severity of a notice.
   /// - Returns: The symbol name.
-  private static func symbolName(for severity: Unstable.NoticeSeverity) -> String {
+  private static func symbolName(for severity: NoticeSeverity) -> String {
     switch severity {
     case .info, .unknown: "info.circle.fill"
     case .warning: "exclamationmark.triangle.fill"

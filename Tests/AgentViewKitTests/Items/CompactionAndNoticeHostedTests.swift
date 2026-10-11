@@ -34,7 +34,7 @@
 
     /// The row key of the compaction of the tests.
     static var compactionKey: String {
-      TranscriptEntry.ID.wire(.compaction(Unstable.CompactionId(rawValue: compactionID))).rowKey
+      TranscriptEntry.ID.wire(.compaction(CompactionId(rawValue: compactionID))).rowKey
     }
 
     /// A `compaction_update` value for the compaction of the tests.

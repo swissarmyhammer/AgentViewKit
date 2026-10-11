@@ -13,8 +13,9 @@ import SwiftUI
 /// no state, the view is empty. A stop reason that the ACP standard does not
 /// name shows the text from ``extensionStopReasonMessages``, or a general
 /// text with the raw value (plan.md §3.8 "Agent state and stop reasons").
-/// The `message(for:)` function that takes a `StateUpdate` gives the text of
-/// each value.
+/// The stop reason `error` shows the `message` of the `error` object of the
+/// idle state, when the agent gives one. The `message(for:)` function that
+/// takes a `StateUpdate` gives the text of each value.
 ///
 /// The bar has the identifier ``bannerIdentifier``. The text of the bar has
 /// the ``Message/identifier`` of its message.
@@ -77,7 +78,7 @@ public struct StateBanner: View {
     case .requiresAction:
       requiresActionMessage
     case .idle(let idle):
-      message(forStopReason: idle.stopReason)
+      message(forIdle: idle)
     case .unknown(let wireValue, _):
       Message(
         title: String(localized: "The agent reported an unknown state"),
@@ -89,11 +90,11 @@ public struct StateBanner: View {
 
   /// The text of the bar for an idle agent.
   ///
-  /// - Parameter reason: The stop reason of the idle state, or `nil` when the
-  ///   agent gave none.
+  /// - Parameter idle: The idle state, with its optional stop reason and its
+  ///   optional error object.
   /// - Returns: The text of the stop reason.
-  private static func message(forStopReason reason: FoundationModelsACP.StopReason?) -> Message {
-    switch reason {
+  private static func message(forIdle idle: IdleStateUpdate) -> Message {
+    switch idle.stopReason {
     case nil:
       readyMessage
     case .endTurn:
@@ -106,6 +107,8 @@ public struct StateBanner: View {
       maxTurnRequestsMessage
     case .refusal:
       refusalMessage
+    case .error:
+      failedTurnMessage(error: idle.error)
     case .unknown(let wireValue):
       message(forUnknownStopReason: wireValue)
     }
@@ -211,6 +214,25 @@ extension StateBanner {
     explanation: String(localized: "Change the request and send it again."),
     symbolName: "exclamationmark.bubble.fill",
     identifier: "state-banner-refusal")
+
+  /// The accessibility identifier of the text for a turn that ended with
+  /// `error`.
+  public static let failedTurnIdentifier = "state-banner-error"
+
+  /// The text for a turn that ended with `error` (ACP schema alpha.8).
+  ///
+  /// - Parameter error: The error object of the idle state, or `nil` when the
+  ///   agent gave none.
+  /// - Returns: The text. When the agent gave an error object, the
+  ///   explanation shows its `message`.
+  private static func failedTurnMessage(error: ACPError?) -> Message {
+    Message(
+      title: String(localized: "The turn failed"),
+      explanation: error.map { String(localized: "The agent reported this failure: \($0.message)") }
+        ?? String(localized: "The turn stopped because of a failure in the agent. Send the request again."),
+      symbolName: "exclamationmark.triangle.fill",
+      identifier: failedTurnIdentifier)
+  }
 }
 
 extension TranscriptEntry {

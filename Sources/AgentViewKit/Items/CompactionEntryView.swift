@@ -25,7 +25,7 @@ import SwiftUI
 ///
 /// The view reads the entry object, so each later `compaction_update` and
 /// each `compaction_summary_chunk` changes this row in place. Compaction is
-/// unstable ACP.
+/// stable ACP since schema alpha.8.
 public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of the title and the status of
   /// each row. The rest is the row key of the entry.
@@ -64,7 +64,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// - Returns: The name of the status. The status of an entry with no
   ///   `compaction_update` gives "No status yet", and a status that the kit
   ///   does not know gives its wire value.
-  private static func statusLabel(for status: Unstable.CompactionStatus) -> String {
+  private static func statusLabel(for status: CompactionStatus) -> String {
     switch status {
     case .inProgress: WorkStatusLabel.inProgress
     case .completed: WorkStatusLabel.completed

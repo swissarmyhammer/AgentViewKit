@@ -52,7 +52,7 @@ public enum ThreadAccessibility {
     switch idle.stopReason {
     case nil, .endTurn: return responseCompleteText
     case .cancelled: return responseCancelledText
-    case .maxTokens, .maxTurnRequests, .refusal, .unknown:
+    case .maxTokens, .maxTurnRequests, .refusal, .error, .unknown:
       return StateBanner.message(for: .idle(idle)).title
     }
   }

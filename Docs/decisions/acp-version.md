@@ -21,8 +21,10 @@ supported: `2`
   behind the `unstable_protocol_v2` feature.
 - v2 is a draft. The migration guide tells each side to keep v1 and to add v2
   behind version negotiation and feature flags. The kit builds against
-  `schema-v2.0.0-alpha.7`: FoundationModelsACP `fe0d82d` (plan.md §3.8). The
-  earlier pin was `schema-v2.0.0-alpha.3`.
+  `schema-v2.0.0-alpha.8`: FoundationModelsACP `5f94484` and
+  FoundationModelsACPClient `24643be` (plan.md §3.8). The earlier pins were
+  `schema-v2.0.0-alpha.7` (FoundationModelsACP `fe0d82d`) and
+  `schema-v2.0.0-alpha.3`.
 - When a client sends `2` and the agent answers `1`, the client continues
   with v1 or disconnects.
 
@@ -96,6 +98,30 @@ alpha.7 change these parts of the wire:
 | `ToolCallUpdate.name` is new and optional, with patch rules. It is the program name of the tool. `title` stays the label for people. | The tool call views select the registry entry by `name` and show `title` as the label (a later view task). |
 | `NewSessionResponse.availableCommands` and `ResumeSessionResponse.availableCommands` are new and optional. | `ConnectionModel` seeds the commands of the session model from the response. The views read the commands from the session model. |
 | `ResumeSessionRequest.replayFrom` means the retained history. No value means no replay. `{"type": "start"}` means all retained history. | A resume sends `replayFrom: .start`. The agent decides how much history it retains, so the replayed history can be partial. |
+
+## Schema alpha.8
+
+The protocol version integer stays `2`. FoundationModelsACP `5f94484`
+vendors `schema-v2.0.0-alpha.8` (commit `dc336cb`). The schema changes from
+alpha.7 to alpha.8 change these parts of the wire:
+
+| change | effect on the kit |
+|---|---|
+| `StopReason` has the new value `error`. The agent sends it when the active work fails after the agent inserted the user message. A failure before that point is an error response to `session/prompt`. | `StateBanner` shows "The turn failed" with the identifier `state-banner-error`. The turn announcement of VoiceOver speaks the same title. Before, a switch over `StopReason` did not compile. |
+| `IdleStateUpdate.error` is new and optional. It is a JSON-RPC error object (`code`, `message`, `data`). | When the stop reason is `error` and the agent gives the error object, `StateBanner` shows its `message` in the explanation. With no error object, the bar shows a general explanation. |
+| The `notice`, `compaction_update` and `compaction_summary_chunk` session updates are stable. Their wire names and their fields do not change. | The Swift types are top-level types now: `CompactionId`, `CompactionStatus`, `CompactionUpdate`, `CompactionSummaryChunk`, `Notice` and `NoticeSeverity`. The `Unstable.` prefix is gone from `AgentTheme`, `CompactionEntryView`, `SessionNoticeBanner` and the tests. FoundationModelsACPClient `24643be` uses the same names. |
+
+The other commits in `b2cec56..5f94484` change the behavior of the
+connections, not the wire. Their effect on the kit:
+
+| commit | change | effect on the kit |
+|---|---|---|
+| `7b3ee45` (breaking) | `AgentSideConnection.insertUserMessage(_:messageId:into:)` takes a history closure. The connection calls it only after a success response. | None. `InMemoryDemoACPAgent` uses `insertUserMessage(_:)`, which has no history closure. Its replayed history is the fixed script of `InMemoryDemoAgent`. |
+| `6181fe3` | The connection sends no `user_message` echo when the prompt handler fails. | None. The prompt handler of the demo agent does not fail after it inserts the user message. |
+| `dd8996e` | `AgentSideConnection.sessionUpdate(_:)` refuses an update that breaks a schema rule: a custom stop reason that does not start with `_`, a negative `size` or `used`, or a cost currency that is not three capital letters. | None. The demo agent sends `end_turn`, counts of zero or more, and no cost. `ScriptedWireAgent` writes raw frames, so the tests can still send each value that a client must accept. |
+| `a8736dc` | `ClientSideConnection` answers each pending `session/request_permission` request of a session with `cancelled` when the client cancels the session. The first answer wins. | None. `SessionModel.cancel(meta:)` of FoundationModelsACPClient already answers each pending permission with `cancelled` before it sends `session/cancel`. |
+| `1cc2dd5` | `ClientSideConnection.promptWithEcho(_:)` is new. | None. The kit sends prompts through the `SessionModel` of FoundationModelsACPClient. |
+| `5f94484` | `EventBroadcaster` yields the events outside its state lock. | The deadlock of the event stream (task ^06hz99g) is gone. |
 
 ## Adapter
 

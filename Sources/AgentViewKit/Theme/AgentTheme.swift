@@ -152,13 +152,14 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
 
     /// The color of a context compaction with `status`.
     ///
-    /// - Parameter status: The status of the compaction (unstable ACP).
+    /// - Parameter status: The status of the compaction (stable ACP since schema
+    ///   alpha.8).
     /// - Returns: ``running`` for a compaction in progress, ``completed`` for
     ///   a completed compaction, ``failed`` for a failed compaction,
     ///   ``cancelled`` for a cancelled compaction, and ``pending`` for a
     ///   compaction with no reported status or with a status that the kit
     ///   does not know.
-    public func color(for status: Unstable.CompactionStatus) -> Color {
+    public func color(for status: CompactionStatus) -> Color {
       switch status {
       case .inProgress: running
       case .completed: completed
@@ -205,11 +206,12 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     /// The status colors have no severity colors, so the tint uses the status
     /// color that has the same strength, as the priority tint does.
     ///
-    /// - Parameter severity: The severity of the notice (unstable ACP).
+    /// - Parameter severity: The severity of the notice (stable ACP since
+    ///   schema alpha.8).
     /// - Returns: ``failed`` for an error, ``running`` for a warning, and
     ///   ``pending`` for information or a severity that the kit does not
     ///   know.
-    public func color(for severity: Unstable.NoticeSeverity) -> Color {
+    public func color(for severity: NoticeSeverity) -> Color {
       switch severity {
       case .error: failed
       case .warning: running

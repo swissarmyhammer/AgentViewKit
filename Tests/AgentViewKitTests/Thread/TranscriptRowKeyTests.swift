@@ -31,7 +31,7 @@ import Testing
       .toolCall(ToolCallId(rawValue: raw)),
       .terminal(TerminalId(rawValue: raw)),
       .plan(PlanId(rawValue: raw)),
-      .compaction(Unstable.CompactionId(rawValue: raw)),
+      .compaction(CompactionId(rawValue: raw)),
       .unidentified(position: 0),
     ]
 

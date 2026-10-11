@@ -50,6 +50,7 @@
       (stateUpdate(#""state": "idle", "stopReason": "max_tokens""#), "The response is incomplete"),
       (stateUpdate(#""state": "idle", "stopReason": "max_turn_requests""#), "The turn stopped"),
       (stateUpdate(#""state": "idle", "stopReason": "refusal""#), "The model refused to continue"),
+      (stateUpdate(#""state": "idle", "stopReason": "error""#), "The turn failed"),
       (stateUpdate(#""state": "idle", "stopReason": "_truncated""#), "The response was cut off"),
       (stateUpdate(#""state": "idle", "stopReason": "_custom_stop""#), "The turn stopped for an unknown reason"),
       (stateUpdate(#""state": "paused""#), "The agent reported an unknown state"),

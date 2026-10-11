@@ -34,14 +34,14 @@ import Testing
   }
 
   @Test(arguments: [
-    (Unstable.CompactionStatus.inProgress, Color.blue),
+    (CompactionStatus.inProgress, Color.blue),
     (.completed, .green),
     (.failed, .red),
     (.cancelled, .gray),
     (SessionEntry.Compaction.unreportedStatus, .yellow),
     (.unknown("paused"), .yellow),
   ])
-  func eachCompactionStatusHasItsColor(status: Unstable.CompactionStatus, expected: Color) {
+  func eachCompactionStatusHasItsColor(status: CompactionStatus, expected: Color) {
     #expect(Self.colors.color(for: status) == expected)
   }
 
@@ -55,12 +55,12 @@ import Testing
   }
 
   @Test(arguments: [
-    (Unstable.NoticeSeverity.error, Color.red),
+    (NoticeSeverity.error, Color.red),
     (.warning, .blue),
     (.info, .yellow),
     (.unknown("critical"), .yellow),
   ])
-  func eachNoticeSeverityHasItsTint(severity: Unstable.NoticeSeverity, expected: Color) {
+  func eachNoticeSeverityHasItsTint(severity: NoticeSeverity, expected: Color) {
     #expect(Self.colors.color(for: severity) == expected)
   }
 

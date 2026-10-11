@@ -21,9 +21,18 @@ import Testing
   /// A stop reason that no agent of the kit sends.
   nonisolated static let customReason = "_custom"
 
-  /// Each stop reason that a test shows: the known reasons and one unknown
-  /// reason.
-  nonisolated static let shownReasons = knownReasons.map(\.0) + [customReason]
+  /// The ACP stop reason of a turn that failed (schema alpha.8).
+  nonisolated static let errorReason = "error"
+
+  /// The title of the bar for the ACP stop reason `error`.
+  nonisolated static let failedTurnTitle = "The turn failed"
+
+  /// The `message` of the idle error object in the failure tests.
+  nonisolated static let idleErrorMessage = "The model server closed the connection."
+
+  /// Each stop reason that a test shows: the known reasons, one unknown
+  /// reason, and the ACP stop reason `error`.
+  nonisolated static let shownReasons = knownReasons.map(\.0) + [customReason, errorReason]
 
   /// Decodes an idle state update with a stop reason.
   ///
@@ -31,8 +40,35 @@ import Testing
   /// - Returns: The state update.
   /// - Throws: The decoding error.
   static func idleUpdate(stopReason wireValue: String) throws -> StateUpdate {
-    let json = #"{"state": "idle", "stopReason": "\#(wireValue)"}"#
-    return try JSONDecoder().decode(StateUpdate.self, from: Data(json.utf8))
+    try decodeState(#"{"state": "idle", "stopReason": "\#(wireValue)"}"#)
+  }
+
+  /// Decodes a state update.
+  ///
+  /// - Parameter json: The JSON text of the update.
+  /// - Returns: The state update.
+  /// - Throws: The decoding error.
+  static func decodeState(_ json: String) throws -> StateUpdate {
+    try JSONDecoder().decode(StateUpdate.self, from: Data(json.utf8))
+  }
+
+  @Test func theErrorReasonWithNoErrorObjectShowsTheFailedTurnBar() throws {
+    let message = StateBanner.message(for: try Self.idleUpdate(stopReason: Self.errorReason))
+
+    #expect(message.title == Self.failedTurnTitle)
+    #expect(message.identifier == StateBanner.failedTurnIdentifier)
+    #expect(!message.explanation.isEmpty)
+  }
+
+  @Test func theErrorReasonShowsTheMessageOfTheIdleErrorObject() throws {
+    let state = try Self.decodeState(
+      #"{"state": "idle", "stopReason": "error", "error": {"code": -32603, "message": "\#(Self.idleErrorMessage)"}}"#)
+
+    let message = StateBanner.message(for: state)
+
+    #expect(message.title == Self.failedTurnTitle)
+    #expect(message.identifier == StateBanner.failedTurnIdentifier)
+    #expect(message.explanation.contains(Self.idleErrorMessage))
   }
 
   @Test(arguments: knownReasons)
