@@ -73,8 +73,24 @@ comments:
     - evidence: Read only. The root `Package.resolved` pins FoundationModelsACP `5f94484eaed1f47e1432b689b9bda8194ecb95a0` and FoundationModelsACPClient `24643be3817912251e93705443012013b6b6e177`. The `.build/checkouts/FoundationModelsACP` HEAD is `5f94484`, with no local changes. Its `EventBroadcaster.swift` has the outbox, the `delivery` lock (`withState` takes it around the state step and the yield), and `detach` takes only `state.withLock`. Third subtask checked: done in f3f5c2d (^j6qef6x). Subtasks: 3 of 3. No source file changed. Only the card changed. No commit.
     - next: the task stays in doing. It is ready for review.
   timestamp: 2026-10-11T12:17:38.885883+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m4nef5pdyrpa0kjcydj84nft
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (abb326c). 0 findings, 0 confirmed, 0 refuted. The 4 changed files are kanban card files in `.kanban/`, which `.reviewignore` excludes. The source change is in f3f5c2d, which the review of ^j6qef6x found clean. No prior review findings on this task.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-11T12:19:42.925261+00:00
+- actor: claude-code
+  id: 01m4nefg6h646kar81a92hktcf
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: no-change (source) — pin FoundationModelsACP 5f94484 confirmed, the checkout has the fix; third subtask checked (done in f3f5c2d, ^j6qef6x)
+    - test: not run — no source change after the green run of f3f5c2d (1042 tests)
+    - commit: abb326c (card files only)
+    - review: clean — 0 findings; task in done
+  timestamp: 2026-10-11T12:19:53.681899+00:00
+position_column: done
+position_ordinal: ff9f80
 title: Find and report the EventBroadcaster lock-order deadlock of FoundationModelsACP
 ---
 ## What

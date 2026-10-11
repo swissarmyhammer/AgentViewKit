@@ -90,8 +90,8 @@ import Testing
       command: shell, arguments: [commandOption, command, commandName], openScript: openScript)
   }
 
-  /// Runs `runner` with the time limit of the ACP tests. When the time runs
-  /// out, the run is cancelled, so the test fails and does not hang.
+  /// Runs `runner` with the arguments and the environment of a method. By
+  /// default, the method has no arguments and no environment variables.
   ///
   /// - Parameters:
   ///   - runner: The runner.
@@ -102,8 +102,7 @@ import Testing
   static func run(
     _ runner: TerminalAppAuthRunner, arguments: [String] = [], environment: [String: String] = [:]
   ) async throws -> Int32? {
-    let run = Task { try await runner.runTerminalAuth(arguments: arguments, environment: environment) }
-    return try await ACPTestTimeLimit.run(stopping: { run.cancel() }) { try await run.value }
+    try await runner.runTerminalAuth(arguments: arguments, environment: environment)
   }
 
   @Test func aRunGivesTheExitStatusOfTheCommandWithTheArgumentsOfTheMethod() async throws {

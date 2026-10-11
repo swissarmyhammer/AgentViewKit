@@ -30,8 +30,7 @@ private struct Harness {
   }
 
   /// Sends `initialize` with `version` through
-  /// `ConnectionModel.initializeCheckingProtocolVersion(_:)`, with the time
-  /// limit of the ACP tests.
+  /// `ConnectionModel.initializeCheckingProtocolVersion(_:)`.
   ///
   /// - Parameter version: The protocol version of the request.
   /// - Returns: The answer of the agent.
@@ -39,9 +38,7 @@ private struct Harness {
   func initialize(requesting version: ProtocolVersion = .v2) async throws -> InitializeResponse {
     let request = InitializeRequest(
       info: Implementation(name: "AgentViewKitTests", version: "1.0.0"), protocolVersion: version)
-    return try await agent.bounded {
-      try await connection.initializeCheckingProtocolVersion(request)
-    }
+    return try await connection.initializeCheckingProtocolVersion(request)
   }
 }
 

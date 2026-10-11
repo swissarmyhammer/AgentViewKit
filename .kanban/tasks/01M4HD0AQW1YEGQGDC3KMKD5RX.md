@@ -56,6 +56,29 @@ comments:
     - review: not run
     - next: a person decides: (1) a watchdog that counts only main-actor time, or (2) keep the bound and run the full suite only at low load.
   timestamp: 2026-10-10T18:06:08.402304+00:00
+- actor: claude-code
+  id: 01m4neqbhekv7vhmpasp63nq2d
+  text: 'Decision of the owner (2026-10-11): remove the time limit. Remove the wall-clock watchdog of `ACPTestTimeLimit.run` (and `operationLimitSeconds`) from the demo agent tests. Remove or change the tests and doc comments that require the bound (for example `ScriptedWireAgentBoundedTests`, the doc comment from ^pbgn012). Then finish the task.'
+  timestamp: 2026-10-11T12:24:11.054607+00:00
+- actor: claude-code
+  id: 01m4nf694frw78g99h4h1tva21
+  text: |-
+    Implementation of the owner decision (2026-10-11): the time limit is removed.
+
+    - Removed `Tests/AgentViewKitTests/ACP/ScriptedWireAgent+Bounded.swift` (`ScriptedWireAgent.bounded(_:)`, `operationLimitSeconds`, `operationLimit`, `ACPTestTimeLimit.run`) and `Tests/AgentViewKitTests/ACP/ScriptedWireAgentBoundedTests.swift`.
+    - `AgentProcessLauncherTests`: removed the watchdog of `collectOutput(of:)` (it used `ScriptedWireAgent.operationLimit`) and the `import DemoSupport` that only that use needed.
+    - `DemoAgentTests`, `DemoAgentMessageIdTests`, `InProcessAgentTests`, `ProtocolVersionTests`, `TerminalAppAuthRunnerTests`: each operation now awaits its result directly. The doc comments that named the time limit are changed. `promptFrames(of:client:)` became `promptFrames(from:)`, because the agent parameter was only for the bound.
+    - Not changed (they are wait limits, not the watchdog, and the order forbids a change): `waitUntil` in `AgentViewKitTestSupport/Polling.swift`, `HostedViewHarness`, `HarnessWaiting`, `ConfigOptionsSessionModelHostedTests.waitTimeout`, the UI test waits of the demo app, and `Scripts/test-examples.sh`.
+    - Docs, plan.md and README had no reference to the bound.
+    - Note for review: an ACP test that hangs now hangs until the swift-testing or CI limit stops it. That is the decision of the owner.
+  timestamp: 2026-10-11T12:32:20.111745+00:00
+- actor: claude-code
+  id: 01m4nf6e6a3bvp61da52msa2t5
+  text: |-
+    ### implement — changed
+    - evidence: 2 files removed (`Tests/AgentViewKitTests/ACP/ScriptedWireAgent+Bounded.swift`, `Tests/AgentViewKitTests/ACP/ScriptedWireAgentBoundedTests.swift`); 6 files changed (`AgentProcessLauncherTests.swift`, `DemoAgentTests.swift`, `DemoAgentMessageIdTests.swift`, `InProcessAgentTests.swift`, `ProtocolVersionTests.swift`, `TerminalAppAuthRunnerTests.swift`). `swift build --build-tests`: complete, only the known mlx-swift "missing creator for mutated node" warning. Full `swift test`: exit 0, 89 tests in 9 suites passed and 1041 tests in 109 suites passed, 0 failures. Load average before 37.76 29.27 26.62, after 48.49 38.77 31.04.
+    - next: /review. The task stays in doing.
+  timestamp: 2026-10-11T12:32:25.290722+00:00
 position_column: doing
 position_ordinal: '80'
 title: Make the demo agent suites pass in the full swift test run under high machine load
@@ -67,8 +90,13 @@ Suites: `DemoAgentTests`, `DemoAgentMessageIdTests`, `DemoAgentTerminalSignInTes
 
 ^pbgn012 (the main-actor stall card) found no stall in the code and named load from other processes as the probable cause. `ScriptedWireAgentBoundedTests` forbids a bound larger than 5 seconds.
 
-- [ ] Find why the test process stalls for 5 to 10 seconds at the start of a full run under high load.
-- [ ] Make the demo agent suites pass in the full run under that load, with no larger bound.
+## Decision of the owner (2026-10-11)
+The research found that the timeouts come only from external CPU and disk load that stalls the main thread. The wall-clock watchdog counts that stall. Remove the time limit. Each ACP operation of the tests awaits its result. Do not add a different time limit. Do not raise other wait limits.
+
+- [x] Find why the test process stalls for 5 to 10 seconds at the start of a full run under high load. (Done in the research: external CPU and disk load stalls the main thread. No cause in the package code.)
+- [x] Remove the wall-clock watchdog of the ACP tests: `ACPTestTimeLimit.run`, `ScriptedWireAgent.bounded(_:)`, `operationLimitSeconds`, `operationLimit` (the 5-second bound), and the watchdog of `AgentProcessLauncherTests.collectOutput(of:)`. Each operation awaits its result.
+- [x] Remove `ScriptedWireAgentBoundedTests` and each doc comment that requires the bound (from ^pbgn012). Leave no renamed or disabled copy, and no dead code or text in Sources, Tests, Docs, plan.md, or README.
+- [x] Build with `swift build --build-tests` and run the full `swift test`. Record the load average before and after.
 
 ## How to reproduce
 Run `swift test` while the load average is above 30 (for example, with other agents that build Swift packages). Found while ^8wb97aa was implemented.

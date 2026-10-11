@@ -151,13 +151,14 @@ private func startScriptedAgent(
 
 /// Sends one prompt to a scripted agent, then the marker request, and reads
 /// each frame of the prompt.
-private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async throws -> PromptFrames {
-  try await agent.bounded {
-    try await client.prompt(id: firstPromptID)
-    try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
-    let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
-    return try PromptFrames(frames: frames, promptID: firstPromptID)
-  }
+///
+/// - Parameter client: The client end of the scripted agent.
+/// - Returns: The frames of the prompt.
+private func promptFrames(from client: RawClient) async throws -> PromptFrames {
+  try await client.prompt(id: firstPromptID)
+  try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
+  let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
+  return try PromptFrames(frames: frames, promptID: firstPromptID)
 }
 
 @MainActor
@@ -168,7 +169,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let (agent, client) = startScriptedAgent()
     defer { agent.stop() }
 
-    let prompt = try await promptFrames(of: agent, client: client)
+    let prompt = try await promptFrames(from: client)
 
     let messageID = try #require(prompt.resultMessageID)
     #expect(UUID(uuidString: messageID) != nil)
@@ -178,7 +179,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let (agent, client) = startScriptedAgent()
     defer { agent.stop() }
 
-    let prompt = try await promptFrames(of: agent, client: client)
+    let prompt = try await promptFrames(from: client)
 
     let echo = try #require(prompt.echo)
     #expect(prompt.echoIndexes == [prompt.responseIndex - 1])
@@ -192,7 +193,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let (agent, client) = startScriptedAgent { $0.promptEchoOrder = .afterResult }
     defer { agent.stop() }
 
-    let prompt = try await promptFrames(of: agent, client: client)
+    let prompt = try await promptFrames(from: client)
 
     let echo = try #require(prompt.echo)
     #expect(prompt.echoIndexes == [prompt.responseIndex + 1])
@@ -203,13 +204,11 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let (agent, client) = startScriptedAgent()
     defer { agent.stop() }
 
-    let ids = try await agent.bounded {
-      try await client.prompt(id: firstPromptID)
-      try await client.prompt(id: secondPromptID)
-      let frames = try await client.frames { isResponse(frame: $0, to: secondPromptID) }
-      return [firstPromptID, secondPromptID].map { id in
-        frames.first { isResponse(frame: $0, to: id) }?["result"]?["messageId"]?.stringValue
-      }
+    try await client.prompt(id: firstPromptID)
+    try await client.prompt(id: secondPromptID)
+    let frames = try await client.frames { isResponse(frame: $0, to: secondPromptID) }
+    let ids = [firstPromptID, secondPromptID].map { id in
+      frames.first { isResponse(frame: $0, to: id) }?["result"]?["messageId"]?.stringValue
     }
 
     #expect(ids.allSatisfy { $0 != nil })
@@ -220,18 +219,16 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     let (agent, client) = startScriptedAgent { $0.heldMethods = ["session/prompt"] }
     defer { agent.stop() }
 
-    let prompt = try await agent.bounded {
-      try await client.prompt(id: firstPromptID)
-      try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
-      #expect(await waitUntil { !agent.messages(method: "session/prompt").isEmpty })
-      // A held answer stops the reader of the agent, so the marker request
-      // stays unread. Without the hold, the agent reads it within the pause.
-      try await Task.sleep(for: heldReadPause)
-      #expect(agent.messages(method: markerMethod).isEmpty)
-      agent.releaseHeldAnswer()
-      let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
-      return try PromptFrames(frames: frames, promptID: firstPromptID)
-    }
+    try await client.prompt(id: firstPromptID)
+    try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
+    #expect(await waitUntil { !agent.messages(method: "session/prompt").isEmpty })
+    // A held answer stops the reader of the agent, so the marker request
+    // stays unread. Without the hold, the agent reads it within the pause.
+    try await Task.sleep(for: heldReadPause)
+    #expect(agent.messages(method: markerMethod).isEmpty)
+    agent.releaseHeldAnswer()
+    let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
+    let prompt = try PromptFrames(frames: frames, promptID: firstPromptID)
 
     #expect(prompt.resultMessageID != nil)
     #expect(prompt.echo != nil)
@@ -242,7 +239,7 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     defer { agent.stop() }
     agent.releaseHeldAnswer()
 
-    let prompt = try await promptFrames(of: agent, client: client)
+    let prompt = try await promptFrames(from: client)
 
     #expect(prompt.resultMessageID != nil)
   }
@@ -255,11 +252,9 @@ private func promptFrames(of agent: ScriptedWireAgent, client: RawClient) async 
     defer { agent.stop() }
     let client = RawClient(transport: clientEnd)
 
-    let prompt = try await agent.bounded {
-      try await client.prompt(id: firstPromptID)
-      let frames = try await client.frames { $0["params"]?["update"]?["state"] == .string("idle") }
-      return try PromptFrames(frames: frames, promptID: firstPromptID)
-    }
+    try await client.prompt(id: firstPromptID)
+    let frames = try await client.frames { $0["params"]?["update"]?["state"] == .string("idle") }
+    let prompt = try PromptFrames(frames: frames, promptID: firstPromptID)
 
     let messageID = try #require(prompt.resultMessageID)
     #expect(UUID(uuidString: messageID) != nil)

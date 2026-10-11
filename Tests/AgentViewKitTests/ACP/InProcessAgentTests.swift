@@ -45,14 +45,11 @@ import Testing
   }
 
   @Test func aPromptRoundTripPutsTheReplyOfTheAgentInTheTranscript() async throws {
-    let (model, agent) = await Self.makeDemoConnection()
+    let (model, _) = await Self.makeDemoConnection()
 
-    let session = try await ACPTestTimeLimit.run(stopping: agent.close) {
-      _ = try await model.initialize(InitializeRequest.makeAgentViewKitRequest(info: Self.clientInfo))
-      let session = try await model.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: Self.workingDirectory)))
-      _ = try await session.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
-      return session
-    }
+    _ = try await model.initialize(InitializeRequest.makeAgentViewKitRequest(info: Self.clientInfo))
+    let session = try await model.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: Self.workingDirectory)))
+    _ = try await session.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
 
     let expected = InMemoryDemoAgent.replyText(to: Self.promptText)
     let replyID = InMemoryDemoAgent.replyID(turn: Self.firstTurn)
@@ -70,15 +67,13 @@ import Testing
 
   /// A disconnect of the model stops the read of the client end of the pair.
   /// `InMemoryTransport.pair()` then ends the input of the agent side, so the
-  /// agent side closes because of the end of its input. When the pair does
-  /// not end the input, the time limit stops the agent side, and the reason
-  /// is `closedLocally`.
+  /// agent side closes because of the end of its input.
   @Test func aDisconnectOfTheModelClosesTheAgentSide() async throws {
     let (model, agent) = await Self.makeDemoConnection()
 
     await model.disconnect()
 
-    let reason = try #require(await ACPTestTimeLimit.run(stopping: agent.close) { await agent.closed })
+    let reason = try #require(await agent.closed)
     #expect(Self.isEndOfInput(reason))
     #expect(model.state == .disconnected)
   }

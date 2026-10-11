@@ -1,12 +1,8 @@
-import DemoSupport
 import Foundation
 import FoundationModelsACPClient
 import Testing
 
 @testable import AgentViewKit
-
-/// The time that ``AgentProcessLauncherTests`` waits for a process.
-private let operationLimit = ScriptedWireAgent.operationLimit
 
 @MainActor
 @Suite struct AgentProcessLauncherTests {
@@ -29,18 +25,8 @@ private let operationLimit = ScriptedWireAgent.operationLimit
   /// The exit code of the shell in the exit status tests.
   static let exitCode: Int32 = 3
 
-  /// Reads the output of `process` until it ends, with a time limit.
-  ///
-  /// When the time runs out, the function records an issue and stops the
-  /// process. The stop ends the output.
+  /// Reads the output of `process` until it ends.
   private func collectOutput(of process: any LaunchedProcess) async -> Data {
-    let watchdog = Task {
-      try? await Task.sleep(for: operationLimit)
-      guard !Task.isCancelled else { return }
-      Issue.record("The process did not end in time.")
-      process.terminate()
-    }
-    defer { watchdog.cancel() }
     var output = Data()
     for await chunk in process.output {
       output.append(chunk)

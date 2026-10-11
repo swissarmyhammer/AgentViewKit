@@ -26,14 +26,12 @@ import Testing
   /// does not start it.
   static let relativeProgram = "relative-agent"
 
-  /// Starts the in-memory agent with the time limit of the ACP tests.
+  /// Starts the in-memory agent.
   ///
   /// - Returns: The connected agent.
   /// - Throws: The error of ``DemoAgent/makeConnected(options:)``.
   private static func makeInMemoryAgent() async throws -> DemoAgent {
-    try await ACPTestTimeLimit.run(stopping: {}) {
-      try await DemoAgent.makeConnected(options: inMemoryOptions)
-    }
+    try await DemoAgent.makeConnected(options: inMemoryOptions)
   }
 
   @Test func theInMemoryAgentGivesAConnectedModelWithTheAnswerOfInitialize() async throws {
@@ -50,9 +48,7 @@ import Testing
 
     let opened = DemoAgentTerminalSignInTests.OpenedSessions()
 
-    try await ACPTestTimeLimit.run(stopping: agent.stop) {
-      try await agent.openSession { opened.sessions.append($0) }
-    }
+    try await agent.openSession { opened.sessions.append($0) }
 
     let session = try #require(opened.sessions.first)
     #expect(opened.sessions.count == 1)
@@ -84,9 +80,7 @@ import Testing
       cwd: agent.workingDirectory, sessionId: SessionId(rawValue: InMemoryDemoAgent.sessionID),
       replayFrom: .start(ReplayFromStart()))
 
-    let session = try await ACPTestTimeLimit.run(stopping: agent.stop) {
-      try await agent.connection.resumeSession(request)
-    }
+    let session = try await agent.connection.resumeSession(request)
 
     #expect(session.agentMessageText(id: InMemoryDemoAgent.historyReplyID) == InMemoryDemoAgent.historyReply)
     await agent.stop()
@@ -97,9 +91,7 @@ import Testing
     let request = ResumeSessionRequest(
       cwd: agent.workingDirectory, sessionId: SessionId(rawValue: InMemoryDemoAgent.sessionID))
 
-    let session = try await ACPTestTimeLimit.run(stopping: agent.stop) {
-      try await agent.connection.resumeSession(request)
-    }
+    let session = try await agent.connection.resumeSession(request)
 
     #expect(session.transcript.isEmpty)
     await agent.stop()
@@ -219,13 +211,11 @@ import Testing
     let (secondEnd, second) = makeScriptedAgent(authMethods: secondAuthMethods)
     second.results[newSessionMethod] = #"{"sessionId": "\#(signedInSessionID)"}"#
     var transports = [firstEnd, secondEnd]
-    let agent = try await ACPTestTimeLimit.run(stopping: { first.stop() }) {
-      try await DemoAgent.makeConnected(
-        makeTransport: { transports.removeFirst() },
-        terminalAuthRunner: runner,
-        workingDirectory: AbsolutePath(rawValue: DemoAgentTests.workingDirectory)
-      )
-    }
+    let agent = try await DemoAgent.makeConnected(
+      makeTransport: { transports.removeFirst() },
+      terminalAuthRunner: runner,
+      workingDirectory: AbsolutePath(rawValue: DemoAgentTests.workingDirectory)
+    )
     return Scenario(agent: agent, first: first, second: second)
   }
 
@@ -242,10 +232,8 @@ import Testing
     in scenario: Scenario, recordingInto opened: OpenedSessions = OpenedSessions()
   ) async -> OpenedSessions {
     let agent = scenario.agent
-    let error = await ACPTestTimeLimit.run(stopping: scenario.stop) {
-      await #expect(throws: RequestError.self) {
-        try await agent.openSession { opened.sessions.append($0) }
-      }
+    let error = await #expect(throws: RequestError.self) {
+      try await agent.openSession { opened.sessions.append($0) }
     }
     #expect(error?.code == .authenticationRequired)
     return opened
@@ -263,23 +251,19 @@ import Testing
     let first = scenario.first
     first.failingMethods = []
     first.results[newSessionMethod] = #"{"sessionId": "\#(firstSessionID)"}"#
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
-      try await scenario.agent.openSession { opened.sessions.append($0) }
-    }
+    try await scenario.agent.openSession { opened.sessions.append($0) }
     first.failingMethods = [newSessionMethod]
   }
 
-  /// Calls ``DemoAgent/reconnect(onOpen:)`` with the time limit of the ACP
-  /// tests, and records the session that it gives to its handler.
+  /// Calls ``DemoAgent/reconnect(onOpen:)``, and records the session that it
+  /// gives to its handler.
   ///
   /// - Parameters:
   ///   - scenario: The scenario.
   ///   - opened: The box that gets the session.
   /// - Throws: The error of the reconnect.
   static func reconnect(in scenario: Scenario, recordingInto opened: OpenedSessions = OpenedSessions()) async throws {
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
-      try await scenario.agent.reconnect { opened.sessions.append($0) }
-    }
+    try await scenario.agent.reconnect { opened.sessions.append($0) }
   }
 
   /// Runs the terminal method with `runner`, and ignores its error.
@@ -382,11 +366,9 @@ import Testing
     first.results[Self.newSessionMethod] = #"{"sessionId": "\#(Self.signedInSessionID)"}"#
     let agent = scenario.agent
 
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) {
-      try await agent.connection.login(LoginAuthRequest(methodId: Self.agentMethodID))
-      try await agent.retryFailedOperation()
-      try await agent.retryFailedOperation()
-    }
+    try await agent.connection.login(LoginAuthRequest(methodId: Self.agentMethodID))
+    try await agent.retryFailedOperation()
+    try await agent.retryFailedOperation()
 
     #expect(agent.connection.authState == .authenticated(Self.agentMethodID))
     #expect(opened.sessions.map(\.sessionId) == [SessionId(rawValue: Self.signedInSessionID)])
@@ -400,7 +382,7 @@ import Testing
     let opened = await Self.openSessionExpectingSignIn(in: scenario)
     let agent = scenario.agent
 
-    try await ACPTestTimeLimit.run(stopping: scenario.stop) { try await agent.retryFailedOperation() }
+    try await agent.retryFailedOperation()
 
     #expect(opened.sessions.isEmpty)
     #expect(scenario.first.messages(method: Self.newSessionMethod).count == 1)
