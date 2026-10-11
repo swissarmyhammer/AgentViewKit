@@ -12,7 +12,8 @@ import Testing
 /// `Package.resolved` is git-ignored. SwiftPM writes the root file when it
 /// resolves the package. The demo project is git-ignored too.
 /// `Examples/Scripts/xcodeproj_generator.rb` makes it again and copies the root
-/// `Package.resolved` into it. Thus a clean checkout has no demo pin file: the
+/// `Package.resolved` into it. When the root file is missing, the generator
+/// runs `swift package resolve` first. Thus a clean checkout has no demo pin file: the
 /// suite reads that file only when the generated project exists, and it always
 /// checks the copy step of the generator.
 @Suite struct ResolvedPinsTests {
@@ -62,7 +63,9 @@ import Testing
       Self.demoPath.firstMatch(of: /\.xcodeproj\/(?<inner>.+)$/)?.output.inner)
 
     #expect(generator.contains("PROJECT_PINS_PATH = '\(projectRelativePath)'"))
-    #expect(generator.contains("File.join(PACKAGE_RELATIVE_PATH, 'Package.resolved')"))
+    #expect(generator.contains("File.expand_path(PACKAGE_RELATIVE_PATH, root)"))
+    #expect(generator.contains("File.join(package_root, 'Package.resolved')"))
+    #expect(generator.contains("system('swift', 'package', 'resolve', chdir: package_root)"))
     #expect(generator.contains("FileUtils.cp(pins, destination)"))
   }
 }
