@@ -106,9 +106,15 @@ module ExampleXcodeproj
   PROJECT_PINS_PATH = 'project.xcworkspace/xcshareddata/swiftpm/Package.resolved'
 
   # Copies the `Package.resolved` of the package into the project, so that the app builds with
-  # the same revision of each dependency as `swift build`.
+  # the same revision of each dependency as `swift build`. `Package.resolved` is git-ignored,
+  # so a clean checkout has none. Then `swift package resolve` makes it first.
   def self.copy_package_pins(root, project_path)
-    pins = File.expand_path(File.join(PACKAGE_RELATIVE_PATH, 'Package.resolved'), root)
+    package_root = File.expand_path(PACKAGE_RELATIVE_PATH, root)
+    pins = File.join(package_root, 'Package.resolved')
+    unless File.exist?(pins)
+      system('swift', 'package', 'resolve', chdir: package_root) or
+        abort("error: swift package resolve failed in #{package_root}")
+    end
     destination = File.join(project_path, PROJECT_PINS_PATH)
     FileUtils.mkdir_p(File.dirname(destination))
     FileUtils.cp(pins, destination)
