@@ -43,6 +43,12 @@ import SwiftUI
 ///
 /// The view keeps the selected reject option and the comment in state. Give
 /// each request its own view identity, for example with `.id(request.id)`.
+///
+/// The texts of the card do not use a fixed vertical size. A text with a
+/// fixed vertical size gives its full wrapped height at a narrow width as
+/// its minimum height. ``AgentThreadView`` shows the card outside its scroll
+/// view, so a `NavigationSplitView` column then gives that large minimum
+/// size to its window.
 public struct PermissionView: View {
   /// The accessibility identifier of the card.
   public static let identifier = "permission-card"
@@ -156,7 +162,6 @@ public struct PermissionView: View {
         Text(description)
           .font(.callout)
           .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
       }
     }
   }

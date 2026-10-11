@@ -44,6 +44,10 @@ import Testing
   /// The comment that the reject tests type.
   static let comment = "Use the test file."
 
+  /// The description of the request of the minimum height test. The text
+  /// wraps at a narrow width.
+  static let description = "The agent wants to read the files of the project and run the tests."
+
   /// The method of a set-config-option request.
   static let setConfigOptionMethod = "session/set_config_option"
 
@@ -94,15 +98,20 @@ import Testing
   ///   - kinds: The kinds of the options, in request order. Each option has
   ///     the wire value of its kind as its id and its name.
   ///   - subject: The JSON text of the subject, or `nil` for no subject.
+  ///   - description: The description of the request, or `nil` for no
+  ///     description.
   /// - Returns: The JSON text of the params.
-  static func makeParams(kinds: [PermissionOptionKind] = knownKinds, subject: String? = nil) -> String {
+  static func makeParams(
+    kinds: [PermissionOptionKind] = knownKinds, subject: String? = nil, description: String? = nil
+  ) -> String {
     let options = kinds.map { kind in
       #"{"optionId": "\#(kind.wireValue)", "name": "\#(kind.wireValue)", "kind": "\#(kind.wireValue)"}"#
     }
     let subjectMember = subject.map { #", "subject": \#($0)"# } ?? ""
+    let descriptionMember = description.map { #", "description": "\#($0)""# } ?? ""
     return #"""
       {"sessionId": "\#(ScriptedSession.sessionID)", "title": "\#(title)",
-       "options": [\#(options.joined(separator: ","))]\#(subjectMember)}
+       "options": [\#(options.joined(separator: ","))]\#(subjectMember)\#(descriptionMember)}
       """#
   }
 
@@ -223,6 +232,19 @@ import Testing
     #expect(harness.element(identifier: PermissionView.titleIdentifier)?.label == Self.title)
     let subject = harness.element(identifier: PermissionView.subjectIdentifier)
     #expect(subject?.label?.contains(Self.toolCallTitle) == true)
+  }
+
+  @Test func theMinimumHeightOfTheCardIsNotMoreThanItsHeightAtTheCardWidth() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let pending = try await session.receivePermissionRequest(
+      id: Self.agentRequestID, params: Self.makeParams(description: Self.description))
+    let controller = NSHostingController(rootView: PermissionView(request: pending, session: session.model))
+
+    let minimumSize = controller.sizeThatFits(in: .zero)
+    let sizeAtCardWidth = controller.sizeThatFits(in: CGSize(width: Self.cardSize.width, height: .infinity))
+
+    #expect(minimumSize.height <= sizeAtCardWidth.height)
   }
 
   @Test func anAllowPressSendsTheOptionWithNoComment() async throws {

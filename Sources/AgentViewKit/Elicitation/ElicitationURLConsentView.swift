@@ -32,6 +32,12 @@ import SwiftUI
 ///
 /// The view keeps its state. Give each request its own view identity, for
 /// example with `.id(request.id)`.
+///
+/// The URL text and the warning do not use a fixed vertical size. A text
+/// with a fixed vertical size gives its full wrapped height at a narrow
+/// width as its minimum height. ``AgentThreadView`` shows the card outside
+/// its scroll view, so a `NavigationSplitView` column then gives that large
+/// minimum size to its window.
 public struct ElicitationURLConsentView: View {
   /// The accessibility identifier of the card.
   public static let identifier = "elicitation-url-consent"
@@ -150,13 +156,11 @@ public struct ElicitationURLConsentView: View {
       Text(URLDisplay.highlighted(url))
         .font(.callout.monospaced())
         .textSelection(.enabled)
-        .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier(Self.urlIdentifier)
       if let warning = URLDisplay.warning(for: url) {
         Label(warning, systemImage: Self.warningSymbol)
           .font(.callout)
           .foregroundStyle(theme.statusColors.failed)
-          .fixedSize(horizontal: false, vertical: true)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel(warning)
           .accessibilityIdentifier(Self.warningIdentifier)

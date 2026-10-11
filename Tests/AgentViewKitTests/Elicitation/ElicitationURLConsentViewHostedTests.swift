@@ -29,6 +29,10 @@ import Testing
   /// The message of each request of the tests.
   static let message = "Sign in to continue."
 
+  /// A URL whose host is Punycode, so that the card shows the URL and the
+  /// warning.
+  static let punycodeURL = "https://xn--pple-43d.com/login"
+
   /// The objects that a hosted card uses.
   struct Mounted {
     /// The harness of the card.
@@ -143,12 +147,26 @@ import Testing
   }
 
   @Test func aPunycodeHostShowsTheWarning() async throws {
-    let mounted = try await Self.mount(Self.makeParams(url: "https://xn--pple-43d.com/login"))
+    let mounted = try await Self.mount(Self.makeParams(url: Self.punycodeURL))
     defer { mounted.close() }
 
     let warning = try #require(
       mounted.harness.element(identifier: ElicitationURLConsentView.warningIdentifier))
     #expect(warning.label?.contains("Punycode") == true)
+  }
+
+  @Test func theMinimumHeightOfTheCardIsNotMoreThanItsHeightAtTheCardWidth() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let pending = try await session.receiveElicitation(
+      id: Self.agentRequestID, params: Self.makeParams(url: Self.punycodeURL))
+    let controller = NSHostingController(
+      rootView: ElicitationURLConsentView(request: pending, owner: session.model))
+
+    let minimumSize = controller.sizeThatFits(in: .zero)
+    let sizeAtCardWidth = controller.sizeThatFits(in: CGSize(width: Self.cardSize.width, height: .infinity))
+
+    #expect(minimumSize.height <= sizeAtCardWidth.height)
   }
 
   @Test func theCardOpensNothingBeforeAPress() async throws {
