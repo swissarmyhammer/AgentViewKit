@@ -14,6 +14,10 @@
     /// The longest time that a test waits for the view to change, in seconds.
     static let waitTimeout: TimeInterval = 5
 
+    /// The count of pumps in a row with no new body evaluation that show a
+    /// settled mount.
+    static let quietPumps = 6
+
     /// A size that shows the expanded body of a call.
     static let tallSize = CGSize(width: 520, height: 1_400)
 
@@ -72,6 +76,28 @@
       return harness
     }
 
+    /// Pumps the harness until the mount has made all its body evaluations.
+    ///
+    /// SwiftUI can evaluate a body again after the first layout of a mount,
+    /// and a busy machine delays that pass. A test that resets its counters
+    /// before the pass counts the pass as a change of the view. The wait ends
+    /// when ``quietPumps`` pumps of the run loop in a row change none of the
+    /// counts, or at ``waitTimeout``.
+    ///
+    /// - Parameters:
+    ///   - harness: The harness of the mounted view.
+    ///   - keys: The ``BodyEvaluationCounter`` keys of the views of the mount.
+    static func settle(_ harness: HostedViewHarness<some View>, counting keys: [String]) async {
+      var previous = -1
+      var quiet = 0
+      await harness.pump(until: waitTimeout) {
+        let current = keys.reduce(0) { $0 + BodyEvaluationCounter.count($1) }
+        quiet = current == previous ? quiet + 1 : 0
+        previous = current
+        return quiet >= quietPumps
+      }
+    }
+
     // MARK: - Evaluation counts
 
     @Test func aStatusUpdateEvaluatesTheRowAndNotTheExpandedBody() async throws {
@@ -89,6 +115,7 @@
       }
       #expect(harness.element(identifier: ToolCallView.bodyIdentifier(for: key)) != nil)
       #expect(BodyEvaluationCounter.count(bodyKey) >= 1)
+      await Self.settle(harness, counting: [rowKey, bodyKey])
       BodyEvaluationCounter.reset(rowKey)
       BodyEvaluationCounter.reset(bodyKey)
 

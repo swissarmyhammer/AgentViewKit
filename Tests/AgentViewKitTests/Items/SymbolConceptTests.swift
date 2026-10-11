@@ -9,8 +9,9 @@ import Testing
 /// different concepts do not share a symbol.
 ///
 /// Each test reads the symbol names from the views of the kit: the banners,
-/// the stop reasons, the plan, the diff, the command output, the message
-/// actions, the send state, the tool rows and the error card.
+/// the stop reasons, the plan and its priorities, the MCP server chip, the
+/// diff, the command output, the message actions, the send state, the tool
+/// rows and the error card.
 @Suite @MainActor struct SymbolConceptTests {
   /// The meaning of a symbol. Each concept must have one symbol, and each
   /// symbol must have one concept.
@@ -22,6 +23,7 @@ import Testing
     case userAction, maxTokens, maxTurnRequests, refusal
     case truncated, repeated, reasoningLimit, noOutput, stalled
     case closed, replaying, partialHistory, disconnected, signal
+    case highPriority, mediumPriority, lowPriority
   }
 
   /// One place of the kit that shows a symbol.
@@ -122,6 +124,23 @@ import Testing
     return statuses.map { Use(concept: $1, place: "plan \($0)", name: TaskListView.statusSymbol($0)) }
   }
 
+  /// The symbols of the priority of a plan entry.
+  static func priorityUses() -> [Use] {
+    let priorities: [(FoundationModelsACP.PlanEntryPriority, Concept)] = [
+      (.high, .highPriority), (.medium, .mediumPriority), (.low, .lowPriority), (.unknown("urgent"), .unknown),
+    ]
+    return priorities.map { Use(concept: $1, place: "priority \($0)", name: TaskListView.prioritySymbol($0)) }
+  }
+
+  /// The symbols of the status chip of an MCP server.
+  static func connectionChipUses() -> [Use] {
+    let statuses: [(MCPServerStatus, Concept)] = [
+      (.notReported, .unknown), (.connecting, .inProgress), (.connected, .completed),
+      (.failed(reason: nil), .error), (.closed, .disconnected),
+    ]
+    return statuses.map { Use(concept: $1, place: "MCP chip \($0)", name: ConnectionStatusChip.symbolName(for: $0)) }
+  }
+
   /// The symbols of the file operations of a diff.
   static func diffUses() -> [Use] {
     let operations: [(DiffSummary.Operation, Concept)] = [
@@ -171,8 +190,8 @@ import Testing
 
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
-    toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + diffUses()
-      + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
+    toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
+      + connectionChipUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
   }
 
   // MARK: - The tests
@@ -198,5 +217,17 @@ import Testing
       for: try StateBannerStopReasonTests.idleUpdate(stopReason: "max_turn_requests"))
 
     #expect(ToolKindSymbol.name(for: .switchMode) != banner.symbolName)
+  }
+
+  @Test func eachPlanPriorityShowsADifferentSymbol() {
+    let names = Self.priorityUses().map(\.name)
+
+    #expect(Set(names).count == names.count, "\(names)")
+  }
+
+  @Test func eachMCPServerStatusShowsADifferentSymbol() {
+    let names = Self.connectionChipUses().map(\.name)
+
+    #expect(Set(names).count == names.count, "\(names)")
   }
 }

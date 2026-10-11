@@ -1,6 +1,7 @@
 import AppKit
 import EditorSwiftUI
 import EditorTheme
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -9,10 +10,12 @@ import SwiftUI
 ///
 /// The rail shows one tick for each entry of `SessionModel.transcript`, in
 /// transcript order, tinted by the case of the entry. A tool call tick shows
-/// the status color of `ToolCallEntry.status`. The rail reads the model each
-/// time that it draws, so a new entry adds a tick and a status change of a
-/// tool call changes the tint of its tick. A translucent band shows the
-/// entries in view, from ``ScrollAnchorManager/visibleIDs``.
+/// the status color of `ToolCallEntry.status`, and the shape of the tick also
+/// shows the status, so the status does not show with color only. The rail
+/// reads the model each time that it draws, so a new entry adds a tick and a
+/// status change of a tool call changes the tint and the shape of its tick. A
+/// translucent band shows the entries in view, from
+/// ``ScrollAnchorManager/visibleIDs``.
 ///
 /// A click or a drag on the rail moves the conversation to the entry under
 /// the pointer. The rail calls ``ScrollAnchorManager/noteJump(to:)`` with the
@@ -27,13 +30,77 @@ import SwiftUI
 ///
 /// For accessibility, the rail is one adjustable element with the identifier
 /// ``railIdentifier`` and the value "Item N of M". The increment and decrement
-/// actions move one entry. In a debug build, each tick is also an element with
-/// the identifier from ``tickIdentifier(for:)``, so that a test can count the
-/// ticks. The value of the tick element of a tool call is the wire value of
-/// the status that sets the tint.
+/// actions move one entry. A second element, with the identifier
+/// ``summaryIdentifier``, gives a summary of the status of the entries, such
+/// as "In progress: 1, Completed: 2, and Error: 1". In a debug build, each tick
+/// is also an element with the identifier from ``tickIdentifier(for:)``, so
+/// that a test can count the ticks. The value of the tick element of a tool
+/// call is the wire value of the status that sets the tint.
 public struct ThreadMinimapView: View {
+  /// The shape of a tick, which shows the status of the entry with no color.
+  ///
+  /// Each mark fills a part of the slot of its entry, so each mark has a
+  /// different shape at each slot height.
+  nonisolated enum TickMark: CaseIterable {
+    /// The full tick: an entry with no status, or a completed tool call.
+    case plain
+
+    /// A tick that fills the trailing half of the rail: a tool call that did
+    /// not start or that runs.
+    case live
+
+    /// A wedge that points to the conversation: a failed tool call, a tool
+    /// call whose result is lost, and an error entry.
+    case failure
+
+    /// A thin bar in the middle of the slot: a cancelled tool call.
+    case cancelled
+
+    /// The part of the rail width that a live tick fills.
+    static let liveWidthFraction: CGFloat = 0.5
+
+    /// The part of the tick height that a cancelled tick fills.
+    static let cancelledHeightFraction: CGFloat = 1.0 / 3.0
+
+    /// The shape of the mark in the tick rectangle `rect`.
+    ///
+    /// - Parameter rect: The rectangle of the tick.
+    /// - Returns: The path of the mark, inside `rect`.
+    func path(in rect: CGRect) -> Path {
+      switch self {
+      case .plain:
+        return Path(rect)
+      case .live:
+        let width = rect.width * Self.liveWidthFraction
+        return Path(CGRect(x: rect.maxX - width, y: rect.minY, width: width, height: rect.height))
+      case .failure:
+        return Path { wedge in
+          wedge.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+          wedge.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+          wedge.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+          wedge.closeSubpath()
+        }
+      case .cancelled:
+        let height = rect.height * Self.cancelledHeightFraction
+        return Path(CGRect(x: rect.minX, y: rect.midY - height / 2, width: rect.width, height: height))
+      }
+    }
+  }
+
+  /// The color and the shape of one tick.
+  struct Tick {
+    /// The color of the tick.
+    let tint: Color
+
+    /// The shape of the tick.
+    let mark: TickMark
+  }
+
   /// The accessibility identifier of the rail.
   public static let railIdentifier = "thread-minimap"
+
+  /// The accessibility identifier of the status summary of the rail.
+  public static let summaryIdentifier = "thread-minimap-summary"
 
   /// The start of the accessibility identifier of each tick.
   public static let tickIdentifierPrefix = "minimap-tick-"
@@ -147,28 +214,29 @@ public struct ThreadMinimapView: View {
   /// - Returns: The rail view.
   private func rail(entries: [TranscriptEntry]) -> some View {
     let keys = entries.map(\.rowKey)
-    let tints = entries.map(tint(of:))
+    let ticks = entries.map { Tick(tint: tint(of: $0), mark: Self.tickMark(of: $0)) }
     let band = visibleRange(in: keys)
     let current = band?.lowerBound ?? 0
     return ZStack {
       Canvas { context, size in
-        Self.draw(tints: tints, band: band, bandColor: editorTheme.accent, in: &context, size: size)
+        Self.draw(ticks: ticks, band: band, bandColor: editorTheme.accent, in: &context, size: size)
       }
       .accessibilityHidden(true)
       #if DEBUG
         tickElements(entries: entries)
       #endif
       Color.clear
-        .accessibilityElement()
-        .accessibilityLabel(Text("Thread minimap"))
-        .accessibilityValue(Text(Self.positionValue(position: current, count: keys.count)))
-        // An element with no role does not give its value. The trait gives
-        // the static text role.
-        .accessibilityAddTraits(.isStaticText)
+        .valueElement(
+          label: Text("Thread status"), value: Text(Self.statusSummary(of: entries)),
+          identifier: Self.summaryIdentifier)
+      Color.clear
+        .valueElement(
+          label: Text("Thread minimap"), value: Text(Self.positionValue(position: current, count: keys.count)),
+          identifier: Self.railIdentifier
+        )
         .accessibilityAdjustableAction { direction in
           adjust(direction, from: current, keys: keys)
         }
-        .accessibilityIdentifier(Self.railIdentifier)
       ScrubSurface { fraction in
         scrub(toFraction: fraction, keys: keys)
       }
@@ -190,13 +258,9 @@ public struct ThreadMinimapView: View {
         ForEach(entries, id: \.id) { entry in
           Color.clear
             .frame(maxHeight: .infinity)
-            .accessibilityElement()
-            .accessibilityLabel(Text(entry.kindName))
-            .accessibilityValue(Text(Self.statusValue(of: entry)))
-            // An element with no role does not give its value. The trait
-            // gives the static text role.
-            .accessibilityAddTraits(.isStaticText)
-            .accessibilityIdentifier(Self.tickIdentifier(for: entry))
+            .valueElement(
+              label: Text(entry.kindName), value: Text(Self.statusValue(of: entry)),
+              identifier: Self.tickIdentifier(for: entry))
         }
       }
       .allowsHitTesting(false)
@@ -213,20 +277,20 @@ public struct ThreadMinimapView: View {
     }
   #endif
 
-  /// Draws the viewport band and one tick for each tint.
+  /// Draws the viewport band and each tick, with its color and its shape.
   ///
   /// - Parameters:
-  ///   - tints: The color of each tick, in transcript order.
+  ///   - ticks: The color and the shape of each tick, in transcript order.
   ///   - band: The positions of the entries in view, or `nil`.
   ///   - bandColor: The color of the viewport band.
   ///   - context: The graphics context.
   ///   - size: The size of the rail.
   private static func draw(
-    tints: [Color], band: ClosedRange<Int>?, bandColor: Color,
+    ticks: [Tick], band: ClosedRange<Int>?, bandColor: Color,
     in context: inout GraphicsContext, size: CGSize
   ) {
-    guard !tints.isEmpty else { return }
-    let slot = size.height / CGFloat(tints.count)
+    guard !ticks.isEmpty else { return }
+    let slot = size.height / CGFloat(ticks.count)
     if let band {
       let top = CGFloat(band.lowerBound) * slot
       let height = CGFloat(band.count) * slot
@@ -234,9 +298,9 @@ public struct ThreadMinimapView: View {
       context.fill(Path(rect), with: .color(bandColor.opacity(bandOpacity)))
     }
     let tickHeight = max(slot * tickFill, minimumTickHeight)
-    for (position, tint) in tints.enumerated() {
+    for (position, tick) in ticks.enumerated() {
       let rect = CGRect(x: 0, y: CGFloat(position) * slot, width: size.width, height: tickHeight)
-      context.fill(Path(rect), with: .color(tint))
+      context.fill(tick.mark.path(in: rect), with: .color(tick.tint))
     }
   }
 
@@ -297,6 +361,67 @@ public struct ThreadMinimapView: View {
     return first...last
   }
 
+  /// The tick shape of a tool call with `status`.
+  ///
+  /// - Parameter status: The ACP status of the tool call.
+  /// - Returns: ``TickMark/live`` for a pending call and a call that runs,
+  ///   ``TickMark/failure`` for a failed call and a call whose result is lost
+  ///   (``ToolStatusSymbol/lostWireValue``), ``TickMark/cancelled`` for a
+  ///   cancelled call, and ``TickMark/plain`` for a completed call or a
+  ///   status that the kit does not know.
+  nonisolated static func tickMark(for status: FoundationModelsACP.ToolCallStatus) -> TickMark {
+    switch status {
+    case .pending, .inProgress: .live
+    case .failed, .unknown(ToolStatusSymbol.lostWireValue): .failure
+    case .cancelled: .cancelled
+    case .completed, .unknown: .plain
+    }
+  }
+
+  /// The tick shape of `entry`.
+  ///
+  /// - Parameter entry: The transcript entry.
+  /// - Returns: The shape of the status of a tool call, ``TickMark/failure``
+  ///   for an error entry, and ``TickMark/plain`` for each other entry.
+  static func tickMark(of entry: TranscriptEntry) -> TickMark {
+    switch entry {
+    case .toolCall(let toolCall): tickMark(for: toolCall.shownStatus)
+    case .error: .failure
+    case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction: .plain
+    }
+  }
+
+  /// The status summary of `entries`, for the summary element.
+  ///
+  /// The summary counts the tool calls of each status and the error entries,
+  /// in the order of their first entry in the transcript.
+  ///
+  /// - Parameter entries: The entries of the transcript.
+  /// - Returns: The counts, such as "In progress: 1, Completed: 2, and Error:
+  ///   1", or "No status" when no entry has a status.
+  static func statusSummary(of entries: [TranscriptEntry]) -> String {
+    let names = entries.compactMap(statusName(of:))
+    guard !names.isEmpty else { return String(localized: "No status") }
+    let counts = Dictionary(names.map { ($0, 1) }, uniquingKeysWith: +)
+    let order = names.reduce(into: [String]()) { order, name in
+      if !order.contains(name) { order.append(name) }
+    }
+    return order.map { String(localized: "\($0): \(counts[$0, default: 0])") }.formatted(.list(type: .and))
+  }
+
+  /// The name of the status of `entry`, for the status summary.
+  ///
+  /// - Parameter entry: The transcript entry.
+  /// - Returns: The label of the status of a tool call, "Error" for an error
+  ///   entry, and `nil` for each other entry.
+  private static func statusName(of entry: TranscriptEntry) -> String? {
+    switch entry {
+    case .toolCall(let toolCall): ToolStatusSymbol.label(for: toolCall.shownStatus)
+    case .error: String(localized: "Error")
+    case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction: nil
+    }
+  }
+
   /// The tick color of `entry`, from the EditorKit theme.
   ///
   /// The color of a tool call reads `ToolCallEntry.status`, so a status
@@ -314,6 +439,26 @@ public struct ThreadMinimapView: View {
     case .unknown, .compaction:
       Color.secondary.opacity(Self.quietTickOpacity)
     }
+  }
+}
+
+extension View {
+  /// Makes this view one accessibility element of the rail with a label and a
+  /// value.
+  ///
+  /// - Parameters:
+  ///   - label: The label of the element.
+  ///   - value: The value of the element.
+  ///   - identifier: The accessibility identifier of the element.
+  /// - Returns: The element.
+  fileprivate func valueElement(label: Text, value: Text, identifier: String) -> some View {
+    accessibilityElement()
+      .accessibilityLabel(label)
+      .accessibilityValue(value)
+      // An element with no role does not give its value. The trait gives the
+      // static text role.
+      .accessibilityAddTraits(.isStaticText)
+      .accessibilityIdentifier(identifier)
   }
 }
 
@@ -393,7 +538,9 @@ private struct ThreadMinimapModifier: ViewModifier {
   /// The width of the conversation, in points, from the last layout.
   @State private var width: CGFloat = 0
 
-  func body(content: Content) -> some View {
+  // `Self.Content` names the content of the modifier, and not the content
+  // type of FoundationModelsACP.
+  func body(content: Self.Content) -> some View {
     content
       .onGeometryChange(for: CGFloat.self) { proxy in
         proxy.size.width

@@ -119,8 +119,26 @@
       #expect(session.model.transcript.map(\.rowKey) == expected)
       #expect(Self.shownRows(in: harness, of: session.model) == expected)
       let first = harness.element(identifier: ActivityTimeline.rowIdentifier(for: firstKey))
-      #expect(first?.label == Self.firstCall)
+      #expect(first?.label == ToolCallView.accessibilityLabel(title: Self.firstCall, status: .inProgress))
       #expect(first?.value == nil || first?.value == "")
+    }
+
+    @Test func theLabelOfAToolCallRowTellsTheStatus() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountTimeline(session)
+      defer { harness.close() }
+      let key = try await Self.sendCall(Self.firstCall, in: session, pumping: harness)
+      let rowID = ActivityTimeline.rowIdentifier(for: key)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: rowID) != nil }
+      #expect(harness.element(identifier: rowID)?.label == "\(Self.firstCall), In progress")
+
+      try await session.sendToolCallUpdate(title: Self.firstCall, status: .failed)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: rowID)?.label == "\(Self.firstCall), Failed"
+      }
+
+      #expect(harness.element(identifier: rowID)?.label == "\(Self.firstCall), Failed")
     }
 
     @Test func aToolCallThatTheAgentAddsAddsARow() async throws {
@@ -135,7 +153,9 @@
       await Self.waitForRows([firstKey, laterKey], in: harness, of: session.model)
 
       #expect(Self.shownRows(in: harness, of: session.model) == [firstKey, laterKey])
-      #expect(harness.element(identifier: ActivityTimeline.rowIdentifier(for: laterKey))?.label == Self.laterCall)
+      #expect(
+        harness.element(identifier: ActivityTimeline.rowIdentifier(for: laterKey))?.label
+          == ToolCallView.accessibilityLabel(title: Self.laterCall, status: .inProgress))
     }
 
     @Test func aMessageEntryShowsNoRow() async throws {

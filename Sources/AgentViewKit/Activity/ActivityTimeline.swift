@@ -1,5 +1,6 @@
 import EditorSwiftUI
 import EditorTheme
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -18,6 +19,10 @@ import SwiftUI
 /// A click on a row expands the matching view below it: ``ReasoningView``,
 /// ``ToolCallView``, ``TerminalView`` or ``ErrorView``. The open state of a
 /// row is view state, keyed by the row key of the entry.
+///
+/// A tool call row shows the symbol of its kind, its title, and the symbol of
+/// its status (``ToolStatusSymbol``). The label of the row is the title and
+/// the status, as in ``ToolCallView/accessibilityLabel(title:status:)``.
 ///
 /// The row button of an entry has the identifier from
 /// ``rowIdentifier(for:)``, and its expanded view has the identifier from
@@ -172,6 +177,15 @@ private struct ActivityEntryRow: View {
 
     /// The color of the symbol.
     let tint: Color
+
+    /// The status of a tool call row, or `nil` for a row with no status.
+    var status: FoundationModelsACP.ToolCallStatus? = nil
+
+    /// The label that VoiceOver reads for the row: the title, and the status
+    /// of a tool call.
+    var label: String {
+      status.map { ToolCallView.accessibilityLabel(title: title, status: $0) } ?? title
+    }
   }
 
   /// The SF Symbol name of a thought row.
@@ -202,11 +216,16 @@ private struct ActivityEntryRow: View {
             .lineLimit(1)
             .truncationMode(.middle)
           Spacer(minLength: theme.spacing.s)
+          if let status = appearance.status {
+            Image(systemName: ToolStatusSymbol.name(for: status))
+              .fontWeight(theme.symbolWeight)
+              .foregroundStyle(editorTheme.statusColor(for: status))
+          }
         }
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
-      .accessibilityLabel(appearance.title)
+      .accessibilityLabel(appearance.label)
       .accessibilityHint(isExpanded ? Text("Hides the details") : Text("Shows the details"))
       .accessibilityIdentifier(ActivityTimeline.rowIdentifier(for: key))
       if isExpanded {
@@ -239,13 +258,15 @@ private struct ActivityEntryRow: View {
   /// The appearance of a tool call row.
   ///
   /// - Parameter toolCall: The tool call entry.
-  /// - Returns: The title, the symbol of the kind and the color of the
-  ///   status.
+  /// - Returns: The title, the symbol of the kind, and the status. The row
+  ///   shows the status with its own symbol, so the status does not show
+  ///   with color only.
   private func toolCallAppearance(_ toolCall: ToolCallEntry) -> Appearance {
     Appearance(
       title: ToolCallView.displayTitle(toolCall.shownTitle),
       symbolName: ToolKindSymbol.name(for: toolCall.shownKind),
-      tint: editorTheme.statusColor(for: toolCall.shownStatus))
+      tint: Color.secondary,
+      status: toolCall.shownStatus)
   }
 
   /// The appearance of an error row.

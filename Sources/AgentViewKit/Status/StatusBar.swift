@@ -8,6 +8,10 @@ import SwiftUI
 /// ``StateBanner`` and ``SessionStreamBanner`` show their messages in this
 /// bar. The text of the bar has the ``StateBanner/Message/identifier`` of its
 /// message. The accessibility label of the bar is the title.
+///
+/// The symbol of a failure message (``StateBanner/Message/isFailure``) has the
+/// error color of the EditorKit theme. The symbol of each other message has
+/// the accent color of the theme.
 struct StatusBar: View {
   /// The button of a bar.
   struct Action {
@@ -33,11 +37,22 @@ struct StatusBar: View {
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
 
+  /// The color of the symbol of `message`, from the EditorKit theme.
+  ///
+  /// - Parameters:
+  ///   - message: The message of the bar.
+  ///   - theme: The EditorKit theme.
+  /// - Returns: `severityError` for a failure message, and `accent` for each
+  ///   other message.
+  static func symbolColor(for message: StateBanner.Message, in theme: any EditorTheme.Theme) -> Color {
+    message.isFailure ? theme.severityError : theme.accent
+  }
+
   var body: some View {
     HStack(spacing: theme.spacing.m) {
       Image(systemName: message.symbolName)
         .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(editorTheme.accent)
+        .foregroundStyle(Self.symbolColor(for: message, in: editorTheme))
         .fontWeight(theme.symbolWeight)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {

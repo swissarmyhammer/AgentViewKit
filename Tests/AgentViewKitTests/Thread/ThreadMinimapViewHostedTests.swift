@@ -28,6 +28,10 @@
     /// so the first row is not in view at the bottom.
     static let clickEntryCount = 60
 
+    /// The number of tool call entries in the transcript of the summary test.
+    /// The test completes the last call, so one call runs and one is complete.
+    static let summaryCallCount = 2
+
     /// The smallest number of entries that shows the rail in these tests.
     static let minimumEntryCount = 1
 
@@ -193,6 +197,44 @@
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: tickID)?.value == completed }
 
       #expect(harness.element(identifier: tickID)?.value == completed)
+    }
+
+    // MARK: - Summary
+
+    @Test func theSummaryTellsTheStatusOfTheEntries() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      try await Self.sendCalls(Self.summaryCallCount, untilTotal: Self.summaryCallCount, in: session)
+      try await session.sendToolCallUpdate(title: "\(Self.callPrefix)\(Self.summaryCallCount - 1)", status: .completed)
+      session.model.appendError(code: .internalError, message: "failed", data: nil)
+      let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
+      defer { harness.close() }
+
+      let expected = "In progress: 1, Completed: 1, and Error: 1"
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ThreadMinimapView.summaryIdentifier)?.value == expected
+      }
+
+      let summary = harness.element(identifier: ThreadMinimapView.summaryIdentifier)
+      #expect(summary?.label == "Thread status")
+      #expect(summary?.value == expected)
+    }
+
+    @Test func aTranscriptWithNoStatusSaysSo() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_message_chunk", messageID: "\(Self.messagePrefix)0", text: "Done."))
+      _ = await waitUntil { !session.model.transcript.isEmpty }
+      let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
+      defer { harness.close() }
+
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ThreadMinimapView.summaryIdentifier) != nil
+      }
+
+      #expect(harness.element(identifier: ThreadMinimapView.summaryIdentifier)?.value == "No status")
     }
 
     // MARK: - Scroll

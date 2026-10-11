@@ -3,13 +3,14 @@ import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
-/// A dot and a label that show the `MCPServerStatus` of an MCP server
-/// (plan.md §12).
+/// A status symbol and a label that show the `MCPServerStatus` of an MCP
+/// server (plan.md §12).
 ///
 /// The chip shows the status of the client model directly. The kit keeps no
-/// status of its own. The chip is one accessibility element. Its label is the
-/// name of the status. For `failed(reason:)` with a reason, its value is the
-/// reason, and the reason is also the help tag.
+/// status of its own. Each status has a different symbol, so the status does
+/// not show with color only. The chip is one accessibility element. Its label
+/// is the name of the status. For `failed(reason:)` with a reason, its value
+/// is the reason, and the reason is also the help tag.
 public struct ConnectionStatusChip: View {
   /// The start of the accessibility identifier of each chip.
   public static let identifierPrefix = "connection-chip-"
@@ -38,13 +39,31 @@ public struct ConnectionStatusChip: View {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: identifierName(for: status))
   }
 
+  /// The SF Symbol name of `status`. Each status has a different symbol.
+  ///
+  /// - Parameter status: The status of the server.
+  /// - Returns: The symbol of the status concept: unknown for a status that
+  ///   the agent did not report, in progress for a server that connects,
+  ///   completed for a connected server, error for a failed server, and
+  ///   disconnected for a closed server.
+  static func symbolName(for status: MCPServerStatus) -> String {
+    switch status {
+    case .notReported: SharedSymbol.unknown
+    case .connecting: SharedSymbol.inProgress
+    case .connected: SharedSymbol.completed
+    case .failed: SharedSymbol.error
+    case .closed: SharedSymbol.disconnected
+    }
+  }
+
   public var body: some View {
     let label = Self.label(for: status)
     let reason = Self.reason(of: status)
     HStack(spacing: theme.spacing.xs) {
-      Circle()
-        .fill(color(for: status))
-        .frame(width: theme.spacing.s, height: theme.spacing.s)
+      Image(systemName: Self.symbolName(for: status))
+        .font(.caption)
+        .fontWeight(theme.symbolWeight)
+        .foregroundStyle(color(for: status))
       Text(label)
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -74,17 +93,18 @@ public struct ConnectionStatusChip: View {
     }
   }
 
-  /// The name of `status` that the user sees and that VoiceOver reads.
+  /// The localized name of `status` that the user sees and that VoiceOver
+  /// reads.
   ///
   /// - Parameter status: The status of the server.
   /// - Returns: The name, such as `Not reported`.
   private static func label(for status: MCPServerStatus) -> String {
     switch status {
-    case .notReported: "Not reported"
-    case .connecting: "Connecting"
-    case .connected: "Connected"
-    case .failed: "Failed"
-    case .closed: "Closed"
+    case .notReported: String(localized: "Not reported")
+    case .connecting: String(localized: "Connecting")
+    case .connected: String(localized: "Connected")
+    case .failed: WorkStatusLabel.failed
+    case .closed: String(localized: "Closed")
     }
   }
 
@@ -97,10 +117,11 @@ public struct ConnectionStatusChip: View {
     if case .failed(let reason) = status { reason } else { nil }
   }
 
-  /// The color of the dot for `status`, from the status roles of the EditorKit theme.
+  /// The color of the symbol for `status`, from the status roles of the
+  /// EditorKit theme.
   ///
   /// - Parameter status: The status of the server.
-  /// - Returns: The color of the dot.
+  /// - Returns: The color of the symbol.
   private func color(for status: MCPServerStatus) -> Color {
     switch status {
     case .notReported: editorTheme.statusPending

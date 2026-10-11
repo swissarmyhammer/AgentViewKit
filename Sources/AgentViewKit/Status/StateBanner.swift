@@ -46,6 +46,16 @@ public struct StateBanner: View {
     /// The accessibility identifier of the text of the bar. Each message has
     /// a different identifier.
     public let identifier: String
+
+    /// Whether the message tells of a failure, such as a failed turn or a
+    /// failed connection.
+    ///
+    /// Each concept has one symbol in the kit, so a message whose symbol is
+    /// the error symbol tells of a failure. The bar shows the symbol of a
+    /// failure with the error color of the EditorKit theme.
+    var isFailure: Bool {
+      symbolName == SharedSymbol.error
+    }
   }
 
   /// The session model whose `agentState` the bar shows.

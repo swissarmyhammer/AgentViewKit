@@ -15,17 +15,18 @@ nonisolated enum SharedSymbol {
   /// or message.
   static let pending = "hourglass"
 
-  /// The symbol of work that runs: a running tool call, plan entry or agent.
+  /// The symbol of work that runs: a running tool call, plan entry or agent,
+  /// and an MCP server that connects.
   static let inProgress = "ellipsis.circle.fill"
 
   /// The symbol of work that is complete: a completed tool call or plan
-  /// entry, a complete turn, a sent message, a command that succeeded and an
-  /// answered field.
+  /// entry, a complete turn, a sent message, a command that succeeded, an
+  /// answered field and a connected MCP server.
   static let completed = "checkmark.circle.fill"
 
   /// The symbol of an error: a failed tool call, turn, message, command or
-  /// connection, an error notice, an error card and a patch that the kit
-  /// cannot read.
+  /// connection, a failed MCP server, an error notice, an error card and a
+  /// patch that the kit cannot read.
   static let error = "xmark.octagon.fill"
 
   /// The symbol of work that the user cancelled: a cancelled tool call, plan
@@ -33,7 +34,8 @@ nonisolated enum SharedSymbol {
   static let cancelled = "stop.circle.fill"
 
   /// The symbol of a value that the kit does not know: a status, a kind, a
-  /// state, a stop reason, a severity, a file operation or an exit.
+  /// state, a stop reason, a severity, a priority, a file operation, an exit
+  /// or the status of an MCP server that the agent did not report.
   static let unknown = "questionmark.circle.fill"
 
   /// The symbol of a warning: a warning notice, a lost tool result, missing
@@ -124,7 +126,8 @@ nonisolated enum SharedSymbol {
   /// The symbol of a history that can be partial.
   static let partialHistory = "clock.badge.questionmark"
 
-  /// The symbol of an agent that is not connected.
+  /// The symbol of an agent that is not connected, and of an MCP server whose
+  /// connection is closed.
   static let disconnected = "bolt.horizontal.circle"
 
   /// The symbol of the connections to the agents.
@@ -246,8 +249,14 @@ nonisolated enum SharedSymbol {
   /// The symbol of a file location of a tool call.
   static let document = "document"
 
-  /// The symbol of the priority of a plan entry.
-  static let priority = "flag.fill"
+  /// The symbol of a plan entry with a high priority: three marks.
+  static let highPriority = "exclamationmark.3"
+
+  /// The symbol of a plan entry with a medium priority: two marks.
+  static let mediumPriority = "exclamationmark.2"
+
+  /// The symbol of a plan entry with a low priority: one mark.
+  static let lowPriority = "exclamationmark"
 
   /// The symbol of a compaction of the context.
   static let compaction = "arrow.down.right.and.arrow.up.left"

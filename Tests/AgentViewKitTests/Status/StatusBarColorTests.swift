@@ -1,0 +1,59 @@
+import FoundationModelsACPClient
+import SwiftUI
+import Testing
+
+@testable import AgentViewKit
+
+/// Checks that the symbol of a status bar shows a failure with the error color
+/// of the EditorKit theme, and each other message with the accent.
+///
+/// The tests give ``DistinctRolesTheme``, which has a different color for each
+/// role, so each color names its role.
+@Suite @MainActor struct StatusBarColorTests {
+  /// The role colors of ``DistinctRolesTheme``.
+  typealias Role = DistinctRolesTheme.Role
+
+  /// A theme with a different color for each role.
+  static let theme = DistinctRolesTheme()
+
+  /// A failure of the connection to the agent.
+  struct ConnectionFailure: Error {}
+
+  /// The three failure messages: a failed turn, the `_error` stop reason and a
+  /// failed connection.
+  static func failureMessages() throws -> [StateBanner.Message] {
+    let failedTurn = StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "error"))
+    let failedConnection = try #require(AgentConnectionBanner.makeMessage(for: .failed(ConnectionFailure())))
+    return [failedTurn, StateBanner.message(forUnknownStopReason: "_error"), failedConnection]
+  }
+
+  /// Messages that are not failures: a running agent, a complete turn and a
+  /// closed session.
+  static func otherMessages() throws -> [StateBanner.Message] {
+    [
+      StateBanner.message(for: try StateBannerStopReasonTests.decodeState(#"{"state": "running"}"#)),
+      StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "end_turn")),
+      SessionStreamBanner.closedMessage,
+    ]
+  }
+
+  @Test func eachFailureMessageIsAFailure() throws {
+    #expect(try Self.failureMessages().allSatisfy(\.isFailure))
+  }
+
+  @Test func noOtherMessageIsAFailure() throws {
+    #expect(try Self.otherMessages().allSatisfy { !$0.isFailure })
+  }
+
+  @Test func aFailureBarTintsItsSymbolWithTheErrorColor() throws {
+    for message in try Self.failureMessages() {
+      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Role.error, "\(message.identifier)")
+    }
+  }
+
+  @Test func aBarThatIsNotAFailureTintsItsSymbolWithTheAccent() throws {
+    for message in try Self.otherMessages() {
+      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Role.accent, "\(message.identifier)")
+    }
+  }
+}

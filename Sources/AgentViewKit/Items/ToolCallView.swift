@@ -137,6 +137,7 @@ public struct ToolCallView: View {
 
   @Environment(\.expandedBlocksStore) private var environmentStore
   @Environment(\.toolCallConnectionState) private var connectionState
+  @Environment(\.toolCallRegistry) private var toolCallRegistry
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
@@ -321,7 +322,8 @@ public struct ToolCallView: View {
       header(id: id, store: store, expanded: expanded, label: label)
       LinkedElicitations(entry: entry)
       if expanded {
-        ToolCallBody(entry: entry)
+        ToolCallBody(entry: entry, renderer: toolCallRegistry.resolve(name: entry.name), theme: theme)
+          .equatable()
           .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
     }
@@ -410,12 +412,35 @@ public struct ToolCallView: View {
 /// status change does not evaluate it. An entry whose `name` has a
 /// registration in the ``SwiftUI/EnvironmentValues/toolCallRegistry`` shows
 /// the registered view in place of the default body.
-private struct ToolCallBody: View {
+///
+/// The view has no environment property. The row reads the registry and the
+/// theme, and gives them to the view as values. SwiftUI can evaluate the body
+/// of a view that reads the environment again after a change of the parent,
+/// with no Equatable check. A view with no environment property evaluates
+/// again only when `==` gives `false`. Apply `.equatable()` to the view.
+private struct ToolCallBody: View, Equatable {
   /// The tool call entry to show.
   let entry: ToolCallEntry
 
-  @Environment(\.toolCallRegistry) private var registry
-  @Environment(\.agentTheme) private var theme
+  /// The registered view of the tool name of the entry, or `nil` for the
+  /// default body.
+  let renderer: ToolCallRegistry.Renderer?
+
+  /// The theme of the kit.
+  let theme: AgentTheme
+
+  /// Tells whether two bodies show the same entry object in the same theme,
+  /// and both use a registered view or both use the default body.
+  ///
+  /// - Parameters:
+  ///   - lhs: A body.
+  ///   - rhs: A body.
+  /// - Returns: `true` when the two bodies show the same.
+  static func == (lhs: ToolCallBody, rhs: ToolCallBody) -> Bool {
+    lhs.entry === rhs.entry
+      && lhs.theme == rhs.theme
+      && (lhs.renderer == nil) == (rhs.renderer == nil)
+  }
 
   var body: some View {
     let id = entry.id.rowKey
@@ -423,7 +448,7 @@ private struct ToolCallBody: View {
       BodyEvaluationCounter.note(ToolCallView.bodyCounterKey(for: id))
     #endif
     return Group {
-      if let renderer = registry.resolve(name: entry.name) {
+      if let renderer {
         renderer(entry)
       } else {
         defaultBody(id: id)

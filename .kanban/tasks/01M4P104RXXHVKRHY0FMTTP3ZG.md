@@ -6,6 +6,22 @@ comments:
   id: 01m4p11v4dvxy0b3nmkd23xne4
   text: '2026-10-11: FoundationModelsACPClient accepted the per-entry times as its task ^gs1cx8r (names can change): each TranscriptEntry gets `startedAt: Date?`, `endedAt: Date?`, computed `duration: TimeInterval?`, each written one time only. `endedAt` of a message or thought is when the next entry starts or an idle `state_update` arrives; of a tool call, when its status first becomes `completed` or `failed`. Replayed and history entries have nil times. Injectable clock `now: @Sendable () -> Date` on ConnectionModel and SessionModel. Schema alpha.8 has no timestamp on session updates, so every time comes from the client clock. Turn times (prompt sent, first update, stop) are NOT in that task: the owner said earlier that the client has no turn concept; the client session asked the owner. The client pushes only with the owner''s approval. If there are no turn times, the turn-duration item of this card is dropped (the kit must not record times itself).'
   timestamp: 2026-10-11T17:44:29.069201+00:00
+- actor: claude-code
+  id: 01m4pamsbwfwfngapby9x7163q
+  text: |-
+    2026-10-11: FoundationModelsACPClient pushed the entry times to main (HEAD 3c3adb9; feature commits 0887f3d, 34132d4, 1c7410d; CI green). This card is not blocked now, except for the turn-time item.
+
+    API:
+    - `EntryTiming`: `@MainActor @Observable` final class; `startedAt: Date?`, `endedAt: Date?` (`public private(set)`, each written one time only, not per chunk); computed `duration: TimeInterval?` (nil unless both times exist).
+    - `ObservableTranscriptEntry.timing: EntryTiming`, with shortcuts `.startedAt`, `.endedAt`, `.duration` on each entry class; `TranscriptEntry.timing` gives the same object.
+    - `ConnectionModel.init(coalescingCadence:clock:now:logger:)`: new parameter `now: @escaping @Sendable () -> Date = Date.init` (use it in tests).
+
+    End of each entry: user message and error — end = start; agent message, thought, unknown — next entry starts or idle `state_update`; tool call and compaction — status first becomes completed, failed or cancelled; terminal — exit status first arrives; plan — `endedAt` stays nil.
+
+    All times come from the client clock. Replayed and history entries have nil times. `startedAt` of a streamed message can be up to one coalescing cadence (33 ms default) after the first chunk.
+
+    Turn times are NOT in this work; the owner has not decided. Do the entry decorator now; leave the turn-duration item open until the client session reports the decision.
+  timestamp: 2026-10-11T20:32:07.036804+00:00
 position_column: todo
 position_ordinal: '8580'
 title: 'Message timing: show entry and turn times from the client model'

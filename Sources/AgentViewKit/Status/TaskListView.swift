@@ -15,7 +15,8 @@ import SwiftUI
 /// with its type, and its JSON shows when the user expands it.
 ///
 /// Each entry shows a status symbol, the text of the task, and a priority
-/// tint. An entry in progress shows a `ProgressView`. A cancelled entry shows
+/// symbol with the priority tint. Each priority has a different symbol. An
+/// entry in progress shows a `ProgressView`. A cancelled entry shows
 /// its text with a strikethrough.
 ///
 /// The accessibility label of each entry is the text, the status, and the
@@ -107,8 +108,23 @@ public struct TaskListView: View {
     }
   }
 
+  /// The SF Symbol name of a priority. Each priority has a different symbol,
+  /// so that the priority does not show with color only.
+  ///
+  /// - Parameter priority: The ACP priority of an entry.
+  /// - Returns: The symbol name. An unknown priority gives the symbol of an
+  ///   unknown value.
+  static func prioritySymbol(_ priority: FoundationModelsACP.PlanEntryPriority) -> String {
+    switch priority {
+    case .high: SharedSymbol.highPriority
+    case .medium: SharedSymbol.mediumPriority
+    case .low: SharedSymbol.lowPriority
+    case .unknown: SharedSymbol.unknown
+    }
+  }
+
   /// The name of a priority, for the entry label and the help tag of the
-  /// priority tint.
+  /// priority symbol.
   ///
   /// - Parameter priority: The ACP priority of an entry.
   /// - Returns: The name of the priority. An unknown priority gives its wire
@@ -186,7 +202,7 @@ private struct PlanEntryRow: View {
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
       Spacer(minLength: theme.spacing.s)
-      Image(systemName: SharedSymbol.priority)
+      Image(systemName: TaskListView.prioritySymbol(entry.priority))
         .foregroundStyle(editorTheme.tint(for: entry.priority))
         .fontWeight(theme.symbolWeight)
         .help(TaskListView.priorityLabel(entry.priority))
