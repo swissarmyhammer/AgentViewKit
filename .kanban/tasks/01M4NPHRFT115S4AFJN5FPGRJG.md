@@ -73,6 +73,33 @@ comments:
     - evidence: `swift test` exit 0: 1081 tests in 118 suites passed (1 known issue that HostedLayoutExpectationsTests expects), PackageStructureTests 104 tests passed. Only warning: the SwiftPM "missing creator for mutated node" note for the mlx-swift bundle. Load average 146.72 at start, 156.94 at end. Files: Sources/AgentViewKit/Activity/ActivityTimeline.swift, Connections/ConnectionStatusChip.swift, Items/ToolCallView.swift, new Items/ToolStatusImage.swift, new Infrastructure/ValueElement.swift, Thread/Registries.swift, Thread/ThreadMinimapView.swift; Tests/AgentViewKitTests/Items/ToolCallViewHostedTests.swift.
     - next: /review
   timestamp: 2026-10-11T22:18:53.837869+00:00
+- actor: claude-code
+  id: 01m4phg9cgx8sqfnq247vbwda9
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (7da4a29). 2 findings (2 confirmed, 1 refuted): Sources/AgentViewKit/Thread/Registries.swift:31, Sources/AgentViewKit/Thread/Registries.swift:35
+    - next: Remove the assign-only properties `key` and `token` in Registries.swift, or read them. Then run the review again.
+  timestamp: 2026-10-11T22:31:59.632905+00:00
+- actor: claude-code
+  id: 01m4phgjsgazpfzt3kv0jnbask
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — ToolStatusImage, renderer identity in KeyedViewRegistry, ToolCallHeader / ToolCallLabel, cancelledBandCount, valueElement helper; 5 findings checked
+    - test: green — swift test, 1081 tests passed, 1 expected known issue, load average 139 to 155
+    - commit: 7da4a29
+    - review: findings — Sources/AgentViewKit/Thread/Registries.swift:31, Sources/AgentViewKit/Thread/Registries.swift:35
+  timestamp: 2026-10-11T22:32:09.264475+00:00
+- actor: claude-code
+  id: 01m4phx5kef5nmyyczz8x8hnk2
+  text: 'Dead-code findings fixed (not committed). Cause: `Registration.ID` stored `key` and `token`, and only the synthesized Hashable read them. Fix: the nested `ID` struct is gone. `Registration.id` is now one `UUID` token (a new token for each `register` call). `ToolCallBody` reads `registration?.id` and its written `==` compares it, so the token has an explicit reader. The key was not necessary in the identity: no two registrations have the same token. `ToolCallRegistry.Registration.ID` in ToolCallView.swift now resolves to `UUID` through `Identifiable`; no change in that file. The rest of Registries.swift has no other stored property that only gets an assignment (`registrations` and `renderer` have readers).'
+  timestamp: 2026-10-11T22:39:01.742991+00:00
+- actor: claude-code
+  id: 01m4phx81w5639ae7kq46p4dzh
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` exit 0: 1081 tests in 118 suites passed (1 known issue that HostedLayoutExpectationsTests expects). `aSwapOfTheRegisteredViewRefreshesTheExpandedBody` and `aStatusUpdateEvaluatesTheRowAndNotTheExpandedBody` passed. Only warning: the SwiftPM "missing creator for mutated node" note for the mlx-swift bundle. Load average 96.82 at start, 120.05 at end. File: Sources/AgentViewKit/Thread/Registries.swift.
+    - next: /review
+  timestamp: 2026-10-11T22:39:04.252994+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
 position_column: doing
@@ -102,3 +129,13 @@ An audit on 2026-10-11 found indicators that show their meaning only with color.
 - [x] `Sources/AgentViewKit/Thread/ThreadMinimapView.swift:63` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Sources/AgentViewKit/Thread/ThreadMinimapView.swift:85` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
 - [x] `Sources/AgentViewKit/Thread/ThreadMinimapView.swift:454` `reuse/reuse` — The new `valueElement` helper repeats the accessibility chain of `ConnectionStatusChip.body`: `accessibilityElement(children: .ignore)`, label, value, `.isStaticText` trait, and identifier. It also copies the same comment about the static text role. Two copies of this chain can diverge, so a fix to one (for example, the role rule) does not reach the other. Move `valueElement` to a shared place in the kit, such as Sources/AgentViewKit/Infrastructure, next to `AccessibilityIdentifier`. Make it internal, not fileprivate. Use it from `ThreadMinimapView` and from `ConnectionStatusChip`, so the accessibility rule is written once.
+
+## Review Findings (2026-10-11 17:26)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Sources/AgentViewKit/Thread/Registries.swift:31` `code-hygiene/dead-code-swift` — var.instance `key` is assignOnlyProperty.
+- [x] `Sources/AgentViewKit/Thread/Registries.swift:35` `code-hygiene/dead-code-swift` — var.instance `token` is assignOnlyProperty.

@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 /// key. Thus the last writer wins. The three keyed registries of the kit use
 /// this table.
 ///
-/// Each registration has its own identity: its key and a new token. A view that
+/// Each registration has its own identity: a new token. A view that
 /// skips its body with an Equatable check compares the identity, because a
 /// function value has no equality. A new registration for a key thus changes
 /// the identity, also when a host gives a new function for the same key.
@@ -25,18 +25,10 @@ public struct KeyedViewRegistry<Key: Hashable & Sendable, Value>: Sendable {
   /// One registration: the renderer of a key and the identity of the
   /// registration.
   struct Registration: Identifiable, Sendable {
-    /// The identity of one registration: its key and its token.
-    struct ID: Hashable, Sendable {
-      /// The key of the registration.
-      let key: Key
-
-      /// The token of the registration. Each call to
-      /// ``KeyedViewRegistry/register(_:_:)`` makes a new token.
-      let token: UUID
-    }
-
-    /// The identity of the registration.
-    let id: ID
+    /// The identity of the registration: a new token for each call to
+    /// ``KeyedViewRegistry/register(_:_:)``. No two registrations have the
+    /// same token, also when they have the same key.
+    let id: UUID
 
     /// The function that makes the view.
     let renderer: Renderer
@@ -60,7 +52,7 @@ public struct KeyedViewRegistry<Key: Hashable & Sendable, Value>: Sendable {
   ///   - key: The key of the renderer.
   ///   - renderer: The function that makes the view.
   public mutating func register(_ key: Key, _ renderer: @escaping Renderer) {
-    registrations[key] = Registration(id: Registration.ID(key: key, token: UUID()), renderer: renderer)
+    registrations[key] = Registration(id: UUID(), renderer: renderer)
   }
 
   /// The renderer of `key`, or `nil` when `key` has no registration.
