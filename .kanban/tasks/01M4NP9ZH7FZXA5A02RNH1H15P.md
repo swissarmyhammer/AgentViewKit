@@ -43,8 +43,25 @@ comments:
   id: 01m4nr6q7pd7va1wv0ypvbe87f
   text: The new task of the step record above is ^jw4nhbg.
   timestamp: 2026-10-11T15:09:51.734577+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4nrqzp6y3dnpp4c2e8wckc0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 0b962c2). 0 findings, 0 confirmed, 0 refuted. 2 files reviewed. 16 .kanban files not reviewed (ignore rule).
+    - next: The task is in done. A UI test run (Scripts/test-examples.sh or CI) must still confirm the fix.
+  timestamp: 2026-10-11T15:19:17.446999+00:00
+- actor: claude-code
+  id: 01m4nrrak8qcjb4m3w8q99yz0x
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AgentAuthView fixed vertical sizes removed; new hosted test (RED 446 > 166, then GREEN)
+    - test: green — swift test, 1042 tests passed, load average 34 to 59; only the known mlx-swift dependency warning
+    - commit: 0b962c2
+    - review: clean — 0 findings (2 files); task in done
+    - open: a CI UI test run must confirm the fix
+  timestamp: 2026-10-11T15:19:28.616794+00:00
+position_column: done
+position_ordinal: ffa180
 title: Fix the AgentViewKitDemo crash in the CI UI tests
 ---
 ## What
