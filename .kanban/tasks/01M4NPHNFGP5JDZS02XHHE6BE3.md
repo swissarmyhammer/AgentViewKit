@@ -42,6 +42,37 @@ comments:
     - files: Sources/AgentViewKit/Items/SharedSymbol.swift, Items/ToolKindSymbol.swift, 35 view files below Sources/AgentViewKit that now read SharedSymbol, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift, Tests/AgentViewKitTests/Items/SymbolConceptTests.swift (new), Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift, Tests/PackageStructureTests/SymbolNameTests.swift, Tests/PackageStructureTests/SystemSymbolData.swift.
     - next: /review. Task stays in doing. Not committed.
   timestamp: 2026-10-11T18:31:56.329544+00:00
+- actor: claude-code
+  id: 01m4p4ser6tp792j6dg8xana1h
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 790d407). 1 finding, 1 confirmed, 0 refuted. Tests/PackageStructureTests/SystemSymbolData.swift:47 (reuse/reuse).
+    - next: Make availableNames() and table(named:) use one shared property-list reader. Then do the review again.
+  timestamp: 2026-10-11T18:49:48.550147+00:00
+- actor: claude-code
+  id: 01m4p4sr1xd5jrdn5myk045pn5
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — SharedSymbol is the full symbol table; one symbol for each concept; about 35 view files
+    - test: green — swift test, 1061 tests passed, 1 expected known issue, load average 59 to 68
+    - commit: 790d407
+    - review: findings — Tests/PackageStructureTests/SystemSymbolData.swift:47
+  timestamp: 2026-10-11T18:49:58.077664+00:00
+- actor: claude-code
+  id: 01m4p59j996pn584wncsyhkxbc
+  text: |-
+    Fix for the reuse finding (SystemSymbolData.swift).
+    - New private `propertyList(named:)` reads one data file from `resources` and decodes it with `PropertyListSerialization`. It is the only read path in the file now.
+    - `table(named:)` and `availableNames()` both call it. The `NotAStringTable` check stays in `table(named:)`. The `NoNameTable` check stays in `availableNames()`.
+    - No behavior change. The existing tests of `aliases()`, `restrictions()` and `availableNames()` in SymbolNameTests are the guard. No new test, because the change is a refactor of a test helper.
+  timestamp: 2026-10-11T18:58:36.457663+00:00
+- actor: claude-code
+  id: 01m4p59mmrqz2zsbm53dm5y184
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/PackageStructureTests/SystemSymbolData.swift. `swift test` full run: 1 test in 1 suite passed, 104 tests in 10 suites passed, 1061 tests in 115 suites passed (1 known issue that was there before); 0 failures. The only build warning is the SwiftPM "missing creator for mutated node" of mlx-swift_Cmlx, which was there before. Load average 129.09 at start, 145.40 at end.
+    - next: /review. Task stays in doing. Not committed.
+  timestamp: 2026-10-11T18:58:38.872218+00:00
 depends_on:
 - 01M4NPZHCT8SVBD2JAM8PH2F7D
 position_column: doing
@@ -62,3 +93,12 @@ An audit on 2026-10-11 found that the symbol names are spread over many views, a
   - diff edit row: `pencil` against the `.square` symbols (`Diff/DiffView.swift:174-181`)
 - [x] The switch-mode tool kind (`Items/ToolKindSymbol.swift:23`) and the max-turn-requests banner (`Status/StateBanner.swift:208`) must not show the same symbol.
 - [x] Tests: two different concepts do not share a symbol. Cover the banners, the stop reasons, the plan, the diff, the command output, the message actions and the send state. `Tests/AgentViewKitTests/Items/ErrorViewHostedTests.swift:15` pins `exclamationmark.triangle.fill`; change it to read the table.
+
+## Review Findings (2026-10-11 13:37)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 45 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Tests/PackageStructureTests/SystemSymbolData.swift:47` `reuse/reuse` — availableNames() repeats the read-and-parse steps of the existing file helper that reads a data file (line 75). It reads the file with Data(contentsOf:), decodes it with PropertyListSerialization, and casts the result, but it does not call that helper. The existing helper and this function are a near-match that was not extended. Two parallel read paths can drift apart, for example in error handling or in the file location. Generalize the existing helper so that it returns the property list as [String: Any], or add a small shared reader that returns the decoded property list. Then have table(named:) and availableNames() both use it, and keep the NotAStringTable and NoNameTable checks at their call sites. If the helper's contract does not fit, document why the read is kept separate.

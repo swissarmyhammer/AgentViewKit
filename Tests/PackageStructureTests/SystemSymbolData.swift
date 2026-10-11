@@ -45,8 +45,7 @@ enum SystemSymbolData {
   /// - Throws: The error of the read when the file cannot be read, or
   ///   ``NoNameTable`` when the file has no `symbols` table.
   static func availableNames() throws -> Set<String> {
-    let data = try Data(contentsOf: resources.appending(path: availabilityFile))
-    let value = try PropertyListSerialization.propertyList(from: data, format: nil)
+    let value = try propertyList(named: availabilityFile)
     guard let symbols = (value as? [String: Any])?[symbolsKey] as? [String: Any] else {
       throw NoNameTable(file: availabilityFile)
     }
@@ -79,11 +78,24 @@ enum SystemSymbolData {
   /// - Throws: The error of the read when the file cannot be read, or
   ///   ``NotAStringTable`` when the file is not a table of strings.
   private static func table(named name: String) throws -> [String: String] {
-    let data = try Data(contentsOf: resources.appending(path: name))
-    let value = try PropertyListSerialization.propertyList(from: data, format: nil)
-    guard let table = value as? [String: String] else {
+    guard let table = try propertyList(named: name) as? [String: String] else {
       throw NotAStringTable(file: name)
     }
     return table
+  }
+
+  /// Reads one data file and decodes it as a property list.
+  ///
+  /// Each read of a data file goes through this function, so that all the
+  /// reads use the same file location and the same decoder. The caller
+  /// checks the shape of the value.
+  ///
+  /// - Parameter name: The file name in ``resources``.
+  /// - Returns: The decoded property list.
+  /// - Throws: The error of the read when the file cannot be read or is not
+  ///   a property list.
+  private static func propertyList(named name: String) throws -> Any {
+    let data = try Data(contentsOf: resources.appending(path: name))
+    return try PropertyListSerialization.propertyList(from: data, format: nil)
   }
 }
