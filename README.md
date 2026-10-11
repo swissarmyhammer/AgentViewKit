@@ -239,9 +239,32 @@ struct HostThread: View {
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.
       .messageFooter { entry in MessageActions(entry: entry) }
+      // The Markdown that shows while the transcript has no entry.
+      .conversationEmptyState(
+        title: "Welcome",
+        markdown: """
+          Ask the agent about your **code**:
+
+          - Explain a file
+          - Fix a failed test
+          """)
   }
 }
 ```
+
+### The empty state
+
+While the transcript has no entry, `ConversationView` shows a
+`ConversationEmptyState`. To show your own Markdown text in the drop-in
+`AgentThreadView`, use `.conversationEmptyState(title:systemImage:markdown:)`,
+as in the example above. The text shows the same as the text of an agent
+message: headings, lists, links, and code blocks. The EditorKit theme applies.
+The title and the symbol are optional. When you set no content, the empty
+state shows "No Messages".
+
+To show the text in a `ConversationView` with a custom slot, give
+`ConversationEmptyState(title:systemImage:markdown:)` to the `emptyState`
+closure.
 
 ### The theme
 
@@ -321,7 +344,7 @@ two lists equal.
 **Thread**
 
 - `AgentThreadView`: the drop-in view. It binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and shows the whole surface.
-- `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state.
+- `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state with Markdown text from the host.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.
 - `ThreadMinimapView`: the rail of the transcript entries, with the tool call status. A drag moves the thread.
 - `StateBanner`: shows `requiresAction` and a stop reason that needs attention, also the extension stop reasons.

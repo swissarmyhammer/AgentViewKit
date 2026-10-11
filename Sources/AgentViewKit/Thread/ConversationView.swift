@@ -12,8 +12,12 @@ public enum ConversationLayout {
   /// The accessibility identifier of the row that shows the earlier page.
   public static let loadEarlierIdentifier = "load-earlier-row"
 
-  /// The accessibility identifier of the default empty state.
+  /// The accessibility identifier of a ``ConversationEmptyState``.
   public static let emptyStateIdentifier = "conversation-empty-state"
+
+  /// The accessibility identifier of the title of a
+  /// ``ConversationEmptyState``.
+  public static let emptyStateTitleIdentifier = "conversation-empty-state-title"
 
   /// The default number of items on one page.
   public static let defaultPageSize = 200
@@ -109,6 +113,8 @@ extension View {
 /// ``SwiftUI/View/conversationPageSize(_:)``.
 ///
 /// When the transcript has no entry, the view shows the `emptyState` slot.
+/// The default slot is a ``ConversationEmptyState``. Set its Markdown content
+/// with ``SwiftUI/View/conversationEmptyState(title:systemImage:markdown:)``.
 ///
 /// Below the list, ``StateBanner/init(session:onShowError:)`` shows the
 /// `agentState` of the model. Its Show Error button scrolls to the last
@@ -390,21 +396,6 @@ extension ConversationView where EmptyState == ConversationEmptyState {
   ///     the view makes its own manager.
   public init(session: SessionModel, anchors: ScrollAnchorManager? = nil) {
     self.init(session: session, anchors: anchors) { ConversationEmptyState() }
-  }
-}
-
-/// The default empty state of a ``ConversationView``.
-public struct ConversationEmptyState: View {
-  /// Makes the default empty state.
-  public init() {}
-
-  public var body: some View {
-    ContentUnavailableView(
-      "No Messages",
-      systemImage: SharedSymbol.conversation,
-      description: Text("Send a message to start the conversation.")
-    )
-    .accessibilityIdentifier(ConversationLayout.emptyStateIdentifier)
   }
 }
 

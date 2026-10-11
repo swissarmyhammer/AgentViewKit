@@ -66,7 +66,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 |---|---|---|---|---|
 | Drop-in thread | ✓ `AgentThreadView` (`Thread/AgentThreadView.swift`) | partial: compose `Conversation` + `Message` + `PromptInput` | ✓ `Thread` element | ✓ `CopilotChat` |
 | Scroll container, stick to bottom, scroll button | ✓ `ConversationView`, `ScrollToBottomPill`, `ScrollAnchorManager` | ✓ `Conversation`, `ConversationScrollButton` | ✓ `ThreadPrimitive.Viewport`, `.ScrollToBottom` | ✓ `scrollView` slot, `autoScroll` |
-| Empty state / welcome | partial: `ConversationEmptyState` (static text) | ✓ `ConversationEmptyState` | ✓ `AuiIf` + `s.thread.isEmpty` | ✓ `welcomeScreen` slot |
+| Empty state / welcome | ✓ `ConversationEmptyState` with Markdown from the host, and `.conversationEmptyState(title:systemImage:markdown:)` (`Thread/ConversationEmptyState.swift`) | ✓ `ConversationEmptyState` | ✓ `AuiIf` + `s.thread.isEmpty` | ✓ `welcomeScreen` slot |
 | User message | ✓ `UserMessageView` (`Items/UserMessageView.swift`) | ✓ `Message from="user"` | ✓ `MessagePrimitive` | ✓ `CopilotChatUserMessage` |
 | Assistant message | ✓ `AssistantMessageView` | ✓ `Message`, `MessageResponse` | ✓ `MessagePrimitive.Parts` | ✓ `CopilotChatAssistantMessage` |
 | Pending / failed send state | ✓ `UserMessageView` send state | ✗ | partial: message status | ? |
@@ -526,7 +526,17 @@ them until ACP gives one. Keep them on the watch list:
 
 ### 4.3 `ConversationView` and `ConversationEmptyState`
 
-- **File:** `Sources/AgentViewKit/Thread/ConversationView.swift`.
+- **File:** `Sources/AgentViewKit/Thread/ConversationView.swift` and
+  `Sources/AgentViewKit/Thread/ConversationEmptyState.swift`.
+- **Done:** `ConversationEmptyState` is in its own file. It shows Markdown
+  text that the host gives, with an optional title and an optional SF Symbol.
+  The text renders through `ResponseView`, the same as the text of an agent
+  message (Textual and `EditorKitCodeBlockStyle`), so headings, lists, links
+  and code blocks show, and the EditorKit theme applies. The host sets the
+  content with `ConversationEmptyState(title:systemImage:markdown:)` in the
+  `emptyState` slot, or with `.conversationEmptyState(title:systemImage:markdown:)`
+  for the drop-in `AgentThreadView`. With no host content, the empty state
+  shows the standard text "No Messages".
 - **Change:** Give the empty state a slot for the agent name (from
   `AgentInfoHeader` data), the suggestions, and the commands of
   `availableCommands`. Use `ToolCallGroup` (section 3.2) for runs of tool
@@ -699,8 +709,8 @@ binding rule: no copy of model data.
   `ActivityTimeline`, `ConfigOptionsView`, `AttachmentInspector`.
 - **Why:** Some list views show nothing when the list is empty. Vercel has
   `ConversationEmptyState` and `AttachmentEmpty`. A blank area looks broken.
-- **File:** `Sources/AgentViewKit/Thread/ConversationView.swift`
-  (move `ConversationEmptyState` to a shared file).
+- **File:** `Sources/AgentViewKit/Thread/ConversationEmptyState.swift`
+  (`ConversationEmptyState` is now in its own file, see section 4.3).
 
 ### 5.4 Copy and export actions
 

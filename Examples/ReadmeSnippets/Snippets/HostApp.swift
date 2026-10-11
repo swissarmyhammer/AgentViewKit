@@ -44,5 +44,14 @@ struct HostThread: View {
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.
       .messageFooter { entry in MessageActions(entry: entry) }
+      // The Markdown that shows while the transcript has no entry.
+      .conversationEmptyState(
+        title: "Welcome",
+        markdown: """
+          Ask the agent about your **code**:
+
+          - Explain a file
+          - Fix a failed test
+          """)
   }
 }

@@ -73,10 +73,26 @@ comments:
     - evidence: 1 file — Tests/PackageStructureTests/SystemSymbolData.swift. `swift test` full run: 1 test in 1 suite passed, 104 tests in 10 suites passed, 1061 tests in 115 suites passed (1 known issue that was there before); 0 failures. The only build warning is the SwiftPM "missing creator for mutated node" of mlx-swift_Cmlx, which was there before. Load average 129.09 at start, 145.40 at end.
     - next: /review. Task stays in doing. Not committed.
   timestamp: 2026-10-11T18:58:38.872218+00:00
+- actor: claude-code
+  id: 01m4p63admmxbf09dyrrp0neph
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (71cf397). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 1 file reviewed. All prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-11T19:12:40.372518+00:00
+- actor: claude-code
+  id: 01m4p63m9bas3a5fy14wq92kgg
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — one shared reader `propertyList(named:)` in SystemSymbolData.swift; finding checked
+    - test: green — swift test, 1061 tests passed, 1 expected known issue, load average 122 to 163
+    - commit: 71cf397
+    - review: clean — 0 findings (1 file); task in done
+  timestamp: 2026-10-11T19:12:50.475947+00:00
 depends_on:
 - 01M4NPZHCT8SVBD2JAM8PH2F7D
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffa580
 title: 'SF Symbols: one symbol table, one symbol for each concept'
 ---
 ## What

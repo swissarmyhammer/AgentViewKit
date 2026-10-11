@@ -69,6 +69,19 @@ struct ACPTabView: View {
   /// The ideal width of the sidebar column.
   static let sidebarIdealWidth: CGFloat = 240
 
+  /// The title of the empty state of a new session.
+  static let welcomeTitle = "Welcome to the AgentViewKit demo"
+
+  /// The Markdown text of the empty state of a new session.
+  static let welcomeMarkdown = """
+    Send a prompt below to start the conversation. The agent can:
+
+    - answer with **Markdown**, math, and code blocks
+    - run tool calls and ask for your permission
+
+    See the [AgentViewKit README](https://github.com/swissarmyhammer/AgentViewKit).
+    """
+
   /// The launch options of the app.
   let options: DemoLaunchOptions
 
@@ -316,6 +329,7 @@ struct ACPTabView: View {
     VStack(spacing: 0) {
       AgentThreadView(session: session, connection: agent.connection)
       .messageFooter { entry in MessageActions(entry: entry) }
+      .conversationEmptyState(title: Self.welcomeTitle, markdown: Self.welcomeMarkdown)
       ContextUsageView(session: session)
         .frame(maxWidth: .infinity, alignment: .trailing)
         .padding(.horizontal)
