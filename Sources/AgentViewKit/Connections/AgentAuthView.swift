@@ -51,6 +51,13 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// The host puts the card in its settings surface next to
 /// ``ConnectionsView``. ``AgentThreadView`` shows the card while `authState`
 /// asks for a sign-in.
+///
+/// The texts of the card do not use a fixed vertical size. A text with a
+/// fixed vertical size gives its full wrapped height as its minimum height,
+/// and at a narrow width that height is very large. The card is then taller
+/// at its minimum size than at its usual width. A `NavigationSplitView`
+/// column that holds the card then gives that large minimum size to its
+/// window.
 public struct AgentAuthView: View {
   /// The accessibility identifier of the card.
   public static let identifier = "agent-auth"
@@ -265,7 +272,6 @@ public struct AgentAuthView: View {
           Text(description)
             .font(.callout)
             .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
       }
       Spacer(minLength: theme.spacing.s)
@@ -320,7 +326,6 @@ public struct AgentAuthView: View {
         .accessibilityIdentifier(Self.failureTitleIdentifier)
       Text(failure.reason.message)
         .font(.callout)
-        .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier(Self.failureIdentifier)
     }
     .foregroundStyle(theme.statusColors.failed)
@@ -332,7 +337,6 @@ public struct AgentAuthView: View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       Text(String(localized: "Reconnect to the agent to finish the sign-in"))
         .font(.callout)
-        .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier(Self.reconnectMessageIdentifier)
       if let reconnect {
         actionButton(
