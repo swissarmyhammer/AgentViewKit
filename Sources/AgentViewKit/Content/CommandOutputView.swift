@@ -1,4 +1,5 @@
 import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// The output of a shell command or a job, as a text block (plan.md §9 F).
@@ -127,6 +128,7 @@ public struct CommandOutputView: View {
   @State private var ownModel = OwnModelSlot()
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.pasteboard) private var pasteboard
 
   /// Makes the view.
@@ -171,13 +173,7 @@ public struct CommandOutputView: View {
         footer(exitCode: exitCode, outcome: outcome)
       }
     }
-    .background(AgentTheme.EditorSystemColors.background)
-    .clipShape(RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous)
-        .strokeBorder(.separator)
-    )
-    .editorTheme(theme.editorTheme)
+    .editorBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
@@ -199,7 +195,7 @@ public struct CommandOutputView: View {
   private var header: some View {
     HStack(spacing: theme.spacing.s) {
       Text(command ?? String(localized: "Output"))
-        .font(theme.codeFont)
+        .font(editorTheme.editorFont)
         .foregroundStyle(command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)
@@ -214,7 +210,7 @@ public struct CommandOutputView: View {
     }
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
-    .background(AgentTheme.EditorSystemColors.barBackground)
+    .editorBlockBar()
   }
 
   /// The row that tells how many rows show, with the Show All button.
@@ -243,16 +239,16 @@ public struct CommandOutputView: View {
   }
 }
 
-extension AgentTheme.StatusColors {
+nonisolated extension EditorTheme.Theme {
   /// The color of a command with `outcome`.
   ///
   /// - Parameter outcome: The outcome of the command.
-  /// - Returns: ``completed`` for a command that completed, and ``failed``
-  ///   for a command that failed.
-  public func color(for outcome: CommandOutputView.ExitOutcome) -> Color {
+  /// - Returns: `statusSucceeded` for a command that completed, and
+  ///   `statusFailed` for a command that failed.
+  public func statusColor(for outcome: CommandOutputView.ExitOutcome) -> Color {
     switch outcome {
-    case .success: completed
-    case .failure: failed
+    case .success: statusSucceeded
+    case .failure: statusFailed
     }
   }
 }

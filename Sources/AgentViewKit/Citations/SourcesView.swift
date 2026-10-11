@@ -1,4 +1,6 @@
 import AppKit
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
@@ -117,6 +119,7 @@ private struct SourceRow: View {
   let scrollRequest: Int?
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     let isHighlighted = scrollRequest != nil
@@ -141,7 +144,7 @@ private struct SourceRow: View {
     .padding(theme.spacing.xs)
     .background(
       RoundedRectangle(cornerRadius: theme.radii.s)
-        .fill(isHighlighted ? AnyShapeStyle(theme.accent.opacity(Self.highlightOpacity)) : AnyShapeStyle(.clear))
+        .fill(isHighlighted ? AnyShapeStyle(editorTheme.accent.opacity(Self.highlightOpacity)) : AnyShapeStyle(.clear))
     )
     .background(ScrollIntoView(request: scrollRequest))
     .contentContainer(identifier: SourcesView.rowIdentifier(index: index))

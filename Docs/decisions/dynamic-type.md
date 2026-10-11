@@ -9,7 +9,8 @@ Type size on macOS 27.
 ## Rule
 
 Each font of the kit uses a text style. `AgentTheme.proseFont` is
-`.system(.body)`, and `AgentTheme.codeFont` is
+`.system(.body)`. The code font is the `editorFont` role of the EditorKit
+theme in the `\.editorTheme` environment value. Its default is
 `.system(.body, design: .monospaced)`. Two views set a point size, and both
 sizes come from a resolved text style:
 
@@ -36,7 +37,7 @@ test.
 
 | View | `.large` | `.accessibility3` |
 |------|----------|-------------------|
-| `CodeBlockView` (EditorKit editor, `codeFont`) | 18.0 pt | 18.0 pt |
+| `CodeBlockView` (EditorKit editor, `editorFont`) | 18.0 pt | 18.0 pt |
 | SwiftUI `Text` with `.font(.body)` | 16.0 pt | 16.0 pt |
 
 The line height does not change for the code block. It also does not change

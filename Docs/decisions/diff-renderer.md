@@ -33,8 +33,12 @@ This file records how `DiffView` gets its default renderer from EditorKit.
   the file whose new path, or the old path of a deleted file, is the selected
   path. This is the path that `DiffSummary` gives. When no file matches, the
   renderer shows each file.
-- The renderer applies `.editorTheme(theme.editorTheme)`, the `AgentTheme`
-  bridge.
+- The renderer sets no theme. The EditorKit `DiffView` reads the EditorKit
+  `Theme` of the `\.editorTheme` environment value. The +N / −N counts in the
+  file list of the kit `DiffView` use `diffAddedBackground` and
+  `diffRemovedBackground` of the same theme at full opacity. Thus the counts
+  and the diff bands have the same colors (decision of 2026-10-11,
+  `visual-audit.md`, section "Colors and the code font").
 - The "diff renderer not installed" row is removed. When EditorKit cannot
   parse the patch, a row shows "Cannot read the patch at line N", with the
   identifier `DiffView.unreadablePatchIdentifier`. This row is not a stand-in

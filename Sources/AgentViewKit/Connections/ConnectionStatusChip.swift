@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -16,6 +18,7 @@ public struct ConnectionStatusChip: View {
   let status: MCPServerStatus
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes a chip.
   ///
@@ -94,18 +97,17 @@ public struct ConnectionStatusChip: View {
     if case .failed(let reason) = status { reason } else { nil }
   }
 
-  /// The color of the dot for `status`, from the status colors of the theme.
+  /// The color of the dot for `status`, from the status roles of the EditorKit theme.
   ///
   /// - Parameter status: The status of the server.
   /// - Returns: The color of the dot.
   private func color(for status: MCPServerStatus) -> Color {
-    let colors = theme.statusColors
-    return switch status {
-    case .notReported: colors.pending
-    case .connecting: colors.running
-    case .connected: colors.completed
-    case .failed: colors.failed
-    case .closed: colors.cancelled
+    switch status {
+    case .notReported: editorTheme.statusPending
+    case .connecting: editorTheme.statusRunning
+    case .connected: editorTheme.statusSucceeded
+    case .failed: editorTheme.statusFailed
+    case .closed: editorTheme.statusCancelled
     }
   }
 }

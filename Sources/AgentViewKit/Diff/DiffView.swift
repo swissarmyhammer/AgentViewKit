@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
@@ -7,7 +9,8 @@ import SwiftUI
 ///
 /// - A list of the files of the patch, with the added and removed line
 ///   counts. The list is on the left, or on top when the view is narrow. A
-///   press on a file selects it.
+///   press on a file selects it. The counts use the diff colors of the
+///   EditorKit theme in the environment, the same colors as the diff bands.
 /// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
 ///   full patch and the path of the selected file. The default renderer is
 ///   the EditorKit diff view, in the ``SwiftUI/EnvironmentValues/diffLayout``.
@@ -70,6 +73,8 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   @Environment(\.diffRenderer) private var renderer
   @Environment(\.diffActions) private var environmentActions
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.self) private var environment
 
   /// Makes a diff view.
   ///
@@ -237,9 +242,9 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
         Spacer(minLength: theme.spacing.s)
         if patch != nil {
           Text(verbatim: "+\(file.added)")
-            .foregroundStyle(theme.statusColors.completed)
+            .foregroundStyle(editorTheme.diffAddedText(in: environment))
           Text(verbatim: "\u{2212}\(file.removed)")
-            .foregroundStyle(theme.statusColors.failed)
+            .foregroundStyle(editorTheme.diffRemovedText(in: environment))
         }
       }
       .font(.caption)
@@ -336,7 +341,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     if actions.onAccept != nil || actions.onReject != nil {
       HStack(spacing: theme.spacing.s) {
         Text(verbatim: hunk.header)
-          .font(theme.codeFont)
+          .font(editorTheme.editorFont)
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.tail)

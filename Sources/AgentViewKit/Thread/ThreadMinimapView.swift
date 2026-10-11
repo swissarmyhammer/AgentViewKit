@@ -1,4 +1,6 @@
 import AppKit
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -74,7 +76,7 @@ public struct ThreadMinimapView: View {
   /// The smallest number of entries that shows the rail.
   let minimumItemCount: Int
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the rail of the transcript of a session model.
   ///
@@ -150,7 +152,7 @@ public struct ThreadMinimapView: View {
     let current = band?.lowerBound ?? 0
     return ZStack {
       Canvas { context, size in
-        Self.draw(tints: tints, band: band, bandColor: theme.accent, in: &context, size: size)
+        Self.draw(tints: tints, band: band, bandColor: editorTheme.accent, in: &context, size: size)
       }
       .accessibilityHidden(true)
       #if DEBUG
@@ -295,7 +297,7 @@ public struct ThreadMinimapView: View {
     return first...last
   }
 
-  /// The tick color of `entry`, from the theme.
+  /// The tick color of `entry`, from the EditorKit theme.
   ///
   /// The color of a tool call reads `ToolCallEntry.status`, so a status
   /// change draws the rail again.
@@ -303,13 +305,12 @@ public struct ThreadMinimapView: View {
   /// - Parameter entry: The transcript entry.
   /// - Returns: The color.
   private func tint(of entry: TranscriptEntry) -> Color {
-    let colors = theme.statusColors
     return switch entry {
-    case .userMessage: theme.accent
+    case .userMessage: editorTheme.accent
     case .agentMessage: Color.primary
     case .thought, .terminal, .plan: Color.secondary
-    case .toolCall(let toolCall): colors.color(for: toolCall.shownStatus)
-    case .error: colors.failed
+    case .toolCall(let toolCall): editorTheme.statusColor(for: toolCall.shownStatus)
+    case .error: editorTheme.severityError
     case .unknown, .compaction:
       Color.secondary.opacity(Self.quietTickOpacity)
     }

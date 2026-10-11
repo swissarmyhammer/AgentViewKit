@@ -1,4 +1,5 @@
 import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -120,6 +121,7 @@ public struct TerminalView: View {
   @State private var ownModel = OwnModelSlot()
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
   /// "Terminal view").
@@ -171,13 +173,7 @@ public struct TerminalView: View {
       Divider()
       footer
     }
-    .background(AgentTheme.EditorSystemColors.background)
-    .clipShape(RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous)
-        .strokeBorder(.separator)
-    )
-    .editorTheme(theme.editorTheme)
+    .editorBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
@@ -202,7 +198,7 @@ public struct TerminalView: View {
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal"))
-        .font(theme.codeFont)
+        .font(editorTheme.editorFont)
         .foregroundStyle(entry.command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)
@@ -221,7 +217,7 @@ public struct TerminalView: View {
     }
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
-    .background(AgentTheme.EditorSystemColors.barBackground)
+    .editorBlockBar()
   }
 
   /// The row that tells how many rows show, with the Show All button.

@@ -24,7 +24,8 @@ The direct dependencies are:
   `SessionModel`.
 - FoundationModelsACP: the ACP v2 schema types, `ClientSideConnection` and
   `InMemoryTransport`.
-- EditorKit: code blocks, diffs, the composer editor, and the commands.
+- EditorKit: code blocks, diffs, the composer editor, the commands, and the
+  theme of the kit.
 - Textual: Markdown.
 - swiftui-math: math.
 
@@ -238,6 +239,44 @@ struct HostThread: View {
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.
       .messageFooter { entry in MessageActions(entry: entry) }
+  }
+}
+```
+
+### The theme
+
+The kit has one theme: the EditorKit `Theme`. Set it with `.editorTheme(_:)`.
+Every color of the kit views comes from this theme. This includes the accent,
+the status colors, the diff colors, the editor background, and the bars. The
+code font also comes from this theme. When you set no theme, EditorKit gives
+`SystemTheme`. `SystemTheme` follows the system appearance and the accent
+color of the user. EditorKit can also import a Zed, VS Code, or tmTheme file.
+
+`.agentTheme(_:)` sets only the layout tokens of the kit: spacing, radii,
+material, symbol weight, density, and the prose font.
+
+To import the theme modules, add the EditorKit products `EditorSwiftUI` and
+`EditorTheme` to the host target.
+
+```swift
+// readme:compile HostTheme
+import AgentViewKit
+import EditorSwiftUI
+import EditorTheme
+import SwiftUI
+
+/// Gives the kit views in `content` one theme.
+struct ThemedHost<Content: View>: View {
+  /// The kit views to theme.
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    content
+      // Every color of the kit views and the code font come from this
+      // EditorKit theme. `.system` follows the system appearance.
+      .editorTheme(.system)
+      // The layout tokens of the kit: spacing, radii, density.
+      .agentTheme(.default)
   }
 }
 ```

@@ -1,4 +1,6 @@
 import AgentViewKit
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// The AgentViewKit demo app.
@@ -19,6 +21,9 @@ struct AgentViewKitDemoApp: App {
   var body: some Scene {
     WindowGroup("AgentViewKit Demo") {
       DemoRootView(options: options)
+        // Every color of the kit views comes from this EditorKit theme. A
+        // host can give an imported Zed or VS Code theme here.
+        .editorTheme(.system)
     }
   }
 }

@@ -34,10 +34,6 @@ import Testing
     "line \(number)"
   }
 
-  /// A set of status colors with a different color for each status.
-  static let colors = AgentTheme.StatusColors(
-    running: .blue, completed: .green, failed: .red, cancelled: .gray, pending: .yellow)
-
   // MARK: - Mount
 
   @Test func mountsAnElementWithTheExitCodeInTheLabel() {
@@ -73,7 +69,9 @@ import Testing
     let footer = harness.element(identifier: CommandOutputView.footerIdentifier)
     #expect(footer?.label == "Exit code \(Self.successExitCode)")
     #expect(footer?.value == CommandOutputView.ExitOutcome.success.label)
-    #expect(Self.colors.color(for: CommandOutputView.ExitOutcome.success) == .green)
+    #expect(
+      DistinctRolesTheme().statusColor(for: CommandOutputView.ExitOutcome.success)
+        == DistinctRolesTheme.Role.succeeded)
   }
 
   @Test func exitCodeOneTintsFailure() {
@@ -85,7 +83,9 @@ import Testing
     let footer = harness.element(identifier: CommandOutputView.footerIdentifier)
     #expect(footer?.label == "Exit code \(Self.failureExitCode)")
     #expect(footer?.value == CommandOutputView.ExitOutcome.failure.label)
-    #expect(Self.colors.color(for: CommandOutputView.ExitOutcome.failure) == .red)
+    #expect(
+      DistinctRolesTheme().statusColor(for: CommandOutputView.ExitOutcome.failure)
+        == DistinctRolesTheme.Role.failed)
   }
 
   @Test(arguments: [

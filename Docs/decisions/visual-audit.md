@@ -12,8 +12,9 @@ together.
 
 Keep the header and the form of the rows. Put the token and the default value
 in backticks. Write a point value as a number, a font as
-`<text style>/<design>`, and a color, a weight, a material level, or a density
-as its SwiftUI case name.
+`<text style>/<design>`, and a weight, a material level, or a density as its
+SwiftUI case name. The table has no color token. The colors come from the
+EditorKit theme (see "Colors and the code font").
 
 ## Tokens
 
@@ -28,15 +29,58 @@ as its SwiftUI case name.
 | `radii.l` | `10` | system shapes, not in the bundle | `--cds-radius--lg` 10 px (comfortable) |
 | `materialLevel` | `regular` | not in the bundle | no glass |
 | `symbolWeight` | `regular` | not in the bundle | `--cds-font-weight-regular` 400 |
-| `accent` | `accentColor` | the system accent color | `--cds-text-accent` blue |
 | `density` | `balanced` | no density setting | `data-density="comfortable"` |
 | `proseFont` | `body/default` | SF Pro, body text style, 13 pt | Anthropic Sans, `--cds-font-size-prose` 16 px |
-| `codeFont` | `body/monospaced` | SF Mono, 13 pt | SF Mono, `--cds-font-size-code` 13 px |
-| `statusColors.running` | `blue` | not in the bundle | `--cds-text-accent` blue |
-| `statusColors.completed` | `green` | not in the bundle | `--cds-text-git-added` green |
-| `statusColors.failed` | `red` | not in the bundle | `--cds-text-danger` red |
-| `statusColors.cancelled` | `gray` | not in the bundle | `--cds-text-git-draft` gray |
-| `statusColors.pending` | `secondary` | not in the bundle | `--cds-text-disabled` |
+
+## Colors and the code font
+
+Decision of the owner, 2026-10-11: the EditorKit themes are the themes of the
+kit. The kit has one theme. It is the EditorKit `Theme` in the SwiftUI
+environment value `\.editorTheme`. Set it with `.editorTheme(_:)` (module
+`EditorSwiftUI`). Every color of the kit views comes from this theme. The code
+font also comes from this theme. The kit keeps no copy of a color.
+
+When the host sets no theme, EditorKit gives `SystemTheme` (`.system`).
+`SystemTheme` uses the Apple system colors. These colors follow light mode,
+dark mode, increased contrast, and the accent color of the user.
+`DefaultTheme.light` and `DefaultTheme.dark` are fixed presets. EditorKit can
+also import a Zed, VS Code, or tmTheme file.
+
+`AgentTheme` holds only the tokens that the EditorKit theme does not have:
+spacing, radii, material level, symbol weight, density, and the prose font.
+The EditorKit theme has no prose font, so the prose font stays in
+`AgentTheme`.
+
+Before this decision, `AgentTheme` had the tokens `accent`, `codeFont`, and
+`statusColors`. These tokens are removed. The table below gives the EditorKit
+role that replaces each one.
+
+| kit use | EditorKit role | SystemTheme default |
+|---|---|---|
+| accent color of the kit views | `accent` | `Color.accentColor` |
+| running status | `statusRunning` | the `accent` role |
+| completed status | `statusSucceeded` | system green |
+| failed status | `statusFailed` | the `severityError` role |
+| cancelled status | `statusCancelled` | secondary label color |
+| pending status | `statusPending` | tertiary label color |
+| info notice | `severityInfo` | system blue |
+| warning notice, URL warning, not-accepted attachment | `severityWarning` | system orange |
+| error notice, error message, validation error | `severityError` | system red |
+| code font | `editorFont` | system monospaced font, body text style |
+| frame of a code block, terminal, or command output | `editorBackground` | `NSColor.textBackgroundColor` |
+| code text | `editorForeground` | `NSColor.textColor` |
+| selected text | `selection` | `NSColor.selectedTextBackgroundColor` |
+| header bar of a code block, terminal, or command output | `statusBarBackground` | `NSColor.windowBackgroundColor` |
+| diff bands and the +N / −N counts (counts at full opacity) | `diffAddedBackground`, `diffRemovedBackground` | system green and system red at opacity 0.18 (`DiffTintDefaults.bandOpacity`) |
+
+The other roles that the EditorKit views read are `gutterBackground`,
+`tabBarBackground`, `tokenTint`, `diffChangedBackground`, and
+`diffHeaderBackground`. With `SystemTheme`, the code gets the syntax colors of
+Xcode. The kit does not set the syntax colors to one color.
+
+The kit maps each status to a role with the helpers in an extension of the
+EditorKit `Theme` protocol: `statusColor(for:)` and `tint(for:)`. See
+`connection-states.md` for the dot of an MCP server.
 
 ## Sources
 
@@ -64,7 +108,8 @@ are from that sheet. They are exact values, not pixel estimates.
   fallback. The mono font is SF Mono. The kit uses the system fonts
   (plan.md §5), so it takes the sizes, not the families.
 - Accent: `--cds-text-accent` is blue (`#184f95` light, `#6da7ec` dark). It is
-  the brand choice of the app. The kit uses the accent of the host.
+  the brand choice of the app. The kit uses the `accent` role of the EditorKit
+  theme. With `SystemTheme`, this role is the accent color of the user.
 - The sheet also has size steps 1 to 5 (`data-step`). Step 2 is the default
   density and step 4 is the comfortable density.
 
@@ -113,7 +158,10 @@ later. A capture does not change the table unless a new decision changes it.
 - The default fonts are the system body text style: SF Pro for prose and SF
   Mono for code, 13 pt on macOS. The two apps show code at 13 pt. Claude
   Desktop shows prose at 16 px, but the kit follows the system text styles
-  (plan.md §5), so that the host text size setting applies.
-- The accent is the accent color of the host, as in Xcode 27.
+  (plan.md §5), so that the host text size setting applies. The prose font
+  is the `AgentTheme` token `proseFont`. The code font is the `editorFont`
+  role of the EditorKit theme (decision of 2026-10-11).
+- The accent is the `accent` role of the EditorKit theme. With `SystemTheme`,
+  it is the accent color of the user, as in Xcode 27.
 - The `balanced` density agrees with the comfortable density of Claude
   Desktop.

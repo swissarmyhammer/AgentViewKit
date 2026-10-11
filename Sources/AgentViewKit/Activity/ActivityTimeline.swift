@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -185,6 +187,7 @@ private struct ActivityEntryRow: View {
   let onToggle: () -> Void
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     let key = entry.id.rowKey
@@ -242,15 +245,16 @@ private struct ActivityEntryRow: View {
     Appearance(
       title: ToolCallView.displayTitle(toolCall.shownTitle),
       symbolName: ToolKindSymbol.name(for: toolCall.shownKind),
-      tint: theme.statusColors.color(for: toolCall.shownStatus))
+      tint: editorTheme.statusColor(for: toolCall.shownStatus))
   }
 
   /// The appearance of an error row.
   ///
   /// - Parameter content: The content of the error card.
-  /// - Returns: The title and the symbol of the card, with the failure color.
+  /// - Returns: The title and the symbol of the card, with the error color of
+  ///   the EditorKit theme.
   private func errorAppearance(_ content: ErrorView.Content) -> Appearance {
-    Appearance(title: content.title, symbolName: content.symbolName, tint: theme.statusColors.failed)
+    Appearance(title: content.title, symbolName: content.symbolName, tint: editorTheme.severityError)
   }
 
   /// The view that a click on the row shows.

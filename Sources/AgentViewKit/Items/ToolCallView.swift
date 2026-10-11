@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import OSLog
@@ -137,6 +139,7 @@ public struct ToolCallView: View {
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the tool call view of a tool call entry of a session transcript
   /// (plan.md §3.8).
@@ -391,7 +394,7 @@ public struct ToolCallView: View {
       }
       Image(systemName: ToolStatusSymbol.name(for: status))
         .fontWeight(theme.symbolWeight)
-        .foregroundStyle(theme.statusColors.color(for: status))
+        .foregroundStyle(editorTheme.statusColor(for: status))
         .contentTransition(.symbolEffect(.replace))
         .symbolEffect(.variableColor.iterative, isActive: isLive)
         .symbolEffect(.bounce, value: status == .completed)

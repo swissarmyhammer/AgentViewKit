@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -136,6 +138,7 @@ public struct AgentAuthView: View {
   @Environment(\.terminalAuthRunner) private var runner
   @Environment(\.agentReconnect) private var reconnect
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the card.
   ///
@@ -328,7 +331,7 @@ public struct AgentAuthView: View {
         .font(.callout)
         .accessibilityIdentifier(Self.failureIdentifier)
     }
-    .foregroundStyle(theme.statusColors.failed)
+    .foregroundStyle(editorTheme.severityError)
   }
 
   /// The text that tells the user to connect to the agent again, and the

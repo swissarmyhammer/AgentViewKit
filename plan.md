@@ -219,7 +219,7 @@ What the kit takes from it:
 - **Streaming code.** EditorKit has no append API. The kit adds a small append helper on `EditorModel.dispatch` with a tail replacement. The balancer (§8) routes an open code fence to this path.
 - **Rich input.** The composer hosts EditorKit. Slash commands, chips, and `@file` references are assembled from `TokenField`, `SmartTag`, `CompletionEngine`, `CompletionPopup`, `PathCompletionSource`, and `SingleLineField`. A `SlashCommandSource` completion source is fed by `SessionModel.availableCommands`.
 - **Commands.** The kit verbs (send, cancel, approve, jump to item, copy thread) register as EditorKit `Command`s with a default keymap. The host's palette and keybindings editor pick them up. `ProgressCenter` backs tool-call progress.
-- **Theme bridge.** `AgentTheme` (§5) produces an EditorKit `Theme`, so code colors match the chrome. EditorKit can also import Zed, VS Code, and tmTheme files.
+- **One theme.** EditorKit themes are the themes of the kit. The kit has one theme: the EditorKit `Theme` in `\.editorTheme`, set with `.editorTheme(_:)`. Every color of the kit views and the code font come from it, so code colors match the chrome. With no theme set, EditorKit gives `SystemTheme`. Hosts can import Zed, VS Code, and tmTheme files.
 
 Boundary: EditorKit's `EditorIntelligence` and `EditorServices.MCPClient` are editor features. The kit does not duplicate them.
 
@@ -241,7 +241,7 @@ Out of the box, the kit reads as the Coding Intelligence assistant in Xcode 27: 
 
 **Match Xcode's restraint.** Prose is SF Pro. Code, tool I/O, and terminals are SF Mono. Color stays neutral. Tint is for primary actions and status. Reasoning is a quiet collapsible block. Tool calls are compact rows that expand. A plan is a checklist.
 
-**Tokens, not hard-coded values.** A public `AgentTheme` holds spacing, radii, material levels, symbol weights, accent, and density. Apply it with `.agentTheme(_:)`. It also yields an EditorKit `Theme`.
+**Tokens, not hard-coded values.** A public `AgentTheme` holds spacing, radii, material level, symbol weight, density, and the prose font. Apply it with `.agentTheme(_:)`. Every color and the code font come from the EditorKit theme in `\.editorTheme` (§4, "One theme"). `SystemTheme` is the default.
 
 ## 6. Accessibility
 
@@ -391,7 +391,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 8. **Selection: per-message plus copy thread in v1.** Cross-message drag-select is deferred unless research R10 shows macOS 27 `textSelection` gives it in containers.
 9. **Streaming path: Textual with paragraph split and the balancer.** No fallback renderer unless research R1 fails.
 10. **Long threads: `LazyVStack` with windowing.** `List` behind a flag.
-11. **Design tokens: a public `AgentTheme`** that also yields an EditorKit `Theme`.
+11. **Design tokens: EditorKit themes are the themes of the kit.** Every color and the code font come from the EditorKit `Theme` in `\.editorTheme` (`SystemTheme` by default). A public `AgentTheme` holds only spacing, radii, material level, symbol weight, density, and the prose font (decision of 2026-10-11).
 12. **Diff rendering is an EditorKit capability.** EditorKit takes unified diff text and renders it. The kit hosts it in `DiffView` and adds only the file list and the review actions. The kit does not build a stand-in.
 13. **Grammars ship in the kit** until EditorKit links more.
 14. **The kit verbs are EditorKit commands.** Palette, keybindings, and progress come from the command system.

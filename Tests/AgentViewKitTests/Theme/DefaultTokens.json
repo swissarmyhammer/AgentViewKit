@@ -3,15 +3,6 @@
   "radii": { "s": 6, "m": 8, "l": 10 },
   "materialLevel": "regular",
   "symbolWeight": "regular",
-  "accent": "accentColor",
   "density": "balanced",
-  "proseFont": { "textStyle": "body", "design": "default" },
-  "codeFont": { "textStyle": "body", "design": "monospaced" },
-  "statusColors": {
-    "running": "blue",
-    "completed": "green",
-    "failed": "red",
-    "cancelled": "gray",
-    "pending": "secondary"
-  }
+  "proseFont": { "textStyle": "body", "design": "default" }
 }

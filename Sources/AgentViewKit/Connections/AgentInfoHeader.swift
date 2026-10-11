@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -33,6 +35,7 @@ public struct AgentInfoHeader: View {
   let connection: ConnectionModel
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the header of the agent of a connection model.
   ///
@@ -45,7 +48,7 @@ public struct AgentInfoHeader: View {
     if let info = connection.initializeResponse?.info {
       HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
         Image(systemName: Self.symbol)
-          .foregroundStyle(theme.accent)
+          .foregroundStyle(editorTheme.accent)
           .fontWeight(theme.symbolWeight)
           .accessibilityHidden(true)
         Text(info.title ?? info.name)

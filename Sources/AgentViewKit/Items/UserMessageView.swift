@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -65,6 +67,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     let state: SendState
 
     @Environment(\.agentTheme) private var theme
+    @Environment(\.editorTheme) private var editorTheme
 
     /// The text of a send state.
     ///
@@ -94,7 +97,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
       Label(Self.title(of: state), systemImage: Self.symbol(of: state))
         .font(.caption)
         .fontWeight(theme.symbolWeight)
-        .foregroundStyle(theme.statusColors.color(for: state))
+        .foregroundStyle(editorTheme.statusColor(for: state))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.title(of: state))
     }

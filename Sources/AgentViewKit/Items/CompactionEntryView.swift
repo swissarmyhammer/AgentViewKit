@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -45,6 +47,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   let entry: CompactionEntry
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the row of a compaction entry of a `SessionModel`.
   ///
@@ -82,7 +85,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       if let error = entry.error {
         Text(error)
           .font(.callout)
-          .foregroundStyle(theme.statusColors.failed)
+          .foregroundStyle(editorTheme.severityError)
           .textSelection(.enabled)
           .accessibilityIdentifier(Self.errorIdentifier)
       }
@@ -102,7 +105,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     return HStack(spacing: theme.spacing.m) {
       Image(systemName: Self.symbolName)
         .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(theme.statusColors.color(for: status))
+        .foregroundStyle(editorTheme.statusColor(for: status))
         .fontWeight(theme.symbolWeight)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {

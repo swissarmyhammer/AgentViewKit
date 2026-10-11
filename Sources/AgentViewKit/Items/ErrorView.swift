@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -32,6 +34,7 @@ public struct ErrorView: View {
   let entry: ErrorEntry
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the card of an error entry of a `SessionModel`.
   ///
@@ -60,7 +63,7 @@ public struct ErrorView: View {
       HStack(alignment: .top, spacing: theme.spacing.m) {
         Image(systemName: content.symbolName)
           .symbolRenderingMode(.hierarchical)
-          .foregroundStyle(theme.statusColors.failed)
+          .foregroundStyle(editorTheme.severityError)
           .fontWeight(theme.symbolWeight)
           .accessibilityHidden(true)
         VStack(alignment: .leading, spacing: theme.spacing.xs) {
@@ -80,7 +83,7 @@ public struct ErrorView: View {
       }
       if let data = entry.data?.prettyPrinted {
         Text(data)
-          .font(theme.codeFont)
+          .font(editorTheme.editorFont)
           .foregroundStyle(.secondary)
           .textSelection(.enabled)
           .accessibilityIdentifier(Self.dataIdentifier)

@@ -3,7 +3,7 @@ import SwiftUI
 /// Changes the token names of the theme files into SwiftUI values.
 ///
 /// `DefaultTokens.json` and the token table in
-/// `Docs/decisions/visual-audit.md` name each color, weight, and font. The
+/// `Docs/decisions/visual-audit.md` name each weight and font. The
 /// theme tests use this lookup for the two files.
 enum ThemeTokenNames {
   /// The errors that the name lookup gives.
@@ -11,18 +11,6 @@ enum ThemeTokenNames {
     /// The file has a name that the lookup does not know.
     case unknownName(String)
   }
-
-  /// The colors that a file can name.
-  private static let colors: [String: Color] = [
-    "accentColor": .accentColor,
-    "blue": .blue,
-    "green": .green,
-    "red": .red,
-    "orange": .orange,
-    "gray": .gray,
-    "secondary": .secondary,
-    "purple": .purple,
-  ]
 
   /// The weights that a file can name.
   private static let weights: [String: Font.Weight] = [
@@ -59,15 +47,6 @@ enum ThemeTokenNames {
   private static func value<Value>(named name: String, in table: [String: Value]) throws -> Value {
     guard let value = table[name] else { throw LookupError.unknownName(name) }
     return value
-  }
-
-  /// The color that `name` names.
-  ///
-  /// - Parameter name: A color name from a file.
-  /// - Returns: The SwiftUI color.
-  /// - Throws: ``LookupError/unknownName(_:)`` for a name that is not known.
-  static func color(named name: String) throws -> Color {
-    try value(named: name, in: colors)
   }
 
   /// The weight that `name` names.

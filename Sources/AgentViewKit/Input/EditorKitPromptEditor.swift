@@ -3,6 +3,7 @@ import EditorCore
 import EditorExtensions
 import EditorSwiftUI
 import EditorText
+import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
@@ -15,8 +16,9 @@ import SwiftUI
 ///   .promptFileRoot(projectURL)
 /// ```
 ///
-/// The editor hosts an EditorKit `EditorView` that grows with its text, in the
-/// colors of the ``AgentTheme``. Return calls ``PromptEditorContext/onSubmit``.
+/// The editor hosts an EditorKit `EditorView` that grows with its text. The
+/// editor reads the EditorKit theme of the environment. Return calls
+/// ``PromptEditorContext/onSubmit``.
 /// Command-Return calls ``PromptEditorContext/onSendNow``. Shift-Return
 /// inserts a newline. Esc calls ``PromptEditorContext/onCancel`` while the
 /// thread runs a turn.
@@ -92,7 +94,6 @@ public struct EditorKitPromptEditor: View {
     .editorInlineDecorations([
       EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references))
     ])
-    .editorTheme(theme.editorTheme)
     .frame(minHeight: StockPromptEditor.minimumHeight, maxHeight: StockPromptEditor.maximumHeight)
     .fixedSize(horizontal: false, vertical: true)
     .accessibilityLabel(context.placeholder)
@@ -398,11 +399,12 @@ struct PromptCompletionRow: View {
   let isSelected: Bool
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
       Text(item.label)
-        .font(theme.codeFont)
+        .font(editorTheme.editorFont)
         .lineLimit(1)
       Spacer(minLength: theme.spacing.s)
       if let detail = item.detail {

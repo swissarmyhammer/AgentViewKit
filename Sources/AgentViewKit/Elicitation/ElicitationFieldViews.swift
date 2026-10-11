@@ -1,5 +1,6 @@
 import EditorCore
 import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
@@ -113,6 +114,7 @@ struct ElicitationFieldChrome<Control: View>: View {
   let control: Control
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the chrome.
   ///
@@ -132,7 +134,7 @@ struct ElicitationFieldChrome<Control: View>: View {
           .font(.headline)
         if schema.required {
           Text(verbatim: "*")
-            .foregroundStyle(theme.statusColors.failed)
+            .foregroundStyle(editorTheme.severityError)
             .accessibilityLabel(Self.requiredLabel)
         }
       }
@@ -149,7 +151,7 @@ struct ElicitationFieldChrome<Control: View>: View {
           }
         }
         .font(.caption)
-        .foregroundStyle(theme.statusColors.failed)
+        .foregroundStyle(editorTheme.severityError)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(ElicitationFieldView.errorsIdentifier(for: schema.name))
       }
@@ -221,7 +223,6 @@ public struct ElicitationTextField: View {
     let model = suppliedModel ?? ownModel.model(text: answer)
     ElicitationFieldChrome(context: context) {
       input(model: model)
-        .editorTheme(theme.editorTheme)
         .padding(theme.spacing.xs)
         .overlay(
           RoundedRectangle(cornerRadius: theme.radii.s, style: .continuous)

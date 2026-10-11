@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 // MARK: - Layout context
@@ -90,6 +92,7 @@ public struct ElicitationLayout: View {
   @State private var selection: String?
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the default layout.
   ///
@@ -144,17 +147,17 @@ public struct ElicitationLayout: View {
     } label: {
       HStack(spacing: theme.spacing.xs) {
         Image(systemName: answered ? Self.answeredSymbol : Self.notAnsweredSymbol)
-          .foregroundStyle(answered ? theme.statusColors.completed : .secondary)
+          .foregroundStyle(answered ? editorTheme.statusSucceeded : .secondary)
         Text(schema.title)
         if schema.required {
           Text(verbatim: "*")
-            .foregroundStyle(theme.statusColors.failed)
+            .foregroundStyle(editorTheme.severityError)
         }
       }
       .padding(.horizontal, theme.spacing.s)
       .padding(.vertical, theme.spacing.xs)
       .background(
-        Capsule().fill(isSelected ? theme.accent.opacity(Self.selectedTabOpacity) : .clear)
+        Capsule().fill(isSelected ? editorTheme.accent.opacity(Self.selectedTabOpacity) : .clear)
       )
       .overlay(Capsule().strokeBorder(.separator))
       .contentShape(Capsule())

@@ -1,5 +1,7 @@
 import AppKit
 import CoreTransferable
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import ImageIO
 import SwiftUI
@@ -44,6 +46,7 @@ public struct AttachmentChips: View {
   @Binding var attachments: [Attachment]
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.connectionModel) private var connection
 
   /// Makes the row.
@@ -209,7 +212,7 @@ public struct AttachmentChips: View {
   private func notAcceptedMark(for attachment: Attachment) -> some View {
     Label(String(localized: "Not accepted"), systemImage: "exclamationmark.triangle.fill")
       .labelStyle(.iconOnly)
-      .foregroundStyle(theme.statusColors.failed)
+      .foregroundStyle(editorTheme.severityWarning)
       .help(String(localized: "The agent does not accept this kind of file. The prompt does not send it."))
       .accessibilityLabel(String(localized: "The agent does not accept \(attachment.name)"))
       .accessibilityIdentifier(Self.notAcceptedIdentifier(for: attachment.id))

@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// The glass bar of one status message: a symbol, a title, an explanation,
@@ -29,12 +31,13 @@ struct StatusBar: View {
   let action: Action?
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     HStack(spacing: theme.spacing.m) {
       Image(systemName: message.symbolName)
         .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(theme.accent)
+        .foregroundStyle(editorTheme.accent)
         .fontWeight(theme.symbolWeight)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {

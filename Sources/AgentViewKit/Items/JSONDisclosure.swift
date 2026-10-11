@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// A collapsible block with a title and a monospaced JSON text (plan.md §9 A2).
@@ -23,6 +25,7 @@ struct JSONDisclosure: View {
 
   @Environment(\.expandedBlocksStore) private var environmentStore
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the block.
   ///
@@ -60,13 +63,13 @@ struct JSONDisclosure: View {
       )
     ) {
       Text(json)
-        .font(theme.codeFont)
+        .font(editorTheme.editorFont)
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, theme.spacing.xs)
     } label: {
       Text(title)
-        .font(theme.codeFont)
+        .font(editorTheme.editorFont)
         .lineLimit(1)
     }
     .accessibilityIdentifier(identifier)

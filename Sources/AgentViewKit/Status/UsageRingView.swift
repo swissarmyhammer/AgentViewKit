@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// A ring that fills with a part of a whole, with a text beside it.
@@ -54,6 +56,7 @@ public struct UsageRingView: View {
   let style: TextStyle
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view.
   ///
@@ -148,12 +151,12 @@ public struct UsageRingView: View {
     .frame(width: Self.ringDiameter, height: Self.ringDiameter)
   }
 
-  /// The color of the ring: the failure color when the ring is full, and the
-  /// running color otherwise.
+  /// The color of the ring: the failed status role of the EditorKit theme when
+  /// the ring is full, and the running status role otherwise.
   ///
   /// - Parameter filled: The part of the ring that is filled.
   /// - Returns: The color.
   private func ringColor(for filled: Double) -> Color {
-    filled >= Self.fullFraction ? theme.statusColors.failed : theme.statusColors.running
+    filled >= Self.fullFraction ? editorTheme.statusFailed : editorTheme.statusRunning
   }
 }

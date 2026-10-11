@@ -185,7 +185,9 @@ private struct TextFilePreview: View {
 /// Shows text by its type (plan.md §4.1, §4.2).
 ///
 /// A source type shows in a ``CodeBlockView``. A markdown type shows as
-/// Markdown through Textual. Other text shows as plain text through Textual.
+/// Markdown through Textual. A fenced code block in the markdown shows in a
+/// ``CodeBlockView`` through ``EditorKitCodeBlockStyle``. Other text shows as
+/// plain text through Textual.
 struct AttachmentTextContent: View {
   /// The markdown type.
   static let markdown = UTType(importedAs: "net.daringfireball.markdown")
@@ -204,6 +206,7 @@ struct AttachmentTextContent: View {
       CodeBlockView(code: text, language: type.preferredFilenameExtension, filename: filename)
     } else if type.conforms(to: Self.markdown) {
       StructuredText(markdown: text)
+        .textual.codeBlockStyle(EditorKitCodeBlockStyle())
     } else {
       StructuredText(text, parser: PlainTextParser())
     }

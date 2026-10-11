@@ -66,8 +66,24 @@ comments:
     - evidence: 11 files — Sources/AgentViewKit/Items/SharedSymbol.swift (new); Sources/AgentViewKit/{Activity/ActivityTimeline,Code/CodeBlockView,Content/CommandOutputView,HumanInTheLoop/PermissionView,Items/MessageActions,Items/ToolCallView,Items/ToolKindSymbol,Terminal/TerminalView}.swift; Tests/PackageStructureTests/{SymbolNameScanner,SymbolNameTests}.swift. swift test: 1148 tests pass (1 + 101 + 1046), 0 failures, 1 existing known issue. Load average 26.95 before, 37.76 after. 7 of 7 findings checked.
     - next: /review
   timestamp: 2026-10-11T16:31:32.725041+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4nxc68m3h84zg0h77td874e
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e96684e): 0 findings, 0 confirmed, 0 refuted, 7 validators attempted, 0 failed. 11 files reviewed. All prior review items are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-11T16:40:13.844774+00:00
+- actor: claude-code
+  id: 01m4nxcraeq292nzczq1p45qp6
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — SharedSymbol (terminal, copy) read by 8 places; named comment-marker constants; 7 findings checked
+    - test: green — swift test, 1046 tests passed, 1 expected known issue, load average 28 to 40
+    - commit: e96684e
+    - review: clean — 0 findings (11 files); task in done
+  timestamp: 2026-10-11T16:40:32.334982+00:00
+position_column: done
+position_ordinal: ffa380
 title: 'SF Symbols: replace the 11 old symbol names and the restricted passkey symbol'
 ---
 ## What

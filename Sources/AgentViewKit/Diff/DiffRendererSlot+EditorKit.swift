@@ -48,9 +48,10 @@ extension DiffView {
 /// decision 12).
 ///
 /// The renderer parses the patch with `EditorDiff`, and keeps only the
-/// selected file. It applies the ``SwiftUI/EnvironmentValues/diffLayout`` and
-/// the EditorKit theme of the ``AgentTheme``. When EditorKit cannot read the
-/// patch, a row shows the line where the parse stopped.
+/// selected file. It applies the ``SwiftUI/EnvironmentValues/diffLayout``. The
+/// EditorKit `DiffView` reads the EditorKit theme of the environment. When
+/// EditorKit cannot read the patch, a row shows the line where the parse
+/// stopped.
 ///
 /// The renderer adds no accessibility identifier. The EditorKit `DiffView`
 /// puts its own identifiers on its AppKit views: `editor.diff` on the root,
@@ -64,14 +65,12 @@ struct EditorKitDiffRenderer: View {
   let file: String?
 
   @Environment(\.diffLayout) private var layout
-  @Environment(\.agentTheme) private var theme
 
   var body: some View {
     switch Self.diff(of: patch, file: file) {
     case .success(let diff):
       EditorSwiftUI.DiffView(patch: diff)
         .diffLayout(layout.documentLayout)
-        .editorTheme(theme.editorTheme)
     case .failure(let error):
       let text = String(localized: "Cannot read the patch at line \(Self.line(of: error))")
       Label(text, systemImage: "exclamationmark.triangle")

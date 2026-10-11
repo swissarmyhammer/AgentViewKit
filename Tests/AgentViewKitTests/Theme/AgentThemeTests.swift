@@ -1,12 +1,13 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import EditorTheme
 import Foundation
 import PackageFileSupport
 import SwiftUI
 import Testing
 
-/// A view that writes the accent of the environment theme into its
+/// A view that writes the density of the environment theme into its
 /// accessibility value, so that a test can read the theme of a hosted view.
 private struct ThemeProbeView: View {
   /// The accessibility identifier of the probe.
@@ -25,16 +26,15 @@ private struct ThemeProbeView: View {
   /// The text that ``ThemeProbeView`` writes for `theme`.
   ///
   /// - Parameter theme: The theme that the probe reads.
-  /// - Returns: The description of the accent of `theme`.
+  /// - Returns: The raw name of the density of `theme`.
   static func probeValue(of theme: AgentTheme) -> String {
-    String(describing: theme.accent)
+    theme.density.rawValue
   }
 
   /// A theme that is different from ``AgentTheme/default`` in each field that
   /// the probe reads.
   private static let custom: AgentTheme = {
     var theme = AgentTheme.default
-    theme.accent = .purple
     theme.density = .compact
     return theme
   }()
@@ -49,15 +49,8 @@ private struct ThemeProbeView: View {
     #expect(theme.radii == tokens.radii)
     #expect(theme.materialLevel == tokens.materialLevel)
     #expect(theme.symbolWeight == (try ThemeTokenNames.weight(named: tokens.symbolWeight)))
-    #expect(theme.accent == (try ThemeTokenNames.color(named: tokens.accent)))
     #expect(theme.density == tokens.density)
     #expect(theme.proseFont == (try tokens.proseFont.font()))
-    #expect(theme.codeFont == (try tokens.codeFont.font()))
-    #expect(theme.statusColors.running == (try ThemeTokenNames.color(named: tokens.statusColors.running)))
-    #expect(theme.statusColors.completed == (try ThemeTokenNames.color(named: tokens.statusColors.completed)))
-    #expect(theme.statusColors.failed == (try ThemeTokenNames.color(named: tokens.statusColors.failed)))
-    #expect(theme.statusColors.cancelled == (try ThemeTokenNames.color(named: tokens.statusColors.cancelled)))
-    #expect(theme.statusColors.pending == (try ThemeTokenNames.color(named: tokens.statusColors.pending)))
   }
 
   @Test func spacingAndRadiiIncreaseInOrder() {
@@ -95,31 +88,17 @@ private struct ThemeProbeView: View {
     #expect(EnvironmentValues().agentTheme == .default)
   }
 
-  // MARK: - The EditorKit bridge
+  // MARK: - The EditorKit theme
 
-  @Test func bridgeMapsTheAccentToTheTokenTint() {
-    #expect(AgentTheme.default.editorTheme.tokenTint == AgentTheme.default.accent)
-    #expect(Self.custom.editorTheme.tokenTint == Self.custom.accent)
+  @Test func theEditorThemeOfTheEnvironmentDefaultsToTheSystemTheme() {
+    #expect(EnvironmentValues().editorTheme is SystemTheme)
   }
 
-  @Test func bridgeMapsTheCodeFontToEachCapture() {
-    let editorTheme = AgentTheme.default.editorTheme
-    for key in [StyleKey.keyword, .string, .comment, StyleKey("function.call")] {
-      let attributes = editorTheme.attributes(for: key)
-      #expect(attributes.font == AgentTheme.default.codeFont)
-      #expect(attributes.foregroundColor == editorTheme.editorForeground)
-      #expect(attributes.styleKey == key.rawValue)
-    }
-  }
-
-  @Test func bridgeMapsTheSystemColors() {
-    let editorTheme = AgentTheme.default.editorTheme
-    #expect(editorTheme.editorBackground == AgentTheme.EditorSystemColors.background)
-    #expect(editorTheme.editorForeground == AgentTheme.EditorSystemColors.foreground)
-    #expect(editorTheme.selection == AgentTheme.EditorSystemColors.selection)
-    #expect(editorTheme.gutterBackground == AgentTheme.EditorSystemColors.gutterBackground)
-    #expect(editorTheme.statusBarBackground == AgentTheme.EditorSystemColors.barBackground)
-    #expect(editorTheme.tabBarBackground == AgentTheme.EditorSystemColors.barBackground)
+  @Test func theKitThemeHoldsNoColor() {
+    let colorFields = Mirror(reflecting: AgentTheme.default).children
+      .filter { $0.value is Color }
+      .compactMap(\.label)
+    #expect(colorFields == [])
   }
 
   // MARK: - Density
@@ -139,8 +118,9 @@ private struct ThemeProbeView: View {
 
 /// The decoded form of `DefaultTokens.json`.
 ///
-/// The file names each color, font, and weight. ``ThemeTokenNames`` changes a
-/// name into its SwiftUI value.
+/// The file names each font and weight. ``ThemeTokenNames`` changes a name
+/// into its SwiftUI value. The file has no color: each color of the kit comes
+/// from the EditorKit theme.
 private struct DefaultTokens: Decodable {
   /// A font in the file: a text style and a design.
   struct FontToken: Decodable {
@@ -159,24 +139,12 @@ private struct DefaultTokens: Decodable {
     }
   }
 
-  /// The status colors in the file, as names.
-  struct StatusColorTokens: Decodable {
-    let running: String
-    let completed: String
-    let failed: String
-    let cancelled: String
-    let pending: String
-  }
-
   let spacing: AgentTheme.Spacing
   let radii: AgentTheme.Radii
   let materialLevel: AgentTheme.MaterialLevel
   let symbolWeight: String
-  let accent: String
   let density: AgentTheme.Density
   let proseFont: FontToken
-  let codeFont: FontToken
-  let statusColors: StatusColorTokens
 
   /// The token file, relative to the package root.
   private static let relativePath = "Tests/AgentViewKitTests/Theme/DefaultTokens.json"

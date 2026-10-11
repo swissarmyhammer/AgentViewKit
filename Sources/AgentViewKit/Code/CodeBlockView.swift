@@ -11,6 +11,9 @@ import SwiftUI
 /// If not, and ``GrammarBundle`` ships a TextMate grammar for the language,
 /// the editor colors the code with that grammar.
 ///
+/// The editor, the frame and the header read the EditorKit theme of the
+/// environment. The view sets no theme of its own.
+///
 /// The Copy button writes the code to the pasteboard of the environment.
 /// See `EnvironmentValues.pasteboard`.
 public struct CodeBlockView: View {
@@ -74,13 +77,7 @@ public struct CodeBlockView: View {
       Divider()
       editor(model: model)
     }
-    .background(AgentTheme.EditorSystemColors.background)
-    .clipShape(RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
-    .overlay(
-      RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous)
-        .strokeBorder(.separator)
-    )
-    .editorTheme(theme.editorTheme)
+    .editorBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
@@ -113,7 +110,7 @@ public struct CodeBlockView: View {
     }
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
-    .background(AgentTheme.EditorSystemColors.barBackground)
+    .editorBlockBar()
   }
 
   /// The read-only editor that shows `model`.

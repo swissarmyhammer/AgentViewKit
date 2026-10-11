@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -99,8 +101,8 @@ public struct SessionListView: View {
   /// The new session action, or `nil` for no button.
   let onNewSession: (() -> Void)?
 
-  /// The theme that gives the color of the failure message.
-  @Environment(\.agentTheme) private var theme
+  /// The EditorKit theme that gives the error color of the failure message.
+  @Environment(\.editorTheme) private var editorTheme
 
   /// The search text that filters the rows.
   @State private var query = ""
@@ -214,7 +216,7 @@ public struct SessionListView: View {
   private func failure(_ message: String) -> some View {
     Text(message)
       .font(.caption)
-      .foregroundStyle(theme.statusColors.failed)
+      .foregroundStyle(editorTheme.severityError)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal)
       .accessibilityIdentifier(Self.failureIdentifier)

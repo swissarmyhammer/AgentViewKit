@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -78,6 +80,7 @@ private struct NoticeBanner: View {
   let dismiss: () -> Void
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// The name of a severity.
   ///
@@ -120,7 +123,7 @@ private struct NoticeBanner: View {
     HStack(alignment: .top, spacing: theme.spacing.m) {
       Image(systemName: Self.symbolName(for: notice.severity))
         .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(theme.statusColors.color(for: notice.severity))
+        .foregroundStyle(editorTheme.tint(for: notice.severity))
         .fontWeight(theme.symbolWeight)
         .help(Self.severityLabel(notice.severity))
         .accessibilityHidden(true)

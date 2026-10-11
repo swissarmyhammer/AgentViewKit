@@ -54,6 +54,12 @@ let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 
+/// The EditorKit products that a host imports to set the theme of the kit (README "The theme").
+let readmeEditorKitProducts: [Target.Dependency] = [
+  .product(name: "EditorSwiftUI", package: "EditorKit"),
+  .product(name: "EditorTheme", package: "EditorKit"),
+]
+
 /// The EditorKit test support product that the model and view tests link.
 let editorKitTestSupportProducts: [Target.Dependency] = [
   .product(name: "EditorCommandsTestSupport", package: "EditorKit")
@@ -154,15 +160,16 @@ let package = Package(
     // The compiled snippets of README.md (plan.md §1). Each `// readme:compile`
     // block of the README is a file in `Examples/ReadmeSnippets/Snippets/`,
     // that `Scripts/extract-readme-snippets.sh` writes. This target compiles
-    // the files against the products that a host imports, so a snippet that
-    // does not compile fails the build. `ReadmeSnippetTests` in
+    // the files against the products that a host imports: the kit, the ACP
+    // products, and the EditorKit theme products. Thus a snippet that does
+    // not compile fails the build. `ReadmeSnippetTests` in
     // PackageStructureTests holds the README and the files equal. It is a
     // test target, and not in `Sources/`, so that no product links the
     // snippets. It has no default isolation, so that the snippets compile in
     // a host with the language default.
     .testTarget(
       name: "ReadmeSnippetsTests",
-      dependencies: ["AgentViewKit"] + acpProducts,
+      dependencies: ["AgentViewKit"] + acpProducts + readmeEditorKitProducts,
       path: "Examples/ReadmeSnippets"
     ),
   ],

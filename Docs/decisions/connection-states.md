@@ -1,7 +1,7 @@
 # Connection states and the connections list
 
 status: accepted
-date: 2026-09-16, changed 2026-10-08 (task ^g95wwbs)
+date: 2026-09-16, changed 2026-10-08 (task ^g95wwbs), changed 2026-10-11 (dot colors from the EditorKit theme)
 plan: plan.md §3.4, §12
 
 ## Question
@@ -45,14 +45,18 @@ The agent connection states are `ConnectionModel.state`, a
 The status of each MCP server is the `status` of an `MCPServerItem` in
 `SessionModel.mcpServers`, an `MCPServerStatus`:
 
-| Status | Label | Dot color of `AgentTheme.statusColors` |
+| Status | Label | Dot color: role of the EditorKit theme |
 |---|---|---|
-| `.notReported` | Not reported | `pending` |
-| `.connecting` | Connecting | `running` |
-| `.connected` | Connected | `completed` |
-| `.failed` | Failed, with the reason as the value and the help tag | `failed` |
-| `.closed` | Closed | `cancelled` |
+| `.notReported` | Not reported | `statusPending` |
+| `.connecting` | Connecting | `statusRunning` |
+| `.connected` | Connected | `statusSucceeded` |
+| `.failed` | Failed, with the reason as the value and the help tag | `statusFailed` |
+| `.closed` | Closed | `statusCancelled` |
 
+- The dot color comes from the EditorKit `Theme` in the `\.editorTheme`
+  environment value (`Docs/decisions/visual-audit.md`, section "Colors and
+  the code font", decision of 2026-10-11). The kit keeps no status color of
+  its own.
 - `ConnectionsView` reads `SessionModel.mcpServers` of the `sessionModel`
   environment value in its body. It shows one `ConnectionRow` for each
   server, in the order of the list. It shows an empty state when the

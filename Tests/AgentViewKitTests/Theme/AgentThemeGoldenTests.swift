@@ -64,14 +64,6 @@ import Testing
     { theme, cell in token(theme) == cell }
   }
 
-  /// A comparison for a named color.
-  ///
-  /// - Parameter token: Gives the color token of a theme.
-  /// - Returns: The comparison.
-  private static func color(_ token: @escaping (AgentTheme) -> Color) -> Check {
-    { theme, cell in token(theme) == (try ThemeTokenNames.color(named: cell)) }
-  }
-
   /// A comparison for a font in the form `<text style>/<design>`.
   ///
   /// - Parameter token: Gives the font token of a theme.
@@ -95,15 +87,8 @@ import Testing
     "radii.l": point { $0.radii.l },
     "materialLevel": name { $0.materialLevel.rawValue },
     "symbolWeight": { theme, cell in theme.symbolWeight == (try ThemeTokenNames.weight(named: cell)) },
-    "accent": color { $0.accent },
     "density": name { $0.density.rawValue },
     "proseFont": font { $0.proseFont },
-    "codeFont": font { $0.codeFont },
-    "statusColors.running": color { $0.statusColors.running },
-    "statusColors.completed": color { $0.statusColors.completed },
-    "statusColors.failed": color { $0.statusColors.failed },
-    "statusColors.cancelled": color { $0.statusColors.cancelled },
-    "statusColors.pending": color { $0.statusColors.pending },
   ]
 
   /// Parses the rows of the token table.
@@ -152,8 +137,8 @@ import Testing
     let rows = try Self.tableRows()
     var theme = AgentTheme.default
     theme.spacing.l += 1
-    theme.accent = .orange
-    theme.codeFont = .system(.body, design: .serif)
-    #expect(try Self.mismatches(in: rows, for: theme) == ["spacing.l", "accent", "codeFont"])
+    theme.density = .detailed
+    theme.proseFont = .system(.body, design: .serif)
+    #expect(try Self.mismatches(in: rows, for: theme) == ["spacing.l", "density", "proseFont"])
   }
 }

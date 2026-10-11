@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// The row that tells how many rows of an output show, with a Show All
@@ -51,12 +53,13 @@ struct OutputExitLabel: View {
   let identifier: String
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     Label(text, systemImage: symbolName)
       .font(.caption)
       .fontWeight(theme.symbolWeight)
-      .foregroundStyle(outcome.map(theme.statusColors.color(for:)) ?? Color.secondary)
+      .foregroundStyle(outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary)
       .padding(.horizontal, theme.spacing.m)
       .padding(.vertical, theme.spacing.xs)
       .frame(maxWidth: .infinity, alignment: .leading)

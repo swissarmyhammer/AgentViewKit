@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -158,6 +160,7 @@ private struct PlanEntryRow: View {
   let entry: FoundationModelsACP.PlanEntry
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
@@ -169,7 +172,7 @@ private struct PlanEntryRow: View {
         .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
       Spacer(minLength: theme.spacing.s)
       Image(systemName: "flag.fill")
-        .foregroundStyle(theme.statusColors.color(for: entry.priority))
+        .foregroundStyle(editorTheme.tint(for: entry.priority))
         .fontWeight(theme.symbolWeight)
         .help(TaskListView.priorityLabel(entry.priority))
     }
@@ -187,7 +190,7 @@ private struct PlanEntryRow: View {
     } else {
       Image(systemName: symbolName)
         .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(theme.statusColors.color(for: entry.status))
+        .foregroundStyle(editorTheme.statusColor(for: entry.status))
         .fontWeight(theme.symbolWeight)
     }
   }

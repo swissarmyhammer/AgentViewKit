@@ -1,76 +1,88 @@
 import AgentViewKit
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
+/// Checks that each status, priority and severity gets its color role from
+/// the EditorKit theme.
 @Suite struct StatusColorsTests {
-  /// A set of status colors with a different color for each status.
-  static let colors = AgentTheme.StatusColors(
-    running: .blue, completed: .green, failed: .red, cancelled: .gray, pending: .yellow)
+  /// A theme with a different color for each role.
+  static let theme = DistinctRolesTheme()
+
+  /// The role colors of ``theme``.
+  typealias Role = DistinctRolesTheme.Role
 
   @Test(arguments: [
-    (FoundationModelsACP.ToolCallStatus.pending, Color.yellow),
-    (.inProgress, .blue),
-    (.completed, .green),
-    (.failed, .red),
-    (.cancelled, .gray),
-    (.unknown("_lost"), .red),
-    (.unknown("paused"), .yellow),
+    (FoundationModelsACP.ToolCallStatus.pending, Role.pending),
+    (.inProgress, Role.running),
+    (.completed, Role.succeeded),
+    (.failed, Role.failed),
+    (.cancelled, Role.cancelled),
+    (.unknown("_lost"), Role.failed),
+    (.unknown("paused"), Role.pending),
   ])
   func eachToolCallStatusHasItsColor(status: FoundationModelsACP.ToolCallStatus, expected: Color) {
-    #expect(Self.colors.color(for: status) == expected)
+    #expect(Self.theme.statusColor(for: status) == expected)
   }
 
   @Test(arguments: [
-    (FoundationModelsACP.PlanEntryStatus.pending, Color.yellow),
-    (.inProgress, .blue),
-    (.completed, .green),
-    (.cancelled, .gray),
-    (.unknown("paused"), .yellow),
+    (FoundationModelsACP.PlanEntryStatus.pending, Role.pending),
+    (.inProgress, Role.running),
+    (.completed, Role.succeeded),
+    (.cancelled, Role.cancelled),
+    (.unknown("paused"), Role.pending),
   ])
   func eachPlanEntryStatusHasItsColor(status: FoundationModelsACP.PlanEntryStatus, expected: Color) {
-    #expect(Self.colors.color(for: status) == expected)
+    #expect(Self.theme.statusColor(for: status) == expected)
   }
 
   @Test(arguments: [
-    (CompactionStatus.inProgress, Color.blue),
-    (.completed, .green),
-    (.failed, .red),
-    (.cancelled, .gray),
-    (SessionEntry.Compaction.unreportedStatus, .yellow),
-    (.unknown("paused"), .yellow),
+    (CompactionStatus.inProgress, Role.running),
+    (.completed, Role.succeeded),
+    (.failed, Role.failed),
+    (.cancelled, Role.cancelled),
+    (SessionEntry.Compaction.unreportedStatus, Role.pending),
+    (.unknown("paused"), Role.pending),
   ])
   func eachCompactionStatusHasItsColor(status: CompactionStatus, expected: Color) {
-    #expect(Self.colors.color(for: status) == expected)
+    #expect(Self.theme.statusColor(for: status) == expected)
   }
 
   @Test(arguments: [
-    (SendState.pending, Color.yellow),
-    (.sent, .green),
-    (.failed, .red),
+    (SendState.pending, Role.pending),
+    (.sent, Role.succeeded),
+    (.failed, Role.failed),
   ])
   func eachSendStateHasItsColor(state: SendState, expected: Color) {
-    #expect(Self.colors.color(for: state) == expected)
+    #expect(Self.theme.statusColor(for: state) == expected)
   }
 
   @Test(arguments: [
-    (NoticeSeverity.error, Color.red),
-    (.warning, .blue),
-    (.info, .yellow),
-    (.unknown("critical"), .yellow),
+    (NoticeSeverity.error, Role.error),
+    (.warning, Role.warning),
+    (.info, Role.info),
+    (.unknown("critical"), Role.info),
   ])
   func eachNoticeSeverityHasItsTint(severity: NoticeSeverity, expected: Color) {
-    #expect(Self.colors.color(for: severity) == expected)
+    #expect(Self.theme.tint(for: severity) == expected)
   }
 
   @Test(arguments: [
-    (FoundationModelsACP.PlanEntryPriority.high, Color.red),
-    (.medium, .blue),
-    (.low, .yellow),
-    (.unknown("urgent"), .yellow),
+    (FoundationModelsACP.PlanEntryPriority.high, Role.error),
+    (.medium, Role.warning),
+    (.low, Role.pending),
+    (.unknown("urgent"), Role.pending),
   ])
   func eachPlanEntryPriorityHasItsTint(priority: FoundationModelsACP.PlanEntryPriority, expected: Color) {
-    #expect(Self.colors.color(for: priority) == expected)
+    #expect(Self.theme.tint(for: priority) == expected)
+  }
+
+  @Test func theSystemThemeGivesTheEditorKitRoleDefaults() {
+    let theme = SystemTheme.system
+    #expect(theme.statusColor(for: FoundationModelsACP.ToolCallStatus.completed) == ThemeRoleDefaults.succeeded)
+    #expect(theme.statusColor(for: FoundationModelsACP.ToolCallStatus.cancelled) == ThemeRoleDefaults.cancelled)
+    #expect(theme.tint(for: NoticeSeverity.warning) == ThemeRoleDefaults.warning)
   }
 }

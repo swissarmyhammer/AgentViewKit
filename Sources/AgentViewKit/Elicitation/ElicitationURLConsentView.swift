@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -102,6 +104,7 @@ public struct ElicitationURLConsentView: View {
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the consent card of a pending elicitation.
   ///
@@ -160,7 +163,7 @@ public struct ElicitationURLConsentView: View {
       if let warning = URLDisplay.warning(for: url) {
         Label(warning, systemImage: Self.warningSymbol)
           .font(.callout)
-          .foregroundStyle(theme.statusColors.failed)
+          .foregroundStyle(editorTheme.severityWarning)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel(warning)
           .accessibilityIdentifier(Self.warningIdentifier)

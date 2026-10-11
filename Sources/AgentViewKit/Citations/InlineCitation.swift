@@ -1,4 +1,6 @@
 import AppKit
+import EditorSwiftUI
+import EditorTheme
 import Observation
 import SwiftUI
 
@@ -241,17 +243,17 @@ struct InlineCitationPill: View {
 
   @Environment(\.font) private var font
   @Environment(\.fontResolutionContext) private var fontResolutionContext
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     let textFontSize = (font ?? .body).resolve(in: fontResolutionContext).pointSize
     let metrics = InlineCitationMetrics(index: index, textFontSize: textFontSize)
     Text(verbatim: String(index))
       .font(.system(size: metrics.digitFontSize, weight: .semibold).monospacedDigit())
-      .foregroundStyle(theme.accent)
+      .foregroundStyle(editorTheme.accent)
       .lineLimit(1)
       .fixedSize()
       .frame(width: metrics.size.width, height: metrics.size.height)
-      .background(Capsule().fill(theme.accent.opacity(Self.fillOpacity)))
+      .background(Capsule().fill(editorTheme.accent.opacity(Self.fillOpacity)))
   }
 }

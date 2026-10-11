@@ -1,13 +1,17 @@
-import FoundationModelsACP
-import FoundationModelsACPClient
 import SwiftUI
 
-/// The design tokens of the kit (plan.md §5, §11 decision 11).
+/// The layout tokens of the kit (plan.md §5, §11 decision 11).
 ///
 /// The views of the kit read these tokens. They do not use fixed values.
-/// Apply a theme to a subtree with ``SwiftUI/View/agentTheme(_:)``. A view
-/// that hosts EditorKit applies ``editorTheme`` with `.editorTheme(_:)`, so
-/// that the code colors agree with the chrome.
+/// Apply a theme to a subtree with ``SwiftUI/View/agentTheme(_:)``.
+///
+/// The type holds no color and no code font. The EditorKit `Theme` in the
+/// environment (`\.editorTheme`) is the one theme of the kit: each color of
+/// the kit views and the code font come from it. A host sets it with
+/// `.editorTheme(_:)`, and EditorKit gives `SystemTheme` when no host sets
+/// one. This type keeps only the tokens that the EditorKit theme does not
+/// have: the spacing, the radii, the material level, the symbol weight, the
+/// density, and the prose font.
 ///
 /// `Docs/decisions/visual-audit.md` (research R12) records the values of
 /// ``default``, and `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
@@ -83,143 +87,6 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     case detailed
   }
 
-  /// The colors that show the status of a tool call, a plan entry, a
-  /// compaction, a sent user message, or a run, and the tint of a priority or
-  /// a notice severity.
-  public struct StatusColors: Equatable, Sendable {
-    /// The color of work that runs now.
-    public var running: Color
-    /// The color of work that completed.
-    public var completed: Color
-    /// The color of work that failed.
-    public var failed: Color
-    /// The color of work that was cancelled.
-    public var cancelled: Color
-    /// The color of work that did not start.
-    public var pending: Color
-
-    /// Makes a set of status colors.
-    ///
-    /// - Parameters:
-    ///   - running: The color of work that runs now.
-    ///   - completed: The color of work that completed.
-    ///   - failed: The color of work that failed.
-    ///   - cancelled: The color of work that was cancelled.
-    ///   - pending: The color of work that did not start.
-    public init(running: Color, completed: Color, failed: Color, cancelled: Color, pending: Color) {
-      self.running = running
-      self.completed = completed
-      self.failed = failed
-      self.cancelled = cancelled
-      self.pending = pending
-    }
-
-    /// The color of a tool call with `status`.
-    ///
-    /// Each view that tints a tool call by its status uses this function, so
-    /// that the views show the same color for the same status.
-    ///
-    /// - Parameter status: The ACP status of the tool call.
-    /// - Returns: ``running`` for a call that runs, ``completed`` for a
-    ///   completed call, ``failed`` for a failed call or a call whose result
-    ///   is lost (``ToolStatusSymbol/lostWireValue``), ``cancelled`` for a
-    ///   cancelled call, and ``pending`` for a pending call or a status that
-    ///   the kit does not know.
-    public func color(for status: FoundationModelsACP.ToolCallStatus) -> Color {
-      switch status {
-      case .inProgress: running
-      case .completed: completed
-      case .failed, .unknown(ToolStatusSymbol.lostWireValue): failed
-      case .cancelled: cancelled
-      case .pending, .unknown: pending
-      }
-    }
-
-    /// The color of a plan entry with `status`.
-    ///
-    /// - Parameter status: The ACP status of the plan entry.
-    /// - Returns: ``running`` for an entry in progress, ``completed`` for a
-    ///   completed entry, ``cancelled`` for a cancelled entry, and ``pending``
-    ///   for a pending entry or a status that the kit does not know.
-    public func color(for status: FoundationModelsACP.PlanEntryStatus) -> Color {
-      switch status {
-      case .inProgress: running
-      case .completed: completed
-      case .cancelled: cancelled
-      case .pending, .unknown: pending
-      }
-    }
-
-    /// The color of a context compaction with `status`.
-    ///
-    /// - Parameter status: The status of the compaction (stable ACP since schema
-    ///   alpha.8).
-    /// - Returns: ``running`` for a compaction in progress, ``completed`` for
-    ///   a completed compaction, ``failed`` for a failed compaction,
-    ///   ``cancelled`` for a cancelled compaction, and ``pending`` for a
-    ///   compaction with no reported status or with a status that the kit
-    ///   does not know.
-    public func color(for status: CompactionStatus) -> Color {
-      switch status {
-      case .inProgress: running
-      case .completed: completed
-      case .failed: failed
-      case .cancelled: cancelled
-      case .unknown: pending
-      }
-    }
-
-    /// The color of a user message with the send state `state`.
-    ///
-    /// - Parameter state: The send state of a `UserMessageEntry`.
-    /// - Returns: ``pending`` for a message that the agent did not link yet,
-    ///   ``completed`` for a sent message, and ``failed`` for a message whose
-    ///   prompt failed.
-    public func color(for state: SendState) -> Color {
-      switch state {
-      case .pending: pending
-      case .sent: completed
-      case .failed: failed
-      }
-    }
-
-    /// The tint of a plan entry with `priority`.
-    ///
-    /// The status colors have no priority colors, so the tint uses the status
-    /// color that has the same strength: the failure color shows high
-    /// importance, and the pending color shows low importance.
-    ///
-    /// - Parameter priority: The ACP priority of the plan entry.
-    /// - Returns: ``failed`` for a high priority, ``running`` for a medium
-    ///   priority, and ``pending`` for a low priority or a priority that the
-    ///   kit does not know.
-    public func color(for priority: FoundationModelsACP.PlanEntryPriority) -> Color {
-      switch priority {
-      case .high: failed
-      case .medium: running
-      case .low, .unknown: pending
-      }
-    }
-
-    /// The tint of a session notice with `severity`.
-    ///
-    /// The status colors have no severity colors, so the tint uses the status
-    /// color that has the same strength, as the priority tint does.
-    ///
-    /// - Parameter severity: The severity of the notice (stable ACP since
-    ///   schema alpha.8).
-    /// - Returns: ``failed`` for an error, ``running`` for a warning, and
-    ///   ``pending`` for information or a severity that the kit does not
-    ///   know.
-    public func color(for severity: NoticeSeverity) -> Color {
-      switch severity {
-      case .error: failed
-      case .warning: running
-      case .info, .unknown: pending
-      }
-    }
-  }
-
   /// The spacing steps.
   public var spacing: Spacing
   /// The corner radii.
@@ -228,17 +95,13 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   public var materialLevel: MaterialLevel
   /// The weight of the SF Symbols.
   public var symbolWeight: Font.Weight
-  /// The tint of the primary actions and of the status.
-  public var accent: Color
   /// How much detail and space each row shows.
   public var density: Density
   /// The font of the prose. The default is SF Pro.
+  ///
+  /// The EditorKit theme has a code font (`editorFont`) and no prose font,
+  /// so the prose font stays in this type.
   public var proseFont: Font
-  /// The font of code, tool input and output, and terminals. The default is
-  /// SF Mono.
-  public var codeFont: Font
-  /// The status colors.
-  public var statusColors: StatusColors
 
   /// Makes a theme.
   ///
@@ -247,31 +110,22 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   ///   - radii: The corner radii.
   ///   - materialLevel: The strength of the glass material.
   ///   - symbolWeight: The weight of the SF Symbols.
-  ///   - accent: The tint of the primary actions and of the status.
   ///   - density: How much detail and space each row shows.
   ///   - proseFont: The font of the prose.
-  ///   - codeFont: The font of code.
-  ///   - statusColors: The status colors.
   public init(
     spacing: Spacing,
     radii: Radii,
     materialLevel: MaterialLevel,
     symbolWeight: Font.Weight,
-    accent: Color,
     density: Density,
-    proseFont: Font,
-    codeFont: Font,
-    statusColors: StatusColors
+    proseFont: Font
   ) {
     self.spacing = spacing
     self.radii = radii
     self.materialLevel = materialLevel
     self.symbolWeight = symbolWeight
-    self.accent = accent
     self.density = density
     self.proseFont = proseFont
-    self.codeFont = codeFont
-    self.statusColors = statusColors
   }
 
   /// The default tokens. `Docs/decisions/visual-audit.md` and
@@ -290,17 +144,8 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     ),
     materialLevel: .regular,
     symbolWeight: .regular,
-    accent: .accentColor,
     density: .balanced,
-    proseFont: .system(.body, design: .default),
-    codeFont: .system(.body, design: .monospaced),
-    statusColors: StatusColors(
-      running: .blue,
-      completed: .green,
-      failed: .red,
-      cancelled: .gray,
-      pending: .secondary
-    )
+    proseFont: .system(.body, design: .default)
   )
 
   /// The vertical padding of a row, in points.
