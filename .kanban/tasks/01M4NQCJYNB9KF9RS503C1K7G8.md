@@ -6,6 +6,18 @@ comments:
   id: 01m4nqefatw5gc8846137ff15n
   text: '2026-10-11: The EditorKit work was sent to the EditorKit session (editorkit-c9): a system theme from Apple system colors as the fallback in place of `DefaultTheme.dark`, and color roles for status (running, completed, failed, cancelled, pending), severity (info, warning, error) and accent. That session will send back the commit and the final API names. This card waits for that commit.'
   timestamp: 2026-10-11T14:56:37.210582+00:00
+- actor: claude-code
+  id: 01m4nvn3c0zeaqbwrzdvzr6tfc
+  text: |-
+    2026-10-11: EditorKit pushed the system theme and the status roles to main at 2357fbc2a7bb45cb122ef2e212eea51e674e3802 (EditorKit task ^6bs4htz). This card is not blocked now.
+
+    Final API (module EditorTheme unless stated):
+    - `public struct SystemTheme: Theme` with `init()`, and `Theme.system` (`.editorTheme(.system)`). Editor colors are Apple system colors: textBackgroundColor, textColor, selectedTextBackgroundColor, controlBackgroundColor (gutter), windowBackgroundColor (status bar), underPageBackgroundColor (tab bar). tokenTint = selectedTokenTint = accent = `Color.accentColor`. Diff: systemGreen / systemRed at `DiffTintDefaults.bandOpacity` (0.18), systemOrange at `changedOpacity` (0.35), header separatorColor. Syntax colors in Xcode style.
+    - `defaultEditorTheme` (EditorSwiftUI) is now `SystemTheme()`; the `\.editorTheme` default is SystemTheme. `DefaultTheme.light/.dark` stay as presets.
+    - New `Theme` members, each with a default: `accent` (Color.accentColor), `statusRunning` (accent), `statusSucceeded` (systemGreen), `statusFailed` (severityError), `statusCancelled` (secondaryLabelColor), `statusPending` (tertiaryLabelColor), `severityInfo` (systemBlue), `severityWarning` (systemOrange), `severityError` (systemRed), `editorFont` (`.system(.body, design: .monospaced)`; the TextKit editor view does not read it yet). `enum ThemeRoleDefaults` holds the defaults. `accent` is a separate role; `tokenTint` is the search-token chip tint.
+    - Zed, VS Code and tmTheme imports map these roles where the source has a color.
+    - Test note: `Color.resolve(in:)` did not return in a headless SwiftPM test process. To compare light and dark, resolve through `NSColor(color)` inside `NSAppearance.performAsCurrentDrawingAppearance`.
+  timestamp: 2026-10-11T16:10:08.640595+00:00
 position_column: todo
 position_ordinal: '8580'
 title: Make the EditorKit theme the theme of the kit

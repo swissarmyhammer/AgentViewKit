@@ -204,7 +204,7 @@ public struct CommandOutputView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Copy output"), systemImage: "doc.on.doc") {
+      Button(String(localized: "Copy output"), systemImage: "document.on.document") {
         pasteboard.copyText(output)
       }
       .labelStyle(.iconOnly)

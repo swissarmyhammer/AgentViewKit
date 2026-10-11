@@ -82,10 +82,10 @@ public struct SpeechInputButton: View {
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.tint)
     case .idle:
-      Image(systemName: "mic")
+      Image(systemName: "microphone")
         .fontWeight(theme.symbolWeight)
     case .denied:
-      Image(systemName: "mic.slash")
+      Image(systemName: "microphone.slash")
         .fontWeight(theme.symbolWeight)
     }
   }

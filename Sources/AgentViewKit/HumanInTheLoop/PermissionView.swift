@@ -72,7 +72,7 @@ public struct PermissionView: View {
   /// The symbol of a tool call subject.
   static let toolCallSymbol = "wrench.and.screwdriver"
   /// The symbol of a command subject.
-  static let commandSymbol = "terminal"
+  static let commandSymbol = "apple.terminal"
   /// The symbol of the working directory.
   static let directorySymbol = "folder"
 

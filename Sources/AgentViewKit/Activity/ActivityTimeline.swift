@@ -176,7 +176,7 @@ private struct ActivityEntryRow: View {
   static let thoughtSymbolName = "brain"
 
   /// The SF Symbol name of a terminal row.
-  static let terminalSymbolName = "terminal"
+  static let terminalSymbolName = "apple.terminal"
 
   /// The entry to show.
   let entry: TimelineEntry

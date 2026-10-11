@@ -143,7 +143,7 @@ extension SessionStreamBanner {
   private static let replayingMessage = StateBanner.Message(
     title: String(localized: "Loading the history"),
     explanation: String(localized: "The agent sends the history of the session again."),
-    symbolName: "clock.arrow.circlepath",
+    symbolName: "clock.arrow.trianglehead.counterclockwise.rotate.90",
     identifier: replayingIdentifier)
 
   /// The text of the missed-updates banner.

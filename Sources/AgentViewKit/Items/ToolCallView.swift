@@ -492,7 +492,7 @@ private struct ToolCallBody: View {
     case .diff(let diff):
       DiffView(diff: diff)
     case .terminal(let terminalID):
-      Label(String(localized: "Terminal \(terminalID)"), systemImage: "terminal")
+      Label(String(localized: "Terminal \(terminalID)"), systemImage: "apple.terminal")
         .foregroundStyle(.secondary)
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: partID)
@@ -583,7 +583,7 @@ private struct LocationChips: View {
     let fullText = FoundationModelsACP.ToolCallLocation.text(path: path, line: location.line)
     let shortText = FoundationModelsACP.ToolCallLocation.text(
       path: URL(fileURLWithPath: path).lastPathComponent, line: location.line)
-    return Label(shortText, systemImage: "doc")
+    return Label(shortText, systemImage: "document")
       .font(.caption)
       .lineLimit(1)
       .truncationMode(.middle)

@@ -12,15 +12,15 @@ public nonisolated enum ToolKindSymbol {
   /// - Returns: The SF Symbol name.
   public static func name(for kind: FoundationModelsACP.ToolKind) -> String {
     switch kind {
-    case .read: "doc.text"
+    case .read: "text.document"
     case .edit: "pencil"
     case .delete: "trash"
     case .move: "arrow.left.arrow.right"
     case .search: "magnifyingglass"
-    case .execute: "terminal"
+    case .execute: "apple.terminal"
     case .think: "brain"
     case .fetch: "globe"
-    case .switchMode: "arrow.triangle.2.circlepath"
+    case .switchMode: "arrow.trianglehead.2.clockwise.rotate.90"
     case .other: "wrench.and.screwdriver"
     case .unknown: "questionmark.square.dashed"
     }

@@ -629,7 +629,7 @@ public struct ElicitationSingleChoiceField: View {
         } label: {
           Label(
             choice.title,
-            systemImage: isSelected ? "largecircle.fill.circle" : "circle"
+            systemImage: isSelected ? "inset.filled.circle" : "circle"
           )
         }
         .buttonStyle(.plain)

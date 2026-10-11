@@ -71,8 +71,8 @@ public struct MessageActions: View {
     /// The SF Symbol of the button.
     var systemImage: String {
       switch self {
-      case .copy: "doc.on.doc"
-      case .copyThread: "doc.on.clipboard"
+      case .copy: "document.on.document"
+      case .copyThread: "document.on.clipboard"
       case .export: "square.and.arrow.up"
       case .retry: "arrow.clockwise"
       case .edit: "pencil"
