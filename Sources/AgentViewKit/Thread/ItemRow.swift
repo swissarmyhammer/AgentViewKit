@@ -17,6 +17,13 @@ import SwiftUI
 /// the entry: the item view reads the content, so a streamed chunk evaluates
 /// the item view and not the row.
 ///
+/// The row is the one place where the time decorator attaches to each row of
+/// a ``ConversationView`` and an ``AgentThreadView``. When
+/// ``SwiftUI/EnvironmentValues/showsTranscriptTiming`` is `true` (see
+/// ``SwiftUI/View/transcriptTiming(_:)``), the row shows an
+/// ``EntryTimingView`` of the entry below the item view. The default is no
+/// time.
+///
 /// Two rows are equal when they show the same entry object. Apply
 /// `.equatable()` to the row, so that a change to the transcript does not
 /// evaluate the rows that did not change.
@@ -110,6 +117,7 @@ public struct ItemRow: View, Equatable {
     #endif
     return
       content
+      .modifier(TranscriptTimingSlot(entry: entry))
       .frame(maxWidth: .infinity, alignment: .leading)
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier(Self.identifier(for: id))

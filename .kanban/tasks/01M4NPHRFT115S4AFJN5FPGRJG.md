@@ -100,10 +100,26 @@ comments:
     - evidence: `swift test` exit 0: 1081 tests in 118 suites passed (1 known issue that HostedLayoutExpectationsTests expects). `aSwapOfTheRegisteredViewRefreshesTheExpandedBody` and `aStatusUpdateEvaluatesTheRowAndNotTheExpandedBody` passed. Only warning: the SwiftPM "missing creator for mutated node" note for the mlx-swift bundle. Load average 96.82 at start, 120.05 at end. File: Sources/AgentViewKit/Thread/Registries.swift.
     - next: /review
   timestamp: 2026-10-11T22:39:04.252994+00:00
+- actor: claude-code
+  id: 01m4pjfg6zj2xqkcqpxqjea0wv
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 501cfbe). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 1 file reviewed. All prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-11T22:49:02.431240+00:00
+- actor: claude-code
+  id: 01m4pjfqr0vx69m0gzncym4srx
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — the registration identity is one UUID that ToolCallBody reads; 2 findings checked
+    - test: green — swift test, 1081 tests passed, 1 expected known issue, load average 108 to 133
+    - commit: 501cfbe
+    - review: clean — 0 findings (1 file); task in done
+  timestamp: 2026-10-11T22:49:10.144899+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffa780
 title: 'SF Symbols: show each status with a symbol, not with color only'
 ---
 ## What

@@ -4,7 +4,10 @@ import SwiftUI
 /// The reasoning of the agent, as a collapsible block (plan.md §5, §9 B):
 /// the view of a `ThoughtEntry` of a `SessionModel` (plan.md §3.2).
 ///
-/// The block has the complete look: the title is "Thought". The session
+/// The block has the complete look: the title is "Thought for D", with the
+/// `duration` of the thought entry from the client model, or "Thought" when
+/// the entry has no duration (for example a thought that did not end yet, or
+/// a replayed thought). The kit records no time. The session
 /// model does not tell whether a thought is in progress, so the view shows
 /// the ACP content blocks as the entry holds them, with no kit record between
 /// the entry and the view (``ThoughtEntryBlock``). Only the views that read
@@ -84,31 +87,35 @@ public struct ReasoningView: View {
 
   /// The title of a complete block.
   ///
-  /// - Parameter duration: The time of the reasoning, or `nil` when it is not
-  ///   known.
-  /// - Returns: "Thought for N s", with N rounded to whole seconds, or
-  ///   "Thought" when `duration` is `nil`.
+  /// - Parameter duration: The `duration` of the thought entry, from the
+  ///   client model, or `nil` when the thought has no end time or no start
+  ///   time.
+  /// - Returns: "Thought for D", with the duration in whole units of the
+  ///   system duration formatter, such as "Thought for 3 seconds", or
+  ///   "Thought" when ``EntryTimingView/shownDuration(_:)`` shows no
+  ///   duration.
   public static func completedTitle(duration: TimeInterval?) -> String {
-    guard let duration else { return String(localized: "Thought") }
-    let seconds = Int(duration.rounded())
-    return String(localized: "Thought for \(seconds) s")
+    guard let shown = EntryTimingView.shownDuration(duration) else { return String(localized: "Thought") }
+    let text = EntryTimingView.durationText(for: shown, width: .wide)
+    return String(localized: "Thought for \(text)")
   }
 
   /// The label that VoiceOver reads for a block (plan.md §6).
   ///
   /// - Parameters:
   ///   - isInProgress: Whether the agent still reasons.
-  ///   - duration: The time of the reasoning, or `nil` when it is not known.
-  /// - Returns: "Reasoning, in progress" while in progress, "Reasoning, N
-  ///   seconds" with N rounded to whole seconds when complete, or
-  ///   "Reasoning" when complete with no known time.
+  ///   - duration: The `duration` of the thought entry, or `nil` when it is
+  ///     not known.
+  /// - Returns: "Reasoning, in progress" while in progress, "Reasoning, D"
+  ///   with the duration in whole units of the system duration formatter
+  ///   when complete, or "Reasoning" when complete with no shown duration.
   public static func accessibilityLabel(isInProgress: Bool, duration: TimeInterval?) -> String {
     if isInProgress {
       return String(localized: "Reasoning, in progress")
     }
-    guard let duration else { return String(localized: "Reasoning") }
-    let seconds = Int(duration.rounded())
-    return String(localized: "Reasoning, \(seconds) seconds")
+    guard let shown = EntryTimingView.shownDuration(duration) else { return String(localized: "Reasoning") }
+    let text = EntryTimingView.durationText(for: shown, width: .wide)
+    return String(localized: "Reasoning, \(text)")
   }
 
   public var body: some View {
@@ -120,7 +127,7 @@ public struct ReasoningView: View {
 ///
 /// The block shows the complete title, an expand button, and its content
 /// while it is open. ``ThoughtEntryBlock`` gives the ACP content of a thought
-/// entry.
+/// entry. The title and the label read the `duration` of `policyEntry`.
 struct ReasoningBlock<Content: View>: View {
   /// The id of the reasoning: the row key of the entry. It keys the
   /// accessibility identifiers.
@@ -144,8 +151,9 @@ struct ReasoningBlock<Content: View>: View {
   var body: some View {
     let store = environmentStore ?? ownStore
     let expanded = isExpanded(in: store)
+    let duration = policyEntry.timing.duration
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      header(store: store, expanded: expanded)
+      header(store: store, expanded: expanded, duration: duration)
       if expanded {
         content()
           .foregroundStyle(.secondary)
@@ -153,7 +161,7 @@ struct ReasoningBlock<Content: View>: View {
       }
     }
     .contentContainer(identifier: ReasoningView.identifier(for: id))
-    .accessibilityLabel(ReasoningView.accessibilityLabel(isInProgress: false, duration: nil))
+    .accessibilityLabel(ReasoningView.accessibilityLabel(isInProgress: false, duration: duration))
     // The row is a container with this block as its one child. The second
     // hidden child keeps SwiftUI from merging the block into the row, so
     // the block keeps its identifier. See `contentContainer(identifier:)`.
@@ -174,11 +182,12 @@ struct ReasoningBlock<Content: View>: View {
   /// - Parameters:
   ///   - store: The store of the user decisions.
   ///   - expanded: `true` while the block is open.
+  ///   - duration: The `duration` of the thought entry, or `nil`.
   /// - Returns: The header view.
-  private func header(store: ExpandedBlocksStore, expanded: Bool) -> some View {
+  private func header(store: ExpandedBlocksStore, expanded: Bool, duration: TimeInterval?) -> some View {
     let toggle = { store.toggle(entry: policyEntry) }
     return HStack(spacing: theme.spacing.s) {
-      title
+      title(duration: duration)
       Spacer(minLength: theme.spacing.s)
       Button(action: toggle) {
         Image(systemName: SharedSymbol.disclosure)
@@ -196,8 +205,11 @@ struct ReasoningBlock<Content: View>: View {
   }
 
   /// The complete title.
-  private var title: some View {
-    Text(ReasoningView.completedTitle(duration: nil))
+  ///
+  /// - Parameter duration: The `duration` of the thought entry, or `nil`.
+  /// - Returns: "Thought for D", or "Thought" with no shown duration.
+  private func title(duration: TimeInterval?) -> some View {
+    Text(ReasoningView.completedTitle(duration: duration))
       .foregroundStyle(.secondary)
       .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
   }

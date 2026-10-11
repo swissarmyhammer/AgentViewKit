@@ -9,9 +9,11 @@ import SwiftUI
 ///
 /// The timeline shows one row for each `ThoughtEntry`, `ToolCallEntry`,
 /// `TerminalEntry` and `ErrorEntry` of `SessionModel.transcript`, in
-/// transcript order. The other entries show no row. The model has no turns
-/// and no times, so the timeline shows no turn section, no duration and no
-/// time bar. A new entry of the model adds a row with no other step.
+/// transcript order. The other entries show no row. The model has no turns,
+/// so the timeline shows no turn section and no time bar. The title of a
+/// thought row tells the `duration` of the thought entry from the client
+/// model, as ``ReasoningView/completedTitle(duration:)`` gives it. The kit
+/// records no time. A new entry of the model adds a row with no other step.
 ///
 /// The body reads only the transcript. Each row reads its own entry object,
 /// so a status change of a tool call evaluates only the row of that call.
@@ -238,9 +240,9 @@ private struct ActivityEntryRow: View {
   /// The symbol, the text and the color of the row, from the entry object.
   private var appearance: Appearance {
     switch entry {
-    case .thought:
+    case .thought(let thought):
       Appearance(
-        title: ReasoningView.completedTitle(duration: nil), symbolName: Self.thoughtSymbolName,
+        title: ReasoningView.completedTitle(duration: thought.duration), symbolName: Self.thoughtSymbolName,
         tint: Color.secondary)
     case .toolCall(let toolCall):
       toolCallAppearance(toolCall)

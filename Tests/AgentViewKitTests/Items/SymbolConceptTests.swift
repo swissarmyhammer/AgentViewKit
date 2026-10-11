@@ -11,7 +11,7 @@ import Testing
 /// Each test reads the symbol names from the views of the kit: the banners,
 /// the stop reasons, the plan and its priorities, the MCP server chip, the
 /// diff, the command output, the message actions, the send state, the tool
-/// rows and the error card.
+/// rows, the error card and the time of an entry.
 @Suite @MainActor struct SymbolConceptTests {
   /// The meaning of a symbol. Each concept must have one symbol, and each
   /// symbol must have one concept.
@@ -24,6 +24,7 @@ import Testing
     case truncated, repeated, reasoningLimit, noOutput, stalled
     case closed, replaying, partialHistory, disconnected, signal
     case highPriority, mediumPriority, lowPriority
+    case time
   }
 
   /// One place of the kit that shows a symbol.
@@ -185,6 +186,7 @@ import Testing
       Use(concept: .tool, place: "tool menu", name: ToolToggles.menuSymbolName),
       Use(concept: .completed, place: "answered tab", name: ElicitationLayout.answeredSymbol),
       Use(concept: .warning, place: "URL consent warning", name: ElicitationURLConsentView.warningSymbol),
+      Use(concept: .time, place: "entry time", name: EntryTimingView.symbolName),
     ]
   }
 

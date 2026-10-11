@@ -44,6 +44,8 @@ struct HostThread: View {
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.
       .messageFooter { entry in MessageActions(entry: entry) }
+      // Below each row: when the entry started, and how long it took.
+      .transcriptTiming()
       // The Markdown that shows while the transcript has no entry.
       .conversationEmptyState(
         title: "Welcome",

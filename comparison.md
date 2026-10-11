@@ -82,7 +82,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 | Context compaction marker | ✓ `CompactionEntryView` | ✗ | ✗ | ✗ |
 | Transcript minimap | ✓ `ThreadMinimapView` | ✗ | ✗ | ✗ |
 | Message grouping | ✗ | ✗ | ✓ `MessagePrimitive.GroupedParts` | ✓ `groupMessages` |
-| Message timing | ✗ (model has no times) | ✗ | ✓ message timing element | ✗ |
+| Message timing | ✓ `EntryTimingView`, a decorator: `.transcriptTiming()` on each row, `.entryTiming(_:)` on one view; the times come from the client `EntryTiming` (`Items/EntryTimingView.swift`) | ✗ | ✓ message timing element | ✗ |
 | Quote a selection into the composer | partial: `DiffView` "Attach to prompt" | ✗ | ✓ `SelectionToolbarPrimitive.Quote`, `ComposerPrimitive.Quote` | ✗ |
 | Popup / sidebar / modal shells | ✗ | ✗ | ✓ `AssistantModal`, `AssistantSidebar` | ✓ `CopilotPopup`, `CopilotSidebar` |
 | Long-thread windowing | ✓ `ConversationView` "load earlier", `conversationPageSize` | ✗ | ✓ `ThreadPrimitive.LoadEarlier`, virtualization guide | ? |
@@ -106,7 +106,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 |---|---|---|---|---|
 | Collapsible reasoning | ✓ `ReasoningView` (`Items/ReasoningView.swift`) | ✓ `Reasoning` | ✓ reasoning element | ✓ `CopilotChatReasoningMessage` |
 | Auto-open while it streams, auto-close after | ✗ (closed by default; no in-progress signal read) | ✓ `isStreaming`, auto-open | ? | ✓ "Thinking…" then collapse |
-| "Thought for N seconds" | ✗ (model has no times) | ✓ `duration`, `getThinkingMessage` | ? | ✓ |
+| "Thought for N seconds" | ✓ `ReasoningView`, `ActivityTimeline`: the `duration` of the thought entry (`Items/ReasoningView.swift`) | ✓ `duration`, `getThinkingMessage` | ? | ✓ |
 | Step list (chain of thought) | partial: `ActivityTimeline` (`Activity/ActivityTimeline.swift`) | ✓ `ChainOfThought`, `ChainOfThoughtStep` | ✓ `ChainOfThoughtPrimitive` | ✗ |
 | Reasoning effort control | ✓ `ConfigOptionsView` category `thought_level` | ✗ | ✓ reasoning-effort element | ✗ |
 
@@ -510,7 +510,10 @@ them until ACP gives one. Keep them on the watch list:
   "Thinking…" then collapses. `plan.md` §9 B asks for "shimmering title
   while in progress; auto-collapse on done". The model has no in-progress
   flag on a thought, but the position and `agentState` are model values.
-- **Note:** Do not show "Thought for N seconds". The model has no times.
+- **Note:** The title shows "Thought for N seconds" from the `duration` of
+  the thought entry. The client model writes the times (`EntryTiming`). The
+  kit records no time. A thought with no end time or a replayed thought shows
+  "Thought".
 
 ### 4.2 `ToolCallView`
 
@@ -878,6 +881,31 @@ binding rule: no copy of model data.
   way. Xcode 27 uses compact rows (`plan.md` §5).
 - **File:** `Sources/AgentViewKit/Theme/AgentTheme.swift`.
 
+### 5.17 Entry times (a decorator)
+
+- **Decision of the owner (2026-10-11):** The time is a decorator. A view
+  modifier wraps a row with a view that tells when. The message views do not
+  show a time by themselves. The default is no time.
+- **Pattern:** `.transcriptTiming()` sets the environment value
+  `showsTranscriptTiming`. `ItemRow` reads it, so each row of
+  `ConversationView` and `AgentThreadView` shows an `EntryTimingView` below
+  the entry. `.entryTiming(_:)` wraps one view of a host, such as an
+  override. The view shows the start time and, when the entry ended, its
+  duration, with the system formatters (`Date.FormatStyle`,
+  `Duration.UnitsFormatStyle`). VoiceOver reads the time as one element after
+  the entry.
+- **Where:** user messages, agent messages, thoughts, tool calls and the
+  other entries. The `ReasoningView` title and the `ActivityTimeline` thought
+  row read the `duration` of the thought entry.
+- **Rule:** The times come from the `EntryTiming` of each entry of the client
+  model (`startedAt`, `endedAt`, `duration`). The kit records no time and
+  keeps no copy. A replayed entry has no time and shows none. There are no
+  turn times: the client model has no turns. The view has no style parameter.
+  Its font comes from the EditorKit theme and its spacing from `AgentTheme`
+  (section 5.12).
+- **File:** `Sources/AgentViewKit/Items/EntryTimingView.swift`,
+  `Sources/AgentViewKit/Thread/ItemRow.swift`.
+
 ## 6. Data binding: ACP client model and transcript entries
 
 This section records how the views get their data (review of 2026-10-11). Paths are below `Sources/AgentViewKit/` unless stated.
@@ -895,6 +923,7 @@ This section records how the views get their data (review of 2026-10-11). Paths 
 | Transcript entries | `session.transcript` | `ConversationView` → `ItemRow`, with an override slot for each case |
 | Messages | user and agent message entries | kit enum `MessageEntry` (`MessageItemView.swift:12`), `TranscriptMessageView` |
 | Thoughts | thought entry | `ThoughtEntryBlock`, `ReasoningView` |
+| Entry times | `EntryTiming` of each entry (`startedAt`, `endedAt`, `duration`) | `EntryTimingView` through `ItemRow` when `showsTranscriptTiming` is on; the thought title |
 | Tool calls | tool call entry | direct, with the kit helpers `shownTitle`, `shownKind`, `shownStatus` (`ToolCallPart.swift:22-35`); `ToolCallRegistry` slot |
 | Plan, terminal, compaction, errors, unknown | entry objects | direct |
 | Permissions | `session.pendingPermissions` | `PendingRequestsHost` |

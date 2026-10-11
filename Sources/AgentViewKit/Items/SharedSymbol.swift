@@ -275,4 +275,8 @@ nonisolated enum SharedSymbol {
 
   /// The symbol of a question of the agent to the user.
   static let question = "questionmark.bubble"
+
+  /// The symbol of the time of a transcript entry: its start time and its
+  /// duration.
+  static let entryTime = "timer"
 }

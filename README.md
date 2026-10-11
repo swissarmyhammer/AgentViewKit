@@ -239,6 +239,8 @@ struct HostThread: View {
       .attachmentView(for: .pdf) { url in Text(url.lastPathComponent) }
       // The footer slot of each message entry.
       .messageFooter { entry in MessageActions(entry: entry) }
+      // Below each row: when the entry started, and how long it took.
+      .transcriptTiming()
       // The Markdown that shows while the transcript has no entry.
       .conversationEmptyState(
         title: "Welcome",
@@ -265,6 +267,30 @@ state shows "No Messages".
 To show the text in a `ConversationView` with a custom slot, give
 `ConversationEmptyState(title:systemImage:markdown:)` to the `emptyState`
 closure.
+
+### Message timing
+
+The time of an entry is a decorator. The message views do not show a time by
+themselves. Add `.transcriptTiming()` to an `AgentThreadView` or a
+`ConversationView`, as in the example above. Each row then shows an
+`EntryTimingView` below the entry: when the entry started, and how long it
+took when it ended. The default is no time.
+
+To put the time below one view of your own, such as an override, use
+`.entryTiming(_:)` with the transcript entry:
+
+```swift
+MyToolCallRow(call: call)
+  .entryTiming(.toolCall(call))
+```
+
+The times come from the `EntryTiming` of each entry of the client model
+(`startedAt`, `endedAt`, and `duration`). The kit records no time. A replayed
+entry has no time, so its row shows none. A thought shows "Thought for N
+seconds" from the `duration` of the thought entry. The system formatters write
+the times in the locale of the environment, and VoiceOver reads the time after
+the entry. The font comes from the EditorKit theme, and the spacing comes from
+the `AgentTheme`. There are no turn times: the client model has no turns.
 
 ### The theme
 

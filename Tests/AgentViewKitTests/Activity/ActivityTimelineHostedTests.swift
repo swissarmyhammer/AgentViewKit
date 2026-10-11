@@ -9,7 +9,8 @@
 
   /// The activity timeline over the transcript of a `SessionModel`. The
   /// timeline shows one row for each thought, tool call, terminal and error
-  /// entry, in transcript order, with no turn section and no duration.
+  /// entry, in transcript order, with no turn section. A thought that did not
+  /// end shows no duration.
   @Suite(.serialized, .hostedSerially) @MainActor struct ActivityTimelineHostedTests {
     /// The longest time that a test waits for the view to change, in seconds.
     static let waitTimeout: TimeInterval = 5

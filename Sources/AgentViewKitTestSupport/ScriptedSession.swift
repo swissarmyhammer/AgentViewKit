@@ -7,7 +7,7 @@ import FoundationModelsACPClient
 /// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
 /// tests (plan.md §3.2).
 ///
-/// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``
+/// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:now:)``
 /// connects a `ConnectionModel` to the agent over an `InMemoryTransport`
 /// pair, sends `initialize`, and opens one new session.
 /// By default the connection model has a coalescing cadence of zero, so each
@@ -38,7 +38,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with prompt capabilities.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``:
+  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:now:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -61,7 +61,7 @@ public final class ScriptedSession {
   /// Makes the `initialize` result of an agent with auth methods.
   ///
   /// Give the result to the agent in the `configure` closure of
-  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:)``:
+  /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:now:)``:
   ///
   /// ```swift
   /// let session = try await ScriptedSession.open {
@@ -145,6 +145,10 @@ public final class ScriptedSession {
   ///     `SessionModel.defaultCoalescingCadence`.
   ///   - configure: Changes the agent before it starts, for example its
   ///     results or its prompt echo order.
+  ///   - now: The wall clock that gives the start time and the end time of
+  ///     each transcript entry. The default is the system clock. A test of
+  ///     the entry times gives a clock that it sets. The parameter is after
+  ///     `configure`, so that a trailing closure is the `configure` closure.
   /// - Returns: The helper with the open session.
   /// - Throws: The error of `initialize` or of `session/new`.
   public static func open(
@@ -152,7 +156,8 @@ public final class ScriptedSession {
     additionalDirectories: [AbsolutePath] = [],
     terminalAuthRunner: (any TerminalAuthRunner)? = nil,
     coalescingCadence: Duration = .zero,
-    configure: (ScriptedWireAgent) -> Void = { _ in }
+    configure: (ScriptedWireAgent) -> Void = { _ in },
+    now: @escaping @Sendable () -> Date = Date.init
   ) async throws -> ScriptedSession {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
     let agent = ScriptedWireAgent(transport: agentEnd)
@@ -161,7 +166,7 @@ public final class ScriptedSession {
     agent.results["session/new"] = newSessionResult
     configure(agent)
     agent.start()
-    let connection = ConnectionModel(coalescingCadence: coalescingCadence)
+    let connection = ConnectionModel(coalescingCadence: coalescingCadence, now: now)
     _ = await connection.connect(over: clientEnd, bufferLimits: bufferLimits)
     _ = try await connection.initialize(
       InitializeRequest.makeAgentViewKitRequest(info: clientInfo, terminalAuthRunner: terminalAuthRunner))

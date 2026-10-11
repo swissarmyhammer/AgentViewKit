@@ -26,8 +26,39 @@ comments:
   id: 01m4pfmb08qd54065sag1ymdkh
   text: '2026-10-11: Decision of the owner (through the FoundationModelsACPClient session): the client will not add turns or turn times, and the turn concept will be removed from the client. This card has no turn item now. Use only the per-entry `EntryTiming` values (`startedAt`, `endedAt`, `duration`). "Thought for N seconds" uses `duration` of the thought entry. The card is fully unblocked.'
   timestamp: 2026-10-11T21:59:15.208981+00:00
-position_column: todo
-position_ordinal: '8580'
+- actor: claude-code
+  id: 01m4pjw4pdzevgr5et9hgyc0wz
+  text: |-
+    2026-10-11 implement: research done.
+    - Pin: Package.resolved now sets FoundationModelsACPClient to 3c3adb9 (main). `swift package resolve` worked with no process kill. FoundationModelsACP stays at 5f94484 and EditorKit at 2357fbc (the client uses `branch: main` for FoundationModelsACP; the build tells if they are compatible).
+    - Client API: `EntryTiming` (`startedAt`, `endedAt`, `duration`), `TranscriptEntry.timing`, `ConnectionModel.init(..., now:)`. The `TranscriptTimekeeper` writes each time one time only.
+    - Kit: `ItemRow` is the one row of `ConversationView`, and `AgentThreadView` shows a `ConversationView`. Thus one modifier slot in `ItemRow` attaches the decorator to every row of both views.
+    - `ReasoningBlock.title` and `accessibilityLabel` use `duration: nil`. `ActivityTimeline` also shows `ReasoningView.completedTitle(duration: nil)` for each thought row, and its doc says "the model has no times".
+    - `UserMessageView`, `TranscriptMessageView` and `MessageHeader` have a host `date:` parameter (always nil from `ItemRow`). The card does not name it; not changed.
+    - `SharedSymbol.activity` is "clock", so the time concept needs a different symbol.
+    - `ScriptedSession.open` makes `ConnectionModel(coalescingCadence:)`; it needs a `now:` parameter for the tests.
+  timestamp: 2026-10-11T22:55:56.621809+00:00
+- actor: claude-code
+  id: 01m4pmb7fhfb44vztz0nmvpntv
+  text: |-
+    2026-10-11 implement: implementation landed. All subtasks are checked.
+    - Pin: Package.resolved sets FoundationModelsACPClient 3c3adb9 (main). FoundationModelsACP 5f94484 and EditorKit 2357fbc stay; the kit and the tests build with them. The generated demo project (git-ignored) had the old client pin, so `ResolvedPinsTests.theGeneratedDemoProjectPinsTheRootACPRevisions` failed; `ruby Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb` copied the root pins again (no UI test run). After a pin move, run that generator.
+    - New `Sources/AgentViewKit/Items/EntryTimingView.swift`: `EntryTimingView(entry:)` reads `entry.timing` (start time, and the duration when the entry ended); `.entryTiming(_:)` wraps one view; `.transcriptTiming(_:)` sets `showsTranscriptTiming` (default false); `TranscriptTimingSlot` in `ItemRow` is the one place for every row of `ConversationView` and `AgentThreadView`. Font `editorTheme.editorFont`, secondary foreground, spacing and symbol weight from `AgentTheme`. One accessibility element: "Started at T, took D". `Date.FormatStyle(date: .omitted, time: .shortened)` and `Duration.UnitsFormatStyle` (hours, minutes, seconds; at most 2 units), with the environment locale. A duration under 0.5 s does not show (it rounds to 0 seconds; a user message and an error have end = start).
+    - `SharedSymbol.entryTime = "timer"` (`clock` is already the activity concept). `SymbolConceptTests` has the new concept `time`.
+    - `ReasoningView`: the title and the label read `policyEntry.timing.duration`; `completedTitle(duration:)` now gives "Thought for 3 seconds" (wide units). `ActivityTimeline` thought rows also use the thought `duration`.
+    - Test support: `ScriptedSession.open(..., configure:, now:)`. `now` is after `configure`, because a function-typed parameter before it took the trailing closure of the existing callers. New `Tests/AgentViewKitTests/Helpers/SettableClock.swift`.
+    - New follow-up task: the host `date:` parameter of `UserMessageView` / `MessageHeader` (a second time display).
+    - Note: the client 3c3adb9 prints `info FoundationModelsACPClient.client: rpc.method=...` lines during the tests. The build prints `warning: missing creator for mutated node: (... mlx-swift_Cmlx.bundle ...)` from SwiftPM for the mlx dependency; no source file of the kit causes it.
+  timestamp: 2026-10-11T23:21:39.569896+00:00
+- actor: claude-code
+  id: 01m4pmbgkm1dvmvatrc42bvf9h
+  text: |-
+    ### implement — changed
+    - evidence: 14 files. New: Sources/AgentViewKit/Items/EntryTimingView.swift, Tests/AgentViewKitTests/Items/EntryTimingHostedTests.swift (8 tests), Tests/AgentViewKitTests/Items/EntryTimingTextTests.swift (7 tests), Tests/AgentViewKitTests/Helpers/SettableClock.swift. Changed: Sources/AgentViewKit/Items/ReasoningView.swift, Items/SharedSymbol.swift, Thread/ItemRow.swift, Activity/ActivityTimeline.swift, Sources/AgentViewKitTestSupport/ScriptedSession.swift, Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, Tests/AgentViewKitTests/Activity/ActivityTimelineHostedTests.swift, README.md, Examples/ReadmeSnippets/Snippets/HostApp.swift, comparison.md; Package.resolved (git-ignored) client pin 3c3adb9. Full `swift test`: 1096 tests in 120 suites passed (1 known issue that was there before), and the PackageStructure run had 1 failure (ResolvedPinsTests: stale pins of the git-ignored demo project); after `generate_xcodeproj.rb`, ResolvedPinsTests 2/2 passed. Load average 87.07 at the start of the full run, 67.67 at the end.
+    - next: /review
+  timestamp: 2026-10-11T23:21:48.916783+00:00
+position_column: doing
+position_ordinal: '80'
 title: 'Message timing: show entry times from the client model'
 ---
 ## What
@@ -38,12 +69,12 @@ Decision of the owner (2026-10-11): the time is a decorator. A view modifier wra
 The times come from the FoundationModelsACPClient models, not from the kit. The kit keeps no parallel state. The request was sent to the FoundationModelsACPClient session (foundationmodelsacpclient-62) on 2026-10-11: start and end times for each transcript entry, turn times (prompt sent, first update, stop), nil times for replayed history unless the wire has a time, an injectable clock, and no per-chunk time updates. This card waits for that commit.
 
 ## Work
-- [ ] When the client commit is pushed, move the FoundationModelsACPClient pin.
-- [ ] A timing decorator: a view modifier (for example `.entryTiming(_ entry:)` or `.transcriptTiming()`) that wraps a transcript row with a small view that shows when the entry started and, when it ended, its duration. It reads the times from the client entry. It has no style protocol and no style override (owner decision 2026-10-11): its colors and fonts come from the EditorKit theme.
-- [ ] A way to attach the decorator to every row of `ConversationView` and `AgentThreadView` in one place (for example an environment value or a row decorator slot), so that the host does not wrap each row by hand. The default is no decorator.
-- [ ] The same decorator works on user messages, agent messages, thoughts and tool calls. There is no turn time: the owner decided (2026-10-11) that the client has no turn concept. Do not add a turn object, prompt-to-stop times, time to first token or a turn duration.
-- [ ] `ReasoningView`: "Thought for N seconds" comes from the thought entry duration. Remove the kit `duration` parameter that is always `nil` (`Sources/AgentViewKit/Items/ReasoningView.swift:91`, `:105`, `:156`, `:200`), or bind it to the client value.
-- [ ] Replayed entries with no time show no time (the decorator shows nothing).
-- [ ] Format with the system formatters (`Date.FormatStyle`, `Duration.UnitsFormatStyle`), localized; VoiceOver reads the time with the message.
-- [ ] Tests with the injectable clock of the client: the decorator shows the expected time and duration; with no decorator, no time shows; a replayed entry shows none.
-- [ ] README: show how to attach the decorator. Update `comparison.md` (rows "Message timing" and "Thought for N seconds", the note in section 4, and section 5 cross-cutting concerns).
+- [x] When the client commit is pushed, move the FoundationModelsACPClient pin.
+- [x] A timing decorator: a view modifier (for example `.entryTiming(_ entry:)` or `.transcriptTiming()`) that wraps a transcript row with a small view that shows when the entry started and, when it ended, its duration. It reads the times from the client entry. It has no style protocol and no style override (owner decision 2026-10-11): its colors and fonts come from the EditorKit theme.
+- [x] A way to attach the decorator to every row of `ConversationView` and `AgentThreadView` in one place (for example an environment value or a row decorator slot), so that the host does not wrap each row by hand. The default is no decorator.
+- [x] The same decorator works on user messages, agent messages, thoughts and tool calls. There is no turn time: the owner decided (2026-10-11) that the client has no turn concept. Do not add a turn object, prompt-to-stop times, time to first token or a turn duration.
+- [x] `ReasoningView`: "Thought for N seconds" comes from the thought entry duration. Remove the kit `duration` parameter that is always `nil` (`Sources/AgentViewKit/Items/ReasoningView.swift:91`, `:105`, `:156`, `:200`), or bind it to the client value.
+- [x] Replayed entries with no time show no time (the decorator shows nothing).
+- [x] Format with the system formatters (`Date.FormatStyle`, `Duration.UnitsFormatStyle`), localized; VoiceOver reads the time with the message.
+- [x] Tests with the injectable clock of the client: the decorator shows the expected time and duration; with no decorator, no time shows; a replayed entry shows none.
+- [x] README: show how to attach the decorator. Update `comparison.md` (rows "Message timing" and "Thought for N seconds", the note in section 4, and section 5 cross-cutting concerns).
