@@ -19,7 +19,7 @@ The times come from the FoundationModelsACPClient models, not from the kit. The 
 
 ## Work
 - [ ] When the client commit is pushed, move the FoundationModelsACPClient pin.
-- [ ] A timing decorator: a view modifier (for example `.entryTiming(_ entry:)` or `.transcriptTiming()`) that wraps a transcript row with a small view that shows when the entry started and, when it ended, its duration. It reads the times from the client entry. It has a style protocol in the `ButtonStyle` pattern, so that a host can change the look (for example a trailing caption, a hover label or a header line).
+- [ ] A timing decorator: a view modifier (for example `.entryTiming(_ entry:)` or `.transcriptTiming()`) that wraps a transcript row with a small view that shows when the entry started and, when it ended, its duration. It reads the times from the client entry. It has no style protocol and no style override (owner decision 2026-10-11): its colors and fonts come from the EditorKit theme.
 - [ ] A way to attach the decorator to every row of `ConversationView` and `AgentThreadView` in one place (for example an environment value or a row decorator slot), so that the host does not wrap each row by hand. The default is no decorator.
 - [ ] The same decorator works on user messages, agent messages, thoughts and tool calls. The turn duration shows at the end of the turn through the same pattern.
 - [ ] `ReasoningView`: "Thought for N seconds" comes from the thought entry duration. Remove the kit `duration` parameter that is always `nil` (`Sources/AgentViewKit/Items/ReasoningView.swift:91`, `:105`, `:156`, `:200`), or bind it to the client value.

@@ -64,6 +64,37 @@ comments:
   id: 01m4p0v81nzq6rtmjzmzqdc8em
   text: '2026-10-11: The three EditorKit gaps are EditorKit tasks now: ^pv099da (`proseFont`, default `Font.body`), ^7y33f8s (`diffAddedText` / `diffRemovedText`), ^zydsh6b (the TextKit editor uses `Theme.editorFont`; large, it adds a platform font role; the owner must agree with the design first). EditorKit also has pending work from a review of 2357fbc: a `severityHint` role, the accent source (`Color.accentColor` or `controlAccentColor`), and SystemTheme palette changes. When EditorKit pushes, move the pin, then use `proseFont` and the diff text roles in the kit and remove the kit prose font.'
   timestamp: 2026-10-11T17:40:52.917540+00:00
+- actor: claude-code
+  id: 01m4p1fv610evkkq0q2qrdr9g5
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (fa3cb51); 11 findings; all are code-hygiene/magic-numbers-swift in Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:14, 22, 28, 32, 34, 36, 38, 40, 42, 44, 46. This commit adds the file, thus the rule that drops findings on existing tests does not apply.
+    - next: replace the magic numbers in all of DistinctRolesTheme.swift with named constants, then review again.
+  timestamp: 2026-10-11T17:52:07.873568+00:00
+- actor: claude-code
+  id: 01m4p1g88dr462h3w4w4sbm2gx
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — about 60 files; all kit colors and the code font from the EditorKit Theme; EditorKit pin 2357fbc
+    - test: green — swift test, 1058 tests passed, 1 expected known issue, load average 65 to 76
+    - commit: fa3cb51
+    - review: findings — Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:14, :22, :28, :32, :34, :36, :38, :40, :42, :44, :46 (code-hygiene/magic-numbers-swift)
+  timestamp: 2026-10-11T17:52:21.261305+00:00
+- actor: claude-code
+  id: 01m4p1y40jnzsww2twhh9mftxb
+  text: |-
+    2026-10-11 implement: the magic-number findings.
+    - DistinctRolesTheme.swift: new private enum `Level` with named component values (tenth, fifth, quarter, twoFifths, half, threeFifths, sevenTenths, fourFifths, nineTenths). Each role color reads these names. The values of the colors did not change, so the roles stay distinct. 0 and 1 stay, because the rule permits them.
+    - Check of the cause in the other new Swift files of this card: swiftlint 0.65.0 with only `no_magic_numbers` and `allowed_numbers: [0, 1, -1, 100]` (the config of the rule) over each Swift file of fa3cb51 outside Sources/AgentViewKit (tests, AgentViewKitTestSupport, snippet). Before: 26 violations, all in DistinctRolesTheme.swift. After: 0.
+    - Refactor of test data only, no behavior change, so no new failing test.
+  timestamp: 2026-10-11T17:59:55.666106+00:00
+- actor: claude-code
+  id: 01m4p1y6q2wkga9gcj7fc2fce0
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift. All 11 findings checked. Full `swift test` exit 0: Swift Testing 1058 tests in 114 suites passed (1 known issue, the pre-existing `aWrappedTextWithAFixedVerticalSizeFails`), 101 tests in 10 suites passed, 1 test passed, XCTest 0 tests. No compile warning from the package sources (one SwiftPM build-system note about the mlx-swift_Cmlx bundle, from a dependency). Load average before 72.38 80.61 77.95, after 68.96 83.23 80.60. UI tests not run.
+    - next: /review. Task stays in doing. Not committed.
+  timestamp: 2026-10-11T17:59:58.434877+00:00
 position_column: doing
 position_ordinal: '80'
 title: Make the EditorKit theme the theme of the kit
@@ -82,3 +113,46 @@ Today `AgentTheme` has its own colors (`accent`, `statusColors`) and fonts, and 
 - [x] `Attachments/AttachmentPreview.swift:206` uses `EditorKitCodeBlockStyle`.
 - [x] Tests: a custom EditorKit theme changes the status, diff, frame and accent colors of the kit views. Update `AgentThemeTests`, `AgentThemeGoldenTests` / `DefaultTokens.json` and `StatusColorsTests`.
 - [x] README: a theme section ("set an EditorKit theme with `.editorTheme(_:)`"). Demo: set a theme. Update `plan.md` and `Docs/decisions/visual-audit.md` where they describe the kit colors.
+
+## Review Findings (2026-10-11 12:45)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 49 file(s) reviewed, 15 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+> 7 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/connection-states.md` — no validator matches this file
+> - `Docs/decisions/diff-renderer.md` — no validator matches this file
+> - `Docs/decisions/dynamic-type.md` — no validator matches this file
+> - `Docs/decisions/visual-audit.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+> - `Tests/AgentViewKitTests/Theme/DefaultTokens.json` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Theme/AgentTheme+EditorKit.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Theme/AgentTheme+EditorKit.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Theme/AgentTheme+EditorKit.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Theme/AgentTheme+EditorKit.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Theme/AgentTheme+EditorKit.swift, so its declarations are unread
+
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:14` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:22` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:28` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:32` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:34` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:36` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:38` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:40` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:42` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:44` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift:46` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
