@@ -55,16 +55,6 @@
     /// The accessibility label of the code block of ``welcomeMarkdown``.
     static let codeBlockLabel = "swift code block"
 
-    /// Whether an element of `harness` has the label `label`.
-    ///
-    /// - Parameters:
-    ///   - label: The label to find.
-    ///   - harness: The harness that shows the view.
-    /// - Returns: `true` when an element has the label.
-    static func showsLabel<Content: View>(_ label: String, in harness: HostedViewHarness<Content>) -> Bool {
-      harness.accessibilityElements().contains { $0.label == label }
-    }
-
     // MARK: - Host Markdown
 
     @Test func theHostMarkdownShowsWhileTheTranscriptIsEmpty() async throws {
@@ -78,8 +68,8 @@
       harness.pump()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
-      #expect(Self.showsLabel(Self.heading, in: harness))
-      #expect(Self.listItems.allSatisfy { Self.showsLabel($0, in: harness) })
+      #expect(harness.hasElement(label: Self.heading))
+      #expect(Self.listItems.allSatisfy { harness.hasElement(label: $0) })
       let link = harness.element(identifier: Self.linkAddress)
       #expect(link?.role == "AXLink")
       #expect(link?.label == Self.linkText)
@@ -95,7 +85,7 @@
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
       harness.pump()
-      #expect(Self.showsLabel(Self.heading, in: harness))
+      #expect(harness.hasElement(label: Self.heading))
 
       let insertedKey = try await ConversationViewHostedTests.insertMessage(into: session)
       await harness.pump(until: ConversationViewHostedTests.waitTimeout) {
@@ -103,7 +93,7 @@
       }
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) == nil)
-      #expect(!Self.showsLabel(Self.heading, in: harness))
+      #expect(!harness.hasElement(label: Self.heading))
       #expect(harness.element(identifier: ItemRow.identifier(for: insertedKey)) != nil)
     }
 
@@ -147,7 +137,7 @@
       harness.pump()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.defaultTitle)
-      #expect(Self.showsLabel(Self.defaultMessage, in: harness))
+      #expect(harness.hasElement(label: Self.defaultMessage))
     }
 
     // MARK: - Environment
@@ -163,8 +153,8 @@
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.title)
-      #expect(Self.showsLabel(Self.environmentMarkdown, in: harness))
-      #expect(!Self.showsLabel(Self.defaultMessage, in: harness))
+      #expect(harness.hasElement(label: Self.environmentMarkdown))
+      #expect(!harness.hasElement(label: Self.defaultMessage))
     }
 
     @Test func anExplicitMarkdownWinsOverTheModifier() async throws {
@@ -178,8 +168,8 @@
       defer { harness.close() }
       harness.pump()
 
-      #expect(Self.showsLabel(Self.heading, in: harness))
-      #expect(!Self.showsLabel(Self.environmentMarkdown, in: harness))
+      #expect(harness.hasElement(label: Self.heading))
+      #expect(!harness.hasElement(label: Self.environmentMarkdown))
     }
   }
 #endif

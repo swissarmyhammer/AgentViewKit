@@ -193,6 +193,18 @@ public final class HostedViewHarness<Content: View> {
     liveElement(identifier: identifier).map { Self.snapshot(of: $0, includingLinks: true) }
   }
 
+  /// Whether an accessibility element under the hosting view has the label
+  /// `label`.
+  ///
+  /// The label must be equal to `label`. A label that only contains `label`
+  /// does not match.
+  ///
+  /// - Parameter label: The accessibility label to find.
+  /// - Returns: `true` when an element has the label `label`.
+  public func hasElement(label: String) -> Bool {
+    accessibilityElements().contains { $0.label == label }
+  }
+
   /// The frame of the first accessibility element with `identifier`.
   ///
   /// The frame is the area that the element has on the screen now, in
