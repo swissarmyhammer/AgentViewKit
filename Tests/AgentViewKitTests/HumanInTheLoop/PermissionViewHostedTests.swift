@@ -239,12 +239,9 @@ import Testing
     defer { session.close() }
     let pending = try await session.receivePermissionRequest(
       id: Self.agentRequestID, params: Self.makeParams(description: Self.description))
-    let controller = NSHostingController(rootView: PermissionView(request: pending, session: session.model))
 
-    let minimumSize = controller.sizeThatFits(in: .zero)
-    let sizeAtCardWidth = controller.sizeThatFits(in: CGSize(width: Self.cardSize.width, height: .infinity))
-
-    #expect(minimumSize.height <= sizeAtCardWidth.height)
+    HostedLayoutExpectations.expectMinimumHeightFitsWidth(
+      of: PermissionView(request: pending, session: session.model), width: Self.cardSize.width)
   }
 
   @Test func anAllowPressSendsTheOptionWithNoComment() async throws {

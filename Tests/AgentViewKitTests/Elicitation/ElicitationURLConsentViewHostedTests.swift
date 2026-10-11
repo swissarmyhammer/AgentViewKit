@@ -160,13 +160,9 @@ import Testing
     defer { session.close() }
     let pending = try await session.receiveElicitation(
       id: Self.agentRequestID, params: Self.makeParams(url: Self.punycodeURL))
-    let controller = NSHostingController(
-      rootView: ElicitationURLConsentView(request: pending, owner: session.model))
 
-    let minimumSize = controller.sizeThatFits(in: .zero)
-    let sizeAtCardWidth = controller.sizeThatFits(in: CGSize(width: Self.cardSize.width, height: .infinity))
-
-    #expect(minimumSize.height <= sizeAtCardWidth.height)
+    HostedLayoutExpectations.expectMinimumHeightFitsWidth(
+      of: ElicitationURLConsentView(request: pending, owner: session.model), width: Self.cardSize.width)
   }
 
   @Test func theCardOpensNothingBeforeAPress() async throws {

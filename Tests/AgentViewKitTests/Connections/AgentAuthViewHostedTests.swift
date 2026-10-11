@@ -288,13 +288,10 @@ import Testing
   @Test func theMinimumHeightOfTheCardIsNotMoreThanItsHeightAtTheCardWidth() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let controller = NSHostingController(
-      rootView: AgentAuthView(connection: session.connection).environment(\.sessionModel, session.model))
 
-    let minimumSize = controller.sizeThatFits(in: .zero)
-    let sizeAtCardWidth = controller.sizeThatFits(in: CGSize(width: Self.cardWidth, height: .infinity))
-
-    #expect(minimumSize.height <= sizeAtCardWidth.height)
+    HostedLayoutExpectations.expectMinimumHeightFitsWidth(
+      of: AgentAuthView(connection: session.connection).environment(\.sessionModel, session.model),
+      width: Self.cardWidth)
   }
 
   @Test func anAgentRowHasASignInButtonAndNoRunButton() async throws {
