@@ -40,9 +40,12 @@ not a dependency of the kit. Thus the table above does not list it.
 |---|---|---|---|---|
 | FoundationModelsACPAgent | git@github.com:swissarmyhammer/FoundationModelsACPAgent.git | branch main | `FoundationModelsACPAgent` | `DemoSupport` |
 
-- The Gallery tab of the demo app runs the agent in the process of the app
-  over the recorded sessions (`DemoAgent.makeInProcess(recordedSessions:)`).
-  The tab starts no agent program and needs no sibling checkout.
+- The ACP tab of the demo app runs the agent in the process of the app with
+  the live model (`DemoAgent.makeInProcess(options:)`). The Gallery tab runs
+  the agent in the process of the app with the stub model over the recorded
+  sessions (`DemoAgent.makeInProcess(recordedSessions:)`). The demo app
+  starts no agent program and needs no sibling checkout. The tests use the
+  stub model or the in-memory demo agent, so no test loads a model.
 - The demo Xcode project gets the same package from
   `Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb`.
 - `Tests/PackageStructureTests/ImportBoundaryTests.swift` holds the kit target

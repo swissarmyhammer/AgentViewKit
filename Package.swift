@@ -54,10 +54,11 @@ let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 
-/// The agent product of the Gallery tab of the demo app. Only the demo-only
-/// target `DemoSupport` links it: the Gallery tab runs FoundationModelsACPAgent
-/// in the process of the app over the recorded sessions. The kit target does
-/// not import it. ImportBoundaryTests enforces this.
+/// The agent product of the demo app. Only the demo-only target `DemoSupport`
+/// links it: the ACP tab runs FoundationModelsACPAgent in the process of the
+/// app with the live model, and the Gallery tab runs it over the recorded
+/// sessions with the stub model. The kit target does not import it.
+/// ImportBoundaryTests enforces this.
 let demoAgentProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPAgent", package: "FoundationModelsACPAgent")
 ]
@@ -99,8 +100,8 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/EditorKit.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACP.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPClient.git", branch: "main"),
-    // The agent of the Gallery tab of the demo app. Only `DemoSupport` links
-    // it, so a host of the kit does not resolve it.
+    // The agent of the ACP tab and of the Gallery tab of the demo app. Only
+    // `DemoSupport` links it, so a host of the kit does not build it.
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPAgent.git", branch: "main"),
     // Textual is a 0.x package, so the pin is exact.
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
@@ -132,8 +133,8 @@ let package = Package(
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
     // sources into the app. The target is not a product, because the package
     // has exactly one library product (plan.md §11 decision 1). It links
-    // FoundationModelsACPAgent for the agent of the Gallery tab, which runs
-    // in the process of the app.
+    // FoundationModelsACPAgent for the agent of the ACP tab and of the
+    // Gallery tab, which runs in the process of the app.
     .target(
       name: "DemoSupport",
       dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,

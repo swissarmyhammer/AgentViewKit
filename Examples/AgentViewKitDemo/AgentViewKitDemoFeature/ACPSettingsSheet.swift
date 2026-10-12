@@ -12,9 +12,6 @@ struct ACPSettingsSheet: View {
   /// The accessibility identifier of the Done button.
   static let doneIdentifier = "demo-settings-done"
 
-  /// The accessibility identifier of the text of the agent command.
-  static let agentCommandIdentifier = "demo-settings-agent-command"
-
   /// The minimum height of the connection list.
   static let connectionsHeight: CGFloat = 120
 
@@ -33,9 +30,6 @@ struct ACPSettingsSheet: View {
   /// The selected session model.
   let session: SessionModel
 
-  /// The agent program of the launch options.
-  let agentCommand: String
-
   @Environment(\.dismiss) private var dismiss
 
   var body: some View {
@@ -50,8 +44,6 @@ struct ACPSettingsSheet: View {
           GroupBox("Agent") {
             VStack(alignment: .leading) {
               AgentInfoHeader(connection: connection)
-              LabeledContent("Command", value: agentCommand)
-                .accessibilityIdentifier(Self.agentCommandIdentifier)
               AgentAuthView(connection: connection)
             }
           }

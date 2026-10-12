@@ -10,11 +10,13 @@ import Testing
 /// Tests of ``DemoAgent``: the demo app starts its agent and binds its views
 /// to the `ConnectionModel` and the `SessionModel` objects of the client.
 ///
-/// Each test starts the in-memory demo agent through ``InProcessAgent``, and
+/// Each test starts an agent in this process through ``InProcessAgent``, and
 /// reads the state of the models directly. ``DemoAgent`` keeps no copy of a
-/// model value. The tests over ``InProcessAgentFactory`` also start
-/// FoundationModelsACPAgent over the recorded sessions, the other agent that
-/// the demo runs in this process.
+/// model value. The tests over ``InProcessAgentFactory`` start each agent that
+/// the demo runs: the in-memory demo agent, FoundationModelsACPAgent of the
+/// ACP tab, and FoundationModelsACPAgent over the recorded sessions. No test
+/// starts a program, and no test uses the live model: the agent of the ACP
+/// tab runs with the stub model of the package.
 @Suite struct DemoAgentTests {
   /// The working directory of each test session.
   static let workingDirectory = "/tmp/demo-agent"
@@ -25,16 +27,26 @@ import Testing
     "app", InMemoryDemoAgent.launchArgument, DemoLaunchOptions.cwdArgument, workingDirectory,
   ])
 
-  /// An agent program that is not an absolute path, so that `AgentProcess`
-  /// does not start it.
-  static let relativeProgram = "relative-agent"
-
   /// Starts the in-memory agent.
   ///
   /// - Returns: The connected agent.
-  /// - Throws: The error of ``DemoAgent/makeConnected(options:)``.
+  /// - Throws: The error of ``DemoAgent/makeInProcess(options:)``.
   private static func makeInMemoryAgent() async throws -> DemoAgent {
-    try await DemoAgent.makeConnected(options: inMemoryOptions)
+    try await DemoAgent.makeInProcess(options: inMemoryOptions)
+  }
+
+  /// Starts FoundationModelsACPAgent as the ACP tab does, with the stub model
+  /// in place of the live model, in a new temporary working directory.
+  ///
+  /// - Returns: The connected agent, and the temporary working directory.
+  /// - Throws: The error of the directory or of the start.
+  static func makeACPTabAgent() async throws -> (agent: DemoAgent, directory: TemporaryDirectory) {
+    let directory = try TemporaryDirectory()
+    var options = DemoLaunchOptions(arguments: [
+      "app", DemoLaunchOptions.cwdArgument, directory.url.path(percentEncoded: false),
+    ])
+    options.acpAgent = .foundationModels(.stub)
+    return (try await DemoAgent.makeInProcess(options: options), directory)
   }
 
   /// The agents that the demo starts in this process. Each of them must pass
@@ -42,6 +54,9 @@ import Testing
   enum InProcessAgentFactory: CaseIterable {
     /// ``InMemoryDemoACPAgent`` with its script.
     case scriptedInMemory
+
+    /// FoundationModelsACPAgent of the ACP tab, with the stub model.
+    case acpTab
 
     /// FoundationModelsACPAgent over a stage of the recorded sessions.
     case recordedSessions
@@ -55,6 +70,9 @@ import Testing
       switch self {
       case .scriptedInMemory:
         return (try await DemoAgentTests.makeInMemoryAgent(), {})
+      case .acpTab:
+        let started = try await DemoAgentTests.makeACPTabAgent()
+        return (started.agent, started.directory.remove)
       case .recordedSessions:
         let scenario = try await RecordedSessionsAgentTests.start()
         return (scenario.agent, scenario.directory.remove)
@@ -71,10 +89,20 @@ import Testing
     await agent.stop()
   }
 
+  @Test func theACPTabAgentWorksInTheWorkingDirectoryOfTheOptions() async throws {
+    let started = try await Self.makeACPTabAgent()
+    let agent = started.agent
+
+    #expect(agent.workingDirectory == AbsolutePath(rawValue: started.directory.url.path(percentEncoded: false)))
+    #expect(agent.connection.initializeResponse?.info.name == DemoLaunchOptions.foundationModelsAgentName)
+    await agent.stop()
+    started.directory.remove()
+  }
+
   @Test func openSessionOpensANewSessionInTheWorkingDirectoryOfTheOptions() async throws {
     let agent = try await Self.makeInMemoryAgent()
 
-    let opened = DemoAgentTerminalSignInTests.OpenedSessions()
+    let opened = DemoAgentSignInTests.OpenedSessions()
 
     try await agent.openSession { opened.sessions.append($0) }
 
@@ -94,14 +122,6 @@ import Testing
 
     #expect(await waitUntil { started.agent.connection.state == .disconnected })
     started.removeFiles()
-  }
-
-  @Test func aProgramThatIsNotAnAbsolutePathDoesNotStart() async {
-    let options = DemoLaunchOptions(arguments: ["app", DemoLaunchOptions.agentCommandArgument, Self.relativeProgram])
-
-    await #expect(throws: AgentProcessError.commandNotAbsolute(Self.relativeProgram)) {
-      try await DemoAgent.makeConnected(options: options)
-    }
   }
 
   @Test func aResumeFromTheStartReplaysTheSavedHistoryOfTheSession() async throws {
@@ -133,45 +153,28 @@ import Testing
     let agent = started.agent
 
     #expect(agent.connection.state == .connected)
-    #expect(agent.terminalAuthRunner == nil)
-    #expect(!agent.canReconnect)
     #expect(agent.initializeRequest.capabilities.auth == nil)
     await agent.stop()
     started.removeFiles()
   }
 }
 
-/// Tests of the sign-in of ``DemoAgent``: the runner, the reconnect over a
-/// new transport, the retry of the operation that failed with `-32000`
-/// after a terminal or an `agent` sign-in, and the new session of a
-/// reconnect with no kept operation.
+/// Tests of the sign-in of ``DemoAgent`` with an `agent` method: the retry of
+/// the operation that failed with `-32000`.
 ///
-/// Each test gives two ``ScriptedWireAgent`` transports to the transport
-/// factory of the demo agent. The first agent answers `session/new` with
-/// `-32000`. The second agent opens the session.
-@Suite struct DemoAgentTerminalSignInTests {
-  /// The id of the terminal method of the scripted agents.
-  static let terminalMethodID = AuthMethodId(rawValue: "terminal-login")
-
-  /// The `authMethods` of an agent with one terminal method.
-  static let terminalMethods =
-    #"[{"type": "terminal", "methodId": "terminal-login", "name": "Terminal login", "args": ["--login"]}]"#
-
-  /// The id of the agent method of the scripted agents.
+/// Each test connects the demo agent to a ``ScriptedWireAgent`` over an
+/// `InMemoryTransport` pair. The scripted agent answers `session/new` with
+/// `-32000` until the test lets it open the session.
+@Suite struct DemoAgentSignInTests {
+  /// The id of the agent method of the scripted agent.
   static let agentMethodID = AuthMethodId(rawValue: "agent-login")
 
   /// The `authMethods` of an agent with one agent method, which the agent
   /// runs through `auth/login`.
   static let agentMethods = #"[{"type": "agent", "methodId": "agent-login", "name": "Agent login"}]"#
 
-  /// The `authMethods` of an agent with no auth method.
-  static let noMethods = "[]"
-
   /// The JSON-RPC code of an answer that requires authentication.
   static let authenticationRequiredCode = -32000
-
-  /// The exit status of a terminal process that succeeded.
-  static let successStatus: Int32 = 0
 
   /// The method of the operation that needs the sign-in.
   static let newSessionMethod = "session/new"
@@ -183,88 +186,52 @@ import Testing
   /// The method of the initialize request.
   static let initializeMethod = "initialize"
 
-  /// The id of the session that the second agent opens.
+  /// The id of the session that the scripted agent opens after the sign-in.
   static let signedInSessionID = "signed-in-session"
 
-  /// The id of the session that the first agent opens before it asks for a
-  /// sign-in.
-  static let firstSessionID = "first-session"
-
-  /// The JSON value of an empty capability object, `{}`.
-  static let emptyCapability = JSONValue.object([:])
-
-  /// The demo agent and the two scripted agents of one test.
+  /// The demo agent and the scripted agent of one test.
   struct Scenario {
-    /// The demo agent over the transports of the scripted agents.
+    /// The demo agent over the transport of the scripted agent.
     let agent: DemoAgent
 
-    /// The agent of the first transport. It answers `session/new` with
-    /// `-32000`.
-    let first: ScriptedWireAgent
+    /// The scripted agent. It answers `session/new` with `-32000`.
+    let scripted: ScriptedWireAgent
 
-    /// The agent of the second transport.
-    let second: ScriptedWireAgent
-
-    /// Stops the demo agent and the two scripted agents.
+    /// Stops the demo agent and the scripted agent.
     func stop() async {
       await agent.stop()
-      first.stop()
-      second.stop()
+      scripted.stop()
     }
   }
 
-  /// Starts a scripted agent on a new transport pair.
+  /// Connects a demo agent to a scripted agent with one agent method, which
+  /// answers `session/new` with `-32000`.
   ///
-  /// - Parameter authMethods: The `authMethods` of the `initialize` result.
-  /// - Returns: The client end of the pair and the started agent.
-  static func makeScriptedAgent(authMethods: String) -> (InMemoryTransport, ScriptedWireAgent) {
-    let (clientEnd, agentEnd) = InMemoryTransport.pair()
-    let agent = ScriptedWireAgent(transport: agentEnd)
-    agent.results[initializeMethod] = ScriptedSession.makeInitializeResult(
-      info: ScriptedSession.agentInfo, authMethods: authMethods)
-    agent.start()
-    return (clientEnd, agent)
-  }
-
-  /// Connects a demo agent to the first of two scripted agents.
-  ///
-  /// - Parameters:
-  ///   - runner: The terminal auth runner of the demo agent.
-  ///   - firstAuthMethods: The `authMethods` of the first agent.
-  ///   - secondAuthMethods: The `authMethods` of the second agent.
   /// - Returns: The scenario.
   /// - Throws: The error of `initialize`.
-  static func makeScenario(
-    runner: any TerminalAuthRunner,
-    firstAuthMethods: String = terminalMethods,
-    secondAuthMethods: String = terminalMethods
-  ) async throws -> Scenario {
-    let (firstEnd, first) = makeScriptedAgent(authMethods: firstAuthMethods)
-    first.failingMethods = [newSessionMethod]
-    first.errorCodes[newSessionMethod] = authenticationRequiredCode
-    let (secondEnd, second) = makeScriptedAgent(authMethods: secondAuthMethods)
-    second.results[newSessionMethod] = #"{"sessionId": "\#(signedInSessionID)"}"#
-    var transports = [firstEnd, secondEnd]
-    let agent = try await DemoAgent.makeConnected(
-      makeTransport: { transports.removeFirst() },
-      terminalAuthRunner: runner,
-      workingDirectory: AbsolutePath(rawValue: DemoAgentTests.workingDirectory)
-    )
-    return Scenario(agent: agent, first: first, second: second)
+  static func makeScenario() async throws -> Scenario {
+    let (clientEnd, agentEnd) = InMemoryTransport.pair()
+    let scripted = ScriptedWireAgent(transport: agentEnd)
+    scripted.results[initializeMethod] = ScriptedSession.makeInitializeResult(
+      info: ScriptedSession.agentInfo, authMethods: agentMethods)
+    scripted.failingMethods = [newSessionMethod]
+    scripted.errorCodes[newSessionMethod] = authenticationRequiredCode
+    scripted.start()
+    let connection = ConnectionModel()
+    _ = await connection.connect(over: clientEnd)
+    let agent = try await DemoAgent.makeStarted(
+      connection: connection, workingDirectory: AbsolutePath(rawValue: DemoAgentTests.workingDirectory))
+    return Scenario(agent: agent, scripted: scripted)
   }
 
   /// Opens a session with ``DemoAgent/openSession(onOpen:)``, expects the
-  /// `-32000` answer of the first agent, and records the session that each
-  /// run of the operation opens.
+  /// `-32000` answer of the scripted agent, and records the session that
+  /// each run of the operation opens.
   ///
-  /// - Parameters:
-  ///   - scenario: The scenario.
-  ///   - opened: The box that gets the session of each run.
-  /// - Returns: `opened`.
-  @discardableResult
-  static func openSessionExpectingSignIn(
-    in scenario: Scenario, recordingInto opened: OpenedSessions = OpenedSessions()
-  ) async -> OpenedSessions {
+  /// - Parameter scenario: The scenario.
+  /// - Returns: The box that gets the session of each run.
+  static func openSessionExpectingSignIn(in scenario: Scenario) async -> OpenedSessions {
+    let opened = OpenedSessions()
     let agent = scenario.agent
     let error = await #expect(throws: RequestError.self) {
       try await agent.openSession { opened.sessions.append($0) }
@@ -273,131 +240,18 @@ import Testing
     return opened
   }
 
-  /// Lets the first agent open ``firstSessionID``, and opens it with
-  /// ``DemoAgent/openSession(onOpen:)``. Then the first agent answers each
-  /// later `session/new` with `-32000` again.
-  ///
-  /// - Parameters:
-  ///   - scenario: The scenario.
-  ///   - opened: The box that gets the session.
-  /// - Throws: The error of `session/new`.
-  static func openFirstSession(in scenario: Scenario, recordingInto opened: OpenedSessions) async throws {
-    let first = scenario.first
-    first.failingMethods = []
-    first.results[newSessionMethod] = #"{"sessionId": "\#(firstSessionID)"}"#
-    try await scenario.agent.openSession { opened.sessions.append($0) }
-    first.failingMethods = [newSessionMethod]
-  }
-
-  /// Calls ``DemoAgent/reconnect(onOpen:)``, and records the session that it
-  /// gives to its handler.
-  ///
-  /// - Parameters:
-  ///   - scenario: The scenario.
-  ///   - opened: The box that gets the session.
-  /// - Throws: The error of the reconnect.
-  static func reconnect(in scenario: Scenario, recordingInto opened: OpenedSessions = OpenedSessions()) async throws {
-    try await scenario.agent.reconnect { opened.sessions.append($0) }
-  }
-
-  /// Runs the terminal method with `runner`, and ignores its error.
-  ///
-  /// - Parameters:
-  ///   - scenario: The scenario.
-  ///   - runner: The runner.
-  static func runTerminalSignIn(in scenario: Scenario, with runner: any TerminalAuthRunner) async {
-    try? await scenario.agent.connection.loginWithTerminal(terminalMethodID, runner: runner)
-  }
-
   /// The sessions that the operation of a test opened, in open order.
   final class OpenedSessions {
     /// The sessions, in open order.
     var sessions: [SessionModel] = []
   }
 
-  @Test func theInitializeFrameOfAProcessAgentAdvertisesTerminalAuth() async throws {
-    let scenario = try await Self.makeScenario(runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
-
-    let frame = try #require(scenario.first.messages(method: Self.initializeMethod).first)
-
-    #expect(frame["params"]?["capabilities"]?["auth"]?["terminal"] == Self.emptyCapability)
-    #expect(scenario.agent.canReconnect)
-    await scenario.stop()
-  }
-
-  @Test func aTerminalSignInAfterAnAnswerWithCode32000AsksForAReconnect() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
-    let scenario = try await Self.makeScenario(runner: runner)
-    await Self.openSessionExpectingSignIn(in: scenario)
-
-    await Self.runTerminalSignIn(in: scenario, with: runner)
-
-    #expect(scenario.agent.connection.authState == .reconnectRequired(Self.terminalMethodID))
-    await scenario.stop()
-  }
-
-  @Test func reconnectSendsInitializeOnANewTransportAndThenRetriesTheFailedOperation() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
-    let scenario = try await Self.makeScenario(runner: runner)
-    let opened = await Self.openSessionExpectingSignIn(in: scenario)
-    await Self.runTerminalSignIn(in: scenario, with: runner)
-
-    try await Self.reconnect(in: scenario)
-
-    let second = scenario.second
-    let initialize = try #require(second.messages(method: Self.initializeMethod).first)
-    #expect(initialize["params"]?["capabilities"]?["auth"]?["terminal"] == Self.emptyCapability)
-    let initializeIndex = try #require(second.index(ofMethod: Self.initializeMethod))
-    let newSessionIndex = try #require(second.index(ofMethod: Self.newSessionMethod))
-    #expect(initializeIndex < newSessionIndex)
-    #expect(second.messages(method: Self.newSessionMethod).count == 1)
-    #expect(opened.sessions.map(\.sessionId) == [SessionId(rawValue: Self.signedInSessionID)])
-    #expect(scenario.agent.connection.authState == .authenticated(Self.terminalMethodID))
-    await scenario.stop()
-  }
-
-  @Test func aNewSessionThatFailsWithCode32000OpensItsSessionAfterASignInAndAReconnect() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
-    let scenario = try await Self.makeScenario(runner: runner)
-    let opened = OpenedSessions()
-    try await Self.openFirstSession(in: scenario, recordingInto: opened)
-    await Self.openSessionExpectingSignIn(in: scenario, recordingInto: opened)
-    await Self.runTerminalSignIn(in: scenario, with: runner)
-
-    try await Self.reconnect(in: scenario)
-
-    let expected = [Self.firstSessionID, Self.signedInSessionID].map { SessionId(rawValue: $0) }
-    #expect(opened.sessions.map(\.sessionId) == expected)
-    #expect(scenario.agent.connection.authState == .authenticated(Self.terminalMethodID))
-    await scenario.stop()
-  }
-
-  @Test func aReconnectWithNoKeptOperationOpensASessionOnTheSecondTransport() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
-    let scenario = try await Self.makeScenario(runner: runner)
-    let opened = OpenedSessions()
-    try await Self.openFirstSession(in: scenario, recordingInto: opened)
-    let firstSession = try #require(opened.sessions.first)
-    await Self.runTerminalSignIn(in: scenario, with: runner)
-
-    try await Self.reconnect(in: scenario, recordingInto: opened)
-
-    let expected = [Self.firstSessionID, Self.signedInSessionID].map { SessionId(rawValue: $0) }
-    #expect(opened.sessions.map(\.sessionId) == expected)
-    #expect(firstSession.isClosed)
-    let signedInSession = try #require(opened.sessions.last)
-    #expect(scenario.agent.connection.session(for: signedInSession.sessionId) === signedInSession)
-    #expect(scenario.second.messages(method: Self.newSessionMethod).count == 1)
-    await scenario.stop()
-  }
-
   @Test func anAgentLoginAfterAnAnswerWithCode32000RunsTheKeptNewSessionOneTime() async throws {
-    let scenario = try await Self.makeScenario(
-      runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus), firstAuthMethods: Self.agentMethods)
+    let scenario = try await Self.makeScenario()
     let opened = await Self.openSessionExpectingSignIn(in: scenario)
-    let first = scenario.first
-    first.failingMethods = []
-    first.results[Self.newSessionMethod] = #"{"sessionId": "\#(Self.signedInSessionID)"}"#
+    let scripted = scenario.scripted
+    scripted.failingMethods = []
+    scripted.results[Self.newSessionMethod] = #"{"sessionId": "\#(Self.signedInSessionID)"}"#
     let agent = scenario.agent
 
     try await agent.connection.login(LoginAuthRequest(methodId: Self.agentMethodID))
@@ -406,51 +260,18 @@ import Testing
 
     #expect(agent.connection.authState == .authenticated(Self.agentMethodID))
     #expect(opened.sessions.map(\.sessionId) == [SessionId(rawValue: Self.signedInSessionID)])
-    #expect(first.messages(method: Self.newSessionMethod).count == Self.failedAndRetriedRequestCount)
+    #expect(scripted.messages(method: Self.newSessionMethod).count == Self.failedAndRetriedRequestCount)
     await scenario.stop()
   }
 
   @Test func aRetryBeforeASignInSendsNoRequest() async throws {
-    let scenario = try await Self.makeScenario(
-      runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus), firstAuthMethods: Self.agentMethods)
+    let scenario = try await Self.makeScenario()
     let opened = await Self.openSessionExpectingSignIn(in: scenario)
-    let agent = scenario.agent
 
-    try await agent.retryFailedOperation()
+    try await scenario.agent.retryFailedOperation()
 
     #expect(opened.sessions.isEmpty)
-    #expect(scenario.first.messages(method: Self.newSessionMethod).count == 1)
-    await scenario.stop()
-  }
-
-  @Test func aReconnectWhoseInitializeGivesNoSignInDoesNotRetry() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
-    let scenario = try await Self.makeScenario(runner: runner, secondAuthMethods: Self.noMethods)
-    let opened = await Self.openSessionExpectingSignIn(in: scenario)
-    await Self.runTerminalSignIn(in: scenario, with: runner)
-
-    try await Self.reconnect(in: scenario, recordingInto: opened)
-
-    #expect(scenario.second.messages(method: Self.initializeMethod).count == 1)
-    #expect(scenario.second.messages(method: Self.newSessionMethod).isEmpty)
-    #expect(opened.sessions.isEmpty)
-    #expect(scenario.agent.connection.authState == .notRequired)
-    await scenario.stop()
-  }
-
-  @Test func aRunnerWithNoExitStatusGivesTheTerminalFailureAndNoReconnect() async throws {
-    let runner = FakeTerminalAuthRunner(exitStatus: nil)
-    let scenario = try await Self.makeScenario(runner: runner)
-    await Self.openSessionExpectingSignIn(in: scenario)
-    await Self.runTerminalSignIn(in: scenario, with: runner)
-
-    try await Self.reconnect(in: scenario)
-
-    let failure = AuthFailure(
-      operation: .terminalLogin(Self.terminalMethodID), reason: .terminal(exitStatus: nil, message: nil))
-    #expect(scenario.agent.connection.authState == .failed(failure))
-    #expect(scenario.second.messages(method: Self.initializeMethod).isEmpty)
-    #expect(scenario.second.messages(method: Self.newSessionMethod).isEmpty)
+    #expect(scenario.scripted.messages(method: Self.newSessionMethod).count == 1)
     await scenario.stop()
   }
 }

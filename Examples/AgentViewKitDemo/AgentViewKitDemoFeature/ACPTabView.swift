@@ -4,9 +4,11 @@ import SwiftUI
 
 /// The ACP tab of the demo app.
 ///
-/// The tab starts the agent of the launch options with ``DemoAgent``, and
-/// shows the `ConnectionModel` and the selected `SessionModel` of the client
-/// with the kit session views:
+/// The tab starts the agent of the launch options in the app process with
+/// ``DemoAgent/makeInProcess(options:)``: FoundationModelsACPAgent with the
+/// live model, or the in-memory demo agent for `--in-memory-agent`. It shows
+/// the `ConnectionModel` and the selected `SessionModel` of the client with
+/// the kit session views:
 ///
 /// - a sidebar with the ``SessionListView`` of the connection model,
 /// - the ``AgentThreadView`` of the selected session, the
@@ -21,16 +23,11 @@ import SwiftUI
 ///
 /// When the agent answers a `session/new` request (the first session or the
 /// New Session button) with `-32000`, the tab shows the ``AgentAuthView`` of
-/// the connection model. The tab gives the `terminalAuthRunner` and the
-/// `agentReconnect` environment values of ``DemoAgent`` to the kit views, so
-/// that a terminal sign-in can run, and the Reconnect button connects again
-/// and opens that session. A Reconnect from the thread of an open session
-/// (after a prompt failed with `-32000`) opens a new session, because the
-/// reconnect closed the old one.
-///
-/// A sign-in with an `agent` method sets the `authState` of the connection
-/// model to `.authenticated`. The tab observes that state and tells
-/// ``DemoAgent`` to retry the kept `session/new`.
+/// the connection model. A sign-in with an `agent` method sets the
+/// `authState` of the connection model to `.authenticated`. The tab observes
+/// that state and tells ``DemoAgent`` to retry the kept `session/new`. The
+/// agent runs in the app process, so the tab gives no terminal auth runner
+/// and no reconnect to the kit views.
 struct ACPTabView: View, DemoStartingTab {
   /// The content of the tab after the start.
   private enum Content {
@@ -118,8 +115,6 @@ struct ACPTabView: View, DemoStartingTab {
     .sheet(isPresented: $showsSettings) {
       settingsSheet
     }
-    .terminalAuthRunner(agent?.terminalAuthRunner)
-    .agentReconnect(reconnectAction)
     .task {
       await start()
     }
@@ -137,20 +132,13 @@ struct ACPTabView: View, DemoStartingTab {
     }
   }
 
-  /// The Reconnect closure of the sign-in card, or `nil` when the agent cannot
-  /// make a new transport.
-  private var reconnectAction: AgentReconnect? {
-    guard let agent, agent.canReconnect else { return nil }
-    return { await reconnect(agent) }
-  }
-
   // MARK: - Start
 
   /// Starts the agent and opens the first session. The tab starts the agent
   /// one time only.
   private func start() async {
     await DemoStartPhase.start($phase) {
-      let agent = try await DemoAgent.makeConnected(options: options)
+      let agent = try await DemoAgent.makeInProcess(options: options)
       await openFirstSession(on: agent)
     }
   }
@@ -165,8 +153,8 @@ struct ACPTabView: View, DemoStartingTab {
 
   /// Opens a session with ``DemoAgent/openSession(onOpen:)`` and selects it.
   ///
-  /// The agent keeps a request that fails with `-32000`, so that a reconnect
-  /// after a terminal sign-in opens and selects the session.
+  /// The agent keeps a request that fails with `-32000`, so that the retry
+  /// after a sign-in opens and selects the session.
   ///
   /// - Parameters:
   ///   - agent: The connected agent.
@@ -190,29 +178,13 @@ struct ACPTabView: View, DemoStartingTab {
     newSessionFailure = nil
   }
 
-  /// Connects to the agent again after a terminal sign-in.
-  ///
-  /// The agent then retries the operation that failed with `-32000`. When it
-  /// kept no operation, for example after a prompt of the open session
-  /// failed with `-32000`, the agent opens a new session, because the
-  /// reconnect closed the old one. The tab selects that session.
-  ///
-  /// - Parameter agent: The agent.
-  private func reconnect(_ agent: DemoAgent) async {
-    do {
-      try await agent.reconnect { session in select(session, on: agent) }
-    } catch {
-      await show(error, of: agent)
-    }
-  }
-
   /// Retries the operation that failed with `-32000` when the `authState`
   /// of the connection model becomes `.authenticated`.
   ///
   /// A sign-in with an `agent` method on the sign-in card sets that state.
   /// The agent runs its kept operation, for example the first `session/new`,
-  /// and the tab selects the session. After a reconnect, the agent kept no
-  /// operation, so the call does nothing.
+  /// and the tab selects the session. When the agent kept no operation, the
+  /// call does nothing.
   private func authStateDidChange() async {
     guard let agent, case .authenticated = agent.connection.authState else { return }
     do {
@@ -222,8 +194,8 @@ struct ACPTabView: View, DemoStartingTab {
     }
   }
 
-  /// Shows the failure of the first session, of a reconnect, or the `-32000`
-  /// answer of the New Session button.
+  /// Shows the failure of the first session, of a retry after a sign-in, or
+  /// the `-32000` answer of the New Session button.
   ///
   /// A `-32000` answer shows the sign-in card. Each other failure stops the
   /// agent, because the tab then has no session to show.
@@ -242,9 +214,9 @@ struct ACPTabView: View, DemoStartingTab {
 
   /// Opens a new session and selects it.
   ///
-  /// A `-32000` answer shows the sign-in card through ``show(_:of:)``, and a
-  /// reconnect after a terminal sign-in opens the session. Each other failure
-  /// keeps the selected session, and the sidebar shows the error.
+  /// A `-32000` answer shows the sign-in card through ``show(_:of:)``, and
+  /// the retry after a sign-in opens the session. Each other failure keeps
+  /// the selected session, and the sidebar shows the error.
   ///
   /// - Parameter agent: The running agent.
   private func openNewSession(on agent: DemoAgent) async {
@@ -351,7 +323,7 @@ struct ACPTabView: View, DemoStartingTab {
   /// The settings sheet, with the models of the running agent.
   @ViewBuilder private var settingsSheet: some View {
     if case .started(.running(let agent, let session)) = phase {
-      ACPSettingsSheet(connection: agent.connection, session: session, agentCommand: options.agentCommand)
+      ACPSettingsSheet(connection: agent.connection, session: session)
     }
   }
 }

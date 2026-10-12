@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModelsACPAgent
 
 /// The tabs of the demo window. The raw value is the name that the `--tab`
 /// launch argument gives.
@@ -10,68 +11,47 @@ public enum DemoTab: String, Sendable, Hashable, CaseIterable {
   case gallery
 }
 
+/// The agent that the ACP tab of the demo app runs in the app process.
+public enum DemoACPAgent: Equatable, Sendable {
+  /// ``InMemoryDemoACPAgent`` with the ``InMemoryDemoScript/standard``
+  /// script. The UI tests use this agent.
+  case inMemory
+
+  /// FoundationModelsACPAgent through the package, with the model of the
+  /// model source. The app uses `.live`, the real model. The tests use
+  /// `.stub`, so that no model downloads or loads.
+  case foundationModels(ComposedAgent.ModelSource)
+}
+
 /// The launch arguments of the demo app.
 ///
 /// - `--in-memory-agent`: the ACP tab runs ``InMemoryDemoACPAgent`` in the
-///   app process (``DemoAgent``) and starts no process. The end-to-end test
-///   uses this argument.
-/// - `--agent-command <path>`: the ACP tab starts this agent program, with
-///   the arguments of ``agentArguments(for:)``. The default is
-///   ``defaultAgentCommand``.
+///   app process (``DemoAgent``). The UI tests use this argument. Without it,
+///   the ACP tab runs FoundationModelsACPAgent with the live model in the app
+///   process.
 /// - `--cwd <path>`: the working directory of each session of the ACP tab.
 ///   The default is the home directory.
 /// - `--tab <name>`: the tab that the window opens on, by the raw value of
 ///   ``DemoTab``. The default is the ACP tab. An unknown name keeps the
 ///   default.
 ///
-/// The Gallery tab reads no launch argument other than `--tab`. It runs
-/// FoundationModelsACPAgent in the app process
-/// (``DemoAgent/makeInProcess(recordedSessions:)``).
+/// The demo app starts no agent program. Each tab runs its agent in the app
+/// process through ``DemoAgent/makeInProcess(options:)`` or
+/// ``DemoAgent/makeInProcess(recordedSessions:)``. The Gallery tab reads no
+/// launch argument other than `--tab`.
 public struct DemoLaunchOptions: Equatable, Sendable {
-  /// The argument that names the agent program.
-  public static let agentCommandArgument = "--agent-command"
-
   /// The argument that names the working directory.
   public static let cwdArgument = "--cwd"
 
   /// The argument that names the tab that the window opens on.
   public static let tabArgument = "--tab"
 
-  /// The display name of an agent that the demo app starts as a process.
-  public static let processAgentName = "ACP Agent"
+  /// The display name of FoundationModelsACPAgent: the name that the agent
+  /// gives in its `initialize` answer.
+  public static let foundationModelsAgentName = RoutedACPAgent.implementation.name
 
-  /// The name of the agent program of FoundationModelsACPAgent.
-  static let acpAgentProgramName = "acp-agent"
-
-  /// The subcommand that makes `acp-agent` serve ACP on stdin and stdout.
-  /// The default subcommand of `acp-agent` is `run`, which does not speak
-  /// ACP.
-  static let acpSubcommand = "acp"
-
-  /// The path of the `acp-agent` binary below the directory of the sibling
-  /// checkouts.
-  static let siblingAgentPath = "FoundationModelsACPAgent/.build/release/\(acpAgentProgramName)"
-
-  /// The `acp-agent` binary of the sibling FoundationModelsACPAgent checkout.
-  ///
-  /// The path goes from this source file to the directory that holds the
-  /// AgentViewKit checkout, so that a local build of the demo app finds the
-  /// sibling build.
-  public static var defaultAgentCommand: String {
-    URL(filePath: #filePath)
-      .deletingLastPathComponent()  // DemoSupport
-      .deletingLastPathComponent()  // Sources
-      .deletingLastPathComponent()  // AgentViewKit
-      .deletingLastPathComponent()  // the directory of the sibling checkouts
-      .appending(path: siblingAgentPath)
-      .path(percentEncoded: false)
-  }
-
-  /// Whether the ACP tab binds the in-memory agent.
-  public var usesInMemoryAgent = false
-
-  /// The agent program that the ACP tab starts.
-  public var agentCommand = Self.defaultAgentCommand
+  /// The agent that the ACP tab runs.
+  public var acpAgent = DemoACPAgent.foundationModels(.live)
 
   /// The working directory of each session.
   public var cwd = FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false)
@@ -91,9 +71,7 @@ public struct DemoLaunchOptions: Equatable, Sendable {
     while let argument = remaining.popFirst() {
       switch argument {
       case InMemoryDemoAgent.launchArgument:
-        usesInMemoryAgent = true
-      case Self.agentCommandArgument:
-        if let value = remaining.popFirst() { agentCommand = value }
+        acpAgent = .inMemory
       case Self.cwdArgument:
         if let value = remaining.popFirst() { cwd = value }
       case Self.tabArgument:
@@ -104,20 +82,11 @@ public struct DemoLaunchOptions: Equatable, Sendable {
     }
   }
 
-  /// The arguments that the demo app gives to the agent program `command`.
-  ///
-  /// An `acp-agent` program, by name or by a path that ends in `acp-agent`,
-  /// gets the `acp` subcommand. Another program gets no arguments.
-  ///
-  /// - Parameter command: The name or the path of the agent program.
-  /// - Returns: The arguments of the agent program.
-  public static func agentArguments(for command: String) -> [String] {
-    let programName = URL(filePath: command).lastPathComponent
-    return programName == acpAgentProgramName ? [acpSubcommand] : []
-  }
-
-  /// The display name of the agent that the options start.
+  /// The display name of the agent that the ACP tab runs.
   public var agentName: String {
-    usesInMemoryAgent ? InMemoryDemoAgent.name : Self.processAgentName
+    switch acpAgent {
+    case .inMemory: InMemoryDemoAgent.name
+    case .foundationModels: Self.foundationModelsAgentName
+    }
   }
 }

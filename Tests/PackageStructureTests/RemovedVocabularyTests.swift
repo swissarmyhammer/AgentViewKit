@@ -76,6 +76,15 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// no agent connection into a `ConnectionStore`.
   static let removedDemoSymbols = ["ACPDemoSession", "agentConnectionID"]
 
+  /// The symbols of the agent program that the ACP tab of the demo app
+  /// started from the sibling FoundationModelsACPAgent checkout, and of its
+  /// terminal sign-in. The demo app runs each agent in the app process through
+  /// the package, and starts no agent program.
+  static let removedAgentProgramSymbols = [
+    "defaultAgentCommand", "siblingAgentPath", "agentArguments", "agentCommandArgument", "agentCommand",
+    "agent-command", "makeConnected", "TerminalAppAuthRunner", "TerminalAppAuthRunnerError",
+  ]
+
   /// The directories of the Swift files of the kit, of the demo app, of
   /// their support targets, and of their tests.
   static let swiftPaths = [sourcesPath, "Tests/AgentViewKitTests", "Examples"]
@@ -483,6 +492,14 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect(found.isEmpty, "\(found)")
   }
 
+  @Test func noFileUsesTheRemovedAgentProgram() throws {
+    let found =
+      try Self.uses(of: Self.removedAgentProgramSymbols, below: Self.swiftPaths)
+      + Self.uses(of: Self.removedAgentProgramSymbols, inFile: Self.readmePath)
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
   @Test func noFileUsesTheRemovedACPAdapter() throws {
     let found =
       try Self.uses(of: Self.removedAdapterSymbols, below: Self.swiftPaths)
@@ -544,7 +561,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect("SessionStreamBanner(session: s, connection: c, workingDirectory: w)".contains(pattern))
     #expect("``AgentThreadView/init(session:connection:workingDirectory:actions:)``".contains(pattern))
     #expect(!"AgentThreadView(session: s, connection: c, actions: a)".contains(pattern))
-    #expect(!"DemoAgent.makeConnected(workingDirectory: w)".contains(pattern))
+    #expect(!"DemoAgent.makeInProcess(workingDirectory: w)".contains(pattern))
   }
 
   @Test func noFileGivesTheWorkingDirectoryToAView() throws {

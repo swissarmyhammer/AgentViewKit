@@ -23,8 +23,9 @@ PACKAGE_PRODUCTS = %w[AgentViewKit].freeze
 SHARED_SOURCES = %w[../../Sources/DemoSupport].freeze
 
 # The packages whose modules `Sources/DemoSupport` imports. FoundationModelsACPAgent is the
-# agent of the Gallery tab, which runs in the app process. The app also imports the EditorKit
-# theme modules `EditorSwiftUI` and `EditorTheme`, to set the theme of the kit views.
+# agent of the ACP tab and of the Gallery tab, which runs in the app process. The app also
+# imports the EditorKit theme modules `EditorSwiftUI` and `EditorTheme`, to set the theme of
+# the kit views.
 # `Package.swift` depends on the same packages, so the build uses one copy of each.
 REMOTE_PACKAGES = {
   'git@github.com:swissarmyhammer/FoundationModelsACP.git' => %w[FoundationModelsACP],

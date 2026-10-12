@@ -19,7 +19,7 @@ final class GalleryTabEndToEndTests: XCTestCase {
   private static let galleryTab = "gallery"
 
   /// The launch argument that binds the in-memory agent to the ACP tab, so
-  /// that the ACP tab starts no agent process.
+  /// that the ACP tab loads no model.
   private static let inMemoryAgentArgument = "--in-memory-agent"
 
   /// The start of the identifier of each row of the session list.

@@ -128,7 +128,8 @@ The kit speaks ACP protocol version 2 only
 that are available today (Claude Code, Codex, and Gemini CLI) speak version 1.
 The kit refuses such an agent: `initialize` throws, and no session opens.
 The first agent of the kit is FoundationModelsACPAgent, which speaks version
-2. The demo app uses an in-memory agent that speaks version 2.
+2. The demo app runs FoundationModelsACPAgent in its process, and its UI
+tests use an in-memory agent that speaks version 2.
 
 ### An agent in this process
 
@@ -446,8 +447,12 @@ two lists equal.
 [`Examples/AgentViewKitDemo`](Examples/AgentViewKitDemo) is a macOS app with
 two tabs:
 
-- The ACP tab connects to an ACP agent, shows its sessions in a sidebar, and
-  shows the thread after the session binds.
+- The ACP tab runs FoundationModelsACPAgent in the process of the app,
+  through the package and with its live model
+  (`ComposedAgent.compose(modelSource: .live)`). It shows the sessions of the
+  agent in a sidebar, and shows the thread after the session binds. It starts
+  no agent program and needs no sibling checkout. The live model downloads
+  and loads the model of the agent profile at the first start.
 - The Gallery tab shows recorded sessions of FoundationModelsACPAgent, so that
   you can see how the views look with real session data. It runs
   FoundationModelsACPAgent in the process of the app, through the package and
@@ -469,8 +474,7 @@ two tabs:
 The launch arguments are in
 [`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):
 
-- `--in-memory-agent`: the ACP tab binds the in-memory agent, and starts no process.
-- `--agent-command <path>`: the ACP tab starts this agent program. The default is the `acp-agent` build of the sibling FoundationModelsACPAgent checkout. The app starts an `acp-agent` program with the `acp` subcommand, because the default subcommand of `acp-agent` does not speak ACP. The app starts other programs with no arguments.
+- `--in-memory-agent`: the ACP tab runs the scripted in-memory agent in place of FoundationModelsACPAgent, so that no model loads. The UI tests use this argument.
 - `--cwd <path>`: the working directory of each session of the ACP tab. The default is the home directory.
 - `--tab <name>`: the tab that the window opens on, `acp` or `gallery`. The default is `acp`.
 

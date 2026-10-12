@@ -3,44 +3,35 @@ import Testing
 
 @testable import DemoSupport
 
-/// The tests of the launch arguments of the demo app, and of the arguments
-/// that the demo app gives to the agent program.
+/// The tests of the launch arguments of the demo app.
 struct DemoLaunchOptionsTests {
   /// The working directory that the tests give with `--cwd`.
   static let workingDirectory = "/tmp/demo"
 
-  @Test func acpAgentByNameStartsWithTheACPSubcommand() {
-    #expect(DemoLaunchOptions.agentArguments(for: "acp-agent") == ["acp"])
-  }
-
-  @Test func acpAgentByPathStartsWithTheACPSubcommand() {
-    #expect(DemoLaunchOptions.agentArguments(for: "/usr/local/bin/acp-agent") == ["acp"])
-  }
-
-  @Test func otherAgentStartsWithNoArguments() {
-    #expect(DemoLaunchOptions.agentArguments(for: "other-agent").isEmpty)
-  }
-
   @Test func launchOptionsReadTheKnownArgumentsAndIgnoreTheOthers() {
     let options = DemoLaunchOptions(arguments: [
       "app", "-NSDocumentRevisionsDebugMode", "YES", InMemoryDemoAgent.launchArgument,
-      DemoLaunchOptions.agentCommandArgument, "/bin/agent", DemoLaunchOptions.cwdArgument, Self.workingDirectory,
+      DemoLaunchOptions.cwdArgument, Self.workingDirectory,
     ])
 
-    #expect(options.usesInMemoryAgent)
-    #expect(options.agentCommand == "/bin/agent")
+    #expect(options.acpAgent == .inMemory)
     #expect(options.cwd == Self.workingDirectory)
   }
 
   @Test func launchOptionsWithNoArgumentsUseTheDefaults() {
     let options = DemoLaunchOptions(arguments: ["app", DemoLaunchOptions.cwdArgument])
 
-    #expect(!options.usesInMemoryAgent)
-    #expect(options.agentCommand == DemoLaunchOptions.defaultAgentCommand)
-    #expect(options.agentCommand.hasSuffix(DemoLaunchOptions.siblingAgentPath))
-    #expect(options.agentCommand.hasPrefix("/"))
+    #expect(options.acpAgent == .foundationModels(.live))
     #expect(options.cwd == FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false))
     #expect(options.initialTab == .acp)
+  }
+
+  @Test func theAgentNameOfTheACPTabNamesTheAgentOfTheOptions() {
+    let inMemory = DemoLaunchOptions(arguments: ["app", InMemoryDemoAgent.launchArgument])
+    let foundationModels = DemoLaunchOptions(arguments: ["app"])
+
+    #expect(inMemory.agentName == InMemoryDemoAgent.name)
+    #expect(foundationModels.agentName == DemoLaunchOptions.foundationModelsAgentName)
   }
 
   @Test func theTabArgumentSelectsTheTabThatTheWindowOpensOn() {

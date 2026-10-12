@@ -52,7 +52,7 @@ struct KitInitializeRequestTests {
   }
 
   @Test func theDemoRequestHasTheDemoInfoTheClientVersionAndOnlyTheKitCapabilities() throws {
-    let request = DemoAgent.makeInitializeRequest(terminalAuthRunner: nil)
+    let request = DemoAgent.makeInitializeRequest()
 
     #expect(request.info.name == Self.demoName)
     #expect(request.info.version == Self.demoVersion)

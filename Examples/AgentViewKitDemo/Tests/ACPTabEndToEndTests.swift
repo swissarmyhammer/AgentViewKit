@@ -3,8 +3,9 @@ import XCTest
 /// The end-to-end tests of the ACP tab of the demo app.
 ///
 /// Each test starts the app with `--in-memory-agent`, so the tab runs the
-/// in-memory agent in the app process through the in-process helper and
-/// starts no agent binary. The tab shows the `ConnectionModel` and the
+/// in-memory agent in the app process through the in-process helper, in
+/// place of FoundationModelsACPAgent with the live model. Thus no test loads
+/// a model. The tab shows the `ConnectionModel` and the
 /// `SessionModel` of the client with the kit session views.
 ///
 /// The identifiers are the identifiers of the kit views and of the demo
