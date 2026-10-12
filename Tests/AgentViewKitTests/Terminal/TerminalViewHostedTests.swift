@@ -27,8 +27,6 @@
     static let longLineCount = 10
     /// The longest time that a test waits for a view update, in seconds.
     static let timeout: TimeInterval = 5
-    /// The ANSI color number of red (SGR 31).
-    static let redIndex = 1
     /// The size that the pixel tests render the view at.
     static let renderSize = CGSize(width: 480, height: 240)
     /// The `command` and `cwd` members of a `terminal_update`.
@@ -102,8 +100,9 @@
     // MARK: - Output
 
     @Test func theEditorShowsTheOutputWithNoEscapeSequences() async throws {
+      let escape = ANSIFixtures.escape
       let (session, terminal) = try await Self.openTerminal(
-        Self.outputField("\u{1B}[31mred\u{1B}[0m\n\u{1B}[2Kdone"))
+        Self.outputField("\(escape)[31mred\(escape)[0m\n\(escape)[2Kdone"))
       defer { session.close() }
       let model = EditorModel("")
       let harness = HostedViewHarness(TerminalView(entry: terminal, model: model))
@@ -115,8 +114,9 @@
     }
 
     @Test func theEditorGetsTheColorRunsOfTheOutputFromTheTerminalPalette() async throws {
+      let escape = ANSIFixtures.escape
       let (session, terminal) = try await Self.openTerminal(
-        Self.outputField("\u{1B}[31mred\u{1B}[0m ok"))
+        Self.outputField("\(escape)[31mred\(escape)[0m ok"))
       defer { session.close() }
       let model = EditorModel("")
       let harness = HostedViewHarness(
@@ -124,11 +124,9 @@
       defer { harness.close() }
       harness.pump()
 
-      let palette = DistinctRolesTheme.Role.terminalPalette
       #expect(
         model.colorRuns == [
-          EditorColorRun(range: 0..<3, foreground: palette.ansiColor(Self.redIndex)),
-          EditorColorRun(range: 3..<6, foreground: palette[.foreground]),
+          ANSIFixtures.ansiRun(0..<3, ANSIFixtures.redIndex), ANSIFixtures.foregroundRun(3..<6),
         ])
     }
 

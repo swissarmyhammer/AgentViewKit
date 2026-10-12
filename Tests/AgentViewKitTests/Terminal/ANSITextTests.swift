@@ -4,16 +4,10 @@ import Foundation
 import SwiftUI
 import Testing
 
+/// Checks the parse of terminal output into attributed text. The escape
+/// character, the palette and the shared ANSI color numbers come from
+/// ``ANSIFixtures``.
 @Suite struct ANSITextTests {
-  /// The escape character that starts each control sequence.
-  static let escape = "\u{1B}"
-  /// The terminal palette that the parser maps the ANSI colors through. Each
-  /// of its colors is different, so a test can tell which entry a run has.
-  static let palette = DistinctRolesTheme.Role.terminalPalette
-  /// The ANSI color number of red.
-  static let redIndex = 1
-  /// The ANSI color number of green.
-  static let greenIndex = 2
   /// The ANSI color number of blue.
   static let blueIndex = 4
   /// The ANSI color number of bright red.
@@ -32,15 +26,15 @@ import Testing
   /// - Parameter text: The terminal text.
   /// - Returns: The attributed text.
   static func attributed(_ text: String) -> AttributedString {
-    ANSIText.attributed(from: Data(text.utf8), palette: palette)
+    ANSIText.attributed(from: Data(text.utf8), palette: ANSIFixtures.palette)
   }
 
-  /// The color of ANSI color `index` in ``palette``.
+  /// The color of ANSI color `index` in ``ANSIFixtures/palette``.
   ///
   /// - Parameter index: The ANSI color number, from 0 to 15.
   /// - Returns: The color.
   static func ansiColor(_ index: Int) -> Color? {
-    palette.ansiColor(index)
+    ANSIFixtures.palette.ansiColor(index)
   }
 
   /// The styles of one run.
@@ -71,45 +65,49 @@ import Testing
   // MARK: - SGR
 
   @Test func redTextIsRed() throws {
-    let text = Self.attributed("\(Self.escape)[31mred\(Self.escape)[0m")
+    let escape = ANSIFixtures.escape
+    let text = Self.attributed("\(escape)[31mred\(escape)[0m")
 
     #expect(String(text.characters) == "red")
     let run = try #require(Self.runs(text).first?.1)
-    #expect(run.foregroundColor == Self.ansiColor(Self.redIndex))
+    #expect(run.foregroundColor == Self.ansiColor(ANSIFixtures.redIndex))
   }
 
   @Test func resetGivesTheTerminalForeground() {
-    let text = Self.attributed("\(Self.escape)[31mred\(Self.escape)[0m plain")
+    let escape = ANSIFixtures.escape
+    let text = Self.attributed("\(escape)[31mred\(escape)[0m plain")
     let runs = Self.runs(text)
 
     #expect(runs.map(\.0) == ["red", " plain"])
-    #expect(runs.last?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.last?.1.foregroundColor == ANSIFixtures.palette[.foreground])
     #expect(runs.last?.1.backgroundColor == nil)
   }
 
   @Test func textWithNoSGRHasTheTerminalForeground() {
     let runs = Self.runs(Self.attributed("plain"))
 
-    #expect(runs.first?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.first?.1.foregroundColor == ANSIFixtures.palette[.foreground])
   }
 
   @Test func theColorsComeFromThePaletteOfTheTheme() {
     let palette = ThemeRoleDefaults.terminalPalette
-    let text = ANSIText.attributed(from: "\(Self.escape)[31mred", palette: palette)
+    let text = ANSIText.attributed(from: "\(ANSIFixtures.escape)[31mred", palette: palette)
 
-    #expect(Self.runs(text).first?.1.foregroundColor == palette.ansiColor(Self.redIndex))
+    #expect(Self.runs(text).first?.1.foregroundColor == palette.ansiColor(ANSIFixtures.redIndex))
   }
 
   @Test func anEmptySGRIsAReset() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[32mgo\(Self.escape)[m stop"))
+    let escape = ANSIFixtures.escape
+    let runs = Self.runs(Self.attributed("\(escape)[32mgo\(escape)[m stop"))
 
     #expect(runs.map(\.0) == ["go", " stop"])
-    #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.greenIndex))
-    #expect(runs.last?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.first?.1.foregroundColor == Self.ansiColor(ANSIFixtures.greenIndex))
+    #expect(runs.last?.1.foregroundColor == ANSIFixtures.palette[.foreground])
   }
 
   @Test func boldSetsTheStrongIntent() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[1mbold\(Self.escape)[22mnormal"))
+    let escape = ANSIFixtures.escape
+    let runs = Self.runs(Self.attributed("\(escape)[1mbold\(escape)[22mnormal"))
 
     #expect(runs.map(\.0) == ["bold", "normal"])
     #expect(runs.first?.1.inlinePresentationIntent == .stronglyEmphasized)
@@ -117,29 +115,31 @@ import Testing
   }
 
   @Test func oneSequenceSetsBoldAndAColor() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[1;34mboth"))
+    let runs = Self.runs(Self.attributed("\(ANSIFixtures.escape)[1;34mboth"))
 
     #expect(runs.first?.1.inlinePresentationIntent == .stronglyEmphasized)
     #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.blueIndex))
   }
 
   @Test func brightAndBackgroundColors() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[91;42mx\(Self.escape)[39;49my"))
+    let escape = ANSIFixtures.escape
+    let runs = Self.runs(Self.attributed("\(escape)[91;42mx\(escape)[39;49my"))
 
     #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.brightRedIndex))
-    #expect(runs.first?.1.backgroundColor == Self.ansiColor(Self.greenIndex))
-    #expect(runs.last?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.first?.1.backgroundColor == Self.ansiColor(ANSIFixtures.greenIndex))
+    #expect(runs.last?.1.foregroundColor == ANSIFixtures.palette[.foreground])
     #expect(runs.last?.1.backgroundColor == nil)
   }
 
   @Test func the256ColorPalette() {
+    let escape = ANSIFixtures.escape
     let runs = Self.runs(
       Self.attributed(
-        "\(Self.escape)[38;5;\(Self.redIndex)ma\(Self.escape)[38;5;\(Self.cubeIndex)mb"
-          + "\(Self.escape)[38;5;\(Self.grayIndex)mc"))
+        "\(escape)[38;5;\(ANSIFixtures.redIndex)ma\(escape)[38;5;\(Self.cubeIndex)mb"
+          + "\(escape)[38;5;\(Self.grayIndex)mc"))
 
     #expect(runs.map(\.0) == ["a", "b", "c"])
-    #expect(runs[0].1.foregroundColor == Self.ansiColor(Self.redIndex))
+    #expect(runs[0].1.foregroundColor == Self.ansiColor(ANSIFixtures.redIndex))
     #expect(runs[1].1.foregroundColor == Color(ANSIText.RGB(red: 255, green: 0, blue: 0)))
     #expect(runs[2].1.foregroundColor == Color(ANSIText.RGB(red: 128, green: 128, blue: 128)))
   }
@@ -147,7 +147,7 @@ import Testing
   @Test func directColor() {
     let runs = Self.runs(
       Self.attributed(
-        "\(Self.escape)[48;2;\(Self.directRed);\(Self.directGreen);\(Self.directBlue)mz"))
+        "\(ANSIFixtures.escape)[48;2;\(Self.directRed);\(Self.directGreen);\(Self.directBlue)mz"))
 
     #expect(
       runs.first?.1.backgroundColor
@@ -156,24 +156,26 @@ import Testing
   }
 
   @Test func anExtendedColorWithMissingValuesIsIgnored() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[38;5mx\(Self.escape)[38;2;1my"))
+    let escape = ANSIFixtures.escape
+    let runs = Self.runs(Self.attributed("\(escape)[38;5mx\(escape)[38;2;1my"))
 
     #expect(runs.map(\.0) == ["xy"])
-    #expect(runs.first?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.first?.1.foregroundColor == ANSIFixtures.palette[.foreground])
   }
 
   @Test func unknownSGRCodesKeepTheStyle() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[31;4;7mx"))
+    let runs = Self.runs(Self.attributed("\(ANSIFixtures.escape)[31;4;7mx"))
 
-    #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.redIndex))
+    #expect(runs.first?.1.foregroundColor == Self.ansiColor(ANSIFixtures.redIndex))
   }
 
   /// `TerminalEntry.text` is already decoded text, so the parser reads a
   /// string with no byte decode (plan.md §3.7 "Terminals").
   @Test func textThatIsAlreadyDecodedGivesTheSameRunsAsItsBytes() {
-    let text = "\(Self.escape)[31mred\(Self.escape)[0m plain"
+    let escape = ANSIFixtures.escape
+    let text = "\(escape)[31mred\(escape)[0m plain"
 
-    let fromText = ANSIText.attributed(from: text, palette: Self.palette)
+    let fromText = ANSIText.attributed(from: text, palette: ANSIFixtures.palette)
 
     #expect(String(fromText.characters) == "red plain")
     #expect(fromText == Self.attributed(text))
@@ -182,36 +184,38 @@ import Testing
   // MARK: - Strip
 
   @Test(arguments: [
-    "\u{1B}[2J",  // clear screen
-    "\u{1B}[H",  // cursor home
-    "\u{1B}[10;20H",  // cursor position
-    "\u{1B}[3A",  // cursor up
-    "\u{1B}[?25l",  // hide cursor
-    "\u{1B}[K",  // clear line
-    "\u{1B}]0;title\u{07}",  // OSC with BEL
-    "\u{1B}]8;;https://example.com\u{1B}\\",  // OSC with ST
-    "\u{1B}P1$r\u{1B}\\",  // DCS
-    "\u{1B}(B",  // character set
-    "\u{1B}7",  // save cursor
-    "\u{1B}=",  // keypad mode
+    "\(ANSIFixtures.escape)[2J",  // clear screen
+    "\(ANSIFixtures.escape)[H",  // cursor home
+    "\(ANSIFixtures.escape)[10;20H",  // cursor position
+    "\(ANSIFixtures.escape)[3A",  // cursor up
+    "\(ANSIFixtures.escape)[?25l",  // hide cursor
+    "\(ANSIFixtures.escape)[K",  // clear line
+    "\(ANSIFixtures.escape)]0;title\u{07}",  // OSC with BEL
+    "\(ANSIFixtures.escape)]8;;https://example.com\(ANSIFixtures.escape)\\",  // OSC with ST
+    "\(ANSIFixtures.escape)P1$r\(ANSIFixtures.escape)\\",  // DCS
+    "\(ANSIFixtures.escape)(B",  // character set
+    "\(ANSIFixtures.escape)7",  // save cursor
+    "\(ANSIFixtures.escape)=",  // keypad mode
     "\u{9B}2J",  // C1 CSI
     "\u{9D}0;title\u{07}",  // C1 OSC
     "\u{07}",  // bell
     "\u{08}",  // backspace
-    "\u{1B}",  // escape at the end
+    ANSIFixtures.escape,  // escape at the end
   ])
   func aControlSequenceProducesNoText(sequence: String) {
     #expect(String(Self.attributed(sequence).characters) == "")
   }
 
   @Test func textAroundAStrippedSequenceStays() {
-    let text = Self.attributed("a\(Self.escape)[5Cb\(Self.escape)]0;t\u{07}c")
+    let escape = ANSIFixtures.escape
+    let text = Self.attributed("a\(escape)[5Cb\(escape)]0;t\u{07}c")
     #expect(String(text.characters) == "abc")
   }
 
   @Test func anUnterminatedSequenceProducesNoText() {
-    #expect(String(Self.attributed("ok\(Self.escape)[12").characters) == "ok")
-    #expect(String(Self.attributed("ok\(Self.escape)]0;title").characters) == "ok")
+    let escape = ANSIFixtures.escape
+    #expect(String(Self.attributed("ok\(escape)[12").characters) == "ok")
+    #expect(String(Self.attributed("ok\(escape)]0;title").characters) == "ok")
   }
 
   @Test func newlinesAndTabsStay() {
@@ -223,10 +227,11 @@ import Testing
   }
 
   @Test func aCarriageReturnRemovesStyledRunsOfTheLine() {
-    let runs = Self.runs(Self.attributed("\(Self.escape)[31mold\(Self.escape)[0m\rnew"))
+    let escape = ANSIFixtures.escape
+    let runs = Self.runs(Self.attributed("\(escape)[31mold\(escape)[0m\rnew"))
 
     #expect(runs.map(\.0) == ["new"])
-    #expect(runs.first?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.first?.1.foregroundColor == ANSIFixtures.palette[.foreground])
   }
 
   @Test func aCarriageReturnAtTheEndKeepsTheLine() {
@@ -240,7 +245,7 @@ import Testing
     data.append(contentsOf: [0xFF, 0xFE])
     data.append(contentsOf: Data("b".utf8))
 
-    let text = String(ANSIText.attributed(from: data, palette: Self.palette).characters)
+    let text = String(ANSIText.attributed(from: data, palette: ANSIFixtures.palette).characters)
 
     #expect(text.hasPrefix("a"))
     #expect(text.hasSuffix("b"))
@@ -249,15 +254,17 @@ import Testing
 
   @Test func aTruncatedMultibyteCharacterShowsAReplacementCharacter() {
     let euro = Data("€".utf8)
-    let text = String(ANSIText.attributed(from: euro.dropLast(), palette: Self.palette).characters)
+    let text = String(
+      ANSIText.attributed(from: euro.dropLast(), palette: ANSIFixtures.palette).characters)
     #expect(text == "\u{FFFD}")
   }
 
   @Test func emptyDataIsEmptyText() {
-    #expect(ANSIText.attributed(from: Data(), palette: Self.palette).characters.isEmpty)
+    #expect(ANSIText.attributed(from: Data(), palette: ANSIFixtures.palette).characters.isEmpty)
   }
 
   @Test func multibyteTextStays() {
-    #expect(String(Self.attributed("\(Self.escape)[35mé✓\(Self.escape)[0m").characters) == "é✓")
+    let escape = ANSIFixtures.escape
+    #expect(String(Self.attributed("\(escape)[35mé✓\(escape)[0m").characters) == "é✓")
   }
 }

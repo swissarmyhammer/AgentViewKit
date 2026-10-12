@@ -31,6 +31,17 @@ private struct ThemeProbeView: View {
     theme.density.rawValue
   }
 
+  /// The labels of the stored fields of ``AgentTheme/default`` whose value
+  /// matches `isMatch`.
+  ///
+  /// - Parameter isMatch: The check of one field value.
+  /// - Returns: The field labels, in the order of the declaration.
+  static func fieldLabels(where isMatch: (Any) -> Bool) -> [String] {
+    Mirror(reflecting: AgentTheme.default).children
+      .filter { isMatch($0.value) }
+      .compactMap(\.label)
+  }
+
   /// A theme that is different from ``AgentTheme/default`` in each field that
   /// the probe reads.
   private static let custom: AgentTheme = {
@@ -94,17 +105,11 @@ private struct ThemeProbeView: View {
   }
 
   @Test func theKitThemeHoldsNoColor() {
-    let colorFields = Mirror(reflecting: AgentTheme.default).children
-      .filter { $0.value is Color }
-      .compactMap(\.label)
-    #expect(colorFields == [])
+    #expect(Self.fieldLabels { $0 is Color } == [])
   }
 
   @Test func theKitThemeHoldsNoFont() {
-    let fontFields = Mirror(reflecting: AgentTheme.default).children
-      .filter { $0.value is Font }
-      .compactMap(\.label)
-    #expect(fontFields == [])
+    #expect(Self.fieldLabels { $0 is Font } == [])
   }
 
   // MARK: - Density
