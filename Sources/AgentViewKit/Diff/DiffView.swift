@@ -47,6 +47,12 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of each Reject button.
   static let rejectPrefix = "diff-reject-"
 
+  /// The symbol of each Accept button.
+  static let acceptSymbol = SharedSymbol.accept
+
+  /// The symbol of each Reject button.
+  static let rejectSymbol = SharedSymbol.reject
+
   /// The width of the file list when it is on the left.
   static let fileListWidth: CGFloat = 220
 
@@ -347,14 +353,14 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
           .truncationMode(.tail)
         Spacer(minLength: theme.spacing.s)
         if let onAccept = actions.onAccept {
-          Button(String(localized: "Accept")) {
+          Button(String(localized: "Accept"), systemImage: Self.acceptSymbol) {
             onAccept(file.path, index)
           }
           .accessibilityLabel(String(localized: "Accept hunk \(index + 1)"))
           .accessibilityIdentifier(Self.acceptIdentifier(for: index))
         }
         if let onReject = actions.onReject {
-          Button(String(localized: "Reject")) {
+          Button(String(localized: "Reject"), systemImage: Self.rejectSymbol) {
             onReject(file.path, index)
           }
           .accessibilityLabel(String(localized: "Reject hunk \(index + 1)"))

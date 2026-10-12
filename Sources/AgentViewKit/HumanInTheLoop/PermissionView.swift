@@ -18,7 +18,9 @@ import SwiftUI
 ///   related `TerminalEntry`, a button that shows the ``TerminalView`` of that
 ///   entry.
 /// - One button for each option of the request, in the order of
-///   `PermissionPresentation.order(of:)`. The `allow_once` button is
+///   `PermissionPresentation.order(of:)`. Each button shows the name of its
+///   option and the symbol of its kind (``optionSymbol(for:)``). The
+///   `allow_once` button is
 ///   prominent. The kept answers and the unknown kinds are secondary
 ///   (``PermissionPresentation/isSecondary(kind:)``).
 /// - A "switch to auto" button when
@@ -75,6 +77,24 @@ public struct PermissionView: View {
   static let commandSymbol = SharedSymbol.terminal
   /// The symbol of the working directory.
   static let directorySymbol = SharedSymbol.folder
+  /// The symbol of the button that shows or hides the terminal.
+  static let terminalLinkSymbol = SharedSymbol.terminal
+
+  /// The symbol of the button of an option.
+  ///
+  /// - Parameter kind: The kind of the option.
+  /// - Returns: The accept symbols for the allow kinds, the reject symbols
+  ///   for the reject kinds, and the unknown symbol for a kind that the kit
+  ///   does not know.
+  static func optionSymbol(for kind: PermissionOptionKind) -> String {
+    switch kind {
+    case .allowOnce: SharedSymbol.accept
+    case .allowAlways: SharedSymbol.acceptAlways
+    case .rejectOnce: SharedSymbol.reject
+    case .rejectAlways: SharedSymbol.rejectAlways
+    case .unknown: SharedSymbol.unknown
+    }
+  }
 
   /// The accessibility identifier of the button of an option.
   ///
@@ -238,7 +258,7 @@ public struct PermissionView: View {
   /// - Returns: The link and, while it is open, the ``TerminalView``.
   private func terminalLink(to entry: TerminalEntry) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
-      Button(showsTerminal ? "Hide Terminal" : "Show Terminal") {
+      Button(showsTerminal ? "Hide Terminal" : "Show Terminal", systemImage: Self.terminalLinkSymbol) {
         showsTerminal.toggle()
       }
       .buttonStyle(.link)
@@ -297,13 +317,13 @@ public struct PermissionView: View {
     }
   }
 
-  /// The button of one option, with the weight of its kind.
+  /// The button of one option, with the symbol and the weight of its kind.
   ///
   /// - Parameter option: The ACP option.
   /// - Returns: The button.
   @ViewBuilder
   private func optionButton(for option: FoundationModelsACP.PermissionOption) -> some View {
-    let button = Button(option.name) { didPress(option: option) }
+    let button = Button(option.name, systemImage: Self.optionSymbol(for: option.kind)) { didPress(option: option) }
       .accessibilityIdentifier(Self.optionIdentifier(for: option.optionId))
     if option.kind == .allowOnce {
       button.buttonStyle(.glassProminent)

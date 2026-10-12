@@ -14,6 +14,9 @@ public struct SuggestionsView: View {
   /// The start of the accessibility identifier of each chip.
   public static let chipIdentifierPrefix = "prompt-suggestion-"
 
+  /// The symbol of each chip.
+  static let chipSymbol = SharedSymbol.suggestion
+
   /// The suggested prompts, in the order to show.
   let suggestions: [String]
 
@@ -43,7 +46,7 @@ public struct SuggestionsView: View {
       ScrollView(.horizontal) {
         HStack(spacing: theme.spacing.s) {
           ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
-            Button(suggestion) {
+            Button(suggestion, systemImage: Self.chipSymbol) {
               text.wrappedValue = AttributedString(suggestion)
             }
             .buttonStyle(.glass)

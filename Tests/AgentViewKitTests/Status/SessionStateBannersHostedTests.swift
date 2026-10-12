@@ -138,6 +138,7 @@
 
       try await session.sendUpdate(Self.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
       await harness.pump(until: Self.waitTimeout) { harness.element(identifier: StateBanner.showErrorIdentifier) != nil }
+      #expect(harness.element(identifier: StateBanner.showErrorIdentifier)?.label == "Show Error")
       try harness.press(identifier: StateBanner.showErrorIdentifier)
       await harness.pump(until: Self.waitTimeout) { !shown.isEmpty }
 
@@ -197,6 +198,7 @@
       defer { harness.close() }
       await harness.pump(until: Self.waitTimeout) { Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness) }
       #expect(session.model.hasMissedUpdates)
+      #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.label == "Reload")
 
       try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
       await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.resumeMethod).isEmpty }

@@ -206,6 +206,20 @@ import Testing
         == Self.knownKinds.map { PermissionView.optionIdentifier(for: Self.optionID($0)) })
   }
 
+  @Test func eachOptionButtonKeepsTheNameOfItsOptionAsItsLabel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let kinds = Self.knownKinds + [Self.folderKind]
+    let harness = try await Self.mountCard(in: session, params: Self.makeParams(kinds: kinds))
+    defer { harness.close() }
+
+    for kind in kinds {
+      let button = harness.element(identifier: PermissionView.optionIdentifier(for: Self.optionID(kind)))
+      #expect(button?.role == NSAccessibility.Role.button.rawValue, "\(kind)")
+      #expect(button?.label == kind.wireValue, "\(kind)")
+    }
+  }
+
   @Test func theButtonsFollowTheDecisionOrderForAnyRequestOrder() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -371,11 +385,13 @@ import Testing
     #expect(subject?.label?.contains(Self.command) == true)
     #expect(subject?.label?.contains(Self.workingDirectory) == true)
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
+    #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Show Terminal")
 
     try harness.press(identifier: PermissionView.terminalLinkIdentifier)
     harness.pump()
 
     #expect(harness.element(identifier: TerminalView.identifier) != nil)
+    #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Hide Terminal")
   }
 
   @Test func aCommandWithNoTerminalEntryHasNoLink() async throws {

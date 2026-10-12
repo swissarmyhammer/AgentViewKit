@@ -8,6 +8,9 @@ import SwiftUI
 /// ``CommandOutputView`` and ``TerminalView`` show this row when the output
 /// has more rows than the row limit.
 struct OutputCapRow: View {
+  /// The symbol of the Show All button.
+  static let showAllSymbol = SharedSymbol.showAll
+
   /// The rows that show.
   let rows: CommandOutputView.VisibleRows
   /// The accessibility identifier of the text.
@@ -26,7 +29,8 @@ struct OutputCapRow: View {
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(capIdentifier)
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Show all \(rows.totalCount) lines"), action: showAll)
+      Button(
+        String(localized: "Show all \(rows.totalCount) lines"), systemImage: Self.showAllSymbol, action: showAll)
         .buttonStyle(.borderless)
         .font(.caption)
         .accessibilityIdentifier(showAllIdentifier)

@@ -11,7 +11,8 @@ import Testing
 /// Each test reads the symbol names from the views of the kit: the banners,
 /// the stop reasons, the plan and its priorities, the MCP server chip, the
 /// diff, the command output, the message actions, the send state, the tool
-/// rows, the error card and the time of an entry.
+/// rows, the error card, the time of an entry, the permission options and the
+/// action buttons.
 @Suite @MainActor struct SymbolConceptTests {
   /// The meaning of a symbol. Each concept must have one symbol, and each
   /// symbol must have one concept.
@@ -25,6 +26,8 @@ import Testing
     case closed, replaying, partialHistory, disconnected, signal
     case highPriority, mediumPriority, lowPriority
     case time
+    case accept, acceptAlways, reject, rejectAlways
+    case details, loadMore, showAll, signIn, signOut, suggestion
   }
 
   /// One place of the kit that shows a symbol.
@@ -190,10 +193,40 @@ import Testing
     ]
   }
 
+  /// The symbols of the option buttons of a permission request: each kind.
+  static func permissionOptionUses() -> [Use] {
+    let kinds: [(PermissionOptionKind, Concept)] = [
+      (.allowOnce, .accept), (.allowAlways, .acceptAlways), (.rejectOnce, .reject), (.rejectAlways, .rejectAlways),
+      (.unknown("folder"), .unknown),
+    ]
+    return kinds.map { Use(concept: $1, place: "permission option \($0)", name: PermissionView.optionSymbol(for: $0)) }
+  }
+
+  /// The symbols of the action buttons that showed text only before: the
+  /// terminal link, the hunk buttons, the banner buttons, Load More, Show
+  /// All, the buttons of the auth card and the suggestion chips.
+  static func actionButtonUses() -> [Use] {
+    [
+      Use(concept: .terminal, place: "permission terminal link", name: PermissionView.terminalLinkSymbol),
+      Use(concept: .accept, place: "hunk Accept", name: DiffView.acceptSymbol),
+      Use(concept: .reject, place: "hunk Reject", name: DiffView.rejectSymbol),
+      Use(concept: .reload, place: "banner Reload", name: SessionStreamBanner.reloadSymbol),
+      Use(concept: .details, place: "banner Show Error", name: StateBanner.showErrorSymbol),
+      Use(concept: .loadMore, place: "session list Load More", name: SessionListView.loadMoreSymbol),
+      Use(concept: .showAll, place: "output Show All", name: OutputCapRow.showAllSymbol),
+      Use(concept: .signIn, place: "auth Sign In", name: AgentAuthView.signInSymbol),
+      Use(concept: .terminal, place: "auth Run", name: AgentAuthView.runSymbol),
+      Use(concept: .reload, place: "auth Reconnect", name: AgentAuthView.reconnectSymbol),
+      Use(concept: .signOut, place: "auth Sign Out", name: AgentAuthView.signOutSymbol),
+      Use(concept: .suggestion, place: "suggestion chip", name: SuggestionsView.chipSymbol),
+    ]
+  }
+
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
       + connectionChipUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
+      + permissionOptionUses() + actionButtonUses()
   }
 
   // MARK: - The tests
@@ -223,6 +256,12 @@ import Testing
 
   @Test func eachPlanPriorityShowsADifferentSymbol() {
     let names = Self.priorityUses().map(\.name)
+
+    #expect(Set(names).count == names.count, "\(names)")
+  }
+
+  @Test func eachPermissionOptionKindShowsADifferentSymbol() {
+    let names = Self.permissionOptionUses().map(\.name)
 
     #expect(Set(names).count == names.count, "\(names)")
   }

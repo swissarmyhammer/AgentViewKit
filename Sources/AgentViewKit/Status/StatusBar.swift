@@ -3,7 +3,7 @@ import EditorTheme
 import SwiftUI
 
 /// The glass bar of one status message: a symbol, a title, an explanation,
-/// and one optional button.
+/// and one optional button with a symbol and a text.
 ///
 /// ``StateBanner`` and ``SessionStreamBanner`` show their messages in this
 /// bar. The text of the bar has the ``StateBanner/Message/identifier`` of its
@@ -17,6 +17,10 @@ struct StatusBar: View {
   struct Action {
     /// The text of the button.
     let title: String
+
+    /// The SF Symbol name that the button shows before its text. Read it
+    /// from ``SharedSymbol``.
+    let systemImage: String
 
     /// The accessibility identifier of the button.
     let identifier: String
@@ -66,7 +70,7 @@ struct StatusBar: View {
       .accessibilityIdentifier(message.identifier)
       Spacer(minLength: theme.spacing.s)
       if let action {
-        Button(action.title, action: action.perform)
+        Button(action.title, systemImage: action.systemImage, action: action.perform)
           .buttonStyle(.glass)
           .disabled(!action.isEnabled)
           .accessibilityIdentifier(action.identifier)

@@ -172,7 +172,7 @@ import Testing
 
     #expect(Self.rowIdentifiers(in: harness) == [Self.row(ScriptedSession.sessionID), Self.row(Self.closedSessionID)])
     #expect(session.connection.sessions.map(\.sessionId.rawValue) == [ScriptedSession.sessionID, Self.closedSessionID])
-    #expect(harness.element(identifier: SessionListView.loadMoreIdentifier) != nil)
+    #expect(harness.element(identifier: SessionListView.loadMoreIdentifier)?.label == "Load More")
     #expect(session.agent.messages(method: "session/list").count == 1)
   }
 

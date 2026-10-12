@@ -150,6 +150,14 @@
 
     // MARK: - Actions
 
+    @Test func theHunkButtonsKeepTheirTextAsTheirLabels() {
+      let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
+      defer { harness.close() }
+
+      #expect(harness.element(identifier: DiffView.acceptIdentifier(for: 1))?.label == "Accept hunk 2")
+      #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 1))?.label == "Reject hunk 2")
+    }
+
     @Test func aPressOnAcceptGivesTheFileAndTheHunkIndex() throws {
       let log = CallLog()
       let harness = Self.mountDiff(log: log, installsRenderer: false)

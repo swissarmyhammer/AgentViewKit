@@ -86,6 +86,14 @@ public struct AgentAuthView: View {
 
   /// The symbol of the title.
   static let symbol = SharedSymbol.signIn
+  /// The symbol of each Sign In button.
+  static let signInSymbol = SharedSymbol.signIn
+  /// The symbol of each Run button.
+  static let runSymbol = SharedSymbol.terminal
+  /// The symbol of the Reconnect button.
+  static let reconnectSymbol = SharedSymbol.reload
+  /// The symbol of the Sign Out button.
+  static let signOutSymbol = SharedSymbol.signOut
 
   /// A call that the card runs, as the key of its progress.
   enum Operation: Hashable {
@@ -296,7 +304,7 @@ public struct AgentAuthView: View {
     switch row {
     case .agent(let method):
       actionButton(
-        String(localized: "Sign In"), operation: .method(method.methodId),
+        String(localized: "Sign In"), systemImage: Self.signInSymbol, operation: .method(method.methodId),
         accessibilityLabel: String(localized: "Sign in with \(method.name)"),
         identifier: Self.signInIdentifier(for: method.methodId)
       ) { [connection] in
@@ -305,7 +313,7 @@ public struct AgentAuthView: View {
     case .terminal(let method):
       if let runner {
         actionButton(
-          String(localized: "Run"), operation: .method(method.methodId),
+          String(localized: "Run"), systemImage: Self.runSymbol, operation: .method(method.methodId),
           accessibilityLabel: String(localized: "Run \(method.name)"),
           identifier: Self.runIdentifier(for: method.methodId)
         ) { [connection] in
@@ -343,7 +351,7 @@ public struct AgentAuthView: View {
         .accessibilityIdentifier(Self.reconnectMessageIdentifier)
       if let reconnect {
         actionButton(
-          String(localized: "Reconnect"), operation: .reconnect,
+          String(localized: "Reconnect"), systemImage: Self.reconnectSymbol, operation: .reconnect,
           accessibilityLabel: String(localized: "Reconnect to the agent"),
           identifier: Self.reconnectIdentifier
         ) {
@@ -358,7 +366,7 @@ public struct AgentAuthView: View {
     VStack(alignment: .trailing, spacing: theme.spacing.s) {
       Divider()
       actionButton(
-        String(localized: "Sign Out"), operation: .signOut,
+        String(localized: "Sign Out"), systemImage: Self.signOutSymbol, operation: .signOut,
         accessibilityLabel: String(localized: "Sign out of the agent"),
         identifier: Self.signOutIdentifier
       ) { [connection] in
@@ -372,6 +380,8 @@ public struct AgentAuthView: View {
   ///
   /// - Parameters:
   ///   - title: The text of the button.
+  ///   - systemImage: The SF Symbol name that the button shows before its
+  ///     text.
   ///   - operation: The key of the progress of the call.
   ///   - accessibilityLabel: The label that VoiceOver reads.
   ///   - identifier: The accessibility identifier of the button.
@@ -379,6 +389,7 @@ public struct AgentAuthView: View {
   /// - Returns: The button.
   private func actionButton(
     _ title: String,
+    systemImage: String,
     operation: Operation,
     accessibilityLabel: String,
     identifier: String,
@@ -392,7 +403,7 @@ public struct AgentAuthView: View {
         ProgressView()
           .controlSize(.small)
       } else {
-        Text(title)
+        Label(title, systemImage: systemImage)
       }
     }
     .buttonStyle(.glass)

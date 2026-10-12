@@ -34,8 +34,9 @@ nonisolated enum SharedSymbol {
   static let cancelled = "stop.circle.fill"
 
   /// The symbol of a value that the kit does not know: a status, a kind, a
-  /// state, a stop reason, a severity, a priority, a file operation, an exit
-  /// or the status of an MCP server that the agent did not report.
+  /// state, a stop reason, a severity, a priority, a file operation, an exit,
+  /// the kind of a permission option or the status of an MCP server that the
+  /// agent did not report.
   static let unknown = "questionmark.circle.fill"
 
   /// The symbol of a warning: a warning notice, a lost tool result, missing
@@ -66,7 +67,9 @@ nonisolated enum SharedSymbol {
   static let search = "magnifyingglass"
 
   /// The symbol of a terminal or a shell command: the `execute` tool kind,
-  /// a terminal, a command output row and a command in a permission request.
+  /// a terminal, a command output row, a command in a permission request,
+  /// the terminal link of a permission request and the Run button of a
+  /// terminal sign-in.
   static let terminal = "apple.terminal"
 
   /// The symbol of the reasoning of the model: a thinking tool, a thought,
@@ -139,8 +142,12 @@ nonisolated enum SharedSymbol {
   /// The symbol of an agent.
   static let agent = "cpu"
 
-  /// The symbol of a sign-in to an agent.
+  /// The symbol of a sign-in to an agent: the title of the auth card and its
+  /// Sign In button.
   static let signIn = "person.badge.shield.checkmark"
+
+  /// The symbol of the button that signs out of an agent.
+  static let signOut = "rectangle.portrait.and.arrow.right"
 
   // MARK: - File operations of a diff
 
@@ -171,8 +178,36 @@ nonisolated enum SharedSymbol {
   /// attachment and the Export button of a thread.
   static let share = "square.and.arrow.up"
 
-  /// The symbol of a button that does a thing again: Refresh and Retry.
+  /// The symbol of a button that does a thing again: Refresh, Retry, the
+  /// Reload button of a banner and the Reconnect button of the auth card.
   static let reload = "arrow.clockwise"
+
+  /// The symbol of an answer that accepts one time: the allow-once option of
+  /// a permission request and the Accept button of a diff hunk.
+  static let accept = "checkmark"
+
+  /// The symbol of the allow-always option of a permission request.
+  static let acceptAlways = "checkmark.seal"
+
+  /// The symbol of an answer that rejects one time: the reject-once option of
+  /// a permission request and the Reject button of a diff hunk.
+  static let reject = "xmark.circle"
+
+  /// The symbol of the reject-always option of a permission request.
+  static let rejectAlways = "xmark.seal"
+
+  /// The symbol of a button that shows the details of a thing: the Show
+  /// Error button of a banner.
+  static let details = "text.magnifyingglass"
+
+  /// The symbol of the button that loads the next page of a list.
+  static let loadMore = "arrow.down.to.line"
+
+  /// The symbol of the button that shows all rows of an output.
+  static let showAll = "rectangle.expand.vertical"
+
+  /// The symbol of a suggested prompt.
+  static let suggestion = "sparkles"
 
   /// The symbol of the button that starts a new session.
   static let newSession = "square.and.pencil"

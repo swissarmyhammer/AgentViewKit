@@ -40,6 +40,9 @@ public struct SessionListView: View {
   /// The accessibility identifier of the "Load More" row.
   public static let loadMoreIdentifier = "session-list-load-more"
 
+  /// The symbol of the "Load More" row.
+  static let loadMoreSymbol = SharedSymbol.loadMore
+
   /// The accessibility identifier of the Refresh button.
   public static let refreshIdentifier = "session-list-refresh"
 
@@ -201,7 +204,7 @@ public struct SessionListView: View {
         row(for: info)
       }
       if connection.hasMoreSessions {
-        Button("Load More") {
+        Button("Load More", systemImage: Self.loadMoreSymbol) {
           Task { await perform { try await connection.loadMoreSessions() } }
         }
         .accessibilityIdentifier(Self.loadMoreIdentifier)

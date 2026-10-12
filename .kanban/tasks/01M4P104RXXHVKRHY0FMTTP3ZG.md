@@ -90,8 +90,24 @@ comments:
     - evidence: 3 files — Sources/AgentViewKit/Items/EntryTimingView.swift, Sources/AgentViewKit/Items/ReasoningView.swift, Tests/AgentViewKitTests/Items/EntryTimingTextTests.swift. Full `swift test` exit 0: 1098 tests in 120 suites passed (1 known issue that was there before, HostedLayoutExpectationsTests), plus 104 tests in 10 suites and 1 test in 1 suite passed. Only warning: the SwiftPM mlx-swift_Cmlx.bundle "missing creator" line that was there before. Load average 79.45 at the start, 75.13 at the end. 4 of 4 findings checked.
     - next: /review
   timestamp: 2026-10-11T23:39:01.846772+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4pntmcmc02xv61ndkmejzbr
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1403995). 3 files reviewed. 0 findings, 0 confirmed, 0 refuted. 7 validator runs attempted, 0 failed. All prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-11T23:47:32.884641+00:00
+- actor: claude-code
+  id: 01m4pntxkghzzc8nmxwzr43q2m
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared helper EntryTimingView.spokenDuration(_:locale:); 4 findings checked
+    - test: green — swift test, 1098 tests passed, 1 expected known issue, load average 67 to 76
+    - commit: 1403995
+    - review: clean — 0 findings (3 files); task in done
+  timestamp: 2026-10-11T23:47:42.320931+00:00
+position_column: done
+position_ordinal: ffa880
 title: 'Message timing: show entry times from the client model'
 ---
 ## What

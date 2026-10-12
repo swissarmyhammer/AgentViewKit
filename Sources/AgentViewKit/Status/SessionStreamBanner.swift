@@ -45,6 +45,9 @@ public struct SessionStreamBanner: View {
   /// The accessibility identifier of the Reload button.
   public static let reloadIdentifier = "session-stream-reload"
 
+  /// The symbol of the Reload button.
+  static let reloadSymbol = SharedSymbol.reload
+
   /// The accessibility identifier of the text of the partial-history note.
   public static let partialHistoryIdentifier = "session-stream-partial-history"
 
@@ -119,7 +122,8 @@ public struct SessionStreamBanner: View {
   private func makeReloadAction(isEnabled: Bool) -> StatusBar.Action? {
     guard let connection, connection.canResumeSessions, let cwd = session.cwd else { return nil }
     return StatusBar.Action(
-      title: String(localized: "Reload"), identifier: Self.reloadIdentifier, isEnabled: isEnabled
+      title: String(localized: "Reload"), systemImage: Self.reloadSymbol, identifier: Self.reloadIdentifier,
+      isEnabled: isEnabled
     ) { [session] in
       let request = ResumeSessionRequest.makeAgentViewKitRequest(
         sessionId: session.sessionId,

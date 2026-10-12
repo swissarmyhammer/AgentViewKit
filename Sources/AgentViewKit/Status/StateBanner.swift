@@ -32,6 +32,9 @@ public struct StateBanner: View {
   /// The accessibility identifier of the Show Error button.
   public static let showErrorIdentifier = "state-banner-show-error"
 
+  /// The symbol of the Show Error button.
+  static let showErrorSymbol = SharedSymbol.details
+
   /// The text that the bar shows for one state.
   public struct Message: Equatable, Sendable {
     /// The short title of the bar.
@@ -142,8 +145,8 @@ public struct StateBanner: View {
       message: message,
       action: showError.map {
         StatusBar.Action(
-          title: String(localized: "Show Error"), identifier: Self.showErrorIdentifier, isEnabled: true,
-          perform: $0)
+          title: String(localized: "Show Error"), systemImage: Self.showErrorSymbol,
+          identifier: Self.showErrorIdentifier, isEnabled: true, perform: $0)
       }
     )
     .accessibilityIdentifier(Self.bannerIdentifier)

@@ -305,6 +305,20 @@ import Testing
     #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.agentMethodID)) == nil)
   }
 
+  @Test func theSignInRunAndSignOutButtonsKeepTheirTextAsTheirLabels() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.harness(session, runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
+    defer { harness.close() }
+    harness.pump()
+
+    #expect(
+      harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.label
+        == "Sign in with Sign in with the agent")
+    #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID))?.label == "Run Terminal login")
+    #expect(harness.element(identifier: AgentAuthView.signOutIdentifier)?.label == "Sign out of the agent")
+  }
+
   @Test func anAgentWithOnlyATerminalMethodShowsNoSignInButton() async throws {
     let session = try await Self.openSession(authMethods: Self.terminalOnlyMethods)
     defer { session.close() }
@@ -400,6 +414,7 @@ import Testing
     #expect(
       harness.element(identifier: AgentAuthView.reconnectMessageIdentifier)?.label
         == "Reconnect to the agent to finish the sign-in")
+    #expect(harness.element(identifier: AgentAuthView.reconnectIdentifier)?.label == "Reconnect to the agent")
     #expect(recorder.callCount == 0)
 
     try harness.press(identifier: AgentAuthView.reconnectIdentifier)
