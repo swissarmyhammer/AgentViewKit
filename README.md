@@ -271,7 +271,8 @@ closure.
 ### Message timing
 
 The time of an entry is a decorator. The message views do not show a time by
-themselves. Add `.transcriptTiming()` to an `AgentThreadView` or a
+themselves. `UserMessageView`, `AssistantMessageView` and `MessageHeader` take
+no date. Add `.transcriptTiming()` to an `AgentThreadView` or a
 `ConversationView`, as in the example above. Each row then shows an
 `EntryTimingView` below the entry: when the entry started, and how long it
 took when it ended. The default is no time.

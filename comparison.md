@@ -886,6 +886,10 @@ binding rule: no copy of model data.
 - **Decision of the owner (2026-10-11):** The time is a decorator. A view
   modifier wraps a row with a view that tells when. The message views do not
   show a time by themselves. The default is no time.
+- **Decision of the owner (2026-10-12):** The decorator is the one way to
+  show a time. `UserMessageView`, `AssistantMessageView` and `MessageHeader`
+  take no host `date:` parameter, and the header shows only the name of the
+  sender.
 - **Pattern:** `.transcriptTiming()` sets the environment value
   `showsTranscriptTiming`. `ItemRow` reads it, so each row of
   `ConversationView` and `AgentThreadView` shows an `EntryTimingView` below

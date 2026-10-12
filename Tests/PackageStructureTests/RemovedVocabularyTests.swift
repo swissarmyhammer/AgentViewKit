@@ -255,6 +255,28 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
       .wordBoundaryKind(.simple)
   }
 
+  /// The relative time of the message header, which a host date of a message
+  /// view gave. The timing decorator (`EntryTimingView`) is the one way to
+  /// show the time of an entry.
+  static let removedMessageDateSymbols = ["relativeText", "dateIdentifier"]
+
+  /// The pattern that finds a use of the removed `date:` input of a message
+  /// view: a call of `UserMessageView(entry:date:)`,
+  /// `AssistantMessageView(entry:date:)`, `MessageHeader(role:date:)`, or of
+  /// the internal `TranscriptMessageView` and `MessageLayout`, also a call
+  /// over more lines, or a DocC link to one of the initializers.
+  ///
+  /// An argument can hold one level of parentheses, such as
+  /// `.user(entry)`. A `Regex` is not `Sendable`, so each call makes the value
+  /// again. The pattern uses simple word boundaries, because the default
+  /// boundaries do not break at the `:` in `entry:date:`.
+  ///
+  /// - Returns: The pattern.
+  static func messageDateInputUse() -> Regex<Substring> {
+    #/\b(?:UserMessageView|AssistantMessageView|TranscriptMessageView|MessageHeader|MessageLayout)(?:/init)?\((?:[^()]|\([^()]*\))*\bdate:/#
+      .wordBoundaryKind(.simple)
+  }
+
   /// The directory of the Swift files of the kit library.
   static let kitSourcesPath = "Sources/AgentViewKit"
 
@@ -500,6 +522,31 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     let users = try Self.fileNames(matching: Self.threadActionsInputUse)
 
     #expect(users.isEmpty, "\(users)")
+  }
+
+  @Test func theMessageDatePatternFindsACallOverTwoLinesAndADocLink() {
+    let pattern = Self.messageDateInputUse()
+
+    #expect("UserMessageView(\n  entry: entry,\n  date: now)".contains(pattern))
+    #expect("TranscriptMessageView(entry: .user(entry), date: date)".contains(pattern))
+    #expect("MessageLayout(id: key, role: entry.role, date: date) {".contains(pattern))
+    #expect("``MessageHeader/init(role:date:)``".contains(pattern))
+    #expect(!"AssistantMessageView(entry: entry)".contains(pattern))
+    #expect(!"MessageHeader(role: .user); Text(date: now)".contains(pattern))
+  }
+
+  @Test func noFileGivesADateToAMessageView() throws {
+    let users = try Self.fileNames(matching: Self.messageDateInputUse)
+
+    #expect(users.isEmpty, "\(users)")
+  }
+
+  @Test func noFileUsesTheRelativeTimeOfTheMessageHeader() throws {
+    let found =
+      try Self.uses(of: Self.removedMessageDateSymbols, below: Self.swiftPaths)
+      + Self.uses(of: Self.removedMessageDateSymbols, inFile: Self.readmePath)
+
+    #expect(found.isEmpty, "\(found)")
   }
 
   @Test func observableClassNamesFindsTheNameAfterTheAttributesAndModifiers() {

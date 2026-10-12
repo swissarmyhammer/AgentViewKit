@@ -23,17 +23,11 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   /// The user message entry to show.
   let entry: UserMessageEntry
 
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
   /// Makes the view of a user message entry of a session transcript.
   ///
-  /// - Parameters:
-  ///   - entry: The entry to show.
-  ///   - date: The time of the message, or `nil` when it is not known.
-  public init(entry: UserMessageEntry, date: Date? = nil) {
+  /// - Parameter entry: The entry to show.
+  public init(entry: UserMessageEntry) {
     self.entry = entry
-    self.date = date
   }
 
   /// The end of the accessibility identifier of the send state of an entry.
@@ -51,7 +45,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      TranscriptMessageView(entry: .user(entry), date: date)
+      TranscriptMessageView(entry: .user(entry))
       SendStateLabel(state: entry.sendState)
         .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
     }

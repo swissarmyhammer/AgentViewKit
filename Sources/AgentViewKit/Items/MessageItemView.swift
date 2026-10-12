@@ -77,8 +77,7 @@ extension View {
 /// in one accessibility container.
 ///
 /// ``TranscriptMessageView`` puts the ACP content and the footer of a
-/// transcript entry in it. ``MessageBodyView`` puts the blocks of a message of
-/// the deprecated thread path in it.
+/// transcript entry in it.
 ///
 /// The text of the message is selectable, one message at a time, and each
 /// paragraph of the message is in one linked reading group.
@@ -89,9 +88,6 @@ struct MessageLayout<Content: View>: View {
   /// The sender of the message.
   let role: MessageRole
 
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
   /// The content below the header.
   @ViewBuilder let content: Content
 
@@ -99,7 +95,7 @@ struct MessageLayout<Content: View>: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
-      MessageHeader(role: role, date: date)
+      MessageHeader(role: role)
       content
     }
     // Each paragraph of the message is in one linked reading group, also

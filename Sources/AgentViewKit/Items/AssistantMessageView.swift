@@ -22,20 +22,14 @@ public struct AssistantMessageView: View, PrefixedAccessibilityIdentifier {
   /// The agent message entry to show.
   let entry: AgentMessageEntry
 
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
   /// Makes the view of an agent message entry of a session transcript.
   ///
-  /// - Parameters:
-  ///   - entry: The entry to show.
-  ///   - date: The time of the message, or `nil` when it is not known.
-  public init(entry: AgentMessageEntry, date: Date? = nil) {
+  /// - Parameter entry: The entry to show.
+  public init(entry: AgentMessageEntry) {
     self.entry = entry
-    self.date = date
   }
 
   public var body: some View {
-    TranscriptMessageView(entry: .agent(entry), date: date)
+    TranscriptMessageView(entry: .agent(entry))
   }
 }

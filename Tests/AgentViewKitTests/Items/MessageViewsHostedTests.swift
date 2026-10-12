@@ -114,34 +114,15 @@ import Testing
       kind: "agent_message_chunk", identifier: { AssistantMessageView.identifier(for: $0) }, label: "Assistant said")
   }
 
-  @Test func theHeaderShowsTheRoleAndTheRelativeTime() {
-    let date = Date(timeIntervalSinceNow: -120)
-    let harness = HostedViewHarness(MessageHeader(role: .assistant, date: date))
+  @Test(arguments: MessageRole.allCases)
+  func theHeaderShowsOnlyTheNameOfTheSender(role: MessageRole) {
+    let harness = HostedViewHarness(MessageHeader(role: role))
     defer { harness.close() }
     harness.pump()
 
-    #expect(harness.element(identifier: MessageHeader.roleIdentifier)?.label == "Assistant")
-    let dateLabel = harness.element(identifier: MessageHeader.dateIdentifier)?.label
-    #expect(dateLabel == MessageHeader.relativeText(for: date))
-  }
-
-  @Test func theHeaderHasNoTimeWithNoDate() {
-    let harness = HostedViewHarness(MessageHeader(role: .user))
-    defer { harness.close() }
-    harness.pump()
-
-    #expect(harness.element(identifier: MessageHeader.roleIdentifier)?.label == "You")
-    #expect(harness.element(identifier: MessageHeader.dateIdentifier) == nil)
-  }
-
-  @Test func theRelativeTextIsRelativeToNow() {
-    let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
-    let earlier = now.addingTimeInterval(-3_600)
-    let formatter = RelativeDateTimeFormatter()
-    formatter.dateTimeStyle = .named
-    #expect(
-      MessageHeader.relativeText(for: earlier, now: now)
-        == formatter.localizedString(for: earlier, relativeTo: now))
+    #expect(harness.element(identifier: MessageHeader.roleIdentifier)?.label == role.title)
+    let labels = harness.accessibilityElements().compactMap(\.label).filter { !$0.isEmpty }
+    #expect(labels == [role.title])
   }
 
   // MARK: - Entries

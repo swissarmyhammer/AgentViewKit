@@ -27,9 +27,6 @@ struct TranscriptMessageView: View {
   /// The message entry to show.
   let entry: MessageEntry
 
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
   @Environment(\.messageFooter) private var footer
 
   var body: some View {
@@ -37,7 +34,7 @@ struct TranscriptMessageView: View {
     #if DEBUG
       BodyEvaluationCounter.note(ItemRow.contentCounterKey(for: key))
     #endif
-    return MessageLayout(id: key, role: entry.role, date: date) {
+    return MessageLayout(id: key, role: entry.role) {
       EntryContentView(content: entry.content, id: key)
       if let footer {
         footer(entry)

@@ -43,59 +43,30 @@ public enum MessageRole: Sendable, Hashable, CaseIterable {
   }
 }
 
-/// The header of a message item: the name of the sender and a relative time
-/// (plan.md §9 A2).
+/// The header of a message item: the name of the sender (plan.md §9 A2).
 ///
-/// When the date is `nil`, the header shows only the name.
+/// The header shows no time. The timing decorator shows the time of an entry:
+/// ``SwiftUI/View/transcriptTiming(_:)`` on each row, or
+/// ``SwiftUI/View/entryTiming(_:)`` on one view (``EntryTimingView``).
 public struct MessageHeader: View {
   /// The accessibility identifier of the name of the sender.
   public static let roleIdentifier = "message-header-role"
 
-  /// The accessibility identifier of the relative time.
-  public static let dateIdentifier = "message-header-date"
-
   /// The sender of the message.
   let role: MessageRole
 
-  /// The time of the message, or `nil` when it is not known.
-  let date: Date?
-
-  @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the header of a message.
   ///
-  /// - Parameters:
-  ///   - role: The sender of the message.
-  ///   - date: The time of the message, or `nil` when it is not known.
-  public init(role: MessageRole, date: Date? = nil) {
+  /// - Parameter role: The sender of the message.
+  public init(role: MessageRole) {
     self.role = role
-    self.date = date
-  }
-
-  /// The relative time that the header shows for `date`.
-  ///
-  /// - Parameters:
-  ///   - date: The time of the message.
-  ///   - now: The time to compare with.
-  /// - Returns: A named relative time, such as "2 minutes ago".
-  public static func relativeText(for date: Date, now: Date = .now) -> String {
-    let formatter = RelativeDateTimeFormatter()
-    formatter.dateTimeStyle = .named
-    return formatter.localizedString(for: date, relativeTo: now)
   }
 
   public var body: some View {
-    HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
-      Text(role.title)
-        .font(editorTheme.proseFont.weight(.semibold))
-        .accessibilityIdentifier(Self.roleIdentifier)
-      if let date {
-        Text(Self.relativeText(for: date))
-          .font(editorTheme.proseFont)
-          .foregroundStyle(.secondary)
-          .accessibilityIdentifier(Self.dateIdentifier)
-      }
-    }
+    Text(role.title)
+      .font(editorTheme.proseFont.weight(.semibold))
+      .accessibilityIdentifier(Self.roleIdentifier)
   }
 }
