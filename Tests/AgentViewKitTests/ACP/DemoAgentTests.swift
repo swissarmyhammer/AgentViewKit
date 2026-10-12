@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
@@ -71,6 +72,18 @@ import Testing
 
     await #expect(throws: AgentProcessError.commandNotAbsolute(Self.relativeProgram)) {
       try await DemoAgent.makeConnected(options: options)
+    }
+  }
+
+  @Test func aGalleryAgentWhoseProgramIsNotAnAbsolutePathDoesNotStart() async throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let recordings = directory.url.appending(path: "recordings", directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: recordings, withIntermediateDirectories: true)
+    let stage = try RecordedSessionsStage.make(copying: recordings, below: directory.url)
+
+    await #expect(throws: AgentProcessError.commandNotAbsolute(Self.relativeProgram)) {
+      try await DemoAgent.makeConnected(recordedSessions: stage, agentCommand: Self.relativeProgram)
     }
   }
 

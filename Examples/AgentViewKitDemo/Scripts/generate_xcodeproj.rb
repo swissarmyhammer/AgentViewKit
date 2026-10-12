@@ -31,10 +31,15 @@ REMOTE_PACKAGES = {
   'git@github.com:swissarmyhammer/EditorKit.git' => %w[EditorSwiftUI EditorTheme]
 }.freeze
 
+# The directories that the app bundle holds as they are. `RecordedSessions` holds the recorded
+# sessions of FoundationModelsACPAgent that the Gallery tab shows.
+RESOURCES = %w[RecordedSessions].freeze
+
 ExampleXcodeproj.generate(
   root: File.expand_path('..', __dir__),
   app_name: 'AgentViewKitDemo',
   package_products: PACKAGE_PRODUCTS,
   shared_sources: SHARED_SOURCES,
-  remote_packages: REMOTE_PACKAGES
+  remote_packages: REMOTE_PACKAGES,
+  resources: RESOURCES
 )

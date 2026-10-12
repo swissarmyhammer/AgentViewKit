@@ -1,8 +1,43 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8680'
+comments:
+- actor: claude-code
+  id: 01m4pyfshhnr94bt7nzhaca6fe
+  text: |-
+    Research (implement):
+    - Each recorded instance directory is one recording root: `sessions.jsonl`, `.gitattributes`, and one `<sessionId>/` directory. `transcripts.location: <absolute path>` names ONE root. Thus the demo makes one root in a temporary directory: it copies each `<sessionId>/` directory as it is, and it joins the lines of each `sessions.jsonl` (the `merge=union` rule of the agent for this file). The files in the repository do not change.
+    - The demo sets `XDG_CONFIG_HOME` of the agent process to a temporary directory with `acp-agent/config.yaml` = `transcripts: location: <temporary root>`. The user layer of the owner (`~/.config/acp-agent/`) is not read and not written.
+    - With `.path(URL)`, `session/list` with any `cwd` reads the same root. An unfiltered `session/list` gives an empty list (no `projects.jsonl` in the temporary user layer). The kit `SessionListView` sends the `cwd` filter, so this is correct.
+    - Probe (python over stdio, `acp-agent acp`, built binary of 2026-10-11 11:52): `initialize`, `session/list`, and `session/resume` with `replayFrom: start` and the RECORDED cwd succeed for 4 sessions (no-otel-1011 django-14672, -13710, -14608 and code-context-1008 django-14155). Replay counts: 87, 129, 167, 919 updates. Resume time 0.7 s to 3 s.
+    - Restore writes to the copy: `session-history.json` and `sessions.jsonl` change. Thus the temporary copy is necessary.
+    - Fact for the FoundationModelsACPAgent session (not a failure): the resume makes the recorded cwd again when it does not exist, for example `/private/var/folders/l7/.../T/tmp20i_gz66/repo/.code-context/kit.db`. The code-context index of the restored session goes to a directory outside the transcript location. The demo cannot prevent this.
+  timestamp: 2026-10-12T02:18:54.897811+00:00
+- actor: claude-code
+  id: 01m4pzke5ytcgab891z4dtvczp
+  text: |-
+    Implementation landed (not committed):
+    - New: `Sources/DemoSupport/RecordedSessionsStage.swift`, `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/{GalleryTabView,GalleryLook,SessionThreadColumn,DemoFailureLabel}.swift`, `Examples/AgentViewKitDemo/Tests/GalleryTabEndToEndTests.swift`, `Tests/AgentViewKitTests/ACP/RecordedSessionsStageTests.swift`, `Examples/AgentViewKitDemo/RecordedSessions/` (4 instances + README).
+    - Changed: `DemoAgent` (`makeConnected(recordedSessions:agentCommand:)`), `DemoLaunchOptions` (`DemoTab.gallery`, `--tab`), `DemoRootView` (Gallery tab), `ACPTabView` (uses the shared `SessionThreadColumn` and `DemoFailureLabel`, so the two tabs do not copy the thread column and the failure label), the xcodeproj generator (`resources:` folder references; `RecordedSessions` is a resource of the app), `DemoTestValues` (prefix element finder), README.md.
+    - Swift-level check with the real binary (a temporary test file, removed after one run): `refreshSessions` lists 4 sessions; `resumeSession` gives 82, 162, 124 and 914 transcript entries. The recordings in the repository stay byte-equal to the source (`diff -r`).
+    - `xcodebuild build-for-testing` of the demo: TEST BUILD SUCCEEDED, no compiler warning (the only lines are the `appintentsmetadataprocessor` notes of each build). UI tests not run (owner rule).
+    - `swift test`: 1126 tests in 124 suites pass (1 known issue, `HostedLayoutExpectationsTests`, from before), plus 116 and 1 in the other runs. The `mlx-swift_Cmlx.bundle` "missing creator" build warning is in older logs too.
+    - Load average: 36.07 / 51.45 / 56.35 before, 37.30 / 45.48 / 52.85 after.
+    - Side effect of my probes outside the repositories: the agent made the recorded cwd directories again below `/private/var/folders/l7/3sxfw9k57n1dg_bhjfnfqcdh0000gn/T/tmp*/repo/.code-context/`. The shell rule did not let me remove them. Each Gallery open does the same.
+  timestamp: 2026-10-12T02:38:22.910030+00:00
+- actor: claude-code
+  id: 01m4pzkjxn131v5qta1eeh1f4r
+  text: |-
+    ### implement — changed
+    - evidence: 4 recorded instances copied as they are (8.1 MB, diff -r equal); new RecordedSessionsStage, GalleryTabView, GalleryLook, SessionThreadColumn, DemoFailureLabel, GalleryTabEndToEndTests, RecordedSessionsStageTests; changed DemoAgent, DemoLaunchOptions, DemoRootView, ACPTabView, DemoTestValues, xcodeproj generators, README.md. swift test: 1126 tests / 124 suites pass (1 known issue from before) + 116 + 1. xcodebuild build-for-testing succeeded; UI tests not run. Load average 36.07 before, 37.30 after. No restore error: 4 of 4 sessions restore (82, 162, 124, 914 entries).
+    - next: /review. Send to the FoundationModelsACPAgent session: the resume makes the missing recorded cwd again with a .code-context index.
+  timestamp: 2026-10-12T02:38:27.765723+00:00
+- actor: claude-code
+  id: 01m4pzndx881qf8x6kt18fcb6q
+  text: '2026-10-11: The FoundationModelsACPAgent session accepted the missing-cwd problem as its task 01M4PZN4KNGZ8C573D32MRD96Z (code not written yet). Decision: the agent never creates a session cwd. session/resume of a session whose cwd is missing replays the history as now but gets no tool surface (no code-context index, no files, no shell, no MCP); a later session/prompt gives -32602 "the working directory of this session does not exist". The Gallery needs no change. When that commit is pushed, nothing in the Gallery changes; a prompt in a Gallery session will then show that error.'
+  timestamp: 2026-10-12T02:39:28.168711+00:00
+position_column: doing
+position_ordinal: '80'
 title: 'Demo Gallery: show recorded SWE-bench sessions through the session restore of FoundationModelsACPAgent'
 ---
 ## What
@@ -16,10 +51,17 @@ Source of the recordings: `../FoundationModelsACPAgent/bench/preds.*.transcripts
 - Use a real session model. Do not write another replay agent: it would get out of step with FoundationModelsACPAgent.
 
 ## Work
-- [ ] Copy a few whole session directories (for example 3 to 5 instances with different sizes) into the demo, for example `Examples/AgentViewKitDemo/RecordedSessions/`. Keep each file as it is. Add a short README in that directory that tells where the files come from and that they are replaced over time.
-- [ ] The demo starts FoundationModelsACPAgent (the sibling `acp-agent` program, as `DemoLaunchOptions` does today, or the in-process `ComposedAgent`) with its transcript location (`transcripts:` configuration, `TranscriptLocation.path(URL)`) set to a COPY of the recorded sessions in a temporary directory, so that a restore never changes the files in the repository.
-- [ ] A Gallery tab (or section) lists the sessions from `ConnectionModel.sessions` (`session/list`) and opens one with `session/load`, in the drop-in `AgentThreadView`.
-- [ ] Controls to judge the look: the EditorKit theme (`SystemTheme`, the `DefaultTheme` presets), light and dark appearance, increased contrast, density, and text size.
-- [ ] If the restore of a recorded session fails in FoundationModelsACPAgent (for example because the recorded `cwd` does not exist, or the layout of the recordings differs from the transcript location), do not work around it in the kit. Record the problem and send it to the FoundationModelsACPAgent session.
-- [ ] Tests: only that the Gallery opens a session and shows a transcript (no assertion on the content of the recordings). The UI tests of the demo may cover the Gallery tab.
-- [ ] README of the demo: how to replace the recorded sessions with new ones.
+- [x] Copy a few whole session directories (for example 3 to 5 instances with different sizes) into the demo, for example `Examples/AgentViewKitDemo/RecordedSessions/`. Keep each file as it is. Add a short README in that directory that tells where the files come from and that they are replaced over time.
+  - Done: 4 instances, 8.1 MB, `diff -r` equal to the source: `django__django-14672` (0.65 MB), `-13710` (1.1 MB), `-14608` (1.6 MB) from `no-otel-1011`, and `-14155` (4.9 MB) from `code-context-1008`. `RecordedSessions/README.md` added.
+- [x] The demo starts FoundationModelsACPAgent (the sibling `acp-agent` program, as `DemoLaunchOptions` does today, or the in-process `ComposedAgent`) with its transcript location (`transcripts:` configuration, `TranscriptLocation.path(URL)`) set to a COPY of the recorded sessions in a temporary directory, so that a restore never changes the files in the repository.
+  - Done: `RecordedSessionsStage` (DemoSupport) copies the recordings to one temporary transcript location, writes `acp-agent/config.yaml` with `transcripts.location: <copy>` below a temporary `XDG_CONFIG_HOME`, and `DemoAgent.makeConnected(recordedSessions:agentCommand:)` starts `acp-agent acp` with that environment.
+- [x] A Gallery tab (or section) lists the sessions from `ConnectionModel.sessions` (`session/list`) and opens one with `session/load`, in the drop-in `AgentThreadView`.
+  - Done: `GalleryTabView` with `SessionListView` and `AgentThreadView` (through `SessionThreadColumn`). In ACP v2 the restore is `session/resume` with `replayFrom: start`, which `SessionListView` sends.
+- [x] Controls to judge the look: the EditorKit theme (`SystemTheme`, the `DefaultTheme` presets), light and dark appearance, increased contrast, density, and text size.
+  - Done: `GalleryLook` and `GalleryLookControls` in an inspector.
+- [x] If the restore of a recorded session fails in FoundationModelsACPAgent (for example because the recorded `cwd` does not exist, or the layout of the recordings differs from the transcript location), do not work around it in the kit. Record the problem and send it to the FoundationModelsACPAgent session.
+  - The restore does not fail (4 of 4 sessions restore). One fact for the FoundationModelsACPAgent session is in the comments: the resume makes the missing recorded cwd again, with a `.code-context` index in it.
+- [x] Tests: only that the Gallery opens a session and shows a transcript (no assertion on the content of the recordings). The UI tests of the demo may cover the Gallery tab.
+  - Done: `GalleryTabEndToEndTests` (demo UI test, compiled, not run on the screen of the owner) and `RecordedSessionsStageTests` (unit tests with their own fixtures).
+- [x] README of the demo: how to replace the recorded sessions with new ones.
+  - Done: README.md "The demo app" and "Replace the recorded sessions", and `RecordedSessions/README.md`.

@@ -12,13 +12,15 @@
 #   `<AppName>Feature/` (the views), and each shared source directory that the example names.
 #   An Xcode target can link a package PRODUCT only. A shared directory, such as
 #   `Sources/DemoSupport`, is a package target that is not a product, so its files compile
-#   into the application module.
+#   into the application module. The bundle of the application also holds each resource
+#   directory that the example names, as it is.
 # - The UI test bundle `<AppName>UITests`. It compiles `Tests/` and tests the application
 #   through `XCUIApplication`.
 #
 # The `Scripts/generate_xcodeproj.rb` of an example names what is its own: the name, the
-# package products it links, the shared source directories, and the remote packages whose
-# modules the shared sources import. It then calls `ExampleXcodeproj.generate`.
+# package products it links, the shared source directories, the remote packages whose
+# modules the shared sources import, and the resource directories. It then calls
+# `ExampleXcodeproj.generate`.
 #
 # The generator requires the `xcodeproj` gem. Install it with `gem install xcodeproj`.
 # `Scripts/test-examples.sh` at the repository root runs the generator of each example
@@ -79,7 +81,9 @@ module ExampleXcodeproj
   #   the app.
   # - remote_packages: a hash from a repository URL to the products of that package that the
   #   app links. Each package follows its `main` branch, as `Package.swift` does.
-  def self.generate(root:, app_name:, package_products:, shared_sources: [], remote_packages: {})
+  # - resources: the directories, relative to `root`, that the app bundle holds as they are.
+  #   Each directory is a folder reference, so the bundle gets each file below it.
+  def self.generate(root:, app_name:, package_products:, shared_sources: [], remote_packages: {}, resources: [])
     project_path = File.join(root, "#{app_name}.xcodeproj")
     FileUtils.rm_rf(project_path)
     project = Xcodeproj::Project.new(project_path)
@@ -88,6 +92,7 @@ module ExampleXcodeproj
       add_source_group(project, root, directory).files
     end
     app_target = add_app_target(project, app_name, app_files)
+    add_resource_folders(project, app_target, resources)
     add_package_products(project, app_target, add_local_package(project), package_products)
     remote_packages.each do |url, products|
       add_package_products(project, app_target, add_remote_package(project, url), products)
@@ -129,6 +134,19 @@ module ExampleXcodeproj
       group.new_reference(file.delete_prefix("#{path}/"))
     end
     group
+  end
+
+  # The file type of a folder reference. The build copies the whole directory into the bundle.
+  FOLDER_FILE_TYPE = 'folder'
+
+  # Adds each directory in `directories`, relative to the project root, as a folder reference
+  # in the resources phase of `target`.
+  def self.add_resource_folders(project, target, directories)
+    directories.each do |directory|
+      reference = project.main_group.new_reference(directory)
+      reference.last_known_file_type = FOLDER_FILE_TYPE
+      target.resources_build_phase.add_file_reference(reference)
+    end
   end
 
   # The local package reference to the AgentViewKit checkout.

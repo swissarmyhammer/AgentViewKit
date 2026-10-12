@@ -1,9 +1,13 @@
 import Foundation
 
-/// The tabs of the demo window.
-public enum DemoTab: Sendable, Hashable, CaseIterable {
+/// The tabs of the demo window. The raw value is the name that the `--tab`
+/// launch argument gives.
+public enum DemoTab: String, Sendable, Hashable, CaseIterable {
   /// The tab of the ACP agent.
   case acp
+
+  /// The tab that shows the recorded sessions of FoundationModelsACPAgent.
+  case gallery
 }
 
 /// The launch arguments of the demo app.
@@ -11,17 +15,25 @@ public enum DemoTab: Sendable, Hashable, CaseIterable {
 /// - `--in-memory-agent`: the ACP tab runs ``InMemoryDemoACPAgent`` in the
 ///   app process (``DemoAgent``) and starts no process. The end-to-end test
 ///   uses this argument.
-/// - `--agent-command <path>`: the ACP tab starts this agent program, with
-///   the arguments of ``agentArguments(for:)``. The default is
-///   ``defaultAgentCommand``.
-/// - `--cwd <path>`: the working directory of each session. The default is
-///   the home directory.
+/// - `--agent-command <path>`: the ACP tab and the Gallery tab start this
+///   agent program, with the arguments of ``agentArguments(for:)``. The
+///   default is ``defaultAgentCommand``.
+/// - `--cwd <path>`: the working directory of each session of the ACP tab.
+///   The default is the home directory.
+/// - `--tab <name>`: the tab that the window opens on, by the raw value of
+///   ``DemoTab``. The default is the ACP tab. An unknown name keeps the
+///   default.
+///
+/// The Gallery tab does not use `--in-memory-agent` or `--cwd`.
 public struct DemoLaunchOptions: Equatable, Sendable {
   /// The argument that names the agent program.
   public static let agentCommandArgument = "--agent-command"
 
   /// The argument that names the working directory.
   public static let cwdArgument = "--cwd"
+
+  /// The argument that names the tab that the window opens on.
+  public static let tabArgument = "--tab"
 
   /// The display name of an agent that the demo app starts as a process.
   public static let processAgentName = "ACP Agent"
@@ -56,11 +68,14 @@ public struct DemoLaunchOptions: Equatable, Sendable {
   /// Whether the ACP tab binds the in-memory agent.
   public var usesInMemoryAgent = false
 
-  /// The agent program that the ACP tab starts.
+  /// The agent program that the ACP tab and the Gallery tab start.
   public var agentCommand = Self.defaultAgentCommand
 
   /// The working directory of each session.
   public var cwd = FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false)
+
+  /// The tab that the window opens on.
+  public var initialTab = DemoTab.acp
 
   /// Reads the options from the arguments of a process.
   ///
@@ -79,6 +94,8 @@ public struct DemoLaunchOptions: Equatable, Sendable {
         if let value = remaining.popFirst() { agentCommand = value }
       case Self.cwdArgument:
         if let value = remaining.popFirst() { cwd = value }
+      case Self.tabArgument:
+        if let tab = remaining.popFirst().flatMap(DemoTab.init(rawValue:)) { initialTab = tab }
       default:
         continue
       }

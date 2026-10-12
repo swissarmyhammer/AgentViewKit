@@ -1,6 +1,4 @@
 import AgentViewKit
-import EditorSwiftUI
-import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -99,10 +97,6 @@ struct ACPTabView: View {
 
   /// Whether the settings sheet shows.
   @State private var showsSettings = false
-
-  /// The EditorKit theme of the app. The text of a failed request uses its
-  /// error color.
-  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the tab.
   ///
@@ -300,7 +294,7 @@ struct ACPTabView: View {
         }
       )
       if let newSessionFailure {
-        failureLabel(newSessionFailure, identifier: Self.newSessionFailureIdentifier)
+        DemoFailureLabel(error: newSessionFailure, identifier: Self.newSessionFailureIdentifier)
       }
     }
   }
@@ -323,28 +317,19 @@ struct ACPTabView: View {
 
   /// The transcript of a session with its usage and the composer.
   ///
-  /// The thread view shows the connection banner and the agent header of
-  /// the connection model, and closes the session when it goes away. The
-  /// composer reads the two models from the environment.
+  /// ``SessionThreadColumn`` shows the transcript and the usage, and gives
+  /// the two models to the composer. A new session shows the welcome text.
   ///
   /// - Parameters:
   ///   - session: The selected session model.
   ///   - agent: The running agent.
   /// - Returns: The detail view.
   private func thread(of session: SessionModel, on agent: DemoAgent) -> some View {
-    VStack(spacing: 0) {
-      AgentThreadView(session: session, connection: agent.connection)
-      .messageFooter { entry in MessageActions(entry: entry) }
-      .conversationEmptyState(title: Self.welcomeTitle, markdown: Self.welcomeMarkdown)
-      ContextUsageView(session: session)
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal)
+    SessionThreadColumn(session: session, connection: agent.connection) {
       PromptInputView(text: $draft) {}
         .padding()
     }
-    .environment(\.sessionModel, session)
-    .environment(\.connectionModel, agent.connection)
-    .id(ObjectIdentifier(session))
+    .conversationEmptyState(title: Self.welcomeTitle, markdown: Self.welcomeMarkdown)
   }
 
   /// The view of a start that has not given a session.
@@ -355,23 +340,10 @@ struct ACPTabView: View {
         .accessibilityIdentifier(Self.startingIdentifier)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     case .failed(let error):
-      failureLabel(error, identifier: Self.failureIdentifier)
+      DemoFailureLabel(error: error, identifier: Self.failureIdentifier)
     case .signingIn, .running:
       EmptyView()
     }
-  }
-
-  /// The text of a failed request, in the error color of the EditorKit theme.
-  ///
-  /// - Parameters:
-  ///   - error: The error of the request.
-  ///   - identifier: The accessibility identifier of the text.
-  /// - Returns: The label.
-  private func failureLabel(_ error: any Error, identifier: String) -> some View {
-    Label(String(describing: error), systemImage: "xmark.octagon.fill")
-      .foregroundStyle(editorTheme.severityError)
-      .padding()
-      .accessibilityIdentifier(identifier)
   }
 
   // MARK: - Toolbar

@@ -442,15 +442,42 @@ two lists equal.
 ## The demo app
 
 [`Examples/AgentViewKitDemo`](Examples/AgentViewKitDemo) is a macOS app with
-one tab. The ACP tab connects to an ACP agent, shows its sessions in a
-sidebar, and shows the thread after the session binds.
+two tabs:
+
+- The ACP tab connects to an ACP agent, shows its sessions in a sidebar, and
+  shows the thread after the session binds.
+- The Gallery tab shows recorded sessions of FoundationModelsACPAgent, so that
+  you can see how the views look with real session data. It starts the agent
+  program over a temporary copy of
+  [`Examples/AgentViewKitDemo/RecordedSessions/`](Examples/AgentViewKitDemo/RecordedSessions),
+  lists the sessions with `session/list`, and opens one with `session/resume`.
+  The agent restores the session, and the views bind to its models. An
+  inspector sets the EditorKit theme (`SystemTheme`, `DefaultTheme.light`,
+  `DefaultTheme.dark`), the appearance, the increased contrast, the density,
+  and the text size.
 
 The launch arguments are in
 [`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):
 
 - `--in-memory-agent`: the ACP tab binds the in-memory agent, and starts no process.
-- `--agent-command <path>`: the ACP tab starts this agent program. The default is the `acp-agent` build of the sibling FoundationModelsACPAgent checkout. The app starts an `acp-agent` program with the `acp` subcommand, because the default subcommand of `acp-agent` does not speak ACP. The app starts other programs with no arguments.
-- `--cwd <path>`: the working directory of each session. The default is the home directory.
+- `--agent-command <path>`: the ACP tab and the Gallery tab start this agent program. The default is the `acp-agent` build of the sibling FoundationModelsACPAgent checkout. The app starts an `acp-agent` program with the `acp` subcommand, because the default subcommand of `acp-agent` does not speak ACP. The app starts other programs with no arguments.
+- `--cwd <path>`: the working directory of each session of the ACP tab. The default is the home directory.
+- `--tab <name>`: the tab that the window opens on, `acp` or `gallery`. The default is `acp`.
+
+### Replace the recorded sessions
+
+The recorded sessions come from the SWE-bench runs in
+`../FoundationModelsACPAgent/bench/preds.<run>.transcripts/`. They are
+replaced over time, and no test reads their content. To replace them:
+
+1. Remove the directories in `Examples/AgentViewKitDemo/RecordedSessions/` that you replace.
+2. Copy whole instance directories from `preds.<run>.transcripts/` into that directory, as they are. Do not trim or change a file.
+3. Change the table in [`RecordedSessions/README.md`](Examples/AgentViewKitDemo/RecordedSessions/README.md).
+4. Build the demo app again.
+
+The Gallery tab copies the recordings to a temporary directory at each
+start, and gives that copy to the agent as its transcript location. A
+restore thus never changes the files in the repository.
 
 The demo UI tests are in
 [`Examples/AgentViewKitDemo/Tests/`](Examples/AgentViewKitDemo/Tests). Run

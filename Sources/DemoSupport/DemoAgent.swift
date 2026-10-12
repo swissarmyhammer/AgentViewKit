@@ -15,6 +15,8 @@ import FoundationModelsACPClient
 /// - Each other agent runs as an `AgentProcess`, with the arguments of
 ///   ``DemoLaunchOptions/agentArguments(for:)``. The demo then gives a
 ///   ``TerminalAppAuthRunner`` and sends `auth.terminal` in `initialize`.
+/// - The agent of the Gallery tab runs as an `AgentProcess` over a
+///   ``RecordedSessionsStage``, with ``makeConnected(recordedSessions:agentCommand:)``.
 ///
 /// ACP v2 terminal sign-in: after a successful run of a `terminal` method,
 /// the `authState` of the model is `.reconnectRequired`. Only the host can
@@ -49,7 +51,9 @@ public final class DemoAgent {
   /// directly.
   public let connection: ConnectionModel
 
-  /// The working directory of each new session, from the launch options.
+  /// The working directory of each new session and of the session list:
+  /// from the launch options, or the working directory of a stage of
+  /// recorded sessions.
   public let workingDirectory: AbsolutePath
 
   /// The runner of the `terminal` auth methods, or `nil` for the in-memory
@@ -129,6 +133,38 @@ public final class DemoAgent {
       makeTransport: { try AgentProcess(command: command, arguments: arguments).transport },
       terminalAuthRunner: TerminalAppAuthRunner(command: command, arguments: arguments),
       workingDirectory: workingDirectory
+    )
+  }
+
+  /// Starts the agent program `agentCommand` over a stage of recorded
+  /// sessions, connects a new `ConnectionModel`, and sends `initialize`.
+  ///
+  /// The process gets the environment of the stage, so the agent reads its
+  /// transcripts from the copy in the stage. The process starts in the
+  /// working directory of the stage, and each session list uses that
+  /// directory. When `initialize` fails, the function stops the agent.
+  ///
+  /// - Parameters:
+  ///   - stage: The temporary copy of the recorded sessions.
+  ///   - agentCommand: The absolute path of the agent program.
+  /// - Returns: The agent, with a connected and initialized model.
+  /// - Throws: The `AgentProcessError` of a program that does not start, or
+  ///   the error of `initialize`.
+  public static func makeConnected(
+    recordedSessions stage: RecordedSessionsStage, agentCommand: String
+  ) async throws -> DemoAgent {
+    let arguments = DemoLaunchOptions.agentArguments(for: agentCommand)
+    let environment = stage.agentEnvironment()
+    let currentDirectory = stage.workingDirectory.path(percentEncoded: false)
+    return try await makeConnected(
+      makeTransport: {
+        try AgentProcess(
+          command: agentCommand, arguments: arguments, environment: environment,
+          currentDirectory: currentDirectory
+        ).transport
+      },
+      terminalAuthRunner: TerminalAppAuthRunner(command: agentCommand, arguments: arguments),
+      workingDirectory: AbsolutePath(rawValue: currentDirectory)
     )
   }
 

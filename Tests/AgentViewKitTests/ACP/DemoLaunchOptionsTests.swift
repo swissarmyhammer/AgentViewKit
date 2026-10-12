@@ -40,5 +40,18 @@ struct DemoLaunchOptionsTests {
     #expect(options.agentCommand.hasSuffix(DemoLaunchOptions.siblingAgentPath))
     #expect(options.agentCommand.hasPrefix("/"))
     #expect(options.cwd == FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false))
+    #expect(options.initialTab == .acp)
+  }
+
+  @Test func theTabArgumentSelectsTheTabThatTheWindowOpensOn() {
+    let options = DemoLaunchOptions(arguments: ["app", DemoLaunchOptions.tabArgument, DemoTab.gallery.rawValue])
+
+    #expect(options.initialTab == .gallery)
+  }
+
+  @Test func aTabArgumentWithAnUnknownNameKeepsTheACPTab() {
+    let options = DemoLaunchOptions(arguments: ["app", DemoLaunchOptions.tabArgument, "unknown-tab"])
+
+    #expect(options.initialTab == .acp)
   }
 }
