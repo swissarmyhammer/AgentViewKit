@@ -74,6 +74,52 @@ comments:
     - findings: 5 of 5 checked.
     - next: /review
   timestamp: 2026-10-12T01:33:50.332939+00:00
+- actor: claude-code
+  id: 01m4pwcnqsy2g8h9sv534e23rq
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (47b83ce). 1 finding (1 confirmed, 1 refuted). Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:36
+    - next: implement the open item in the 2026-10-11 20:38 Review Findings section. The task stays in review.
+  timestamp: 2026-10-12T01:42:15.545952+00:00
+- actor: claude-code
+  id: 01m4pwd1k44m9myf3a7rmw9zfy
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — LiveSymbolEffect and StatusSymbolImage; 5 findings checked
+    - test: green — swift test, 1114 tests passed, 1 expected known issue, load average 44 to 59
+    - commit: 47b83ce
+    - review: findings — Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:36
+  timestamp: 2026-10-12T01:42:27.684708+00:00
+- actor: claude-code
+  id: 01m4pwgg221bfkbqc4mapmenmq
+  text: |-
+    Research for the finding at SharedSymbolTreatmentTests.swift:36 (2026-10-11):
+    - `symbolImageCall = "Image(systemName:"` is in SharedSymbolTreatmentTests and in SymbolRenderingModeTests.
+    - Other repeated texts between the four package suites: `["Sources", "Examples"]` (FixedColorTests.scannedPaths, SymbolNameTests.scannedPaths); `"Sources/AgentViewKit"` (SharedSymbolTreatmentTests.kitSourcesPath, SymbolNameTests.kitPath, and the prefix `"Sources/AgentViewKit/"` in SymbolNameTests); the paths of StatusBar.swift and TaskListView.swift (SymbolRenderingModeTests and SharedSymbolTreatmentTests).
+    - PackageFileSupport is a library target that AgentViewKitTests also imports. These texts are for the package scans only, so the plan puts them in one new helper of the PackageStructureTests target: `KitSourceFiles`.
+    - RemovedVocabularyTests also has `kitSourcesPath = "Sources/AgentViewKit"`. That suite is not one of the four suites of this finding, so it stays as it is.
+  timestamp: 2026-10-12T01:44:20.802071+00:00
+- actor: claude-code
+  id: 01m4pwv2eck8qv671hp624r9gq
+  text: |-
+    Finding at SharedSymbolTreatmentTests.swift:36 fixed (not committed). What changed:
+    - New `Tests/PackageStructureTests/KitSourceFiles.swift`: one enum with the texts that the package scans share. `kitPath` ("Sources/AgentViewKit"), `viewPaths` (["Sources", "Examples"]), `symbolImageCall` ("Image(systemName:"), `statusBarFile`, `taskListFile`, and `kitFile(_:)`, which gives the path of a file below `kitPath`.
+    - The helper is in the PackageStructureTests target, not in PackageFileSupport. PackageFileSupport is a library that AgentViewKitTests also imports, and these texts are for the package scans only.
+    - SharedSymbolTreatmentTests: removed `symbolImageCall` and `kitSourcesPath`. It reads `KitSourceFiles`. Its file paths use `kitFile(_:)`, `statusBarFile` and `taskListFile`.
+    - SymbolRenderingModeTests: removed `symbolImageCall`. Its file paths use `kitFile(_:)`, `statusBarFile` and `taskListFile`.
+    - FixedColorTests and SymbolNameTests: removed the two copies of `scannedPaths`. They read `KitSourceFiles.viewPaths`. SymbolNameTests also removed `kitPath`, and reads `KitSourceFiles.kitPath` and `kitFile(_:)`.
+    - New `KitSourceFilesTests` (3 tests): `kitFile(_:)` gives a path below the kit directory, the two shared files are in the package, and each view path is a directory of the package. RED: the build failed, because `KitSourceFiles` did not exist. GREEN: 29 tests of the 5 suites passed.
+    - Not changed: RemovedVocabularyTests also has `kitSourcesPath = "Sources/AgentViewKit"`. It is not one of the four suites of this finding.
+  timestamp: 2026-10-12T01:50:07.308396+00:00
+- actor: claude-code
+  id: 01m4pwv5f3gcgns7tvyn6qzvqr
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` exit 0: 1114 tests in 123 suites passed (1 known issue, the designed `withKnownIssue` of HostedLayoutExpectationsTests), PackageStructure 114 tests in 14 suites passed, XCTest 0 failures. Load average 45.53 at start, 49.19 at end. The only warning is the known `missing creator for mutated node` of the mlx-swift_Cmlx bundle (dependency). No UI tests ran.
+    - files: Tests/PackageStructureTests/{KitSourceFiles.swift (new), KitSourceFilesTests.swift (new), SharedSymbolTreatmentTests.swift, SymbolRenderingModeTests.swift, SymbolNameTests.swift, FixedColorTests.swift}
+    - findings: 1 of 1 checked in the 2026-10-11 20:38 section.
+    - next: /review
+  timestamp: 2026-10-12T01:50:10.403062+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
 position_column: doing
@@ -105,3 +151,12 @@ An audit on 2026-10-11 found differences in how symbols are drawn, and missing a
 - [x] `Sources/AgentViewKit/Status/TaskListView.swift:222` `duplication/duplication` — The new `PlanEntryRow.statusSymbol` repeats the status symbol view that `ToolStatusImage` already provides. It sets the same hierarchical rendering, the same symbol weight, and the same status color. A later change to one copy can leave the other out of sync. Add a shared view or helper that takes a symbol name and a status color, and call it from both `ToolStatusImage` and `PlanEntryRow`. Keep the per-type mapping in each caller. Delete the copied modifier chain.
 - [x] `Sources/AgentViewKit/Status/TaskListView.swift:222` `reuse/reuse` — `PlanEntryRow.statusSymbol` rebuilds the status glyph that `ToolCallHeader.statusGlyph` already builds: hierarchical rendering, status color, symbol weight, the variable-color iterative effect while the status is live, and `symbolEffectsRemoved(reduceMotion)`. Two copies of one status-symbol treatment will drift apart. A later change to the live effect or the Reduce Motion rule would have to be made in both places. Move the live-status effect and the Reduce Motion handling into one shared `ViewModifier` (for example, a status-symbol modifier that takes `isLive` and applies the variable-color effect with `symbolEffectsRemoved`). Apply it from `statusGlyph`, `statusSymbol` and `ToolStatusImage`, so the rule lives in one place.
 - [x] `Sources/AgentViewKit/Status/TaskListView.swift:227` `duplication/duplication` — The variable-color effect with Reduce Motion gating is copied in `PlanEntryRow.statusSymbol`. It repeats the same effect pair used in `ToolCallView` and `StatusBar`, so a change to the Reduce Motion rule must be made in three places. Use the same shared modifier proposed for `ToolCallView.swift:419`, with `entry.status == .inProgress` as its `isActive` value. Delete the copied modifiers here.
+
+## Review Findings (2026-10-11 20:38)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:36` `reuse/reuse` — The new constant symbolImageCall = "Image(systemName:" copies a constant that already exists. SymbolRenderingModeTests already defines the same text, so two copies of one search string now exist and can drift apart. Remove the constant at line 36. Read SymbolRenderingModeTests.symbolImageCall instead, or move the shared constant into PackageFileSupport so both suites use one definition.

@@ -16,19 +16,16 @@ import Testing
   /// The files of the status views. Each symbol image in these files uses the
   /// hierarchical rendering mode.
   static let statusViewFiles = [
-    "Sources/AgentViewKit/Items/ErrorView.swift",
-    "Sources/AgentViewKit/Status/StatusBar.swift",
-    "Sources/AgentViewKit/Status/SessionNoticeBanner.swift",
-    "Sources/AgentViewKit/Status/TaskListView.swift",
-    "Sources/AgentViewKit/Items/CompactionEntryView.swift",
-    "Sources/AgentViewKit/Items/ToolCallView.swift",
-    "Sources/AgentViewKit/Items/StatusSymbolImage.swift",
-    "Sources/AgentViewKit/Activity/ActivityTimeline.swift",
-    "Sources/AgentViewKit/Diff/DiffView.swift",
+    KitSourceFiles.kitFile("Items/ErrorView.swift"),
+    KitSourceFiles.statusBarFile,
+    KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
+    KitSourceFiles.taskListFile,
+    KitSourceFiles.kitFile("Items/CompactionEntryView.swift"),
+    KitSourceFiles.kitFile("Items/ToolCallView.swift"),
+    KitSourceFiles.kitFile("Items/StatusSymbolImage.swift"),
+    KitSourceFiles.kitFile("Activity/ActivityTimeline.swift"),
+    KitSourceFiles.kitFile("Diff/DiffView.swift"),
   ]
-
-  /// The text that starts a symbol image.
-  static let symbolImageCall = "Image(systemName:"
 
   /// The modifier that sets the hierarchical rendering mode.
   static let hierarchicalModifier = ".symbolRenderingMode(.hierarchical)"
@@ -46,7 +43,7 @@ import Testing
   static func imagesWithNoHierarchicalMode(in source: String, file: String) -> [String] {
     let lines = source.split(separator: "\n", omittingEmptySubsequences: false)
     return lines.indices.compactMap { index in
-      guard lines[index].contains(symbolImageCall) else { return nil }
+      guard lines[index].contains(KitSourceFiles.symbolImageCall) else { return nil }
       let chain = lines[(index + 1)...].prefix { line in
         line.trimmingCharacters(in: .whitespaces).hasPrefix(modifierPrefix)
       }

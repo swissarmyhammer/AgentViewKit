@@ -11,16 +11,12 @@ import Testing
 /// the lists of the system (``SystemSymbolData``) at test time, and compare
 /// each symbol name that ``SymbolNameScanner`` finds with them.
 @Suite struct SymbolNameTests {
-  /// The directories of the Swift files that the scan reads: the kit, its
-  /// support targets and the examples.
-  static let scannedPaths = ["Sources", "Examples"]
-
-  /// The symbol names in the Swift files below ``scannedPaths``.
+  /// The symbol names in the Swift files below ``KitSourceFiles/viewPaths``.
   ///
   /// - Returns: The uses, in directory order.
   /// - Throws: The error of the scan when a directory cannot be read.
   static func symbolNames() throws -> [SymbolNameUse] {
-    try scannedPaths.flatMap { path in
+    try KitSourceFiles.viewPaths.flatMap { path in
       try SymbolNameScanner.names(inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root)
     }
   }
@@ -117,7 +113,7 @@ import Testing
   @Test func theScanFindsTheSymbolNamesOfTheKit() throws {
     let names = try Self.symbolNames()
 
-    #expect(names.contains { $0.file.hasPrefix("Sources/AgentViewKit/") })
+    #expect(names.contains { $0.file.hasPrefix(KitSourceFiles.kitFile("")) })
   }
 
   // MARK: - The system data
@@ -166,12 +162,9 @@ import Testing
 
   // MARK: - The symbol table
 
-  /// The directory of the kit. Each symbol name of the kit is in the symbol
-  /// table.
-  static let kitPath = "Sources/AgentViewKit"
-
-  /// The file of the symbol table of the kit.
-  static let sharedSymbolFile = "Sources/AgentViewKit/Items/SharedSymbol.swift"
+  /// The file of the symbol table of the kit. Each symbol name of the kit is
+  /// in the symbol table.
+  static let sharedSymbolFile = KitSourceFiles.kitFile("Items/SharedSymbol.swift")
 
   /// The symbol names that the symbol table writes.
   ///
@@ -190,7 +183,7 @@ import Testing
   @Test func eachSymbolNameOfTheKitIsWrittenOnlyInTheSymbolTable() throws {
     let availableNames = try SystemSymbolData.availableNames()
     let kitNames = try SymbolNameScanner.names(
-      inSwiftFilesBelow: PackageFiles.file(Self.kitPath), relativeTo: PackageFiles.root
+      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root
     ).filter { availableNames.contains($0.name) }
 
     let outside = kitNames.filter { $0.file != Self.sharedSymbolFile }

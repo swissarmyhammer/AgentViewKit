@@ -11,10 +11,6 @@ import Testing
 /// follow the theme. The scan reads each Swift file as text, one line at a
 /// time.
 @Suite struct FixedColorTests {
-  /// The directories of the Swift files that the scan reads: the kit, its
-  /// support targets and the examples.
-  static let scannedPaths = ["Sources", "Examples"]
-
   /// The pattern that finds a fixed system color: a named color after
   /// `Color`, or as the argument of a style modifier.
   static var fixedColorPattern: some RegexComponent {
@@ -75,7 +71,7 @@ import Testing
   }
 
   @Test func noViewUsesAFixedSystemColor() throws {
-    let found = try Self.scannedPaths.flatMap { path in
+    let found = try KitSourceFiles.viewPaths.flatMap { path in
       try SourceLineScanner.matches(
         inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
         match: Self.fixedColorUses(on:))

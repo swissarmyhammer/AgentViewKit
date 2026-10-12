@@ -12,12 +12,9 @@ import Testing
 ///
 /// The scan reads each Swift file as text, one line at a time.
 @Suite struct SharedSymbolTreatmentTests {
-  /// The directory of the Swift files of the kit library.
-  static let kitSourcesPath = "Sources/AgentViewKit"
-
   /// The file of the view modifier that applies the live symbol effect and
   /// removes the symbol effects under Reduce Motion.
-  static let liveEffectFile = "Sources/AgentViewKit/Items/LiveSymbolEffect.swift"
+  static let liveEffectFile = KitSourceFiles.kitFile("Items/LiveSymbolEffect.swift")
 
   /// The text of the modifiers that only `LiveSymbolEffect` writes: the
   /// variable color effect and the removal of the symbol effects.
@@ -27,13 +24,10 @@ import Testing
   /// status of a tool call, the status and the priority of a plan entry, and
   /// the symbol of a status bar.
   static let statusSymbolFiles = [
-    "Sources/AgentViewKit/Items/ToolStatusImage.swift",
-    "Sources/AgentViewKit/Status/TaskListView.swift",
-    "Sources/AgentViewKit/Status/StatusBar.swift",
+    KitSourceFiles.kitFile("Items/ToolStatusImage.swift"),
+    KitSourceFiles.taskListFile,
+    KitSourceFiles.statusBarFile,
   ]
-
-  /// The text that starts a symbol image.
-  static let symbolImageCall = "Image(systemName:"
 
   /// Finds the lines that write one of some texts.
   ///
@@ -63,7 +57,7 @@ import Testing
 
   @Test func onlyTheSharedModifierWritesTheLiveEffectAndTheReduceMotionRule() throws {
     let found = try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(Self.kitSourcesPath),
+      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
       relativeTo: PackageFiles.root
     ) { line in
       Self.uses(of: Self.liveEffectModifiers, on: line)
@@ -77,7 +71,7 @@ import Testing
   @Test func eachStatusSymbolDrawsWithTheSharedStatusSymbolImage() throws {
     let found = try Self.statusSymbolFiles.flatMap { file in
       SourceLineScanner.matches(inSource: try PackageFiles.text(of: file), file: file) { line in
-        Self.uses(of: [Self.symbolImageCall], on: line)
+        Self.uses(of: [KitSourceFiles.symbolImageCall], on: line)
       }
     }
 
