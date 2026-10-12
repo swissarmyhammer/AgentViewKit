@@ -79,22 +79,12 @@ import Testing
     #expect(element?.label == Self.malformedSource)
   }
 
-  /// The height of the source fallback of malformed inline math.
-  ///
-  /// - Parameter view: The math view, with its environment.
-  /// - Returns: The height of the source text, in points.
-  /// - Throws: An issue when the math element has no frame.
-  static func malformedSourceHeight(of view: some View) throws -> CGFloat {
-    let harness = HostedViewHarness(view, size: hostSize)
-    defer { harness.close() }
-    harness.pump()
-    return try #require(harness.frame(identifier: MathView.inlineIdentifier)).height
-  }
-
   @Test func theSourceFallbackUsesTheEditorFontOfTheEditorTheme() throws {
     let math = MathView(latex: Self.malformedSource, display: false)
-    let themed = try Self.malformedSourceHeight(of: math.editorTheme(DistinctRolesTheme()))
-    let unthemed = try Self.malformedSourceHeight(of: math)
+    let themed = try HostedViewHarness.frameHeight(
+      of: math.editorTheme(DistinctRolesTheme()), identifier: MathView.inlineIdentifier, size: Self.hostSize)
+    let unthemed = try HostedViewHarness.frameHeight(
+      of: math, identifier: MathView.inlineIdentifier, size: Self.hostSize)
 
     #expect(themed > unthemed)
   }

@@ -401,17 +401,17 @@ import Testing
   ///   the card with an EditorKit theme.
   /// - Returns: The height of the command and its working directory, in
   ///   points.
-  /// - Throws: The error of the transport, or an issue when the subject has
-  ///   no frame.
+  /// - Throws: The error of the transport, or
+  ///   ``HostedViewHarnessError/noElement(identifier:)`` when the card has
+  ///   no subject.
   static func commandSubjectHeight<Hosted: View>(of card: (PermissionView) -> Hosted) async throws -> CGFloat {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let pending = try await session.receivePermissionRequest(
       id: agentRequestID, params: makeParams(subject: commandSubject))
-    let harness = HostedViewHarness(card(PermissionView(request: pending, session: session.model)), size: cardSize)
-    defer { harness.close() }
-    harness.pump()
-    return try #require(harness.frame(identifier: PermissionView.subjectIdentifier)).height
+    return try HostedViewHarness.frameHeight(
+      of: card(PermissionView(request: pending, session: session.model)),
+      identifier: PermissionView.subjectIdentifier, size: cardSize)
   }
 
   @Test func theCommandUsesTheEditorFontOfTheEditorTheme() async throws {

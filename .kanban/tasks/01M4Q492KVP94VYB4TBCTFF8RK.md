@@ -28,6 +28,39 @@ comments:
     - evidence: 9 files — Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, Sources/AgentViewKit/Elicitation/ElicitationURLConsentView.swift, Sources/AgentViewKit/Content/MathView.swift, Docs/decisions/dynamic-type.md, Tests/PackageStructureTests/FixedCodeFontTests.swift (new), Tests/AgentViewKitTests/Theme/DistinctRolesTheme.swift, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift, Tests/AgentViewKitTests/Content/MathViewHostedTests.swift. Full `swift test`: 1 + 118 + 1149 tests pass, 0 fail, 1 known issue (the old withKnownIssue in HostedLayoutExpectationsTests). Load average 25.31 at the start, 19.44 at the end.
     - next: /review. The task stays in doing.
   timestamp: 2026-10-12T04:33:03.517138+00:00
+- actor: claude-code
+  id: 01m4q6h0zttcy76z1yxt1ahce0
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (3063b2a): 2 findings (2 confirmed, 1 refuted) — Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:87, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift:406
+    - next: move the frame-height measurement into one shared helper in AgentViewKitTestSupport and use it from the three hosted tests. The task stays in review.
+  timestamp: 2026-10-12T04:39:23.898729+00:00
+- actor: claude-code
+  id: 01m4q6hcj240gbz1rspqvbgq9d
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — editorFont for the code text in PermissionView, ElicitationURLConsentView and MathView; FixedCodeFontTests
+    - test: green — swift test, 1149 tests passed, 1 expected known issue, load average 19 to 21
+    - commit: 3063b2a
+    - review: findings — Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:87, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift:406
+  timestamp: 2026-10-12T04:39:35.746689+00:00
+- actor: claude-code
+  id: 01m4q6xdqzc646m1g5wb1qx2gp
+  text: |-
+    Review findings fixed. Tests first.
+    - New shared helper: `HostedViewHarness.frameHeight(of:identifier:size:)` in `Sources/AgentViewKitTestSupport/HostedViewHarness.swift`. It mounts the view, pumps one time, closes the harness and gives the frame height of the element. When no element has the identifier, it throws `HostedViewHarnessError.noElement(identifier:)`, as `press(identifier:)` does.
+    - RED: the two new tests in HostedViewHarnessTests (`measuresTheFrameHeightOfAnElementInAHostedView`, `frameHeightThrowsForAMissingIdentifier`) did not compile, because the member did not exist. GREEN: they pass.
+    - MathViewHostedTests: `malformedSourceHeight` is removed; the test calls the shared helper. PermissionViewHostedTests and ElicitationURLConsentViewHostedTests keep only their ScriptedSession setup in `commandSubjectHeight` and `urlHeight`, then call the shared helper.
+    - The same cause was also in ProseFontHostedTests (`roleTitleHeight`, a fourth copy). It now uses the shared helper too. No other copy of the host, pump and frame-height steps stays in Tests or Sources.
+    - Not reused: `DynamicTypeHostedTests.height`. It measures the full view with a MeasuredView and a HeightRecorder at a Dynamic Type size. It does not read the frame of one accessibility element, so it does a different job.
+  timestamp: 2026-10-12T04:46:10.175156+00:00
+- actor: claude-code
+  id: 01m4q6xh8rak659yc8039y3wnp
+  text: |-
+    ### implement — changed
+    - evidence: 6 files — Sources/AgentViewKitTestSupport/HostedViewHarness.swift, Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift, Tests/AgentViewKitTests/Content/MathViewHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift, Tests/AgentViewKitTests/Theme/ProseFontHostedTests.swift. Full `swift test`: 1 + 118 + 1151 tests pass, 0 fail, 1 known issue (the old withKnownIssue in HostedLayoutExpectationsTests). Load average 20.69 at the start, 19.65 at the end. The only build warning is the SwiftPM mlx-swift bundle warning from before this change.
+    - next: /review. Both findings are checked. The task stays in doing.
+  timestamp: 2026-10-12T04:46:13.784042+00:00
 position_column: doing
 position_ordinal: '80'
 title: Use editorFont for the code text of PermissionView and ElicitationURLConsentView
@@ -54,3 +87,17 @@ Found during ^bg7j0hc.
 - `DistinctRolesTheme.editorFont` is now `.system(.title, design: .serif)`, so a height test can see the role.
 - Hosted tests: `theCommandUsesTheEditorFontOfTheEditorTheme`, `theURLUsesTheEditorFontOfTheEditorTheme`, `theSourceFallbackUsesTheEditorFontOfTheEditorTheme`.
 - Scan test: `Tests/PackageStructureTests/FixedCodeFontTests.swift` (`.monospaced`, `.monospacedSystemFont`, `.userFixedPitchFont`; `.monospacedDigit()` stays allowed).
+- Shared height helper: `HostedViewHarness.frameHeight(of:identifier:size:)` in `Sources/AgentViewKitTestSupport/HostedViewHarness.swift`. The Math, Permission, URL consent and prose font tests use it.
+
+## Review Findings (2026-10-11 23:37)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 5 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/dynamic-type.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:87` `reuse/reuse` — `malformedSourceHeight` repeats the same host, pump, and read-frame-height steps that the other new height helpers in this change also repeat. Three copies of one measurement pattern will drift apart as the harness changes. Move one shared helper into AgentViewKitTestSupport next to `HostedViewHarness`. It takes a view and an accessibility identifier, pumps once, and returns the frame height. Call it from all three tests, and reuse the existing `DynamicTypeHostedTests::height` if it matches.
+- [x] `Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift:406` `reuse/reuse` — `commandSubjectHeight` copies the same measure-a-frame logic as `urlHeight` and `malformedSourceHeight`. Three near-identical helpers in three files are duplicated behavior. Use the same shared frame-height helper as the other two tests, and keep only this test's ScriptedSession setup and its `makeParams(subject:)` call in this file.

@@ -121,6 +121,19 @@ struct SizedBoxesView: View {
     #expect(harness.frame(identifier: "missing") == nil)
   }
 
+  @Test func measuresTheFrameHeightOfAnElementInAHostedView() throws {
+    let height = try HostedViewHarness.frameHeight(
+      of: SizedBoxesView(), identifier: SizedBoxesView.topIdentifier)
+
+    #expect(height == SizedBoxesView.boxHeight)
+  }
+
+  @Test func frameHeightThrowsForAMissingIdentifier() {
+    #expect(throws: HostedViewHarnessError.noElement(identifier: "absent")) {
+      try HostedViewHarness.frameHeight(of: SizedBoxesView(), identifier: "absent")
+    }
+  }
+
   @Test func readsTheElementsOfAMenuButton() {
     let harness = HostedViewHarness(
       Menu("Options", systemImage: "gear") {

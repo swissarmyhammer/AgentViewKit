@@ -218,6 +218,32 @@ public final class HostedViewHarness<Content: View> {
     liveElement(identifier: identifier).map(Self.frame(of:))
   }
 
+  /// Mounts `content`, pumps the run loop one time, and gives the height of
+  /// the first accessibility element with `identifier`. The harness closes
+  /// before the function returns.
+  ///
+  /// A test uses this function to compare the height of one element in two
+  /// environments, for example with and without an EditorKit theme.
+  ///
+  /// - Parameters:
+  ///   - content: The view to mount, with its environment.
+  ///   - identifier: The accessibility identifier of the element to measure.
+  ///   - size: The size of the content.
+  /// - Returns: The height of the frame of the element, in points.
+  /// - Throws: ``HostedViewHarnessError/noElement(identifier:)`` when no
+  ///   element has `identifier`.
+  public static func frameHeight(
+    of content: Content, identifier: String, size: CGSize = HostedViewHarness.defaultSize
+  ) throws -> CGFloat {
+    let harness = HostedViewHarness(content, size: size)
+    defer { harness.close() }
+    harness.pump()
+    guard let frame = harness.frame(identifier: identifier) else {
+      throw HostedViewHarnessError.noElement(identifier: identifier)
+    }
+    return frame.height
+  }
+
   /// Does the press action of the element with `identifier`, then pumps the
   /// run loop.
   ///
