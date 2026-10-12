@@ -22,6 +22,8 @@ import Testing
   static let smallRowLimit = 2
   /// A row limit below one.
   static let zeroRowLimit = 0
+  /// The ANSI color number of green (SGR 32).
+  static let greenIndex = 2
 
   /// The output with ``longLineCount`` numbered lines.
   static let longOutput = (1...longLineCount).map(line).joined(separator: "\n")
@@ -154,6 +156,24 @@ import Testing
     #expect(model.text == output)
     #expect(harness.element(identifier: CommandOutputView.capIdentifier) == nil)
     #expect(harness.element(identifier: CommandOutputView.showAllIdentifier) == nil)
+  }
+
+  @Test func theEditorShowsTheOutputWithTheColorRunsOfTheTerminalPalette() {
+    let model = EditorModel("")
+    let harness = HostedViewHarness(
+      CommandOutputView(
+        command: Self.command, output: "\u{1B}[32mok\u{1B}[0m done", exitCode: nil, model: model)
+        .editorTheme(DistinctRolesTheme()))
+    defer { harness.close() }
+    harness.pump()
+
+    let palette = DistinctRolesTheme.Role.terminalPalette
+    #expect(model.text == "ok done")
+    #expect(
+      model.colorRuns == [
+        EditorColorRun(range: 0..<2, foreground: palette.ansiColor(Self.greenIndex)),
+        EditorColorRun(range: 2..<7, foreground: palette[.foreground]),
+      ])
   }
 
   @Test func theDefaultRowLimitCapsTheLongOutput() {

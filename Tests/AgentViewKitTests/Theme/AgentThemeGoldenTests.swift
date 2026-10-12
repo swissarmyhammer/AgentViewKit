@@ -16,12 +16,6 @@ import Testing
   /// The number of cells in one row of the token table.
   private static let columnCount = 4
 
-  /// The separator between the text style and the design in a font cell.
-  private static let fontSeparator: Character = "/"
-
-  /// The number of parts in a font cell: the text style and the design.
-  private static let fontPartCount = 2
-
   /// One parsed row of the token table.
   private struct Row {
     /// The token name, such as `spacing.xs`, without backticks.
@@ -36,8 +30,6 @@ import Testing
     case wrongCellCount([String])
     /// A point cell is not a number.
     case notANumber(String)
-    /// A font cell is not in the form `<text style>/<design>`.
-    case notAFont(String)
   }
 
   /// A comparison of one table value with the token of a theme.
@@ -64,18 +56,6 @@ import Testing
     { theme, cell in token(theme) == cell }
   }
 
-  /// A comparison for a font in the form `<text style>/<design>`.
-  ///
-  /// - Parameter token: Gives the font token of a theme.
-  /// - Returns: The comparison.
-  private static func font(_ token: @escaping (AgentTheme) -> Font) -> Check {
-    { theme, cell in
-      let parts = cell.split(separator: fontSeparator).map(String.init)
-      guard parts.count == fontPartCount else { throw TableError.notAFont(cell) }
-      return token(theme) == (try ThemeTokenNames.font(textStyle: parts[0], design: parts[1]))
-    }
-  }
-
   /// The comparison for each token that the table must name.
   private static let checks: [String: Check] = [
     "spacing.xs": point { $0.spacing.xs },
@@ -88,7 +68,6 @@ import Testing
     "materialLevel": name { $0.materialLevel.rawValue },
     "symbolWeight": { theme, cell in theme.symbolWeight == (try ThemeTokenNames.weight(named: cell)) },
     "density": name { $0.density.rawValue },
-    "proseFont": font { $0.proseFont },
   ]
 
   /// Parses the rows of the token table.
@@ -138,7 +117,6 @@ import Testing
     var theme = AgentTheme.default
     theme.spacing.l += 1
     theme.density = .detailed
-    theme.proseFont = .system(.body, design: .serif)
-    #expect(try Self.mismatches(in: rows, for: theme) == ["spacing.l", "density", "proseFont"])
+    #expect(try Self.mismatches(in: rows, for: theme) == ["spacing.l", "density"])
   }
 }

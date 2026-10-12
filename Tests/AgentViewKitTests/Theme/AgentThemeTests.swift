@@ -50,7 +50,6 @@ private struct ThemeProbeView: View {
     #expect(theme.materialLevel == tokens.materialLevel)
     #expect(theme.symbolWeight == (try ThemeTokenNames.weight(named: tokens.symbolWeight)))
     #expect(theme.density == tokens.density)
-    #expect(theme.proseFont == (try tokens.proseFont.font()))
   }
 
   @Test func spacingAndRadiiIncreaseInOrder() {
@@ -101,6 +100,13 @@ private struct ThemeProbeView: View {
     #expect(colorFields == [])
   }
 
+  @Test func theKitThemeHoldsNoFont() {
+    let fontFields = Mirror(reflecting: AgentTheme.default).children
+      .filter { $0.value is Font }
+      .compactMap(\.label)
+    #expect(fontFields == [])
+  }
+
   // MARK: - Density
 
   @Test func rowPaddingIncreasesWithDensity() {
@@ -118,33 +124,15 @@ private struct ThemeProbeView: View {
 
 /// The decoded form of `DefaultTokens.json`.
 ///
-/// The file names each font and weight. ``ThemeTokenNames`` changes a name
-/// into its SwiftUI value. The file has no color: each color of the kit comes
-/// from the EditorKit theme.
+/// The file names each weight. ``ThemeTokenNames`` changes a name into its
+/// SwiftUI value. The file has no color and no font: each color and each
+/// font of the kit come from the EditorKit theme.
 private struct DefaultTokens: Decodable {
-  /// A font in the file: a text style and a design.
-  struct FontToken: Decodable {
-    /// The name of the `Font.TextStyle`, such as `body`.
-    let textStyle: String
-    /// The name of the `Font.Design`, such as `monospaced`.
-    let design: String
-
-    /// The SwiftUI font of the token.
-    ///
-    /// - Returns: The system font with the style and the design.
-    /// - Throws: ``ThemeTokenNames/LookupError/unknownName(_:)`` for a name
-    ///   that is not known.
-    func font() throws -> Font {
-      try ThemeTokenNames.font(textStyle: textStyle, design: design)
-    }
-  }
-
   let spacing: AgentTheme.Spacing
   let radii: AgentTheme.Radii
   let materialLevel: AgentTheme.MaterialLevel
   let symbolWeight: String
   let density: AgentTheme.Density
-  let proseFont: FontToken
 
   /// The token file, relative to the package root.
   private static let relativePath = "Tests/AgentViewKitTests/Theme/DefaultTokens.json"

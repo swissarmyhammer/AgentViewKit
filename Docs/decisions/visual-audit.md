@@ -11,10 +11,10 @@ the same values. Change the table, the JSON file, and `AgentTheme.default`
 together.
 
 Keep the header and the form of the rows. Put the token and the default value
-in backticks. Write a point value as a number, a font as
-`<text style>/<design>`, and a weight, a material level, or a density as its
-SwiftUI case name. The table has no color token. The colors come from the
-EditorKit theme (see "Colors and the code font").
+in backticks. Write a point value as a number, and a weight, a material
+level, or a density as its SwiftUI case name. The table has no color token
+and no font token. The colors and the fonts come from the EditorKit theme
+(see "Colors and the code font").
 
 ## Tokens
 
@@ -30,7 +30,6 @@ EditorKit theme (see "Colors and the code font").
 | `materialLevel` | `regular` | not in the bundle | no glass |
 | `symbolWeight` | `regular` | not in the bundle | `--cds-font-weight-regular` 400 |
 | `density` | `balanced` | no density setting | `data-density="comfortable"` |
-| `proseFont` | `body/default` | SF Pro, body text style, 13 pt | Anthropic Sans, `--cds-font-size-prose` 16 px |
 
 ## Colors and the code font
 
@@ -38,7 +37,8 @@ Decision of the owner, 2026-10-11: the EditorKit themes are the themes of the
 kit. The kit has one theme. It is the EditorKit `Theme` in the SwiftUI
 environment value `\.editorTheme`. Set it with `.editorTheme(_:)` (module
 `EditorSwiftUI`). Every color of the kit views comes from this theme. The code
-font also comes from this theme. The kit keeps no copy of a color.
+font and the prose font also come from this theme. The kit keeps no copy of a
+color and no font.
 
 When the host sets no theme, EditorKit gives `SystemTheme` (`.system`).
 `SystemTheme` uses the Apple system colors. These colors follow light mode,
@@ -46,14 +46,13 @@ dark mode, increased contrast, and the accent color of the user.
 `DefaultTheme.light` and `DefaultTheme.dark` are fixed presets. EditorKit can
 also import a Zed, VS Code, or tmTheme file.
 
-`AgentTheme` holds only the tokens that the EditorKit theme does not have:
-spacing, radii, material level, symbol weight, density, and the prose font.
-The EditorKit theme has no prose font, so the prose font stays in
-`AgentTheme`.
+`AgentTheme` holds only the layout tokens that the EditorKit theme does not
+have: spacing, radii, material level, symbol weight, and density.
 
 Before this decision, `AgentTheme` had the tokens `accent`, `codeFont`, and
-`statusColors`. These tokens are removed. The table below gives the EditorKit
-role that replaces each one.
+`statusColors`. These tokens are removed. EditorKit 95ef6c4 added the
+`proseFont` role, so the `AgentTheme` token `proseFont` is also removed. The
+table below gives the EditorKit role that replaces each one.
 
 | kit use | EditorKit role | SystemTheme default |
 |---|---|---|
@@ -66,12 +65,15 @@ role that replaces each one.
 | info notice | `severityInfo` | system blue |
 | warning notice, URL warning, not-accepted attachment | `severityWarning` | system orange |
 | error notice, error message, validation error | `severityError` | system red |
-| code font | `editorFont` | system monospaced font, body text style |
-| frame of a code block, terminal, or command output | `editorBackground` | `NSColor.textBackgroundColor` |
+| code font, in SwiftUI text and in the EditorKit editor | `editorFont` | system monospaced font, body text style |
+| prose font | `proseFont` | system font, body text style |
+| frame of a code block | `editorBackground` | `NSColor.textBackgroundColor` |
 | code text | `editorForeground` | `NSColor.textColor` |
+| frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | the editor background, the editor foreground, and Apple system colors |
 | selected text | `selection` | `NSColor.selectedTextBackgroundColor` |
 | header bar of a code block, terminal, or command output | `statusBarBackground` | `NSColor.windowBackgroundColor` |
-| diff bands and the +N / −N counts (counts at full opacity) | `diffAddedBackground`, `diffRemovedBackground` | system green and system red at opacity 0.18 (`DiffTintDefaults.bandOpacity`) |
+| diff bands | `diffAddedBackground`, `diffRemovedBackground` | system green and system red at opacity 0.18 (`DiffTintDefaults.bandOpacity`) |
+| +N / −N counts of a diff | `diffAddedText`, `diffRemovedText` | system green and system red at full opacity |
 
 The other roles that the EditorKit views read are `gutterBackground`,
 `tabBarBackground`, `tokenTint`, `diffChangedBackground`, and
@@ -159,8 +161,8 @@ later. A capture does not change the table unless a new decision changes it.
   Mono for code, 13 pt on macOS. The two apps show code at 13 pt. Claude
   Desktop shows prose at 16 px, but the kit follows the system text styles
   (plan.md §5), so that the host text size setting applies. The prose font
-  is the `AgentTheme` token `proseFont`. The code font is the `editorFont`
-  role of the EditorKit theme (decision of 2026-10-11).
+  is the `proseFont` role and the code font is the `editorFont` role of the
+  EditorKit theme (decision of 2026-10-11).
 - The accent is the `accent` role of the EditorKit theme. With `SystemTheme`,
   it is the accent color of the user, as in Xcode 27.
 - The `balanced` density agrees with the comfortable density of Claude

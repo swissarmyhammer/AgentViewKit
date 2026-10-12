@@ -71,8 +71,39 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
     static let removed = Color(red: Level.threeFifths, green: Level.fifth, blue: Level.fifth)
     /// The opacity of the diff row bands, as in EditorKit.
     static let bandOpacity = DiffTintDefaults.bandOpacity
+    /// The text color of an added count.
+    static let addedText = Color(red: Level.tenth, green: Level.half, blue: Level.tenth)
+    /// The text color of a removed count.
+    static let removedText = Color(red: Level.half, green: Level.tenth, blue: Level.tenth)
     /// The code font.
     static let editorFont = Font.system(.callout, design: .serif)
+    /// The prose font: a text style that is much larger than the body text,
+    /// so that a test can see it in the size of a view.
+    static let proseFont = Font.system(.largeTitle, design: .serif)
+    /// The terminal foreground (SGR 39).
+    static let terminalForeground = Color(red: Level.fifth, green: Level.tenth, blue: Level.twoFifths)
+    /// The terminal background.
+    static let terminalBackground = Color(red: 1, green: Level.nineTenths, blue: Level.sevenTenths)
+    /// The terminal palette: the terminal foreground and background, and a
+    /// different color for each ANSI color.
+    static let terminalPalette = TerminalPalette { entry in
+      switch entry {
+      case .foreground: terminalForeground
+      case .background: terminalBackground
+      default: ansiColor(entry.rawValue)
+      }
+    }
+
+    /// The color of ANSI color `index` in ``terminalPalette``. The red
+    /// component grows with the index, so that no two ANSI colors are equal.
+    ///
+    /// - Parameter index: The ANSI color number, from 0 to 15.
+    /// - Returns: The color.
+    static func ansiColor(_ index: Int) -> Color {
+      Color(
+        red: Double(index) / Double(TerminalPalette.ansiColorCount), green: Level.fourFifths,
+        blue: Level.tenth)
+    }
   }
 
   var editorBackground: Color { Role.editorBackground }
@@ -92,7 +123,11 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
   var severityInfo: Color { Role.info }
   var severityWarning: Color { Role.warning }
   var severityError: Color { Role.error }
+  var diffAddedText: Color { Role.addedText }
+  var diffRemovedText: Color { Role.removedText }
   var editorFont: Font { Role.editorFont }
+  var proseFont: Font { Role.proseFont }
+  var terminalPalette: TerminalPalette { Role.terminalPalette }
 
   /// Each capture has the editor foreground and the style key.
   ///

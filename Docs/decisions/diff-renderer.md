@@ -35,9 +35,9 @@ This file records how `DiffView` gets its default renderer from EditorKit.
   renderer shows each file.
 - The renderer sets no theme. The EditorKit `DiffView` reads the EditorKit
   `Theme` of the `\.editorTheme` environment value. The +N / −N counts in the
-  file list of the kit `DiffView` use `diffAddedBackground` and
-  `diffRemovedBackground` of the same theme at full opacity. Thus the counts
-  and the diff bands have the same colors (decision of 2026-10-11,
+  file list of the kit `DiffView` use the `diffAddedText` and
+  `diffRemovedText` roles of the same theme (EditorKit 95ef6c4 and later).
+  The kit keeps no diff color of its own (decision of 2026-10-11,
   `visual-audit.md`, section "Colors and the code font").
 - The "diff renderer not installed" row is removed. When EditorKit cannot
   parse the patch, a row shows "Cannot read the patch at line N", with the

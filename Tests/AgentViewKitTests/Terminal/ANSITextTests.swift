@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorTheme
 import Foundation
 import SwiftUI
 import Testing
@@ -6,13 +7,16 @@ import Testing
 @Suite struct ANSITextTests {
   /// The escape character that starts each control sequence.
   static let escape = "\u{1B}"
-  /// The index of red in the standard palette.
+  /// The terminal palette that the parser maps the ANSI colors through. Each
+  /// of its colors is different, so a test can tell which entry a run has.
+  static let palette = DistinctRolesTheme.Role.terminalPalette
+  /// The ANSI color number of red.
   static let redIndex = 1
-  /// The index of green in the standard palette.
+  /// The ANSI color number of green.
   static let greenIndex = 2
-  /// The index of blue in the standard palette.
+  /// The ANSI color number of blue.
   static let blueIndex = 4
-  /// The index of bright red in the standard palette.
+  /// The ANSI color number of bright red.
   static let brightRedIndex = 9
   /// The index of a color in the 6 x 6 x 6 cube of the 256-color palette.
   static let cubeIndex = 196
@@ -28,7 +32,15 @@ import Testing
   /// - Parameter text: The terminal text.
   /// - Returns: The attributed text.
   static func attributed(_ text: String) -> AttributedString {
-    ANSIText.attributed(from: Data(text.utf8))
+    ANSIText.attributed(from: Data(text.utf8), palette: palette)
+  }
+
+  /// The color of ANSI color `index` in ``palette``.
+  ///
+  /// - Parameter index: The ANSI color number, from 0 to 15.
+  /// - Returns: The color.
+  static func ansiColor(_ index: Int) -> Color? {
+    palette.ansiColor(index)
   }
 
   /// The styles of one run.
@@ -63,24 +75,37 @@ import Testing
 
     #expect(String(text.characters) == "red")
     let run = try #require(Self.runs(text).first?.1)
-    #expect(run.foregroundColor == ANSIText.standardColors[Self.redIndex])
-    #expect(run.foregroundColor == Color(ANSIText.RGB(red: 205, green: 49, blue: 49)))
+    #expect(run.foregroundColor == Self.ansiColor(Self.redIndex))
   }
 
-  @Test func resetEndsTheColor() {
+  @Test func resetGivesTheTerminalForeground() {
     let text = Self.attributed("\(Self.escape)[31mred\(Self.escape)[0m plain")
     let runs = Self.runs(text)
 
     #expect(runs.map(\.0) == ["red", " plain"])
-    #expect(runs.last?.1.foregroundColor == nil)
+    #expect(runs.last?.1.foregroundColor == Self.palette[.foreground])
+    #expect(runs.last?.1.backgroundColor == nil)
+  }
+
+  @Test func textWithNoSGRHasTheTerminalForeground() {
+    let runs = Self.runs(Self.attributed("plain"))
+
+    #expect(runs.first?.1.foregroundColor == Self.palette[.foreground])
+  }
+
+  @Test func theColorsComeFromThePaletteOfTheTheme() {
+    let palette = ThemeRoleDefaults.terminalPalette
+    let text = ANSIText.attributed(from: "\(Self.escape)[31mred", palette: palette)
+
+    #expect(Self.runs(text).first?.1.foregroundColor == palette.ansiColor(Self.redIndex))
   }
 
   @Test func anEmptySGRIsAReset() {
     let runs = Self.runs(Self.attributed("\(Self.escape)[32mgo\(Self.escape)[m stop"))
 
     #expect(runs.map(\.0) == ["go", " stop"])
-    #expect(runs.first?.1.foregroundColor == ANSIText.standardColors[Self.greenIndex])
-    #expect(runs.last?.1.foregroundColor == nil)
+    #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.greenIndex))
+    #expect(runs.last?.1.foregroundColor == Self.palette[.foreground])
   }
 
   @Test func boldSetsTheStrongIntent() {
@@ -95,15 +120,15 @@ import Testing
     let runs = Self.runs(Self.attributed("\(Self.escape)[1;34mboth"))
 
     #expect(runs.first?.1.inlinePresentationIntent == .stronglyEmphasized)
-    #expect(runs.first?.1.foregroundColor == ANSIText.standardColors[Self.blueIndex])
+    #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.blueIndex))
   }
 
   @Test func brightAndBackgroundColors() {
     let runs = Self.runs(Self.attributed("\(Self.escape)[91;42mx\(Self.escape)[39;49my"))
 
-    #expect(runs.first?.1.foregroundColor == ANSIText.standardColors[Self.brightRedIndex])
-    #expect(runs.first?.1.backgroundColor == ANSIText.standardColors[Self.greenIndex])
-    #expect(runs.last?.1.foregroundColor == nil)
+    #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.brightRedIndex))
+    #expect(runs.first?.1.backgroundColor == Self.ansiColor(Self.greenIndex))
+    #expect(runs.last?.1.foregroundColor == Self.palette[.foreground])
     #expect(runs.last?.1.backgroundColor == nil)
   }
 
@@ -114,7 +139,7 @@ import Testing
           + "\(Self.escape)[38;5;\(Self.grayIndex)mc"))
 
     #expect(runs.map(\.0) == ["a", "b", "c"])
-    #expect(runs[0].1.foregroundColor == ANSIText.standardColors[Self.redIndex])
+    #expect(runs[0].1.foregroundColor == Self.ansiColor(Self.redIndex))
     #expect(runs[1].1.foregroundColor == Color(ANSIText.RGB(red: 255, green: 0, blue: 0)))
     #expect(runs[2].1.foregroundColor == Color(ANSIText.RGB(red: 128, green: 128, blue: 128)))
   }
@@ -134,17 +159,13 @@ import Testing
     let runs = Self.runs(Self.attributed("\(Self.escape)[38;5mx\(Self.escape)[38;2;1my"))
 
     #expect(runs.map(\.0) == ["xy"])
-    #expect(runs.first?.1.foregroundColor == nil)
+    #expect(runs.first?.1.foregroundColor == Self.palette[.foreground])
   }
 
   @Test func unknownSGRCodesKeepTheStyle() {
     let runs = Self.runs(Self.attributed("\(Self.escape)[31;4;7mx"))
 
-    #expect(runs.first?.1.foregroundColor == ANSIText.standardColors[Self.redIndex])
-  }
-
-  @Test func thePaletteHasSixteenStandardColors() {
-    #expect(ANSIText.standardColors.count == 16)
+    #expect(runs.first?.1.foregroundColor == Self.ansiColor(Self.redIndex))
   }
 
   /// `TerminalEntry.text` is already decoded text, so the parser reads a
@@ -152,7 +173,7 @@ import Testing
   @Test func textThatIsAlreadyDecodedGivesTheSameRunsAsItsBytes() {
     let text = "\(Self.escape)[31mred\(Self.escape)[0m plain"
 
-    let fromText = ANSIText.attributed(from: text)
+    let fromText = ANSIText.attributed(from: text, palette: Self.palette)
 
     #expect(String(fromText.characters) == "red plain")
     #expect(fromText == Self.attributed(text))
@@ -205,7 +226,7 @@ import Testing
     let runs = Self.runs(Self.attributed("\(Self.escape)[31mold\(Self.escape)[0m\rnew"))
 
     #expect(runs.map(\.0) == ["new"])
-    #expect(runs.first?.1.foregroundColor == nil)
+    #expect(runs.first?.1.foregroundColor == Self.palette[.foreground])
   }
 
   @Test func aCarriageReturnAtTheEndKeepsTheLine() {
@@ -219,7 +240,7 @@ import Testing
     data.append(contentsOf: [0xFF, 0xFE])
     data.append(contentsOf: Data("b".utf8))
 
-    let text = String(ANSIText.attributed(from: data).characters)
+    let text = String(ANSIText.attributed(from: data, palette: Self.palette).characters)
 
     #expect(text.hasPrefix("a"))
     #expect(text.hasSuffix("b"))
@@ -228,12 +249,12 @@ import Testing
 
   @Test func aTruncatedMultibyteCharacterShowsAReplacementCharacter() {
     let euro = Data("€".utf8)
-    let text = String(ANSIText.attributed(from: euro.dropLast()).characters)
+    let text = String(ANSIText.attributed(from: euro.dropLast(), palette: Self.palette).characters)
     #expect(text == "\u{FFFD}")
   }
 
   @Test func emptyDataIsEmptyText() {
-    #expect(ANSIText.attributed(from: Data()).characters.isEmpty)
+    #expect(ANSIText.attributed(from: Data(), palette: Self.palette).characters.isEmpty)
   }
 
   @Test func multibyteTextStays() {

@@ -296,13 +296,14 @@ the `AgentTheme`. There are no turn times: the client model has no turns.
 
 The kit has one theme: the EditorKit `Theme`. Set it with `.editorTheme(_:)`.
 Every color of the kit views comes from this theme. This includes the accent,
-the status colors, the diff colors, the editor background, and the bars. The
-code font also comes from this theme. When you set no theme, EditorKit gives
-`SystemTheme`. `SystemTheme` follows the system appearance and the accent
-color of the user. EditorKit can also import a Zed, VS Code, or tmTheme file.
+the status colors, the diff colors, the editor background, the terminal
+palette, and the bars. The code font and the prose font also come from this
+theme. When you set no theme, EditorKit gives `SystemTheme`. `SystemTheme`
+follows the system appearance and the accent color of the user. EditorKit can
+also import a Zed, VS Code, or tmTheme file.
 
 `.agentTheme(_:)` sets only the layout tokens of the kit: spacing, radii,
-material, symbol weight, density, and the prose font.
+material, symbol weight, and density.
 
 To import the theme modules, add the EditorKit products `EditorSwiftUI` and
 `EditorTheme` to the host target.
@@ -321,7 +322,7 @@ struct ThemedHost<Content: View>: View {
 
   var body: some View {
     content
-      // Every color of the kit views and the code font come from this
+      // Every color and each font of the kit views come from this
       // EditorKit theme. `.system` follows the system appearance.
       .editorTheme(.system)
       // The layout tokens of the kit: spacing, radii, density.

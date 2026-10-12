@@ -3,6 +3,5 @@
   "radii": { "s": 6, "m": 8, "l": 10 },
   "materialLevel": "regular",
   "symbolWeight": "regular",
-  "density": "balanced",
-  "proseFont": { "textStyle": "body", "design": "default" }
+  "density": "balanced"
 }

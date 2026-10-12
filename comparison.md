@@ -159,7 +159,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 | Streaming code into a block | ✓ `EditorModel+Append.swift`, `CodeBlockModelCache` | ✗ | ? | ? |
 | Diff with per-hunk accept / reject | ✓ `DiffView` (`Diff/DiffView.swift`) | ✗ | partial: code diff element | ✗ |
 | Terminal output | ✓ `TerminalView` (`Terminal/TerminalView.swift`), `CommandOutputView` | ✓ `Terminal` (ANSI colors) | ✓ terminal block element | ✗ |
-| ANSI colors shown | partial: `ANSIText` parses; EditorKit does not paint them | ✓ | ? | ✗ |
+| ANSI colors shown | ✓ `ANSIText` maps SGR colors through the EditorKit `terminalPalette`; the editor paints them as color runs (`TerminalView`, `CommandOutputView`) | ✓ | ? | ✗ |
 | Artifact panel | partial: `ArtifactView` (no ACP producer) | ✓ `Artifact` | ? | ✗ |
 | File tree | ✗ | ✓ `FileTree` | ✗ | ✗ |
 | Test results | ✗ | ✓ `TestResults` | ✗ | ✗ |
@@ -604,11 +604,11 @@ them until ACP gives one. Keep them on the watch list:
 
 - **File:** `Sources/AgentViewKit/Terminal/TerminalView.swift`,
   `Sources/AgentViewKit/Terminal/ANSIText.swift`.
-- **Change:** Show the SGR colors. Ask EditorKit for a foreground host
-  mark, or show the attributed text of `ANSIText` in a `Text` fallback for
-  short outputs. Add a copy action and a "follow output" toggle.
-- **Why:** Vercel `Terminal` shows ANSI colors and has `autoScroll` and a
-  copy button.
+- **Change:** Add a copy action and a "follow output" toggle. The SGR colors
+  show: `ANSIText` maps them through the EditorKit `terminalPalette`, and the
+  editor paints them as EditorKit color runs (`EditorModel.setColorRuns(_:)`
+  and `addColorRuns(_:)`).
+- **Why:** Vercel `Terminal` has `autoScroll` and a copy button.
 
 ### 4.10 `TaskListView`
 

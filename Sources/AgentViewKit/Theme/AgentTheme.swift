@@ -5,13 +5,13 @@ import SwiftUI
 /// The views of the kit read these tokens. They do not use fixed values.
 /// Apply a theme to a subtree with ``SwiftUI/View/agentTheme(_:)``.
 ///
-/// The type holds no color and no code font. The EditorKit `Theme` in the
+/// The type holds no color and no font. The EditorKit `Theme` in the
 /// environment (`\.editorTheme`) is the one theme of the kit: each color of
-/// the kit views and the code font come from it. A host sets it with
-/// `.editorTheme(_:)`, and EditorKit gives `SystemTheme` when no host sets
-/// one. This type keeps only the tokens that the EditorKit theme does not
-/// have: the spacing, the radii, the material level, the symbol weight, the
-/// density, and the prose font.
+/// the kit views, the code font (`editorFont`) and the prose font
+/// (`proseFont`) come from it. A host sets it with `.editorTheme(_:)`, and
+/// EditorKit gives `SystemTheme` when no host sets one. This type keeps only
+/// the layout tokens that the EditorKit theme does not have: the spacing, the
+/// radii, the material level, the symbol weight, and the density.
 ///
 /// `Docs/decisions/visual-audit.md` (research R12) records the values of
 /// ``default``, and `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
@@ -97,11 +97,6 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   public var symbolWeight: Font.Weight
   /// How much detail and space each row shows.
   public var density: Density
-  /// The font of the prose. The default is SF Pro.
-  ///
-  /// The EditorKit theme has a code font (`editorFont`) and no prose font,
-  /// so the prose font stays in this type.
-  public var proseFont: Font
 
   /// Makes a theme.
   ///
@@ -111,21 +106,18 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   ///   - materialLevel: The strength of the glass material.
   ///   - symbolWeight: The weight of the SF Symbols.
   ///   - density: How much detail and space each row shows.
-  ///   - proseFont: The font of the prose.
   public init(
     spacing: Spacing,
     radii: Radii,
     materialLevel: MaterialLevel,
     symbolWeight: Font.Weight,
-    density: Density,
-    proseFont: Font
+    density: Density
   ) {
     self.spacing = spacing
     self.radii = radii
     self.materialLevel = materialLevel
     self.symbolWeight = symbolWeight
     self.density = density
-    self.proseFont = proseFont
   }
 
   /// The default tokens. `Docs/decisions/visual-audit.md` and
@@ -144,8 +136,7 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     ),
     materialLevel: .regular,
     symbolWeight: .regular,
-    density: .balanced,
-    proseFont: .system(.body, design: .default)
+    density: .balanced
   )
 
   /// The vertical padding of a row, in points.

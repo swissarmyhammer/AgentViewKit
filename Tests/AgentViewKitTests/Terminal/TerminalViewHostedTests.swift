@@ -27,6 +27,10 @@
     static let longLineCount = 10
     /// The longest time that a test waits for a view update, in seconds.
     static let timeout: TimeInterval = 5
+    /// The ANSI color number of red (SGR 31).
+    static let redIndex = 1
+    /// The size that the pixel tests render the view at.
+    static let renderSize = CGSize(width: 480, height: 240)
     /// The `command` and `cwd` members of a `terminal_update`.
     static let headerFields = #""command": "\#(command)", "cwd": "\#(cwd)""#
 
@@ -108,6 +112,37 @@
 
       #expect(model.text == "red\ndone")
       #expect(model.isReadOnly)
+    }
+
+    @Test func theEditorGetsTheColorRunsOfTheOutputFromTheTerminalPalette() async throws {
+      let (session, terminal) = try await Self.openTerminal(
+        Self.outputField("\u{1B}[31mred\u{1B}[0m ok"))
+      defer { session.close() }
+      let model = EditorModel("")
+      let harness = HostedViewHarness(
+        TerminalView(entry: terminal, model: model).editorTheme(DistinctRolesTheme()))
+      defer { harness.close() }
+      harness.pump()
+
+      let palette = DistinctRolesTheme.Role.terminalPalette
+      #expect(
+        model.colorRuns == [
+          EditorColorRun(range: 0..<3, foreground: palette.ansiColor(Self.redIndex)),
+          EditorColorRun(range: 3..<6, foreground: palette[.foreground]),
+        ])
+    }
+
+    @Test func theFrameUsesTheTerminalBackgroundOfTheTheme() async throws {
+      let (session, terminal) = try await Self.openTerminal(Self.outputField("ok"))
+      defer { session.close() }
+
+      let pixels = try #require(
+        RenderedPixels(
+          rendering: TerminalView(entry: terminal).editorTheme(DistinctRolesTheme()),
+          size: Self.renderSize))
+
+      #expect(pixels.contains(DistinctRolesTheme.Role.terminalBackground))
+      #expect(!pixels.contains(DistinctRolesTheme.Role.editorBackground))
     }
 
     @Test func invalidUTF8OutputShowsReplacementCharacters() async throws {

@@ -14,10 +14,16 @@ import SwiftUI
 ///   button writes the full output to the pasteboard of the environment. See
 ///   `EnvironmentValues.pasteboard`.
 /// - The output in a read-only EditorKit editor that grows to the height of
-///   its text. When the output has more rows than the row limit, the editor
-///   shows only the last rows, and a Show All button shows all rows.
+///   its text. ``ANSIText`` removes the escape sequences, and the editor
+///   shows the SGR colors as EditorKit color runs. When the output has more
+///   rows than the row limit, the editor shows only the last rows, and a
+///   Show All button shows all rows.
 /// - A footer with the exit code, tinted by ``ExitOutcome``. When the exit
 ///   code is `nil`, the view shows no footer.
+///
+/// Command output is terminal output, so the colors come from the terminal
+/// palette of the EditorKit theme (`Theme.terminalPalette`), as in
+/// ``TerminalView``.
 public struct CommandOutputView: View {
   /// The accessibility identifier of the view.
   public static let identifier = "command-output"
@@ -86,6 +92,10 @@ public struct CommandOutputView: View {
     public let totalCount: Int
     /// The number of rows at the start of the output that do not show.
     public let hiddenCount: Int
+    /// The number of UTF-8 bytes of the rows that do not show, with their
+    /// newline characters: the byte offset in the output where ``text``
+    /// starts.
+    let hiddenByteCount: Int
 
     /// The number of rows that show.
     public var visibleCount: Int { totalCount - hiddenCount }
@@ -107,6 +117,7 @@ public struct CommandOutputView: View {
       let visible = max(limit, 1)
       totalCount = output.isEmpty ? 0 : rows.count
       hiddenCount = max(totalCount - visible, 0)
+      hiddenByteCount = rows.prefix(hiddenCount).reduce(0) { $0 + $1.utf8.count + 1 }
       text = hiddenCount == 0 ? output : rows.suffix(visible).joined(separator: "\n")
     }
   }
@@ -157,7 +168,10 @@ public struct CommandOutputView: View {
   }
 
   public var body: some View {
-    let rows = VisibleRows(output: output, limit: showsAll ? Int.max : rowLimit)
+    let shown = TerminalOutput(
+      output: output, palette: editorTheme.terminalPalette,
+      limit: showsAll ? Int.max : rowLimit)
+    let rows = shown.rows
     let model = suppliedModel ?? ownModel.model(text: rows.text)
     VStack(alignment: .leading, spacing: 0) {
       header
@@ -173,12 +187,12 @@ public struct CommandOutputView: View {
         footer(exitCode: exitCode, outcome: outcome)
       }
     }
-    .editorBlockFrame()
+    .terminalBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
-    .onChange(of: rows.text, initial: true) {
-      model.syncReadOnly(to: rows.text)
+    .onChange(of: shown, initial: true) {
+      model.syncReadOnly(to: rows.text, colorRuns: shown.colorRuns)
     }
   }
 

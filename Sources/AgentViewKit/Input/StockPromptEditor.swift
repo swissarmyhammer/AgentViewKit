@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// The default editor of ``PromptInputView``: a stock `TextEditor`
@@ -22,6 +24,7 @@ public struct StockPromptEditor: View {
   let context: PromptEditorContext
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the editor.
   ///
@@ -47,14 +50,14 @@ public struct StockPromptEditor: View {
 
   public var body: some View {
     TextEditor(text: context.text)
-      .font(theme.proseFont)
+      .font(editorTheme.proseFont)
       .scrollContentBackground(.hidden)
       .frame(minHeight: Self.minimumHeight, maxHeight: Self.maximumHeight)
       .fixedSize(horizontal: false, vertical: true)
       .overlay(alignment: .topLeading) {
         if context.text.wrappedValue.characters.isEmpty {
           Text(context.placeholder)
-            .font(theme.proseFont)
+            .font(editorTheme.proseFont)
             .foregroundStyle(.tertiary)
             .padding(.leading, theme.spacing.xs)
             .allowsHitTesting(false)

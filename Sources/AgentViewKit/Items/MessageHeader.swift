@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// The sender of a message item (plan.md §9 A2).
@@ -59,6 +61,7 @@ public struct MessageHeader: View {
   let date: Date?
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the header of a message.
   ///
@@ -85,11 +88,11 @@ public struct MessageHeader: View {
   public var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
       Text(role.title)
-        .font(theme.proseFont.weight(.semibold))
+        .font(editorTheme.proseFont.weight(.semibold))
         .accessibilityIdentifier(Self.roleIdentifier)
       if let date {
         Text(Self.relativeText(for: date))
-          .font(theme.proseFont)
+          .font(editorTheme.proseFont)
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(Self.dateIdentifier)
       }

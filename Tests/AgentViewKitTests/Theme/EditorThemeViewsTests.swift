@@ -53,6 +53,7 @@ import Testing
     // only in the command output test below. The two views use one frame.
     let pixels = try Self.pixels(of: CodeBlockView(code: "let x = 1", language: "swift"))
     #expect(pixels.contains(Role.statusBarBackground))
+    #expect(!pixels.contains(Role.terminalBackground))
   }
 
   @Test func withNoThemeTheCommandOutputDrawsNoRoleColor() throws {
@@ -63,10 +64,11 @@ import Testing
     #expect(!pixels.contains(Role.succeeded))
   }
 
-  @Test func theCommandOutputFrameAndBarUseTheEditorTheme() throws {
+  @Test func theCommandOutputFrameUsesTheTerminalBackgroundAndTheBarUsesTheEditorTheme() throws {
     let pixels = try Self.pixels(
       of: CommandOutputView(command: "ls", output: "a", exitCode: Self.successExitCode))
-    #expect(pixels.contains(Role.editorBackground))
+    #expect(pixels.contains(Role.terminalBackground))
+    #expect(!pixels.contains(Role.editorBackground))
     #expect(pixels.contains(Role.statusBarBackground))
   }
 
@@ -84,10 +86,12 @@ import Testing
     #expect(!pixels.contains(Role.succeeded))
   }
 
-  @Test func theDiffCountsUseTheDiffColorsOfTheTheme() throws {
+  @Test func theDiffCountsUseTheDiffTextColorsOfTheTheme() throws {
     let pixels = try Self.pixels(of: DiffView(patch: Self.patch))
-    #expect(pixels.contains(Role.added))
-    #expect(pixels.contains(Role.removed))
+    #expect(pixels.contains(Role.addedText))
+    #expect(pixels.contains(Role.removedText))
+    #expect(!pixels.contains(Role.added))
+    #expect(!pixels.contains(Role.removed))
   }
 
   @Test func theCitationPillUsesTheAccentOfTheTheme() throws {

@@ -7,8 +7,12 @@
 // - The parser decodes the bytes as UTF-8. A byte that is not valid UTF-8
 //   becomes U+FFFD, the replacement character.
 // - The parser applies the SGR sequences (`ESC [ ... m`) for the foreground
-//   color, the background color, and bold. It knows the 16 standard colors,
-//   the 256-color palette (`38;5;n`), and direct color (`38;2;r;g;b`).
+//   color, the background color, and bold. It knows the 16 ANSI colors, the
+//   256-color palette (`38;5;n`), and direct color (`38;2;r;g;b`).
+// - The 16 ANSI colors and the default foreground come from the terminal
+//   palette of the EditorKit theme (`Theme.terminalPalette`). The kit keeps
+//   no palette of its own. The 256-color cube, the gray ramp and direct
+//   color are not in the terminal palette, so the parser computes them.
 // - The parser removes all other escape sequences and gives no text for them:
 //   CSI sequences (cursor movement, clear), OSC, DCS, SOS, PM, APC, the
 //   two-byte escapes, and the C1 forms of CSI and OSC.
@@ -23,13 +27,15 @@
 //   new dependency needs a license check and a record in
 //   Docs/decisions/dependencies.md.
 
+import EditorTheme
 import Foundation
 import SwiftUI
 
 /// Converts the output bytes of a terminal to attributed text (plan.md §9 C).
 ///
-/// See the file header for the research R7 decision. ``TerminalView`` shows
-/// the characters of the result.
+/// See the file header for the research R7 decision. ``TerminalView`` and
+/// ``CommandOutputView`` show the characters of the result, and give its
+/// colors to the editor as color runs.
 public nonisolated enum ANSIText {
   /// A color as 8-bit red, green, and blue channels in the sRGB space.
   public struct RGB: Sendable, Hashable {
@@ -51,43 +57,25 @@ public nonisolated enum ANSIText {
       self.green = green
       self.blue = blue
     }
-
-    /// Makes a color from six hexadecimal digits, such as `CD3131`.
-    ///
-    /// - Parameter hex: The red, green, and blue channels as two
-    ///   hexadecimal digits each. Text that is not hexadecimal gives black.
-    init(hex: String) {
-      let value = Int(hex, radix: Palette.hexRadix) ?? 0
-      let mask = Palette.channelMask
-      let bits = Palette.channelBits
-      self.init(
-        red: (value >> (bits + bits)) & mask,
-        green: (value >> bits) & mask,
-        blue: value & mask)
-    }
   }
-
-  /// The 16 standard colors, in SGR order: the eight normal colors, then the
-  /// eight bright colors.
-  ///
-  /// The values are the terminal palette of Visual Studio Code. They are
-  /// easy to read on a light and on a dark background.
-  public static let standardPalette: [RGB] = Palette.standardHex.map(RGB.init(hex:))
-
-  /// The 16 standard colors as SwiftUI colors, in the order of
-  /// ``standardPalette``.
-  public static let standardColors: [Color] = standardPalette.map { Color($0) }
 
   /// Converts the output bytes of a terminal to attributed text.
   ///
-  /// - Parameter data: The output bytes. Bytes that are not valid UTF-8
-  ///   become replacement characters.
+  /// - Parameters:
+  ///   - data: The output bytes. Bytes that are not valid UTF-8 become
+  ///     replacement characters.
+  ///   - palette: The terminal palette of the EditorKit theme
+  ///     (`Theme.terminalPalette`). The 16 ANSI colors and the default
+  ///     foreground come from it.
   /// - Returns: The text with the SGR styles as attributes, and with no
-  ///   escape sequences. A colored run has a SwiftUI `foregroundColor` or
-  ///   `backgroundColor`. A bold run has the `stronglyEmphasized` inline
+  ///   escape sequences. Each run has a SwiftUI `foregroundColor`: its SGR
+  ///   color, or the palette foreground when no SGR color applies. A run
+  ///   with an SGR background color has a SwiftUI `backgroundColor`. A run
+  ///   with no SGR background has no background, so the background of the
+  ///   view shows. A bold run has the `stronglyEmphasized` inline
   ///   presentation intent.
-  public static func attributed(from data: Data) -> AttributedString {
-    attributed(from: String(decoding: data, as: UTF8.self))
+  public static func attributed(from data: Data, palette: TerminalPalette) -> AttributedString {
+    attributed(from: String(decoding: data, as: UTF8.self), palette: palette)
   }
 
   /// Converts the output text of a terminal to attributed text.
@@ -96,23 +84,35 @@ public nonisolated enum ANSIText {
   /// computed `text` of a `TerminalEntry` (plan.md §3.7 "Terminals"). The
   /// function does not decode bytes.
   ///
-  /// - Parameter text: The output text, with its escape sequences.
+  /// - Parameters:
+  ///   - text: The output text, with its escape sequences.
+  ///   - palette: The terminal palette of the EditorKit theme.
   /// - Returns: The text with the SGR styles as attributes, and with no
-  ///   escape sequences, as ``attributed(from:)-(Data)`` gives it.
-  public static func attributed(from text: String) -> AttributedString {
-    var parser = Parser(scalars: Array(text.unicodeScalars))
+  ///   escape sequences, as ``attributed(from:palette:)-(Data,_)`` gives it.
+  public static func attributed(from text: String, palette: TerminalPalette) -> AttributedString {
+    var parser = Parser(scalars: Array(text.unicodeScalars), palette: palette)
     parser.run()
-    return parser.output.attributedString
+    return parser.output.attributedString(defaultForeground: palette[.foreground])
   }
 
   /// The color of the 256-color palette at `index`.
   ///
-  /// - Parameter index: The palette index.
+  /// - Parameters:
+  ///   - index: The palette index.
+  ///   - palette: The terminal palette. Indices 0 to 15 are its ANSI colors.
   /// - Returns: The color, or `nil` when `index` is not from 0 to 255.
-  static func paletteColor(_ index: Int) -> RGB? {
+  static func paletteColor(_ index: Int, in palette: TerminalPalette) -> Color? {
+    palette.ansiColor(index) ?? computedColor(index).map { Color($0) }
+  }
+
+  /// The color of the 256-color palette at `index`, for an index after the
+  /// 16 ANSI colors: the 6 x 6 x 6 color cube and the gray ramp.
+  ///
+  /// - Parameter index: The palette index.
+  /// - Returns: The color, or `nil` when `index` is not in the cube or the
+  ///   gray ramp.
+  static func computedColor(_ index: Int) -> RGB? {
     switch index {
-    case standardPalette.indices:
-      return standardPalette[index]
     case Palette.cubeRange:
       let offset = index - Palette.cubeRange.lowerBound
       let side = Palette.cubeSide
@@ -144,21 +144,12 @@ extension Color {
 }
 
 nonisolated extension ANSIText {
-  /// The fixed values of the 256-color palette.
+  /// The fixed values of the 256-color palette after the 16 ANSI colors.
   enum Palette {
     /// The largest value of an 8-bit channel.
     static let channelMaximum = 255.0
     /// The bit mask of an 8-bit channel.
     static let channelMask = 0xFF
-    /// The number of bits in a channel.
-    static let channelBits = 8
-    /// The radix of a hexadecimal color.
-    static let hexRadix = 16
-    /// The 16 standard colors as hexadecimal text, in SGR order.
-    static let standardHex = [
-      "000000", "CD3131", "0DBC79", "E5E510", "2472C8", "BC3FBC", "11A8CD", "E5E5E5",
-      "666666", "F14C4C", "23D18B", "F5F543", "3B8EEA", "D670D6", "29B8DB", "FFFFFF",
-    ]
     /// The indices of the 6 x 6 x 6 color cube.
     static let cubeRange = 16...231
     /// The number of levels on each side of the color cube.
@@ -196,7 +187,7 @@ nonisolated extension ANSIText {
     static let defaultBackground = 49
     static let brightForeground = 90...97
     static let brightBackground = 100...107
-    /// The first index of the bright colors in ``ANSIText/standardPalette``.
+    /// The ANSI color number of the first bright color.
     static let brightOffset = 8
     /// The mode of an extended color that gives a palette index.
     static let paletteMode = 5
@@ -248,8 +239,11 @@ nonisolated extension ANSIText {
 
   /// The style of a run of text.
   struct Style: Equatable {
-    var foreground: RGB?
-    var background: RGB?
+    /// The SGR text color, or `nil` for the default foreground.
+    var foreground: Color?
+    /// The SGR background color, or `nil` for no background.
+    var background: Color?
+    /// Whether the run is bold.
     var isBold = false
 
     /// The SwiftUI attribute of the foreground color.
@@ -258,13 +252,15 @@ nonisolated extension ANSIText {
     typealias BackgroundKey = AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute
 
     /// The attributes of the style.
-    var attributes: AttributeContainer {
+    ///
+    /// - Parameter defaultForeground: The text color of a run with no SGR
+    ///   text color: the foreground of the terminal palette.
+    /// - Returns: The attributes.
+    func attributes(defaultForeground: Color) -> AttributeContainer {
       var container = AttributeContainer()
-      if let foreground {
-        container[ForegroundKey.self] = Color(foreground)
-      }
+      container[ForegroundKey.self] = foreground ?? defaultForeground
       if let background {
-        container[BackgroundKey.self] = Color(background)
+        container[BackgroundKey.self] = background
       }
       if isBold {
         container.inlinePresentationIntent = .stronglyEmphasized
@@ -304,10 +300,16 @@ nonisolated extension ANSIText {
     }
 
     /// The runs as attributed text.
-    var attributedString: AttributedString {
+    ///
+    /// - Parameter defaultForeground: The text color of a run with no SGR
+    ///   text color.
+    /// - Returns: The attributed text.
+    func attributedString(defaultForeground: Color) -> AttributedString {
       var result = AttributedString()
       for run in runs where !run.text.isEmpty {
-        result.append(AttributedString(String(run.text), attributes: run.style.attributes))
+        result.append(
+          AttributedString(
+            String(run.text), attributes: run.style.attributes(defaultForeground: defaultForeground)))
       }
       return result
     }
@@ -317,6 +319,8 @@ nonisolated extension ANSIText {
   struct Parser {
     /// The decoded scalars.
     let scalars: [Unicode.Scalar]
+    /// The terminal palette that gives the ANSI colors.
+    let palette: TerminalPalette
     /// The index of the next scalar to read.
     var position = 0
     /// The current style.
@@ -326,8 +330,9 @@ nonisolated extension ANSIText {
     /// The parsed runs.
     var output = Output()
 
-    init(scalars: [Unicode.Scalar]) {
+    init(scalars: [Unicode.Scalar], palette: TerminalPalette) {
       self.scalars = scalars
+      self.palette = palette
     }
 
     /// The next scalar, or `nil` at the end.
@@ -456,38 +461,36 @@ nonisolated extension ANSIText {
         case SGR.normalIntensity:
           style.isBold = false
         case SGR.foreground:
-          style.foreground = Self.standardColor(code, in: SGR.foreground)
+          style.foreground = ansiColor(code, in: SGR.foreground)
         case SGR.brightForeground:
-          style.foreground = Self.standardColor(
-            code, in: SGR.brightForeground, offset: SGR.brightOffset)
+          style.foreground = ansiColor(code, in: SGR.brightForeground, offset: SGR.brightOffset)
         case SGR.defaultForeground:
           style.foreground = nil
         case SGR.background:
-          style.background = Self.standardColor(code, in: SGR.background)
+          style.background = ansiColor(code, in: SGR.background)
         case SGR.brightBackground:
-          style.background = Self.standardColor(
-            code, in: SGR.brightBackground, offset: SGR.brightOffset)
+          style.background = ansiColor(code, in: SGR.brightBackground, offset: SGR.brightOffset)
         case SGR.defaultBackground:
           style.background = nil
         case SGR.extendedForeground:
-          if let color = Self.extendedColor(codes, at: &index) { style.foreground = color }
+          if let color = extendedColor(codes, at: &index) { style.foreground = color }
         case SGR.extendedBackground:
-          if let color = Self.extendedColor(codes, at: &index) { style.background = color }
+          if let color = extendedColor(codes, at: &index) { style.background = color }
         default:
           continue
         }
       }
     }
 
-    /// The standard color of an SGR color code.
+    /// The ANSI color of an SGR color code, from the terminal palette.
     ///
     /// - Parameters:
     ///   - code: The SGR code, in `range`.
     ///   - range: The codes of the eight colors of the code.
-    ///   - offset: The palette index of the first color of `range`.
+    ///   - offset: The ANSI color number of the first color of `range`.
     /// - Returns: The color.
-    static func standardColor(_ code: Int, in range: ClosedRange<Int>, offset: Int = 0) -> RGB {
-      standardPalette[code - range.lowerBound + offset]
+    func ansiColor(_ code: Int, in range: ClosedRange<Int>, offset: Int = 0) -> Color? {
+      palette.ansiColor(code - range.lowerBound + offset)
     }
 
     /// Reads the color of an extended color code.
@@ -498,7 +501,7 @@ nonisolated extension ANSIText {
     ///     function moves it past the values that it reads.
     /// - Returns: The color, or `nil` when the values are missing or not
     ///   valid.
-    static func extendedColor(_ codes: [Int], at index: inout Int) -> RGB? {
+    func extendedColor(_ codes: [Int], at index: inout Int) -> Color? {
       guard index < codes.endIndex else { return nil }
       let mode = codes[index]
       index += 1
@@ -510,13 +513,13 @@ nonisolated extension ANSIText {
       let values = Array(codes[index..<(index + count)])
       index += count
       guard mode == SGR.directMode else {
-        return values.first.flatMap(paletteColor)
+        return values.first.flatMap { ANSIText.paletteColor($0, in: palette) }
       }
       let channels = 0...Palette.channelMask
       guard values.allSatisfy(channels.contains), let red = values.first, let blue = values.last,
         let green = values.dropFirst().first
       else { return nil }
-      return RGB(red: red, green: green, blue: blue)
+      return Color(RGB(red: red, green: green, blue: blue))
     }
   }
 }

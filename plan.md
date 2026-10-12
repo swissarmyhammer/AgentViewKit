@@ -241,7 +241,7 @@ Out of the box, the kit reads as the Coding Intelligence assistant in Xcode 27: 
 
 **Match Xcode's restraint.** Prose is SF Pro. Code, tool I/O, and terminals are SF Mono. Color stays neutral. Tint is for primary actions and status. Reasoning is a quiet collapsible block. Tool calls are compact rows that expand. A plan is a checklist.
 
-**Tokens, not hard-coded values.** A public `AgentTheme` holds spacing, radii, material level, symbol weight, density, and the prose font. Apply it with `.agentTheme(_:)`. Every color and the code font come from the EditorKit theme in `\.editorTheme` (§4, "One theme"). `SystemTheme` is the default.
+**Tokens, not hard-coded values.** A public `AgentTheme` holds spacing, radii, material level, symbol weight, and density. Apply it with `.agentTheme(_:)`. Every color, the code font and the prose font come from the EditorKit theme in `\.editorTheme` (§4, "One theme"). `SystemTheme` is the default.
 
 ## 6. Accessibility
 
@@ -391,7 +391,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 8. **Selection: per-message plus copy thread in v1.** Cross-message drag-select is deferred unless research R10 shows macOS 27 `textSelection` gives it in containers.
 9. **Streaming path: Textual with paragraph split and the balancer.** No fallback renderer unless research R1 fails.
 10. **Long threads: `LazyVStack` with windowing.** `List` behind a flag.
-11. **Design tokens: EditorKit themes are the themes of the kit.** Every color and the code font come from the EditorKit `Theme` in `\.editorTheme` (`SystemTheme` by default). A public `AgentTheme` holds only spacing, radii, material level, symbol weight, density, and the prose font (decision of 2026-10-11).
+11. **Design tokens: EditorKit themes are the themes of the kit.** Every color, the code font and the prose font come from the EditorKit `Theme` in `\.editorTheme` (`SystemTheme` by default). A public `AgentTheme` holds only spacing, radii, material level, symbol weight, and density (decision of 2026-10-11; the prose font moved to the EditorKit `proseFont` role at EditorKit 95ef6c4).
 12. **Diff rendering is an EditorKit capability.** EditorKit takes unified diff text and renders it. The kit hosts it in `DiffView` and adds only the file list and the review actions. The kit does not build a stand-in.
 13. **Grammars ship in the kit** until EditorKit links more.
 14. **The kit verbs are EditorKit commands.** Palette, keybindings, and progress come from the command system.

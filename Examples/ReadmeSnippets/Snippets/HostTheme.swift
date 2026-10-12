@@ -11,7 +11,7 @@ struct ThemedHost<Content: View>: View {
 
   var body: some View {
     content
-      // Every color of the kit views and the code font come from this
+      // Every color and each font of the kit views come from this
       // EditorKit theme. `.system` follows the system appearance.
       .editorTheme(.system)
       // The layout tokens of the kit: spacing, radii, density.

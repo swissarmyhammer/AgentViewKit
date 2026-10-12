@@ -14,17 +14,17 @@ import SwiftUI
 /// - A header with the command in the code font and the working directory.
 /// - The output in a read-only EditorKit editor that grows to the height of
 ///   its text. ``ANSIText`` removes the escape sequences: the editor shows the
-///   text with no escape sequences. When the output has more rows than the
-///   row limit, the editor shows only the last rows, and a Show All button
-///   shows all rows.
+///   text with no escape sequences, and the SGR colors as EditorKit color
+///   runs (`EditorModel.setColorRuns(_:)`). When the output has more rows
+///   than the row limit, the editor shows only the last rows, and a Show All
+///   button shows all rows.
 /// - A footer. While the command runs, the footer shows a progress
 ///   indicator. After the command exits, the footer shows the exit code or
 ///   the signal.
 ///
-/// The EditorKit editor does not show the SGR colors of ``ANSIText`` in v1:
-/// EditorKit paints a host mark only as a background, and only for an editor
-/// with a grammar. The colors stay in the attributed text of ``ANSIText``,
-/// so that a later EditorKit release can show them.
+/// The colors come from the terminal palette of the EditorKit theme
+/// (`Theme.terminalPalette`): the 16 ANSI colors, the text color of output
+/// with no SGR color, and the fill of the block.
 public struct TerminalView: View {
   /// The accessibility identifier of the view.
   public static let identifier = "terminal"
@@ -146,17 +146,20 @@ public struct TerminalView: View {
     entry.exitStatus.map { ExitSummary(code: $0.exitCode, signal: $0.signal) }
   }
 
-  /// The output with no escape sequences.
+  /// The rows of the output that show, with no escape sequences, and their
+  /// color runs.
   ///
   /// The view reads the computed `text` of the entry, which the client model
   /// decoded, so the kit does not decode it.
-  private var output: String {
-    String(ANSIText.attributed(from: entry.text).characters)
+  private var output: TerminalOutput {
+    TerminalOutput(
+      output: entry.text, palette: editorTheme.terminalPalette,
+      limit: showsAll ? Int.max : rowLimit)
   }
 
   public var body: some View {
-    let rows = CommandOutputView.VisibleRows(
-      output: output, limit: showsAll ? Int.max : rowLimit)
+    let output = output
+    let rows = output.rows
     let model = suppliedModel ?? ownModel.model(text: rows.text)
     VStack(alignment: .leading, spacing: 0) {
       header
@@ -170,12 +173,12 @@ public struct TerminalView: View {
       Divider()
       footer
     }
-    .editorBlockFrame()
+    .terminalBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(Self.identifier)
-    .onChange(of: rows.text, initial: true) {
-      model.syncReadOnly(to: rows.text)
+    .onChange(of: output, initial: true) {
+      model.syncReadOnly(to: rows.text, colorRuns: output.colorRuns)
     }
   }
 

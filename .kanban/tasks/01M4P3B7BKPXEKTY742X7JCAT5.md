@@ -103,8 +103,24 @@ comments:
     - evidence: new Sources/DemoSupport/DemoStartPhase.swift, Tests/AgentViewKitTests/ACP/DemoStartPhaseTests.swift; changed Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift, ACPTabView.swift, GalleryTabView.swift. swift test: 1134 tests in 126 suites pass (1 known issue from before, HostedLayoutExpectationsTests) + 116 tests in 14 suites + 1; the only warning is the mlx-swift "missing creator" build warning from before. xcodebuild build-for-testing of the demo: TEST BUILD SUCCEEDED, no warning other than the appintentsmetadataprocessor notes. UI tests not run. Load average 21.39 before the full run, 16.67 after.
     - next: /review. All 4 findings are checked.
   timestamp: 2026-10-12T03:27:53.600248+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4q2rfsc11y8q8df9mqee0f2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b0df063). 0 findings, 0 confirmed, 0 refuted. 5 files reviewed, 2 .kanban files not reviewed (ignore rule). All prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-12T03:33:34.124514+00:00
+- actor: claude-code
+  id: 01m4q2rsxj8rpth7p07s7ev5wx
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — DemoStartPhase, generic DemoStartView with DemoStartingTab, DemoStartPhase.start; 4 findings checked
+    - test: green — swift test, 1134 tests passed, 1 expected known issue, load average 13 to 24
+    - commit: b0df063
+    - review: clean — 0 findings (5 files); task in done
+  timestamp: 2026-10-12T03:33:44.498248+00:00
+position_column: done
+position_ordinal: ffac80
 title: 'Demo Gallery: show recorded SWE-bench sessions through the session restore of FoundationModelsACPAgent'
 ---
 ## What

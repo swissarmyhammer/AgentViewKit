@@ -9,8 +9,8 @@ import SwiftUI
 ///
 /// - A list of the files of the patch, with the added and removed line
 ///   counts. The list is on the left, or on top when the view is narrow. A
-///   press on a file selects it. The counts use the diff colors of the
-///   EditorKit theme in the environment, the same colors as the diff bands.
+///   press on a file selects it. The counts use the `diffAddedText` and
+///   `diffRemovedText` roles of the EditorKit theme in the environment.
 /// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
 ///   full patch and the path of the selected file. The default renderer is
 ///   the EditorKit diff view, in the ``SwiftUI/EnvironmentValues/diffLayout``.
@@ -80,7 +80,6 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   @Environment(\.diffActions) private var environmentActions
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.self) private var environment
 
   /// Makes a diff view.
   ///
@@ -249,9 +248,9 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
         Spacer(minLength: theme.spacing.s)
         if patch != nil {
           Text(verbatim: "+\(file.added)")
-            .foregroundStyle(editorTheme.diffAddedText(in: environment))
+            .foregroundStyle(editorTheme.diffAddedText)
           Text(verbatim: "\u{2212}\(file.removed)")
-            .foregroundStyle(editorTheme.diffRemovedText(in: environment))
+            .foregroundStyle(editorTheme.diffRemovedText)
         }
       }
       .font(.caption)

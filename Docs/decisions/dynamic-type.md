@@ -8,11 +8,13 @@ Type size on macOS 27.
 
 ## Rule
 
-Each font of the kit uses a text style. `AgentTheme.proseFont` is
-`.system(.body)`. The code font is the `editorFont` role of the EditorKit
-theme in the `\.editorTheme` environment value. Its default is
-`.system(.body, design: .monospaced)`. Two views set a point size, and both
-sizes come from a resolved text style:
+Each font of the kit uses a text style. The prose font is the `proseFont`
+role of the EditorKit theme in the `\.editorTheme` environment value. Its
+default is `Font.body`. The code font is the `editorFont` role of the same
+theme. Its default is `.system(.body, design: .monospaced)`. The EditorKit
+editor draws its text in `editorFont` too (EditorKit 95ef6c4 and later), and
+its row height is the row height of the resolved font. Two views set a point
+size, and both sizes come from a resolved text style:
 
 - `MathView` resolves the environment font (default `.body`) and scales the
   math font from that size.
@@ -37,8 +39,13 @@ test.
 
 | View | `.large` | `.accessibility3` |
 |------|----------|-------------------|
-| `CodeBlockView` (EditorKit editor, `editorFont`) | 18.0 pt | 18.0 pt |
+| `CodeBlockView` (EditorKit editor, `editorFont`) | 16.0 pt | 16.0 pt |
 | SwiftUI `Text` with `.font(.body)` | 16.0 pt | 16.0 pt |
+
+Before EditorKit 95ef6c4, the editor kept its own font metrics, and the code
+block row was 18.0 pt. At 95ef6c4, the editor draws in `editorFont`, and the
+default row (`defaultEditorLineHeight`) is the 16.0 pt row of the system
+monospaced font at 13 pt on macOS.
 
 The line height does not change for the code block. It also does not change
 for a SwiftUI body text. On macOS 27, the `dynamicTypeSize` environment value

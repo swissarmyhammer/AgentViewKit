@@ -3,8 +3,8 @@ import SwiftUI
 /// Changes the token names of the theme files into SwiftUI values.
 ///
 /// `DefaultTokens.json` and the token table in
-/// `Docs/decisions/visual-audit.md` name each weight and font. The
-/// theme tests use this lookup for the two files.
+/// `Docs/decisions/visual-audit.md` name each weight. The theme tests use
+/// this lookup for the two files.
 enum ThemeTokenNames {
   /// The errors that the name lookup gives.
   enum LookupError: Error, Equatable {
@@ -19,22 +19,6 @@ enum ThemeTokenNames {
     "medium": .medium,
     "semibold": .semibold,
     "bold": .bold,
-  ]
-
-  /// The text styles that a file can name.
-  private static let textStyles: [String: Font.TextStyle] = [
-    "body": .body,
-    "callout": .callout,
-    "footnote": .footnote,
-    "caption": .caption,
-  ]
-
-  /// The font designs that a file can name.
-  private static let designs: [String: Font.Design] = [
-    "default": .default,
-    "monospaced": .monospaced,
-    "rounded": .rounded,
-    "serif": .serif,
   ]
 
   /// Gives the value that `name` names in `table`.
@@ -56,16 +40,5 @@ enum ThemeTokenNames {
   /// - Throws: ``LookupError/unknownName(_:)`` for a name that is not known.
   static func weight(named name: String) throws -> Font.Weight {
     try value(named: name, in: weights)
-  }
-
-  /// The system font with a named text style and a named design.
-  ///
-  /// - Parameters:
-  ///   - textStyle: The name of the `Font.TextStyle`, such as `body`.
-  ///   - design: The name of the `Font.Design`, such as `monospaced`.
-  /// - Returns: The system font with the style and the design.
-  /// - Throws: ``LookupError/unknownName(_:)`` for a name that is not known.
-  static func font(textStyle: String, design: String) throws -> Font {
-    .system(try value(named: textStyle, in: textStyles), design: try value(named: design, in: designs))
   }
 }
