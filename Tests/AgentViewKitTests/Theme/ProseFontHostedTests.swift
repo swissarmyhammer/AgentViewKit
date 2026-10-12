@@ -1,6 +1,5 @@
 import AgentViewKit
 import AgentViewKitTestSupport
-import EditorSwiftUI
 import SwiftUI
 import Testing
 
@@ -12,11 +11,7 @@ import Testing
 /// theme.
 @Suite(.serialized, .hostedSerially) @MainActor struct ProseFontHostedTests {
   @Test func theMessageHeaderUsesTheProseFontOfTheEditorTheme() throws {
-    let header = MessageHeader(role: .assistant)
-    let themed = try HostedViewHarness.frameHeight(
-      of: header.editorTheme(DistinctRolesTheme()), identifier: MessageHeader.roleIdentifier)
-    let unthemed = try HostedViewHarness.frameHeight(of: header, identifier: MessageHeader.roleIdentifier)
-
-    #expect(themed > unthemed)
+    try ThemeHeightExpectations.expectThemeIncreasesHeight(
+      of: MessageHeader(role: .assistant), identifier: MessageHeader.roleIdentifier)
   }
 }

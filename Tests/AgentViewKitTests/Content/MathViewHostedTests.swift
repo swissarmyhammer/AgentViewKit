@@ -1,6 +1,5 @@
 import AgentViewKit
 import AgentViewKitTestSupport
-import EditorSwiftUI
 import Foundation
 import SwiftUI
 import Testing
@@ -80,13 +79,9 @@ import Testing
   }
 
   @Test func theSourceFallbackUsesTheEditorFontOfTheEditorTheme() throws {
-    let math = MathView(latex: Self.malformedSource, display: false)
-    let themed = try HostedViewHarness.frameHeight(
-      of: math.editorTheme(DistinctRolesTheme()), identifier: MathView.inlineIdentifier, size: Self.hostSize)
-    let unthemed = try HostedViewHarness.frameHeight(
-      of: math, identifier: MathView.inlineIdentifier, size: Self.hostSize)
-
-    #expect(themed > unthemed)
+    try ThemeHeightExpectations.expectThemeIncreasesHeight(
+      of: MathView(latex: Self.malformedSource, display: false), identifier: MathView.inlineIdentifier,
+      size: Self.hostSize)
   }
 
   @Test func theEngineTypesetsOnlyValidSource() {

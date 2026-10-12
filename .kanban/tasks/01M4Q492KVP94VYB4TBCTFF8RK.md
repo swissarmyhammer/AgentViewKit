@@ -61,6 +61,40 @@ comments:
     - evidence: 6 files — Sources/AgentViewKitTestSupport/HostedViewHarness.swift, Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift, Tests/AgentViewKitTests/Content/MathViewHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift, Tests/AgentViewKitTests/Theme/ProseFontHostedTests.swift. Full `swift test`: 1 + 118 + 1151 tests pass, 0 fail, 1 known issue (the old withKnownIssue in HostedLayoutExpectationsTests). Load average 20.69 at the start, 19.65 at the end. The only build warning is the SwiftPM mlx-swift bundle warning from before this change.
     - next: /review. Both findings are checked. The task stays in doing.
   timestamp: 2026-10-12T04:46:13.784042+00:00
+- actor: claude-code
+  id: 01m4q78x5yhe0hdbhbknkeetsq
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (de7ceaa). 2 findings (2 confirmed, 1 refuted). Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:84, Tests/AgentViewKitTests/Theme/ProseFontHostedTests.swift:16
+    - next: implement one shared themed/unthemed height comparison helper and use it in the Math, Permission, URL consent and prose font tests. Then test, commit and review again.
+  timestamp: 2026-10-12T04:52:26.430346+00:00
+- actor: claude-code
+  id: 01m4q7992rtcgckyn6txsbdkxk
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — HostedViewHarness.frameHeight(of:identifier:size:) used by four height tests; 2 findings checked
+    - test: green — swift test, 1151 tests passed, 1 expected known issue, load average 16 to 20
+    - commit: de7ceaa
+    - review: findings — Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:84, Tests/AgentViewKitTests/Theme/ProseFontHostedTests.swift:16
+  timestamp: 2026-10-12T04:52:38.616445+00:00
+- actor: claude-code
+  id: 01m4q7qqagdj313fp3rcx8zg1t
+  text: |-
+    Review findings of 2026-10-11 23:50 fixed. Tests first.
+    - New shared helper: `ThemeHeightExpectations.expectThemeIncreasesHeight(of:identifier:theme:size:sourceLocation:)` in `Tests/AgentViewKitTests/Theme/ThemeHeightExpectations.swift`. It measures the element with and without the theme through `HostedViewHarness.frameHeight` and expects the themed height to be larger. The default theme is `DistinctRolesTheme()`.
+    - Location: the test target, next to `DistinctRolesTheme`, not AgentViewKitTestSupport. The helper needs `.editorTheme(_:)` and `EditorTheme.Theme`. AgentViewKitTestSupport does not declare the EditorKit products in Package.swift, and the default theme `DistinctRolesTheme` is in the test target.
+    - Assertion: `themed > unthemed`, not `themed != unthemed`. The four tests used `>` before. A "differ" check would make them weaker. The finding also says "themed-taller helper".
+    - RED: `ThemeHeightExpectationsTests` did not compile, because the type did not exist. GREEN: `aViewThatReadsTheThemePasses` passes; `aViewThatIgnoresTheThemeFails` records the expected known issue (16.0 / 16.0 pt), at the caller line.
+    - Callers: MathViewHostedTests, ProseFontHostedTests, PermissionViewHostedTests, ElicitationURLConsentViewHostedTests. Each test keeps only its view, identifier and size. `commandSubjectHeight` and `urlHeight` are removed; the tests open the ScriptedSession and call the helper. The `import EditorSwiftUI` lines of the four files were not used any more, so they are removed.
+    - Not working: `withKnownIssue { } matching:` rethrows in this toolchain, so the test needs `try` and `throws`.
+  timestamp: 2026-10-12T05:00:31.952325+00:00
+- actor: claude-code
+  id: 01m4q7qtw1ee9sjt8qxrheeswa
+  text: |-
+    ### implement — changed
+    - evidence: 6 files — Tests/AgentViewKitTests/Theme/ThemeHeightExpectations.swift (new), Tests/AgentViewKitTests/Theme/ThemeHeightExpectationsTests.swift (new), Tests/AgentViewKitTests/Content/MathViewHostedTests.swift, Tests/AgentViewKitTests/Theme/ProseFontHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift. Full `swift test`: 1 + 118 + 1153 tests pass, 0 fail, 2 known issues (the old withKnownIssue in HostedLayoutExpectationsTests and the new expected one in ThemeHeightExpectationsTests). Load average 13.98 at the start, 28.01 at the end. The only build warning is the SwiftPM mlx-swift bundle warning from before this change.
+    - next: /review. Both findings are checked. The task stays in doing.
+  timestamp: 2026-10-12T05:00:35.585922+00:00
 position_column: doing
 position_ordinal: '80'
 title: Use editorFont for the code text of PermissionView and ElicitationURLConsentView
@@ -87,7 +121,8 @@ Found during ^bg7j0hc.
 - `DistinctRolesTheme.editorFont` is now `.system(.title, design: .serif)`, so a height test can see the role.
 - Hosted tests: `theCommandUsesTheEditorFontOfTheEditorTheme`, `theURLUsesTheEditorFontOfTheEditorTheme`, `theSourceFallbackUsesTheEditorFontOfTheEditorTheme`.
 - Scan test: `Tests/PackageStructureTests/FixedCodeFontTests.swift` (`.monospaced`, `.monospacedSystemFont`, `.userFixedPitchFont`; `.monospacedDigit()` stays allowed).
-- Shared height helper: `HostedViewHarness.frameHeight(of:identifier:size:)` in `Sources/AgentViewKitTestSupport/HostedViewHarness.swift`. The Math, Permission, URL consent and prose font tests use it.
+- Shared height helper: `HostedViewHarness.frameHeight(of:identifier:size:)` in `Sources/AgentViewKitTestSupport/HostedViewHarness.swift`.
+- Shared themed / unthemed comparison: `ThemeHeightExpectations.expectThemeIncreasesHeight(of:identifier:theme:size:sourceLocation:)` in `Tests/AgentViewKitTests/Theme/ThemeHeightExpectations.swift`. The Math, Permission, URL consent and prose font tests call it with only their view and identifier. `ThemeHeightExpectationsTests` tests the helper.
 
 ## Review Findings (2026-10-11 23:37)
 
@@ -101,3 +136,13 @@ Found during ^bg7j0hc.
 
 - [x] `Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:87` `reuse/reuse` — `malformedSourceHeight` repeats the same host, pump, and read-frame-height steps that the other new height helpers in this change also repeat. Three copies of one measurement pattern will drift apart as the harness changes. Move one shared helper into AgentViewKitTestSupport next to `HostedViewHarness`. It takes a view and an accessibility identifier, pumps once, and returns the frame height. Call it from all three tests, and reuse the existing `DynamicTypeHostedTests::height` if it matches.
 - [x] `Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift:406` `reuse/reuse` — `commandSubjectHeight` copies the same measure-a-frame logic as `urlHeight` and `malformedSourceHeight`. Three near-identical helpers in three files are duplicated behavior. Use the same shared frame-height helper as the other two tests, and keep only this test's ScriptedSession setup and its `makeParams(subject:)` call in this file.
+
+## Review Findings (2026-10-11 23:50)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Content/MathViewHostedTests.swift:84` `reuse/reuse` — The themed and unthemed height pair is built inline. It is the same pair-and-compare shape as `ProseFontHostedTests` lines 15-18, so the logic is copied rather than shared. Move the themed/unthemed comparison into one shared helper, as described in the finding on `PermissionViewHostedTests.swift:417`. Then this test becomes one call to that helper with `MathView.inlineIdentifier`.
+- [x] `Tests/AgentViewKitTests/Theme/ProseFontHostedTests.swift:16` `reuse/reuse` — The themed and unthemed height pair is built inline. It repeats the shape of `MathViewHostedTests` lines 84-89, so the comparison is copied rather than shared. Use the same shared themed-taller helper as the other tests. This test then passes `MessageHeader(role: .assistant)` and `MessageHeader.roleIdentifier`.
