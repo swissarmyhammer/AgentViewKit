@@ -4,8 +4,8 @@ This directory holds recorded sessions of FoundationModelsACPAgent. The
 Gallery tab of the demo app shows them, so that you can see how the kit views
 look with real session data.
 
-The files come from SWE-bench runs of FoundationModelsACPAgent. Each
-directory is one instance directory of
+Most of the files come from SWE-bench runs of FoundationModelsACPAgent. Each
+of these directories is one instance directory of
 `../FoundationModelsACPAgent/bench/preds.<run>.transcripts/`, copied as it
 is:
 
@@ -15,6 +15,7 @@ is:
 | `django__django-14155` | `code-context-1008` |
 | `django__django-14608` | `no-otel-1011` |
 | `django__django-14672` | `no-otel-1011` |
+| `stub-model-kinds` | stub model, see "The stub model sessions" |
 
 Each directory is one transcript location of the agent: `sessions.jsonl`,
 `.gitattributes`, and one directory for each session with `session.json`,
@@ -22,6 +23,50 @@ Each directory is one transcript location of the agent: `sessions.jsonl`,
 
 Do not edit these files. The sessions are replaced over time, and no test
 reads their content.
+
+## The stub model sessions
+
+The SWE-bench sessions have no attachments, no compaction, and no stop
+reason other than `end_turn`. The `stub-model-kinds` directory has three
+sessions that have them. The agent made them with its stub model, so no
+model loaded and nothing downloaded:
+
+| Session title | Kind |
+|---|---|
+| Attachments | A user message with a `resource_link` block and a `resource` block |
+| Compaction | A compaction entry from the `/compact` command |
+| Cancelled | A turn with the stop reason `cancelled` |
+
+To record these sessions again:
+
+1. Make an empty root directory, for example `/tmp/stub-run`. Make the
+   directories `work`, `transcripts`, and `config/acp-agent` in it.
+2. Write `config/acp-agent/config.yaml` with the text
+   `transcripts:` and `  location: "<root>/transcripts"`.
+3. In `work`, start `../FoundationModelsACPAgent/.build/release/acp-agent acp`
+   with these environment variables:
+   - `XDG_CONFIG_HOME=<root>/config`
+   - `ACP_AGENT_STUB_MODEL=1`
+   - `ACP_AGENT_STUB_CHUNK_DELAY_MS=500`
+4. Send `initialize` with protocol version 2. Then, for each session, send
+   `session/new` with the `work` directory as `cwd`, and then:
+   - Attachments: one `session/prompt` with a text block, a `resource_link`
+     block to a file in `work`, and a `resource` block with text.
+   - Compaction: one `session/prompt` with text, and then one
+     `session/prompt` with the text `/compact`.
+   - Cancelled: one `session/prompt` with text, and `session/cancel` 1.5
+     seconds after the prompt result.
+5. After the idle `state_update` of each session, send `session/close`, so
+   that the agent writes `session-history.json`.
+6. Copy `<root>/transcripts` into this directory with `cp -Rp`.
+
+## The scripted sessions of the Gallery
+
+FoundationModelsACPAgent cannot make some entry kinds and states, or makes
+them only in a live turn that a resume does not replay. The Gallery shows
+these from `InMemoryDemoACPAgent` of `DemoSupport` (`DemoGallery` and
+`DemoConnectionState`), next to the recorded sessions. They are not in this
+directory.
 
 ## Replace the sessions
 

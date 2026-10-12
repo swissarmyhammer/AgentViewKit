@@ -1,0 +1,2 @@
+{"routerId":"01M4QAR9PVKK7A4F3TSMK9S586","sessionId":"01M4QARTPZYRA02Y9RD2PBJA5A","slot":"standard","ts":813477213.925032,"kind":"session","model":"mlx-community\/Qwen3.8-27B-mxfp4","seq":2}
+{"ms":1509,"routerId":"01M4QAR9PVKK7A4F3TSMK9S586","sessionId":"01M4QARTPZYRA02Y9RD2PBJA5A","tokensIn":0,"slot":"standard","ts":813477215.434996,"kind":"response","entry":{"entryId":"F4BEF58C-CDDF-4424-AE41-9805C5C95767","assetIds":[],"contentRemoved":false,"segments":[]},"model":"mlx-community\/Qwen3.8-27B-mxfp4","seq":3,"tokensOut":0}

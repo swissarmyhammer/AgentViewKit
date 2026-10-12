@@ -15,7 +15,8 @@ import FoundationModelsACP
 /// - `initialize` with protocol version 2, the `session/delete` capability,
 ///   and one agent authentication method.
 /// - `session/new` and `session/resume` with a mode option.
-/// - `session/list` with one session.
+/// - `session/list` with one session. ``InMemoryDemoACPAgent`` adds the
+///   scripted sessions of its ``InMemoryDemoScript``.
 /// - `session/prompt` with a new `messageId`. Before the result, it echoes
 ///   the prompt text in a `user_message_chunk` with the same `messageId`
 ///   (``ScriptedWireAgent``). After the result, it sends the `session/update`
@@ -112,20 +113,32 @@ public enum InMemoryDemoAgent {
 
   // MARK: - Results
 
-  /// The `initialize` result.
+  /// The `initialize` result, with the sign-in method.
   static var initializeResult: JSONValue {
+    initializeResult(advertisingSignIn: true)
+  }
+
+  /// The `initialize` result.
+  ///
+  /// - Parameter advertisingSignIn: Whether the result gives the `agent`
+  ///   method ``authMethodID``. With no method, the client needs no sign-in.
+  /// - Returns: The result.
+  static func initializeResult(advertisingSignIn: Bool) -> JSONValue {
     .object([
       "info": .object(["name": .string(name), "version": .string("1.0.0")]),
       "protocolVersion": .number(Double(ProtocolVersion.v2.rawValue)),
       "capabilities": .object(["session": .object(["delete": .object([:])])]),
-      "authMethods": .array([
-        .object([
-          "type": .string("agent"),
-          "methodId": .string(authMethodID),
-          "name": .string("Demo sign-in"),
-          "description": .string("The in-memory agent accepts each sign-in."),
-        ])
-      ]),
+      "authMethods": .array(advertisingSignIn ? [signInMethod] : []),
+    ])
+  }
+
+  /// The `agent` auth method of the `initialize` result.
+  static var signInMethod: JSONValue {
+    .object([
+      "type": .string("agent"),
+      "methodId": .string(authMethodID),
+      "name": .string("Demo sign-in"),
+      "description": .string("Signs in to the in-memory agent."),
     ])
   }
 
@@ -156,16 +169,23 @@ public enum InMemoryDemoAgent {
     .object(["configOptions": configOptions])
   }
 
-  /// The `session/list` result.
+  /// The `session/list` result, with the one session of the agent.
   static var listSessionsResult: JSONValue {
-    .object([
-      "sessions": .array([
-        .object([
-          "sessionId": .string(sessionID),
-          "cwd": .string(sessionCwd),
-          "title": .string(sessionTitle),
-        ])
-      ])
+    listSessionsResult(adding: [])
+  }
+
+  /// The `session/list` result: the one session of the agent, and then the
+  /// scripted sessions.
+  ///
+  /// - Parameter scripted: The scripted sessions of the script of the agent.
+  /// - Returns: The result.
+  static func listSessionsResult(adding scripted: [DemoGallerySession]) -> JSONValue {
+    let infos = [(id: sessionID, title: sessionTitle)] + scripted.map { (id: $0.id, title: $0.title) }
+    return .object([
+      "sessions": .array(
+        infos.map { info in
+          .object(["sessionId": .string(info.id), "cwd": .string(sessionCwd), "title": .string(info.title)])
+        })
     ])
   }
 

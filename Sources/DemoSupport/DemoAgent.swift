@@ -196,12 +196,21 @@ public final class DemoAgent {
   /// Starts ``InMemoryDemoACPAgent`` in this process through
   /// ``InProcessAgent``, and sends `initialize`.
   ///
-  /// - Parameter workingDirectory: The working directory of each new session.
+  /// The ACP tab starts the agent with the ``InMemoryDemoScript/standard``
+  /// script. The Gallery tab starts it with the
+  /// ``InMemoryDemoScript/gallery`` script, and ``DemoConnectionState``
+  /// starts it with the script of each state.
+  ///
+  /// - Parameters:
+  ///   - script: The script of the agent.
+  ///   - workingDirectory: The working directory of each new session.
   /// - Returns: The agent, with a connected and initialized model.
   /// - Throws: The error of `initialize`.
-  private static func makeInProcess(workingDirectory: AbsolutePath) async throws -> DemoAgent {
+  public static func makeInProcess(
+    script: InMemoryDemoScript = .standard, workingDirectory: AbsolutePath
+  ) async throws -> DemoAgent {
     let connection = await InProcessAgent.makeConnection { agentConnection in
-      InMemoryDemoACPAgent(connection: agentConnection)
+      InMemoryDemoACPAgent(connection: agentConnection, script: script)
     }
     return try await makeStarted(
       connection: connection,

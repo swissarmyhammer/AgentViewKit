@@ -452,7 +452,13 @@ two tabs:
   program over a temporary copy of
   [`Examples/AgentViewKitDemo/RecordedSessions/`](Examples/AgentViewKitDemo/RecordedSessions),
   lists the sessions with `session/list`, and opens one with `session/resume`.
-  The agent restores the session, and the views bind to its models. An
+  The agent restores the session, and the views bind to its models. The
+  recorded sessions do not have each entry kind and each state of the views,
+  so the sidebar also lists the scripted sessions of the in-memory agent
+  (`DemoGallery`) and the connection and sign-in states
+  (`DemoConnectionState`). They show permission requests, form and URL
+  elicitations, plans, compactions, notices, errors, attachments, the other
+  stop reasons, and the sign-in and connection states. An
   inspector sets the EditorKit theme (`SystemTheme`, `DefaultTheme.light`,
   `DefaultTheme.dark`), the appearance, the increased contrast, the density,
   and the text size.
@@ -468,8 +474,10 @@ The launch arguments are in
 ### Replace the recorded sessions
 
 The recorded sessions come from the SWE-bench runs in
-`../FoundationModelsACPAgent/bench/preds.<run>.transcripts/`. They are
-replaced over time, and no test reads their content. To replace them:
+`../FoundationModelsACPAgent/bench/preds.<run>.transcripts/`, and from one
+run of the stub model of the agent (the steps are in
+[`RecordedSessions/README.md`](Examples/AgentViewKitDemo/RecordedSessions/README.md)).
+They are replaced over time, and no test reads their content. To replace them:
 
 1. Remove the directories in `Examples/AgentViewKitDemo/RecordedSessions/` that you replace.
 2. Copy whole instance directories from `preds.<run>.transcripts/` into that directory, as they are. Do not trim or change a file.
