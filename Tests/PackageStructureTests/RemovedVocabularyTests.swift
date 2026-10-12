@@ -211,14 +211,60 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     #expect(found.isEmpty, "\(found)")
   }
 
-  /// The pattern that finds a call of the removed thread initializer
-  /// `AgentThreadView(thread:actions:)`, also a call over two lines.
+  /// The pattern that finds a use of a removed input of some types: a call of
+  /// an initializer of one of the types that gives the input, also a call
+  /// over more lines, or a DocC link to such an initializer.
   ///
-  /// A `Regex` is not `Sendable`, so each call makes the value again.
+  /// An argument can hold one level of parentheses, such as `.user(entry)`.
+  /// A `Regex` is not `Sendable`, so each call makes the value again. The
+  /// pattern uses simple word boundaries, because the default boundaries do
+  /// not break at the `:` in `entry:date:`.
   ///
+  /// - Parameters:
+  ///   - types: The type names. The list cannot be empty.
+  ///   - input: The argument label of the removed input.
   /// - Returns: The pattern.
+  static func removedInputUse(of types: [String], input: String) -> Regex<Substring> {
+    precondition(!types.isEmpty, "A removed input needs one type name or more")
+    let typeName = types.dropFirst().reduce(Regex<Substring> { types[0] }) { choice, type in
+      Regex<Substring> {
+        ChoiceOf {
+          choice
+          type
+        }
+      }
+    }
+    let notParenthesis = CharacterClass.anyOf("()").inverted
+    return Regex {
+      Anchor.wordBoundary
+      typeName
+      Optionally { "/init" }
+      "("
+      ZeroOrMore {
+        ChoiceOf {
+          notParenthesis
+          Regex {
+            "("
+            ZeroOrMore(notParenthesis)
+            ")"
+          }
+        }
+      }
+      Anchor.wordBoundary
+      input
+      ":"
+    }
+    .wordBoundaryKind(.simple)
+  }
+
+  /// The pattern that finds a use of the removed `thread:` input of
+  /// `AgentThreadView`: a call of the removed thread initializer
+  /// `AgentThreadView(thread:actions:)`, also a call over more lines, or a
+  /// DocC link to the initializer.
+  ///
+  /// - Returns: The pattern, from ``removedInputUse(of:input:)``.
   static func threadInitializerCall() -> Regex<Substring> {
-    #/AgentThreadView\(\s*thread:/#
+    removedInputUse(of: ["AgentThreadView"], input: "thread")
   }
 
   /// The pattern that finds a use of the removed `workingDirectory:` input
@@ -229,14 +275,9 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// The views read the working directory and the additional directories
   /// from the session model, so the host does not give them.
   ///
-  /// A `Regex` is not `Sendable`, so each call makes the value again. The
-  /// pattern uses simple word boundaries, because the default boundaries do
-  /// not break at the `:` in `connection:workingDirectory:`.
-  ///
-  /// - Returns: The pattern.
+  /// - Returns: The pattern, from ``removedInputUse(of:input:)``.
   static func workingDirectoryInputUse() -> Regex<Substring> {
-    #/\b(?:AgentThreadView|SessionStreamBanner)(?:/init)?\([^)]*\bworkingDirectory:/#
-      .wordBoundaryKind(.simple)
+    removedInputUse(of: ["AgentThreadView", "SessionStreamBanner"], input: "workingDirectory")
   }
 
   /// The pattern that finds a use of the removed `actions:` input of
@@ -245,14 +286,11 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// lines, or a DocC link to the initializer.
   ///
   /// The views call the methods of the client models, so the host gives no
-  /// actions. A `Regex` is not `Sendable`, so each call makes the value again.
-  /// The pattern uses simple word boundaries, because the default boundaries
-  /// do not break at the `:` in `connection:actions:`.
+  /// actions.
   ///
-  /// - Returns: The pattern.
+  /// - Returns: The pattern, from ``removedInputUse(of:input:)``.
   static func threadActionsInputUse() -> Regex<Substring> {
-    #/\bAgentThreadView(?:/init)?\([^)]*\bactions:/#
-      .wordBoundaryKind(.simple)
+    removedInputUse(of: ["AgentThreadView"], input: "actions")
   }
 
   /// The relative time of the message header, which a host date of a message
@@ -266,15 +304,11 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// the internal `TranscriptMessageView` and `MessageLayout`, also a call
   /// over more lines, or a DocC link to one of the initializers.
   ///
-  /// An argument can hold one level of parentheses, such as
-  /// `.user(entry)`. A `Regex` is not `Sendable`, so each call makes the value
-  /// again. The pattern uses simple word boundaries, because the default
-  /// boundaries do not break at the `:` in `entry:date:`.
-  ///
-  /// - Returns: The pattern.
+  /// - Returns: The pattern, from ``removedInputUse(of:input:)``.
   static func messageDateInputUse() -> Regex<Substring> {
-    #/\b(?:UserMessageView|AssistantMessageView|TranscriptMessageView|MessageHeader|MessageLayout)(?:/init)?\((?:[^()]|\([^()]*\))*\bdate:/#
-      .wordBoundaryKind(.simple)
+    removedInputUse(
+      of: ["UserMessageView", "AssistantMessageView", "TranscriptMessageView", "MessageHeader", "MessageLayout"],
+      input: "date")
   }
 
   /// The directory of the Swift files of the kit library.
@@ -463,6 +497,16 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
       + Self.uses(of: Self.removedSessionModelSymbols, inFile: Self.readmePath)
 
     #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func theRemovedInputPatternFindsTheInputOfEachTypeAfterNestedParentheses() {
+    let pattern = Self.removedInputUse(of: ["First", "Second"], input: "gone")
+
+    #expect("Second(\n  kept: f(x),\n  gone: g)".contains(pattern))
+    #expect("``First/init(kept:gone:)``".contains(pattern))
+    #expect(!"First(kept: k); Other(gone: g)".contains(pattern))
+    #expect(!"Third(gone: g)".contains(pattern))
+    #expect(!"First(notgone: g)".contains(pattern))
   }
 
   @Test func theThreadInitializerPatternFindsACallOverTwoLines() {
