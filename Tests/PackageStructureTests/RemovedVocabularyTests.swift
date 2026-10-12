@@ -213,11 +213,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func noFileUsesTheRemovedValueCopies() throws {
-    let found =
-      try Self.uses(of: Self.removedValueCopySymbols, below: Self.swiftPaths)
-      + Self.uses(of: Self.removedValueCopySymbols, inFile: Self.readmePath)
-
-    #expect(found.isEmpty, "\(found)")
+    try Self.expectNoUse(of: Self.removedValueCopySymbols)
   }
 
   /// The pattern that finds a use of a removed input of some types: a call of
@@ -468,9 +464,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func sourcesUseNoRemovedSymbol() throws {
-    let found = try Self.uses(of: Self.removedSymbols, below: [Self.sourcesPath])
-
-    #expect(found.isEmpty, "\(found)")
+    try Self.expectNoUse(of: Self.removedSymbols, below: [Self.sourcesPath], inFiles: [])
   }
 
   /// Finds each use of a removed symbol in one file.
@@ -486,34 +480,44 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     }
   }
 
-  @Test func theDemoAppAndItsTestsUseNoRemovedDemoSymbol() throws {
-    let found = try Self.uses(of: Self.removedDemoSymbols, below: Self.swiftPaths)
+  /// Expects that no Swift file below some directories, and no other file of
+  /// a list, uses one of some removed symbols.
+  ///
+  /// - Parameters:
+  ///   - symbols: The removed symbols.
+  ///   - paths: The directories, relative to the package root. The default
+  ///     is ``swiftPaths``.
+  ///   - files: The other files, relative to the package root. The default
+  ///     is the README.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: The error of the scan when a directory or a file cannot be read.
+  static func expectNoUse(
+    of symbols: [String],
+    below paths: [String] = swiftPaths,
+    inFiles files: [String] = [readmePath],
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let inDirectories = try uses(of: symbols, below: paths)
+    let inOtherFiles = try files.flatMap { try uses(of: symbols, inFile: $0) }
+    let found = inDirectories + inOtherFiles
 
-    #expect(found.isEmpty, "\(found)")
+    #expect(found.isEmpty, "\(found)", sourceLocation: sourceLocation)
+  }
+
+  @Test func theDemoAppAndItsTestsUseNoRemovedDemoSymbol() throws {
+    try Self.expectNoUse(of: Self.removedDemoSymbols, inFiles: [])
   }
 
   @Test func noFileUsesTheRemovedAgentProgram() throws {
-    let found =
-      try Self.uses(of: Self.removedAgentProgramSymbols, below: Self.swiftPaths)
-      + Self.uses(of: Self.removedAgentProgramSymbols, inFile: Self.readmePath)
-
-    #expect(found.isEmpty, "\(found)")
+    try Self.expectNoUse(of: Self.removedAgentProgramSymbols)
   }
 
   @Test func noFileUsesTheRemovedACPAdapter() throws {
-    let found =
-      try Self.uses(of: Self.removedAdapterSymbols, below: Self.swiftPaths)
-      + Self.uses(of: Self.removedAdapterSymbols, inFile: Self.readmePath)
-
-    #expect(found.isEmpty, "\(found)")
+    try Self.expectNoUse(of: Self.removedAdapterSymbols)
   }
 
   @Test func noFileUsesTheRemovedSessionModel() throws {
-    let found =
-      try Self.uses(of: Self.removedSessionModelSymbols, below: Self.swiftPaths)
-      + Self.uses(of: Self.removedSessionModelSymbols, inFile: Self.readmePath)
-
-    #expect(found.isEmpty, "\(found)")
+    try Self.expectNoUse(of: Self.removedSessionModelSymbols)
   }
 
   @Test func theRemovedInputPatternFindsTheInputOfEachTypeAfterNestedParentheses() {
@@ -548,10 +552,24 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     .map(\.lastPathComponent)
   }
 
-  @Test func noFileCallsTheRemovedThreadInitializer() throws {
-    let callers = try Self.fileNames(matching: Self.threadInitializerCall)
+  /// Expects that no Swift file below ``swiftPaths``, and not the README,
+  /// matches a pattern.
+  ///
+  /// - Parameters:
+  ///   - makePattern: Makes the pattern, as ``fileNames(matching:)`` takes it.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: The error of the scan when a file cannot be read.
+  static func expectNoFile(
+    matching makePattern: () -> Regex<Substring>,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let matches = try fileNames(matching: makePattern)
 
-    #expect(callers.isEmpty, "\(callers)")
+    #expect(matches.isEmpty, "\(matches)", sourceLocation: sourceLocation)
+  }
+
+  @Test func noFileCallsTheRemovedThreadInitializer() throws {
+    try Self.expectNoFile(matching: Self.threadInitializerCall)
   }
 
   @Test func theWorkingDirectoryPatternFindsACallOverTwoLinesAndADocLink() {
@@ -565,9 +583,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func noFileGivesTheWorkingDirectoryToAView() throws {
-    let users = try Self.fileNames(matching: Self.workingDirectoryInputUse)
-
-    #expect(users.isEmpty, "\(users)")
+    try Self.expectNoFile(matching: Self.workingDirectoryInputUse)
   }
 
   @Test func theThreadActionsPatternFindsACallOverTwoLinesAndADocLink() {
@@ -580,9 +596,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func noFileGivesThreadActionsToTheThreadView() throws {
-    let users = try Self.fileNames(matching: Self.threadActionsInputUse)
-
-    #expect(users.isEmpty, "\(users)")
+    try Self.expectNoFile(matching: Self.threadActionsInputUse)
   }
 
   @Test func theMessageDatePatternFindsACallOverTwoLinesAndADocLink() {
@@ -597,17 +611,11 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func noFileGivesADateToAMessageView() throws {
-    let users = try Self.fileNames(matching: Self.messageDateInputUse)
-
-    #expect(users.isEmpty, "\(users)")
+    try Self.expectNoFile(matching: Self.messageDateInputUse)
   }
 
   @Test func noFileUsesTheRelativeTimeOfTheMessageHeader() throws {
-    let found =
-      try Self.uses(of: Self.removedMessageDateSymbols, below: Self.swiftPaths)
-      + Self.uses(of: Self.removedMessageDateSymbols, inFile: Self.readmePath)
-
-    #expect(found.isEmpty, "\(found)")
+    try Self.expectNoUse(of: Self.removedMessageDateSymbols)
   }
 
   @Test func observableClassNamesFindsTheNameAfterTheAttributesAndModifiers() {

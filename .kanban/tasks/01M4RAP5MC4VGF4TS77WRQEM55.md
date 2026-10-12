@@ -39,6 +39,40 @@ comments:
     - evidence: 16 source/doc files (2 deleted): Sources/DemoSupport/{DemoAgent,DemoLaunchOptions}.swift, Sources/DemoSupport/TerminalAppAuthRunner.swift (deleted), Examples/AgentViewKitDemo/AgentViewKitDemoFeature/{ACPTabView,ACPSettingsSheet}.swift, Examples/AgentViewKitDemo/Tests/{ACPTabEndToEndTests,GalleryTabEndToEndTests}.swift (doc only), Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb (comment), Package.swift (comments), README.md, Docs/decisions/dependencies.md, Tests/AgentViewKitTests/ACP/{DemoAgentTests,DemoLaunchOptionsTests,KitInitializeRequestTests}.swift, Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift (deleted), Tests/PackageStructureTests/RemovedVocabularyTests.swift. RED seen first (missing `acpAgent`/`foundationModelsAgentName`; `noFileUsesTheRemovedAgentProgram` failed). `swift test`: 1147 tests in 129 suites passed (2 known issues, same as before), 122 tests in 15 suites passed, 1 snippet test passed; load average 38.94 before, 32.27 after. Demo project regenerated; `xcodebuild -skipMacroValidation -skipPackagePluginValidation build-for-testing`: TEST BUILD SUCCEEDED (load 27.92 before, 26.10 after). UI tests not run. No live model run.
     - next: /review.
   timestamp: 2026-10-12T20:00:44.276593+00:00
+- actor: claude-code
+  id: 01m4rvpqjd86cxh1rxp580q6ky
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (e785f42): 1 finding, 1 confirmed, 0 refuted. Tests/PackageStructureTests/RemovedVocabularyTests.swift:495 (duplication/duplication).
+    - next: Extract one shared helper (or one parameterized test) for the removed-symbol search in RemovedVocabularyTests.swift. Make the new test noFileUsesTheRemovedAgentProgram call it. Then run the tests, commit, and review again.
+  timestamp: 2026-10-12T20:08:45.389370+00:00
+- actor: claude-code
+  id: 01m4rvq1x91geas5h5rkczc1h7
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ACP tab runs FoundationModelsACPAgent in the process (live model); sibling program path, --agent-command, makeConnected and the demo terminal sign-in removed
+    - test: green — swift test, 1147 tests passed, 2 expected known issues, load average 18 to 28
+    - commit: e785f42
+    - review: findings — Tests/PackageStructureTests/RemovedVocabularyTests.swift:495
+  timestamp: 2026-10-12T20:08:55.977923+00:00
+- actor: claude-code
+  id: 01m4rw1wx6w81x4kmrbdr70rsg
+  text: |-
+    Implement pass 2 (finding fix, not committed).
+
+    - Finding `RemovedVocabularyTests.swift` duplication: fixed for the whole file, not only for the named test. New helper `expectNoUse(of:below:inFiles:sourceLocation:)` holds the scan and the expectation. The default directories are `swiftPaths` and the default other files are the README. Seven tests are now one call each: `noFileUsesTheRemovedValueCopies`, `sourcesUseNoRemovedSymbol` (`below: [sourcesPath], inFiles: []`), `theDemoAppAndItsTestsUseNoRemovedDemoSymbol` (`inFiles: []`), `noFileUsesTheRemovedAgentProgram`, `noFileUsesTheRemovedACPAdapter`, `noFileUsesTheRemovedSessionModel`, `noFileUsesTheRelativeTimeOfTheMessageHeader`.
+    - The same repeated body was also in the four whole-text pattern tests. New helper `expectNoFile(matching:sourceLocation:)` over `fileNames(matching:)`. `noFileCallsTheRemovedThreadInitializer`, `noFileGivesTheWorkingDirectoryToAView`, `noFileGivesThreadActionsToTheThreadView`, `noFileGivesADateToAMessageView` are one call each.
+    - Both helpers take `sourceLocation: SourceLocation = #_sourceLocation`, as the other test helpers do (`NameChecks`, `KitInitializeRequestTests`), so a failure points at the test.
+    - Not changed: `theKitDeclaresNoTypeWithTheNameOfAnACPValueType` and `sourcesCallNoRemovedInitializer` use other line matchers (type declarations, initializer labels), so their bodies are not the same.
+    - The tests keep the same names and scopes, so no behavior changed. There is no new production code, so no RED step.
+  timestamp: 2026-10-12T20:14:51.302233+00:00
+- actor: claude-code
+  id: 01m4rw22h8qcdt0m2vktk80qd3
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/PackageStructureTests/RemovedVocabularyTests.swift. Finding RemovedVocabularyTests.swift:495 (duplication/duplication) checked. `swift test`: 1147 tests in 129 suites passed (2 known issues, same as before), 122 tests in 15 suites passed, 1 snippet test passed; exit 0. Load average 17.56 before, 19.61 after. One build-system line `warning: missing creator for mutated node` for the mlx-swift_Cmlx.bundle in .build (not from this change). UI tests not run.
+    - next: /test, then /commit, then /review.
+  timestamp: 2026-10-12T20:14:57.064524+00:00
 depends_on:
 - 01M4RAHKJVTQFR205BQWV9BPNV
 position_column: doing
@@ -55,3 +89,46 @@ Owner rule (2026-10-12): reference our packages and run them in the process; nev
 - [x] Tests and README.
 
 This card depends on the in-process Gallery card (^wv9bpnv) because both change DemoAgent and DemoLaunchOptions.
+
+## Review Findings (2026-10-12 15:05)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 14 file(s) reviewed, 4 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/dependencies.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/DemoSupport/TerminalAppAuthRunner.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/DemoSupport/TerminalAppAuthRunner.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/DemoSupport/TerminalAppAuthRunner.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/DemoSupport/TerminalAppAuthRunner.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/DemoSupport/TerminalAppAuthRunner.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Tests/AgentViewKitTests/ACP/TerminalAppAuthRunnerTests.swift, so its declarations are unread
+
+- [x] `Tests/PackageStructureTests/RemovedVocabularyTests.swift:495` `duplication/duplication` — The new test noFileUsesTheRemovedAgentProgram repeats the body of the two tests below it. Only the symbol list and the README search differ. The three copies can drift apart, so a fix to one test can miss the others. Extract a helper such as `static func assertNoUse(of symbols: [String]) throws` that holds the search and the expectation. Have each test call it with its own symbol list. Alternatively, use one parameterized `@Test(arguments:)` over the three symbol lists. Keep the new test as a one-line call to the helper.
