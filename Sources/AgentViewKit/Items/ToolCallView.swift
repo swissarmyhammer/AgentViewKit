@@ -363,7 +363,6 @@ private struct ToolCallHeader: View {
   let expanded: Bool
 
   @Environment(\.toolCallConnectionState) private var connectionState
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
@@ -409,16 +408,16 @@ private struct ToolCallHeader: View {
     .contentShape(Rectangle())
   }
 
-  /// The status symbol, with the symbol effects of the row. The variable
-  /// color effect of a pending or running call shows that the call is live,
-  /// so the row shows no separate spinner.
+  /// The status symbol, with the symbol effects of the row. The live symbol
+  /// effect of a pending or running call shows that the call is live, so the
+  /// row shows no separate spinner. ``View/liveSymbolEffect(isActive:)`` comes
+  /// last, so under Reduce Motion it also removes the bounce.
   private var statusGlyph: some View {
     let status = entry.shownStatus
     return ToolStatusImage(status: status)
       .contentTransition(.symbolEffect(.replace))
-      .symbolEffect(.variableColor.iterative, isActive: ToolStatusSymbol.isLive(status))
       .symbolEffect(.bounce, value: status == .completed)
-      .symbolEffectsRemoved(reduceMotion)
+      .liveSymbolEffect(isActive: ToolStatusSymbol.isLive(status))
   }
 }
 

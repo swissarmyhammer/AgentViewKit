@@ -193,7 +193,6 @@ private struct PlanEntryRow: View {
 
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
@@ -204,11 +203,11 @@ private struct PlanEntryRow: View {
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
       Spacer(minLength: theme.spacing.s)
-      Image(systemName: TaskListView.prioritySymbol(entry.priority))
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(editorTheme.tint(for: entry.priority))
-        .fontWeight(theme.symbolWeight)
-        .help(TaskListView.priorityLabel(entry.priority))
+      StatusSymbolImage(
+        name: TaskListView.prioritySymbol(entry.priority),
+        color: editorTheme.tint(for: entry.priority)
+      )
+      .help(TaskListView.priorityLabel(entry.priority))
     }
     .padding(.vertical, theme.rowPadding)
     .accessibilityElement(children: .ignore)
@@ -217,14 +216,13 @@ private struct PlanEntryRow: View {
   }
 
   /// The symbol of the status. An entry in progress shows its symbol with
-  /// the variable color effect, as a running tool call does. Under Reduce
+  /// the live symbol effect, as a running tool call does. Under Reduce
   /// Motion, the symbol does not move.
   private var statusSymbol: some View {
-    Image(systemName: TaskListView.statusSymbol(entry.status))
-      .symbolRenderingMode(.hierarchical)
-      .foregroundStyle(editorTheme.statusColor(for: entry.status))
-      .fontWeight(theme.symbolWeight)
-      .symbolEffect(.variableColor.iterative, isActive: entry.status == .inProgress)
-      .symbolEffectsRemoved(reduceMotion)
+    StatusSymbolImage(
+      name: TaskListView.statusSymbol(entry.status),
+      color: editorTheme.statusColor(for: entry.status)
+    )
+    .liveSymbolEffect(isActive: entry.status == .inProgress)
   }
 }

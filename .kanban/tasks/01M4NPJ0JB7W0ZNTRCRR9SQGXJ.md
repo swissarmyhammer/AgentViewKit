@@ -38,6 +38,42 @@ comments:
     - files: Sources/AgentViewKit/{Items/SharedSymbol.swift, Items/ToolStatusImage.swift, Items/ToolCallView.swift, Activity/ActivityTimeline.swift, Diff/DiffView.swift, Status/TaskListView.swift, Status/StateBanner.swift, Status/StatusBar.swift, Status/UsageRingView.swift, Elicitation/ElicitationFieldViews.swift}, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift; tests: PackageStructureTests/{SymbolRenderingModeTests.swift, FixedColorTests.swift}, AgentViewKitTests/{Helpers/HarnessProgressIndicators.swift, TestSupport/HarnessProgressIndicatorTests.swift, Status/UsageRingViewHostedTests.swift, Status/StatusBarEffectTests.swift, Status/UsageRingViewTests.swift, Status/ContextUsageSessionModelHostedTests.swift, Items/ToolCallViewHostedTests.swift, Items/SessionEntryRowsHostedTests.swift, Items/SymbolConceptTests.swift, Elicitation/ElicitationFieldViewsHostedTests.swift}
     - next: /review
   timestamp: 2026-10-12T01:09:42.683847+00:00
+- actor: claude-code
+  id: 01m4pva3y4aqqt0hsqyamxxm7z
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (8b46bdf). 5 findings (5 confirmed, 4 refuted). Sources/AgentViewKit/Items/ToolCallView.swift:419, Sources/AgentViewKit/Status/StatusBar.swift:67, Sources/AgentViewKit/Status/TaskListView.swift:222 (2 findings), Sources/AgentViewKit/Status/TaskListView.swift:227
+    - next: Add one shared modifier for the variable-color effect and the Reduce Motion removal. Add one shared status-symbol view. Use them in ToolCallView, StatusBar and TaskListView. The task stays in review.
+  timestamp: 2026-10-12T01:23:23.204070+00:00
+- actor: claude-code
+  id: 01m4pvamhvjd9r2j0v22act477
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — hierarchical rendering, one pulse signal, banner effects, gauge usage ring, localized elicitation values, demo theme color, new package tests
+    - test: green — swift test, 1114 tests passed, 1 expected known issue, load average 52 to 71
+    - commit: 8b46bdf
+    - review: findings — Sources/AgentViewKit/Items/ToolCallView.swift:419, Sources/AgentViewKit/Status/StatusBar.swift:67, Sources/AgentViewKit/Status/TaskListView.swift:222 (two findings), Sources/AgentViewKit/Status/TaskListView.swift:227
+  timestamp: 2026-10-12T01:23:40.219244+00:00
+- actor: claude-code
+  id: 01m4pvx3d2jd22c05axy2kysg5
+  text: |-
+    Review findings fixed (not committed). What changed:
+    - New `Items/LiveSymbolEffect.swift`: the `LiveSymbolEffect` view modifier and `View.liveSymbolEffect(isActive:)`. It applies `.variableColor.iterative` while `isActive`, and `.symbolEffectsRemoved(reduceMotion)` with Reduce Motion from the environment. ToolCallHeader.statusGlyph, StatusBar and PlanEntryRow.statusSymbol call it with their own `isActive`. Their `reduceMotion` environment properties are gone.
+    - In `statusGlyph` the modifier comes after `.symbolEffect(.bounce, ...)`, so under Reduce Motion it also removes the bounce, as the old chain did (the removal was the last modifier before too).
+    - New `Items/StatusSymbolImage.swift`: a view with a symbol name and a color. It sets the hierarchical mode, the symbol weight and the color. ToolStatusImage, PlanEntryRow (status and priority symbols) and StatusBar use it. Each caller keeps its own status-to-symbol map and color.
+    - Test: new `Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift`. It holds `.variableColor` and `.symbolEffectsRemoved(` in `LiveSymbolEffect.swift` only, and holds `Image(systemName:` out of ToolStatusImage.swift, TaskListView.swift and StatusBar.swift. RED: 2 failures before the change. GREEN after.
+    - `SymbolRenderingModeTests` now reads `StatusSymbolImage.swift` in place of `ToolStatusImage.swift`, because the image moved.
+    - Follow-up task added: CompactionEntryView, ErrorView and SessionNoticeBanner write the same chain. They are outside the findings.
+  timestamp: 2026-10-12T01:33:45.250907+00:00
+- actor: claude-code
+  id: 01m4pvx8bw3qm4mgqb0akj1fkn
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` 1114 tests in 123 suites passed (1 known issue, the designed `withKnownIssue` of HostedLayoutExpectationsTests), XCTest 0 failures, PackageStructure 111 tests in 13 suites passed. Load average 76.24 at start, 48.65 at end. The only warning is the known `missing creator for mutated node` of the mlx-swift_Cmlx bundle (dependency). RED: 2 issues in SharedSymbolTreatmentTests; GREEN: 5 tests passed. No UI tests ran.
+    - files: Sources/AgentViewKit/Items/{LiveSymbolEffect.swift (new), StatusSymbolImage.swift (new), ToolStatusImage.swift, ToolCallView.swift}, Sources/AgentViewKit/Status/{StatusBar.swift, TaskListView.swift}, Tests/PackageStructureTests/{SharedSymbolTreatmentTests.swift (new), SymbolRenderingModeTests.swift}
+    - findings: 5 of 5 checked.
+    - next: /review
+  timestamp: 2026-10-12T01:33:50.332939+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
 position_column: doing
@@ -56,3 +92,16 @@ An audit on 2026-10-11 found differences in how symbols are drawn, and missing a
 - [x] Elicitation radio buttons: localize the accessibility value "selected", or use `Picker` with `.radioGroup` (`Elicitation/ElicitationFieldViews.swift:625-640`).
 - [x] Demo: use the theme color in place of `.red` (`Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:352`).
 - [x] Tests for each change.
+
+## Review Findings (2026-10-11 20:16)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 23 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKit/Items/ToolCallView.swift:419` `duplication/duplication` — The variable-color effect with Reduce Motion gating is copied in three places. Each copy has the same two modifiers and differs only in the `isActive` condition. A change to the Reduce Motion rule must be made in each copy. Add one view modifier, for example `.liveSymbolEffect(isActive:)`, that applies the variable-color effect and the Reduce Motion removal. Call it from the three sites with each site's own `isActive` value.
+- [x] `Sources/AgentViewKit/Status/StatusBar.swift:67` `reuse/reuse` — The `.symbolEffect(.variableColor.iterative, isActive:)` plus `.symbolEffectsRemoved(reduceMotion)` pair is written out again for the ongoing-message symbol. The same pair already appears in the tool-call and plan-entry status symbols, so the Reduce Motion gate for ongoing symbols is copied in three files. Add one shared modifier, for example `.ongoingSymbolEffect(isActive:)`, that applies the variable-color effect and `symbolEffectsRemoved(reduceMotion)` from the environment. Use it in `StatusBar`, `statusGlyph`, and `PlanEntryRow.statusSymbol`, so the Reduce Motion handling is written once.
+- [x] `Sources/AgentViewKit/Status/TaskListView.swift:222` `duplication/duplication` — The new `PlanEntryRow.statusSymbol` repeats the status symbol view that `ToolStatusImage` already provides. It sets the same hierarchical rendering, the same symbol weight, and the same status color. A later change to one copy can leave the other out of sync. Add a shared view or helper that takes a symbol name and a status color, and call it from both `ToolStatusImage` and `PlanEntryRow`. Keep the per-type mapping in each caller. Delete the copied modifier chain.
+- [x] `Sources/AgentViewKit/Status/TaskListView.swift:222` `reuse/reuse` — `PlanEntryRow.statusSymbol` rebuilds the status glyph that `ToolCallHeader.statusGlyph` already builds: hierarchical rendering, status color, symbol weight, the variable-color iterative effect while the status is live, and `symbolEffectsRemoved(reduceMotion)`. Two copies of one status-symbol treatment will drift apart. A later change to the live effect or the Reduce Motion rule would have to be made in both places. Move the live-status effect and the Reduce Motion handling into one shared `ViewModifier` (for example, a status-symbol modifier that takes `isLive` and applies the variable-color effect with `symbolEffectsRemoved`). Apply it from `statusGlyph`, `statusSymbol` and `ToolStatusImage`, so the rule lives in one place.
+- [x] `Sources/AgentViewKit/Status/TaskListView.swift:227` `duplication/duplication` — The variable-color effect with Reduce Motion gating is copied in `PlanEntryRow.statusSymbol`. It repeats the same effect pair used in `ToolCallView` and `StatusBar`, so a change to the Reduce Motion rule must be made in three places. Use the same shared modifier proposed for `ToolCallView.swift:419`, with `entry.status == .inProgress` as its `isActive` value. Delete the copied modifiers here.

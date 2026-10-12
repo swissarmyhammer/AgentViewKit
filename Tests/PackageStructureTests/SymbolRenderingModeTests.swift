@@ -6,9 +6,9 @@ import Testing
 ///
 /// The error card, the status bar, the notice banner, the plan and the
 /// compaction row show each symbol with the hierarchical rendering mode. The
-/// tool call row, the status symbol of a tool call, the activity timeline and
-/// the diff use the same mode, so each status view shows the layers of a
-/// symbol in the same way.
+/// tool call row, the shared status symbol (`StatusSymbolImage`), the activity
+/// timeline and the diff use the same mode, so each status view shows the
+/// layers of a symbol in the same way.
 ///
 /// The scan reads each file as text. The modifier chain of a symbol image is
 /// each line after the image line that starts with a dot.
@@ -22,7 +22,7 @@ import Testing
     "Sources/AgentViewKit/Status/TaskListView.swift",
     "Sources/AgentViewKit/Items/CompactionEntryView.swift",
     "Sources/AgentViewKit/Items/ToolCallView.swift",
-    "Sources/AgentViewKit/Items/ToolStatusImage.swift",
+    "Sources/AgentViewKit/Items/StatusSymbolImage.swift",
     "Sources/AgentViewKit/Activity/ActivityTimeline.swift",
     "Sources/AgentViewKit/Diff/DiffView.swift",
   ]

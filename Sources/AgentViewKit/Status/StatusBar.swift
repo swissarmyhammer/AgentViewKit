@@ -15,8 +15,8 @@ import SwiftUI
 ///
 /// The symbol of a message of work that goes on
 /// (``StateBanner/Message/isOngoing``), such as the running banner and the
-/// replaying banner, shows the variable color effect. Under Reduce Motion,
-/// the symbol does not move.
+/// replaying banner, shows the live symbol effect of ``LiveSymbolEffect``.
+/// Under Reduce Motion, the symbol does not move.
 struct StatusBar: View {
   /// The button of a bar.
   struct Action {
@@ -45,7 +45,6 @@ struct StatusBar: View {
 
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   /// The color of the symbol of `message`, from the EditorKit theme.
   ///
@@ -60,12 +59,8 @@ struct StatusBar: View {
 
   var body: some View {
     HStack(spacing: theme.spacing.m) {
-      Image(systemName: message.symbolName)
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(Self.symbolColor(for: message, in: editorTheme))
-        .fontWeight(theme.symbolWeight)
-        .symbolEffect(.variableColor.iterative, isActive: message.isOngoing)
-        .symbolEffectsRemoved(reduceMotion)
+      StatusSymbolImage(name: message.symbolName, color: Self.symbolColor(for: message, in: editorTheme))
+        .liveSymbolEffect(isActive: message.isOngoing)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(message.title)
