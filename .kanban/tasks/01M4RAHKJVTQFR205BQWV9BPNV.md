@@ -175,8 +175,24 @@ comments:
     - evidence: 4 files — Sources/DemoSupport/DemoAgent.swift, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift, Tests/PackageStructureTests/ImportBoundaryTests.swift. `swift build --build-tests` green. `swift test`: 1163 tests in 130 suites passed (2 known issues, the same as before) and 121 tests in 15 suites passed; the two parameterized DemoAgent tests passed with 2 cases each, the boundary test with 5 cases. Load average 29.24 33.82 38.00 before, 31.72 32.42 36.38 after. UI tests not run. All 3 findings checked.
     - next: /test, /commit, then /review.
   timestamp: 2026-10-12T19:12:48.921518+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4rrxcza07kpxk5dss8aqd0y
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e0d6af9). 4 files reviewed. 0 findings, 0 confirmed, 0 refuted. All prior findings are checked.
+    - next: The task is in done.
+  timestamp: 2026-10-12T19:19:58.186341+00:00
+- actor: claude-code
+  id: 01m4rrxpjwsvn86kcaqcs01jsd
+  text: |-
+    ### finish iteration 4 — clean
+    - implement: changed — one makeInProcess(serving:...) helper; agent tests over InProcessAgentFactory; one parameterized import boundary test; 3 findings checked
+    - test: green — swift test, 1163 tests passed, 2 expected known issues, load average 20 to 33
+    - commit: e0d6af9
+    - review: clean — 0 findings (4 files); task in done
+  timestamp: 2026-10-12T19:20:08.028813+00:00
+position_column: done
+position_ordinal: ffb480
 title: 'Gallery: run FoundationModelsACPAgent in the process through its package, not as a sibling program'
 ---
 ## What
