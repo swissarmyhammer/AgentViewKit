@@ -218,6 +218,26 @@ import Testing
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.openIdentifier) == nil)
   }
 
+  @Test func theButtonsBeforeThePressKeepTheirTextAsTheirLabels() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.close() }
+    let harness = mounted.harness
+
+    harness.expectButton(identifier: ElicitationURLConsentView.cancelIdentifier, label: "Cancel")
+    harness.expectButton(identifier: ElicitationURLConsentView.declineIdentifier, label: "Decline")
+    harness.expectButton(identifier: ElicitationURLConsentView.openIdentifier, label: "Open in Browser")
+  }
+
+  @Test func retryKeepsItsAccessibilityLabel() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.close() }
+    try await Self.open(mounted)
+
+    mounted.harness.expectButton(
+      identifier: ElicitationURLConsentView.retryIdentifier,
+      label: "Open \(ElicitationHeader.agentServer) in the browser again")
+  }
+
   @Test func retryOpensTheBrowserAgainWithNoSecondAnswer() async throws {
     let mounted = try await Self.mount()
     defer { mounted.close() }

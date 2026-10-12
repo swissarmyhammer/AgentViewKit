@@ -39,6 +39,14 @@ public struct ElicitationView: View {
   /// The accessibility identifier of the Cancel button.
   public static let cancelIdentifier = "elicitation-cancel"
 
+  /// The symbol of the Submit button, which accepts the elicitation.
+  static let submitSymbol = SharedSymbol.accept
+  /// The symbol of the Decline button, which rejects the elicitation.
+  static let declineSymbol = SharedSymbol.reject
+  /// The symbol of the Cancel button, which closes the elicitation with no
+  /// answer.
+  static let cancelSymbol = SharedSymbol.dismiss
+
   /// The accessibility identifier of the tab of the field named `name`.
   ///
   /// - Parameter name: The property name of the field.
@@ -303,11 +311,11 @@ public struct ElicitationFooter: View {
   public var body: some View {
     HStack(spacing: theme.spacing.s) {
       Spacer()
-      Button("Cancel", role: .cancel) { context.cancel() }
+      Button("Cancel", systemImage: ElicitationView.cancelSymbol, role: .cancel) { context.cancel() }
         .accessibilityIdentifier(ElicitationView.cancelIdentifier)
-      Button("Decline") { context.decline() }
+      Button("Decline", systemImage: ElicitationView.declineSymbol) { context.decline() }
         .accessibilityIdentifier(ElicitationView.declineIdentifier)
-      Button("Submit") { context.submit() }
+      Button("Submit", systemImage: ElicitationView.submitSymbol) { context.submit() }
         .buttonStyle(.glassProminent)
         .keyboardShortcut(.defaultAction)
         .disabled(!context.canSubmit)

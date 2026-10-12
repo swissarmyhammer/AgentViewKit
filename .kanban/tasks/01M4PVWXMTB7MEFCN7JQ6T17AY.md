@@ -17,8 +17,24 @@ comments:
     - evidence: 6 files — Sources/AgentViewKit/Items/CompactionEntryView.swift, Sources/AgentViewKit/Items/ErrorView.swift, Sources/AgentViewKit/Status/SessionNoticeBanner.swift, Sources/AgentViewKit/Activity/ActivityTimeline.swift, Sources/AgentViewKit/Items/StatusSymbolImage.swift (doc), Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift. `swift test`: 1153 tests in 128 suites pass, 2 known issues (the expected-failure tests that were there before), exit 0. Load average at start 20.55 22.46 21.86, at end 25.23 22.71 21.98. No UI tests run.
     - next: /review
   timestamp: 2026-10-12T05:13:13.704828+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4q8s88a93fmep7d0mqbtrsb
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1473a23). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 6 files reviewed. 4 .kanban files not reviewed (ignore rule).
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T05:18:50.634993+00:00
+- actor: claude-code
+  id: 01m4q8sgagbsa38sk7ydg6q7ra
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — StatusSymbolImage in CompactionEntryView, ErrorView, SessionNoticeBanner and ActivityTimeline
+    - test: green — swift test, 1153 tests passed, 2 expected known issues, load average 20 to 24
+    - commit: 1473a23
+    - review: clean — 0 findings (6 files); task in done
+  timestamp: 2026-10-12T05:18:58.896372+00:00
+position_column: done
+position_ordinal: ffaf80
 title: Use StatusSymbolImage for the other status symbols
 ---
 ## What

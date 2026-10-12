@@ -79,7 +79,8 @@ nonisolated enum SharedSymbol {
   /// The symbol of a tool that fetches a web resource.
   static let web = "globe"
 
-  /// The symbol of a tool that changes the session mode.
+  /// The symbol of a change of the session mode: a tool that changes the
+  /// session mode, and the "switch to auto" button of a permission request.
   static let switchMode = "switch.2"
 
   /// The symbol of a tool: a tool of an other kind, a tool call in a
@@ -179,18 +180,21 @@ nonisolated enum SharedSymbol {
   static let share = "square.and.arrow.up"
 
   /// The symbol of a button that does a thing again: Refresh, Retry, the
-  /// Reload button of a banner and the Reconnect button of the auth card.
+  /// Reload button of a banner, the Reconnect button of the auth card and the
+  /// Retry button of the URL consent card.
   static let reload = "arrow.clockwise"
 
   /// The symbol of an answer that accepts one time: the allow-once option of
-  /// a permission request and the Accept button of a diff hunk.
+  /// a permission request, the Accept button of a diff hunk and the Submit
+  /// button of an elicitation form.
   static let accept = "checkmark"
 
   /// The symbol of the allow-always option of a permission request.
   static let acceptAlways = "checkmark.seal"
 
   /// The symbol of an answer that rejects one time: the reject-once option of
-  /// a permission request and the Reject button of a diff hunk.
+  /// a permission request, the Reject button of a diff hunk and the Decline
+  /// button of an elicitation.
   static let reject = "xmark.circle"
 
   /// The symbol of the reject-always option of a permission request.
@@ -215,7 +219,8 @@ nonisolated enum SharedSymbol {
   /// The symbol of the button that attaches a file to the prompt.
   static let attach = "paperclip"
 
-  /// The symbol of the button that opens a file in its app.
+  /// The symbol of a button that opens a thing in an other app: the Open
+  /// button of a file and the Open in Browser button of the URL consent card.
   static let open = "arrow.up.forward.app"
 
   /// The symbol of a folder: the Reveal in Finder button and a working
@@ -231,10 +236,13 @@ nonisolated enum SharedSymbol {
   /// The symbol of a button that removes a value: an attachment or a date.
   static let remove = "xmark.circle.fill"
 
-  /// The symbol of the button that closes a notice.
+  /// The symbol of a button that closes a thing with no answer: the button
+  /// that closes a notice and the Cancel button of an elicitation.
   static let dismiss = "xmark"
 
-  /// The symbol of the button that sends the prompt.
+  /// The symbol of a button that sends text to the agent: the button that
+  /// sends the prompt and the Send button of the comment of a permission
+  /// request.
   static let send = "arrow.up"
 
   /// The symbol of the button that stops the turn.

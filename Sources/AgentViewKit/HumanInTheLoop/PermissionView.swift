@@ -82,6 +82,12 @@ public struct PermissionView: View {
   static let directorySymbol = SharedSymbol.folder
   /// The symbol of the button that shows or hides the terminal.
   static let terminalLinkSymbol = SharedSymbol.terminal
+  /// The symbol of the Send button of the comment field. The comment goes
+  /// out as the next prompt, so the button shows the symbol of a send.
+  static let commentSubmitSymbol = SharedSymbol.send
+  /// The symbol of the "switch to auto" button, which changes the session
+  /// mode.
+  static let switchToAutoSymbol = SharedSymbol.switchMode
 
   /// The symbol of the button of an option.
   ///
@@ -347,7 +353,7 @@ public struct PermissionView: View {
         .textFieldStyle(.roundedBorder)
         .onSubmit { sendReject(option: option) }
         .accessibilityIdentifier(Self.commentIdentifier)
-      Button("Send") { sendReject(option: option) }
+      Button("Send", systemImage: Self.commentSubmitSymbol) { sendReject(option: option) }
         .buttonStyle(.glass)
         .accessibilityIdentifier(Self.commentSubmitIdentifier)
     }
@@ -362,7 +368,7 @@ public struct PermissionView: View {
     if let modeOption = PermissionPresentation.autoModeOption(in: session.configOptions ?? []),
       let allow = options.first(where: { $0.kind == .allowOnce })
     {
-      Button("Allow and Switch to Auto Mode") {
+      Button("Allow and Switch to Auto Mode", systemImage: Self.switchToAutoSymbol) {
         switchToAuto(allow: allow, modeOption: modeOption)
       }
       .buttonStyle(.glass)

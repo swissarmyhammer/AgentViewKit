@@ -74,6 +74,15 @@ public struct ElicitationURLConsentView: View {
 
   /// The symbol of the warning.
   static let warningSymbol = SharedSymbol.warning
+  /// The symbol of the Open in Browser button, which opens the URL in an
+  /// other app.
+  static let openSymbol = SharedSymbol.open
+  /// The symbol of the Retry button, which opens the browser again.
+  static let retrySymbol = SharedSymbol.reload
+  /// The symbol of the Decline button: the symbol of the form.
+  static let declineSymbol = ElicitationView.declineSymbol
+  /// The symbol of the Cancel button: the symbol of the form.
+  static let cancelSymbol = ElicitationView.cancelSymbol
 
   /// The step of the consent.
   enum Phase: Equatable {
@@ -189,18 +198,18 @@ public struct ElicitationURLConsentView: View {
   private var footer: some View {
     HStack(spacing: theme.spacing.s) {
       Spacer()
-      Button("Cancel", role: .cancel, action: cancel)
+      Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: cancel)
         .accessibilityIdentifier(Self.cancelIdentifier)
       switch phase {
       case .idle:
-        Button("Decline", action: decline)
+        Button("Decline", systemImage: Self.declineSymbol, action: decline)
           .accessibilityIdentifier(Self.declineIdentifier)
-        Button("Open in Browser", action: open)
+        Button("Open in Browser", systemImage: Self.openSymbol, action: open)
           .buttonStyle(.glassProminent)
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
-        Button("Retry", action: openBrowser)
+        Button("Retry", systemImage: Self.retrySymbol, action: openBrowser)
           .buttonStyle(.glassProminent)
           .accessibilityLabel("Open \(ElicitationHeader.agentServer) in the browser again")
           .accessibilityIdentifier(Self.retryIdentifier)

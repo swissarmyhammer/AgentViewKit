@@ -296,6 +296,18 @@ import Testing
     #expect(Self.promptTexts(session) == [Self.comment])
   }
 
+  @Test func theSendButtonOfTheCommentKeepsItsTextAsItsLabel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
+    defer { harness.close() }
+
+    try Self.press(.rejectOnce, in: harness)
+    harness.pump()
+
+    harness.expectButton(identifier: PermissionView.commentSubmitIdentifier, label: "Send")
+  }
+
   @Test func anEmptyCommentSendsNoPrompt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -346,6 +358,15 @@ import Testing
     defer { harness.close() }
 
     #expect(harness.element(identifier: PermissionView.switchToAutoIdentifier) == nil)
+  }
+
+  @Test func switchToAutoKeepsItsTextAsItsLabel() async throws {
+    let session = try await Self.openSessionInAskMode()
+    defer { session.close() }
+    let harness = try await Self.mountCard(in: session)
+    defer { harness.close() }
+
+    harness.expectButton(identifier: PermissionView.switchToAutoIdentifier, label: "Allow and Switch to Auto Mode")
   }
 
   @Test func switchToAutoAllowsThenSetsTheMode() async throws {

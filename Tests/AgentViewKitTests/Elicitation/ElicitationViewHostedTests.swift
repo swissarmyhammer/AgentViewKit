@@ -286,6 +286,16 @@ import Testing
     #expect(mounted.session.model.pendingElicitations.isEmpty)
   }
 
+  @Test func theFooterButtonsKeepTheirTextAsTheirLabels() async throws {
+    let mounted = try await Self.mount(Self.oneFieldParams)
+    defer { mounted.close() }
+    let harness = mounted.harness
+
+    harness.expectButton(identifier: ElicitationView.cancelIdentifier, label: "Cancel")
+    harness.expectButton(identifier: ElicitationView.declineIdentifier, label: "Decline")
+    harness.expectButton(identifier: ElicitationView.submitIdentifier, label: "Submit")
+  }
+
   @Test func declineSendsDecline() async throws {
     let mounted = try await Self.mount(Self.oneFieldParams)
     defer { mounted.close() }

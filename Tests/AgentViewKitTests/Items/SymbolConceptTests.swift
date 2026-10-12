@@ -11,8 +11,8 @@ import Testing
 /// Each test reads the symbol names from the views of the kit: the banners,
 /// the stop reasons, the plan and its priorities, the MCP server chip, the
 /// diff, the command output, the message actions, the send state, the tool
-/// rows, the error card, the time of an entry, the permission options and the
-/// action buttons.
+/// rows, the error card, the time of an entry, the permission options, the
+/// action buttons and the buttons that answer a request.
 @Suite @MainActor struct SymbolConceptTests {
   /// The meaning of a symbol. Each concept must have one symbol, and each
   /// symbol must have one concept.
@@ -28,6 +28,7 @@ import Testing
     case time
     case accept, acceptAlways, reject, rejectAlways
     case details, loadMore, showAll, signIn, signOut, suggestion
+    case send, dismiss, open
     case usage, usageFull
   }
 
@@ -223,6 +224,37 @@ import Testing
     ]
   }
 
+  /// The symbols of the buttons of the elicitation form: Submit, Decline and
+  /// Cancel.
+  static func elicitationFormButtonUses() -> [Use] {
+    [
+      Use(concept: .accept, place: "elicitation Submit", name: ElicitationView.submitSymbol),
+      Use(concept: .reject, place: "elicitation Decline", name: ElicitationView.declineSymbol),
+      Use(concept: .dismiss, place: "elicitation Cancel", name: ElicitationView.cancelSymbol),
+    ]
+  }
+
+  /// The symbols of the buttons of the URL consent card: Open in Browser,
+  /// Retry, Decline and Cancel.
+  static func urlConsentButtonUses() -> [Use] {
+    [
+      Use(concept: .open, place: "URL consent Open in Browser", name: ElicitationURLConsentView.openSymbol),
+      Use(concept: .reload, place: "URL consent Retry", name: ElicitationURLConsentView.retrySymbol),
+      Use(concept: .reject, place: "URL consent Decline", name: ElicitationURLConsentView.declineSymbol),
+      Use(concept: .dismiss, place: "URL consent Cancel", name: ElicitationURLConsentView.cancelSymbol),
+    ]
+  }
+
+  /// The symbols of the buttons that answer a request and that showed text
+  /// only before: the Send button of the permission comment row, the switch
+  /// to auto button, and the buttons of the elicitation cards.
+  static func requestButtonUses() -> [Use] {
+    [
+      Use(concept: .send, place: "permission comment Send", name: PermissionView.commentSubmitSymbol),
+      Use(concept: .switchMode, place: "permission switch to auto", name: PermissionView.switchToAutoSymbol),
+    ] + elicitationFormButtonUses() + urlConsentButtonUses()
+  }
+
   /// The symbols of the usage ring: a ring that is not full, and a full
   /// ring.
   static func usageRingUses() -> [Use] {
@@ -236,7 +268,7 @@ import Testing
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
       + connectionChipUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
-      + permissionOptionUses() + actionButtonUses() + usageRingUses()
+      + permissionOptionUses() + actionButtonUses() + requestButtonUses() + usageRingUses()
   }
 
   // MARK: - The checks
@@ -276,6 +308,14 @@ import Testing
 
   @Test func eachPermissionOptionKindShowsADifferentSymbol() {
     NameChecks.expectDistinctNames(Self.permissionOptionUses().map(\.name))
+  }
+
+  @Test func eachButtonOfTheElicitationFormShowsADifferentSymbol() {
+    NameChecks.expectDistinctNames(Self.elicitationFormButtonUses().map(\.name))
+  }
+
+  @Test func eachButtonOfTheURLConsentCardShowsADifferentSymbol() {
+    NameChecks.expectDistinctNames(Self.urlConsentButtonUses().map(\.name))
   }
 
   @Test func eachMCPServerStatusShowsADifferentSymbol() {
