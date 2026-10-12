@@ -31,15 +31,9 @@ import SwiftUI
 /// A sign-in with an `agent` method sets the `authState` of the connection
 /// model to `.authenticated`. The tab observes that state and tells
 /// ``DemoAgent`` to retry the kept `session/new`.
-struct ACPTabView: View {
-  /// The state of the tab.
-  private enum Phase {
-    /// The agent starts, and the first session opens.
-    case starting
-
-    /// The start failed with the error.
-    case failed(any Error)
-
+struct ACPTabView: View, DemoStartingTab {
+  /// The content of the tab after the start.
+  private enum Content {
     /// The agent runs, and asks for a sign-in before it opens a session.
     case signingIn(DemoAgent)
 
@@ -85,8 +79,8 @@ struct ACPTabView: View {
   /// The launch options of the app.
   let options: DemoLaunchOptions
 
-  /// The state of the tab.
-  @State private var phase = Phase.starting
+  /// The state of the tab. The agent starts, and the first session opens.
+  @State private var phase = DemoStartPhase<Content>.starting
 
   /// The error of the last `session/new` request of the New Session button,
   /// or `nil`. The connection model does not record this error.
@@ -104,6 +98,9 @@ struct ACPTabView: View {
   init(options: DemoLaunchOptions) {
     self.options = options
   }
+
+  /// The text of the progress view of the start.
+  var startingText: String { "Starting \(options.agentName)" }
 
   var body: some View {
     NavigationSplitView {
@@ -136,7 +133,7 @@ struct ACPTabView: View {
   private var agent: DemoAgent? {
     switch phase {
     case .starting, .failed: nil
-    case .signingIn(let agent), .running(let agent, _): agent
+    case .started(.signingIn(let agent)), .started(.running(let agent, _)): agent
     }
   }
 
@@ -152,12 +149,9 @@ struct ACPTabView: View {
   /// Starts the agent and opens the first session. The tab starts the agent
   /// one time only.
   private func start() async {
-    guard case .starting = phase else { return }
-    do {
+    await DemoStartPhase.start($phase) {
       let agent = try await DemoAgent.makeConnected(options: options)
       await openFirstSession(on: agent)
-    } catch {
-      phase = .failed(error)
     }
   }
 
@@ -192,7 +186,7 @@ struct ACPTabView: View {
   ///   - session: The open session model.
   ///   - agent: The agent that opened it.
   private func select(_ session: SessionModel, on agent: DemoAgent) {
-    phase = .running(agent, session)
+    phase = .started(.running(agent, session))
     newSessionFailure = nil
   }
 
@@ -239,7 +233,7 @@ struct ACPTabView: View {
   ///   - agent: The agent.
   private func show(_ error: any Error, of agent: DemoAgent) async {
     guard !DemoAgent.isAuthenticationRequired(error) else {
-      phase = .signingIn(agent)
+      phase = .started(.signingIn(agent))
       return
     }
     await agent.stop()
@@ -267,10 +261,10 @@ struct ACPTabView: View {
 
   /// The session list of the connection model, or the state of the start.
   @ViewBuilder private var sidebar: some View {
-    if case .running(let agent, _) = phase {
+    if case .started(.running(let agent, _)) = phase {
       sessionList(of: agent)
     } else {
-      startView
+      DemoStartView(phase: phase, tab: self)
     }
   }
 
@@ -288,7 +282,7 @@ struct ACPTabView: View {
       SessionListView(
         connection: agent.connection,
         cwd: agent.workingDirectory,
-        onOpen: { session in phase = .running(agent, session) },
+        onOpen: { session in phase = .started(.running(agent, session)) },
         onNewSession: {
           Task { await openNewSession(on: agent) }
         }
@@ -304,14 +298,14 @@ struct ACPTabView: View {
   /// The selected session, the sign-in card, or the state of the start.
   @ViewBuilder private var detail: some View {
     switch phase {
-    case .running(let agent, let session):
+    case .started(.running(let agent, let session)):
       thread(of: session, on: agent)
-    case .signingIn(let agent):
+    case .started(.signingIn(let agent)):
       AgentAuthView(connection: agent.connection)
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     case .starting, .failed:
-      startView
+      DemoStartView(phase: phase, tab: self)
     }
   }
 
@@ -332,25 +326,6 @@ struct ACPTabView: View {
     .conversationEmptyState(title: Self.welcomeTitle, markdown: Self.welcomeMarkdown)
   }
 
-  /// The state of a start that has not given a session.
-  private var startView: DemoStartView {
-    DemoStartView(
-      phase: startPhase,
-      startingText: "Starting \(options.agentName)",
-      startingIdentifier: Self.startingIdentifier,
-      failureIdentifier: Self.failureIdentifier
-    )
-  }
-
-  /// The state of the start of the tab.
-  private var startPhase: DemoStartView.Phase {
-    switch phase {
-    case .starting: .starting
-    case .failed(let error): .failed(error)
-    case .signingIn, .running: .started
-    }
-  }
-
   // MARK: - Toolbar
 
   /// The configuration menu of the selected session, the button that stops
@@ -360,7 +335,7 @@ struct ACPTabView: View {
   /// `DemoAgent.stop()`: the state of the connection model becomes
   /// `.disconnected`, and the thread view shows the connection banner.
   @ViewBuilder private var toolbarItems: some View {
-    if case .running(let agent, let session) = phase {
+    if case .started(.running(let agent, let session)) = phase {
       ConfigOptionsView(session: session)
       Button("Stop Agent", systemImage: "stop.circle") {
         Task { await agent.stop() }
@@ -375,7 +350,7 @@ struct ACPTabView: View {
 
   /// The settings sheet, with the models of the running agent.
   @ViewBuilder private var settingsSheet: some View {
-    if case .running(let agent, let session) = phase {
+    if case .started(.running(let agent, let session)) = phase {
       ACPSettingsSheet(connection: agent.connection, session: session, agentCommand: options.agentCommand)
     }
   }

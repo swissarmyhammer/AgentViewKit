@@ -69,6 +69,40 @@ comments:
     - evidence: new Sources/DemoSupport/DemoFailureText.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift, Tests/AgentViewKitTests/ACP/DemoFailureTextTests.swift; changed Sources/DemoSupport/RecordedSessionsStage.swift, DemoFailureLabel.swift, GalleryTabView.swift, ACPTabView.swift, Tests/AgentViewKitTests/ACP/RecordedSessionsStageTests.swift. swift test: 1130 tests in 125 suites pass (1 known issue from before, HostedLayoutExpectationsTests) + 116 tests in 14 suites + 1; only warning is the mlx-swift "missing creator" build warning from before. xcodebuild build-for-testing of the demo: TEST BUILD SUCCEEDED (only the appintentsmetadataprocessor notes). UI tests not run. Load average 35.17 before the full run, 29.79 after.
     - next: /review. Both findings are checked.
   timestamp: 2026-10-12T03:10:34.651519+00:00
+- actor: claude-code
+  id: 01m4q1v1wb8pddxgk0yxj2pcs8
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (bd34515): 4 findings, 4 confirmed, 0 refuted. ACPTabView.swift:336, ACPTabView.swift:346, GalleryTabView.swift:163, GalleryTabView.swift:173 (all duplication/duplication).
+    - next: implement the 4 open items in the section "Review Findings (2026-10-11 22:14)". Put the shared start view construction and the shared start phase mapping in DemoStartView. Then review again.
+  timestamp: 2026-10-12T03:17:29.611967+00:00
+- actor: claude-code
+  id: 01m4q1vet3t4205tkx73m7ccpf
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — DemoFailureText, RecordedSessionsStage error and lookup, shared DemoStartView; 2 findings checked
+    - test: green — swift test, 1130 tests passed, 1 expected known issue, load average 25 to 35
+    - commit: bd34515
+    - review: findings — Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:336, ACPTabView.swift:346, GalleryTabView.swift:163, GalleryTabView.swift:173
+  timestamp: 2026-10-12T03:17:42.851153+00:00
+- actor: claude-code
+  id: 01m4q2e0a8rbd5774dnevng2ed
+  text: |-
+    Corrections of the 4 duplication findings of "Review Findings (2026-10-11 22:14)" (not committed):
+    - New `DemoStartPhase<Started>` in `Sources/DemoSupport/DemoStartPhase.swift`: one shared state enum (`starting`, `failed(any Error)`, `started(Started)`) that both tabs hold in `@State`. Thus no tab maps its state to the start view, and both `startPhase` copies are removed. `DemoStartPhase.start(_:with:)` is the shared start routine: it runs the operation only while the phase is `starting`, and sets `failed(error)` when the operation throws. Both tabs called the same guard and do/catch before; both `start()` functions now call this routine.
+    - `DemoStartView` is now generic over `Started`, and has one init `init(phase:tab:)` that takes the tab. New protocol `DemoStartingTab` (in `DemoStartView.swift`) gives the starting text and the two accessibility identifiers. `ACPTabView` and `GalleryTabView` conform. Each tab calls `DemoStartView(phase: phase, tab: self)`. Both `startView` copies are removed.
+    - `ACPTabView` keeps its tab-specific cases in a private `Content` enum (`signingIn`, `running`) that is the `Started` value. `GalleryTabView` uses `DemoStartPhase<DemoAgent>`. The accessibility identifier values did not change, so the UI tests need no change.
+    - Package tests: `DemoStartPhaseTests` (4 tests). RED was a compile failure (no `DemoStartPhase`), then GREEN: 4 tests in 1 suite.
+    - Discovery: the multi-edit form of `edit file` refused the edits, and `replace_all` replaced only the first match in one call. Each edit was then done one at a time.
+    - `ruby Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb` made the project again (it is gitignored; it now holds `DemoStartPhase.swift`). Nothing under `Examples/AgentViewKitDemo/RecordedSessions` changed.
+  timestamp: 2026-10-12T03:27:50.600329+00:00
+- actor: claude-code
+  id: 01m4q2e3809p9bb8923m041mk4
+  text: |-
+    ### implement — changed
+    - evidence: new Sources/DemoSupport/DemoStartPhase.swift, Tests/AgentViewKitTests/ACP/DemoStartPhaseTests.swift; changed Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift, ACPTabView.swift, GalleryTabView.swift. swift test: 1134 tests in 126 suites pass (1 known issue from before, HostedLayoutExpectationsTests) + 116 tests in 14 suites + 1; the only warning is the mlx-swift "missing creator" build warning from before. xcodebuild build-for-testing of the demo: TEST BUILD SUCCEEDED, no warning other than the appintentsmetadataprocessor notes. UI tests not run. Load average 21.39 before the full run, 16.67 after.
+    - next: /review. All 4 findings are checked.
+  timestamp: 2026-10-12T03:27:53.600248+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Demo Gallery: show recorded SWE-bench sessions through the session restore of FoundationModelsACPAgent'
@@ -132,3 +166,15 @@ Source of the recordings: `../FoundationModelsACPAgent/bench/preds.*.transcripts
 
 - [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoFailureLabel.swift:22` `completeness/public-output-contract` — The label renders `String(describing: error)`. For the Gallery start, the error is `GalleryTabView.StartError`, a plain enum whose intended message is its `LocalizedError.errorDescription` ("The app bundle has no RecordedSessions directory."). `String(describing:)` ignores `errorDescription` and prints the case name (`missingRecordings`), so the intended user-facing message is silently dropped whenever the bundle has no recordings. The `identifier`-based failure check still passes, which hides the regression. Render the localized text when the error provides it, for example `(error as? LocalizedError)?.errorDescription ?? String(describing: error)`, or use `error.localizedDescription` if that matches the contract the previous `failureLabel` used. Add one assertion that a missing-recordings start shows the `errorDescription` text, not the case name.
 - [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift:185` `duplication/duplication` — The new GalleryTabView.phaseView repeats the structure of ACPTabView.phaseView. Both switch over the start phase, show a ProgressView with an accessibility identifier while starting, show DemoFailureLabel on failure, and show EmptyView otherwise. The copies differ only in the progress text and the identifier values. The copies can drift apart, for example when the failure presentation changes in one tab and not the other. Extract one shared view that takes the starting text, the starting identifier, and the failure identifier as parameters. Use it from both tabs and delete the copy in GalleryTabView.swift.
+
+## Review Findings (2026-10-11 22:14)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:336` `duplication/duplication` — The `startView` property builds the same DemoStartView call, with the same four arguments and the same identifier wiring, as the matching property in GalleryTabView. The two copies can drift apart when the start view changes. Extract one shared construction in DemoStartView, for example a static function or an initializer that takes the start phase, the starting text, and the two identifiers. Call it from both tabs and delete both copies of `startView`.
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift:346` `duplication/duplication` — The `startPhase` mapping from the tab state to DemoStartView.Phase repeats the same `.starting` and `.failed` arms as GalleryTabView. Both tabs map the same start states, so a change to one mapping can leave the other stale. Put the shared mapping in DemoStartView, for example a static function that takes the start state and returns the Phase, with the tab-specific running and signing-in cases passed in as a Bool or as the already-mapped value. Call it from both tabs and delete both copies of `startPhase`.
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift:163` `duplication/duplication` — The `startView` property in GalleryTabView repeats the DemoStartView construction from ACPTabView. Both copies are in this change, so neither is protected as existing code. Move the shared construction into DemoStartView, as described for ACPTabView.swift:336, and call it here. Delete this copy of `startView`.
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift:173` `duplication/duplication` — The `startPhase` mapping in GalleryTabView repeats the `.starting` and `.failed` arms of the ACPTabView mapping. Both copies are in this change. Share the mapping with ACPTabView as described for ACPTabView.swift:346, then delete this copy of `startPhase`.

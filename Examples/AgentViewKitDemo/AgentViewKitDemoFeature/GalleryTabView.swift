@@ -21,19 +21,7 @@ import SwiftUI
 ///   ``SessionThreadColumn`` with no composer.
 /// - The inspector holds the ``GalleryLookControls``: the EditorKit theme,
 ///   the appearance, the increased contrast, the density, and the text size.
-struct GalleryTabView: View {
-  /// The state of the tab.
-  private enum Phase {
-    /// The tab copies the recordings and starts the agent.
-    case starting
-
-    /// The start failed with the error.
-    case failed(any Error)
-
-    /// The agent runs over the copy of the recordings.
-    case running(DemoAgent)
-  }
-
+struct GalleryTabView: View, DemoStartingTab {
   /// The accessibility identifier of the text that shows a failed start.
   static let failureIdentifier = "demo-gallery-failure"
 
@@ -53,9 +41,6 @@ struct GalleryTabView: View {
   /// The title of the tab.
   static let title = "Gallery"
 
-  /// The text of the progress view of the start.
-  static let startingText = "Starting the agent of the recorded sessions"
-
   /// The minimum width of the inspector column.
   static let inspectorMinimumWidth: CGFloat = 260
 
@@ -65,8 +50,10 @@ struct GalleryTabView: View {
   /// The launch options of the app. The tab starts their agent program.
   let options: DemoLaunchOptions
 
-  /// The state of the tab.
-  @State private var phase = Phase.starting
+  /// The state of the tab. The tab copies the recordings and starts the
+  /// agent. The started tab holds the agent that runs over the copy of the
+  /// recordings.
+  @State private var phase = DemoStartPhase<DemoAgent>.starting
 
   /// The open session, or `nil` before the first open.
   @State private var session: SessionModel?
@@ -83,6 +70,9 @@ struct GalleryTabView: View {
   init(options: DemoLaunchOptions) {
     self.options = options
   }
+
+  /// The text of the progress view of the start.
+  var startingText: String { "Starting the agent of the recorded sessions" }
 
   var body: some View {
     NavigationSplitView {
@@ -117,12 +107,9 @@ struct GalleryTabView: View {
   /// recordings fails the start with
   /// ``RecordedSessionsStage/MissingRecordingsError``.
   private func start() async {
-    guard case .starting = phase else { return }
-    do {
+    await DemoStartPhase.start($phase) {
       let stage = try RecordedSessionsStage.make(copying: try RecordedSessionsStage.recordingsDirectory())
-      phase = .running(try await DemoAgent.makeConnected(recordedSessions: stage, agentCommand: options.agentCommand))
-    } catch {
-      phase = .failed(error)
+      phase = .started(try await DemoAgent.makeConnected(recordedSessions: stage, agentCommand: options.agentCommand))
     }
   }
 
@@ -130,21 +117,21 @@ struct GalleryTabView: View {
 
   /// The session list of the connection model, or the state of the start.
   @ViewBuilder private var sidebar: some View {
-    if case .running(let agent) = phase {
+    if case .started(let agent) = phase {
       SessionListView(
         connection: agent.connection,
         cwd: agent.workingDirectory,
         onOpen: { opened in session = opened }
       )
     } else {
-      startView
+      DemoStartView(phase: phase, tab: self)
     }
   }
 
   /// The open session, the state with no open session, or the state of the
   /// start.
   @ViewBuilder private var detail: some View {
-    if case .running(let agent) = phase {
+    if case .started(let agent) = phase {
       if let session {
         SessionThreadColumn(session: session, connection: agent.connection) {}
       } else {
@@ -155,26 +142,7 @@ struct GalleryTabView: View {
         )
       }
     } else {
-      startView
-    }
-  }
-
-  /// The state of a start that has not given an agent.
-  private var startView: DemoStartView {
-    DemoStartView(
-      phase: startPhase,
-      startingText: Self.startingText,
-      startingIdentifier: Self.startingIdentifier,
-      failureIdentifier: Self.failureIdentifier
-    )
-  }
-
-  /// The state of the start of the tab.
-  private var startPhase: DemoStartView.Phase {
-    switch phase {
-    case .starting: .starting
-    case .failed(let error): .failed(error)
-    case .running: .started
+      DemoStartView(phase: phase, tab: self)
     }
   }
 }
