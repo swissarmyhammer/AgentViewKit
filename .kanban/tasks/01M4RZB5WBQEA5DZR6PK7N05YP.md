@@ -63,8 +63,24 @@ comments:
     - evidence: Scripts/test-examples.sh. `shellcheck Scripts/test-examples.sh`: exit 0, no finding. `/bin/bash` 3.2.57 `Scripts/test-examples.sh --self-test`: PASS (5 of 5 ok), exit 0. After the self-test and after `swift test`, no sleep process of the self-test stayed alive. Full `swift test`: 1152 tests in 129 suites passed, 2 known issues (not from this change), exit 0; ExampleGateTimeLimitTests passed in 3.7 seconds. Load average before 28.31 34.12 35.39, after 19.84 28.26 32.64. One build warning that is not from this change: "missing creator for mutated node" for mlx-swift_Cmlx.bundle. No UI test and no xcodebuild ran. The finding Scripts/test-examples.sh:253 is checked.
     - next: /review
   timestamp: 2026-10-12T23:04:04.342484+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m4s66jmxj5d7eny6eh6vftwm
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d757b94). 0 findings, 0 confirmed, 0 refuted. 6 validator runs, 0 failed. 1 file reviewed: Scripts/test-examples.sh. All prior findings have a check mark.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-12T23:12:10.397313+00:00
+- actor: claude-code
+  id: 01m4s66tysj1vx3k9g380xj4ch
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — one start_in_new_group helper; finding checked
+    - test: green — swift test, 1152 tests passed, 2 expected known issues, load average 16 to 32; no leftover sleep process
+    - commit: d757b94
+    - review: clean — 0 findings (1 file); task in done
+  timestamp: 2026-10-12T23:12:18.905855+00:00
+position_column: done
+position_ordinal: ffb780
 title: Stop the app under test and the test runner when test-examples.sh reaches its time limit
 ---
 ## What
