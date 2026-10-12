@@ -172,7 +172,8 @@ struct AttachmentComposerHost: View {
 
     AttachmentChips.add([.image(data), .image(data)], to: &attachments, directory: directory)
 
-    #expect(Set(attachments.map(\.url)).count == 2)
+    #expect(attachments.count == 2)
+    NameChecks.expectDistinct(attachments.map(\.url))
   }
 
   @Test func dataThatIsNotAnImageAddsNothing() throws {

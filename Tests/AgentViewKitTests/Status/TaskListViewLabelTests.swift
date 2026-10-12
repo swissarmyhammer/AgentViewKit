@@ -25,8 +25,8 @@ import Testing
 
   @Test func eachStatusAndPriorityHasADistinctLabel() {
     let statuses: [PlanEntryStatus] = [.pending, .inProgress, .completed, .cancelled, .unknown("paused")]
-    #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
+    NameChecks.expectDistinctNames(statuses.map(TaskListView.statusLabel))
     let priorities: [PlanEntryPriority] = [.high, .medium, .low, .unknown("urgent")]
-    #expect(Set(priorities.map(TaskListView.priorityLabel)).count == priorities.count)
+    NameChecks.expectDistinctNames(priorities.map(TaskListView.priorityLabel))
   }
 }

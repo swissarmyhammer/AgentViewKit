@@ -146,7 +146,7 @@ private typealias Attachment = AgentViewKit.Attachment
 
   @Test func eachRendererHasADistinctIdentifier() {
     let identifiers = AttachmentView.Renderer.allCases.map(AttachmentView.identifier(for:))
-    #expect(Set(identifiers).count == AttachmentView.Renderer.allCases.count)
+    NameChecks.expectDistinctNames(identifiers)
     #expect(AttachmentView.identifier(for: .chip) == "attachment-chip")
   }
 

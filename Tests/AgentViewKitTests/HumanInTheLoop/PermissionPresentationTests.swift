@@ -205,7 +205,7 @@ import Testing
   @Test func optionTableListsTheRowsInPositionOrder() throws {
     let positions = try Self.optionRows().map(\.position)
     #expect(positions == positions.sorted())
-    #expect(Set(positions).count == positions.count)
+    NameChecks.expectDistinct(positions)
   }
 
   @Test func switchTableHasOneRowForEachModeState() throws {

@@ -30,7 +30,7 @@ import Testing
 
     let shapes = marks.map { $0.path(in: Self.slot).description }
 
-    #expect(Set(shapes).count == marks.count, "\(shapes)")
+    NameChecks.expectDistinctNames(shapes)
   }
 
   @Test func eachMarkStaysInsideItsSlot() {

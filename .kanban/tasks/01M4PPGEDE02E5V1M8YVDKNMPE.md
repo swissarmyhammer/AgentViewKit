@@ -27,8 +27,24 @@ comments:
     - files: Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, Sources/AgentViewKit/Elicitation/ElicitationView.swift, Sources/AgentViewKit/Elicitation/ElicitationURLConsentView.swift, Sources/AgentViewKit/Items/SharedSymbol.swift, Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/PermissionViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift, Tests/AgentViewKitTests/Helpers/HarnessButtons.swift (new)
     - next: /review. The task stays in doing. No commit.
   timestamp: 2026-10-12T05:27:12.324904+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4q9krjmqyqvw9vhssvnjn94
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 4d74a46). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 9 files reviewed. 4 .kanban files are excluded by .reviewignore.
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T05:33:19.316128+00:00
+- actor: claude-code
+  id: 01m4q9m04yjhw43wpgdph9jqcn
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — icons on nine permission comment and elicitation buttons from existing SharedSymbol concepts; expectButton helper
+    - test: green — swift test, 1160 tests passed, 2 expected known issues, load average 19 to 22
+    - commit: 4d74a46
+    - review: clean — 0 findings (9 files); task in done
+  timestamp: 2026-10-12T05:33:27.070023+00:00
+position_column: done
+position_ordinal: ffb080
 title: 'SF Symbols: add icons to the text-only buttons of the permission comment row and the elicitation cards'
 ---
 ## What

@@ -37,6 +37,6 @@ import Testing
 
     let keys = ids.map { TranscriptEntry.ID.wire($0).rowKey }
 
-    #expect(Set(keys).count == ids.count, "\(keys)")
+    NameChecks.expectDistinctNames(keys)
   }
 }

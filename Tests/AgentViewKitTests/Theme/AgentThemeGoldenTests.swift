@@ -103,7 +103,7 @@ import Testing
 
   @Test func tableHasOneRowForEachToken() throws {
     let tokens = try Self.tableRows().map(\.token)
-    #expect(tokens.count == Set(tokens).count)
+    NameChecks.expectDistinctNames(tokens)
     #expect(Set(tokens) == Set(Self.checks.keys))
   }
 

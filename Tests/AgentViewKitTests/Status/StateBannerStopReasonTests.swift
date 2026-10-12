@@ -96,7 +96,7 @@ import Testing
       StateBanner.message(for: try Self.idleUpdate(stopReason: $0))
     }
 
-    #expect(Set(messages.map(\.title)).count == messages.count)
-    #expect(Set(messages.map(\.identifier)).count == messages.count)
+    NameChecks.expectDistinctNames(messages.map(\.title))
+    NameChecks.expectDistinctNames(messages.map(\.identifier))
   }
 }
