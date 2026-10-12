@@ -65,10 +65,26 @@ comments:
     - evidence: 5 files — Sources/DemoSupport/DemoAgent.swift, Sources/DemoSupport/DemoConnectionState.swift, Sources/DemoSupport/DemoGallery.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift, Tests/AgentViewKitTests/ACP/DemoGalleryTests.swift. swift test: 1165 tests in 129 suites passed (2 expected known issues), plus 118 PackageStructureTests and 1 ReadmeSnippets test. Load average 15.58 at the start, 7.47 at the end. Demo: xcodebuild -skipMacroValidation -skipPackagePluginValidation build-for-testing, scheme AgentViewKitDemo: TEST BUILD SUCCEEDED, no warning from repository files. UI tests not run. All 3 findings checked. No change under RecordedSessions.
     - next: /review
   timestamp: 2026-10-12T06:28:00.566866+00:00
+- actor: claude-code
+  id: 01m4qd29b3xfmbqhnbh0gvdj0t
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8c66cd7): 0 findings, 0 confirmed, 0 refuted; 5 files reviewed. All prior review findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T06:33:40.963684+00:00
+- actor: claude-code
+  id: 01m4qd2pynpnmd5vg95vx8szc7
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — makeInProcess default working directory; turnSession and waitingSession helpers; 3 findings checked
+    - test: green — swift test, 1165 tests passed, 2 expected known issues, load average 8 to 16
+    - commit: 8c66cd7
+    - review: clean — 0 findings (5 files); task in done
+  timestamp: 2026-10-12T06:33:54.901348+00:00
 depends_on:
 - 01M4P3B7BKPXEKTY742X7JCAT5
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffb280
 title: 'Demo Gallery: the entry kinds and states that the recorded sessions do not have'
 ---
 ## What
