@@ -8,7 +8,7 @@ import Testing
 /// `LiveSymbolEffect`. The hierarchical rendering mode, the symbol weight and
 /// the color of a status symbol are in one view, `StatusSymbolImage`. A change
 /// to the effect, to the Reduce Motion rule or to the symbol treatment is thus
-/// made one time, and the tool call, the plan entry and the status bar show it.
+/// made one time, and each status symbol in ``statusSymbolFiles`` shows it.
 ///
 /// The scan reads each Swift file as text, one line at a time.
 @Suite struct SharedSymbolTreatmentTests {
@@ -21,12 +21,18 @@ import Testing
   static let liveEffectModifiers = [".variableColor", ".symbolEffectsRemoved("]
 
   /// The files of the status symbols that draw with `StatusSymbolImage`: the
-  /// status of a tool call, the status and the priority of a plan entry, and
-  /// the symbol of a status bar.
+  /// status of a tool call, the status and the priority of a plan entry, the
+  /// symbol of a status bar, the header of a compaction row, the symbol of an
+  /// error card, the symbol of a session notice and the symbol of an activity
+  /// row.
   static let statusSymbolFiles = [
     KitSourceFiles.kitFile("Items/ToolStatusImage.swift"),
     KitSourceFiles.taskListFile,
     KitSourceFiles.statusBarFile,
+    KitSourceFiles.kitFile("Items/CompactionEntryView.swift"),
+    KitSourceFiles.kitFile("Items/ErrorView.swift"),
+    KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
+    KitSourceFiles.kitFile("Activity/ActivityTimeline.swift"),
   ]
 
   /// Finds the lines that write one of some texts.

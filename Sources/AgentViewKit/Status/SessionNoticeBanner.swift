@@ -122,10 +122,10 @@ struct NoticeBanner: View {
 
   var body: some View {
     HStack(alignment: .top, spacing: theme.spacing.m) {
-      Image(systemName: Self.symbolName(for: notice.severity))
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(editorTheme.tint(for: notice.severity))
-        .fontWeight(theme.symbolWeight)
+      StatusSymbolImage(
+        name: Self.symbolName(for: notice.severity),
+        color: editorTheme.tint(for: notice.severity)
+      )
         .help(Self.severityLabel(notice.severity))
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {

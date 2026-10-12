@@ -103,10 +103,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     let status = entry.status
     let statusText = Self.statusLabel(for: status)
     return HStack(spacing: theme.spacing.m) {
-      Image(systemName: Self.symbolName)
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(editorTheme.statusColor(for: status))
-        .fontWeight(theme.symbolWeight)
+      StatusSymbolImage(name: Self.symbolName, color: editorTheme.statusColor(for: status))
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(Self.title)

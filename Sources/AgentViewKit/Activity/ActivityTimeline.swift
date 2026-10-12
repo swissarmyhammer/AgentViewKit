@@ -211,10 +211,7 @@ private struct ActivityEntryRow: View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       Button(action: onToggle) {
         HStack(spacing: theme.spacing.s) {
-          Image(systemName: appearance.symbolName)
-            .symbolRenderingMode(.hierarchical)
-            .fontWeight(theme.symbolWeight)
-            .foregroundStyle(appearance.tint)
+          StatusSymbolImage(name: appearance.symbolName, color: appearance.tint)
           Text(appearance.title)
             .lineLimit(1)
             .truncationMode(.middle)

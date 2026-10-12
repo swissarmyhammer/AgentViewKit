@@ -61,10 +61,7 @@ public struct ErrorView: View {
     let content = Self.content(code: entry.code.wireValue, message: entry.message)
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       HStack(alignment: .top, spacing: theme.spacing.m) {
-        Image(systemName: content.symbolName)
-          .symbolRenderingMode(.hierarchical)
-          .foregroundStyle(editorTheme.severityError)
-          .fontWeight(theme.symbolWeight)
+        StatusSymbolImage(name: content.symbolName, color: editorTheme.severityError)
           .accessibilityHidden(true)
         VStack(alignment: .leading, spacing: theme.spacing.xs) {
           Text(content.title)
