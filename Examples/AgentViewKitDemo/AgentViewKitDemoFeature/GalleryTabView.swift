@@ -180,8 +180,7 @@ struct GalleryTabView: View, DemoStartingTab {
   /// - Returns: The two agents.
   /// - Throws: The error of the stage or of the start of an agent.
   private func makeSources() async throws -> Sources {
-    let scripted = try await DemoAgent.makeInProcess(
-      script: .gallery, workingDirectory: AbsolutePath(rawValue: InMemoryDemoAgent.sessionCwd))
+    let scripted = try await DemoAgent.makeInProcess(script: .gallery)
     do {
       let stage = try RecordedSessionsStage.make(copying: try RecordedSessionsStage.recordingsDirectory())
       let recorded = try await DemoAgent.makeConnected(recordedSessions: stage, agentCommand: options.agentCommand)

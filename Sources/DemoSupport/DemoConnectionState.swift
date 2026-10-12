@@ -66,10 +66,9 @@ public enum DemoConnectionState: String, CaseIterable, Sendable {
   /// - Throws: The error of `initialize`, of `session/resume`, or of a
   ///   sign-in that the agent accepts.
   public func open() async throws -> (agent: DemoAgent, session: SessionModel) {
-    let workingDirectory = AbsolutePath(rawValue: InMemoryDemoAgent.sessionCwd)
-    let agent = try await DemoAgent.makeInProcess(script: script, workingDirectory: workingDirectory)
+    let agent = try await DemoAgent.makeInProcess(script: script)
     let request = ResumeSessionRequest(
-      cwd: workingDirectory, sessionId: SessionId(rawValue: InMemoryDemoAgent.sessionID),
+      cwd: agent.workingDirectory, sessionId: SessionId(rawValue: InMemoryDemoAgent.sessionID),
       replayFrom: .start(ReplayFromStart()))
     let session = try await agent.connection.resumeSession(request)
     try await enter(with: agent, session: session)

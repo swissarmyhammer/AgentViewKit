@@ -19,7 +19,24 @@ import Testing
   /// - Returns: The connected agent.
   /// - Throws: The error of `initialize`.
   private static func makeGalleryAgent() async throws -> DemoAgent {
-    try await DemoAgent.makeInProcess(script: .gallery, workingDirectory: AbsolutePath(rawValue: InMemoryDemoAgent.sessionCwd))
+    try await DemoAgent.makeInProcess(script: .gallery)
+  }
+
+  @Test func theInProcessAgentStartsInTheWorkingDirectoryOfTheInMemorySessions() async throws {
+    let agent = try await Self.makeGalleryAgent()
+
+    #expect(agent.workingDirectory.rawValue == InMemoryDemoAgent.sessionCwd)
+    await agent.stop()
+  }
+
+  @Test func aWaitingSessionEndsInTheRequiresActionStateWithItsRequests() {
+    let request = DemoAgentRequest.elicitation(#"{"sessionId": "waiting", "mode": "form"}"#)
+
+    let session = DemoGallery.waitingSession(
+      id: "waiting", title: "Waiting", prompt: "Start.", reply: "Wait.", requests: [request])
+
+    #expect(session.history.last == DemoGallery.requiresActionState)
+    #expect(session.requests.count == 1)
   }
 
   @Test func theSessionListOfTheGalleryAgentHasEachScriptedSession() async throws {

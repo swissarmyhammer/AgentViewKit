@@ -39,19 +39,13 @@ nonisolated public enum DemoGallery {
   static let permission: DemoGallerySession = {
     let id = idPrefix + "permission"
     let toolCallID = id + "-edit"
-    return DemoGallerySession(
-      id: id,
-      title: "Permission request",
-      history: exchange(
-        in: id, prompt: "Change the greeting in Greeting.swift.",
-        reply: "I will edit Greeting.swift. The edit needs your permission.")
-        + [
-          #"""
-          {"sessionUpdate": "tool_call_update", "toolCallId": "\#(toolCallID)", "title": "Edit Greeting.swift",
-           "kind": "edit", "status": "pending"}
-          """#,
-          requiresActionState,
-        ],
+    let pendingEdit = #"""
+      {"sessionUpdate": "tool_call_update", "toolCallId": "\#(toolCallID)", "title": "Edit Greeting.swift",
+       "kind": "edit", "status": "pending"}
+      """#
+    return waitingSession(
+      id: id, title: "Permission request", prompt: "Change the greeting in Greeting.swift.",
+      reply: "I will edit Greeting.swift. The edit needs your permission.", pending: [pendingEdit],
       requests: [
         .permission(
           #"""
@@ -69,12 +63,9 @@ nonisolated public enum DemoGallery {
   /// A form elicitation with a field of each kind.
   static let formElicitation: DemoGallerySession = {
     let id = idPrefix + "form-elicitation"
-    return DemoGallerySession(
-      id: id,
-      title: "Form elicitation",
-      history: exchange(
-        in: id, prompt: "Deploy the new release.", reply: "I need some details before the deployment.")
-        + [requiresActionState],
+    return waitingSession(
+      id: id, title: "Form elicitation", prompt: "Deploy the new release.",
+      reply: "I need some details before the deployment.",
       requests: [
         .elicitation(
           #"""
@@ -97,12 +88,9 @@ nonisolated public enum DemoGallery {
   /// A URL elicitation that asks for a sign-in in the browser.
   static let urlElicitation: DemoGallerySession = {
     let id = idPrefix + "url-elicitation"
-    return DemoGallerySession(
-      id: id,
-      title: "URL elicitation",
-      history: exchange(
-        in: id, prompt: "Open the issues of this week.", reply: "The issue tracker needs a sign-in first.")
-        + [requiresActionState],
+    return waitingSession(
+      id: id, title: "URL elicitation", prompt: "Open the issues of this week.",
+      reply: "The issue tracker needs a sign-in first.",
       requests: [
         .elicitation(
           #"""
@@ -115,8 +103,6 @@ nonisolated public enum DemoGallery {
   /// A plan with an entry of each status and each priority.
   static let plan: DemoGallerySession = {
     let id = idPrefix + "plan"
-    let prompt = message("user_message", id: id + "-prompt", text: "Fix the failing parser test.")
-    let reply = message("agent_message", id: id + "-reply", text: "I made a plan. I am at the second step.")
     let planUpdate = #"""
       {"sessionUpdate": "plan_update", "plan": {"type": "items", "planId": "\#(id)",
        "entries": [{"content": "Read the failing test", "priority": "high", "status": "completed"},
@@ -124,8 +110,9 @@ nonisolated public enum DemoGallery {
                    {"content": "Change the parser", "priority": "medium", "status": "pending"},
                    {"content": "Run the full test suite", "priority": "low", "status": "pending"}]}}
       """#
-    return DemoGallerySession(
-      id: id, title: "Plan", history: [prompt, planUpdate, reply, runningState], requests: [])
+    return turnSession(
+      id: id, title: "Plan", prompt: "Fix the failing parser test.", reply: "I made a plan. I am at the second step.",
+      then: [planUpdate, runningState])
   }()
 
   /// A compaction of each status, and the context usage after them.
@@ -143,13 +130,9 @@ nonisolated public enum DemoGallery {
       #"{"sessionUpdate": "compaction_update", "compactionId": "\#(id)-cancelled", "status": "cancelled"}"#,
       #"{"sessionUpdate": "compaction_update", "compactionId": "\#(id)-running", "status": "in_progress"}"#,
     ]
-    return DemoGallerySession(
-      id: id,
-      title: "Compaction",
-      history: exchange(in: id, prompt: "Make the build faster.", reply: "I turned on the build cache.")
-        + compactions
-        + [#"{"sessionUpdate": "usage_update", "used": 168000, "size": 200000}"#, runningState],
-      requests: [])
+    return turnSession(
+      id: id, title: "Compaction", prompt: "Make the build faster.", reply: "I turned on the build cache.",
+      then: compactions + [#"{"sessionUpdate": "usage_update", "used": 168000, "size": 200000}"#, runningState])
   }()
 
   /// A notice of each severity.
@@ -166,12 +149,9 @@ nonisolated public enum DemoGallery {
         severity: "error", title: "The search index is not available",
         description: "The agent cannot search the project until the index is built again."),
     ]
-    return DemoGallerySession(
-      id: id,
-      title: "Notices",
-      history: exchange(in: id, prompt: "Search the project for the parser.", reply: "I read the parser files.")
-        + notices + [idleState(stopReason: "end_turn")],
-      requests: [])
+    return turnSession(
+      id: id, title: "Notices", prompt: "Search the project for the parser.", reply: "I read the parser files.",
+      then: notices + [idleState(stopReason: "end_turn")])
   }()
 
   /// A failed tool call, and a turn that stopped with an error.
@@ -185,12 +165,9 @@ nonisolated public enum DemoGallery {
       {"sessionUpdate": "state_update", "state": "idle", "stopReason": "error",
        "error": {"code": -32603, "message": "The model stopped with an internal error."}}
       """#
-    return DemoGallerySession(
-      id: id,
-      title: "Error",
-      history: exchange(in: id, prompt: "Run the database migration.", reply: "I run the migration now.")
-        + [failedToolCall, erroredState],
-      requests: [])
+    return turnSession(
+      id: id, title: "Error", prompt: "Run the database migration.", reply: "I run the migration now.",
+      then: [failedToolCall, erroredState])
   }()
 
   /// A user message with an image, a resource link, and an embedded
@@ -217,13 +194,52 @@ nonisolated public enum DemoGallery {
   /// - Parameter stopReason: The wire value of the stop reason.
   /// - Returns: The session.
   static func makeStopReasonSession(_ stopReason: String) -> DemoGallerySession {
-    let id = idPrefix + "stop-" + stopReason
-    return DemoGallerySession(
-      id: id,
-      title: "Stop reason \(stopReason)",
-      history: exchange(in: id, prompt: "Write the release notes.", reply: "The release notes start with")
-        + [idleState(stopReason: stopReason)],
-      requests: [])
+    turnSession(
+      id: idPrefix + "stop-" + stopReason, title: "Stop reason \(stopReason)", prompt: "Write the release notes.",
+      reply: "The release notes start with", then: [idleState(stopReason: stopReason)])
+  }
+
+  // MARK: - Session shapes
+
+  /// Makes a session of one turn: a prompt of the user, the reply of the
+  /// agent, and the updates after the reply.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the session. The message ids start with it.
+  ///   - title: The title that `session/list` gives.
+  ///   - prompt: The text of the user message.
+  ///   - reply: The text of the agent message.
+  ///   - updates: The JSON text of the updates after the reply.
+  ///   - requests: The requests that the agent sends after each resume.
+  /// - Returns: The session.
+  static func turnSession(
+    id: String, title: String, prompt: String, reply: String, then updates: [String],
+    requests: [DemoAgentRequest] = []
+  ) -> DemoGallerySession {
+    DemoGallerySession(
+      id: id, title: title, history: exchange(in: id, prompt: prompt, reply: reply) + updates, requests: requests)
+  }
+
+  /// Makes a session of one turn that waits for the user: a prompt of the
+  /// user, the reply of the agent, the pending updates, and the
+  /// ``requiresActionState``. The agent sends the requests after each
+  /// resume.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the session. The message ids start with it.
+  ///   - title: The title that `session/list` gives.
+  ///   - prompt: The text of the user message.
+  ///   - reply: The text of the agent message.
+  ///   - pending: The JSON text of the updates between the reply and the
+  ///     state, for example a pending tool call.
+  ///   - requests: The requests that wait for the user.
+  /// - Returns: The session.
+  static func waitingSession(
+    id: String, title: String, prompt: String, reply: String, pending: [String] = [],
+    requests: [DemoAgentRequest]
+  ) -> DemoGallerySession {
+    turnSession(
+      id: id, title: title, prompt: prompt, reply: reply, then: pending + [requiresActionState], requests: requests)
   }
 
   // MARK: - Updates

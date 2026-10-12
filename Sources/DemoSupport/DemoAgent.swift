@@ -203,11 +203,14 @@ public final class DemoAgent {
   ///
   /// - Parameters:
   ///   - script: The script of the agent.
-  ///   - workingDirectory: The working directory of each new session.
+  ///   - workingDirectory: The working directory of each new session. The
+  ///     default is ``InMemoryDemoAgent/sessionCwd``, the working directory
+  ///     of the sessions that the agent lists.
   /// - Returns: The agent, with a connected and initialized model.
   /// - Throws: The error of `initialize`.
   public static func makeInProcess(
-    script: InMemoryDemoScript = .standard, workingDirectory: AbsolutePath
+    script: InMemoryDemoScript = .standard,
+    workingDirectory: AbsolutePath = AbsolutePath(rawValue: InMemoryDemoAgent.sessionCwd)
   ) async throws -> DemoAgent {
     let connection = await InProcessAgent.makeConnection { agentConnection in
       InMemoryDemoACPAgent(connection: agentConnection, script: script)
