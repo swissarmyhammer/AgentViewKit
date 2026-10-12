@@ -241,6 +241,20 @@
       #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
     }
 
+    // MARK: - Status
+
+    @Test func aRunningCallShowsItsStatusSymbolWithNoSpinner() async throws {
+      let (session, call) = try await Self.openCall(id: "spinner-call", fields: Self.readFields)
+      defer { session.close() }
+      let harness = Self.mount(call, store: ExpandedBlocksStore())
+      defer { harness.close() }
+      let toggleID = ToolCallView.toggleIdentifier(for: call.id.rowKey)
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: toggleID) != nil }
+
+      #expect(harness.element(identifier: toggleID) != nil)
+      #expect(harness.progressIndicatorCount() == 0)
+    }
+
     // MARK: - Connection
 
     @Test func theConnectionChipShowsOnlyForACallThatWaitsForAServer() async throws {

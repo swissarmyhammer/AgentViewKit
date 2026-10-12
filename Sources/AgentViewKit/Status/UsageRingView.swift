@@ -9,6 +9,12 @@ import SwiftUI
 /// a model value. ``TextStyle`` selects the text beside the ring: the
 /// percentage, or the part of the whole with the caption. The help tag and
 /// the accessibility hint give the other text.
+///
+/// The ring is an SF Symbol with a variable value, so it scales with the
+/// font of the view, as the text does. A full ring shows a different symbol
+/// in the failed status color of the EditorKit theme, so the full state does
+/// not show with the color only. The accessibility label of the view is
+/// ``labelText``. A caller can set a more specific label.
 public struct UsageRingView: View {
   /// The text that shows beside the ring.
   public enum TextStyle: Sendable, Hashable {
@@ -23,25 +29,11 @@ public struct UsageRingView: View {
   /// The number of fraction digits of the percentage.
   static let percentFractionDigits = 0
 
-  /// The diameter of the ring, in points.
-  static let ringDiameter: CGFloat = 16
-
-  /// The line width of the ring, in points.
-  static let ringLineWidth: CGFloat = 2
-
-  /// The fraction where the filled arc of the ring starts.
-  static let ringEmptyFraction: Double = 0
+  /// The fraction of an empty ring.
+  static let emptyFraction: Double = 0
 
   /// The fraction of a full ring.
   static let fullFraction: Double = 1
-
-  /// The number of degrees in a quarter turn.
-  static let quarterTurnDegrees: Double = 90
-
-  /// The rotation that puts the start of the filled arc at the top of the
-  /// ring. A trimmed circle starts at the right side, so the ring turns back
-  /// by a quarter turn.
-  static let ringStartAngle = Angle.degrees(-quarterTurnDegrees)
 
   /// The part of the whole.
   let numerator: Int
@@ -82,8 +74,17 @@ public struct UsageRingView: View {
   /// - Returns: `numerator` divided by `denominator`, clamped to `0...1`, or
   ///   `0` when `denominator` is `0` or less.
   private static func fraction(numerator: Int, denominator: Int) -> Double {
-    guard denominator > 0 else { return ringEmptyFraction }
-    return min(max(Double(numerator) / Double(denominator), ringEmptyFraction), fullFraction)
+    guard denominator > 0 else { return emptyFraction }
+    return min(max(Double(numerator) / Double(denominator), emptyFraction), fullFraction)
+  }
+
+  /// Tells whether a part fills the whole ring.
+  ///
+  /// - Parameter filled: The part of the ring that is filled, from `0` to
+  ///   `1`.
+  /// - Returns: `true` when the ring is full.
+  private static func isFull(_ filled: Double) -> Bool {
+    filled >= fullFraction
   }
 
   /// The part of the whole, as a percentage.
@@ -114,6 +115,22 @@ public struct UsageRingView: View {
     return String(localized: "\(part) of \(whole) \(caption)")
   }
 
+  /// The accessibility label of the view: the name of the value, before the
+  /// value and the hint.
+  static var labelText: String { String(localized: "Usage") }
+
+  /// The SF Symbol name of the ring for a part of a whole.
+  ///
+  /// - Parameters:
+  ///   - numerator: The part of the whole.
+  ///   - denominator: The whole.
+  /// - Returns: ``SharedSymbol/usageFull`` when the part fills the whole,
+  ///   and ``SharedSymbol/usage`` otherwise.
+  static func symbolName(numerator: Int, denominator: Int) -> String {
+    let filled = fraction(numerator: numerator, denominator: denominator)
+    return isFull(filled) ? SharedSymbol.usageFull : SharedSymbol.usage
+  }
+
   // MARK: - Body
 
   public var body: some View {
@@ -128,6 +145,7 @@ public struct UsageRingView: View {
     }
     .help(other)
     .accessibilityElement(children: .ignore)
+    .accessibilityLabel(Self.labelText)
     .accessibilityValue(shown)
     .accessibilityHint(other)
     // An element with no role does not give its value. The trait gives the
@@ -135,20 +153,17 @@ public struct UsageRingView: View {
     .accessibilityAddTraits(.isStaticText)
   }
 
-  /// The ring that fills with the part of the whole.
+  /// The ring that fills with the part of the whole: an SF Symbol whose
+  /// variable value draws the ring up to the part. The symbol scales with
+  /// the font of the view.
   private var ring: some View {
     let filled = Self.fraction(numerator: numerator, denominator: denominator)
-    return ZStack {
-      Circle()
-        .stroke(.quaternary, lineWidth: Self.ringLineWidth)
-      Circle()
-        .trim(from: Self.ringEmptyFraction, to: filled)
-        .stroke(
-          ringColor(for: filled),
-          style: StrokeStyle(lineWidth: Self.ringLineWidth, lineCap: .round))
-        .rotationEffect(Self.ringStartAngle)
-    }
-    .frame(width: Self.ringDiameter, height: Self.ringDiameter)
+    return Image(
+      systemName: Self.symbolName(numerator: numerator, denominator: denominator), variableValue: filled
+    )
+    .symbolVariableValueMode(.draw)
+    .foregroundStyle(ringColor(for: filled))
+    .fontWeight(theme.symbolWeight)
   }
 
   /// The color of the ring: the failed status role of the EditorKit theme when
@@ -157,6 +172,6 @@ public struct UsageRingView: View {
   /// - Parameter filled: The part of the ring that is filled.
   /// - Returns: The color.
   private func ringColor(for filled: Double) -> Color {
-    filled >= Self.fullFraction ? editorTheme.statusFailed : editorTheme.statusRunning
+    Self.isFull(filled) ? editorTheme.statusFailed : editorTheme.statusRunning
   }
 }

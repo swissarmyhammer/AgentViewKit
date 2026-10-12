@@ -42,6 +42,9 @@
     /// The label of the second plan entry, which no plan update changes.
     static let shipEntryLabel = "Ship, Pending, Low priority"
 
+    /// The label of the first plan entry while it is in progress.
+    static let runningReadEntryLabel = "Read, In progress, High priority"
+
     /// The `messageId` of the thought of the tests.
     static let thoughtID = "rows-t"
 
@@ -319,7 +322,7 @@
       let planKey = TranscriptEntry.ID.wire(.plan(PlanId(rawValue: Self.planID))).rowKey
       let firstRow = TaskListView.entryIdentifier(row: planKey, index: 0)
       let secondRow = TaskListView.entryIdentifier(row: planKey, index: 1)
-      let running = "Read, In progress, High priority"
+      let running = Self.runningReadEntryLabel
       let completed = "Read, Completed, High priority"
 
       try await session.sendUpdate(Self.planUpdate(firstStatus: "in_progress"))
@@ -332,6 +335,22 @@
 
       #expect(harness.element(identifier: firstRow)?.label == completed)
       #expect(harness.element(identifier: secondRow)?.label == Self.shipEntryLabel)
+    }
+
+    @Test func aPlanEntryInProgressShowsItsStatusSymbolWithNoSpinner() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThread(session)
+      defer { harness.close() }
+      let planKey = TranscriptEntry.ID.wire(.plan(PlanId(rawValue: Self.planID))).rowKey
+      let firstRow = TaskListView.entryIdentifier(row: planKey, index: 0)
+      let running = Self.runningReadEntryLabel
+
+      try await session.sendUpdate(Self.planUpdate(firstStatus: "in_progress"))
+      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: firstRow)?.label == running }
+
+      #expect(harness.element(identifier: firstRow)?.label == running)
+      #expect(harness.progressIndicatorCount() == 0)
     }
 
     @Test func eachPlanWithNoPlanIdIsANewRowThatShowsTheContentType() async throws {

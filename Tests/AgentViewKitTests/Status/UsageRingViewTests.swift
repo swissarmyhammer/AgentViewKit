@@ -1,7 +1,8 @@
-import AgentViewKit
 import FoundationModelsACP
 import Foundation
 import Testing
+
+@testable import AgentViewKit
 
 /// The texts of ``UsageRingView`` and of the cost label of
 /// ``ContextUsageView``.
@@ -32,6 +33,16 @@ import Testing
       UsageRingView.detailText(
         numerator: 1200, denominator: 4000, caption: Self.tokensCaption, locale: Self.locale)
         == "1,200 of 4,000 tokens")
+  }
+
+  @Test func aRingThatIsNotFullShowsTheUsageSymbol() {
+    #expect(UsageRingView.symbolName(numerator: 1200, denominator: 4000) == SharedSymbol.usage)
+    #expect(UsageRingView.symbolName(numerator: 10, denominator: 0) == SharedSymbol.usage)
+  }
+
+  @Test func aFullRingShowsTheFullSymbol() {
+    #expect(UsageRingView.symbolName(numerator: 4000, denominator: 4000) == SharedSymbol.usageFull)
+    #expect(UsageRingView.symbolName(numerator: 5000, denominator: 4000) == SharedSymbol.usageFull)
   }
 
   @Test func theCostTextUsesTheCurrency() {

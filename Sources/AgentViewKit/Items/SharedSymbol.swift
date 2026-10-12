@@ -314,4 +314,15 @@ nonisolated enum SharedSymbol {
   /// The symbol of the time of a transcript entry: its start time and its
   /// duration.
   static let entryTime = "timer"
+
+  // MARK: - Usage
+
+  /// The symbol of the part of a whole that is in use, such as the tokens of
+  /// the context window. The variable value of the symbol draws its ring up
+  /// to the part.
+  static let usage = "gauge.open"
+
+  /// The symbol of a whole that is full: the usage ring at one hundred
+  /// percent.
+  static let usageFull = "gauge.open.with.lines.needle.84percent.exclamation"
 }

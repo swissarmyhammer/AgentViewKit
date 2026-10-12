@@ -1,4 +1,6 @@
 import AgentViewKit
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -97,6 +99,10 @@ struct ACPTabView: View {
 
   /// Whether the settings sheet shows.
   @State private var showsSettings = false
+
+  /// The EditorKit theme of the app. The text of a failed request uses its
+  /// error color.
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the tab.
   ///
@@ -355,7 +361,7 @@ struct ACPTabView: View {
     }
   }
 
-  /// The text of a failed request.
+  /// The text of a failed request, in the error color of the EditorKit theme.
   ///
   /// - Parameters:
   ///   - error: The error of the request.
@@ -363,7 +369,7 @@ struct ACPTabView: View {
   /// - Returns: The label.
   private func failureLabel(_ error: any Error, identifier: String) -> some View {
     Label(String(describing: error), systemImage: "xmark.octagon.fill")
-      .foregroundStyle(.red)
+      .foregroundStyle(editorTheme.severityError)
       .padding()
       .accessibilityIdentifier(identifier)
   }

@@ -28,6 +28,7 @@ import Testing
     case time
     case accept, acceptAlways, reject, rejectAlways
     case details, loadMore, showAll, signIn, signOut, suggestion
+    case usage, usageFull
   }
 
   /// One place of the kit that shows a symbol.
@@ -222,11 +223,20 @@ import Testing
     ]
   }
 
+  /// The symbols of the usage ring: a ring that is not full, and a full
+  /// ring.
+  static func usageRingUses() -> [Use] {
+    [
+      Use(concept: .usage, place: "usage ring", name: UsageRingView.symbolName(numerator: 1, denominator: 2)),
+      Use(concept: .usageFull, place: "full usage ring", name: UsageRingView.symbolName(numerator: 2, denominator: 2)),
+    ]
+  }
+
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
       + connectionChipUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
-      + permissionOptionUses() + actionButtonUses()
+      + permissionOptionUses() + actionButtonUses() + usageRingUses()
   }
 
   // MARK: - The checks

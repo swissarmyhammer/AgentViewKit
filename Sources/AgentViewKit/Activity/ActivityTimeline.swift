@@ -212,6 +212,7 @@ private struct ActivityEntryRow: View {
       Button(action: onToggle) {
         HStack(spacing: theme.spacing.s) {
           Image(systemName: appearance.symbolName)
+            .symbolRenderingMode(.hierarchical)
             .fontWeight(theme.symbolWeight)
             .foregroundStyle(appearance.tint)
           Text(appearance.title)

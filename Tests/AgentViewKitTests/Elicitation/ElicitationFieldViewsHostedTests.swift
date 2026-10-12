@@ -53,6 +53,9 @@ struct HostedTextField: View {
   /// The size of a hosted field.
   static let fieldSize = CGSize(width: 480, height: 400)
 
+  /// The longest time that a test waits for the field to change, in seconds.
+  static let waitTimeout: TimeInterval = 5
+
   /// Makes a field schema.
   static func field(
     _ name: String,
@@ -214,6 +217,18 @@ struct HostedTextField: View {
       harness.element(identifier: ElicitationSingleChoiceField.menuIdentifier(for: "color")) == nil)
     try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "c3"))
     #expect(box.value == .string("c3"))
+  }
+
+  @Test func theSelectedRadioHasTheLocalizedSelectedValue() async throws {
+    let harness = Self.mount(Self.field("color", .singleChoice(Self.choices(5))), box: AnswerBox())
+    defer { harness.close() }
+    let radio = ElicitationFieldView.choiceIdentifier(for: "color", value: "c3")
+    let selected = String(localized: "Selected")
+
+    try harness.press(identifier: radio)
+    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: radio)?.value == selected }
+
+    #expect(harness.element(identifier: radio)?.value == selected)
   }
 
   @Test func sixChoicesRenderAMenu() {

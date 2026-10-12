@@ -240,6 +240,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     } label: {
       HStack(spacing: theme.spacing.s) {
         Image(systemName: Self.symbolName(for: file.operation))
+          .symbolRenderingMode(.hierarchical)
           .fontWeight(theme.symbolWeight)
           .foregroundStyle(.secondary)
         Text(URL(fileURLWithPath: file.path).lastPathComponent)

@@ -44,8 +44,8 @@ extension View {
 /// The row shows the symbol of the kind, the `title` as the label, and a
 /// status symbol:
 ///
-/// - A pending or running call shows a `ProgressView` and a status symbol
-///   with the variable color effect.
+/// - A pending or running call shows its status symbol with the variable
+///   color effect, and no separate spinner.
 /// - The status symbol changes with the replace transition, and it bounces
 ///   when the call completes.
 /// - A failed, cancelled, lost, or unknown call shows its own symbol and
@@ -391,6 +391,7 @@ private struct ToolCallHeader: View {
   private var rowContent: some View {
     HStack(spacing: theme.spacing.s) {
       Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
+        .symbolRenderingMode(.hierarchical)
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
       Text(ToolCallView.displayTitle(entry.shownTitle))
@@ -400,6 +401,7 @@ private struct ToolCallHeader: View {
       Spacer(minLength: theme.spacing.s)
       statusGlyph
       Image(systemName: SharedSymbol.disclosure)
+        .symbolRenderingMode(.hierarchical)
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
@@ -407,22 +409,16 @@ private struct ToolCallHeader: View {
     .contentShape(Rectangle())
   }
 
-  /// The progress indicator and the status symbol, with the symbol effects
-  /// of the row.
+  /// The status symbol, with the symbol effects of the row. The variable
+  /// color effect of a pending or running call shows that the call is live,
+  /// so the row shows no separate spinner.
   private var statusGlyph: some View {
     let status = entry.shownStatus
-    let isLive = ToolStatusSymbol.isLive(status)
-    return HStack(spacing: theme.spacing.xs) {
-      if isLive {
-        ProgressView()
-          .controlSize(.mini)
-      }
-      ToolStatusImage(status: status)
-        .contentTransition(.symbolEffect(.replace))
-        .symbolEffect(.variableColor.iterative, isActive: isLive)
-        .symbolEffect(.bounce, value: status == .completed)
-        .symbolEffectsRemoved(reduceMotion)
-    }
+    return ToolStatusImage(status: status)
+      .contentTransition(.symbolEffect(.replace))
+      .symbolEffect(.variableColor.iterative, isActive: ToolStatusSymbol.isLive(status))
+      .symbolEffect(.bounce, value: status == .completed)
+      .symbolEffectsRemoved(reduceMotion)
   }
 }
 

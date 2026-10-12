@@ -37,8 +37,24 @@ comments:
     - evidence: 0 files changed by this step; the fix is in 9e21da9. `swift test --filter ToolCallEntryViewHostedTests`: 9 passed, 0 failed, load average about 50. Both subtasks checked with the note "done in 9e21da9".
     - next: /review
   timestamp: 2026-10-12T00:43:58.498753+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4ps5y0f158kd2c018she723
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (3055cfd). 0 findings, 0 confirmed, 0 refuted. The 4 changed files are card files below .kanban/. The .reviewignore rule excludes them. The test change is in 9e21da9. That change had a clean review under ^02jyret.
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T00:46:08.911990+00:00
+- actor: claude-code
+  id: 01m4ps68fbmjvm6dcbdqa857ab
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: no-change — the fix is in 9e21da9 (^02jyret); both subtasks checked
+    - test: green — swift test --filter ToolCallEntryViewHostedTests, 9 passed, load average about 50 (full suite green in 9e21da9, 1102 tests)
+    - commit: 3055cfd (card files only)
+    - review: clean — 0 findings; task in done
+  timestamp: 2026-10-12T00:46:19.627071+00:00
+position_column: done
+position_ordinal: ffaa80
 title: Make theBodyShowsTheRawInputTheTextPartAndTheRawOutputOfTheEntry wait for every part it checks
 ---
 ## What

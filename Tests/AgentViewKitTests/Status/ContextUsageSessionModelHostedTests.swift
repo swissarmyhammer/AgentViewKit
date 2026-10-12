@@ -116,6 +116,19 @@ import Testing
     #expect(Self.usageText(in: harness) == expected)
   }
 
+  @Test func theUsageElementHasTheContextLabel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mount(session: session)
+    defer { harness.close() }
+    let expected = UsageRingView.percentText(numerator: 1200, denominator: 4000)
+
+    try await session.sendUpdate(Self.firstUsage)
+    await harness.pump(until: Self.waitTimeout) { Self.usageText(in: harness) == expected }
+
+    #expect(harness.element(identifier: ContextUsageView.usageIdentifier)?.label == "Context used")
+  }
+
   @Test func withNoUsageUpdateTheViewIsHidden() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }

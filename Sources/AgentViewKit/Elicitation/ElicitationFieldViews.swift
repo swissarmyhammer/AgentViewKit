@@ -105,7 +105,7 @@ public struct ElicitationFieldView: View {
 /// field.
 struct ElicitationFieldChrome<Control: View>: View {
   /// The text that VoiceOver reads for the required mark.
-  static var requiredLabel: String { "Required" }
+  static var requiredLabel: String { String(localized: "Required") }
 
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -560,7 +560,10 @@ public struct ElicitationSingleChoiceField: View {
   public static let radioGroupLimit = 5
 
   /// The title of the menu item that removes the answer.
-  static var noSelectionTitle: String { "None" }
+  static var noSelectionTitle: String { String(localized: "None") }
+
+  /// The accessibility value of the selected radio button.
+  static var selectedValue: String { String(localized: "Selected") }
 
   /// The accessibility identifier of the radio group of the field named
   /// `name`.
@@ -636,7 +639,7 @@ public struct ElicitationSingleChoiceField: View {
         .buttonStyle(.plain)
         .help(choice.description ?? choice.title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityValue(isSelected ? Self.selectedValue : "")
         .accessibilityIdentifier(
           ElicitationFieldView.choiceIdentifier(for: name, value: choice.const))
       }

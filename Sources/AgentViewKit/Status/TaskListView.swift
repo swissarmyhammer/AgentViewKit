@@ -16,7 +16,8 @@ import SwiftUI
 ///
 /// Each entry shows a status symbol, the text of the task, and a priority
 /// symbol with the priority tint. Each priority has a different symbol. An
-/// entry in progress shows a `ProgressView`. A cancelled entry shows
+/// entry in progress shows its status symbol with the variable color effect,
+/// and no spinner. A cancelled entry shows
 /// its text with a strikethrough.
 ///
 /// The accessibility label of each entry is the text, the status, and the
@@ -93,8 +94,8 @@ public struct TaskListView: View {
     }
   }
 
-  /// The SF Symbol name of a status. An entry in progress shows a spinner in
-  /// place of its symbol.
+  /// The SF Symbol name of a status. An entry in progress shows its symbol
+  /// with the variable color effect.
   ///
   /// - Parameter status: The ACP status of an entry.
   /// - Returns: The symbol name.
@@ -192,6 +193,7 @@ private struct PlanEntryRow: View {
 
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
@@ -203,6 +205,7 @@ private struct PlanEntryRow: View {
         .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
       Spacer(minLength: theme.spacing.s)
       Image(systemName: TaskListView.prioritySymbol(entry.priority))
+        .symbolRenderingMode(.hierarchical)
         .foregroundStyle(editorTheme.tint(for: entry.priority))
         .fontWeight(theme.symbolWeight)
         .help(TaskListView.priorityLabel(entry.priority))
@@ -213,16 +216,15 @@ private struct PlanEntryRow: View {
     .accessibilityAddTraits(.isStaticText)
   }
 
-  /// The symbol of the status. An entry in progress shows a spinner.
-  @ViewBuilder private var statusSymbol: some View {
-    if entry.status == .inProgress {
-      ProgressView()
-        .controlSize(.mini)
-    } else {
-      Image(systemName: TaskListView.statusSymbol(entry.status))
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(editorTheme.statusColor(for: entry.status))
-        .fontWeight(theme.symbolWeight)
-    }
+  /// The symbol of the status. An entry in progress shows its symbol with
+  /// the variable color effect, as a running tool call does. Under Reduce
+  /// Motion, the symbol does not move.
+  private var statusSymbol: some View {
+    Image(systemName: TaskListView.statusSymbol(entry.status))
+      .symbolRenderingMode(.hierarchical)
+      .foregroundStyle(editorTheme.statusColor(for: entry.status))
+      .fontWeight(theme.symbolWeight)
+      .symbolEffect(.variableColor.iterative, isActive: entry.status == .inProgress)
+      .symbolEffectsRemoved(reduceMotion)
   }
 }

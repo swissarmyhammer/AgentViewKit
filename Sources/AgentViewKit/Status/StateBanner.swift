@@ -59,6 +59,20 @@ public struct StateBanner: View {
     var isFailure: Bool {
       symbolName == SharedSymbol.error
     }
+
+    /// The symbols of the messages of work that goes on: a running turn, and
+    /// a history that the agent sends again.
+    static let ongoingSymbols: Set<String> = [SharedSymbol.inProgress, SharedSymbol.replaying]
+
+    /// Whether the message tells of work that goes on, such as a running turn
+    /// or a replay of the history.
+    ///
+    /// Each concept has one symbol in the kit, so the symbol of the message
+    /// tells the concept. The bar animates the symbol of such a message with
+    /// a symbol effect, except under Reduce Motion.
+    var isOngoing: Bool {
+      Self.ongoingSymbols.contains(symbolName)
+    }
   }
 
   /// The session model whose `agentState` the bar shows.
