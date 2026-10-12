@@ -103,10 +103,26 @@ comments:
     - evidence: 3 files — Tests/AgentViewKitTests/Helpers/NameChecks.swift (new), Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, Tests/AgentViewKitTests/Items/ToolKindSymbolTests.swift. Full `swift test`: 1102 tests in 120 suites, 2 issues: 1 known issue (the deliberate HostedLayoutExpectationsTests case) and 1 failure in ToolCallEntryViewHostedTests.theBodyShowsTheRawInputTheTextPartAndTheRawOutputOfTheEntry (the known race of ^y7kyt4j, not in this change). Exit 1. SymbolConceptTests and ToolKindSymbolTests passed. The only build warning is the mlx-swift_Cmlx bundle "missing creator" warning of the build system. Load average 46.66 at start, 53.94 at end. Review finding checked. Follow-up task ^1pv3jzy.
     - next: test, then review
   timestamp: 2026-10-12T00:29:59.143241+00:00
+- actor: claude-code
+  id: 01m4przj94kje9dvdem25fjf5q
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 9e21da9). 0 findings, 0 confirmed, 0 refuted. 4 files reviewed, 6 .kanban files not reviewed (ignore rule). All prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T00:42:40.292990+00:00
+- actor: claude-code
+  id: 01m4przw2cm6yy6086e8vqgm9t
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — shared NameChecks.expectDistinctNames used by SymbolConceptTests and ToolKindSymbolTests; finding checked; follow-up ^1pv3jzy
+    - test: green — swift test, 1102 tests passed, 1 expected known issue, load average about 45; the test step also fixed ToolCallEntryViewHostedTests to wait for each checked part (^y7kyt4j)
+    - commit: 9e21da9
+    - review: clean — 0 findings (4 files); task in done
+  timestamp: 2026-10-12T00:42:50.316941+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffa980
 title: 'SF Symbols: add icons to the text-only action buttons'
 ---
 ## What
