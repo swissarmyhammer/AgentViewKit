@@ -13,7 +13,13 @@ import Testing
 ///
 /// The recorded sessions of the demo app are replaced over time, so no test
 /// reads their content or counts them.
-@Suite struct RecordedSessionsAgentTests {
+///
+/// The tests run one at a time. A resume of a recorded session whose working
+/// directory exists opens the code-context index in that directory, and the
+/// stages of all tests hold the same recorded working directories. Two
+/// resumes at the same time open the same index database, and one of them
+/// fails because the database is locked.
+@Suite(.serialized) struct RecordedSessionsAgentTests {
   /// The directory of the recorded sessions of the demo app, relative to the
   /// package root.
   static let recordingsPath = "Examples/AgentViewKitDemo/RecordedSessions"

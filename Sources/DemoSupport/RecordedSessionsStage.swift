@@ -74,20 +74,28 @@ public struct RecordedSessionsStage: Equatable, Sendable {
 
   /// The transcript location of the agent: the copy of the recordings.
   public var transcriptsDirectory: URL {
-    root.appending(path: Self.transcriptsDirectoryName, directoryHint: .isDirectory)
+    directory(named: Self.transcriptsDirectoryName)
   }
 
   /// The empty working directory of the start of the agent and of
   /// `session/list`.
   public var workingDirectory: URL {
-    root.appending(path: Self.workingDirectoryName, directoryHint: .isDirectory)
+    directory(named: Self.workingDirectoryName)
   }
 
   /// The empty configuration root of the agent: the user layer of the agent
   /// is the dotfolder below it. The agent writes its project registry there,
   /// and not into `~/.config` of the home directory.
   public var configurationDirectory: URL {
-    root.appending(path: Self.configurationDirectoryName, directoryHint: .isDirectory)
+    directory(named: Self.configurationDirectoryName)
+  }
+
+  /// The directory with the name `name` directly below ``root``.
+  ///
+  /// - Parameter name: The name of the directory.
+  /// - Returns: The URL of the directory.
+  private func directory(named name: String) -> URL {
+    root.appending(path: name, directoryHint: .isDirectory)
   }
 
   /// The environment that ``DemoAgent/makeInProcess(recordedSessions:)``

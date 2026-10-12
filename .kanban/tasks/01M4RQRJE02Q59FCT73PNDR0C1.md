@@ -36,6 +36,38 @@ comments:
   id: 01m4s2d15zsvnneq41xx7hpye2
   text: 'Decision of the owner (2026-10-12): accept `XDG_CONFIG_HOME` set to an empty temporary configuration root in the `environment:` dictionary of `ComposedAgent.compose` (a value in code, not the process environment, no config file) for the tests and the Gallery.'
   timestamp: 2026-10-12T22:05:47.583900+00:00
+- actor: claude-code
+  id: 01m4s2we303mmff41491ms2e1f
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 2965b04): 2 findings, 2 confirmed, 3 refuted. Sources/DemoSupport/RecordedSessionsStage.swift:89 (duplication/duplication), Tests/AgentViewKitTests/ACP/DemoAgentTests.swift:64 (completeness/invariant-propagation). No finding is against the owner decision on `XDG_CONFIG_HOME` in the `environment:` dictionary of `ComposedAgent.compose`.
+    - next: /implement the two open items in the dated `## Review Findings` section. The task stays in review.
+  timestamp: 2026-10-12T22:14:12.320903+00:00
+- actor: claude-code
+  id: 01m4s2ws7g38ahmbay0e8bzbm9
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — XDG_CONFIG_HOME temp root in the compose environment dictionary for the Gallery and the agent tests; home-file tests
+    - test: green — swift test, 1275 tests passed, 2 expected known issues, load average 28 to 50; ~/.config/agentviewkit-demo/projects.jsonl unchanged
+    - commit: 2965b04
+    - review: findings — Sources/DemoSupport/RecordedSessionsStage.swift:89, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift:64
+  timestamp: 2026-10-12T22:14:23.728507+00:00
+- actor: claude-code
+  id: 01m4s3k6g1624t9qem8agd82rw
+  text: |-
+    Review findings fixed (not committed).
+    - Duplication finding: `RecordedSessionsStage` has a new private `directory(named:)`. `transcriptsDirectory`, `workingDirectory`, and `configurationDirectory` call it. The existing stage tests cover the three properties (refactor, no change of behavior).
+    - Invariant-propagation finding: the new `DemoAgentTests.openAndResumeASession(of:)` opens a session with `session/new` and then sends `session/resume` (replay from the start) for that session, in the temporary working directory of the ACP tab agent, with the stub model. It expects the resumed session id to be the opened id. `anACPTabAgentOfATestLeavesTheProjectRegistryOfTheHomeDirectoryUnchanged` uses it. I did not use `RecordedSessionsAgentTests.openAndResumeEachSession(of:)`, because when `session/list` is empty it resumes nothing and the test passes with no resume. `ResumeSessionRequest.makeAgentViewKitRequest` is internal and DemoAgentTests does not use `@testable import AgentViewKit`, so the test uses the public `ResumeSessionRequest(cwd:sessionId:replayFrom:)` initializer, as the other resume tests in that file do. The default transcript location is `<cwd>/.agentviewkit-demo/transcripts`, so the resume reads a recording in the temporary directory.
+    - RED: the new resume test passed on its first run, because the fix of this card already moves the registry. A failing run needs a write to the real `~/.config/agentviewkit-demo/projects.jsonl`, which the rules forbid.
+    - Discovery: the first full run failed one test. `RecordedSessionsAgentTests.aResumeFromTheStartReplaysEachRecordedSession`: "SQLite error 5: database is locked" on `<recorded cwd>/.code-context/kit.db`. Three tests of that suite resume the same recorded working directories in parallel, and two code-context indexes race for the same database lock. The tests that this card added cause the race. Fix: `@Suite(.serialized)` on `RecordedSessionsAgentTests`, with a doc comment that gives the reason. No other suite resumes recorded sessions.
+  timestamp: 2026-10-12T22:26:38.209493+00:00
+- actor: claude-code
+  id: 01m4s3ka33djy2c1agrh2brzy5
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Sources/DemoSupport/RecordedSessionsStage.swift, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift. Targeted run: 30 tests in 5 suites passed. Full `swift test` (after the serialization fix): 1152 tests in 129 suites passed, 2 known issues (existing `withKnownIssue`), XCTest 0 tests. The only warning is the existing SwiftPM "missing creator for mutated node" of the mlx-swift bundle. The first full run before the serialization fix had 1 failure (SQLite lock, see the comment above). Load average before the final full run 37.34 38.14 35.76, after 24.40 32.60 34.13. `stat -f '%m %z' ~/.config/agentviewkit-demo/projects.jsonl`: `1791836236 507` before and after each run (no change). Both review findings are checked.
+    - next: /review. The task stays in doing.
+  timestamp: 2026-10-12T22:26:41.891503+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Keep the in-process agent tests and the Gallery from writing into the home directory
@@ -47,3 +79,16 @@ Found during ^wv9bpnv (2026-10-12): `RecordedSessionsAgentTests` run FoundationM
 - [x] Find which part of FoundationModelsACPAgent writes the project registry and the code-context index, and which public input controls the location (for example the `environment:` dictionary of `ComposedAgent.compose`, a home or config root parameter, or a replay-only resume option). Read only; do not change that repository.
 - [x] Make the tests (and, if it is right, the Gallery) give the agent a temporary root for these writes, through a public API, not through the process environment and not through a config file. If no public API exists, record the exact missing API for the FoundationModelsACPAgent session and stop.
 - [x] A test that the test run writes nothing into the home directory.
+
+## Review Findings (2026-10-12 17:10)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 7 file(s) reviewed, 9 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/dependencies.md` — no validator matches this file
+
+- [x] `Sources/DemoSupport/RecordedSessionsStage.swift:89` `duplication/duplication` — The new `configurationDirectory` property repeats the body of `transcriptsDirectory` and `workingDirectory` (lines 76-78 and 82-84). The three properties differ only by the name constant, so the same logic is copied three times and can drift apart. Add one private helper, such as `private func directory(named name: String) -> URL`, that returns `root.appending(path: name, directoryHint: .isDirectory)`. Make `transcriptsDirectory`, `workingDirectory`, and `configurationDirectory` each call it with their constant. This is one change in the same file, so the existing siblings can be updated too.
+- [x] `Tests/AgentViewKitTests/ACP/DemoAgentTests.swift:64` `completeness/invariant-propagation` — The home-directory guard test for the ACP tab agent sends only `session/new` through `openSession`. The doc comment in RecordedSessionsAgentTests.swift (lines 141-144) says that both `session/new` and `session/resume` make the agent register a working directory in its project registry. The ACP tab test therefore does not cover the resume write path, so a regression that writes to the home registry only on resume would pass this test. Add a `session/resume` call to the ACP tab home-registry test, for example by calling `RecordedSessionsAgentTests.openAndResumeEachSession(of:)`, or list the sessions and resume each one, so that both write paths are covered.

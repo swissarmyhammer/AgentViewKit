@@ -57,11 +57,30 @@ import Testing
     return (try await DemoAgent.makeInProcess(options: options, environment: environment), directory)
   }
 
+  /// Opens a new session in the working directory of the agent, and resumes
+  /// that session from the start. Each of the two requests makes the agent
+  /// register the working directory in its project registry. The test
+  /// fails when the agent does not resume the session that it opened.
+  ///
+  /// - Parameter agent: The agent.
+  /// - Throws: The error of `session/new` or of `session/resume`.
+  static func openAndResumeASession(of agent: DemoAgent) async throws {
+    let opened = DemoAgentSignInTests.OpenedSessions()
+    try await agent.openSession { opened.sessions.append($0) }
+    let sessionId = try #require(opened.sessions.first).sessionId
+    let request = ResumeSessionRequest(
+      cwd: agent.workingDirectory, sessionId: sessionId, replayFrom: .start(ReplayFromStart()))
+
+    let resumed = try await agent.connection.resumeSession(request)
+
+    #expect(resumed.sessionId == sessionId)
+  }
+
   @Test func anACPTabAgentOfATestLeavesTheProjectRegistryOfTheHomeDirectoryUnchanged() async throws {
     let homeRegistry = RecordedSessionsAgentTests.FileSnapshot(of: RecordedSessionsAgentTests.homeProjectRegistry)
     let started = try await Self.makeACPTabAgent()
 
-    try await started.agent.openSession { _ in }
+    try await Self.openAndResumeASession(of: started.agent)
     await started.agent.stop()
     started.directory.remove()
 
