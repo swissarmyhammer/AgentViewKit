@@ -54,6 +54,14 @@ let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 
+/// The agent product of the Gallery tab of the demo app. Only the demo-only
+/// target `DemoSupport` links it: the Gallery tab runs FoundationModelsACPAgent
+/// in the process of the app over the recorded sessions. The kit target does
+/// not import it. ImportBoundaryTests enforces this.
+let demoAgentProducts: [Target.Dependency] = [
+  .product(name: "FoundationModelsACPAgent", package: "FoundationModelsACPAgent")
+]
+
 /// The EditorKit products that a host imports to set the theme of the kit (README "The theme").
 let readmeEditorKitProducts: [Target.Dependency] = [
   .product(name: "EditorSwiftUI", package: "EditorKit"),
@@ -91,6 +99,9 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/EditorKit.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACP.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPClient.git", branch: "main"),
+    // The agent of the Gallery tab of the demo app. Only `DemoSupport` links
+    // it, so a host of the kit does not resolve it.
+    .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPAgent.git", branch: "main"),
     // Textual is a 0.x package, so the pin is exact.
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
     // The math engine is a 0.x package, so the pin is exact. Textual 0.5.0
@@ -120,10 +131,12 @@ let package = Package(
     // (`DemoAgent`), and the launch options of the demo app. The ACP tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
     // sources into the app. The target is not a product, because the package
-    // has exactly one library product (plan.md §11 decision 1).
+    // has exactly one library product (plan.md §11 decision 1). It links
+    // FoundationModelsACPAgent for the agent of the Gallery tab, which runs
+    // in the process of the app.
     .target(
       name: "DemoSupport",
-      dependencies: ["AgentViewKit"] + acpProducts,
+      dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
     // Finds and reads the package files for the tests, and reads the Markdown

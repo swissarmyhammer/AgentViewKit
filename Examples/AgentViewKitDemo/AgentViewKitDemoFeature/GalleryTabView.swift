@@ -10,10 +10,11 @@ import SwiftUI
 ///
 /// The app bundle holds the recorded sessions in the `RecordedSessions`
 /// directory. The tab copies them to a temporary ``RecordedSessionsStage``,
-/// and starts the agent program of the launch options over that copy with
-/// ``DemoAgent/makeConnected(recordedSessions:agentCommand:)``. The tab
-/// replays no session itself: FoundationModelsACPAgent restores each
-/// session, and the views bind to its `ConnectionModel` and `SessionModel`.
+/// and runs FoundationModelsACPAgent in the process of the app over that
+/// copy with ``DemoAgent/makeInProcess(recordedSessions:)``. The tab starts
+/// no program and reads no launch option. The tab replays no session itself:
+/// FoundationModelsACPAgent restores each session, and the views bind to its
+/// `ConnectionModel` and `SessionModel`.
 ///
 /// The recorded sessions do not have each entry kind and each state of the
 /// kit views. The tab also starts ``InMemoryDemoACPAgent`` with the
@@ -108,9 +109,6 @@ struct GalleryTabView: View, DemoStartingTab {
   /// The ideal width of the inspector column.
   static let inspectorIdealWidth: CGFloat = 300
 
-  /// The launch options of the app. The tab starts their agent program.
-  let options: DemoLaunchOptions
-
   /// The state of the tab. The tab copies the recordings and starts the two
   /// agents. The started tab holds the agents.
   @State private var phase = DemoStartPhase<Sources>.starting
@@ -123,13 +121,6 @@ struct GalleryTabView: View, DemoStartingTab {
 
   /// Whether the inspector with the look controls shows.
   @State private var showsLookControls = true
-
-  /// Makes the tab.
-  ///
-  /// - Parameter options: The launch options of the app.
-  init(options: DemoLaunchOptions) {
-    self.options = options
-  }
 
   /// The text of the progress view of the start.
   var startingText: String { "Starting the agent of the recorded sessions" }
@@ -172,10 +163,10 @@ struct GalleryTabView: View, DemoStartingTab {
     }
   }
 
-  /// Starts the agent of the scripted sessions in this process, and the
-  /// agent program of the launch options over a stage of the recordings.
-  /// When the agent of the recordings does not start, the call stops the
-  /// agent of the scripted sessions.
+  /// Starts the agent of the scripted sessions and FoundationModelsACPAgent
+  /// over a stage of the recordings, both in this process. When the agent of
+  /// the recordings does not start, the call stops the agent of the scripted
+  /// sessions.
   ///
   /// - Returns: The two agents.
   /// - Throws: The error of the stage or of the start of an agent.
@@ -183,7 +174,7 @@ struct GalleryTabView: View, DemoStartingTab {
     let scripted = try await DemoAgent.makeInProcess(script: .gallery)
     do {
       let stage = try RecordedSessionsStage.make(copying: try RecordedSessionsStage.recordingsDirectory())
-      let recorded = try await DemoAgent.makeConnected(recordedSessions: stage, agentCommand: options.agentCommand)
+      let recorded = try await DemoAgent.makeInProcess(recordedSessions: stage)
       return Sources(recorded: recorded, scripted: scripted)
     } catch {
       await scripted.stop()

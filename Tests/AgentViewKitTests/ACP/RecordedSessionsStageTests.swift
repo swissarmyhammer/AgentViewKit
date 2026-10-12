@@ -175,28 +175,15 @@ import Testing
     #expect(try recordings.data(at: "\(Self.firstRecording)/\(historyPath)") == recorded)
   }
 
-  @Test func theConfigurationNamesTheStagedTranscriptsAsTheTranscriptLocation() throws {
+  @Test func theStageHoldsOnlyTheTranscriptLocationAndTheWorkingDirectory() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
-    let configuration = stage.configurationHome
-      .appending(path: "acp-agent/config.yaml", directoryHint: .notDirectory)
-    let location = stage.transcriptsDirectory.path(percentEncoded: false)
-    let expected = "transcripts:\n  location: \"\(location)\"\n"
-    #expect(String(decoding: try Data(contentsOf: configuration), as: UTF8.self) == expected)
-  }
-
-  @Test func theAgentEnvironmentSetsTheConfigurationHomeAndKeepsTheOtherVariables() throws {
-    let recordings = try Recordings()
-    defer { recordings.directory.remove() }
-    let stage = try recordings.makeStage()
-
-    let environment = stage.agentEnvironment(adding: ["PATH": "/usr/bin", "XDG_CONFIG_HOME": "/elsewhere"])
-
-    #expect(environment["PATH"] == "/usr/bin")
-    #expect(environment["XDG_CONFIG_HOME"] == stage.configurationHome.path(percentEncoded: false))
+    let names = try FileManager.default.contentsOfDirectory(atPath: stage.root.path(percentEncoded: false))
+    let expected = [stage.transcriptsDirectory, stage.workingDirectory].map(\.lastPathComponent)
+    #expect(names.sorted() == expected.sorted())
   }
 
   @Test func theWorkingDirectoryIsAnEmptyDirectoryOfTheStage() throws {

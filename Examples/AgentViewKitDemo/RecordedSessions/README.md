@@ -81,5 +81,10 @@ directory.
 
 At each start, the Gallery tab copies all the directories into one
 transcript location in a temporary directory. It joins the lines of each
-`sessions.jsonl`. Then it starts `acp-agent` with that copy, so that a
-restore never changes the files in this directory.
+`sessions.jsonl`. Then it runs FoundationModelsACPAgent in the process of
+the app, through the package, with that copy as its transcript location, so
+that a restore never changes the files in this directory. The tab starts no
+`acp-agent` program, writes no configuration file, and sets no
+`XDG_CONFIG_HOME`. The agent uses its stub model, so no model loads. When the
+recorded `cwd` of a session is missing on the computer, the agent replays the
+session with no tools and writes nothing for it.

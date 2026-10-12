@@ -26,7 +26,7 @@ struct DemoRootView: View {
         ACPTabView(options: options)
       }
       Tab(GalleryTabView.title, systemImage: "square.grid.2x2", value: .gallery) {
-        GalleryTabView(options: options)
+        GalleryTabView()
       }
     }
   }

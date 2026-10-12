@@ -26,9 +26,28 @@ of each row, and compares the set with the direct dependencies of the kit.
   `ClientSideConnection`, `InMemoryTransport` and the ACP v2 schema types are
   in that package.
 - FoundationModels, FoundationModelsRouter and FoundationModelsExtras are not
-  direct dependencies. FoundationModelsExtras stays in the package graph only
-  because the library target of FoundationModelsACPClient depends on it. The
-  kit does not import it.
+  direct dependencies. FoundationModelsExtras is in the package graph because
+  the library target of FoundationModelsACPClient depends on it.
+  FoundationModelsRouter and FoundationModelsExtras are also in the graph
+  through the demo-only package below. The kit does not import them.
+
+## The demo-only package
+
+FoundationModelsACPAgent is a package dependency of `Package.swift`, but it is
+not a dependency of the kit. Thus the table above does not list it.
+
+| Package | URL | Requirement | Product | Target that links it |
+|---|---|---|---|---|
+| FoundationModelsACPAgent | git@github.com:swissarmyhammer/FoundationModelsACPAgent.git | branch main | `FoundationModelsACPAgent` | `DemoSupport` |
+
+- The Gallery tab of the demo app runs the agent in the process of the app
+  over the recorded sessions (`DemoAgent.makeInProcess(recordedSessions:)`).
+  The tab starts no agent program and needs no sibling checkout.
+- The demo Xcode project gets the same package from
+  `Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb`.
+- `Tests/PackageStructureTests/ImportBoundaryTests.swift` holds the kit target
+  free of an import of `FoundationModelsACPAgent`. A host of the kit links only
+  the `AgentViewKit` product, so it does not build the agent.
 
 ## Textual
 

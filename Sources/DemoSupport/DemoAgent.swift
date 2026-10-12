@@ -1,5 +1,6 @@
 import AgentViewKit
 import FoundationModelsACP
+import FoundationModelsACPAgent
 import FoundationModelsACPClient
 
 /// The agent of the demo app, and the `ConnectionModel` that talks to it.
@@ -15,8 +16,10 @@ import FoundationModelsACPClient
 /// - Each other agent runs as an `AgentProcess`, with the arguments of
 ///   ``DemoLaunchOptions/agentArguments(for:)``. The demo then gives a
 ///   ``TerminalAppAuthRunner`` and sends `auth.terminal` in `initialize`.
-/// - The agent of the Gallery tab runs as an `AgentProcess` over a
-///   ``RecordedSessionsStage``, with ``makeConnected(recordedSessions:agentCommand:)``.
+/// - The agent of the recorded sessions of the Gallery tab is
+///   FoundationModelsACPAgent. It runs in this process through
+///   ``InProcessAgent`` over a ``RecordedSessionsStage``, with
+///   ``makeInProcess(recordedSessions:)``. It has no terminal sign-in.
 ///
 /// ACP v2 terminal sign-in: after a successful run of a `terminal` method,
 /// the `authState` of the model is `.reconnectRequired`. Only the host can
@@ -41,11 +44,20 @@ public final class DemoAgent {
   /// ``reconnect(onOpen:)`` opened.
   public typealias SessionHandler = (SessionModel) -> Void
 
+  /// Waits until an agent in this process closed each open session, after
+  /// the close of its connection.
+  public typealias TeardownWait = @Sendable () async -> Void
+
   /// An operation that can fail with `-32000` (authentication required).
   private typealias Operation = () async throws -> Void
 
   /// The `info` that the demo app sends in its `initialize` request.
   public static let clientInfo = Implementation(name: "AgentViewKitDemo", version: "1.0.0")
+
+  /// The dotfolder name of FoundationModelsACPAgent for the recorded
+  /// sessions. It is not `acp-agent`, so the agent does not read the
+  /// configuration of the `acp-agent` program of the user.
+  static let recordedSessionsAgentName = "agentviewkit-demo"
 
   /// The connection model of the client side. The views read its state
   /// directly.
@@ -68,6 +80,10 @@ public final class DemoAgent {
   /// ``InProcessAgent`` connects.
   private let makeTransport: TransportFactory?
 
+  /// The wait of ``stop()`` for the teardown of an agent in this process, or
+  /// `nil` when the agent needs no wait.
+  private let waitForTeardown: TeardownWait?
+
   /// The operation that failed with `-32000`, or `nil`.
   /// ``retryFailedOperation()`` or ``reconnect(onOpen:)`` runs it one more
   /// time after a sign-in.
@@ -80,17 +96,20 @@ public final class DemoAgent {
   ///   - workingDirectory: The working directory of each new session.
   ///   - terminalAuthRunner: The runner of the `terminal` auth methods.
   ///   - makeTransport: The transport factory, or `nil`.
+  ///   - waitForTeardown: The wait of ``stop()``, or `nil`.
   private init(
     connection: ConnectionModel,
     workingDirectory: AbsolutePath,
     terminalAuthRunner: (any TerminalAuthRunner)?,
-    makeTransport: TransportFactory?
+    makeTransport: TransportFactory?,
+    waitForTeardown: TeardownWait?
   ) {
     self.connection = connection
     self.workingDirectory = workingDirectory
     self.terminalAuthRunner = terminalAuthRunner
     self.initializeRequest = Self.makeInitializeRequest(terminalAuthRunner: terminalAuthRunner)
     self.makeTransport = makeTransport
+    self.waitForTeardown = waitForTeardown
   }
 
   /// Makes the `initialize` request of the demo app. It advertises only the
@@ -136,35 +155,37 @@ public final class DemoAgent {
     )
   }
 
-  /// Starts the agent program `agentCommand` over a stage of recorded
-  /// sessions, connects a new `ConnectionModel`, and sends `initialize`.
+  /// Starts FoundationModelsACPAgent in this process over a stage of
+  /// recorded sessions, through ``InProcessAgent``, and sends `initialize`.
   ///
-  /// The process gets the environment of the stage, so the agent reads its
-  /// transcripts from the copy in the stage. The process starts in the
-  /// working directory of the stage, and each session list uses that
-  /// directory. When `initialize` fails, the function stops the agent.
+  /// The agent uses the stub model of the package, so it loads no model and
+  /// downloads nothing. Its transcript location is the copy in the stage,
+  /// set in code: the agent needs no configuration file for it. The
+  /// working directory of each session list is the empty working directory
+  /// of the stage. The agent restores a recorded session on `session/resume`.
+  /// When the recorded working directory of a session is missing, the agent
+  /// replays the session with no tools and writes nothing.
   ///
-  /// - Parameters:
-  ///   - stage: The temporary copy of the recorded sessions.
-  ///   - agentCommand: The absolute path of the agent program.
+  /// ``stop()`` waits until the agent closed each open session.
+  ///
+  /// - Parameter stage: The temporary copy of the recorded sessions.
   /// - Returns: The agent, with a connected and initialized model.
-  /// - Throws: The `AgentProcessError` of a program that does not start, or
-  ///   the error of `initialize`.
-  public static func makeConnected(
-    recordedSessions stage: RecordedSessionsStage, agentCommand: String
-  ) async throws -> DemoAgent {
-    let arguments = DemoLaunchOptions.agentArguments(for: agentCommand)
-    let environment = stage.agentEnvironment()
-    let currentDirectory = stage.workingDirectory.path(percentEncoded: false)
-    return try await makeConnected(
-      makeTransport: {
-        try AgentProcess(
-          command: agentCommand, arguments: arguments, environment: environment,
-          currentDirectory: currentDirectory
-        ).transport
-      },
-      terminalAuthRunner: TerminalAppAuthRunner(command: agentCommand, arguments: arguments),
-      workingDirectory: AbsolutePath(rawValue: currentDirectory)
+  /// - Throws: The error of the composition of the agent, or the error of
+  ///   `initialize`.
+  public static func makeInProcess(recordedSessions stage: RecordedSessionsStage) async throws -> DemoAgent {
+    let composed = try await ComposedAgent.compose(
+      name: try DotfolderName(recordedSessionsAgentName),
+      workingDirectory: stage.workingDirectory,
+      modelSource: .stub,
+      transcriptLocation: .path(stage.transcriptsDirectory)
+    )
+    let connection = await InProcessAgent.makeConnection { composed.agent(boundTo: $0) }
+    return try await makeStarted(
+      connection: connection,
+      workingDirectory: AbsolutePath(rawValue: stage.workingDirectory.path(percentEncoded: false)),
+      terminalAuthRunner: nil,
+      makeTransport: nil,
+      waitForTeardown: composed.waitForConnectionTeardown
     )
   }
 
@@ -233,19 +254,23 @@ public final class DemoAgent {
   ///   - terminalAuthRunner: The runner of the `terminal` auth methods, or
   ///     `nil`.
   ///   - makeTransport: The transport factory, or `nil`.
+  ///   - waitForTeardown: The wait of ``stop()`` for the teardown of an agent
+  ///     in this process, or `nil`.
   /// - Returns: The agent, with a connected and initialized model.
   /// - Throws: The error of the factory, or the error of `initialize`.
   private static func makeStarted(
     connection: ConnectionModel,
     workingDirectory: AbsolutePath,
     terminalAuthRunner: (any TerminalAuthRunner)?,
-    makeTransport: TransportFactory?
+    makeTransport: TransportFactory?,
+    waitForTeardown: TeardownWait? = nil
   ) async throws -> DemoAgent {
     let agent = DemoAgent(
       connection: connection,
       workingDirectory: workingDirectory,
       terminalAuthRunner: terminalAuthRunner,
-      makeTransport: makeTransport
+      makeTransport: makeTransport,
+      waitForTeardown: waitForTeardown
     )
     try await agent.connectAndInitialize()
     return agent
@@ -381,8 +406,11 @@ public final class DemoAgent {
   /// The disconnect stops the read of the transport. For the in-process
   /// agent, the `InMemoryTransport.pair()` of ``InProcessAgent`` then ends
   /// the input of the agent side, and the agent stops. An agent process gets
-  /// a group kill when its transport stops.
+  /// a group kill when its transport stops. For FoundationModelsACPAgent in
+  /// this process, the call then waits until the agent closed each open
+  /// session.
   public func stop() async {
     await connection.disconnect()
+    await waitForTeardown?()
   }
 }

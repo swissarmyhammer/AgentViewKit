@@ -21,6 +21,13 @@ import Testing
   /// decision 1).
   static let mergedModule = "AgentViewKitACP"
 
+  /// The agent package. Only the demo-only target `DemoSupport` imports it,
+  /// for the agent of the Gallery tab. The kit gets an agent from its host.
+  static let agentModule = "FoundationModelsACPAgent"
+
+  /// The directory of the Swift files of the kit target.
+  static let kitSourcesPath = "Sources/AgentViewKit"
+
   /// The package directories that hold Swift files.
   static let swiftDirectories = ["Sources", "Tests", "Examples"]
 
@@ -43,6 +50,14 @@ import Testing
     let violations = try ImportScanner.violations(
       in: PackageFiles.file("Sources"),
       forbidden: Self.forbiddenInSources
+    )
+    #expect(violations.isEmpty, "\(violations)")
+  }
+
+  @Test func theKitTargetDoesNotImportTheAgentPackage() throws {
+    let violations = try ImportScanner.violations(
+      in: PackageFiles.file(Self.kitSourcesPath),
+      forbidden: [Self.agentModule]
     )
     #expect(violations.isEmpty, "\(violations)")
   }

@@ -8,9 +8,9 @@ import Foundation
 /// agent wrote it: the `sessions.jsonl` index, one directory for each
 /// session, and other files such as `.gitattributes`.
 ///
-/// The `transcripts.location` configuration of the agent names one
-/// directory, so ``make(copying:below:)`` makes one transcript location from
-/// all the recordings:
+/// The transcript location of the agent is one directory, so
+/// ``make(copying:below:)`` makes one transcript location from all the
+/// recordings:
 ///
 /// - It copies each session directory and each other file of each recording
 ///   as it is. When two recordings have a file with the same name, the file
@@ -25,11 +25,10 @@ import Foundation
 /// The agent writes to its transcript location when it restores a session.
 /// The stage is a copy, so the agent never changes the recordings.
 ///
-/// The stage also writes the user configuration of the agent, which sets
-/// `transcripts.location` to the copy, and gives an empty working directory
-/// for `session/list`. ``agentEnvironment(adding:)`` gives the environment
-/// of the agent process: `XDG_CONFIG_HOME` names the configuration of the
-/// stage, so the agent does not read or write the configuration of the user.
+/// The stage also gives an empty working directory for the start of the
+/// agent and for `session/list`. The stage holds no configuration file:
+/// ``DemoAgent/makeInProcess(recordedSessions:)`` gives the transcript
+/// location to the agent in code.
 public struct RecordedSessionsStage: Equatable, Sendable {
   /// The error of a start that finds no recordings in the app bundle.
   nonisolated public struct MissingRecordingsError: LocalizedError, Equatable {
@@ -46,25 +45,11 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   /// The text of ``MissingRecordingsError`` reads it outside the main actor.
   nonisolated public static let recordingsResourceName = "RecordedSessions"
 
-  /// The variable that names the directory of the user configuration of the
-  /// agent.
-  public static let configurationHomeVariable = "XDG_CONFIG_HOME"
-
-  /// The name of the configuration directory of `acp-agent` below
-  /// ``configurationHomeVariable``.
-  static let agentConfigurationDirectoryName = "acp-agent"
-
-  /// The name of the configuration file of the agent.
-  static let configurationFileName = "config.yaml"
-
   /// The name of the index file of a transcript location.
   static let indexFileName = "sessions.jsonl"
 
   /// The name of the transcript location below ``root``.
   static let transcriptsDirectoryName = "transcripts"
-
-  /// The name of the configuration home below ``root``.
-  static let configurationHomeDirectoryName = "configuration"
 
   /// The name of the working directory below ``root``.
   static let workingDirectoryName = "working-directory"
@@ -83,21 +68,10 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     root.appending(path: Self.transcriptsDirectoryName, directoryHint: .isDirectory)
   }
 
-  /// The directory that ``configurationHomeVariable`` names for the agent.
-  public var configurationHome: URL {
-    root.appending(path: Self.configurationHomeDirectoryName, directoryHint: .isDirectory)
-  }
-
-  /// The empty working directory of the agent process and of `session/list`.
+  /// The empty working directory of the start of the agent and of
+  /// `session/list`.
   public var workingDirectory: URL {
     root.appending(path: Self.workingDirectoryName, directoryHint: .isDirectory)
-  }
-
-  /// The configuration file of the agent below ``configurationHome``.
-  var configurationFile: URL {
-    configurationHome
-      .appending(path: Self.agentConfigurationDirectoryName, directoryHint: .isDirectory)
-      .appending(path: Self.configurationFileName, directoryHint: .notDirectory)
   }
 
   /// The directory of the recorded sessions in a bundle.
@@ -135,39 +109,14 @@ public struct RecordedSessionsStage: Equatable, Sendable {
       index.append(try stage.copy(recording))
     }
     try index.write(to: stage.transcriptsDirectory.appending(path: indexFileName, directoryHint: .notDirectory))
-    try Data(stage.makeConfigurationText().utf8).write(to: stage.configurationFile)
     return stage
   }
 
-  /// The environment of the agent process: `base` with
-  /// ``configurationHomeVariable`` set to ``configurationHome``.
-  ///
-  /// - Parameter base: The environment to start from.
-  /// - Returns: The environment.
-  public func agentEnvironment(
-    adding base: [String: String] = ProcessInfo.processInfo.environment
-  ) -> [String: String] {
-    base.merging([Self.configurationHomeVariable: configurationHome.path(percentEncoded: false)]) { $1 }
-  }
-
-  /// Makes the text of the configuration file. The location is a JSON
-  /// string, which is also a YAML string, so that each path reads correctly.
-  ///
-  /// - Returns: The text.
-  /// - Throws: The error of the JSON encoder.
-  private func makeConfigurationText() throws -> String {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = .withoutEscapingSlashes
-    let location = try encoder.encode(transcriptsDirectory.path(percentEncoded: false))
-    return "transcripts:\n  location: \(String(decoding: location, as: UTF8.self))\n"
-  }
-
-  /// Makes the transcript location, the configuration directory of the
-  /// agent, and the working directory.
+  /// Makes the transcript location and the working directory.
   ///
   /// - Throws: The error of the file manager.
   private func makeDirectories() throws {
-    for directory in [transcriptsDirectory, configurationFile.deletingLastPathComponent(), workingDirectory] {
+    for directory in [transcriptsDirectory, workingDirectory] {
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
   }

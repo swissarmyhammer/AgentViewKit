@@ -2,9 +2,10 @@ import XCTest
 
 /// The end-to-end test of the Gallery tab of the demo app.
 ///
-/// The test starts the app on the Gallery tab. The tab starts the
-/// `acp-agent` program of the sibling FoundationModelsACPAgent build over a
-/// temporary copy of the recorded sessions, and lists them. The recorded
+/// The test starts the app on the Gallery tab. The tab runs
+/// FoundationModelsACPAgent in the app process over a temporary copy of the
+/// recorded sessions, and lists them. The test needs no sibling checkout and
+/// starts no agent program. The recorded
 /// sessions are replaced over time, so the test does not read their content.
 /// It finds the rows by the start of their identifiers.
 ///
