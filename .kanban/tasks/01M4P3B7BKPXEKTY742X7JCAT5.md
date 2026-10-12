@@ -36,6 +36,39 @@ comments:
   id: 01m4pzndx881qf8x6kt18fcb6q
   text: '2026-10-11: The FoundationModelsACPAgent session accepted the missing-cwd problem as its task 01M4PZN4KNGZ8C573D32MRD96Z (code not written yet). Decision: the agent never creates a session cwd. session/resume of a session whose cwd is missing replays the history as now but gets no tool surface (no code-context index, no files, no shell, no MCP); a later session/prompt gives -32602 "the working directory of this session does not exist". The Gallery needs no change. When that commit is pushed, nothing in the Gallery changes; a prompt in a Gallery session will then show that error.'
   timestamp: 2026-10-12T02:39:28.168711+00:00
+- actor: claude-code
+  id: 01m4q0ke72axyacm2ad3xtnf6s
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 853dd79). 2 findings (2 confirmed, 1 refuted): Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoFailureLabel.swift:22, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift:185. The engine did not review the files in Examples/AgentViewKitDemo/RecordedSessions (no validator matches them) and gave no finding on them. These files are fixtures that the owner told us to copy as they are.
+    - next: Correct the 2 findings in the "Review Findings (2026-10-11 21:43)" section. Then do the review again.
+  timestamp: 2026-10-12T02:55:51.522978+00:00
+- actor: claude-code
+  id: 01m4q0kv2q576sfyxqy5brgcp8
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — Gallery tab, RecordedSessionsStage, 4 recorded sessions copied as they are (8.1 MB), look controls, README, tests; restore of 4/4 sessions worked
+    - test: green — swift test, 1126 tests passed, 1 expected known issue, load average 34 to 43
+    - commit: 853dd79 (secret scan of the recordings: nothing found)
+    - review: findings — Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoFailureLabel.swift:22, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift:185
+  timestamp: 2026-10-12T02:56:04.695742+00:00
+- actor: claude-code
+  id: 01m4q1e9adww1d29ya94ebwj79
+  text: |-
+    Corrections of the 2 review findings (not committed):
+    - Finding 1 (DemoFailureLabel, completeness/public-output-contract): new `DemoFailureText.text(of:)` in `Sources/DemoSupport/DemoFailureText.swift` gives `(error as? LocalizedError)?.errorDescription ?? String(describing: error)`. `DemoFailureLabel` shows this text. The missing-recordings error and the bundle lookup moved from `GalleryTabView` to DemoSupport (`RecordedSessionsStage.MissingRecordingsError`, `RecordedSessionsStage.recordingsResourceName`, `RecordedSessionsStage.recordingsDirectory(in:)`), so that a package test can assert on them. `GalleryTabView.StartError` and its `recordingsDirectory()` are removed.
+    - Package tests: `RecordedSessionsStageTests.aBundleWithNoRecordingsGivesTheErrorDescriptionAsTheFailureText` (a start with no recordings gives the failure text "The app bundle has no RecordedSessions directory.", not the case name), `aBundleWithRecordingsGivesTheRecordingsDirectory`, and `DemoFailureTextTests` (2 tests: localized description, and the fallback). RED was a compile failure (no `DemoFailureText`), then GREEN: 13 tests in 2 suites.
+    - Finding 2 (duplication): new `DemoStartView` (`Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift`) with a `Phase` (starting, failed, started), the starting text, the starting identifier and the failure identifier. `ACPTabView` and `GalleryTabView` use it through `startView` and `startPhase`. Both `phaseView` copies are removed.
+    - Discovery: in DemoSupport (default main actor isolation) a `LocalizedError` type must be `nonisolated`, and the static name that its `errorDescription` reads must be `nonisolated` too.
+    - `ruby Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb` made the project again for the 2 new files. Nothing under `Examples/AgentViewKitDemo/RecordedSessions` changed.
+  timestamp: 2026-10-12T03:10:31.245647+00:00
+- actor: claude-code
+  id: 01m4q1ecmv0t2ag0yahhnwedtr
+  text: |-
+    ### implement — changed
+    - evidence: new Sources/DemoSupport/DemoFailureText.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift, Tests/AgentViewKitTests/ACP/DemoFailureTextTests.swift; changed Sources/DemoSupport/RecordedSessionsStage.swift, DemoFailureLabel.swift, GalleryTabView.swift, ACPTabView.swift, Tests/AgentViewKitTests/ACP/RecordedSessionsStageTests.swift. swift test: 1130 tests in 125 suites pass (1 known issue from before, HostedLayoutExpectationsTests) + 116 tests in 14 suites + 1; only warning is the mlx-swift "missing creator" build warning from before. xcodebuild build-for-testing of the demo: TEST BUILD SUCCEEDED (only the appintentsmetadataprocessor notes). UI tests not run. Load average 35.17 before the full run, 29.79 after.
+    - next: /review. Both findings are checked.
+  timestamp: 2026-10-12T03:10:34.651519+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Demo Gallery: show recorded SWE-bench sessions through the session restore of FoundationModelsACPAgent'
@@ -65,3 +98,37 @@ Source of the recordings: `../FoundationModelsACPAgent/bench/preds.*.transcripts
   - Done: `GalleryTabEndToEndTests` (demo UI test, compiled, not run on the screen of the owner) and `RecordedSessionsStageTests` (unit tests with their own fixtures).
 - [x] README of the demo: how to replace the recorded sessions with new ones.
   - Done: README.md "The demo app" and "Replace the recorded sessions", and `RecordedSessions/README.md`.
+
+## Review Findings (2026-10-11 21:43)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 28 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 22 file(s) not reviewed — no validator matched:
+> - `Examples/AgentViewKitDemo/RecordedSessions/README.md` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-13710/.gitattributes` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-13710/01M4NZ53EKQN37BF9S7ABMVMC5/session-history.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-13710/01M4NZ53EKQN37BF9S7ABMVMC5/session.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-13710/01M4NZ53EKQN37BF9S7ABMVMC5/transcript.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-13710/sessions.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14155/.gitattributes` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14155/01M4E1KW6GVA1KPVRD411G7SFQ/session-history.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14155/01M4E1KW6GVA1KPVRD411G7SFQ/session.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14155/01M4E1KW6GVA1KPVRD411G7SFQ/transcript.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14155/sessions.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14608/.gitattributes` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14608/01M4PF8QH2HSSYSSJS6JVAW9B2/session-history.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14608/01M4PF8QH2HSSYSSJS6JVAW9B2/session.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14608/01M4PF8QH2HSSYSSJS6JVAW9B2/transcript.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14608/sessions.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14672/.gitattributes` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14672/01M4PK9Z6EC0GH5VCXH778X4RW/session-history.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14672/01M4PK9Z6EC0GH5VCXH778X4RW/session.json` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14672/01M4PK9Z6EC0GH5VCXH778X4RW/transcript.jsonl` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/django__django-14672/sessions.jsonl` — no validator matches this file
+> - `README.md` — no validator matches this file
+
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoFailureLabel.swift:22` `completeness/public-output-contract` — The label renders `String(describing: error)`. For the Gallery start, the error is `GalleryTabView.StartError`, a plain enum whose intended message is its `LocalizedError.errorDescription` ("The app bundle has no RecordedSessions directory."). `String(describing:)` ignores `errorDescription` and prints the case name (`missingRecordings`), so the intended user-facing message is silently dropped whenever the bundle has no recordings. The `identifier`-based failure check still passes, which hides the regression. Render the localized text when the error provides it, for example `(error as? LocalizedError)?.errorDescription ?? String(describing: error)`, or use `error.localizedDescription` if that matches the contract the previous `failureLabel` used. Add one assertion that a missing-recordings start shows the `errorDescription` text, not the case name.
+- [x] `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryTabView.swift:185` `duplication/duplication` — The new GalleryTabView.phaseView repeats the structure of ACPTabView.phaseView. Both switch over the start phase, show a ProgressView with an accessibility identifier while starting, show DemoFailureLabel on failure, and show EmptyView otherwise. The copies differ only in the progress text and the identifier values. The copies can drift apart, for example when the failure presentation changes in one tab and not the other. Extract one shared view that takes the starting text, the starting identifier, and the failure identifier as parameters. Use it from both tabs and delete the copy in GalleryTabView.swift.

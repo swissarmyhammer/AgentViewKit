@@ -31,6 +31,21 @@ import Foundation
 /// of the agent process: `XDG_CONFIG_HOME` names the configuration of the
 /// stage, so the agent does not read or write the configuration of the user.
 public struct RecordedSessionsStage: Equatable, Sendable {
+  /// The error of a start that finds no recordings in the app bundle.
+  nonisolated public struct MissingRecordingsError: LocalizedError, Equatable {
+    /// Makes the error.
+    public init() {}
+
+    /// The text of the error. The failure label of the Gallery tab shows it.
+    public var errorDescription: String? {
+      "The app bundle has no \(RecordedSessionsStage.recordingsResourceName) directory."
+    }
+  }
+
+  /// The name of the directory of the recorded sessions in the app bundle.
+  /// The text of ``MissingRecordingsError`` reads it outside the main actor.
+  nonisolated public static let recordingsResourceName = "RecordedSessions"
+
   /// The variable that names the directory of the user configuration of the
   /// agent.
   public static let configurationHomeVariable = "XDG_CONFIG_HOME"
@@ -83,6 +98,20 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     configurationHome
       .appending(path: Self.agentConfigurationDirectoryName, directoryHint: .isDirectory)
       .appending(path: Self.configurationFileName, directoryHint: .notDirectory)
+  }
+
+  /// The directory of the recorded sessions in a bundle.
+  ///
+  /// - Parameter bundle: The bundle that holds the recordings, for example
+  ///   the app bundle.
+  /// - Returns: The ``recordingsResourceName`` directory of the bundle.
+  /// - Throws: ``MissingRecordingsError`` when the bundle has no such
+  ///   directory.
+  public static func recordingsDirectory(in bundle: Bundle = .main) throws -> URL {
+    guard let directory = bundle.url(forResource: recordingsResourceName, withExtension: nil) else {
+      throw MissingRecordingsError()
+    }
+    return directory
   }
 
   /// Makes a new stage below `parent`, and copies the recordings into it.

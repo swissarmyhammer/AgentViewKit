@@ -270,7 +270,7 @@ struct ACPTabView: View {
     if case .running(let agent, _) = phase {
       sessionList(of: agent)
     } else {
-      phaseView
+      startView
     }
   }
 
@@ -311,7 +311,7 @@ struct ACPTabView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     case .starting, .failed:
-      phaseView
+      startView
     }
   }
 
@@ -332,17 +332,22 @@ struct ACPTabView: View {
     .conversationEmptyState(title: Self.welcomeTitle, markdown: Self.welcomeMarkdown)
   }
 
-  /// The view of a start that has not given a session.
-  @ViewBuilder private var phaseView: some View {
+  /// The state of a start that has not given a session.
+  private var startView: DemoStartView {
+    DemoStartView(
+      phase: startPhase,
+      startingText: "Starting \(options.agentName)",
+      startingIdentifier: Self.startingIdentifier,
+      failureIdentifier: Self.failureIdentifier
+    )
+  }
+
+  /// The state of the start of the tab.
+  private var startPhase: DemoStartView.Phase {
     switch phase {
-    case .starting:
-      ProgressView("Starting \(options.agentName)")
-        .accessibilityIdentifier(Self.startingIdentifier)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    case .failed(let error):
-      DemoFailureLabel(error: error, identifier: Self.failureIdentifier)
-    case .signingIn, .running:
-      EmptyView()
+    case .starting: .starting
+    case .failed(let error): .failed(error)
+    case .signingIn, .running: .started
     }
   }
 

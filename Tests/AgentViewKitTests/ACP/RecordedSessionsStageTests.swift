@@ -13,6 +13,9 @@ import Testing
   /// The name of the index file of a recording root.
   static let indexFileName = "sessions.jsonl"
 
+  /// The failure text of a start that finds no recordings in the app bundle.
+  static let missingRecordingsText = "The app bundle has no RecordedSessions directory."
+
   /// The name of the first recording. It sorts before ``secondRecording``.
   static let firstRecording = "alpha-recording"
 
@@ -205,6 +208,31 @@ import Testing
     let contents = try FileManager.default.contentsOfDirectory(atPath: stage.workingDirectory.path(percentEncoded: false))
     #expect(contents.isEmpty)
     #expect(stage.workingDirectory.path(percentEncoded: false).hasPrefix(stage.root.path(percentEncoded: false)))
+  }
+
+  @Test func aBundleWithNoRecordingsGivesTheErrorDescriptionAsTheFailureText() throws {
+    let bundleDirectory = try TemporaryDirectory()
+    defer { bundleDirectory.remove() }
+    let bundle = try #require(Bundle(url: bundleDirectory.url))
+
+    let error = #expect(throws: RecordedSessionsStage.MissingRecordingsError.self) {
+      try RecordedSessionsStage.recordingsDirectory(in: bundle)
+    }
+
+    #expect(DemoFailureText.text(of: try #require(error)) == Self.missingRecordingsText)
+  }
+
+  @Test func aBundleWithRecordingsGivesTheRecordingsDirectory() throws {
+    let bundleDirectory = try TemporaryDirectory()
+    defer { bundleDirectory.remove() }
+    let recordings = bundleDirectory.url.appending(
+      path: RecordedSessionsStage.recordingsResourceName, directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: recordings, withIntermediateDirectories: true)
+    let bundle = try #require(Bundle(url: bundleDirectory.url))
+
+    let directory = try RecordedSessionsStage.recordingsDirectory(in: bundle)
+
+    #expect(directory.resolvingSymlinksInPath().pathComponents == recordings.resolvingSymlinksInPath().pathComponents)
   }
 
   @Test func eachStageIsANewDirectory() throws {

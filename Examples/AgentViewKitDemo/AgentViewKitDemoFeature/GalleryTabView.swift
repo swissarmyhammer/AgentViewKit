@@ -34,21 +34,6 @@ struct GalleryTabView: View {
     case running(DemoAgent)
   }
 
-  /// The error of a start that finds no recordings in the app bundle.
-  enum StartError: LocalizedError {
-    /// The app bundle has no `RecordedSessions` directory.
-    case missingRecordings
-
-    /// The text of the error.
-    var errorDescription: String? {
-      "The app bundle has no \(GalleryTabView.recordingsResourceName) directory."
-    }
-  }
-
-  /// The name of the directory of the recorded sessions in the app bundle.
-  /// The error text of ``StartError`` reads it outside the main actor.
-  nonisolated static let recordingsResourceName = "RecordedSessions"
-
   /// The accessibility identifier of the text that shows a failed start.
   static let failureIdentifier = "demo-gallery-failure"
 
@@ -67,6 +52,9 @@ struct GalleryTabView: View {
 
   /// The title of the tab.
   static let title = "Gallery"
+
+  /// The text of the progress view of the start.
+  static let startingText = "Starting the agent of the recorded sessions"
 
   /// The minimum width of the inspector column.
   static let inspectorMinimumWidth: CGFloat = 260
@@ -124,28 +112,18 @@ struct GalleryTabView: View {
 
   // MARK: - Start
 
-  /// Copies the recordings to a new stage, and starts the agent over it.
-  /// The tab starts the agent one time only.
+  /// Copies the recordings of the app bundle to a new stage, and starts the
+  /// agent over it. The tab starts the agent one time only. A bundle with no
+  /// recordings fails the start with
+  /// ``RecordedSessionsStage/MissingRecordingsError``.
   private func start() async {
     guard case .starting = phase else { return }
     do {
-      let stage = try RecordedSessionsStage.make(copying: try Self.recordingsDirectory())
+      let stage = try RecordedSessionsStage.make(copying: try RecordedSessionsStage.recordingsDirectory())
       phase = .running(try await DemoAgent.makeConnected(recordedSessions: stage, agentCommand: options.agentCommand))
     } catch {
       phase = .failed(error)
     }
-  }
-
-  /// The directory of the recorded sessions in the app bundle.
-  ///
-  /// - Returns: The directory.
-  /// - Throws: ``StartError/missingRecordings`` when the bundle has no such
-  ///   directory.
-  private static func recordingsDirectory() throws -> URL {
-    guard let directory = Bundle.main.url(forResource: recordingsResourceName, withExtension: nil) else {
-      throw StartError.missingRecordings
-    }
-    return directory
   }
 
   // MARK: - Columns
@@ -159,7 +137,7 @@ struct GalleryTabView: View {
         onOpen: { opened in session = opened }
       )
     } else {
-      phaseView
+      startView
     }
   }
 
@@ -177,21 +155,26 @@ struct GalleryTabView: View {
         )
       }
     } else {
-      phaseView
+      startView
     }
   }
 
-  /// The view of a start that has not given an agent.
-  @ViewBuilder private var phaseView: some View {
+  /// The state of a start that has not given an agent.
+  private var startView: DemoStartView {
+    DemoStartView(
+      phase: startPhase,
+      startingText: Self.startingText,
+      startingIdentifier: Self.startingIdentifier,
+      failureIdentifier: Self.failureIdentifier
+    )
+  }
+
+  /// The state of the start of the tab.
+  private var startPhase: DemoStartView.Phase {
     switch phase {
-    case .starting:
-      ProgressView("Starting the agent of the recorded sessions")
-        .accessibilityIdentifier(Self.startingIdentifier)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    case .failed(let error):
-      DemoFailureLabel(error: error, identifier: Self.failureIdentifier)
-    case .running:
-      EmptyView()
+    case .starting: .starting
+    case .failed(let error): .failed(error)
+    case .running: .started
     }
   }
 }
