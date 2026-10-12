@@ -1,4 +1,3 @@
-import AgentViewKitTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -81,22 +80,5 @@ import Testing
       #expect(!session.transcript.isEmpty, "\(info.sessionId)")
     }
     await scenario.stop()
-  }
-
-  @Test func theAgentRunsInThisProcessWithNoTerminalSignIn() async throws {
-    let scenario = try await Self.start()
-
-    #expect(scenario.agent.connection.state == .connected)
-    #expect(scenario.agent.terminalAuthRunner == nil)
-    #expect(!scenario.agent.canReconnect)
-    await scenario.stop()
-  }
-
-  @Test func stopMakesTheStateOfTheModelDisconnected() async throws {
-    let scenario = try await Self.start()
-
-    await scenario.stop()
-
-    #expect(await waitUntil { scenario.agent.connection.state == .disconnected })
   }
 }

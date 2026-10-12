@@ -46,29 +46,34 @@ import Testing
     get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ImportBoundary") }
   }
 
-  @Test func noSourceTargetImportsAFoundationModelsRuntime() throws {
-    let violations = try ImportScanner.violations(
-      in: PackageFiles.file("Sources"),
-      forbidden: Self.forbiddenInSources
-    )
+  /// The import boundaries of the package: each pair is a directory,
+  /// relative to the package root, and the modules that no Swift file in it
+  /// can import.
+  ///
+  /// - No target in `Sources/` imports a FoundationModels runtime.
+  /// - The kit target does not import the agent package.
+  /// - No Swift file imports the merged ACP module.
+  static let boundaries: [(directory: String, forbidden: Set<String>)] =
+    [
+      ("Sources", forbiddenInSources),
+      (kitSourcesPath, Set([agentModule])),
+    ] + swiftDirectories.map { ($0, Set([mergedModule])) }
+
+  /// Expects that no Swift file below `directory` imports a module of
+  /// `forbidden`.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory to scan.
+  ///   - forbidden: The modules that no file can import.
+  /// - Throws: The error of the scan of the directory.
+  static func expectNoImport(below directory: URL, of forbidden: Set<String>) throws {
+    let violations = try ImportScanner.violations(in: directory, forbidden: forbidden)
     #expect(violations.isEmpty, "\(violations)")
   }
 
-  @Test func theKitTargetDoesNotImportTheAgentPackage() throws {
-    let violations = try ImportScanner.violations(
-      in: PackageFiles.file(Self.kitSourcesPath),
-      forbidden: [Self.agentModule]
-    )
-    #expect(violations.isEmpty, "\(violations)")
-  }
-
-  @Test(arguments: swiftDirectories)
-  func noFileImportsTheMergedACPModule(directory: String) throws {
-    let violations = try ImportScanner.violations(
-      in: PackageFiles.file(directory),
-      forbidden: [Self.mergedModule]
-    )
-    #expect(violations.isEmpty, "\(violations)")
+  @Test(arguments: boundaries)
+  func noSwiftFileCrossesTheImportBoundaryOfItsDirectory(directory: String, forbidden: Set<String>) throws {
+    try Self.expectNoImport(below: PackageFiles.file(directory), of: forbidden)
   }
 
   @Test func scannerReportsEachForbiddenImportInTheFixture() throws {
@@ -97,11 +102,7 @@ import Testing
   }
 
   @Test func scannerAcceptsTheCleanFixture() throws {
-    let violations = try ImportScanner.violations(
-      in: Self.fixtures.appending(path: "Clean"),
-      forbidden: Self.forbiddenInSources
-    )
-    #expect(violations.isEmpty, "\(violations)")
+    try Self.expectNoImport(below: Self.fixtures.appending(path: "Clean"), of: Self.forbiddenInSources)
   }
 
   @Test func scannerFailsOnADirectoryThatDoesNotExist() {

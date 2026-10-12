@@ -12,7 +12,9 @@ import Testing
 ///
 /// Each test starts the in-memory demo agent through ``InProcessAgent``, and
 /// reads the state of the models directly. ``DemoAgent`` keeps no copy of a
-/// model value.
+/// model value. The tests over ``InProcessAgentFactory`` also start
+/// FoundationModelsACPAgent over the recorded sessions, the other agent that
+/// the demo runs in this process.
 @Suite struct DemoAgentTests {
   /// The working directory of each test session.
   static let workingDirectory = "/tmp/demo-agent"
@@ -33,6 +35,31 @@ import Testing
   /// - Throws: The error of ``DemoAgent/makeConnected(options:)``.
   private static func makeInMemoryAgent() async throws -> DemoAgent {
     try await DemoAgent.makeConnected(options: inMemoryOptions)
+  }
+
+  /// The agents that the demo starts in this process. Each of them must pass
+  /// the tests over this type.
+  enum InProcessAgentFactory: CaseIterable {
+    /// ``InMemoryDemoACPAgent`` with its script.
+    case scriptedInMemory
+
+    /// FoundationModelsACPAgent over a stage of the recorded sessions.
+    case recordedSessions
+
+    /// Starts the agent.
+    ///
+    /// - Returns: The connected agent, and the removal of the files that the
+    ///   start made.
+    /// - Throws: The error of the start.
+    func start() async throws -> (agent: DemoAgent, removeFiles: () -> Void) {
+      switch self {
+      case .scriptedInMemory:
+        return (try await DemoAgentTests.makeInMemoryAgent(), {})
+      case .recordedSessions:
+        let scenario = try await RecordedSessionsAgentTests.start()
+        return (scenario.agent, scenario.directory.remove)
+      }
+    }
   }
 
   @Test func theInMemoryAgentGivesAConnectedModelWithTheAnswerOfInitialize() async throws {
@@ -59,12 +86,14 @@ import Testing
     await agent.stop()
   }
 
-  @Test func stopMakesTheStateOfTheModelDisconnected() async throws {
-    let agent = try await Self.makeInMemoryAgent()
+  @Test(arguments: InProcessAgentFactory.allCases)
+  func stopMakesTheStateOfTheModelDisconnected(factory: InProcessAgentFactory) async throws {
+    let started = try await factory.start()
 
-    await agent.stop()
+    await started.agent.stop()
 
-    #expect(await waitUntil { agent.connection.state == .disconnected })
+    #expect(await waitUntil { started.agent.connection.state == .disconnected })
+    started.removeFiles()
   }
 
   @Test func aProgramThatIsNotAnAbsolutePathDoesNotStart() async {
@@ -98,13 +127,17 @@ import Testing
     await agent.stop()
   }
 
-  @Test func theInMemoryAgentHasNoTerminalSignIn() async throws {
-    let agent = try await Self.makeInMemoryAgent()
+  @Test(arguments: InProcessAgentFactory.allCases)
+  func anAgentInThisProcessIsConnectedWithNoTerminalSignIn(factory: InProcessAgentFactory) async throws {
+    let started = try await factory.start()
+    let agent = started.agent
 
+    #expect(agent.connection.state == .connected)
     #expect(agent.terminalAuthRunner == nil)
     #expect(!agent.canReconnect)
     #expect(agent.initializeRequest.capabilities.auth == nil)
     await agent.stop()
+    started.removeFiles()
   }
 }
 

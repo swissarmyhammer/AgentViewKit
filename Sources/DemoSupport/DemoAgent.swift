@@ -179,12 +179,9 @@ public final class DemoAgent {
       modelSource: .stub,
       transcriptLocation: .path(stage.transcriptsDirectory)
     )
-    let connection = await InProcessAgent.makeConnection { composed.agent(boundTo: $0) }
-    return try await makeStarted(
-      connection: connection,
+    return try await makeInProcess(
+      serving: { composed.agent(boundTo: $0) },
       workingDirectory: AbsolutePath(rawValue: stage.workingDirectory.path(percentEncoded: false)),
-      terminalAuthRunner: nil,
-      makeTransport: nil,
       waitForTeardown: composed.waitForConnectionTeardown
     )
   }
@@ -233,14 +230,35 @@ public final class DemoAgent {
     script: InMemoryDemoScript = .standard,
     workingDirectory: AbsolutePath = AbsolutePath(rawValue: InMemoryDemoAgent.sessionCwd)
   ) async throws -> DemoAgent {
-    let connection = await InProcessAgent.makeConnection { agentConnection in
-      InMemoryDemoACPAgent(connection: agentConnection, script: script)
-    }
+    try await makeInProcess(
+      serving: { InMemoryDemoACPAgent(connection: $0, script: script) },
+      workingDirectory: workingDirectory
+    )
+  }
+
+  /// Starts an agent in this process through ``InProcessAgent``, and sends
+  /// `initialize`. The agent has no transport factory and no terminal
+  /// sign-in.
+  ///
+  /// - Parameters:
+  ///   - makeAgent: Makes the agent from the agent side of the connection.
+  ///   - workingDirectory: The working directory of each new session.
+  ///   - waitForTeardown: The wait of ``stop()`` for the teardown of the
+  ///     agent, or `nil` when the agent needs no wait.
+  /// - Returns: The agent, with a connected and initialized model.
+  /// - Throws: The error of `initialize`.
+  private static func makeInProcess(
+    serving makeAgent: @Sendable (AgentSideConnection) -> any Agent,
+    workingDirectory: AbsolutePath,
+    waitForTeardown: TeardownWait? = nil
+  ) async throws -> DemoAgent {
+    let connection = await InProcessAgent.makeConnection(serving: makeAgent)
     return try await makeStarted(
       connection: connection,
       workingDirectory: workingDirectory,
       terminalAuthRunner: nil,
-      makeTransport: nil
+      makeTransport: nil,
+      waitForTeardown: waitForTeardown
     )
   }
 

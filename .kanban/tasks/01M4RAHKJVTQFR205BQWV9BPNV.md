@@ -142,6 +142,39 @@ comments:
     - evidence: pins (Package.resolved, git-ignored): EditorKit 95ef6c4 -> 65393f5 (graph now has only ChimeHQ/SwiftTreeSitter 0.25.0), FoundationModelsACPAgent added at 8ec62b6, FoundationModelsExtras 130eb40 -> d1a9031 and swift-distributed-tracing 1.5.0 -> 1.6.0 (both needed to compile FoundationModelsRouter 9de67e9 and FoundationModelsMultitool 8e70406). API: `ComposedAgent.compose(name:workingDirectory:modelSource: .stub, transcriptLocation: .path(URL))`, `agent(boundTo:)`, `waitForConnectionTeardown()`. Files: Package.swift, Sources/DemoSupport/{DemoAgent,RecordedSessionsStage,DemoLaunchOptions}.swift, Examples/AgentViewKitDemo/AgentViewKitDemoFeature/{GalleryTabView,DemoRootView}.swift, Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb, Examples/AgentViewKitDemo/Tests/GalleryTabEndToEndTests.swift (doc only), Examples/AgentViewKitDemo/RecordedSessions/README.md, README.md, Docs/decisions/dependencies.md, Tests/AgentViewKitTests/ACP/{RecordedSessionsAgentTests (new),RecordedSessionsStageTests,DemoAgentTests}.swift, Tests/PackageStructureTests/ImportBoundaryTests.swift. `swift test`: 1165 tests in 130 suites passed (2 known issues, the same as before) and 123 tests in 15 suites passed; load average 35.82 before, 34.94 after. Demo project regenerated; `xcodebuild build-for-testing -skipMacroValidation -skipPackagePluginValidation`: TEST BUILD SUCCEEDED (load 33.88 -> 54.28). ResolvedPinsTests 2/2 green with the generated project. UI tests not run.
     - next: /review. After the commit and push, check that CI runs GalleryTabEndToEndTests green.
   timestamp: 2026-10-12T18:53:50.803996+00:00
+- actor: claude-code
+  id: 01m4rr093c617dwa4snm4hyypx
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (0e61008); 3 findings (3 confirmed, 1 refuted) — Sources/DemoSupport/DemoAgent.swift:182, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift:95, Tests/PackageStructureTests/ImportBoundaryTests.swift:57
+    - next: implement the 3 open items in the Review Findings section of 2026-10-12 14:00, then test, commit and review again.
+  timestamp: 2026-10-12T19:04:03.948272+00:00
+- actor: claude-code
+  id: 01m4rr0tky63hjs6ja62dssrsy
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: changed — in-process ComposedAgent for the Gallery (stub model, transcriptLocation .path); pins EditorKit 65393f5, FoundationModelsACPAgent 8ec62b6, FoundationModelsExtras d1a9031, swift-distributed-tracing 1.6.0
+    - test: green — swift test, 1165 tests passed, 2 expected known issues, load average 39 to 67; the run wrote ~/.config/agentviewkit-demo/projects.jsonl and .code-context folders on this machine (follow-up card 01M4RQRJE02Q59FCT73PNDR0C1)
+    - commit: 0e61008
+    - review: findings — Sources/DemoSupport/DemoAgent.swift:182, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift:95, Tests/PackageStructureTests/ImportBoundaryTests.swift:57
+  timestamp: 2026-10-12T19:04:21.886124+00:00
+- actor: claude-code
+  id: 01m4rrg6p8450rfnvbd97vh391
+  text: |-
+    Pass 4 (2026-10-12): the 3 review findings are fixed (not committed).
+
+    - DemoAgent: new private helper `makeInProcess(serving:workingDirectory:waitForTeardown:)` connects through `InProcessAgent.makeConnection(serving:)` and calls `makeStarted`. `makeInProcess(script:workingDirectory:)` and `makeInProcess(recordedSessions:)` now give only their agent constructor (and the recorded agent gives `composed.waitForConnectionTeardown`).
+    - DemoAgentTests: new `InProcessAgentFactory` (`scriptedInMemory`, `recordedSessions`; `start()` gives the agent and the removal of the stage files). `stopMakesTheStateOfTheModelDisconnected(factory:)` runs over both agents. The copy in RecordedSessionsAgentTests is removed. The same cause was in the file one more time: `theAgentRunsInThisProcessWithNoTerminalSignIn` (RecordedSessionsAgentTests) repeated `theInMemoryAgentHasNoTerminalSignIn` (DemoAgentTests). Both are now one test, `anAgentInThisProcessIsConnectedWithNoTerminalSignIn(factory:)`. RecordedSessionsAgentTests no longer imports AgentViewKitTestSupport (`waitUntil` was its only use).
+    - ImportBoundaryTests: `boundaries` holds the (directory, forbidden) pairs: ("Sources", forbiddenInSources), (kitSourcesPath, [agentModule]), and each of swiftDirectories with [mergedModule]. One test `noSwiftFileCrossesTheImportBoundaryOfItsDirectory(directory:forbidden:)` runs over them, through the helper `expectNoImport(below:of:)`. `scannerAcceptsTheCleanFixture` also uses the helper. The three old boundary tests are removed.
+    - Note: the validator dump for `.swift` was 750 KB (12,098 lines) and was too large to read in one call; I used the rule headings and the finding text.
+  timestamp: 2026-10-12T19:12:45.768315+00:00
+- actor: claude-code
+  id: 01m4rrg9rs0nafq24bkgawq0b2
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/DemoSupport/DemoAgent.swift, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift, Tests/PackageStructureTests/ImportBoundaryTests.swift. `swift build --build-tests` green. `swift test`: 1163 tests in 130 suites passed (2 known issues, the same as before) and 121 tests in 15 suites passed; the two parameterized DemoAgent tests passed with 2 cases each, the boundary test with 5 cases. Load average 29.24 33.82 38.00 before, 31.72 32.42 36.38 after. UI tests not run. All 3 findings checked.
+    - next: /test, /commit, then /review.
+  timestamp: 2026-10-12T19:12:48.921518+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Gallery: run FoundationModelsACPAgent in the process through its package, not as a sibling program'
@@ -158,3 +191,19 @@ Today the Gallery (^x7jcat5, ^z13s3dd) starts `acp-agent acp` from the sibling c
 - [x] If the ACP tab or other code also starts the sibling `acp-agent` program, record it; do not change it on this card unless it is the same code.
 - [x] Tests: the package test that opens the recorded sessions runs the in-process agent (no sibling binary). The Gallery UI test must pass on CI. Do not run UI tests on this machine.
 - [x] Update the README and `RecordedSessions/README.md`.
+
+## Review Findings (2026-10-12 14:00)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 9 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 3 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/dependencies.md` — no validator matches this file
+> - `Examples/AgentViewKitDemo/RecordedSessions/README.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+
+- [x] `Sources/DemoSupport/DemoAgent.swift:182` `reuse/reuse` — The new makeInProcess(recordedSessions:) repeats the connect-and-start sequence of makeInProcess(script:): it calls InProcessAgent.makeConnection with a closure that builds the agent, then calls makeStarted. Only the agent constructor differs. Two copies of this sequence can drift apart when the in-process startup changes. Extract a private static helper that takes the agent factory closure, for example makeInProcess(agent: (AgentConnection) -> any Agent, workingDirectory:, waitForTeardown:). Then makeInProcess(script:) and makeInProcess(recordedSessions:) each pass only their own agent constructor. Keep the per-case constructors where they are.
+- [x] `Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift:95` `reuse/reuse` — The new test stopMakesTheStateOfTheModelDisconnected repeats the existing stop test of DemoAgentTests. Both start an agent, call stop, and wait until the model state is .disconnected. The copy can drift from the original. Check whether the existing DemoAgentTests stop test already covers the recorded-sessions agent once it is parameterized over the agent factory. If it does, remove this copy. If the start helper must differ, keep the test and add a comment that says why it is separate.
+- [x] `Tests/PackageStructureTests/ImportBoundaryTests.swift:57` `reuse/reuse` — The new test theKitTargetDoesNotImportTheAgentPackage repeats the body of noSourceTargetImportsAFoundationModelsRuntime. Only the directory and the forbidden set differ. A second copy of the scan-and-assert logic can drift from the first. Parameterize the existing test over (directory, forbidden) pairs with @Test(arguments:), or move the shared assertion into a helper that both tests call. Keep the two constants, Self.kitSourcesPath and Self.agentModule, as the parameters.
