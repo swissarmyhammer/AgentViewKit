@@ -68,8 +68,24 @@ comments:
     - evidence: 3 files — Sources/DemoSupport/RecordedSessionsStage.swift, Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift. Targeted run: 30 tests in 5 suites passed. Full `swift test` (after the serialization fix): 1152 tests in 129 suites passed, 2 known issues (existing `withKnownIssue`), XCTest 0 tests. The only warning is the existing SwiftPM "missing creator for mutated node" of the mlx-swift bundle. The first full run before the serialization fix had 1 failure (SQLite lock, see the comment above). Load average before the final full run 37.34 38.14 35.76, after 24.40 32.60 34.13. `stat -f '%m %z' ~/.config/agentviewkit-demo/projects.jsonl`: `1791836236 507` before and after each run (no change). Both review findings are checked.
     - next: /review. The task stays in doing.
   timestamp: 2026-10-12T22:26:41.891503+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m4s42g4eht2ztvbmqt595j2d
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d2a3041). 3 files reviewed. 0 findings, 0 confirmed, 2 refuted, 0 failed. All prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T22:34:59.598689+00:00
+- actor: claude-code
+  id: 01m4s42rdhv8980wgkws1xwgws
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — directory(named:) helper; the home-directory test opens and resumes; RecordedSessionsAgentTests serialized (SQLite lock); 2 findings checked
+    - test: green — swift test, 1152 tests passed, 2 expected known issues, load average 27 to 97; home file unchanged
+    - commit: d2a3041
+    - review: clean — 0 findings (3 files); task in done
+  timestamp: 2026-10-12T22:35:08.081103+00:00
+position_column: done
+position_ordinal: ffb680
 title: Keep the in-process agent tests and the Gallery from writing into the home directory
 ---
 ## What
