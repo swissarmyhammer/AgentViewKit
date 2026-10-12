@@ -120,6 +120,41 @@ comments:
     - findings: 1 of 1 checked in the 2026-10-11 20:38 section.
     - next: /review
   timestamp: 2026-10-12T01:50:10.403062+00:00
+- actor: claude-code
+  id: 01m4px9efvpysn6370kychaaw5
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (156e061). 2 findings, 2 confirmed, 1 refuted. Tests/PackageStructureTests/FixedColorTests.swift:74, Tests/PackageStructureTests/SymbolNameTests.swift:19
+    - next: implement — put the walk over KitSourceFiles.viewPaths into one shared helper, and use it in FixedColorTests and SymbolNameTests.
+  timestamp: 2026-10-12T01:57:58.395342+00:00
+- actor: claude-code
+  id: 01m4px9tg7xp84jyxgv7qf6nmb
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: changed — KitSourceFiles helper for the shared search texts and paths; finding checked
+    - test: green — swift test, 1114 tests passed, 1 expected known issue, load average 45 to 58
+    - commit: 156e061
+    - review: findings — Tests/PackageStructureTests/FixedColorTests.swift:74, Tests/PackageStructureTests/SymbolNameTests.swift:19
+  timestamp: 2026-10-12T01:58:10.695143+00:00
+- actor: claude-code
+  id: 01m4pxpjrshsc0d2vvfc0696sk
+  text: |-
+    Findings at FixedColorTests.swift:74 and SymbolNameTests.swift:19 fixed (not committed). What changed:
+    - New `KitSourceFiles.scanViewFiles(_:)`: a generic helper that runs a scan closure on the URL of each directory of `viewPaths`, and gives the results in the order of `viewPaths`. It gives the error of `PackageFiles.file(_:)` or of the scan. `KitSourceFiles.swift` now imports Foundation and PackageFileSupport.
+    - FixedColorTests.noViewUsesAFixedSystemColor and SymbolNameTests.symbolNames() call the helper. Each test keeps only its own scanner call (`SourceLineScanner.matches` and `SymbolNameScanner.names`).
+    - The same loop was also in KitSourceFilesTests.eachViewPathIsADirectoryOfThePackage. It now calls `scanViewFiles(PackageFiles.swiftFiles(in:))`.
+    - SymbolRenderingModeTests and SharedSymbolTreatmentTests do not walk `viewPaths`. They read fixed file lists, or the one `kitPath` directory. They have no copy of this loop, so they did not change.
+    - New tests in KitSourceFilesTests: the scan gets each view directory in order, and the scan error comes back to the caller. RED: the build failed, because `scanViewFiles` did not exist. GREEN: 5 tests of KitSourceFilesTests passed.
+  timestamp: 2026-10-12T02:05:08.761161+00:00
+- actor: claude-code
+  id: 01m4pxpndv1adkw6jvma425kz4
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` exit 0: 1114 tests in 123 suites passed (1 known issue, the designed `withKnownIssue` of HostedLayoutExpectationsTests), PackageStructure 116 tests in 14 suites passed, XCTest 0 failures. Load average 40.50 at start, 46.00 at end. The only warning is the known `missing creator for mutated node` of the mlx-swift_Cmlx bundle (dependency). No UI tests ran.
+    - files: Tests/PackageStructureTests/{KitSourceFiles.swift, KitSourceFilesTests.swift, FixedColorTests.swift, SymbolNameTests.swift}
+    - findings: 2 of 2 checked in the 2026-10-11 20:54 section.
+    - next: /review
+  timestamp: 2026-10-12T02:05:11.483525+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
 position_column: doing
@@ -160,3 +195,13 @@ An audit on 2026-10-11 found differences in how symbols are drawn, and missing a
 > - `.kanban/ (from .reviewignore)` — 4 file(s)
 
 - [x] `Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:36` `reuse/reuse` — The new constant symbolImageCall = "Image(systemName:" copies a constant that already exists. SymbolRenderingModeTests already defines the same text, so two copies of one search string now exist and can drift apart. Remove the constant at line 36. Read SymbolRenderingModeTests.symbolImageCall instead, or move the shared constant into PackageFileSupport so both suites use one definition.
+
+## Review Findings (2026-10-11 20:54)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/PackageStructureTests/FixedColorTests.swift:74` `reuse/reuse` — The loop that runs a scan over each path in KitSourceFiles.viewPaths is written again here. The same loop is in SymbolNameTests.symbolNames(). The two copies must change together when the view paths or the scan call change. Move the loop into one helper in KitSourceFiles or in the package file support. For example, a generic `forEachViewFile` that takes the scanner as a closure. Then this test and SymbolNameTests.symbolNames() both call that helper. Keep the per-scan call in each test.
+- [x] `Tests/PackageStructureTests/SymbolNameTests.swift:19` `reuse/reuse` — The loop over KitSourceFiles.viewPaths is a near-copy of the loop in FixedColorTests.noViewUsesAFixedSystemColor. It repeats the view-path walk instead of using one shared helper. Use the same shared helper that FixedColorTests uses, so the view-path walk exists once. Keep the scanner call (SymbolNameScanner.names) as the only part that differs.

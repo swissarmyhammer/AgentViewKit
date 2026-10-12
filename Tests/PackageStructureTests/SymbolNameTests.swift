@@ -16,8 +16,8 @@ import Testing
   /// - Returns: The uses, in directory order.
   /// - Throws: The error of the scan when a directory cannot be read.
   static func symbolNames() throws -> [SymbolNameUse] {
-    try KitSourceFiles.viewPaths.flatMap { path in
-      try SymbolNameScanner.names(inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root)
+    try KitSourceFiles.scanViewFiles { directory in
+      try SymbolNameScanner.names(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
     }
   }
 

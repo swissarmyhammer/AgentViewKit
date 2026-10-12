@@ -71,10 +71,9 @@ import Testing
   }
 
   @Test func noViewUsesAFixedSystemColor() throws {
-    let found = try KitSourceFiles.viewPaths.flatMap { path in
+    let found = try KitSourceFiles.scanViewFiles { directory in
       try SourceLineScanner.matches(
-        inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
-        match: Self.fixedColorUses(on:))
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, match: Self.fixedColorUses(on:))
     }
 
     #expect(found.isEmpty, "Use a color of the EditorKit theme: \(found)")

@@ -1,3 +1,6 @@
+import Foundation
+import PackageFileSupport
+
 /// The paths and the search texts that the scans of the kit views share.
 ///
 /// The symbol name scan, the rendering mode scan, the shared symbol scan and
@@ -29,5 +32,19 @@ enum KitSourceFiles {
   /// - Returns: The path of the file, relative to the package root.
   static func kitFile(_ path: String) -> String {
     "\(kitPath)/\(path)"
+  }
+
+  /// Runs a scan over each directory of ``viewPaths``.
+  ///
+  /// Each view scan walks the same directories. The walk is here, so a scan
+  /// gives only its own scanner call.
+  ///
+  /// - Parameter scan: The scan of one directory. It gets the URL of the
+  ///   directory and gives the results that it finds there.
+  /// - Returns: The results of each directory, in the order of ``viewPaths``.
+  /// - Throws: The error of `PackageFiles.file(_:)` when a view path is not
+  ///   in the package, or the error of `scan`.
+  static func scanViewFiles<Match>(_ scan: (URL) throws -> [Match]) throws -> [Match] {
+    try viewPaths.flatMap { path in try scan(PackageFiles.file(path)) }
   }
 }
