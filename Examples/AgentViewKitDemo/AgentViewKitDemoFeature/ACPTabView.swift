@@ -5,8 +5,9 @@ import SwiftUI
 /// The ACP tab of the demo app.
 ///
 /// The tab starts the agent of the launch options in the app process with
-/// ``DemoAgent/makeInProcess(options:)``: FoundationModelsACPAgent with the
-/// live model, or the in-memory demo agent for `--in-memory-agent`. It shows
+/// ``DemoAgent/makeInProcess(options:environment:)``:
+/// FoundationModelsACPAgent with the live model, or the in-memory demo agent
+/// for `--in-memory-agent`. It shows
 /// the `ConnectionModel` and the selected `SessionModel` of the client with
 /// the kit session views:
 ///

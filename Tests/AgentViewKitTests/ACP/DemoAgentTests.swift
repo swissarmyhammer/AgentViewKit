@@ -30,13 +30,19 @@ import Testing
   /// Starts the in-memory agent.
   ///
   /// - Returns: The connected agent.
-  /// - Throws: The error of ``DemoAgent/makeInProcess(options:)``.
+  /// - Throws: The error of ``DemoAgent/makeInProcess(options:environment:)``.
   private static func makeInMemoryAgent() async throws -> DemoAgent {
     try await DemoAgent.makeInProcess(options: inMemoryOptions)
   }
 
+  /// The name of the configuration root of the ACP tab agent of a test,
+  /// below its temporary working directory.
+  static let configurationDirectoryName = "configuration"
+
   /// Starts FoundationModelsACPAgent as the ACP tab does, with the stub model
-  /// in place of the live model, in a new temporary working directory.
+  /// in place of the live model, in a new temporary working directory. The
+  /// configuration root of the agent is a directory below the temporary
+  /// directory, so the agent writes nothing into the home directory.
   ///
   /// - Returns: The connected agent, and the temporary working directory.
   /// - Throws: The error of the directory or of the start.
@@ -46,7 +52,20 @@ import Testing
       "app", DemoLaunchOptions.cwdArgument, directory.url.path(percentEncoded: false),
     ])
     options.acpAgent = .foundationModels(.stub)
-    return (try await DemoAgent.makeInProcess(options: options), directory)
+    let configurationRoot = directory.url.appending(path: configurationDirectoryName, directoryHint: .isDirectory)
+    let environment = [RecordedSessionsStageTests.configurationHomeKey: configurationRoot.path(percentEncoded: false)]
+    return (try await DemoAgent.makeInProcess(options: options, environment: environment), directory)
+  }
+
+  @Test func anACPTabAgentOfATestLeavesTheProjectRegistryOfTheHomeDirectoryUnchanged() async throws {
+    let homeRegistry = RecordedSessionsAgentTests.FileSnapshot(of: RecordedSessionsAgentTests.homeProjectRegistry)
+    let started = try await Self.makeACPTabAgent()
+
+    try await started.agent.openSession { _ in }
+    await started.agent.stop()
+    started.directory.remove()
+
+    #expect(RecordedSessionsAgentTests.FileSnapshot(of: RecordedSessionsAgentTests.homeProjectRegistry) == homeRegistry)
   }
 
   /// The agents that the demo starts in this process. Each of them must pass

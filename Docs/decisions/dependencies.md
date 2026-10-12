@@ -41,11 +41,16 @@ not a dependency of the kit. Thus the table above does not list it.
 | FoundationModelsACPAgent | git@github.com:swissarmyhammer/FoundationModelsACPAgent.git | branch main | `FoundationModelsACPAgent` | `DemoSupport` |
 
 - The ACP tab of the demo app runs the agent in the process of the app with
-  the live model (`DemoAgent.makeInProcess(options:)`). The Gallery tab runs
-  the agent in the process of the app with the stub model over the recorded
-  sessions (`DemoAgent.makeInProcess(recordedSessions:)`). The demo app
+  the live model (`DemoAgent.makeInProcess(options:environment:)`). The
+  Gallery tab runs the agent in the process of the app with the stub model
+  over the recorded sessions
+  (`DemoAgent.makeInProcess(recordedSessions:)`). The demo app
   starts no agent program and needs no sibling checkout. The tests use the
   stub model or the in-memory demo agent, so no test loads a model.
+- Each test agent and the Gallery agent get an `XDG_CONFIG_HOME` in a
+  temporary directory through the `environment:` dictionary of
+  `ComposedAgent.compose`. The agent then writes its project registry there,
+  and not into `~/.config/agentviewkit-demo/` of the home directory.
 - The demo Xcode project gets the same package from
   `Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb`.
 - `Tests/PackageStructureTests/ImportBoundaryTests.swift` holds the kit target

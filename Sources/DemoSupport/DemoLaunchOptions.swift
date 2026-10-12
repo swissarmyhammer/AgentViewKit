@@ -36,7 +36,7 @@ public enum DemoACPAgent: Equatable, Sendable {
 ///   default.
 ///
 /// The demo app starts no agent program. Each tab runs its agent in the app
-/// process through ``DemoAgent/makeInProcess(options:)`` or
+/// process through ``DemoAgent/makeInProcess(options:environment:)`` or
 /// ``DemoAgent/makeInProcess(recordedSessions:)``. The Gallery tab reads no
 /// launch argument other than `--tab`.
 public struct DemoLaunchOptions: Equatable, Sendable {

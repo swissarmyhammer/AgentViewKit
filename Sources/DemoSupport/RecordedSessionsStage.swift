@@ -26,9 +26,10 @@ import Foundation
 /// The stage is a copy, so the agent never changes the recordings.
 ///
 /// The stage also gives an empty working directory for the start of the
-/// agent and for `session/list`. The stage holds no configuration file:
+/// agent and for `session/list`, and an empty configuration directory for
+/// the user layer of the agent. The stage holds no configuration file:
 /// ``DemoAgent/makeInProcess(recordedSessions:)`` gives the transcript
-/// location to the agent in code.
+/// location and ``agentEnvironment`` to the agent in code.
 public struct RecordedSessionsStage: Equatable, Sendable {
   /// The error of a start that finds no recordings in the app bundle.
   nonisolated public struct MissingRecordingsError: LocalizedError, Equatable {
@@ -54,6 +55,14 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   /// The name of the working directory below ``root``.
   static let workingDirectoryName = "working-directory"
 
+  /// The name of the configuration directory below ``root``.
+  static let configurationDirectoryName = "configuration"
+
+  /// The key of the environment that gives the agent its configuration
+  /// root: the XDG Base Directory variable that FoundationModelsACPAgent
+  /// reads its user layer from.
+  static let configurationHomeKey = "XDG_CONFIG_HOME"
+
   /// The start of the name of each stage directory.
   static let stageNamePrefix = "AgentViewKitDemo-RecordedSessions-"
 
@@ -72,6 +81,21 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   /// `session/list`.
   public var workingDirectory: URL {
     root.appending(path: Self.workingDirectoryName, directoryHint: .isDirectory)
+  }
+
+  /// The empty configuration root of the agent: the user layer of the agent
+  /// is the dotfolder below it. The agent writes its project registry there,
+  /// and not into `~/.config` of the home directory.
+  public var configurationDirectory: URL {
+    root.appending(path: Self.configurationDirectoryName, directoryHint: .isDirectory)
+  }
+
+  /// The environment that ``DemoAgent/makeInProcess(recordedSessions:)``
+  /// gives to the agent in code. It holds only ``configurationDirectory`` as
+  /// the configuration root, so the agent reads no value of the process
+  /// environment and writes nothing into the home directory.
+  public var agentEnvironment: [String: String] {
+    [Self.configurationHomeKey: configurationDirectory.path(percentEncoded: false)]
   }
 
   /// The directory of the recorded sessions in a bundle.
@@ -112,11 +136,12 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     return stage
   }
 
-  /// Makes the transcript location and the working directory.
+  /// Makes the transcript location, the working directory, and the
+  /// configuration directory.
   ///
   /// - Throws: The error of the file manager.
   private func makeDirectories() throws {
-    for directory in [transcriptsDirectory, workingDirectory] {
+    for directory in [transcriptsDirectory, workingDirectory, configurationDirectory] {
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
   }

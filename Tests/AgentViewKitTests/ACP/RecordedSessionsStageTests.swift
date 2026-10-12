@@ -16,6 +16,9 @@ import Testing
   /// The failure text of a start that finds no recordings in the app bundle.
   static let missingRecordingsText = "The app bundle has no RecordedSessions directory."
 
+  /// The key of the XDG configuration root in the environment of the agent.
+  static let configurationHomeKey = "XDG_CONFIG_HOME"
+
   /// The name of the first recording. It sorts before ``secondRecording``.
   static let firstRecording = "alpha-recording"
 
@@ -118,6 +121,19 @@ import Testing
     try Data(contentsOf: stage.transcriptsDirectory.appending(path: path, directoryHint: .notDirectory))
   }
 
+  /// Expects that `directory` is an empty directory below the root of
+  /// `stage`.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory.
+  ///   - stage: The stage.
+  /// - Throws: The error of the read of the directory.
+  static func expectEmptyDirectory(_ directory: URL, of stage: RecordedSessionsStage) throws {
+    let contents = try FileManager.default.contentsOfDirectory(atPath: directory.path(percentEncoded: false))
+    #expect(contents.isEmpty)
+    #expect(directory.path(percentEncoded: false).hasPrefix(stage.root.path(percentEncoded: false)))
+  }
+
   @Test func theStageCopiesEachSessionDirectoryOfEachRecording() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
@@ -175,14 +191,15 @@ import Testing
     #expect(try recordings.data(at: "\(Self.firstRecording)/\(historyPath)") == recorded)
   }
 
-  @Test func theStageHoldsOnlyTheTranscriptLocationAndTheWorkingDirectory() throws {
+  @Test func theStageHoldsOnlyTheTranscriptLocationTheWorkingDirectoryAndTheConfigurationDirectory() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
     let names = try FileManager.default.contentsOfDirectory(atPath: stage.root.path(percentEncoded: false))
-    let expected = [stage.transcriptsDirectory, stage.workingDirectory].map(\.lastPathComponent)
+    let expected = [stage.transcriptsDirectory, stage.workingDirectory, stage.configurationDirectory]
+      .map(\.lastPathComponent)
     #expect(names.sorted() == expected.sorted())
   }
 
@@ -192,9 +209,25 @@ import Testing
 
     let stage = try recordings.makeStage()
 
-    let contents = try FileManager.default.contentsOfDirectory(atPath: stage.workingDirectory.path(percentEncoded: false))
-    #expect(contents.isEmpty)
-    #expect(stage.workingDirectory.path(percentEncoded: false).hasPrefix(stage.root.path(percentEncoded: false)))
+    try Self.expectEmptyDirectory(stage.workingDirectory, of: stage)
+  }
+
+  @Test func theConfigurationDirectoryIsAnEmptyDirectoryOfTheStage() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+
+    let stage = try recordings.makeStage()
+
+    try Self.expectEmptyDirectory(stage.configurationDirectory, of: stage)
+  }
+
+  @Test func theAgentEnvironmentPutsTheConfigurationRootInTheStage() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+
+    let stage = try recordings.makeStage()
+
+    #expect(stage.agentEnvironment == [Self.configurationHomeKey: stage.configurationDirectory.path(percentEncoded: false)])
   }
 
   @Test func aBundleWithNoRecordingsGivesTheErrorDescriptionAsTheFailureText() throws {

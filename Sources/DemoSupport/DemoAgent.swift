@@ -14,8 +14,8 @@ import FoundationModelsACPClient
 /// in the models.
 ///
 /// - The ACP tab starts the agent of the launch options with
-///   ``makeInProcess(options:)``: FoundationModelsACPAgent with the live
-///   model, or ``InMemoryDemoACPAgent`` for `--in-memory-agent`.
+///   ``makeInProcess(options:environment:)``: FoundationModelsACPAgent with
+///   the live model, or ``InMemoryDemoACPAgent`` for `--in-memory-agent`.
 /// - The Gallery tab starts FoundationModelsACPAgent with the stub model over
 ///   a ``RecordedSessionsStage``, with ``makeInProcess(recordedSessions:)``,
 ///   and the in-memory agent with each script of its sidebar.
@@ -113,17 +113,28 @@ public final class DemoAgent {
   ///
   /// The working directory of each session is ``DemoLaunchOptions/cwd``.
   ///
-  /// - Parameter options: The launch options of the demo app.
+  /// - Parameters:
+  ///   - options: The launch options of the demo app.
+  ///   - environment: The environment that FoundationModelsACPAgent reads in
+  ///     place of the process environment, for example its configuration
+  ///     root. The default is the process environment, which the demo app
+  ///     uses. A test gives a configuration root in a temporary directory, so
+  ///     the agent writes nothing into the home directory.
+  ///     ``InMemoryDemoACPAgent`` reads no environment.
   /// - Returns: The agent, with a connected and initialized model.
   /// - Throws: The error of the composition of FoundationModelsACPAgent, or
   ///   the error of `initialize`.
-  public static func makeInProcess(options: DemoLaunchOptions) async throws -> DemoAgent {
+  public static func makeInProcess(
+    options: DemoLaunchOptions,
+    environment: [String: String] = ProcessInfo.processInfo.environment
+  ) async throws -> DemoAgent {
     let workingDirectory = AbsolutePath(rawValue: options.cwd)
     switch options.acpAgent {
     case .inMemory:
       return try await makeInProcess(workingDirectory: workingDirectory)
     case .foundationModels(let modelSource):
-      return try await makeInProcess(foundationModelsIn: workingDirectory, modelSource: modelSource)
+      return try await makeInProcess(
+        foundationModelsIn: workingDirectory, modelSource: modelSource, environment: environment)
     }
   }
 
@@ -132,7 +143,11 @@ public final class DemoAgent {
   ///
   /// The agent uses the stub model of the package, so it loads no model and
   /// downloads nothing. Its transcript location is the copy in the stage,
-  /// set in code: the agent needs no configuration file for it. The
+  /// set in code: the agent needs no configuration file for it. Its
+  /// environment is ``RecordedSessionsStage/agentEnvironment``, also set in
+  /// code: the configuration root of the agent is the configuration
+  /// directory of the stage, so the agent writes its project registry into
+  /// the stage and not into the home directory. The
   /// working directory of each session list is the empty working directory
   /// of the stage. The agent restores a recorded session on `session/resume`.
   /// When the recorded working directory of a session is missing, the agent
@@ -148,6 +163,7 @@ public final class DemoAgent {
     try await makeInProcess(
       foundationModelsIn: AbsolutePath(rawValue: stage.workingDirectory.path(percentEncoded: false)),
       modelSource: .stub,
+      environment: stage.agentEnvironment,
       transcriptLocation: .path(stage.transcriptsDirectory)
     )
   }
@@ -187,6 +203,8 @@ public final class DemoAgent {
   ///   - workingDirectory: The working directory of the start-up
   ///     configuration and of each new session.
   ///   - modelSource: The model path of the agent.
+  ///   - environment: The environment that the agent reads in place of the
+  ///     process environment, for example its configuration root.
   ///   - transcriptLocation: The transcript location that wins over each
   ///     configuration layer, or `nil` for the location of the agent
   ///     configuration.
@@ -196,11 +214,13 @@ public final class DemoAgent {
   private static func makeInProcess(
     foundationModelsIn workingDirectory: AbsolutePath,
     modelSource: ComposedAgent.ModelSource,
+    environment: [String: String],
     transcriptLocation: TranscriptLocation? = nil
   ) async throws -> DemoAgent {
     let composed = try await ComposedAgent.compose(
       name: try DotfolderName(agentDotfolderName),
       workingDirectory: URL(filePath: workingDirectory.rawValue),
+      environment: environment,
       modelSource: modelSource,
       transcriptLocation: transcriptLocation
     )

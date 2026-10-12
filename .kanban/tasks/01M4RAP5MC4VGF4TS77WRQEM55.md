@@ -73,10 +73,26 @@ comments:
     - evidence: 1 file — Tests/PackageStructureTests/RemovedVocabularyTests.swift. Finding RemovedVocabularyTests.swift:495 (duplication/duplication) checked. `swift test`: 1147 tests in 129 suites passed (2 known issues, same as before), 122 tests in 15 suites passed, 1 snippet test passed; exit 0. Load average 17.56 before, 19.61 after. One build-system line `warning: missing creator for mutated node` for the mlx-swift_Cmlx.bundle in .build (not from this change). UI tests not run.
     - next: /test, then /commit, then /review.
   timestamp: 2026-10-12T20:14:57.064524+00:00
+- actor: claude-code
+  id: 01m4ry9xnrhmqdw5jjhat356xd
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (121e296); 0 findings, 0 confirmed, 0 refuted; 1 file reviewed, 2 .kanban files not reviewed (ignore rule). All prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-12T20:54:11.384934+00:00
+- actor: claude-code
+  id: 01m4rya6yesgvbhpne1qsbd4nb
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — expectNoUse and expectNoFile helpers in RemovedVocabularyTests (11 tests); finding checked
+    - test: green — swift test, 1147 tests passed, 2 expected known issues, load average 15 to 23
+    - commit: 121e296
+    - review: clean — 0 findings (1 file); task in done
+  timestamp: 2026-10-12T20:54:20.878530+00:00
 depends_on:
 - 01M4RAHKJVTQFR205BQWV9BPNV
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffb580
 title: 'ACP tab: run FoundationModelsACPAgent in the process, not the sibling acp-agent program'
 ---
 ## What
