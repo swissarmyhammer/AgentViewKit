@@ -45,8 +45,24 @@ comments:
     - evidence: 1 file, Tests/PackageStructureTests/RemovedVocabularyTests.swift. RED: `swift test --filter PackageStructureTests.RemovedVocabularyTests` gave a compile error (no member `removedInputUse`). GREEN: RemovedVocabularyTests and ReadmeCoverageTests, 37 tests passed. Full `swift test`: 1163 tests in 129 suites passed (2 known issues, the existing withKnownIssue tests), PackageStructure 122 tests passed. The one build warning is the existing `missing creator for mutated node` of the mlx-swift_Cmlx bundle (a dependency, not this change). Load average 5.84 at start, 4.70 at end. No UI tests run. Finding at RemovedVocabularyTests.swift:276 is checked.
     - next: /review
   timestamp: 2026-10-12T11:29:28.961858+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4qyaam25xtw30edkwj9ntjg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (827bc82): 0 findings, 0 confirmed, 0 refuted; 7 validator runs attempted, 0 failed; 1 file reviewed. All prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-12T11:35:10.210212+00:00
+- actor: claude-code
+  id: 01m4qyakc8vn006n9f9cbf827x
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — removedInputUse(of:input:) helper used by four patterns; finding checked
+    - test: green — swift test, 1163 tests passed, 2 expected known issues, load average about 4
+    - commit: 827bc82
+    - review: clean — 0 findings (1 file); task in done
+  timestamp: 2026-10-12T11:35:19.176956+00:00
+position_column: done
+position_ordinal: ffb380
 title: 'Message views: decide on the host date parameter of UserMessageView and MessageHeader'
 ---
 ## What
