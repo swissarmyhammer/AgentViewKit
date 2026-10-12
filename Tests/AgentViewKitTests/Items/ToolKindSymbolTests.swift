@@ -24,8 +24,7 @@ import Testing
   // MARK: - Kinds
 
   @Test func eachKindMapsToADistinctSymbol() {
-    let names = Self.kinds.map(ToolKindSymbol.name(for:))
-    #expect(Set(names).count == Self.kinds.count)
+    NameChecks.expectDistinctNames(Self.kinds.map(ToolKindSymbol.name(for:)))
   }
 
   @Test(arguments: kinds)
@@ -41,10 +40,8 @@ import Testing
   // MARK: - Statuses
 
   @Test func eachStatusMapsToADistinctSymbolAndLabel() {
-    let names = Self.statuses.map(ToolStatusSymbol.name(for:))
-    let labels = Self.statuses.map(ToolStatusSymbol.label(for:))
-    #expect(Set(names).count == Self.statuses.count)
-    #expect(Set(labels).count == Self.statuses.count)
+    NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.name(for:)))
+    NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.label(for:)))
   }
 
   @Test(arguments: statuses)

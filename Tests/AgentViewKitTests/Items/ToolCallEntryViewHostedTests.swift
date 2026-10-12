@@ -89,6 +89,40 @@
       }
     }
 
+    /// Waits until an element shows for each identifier, so that a test checks
+    /// each part only after the part is on screen.
+    ///
+    /// The function does not fail at the timeout. The test then checks each
+    /// element with an expectation.
+    ///
+    /// - Parameters:
+    ///   - identifiers: The accessibility identifiers to wait for.
+    ///   - harness: The harness that shows the thread.
+    static func waitForElements<Content: View>(
+      _ identifiers: [String], in harness: HostedViewHarness<Content>
+    ) async {
+      await harness.pump(until: waitTimeout) {
+        identifiers.allSatisfy { harness.element(identifier: $0) != nil }
+      }
+    }
+
+    /// Waits until the thread shows each text, so that a test checks each text
+    /// only after the text is on screen.
+    ///
+    /// The function does not fail at the timeout. The test then checks each
+    /// text with an expectation.
+    ///
+    /// - Parameters:
+    ///   - texts: The texts to wait for.
+    ///   - harness: The harness that shows the thread.
+    static func waitForTexts<Content: View>(
+      _ texts: [String], in harness: HostedViewHarness<Content>
+    ) async {
+      await harness.pump(until: waitTimeout) {
+        texts.allSatisfy { showsText($0, in: harness) }
+      }
+    }
+
     /// The row key of the tool call entry of `id`.
     ///
     /// - Parameters:
@@ -173,6 +207,10 @@
         id: "named-c", fields: #""name": "\#(Self.readFileName)", "# + Self.readFields)
       let key = try await Self.showExpandedCall(
         update, id: "named-c", in: session, harness: harness, store: store)
+      await Self.waitForElements([Self.registeredIdentifier], in: harness)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.runningLabel
+      }
 
       #expect(harness.element(identifier: Self.registeredIdentifier) != nil)
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) == nil)
@@ -189,6 +227,10 @@
       let key = try await Self.showExpandedCall(
         WireBlockJSON.makeToolCallUpdate(id: "plain-c", fields: Self.readFields), id: "plain-c",
         in: session, harness: harness, store: store)
+      await Self.waitForElements([ToolCallView.locationsIdentifier(for: key)], in: harness)
+      await harness.pump(until: Self.waitTimeout) {
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.runningLabel
+      }
 
       #expect(harness.element(identifier: Self.registeredIdentifier) == nil)
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) != nil)
@@ -249,7 +291,13 @@
       let key = try await Self.showExpandedCall(
         WireBlockJSON.makeToolCallUpdate(id: "raw-c", fields: Self.rawValueFields), id: "raw-c",
         in: session, harness: harness, store: store)
-      await harness.pump(until: Self.waitTimeout) { Self.showsText(Self.firstOutput, in: harness) }
+      await Self.waitForElements(
+        [
+          ToolCallView.inputIdentifier(for: key),
+          ToolCallView.contentIdentifier(for: key, index: 0),
+          ToolCallView.outputIdentifier(for: key),
+        ], in: harness)
+      await Self.waitForTexts([Self.inputPath, Self.partText, Self.firstOutput], in: harness)
 
       #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: key)) != nil)
       #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
@@ -294,6 +342,8 @@
       _ = try await Self.showExpandedCall(
         WireBlockJSON.makeToolCallUpdate(id: "diff-c", fields: fields), id: "diff-c",
         in: session, harness: harness, store: store)
+      await Self.waitForElements(
+        [DiffView.containerIdentifier, DiffView.identifier(for: Self.addedPath)], in: harness)
 
       #expect(harness.element(identifier: DiffView.containerIdentifier) != nil)
       #expect(harness.element(identifier: DiffView.identifier(for: Self.addedPath)) != nil)
@@ -322,9 +372,9 @@
         """#
       try await session.agent.send(
         #"{"jsonrpc":"2.0","id":\#(Self.elicitationRequestID),"method":"elicitation/create","params":\#(params)}"#)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ToolCallView.elicitationsIdentifier(for: askKey)) != nil
-      }
+      await Self.waitForElements(
+        [ToolCallView.elicitationsIdentifier(for: askKey), ElicitationView.headerIdentifier],
+        in: harness)
 
       let linked = try #require(Self.toolCallEntry("ask-c", in: model)?.linkedElicitationIDs.first)
       #expect(model.pendingElicitations.map(\.id) == [linked])
@@ -350,9 +400,9 @@
                              "properties": {"branch": {"type": "string", "default": "\#(Self.defaultBranch)"}}}}
         """#
       let pending = try await session.receiveElicitation(id: Self.elicitationRequestID, params: params)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ElicitationView.submitIdentifier) != nil
-      }
+      await Self.waitForElements(
+        [ElicitationView.submitIdentifier, ToolCallView.elicitationsIdentifier(for: key)],
+        in: harness)
       #expect(Self.toolCallEntry("accept-c", in: session.model)?.linkedElicitationIDs == [pending.id])
       #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) != nil)
 

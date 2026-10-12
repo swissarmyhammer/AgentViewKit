@@ -239,15 +239,6 @@ import Testing
     Dictionary(grouping: uses, by: key).values.filter { Set($0.map(value)).count > 1 }
   }
 
-  /// Expects that no two of the uses show the same symbol name.
-  private static func expectDistinctNames(
-    _ uses: [Use], sourceLocation: SourceLocation = #_sourceLocation
-  ) {
-    let names = uses.map(\.name)
-
-    #expect(Set(names).count == names.count, "\(names)", sourceLocation: sourceLocation)
-  }
-
   // MARK: - The tests
 
   @Test func eachConceptShowsOneSymbol() throws {
@@ -270,14 +261,14 @@ import Testing
   }
 
   @Test func eachPlanPriorityShowsADifferentSymbol() {
-    Self.expectDistinctNames(Self.priorityUses())
+    NameChecks.expectDistinctNames(Self.priorityUses().map(\.name))
   }
 
   @Test func eachPermissionOptionKindShowsADifferentSymbol() {
-    Self.expectDistinctNames(Self.permissionOptionUses())
+    NameChecks.expectDistinctNames(Self.permissionOptionUses().map(\.name))
   }
 
   @Test func eachMCPServerStatusShowsADifferentSymbol() {
-    Self.expectDistinctNames(Self.connectionChipUses())
+    NameChecks.expectDistinctNames(Self.connectionChipUses().map(\.name))
   }
 }

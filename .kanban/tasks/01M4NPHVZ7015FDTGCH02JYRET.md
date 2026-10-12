@@ -69,6 +69,40 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/Items/SymbolConceptTests.swift. Full `swift test`: 1102 tests in 120 suites passed, 1 known issue (the deliberate HostedLayoutExpectationsTests case), exit 0. The only build warning is the mlx-swift_Cmlx bundle "missing creator" warning of the build system, not from this change. Load average 60.97 at start, 69.45 at end. Review finding checked.
     - next: review
   timestamp: 2026-10-12T00:13:58.348638+00:00
+- actor: claude-code
+  id: 01m4pqv70rhfwtjbq4zn3pkskh
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (eb4b43a); 1 finding, 1 confirmed, 0 refuted — Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:243
+    - next: move expectDistinctNames to a shared test helper. Make SymbolConceptTests and ToolKindSymbolTests call it. Then review again.
+  timestamp: 2026-10-12T00:22:49.112359+00:00
+- actor: claude-code
+  id: 01m4pqvk8n4ma5vqx2ay7w8p02
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — expectDistinctNames and mixedGroups helpers in SymbolConceptTests; finding checked
+    - test: green — swift test, 1102 tests passed, 1 expected known issue, load average 43 to 70
+    - commit: eb4b43a
+    - review: findings — Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:243
+  timestamp: 2026-10-12T00:23:01.653304+00:00
+- actor: claude-code
+  id: 01m4pr87rb5rrncyw2rfakvm68
+  text: |-
+    Fix for the reuse finding at SymbolConceptTests.swift:243:
+    - New shared test helper `NameChecks.expectDistinctNames(_ names: [String], sourceLocation:)` in `Tests/AgentViewKitTests/Helpers/NameChecks.swift`. It is not private. It does the Set count check, puts the names in the failure text, and sends the source location of the caller to `#expect`.
+    - The private `expectDistinctNames` of SymbolConceptTests is removed. Its three tests call `NameChecks.expectDistinctNames(Self.<uses>().map(\.name))`.
+    - ToolKindSymbolTests: `eachKindMapsToADistinctSymbol` calls the helper. The same file had the same check two more times in `eachStatusMapsToADistinctSymbolAndLabel` (names and labels). Both call the helper now.
+    - The helper takes `[String]`, not `[Use]`, because `Use` belongs to SymbolConceptTests only.
+    - Seven other test files write the same check by hand. They are on the new task ^1pv3jzy.
+    - The full `swift test` had one failure that this change does not touch: `ToolCallEntryViewHostedTests.theBodyShowsTheRawInputTheTextPartAndTheRawOutputOfTheEntry` (ToolCallEntryViewHostedTests.swift:258, `showsText(partText)`). The test waits for the output text only and then checks the text part. This is the known race on task ^y7kyt4j. I did not run the suite again, and I did not raise a wait limit.
+  timestamp: 2026-10-12T00:29:55.851786+00:00
+- actor: claude-code
+  id: 01m4pr8az72n7pfamnyxcfxx88
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Tests/AgentViewKitTests/Helpers/NameChecks.swift (new), Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, Tests/AgentViewKitTests/Items/ToolKindSymbolTests.swift. Full `swift test`: 1102 tests in 120 suites, 2 issues: 1 known issue (the deliberate HostedLayoutExpectationsTests case) and 1 failure in ToolCallEntryViewHostedTests.theBodyShowsTheRawInputTheTextPartAndTheRawOutputOfTheEntry (the known race of ^y7kyt4j, not in this change). Exit 1. SymbolConceptTests and ToolKindSymbolTests passed. The only build warning is the mlx-swift_Cmlx bundle "missing creator" warning of the build system. Load average 46.66 at start, 53.94 at end. Review finding checked. Follow-up task ^1pv3jzy.
+    - next: test, then review
+  timestamp: 2026-10-12T00:29:59.143241+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
 position_column: doing
@@ -93,3 +127,12 @@ An audit on 2026-10-11 found action buttons with text only. Use `Label(_:systemI
 > - `.kanban/ (from .reviewignore)` — 6 file(s)
 
 - [x] `Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:263` `reuse/reuse` — The new test eachPermissionOptionKindShowsADifferentSymbol repeats the body of two existing tests. It maps a list of Use values to names, then checks that Set(names).count == names.count. The change adds a third copy of this check instead of extending the existing pattern into one shared helper, so the same logic now exists in three places and must be fixed in three places. Add one private static helper, for example `static func assertDistinctNames(_ uses: [Use])`, that performs the Set count check and the failure message. Have all three tests call it with their own uses list, such as `assertDistinctNames(Self.permissionOptionUses())`. Keep the per-case constructors (permissionOptionUses, priorityUses, connectionChipUses) where they are.
+
+## Review Findings (2026-10-11 19:19)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 1 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:243` `reuse/reuse` — The new helper expectDistinctNames rewrites a distinct-name check that already exists in another test file. ToolKindSymbolTests.eachKindMapsToADistinctSymbol runs the same set-count comparison on its own names. The helper is private to SymbolConceptTests, so the duplicate stays in place and the two copies can drift apart. Move expectDistinctNames to a shared test helper, for example a non-private static function in a common test support file. Then have SymbolConceptTests and ToolKindSymbolTests both call it. If the other test files are out of scope for this change, record the shared helper as a follow-up task.
