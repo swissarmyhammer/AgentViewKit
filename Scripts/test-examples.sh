@@ -139,14 +139,27 @@ watch_limit() {
     exit "$LIMIT_STATUS"
 }
 
+# Starts a program in the background, in a new process group. The process is the leader of
+# the group, so the process group id is the process id. bash 3.2 cannot make a process group,
+# and macOS ships no `setsid` command, so `perl` (which ships with macOS) makes the group and
+# then runs the program. The program is a child of the script, so the script can `wait` for
+# it. The caller reads the process id from `$!`.
+#
+# Arguments: the argv[0] of the program (the start of its command line), the program, then
+# the arguments of the program.
+start_in_new_group() {
+    perl -e 'setpgrp(0, 0) or die "setpgrp failed: $!\n";
+        my ($name, $program, @arguments) = @ARGV;
+        exec { $program } $name, @arguments or die "exec failed: $!\n"' -- "$@" &
+}
+
 # Runs a command with a time limit, in seconds.
 #
-# The command runs in its own process group, so that the limit stops each process that the
-# command started, and no other process. bash 3.2 cannot make a process group, and macOS
-# ships no `setsid` and no `timeout` command, so `perl` (which ships with macOS) makes the
-# group and then runs the command. A process group that is not in the foreground does not
-# get the SIGINT of the terminal, so the function sends SIGINT, SIGTERM and SIGHUP of the
-# script on to the group.
+# The command runs in its own process group (see `start_in_new_group`), so that the limit
+# stops each process that the command started, and no other process. macOS ships no
+# `timeout` command. A process group that is not in the foreground does not get the SIGINT
+# of the terminal, so the function sends SIGINT, SIGTERM and SIGHUP of the script on to the
+# group.
 #
 # Arguments: the time limit in seconds, then the command and its arguments.
 # Returns: LIMIT_STATUS when the limit stopped the command, else the status of the command.
@@ -154,7 +167,7 @@ run_with_limit() {
     local limit="$1"
     shift
     local command_pid watchdog_pid status=0 watchdog_status=0
-    perl -e 'setpgrp(0, 0) or die "setpgrp failed: $!\n"; exec @ARGV or die "exec failed: $!\n"' -- "$@" &
+    start_in_new_group "$1" "$@"
     command_pid=$!
     watch_limit "$limit" "$command_pid" &
     watchdog_pid=$!
@@ -250,8 +263,7 @@ run_example() {
 # Arguments: the path. Writes the process id.
 start_detached_sleep() {
     local path="$1"
-    perl -e 'setpgrp(0, 0) or die "setpgrp failed: $!\n"; exec { "sleep" } @ARGV or die "exec failed: $!\n"' \
-        -- "$path" "$SELF_TEST_SLEEP" </dev/null >/dev/null 2>&1 &
+    start_in_new_group "$path" sleep "$SELF_TEST_SLEEP" </dev/null >/dev/null 2>&1
     echo "$!"
 }
 

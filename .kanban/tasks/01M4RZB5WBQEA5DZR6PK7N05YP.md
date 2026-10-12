@@ -31,6 +31,38 @@ comments:
     - evidence: Scripts/test-examples.sh, Tests/PackageStructureTests/ExampleGateTimeLimitTests.swift (new). Full `swift test`: 1152 tests in 129 suites passed, 2 known issues (not from this change), exit 0. Load average before 26.58 28.20 33.29, after 36.91 31.57 33.52. The build gives one warning that is not from this change: "missing creator for mutated node" for mlx-swift_Cmlx.bundle. No UI test and no xcodebuild ran.
     - next: /review
   timestamp: 2026-10-12T22:48:02.183617+00:00
+- actor: claude-code
+  id: 01m4s5ca2v1sb12vrksk88eape
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (e89186b): 1 finding (1 confirmed, 2 refuted) — Scripts/test-examples.sh:253 reuse/reuse
+    - next: Move the setpgrp-and-exec perl wrapper into one shared helper that `run_with_limit` and `start_detached_sleep` both call. Then run the tests, commit, and review again.
+  timestamp: 2026-10-12T22:57:49.659748+00:00
+- actor: claude-code
+  id: 01m4s5ck5ynjqys79dvjec1nam
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — process group per step, stop of the app under test and the test runner by DerivedData path, --self-test; ExampleGateTimeLimitTests
+    - test: green — swift test, 1152 + 123 + 1 tests passed, 2 expected known issues, load average 29 to 49; no leftover sleep process
+    - commit: e89186b
+    - review: findings — Scripts/test-examples.sh:253
+  timestamp: 2026-10-12T22:57:58.974945+00:00
+- actor: claude-code
+  id: 01m4s5qke1sfkfehsr2t2gq19b
+  text: |-
+    Fix of the reuse finding:
+    - New helper `start_in_new_group`. It is the only `perl setpgrp` wrapper in the script. Its arguments are the argv[0], the program, then the arguments of the program. It uses `exec { $program } $name, @arguments`. It starts perl in the background, and the caller reads the process id from `$!`. The helper must not write the id with `echo`: a command substitution runs in a subshell, and then the process is not a child of the script, and `wait` in `run_with_limit` fails.
+    - `run_with_limit` calls `start_in_new_group "$1" "$@"` (the argv[0] is the command). `start_detached_sleep` calls `start_in_new_group "$path" sleep ...`. Thus the name `sleep` is only in the path that needs a fake argv[0].
+    - A change of behavior: the old `exec @ARGV` gave a command with one argument to the shell. The block form never uses the shell.
+    - I examined the rest of the script for the same repeated shape. No other copy of the process-group launch is in the script.
+  timestamp: 2026-10-12T23:03:59.681820+00:00
+- actor: claude-code
+  id: 01m4s5qqzpatvr36jtjkr6aybe
+  text: |-
+    ### implement — changed
+    - evidence: Scripts/test-examples.sh. `shellcheck Scripts/test-examples.sh`: exit 0, no finding. `/bin/bash` 3.2.57 `Scripts/test-examples.sh --self-test`: PASS (5 of 5 ok), exit 0. After the self-test and after `swift test`, no sleep process of the self-test stayed alive. Full `swift test`: 1152 tests in 129 suites passed, 2 known issues (not from this change), exit 0; ExampleGateTimeLimitTests passed in 3.7 seconds. Load average before 28.31 34.12 35.39, after 19.84 28.26 32.64. One build warning that is not from this change: "missing creator for mutated node" for mlx-swift_Cmlx.bundle. No UI test and no xcodebuild ran. The finding Scripts/test-examples.sh:253 is checked.
+    - next: /review
+  timestamp: 2026-10-12T23:04:04.342484+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Stop the app under test and the test runner when test-examples.sh reaches its time limit
@@ -46,3 +78,12 @@ Found during ^svaqj8t.
 - [x] Write a test in PackageStructureTests (the script tests read the script as text) that requires the script to stop the app under test and the test runner after the time limit.
 - [x] Make `run_with_limit` (or `run_example`) stop the process group of the command, and the `AgentViewKitDemo` app and the `AgentViewKitDemoUITests-Runner` that the run started, when the limit occurs.
 - [x] Run the full `swift test`.
+
+## Review Findings (2026-10-12 17:53)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Scripts/test-examples.sh:253` `reuse/reuse` — `start_detached_sleep` writes its own `perl -e 'setpgrp(0, 0) ...; exec ...'` wrapper, which nearly repeats the wrapper in `run_with_limit` (line 157). Two copies of the process-group launch can drift apart. The only real difference is the `exec { "sleep" } @ARGV` form, which sets argv[0] to the fake path. That difference could be a parameter of one shared launcher. Move the setpgrp-and-exec perl wrapper into one helper, for example `start_in_new_group`, that takes the argv[0] as an argument. Have `run_with_limit` and `start_detached_sleep` both call it. Keep `exec { "sleep" }` only in the path that needs a fake argv[0].
