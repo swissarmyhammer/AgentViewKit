@@ -38,6 +38,37 @@ comments:
   id: 01m4ppgw3nhpbn5dxyvs4qs4z5
   text: 'Correction to the step record: the change has 16 code files (10 source files and 6 test files), not 17. The file list in the record is correct.'
   timestamp: 2026-10-11T23:59:41.685946+00:00
+- actor: claude-code
+  id: 01m4pq0t5qawcxkbmprb265gt3
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 531dbb1); 1 finding (1 confirmed, 1 refuted) — Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:263 `reuse/reuse`
+    - next: implement the open item in the "Review Findings (2026-10-11 19:04)" section, then review again. The task stays in review.
+  timestamp: 2026-10-12T00:08:23.991508+00:00
+- actor: claude-code
+  id: 01m4pq140tvxfr8xd3ptn30ghb
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — icons on the text-only action buttons; new SharedSymbol concepts; 16 files
+    - test: green — swift test, 1102 tests passed, 1 expected known issue, load average 61 to 88
+    - commit: 531dbb1
+    - review: findings — Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:263
+  timestamp: 2026-10-12T00:08:34.074592+00:00
+- actor: claude-code
+  id: 01m4pqayganea6p39zy2dqc84d
+  text: |-
+    Fix for the reuse finding in SymbolConceptTests.swift:
+    - New private static helper `expectDistinctNames(_:sourceLocation:)`. It does the Set count check and the failure text. It sends the source location of the caller to `#expect`, as `KitInitializeRequestTests.expectOnlyKitCapabilities` does. The three tests `eachPlanPriorityShowsADifferentSymbol`, `eachPermissionOptionKindShowsADifferentSymbol` and `eachMCPServerStatusShowsADifferentSymbol` call it. The constructors `priorityUses`, `permissionOptionUses` and `connectionChipUses` did not change.
+    - The rest of the file had a second repeated body: `eachConceptShowsOneSymbol` and `twoConceptsDoNotShareASymbol` both grouped the uses with `Dictionary(grouping:)` and kept the groups with more than one distinct value. New private static helper `mixedGroups(of:by:value:)` does this, and the two tests call it.
+    - The rules file from `dump validators` was 754000 characters. It was too large to read whole in one call.
+  timestamp: 2026-10-12T00:13:56.106922+00:00
+- actor: claude-code
+  id: 01m4pqb0pc0bsgwhm1eyr4akfr
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Items/SymbolConceptTests.swift. Full `swift test`: 1102 tests in 120 suites passed, 1 known issue (the deliberate HostedLayoutExpectationsTests case), exit 0. The only build warning is the mlx-swift_Cmlx bundle "missing creator" warning of the build system, not from this change. Load average 60.97 at start, 69.45 at end. Review finding checked.
+    - next: review
+  timestamp: 2026-10-12T00:13:58.348638+00:00
 depends_on:
 - 01M4NPHNFGP5JDZS02XHHE6BE3
 position_column: doing
@@ -53,3 +84,12 @@ An audit on 2026-10-11 found action buttons with text only. Use `Label(_:systemI
 - [x] Banner actions such as Retry and Reconnect (`Status/StatusBar.swift:51`).
 - [x] "Load More" (`Sessions/SessionListView.swift:202`), "Show all" (`Content/OutputChrome.swift:27`), the sign-in method buttons (`Connections/AgentAuthView.swift`), and the suggestion chips (`Input/SuggestionsView.swift:46`) where an icon helps.
 - [x] Hosted tests that find each button and its label.
+
+## Review Findings (2026-10-11 19:04)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Tests/AgentViewKitTests/Items/SymbolConceptTests.swift:263` `reuse/reuse` — The new test eachPermissionOptionKindShowsADifferentSymbol repeats the body of two existing tests. It maps a list of Use values to names, then checks that Set(names).count == names.count. The change adds a third copy of this check instead of extending the existing pattern into one shared helper, so the same logic now exists in three places and must be fixed in three places. Add one private static helper, for example `static func assertDistinctNames(_ uses: [Use])`, that performs the Set count check and the failure message. Have all three tests call it with their own uses list, such as `assertDistinctNames(Self.permissionOptionUses())`. Keep the per-case constructors (permissionOptionUses, priorityUses, connectionChipUses) where they are.

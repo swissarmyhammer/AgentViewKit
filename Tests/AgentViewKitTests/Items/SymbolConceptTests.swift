@@ -229,20 +229,35 @@ import Testing
       + permissionOptionUses() + actionButtonUses()
   }
 
+  // MARK: - The checks
+
+  /// Groups the uses by `key`, and gives each group that has more than one
+  /// distinct `value`.
+  private static func mixedGroups<Key: Hashable, Value: Hashable>(
+    of uses: [Use], by key: (Use) -> Key, value: (Use) -> Value
+  ) -> [[Use]] {
+    Dictionary(grouping: uses, by: key).values.filter { Set($0.map(value)).count > 1 }
+  }
+
+  /// Expects that no two of the uses show the same symbol name.
+  private static func expectDistinctNames(
+    _ uses: [Use], sourceLocation: SourceLocation = #_sourceLocation
+  ) {
+    let names = uses.map(\.name)
+
+    #expect(Set(names).count == names.count, "\(names)", sourceLocation: sourceLocation)
+  }
+
   // MARK: - The tests
 
   @Test func eachConceptShowsOneSymbol() throws {
-    let byConcept = Dictionary(grouping: try Self.allUses(), by: \.concept)
-
-    let mixed = byConcept.values.filter { Set($0.map(\.name)).count > 1 }
+    let mixed = Self.mixedGroups(of: try Self.allUses(), by: \.concept, value: \.name)
 
     #expect(mixed.isEmpty, "\(mixed)")
   }
 
   @Test func twoConceptsDoNotShareASymbol() throws {
-    let byName = Dictionary(grouping: try Self.allUses(), by: \.name)
-
-    let shared = byName.values.filter { Set($0.map(\.concept)).count > 1 }
+    let shared = Self.mixedGroups(of: try Self.allUses(), by: \.name, value: \.concept)
 
     #expect(shared.isEmpty, "\(shared)")
   }
@@ -255,20 +270,14 @@ import Testing
   }
 
   @Test func eachPlanPriorityShowsADifferentSymbol() {
-    let names = Self.priorityUses().map(\.name)
-
-    #expect(Set(names).count == names.count, "\(names)")
+    Self.expectDistinctNames(Self.priorityUses())
   }
 
   @Test func eachPermissionOptionKindShowsADifferentSymbol() {
-    let names = Self.permissionOptionUses().map(\.name)
-
-    #expect(Set(names).count == names.count, "\(names)")
+    Self.expectDistinctNames(Self.permissionOptionUses())
   }
 
   @Test func eachMCPServerStatusShowsADifferentSymbol() {
-    let names = Self.connectionChipUses().map(\.name)
-
-    #expect(Set(names).count == names.count, "\(names)")
+    Self.expectDistinctNames(Self.connectionChipUses())
   }
 }
