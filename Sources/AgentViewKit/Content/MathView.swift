@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 // `Math.typographicBounds` is the one call that tells whether the engine
 // parsed an expression. The engine marks it with the `Textual` SPI. The
@@ -14,7 +16,8 @@ import SwiftUI
 /// - The font size is the point size of the environment font, times
 ///   ``fontScale``. Thus the math follows Dynamic Type.
 /// - When the engine cannot parse the source, the view shows the source in
-///   a monospaced font. It never shows a blank.
+///   the code font: the `editorFont` role of the EditorKit theme in the
+///   `\.editorTheme` environment value. It never shows a blank.
 /// - The accessibility element has the identifier `math-inline` or
 ///   `math-block`. Its label is the LaTeX source. The element of the source
 ///   fallback also has the source as its value.
@@ -50,6 +53,7 @@ public struct MathView: View {
 
   @Environment(\.font) private var font
   @Environment(\.fontResolutionContext) private var fontResolutionContext
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view of one LaTeX expression.
   ///
@@ -122,7 +126,7 @@ public struct MathView: View {
         .mathAccessibility(latex: latex, display: display)
     } else {
       Text(verbatim: latex)
-        .font(.system(size: baseSize, design: .monospaced))
+        .font(editorTheme.editorFont)
         .fixedSize(horizontal: false, vertical: true)
         .mathAccessibility(latex: latex, display: display)
         .accessibilityValue(Text(verbatim: latex))

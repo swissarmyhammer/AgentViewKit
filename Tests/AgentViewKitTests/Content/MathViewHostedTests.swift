@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import Foundation
 import SwiftUI
 import Testing
@@ -76,6 +77,26 @@ import Testing
     let element = harness.element(identifier: MathView.identifier(display: display))
     #expect(element?.value == Self.malformedSource)
     #expect(element?.label == Self.malformedSource)
+  }
+
+  /// The height of the source fallback of malformed inline math.
+  ///
+  /// - Parameter view: The math view, with its environment.
+  /// - Returns: The height of the source text, in points.
+  /// - Throws: An issue when the math element has no frame.
+  static func malformedSourceHeight(of view: some View) throws -> CGFloat {
+    let harness = HostedViewHarness(view, size: hostSize)
+    defer { harness.close() }
+    harness.pump()
+    return try #require(harness.frame(identifier: MathView.inlineIdentifier)).height
+  }
+
+  @Test func theSourceFallbackUsesTheEditorFontOfTheEditorTheme() throws {
+    let math = MathView(latex: Self.malformedSource, display: false)
+    let themed = try Self.malformedSourceHeight(of: math.editorTheme(DistinctRolesTheme()))
+    let unthemed = try Self.malformedSourceHeight(of: math)
+
+    #expect(themed > unthemed)
   }
 
   @Test func theEngineTypesetsOnlyValidSource() {

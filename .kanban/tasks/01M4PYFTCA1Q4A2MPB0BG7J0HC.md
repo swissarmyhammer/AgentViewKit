@@ -68,8 +68,24 @@ comments:
     - evidence: `swift test` exit 0: 1146 tests in 127 suites passed (1 known issue is the existing withKnownIssue negative test), plus 116 tests in 14 suites and 1 test in 1 suite in the other targets. No compiler warning (only the build-system note "missing creator for mutated node" of the mlx-swift bundle). Load average 18.14 before, 27.14 after. UI tests not run. Files: Tests/AgentViewKitTests/Helpers/ANSIFixtures.swift (new), Tests/AgentViewKitTests/Terminal/{ANSITextTests,TerminalOutputTests,TerminalViewHostedTests}.swift, Tests/AgentViewKitTests/Content/CommandOutputViewHostedTests.swift, Tests/AgentViewKitTests/Theme/AgentThemeTests.swift. The 3 findings of "Review Findings (2026-10-11 23:05)" are checked.
     - next: /review
   timestamp: 2026-10-12T04:17:50.368184+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4q5mbs0xcbkc63r6vdn99sn
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (bce9c4f). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 6 files reviewed. All prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-12T04:23:44.672420+00:00
+- actor: claude-code
+  id: 01m4q5mncd94hm29kkf6kt07k0
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ANSIFixtures test helper and fieldLabels(where:); 3 findings checked
+    - test: green — swift test, 1146 tests passed, 1 expected known issue, load average 19 to 24
+    - commit: bce9c4f
+    - review: clean — 0 findings (6 files); task in done
+  timestamp: 2026-10-12T04:23:54.509917+00:00
+position_column: done
+position_ordinal: ffad80
 title: 'Move to EditorKit 95ef6c4: prose font, diff text, editor font, terminal palette and color runs'
 ---
 ## What

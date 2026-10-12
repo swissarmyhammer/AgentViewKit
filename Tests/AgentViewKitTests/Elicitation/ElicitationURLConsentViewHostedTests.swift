@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import SwiftUI
@@ -153,6 +154,31 @@ import Testing
     let warning = try #require(
       mounted.harness.element(identifier: ElicitationURLConsentView.warningIdentifier))
     #expect(warning.label?.contains("Punycode") == true)
+  }
+
+  /// The height of the URL of a hosted card.
+  ///
+  /// - Parameter card: Gives the view to host from the card, for example
+  ///   the card with an EditorKit theme.
+  /// - Returns: The height of the URL text, in points.
+  /// - Throws: The error of the transport, or an issue when the URL has no
+  ///   frame.
+  static func urlHeight<Hosted: View>(of card: (ElicitationURLConsentView) -> Hosted) async throws -> CGFloat {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let pending = try await session.receiveElicitation(id: agentRequestID, params: makeParams())
+    let harness = HostedViewHarness(
+      card(ElicitationURLConsentView(request: pending, owner: session.model)), size: cardSize)
+    defer { harness.close() }
+    harness.pump()
+    return try #require(harness.frame(identifier: ElicitationURLConsentView.urlIdentifier)).height
+  }
+
+  @Test func theURLUsesTheEditorFontOfTheEditorTheme() async throws {
+    let themed = try await Self.urlHeight { $0.editorTheme(DistinctRolesTheme()) }
+    let unthemed = try await Self.urlHeight { $0 }
+
+    #expect(themed > unthemed)
   }
 
   @Test func theMinimumHeightOfTheCardIsNotMoreThanItsHeightAtTheCardWidth() async throws {

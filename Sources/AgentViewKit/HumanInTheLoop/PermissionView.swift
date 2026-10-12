@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -16,7 +18,8 @@ import SwiftUI
 ///   the `ToolCallEntry` of the session model. For a command, the card shows
 ///   the command, the working directory, and, when the session model has the
 ///   related `TerminalEntry`, a button that shows the ``TerminalView`` of that
-///   entry.
+///   entry. The command and the working directory use the code font: the
+///   `editorFont` role of the EditorKit theme.
 /// - One button for each option of the request, in the order of
 ///   `PermissionPresentation.order(of:)`. Each button shows the name of its
 ///   option and the symbol of its kind (``optionSymbol(for:)``). The
@@ -124,6 +127,7 @@ public struct PermissionView: View {
   @FocusState private var isFocused: Bool
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
@@ -237,12 +241,11 @@ public struct PermissionView: View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Label(command.command, systemImage: Self.commandSymbol)
-          .font(.body.monospaced())
           .textSelection(.enabled)
         Label(command.cwd.rawValue, systemImage: Self.directorySymbol)
-          .font(.caption.monospaced())
           .foregroundStyle(.secondary)
       }
+      .font(editorTheme.editorFont)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel("Command \(command.command), in \(command.cwd.rawValue)")
       .accessibilityIdentifier(Self.subjectIdentifier)

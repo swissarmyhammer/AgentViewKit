@@ -75,8 +75,10 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
     static let addedText = Color(red: Level.tenth, green: Level.half, blue: Level.tenth)
     /// The text color of a removed count.
     static let removedText = Color(red: Level.half, green: Level.tenth, blue: Level.tenth)
-    /// The code font.
-    static let editorFont = Font.system(.callout, design: .serif)
+    /// The code font: a text style that is much larger than the body text,
+    /// so that a test can see it in the size of a view. It is not the size
+    /// of ``proseFont``, so a test can tell the two roles apart.
+    static let editorFont = Font.system(.title, design: .serif)
     /// The prose font: a text style that is much larger than the body text,
     /// so that a test can see it in the size of a view.
     static let proseFont = Font.system(.largeTitle, design: .serif)

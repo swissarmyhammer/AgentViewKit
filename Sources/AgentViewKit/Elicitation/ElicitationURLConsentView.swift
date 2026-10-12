@@ -8,7 +8,8 @@ import SwiftUI
 ///
 /// The card names the agent, shows the message, and shows the full URL of the
 /// pending elicitation (`PendingElicitation.url`) with the host in bold
-/// (``URLDisplay/highlighted(_:)``). When the host can look like a different
+/// (``URLDisplay/highlighted(_:)``), in the code font: the `editorFont` role
+/// of the EditorKit theme. When the host can look like a different
 /// host, the card also shows the text of ``URLDisplay/warning(for:)``.
 ///
 /// The card never opens or loads the URL by itself. Only a press on
@@ -157,7 +158,7 @@ public struct ElicitationURLConsentView: View {
   private func urlSection(_ url: URL) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       Text(URLDisplay.highlighted(url))
-        .font(.callout.monospaced())
+        .font(editorTheme.editorFont)
         .textSelection(.enabled)
         .accessibilityIdentifier(Self.urlIdentifier)
       if let warning = URLDisplay.warning(for: url) {

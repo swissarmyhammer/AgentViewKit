@@ -13,11 +13,21 @@ role of the EditorKit theme in the `\.editorTheme` environment value. Its
 default is `Font.body`. The code font is the `editorFont` role of the same
 theme. Its default is `.system(.body, design: .monospaced)`. The EditorKit
 editor draws its text in `editorFont` too (EditorKit 95ef6c4 and later), and
-its row height is the row height of the resolved font. Two views set a point
-size, and both sizes come from a resolved text style:
+its row height is the row height of the resolved font.
+
+The code text of each kit view uses `editorFont` as it is. The role has one
+size, and a view does not change it. Thus a command, a working directory and
+a URL do not use a caption or a callout size: they use the size of the theme
+(task ^ctff8rk). No kit view uses a fixed monospaced font, such as
+`.body.monospaced()` or `design: .monospaced`.
+`Tests/PackageStructureTests/FixedCodeFontTests.swift` scans the views of the
+kit and of the examples for such a font.
+
+Two views set a point size, and both sizes come from a resolved text style:
 
 - `MathView` resolves the environment font (default `.body`) and scales the
-  math font from that size.
+  math font from that size. When the engine cannot parse the source, the
+  view shows the source in `editorFont`.
 - `InlineCitation` measures the size of the text font of its run, and scales
   the digit font from that size.
 
