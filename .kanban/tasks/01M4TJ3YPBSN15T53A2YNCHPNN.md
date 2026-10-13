@@ -31,8 +31,24 @@ comments:
     - The Gallery item: the cause was the crash of ^any712s (nested inspectors), not the client. The Gallery UI test passes on CI.
     - next: /review.
   timestamp: 2026-10-13T16:21:46.949379+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m4v2vk9axnnz6tr5fg6kdyfz
+  text: |-
+    ### review — clean
+    - evidence: `review sha 45eb654~1..45eb654`: 0 findings (0 confirmed, 0 refuted). The validators examined Examples/ReadmeSnippets/Snippets/HostApp.swift and Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift. No validator matches README.md or plan.md. The .kanban files are in .reviewignore. The Gallery work item is checked, with a note: ^any712s found and fixed the cause (nested inspectors), and CI run 38424460243 is green.
+    - next: none. The task is in done.
+  timestamp: 2026-10-13T16:52:13.738208+00:00
+- actor: claude-code
+  id: 01m4v2w2304txfatsp92z31w6g
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — earlier, in commit 45eb654
+    - test: green — swift test (implement record), CI run 38424460243 green
+    - commit: 45eb654
+    - review: clean — 0 findings
+  timestamp: 2026-10-13T16:52:28.896290+00:00
+position_column: done
+position_ordinal: ffb980
 title: Follow the new FoundationModelsACPClient openSessions list, and find why the Gallery lists no recorded session on CI
 ---
 ## What
@@ -45,7 +61,8 @@ Two failures:
 ## Work
 - [x] Update the local pin: `swift package update FoundationModelsACPClient` (and the other in-family packages to origin/main). Build the kit, the demo and the README snippets.
 - [x] Fix every use of the old `openSessions` dictionary in the kit, DemoSupport, the README and the snippets. Use the new preview factories where the kit has its own copies, if the kit has them.
-- [ ] Find why the Gallery lists no recorded session with the new client. First write an in-process test (a package test, not a UI test) that fails the same way: for example, resume or list the recorded sessions through `DemoAgent.makeInProcess(recordedSessions:)` and the ConnectionModel the Gallery uses, and expect at least one listed session. Then fix the cause.
+- [x] Find why the Gallery lists no recorded session with the new client. First write an in-process test (a package test, not a UI test) that fails the same way: for example, resume or list the recorded sessions through `DemoAgent.makeInProcess(recordedSessions:)` and the ConnectionModel the Gallery uses, and expect at least one listed session. Then fix the cause.
+  - Note: The cause was not the client. The cause was the crash from nested inspectors in the Gallery. ^any712s found and fixed it. CI run 38424460243 (commit 9a9a362) is green, and the Gallery UI test passes on CI.
 - [x] Run the full `swift test`, the README gate script, and build the demo. Do not run UI tests on this machine.
 
 ## Blocker
@@ -56,3 +73,5 @@ The CI result bundle of run 38391106969 shows a different cause. The "App UI hie
 The Gallery test never passed on CI before this run: run 38248679318 failed on the Gallery start (fixed by ^pndr0c1), and older runs failed before the Gallery test ran.
 
 A person must decide the next step: find why the app has no window in the Gallery launch on the CI runner (a UI test run is necessary, and UI tests do not run on this machine), or close this item.
+
+Resolved: ^any712s found the cause (nested inspectors) and fixed it. CI run 38424460243 is green.

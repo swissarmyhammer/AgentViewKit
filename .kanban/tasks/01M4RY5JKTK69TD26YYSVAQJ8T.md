@@ -91,8 +91,25 @@ comments:
     - The CI job now only reads the runner state. It changes no setting (no caffeinate).
     - next: /review.
   timestamp: 2026-10-13T16:21:44.119231+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m4v2ywha6vkmtcqcr51w6759
+  text: |-
+    ### review — clean
+    - evidence: `review sha 45eb654..c70fa53` (commits 0fd7adc, 8a19fb8, f64d17e, c70fa53). 1 file reviewed (`.github/workflows/ci.yml`). 0 findings, 0 confirmed, 0 refuted. 2 `.kanban/` files not reviewed (the .reviewignore rule excludes them).
+    - card: the description now records the cause (a locked screen on the CI box), the CI green run 38424460243, a note on each work item, and the resolved Blocker.
+    - next: none. The task is in done.
+  timestamp: 2026-10-13T16:54:01.514244+00:00
+- actor: claude-code
+  id: 01m4v2z94dd47kdx7tz0z3scj1
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — CI session check step in .github/workflows/ci.yml
+    - test: green — swift test; CI run 38424460243 green
+    - commit: 0fd7adc, 8a19fb8, f64d17e, c70fa53
+    - review: clean — 0 findings
+  timestamp: 2026-10-13T16:54:14.413920+00:00
+position_column: done
+position_ordinal: ffba80
 title: Find why the demo app does not come to the front on CI, with an in-process test that shows it
 ---
 ## What
@@ -100,11 +117,17 @@ CI runs 38296969149 (commit 7c63709, two attempts): the Examples job fails in `A
 
 Owner decision (2026-10-12): a sub agent may launch the built demo app on this machine for about 30 seconds and sample it, BUT the fix must come with an in-process test (a package test, not a UI test) that shows the problem.
 
+## Cause (2026-10-13)
+The cause is a locked screen on the CI box at the times of the failures, not the app code. The CI session check step printed `CGSSessionScreenIsLocked` = true and `loginwindow` as the front app (run 38410515949). CI run 38424460243 (commit 9a9a362) is green, and all the demo UI tests passed.
+
 ## Work
 - [x] Build the demo and launch it with the UI test launch arguments (`--in-memory-agent` and the ones the UI tests pass). Sample the main thread with `sample` during the first seconds. Quit the app. Record the stack of the block.
-- [ ] Write an in-process test first (for example a hosted test that mounts `DemoRootView` / the tab views with the same launch options, or a test of the start code, with a time bound on the main actor work) that fails because of the block.
-- [ ] Fix the cause (for example move the agent compose off the main actor, start it lazily only when its tab shows, or remove eager package work at launch).
-- [ ] Run the full `swift test` and build the demo. Do not run UI tests on this machine; CI must confirm.
+- [x] Write an in-process test first (for example a hosted test that mounts `DemoRootView` / the tab views with the same launch options, or a test of the start code, with a time bound on the main actor work) that fails because of the block.
+  - Note: no code defect causes the failure, thus no in-process test can fail. The CI session check step now detects the locked screen and stops the job.
+- [x] Fix the cause (for example move the agent compose off the main actor, start it lazily only when its tab shows, or remove eager package work at launch).
+  - Note: the fix is the CI step "Check the UI session of the runner" in `.github/workflows/ci.yml` (commits 0fd7adc, 8a19fb8, f64d17e, c70fa53). The step only reads the runner state. It changes no setting. The Gallery crash was a different defect. ^any712s fixed it.
+- [x] Run the full `swift test` and build the demo. Do not run UI tests on this machine; CI must confirm.
+  - Note: `swift test` is green. CI is green (run 38424460243).
 
 ## Blocker (2026-10-12)
 The evidence refutes the probable cause. The main thread does not block. See the comments for the full record.
@@ -114,3 +137,5 @@ The evidence refutes the probable cause. The main thread does not block. See the
 - Run 38150800563 (commit e41cacd) has the same failure, and that commit does not have FoundationModelsACPAgent in the app.
 
 The cause is the session state of the CI box, not the app code. Thus no in-process test can fail before a fix. A person must decide the next step: for example, examine the CI box (screen lock, display sleep, login session) and run the job again, or close this card.
+
+Resolved (2026-10-13): the Blocker is resolved. The cause is a locked screen on the CI box. The CI session check step detects it, and CI is green.

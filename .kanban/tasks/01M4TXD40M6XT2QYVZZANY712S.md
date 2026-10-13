@@ -51,8 +51,24 @@ comments:
     - evidence: 2 files — Tests/AgentViewKitTests/ACP/GalleryWindowReplica.swift (the window size now uses the named constants windowWidth and windowHeight; no other unnamed number stays in the file), Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift (new helper resumeEachSessionFromTheStart(of:_:) lists the sessions, resumes each one from the start, and gives each resumed session to an async closure; aResumeFromTheStartReplaysEachRecordedSession, openAndResumeEachSession and hostTheGalleryWindowOfEachSession use it; the suite stays .serialized). swiftlint no_magic_numbers with allowed_numbers [0, 1, -1, 100]: the HEAD version of GalleryWindowReplica.swift gives 2 violations, the new versions of both files give 0. Full swift test: 1 test in 1 suite passed, 123 tests in 16 suites passed, 1155 tests in 129 suites passed (2 known issues are the meta-tests of HostedLayoutExpectations and ThemeHeightExpectations). One SwiftPM build-graph warning "missing creator for mutated node" for the mlx-swift_Cmlx bundle stays; it is not from this change. Both findings are checked. No commit, no push.
     - next: /review.
   timestamp: 2026-10-13T16:43:56.402198+00:00
-position_column: doing
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m4v2qx22m1kqa67rysajrh8j
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (9332b34). 0 findings, 0 confirmed, 0 refuted. 7 validator pairs ran. 2 files reviewed. All items of the earlier review findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-13T16:50:12.674640+00:00
+- actor: claude-code
+  id: 01m4v2r94exvk1peq1y1av2w5y
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — GalleryWindowReplica.swift, RecordedSessionsAgentTests.swift
+    - test: green — swift test, 1155 tests in 129 suites passed
+    - commit: 9332b34
+    - review: clean — 0 findings
+  timestamp: 2026-10-13T16:50:25.038102+00:00
+position_column: done
+position_ordinal: ffb880
 title: Stop the crash of the demo app when the Gallery opens a recorded session
 ---
 ## Problem
