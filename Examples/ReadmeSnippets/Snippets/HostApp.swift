@@ -18,7 +18,7 @@ struct HostApp: App {
   var body: some Scene {
     WindowGroup {
       // The window shows an open session of the connection model.
-      if let session = connection.openSessions.values.first {
+      if let session = connection.openSessions.first {
         HostThread(connection: connection, session: session)
       } else {
         ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")

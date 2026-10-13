@@ -50,6 +50,15 @@ comments:
     - review: not run
     - next: the owner examines the CI box and reruns the Examples job, or closes this card. New card ^k7n05yp: test-examples.sh stops only xcodebuild at its time limit.
   timestamp: 2026-10-12T21:12:47.792199+00:00
+- actor: claude-code
+  id: 01m4tj40ygntqtm1r0tg36d4fb
+  text: |-
+    ### CI result after the push of 8c5aef9 (run 38391106969)
+    - The owner reports: the screen of the CI box was not locked, and auto-login is set.
+    - The 4 ACP tab UI tests passed (10.4 s, 6.3 s, 6.3 s, 9.6 s). The log has 0 "Failed to activate" lines.
+    - The change of ^k7n05yp now stops the app under test and the test runner at the time limit. Before it, an app from an earlier attempt stayed alive on the box.
+    - next: the owner decides if this card closes.
+  timestamp: 2026-10-13T11:59:44.080413+00:00
 position_column: doing
 position_ordinal: '80'
 title: Find why the demo app does not come to the front on CI, with an in-process test that shows it

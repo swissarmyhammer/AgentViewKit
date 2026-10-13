@@ -1,7 +1,9 @@
+import AgentViewKitTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import PackageFileSupport
+import SwiftUI
 import Testing
 
 @testable import AgentViewKit
@@ -23,6 +25,11 @@ import Testing
   /// The directory of the recorded sessions of the demo app, relative to the
   /// package root.
   static let recordingsPath = "Examples/AgentViewKitDemo/RecordedSessions"
+
+  /// The longest time that the session list test waits for a row, in
+  /// seconds. It is the time that the end-to-end test of the Gallery tab
+  /// waits for a row of the session list.
+  static let rowTimeout: TimeInterval = 20
 
   /// The agent of one test, and the temporary directory of its stage.
   struct Scenario {
@@ -72,6 +79,21 @@ import Testing
     let sessions = try await Self.listSessions(of: scenario.agent)
 
     #expect(!sessions.isEmpty)
+    await scenario.stop()
+  }
+
+  @Test(.hostedSerially) func theSessionListOfTheGalleryShowsARowOfARecordedSession() async throws {
+    let scenario = try await Self.start()
+    let harness = HostedViewHarness(
+      SessionListView(connection: scenario.agent.connection, cwd: scenario.agent.workingDirectory, onOpen: { _ in }),
+      size: SessionPickerConnectionModelHostedTests.listSize)
+
+    await harness.pump(until: Self.rowTimeout) {
+      !SessionPickerConnectionModelHostedTests.rowIdentifiers(in: harness).isEmpty
+    }
+
+    #expect(!SessionPickerConnectionModelHostedTests.rowIdentifiers(in: harness).isEmpty)
+    harness.close()
     await scenario.stop()
   }
 
