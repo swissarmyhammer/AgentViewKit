@@ -59,6 +59,29 @@ comments:
     - The change of ^k7n05yp now stops the app under test and the test runner at the time limit. Before it, an app from an earlier attempt stayed alive on the box.
     - next: the owner decides if this card closes.
   timestamp: 2026-10-13T11:59:44.080413+00:00
+- actor: claude-code
+  id: 01m4tpr7qy39xj22xq3a0d55pe
+  text: |-
+    ### CI run 38400138512 (commit 45eb654): the activation failure occurred again
+    - README gate: success. Build & test: success.
+    - Examples: the FIRST UI test (`testASendOfHelloShowsTheReplyOfTheAgent`) failed at 12:57:32 with "Failed to activate application ... (current state: Running Background)". No app from an earlier attempt was alive. Thus the old app of an earlier attempt is not the cause.
+    - The time limit of 900 s stopped xcodebuild (pid 93729) and the app (pid 93789). The ^k7n05yp change worked.
+    - The failure is intermittent: run 38391106969 passed the 4 ACP tests 1 hour before. In that run, the Gallery test showed an app with no window, which is probably the same failure.
+    - The owner reports: the screen was not locked, and auto-login is set.
+    - Next hypothesis: the console session of the CI box is not the `service` session at times (for example, fast user switching, or a screen-sharing login of a different user). macOS does not activate an app of a session that is not on the console.
+    - Proposed check: a CI step before the UI tests prints `stat -f %Su /dev/console`, `whoami`, the screen-lock state from `ioreg`, and `lsappinfo front`. The step stops the job with a clear message if the console user is not the runner user.
+  timestamp: 2026-10-13T13:20:40.702754+00:00
+- actor: claude-code
+  id: 01m4ttzde945acmspfk4w403rw
+  text: |-
+    ### Cause found: the screen of the CI box is locked (run 38410515949, commit 0fd7adc)
+    - The new session step printed: console user `service` (the runner user), `CGSSessionScreenIsLocked` = true, front app `loginwindow`.
+    - xcodebuild also logged "Failed to suppress screen saver (SACSetScreenSaverCanRun returned 22)".
+    - Then the first ACP test failed with "Failed to activate application ... (current state: Running Background)".
+    - Thus a locked screen causes the failure. When a person looks at the box, the person wakes and unlocks the screen, so the screen seems not locked.
+    - Change: the session step now stops the job at once with a clear message when the screen is locked, and sets the screen saver idle time of the runner user to 0.
+    - The owner must do this one time on the CI box as `service`: `sysadminctl -screenLock off -password -` and `sudo pmset -a displaysleep 0 sleep 0`. Then unlock the screen.
+  timestamp: 2026-10-13T14:34:30.217689+00:00
 position_column: doing
 position_ordinal: '80'
 title: Find why the demo app does not come to the front on CI, with an in-process test that shows it

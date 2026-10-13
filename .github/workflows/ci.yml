@@ -87,9 +87,10 @@ jobs:
           fi
 
       # XCUIApplication can activate the app only in the session that is on the
-      # console, with the display awake. This step records the session state,
-      # wakes the display, and stops the job at once when the console belongs
-      # to a different user.
+      # console, with the display awake and the screen not locked. This step
+      # records the session state and wakes the display. It stops the job at
+      # once when the console belongs to a different user or the screen is
+      # locked.
       - name: Check the UI session of the runner
         run: |
           console_user=$(stat -f %Su /dev/console)
@@ -98,10 +99,23 @@ jobs:
             | grep -A1 -E 'CGSSessionScreenIsLocked|kCGSSessionOnConsoleKey|kCGSSessionUserNameKey' || true
           front=$(lsappinfo front)
           echo "Front app: $(lsappinfo info -only name "${front%:}" 2>/dev/null | sed -n 1p)"
+          # The screen saver of the runner user starts the screen lock. This
+          # setting needs no administrator access.
+          defaults -currentHost write com.apple.screensaver idleTime -int 0
           pgrep -lx ScreenSaverEngine && killall ScreenSaverEngine || true
           caffeinate -u -t 5
           if [ "${console_user}" != "$(whoami)" ]; then
             echo "error: the console belongs to ${console_user}, not to $(whoami). Switch the console of the runner to $(whoami)." >&2
+            exit 1
+          fi
+          # A locked screen shows loginwindow in front, and macOS activates no
+          # other app. The runner cannot unlock the screen. A person turns off
+          # the screen lock and the display sleep of the runner user one time:
+          #   sysadminctl -screenLock off -password -
+          #   sudo pmset -a displaysleep 0 sleep 0
+          if ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - 2>/dev/null \
+            | grep -A1 CGSSessionScreenIsLocked | grep -q '<true/>'; then
+            echo "error: the screen of the runner is locked, so the UI tests cannot activate the app. Unlock it, and turn off the screen lock and the display sleep of $(whoami) (see ci.yml)." >&2
             exit 1
           fi
 
