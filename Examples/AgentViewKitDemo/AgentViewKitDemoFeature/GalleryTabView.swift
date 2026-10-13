@@ -29,8 +29,10 @@ import SwiftUI
 ///   agent when the detail shows another session.
 /// - The detail is the ``AgentThreadView`` of the open session, in a
 ///   ``SessionThreadColumn`` with no composer.
-/// - The inspector holds the ``GalleryLookControls``: the EditorKit theme,
-///   the appearance, the increased contrast, the density, and the text size.
+/// - The Look button of the toolbar shows the ``GalleryLookControls`` in a
+///   popover: the EditorKit theme, the appearance, the increased contrast,
+///   the density, and the text size. ``GalleryColumns`` tells why the
+///   controls are not in an inspector.
 struct GalleryTabView: View, DemoStartingTab {
   /// The agents of the tab after the start.
   private struct Sources {
@@ -81,13 +83,6 @@ struct GalleryTabView: View, DemoStartingTab {
   /// connection states.
   static let stateRowIdentifierPrefix = "demo-gallery-state-"
 
-  /// The accessibility identifier of the button that shows the look
-  /// controls.
-  static let lookButtonIdentifier = "demo-gallery-look"
-
-  /// The symbol of the button that shows the look controls.
-  static let lookSymbol = "paintpalette"
-
   /// The symbol of the state with no open session.
   static let noSessionSymbol = "text.bubble"
 
@@ -103,12 +98,6 @@ struct GalleryTabView: View, DemoStartingTab {
   /// The title of the section of the connection states.
   static let statesTitle = "Connection States"
 
-  /// The minimum width of the inspector column.
-  static let inspectorMinimumWidth: CGFloat = 260
-
-  /// The ideal width of the inspector column.
-  static let inspectorIdealWidth: CGFloat = 300
-
   /// The state of the tab. The tab copies the recordings and starts the two
   /// agents. The started tab holds the agents.
   @State private var phase = DemoStartPhase<Sources>.starting
@@ -119,33 +108,20 @@ struct GalleryTabView: View, DemoStartingTab {
   /// The look of the kit views.
   @State private var look = GalleryLook()
 
-  /// Whether the inspector with the look controls shows.
-  @State private var showsLookControls = true
-
   /// The text of the progress view of the start.
   var startingText: String { "Starting the agent of the recorded sessions" }
 
   var body: some View {
-    NavigationSplitView {
+    GalleryColumns {
       sidebar
         .navigationSplitViewColumnWidth(min: ACPTabView.sidebarMinimumWidth, ideal: ACPTabView.sidebarIdealWidth)
     } detail: {
       detail
         .navigationTitle(Self.title)
+    } lookControls: {
+      GalleryLookControls(look: $look)
     }
     .galleryLook(look)
-    .inspector(isPresented: $showsLookControls) {
-      GalleryLookControls(look: $look)
-        .inspectorColumnWidth(min: Self.inspectorMinimumWidth, ideal: Self.inspectorIdealWidth)
-    }
-    .toolbar {
-      ToolbarItem {
-        Button("Look", systemImage: Self.lookSymbol) {
-          showsLookControls.toggle()
-        }
-        .accessibilityIdentifier(Self.lookButtonIdentifier)
-      }
-    }
     .task {
       await start()
     }

@@ -97,6 +97,22 @@ import Testing
     await scenario.stop()
   }
 
+  @Test(.hostedSerially) func theGalleryDetailShowsATranscriptRowOfEachRecordedSession() async throws {
+    try await Self.hostTheGalleryWindowOfEachSession { info, harness in
+      #expect(!Self.transcriptRowIdentifiers(in: harness).isEmpty, "\(info.sessionId)")
+    }
+  }
+
+  @Test(.hostedSerially) func theGalleryWindowOfEachRecordedSessionGetsNarrower() async throws {
+    try await Self.hostTheGalleryWindowOfEachSession { info, harness in
+      harness.window.styleMask.insert(.resizable)
+      harness.window.setContentSize(CGSize(width: Self.narrowWindowWidth, height: GalleryWindowReplica.windowSize.height))
+      harness.pump()
+
+      #expect(harness.hostingView.frame.width == Self.narrowWindowWidth, "\(info.sessionId)")
+    }
+  }
+
   @Test func aResumeFromTheStartReplaysEachRecordedSession() async throws {
     let scenario = try await Self.start()
     let connection = scenario.agent.connection
@@ -178,6 +194,39 @@ extension RecordedSessionsAgentTests {
     for info in try await listSessions(of: agent) {
       _ = try await agent.connection.resumeSession(resumeFromStartRequest(of: info))
     }
+  }
+
+  /// A width of the Gallery window that is less than its first width, and
+  /// more than the minimum widths of its columns, in points.
+  static let narrowWindowWidth: CGFloat = 1100
+
+  /// Resumes each listed session from the start, shows it in the window of
+  /// the Gallery tab, waits for a transcript row, and runs `check`.
+  ///
+  /// - Parameter check: The checks of one session and its window.
+  /// - Throws: The error of the start or of a request.
+  static func hostTheGalleryWindowOfEachSession(
+    _ check: (SessionInfo, HostedViewHarness<GalleryWindowReplica>) -> Void
+  ) async throws {
+    let scenario = try await start()
+    let connection = scenario.agent.connection
+    for info in try await listSessions(of: scenario.agent) {
+      let session = try await connection.resumeSession(resumeFromStartRequest(of: info))
+      let harness = HostedViewHarness(
+        GalleryWindowReplica(session: session, connection: connection), size: GalleryWindowReplica.windowSize)
+      await harness.pump(until: rowTimeout) { !transcriptRowIdentifiers(in: harness).isEmpty }
+      check(info, harness)
+      harness.close()
+    }
+    await scenario.stop()
+  }
+
+  /// The identifiers of the transcript rows that show.
+  ///
+  /// - Parameter harness: The harness that shows the transcript.
+  /// - Returns: The row identifiers, in view order.
+  static func transcriptRowIdentifiers(in harness: HostedViewHarness<some View>) -> [String] {
+    harness.accessibilityElements().compactMap(\.identifier).filter { $0.hasPrefix(ItemRow.identifierPrefix) }
   }
 
   /// The `session/resume` request of a listed session, with a replay from

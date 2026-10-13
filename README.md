@@ -466,8 +466,8 @@ two tabs:
   (`DemoGallery`) and the connection and sign-in states
   (`DemoConnectionState`). They show permission requests, form and URL
   elicitations, plans, compactions, notices, errors, attachments, the other
-  stop reasons, and the sign-in and connection states. An
-  inspector sets the EditorKit theme (`SystemTheme`, `DefaultTheme.light`,
+  stop reasons, and the sign-in and connection states. The popover of the
+  Look button sets the EditorKit theme (`SystemTheme`, `DefaultTheme.light`,
   `DefaultTheme.dark`), the appearance, the increased contrast, the density,
   and the text size.
 

@@ -39,7 +39,11 @@ import SwiftUI
 ///
 /// A tap on an attachment in a row shows the file in a trailing inspector.
 /// See ``SwiftUI/View/attachmentInspector(selection:)``. When the environment
-/// has an ``InspectorSelection``, the view uses that selection.
+/// has an ``InspectorSelection``, the view uses that selection. The view
+/// always has this inspector, so do not put the view in a view that has its
+/// own `inspector(isPresented:content:)`, such as a `NavigationSplitView`
+/// with an inspector. Two inspectors make the minimum width of the column
+/// equal to the width of the window, and AppKit can then stop the app.
 ///
 /// The view registers the agent commands of the session model
 /// (``AgentCommandVerb``) with the keys of ``AgentKeymap``. See
