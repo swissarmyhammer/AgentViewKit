@@ -13,6 +13,13 @@ comments:
     - What did not work: comparing sizeThatFits(.zero) or fittingSize of the detail alone. These values were small and stable. Only contentMinSize of a resizable window shows the fault.
     - I did not change the kit inspector behavior. The test theThreadViewOfASessionShowsTheSelectionOfTheHost documents that AgentThreadView shows the inspector of a host selection itself.
   timestamp: 2026-10-13T15:42:11.422347+00:00
+- actor: claude-code
+  id: 01m4tyw4499dews2278ehys7zk
+  text: |-
+    ### implement — changed
+    - evidence: crash = NSGenericException "more Update Constraints in Window passes than there are views", from SplitViewChildController.hosting(_:didUpdateMinSize:maxSize:), because the Gallery look inspector and the AgentThreadView attachment inspector are nested. Fix: new Sources/DemoSupport/GalleryColumns.swift (the look controls show in a popover of the Look button); GalleryTabView uses it; doc notes in AgentThreadView.swift and README.md. Tests: RecordedSessionsAgentTests/theGalleryWindowOfEachRecordedSessionGetsNarrower (RED: 7 of 7 sessions snapped back to 1476 pt; GREEN after the fix) and theGalleryDetailShowsATranscriptRowOfEachRecordedSession, over Tests/AgentViewKitTests/ACP/GalleryWindowReplica.swift. Full swift test: 1155 tests in 129 suites passed (2 known issues are the meta-tests of HostedLayoutExpectations and ThemeHeightExpectations), 123 tests in 16 suites passed, 1 test passed; one SwiftPM build-graph warning "missing creator for mutated node" for the mlx-swift_Cmlx bundle, which is not from this change. xcodebuild build of AgentViewKitDemo: BUILD SUCCEEDED. The built app ran 25 s with --tab gallery and quit with status 0; I did not click a row, because that needs UI automation. Commit c3efe56 (local, not pushed).
+    - next: /review. CI must run GalleryTabEndToEndTests to confirm the fix in the app.
+  timestamp: 2026-10-13T15:42:36.681745+00:00
 position_column: doing
 position_ordinal: '8280'
 title: Stop the crash of the demo app when the Gallery opens a recorded session
