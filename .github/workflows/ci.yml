@@ -86,8 +86,28 @@ jobs:
             echo "The xcodeproj gem is now available."
           fi
 
+      # XCUIApplication can activate the app only in the session that is on the
+      # console, with the display awake. This step records the session state,
+      # wakes the display, and stops the job at once when the console belongs
+      # to a different user.
+      - name: Check the UI session of the runner
+        run: |
+          console_user=$(stat -f %Su /dev/console)
+          echo "Runner user: $(whoami). Console user: ${console_user}."
+          ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - 2>/dev/null \
+            | grep -A1 -E 'CGSSessionScreenIsLocked|kCGSSessionOnConsoleKey|kCGSSessionUserNameKey' || true
+          front=$(lsappinfo front)
+          echo "Front app: $(lsappinfo info -only name "${front%:}" 2>/dev/null | sed -n 1p)"
+          pgrep -lx ScreenSaverEngine && killall ScreenSaverEngine || true
+          caffeinate -u -t 5
+          if [ "${console_user}" != "$(whoami)" ]; then
+            echo "error: the console belongs to ${console_user}, not to $(whoami). Switch the console of the runner to $(whoami)." >&2
+            exit 1
+          fi
+
+      # `caffeinate` keeps the display and the system awake during the UI tests.
       - name: Make the project again, build the application, and run its UI tests
-        run: ./Scripts/test-examples.sh ${{ matrix.example }}
+        run: caffeinate -dimsu ./Scripts/test-examples.sh ${{ matrix.example }}
 
       - name: Upload the result bundles
         if: failure()
