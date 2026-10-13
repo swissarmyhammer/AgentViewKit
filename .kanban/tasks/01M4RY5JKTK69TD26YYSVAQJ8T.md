@@ -82,6 +82,15 @@ comments:
     - Change: the session step now stops the job at once with a clear message when the screen is locked, and sets the screen saver idle time of the runner user to 0.
     - The owner must do this one time on the CI box as `service`: `sysadminctl -screenLock off -password -` and `sudo pmset -a displaysleep 0 sleep 0`. Then unlock the screen.
   timestamp: 2026-10-13T14:34:30.217689+00:00
+- actor: claude-code
+  id: 01m4v13rhqj6s9v0jght02ja4r
+  text: |-
+    ### CI green: run 38424460243 (commit 9a9a362)
+    - README gate, Build & test and Examples all passed. All the demo UI tests passed on CI.
+    - In run 38417316066, the screen check passed (not locked), and the 4 ACP tests passed. The locked screen at 14:06 and 14:37 was the cause of the earlier activation failures.
+    - The CI job now only reads the runner state. It changes no setting (no caffeinate).
+    - next: /review.
+  timestamp: 2026-10-13T16:21:44.119231+00:00
 position_column: doing
 position_ordinal: '80'
 title: Find why the demo app does not come to the front on CI, with an in-process test that shows it

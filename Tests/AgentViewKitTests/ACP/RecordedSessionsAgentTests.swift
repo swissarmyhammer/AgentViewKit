@@ -115,11 +115,8 @@ import Testing
 
   @Test func aResumeFromTheStartReplaysEachRecordedSession() async throws {
     let scenario = try await Self.start()
-    let connection = scenario.agent.connection
 
-    for info in try await Self.listSessions(of: scenario.agent) {
-      let session = try await connection.resumeSession(Self.resumeFromStartRequest(of: info))
-
+    try await Self.resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
       #expect(!session.transcript.isEmpty, "\(info.sessionId)")
     }
     await scenario.stop()
@@ -191,8 +188,22 @@ extension RecordedSessionsAgentTests {
   /// - Throws: The error of a request.
   static func openAndResumeEachSession(of agent: DemoAgent) async throws {
     try await agent.openSession { _ in }
+    try await resumeEachSessionFromTheStart(of: agent) { _, _ in }
+  }
+
+  /// Lists the sessions of the agent, resumes each one from the start, and
+  /// gives each resumed session to `body`, one at a time.
+  ///
+  /// - Parameters:
+  ///   - agent: The agent.
+  ///   - body: The work on one listed session and its resumed model.
+  /// - Throws: The error of a request, or of `body`.
+  static func resumeEachSessionFromTheStart(
+    of agent: DemoAgent, _ body: (SessionInfo, SessionModel) async throws -> Void
+  ) async throws {
     for info in try await listSessions(of: agent) {
-      _ = try await agent.connection.resumeSession(resumeFromStartRequest(of: info))
+      let session = try await agent.connection.resumeSession(resumeFromStartRequest(of: info))
+      try await body(info, session)
     }
   }
 
@@ -210,8 +221,7 @@ extension RecordedSessionsAgentTests {
   ) async throws {
     let scenario = try await start()
     let connection = scenario.agent.connection
-    for info in try await listSessions(of: scenario.agent) {
-      let session = try await connection.resumeSession(resumeFromStartRequest(of: info))
+    try await resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
       let harness = HostedViewHarness(
         GalleryWindowReplica(session: session, connection: connection), size: GalleryWindowReplica.windowSize)
       await harness.pump(until: rowTimeout) { !transcriptRowIdentifiers(in: harness).isEmpty }

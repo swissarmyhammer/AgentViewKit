@@ -11,8 +11,16 @@ import SwiftUI
 /// the `SessionThreadColumn` of the demo app with no composer, and the
 /// sidebar and the look controls hold a text.
 struct GalleryWindowReplica: View {
+  /// The width of the window of the Gallery tab in the failed CI run, in
+  /// points.
+  static let windowWidth: CGFloat = 1475
+
+  /// The height of the window of the Gallery tab in the failed CI run, in
+  /// points.
+  static let windowHeight: CGFloat = 587
+
   /// The size of the window of the Gallery tab in the failed CI run.
-  static let windowSize = CGSize(width: 1475, height: 587)
+  static let windowSize = CGSize(width: windowWidth, height: windowHeight)
 
   /// The minimum width of the sidebar of the demo app.
   static let sidebarMinimumWidth: CGFloat = 200

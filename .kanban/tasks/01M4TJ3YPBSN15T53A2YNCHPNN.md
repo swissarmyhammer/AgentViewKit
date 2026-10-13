@@ -23,6 +23,14 @@ comments:
     - evidence: 4 files — README.md, Examples/ReadmeSnippets/Snippets/HostApp.swift, plan.md, Tests/AgentViewKitTests/ACP/RecordedSessionsAgentTests.swift. `swift test`: 1153 tests in 129 suites passed (2 known issues), plus 123 tests in 16 suites passed. `Scripts/check-readme.sh`: passed. Demo build (`xcodebuild -scheme AgentViewKitDemo build`): BUILD SUCCEEDED. Open item: the in-process Gallery list test passes with client f47ca38, so it does not show the CI failure. The CI UI hierarchy shows that the app had no window, not an empty list.
     - next: a person decides how to find why the demo app has no window in the Gallery launch on the CI runner (a UI test run is necessary), or closes the Gallery item. The task stays in doing.
   timestamp: 2026-10-13T12:48:15.746397+00:00
+- actor: claude-code
+  id: 01m4v13va59re8x9k2a0f1591y
+  text: |-
+    ### CI green: run 38424460243 (commit 9a9a362)
+    - The README gate passes with the ordered `openSessions` list of the client.
+    - The Gallery item: the cause was the crash of ^any712s (nested inspectors), not the client. The Gallery UI test passes on CI.
+    - next: /review.
+  timestamp: 2026-10-13T16:21:46.949379+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Follow the new FoundationModelsACPClient openSessions list, and find why the Gallery lists no recorded session on CI
