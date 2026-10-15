@@ -7,12 +7,16 @@
 /// views of those kinds next to the recorded sessions:
 ///
 /// - a permission request, a form elicitation and a URL elicitation, which
-///   the agent sends after each resume and which wait for the user,
+///   the agent sends after each resume and which wait for the user. These
+///   sessions end in `requires_action`, as other agents send it,
+/// - a permission request that waits while the session is idle, as
+///   FoundationModelsACPAgent reports it (it never sends `requires_action`),
 /// - a plan, compactions of each status, notices of each severity, an error,
 ///   and the attachments of a user message,
 /// - one session for each stop reason that no recorded session has.
 ///
-/// Each session is fixture data. No test reads its content. The values are
+/// Each session is fixture data. Only the tests of the waiting sessions read
+/// the content: the last state and the requests. The values are
 /// constant data, so the type is not isolated to the main actor, and
 /// ``InMemoryDemoACPAgent`` reads them from its own actor.
 nonisolated public enum DemoGallery {
@@ -30,7 +34,7 @@ nonisolated public enum DemoGallery {
 
   /// The scripted sessions, in list order.
   public static let sessions: [DemoGallerySession] =
-    [permission, formElicitation, urlElicitation, plan, compaction, notices, error, attachments]
+    [permission, idlePermission, formElicitation, urlElicitation, plan, compaction, notices, error, attachments]
     + stopReasons.map(makeStopReasonSession)
 
   // MARK: - Sessions
@@ -56,6 +60,34 @@ nonisolated public enum DemoGallery {
                        {"optionId": "allow-always", "name": "Always Allow", "kind": "allow_always"},
                        {"optionId": "reject-once", "name": "Reject", "kind": "reject_once"},
                        {"optionId": "reject-always", "name": "Always Reject", "kind": "reject_always"}]}
+          """#)
+      ])
+  }()
+
+  /// A permission request that waits while the agent reports idle.
+  ///
+  /// FoundationModelsACPAgent never sends `requires_action`: its prompt ends
+  /// with `idle` and the `end_turn` stop reason, and a question that comes
+  /// after it waits with no prompt open. The other waiting sessions end in
+  /// `requires_action`, as other agents send it.
+  static let idlePermission: DemoGallerySession = {
+    let id = idPrefix + "idle-permission"
+    let toolCallID = id + "-run"
+    let pendingRun = #"""
+      {"sessionUpdate": "tool_call_update", "toolCallId": "\#(toolCallID)", "title": "Run the test suite",
+       "kind": "execute", "status": "pending"}
+      """#
+    return turnSession(
+      id: id, title: "Permission request while idle", prompt: "Run the tests after the build.",
+      reply: "The build is complete. The test run needs your permission.",
+      then: [pendingRun, idleState(stopReason: "end_turn")],
+      requests: [
+        .permission(
+          #"""
+          {"sessionId": "\#(id)", "title": "Run the test suite",
+           "subject": {"type": "tool_call", "toolCall": {"toolCallId": "\#(toolCallID)"}},
+           "options": [{"optionId": "allow-once", "name": "Allow", "kind": "allow_once"},
+                       {"optionId": "reject-once", "name": "Reject", "kind": "reject_once"}]}
           """#)
       ])
   }()

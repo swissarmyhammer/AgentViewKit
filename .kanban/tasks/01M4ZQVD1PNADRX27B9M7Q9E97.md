@@ -17,6 +17,25 @@ comments:
     ### Decision from the step owner: the pattern for render waits
     First make the render happen directly where the test can (for example `layoutSubtreeIfNeeded()` on the hosting view, or a display pass of the window), then check, so that the test does not depend on when the run loop turns. Where no such call exists, wait on the event (ObservationWait.until on the observed value, or the appear callback), with no time bound. A small internal observation point is OK where a value is not observable. Example: ^66f5w2n.
   timestamp: 2026-10-15T15:08:12.669055+00:00
+- actor: claude-code
+  id: 01m5064q5qh5fet4h582abgdys
+  text: |-
+    ### Before the final run
+    Move to the ACPClient head that has the fix of ^4tw540d (the step owner gives the head), then do the final full run. Close ^4tw540d after that check.
+  timestamp: 2026-10-15T16:25:50.519883+00:00
+- actor: claude-code
+  id: 01m50743axan5ew8byae6ec21p
+  text: |-
+    ### ACPClient head for the final run
+    Before the final full run, move FoundationModelsACPClient to d321543 (`swift package update`; CI green there). It has the resume fix of ^4tw540d. ^4tw540d stays open for the session/new part (ACPClient ^hfby9sz).
+  timestamp: 2026-10-15T16:42:58.781762+00:00
+- actor: claude-code
+  id: 01m5091qt983et2hgt0q64k2kd
+  text: |-
+    ### Decision from the step owner (from ^809cwz0)
+    - ConversationViewHostedTests, ThreadMinimapViewHostedTests and AgentCommandScopeHostedTests wait for the SwiftUI visibility report. Give them the treatment of ^809cwz0: a unit test that feeds the reports in a fixed order, a hosted check after a direct layout pass with no wait for the report, and a check (or a named gap in the doc) for the link between the SwiftUI callback and the handler.
+    - A hosted test holds HostedTestLock. If it waits with no bound for an event that does not come, all other hosted tests stop. Each hosted wait must wait for an event that is certain to come.
+  timestamp: 2026-10-15T17:16:38.601273+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
 position_column: todo

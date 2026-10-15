@@ -39,10 +39,29 @@ comments:
     - scope: this one run covers the working tree with both changes (^66f5w2n and ^wf0ym0j). The tests in Tests/AgentViewKitTests/Accessibility/ passed.
     - next: none. No code was changed in this step.
   timestamp: 2026-10-15T15:16:24.449387+00:00
+- actor: claude-code
+  id: 01m502gry2n7bdvqsr6djsy3db
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 75ca5e7): 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed). The engine did not review .kanban/ (ignore rule) or Docs/decisions/accessibility.md (no validator matches it).
+    - check (a): SessionModel.updateTap() in .build/checkouts/FoundationModelsACPClient (SessionModel+Coalescing.swift) adds a new continuation to updateTaps for each call. yieldToUpdateTaps gives each update to each open tap. Thus the kit stream does not take updates from the stream of the app. No finding.
+    - check (b): SessionAnnouncementObserver uses .task(id: ObjectIdentifier(session)). SwiftUI cancels the task when the view goes away or the session changes. The cancel ends the announcement stream, onTermination cancels the reader task, and the model removes the ended tap at the next yield or at close. The reader holds the session weakly. No leak.
+    - check (c): The test diff has no .timeLimit, sleep, clock wait, poll or retry. The only match is a doc comment in TurnAnnouncementTests that says the tests do not do these things.
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T15:22:31.234915+00:00
+- actor: claude-code
+  id: 01m502h6kskhwahab0fztxm00z
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ThreadAccessibility.swift (makeTurnAnnouncements, PromptEndTracker), tests, Docs/decisions/accessibility.md
+    - test: red (1 run; bad test ^66f5w2n, not caused by T2), then green after ^66f5w2n — swift test, 1172 passed in 132 suites (1 run)
+    - commit: 75ca5e7
+    - review: clean — 0 findings; updateTap gives each reader its own stream; the task ends with the view
+  timestamp: 2026-10-15T15:22:45.241204+00:00
 depends_on:
 - 01M4ZQTVZC2TE4TJBSADH5H115
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffbc80
 title: 'Mail step 7 T2: Announce "Response complete" only for the idle that ends a user prompt (elicitation-plan task 48)'
 ---
 elicitation-plan.md task 48 (needs ACPAgent task 49, which is done).

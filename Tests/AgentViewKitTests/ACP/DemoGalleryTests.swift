@@ -10,9 +10,12 @@ import Testing
 /// sessions of ``DemoGallery`` and the connection states of
 /// ``DemoConnectionState``.
 ///
-/// ``InMemoryDemoACPAgent`` serves each scripted session. The tests check
+/// ``InMemoryDemoACPAgent`` serves each scripted session. Most tests check
 /// only that each session opens and shows a transcript. They do not read the
-/// content of a session, because the sessions are fixtures that change.
+/// content of a session, because the sessions are fixtures that change. The
+/// tests of the waiting sessions read only the last state and the requests:
+/// FoundationModelsACPAgent reports idle while its requests wait, and other
+/// agents report `requires_action`, so the Gallery shows both.
 @Suite struct DemoGalleryTests {
   /// Starts the in-memory agent with the gallery script.
   ///
@@ -20,6 +23,19 @@ import Testing
   /// - Throws: The error of `initialize`.
   private static func makeGalleryAgent() async throws -> DemoAgent {
     try await DemoAgent.makeInProcess(script: .gallery)
+  }
+
+  /// Resumes a scripted session from the start of its history.
+  ///
+  /// - Parameters:
+  ///   - scripted: The scripted session.
+  ///   - agent: The connected gallery agent.
+  /// - Returns: The session model of the resumed session.
+  /// - Throws: The error of `session/resume`.
+  private static func resume(_ scripted: DemoGallerySession, on agent: DemoAgent) async throws -> SessionModel {
+    let request = ResumeSessionRequest(
+      cwd: agent.workingDirectory, sessionId: SessionId(rawValue: scripted.id), replayFrom: .start(ReplayFromStart()))
+    return try await agent.connection.resumeSession(request)
   }
 
   @Test func theInProcessAgentStartsInTheWorkingDirectoryOfTheInMemorySessions() async throws {
@@ -39,6 +55,41 @@ import Testing
     #expect(session.requests.count == 1)
   }
 
+  /// The scripted sessions whose requests wait for the user while the
+  /// history ends in `idle`, as FoundationModelsACPAgent reports them.
+  static let idleWaitingSessions = DemoGallery.sessions.filter {
+    !$0.requests.isEmpty && !$0.history.contains(DemoGallery.requiresActionState)
+  }
+
+  @Test func oneWaitingSessionEndsInIdleWithItsRequestsAsACPAgentReportsIt() throws {
+    let session = try #require(Self.idleWaitingSessions.first)
+
+    #expect(Self.idleWaitingSessions.count == 1)
+    #expect(session.history.last == DemoGallery.idleState(stopReason: "end_turn"))
+    #expect(session.requests.count == 1)
+  }
+
+  @Test func theOtherWaitingSessionsKeepTheRequiresActionStateForOtherAgents() {
+    let requiresAction = DemoGallery.sessions.filter { $0.history.last == DemoGallery.requiresActionState }
+
+    #expect(
+      requiresAction.map(\.id)
+        == [DemoGallery.permission, DemoGallery.formElicitation, DemoGallery.urlElicitation].map(\.id))
+  }
+
+  /// The resume replays the history before its response, so the state of the
+  /// session model does not depend on the requests that the agent sends
+  /// after the resume (task ^4tw540d: the client can lose such a request).
+  @Test func theResumedIdleWaitingSessionReportsIdleAndNotRequiresAction() async throws {
+    let scripted = try #require(Self.idleWaitingSessions.first)
+    let agent = try await Self.makeGalleryAgent()
+
+    let session = try await Self.resume(scripted, on: agent)
+
+    #expect(session.agentState == .idle(IdleStateUpdate(stopReason: .endTurn)))
+    await agent.stop()
+  }
+
   @Test func theSessionListOfTheGalleryAgentHasEachScriptedSession() async throws {
     let agent = try await Self.makeGalleryAgent()
 
@@ -52,10 +103,8 @@ import Testing
   @Test(arguments: DemoGallery.sessions)
   func eachScriptedSessionOpensWithATranscript(_ scripted: DemoGallerySession) async throws {
     let agent = try await Self.makeGalleryAgent()
-    let request = ResumeSessionRequest(
-      cwd: agent.workingDirectory, sessionId: SessionId(rawValue: scripted.id), replayFrom: .start(ReplayFromStart()))
 
-    let session = try await agent.connection.resumeSession(request)
+    let session = try await Self.resume(scripted, on: agent)
 
     #expect(!session.transcript.isEmpty)
     await agent.stop()

@@ -38,8 +38,24 @@ comments:
     - scope: this one run covers the working tree with both changes (^66f5w2n and ^wf0ym0j). The hosted scroll anchor test in SessionTranscriptViewHostedTests.swift passed.
     - next: none. No code was changed in this step.
   timestamp: 2026-10-15T15:16:23.112177+00:00
-position_column: doing
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m502aa6xesctsrjbm968f6xf
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~2..HEAD~1 (commit 5ea918c). Counts: 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 1 file reviewed: Tests/AgentViewKitTests/Thread/SessionTranscriptViewHostedTests.swift. 4 .kanban files not reviewed (.reviewignore). No prior review findings on the task.
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T15:18:59.549130+00:00
+- actor: claude-code
+  id: 01m502ak8khyz91g2y2sn5j5r1
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — SessionTranscriptViewHostedTests.swift (event waits and one direct layout pass; no time bound)
+    - test: green — swift test, 1172 passed in 132 suites (1 run, with T2 in the tree)
+    - commit: 5ea918c
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T15:19:08.819467+00:00
+position_column: done
+position_ordinal: ffbb80
 title: 'Mail step 7: Make theScrollAnchorsSeeTheRowKeyOfEachRowInView deterministic (it failed one time in the T2 full run)'
 ---
 Bad test found in the T2 full run (^wf0ym0j). The T2 change did not touch this code.
