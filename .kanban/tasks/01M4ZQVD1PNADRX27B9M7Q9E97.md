@@ -11,6 +11,12 @@ comments:
     - If a wait has no event (for example a SwiftUI or AppKit render that the test must let happen), report that kind of wait with an example to the step owner BEFORE you change it. Do not invent a time bound.
     - The 9 XCUITest waitFor…Existence(timeout:) calls can stay (XCUITest drives the app in another process). Add no new ones.
   timestamp: 2026-10-15T14:12:20.256310+00:00
+- actor: claude-code
+  id: 01m501pjfxgbwwvgd12b4mx1gx
+  text: |-
+    ### Decision from the step owner: the pattern for render waits
+    First make the render happen directly where the test can (for example `layoutSubtreeIfNeeded()` on the hosting view, or a display pass of the window), then check, so that the test does not depend on when the run loop turns. Where no such call exists, wait on the event (ObservationWait.until on the observed value, or the appear callback), with no time bound. A small internal observation point is OK where a value is not observable. Example: ^66f5w2n.
+  timestamp: 2026-10-15T15:08:12.669055+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
 position_column: todo

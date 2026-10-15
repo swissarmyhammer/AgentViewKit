@@ -234,9 +234,15 @@
 
       try await session.sendUpdate(Self.chunk("user_message_chunk", messageID: "anchor-u", text: "Question."))
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "anchor-m", text: "Answer."))
-      await harness.pump(until: Self.waitTimeout) { anchors.visibleIDs.count == 2 }
+      let model = session.model
+      await ObservationWait.until { model.transcript.count == 2 }
+      // The layout pass shows the two rows. SwiftUI can report the rows in
+      // view on a later turn of the run loop, so the test then waits for
+      // that report.
+      harness.hostingView.layoutSubtreeIfNeeded()
+      await ObservationWait.until { anchors.visibleIDs.count == model.transcript.count }
 
-      #expect(anchors.visibleIDs == session.model.transcript.map(\.rowKey))
+      #expect(anchors.visibleIDs == model.transcript.map(\.rowKey))
     }
 
     @Test func eachAppliedChunkShowsTheWholeEntryTextAndIdleChangesNothing() async throws {
