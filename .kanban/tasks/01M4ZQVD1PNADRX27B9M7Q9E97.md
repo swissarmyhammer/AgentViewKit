@@ -36,6 +36,21 @@ comments:
     - ConversationViewHostedTests, ThreadMinimapViewHostedTests and AgentCommandScopeHostedTests wait for the SwiftUI visibility report. Give them the treatment of ^809cwz0: a unit test that feeds the reports in a fixed order, a hosted check after a direct layout pass with no wait for the report, and a check (or a named gap in the doc) for the link between the SwiftUI callback and the handler.
     - A hosted test holds HostedTestLock. If it waits with no bound for an event that does not come, all other hosted tests stop. Each hosted wait must wait for an event that is certain to come.
   timestamp: 2026-10-15T17:16:38.601273+00:00
+- actor: claude-code
+  id: 01m50dc65xmnnw9nxbcczc3jca
+  text: |-
+    ### New heads for the final run
+    Before the final full run, AgentViewKit uses FoundationModelsACPClient 9cedcb9 (not d321543) and FoundationModelsACP fb55b2f. Task ^4tw540d adds its test on these heads, before the final run.
+  timestamp: 2026-10-15T18:32:15.293941+00:00
+- actor: claude-code
+  id: 01m50e23saccpyewxr61kkm6wd
+  text: |-
+    ### Row 7 base (decision of the step owner)
+    - The row 7 base is the current mains: FoundationModelsACPClient 9cedcb9 or later (main is now 904e541), FoundationModelsACP fb55b2f, FoundationModelsACPAgent 180333b, FoundationModelsRouter fa9bf08, FoundationModelsExtras dbd91de. Each one is pushed and checked. The newer ones add only phase 2 elicitation work (UserPresence, headless sessions, the ACPClient fixes).
+    - Do not pin. The package rule stays branch main, and Package.resolved is not committed.
+    - ACPClient 904e541 (task 28): a question in a mode that the client did not advertise gets cancel at once. AgentViewKit advertises form and URL, so nothing changes for it.
+    - Before the final full run: `swift package update` to the mains of that time, and record the resolved revisions in the final report.
+  timestamp: 2026-10-15T18:44:13.738139+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
 position_column: todo

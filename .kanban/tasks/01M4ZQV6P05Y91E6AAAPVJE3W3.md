@@ -224,10 +224,26 @@ comments:
     - code change: none. No test deleted.
     - next: review
   timestamp: 2026-10-15T18:28:58.922657+00:00
+- actor: claude-code
+  id: 01m50dbyc41v4kypxxzmh4z28t
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 0411bbd): 0 findings, 0 confirmed, 0 refuted; 1 file reviewed (Sources/AgentViewKitTestSupport/BackgroundRunScript.swift), 6 .kanban files ignored. The prior finding duplication/duplication is checked. The three build tool call steps occur only in buildToolCallSteps. backgroundOnlySteps and toolCallSteps use this helper.
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T18:32:07.300854+00:00
+- actor: claude-code
+  id: 01m50dcbzmcjf49he9v3vfpjwn
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — BackgroundRunScript.swift (one helper buildToolCallSteps)
+    - test: green — swift test, 1193 passed in 136 suites (1 run)
+    - commit: 0411bbd
+    - review: clean — 0 new findings; 1 of 1 prior finding checked
+  timestamp: 2026-10-15T18:32:21.236850+00:00
 depends_on:
 - 01M4ZQTYBRCAQQP8V7VWF0YM0J
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffbf80
 title: 'Mail step 7 T3: Close the other accepted gaps of T0, and make the demo agents follow the new ACPAgent order'
 ---
 Close the other gaps of T0 that the step owner accepts. Make one change for each gap, with a fixed-order test for each (no clock wait, sleep or poll).

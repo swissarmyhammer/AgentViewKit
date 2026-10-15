@@ -79,7 +79,7 @@ import Testing
 
   /// The resume replays the history before its response, so the state of the
   /// session model does not depend on the requests that the agent sends
-  /// after the resume (task ^4tw540d: the client can lose such a request).
+  /// after the resume.
   @Test func theResumedIdleWaitingSessionReportsIdleAndNotRequiresAction() async throws {
     let scripted = try #require(Self.idleWaitingSessions.first)
     let agent = try await Self.makeGalleryAgent()
@@ -87,6 +87,33 @@ import Testing
     let session = try await Self.resume(scripted, on: agent)
 
     #expect(session.agentState == .idle(IdleStateUpdate(stopReason: .endTurn)))
+    await agent.stop()
+  }
+
+  /// The scripted sessions with requests that the agent sends after each
+  /// resume. The value is constant data, so it is not isolated to the main
+  /// actor, and `@Test(arguments:)` reads it.
+  nonisolated static let sessionsWithRequests = DemoGallery.sessions.filter { !$0.requests.isEmpty }
+
+  /// A fixed-order test (task ^4tw540d): the agent sends the requests of the
+  /// session at once after the resume result. The client opens the session
+  /// model before the resume request goes out (FoundationModelsACPClient
+  /// d321543), so each request is pending on the session model. The test
+  /// waits on the observable session model, for an event that is certain to
+  /// come.
+  @Test(arguments: sessionsWithRequests)
+  func eachRequestThatComesAtOnceAfterTheResumeResultIsPendingOnTheSessionModel(
+    _ scripted: DemoGallerySession
+  ) async throws {
+    let agent = try await Self.makeGalleryAgent()
+    let sessionId = SessionId(rawValue: scripted.id)
+
+    _ = try await Self.resume(scripted, on: agent)
+    await ObservationWait.until { agent.connection.pendingRequestCount(of: sessionId) == scripted.requests.count }
+
+    let session = try #require(agent.connection.session(for: sessionId))
+    #expect(session.pendingElicitations.count == scripted.requests.count(where: \.isElicitation))
+    #expect(session.pendingPermissions.count == scripted.requests.count { !$0.isElicitation })
     await agent.stop()
   }
 
@@ -116,5 +143,12 @@ import Testing
 
     #expect(!opened.session.transcript.isEmpty)
     await opened.agent.stop()
+  }
+}
+
+extension DemoAgentRequest {
+  /// Whether the request is an `elicitation/create` request.
+  fileprivate var isElicitation: Bool {
+    if case .elicitation = self { true } else { false }
   }
 }

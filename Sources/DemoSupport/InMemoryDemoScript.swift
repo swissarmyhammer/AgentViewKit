@@ -44,6 +44,26 @@ nonisolated public struct InMemoryDemoScript: Sendable {
   /// ``InMemoryDemoAgent``.
   public let sessions: [DemoGallerySession]
 
+  /// The requests that the agent sends at once after the result of each
+  /// `session/new`. Each request waits for the answer of the user. Only the
+  /// tests set requests here, so that a request can come to the client
+  /// before the client opens the session model. The scripts of the demo app
+  /// have none.
+  let newSessionRequests: [DemoAgentRequest]
+
+  /// Makes a script.
+  ///
+  /// - Parameters:
+  ///   - signIn: What the agent does for a sign-in.
+  ///   - sessions: The scripted sessions that `session/list` adds.
+  ///   - newSessionRequests: The requests that the agent sends at once after
+  ///     the result of each `session/new`. The default is none.
+  init(signIn: SignIn, sessions: [DemoGallerySession], newSessionRequests: [DemoAgentRequest] = []) {
+    self.signIn = signIn
+    self.sessions = sessions
+    self.newSessionRequests = newSessionRequests
+  }
+
   /// Whether `initialize` gives the sign-in method.
   var advertisesSignIn: Bool {
     signIn != .notAdvertised

@@ -39,6 +39,8 @@ import OSLog
 ///   sends the history of ``DemoGallerySession`` before its result. After
 ///   the result of each resume of a scripted session, the agent sends the
 ///   requests of the session, which wait for the answer of the user.
+/// - After the result of each `session/new`, the agent sends the requests of
+///   ``InMemoryDemoScript/newSessionRequests``. Only the tests set them.
 /// - `initialize` gives the sign-in method only when the script advertises
 ///   it, and `auth/login` fails when the script rejects the sign-in.
 ///
@@ -60,8 +62,9 @@ public actor InMemoryDemoACPAgent: Agent {
   /// The number of prompts that the agent got.
   private var promptCount = 0
 
-  /// The tasks that send the open requests of the resumed scripted sessions,
-  /// keyed by session. A `session/cancel` cancels the tasks of its session.
+  /// The tasks that send the open requests of the resumed scripted sessions
+  /// and of the new sessions, keyed by session. A `session/cancel` cancels
+  /// the tasks of its session.
   private var requestTasks: [SessionId: [Task<Void, Never>]] = [:]
 
   /// Makes the agent of a connection.
@@ -81,8 +84,21 @@ public actor InMemoryDemoACPAgent: Agent {
     try Self.decoded(await InMemoryDemoAgent.initializeResult(advertisingSignIn: script.advertisesSignIn))
   }
 
+  /// Opens the session of ``InMemoryDemoAgent``.
+  ///
+  /// When the script has ``InMemoryDemoScript/newSessionRequests``, the agent
+  /// sends them at once after the result goes out.
+  ///
+  /// - Parameter params: The `session/new` request.
+  /// - Returns: The scripted result.
+  /// - Throws: The error of the decoder, or `RequestError.internalError`
+  ///   after the release of the connection.
   public func newSession(_ params: NewSessionRequest) async throws -> NewSessionResponse {
-    try Self.decoded(await InMemoryDemoAgent.newSessionResult)
+    let response: NewSessionResponse = try Self.decoded(await InMemoryDemoAgent.newSessionResult)
+    let senders = try script.newSessionRequests.map(Self.makeSender)
+    guard !senders.isEmpty else { return response }
+    try sendAfterResponse(senders, of: response.sessionId)
+    return response
   }
 
   public func listSessions(_ params: ListSessionsRequest) async throws -> ListSessionsResponse {
@@ -219,6 +235,19 @@ public actor InMemoryDemoACPAgent: Agent {
         try await connection.sessionUpdate(notification)
       }
     }
+    try sendAfterResponse(senders, of: sessionId)
+  }
+
+  /// Sends requests of a session at one time after the response to the
+  /// current request goes out.
+  ///
+  /// - Parameters:
+  ///   - senders: The senders of the requests.
+  ///   - sessionId: The session of the requests.
+  /// - Throws: `RequestError.internalError` after the release of the
+  ///   connection.
+  private func sendAfterResponse(_ senders: [RequestSender], of sessionId: SessionId) throws {
+    let connection = try openConnection()
     connection.afterRespondingToCurrentRequest {
       await self.startRequests(senders, of: sessionId, over: connection)
     }
