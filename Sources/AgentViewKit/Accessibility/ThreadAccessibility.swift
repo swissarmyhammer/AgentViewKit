@@ -1,6 +1,8 @@
 // Scoped imports: the whole module also has a `Content` type, which hides the
 // `Content` of each `ViewModifier` in this file.
-import enum FoundationModelsACP.StateUpdate
+import struct FoundationModelsACP.IdleStateUpdate
+import struct FoundationModelsACP.MessageId
+import enum FoundationModelsACP.SessionUpdate
 import enum FoundationModelsACP.ToolCallStatus
 import FoundationModelsACPClient
 import SwiftUI
@@ -12,9 +14,9 @@ import SwiftUI
 ///   the message, and each row of a conversation is in the linked group of
 ///   the thread. VoiceOver then reads across the rows. The namespace of the
 ///   groups comes from ``SwiftUI/View/accessibilityReadingScope()``.
-/// - Announcements: the kit announces only at three boundaries: turn
-///   complete, tool result, and action required. A streaming chunk is not a
-///   boundary.
+/// - Announcements: the kit announces only at three boundaries: the end of
+///   the work of a prompt of this client, tool result, and action required.
+///   A streaming chunk is not a boundary.
 /// - Focus: see ``AccessibilityFocusMover``.
 public enum ThreadAccessibility {
   /// The id of the linked group of the rows of a thread.
@@ -33,28 +35,76 @@ public enum ThreadAccessibility {
     String(localized: "Response cancelled")
   }
 
-  /// The announcement when the agent state of a session model goes from
-  /// foreground work to idle.
+  /// The announcement of the idle that ends the work of a prompt.
   ///
-  /// The function compares only the two values of the change. It keeps no
-  /// turn state of its own.
+  /// ``makeTurnAnnouncements(of:)`` finds the idle that ends the work of a
+  /// prompt of this client. This function gives only the text of that idle.
   ///
-  /// - Parameters:
-  ///   - old: The `agentState` before the change.
-  ///   - new: The `agentState` after the change.
-  /// - Returns: The text, or `nil` when the change does not stop foreground
-  ///   work. Foreground work stops when the state goes from `.running` or
-  ///   `.requiresAction` to `.idle`. No stop reason and `end_turn` give
-  ///   "Response complete", `cancelled` gives "Response cancelled", and each
-  ///   other stop reason gives the title of its ``StateBanner``.
-  public static func turnAnnouncement(old: StateUpdate?, new: StateUpdate?) -> String? {
-    guard AgentCommandTarget.isActive(old), case .idle(let idle)? = new else { return nil }
+  /// - Parameter idle: The idle state that ends the work of a prompt.
+  /// - Returns: "Response complete" for no stop reason and for `end_turn`,
+  ///   "Response cancelled" for `cancelled`, and the title of the
+  ///   ``StateBanner`` of each other stop reason.
+  public static func turnAnnouncement(for idle: IdleStateUpdate) -> String {
     switch idle.stopReason {
-    case nil, .endTurn: return responseCompleteText
-    case .cancelled: return responseCancelledText
+    case nil, .endTurn: responseCompleteText
+    case .cancelled: responseCancelledText
     case .maxTokens, .maxTurnRequests, .refusal, .error, .unknown:
-      return StateBanner.message(for: .idle(idle)).title
+      StateBanner.message(for: .idle(idle)).title
     }
+  }
+
+  /// The announcements of the idles that end the work of the prompts that
+  /// this client sent to `session`.
+  ///
+  /// A prompt is mail. The agent answers `session/prompt` when it accepts
+  /// the message, and gives the message id of the user message. The agent
+  /// then echoes that user message with the same message id, and works. The
+  /// first idle after the echo ends the work of the prompt
+  /// (`SessionModel.prompt(_:meta:)`). Thus the stream gives a text only for
+  /// the first idle after the echo of a prompt of this client:
+  ///
+  /// - An idle after background work only gives no text.
+  /// - A later idle with no new prompt gives no text.
+  /// - One idle that ends the work of two open prompts gives one text.
+  /// - While `SessionModel.isReplaying` is true, the history replay of a
+  ///   `session/resume` request gives no text.
+  ///
+  /// The stream reads `SessionModel.updateTap()`, which gives each update
+  /// in arrival order. The tap starts when this function returns, so make
+  /// the stream before the prompt goes out. The stream ends when the tap
+  /// ends, for example when the session model closes.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: The text of each idle that ends the work of a prompt of
+  ///   this client, as ``turnAnnouncement(for:)`` gives it, in order.
+  public static func makeTurnAnnouncements(of session: SessionModel) -> AsyncStream<String> {
+    let updates = session.updateTap()
+    let (announcements, continuation) = AsyncStream<String>.makeStream()
+    let reader = Task { [weak session] in
+      var tracker = PromptEndTracker()
+      for await update in updates {
+        guard let session, !session.isReplaying else { continue }
+        if let text = tracker.receive(update, sentPromptIDs: sentPromptIDs(in: session.transcript)) {
+          continuation.yield(text)
+        }
+      }
+      continuation.finish()
+    }
+    continuation.onTermination = { _ in reader.cancel() }
+    return announcements
+  }
+
+  /// The message ids of the prompts that this client sent: the local user
+  /// messages that the agent linked to a message id.
+  ///
+  /// - Parameter transcript: The transcript of a session model.
+  /// - Returns: The message id of each local user message that has one.
+  static func sentPromptIDs(in transcript: [TranscriptEntry]) -> Set<MessageId> {
+    Set(
+      transcript.compactMap { entry in
+        guard case .userMessage(let message) = entry, message.origin == .local else { return nil }
+        return message.messageId
+      })
   }
 
   /// The progress of one tool call, for the tool result announcement.
@@ -191,6 +241,56 @@ public enum ThreadAccessibility {
   }
 }
 
+/// Finds the idle that ends the work of the prompts of this client
+/// (elicitation-plan.md task 48).
+///
+/// The tracker keeps the message ids of the user-message echoes since the
+/// last idle. Each idle removes them. An idle gives a text only when one of
+/// them is the message id of a prompt of this client. Thus only the first
+/// idle after the echo of such a prompt gives a text, and it gives one text
+/// for all the prompts that it ends.
+///
+/// The tracker matches the echo and the prompt only by the message id. A
+/// prompt of this client whose echo never arrives gives no text. The schema
+/// requires the message id on the prompt response and on the echo, so an
+/// echo with no message id cannot occur.
+struct PromptEndTracker {
+  /// The message ids of the user-message echoes since the last idle.
+  private var echoedMessageIDs: Set<MessageId> = []
+
+  /// Receives one raw session update, in arrival order.
+  ///
+  /// - Parameters:
+  ///   - update: The update.
+  ///   - sentPromptIDs: The message ids of the prompts of this client. The
+  ///     tracker reads them only at an idle that comes after an echo.
+  /// - Returns: The text of ``ThreadAccessibility/turnAnnouncement(for:)``
+  ///   when the update is the first idle after the echo of a prompt of this
+  ///   client, or `nil`.
+  mutating func receive(_ update: SessionUpdate, sentPromptIDs: @autoclosure () -> Set<MessageId>) -> String? {
+    if let messageID = Self.echoedMessageID(of: update) {
+      echoedMessageIDs.insert(messageID)
+      return nil
+    }
+    guard case .stateUpdate(.idle(let idle)) = update, !echoedMessageIDs.isEmpty else { return nil }
+    let echoed = echoedMessageIDs
+    echoedMessageIDs.removeAll()
+    guard !echoed.isDisjoint(with: sentPromptIDs()) else { return nil }
+    return ThreadAccessibility.turnAnnouncement(for: idle)
+  }
+
+  /// The message id of a user-message echo.
+  ///
+  /// - Parameter update: A session update.
+  /// - Returns: The message id of a `user_message` or a `user_message_chunk`
+  ///   update, or `nil` for each other update.
+  private static func echoedMessageID(of update: SessionUpdate) -> MessageId? {
+    if case .userMessage(let message) = update { return message.messageId }
+    if case .userMessageChunk(let chunk) = update { return chunk.messageId }
+    return nil
+  }
+}
+
 // MARK: - Reading groups
 
 extension EnvironmentValues {
@@ -260,20 +360,24 @@ private struct ReadingGroupModifier: ViewModifier {
 /// The view that tells the ``SwiftUI/EnvironmentValues/announcer`` about the
 /// boundaries of a session model (plan.md §3.2).
 ///
-/// The view reads the observable values of the client models directly, and
-/// keeps no state of its own. Each announcement reacts to one change of a
-/// model value, and compares only the old and the new value that
-/// `onChange` gives:
+/// The view keeps no state of its own. It announces these boundaries:
 ///
-/// - A change of `SessionModel.agentState` from `.running` or
-///   `.requiresAction` to `.idle` announces the stop, with the stop reason
-///   of the model.
+/// - The first idle after the echo of a prompt of this client announces the
+///   end of the work of the prompt, with the stop reason of the idle
+///   (``ThreadAccessibility/makeTurnAnnouncements(of:)``). An idle after
+///   background work only, and a later idle with no new prompt, announce
+///   nothing. One idle that ends two open prompts announces one time. The
+///   view reads these from `SessionModel.updateTap()`, in arrival order,
+///   because the model state does not tell when the echo arrived.
+///
+/// The other announcements react to one change of an observable model
+/// value, and compare only the old and the new value that `onChange` gives:
+///
 /// - A change of the `status` of a `ToolCallEntry` of
 ///   `SessionModel.transcript` to a result announces the `title` and the
 ///   status.
 /// - While `SessionModel.isReplaying` is true, the history replay of a
-///   `session/resume` request makes no stop announcement and no tool result
-///   announcement.
+///   `session/resume` request makes no tool result announcement.
 /// - A new request in `SessionModel.pendingPermissions`,
 ///   `SessionModel.pendingElicitations`, or
 ///   `ConnectionModel.pendingElicitations` announces that an action is
@@ -294,8 +398,10 @@ struct SessionAnnouncementObserver: View {
   var body: some View {
     Color.clear
       .accessibilityHidden(true)
-      .announcing(changesOf: session.agentState, to: announcer, priority: .medium) { old, new in
-        session.isReplaying ? [] : ThreadAccessibility.turnAnnouncement(old: old, new: new).map { [$0] } ?? []
+      .task(id: ObjectIdentifier(session)) {
+        for await text in ThreadAccessibility.makeTurnAnnouncements(of: session) {
+          announcer.announce(text, priority: .medium)
+        }
       }
       .announcing(
         changesOf: ThreadAccessibility.toolCallProgress(in: session.transcript), to: announcer, priority: .medium

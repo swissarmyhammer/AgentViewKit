@@ -67,11 +67,27 @@ comments:
     - flaky: no test failed.
     - next: review.
   timestamp: 2026-10-15T14:44:05.621504+00:00
+- actor: claude-code
+  id: 01m500hen33eh6h437cq0003x6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit c51af08). 8 files reviewed. 0 findings, 0 confirmed, 3 refuted, 7 attempted, 0 failed. 4 .kanban files not reviewed (.reviewignore).
+    - next: The task is in done. No work remains for this review.
+  timestamp: 2026-10-15T14:47:56.323805+00:00
+- actor: claude-code
+  id: 01m500hv518gq277xv00cx1rfv
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 8 files; one rule AgentCommandTarget.canCancel(_:); Esc uses it; ObservationWait helper (event wait, no clock); wire tests with option (b)
+    - test: green — swift test, 1165 passed in 131 suites (1 run)
+    - commit: c51af08
+    - review: clean — 0 findings (3 refuted)
+  timestamp: 2026-10-15T14:48:09.121577+00:00
 depends_on:
 - 01M4ZQTNC75QAVM51C2DBMNHSV
 - 01M4ZYC293BWWZQ4N2JW8BPYHN
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffba80
 title: 'Mail step 7 T1: Let the user cancel an idle session that has pending requests (elicitation-plan task 47)'
 ---
 elicitation-plan.md task 47 (section 4, last item).

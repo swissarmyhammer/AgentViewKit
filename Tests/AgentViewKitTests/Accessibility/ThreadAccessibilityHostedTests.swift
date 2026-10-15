@@ -218,13 +218,14 @@ import Testing
 
   // MARK: - Announcements of a session model
 
-  @Test func aSessionThatGoesIdleAfterItRunsAnnouncesThatTheResponseIsCompleteOneTime() async throws {
+  @Test func aPromptThatGoesIdleAfterItRunsAnnouncesThatTheResponseIsCompleteOneTime() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let announcer = RecordingAnnouncer()
     let harness = Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
 
+    _ = try await session.model.prompt([.text(TextContent(text: "Hello."))])
     try await session.sendUpdate(ScriptedSession.runningState)
     await harness.pump(until: Self.waitTimeout) { session.model.agentState != nil }
     for index in 0..<Self.chunkCount {

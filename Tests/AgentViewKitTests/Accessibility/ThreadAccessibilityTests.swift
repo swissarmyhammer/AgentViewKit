@@ -36,33 +36,56 @@ import Testing
     .idle(IdleStateUpdate(stopReason: reason))
   }
 
-  @Test func aSessionThatStopsForegroundWorkAnnouncesThatTheResponseIsComplete() {
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: Self.running, new: Self.makeIdle(.endTurn)) == "Response complete")
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: Self.requiresAction, new: Self.makeIdle(nil)) == "Response complete")
+  /// The message id of a prompt that this client sent.
+  static let sentPromptID = MessageId(rawValue: "sent-prompt")
+
+  /// The message id of a user message that this client did not send.
+  static let otherMessageID = MessageId(rawValue: "other-message")
+
+  /// Makes the echo of a user message.
+  ///
+  /// - Parameter messageID: The message id of the echo.
+  /// - Returns: The `user_message` update.
+  static func makeEcho(_ messageID: MessageId) -> SessionUpdate {
+    .userMessage(UserMessage(messageId: messageID))
   }
 
-  @Test func aCancelledSessionTurnAnnouncesTheCancel() {
-    #expect(
-      ThreadAccessibility.turnAnnouncement(old: Self.running, new: Self.makeIdle(.cancelled)) == "Response cancelled")
+  @Test func theEndOfAPromptWithNoStopReasonOrEndTurnAnnouncesThatTheResponseIsComplete() {
+    #expect(ThreadAccessibility.turnAnnouncement(for: IdleStateUpdate(stopReason: .endTurn)) == "Response complete")
+    #expect(ThreadAccessibility.turnAnnouncement(for: IdleStateUpdate()) == "Response complete")
   }
 
-  @Test func aSessionStopReasonWithABannerAnnouncesTheBannerTitle() {
+  @Test func theEndOfACancelledPromptAnnouncesTheCancel() {
+    #expect(ThreadAccessibility.turnAnnouncement(for: IdleStateUpdate(stopReason: .cancelled)) == "Response cancelled")
+  }
+
+  @Test func aStopReasonWithABannerAnnouncesTheBannerTitle() {
     let reasons: [FoundationModelsACP.StopReason] = [
       .maxTokens, .maxTurnRequests, .refusal, .error, .unknown("_truncated"),
     ]
     for reason in reasons {
-      let idle = Self.makeIdle(reason)
-      #expect(ThreadAccessibility.turnAnnouncement(old: Self.running, new: idle) == StateBanner.message(for: idle).title)
+      let idle = IdleStateUpdate(stopReason: reason)
+      #expect(ThreadAccessibility.turnAnnouncement(for: idle) == StateBanner.message(for: .idle(idle)).title)
     }
   }
 
-  @Test func aSessionChangeThatDoesNotStopForegroundWorkIsSilent() {
-    #expect(ThreadAccessibility.turnAnnouncement(old: nil, new: Self.makeIdle(.endTurn)) == nil)
-    #expect(ThreadAccessibility.turnAnnouncement(old: Self.makeIdle(nil), new: Self.makeIdle(.endTurn)) == nil)
-    #expect(ThreadAccessibility.turnAnnouncement(old: Self.running, new: Self.requiresAction) == nil)
-    #expect(ThreadAccessibility.turnAnnouncement(old: Self.running, new: nil) == nil)
+  @Test func anIdleWithNoEchoOfASentPromptIsSilent() {
+    var tracker = PromptEndTracker()
+    #expect(tracker.receive(.stateUpdate(Self.running), sentPromptIDs: [Self.sentPromptID]) == nil)
+    #expect(tracker.receive(.stateUpdate(Self.makeIdle(.endTurn)), sentPromptIDs: [Self.sentPromptID]) == nil)
+    #expect(tracker.receive(Self.makeEcho(Self.otherMessageID), sentPromptIDs: [Self.sentPromptID]) == nil)
+    #expect(tracker.receive(.stateUpdate(Self.requiresAction), sentPromptIDs: [Self.sentPromptID]) == nil)
+    #expect(tracker.receive(.stateUpdate(Self.makeIdle(nil)), sentPromptIDs: [Self.sentPromptID]) == nil)
+  }
+
+  @Test func onlyTheFirstIdleAfterTheEchoOfASentPromptAnnounces() {
+    var tracker = PromptEndTracker()
+    #expect(tracker.receive(Self.makeEcho(Self.sentPromptID), sentPromptIDs: [Self.sentPromptID]) == nil)
+    #expect(tracker.receive(.stateUpdate(Self.running), sentPromptIDs: [Self.sentPromptID]) == nil)
+    #expect(
+      tracker.receive(.stateUpdate(Self.makeIdle(.endTurn)), sentPromptIDs: [Self.sentPromptID])
+        == "Response complete")
+    #expect(tracker.receive(.stateUpdate(Self.makeIdle(.endTurn)), sentPromptIDs: [Self.sentPromptID]) == nil)
   }
 
   // MARK: - Tool result

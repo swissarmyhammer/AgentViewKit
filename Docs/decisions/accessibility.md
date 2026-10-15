@@ -47,18 +47,36 @@ announcement.
 
 | Boundary | Text | Priority |
 |----------|------|----------|
-| `SessionModel.agentState` changes from `.running` or `.requiresAction` to `.idle` | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
+| The first `idle` after the echo of a prompt of this client (by the `messageId` of the prompt response) | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
 | A new pending request of the models | "Action required: <title>" | high |
 
+- A prompt is mail (ACPAgent 293be4b). The order on the wire is: the
+  prompt response with the `messageId`, the `user_message` echo with that
+  `messageId`, `running`, the work, and then `idle`. The first `idle` after
+  the echo ends the work of the prompt. Thus a change to `idle` alone does
+  not announce:
+  - An `idle` after background work only (no echo of a prompt of this
+    client after the last announcement) announces nothing.
+  - A later `idle` with no new prompt announces nothing.
+  - One `idle` that ends the work of two open prompts announces one time.
+  - The echo of a user message that this client did not send announces
+    nothing.
+- `ThreadAccessibility.makeTurnAnnouncements(of:)` finds these idles. It
+  reads `SessionModel.updateTap()` in arrival order, because the model state
+  does not tell when the echo arrived. It matches the echo to a prompt of
+  this client only by the `messageId`: the `messageId` of each local user
+  message of the transcript. The schema requires the `messageId` on the
+  prompt response and on the echo. An agent that sends no echo for a prompt
+  gives no "Response complete" for that prompt.
 - `SessionAnnouncementObserver` is a hidden background of `AgentThreadView`.
-  It reads `agentState`, the status of each `ToolCallEntry` of the
-  transcript, and the pending requests of `SessionModel` and of
-  `ConnectionModel` (`pendingPermissions` and `pendingElicitations`). It
-  keeps no copy of these values and no turn of its own. Each announcement
-  compares only the old and the new value of one change of the model. It
-  does not read the content of an entry, so a streamed chunk does not
-  evaluate it.
+  It reads the stream of `makeTurnAnnouncements(of:)`, the status of each
+  `ToolCallEntry` of the transcript, and the pending requests of
+  `SessionModel` and of `ConnectionModel` (`pendingPermissions` and
+  `pendingElicitations`). It keeps no copy of these values. Each tool result
+  and action required announcement compares only the old and the new value
+  of one change of the model. It does not read the content of an entry, so
+  a streamed chunk does not evaluate it.
 - A tool call that the session model did not have before the change gives
   no announcement. While `SessionModel.isReplaying` is true, the replay of a
   resume gives no stop announcement and no tool result announcement. Thus a
