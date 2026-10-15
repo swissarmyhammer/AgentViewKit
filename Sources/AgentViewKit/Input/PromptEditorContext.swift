@@ -32,9 +32,12 @@ public struct PromptEditorContext {
   /// closure as ``onSubmit``, because each submit sends at once.
   public let onSendNow: Submit
 
-  /// The closure that stops the current turn, or `nil` while the agent does
-  /// not run a turn.
+  /// The closure that cancels the work of the session, or `nil` while the
+  /// user cannot cancel.
   ///
+  /// ``PromptInputView`` gives the closure while the agent runs, while it
+  /// requires action, and while it is idle with a pending permission request
+  /// or a pending elicitation: the same rule as ``AgentCommandVerb/cancel``.
   /// The closure calls `SessionModel.cancel(meta:)` of the session model of
   /// the environment. The text does not change.
   public let onCancel: Submit?
@@ -55,8 +58,8 @@ public struct PromptEditorContext {
   ///   - onSubmit: The closure that submits the prompt.
   ///   - onSendNow: The closure that sends the prompt at once. The default
   ///     is `onSubmit`.
-  ///   - onCancel: The closure that stops the current turn, or `nil` while
-  ///     the agent does not run a turn.
+  ///   - onCancel: The closure that cancels the work of the session, or
+  ///     `nil` while the user cannot cancel.
   ///   - commands: The slash commands of the session, or `nil` when the
   ///     agent did not report its commands.
   public init(

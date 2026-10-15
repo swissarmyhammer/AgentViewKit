@@ -30,17 +30,21 @@ import SwiftUI
 /// composer keeps no queue and does not wait for the end of a turn. In ACP v2
 /// the agent accepts a `session/prompt` at once, and the agent decides how to
 /// handle a message that comes while it runs. Command-Return also submits
-/// the text. Esc stops the turn while the agent runs.
+/// the text. Esc cancels the work of the session while the agent runs,
+/// while it requires action, and while it is idle with a pending permission
+/// request or a pending elicitation. Esc uses the same rule as
+/// ``AgentCommandVerb/cancel``.
 ///
 /// The model shows the user message at once
 /// with the send state `pending`, so the composer adds no row of its own.
 /// Esc and the Stop button send `session/cancel` with
-/// `SessionModel.cancel(meta:)`. The composer reads `agentState` only to show
-/// the Stop control. The editor gets `SessionModel.availableCommands` as
-/// ``PromptEditorContext/commands``. With no session model, the editor gets
-/// `nil`: no command menu. While `SessionModel.isClosed` is true, the
-/// composer is disabled and a submit sends nothing (plan.md §3.8 "Closed
-/// thread"). The composer reads `isClosed` directly and keeps no copy.
+/// `SessionModel.cancel(meta:)`. The composer reads `agentState` and the
+/// pending requests only for Esc and to show the Stop control. The editor
+/// gets `SessionModel.availableCommands` as ``PromptEditorContext/commands``.
+/// With no session model, the editor gets `nil`: no command menu. While
+/// `SessionModel.isClosed` is true, the composer is disabled and a submit
+/// sends nothing (plan.md §3.8 "Closed thread"). The composer reads
+/// `isClosed` directly and keeps no copy.
 ///
 /// The blocks of a prompt and the attachment chips follow the prompt
 /// capabilities of the connection model of the environment
@@ -129,6 +133,19 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     return isBlank ? nil : message
   }
 
+  /// Tells if Esc in the editor cancels the work of `session`.
+  ///
+  /// Esc reads the one cancel rule of the kit,
+  /// ``AgentCommandTarget/canCancel(_:)``, which is also the rule of
+  /// ``AgentCommandVerb/cancel``.
+  ///
+  /// - Parameter session: The session model of the environment, or `nil`.
+  /// - Returns: `true` when the editor gets an Esc action. `false` when
+  ///   there is no session model.
+  static func cancelsOnEscape(in session: SessionModel?) -> Bool {
+    session.map { AgentCommandTarget.canCancel($0) } ?? false
+  }
+
   /// The attachments of the host, or the attachments that the composer keeps.
   private var attachments: Binding<[Attachment]> {
     hostAttachments
@@ -151,7 +168,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   public var body: some View {
     let context = PromptEditorContext(
       text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
-      onCancel: session?.isRunning == true ? cancelCommand : nil,
+      onCancel: Self.cancelsOnEscape(in: session) ? cancelCommand : nil,
       commands: session?.availableCommands)
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       if !attachments.wrappedValue.isEmpty {
@@ -185,8 +202,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     submit()
   }
 
-  /// Stops the turn through ``AgentCommandVerb/cancel`` of the command
-  /// scope, or directly when the composer is in no scope.
+  /// Cancels the work of the session through ``AgentCommandVerb/cancel`` of
+  /// the command scope, or directly when the composer is in no scope.
   private func cancelCommand() {
     guard commandTarget?.perform(.cancel) != true else { return }
     cancel()
@@ -210,8 +227,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     text = AttributedString(message)
   }
 
-  /// Stops the current turn with `SessionModel.cancel(meta:)`. The text
-  /// does not change.
+  /// Cancels the work of the session with `SessionModel.cancel(meta:)`. The
+  /// text does not change.
   private func cancel() {
     session?.startCancel()
   }

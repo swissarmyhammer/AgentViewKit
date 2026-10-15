@@ -31,8 +31,25 @@ comments:
     - I changed no code and I deleted no test. I did not run any test again.
     - next: review
   timestamp: 2026-10-15T14:20:50.478263+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m4zz66vz7cs4dbq774jf4c51
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 7ce1ebc). 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. The engine reviewed Examples/ReadmeSnippets/Snippets/HostApp.swift. No validator matches README.md and plan.md. The .reviewignore rule excluded the .kanban/ files.
+    - next: The task is in done. T1 (^dbmnhsv dependents) can start.
+  timestamp: 2026-10-15T14:24:19.327346+00:00
+- actor: claude-code
+  id: 01m4zz6mvxhthgn1m2xh14tnkv
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — README.md, Examples/ReadmeSnippets/Snippets/HostApp.swift, plan.md
+    - test: green — swift test, 1152 passed (1 run)
+    - commit: 7ce1ebc
+    - review: clean — 0 findings
+    - correction: the "next" line of the review comment names the wrong task; the next task is T1 01M4ZQTVZC2TE4TJBSADH5H115 (^dh5h115).
+  timestamp: 2026-10-15T14:24:33.661282+00:00
+position_column: done
+position_ordinal: ffb980
 title: 'Mail step 7: Correct the README host snippet for the ordered openSessions list of ACPClient 838bbad'
 ---
 T0 (^dbmnhsv) found this build break. It is not in T1 to T4. It is not a change of the ACPAgent wire behavior. It comes from ACPClient `8cc5afe` ("make openSessions an ordered list of Identifiable SessionModel"), which is in the ACPClient main `838bbad`.

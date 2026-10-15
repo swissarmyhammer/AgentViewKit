@@ -42,8 +42,9 @@ struct AgentComposerHook {
 /// The target holds the `SessionModel` of the scope, and keeps no copy of its
 /// values. Each availability check and each run reads the model again:
 ///
-/// - Cancel is available while the `agentState` of the session model is
-///   `.running` or `.requiresAction`, and it calls
+/// - Cancel is available when ``canCancel(_:)`` tells so: while the
+///   `agentState` of the session model is `.running` or `.requiresAction`,
+///   or while it is `.idle` and the session has a pending request. It calls
 ///   `SessionModel.cancel(meta:)`.
 /// - Send with a text payload calls `SessionModel.prompt(_:meta:)`.
 /// - Approve and reject read `SessionModel.pendingPermissions`, and call
@@ -149,7 +150,7 @@ final class AgentCommandTarget {
   ) -> Bool {
     switch verb {
     case .send: canSend(payload: payload)
-    case .cancel: Self.isActive(session.agentState)
+    case .cancel: Self.canCancel(session)
     case .approvePending: answer(payload: payload, rejects: false) != nil
     case .rejectPending: answer(payload: payload, rejects: true) != nil
     case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
@@ -190,6 +191,39 @@ final class AgentCommandTarget {
     case .running, .requiresAction: true
     case .idle, .unknown, nil: false
     }
+  }
+
+  /// Tells if the user can cancel the work of `session` now.
+  ///
+  /// This is the one cancel rule of the kit. ``AgentCommandVerb/cancel``,
+  /// the Esc key of the scope, and the Esc key of ``PromptInputView`` read
+  /// it. The user can cancel while the `agentState` is `.running` or
+  /// `.requiresAction`. The user can also cancel while the `agentState` is
+  /// `.idle` and the session has a pending permission request or a pending
+  /// elicitation: an agent can report idle while its questions wait for the
+  /// user, and a cancel ends them. An idle session with no pending request
+  /// cannot cancel, because other agents that use the kit report idle when
+  /// no work of the session is open.
+  ///
+  /// The rule reads the model each time and keeps no copy. The state and
+  /// the pending lists are observable, so a view that reads the rule
+  /// updates when a request arrives or ends.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: `true` when a cancel can run.
+  static func canCancel(_ session: SessionModel) -> Bool {
+    guard !isActive(session.agentState) else { return true }
+    guard case .idle = session.agentState else { return false }
+    return hasPendingRequests(session)
+  }
+
+  /// Tells if a request of `session` waits for the answer of the user.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: `true` when `pendingPermissions` or `pendingElicitations` is
+  ///   not empty.
+  private static func hasPendingRequests(_ session: SessionModel) -> Bool {
+    !session.pendingPermissions.isEmpty || !session.pendingElicitations.isEmpty
   }
 
   // MARK: - Run

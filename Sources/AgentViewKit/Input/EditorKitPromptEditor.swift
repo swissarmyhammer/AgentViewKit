@@ -21,7 +21,7 @@ import SwiftUI
 /// ``PromptEditorContext/onSubmit``.
 /// Command-Return calls ``PromptEditorContext/onSendNow``. Shift-Return
 /// inserts a newline. Esc calls ``PromptEditorContext/onCancel`` while the
-/// thread runs a turn.
+/// user can cancel the work of the session.
 ///
 /// Two completion sources feed a completion list above the editor:
 ///
@@ -186,9 +186,10 @@ public struct EditorKitPromptEditor: View {
     return true
   }
 
-  /// Stops the current turn for an Esc press.
+  /// Cancels the work of the session for an Esc press.
   ///
-  /// - Returns: `false` while the thread does not run a turn.
+  /// - Returns: `false` while the context has no cancel closure, because
+  ///   the user cannot cancel now.
   private func cancel() -> Bool {
     guard let cancel = context.onCancel else { return false }
     cancel()

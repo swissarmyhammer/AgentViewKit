@@ -8,8 +8,8 @@ import SwiftUI
 /// Return calls ``PromptEditorContext/onSubmit``. Command-Return calls
 /// ``PromptEditorContext/onSendNow``. Shift-Return does not submit, so the
 /// text editor inserts a newline. Esc calls ``PromptEditorContext/onCancel``
-/// while the thread runs a turn. The editor shows the placeholder of the
-/// context while the text is empty.
+/// while the user can cancel the work of the session. The editor shows the
+/// placeholder of the context while the text is empty.
 public struct StockPromptEditor: View {
   /// The accessibility identifier of the editor.
   public static let identifier = "prompt-editor"
