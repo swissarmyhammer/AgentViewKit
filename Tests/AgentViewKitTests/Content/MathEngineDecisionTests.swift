@@ -106,15 +106,13 @@ import Testing
   /// - Returns: The path of each file, relative to the package root, and the
   ///   text of the file. The list is sorted by path.
   private static func spiFiles() throws -> [(path: String, text: String)] {
-    let rootPath = PackageFiles.root.path(percentEncoded: false)
-    let prefix = rootPath.hasSuffix("/") ? rootPath : rootPath + "/"
-    var files: [(path: String, text: String)] = []
-    for url in try PackageFiles.swiftFiles(in: PackageFiles.file(kitSources)) {
-      let text = try String(contentsOf: url, encoding: .utf8)
-      guard text.contains(spiImport) else { continue }
-      files.append((String(url.path(percentEncoded: false).dropFirst(prefix.count)), text))
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(kitSources)).map { url in
+      (
+        path: try PackageFiles.relativePath(of: url, to: PackageFiles.root),
+        text: try String(contentsOf: url, encoding: .utf8)
+      )
     }
-    return files.sorted { $0.path < $1.path }
+    return files.filter { $0.text.contains(spiImport) }.sorted { $0.path < $1.path }
   }
 
   /// Whether a match starts inside a longer name, such as `SwiftUIMath.`.

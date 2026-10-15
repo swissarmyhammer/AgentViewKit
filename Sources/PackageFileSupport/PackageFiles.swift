@@ -20,6 +20,25 @@ public enum PackageFiles {
     }
   }
 
+  /// The error when a file is not below the directory that a relative path
+  /// starts at.
+  public struct FileOutsideDirectory: Error, Equatable {
+    /// The file that the caller gave.
+    public let file: URL
+    /// The directory that the caller gave.
+    public let directory: URL
+
+    /// Makes the error for a file and a directory.
+    ///
+    /// - Parameters:
+    ///   - file: The file that the caller gave.
+    ///   - directory: The directory that the caller gave.
+    public init(file: URL, directory: URL) {
+      self.file = file
+      self.directory = directory
+    }
+  }
+
   /// The number of path parts between this file and the package root:
   /// `Sources/PackageFileSupport/PackageFiles.swift`.
   private static let depthBelowRoot = 3
@@ -62,6 +81,30 @@ public enum PackageFiles {
   ///   cannot be read or is not UTF-8.
   public static func text(of relativePath: String) throws -> String {
     try String(contentsOf: file(relativePath), encoding: .utf8)
+  }
+
+  /// The path of a file relative to a directory that holds it.
+  ///
+  /// The function resolves each symlink in both URLs before it compares
+  /// them. Thus the result does not depend on the place of the checkout:
+  /// for example, on macOS `/tmp` is a link to `/private/tmp`, and a file
+  /// enumerator can give either form. The function compares path parts, not
+  /// the length of a text prefix.
+  ///
+  /// - Parameters:
+  ///   - file: The file, at some depth below `directory`.
+  ///   - directory: The directory that the relative path starts at.
+  /// - Returns: The path parts of `file` below `directory`, joined with `/`,
+  ///   such as `Sources/AgentViewKit/Content/MathView.swift`.
+  /// - Throws: ``FileOutsideDirectory`` when `file` is not below
+  ///   `directory` after the symlinks are resolved.
+  public static func relativePath(of file: URL, to directory: URL) throws -> String {
+    let fileParts = file.resolvingSymlinksInPath().pathComponents
+    let directoryParts = directory.resolvingSymlinksInPath().pathComponents
+    guard fileParts.count > directoryParts.count, fileParts.starts(with: directoryParts) else {
+      throw FileOutsideDirectory(file: file, directory: directory)
+    }
+    return fileParts.dropFirst(directoryParts.count).joined(separator: "/")
   }
 
   /// The file extension of a Swift source file.

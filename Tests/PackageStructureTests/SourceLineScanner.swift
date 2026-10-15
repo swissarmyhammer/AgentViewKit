@@ -25,7 +25,8 @@ enum SourceLineScanner {
   ///   - base: The directory that the file name of each line is relative to.
   ///   - match: The function that finds the matches on one line.
   /// - Returns: The matches, in file order, then in line order.
-  /// - Throws: An error when the directory or a file cannot be read.
+  /// - Throws: An error when the directory or a file cannot be read, or
+  ///   `PackageFiles.FileOutsideDirectory` when a file is not below `base`.
   static func matches<Match>(
     inSwiftFilesBelow directory: URL,
     relativeTo base: URL,
@@ -33,19 +34,8 @@ enum SourceLineScanner {
   ) throws -> [Match] {
     try PackageFiles.swiftFiles(in: directory).flatMap { url in
       let text = try String(contentsOf: url, encoding: .utf8)
-      return matches(inSource: text, file: relativePath(of: url, to: base), match: match)
+      return matches(inSource: text, file: try PackageFiles.relativePath(of: url, to: base), match: match)
     }
-  }
-
-  /// The path of a file relative to a directory that holds it.
-  ///
-  /// - Parameters:
-  ///   - url: The file.
-  ///   - base: The directory that holds `url`, at some depth.
-  /// - Returns: The path parts of `url` below `base`, joined with `/`.
-  static func relativePath(of url: URL, to base: URL) -> String {
-    let baseDepth = base.standardizedFileURL.pathComponents.count
-    return url.standardizedFileURL.pathComponents.dropFirst(baseDepth).joined(separator: "/")
   }
 
   /// Finds the matches in the text of one Swift file.
