@@ -8,6 +8,10 @@ import FoundationModelsACP
 /// `messageId`, and reports `idle`. The agent state stays `running` from the
 /// first update until the last update.
 ///
+/// The agent can also work with no prompt open. ACPAgent then reports
+/// `running`, the work, and an `idle` with no stop reason.
+/// ``backgroundOnlySteps`` has that order.
+///
 /// Each ``Step`` holds one update and the change that the session model
 /// reports after it. A test sends each update with
 /// ``ScriptedSession/send(update:)``, waits for the change, and then compares
@@ -60,6 +64,20 @@ public enum BackgroundRunScript {
   public static let steps: [Step] =
     [makeStateStep(isRunning: true)] + streamedSteps + toolCallSteps
     + [makeFullMessageStep(), makeStateStep(isRunning: false)]
+
+  /// The steps of background work with no prompt open, in send order: the
+  /// agent reports `running`, then the build tool call starts, runs and
+  /// completes, and then the agent reports `idle` with no stop reason.
+  ///
+  /// No prompt ended, so the idle has no stop reason, as the idle of
+  /// ACPAgent after background work only.
+  public static let backgroundOnlySteps: [Step] = [
+    makeStateStep(isRunning: true),
+    makeToolCallStep(title: buildTitle, status: .pending, isFirst: true),
+    makeToolCallStep(title: buildTitle, status: .inProgress, isFirst: false),
+    makeToolCallStep(title: buildTitle, status: .completed, isFirst: false),
+    makeStateStep(isRunning: false),
+  ]
 
   /// One step for each chunk of the streamed answer. After each chunk, the
   /// answer has the text of all the chunks up to it.
