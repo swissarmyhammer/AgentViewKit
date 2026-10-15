@@ -338,6 +338,19 @@ import Testing
     #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
   }
 
+  /// The jump command goes from the first row in view to the next user
+  /// message, and the manager keeps that row as its anchor.
+  ///
+  /// After the model has the four messages, one layout pass shows the four
+  /// rows in the tall window. The test then gives the manager the
+  /// visibility report of the four rows itself, in transcript order, as
+  /// `ConversationView` gives it. It does not wait for the report of
+  /// SwiftUI: SwiftUI sends it on a later update, and for the off-screen
+  /// harness window it can send no report. A wait for it holds
+  /// `HostedTestLock` and stops all hosted tests.
+  ///
+  /// Gap: no hosted test proves that SwiftUI sends the report to the
+  /// manager. Task ^2pbwh3e checks that on a real screen.
   @Test func theJumpCommandOfASessionGoesToTheNextUserMessageEntry() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -357,9 +370,11 @@ import Testing
       ChunkMessage(kind: "agent_message_chunk", messageID: "jump-m2", text: "Two."),
     ]
     try await Self.send(messages, to: session)
-    await harness.pump(until: Self.waitTimeout) { anchors.visibleIDs.count == messages.count }
+    await ObservationWait.until { model.transcript.count == messages.count }
+    harness.hostingView.layoutSubtreeIfNeeded()
     let keys = model.transcript.map(\.rowKey)
-    #expect(anchors.visibleIDs.first == keys.first)
+    #expect(keys.allSatisfy { harness.element(identifier: ItemRow.identifier(for: $0)) != nil })
+    anchors.noteVisible(ids: keys)
 
     #expect(system.registry.perform(AgentCommandVerb.jumpToNext.id, at: Self.path(of: model)))
 

@@ -239,44 +239,56 @@
 
     // MARK: - Scroll
 
+    /// A click on the top tick of the rail scrolls the conversation to the
+    /// row of the first entry, and the manager keeps that entry as its
+    /// anchor.
+    ///
+    /// The mount lays out the views one time, and that pass gives the width
+    /// of the conversation to the rail modifier. A second layout pass shows
+    /// the rail. The test then gives the manager the report of the rows at
+    /// the bottom. After the click, one layout pass moves the list, and the
+    /// test reads the frame of the first row. Then the test gives the manager
+    /// the report of the rows at the top, which the list sends after the
+    /// jump.
+    ///
+    /// Gap: the test gives the visibility reports to the manager itself
+    /// (``ConversationViewHostedTests/reportRows(at:of:to:)``). No hosted
+    /// test proves that SwiftUI sends them. Task ^2pbwh3e checks that on a
+    /// real screen.
     @Test func aClickOnATickScrollsTheConversationToTheRowOfTheEntry() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
+      let model = session.model
       for index in 0..<Self.clickEntryCount {
         try await session.sendUpdate(
           SessionTranscriptViewHostedTests.chunk(
             "agent_message_chunk", messageID: "\(Self.messagePrefix)\(index)", text: "Done."))
       }
-      _ = await waitUntil { session.model.transcript.count == Self.clickEntryCount }
+      await ObservationWait.until { model.transcript.count == Self.clickEntryCount }
       let anchors = ScrollAnchorManager()
       let harness = HostedViewHarness(
-        ConversationView(session: session.model, anchors: anchors)
+        ConversationView(session: model, anchors: anchors)
           .threadMinimap(
-            session: session.model, anchors: anchors, minimumItemCount: Self.minimumEntryCount,
+            session: model, anchors: anchors, minimumItemCount: Self.minimumEntryCount,
             minimumWidth: Self.minimumWidth))
       defer { harness.close() }
-      harness.pump()
-      let keys = session.model.transcript.map(\.rowKey)
-      let firstKey = try #require(keys.first)
-      await harness.pump(until: Self.waitTimeout) {
-        anchors.visibleIDs.last == keys.last
-      }
-      #expect(!anchors.visibleIDs.contains(firstKey))
+      harness.hostingView.layoutSubtreeIfNeeded()
+      ConversationViewHostedTests.reportRows(at: .bottom, of: model, to: anchors)
+      let firstKey = try #require(model.transcript.first?.rowKey)
+      try #require(harness.element(identifier: ThreadMinimapView.railIdentifier) != nil)
+      #expect(!ConversationViewHostedTests.showsRow(firstKey, in: harness))
 
       // The top tick is the tick of the first entry.
       let bounds = harness.hostingView.bounds
       let top = harness.hostingView.isFlipped ? bounds.minY + Self.railInset : bounds.maxY - Self.railInset
       let point = NSPoint(x: bounds.maxX - Self.railInset, y: top)
       Self.click(at: harness.hostingView.convert(point, to: nil), in: harness)
-      // The jump sets the visible identifiers at once, so the wait reads the
-      // frame of the row.
-      await harness.pump(until: Self.waitTimeout) {
-        ConversationViewHostedTests.showsRow(firstKey, in: harness)
-      }
+      harness.hostingView.layoutSubtreeIfNeeded()
 
       #expect(ConversationViewHostedTests.showsRow(firstKey, in: harness))
       #expect(anchors.anchorID == firstKey)
-      #expect(anchors.visibleIDs.contains(firstKey))
+      ConversationViewHostedTests.reportRows(at: .top, of: model, to: anchors)
+      #expect(anchors.visibleIDs.first == firstKey)
     }
 
     @Test func theValueTellsTheFirstVisibleEntry() async throws {
