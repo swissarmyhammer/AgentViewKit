@@ -4,28 +4,50 @@ import Foundation
 import SwiftUI
 import Testing
 
+/// The phases that a hosted ``SpeechInputButton`` reports through
+/// ``SwiftUI/EnvironmentValues/speechInputPhaseReport``.
+@MainActor @Observable final class SpeechPhaseRecorder {
+  /// Each phase, in report order.
+  private(set) var phases: [SpeechInputButton.Phase] = []
+
+  /// Records one phase.
+  ///
+  /// - Parameter phase: The phase that the button reports.
+  func record(_ phase: SpeechInputButton.Phase) {
+    phases.append(phase)
+  }
+}
+
 /// Hosted tests of ``SpeechInputButton`` in the default composer, with a
 /// ``FakeSpeechTranscriber``.
 @Suite(.serialized, .hostedSerially) @MainActor struct SpeechInputButtonHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// Mounts a stock composer with `transcriber`.
   ///
   /// - Parameters:
   ///   - model: The model that holds the composer text.
   ///   - transcriber: The transcriber of the environment, or `nil`.
+  ///   - recorder: The recorder of the phases of the button, or `nil`.
   /// - Returns: The harness.
   static func mount(
     _ model: PromptInputHostedTestModel,
-    transcriber: FakeSpeechTranscriber?
+    transcriber: FakeSpeechTranscriber?,
+    recorder: SpeechPhaseRecorder? = nil
   ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: PromptInputViewHostedTests.composerSize) {
       PromptInputHost(model: model)
         .speechTranscriber(transcriber)
+        .environment(\.speechInputPhaseReport, recorder.map(Self.report(to:)))
     }
-    harness.pump()
+    harness.render()
     return harness
+  }
+
+  /// The phase report that gives each phase to `recorder`.
+  ///
+  /// - Parameter recorder: The recorder of the phases.
+  /// - Returns: The report.
+  static func report(to recorder: SpeechPhaseRecorder) -> SpeechInputPhaseReport {
+    SpeechInputPhaseReport { recorder.record($0) }
   }
 
   // MARK: - Mount
@@ -42,7 +64,7 @@ import Testing
     let harness = HostedViewHarness(
       SpeechInputButton().speechTranscriber(FakeSpeechTranscriber()))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: SpeechInputButton.identifier) == nil)
   }
@@ -57,10 +79,10 @@ import Testing
 
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
     try harness.press(identifier: SpeechInputButton.identifier)
-    await harness.pump(until: Self.waitTimeout) { transcriber.isRunning }
+    await ObservationWait.until { transcriber.isRunning }
     transcriber.feed(level: 0.5)
     transcriber.feed("hello")
-    await harness.pump(until: Self.waitTimeout) { model.plainText == "hello" }
+    await harness.render { model.plainText == "hello" }
 
     #expect(model.plainText == "hello")
     #expect(transcriber.calls == [.requestAuthorization, .start])
@@ -75,13 +97,12 @@ import Testing
     defer { harness.close() }
 
     try harness.press(identifier: SpeechInputButton.identifier)
-    await harness.pump(until: Self.waitTimeout) { transcriber.isRunning }
+    await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("hello there")
-    await harness.pump(until: Self.waitTimeout) { model.plainText == "hello there" }
+    await ObservationWait.until { model.plainText == "hello there" }
     try harness.press(identifier: SpeechInputButton.identifier)
-    harness.pump()
     transcriber.feed("ignored")
-    harness.pump()
+    harness.render()
 
     #expect(transcriber.calls == [.requestAuthorization, .start, .stop])
     #expect(!transcriber.isRunning)
@@ -96,10 +117,10 @@ import Testing
     defer { harness.close() }
 
     try harness.press(identifier: SpeechInputButton.identifier)
-    await harness.pump(until: Self.waitTimeout) { transcriber.isRunning }
+    await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("the")
     transcriber.feed("the bug")
-    await harness.pump(until: Self.waitTimeout) { model.plainText == "Fix the bug" }
+    await ObservationWait.until { model.plainText == "Fix the bug" }
 
     #expect(model.plainText == "Fix the bug")
   }
@@ -107,17 +128,17 @@ import Testing
   @Test func theEndOfASessionResetsTheButton() async throws {
     let transcriber = FakeSpeechTranscriber()
     let model = PromptInputHostedTestModel()
-    let harness = Self.mount(model, transcriber: transcriber)
+    let recorder = SpeechPhaseRecorder()
+    let harness = Self.mount(model, transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
     try harness.press(identifier: SpeechInputButton.identifier)
-    await harness.pump(until: Self.waitTimeout) { transcriber.isRunning }
+    await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("done")
     transcriber.finish()
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording"
-    }
+    await harness.render { recorder.phases.last == .idle }
 
+    #expect(recorder.phases == [.recording, .idle])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
     #expect(model.plainText == "done")
     #expect(transcriber.calls == [.requestAuthorization, .start])
@@ -126,14 +147,14 @@ import Testing
   @Test func aDeniedPermissionStartsNoSession() async throws {
     let transcriber = FakeSpeechTranscriber(isAuthorized: false)
     let model = PromptInputHostedTestModel()
-    let harness = Self.mount(model, transcriber: transcriber)
+    let recorder = SpeechPhaseRecorder()
+    let harness = Self.mount(model, transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
     try harness.press(identifier: SpeechInputButton.identifier)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SpeechInputButton.identifier)?.value == "Not allowed"
-    }
+    await harness.render { recorder.phases.last == .denied }
 
+    #expect(recorder.phases == [.recording, .denied])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not allowed")
     #expect(transcriber.calls == [.requestAuthorization])
     #expect(model.plainText.isEmpty)

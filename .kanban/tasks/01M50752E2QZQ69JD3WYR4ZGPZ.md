@@ -24,8 +24,24 @@ comments:
     - log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-7.log
     - next: Push is decided by this green result.
   timestamp: 2026-10-15T19:33:47.970280+00:00
-position_column: doing
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m50hddvc8w125gxgxt7tpasp
+  text: |-
+    ### review — clean
+    - evidence: review sha ee43eb9~1..ee43eb9 — 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed). 1 file reviewed.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-15T19:42:50.220568+00:00
+- actor: claude-code
+  id: 01m50hv3ysj3hw2cc2n4zczvnv
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ComposerSessionModelHostedTests.swift
+    - test: green — swift test, 1201 passed in 138 suites (1 run)
+    - commit: ee43eb9 (pushed in 277f657)
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T19:50:18.841129+00:00
+position_column: done
+position_ordinal: ffc280
 title: 'Test: aChangeOfTheAgentStateSendsNoFrame waits for a Send button that now shows at all times'
 ---
 `Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift` `aChangeOfTheAgentStateSendsNoFrame` sends `running`, then `idle`, and waits with `harness.pump(until:)` until the Send button shows. After G4 of ^pvje3w3, the Send button shows at all times, also while the agent runs. Thus the wait ends at once, before the client reads the `idle` update, and the test can count the frames before the idle is folded.

@@ -25,6 +25,7 @@ public struct StockPromptEditor: View {
 
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.promptSubmitReport) private var reportSubmit
 
   /// Makes the editor.
   ///
@@ -66,6 +67,7 @@ public struct StockPromptEditor: View {
       }
       .onKeyPress(.return, phases: .down) { press in
         guard let action = Self.returnAction(for: press.modifiers, in: context) else {
+          reportSubmit?(.newline)
           return .ignored
         }
         action()

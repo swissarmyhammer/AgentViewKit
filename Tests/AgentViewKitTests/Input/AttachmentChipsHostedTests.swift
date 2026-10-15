@@ -48,9 +48,6 @@ struct AttachmentComposerHost: View {
   /// The size of a window that shows the chip row.
   static let rowSize = CGSize(width: 480, height: 80)
 
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// A source file. The file does not have to exist.
   static let sourceURL = URL(filePath: "/tmp/attachment-chips/Main.swift")
 
@@ -89,7 +86,7 @@ struct AttachmentComposerHost: View {
       AttachmentChips(attachments: Bindable(model).attachments)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let first = Self.twoAttachments[0].id
     let second = Self.twoAttachments[1].id
@@ -97,7 +94,6 @@ struct AttachmentComposerHost: View {
     #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: second)) != nil)
 
     try harness.press(identifier: AttachmentChips.removeIdentifier(for: first))
-    await harness.pump(until: Self.waitTimeout) { model.attachments.count == 1 }
 
     #expect(model.attachments.map(\.id) == [second])
     #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: first)) == nil)
@@ -196,12 +192,12 @@ struct AttachmentComposerHost: View {
       AttachmentComposerHost(model: model)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let identifier = AttachmentChips.chipIdentifier(for: Self.twoAttachments[0].id)
     #expect(harness.element(identifier: identifier) == nil)
     model.attachments = [Self.twoAttachments[0]]
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: identifier) != nil }
+    harness.render()
 
     #expect(harness.element(identifier: identifier) != nil)
   }
@@ -215,10 +211,10 @@ struct AttachmentComposerHost: View {
         .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !session.promptBlocks.isEmpty }
+    await ObservationWait.until { !session.promptBlocks.isEmpty }
 
     #expect(session.promptBlocks.count == 1)
     #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))
@@ -237,10 +233,10 @@ struct AttachmentComposerHost: View {
         .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !session.promptBlocks.isEmpty }
+    await ObservationWait.until { !session.promptBlocks.isEmpty }
 
     #expect(session.promptBlocks.count == 1)
     #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))

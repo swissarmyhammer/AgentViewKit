@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import DemoSupport
@@ -42,15 +42,26 @@ struct PromptInputHost: View {
   }
 }
 
+/// The submit outcomes that a hosted composer reports through
+/// ``SwiftUI/EnvironmentValues/promptSubmitReport``.
+@MainActor @Observable final class PromptSubmitRecorder {
+  /// Each outcome, in report order.
+  private(set) var outcomes: [PromptSubmitOutcome] = []
+
+  /// Records one outcome.
+  ///
+  /// - Parameter outcome: The outcome that the composer reports.
+  func record(_ outcome: PromptSubmitOutcome) {
+    outcomes.append(outcome)
+  }
+}
+
 @Suite(.serialized, .hostedSerially) @MainActor struct PromptInputViewHostedTests {
   /// The text that the tests type.
   static let message = "Hello"
 
   /// The size of a window that shows the full composer.
   static let composerSize = CGSize(width: 480, height: 200)
-
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
 
   /// The `session/new` result with the one command `plan`.
   static let newSessionWithPlan = #"""
@@ -63,12 +74,24 @@ struct PromptInputHost: View {
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - model: The model that holds the text of the composer.
+  ///   - recorder: The recorder of the submit outcomes, or `nil`.
   /// - Returns: The harness.
-  static func mount(_ session: ScriptedSession, model: PromptInputHostedTestModel) -> HostedViewHarness<some View> {
+  static func mount(
+    _ session: ScriptedSession, model: PromptInputHostedTestModel, recorder: PromptSubmitRecorder? = nil
+  ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: composerSize) {
       PromptInputHost(model: model)
         .environment(\.sessionModel, session.model)
+        .environment(\.promptSubmitReport, recorder.map(Self.report(to:)))
     }
+  }
+
+  /// The submit report that gives each outcome to `recorder`.
+  ///
+  /// - Parameter recorder: The recorder of the outcomes.
+  /// - Returns: The report.
+  static func report(to recorder: PromptSubmitRecorder) -> PromptSubmitReport {
+    PromptSubmitReport { recorder.record($0) }
   }
 
   /// The `session/new` result with a `mode` option, for the picker test.
@@ -89,7 +112,7 @@ struct PromptInputHost: View {
         .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: StockPromptEditor.identifier) != nil)
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == true)
@@ -101,7 +124,7 @@ struct PromptInputHost: View {
     defer { session.close() }
     let harness = Self.mount(session, model: PromptInputHostedTestModel(text: "  \n"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
   }
@@ -109,7 +132,7 @@ struct PromptInputHost: View {
   @Test func theSubmitButtonIsDisabledWithNoSessionModel() {
     let harness = HostedViewHarness(PromptInputHost(model: PromptInputHostedTestModel(text: Self.message)), size: Self.composerSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
   }
@@ -121,7 +144,7 @@ struct PromptInputHost: View {
     defer { session.close() }
     let harness = Self.mount(session, model: PromptInputHostedTestModel())
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) != nil)
   }
@@ -142,12 +165,12 @@ struct PromptInputHost: View {
       .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
     #expect(harness.element(identifier: "custom-editor")?.label == "plan")
     try harness.press(identifier: "custom-editor")
-    await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+    await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
     let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
     #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
@@ -162,13 +185,13 @@ struct PromptInputHost: View {
     let model = PromptInputHostedTestModel()
     let harness = Self.mount(session, model: model)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     #expect(model.plainText == Self.message)
     try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
+    await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
@@ -179,15 +202,18 @@ struct PromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = Self.mount(session, model: model)
+    let recorder = PromptSubmitRecorder()
+    let harness = Self.mount(session, model: model, recorder: recorder)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     try harness.sendKey(.return, modifiers: .shift)
-    harness.pump()
+    await ObservationWait.until { !recorder.outcomes.isEmpty }
+    harness.render()
 
+    #expect(recorder.outcomes == [.newline])
     #expect(session.promptTexts.isEmpty)
     #expect(model.plainText == Self.message + "\n")
     #expect(model.submitCount == 0)
@@ -197,14 +223,17 @@ struct PromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = Self.mount(session, model: model)
+    let recorder = PromptSubmitRecorder()
+    let harness = Self.mount(session, model: model, recorder: recorder)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try #require(harness.focusFirstEditableTextView())
     try harness.sendKey(.return)
-    harness.pump()
+    await ObservationWait.until { !recorder.outcomes.isEmpty }
+    harness.render()
 
+    #expect(recorder.outcomes == [.notSent])
     #expect(session.promptTexts.isEmpty)
     #expect(model.submitCount == 0)
   }
@@ -217,10 +246,10 @@ struct PromptInputHost: View {
     let model = PromptInputHostedTestModel(text: Self.message)
     let harness = Self.mount(session, model: model)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
+    await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)

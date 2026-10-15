@@ -34,6 +34,8 @@ public struct SpeechInputButton: View {
   @State private var level: Double = .zero
   @State private var session: Task<Void, Never>?
 
+  @Environment(\.speechInputPhaseReport) private var reportPhase
+
   /// The log of the button.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "SpeechInputButton")
 
@@ -118,7 +120,7 @@ public struct SpeechInputButton: View {
       stop(transcriber: transcriber)
       return
     }
-    phase = .recording
+    show(.recording)
     session = Task { @MainActor in
       await record(transcriber: transcriber, text: text)
     }
@@ -132,7 +134,7 @@ public struct SpeechInputButton: View {
     session?.cancel()
     session = nil
     transcriber.stop()
-    phase = .idle
+    show(.idle)
     level = .zero
   }
 
@@ -144,7 +146,7 @@ public struct SpeechInputButton: View {
   ///   - text: The composer text.
   private func record(transcriber: any SpeechTranscriber, text: Binding<AttributedString>) async {
     guard await transcriber.requestAuthorization() else {
-      phase = .denied
+      show(.denied)
       return
     }
     guard !Task.isCancelled else { return }
@@ -162,8 +164,41 @@ public struct SpeechInputButton: View {
       Self.logger.error("Dictation failed: \(error.localizedDescription, privacy: .public)")
     }
     guard !Task.isCancelled else { return }
-    phase = .idle
+    show(.idle)
     level = .zero
     session = nil
   }
+
+  /// Sets the phase of the button, and reports it through
+  /// ``SwiftUI/EnvironmentValues/speechInputPhaseReport``.
+  ///
+  /// - Parameter newPhase: The new phase.
+  private func show(_ newPhase: Phase) {
+    phase = newPhase
+    reportPhase?(newPhase)
+  }
+}
+
+/// The function that gets each phase that a ``SpeechInputButton`` sets.
+///
+/// The value is an internal observation point for the tests. The button calls
+/// the function in the same step as the change of its phase, so a test that
+/// records the phases in an observable model can wait for the event with no
+/// clock.
+struct SpeechInputPhaseReport {
+  /// The function that gets each phase.
+  let report: @MainActor (SpeechInputButton.Phase) -> Void
+
+  /// Gives one phase to the function.
+  ///
+  /// - Parameter phase: The new phase of the button.
+  func callAsFunction(_ phase: SpeechInputButton.Phase) {
+    report(phase)
+  }
+}
+
+extension EnvironmentValues {
+  /// The ``SpeechInputPhaseReport`` of the nearest ``SpeechInputButton``, or
+  /// `nil`.
+  @Entry var speechInputPhaseReport: SpeechInputPhaseReport? = nil
 }

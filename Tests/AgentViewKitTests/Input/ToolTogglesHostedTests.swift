@@ -50,7 +50,7 @@ import Testing
       ToolToggles(tools: Self.tools, style: .list, onToggle: recorder.record),
       size: ConnectionsViewHostedTests.listSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.issueID))
     try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.searchID))
@@ -67,7 +67,7 @@ import Testing
       ToolToggles(tools: Self.tools, style: .list) { _, _ in },
       size: ConnectionsViewHostedTests.listSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: ToolToggles.toggleIdentifier(for: Self.searchID))
     #expect(element?.label == "Search code")
@@ -79,7 +79,7 @@ import Testing
       ToolToggles(tools: Self.tools, style: .list) { _, _ in },
       size: ConnectionsViewHostedTests.listSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
       $0.hasPrefix(ToolToggles.toggleIdentifierPrefix)
@@ -90,7 +90,7 @@ import Testing
   @Test func anEmptyListShowsNothing() {
     let harness = HostedViewHarness(ToolToggles(tools: [], style: .list) { _, _ in })
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ToolToggles.listIdentifier) == nil)
   }
@@ -98,7 +98,7 @@ import Testing
   @Test func theMenuStyleShowsAMenuButton() {
     let harness = HostedViewHarness(ToolToggles(tools: Self.tools) { _, _ in })
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ToolToggles.menuIdentifier) != nil)
   }
@@ -110,7 +110,7 @@ import Testing
       PromptInputHost(model: PromptInputHostedTestModel())
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
     #expect(harness.element(identifier: ToolToggles.menuIdentifier) == nil)

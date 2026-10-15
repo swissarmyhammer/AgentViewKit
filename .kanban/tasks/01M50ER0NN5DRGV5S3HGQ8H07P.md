@@ -42,8 +42,24 @@ comments:
     - code: HEAD 6beceed with the 4 uncommitted changes. No code changed in this step.
     - next: Push is decided by this green result.
   timestamp: 2026-10-15T19:33:43.250969+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m50h6t0e77naa4pagdw7fjrs
+  text: |-
+    ### review — clean
+    - evidence: review sha 35a2aff~1..35a2aff — 0 findings, 0 confirmed, 0 refuted; 7 validators attempted, 0 failed; 13 files reviewed, 18 .kanban files not reviewed (ignore rule).
+    - next: The task is in done. The area tasks A1 to A6 can start.
+  timestamp: 2026-10-15T19:39:13.294130+00:00
+- actor: claude-code
+  id: 01m50h7h8zwtwbbbc7qvj7fh2b
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 13 files (harness render()/render(when:), actions with no clock, .timeLimit and two Task.sleep removed, ScriptedWireAgent @Observable)
+    - test: green — swift test, 1201 passed in 138 suites (1 run, with ^yr4zgpz, ^2wj1arn, ^z2sya2g)
+    - commit: 35a2aff (pushed in 277f657)
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T19:39:37.119940+00:00
+position_column: done
+position_ordinal: ffc180
 title: 'Mail step 7 T4-A0: Give the test harness a direct render pass and remove the clock from pump, press, click and increment'
 ---
 Part of T4 (^m7q9e97). Decisions of the step owner: no .timeLimit, sleep, clock wait, poll or retry in the tests; for a render wait, first make the render happen directly (layoutSubtreeIfNeeded on the hosting view, a display pass of the window), then check; where that is not enough, wait on an event (ObservationWait.until on a value that is certain to change), with no time bound; a hosted test holds HostedTestLock, so a wait with no bound must be for a certain event.

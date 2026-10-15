@@ -92,6 +92,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.connectionModel) private var connection
   @Environment(\.agentTheme) private var theme
   @Environment(\.agentCommandTarget) private var commandTarget
+  @Environment(\.promptSubmitReport) private var reportSubmit
 
   /// Makes a composer with a custom editor and a custom accessory row.
   ///
@@ -213,10 +214,15 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// the text and calls the host closure.
   ///
   /// The prompt blocks follow the prompt capabilities of the connection
-  /// model, read at the time of the submit.
+  /// model, read at the time of the submit. The composer reports the outcome
+  /// through ``SwiftUI/EnvironmentValues/promptSubmitReport``.
   private func submit() {
-    guard canSubmit, let session, let input = takeInput() else { return }
+    guard canSubmit, let session, let input = takeInput() else {
+      reportSubmit?(.notSent)
+      return
+    }
     session.startPrompt(with: input, accepting: connection?.promptCapabilities)
+    reportSubmit?(.sent)
     onSubmit()
   }
 

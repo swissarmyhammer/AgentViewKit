@@ -57,9 +57,6 @@
   /// The composer reads the session model from the environment, and it gets
   /// no thread actions, so each request goes through the session model.
   @Suite(.serialized, .hostedSerially) @MainActor struct ComposerSessionModelHostedTests {
-    /// The longest time that a test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows the transcript and the composer.
     static let size = CGSize(width: 480, height: 800)
 
@@ -228,19 +225,15 @@
       let model = session.model
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { !Self.userMessages(of: model).isEmpty }
+      await harness.render { !Self.userMessages(of: model).isEmpty }
       let entry = try #require(Self.userMessages(of: model).first)
-      await harness.pump(until: Self.waitTimeout) { Self.sendStateLabel(of: entry, in: harness) != nil }
 
       #expect(entry.sendState == .pending)
       #expect(Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.pending])
       #expect(draft.plainText.isEmpty)
 
       session.agent.releaseHeldAnswer()
-      await harness.pump(until: Self.waitTimeout) { model.transcript.contains { $0.rowKey.hasSuffix(Self.markerMessageID) } }
-      await harness.pump(until: Self.waitTimeout) {
-        Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.sent]
-      }
+      await harness.render { model.transcript.contains { $0.rowKey.hasSuffix(Self.markerMessageID) } }
 
       #expect(entry.sendState == .sent)
       #expect(entry.messageId != nil)
@@ -259,11 +252,8 @@
       let errorIdentifier = ErrorView.identifier
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: errorIdentifier) != nil }
+      await harness.render { Self.hasErrorEntry(model) }
       let entry = try #require(Self.userMessages(of: model).first)
-      await harness.pump(until: Self.waitTimeout) {
-        Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.failed]
-      }
 
       #expect(entry.sendState == .failed)
       #expect(Self.sendStateLabel(of: entry, in: harness) == Self.sendStateLabels[.failed])
@@ -282,9 +272,8 @@
       try await Self.startRunning(session, in: harness)
 
       try Self.submitWithReturn(in: harness)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+      await harness.render { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
       let entry = try #require(Self.userMessages(of: model).first)
-      await harness.pump(until: Self.waitTimeout) { Self.sendStateLabel(of: entry, in: harness) != nil }
 
       #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage])
       #expect(entry.sendState == .pending)
@@ -302,11 +291,11 @@
       try await Self.startRunning(session, in: harness)
 
       try Self.submitWithReturn(in: harness)
-      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: ScriptedSession.promptMethod).count == 1 }
+      await ObservationWait.until { session.agent.messages(method: ScriptedSession.promptMethod).count == 1 }
       draft.text = AttributedString(Self.secondMessage)
-      harness.pump()
+      harness.render()
       try Self.submitWithReturn(in: harness)
-      await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: ScriptedSession.promptMethod).count == 2 }
+      await harness.render { session.agent.messages(method: ScriptedSession.promptMethod).count == 2 }
 
       #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage, Self.secondMessage])
       #expect(Self.isRunning(model))
@@ -364,9 +353,7 @@
 
       try await Self.startRunning(session, in: harness)
       try harness.press(identifier: DefaultPromptAccessory.stopIdentifier)
-      await harness.pump(until: Self.waitTimeout) {
-        !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
-      }
+      await ObservationWait.until { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 
       let cancels = session.agent.messages(method: ScriptedSession.cancelMethod)
       #expect(cancels.count == 1)
@@ -386,13 +373,13 @@
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
       let imageBadge = AttachmentChips.notAcceptedIdentifier(for: files.image.id)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: imageBadge) != nil }
+      harness.render()
 
       #expect(harness.element(identifier: imageBadge) != nil)
       #expect(harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id)) == nil)
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+      await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
       let blocks = Self.promptBlocks(of: session.agent)
       #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource"])
@@ -407,10 +394,10 @@
       let draft = AttachmentChipsTestModel(text: Self.firstMessage, attachments: [files.notes])
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.pump(until: Self.waitTimeout) { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+      await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
       let blocks = Self.promptBlocks(of: session.agent)
       #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource_link"])
@@ -431,12 +418,12 @@
       let harness = Self.mount(session: first, connection: holder, draft: draft)
       defer { harness.close() }
       let imageBadge = AttachmentChips.notAcceptedIdentifier(for: files.image.id)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: imageBadge) != nil }
+      harness.render()
 
       #expect(harness.element(identifier: imageBadge) != nil)
 
       holder.connection = second.connection
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: imageBadge) == nil }
+      harness.render()
 
       #expect(harness.element(identifier: imageBadge) == nil)
       #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: files.image.id)) != nil)
@@ -444,8 +431,18 @@
 
     // MARK: - Helpers
 
-    /// Sends the running state of the agent, and waits until the composer
-    /// shows the Stop button.
+    /// Tells whether the transcript of a session model has an error entry.
+    ///
+    /// - Parameter model: The session model.
+    /// - Returns: `true` when an entry of `transcript` is `.error`.
+    static func hasErrorEntry(_ model: SessionModel) -> Bool {
+      model.transcript.contains { entry in
+        if case .error = entry { true } else { false }
+      }
+    }
+
+    /// Sends the running state of the agent, waits until the session model
+    /// has the running state, and then renders the composer.
     ///
     /// - Parameters:
     ///   - session: The scripted session.
@@ -454,23 +451,22 @@
     static func startRunning<Content: View>(
       _ session: ScriptedSession, in harness: HostedViewHarness<Content>
     ) async throws {
+      let model = session.model
       try await session.sendUpdate(ScriptedSession.runningState)
-      await harness.pump(until: waitTimeout) {
-        harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil
-      }
+      await harness.render { isRunning(model) }
     }
 
     /// Submits the text of the composer with the Return key of the editor.
     ///
     /// The submit goes through the editor, not through the submit button, so
-    /// that a test can check the Return key path.
+    /// that a test can check the Return key path. The key action of the
+    /// harness renders the composer.
     ///
     /// - Parameter harness: The harness that shows the composer.
     /// - Throws: An error when the window cannot get the key event.
     static func submitWithReturn<Content: View>(in harness: HostedViewHarness<Content>) throws {
       try #require(harness.focusFirstEditableTextView())
       try harness.sendKey(.return)
-      harness.pump()
     }
 
     /// The text of the first prompt block of each `session/prompt` frame, in

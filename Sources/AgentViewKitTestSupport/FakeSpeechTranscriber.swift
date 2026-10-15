@@ -1,5 +1,6 @@
 import AgentViewKit
 import Foundation
+import Observation
 
 /// A ``SpeechTranscriber`` that a test drives by hand.
 ///
@@ -8,8 +9,12 @@ import Foundation
 /// ``feed(level:)``, and reads the recorded calls.
 ///
 /// The class is isolated to the main actor, so it meets the `Sendable`
-/// requirement of ``SpeechTranscriber``.
+/// requirement of ``SpeechTranscriber``. The class is `@Observable`, so that a
+/// test can wait for an event of the fake, such as the start of a session
+/// (``isRunning``) or a new call in ``calls``, with an observation wait and no
+/// clock.
 @MainActor
+@Observable
 public final class FakeSpeechTranscriber: SpeechTranscriber {
   /// One recorded call.
   public enum Call: Equatable, Sendable {

@@ -132,6 +132,47 @@ extension EnvironmentValues {
   @Entry public var promptSuggestions: [String] = []
 }
 
+/// What the composer did with one submit or one Shift-Return press.
+///
+/// The composer reports each outcome through
+/// ``SwiftUI/EnvironmentValues/promptSubmitReport``. A test reads the report
+/// to learn that the composer handled a key, and that it started no prompt.
+enum PromptSubmitOutcome: Equatable {
+  /// The composer started a prompt.
+  case sent
+
+  /// The composer started no prompt, for example because the text is blank.
+  case notSent
+
+  /// The press held Shift, so the editor inserted a newline and the composer
+  /// did not submit.
+  case newline
+}
+
+/// The function that gets each ``PromptSubmitOutcome`` of a composer.
+///
+/// The value is an internal observation point for the tests. The composer
+/// calls the function in the same step as the submit decision, so a test that
+/// records the outcomes in an observable model can wait for the event with no
+/// clock.
+struct PromptSubmitReport {
+  /// The function that gets each outcome.
+  let report: @MainActor (PromptSubmitOutcome) -> Void
+
+  /// Gives one outcome to the function.
+  ///
+  /// - Parameter outcome: The outcome of one submit or one Shift-Return press.
+  func callAsFunction(_ outcome: PromptSubmitOutcome) {
+    report(outcome)
+  }
+}
+
+extension EnvironmentValues {
+  /// The ``PromptSubmitReport`` of the nearest ``PromptInputView`` and its
+  /// ``StockPromptEditor``, or `nil`.
+  @Entry var promptSubmitReport: PromptSubmitReport? = nil
+}
+
 extension View {
   /// Sets the follow-up prompts that ``DefaultPromptAccessory`` shows for
   /// this view and each view in it.

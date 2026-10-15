@@ -1,7 +1,8 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import Foundation
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -29,9 +30,6 @@ struct EditorKitPromptInputHost: View {
   /// above it.
   static let composerSize = CGSize(width: 480, height: 400)
 
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// An `available_commands_update` with two commands.
   static let commandsUpdate = #"""
     {"sessionUpdate": "available_commands_update", "availableCommands": [
@@ -56,22 +54,23 @@ struct EditorKitPromptInputHost: View {
       EditorKitPromptInputHost(model: model, fileRoot: fileRoot)
         .environment(\.sessionModel, session.model)
     }
-    harness.pump()
+    harness.render()
     try #require(harness.focusFirstEditableTextView())
     return harness
   }
 
-  /// Sends the running state of the agent, and waits until the composer
-  /// shows the Stop button.
+  /// Sends the running state of the agent, waits until the session model
+  /// has the running state, and then renders the composer.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - harness: The harness that shows the composer.
   /// - Throws: The error of the transport.
   static func startRunning(_ session: ScriptedSession, in harness: HostedViewHarness<some View>) async throws {
+    let model = session.model
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.pump(until: waitTimeout) {
-      harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil
+    await harness.render {
+      if case .running = model.agentState { true } else { false }
     }
   }
 
@@ -86,13 +85,6 @@ struct EditorKitPromptInputHost: View {
   ) throws {
     let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
     try harness.sendKeyDown(.return, modifiers: modifiers, to: editor)
-  }
-
-  /// The labels of the rows of the completion list.
-  static func completionLabels(in harness: HostedViewHarness<some View>) -> [String] {
-    harness.accessibilityElements()
-      .filter { $0.identifier == EditorKitPromptEditor.completionRowIdentifier }
-      .compactMap(\.label)
   }
 
   // MARK: - Mount
@@ -119,15 +111,15 @@ struct EditorKitPromptInputHost: View {
     defer { harness.close() }
 
     harness.type(Self.message)
-    await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
+    await ObservationWait.until { model.plainText == Self.message }
     try Self.pressReturn(in: harness)
-    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
+    await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
     #expect(model.submitCount == 1)
     let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
-    await harness.pump(until: Self.waitTimeout) { editor.string.isEmpty }
+    harness.render()
     #expect(editor.string.isEmpty)
   }
 
@@ -139,9 +131,9 @@ struct EditorKitPromptInputHost: View {
     defer { harness.close() }
 
     harness.type(Self.message)
-    await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
+    await ObservationWait.until { model.plainText == Self.message }
     try Self.pressReturn(modifiers: .shift, in: harness)
-    await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message + "\n" }
+    await ObservationWait.until { model.plainText == Self.message + "\n" }
 
     #expect(session.promptTexts.isEmpty)
     #expect(model.plainText == Self.message + "\n")
@@ -156,9 +148,9 @@ struct EditorKitPromptInputHost: View {
     try await Self.startRunning(session, in: harness)
 
     harness.type(Self.message)
-    await harness.pump(until: Self.waitTimeout) { model.plainText == Self.message }
+    await ObservationWait.until { model.plainText == Self.message }
     try Self.pressReturn(modifiers: .command, in: harness)
-    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
+    await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
@@ -174,103 +166,94 @@ struct EditorKitPromptInputHost: View {
     try await Self.startRunning(session, in: harness)
 
     try harness.sendKey(.escape)
-    await harness.pump(until: Self.waitTimeout) {
-      !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
-    }
+    await ObservationWait.until { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 
     #expect(session.agent.messages(method: ScriptedSession.cancelMethod).count == 1)
   }
 
   // MARK: - Slash commands
+  //
+  // The completion tests below call the completion engine that the editor
+  // composes (`PromptEditorSession.engine(commands:root:)`), and await its
+  // query directly. In the hosted editor, the query waits for the debounce of
+  // EditorKit on a clock, off the main actor, and no model value that a test
+  // can observe holds the rows. The hosted completion-row tests can come back
+  // when EditorKit ^c3ya9ed gives an injectable debounce clock. Until then,
+  // these tests do not cover the draw of the rows, or the path that gives a
+  // Return press to the open list before the submit. The hosted check that
+  // needs no debounce wait is
+  // `SlashCommandSessionModelTests.afterAnEmptyCommandsUpdateASlashShowsTheNoCommandsNote`.
 
-  @Test func aSlashListsTheCommandsAndReturnAcceptsOne() async throws {
+  /// The engine of the editor lists the commands that the agent reported for
+  /// a slash, filters them by the text after the slash, and an accept
+  /// inserts the command and closes the list. See ^c3ya9ed above.
+  @Test func theEditorEngineListsTheReportedCommandsForASlashAndAcceptsOne() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(Self.commandsUpdate)
-    let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, session: session)
-    defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) { session.model.availableCommands != nil }
+    let model = session.model
+    await ObservationWait.until { model.availableCommands != nil }
+    let commands = model.availableCommands
 
-    harness.type("/")
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).count == 2 }
-    #expect(Set(Self.completionLabels(in: harness)) == ["/compact", "/plan"])
+    let all = await CompletionFixture.editor("/", commands: commands, root: nil).query()
+    #expect(Set(all) == ["/compact", "/plan"])
 
-    harness.type("co")
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness) == ["/compact"] }
-    #expect(Self.completionLabels(in: harness) == ["/compact"])
+    let fixture = CompletionFixture.editor("/co", commands: commands, root: nil)
+    #expect(await fixture.query() == ["/compact"])
+    #expect(fixture.accept("/compact"))
 
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { model.plainText == "/compact " }
-
-    #expect(model.plainText == "/compact ")
+    #expect(fixture.text == "/compact ")
+    #expect(!EditorKitPromptEditor.isTrigger("/compact ", reportsCommands: true, hasRoot: false))
     #expect(session.promptTexts.isEmpty)
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).isEmpty }
-    #expect(Self.completionLabels(in: harness).isEmpty)
   }
 
   // MARK: - File references
 
-  @Test func anAtSignListsTheFilesAndTheAcceptedFileIsSentAsAnAttachment() async throws {
+  /// The engine of the editor lists the files for an at sign, directories
+  /// first; the accepted file becomes a link in the prompt text, and the
+  /// prompt sends it as a resource link. See ^c3ya9ed above.
+  @Test func theEditorEngineListsTheFilesForAnAtSignAndTheAcceptedFileGoesOutAsAResourceLink() async throws {
     let root = try TemporaryFileRoot(files: ["notes.txt", "src/main.swift"])
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, session: session, fileRoot: root.url)
-    defer { harness.close() }
 
-    harness.type("@")
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).count == 2 }
-    #expect(Self.completionLabels(in: harness) == ["src/", "notes.txt"])
+    let all = await CompletionFixture.editor("@", commands: nil, root: root.url).query()
+    #expect(all == ["src/", "notes.txt"])
 
-    harness.type("n")
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness) == ["notes.txt"] }
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { model.text.runs.contains { $0.link != nil } }
+    let fixture = CompletionFixture.editor("@n", commands: nil, root: root.url)
+    #expect(await fixture.query() == ["notes.txt"])
+    #expect(fixture.accept("notes.txt"))
+    #expect(fixture.text == "@notes.txt ")
 
     let file = root.url.appending(path: "notes.txt")
-    #expect(model.plainText == "@notes.txt ")
-    #expect(model.text.runs.compactMap(\.link) == [file])
-    #expect(session.promptTexts.isEmpty)
+    let accepted = try #require(EditorKitPromptEditor.acceptedFile(before: Substring(fixture.text), root: root.url))
+    let text = EditorKitPromptEditor.attributedText(fixture.text, references: [accepted], root: root.url)
+    #expect(String(text.characters) == "@notes.txt ")
+    #expect(text.runs.compactMap(\.link) == [file])
 
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
-
-    #expect(session.promptTexts == ["@notes.txt "])
-    let blocks = try #require(session.promptBlocks.first)
-    #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource_link"])
-    #expect(blocks.last?["uri"]?.stringValue == file.absoluteString)
-    #expect(model.plainText.isEmpty)
+    let urls = PromptInputView<StockPromptEditor, DefaultPromptAccessory>.attachmentURLs([], in: text)
+    let blocks = PromptContent.makeBlocks(for: UserInput(text: fixture.text, attachments: urls), accepting: nil)
+    #expect(blocks.map(PromptCapabilitiesTests.wireType(of:)) == ["text", "resource_link"])
+    let link: String? = if case .resourceLink(let link) = blocks.last { link.uri } else { nil }
+    #expect(link == file.absoluteString)
   }
 
-  @Test func anAcceptedDirectoryListsItsEntries() async throws {
+  /// An accepted directory stays a trigger, and the engine of the editor then
+  /// lists the entries of the directory. See ^c3ya9ed above.
+  @Test func theEditorEngineListsTheEntriesOfAnAcceptedDirectory() async throws {
     let root = try TemporaryFileRoot(files: ["src/main.swift"])
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, session: session, fileRoot: root.url)
-    defer { harness.close() }
+    let fixture = CompletionFixture.editor("@s", commands: nil, root: root.url)
 
-    harness.type("@s")
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness) == ["src/"] }
-    try harness.sendKey(.return)
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness) == ["main.swift"] }
+    #expect(await fixture.query() == ["src/"])
+    #expect(fixture.accept("src/"))
+    #expect(fixture.text == "@src/")
+    #expect(EditorKitPromptEditor.isTrigger("@src/", reportsCommands: false, hasRoot: true))
 
-    #expect(model.plainText == "@src/")
-    #expect(Self.completionLabels(in: harness) == ["main.swift"])
+    #expect(await fixture.query() == ["main.swift"])
   }
 
-  @Test func withoutAFileRootAnAtSignListsNothing() async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, session: session)
-    defer { harness.close() }
-
-    harness.type("@")
-    await harness.pump(until: Self.waitTimeout) { model.plainText == "@" }
-    harness.pump(for: 0.3)
-
-    #expect(Self.completionLabels(in: harness).isEmpty)
+  /// Without a file root, an at sign is no trigger, and the engine of the
+  /// editor lists nothing for it. See ^c3ya9ed above.
+  @Test func withoutAFileRootTheEditorEngineListsNothingForAnAtSign() async {
+    #expect(!EditorKitPromptEditor.isTrigger("@", reportsCommands: false, hasRoot: false))
+    #expect(await CompletionFixture.editor("@", commands: nil, root: nil).query().isEmpty)
   }
 }

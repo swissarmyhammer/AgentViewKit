@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -8,17 +8,16 @@ import Testing
 /// The slash command menu of the composer over a `SessionModel` (plan.md
 /// §3.2 "Last-value state", §3.7 `Commands "not reported"`).
 ///
-/// Each test shows a composer with the EditorKit editor. The composer reads
-/// the session model from the environment. The scripted agent sets the
-/// commands of the model in one of three states: not reported, reported
-/// empty, and reported in the `session/new` response.
+/// The scripted agent sets the commands of the model in one of three states:
+/// not reported, reported empty, and reported in the `session/new` response.
+/// The test of the empty state shows a composer with the EditorKit editor:
+/// the "no commands" note needs no completion query, so the hosted check
+/// waits for no debounce. The tests of the other two states give the
+/// commands of the model to the completion engine of the editor and await
+/// its query, because the query of the hosted editor waits for the debounce
+/// of EditorKit on a clock. The hosted completion-row checks can come back
+/// when EditorKit ^c3ya9ed gives an injectable debounce clock.
 @Suite(.serialized, .hostedSerially) @MainActor struct SlashCommandSessionModelTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
-  /// The time that a test waits to see that no menu opens, in seconds.
-  static let settleTime: TimeInterval = 0.3
-
   /// A size that shows the composer and the menu above it.
   static let size = CGSize(width: 480, height: 400)
 
@@ -57,7 +56,7 @@ import Testing
       EditorKitPromptInputHost(model: draft, fileRoot: nil)
         .environment(\.sessionModel, session.model)
     }
-    harness.pump()
+    harness.render()
     try #require(harness.focusFirstEditableTextView())
     return harness
   }
@@ -81,23 +80,23 @@ import Testing
     harness.element(identifier: EditorKitPromptEditor.noCommandsIdentifier)?.label
   }
 
-  @Test func withCommandsNotReportedASlashShowsNoMenu() async throws {
+  /// While the agent did not report its commands, a slash is no trigger, and
+  /// the engine of the editor lists nothing for it.
+  ///
+  /// The test calls the completion engine of the editor directly, as the
+  /// tests of `EditorKitPromptEditorHostedTests` do. A hosted check of the
+  /// rows can come back when EditorKit ^c3ya9ed gives an injectable debounce
+  /// clock.
+  @Test func withCommandsNotReportedTheEditorEngineListsNothingForASlash() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let draft = PromptInputHostedTestModel()
-    let harness = try Self.mount(session: session, draft: draft)
-    defer { harness.close() }
     let model = session.model
     try await session.sendUpdate(Self.markerUpdate)
-    await harness.pump(until: Self.waitTimeout) { !model.transcript.isEmpty }
-
-    harness.type("/")
-    await harness.pump(until: Self.waitTimeout) { draft.plainText == "/" }
-    harness.pump(for: Self.settleTime)
+    await ObservationWait.until { !model.transcript.isEmpty }
 
     #expect(model.availableCommands == nil)
-    #expect(Self.completionLabels(in: harness).isEmpty)
-    #expect(Self.noteLabel(in: harness) == nil)
+    #expect(!EditorKitPromptEditor.isTrigger("/", reportsCommands: model.availableCommands != nil, hasRoot: false))
+    #expect(await CompletionFixture.editor("/", commands: model.availableCommands, root: nil).query().isEmpty)
   }
 
   @Test func afterAnEmptyCommandsUpdateASlashShowsTheNoCommandsNote() async throws {
@@ -108,30 +107,34 @@ import Testing
     defer { harness.close() }
     let model = session.model
     try await session.sendUpdate(Self.emptyCommandsUpdate)
-    await harness.pump(until: Self.waitTimeout) { model.availableCommands != nil }
+    await harness.render { model.availableCommands != nil }
 
     harness.type("/")
-    await harness.pump(until: Self.waitTimeout) { Self.noteLabel(in: harness) != nil }
+    await harness.render { draft.plainText == "/" }
 
     #expect(model.availableCommands?.isEmpty == true)
     #expect(Self.noteLabel(in: harness) == EditorKitPromptEditor.noCommandsNote)
     #expect(Self.completionLabels(in: harness).isEmpty)
   }
 
-  @Test func theCommandsOfTheNewSessionResponseShowWithNoUpdate() async throws {
+  /// The commands of the `session/new` response reach the session model with
+  /// no `available_commands_update`, and the engine of the editor lists them
+  /// for a slash.
+  ///
+  /// The test calls the completion engine of the editor directly, as the
+  /// tests of `EditorKitPromptEditorHostedTests` do. A hosted check of the
+  /// rows can come back when EditorKit ^c3ya9ed gives an injectable debounce
+  /// clock.
+  @Test func theCommandsOfTheNewSessionResponseGoToTheEditorEngineWithNoUpdate() async throws {
     let session = try await ScriptedSession.open {
       $0.results["session/new"] = Self.newSessionWithCommands
     }
     defer { session.close() }
-    let draft = PromptInputHostedTestModel()
-    let harness = try Self.mount(session: session, draft: draft)
-    defer { harness.close() }
+    let commands = session.model.availableCommands
 
-    harness.type("/")
-    await harness.pump(until: Self.waitTimeout) { Self.completionLabels(in: harness).count == 2 }
-
-    #expect(session.model.availableCommands?.map(\.name) == ["compact", "plan"])
-    #expect(Set(Self.completionLabels(in: harness)) == ["/compact", "/plan"])
-    #expect(Self.noteLabel(in: harness) == nil)
+    #expect(commands?.map(\.name) == ["compact", "plan"])
+    #expect(EditorKitPromptEditor.isTrigger("/", reportsCommands: commands != nil, hasRoot: false))
+    let labels = await CompletionFixture.editor("/", commands: commands, root: nil).query()
+    #expect(Set(labels) == ["/compact", "/plan"])
   }
 }

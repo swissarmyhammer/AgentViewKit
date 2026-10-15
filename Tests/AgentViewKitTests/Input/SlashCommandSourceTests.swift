@@ -2,6 +2,7 @@ import EditorComplete
 import EditorCore
 import EditorExtensions
 import EditorSwiftUI
+import Foundation
 import FoundationModelsACP
 import Testing
 
@@ -25,12 +26,35 @@ import Testing
   ///   - text: The text of the document.
   ///   - sources: The completion sources.
   init(_ text: String, sources: [any EditorExtensions.CompletionSource]) {
+    self.init(text, engine: CompletionEngine(sources: sources))
+  }
+
+  /// Makes a fixture over a completion engine that the caller made, for
+  /// example the engine that ``EditorKitPromptEditor`` composes.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the document.
+  ///   - engine: The completion engine.
+  init(_ text: String, engine: CompletionEngine) {
     document = EditorEngine(text, fields: [.field(CompletionSessionField.self)])
-    completion = CompletionEngine(sources: sources)
+    completion = engine
     let context = EditorContext(document.state)
     context.dispatch(
       EditorTransaction(
         changes: .identity(length: text.utf8.count), selection: .cursor(context.documentEnd)))
+  }
+
+  /// Makes a fixture over the completion engine that
+  /// ``EditorKitPromptEditor`` composes for `commands` and `root`.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the document.
+  ///   - commands: The slash commands of the session, or `nil` when the agent
+  ///     did not report its commands.
+  ///   - root: The file root, or `nil`.
+  /// - Returns: The fixture.
+  static func editor(_ text: String, commands: [AvailableCommand]?, root: URL?) -> CompletionFixture {
+    CompletionFixture(text, engine: PromptEditorSession().engine(commands: commands, root: root))
   }
 
   /// The text of the document.

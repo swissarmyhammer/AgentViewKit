@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
+import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -26,7 +27,7 @@ import Testing
         .promptSuggestions(suggestions)
         .environment(\.sessionModel, session?.model)
     }
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -44,7 +45,6 @@ import Testing
     defer { harness.close() }
 
     try harness.press(identifier: SuggestionsView.chipIdentifier(at: 1))
-    harness.pump()
 
     #expect(model.plainText == "Write the tests")
     #expect(model.submitCount == 0)
@@ -63,21 +63,24 @@ import Testing
     defer { session.close() }
     let harness = Self.mount(PromptInputHostedTestModel(), session: session)
     defer { harness.close() }
+    let model = session.model
     let chip = SuggestionsView.chipIdentifier(at: 0)
 
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.pump(until: PromptInputViewHostedTests.waitTimeout) { harness.element(identifier: chip) == nil }
+    await harness.render {
+      if case .running = model.agentState { true } else { false }
+    }
     #expect(harness.element(identifier: chip) == nil)
 
     try await session.sendUpdate(ScriptedSession.idleState)
-    await harness.pump(until: PromptInputViewHostedTests.waitTimeout) { harness.element(identifier: chip) != nil }
+    await harness.render { CancelAvailabilityTests.isIdle(model.agentState) }
     #expect(harness.element(identifier: chip) != nil)
   }
 
   @Test func aViewOutsideAComposerShowsNoChip() {
     let harness = HostedViewHarness(SuggestionsView(suggestions: Self.suggestions))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: SuggestionsView.chipIdentifier(at: 0)) == nil)
   }
