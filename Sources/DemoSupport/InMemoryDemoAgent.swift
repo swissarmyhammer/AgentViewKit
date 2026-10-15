@@ -17,11 +17,12 @@ import FoundationModelsACP
 /// - `session/new` and `session/resume` with a mode option.
 /// - `session/list` with one session. ``InMemoryDemoACPAgent`` adds the
 ///   scripted sessions of its ``InMemoryDemoScript``.
-/// - `session/prompt` with a new `messageId`. Before the result, it echoes
-///   the prompt text in a `user_message_chunk` with the same `messageId`
-///   (``ScriptedWireAgent``). After the result, it sends the `session/update`
-///   notifications of one turn: a running state, the reply in two chunks, the
-///   whole reply, a plan, the context usage, and an idle state.
+/// - `session/prompt` with a new `messageId`, in the ACPAgent order. After the
+///   result, it echoes the whole prompt in a `user_message` with the same
+///   `messageId` (``ScriptedWireAgent``). After the echo, it sends the
+///   `session/update` notifications of one turn: a running state, the reply
+///   in two chunks, the whole reply, a plan, the context usage, and an idle
+///   state.
 public enum InMemoryDemoAgent {
   /// The launch argument that makes the demo app bind this agent.
   public static let launchArgument = "--in-memory-agent"
@@ -98,6 +99,8 @@ public enum InMemoryDemoAgent {
   /// - Returns: The running agent. Call `stop()` to end it.
   public static func start(on transport: InMemoryTransport) -> ScriptedWireAgent {
     let agent = ScriptedWireAgent(transport: transport)
+    agent.promptEchoOrder = .afterResult
+    agent.promptEchoKind = .userMessage
     agent.results = [
       "initialize": initializeResult.jsonString,
       "session/new": newSessionResult.jsonString,
