@@ -27,7 +27,7 @@ import Testing
   @Test func anExpandedUnknownViewShowsTheKindAndTheRawJSON() {
     let harness = HostedViewHarness(Self.makeView(id: "unknown-expanded", isExpanded: true))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains { $0.contains(Self.kind) })
@@ -37,7 +37,7 @@ import Testing
   @Test func aCollapsedUnknownViewHidesTheRawJSON() {
     let harness = HostedViewHarness(Self.makeView(id: "unknown-collapsed"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains { $0.contains(Self.kind) })

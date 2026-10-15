@@ -9,10 +9,11 @@ import Testing
 
 /// Tests for the action row of a message in a window: copy, copy thread,
 /// retry, edit, the buttons of each sender, and the selection decision.
+///
+/// Each action of a button runs in the press, and the press makes a render
+/// pass. Only the retry sends a request, so only the retry test waits, on the
+/// model and on the frames of the agent.
 @Suite(.serialized, .hostedSerially) @MainActor struct MessageActionsHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// The size of a window that shows a message and a composer.
   static let windowSize = CGSize(width: 480, height: 480)
 
@@ -64,7 +65,7 @@ import Testing
   ///
   /// - Returns: The session and its two message entries.
   /// - Throws: The error of the transport, or an issue when the model does
-  ///   not hold the two entries at the time limit.
+  ///   not hold the two entries.
   static func openTurn() async throws -> SessionTurn {
     let session = try await ScriptedSession.open()
     try await session.sendUpdate(
@@ -74,7 +75,7 @@ import Testing
         WireBlockJSON.makeChunk("agent_message_chunk", messageID: "actions-m", block: WireBlockJSON.makeText(chunk)))
     }
     let model = session.model
-    _ = await waitUntil {
+    await ObservationWait.until {
       model.transcript.count == turnEntryCount && agentEntry(in: model)?.content.count == answerChunks.count
     }
     return SessionTurn(
@@ -97,7 +98,8 @@ import Testing
     model.transcript.lazy.compactMap(BackgroundRunsHostedTests.agentMessage(of:)).first
   }
 
-  /// Shows `content` with the session model of `turn` and a pasteboard.
+  /// Shows `content` with the session model of `turn` and a pasteboard, and
+  /// makes one render pass.
   ///
   /// - Parameters:
   ///   - turn: The session turn.
@@ -107,11 +109,13 @@ import Testing
   static func mount(
     _ turn: SessionTurn, pasteboard: FakePasteboard = FakePasteboard(), @ViewBuilder content: () -> some View
   ) -> HostedViewHarness<some View> {
-    HostedViewHarness(size: windowSize) {
+    let harness = HostedViewHarness(size: windowSize) {
       content()
         .environment(\.sessionModel, turn.session.model)
         .environment(\.pasteboard, pasteboard)
     }
+    harness.render()
+    return harness
   }
 
   @Test func retryOnAnAgentEntrySendsTheContentOfTheEarlierUserEntry() async throws {
@@ -120,10 +124,9 @@ import Testing
     let model = turn.session.model
     let harness = Self.mount(turn) { MessageActions(entry: turn.agent) }
     defer { harness.close() }
-    harness.pump()
 
     try harness.press(identifier: MessageActions.Action.retry.identifier)
-    await harness.pump(until: Self.waitTimeout) {
+    await ObservationWait.until {
       Self.userEntries(in: model).count == Self.userEntryCountAfterRetry
         && !turn.session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
     }
@@ -151,12 +154,10 @@ import Testing
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
     let userHarness = Self.mount(turn) { MessageActions(entry: turn.user) }
-    userHarness.pump()
     let userActions = Self.shownActions(in: userHarness)
     userHarness.close()
     let agentHarness = Self.mount(turn) { MessageActions(entry: turn.agent) }
     defer { agentHarness.close() }
-    agentHarness.pump()
 
     #expect(userActions == ["message-copy", "message-copy-thread", "message-export", "message-edit"])
     #expect(
@@ -171,7 +172,7 @@ import Testing
       MessageActions(entry: turn.agent).environment(\.pasteboard, pasteboard)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(Self.shownActions(in: harness) == [MessageActions.Action.copy.identifier])
     try harness.press(identifier: MessageActions.Action.copy.identifier)
@@ -184,7 +185,6 @@ import Testing
     let pasteboard = FakePasteboard()
     let harness = Self.mount(turn, pasteboard: pasteboard) { MessageActions(entry: turn.agent) }
     defer { harness.close() }
-    harness.pump()
 
     try harness.press(identifier: MessageActions.Action.copy.identifier)
 
@@ -197,7 +197,6 @@ import Testing
     let pasteboard = FakePasteboard()
     let harness = Self.mount(turn, pasteboard: pasteboard) { MessageActions(entry: turn.user) }
     defer { harness.close() }
-    harness.pump()
 
     try harness.press(identifier: MessageActions.Action.copyThread.identifier)
 
@@ -216,7 +215,7 @@ import Testing
         .messageFooter { MessageActions(entry: $0) }
     }
     defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) { Self.shownActions(in: harness).contains(copyThread) }
+    #expect(Self.shownActions(in: harness).contains(copyThread))
 
     try harness.press(identifier: copyThread)
 
@@ -237,10 +236,8 @@ import Testing
       .agentCommandScope(session: turn.session.model)
     }
     defer { harness.close() }
-    harness.pump()
 
     try harness.press(identifier: MessageActions.Action.edit.identifier)
-    harness.pump()
 
     #expect(model.plainText == Self.question)
   }
@@ -254,7 +251,6 @@ import Testing
       MessageActions(entry: turn.user).environment(\.promptText, text)
     }
     defer { harness.close() }
-    harness.pump()
 
     try harness.press(identifier: MessageActions.Action.edit.identifier)
 

@@ -1,0 +1,1 @@
+{"id":"01M50NQYD5S4Q144017MY21XXN","timestamp":"2026-10-15T20:58:29.157598Z","op":"create","item_id":"01M50NQYD4FMM6TP7D5J5WZDWQ","forward_patch":"--- original\n+++ modified\n@@ -0,0 +1,2 @@\n+color: 006b75\n+tag_name: elicitation-phase-3\n","reverse_patch":"--- original\n+++ modified\n@@ -1,2 +0,0 @@\n-color: 006b75\n-tag_name: elicitation-phase-3\n","transaction_id":null}

@@ -10,10 +10,10 @@
   /// The compaction rows and the notice banners of a `SessionModel`
   /// (plan.md §3.2 "Notices"; the owner decision of 2026-10-04 in
   /// Docs/decisions/acp-client-kit.md).
+  ///
+  /// Each test waits for the compaction entry or the notices of the model,
+  /// which the update is certain to change, and then makes one render pass.
   @Suite(.serialized, .hostedSerially) @MainActor struct CompactionAndNoticeHostedTests {
-    /// The longest time that a test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows each row and each banner of the tests.
     static let tallSize = CGSize(width: 480, height: 1_200)
 
@@ -31,6 +31,9 @@
 
     /// The description of the notice of the tests.
     static let noticeDescription = "Half of the monthly quota is used."
+
+    /// The number of notices of the test that sends two notices.
+    static let twoNoticesCount = 2
 
     /// The row key of the compaction of the tests.
     static var compactionKey: String {
@@ -90,16 +93,15 @@
       defer { session.close() }
       let harness = Self.mountThread(session)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendUpdate(Self.agentChunk(messageID: "before"))
       try await session.sendUpdate(Self.compactionUpdate(#""status": "in_progress""#))
       try await session.sendUpdate(Self.agentChunk(messageID: "after"))
       try await session.sendUpdate(Self.compactionUpdate(#""status": "completed""#))
-      await harness.pump(until: Self.waitTimeout) {
-        Self.compactionLabel(in: harness) == "Context compaction, Completed"
-      }
+      await harness.render { SessionEntryRowsHostedTests.compaction(in: model)?.status == .completed }
 
-      let keys = session.model.transcript.map(\.rowKey)
+      let keys = model.transcript.map(\.rowKey)
       #expect(keys.count == 3)
       #expect(keys.dropFirst().first == Self.compactionKey)
       #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == keys)
@@ -112,15 +114,14 @@
       defer { session.close() }
       let harness = Self.mountThread(session)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendUpdate(
         #"""
         {"sessionUpdate": "compaction_summary_chunk", "compactionId": "\#(Self.compactionID)",
          "content": {"type": "text", "text": "\#(Self.summaryText)"}}
         """#)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.accessibilityElements().contains { $0.label?.contains(Self.summaryText) == true }
-      }
+      await harness.render { SessionEntryRowsHostedTests.compaction(in: model)?.summary.isEmpty == false }
 
       #expect(Self.compactionLabel(in: harness) == "Context compaction, No status yet")
       #expect(harness.accessibilityElements().contains { $0.label?.contains(Self.summaryText) == true })
@@ -131,12 +132,11 @@
       defer { session.close() }
       let harness = Self.mountThread(session)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendUpdate(
         Self.compactionUpdate(#""status": "failed", "error": "\#(Self.failureReason)""#))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: CompactionEntryView.errorIdentifier) != nil
-      }
+      await harness.render { SessionEntryRowsHostedTests.compaction(in: model)?.status == .failed }
 
       #expect(Self.compactionLabel(in: harness) == "Context compaction, Failed")
       #expect(harness.element(identifier: CompactionEntryView.errorIdentifier)?.label == Self.failureReason)
@@ -149,18 +149,16 @@
       defer { session.close() }
       let harness = Self.mountThread(session)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendUpdate(Self.notice(severity: "warning"))
-      await harness.pump(until: Self.waitTimeout) { !session.model.notices.isEmpty }
-      let notice = try #require(session.model.notices.first)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: SessionNoticeBanner.identifier(for: notice.id)) != nil
-      }
+      await harness.render { !model.notices.isEmpty }
+      let notice = try #require(model.notices.first)
 
       #expect(
         harness.element(identifier: SessionNoticeBanner.identifier(for: notice.id))?.label
           == "Warning, \(Self.noticeTitle), \(Self.noticeDescription)")
-      #expect(session.model.transcript.isEmpty)
+      #expect(model.transcript.isEmpty)
     }
 
     @Test func eachNoticeShowsItsOwnBanner() async throws {
@@ -168,14 +166,12 @@
       defer { session.close() }
       let harness = Self.mountThread(session)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendUpdate(Self.notice(severity: "info"))
       try await session.sendUpdate(Self.notice(severity: "error"))
-      await harness.pump(until: Self.waitTimeout) { session.model.notices.count == 2 }
-      let ids = session.model.notices.map(\.id)
-      await harness.pump(until: Self.waitTimeout) {
-        ids.allSatisfy { harness.element(identifier: SessionNoticeBanner.identifier(for: $0)) != nil }
-      }
+      await harness.render { model.notices.count == Self.twoNoticesCount }
+      let ids = model.notices.map(\.id)
 
       let labels = ids.map { harness.element(identifier: SessionNoticeBanner.identifier(for: $0))?.label }
       #expect(
@@ -190,19 +186,15 @@
       defer { session.close() }
       let harness = Self.mountThread(session)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendUpdate(Self.notice(severity: "info"))
-      await harness.pump(until: Self.waitTimeout) { !session.model.notices.isEmpty }
-      let notice = try #require(session.model.notices.first)
-      let dismiss = SessionNoticeBanner.dismissIdentifier(for: notice.id)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: dismiss) != nil }
+      await harness.render { !model.notices.isEmpty }
+      let notice = try #require(model.notices.first)
 
-      try harness.press(identifier: dismiss)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: SessionNoticeBanner.identifier(for: notice.id)) == nil
-      }
+      try harness.press(identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id))
 
-      #expect(session.model.notices.isEmpty)
+      #expect(model.notices.isEmpty)
       #expect(harness.element(identifier: SessionNoticeBanner.identifier(for: notice.id)) == nil)
     }
   }

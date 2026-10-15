@@ -45,7 +45,12 @@ import Testing
     for block in blocks {
       try await session.sendUpdate(WireBlockJSON.makeChunk("agent_message_chunk", messageID: "export-m", block: block))
     }
-    _ = await waitUntil { ThreadExporter.markdown(for: session.model.transcript) == turnMarkdown }
+    // The agent sends the frames in order, so the last block of the agent
+    // message comes after each other entry.
+    let model = session.model
+    await ObservationWait.until {
+      BackgroundRunsHostedTests.agentMessage(messageID: "export-m", in: model)?.content.count == blocks.count
+    }
   }
 
   @Test func theExportOfATranscriptHasOnlyTheMessageEntriesInTranscriptOrder() async throws {
@@ -67,7 +72,8 @@ import Testing
     try await session.sendUpdate(
       WireBlockJSON.makeChunk(
         "agent_message_chunk", messageID: "export-later", block: WireBlockJSON.makeText(Self.laterAnswer)))
-    _ = await waitUntil { ThreadExporter.markdown(for: session.model.transcript) == expected }
+    let model = session.model
+    await ObservationWait.until { BackgroundRunsHostedTests.agentMessage(messageID: "export-later", in: model) != nil }
 
     #expect(ThreadExporter.markdown(for: session.model.transcript) == expected)
   }

@@ -6,9 +6,6 @@ import SwiftUI
 import Testing
 
 @Suite(.serialized, .hostedSerially) @MainActor struct MessageViewsHostedTests {
-  /// The longest time that a test waits for the view to change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// A size that shows each block of the entry tests.
   static let tallSize = CGSize(width: 480, height: 1_200)
 
@@ -89,12 +86,12 @@ import Testing
       AgentThreadView(session: session.model, connection: session.connection),
       size: tallSize)
     defer { harness.close() }
+    let model = session.model
 
     try await session.sendUpdate(
       WireBlockJSON.makeChunk(kind, messageID: entryMessageID, block: WireBlockJSON.makeText(firstChunk)))
-    await harness.pump(until: waitTimeout) { !session.model.transcript.isEmpty }
-    let key = try #require(session.model.transcript.first?.rowKey)
-    await harness.pump(until: waitTimeout) { harness.element(identifier: identifier(key)) != nil }
+    await harness.render { !model.transcript.isEmpty }
+    let key = try #require(model.transcript.first?.rowKey)
 
     #expect(harness.element(identifier: identifier(key))?.label == label)
     #expect(harness.element(identifier: ItemRow.placeholderIdentifier(for: key)) == nil)
@@ -118,7 +115,7 @@ import Testing
   func theHeaderShowsOnlyTheNameOfTheSender(role: MessageRole) {
     let harness = HostedViewHarness(MessageHeader(role: role))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: MessageHeader.roleIdentifier)?.label == role.title)
     let labels = harness.accessibilityElements().compactMap(\.label).filter { !$0.isEmpty }
@@ -127,12 +124,15 @@ import Testing
 
   // MARK: - Entries
 
+  /// The text chunk is the last block of the first three updates, so the
+  /// wait for its text in the model covers the image and the link too.
   @Test func anAgentMessageEntryShowsEachBlockAndASecondChunkChangesTheText() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(
       AgentThreadView(session: session.model), size: Self.tallSize)
     defer { harness.close() }
+    let model = session.model
     let image = WireBlockJSON.makeImage(data: try TestImage.makePNGData(), mimeType: Self.imageMimeType)
     let expectedBlocks = [
       ContentBlockView.identifier(for: .image), ContentBlockView.identifier(for: .resourceLink),
@@ -142,9 +142,7 @@ import Testing
     try await session.sendUpdate(Self.makeAgentChunk(image))
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeResourceLink(name: Self.linkName, uri: Self.linkURI)))
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.firstChunk)))
-    await harness.pump(until: Self.waitTimeout) {
-      Self.blockIdentifiers(in: harness) == expectedBlocks && Self.showsLabel(containing: Self.firstChunk, in: harness)
-    }
+    await harness.render { SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == Self.firstChunk }
 
     #expect(Self.blockIdentifiers(in: harness) == expectedBlocks)
     #expect(harness.element(identifier: ImageView.imageIdentifier) != nil)
@@ -153,7 +151,7 @@ import Testing
 
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.secondChunk)))
     let joined = Self.firstChunk + Self.secondChunk
-    await harness.pump(until: Self.waitTimeout) { Self.showsLabel(containing: joined, in: harness) }
+    await harness.render { SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == joined }
 
     #expect(Self.showsLabel(containing: joined, in: harness))
     #expect(Self.blockIdentifiers(in: harness) == expectedBlocks)
@@ -175,11 +173,11 @@ import Testing
     defer { session.close() }
     let model = session.model
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.firstChunk)))
-    _ = await waitUntil { !model.transcript.isEmpty }
+    await ObservationWait.until { !model.transcript.isEmpty }
     let key = try #require(model.transcript.first?.rowKey)
     let message = AssistantMessageView.identifier(for: key)
     let plain = HostedViewHarness(AgentThreadView(session: model), size: Self.tallSize)
-    await plain.pump(until: Self.waitTimeout) { plain.element(identifier: message) != nil }
+    plain.render()
     #expect(plain.element(identifier: message) != nil)
     #expect(plain.element(identifier: Self.footerIdentifier) == nil)
     plain.close()
@@ -192,7 +190,7 @@ import Testing
         }
     }
     defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: Self.footerIdentifier) != nil }
+    harness.render()
 
     #expect(harness.element(identifier: Self.footerIdentifier)?.label == "Footer \(key)")
   }

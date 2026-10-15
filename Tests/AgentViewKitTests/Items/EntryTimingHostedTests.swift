@@ -13,10 +13,12 @@
   /// Each test gives the connection model a ``SettableClock``, so that each
   /// entry gets a known start time and a known end time from the client
   /// model. The kit reads the times. It records no time itself.
+  ///
+  /// A test waits for the model value that an update is certain to change:
+  /// the entry count, the idle state, or the status of the tool call. The
+  /// model writes the times in the same step. Then the test makes one render
+  /// pass before it reads a label.
   @Suite(.serialized, .hostedSerially) @MainActor struct EntryTimingHostedTests {
-    /// The longest time that a test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows each row of the tests.
     static let tallSize = CGSize(width: 480, height: 1_200)
 
@@ -87,40 +89,42 @@
       }
     }
 
-    /// Sends one update, and pumps `harness` until the transcript of the
-    /// session has `count` entries.
+    /// Sends one update, and waits until the transcript of the session has
+    /// `count` entries.
     ///
     /// - Parameters:
     ///   - update: The JSON text of the update.
     ///   - count: The number of entries that the transcript must have.
     ///   - session: The scripted session.
-    ///   - harness: The harness to pump while the test waits.
     /// - Returns: The row key of the last entry.
     /// - Throws: The error of the transport, or an issue when the transcript
     ///   has no entry.
-    static func send(
-      _ update: String, expecting count: Int, to session: ScriptedSession,
-      pumping harness: HostedViewHarness<some View>
-    ) async throws -> String {
+    static func send(_ update: String, expecting count: Int, to session: ScriptedSession) async throws -> String {
       try await session.sendUpdate(update)
-      await harness.pump(until: waitTimeout) { session.model.transcript.count == count }
-      return try #require(session.model.transcript.last?.rowKey)
+      let model = session.model
+      await ObservationWait.until { model.transcript.count == count }
+      return try #require(model.transcript.last?.rowKey)
     }
 
-    /// The label of the time view of the row of `key`, after `harness`
-    /// shows `expected` or the wait ends.
+    /// Sends the idle state, and waits until the session model is idle. The
+    /// model ends the open entry in the same step.
+    ///
+    /// - Parameter session: The scripted session.
+    /// - Throws: The error of the transport.
+    static func sendIdleState(to session: ScriptedSession) async throws {
+      try await session.sendUpdate(ScriptedSession.idleState)
+      let model = session.model
+      await ObservationWait.until { CancelAvailabilityTests.isIdle(model.agentState) }
+    }
+
+    /// The label of the time view of the row of `key`.
     ///
     /// - Parameters:
     ///   - key: The row key of the entry.
-    ///   - expected: The label to wait for.
     ///   - harness: The harness that shows the thread.
     /// - Returns: The label, or `nil` when the row shows no time view.
-    static func timingLabel(
-      of key: String, waitingFor expected: String, in harness: HostedViewHarness<some View>
-    ) async -> String? {
-      let identifier = EntryTimingView.identifier(for: key)
-      await harness.pump(until: waitTimeout) { harness.element(identifier: identifier)?.label == expected }
-      return harness.element(identifier: identifier)?.label
+    static func timingLabel(of key: String, in harness: HostedViewHarness<some View>) -> String? {
+      harness.element(identifier: EntryTimingView.identifier(for: key))?.label
     }
 
     // MARK: - The decorator on each row
@@ -133,20 +137,21 @@
       defer { harness.close() }
 
       let messageKey = try await Self.send(
-        Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session, pumping: harness)
+        Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session)
       clock.advance(by: Self.messageSeconds)
       let thoughtStart = clock.date
       let thoughtKey = try await Self.send(
-        Self.chunk("agent_thought_chunk", messageID: Self.thoughtID), expecting: 2, to: session, pumping: harness)
+        Self.chunk("agent_thought_chunk", messageID: Self.thoughtID), expecting: 2, to: session)
       clock.advance(by: Self.thoughtSeconds)
-      try await session.sendUpdate(ScriptedSession.idleState)
+      try await Self.sendIdleState(to: session)
+      harness.render()
 
       let message = EntryTimingView.accessibilityLabel(
         startedAt: Self.start, duration: Self.messageSeconds, locale: Self.locale)
       let thought = EntryTimingView.accessibilityLabel(
         startedAt: thoughtStart, duration: Self.thoughtSeconds, locale: Self.locale)
-      #expect(await Self.timingLabel(of: messageKey, waitingFor: message, in: harness) == message)
-      #expect(await Self.timingLabel(of: thoughtKey, waitingFor: thought, in: harness) == thought)
+      #expect(Self.timingLabel(of: messageKey, in: harness) == message)
+      #expect(Self.timingLabel(of: thoughtKey, in: harness) == thought)
     }
 
     @Test func aToolCallShowsTheTimeFromItsStartToItsCompletion() async throws {
@@ -155,16 +160,20 @@
       defer { session.close() }
       let harness = Self.mountThread(session.model, showsTiming: true)
       defer { harness.close() }
+      let model = session.model
 
       try await session.sendToolCallUpdate(title: Self.callTitle, status: .inProgress)
-      await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
-      let key = try #require(session.model.transcript.last?.rowKey)
+      await ObservationWait.until { !model.transcript.isEmpty }
+      let key = try #require(model.transcript.last?.rowKey)
       clock.advance(by: Self.toolCallSeconds)
       try await session.sendToolCallUpdate(title: Self.callTitle, status: .completed)
+      await harness.render {
+        ToolCallEntryViewHostedTests.toolCallEntry(Self.callTitle, in: model)?.status == .completed
+      }
 
       let expected = EntryTimingView.accessibilityLabel(
         startedAt: Self.start, duration: Self.toolCallSeconds, locale: Self.locale)
-      #expect(await Self.timingLabel(of: key, waitingFor: expected, in: harness) == expected)
+      #expect(Self.timingLabel(of: key, in: harness) == expected)
     }
 
     @Test func aUserMessageShowsOnlyItsStart() async throws {
@@ -175,10 +184,11 @@
       defer { harness.close() }
 
       let key = try await Self.send(
-        Self.chunk("user_message_chunk", messageID: Self.userMessageID), expecting: 1, to: session, pumping: harness)
+        Self.chunk("user_message_chunk", messageID: Self.userMessageID), expecting: 1, to: session)
+      harness.render()
 
       let expected = EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: nil, locale: Self.locale)
-      #expect(await Self.timingLabel(of: key, waitingFor: expected, in: harness) == expected)
+      #expect(Self.timingLabel(of: key, in: harness) == expected)
     }
 
     @Test func theThoughtTitleTellsTheDurationOfTheThought() async throws {
@@ -189,13 +199,13 @@
       defer { harness.close() }
 
       let key = try await Self.send(
-        Self.chunk("agent_thought_chunk", messageID: Self.thoughtID), expecting: 1, to: session, pumping: harness)
+        Self.chunk("agent_thought_chunk", messageID: Self.thoughtID), expecting: 1, to: session)
       clock.advance(by: Self.thoughtSeconds)
-      try await session.sendUpdate(ScriptedSession.idleState)
+      try await Self.sendIdleState(to: session)
+      harness.render()
 
       let title = ReasoningView.completedTitle(duration: Self.thoughtSeconds)
       let identifier = ReasoningView.titleIdentifier(for: key)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: identifier)?.label == title }
       #expect(harness.element(identifier: identifier)?.label == title)
       #expect(
         harness.element(identifier: ReasoningView.identifier(for: key))?.label
@@ -213,13 +223,13 @@
       defer { harness.close() }
 
       let key = try await Self.send(
-        Self.chunk("agent_thought_chunk", messageID: Self.thoughtID), expecting: 1, to: session, pumping: harness)
+        Self.chunk("agent_thought_chunk", messageID: Self.thoughtID), expecting: 1, to: session)
       clock.advance(by: Self.thoughtSeconds)
-      try await session.sendUpdate(ScriptedSession.idleState)
+      try await Self.sendIdleState(to: session)
+      harness.render()
 
       let title = ReasoningView.completedTitle(duration: Self.thoughtSeconds)
       let identifier = ActivityTimeline.rowIdentifier(for: key)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: identifier)?.label == title }
       #expect(harness.element(identifier: identifier)?.label == title)
     }
 
@@ -233,8 +243,8 @@
       defer { harness.close() }
 
       let key = try await Self.send(
-        Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session, pumping: harness)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: ItemRow.identifier(for: key)) != nil }
+        Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session)
+      harness.render()
 
       #expect(session.model.transcript.last?.timing.startedAt == Self.start)
       #expect(harness.element(identifier: ItemRow.identifier(for: key)) != nil)
@@ -256,9 +266,8 @@
       let model = try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
       let harness = Self.mountThread(model, showsTiming: true)
       defer { harness.close() }
-      await harness.pump(until: Self.waitTimeout) { !model.transcript.isEmpty }
+      await harness.render { !model.transcript.isEmpty }
       let key = try #require(model.transcript.last?.rowKey)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: ItemRow.identifier(for: key)) != nil }
 
       #expect(model.transcript.last?.timing.startedAt == nil)
       #expect(harness.element(identifier: ItemRow.identifier(for: key)) != nil)
@@ -271,9 +280,10 @@
       let clock = SettableClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
+      let model = session.model
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: Self.messageID))
-      _ = await waitUntil { !session.model.transcript.isEmpty }
-      let entry = try #require(session.model.transcript.last)
+      await ObservationWait.until { !model.transcript.isEmpty }
+      let entry = try #require(model.transcript.last)
 
       let harness = HostedViewHarness(size: Self.tallSize) {
         Text(Self.hostText)
@@ -281,9 +291,10 @@
           .environment(\.locale, Self.locale)
       }
       defer { harness.close() }
+      harness.render()
 
       let expected = EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: nil, locale: Self.locale)
-      #expect(await Self.timingLabel(of: entry.rowKey, waitingFor: expected, in: harness) == expected)
+      #expect(Self.timingLabel(of: entry.rowKey, in: harness) == expected)
       #expect(harness.hasElement(label: Self.hostText))
     }
   }

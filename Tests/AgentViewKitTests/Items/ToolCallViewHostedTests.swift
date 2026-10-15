@@ -11,13 +11,6 @@
   /// scripted session. `ToolCallEntryViewHostedTests` tests the rows of the
   /// thread.
   @Suite(.serialized, .hostedSerially) @MainActor struct ToolCallViewHostedTests {
-    /// The longest time that a test waits for the view to change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
-    /// The count of pumps in a row with no new body evaluation that show a
-    /// settled mount.
-    static let quietPumps = 6
-
     /// A size that shows the expanded body of a call.
     static let tallSize = CGSize(width: 520, height: 1_400)
 
@@ -71,7 +64,8 @@
       return store
     }
 
-    /// Mounts the view of `call` with the store `store`.
+    /// Mounts the view of `call` with the store `store`, and makes one
+    /// ``HostedViewHarness/render()`` pass.
     ///
     /// - Parameters:
     ///   - call: The tool call entry.
@@ -83,34 +77,16 @@
           .environment(\.expandedBlocksStore, store)
           .transaction { $0.disablesAnimations = true }
       }
-      harness.pump()
+      harness.render()
       return harness
-    }
-
-    /// Pumps the harness until the mount has made all its body evaluations.
-    ///
-    /// SwiftUI can evaluate a body again after the first layout of a mount,
-    /// and a busy machine delays that pass. A test that resets its counters
-    /// before the pass counts the pass as a change of the view. The wait ends
-    /// when ``quietPumps`` pumps of the run loop in a row change none of the
-    /// counts, or at ``waitTimeout``.
-    ///
-    /// - Parameters:
-    ///   - harness: The harness of the mounted view.
-    ///   - keys: The ``BodyEvaluationCounter`` keys of the views of the mount.
-    static func settle(_ harness: HostedViewHarness<some View>, counting keys: [String]) async {
-      var previous = -1
-      var quiet = 0
-      await harness.pump(until: waitTimeout) {
-        let current = keys.reduce(0) { $0 + BodyEvaluationCounter.count($1) }
-        quiet = current == previous ? quiet + 1 : 0
-        previous = current
-        return quiet >= quietPumps
-      }
     }
 
     // MARK: - Evaluation counts
 
+    /// The mount makes its body evaluations in the ``mount(_:store:)``
+    /// render pass, before the reset of the counters. The test then waits
+    /// for the status of the entry, which the update is certain to change,
+    /// and makes one render pass before it reads the counts.
     @Test func aStatusUpdateEvaluatesTheRowAndNotTheExpandedBody() async throws {
       let id = "patch-count-call"
       let (session, call) = try await Self.openCall(id: id, fields: Self.readFields)
@@ -126,14 +102,11 @@
       }
       #expect(harness.element(identifier: ToolCallView.bodyIdentifier(for: key)) != nil)
       #expect(BodyEvaluationCounter.count(bodyKey) >= 1)
-      await Self.settle(harness, counting: [rowKey, bodyKey])
       BodyEvaluationCounter.reset(rowKey)
       BodyEvaluationCounter.reset(bodyKey)
 
       try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: #""status": "completed""#))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel
-      }
+      await harness.render { call.status == .completed }
 
       #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
       #expect(BodyEvaluationCounter.count(rowKey) >= 1)
@@ -151,15 +124,11 @@
         RegisteredViewSwapHost(call: call, store: Self.makeExpandedStore(for: call), choice: choice)
       }
       defer { harness.close() }
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: Self.firstRegisteredIdentifier) != nil
-      }
+      harness.render()
       #expect(harness.element(identifier: Self.firstRegisteredIdentifier) != nil)
 
       choice.identifier = Self.secondRegisteredIdentifier
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: Self.secondRegisteredIdentifier) != nil
-      }
+      harness.render()
 
       #expect(harness.element(identifier: Self.secondRegisteredIdentifier) != nil)
       #expect(harness.element(identifier: Self.firstRegisteredIdentifier) == nil)
@@ -179,7 +148,6 @@
       #expect(!store.isExpanded(entry: .toolCall(call)))
 
       try harness.press(identifier: toggleID)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: bodyID) != nil }
 
       #expect(store.isExpanded(entry: .toolCall(call)))
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) != nil)
@@ -188,7 +156,6 @@
       #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: key)) == nil)
 
       try harness.press(identifier: toggleID)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: bodyID) == nil }
 
       #expect(!store.isExpanded(entry: .toolCall(call)))
       #expect(harness.element(identifier: bodyID) == nil)
@@ -249,7 +216,6 @@
       let harness = Self.mount(call, store: ExpandedBlocksStore())
       defer { harness.close() }
       let toggleID = ToolCallView.toggleIdentifier(for: call.id.rowKey)
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: toggleID) != nil }
 
       #expect(harness.element(identifier: toggleID) != nil)
       #expect(harness.progressIndicatorCount() == 0)
@@ -274,7 +240,7 @@
         }
       }
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let chips = harness.accessibilityElements().filter {
         $0.identifier == ConnectionStatusChip.identifier(for: .connecting)

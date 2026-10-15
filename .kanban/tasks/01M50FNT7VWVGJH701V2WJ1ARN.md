@@ -78,8 +78,24 @@ comments:
     - readme gate: Scripts/check-readme.sh exit 0. "README gate passed: each snippet is in its file, and each snippet compiles."
     - next: review.
   timestamp: 2026-10-15T20:41:04.663070+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m50n2j8df8vcx7j2f47xs948
+  text: |-
+    ### review — clean
+    - evidence: `review sha 7891790~1..7891790` gave 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). The 2 prior findings are checked. MathEngineDecisionTests.spiFiles, SourceLineScanner.matches and SymbolNameScanner.names all call PackageFiles.swiftFileTexts(below:relativeTo:). No other copy of the traversal stays in these files.
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T20:46:48.589136+00:00
+- actor: claude-code
+  id: 01m50nfdajgb6s1qbh213wkzd0
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — one shared helper PackageFiles.swiftFileTexts(below:relativeTo:); 2 helper tests
+    - test: green — swift test, 1201 + 127 + 1 passed (1 run, with T4-A1)
+    - commit: 7891790
+    - review: clean — 0 new findings; 2 of 2 prior findings checked
+  timestamp: 2026-10-15T20:53:49.522977+00:00
+position_column: done
+position_ordinal: ffc480
 title: 'Mail step 7: MathEngineDecisionTests cuts the root prefix by length, so it fails when the package path has a symlink'
 ---
 Found in the full run of the rebased push branch (worktree under /tmp, which is a symlink to /private/tmp).
