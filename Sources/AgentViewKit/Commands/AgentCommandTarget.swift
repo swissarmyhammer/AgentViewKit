@@ -196,12 +196,13 @@ final class AgentCommandTarget {
   /// Tells if the user can cancel the work of `session` now.
   ///
   /// This is the one cancel rule of the kit. ``AgentCommandVerb/cancel``,
-  /// the Esc key of the scope, and the Esc key of ``PromptInputView`` read
-  /// it. The user can cancel while the `agentState` is `.running` or
-  /// `.requiresAction`. The user can also cancel while the `agentState` is
-  /// `.idle` and the session has a pending permission request or a pending
-  /// elicitation: an agent can report idle while its questions wait for the
-  /// user, and a cancel ends them. An idle session with no pending request
+  /// the Esc key of the scope, the Esc key of ``PromptInputView``, and the
+  /// Stop button of ``DefaultPromptAccessory`` read it. The user can cancel
+  /// while the `agentState` is `.running` or `.requiresAction`. The user can
+  /// also cancel while the `agentState` is `.idle` and the session has a
+  /// pending permission request or a pending elicitation: an agent can
+  /// report idle while its questions wait for the user, and a cancel ends
+  /// them. An idle session with no pending request
   /// cannot cancel, because other agents that use the kit report idle when
   /// no work of the session is open.
   ///

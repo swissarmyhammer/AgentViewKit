@@ -6,9 +6,10 @@ import SwiftUI
 /// The row shows the ``PermissionModePicker`` of the session model of the
 /// environment (``SwiftUI/EnvironmentValues/sessionModel``), the
 /// ``SpeechInputButton``, and the submit button in the `.glassProminent`
-/// style. While the agent runs a turn, a Stop button replaces the submit
-/// button. While the agent does not run a turn, a ``SuggestionsView`` above
-/// the row shows the prompts of
+/// style. The submit button shows at all times, so that the user can send a
+/// second prompt while the agent works. While the user can cancel the work of
+/// the session, a Stop button shows beside it. While the agent does not run,
+/// a ``SuggestionsView`` above the row shows the prompts of
 /// ``SwiftUI/EnvironmentValues/promptSuggestions``. A host that has a list of
 /// tools puts a ``ToolToggles`` in its own accessory row.
 ///
@@ -18,8 +19,10 @@ import SwiftUI
 ///
 /// The row reads the session model from
 /// ``SwiftUI/EnvironmentValues/sessionModel`` and the submit action from
-/// ``SwiftUI/EnvironmentValues/promptSubmitAction``. The Stop button shows
-/// while the `agentState` of the session model is `running`, and it sends
+/// ``SwiftUI/EnvironmentValues/promptSubmitAction``. The submit button keeps
+/// the enable rule of that action. The Stop button shows while the one cancel
+/// rule of the kit, ``AgentCommandTarget/canCancel(_:)``, is true: while the
+/// agent runs, and while the session is idle with a pending request. It sends
 /// `session/cancel` with `SessionModel.cancel(meta:)` (plan.md §3.2 "Other
 /// requests"). The
 /// attachment chips come in their own task. This row has no control for them
@@ -39,10 +42,16 @@ public struct DefaultPromptAccessory: View {
   /// Makes the accessory row.
   public init() {}
 
-  /// Whether the agent runs a turn: the `agentState` of the session model
-  /// is `running`.
+  /// Whether the agent runs: the `agentState` of the session model is
+  /// `running`.
   private var isRunning: Bool {
     session?.isRunning == true
+  }
+
+  /// Whether the user can cancel the work of the session now: the one cancel
+  /// rule of the kit, ``AgentCommandTarget/canCancel(_:)``.
+  private var canCancel: Bool {
+    session.map(AgentCommandTarget.canCancel) ?? false
   }
 
   public var body: some View {
@@ -58,11 +67,10 @@ public struct DefaultPromptAccessory: View {
         }
         Spacer(minLength: theme.spacing.s)
         SpeechInputButton()
-        if isRunning {
+        if canCancel {
           stopButton
-        } else {
-          submitButton
         }
+        submitButton
       }
     }
   }
@@ -83,7 +91,7 @@ public struct DefaultPromptAccessory: View {
     .accessibilityIdentifier(Self.submitIdentifier)
   }
 
-  /// The button that stops the current turn.
+  /// The button that cancels the work of the session.
   private var stopButton: some View {
     Button {
       session?.startCancel()
@@ -94,7 +102,7 @@ public struct DefaultPromptAccessory: View {
     }
     .buttonStyle(.glassProminent)
     .buttonBorderShape(.circle)
-    .help(String(localized: "Stop the current turn"))
+    .help(String(localized: "Stop the work of the agent"))
     .accessibilityIdentifier(Self.stopIdentifier)
   }
 }

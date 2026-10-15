@@ -332,23 +332,24 @@
 
     // MARK: - Stop
 
-    @Test func theStopButtonShowsWhileTheAgentRunsAndGoesAwayWhenItIsIdle() async throws {
+    @Test func theStopButtonShowsBesideTheSendButtonWhileTheAgentRunsAndGoesAwayWhenItIsIdle() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let draft = PromptInputHostedTestModel()
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
+      let model = session.model
+      harness.hostingView.layoutSubtreeIfNeeded()
 
       #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
-      try await Self.startRunning(session, in: harness)
+      try await session.sendUpdate(ScriptedSession.runningState)
+      await AgentWorkOrderHostedTests.layOut(harness) { Self.isRunning(model) }
 
       #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) != nil)
-      #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) == nil)
+      #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
 
       try await session.sendUpdate(ScriptedSession.idleState)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil
-      }
+      await AgentWorkOrderHostedTests.layOut(harness) { CancelAvailabilityTests.isIdle(model.agentState) }
 
       #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
       #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
@@ -461,8 +462,8 @@
 
     /// Submits the text of the composer with the Return key of the editor.
     ///
-    /// While the agent runs, the Stop button replaces the submit button. Thus
-    /// a submit goes through the editor.
+    /// The submit goes through the editor, not through the submit button, so
+    /// that a test can check the Return key path.
     ///
     /// - Parameter harness: The harness that shows the composer.
     /// - Throws: An error when the window cannot get the key event.
