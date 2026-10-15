@@ -47,7 +47,7 @@
 
       """
 
-    /// Makes a harness that shows `view`, after one pump.
+    /// Makes a harness that shows `view`, after one render pass.
     ///
     /// - Parameter view: The view to show.
     /// - Returns: The harness.
@@ -55,7 +55,7 @@
       let harness = HostedViewHarness(size: size) {
         view.transaction { $0.disablesAnimations = true }
       }
-      harness.pump()
+      harness.render()
       return harness
     }
 

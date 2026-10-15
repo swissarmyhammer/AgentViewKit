@@ -7,9 +7,6 @@
   import Testing
 
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffViewHostedTests {
-    /// The longest time that a test waits for the view to change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows the file list and the hunk actions.
     static let tallSize = CGSize(width: 720, height: 900)
 
@@ -69,7 +66,7 @@
     /// - Parameters:
     ///   - log: The record of the calls.
     ///   - installsRenderer: `true` to install the test renderer.
-    /// - Returns: The harness, after one pump.
+    /// - Returns: The harness, after one render pass.
     static func mountDiff(log: CallLog, installsRenderer: Bool) -> HostedViewHarness<some View> {
       let harness = HostedViewHarness(size: tallSize) {
         Group {
@@ -85,7 +82,7 @@
         }
         .transaction { $0.disablesAnimations = true }
       }
-      harness.pump()
+      harness.render()
       return harness
     }
 
@@ -131,16 +128,13 @@
       #expect(second?.label == "Markdown diff, +1 \u{2212}1")
     }
 
-    @Test func aPressOnAFileGivesThatFileToTheRenderer() async throws {
+    @Test func aPressOnAFileGivesThatFileToTheRenderer() throws {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true)
       defer { harness.close() }
       let secondRenderer = Self.rendererIdentifier(for: Self.secondPath)
       #expect(harness.element(identifier: secondRenderer) == nil)
 
       try harness.press(identifier: DiffView.identifier(for: Self.secondPath))
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: secondRenderer) != nil
-      }
 
       #expect(harness.element(identifier: secondRenderer) != nil)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
@@ -206,7 +200,7 @@
           .diffRenderer { _, _ in SelectingRenderer() }
       }
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       try harness.press(identifier: SelectingRenderer.identifier)
       try harness.press(identifier: DiffView.attachIdentifier)
@@ -218,7 +212,7 @@
     @Test func withNoActionsTheButtonsDoNotShow() {
       let harness = HostedViewHarness(size: Self.tallSize) { DiffView(patch: Self.patch) }
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: DiffView.identifier(for: Self.firstPath)) != nil)
       #expect(harness.element(identifier: DiffView.acceptIdentifier(for: 0)) == nil)
@@ -236,7 +230,7 @@
     @Test func aDiffWithNoPatchTextShowsTheFileOfEachChange() {
       let harness = HostedViewHarness(size: Self.tallSize) { DiffView(diff: Self.structuredDiff) }
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let file = harness.element(identifier: DiffView.identifier(for: "/p/new.swift"))
       #expect(file?.label == "Added Swift file")
@@ -250,7 +244,7 @@
         changes: [], patch: DiffPatch(format: .gitPatch, text: Self.patch))
       let harness = HostedViewHarness(size: Self.tallSize) { DiffView(diff: diff) }
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let first = harness.element(identifier: DiffView.identifier(for: Self.firstPath))
       #expect(first?.label == "Swift diff, +2 \u{2212}1")
@@ -278,7 +272,7 @@
               onAttach: nil))
       }
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)

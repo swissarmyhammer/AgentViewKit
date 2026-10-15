@@ -40,7 +40,7 @@ import Testing
     let harness = HostedViewHarness(
       CommandOutputView(command: Self.command, output: "ok", exitCode: Self.successExitCode))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: CommandOutputView.identifier)
     #expect(element?.label == "Command output, exit \(Self.successExitCode)")
@@ -52,7 +52,7 @@ import Testing
     let harness = HostedViewHarness(
       CommandOutputView(command: nil, output: "ok", exitCode: nil))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: CommandOutputView.identifier)?.label == "Command output")
     #expect(harness.element(identifier: CommandOutputView.footerIdentifier) == nil)
@@ -64,7 +64,7 @@ import Testing
     let harness = HostedViewHarness(
       CommandOutputView(command: Self.command, output: "ok", exitCode: Self.successExitCode))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let footer = harness.element(identifier: CommandOutputView.footerIdentifier)
     #expect(footer?.label == "Exit code \(Self.successExitCode)")
@@ -78,7 +78,7 @@ import Testing
     let harness = HostedViewHarness(
       CommandOutputView(command: Self.command, output: "error", exitCode: Self.failureExitCode))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let footer = harness.element(identifier: CommandOutputView.footerIdentifier)
     #expect(footer?.label == "Exit code \(Self.failureExitCode)")
@@ -111,7 +111,7 @@ import Testing
         command: Self.command, output: Self.longOutput, exitCode: nil,
         rowLimit: Self.rowLimit, model: model))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let cap = harness.element(identifier: CommandOutputView.capIdentifier)
     #expect(cap?.label == "Showing the last \(Self.rowLimit) of \(Self.longLineCount) lines")
@@ -132,10 +132,9 @@ import Testing
         command: Self.command, output: Self.longOutput, exitCode: nil,
         rowLimit: Self.rowLimit, model: model))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: CommandOutputView.showAllIdentifier)
-    harness.pump()
 
     #expect(model.text == Self.longOutput)
     #expect(harness.element(identifier: CommandOutputView.capIdentifier) == nil)
@@ -149,7 +148,7 @@ import Testing
       CommandOutputView(
         command: Self.command, output: output, exitCode: nil, rowLimit: Self.rowLimit, model: model))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(model.text == output)
     #expect(harness.element(identifier: CommandOutputView.capIdentifier) == nil)
@@ -164,7 +163,7 @@ import Testing
         command: Self.command, output: "\(escape)[32mok\(escape)[0m done", exitCode: nil, model: model)
         .editorTheme(DistinctRolesTheme()))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(model.text == "ok done")
     #expect(
@@ -177,7 +176,7 @@ import Testing
     let harness = HostedViewHarness(
       CommandOutputView(command: Self.command, output: Self.longOutput, exitCode: nil))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let cap = harness.element(identifier: CommandOutputView.capIdentifier)
     #expect(
@@ -214,7 +213,7 @@ import Testing
         command: Self.command, output: Self.longOutput, exitCode: nil, rowLimit: Self.rowLimit)
         .environment(\.pasteboard, pasteboard))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: CommandOutputView.copyIdentifier)?.label == "Copy output")
     try harness.press(identifier: CommandOutputView.copyIdentifier)

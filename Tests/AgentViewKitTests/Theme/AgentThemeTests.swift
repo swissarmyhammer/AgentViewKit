@@ -78,7 +78,7 @@ private struct ThemeProbeView: View {
   @Test func hostedViewReadsTheCustomTheme() throws {
     let harness = HostedViewHarness(ThemeProbeView().agentTheme(Self.custom))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let probe = try #require(harness.element(identifier: ThemeProbeView.identifier))
     #expect(probe.value == Self.probeValue(of: Self.custom))
@@ -88,7 +88,7 @@ private struct ThemeProbeView: View {
   @Test func hostedViewReadsTheDefaultThemeWithoutTheModifier() throws {
     let harness = HostedViewHarness(ThemeProbeView())
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let probe = try #require(harness.element(identifier: ThemeProbeView.identifier))
     #expect(probe.value == Self.probeValue(of: .default))

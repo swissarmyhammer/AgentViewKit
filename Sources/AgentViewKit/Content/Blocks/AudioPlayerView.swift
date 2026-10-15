@@ -24,6 +24,8 @@ public struct AudioPlayerView: View {
   /// The state of the file write.
   @State private var file: PreviewLoadState<URL> = .loading
 
+  @Environment(\.audioFileReport) private var reportFile
+
   /// Makes the view of an ACP sound of a transcript entry.
   ///
   /// - Parameter audio: The ACP sound to play, as the entry holds it.
@@ -39,13 +41,22 @@ public struct AudioPlayerView: View {
   /// Writes the bytes of the sound to a local file, and records the state of
   /// the write. Data that is not base64 gives the failed state.
   private func writeFile() async {
-    file = .loading
+    show(.loading)
     guard let data = Data(base64Encoded: audio.data) else {
-      file = .failed
+      show(.failed)
       return
     }
     let name = ContentBlockFile.fileName(uri: nil, mimeType: audio.mimeType.rawValue, stem: Self.fileStem)
-    file = await ContentBlockFile.write(data, named: name).map { .loaded($0) } ?? .failed
+    show(await ContentBlockFile.write(data, named: name).map { .loaded($0) } ?? .failed)
+  }
+
+  /// Sets the state of the file write, and reports it through
+  /// ``SwiftUI/EnvironmentValues/audioFileReport``.
+  ///
+  /// - Parameter state: The new state of the file write.
+  private func show(_ state: PreviewLoadState<URL>) {
+    file = state
+    reportFile?(state)
   }
 
   /// The spinner, the player, or the failure label.
@@ -63,4 +74,14 @@ public struct AudioPlayerView: View {
         .accessibilityIdentifier(Self.failureIdentifier)
     }
   }
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets each state of the file write of the
+  /// nearest ``AudioPlayerView``, or `nil`.
+  ///
+  /// The view calls the report in the same step as the change of its state.
+  /// The write runs in a task, so a test waits for the report before it reads
+  /// the view.
+  @Entry var audioFileReport: ObservationReport<PreviewLoadState<URL>>? = nil
 }

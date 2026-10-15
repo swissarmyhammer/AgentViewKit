@@ -14,9 +14,6 @@ import Testing
   /// The size of a view that shows one block.
   static let hostSize = CGSize(width: 600, height: 400)
 
-  /// The time that a test waits for a view change, in seconds.
-  static let waitSeconds: TimeInterval = 2
-
   /// The id that each block view in the tests uses.
   static let blockID = "entry-1-0"
 
@@ -78,15 +75,13 @@ import Testing
   // MARK: - Default views
 
   @Test(arguments: wireKinds)
-  func eachWireBlockMountsTheDefaultViewOfItsKind(kind: FoundationModelsACP.ContentBlock.Kind) async throws {
+  func eachWireBlockMountsTheDefaultViewOfItsKind(kind: FoundationModelsACP.ContentBlock.Kind) throws {
     let block = try Self.makeWireBlock(of: kind)
     let harness = HostedViewHarness(ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    let identifier = ContentBlockView.identifier(for: kind)
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: identifier) != nil
-    }
+    harness.render()
 
+    let identifier = ContentBlockView.identifier(for: kind)
     #expect(harness.element(identifier: identifier) != nil, "No element \(identifier).")
   }
 
@@ -105,7 +100,7 @@ import Testing
     let harness = HostedViewHarness(
       ContentBlockView(block: .text(TextContent(text: Self.blockText)), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(Self.labels(in: harness).contains { $0.contains(Self.blockText) })
   }
@@ -114,7 +109,7 @@ import Testing
     let block = FoundationModelsACP.ContentBlock.unknown(Self.unknownKind, .object([:]))
     let harness = HostedViewHarness(ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
     #expect(Self.labels(in: harness).contains { $0.contains(Self.unknownKind) })
@@ -122,6 +117,10 @@ import Testing
 
   // MARK: - Image
 
+  /// A press on an image selects its bytes in the inspector.
+  ///
+  /// The image writes its file in a task, then selects the file in the
+  /// observable ``InspectorSelection``. The test waits for that selection.
   @Test func aPressOnAWireImageSelectsItsBytesInTheInspector() async throws {
     let selection = InspectorSelection()
     let png = try TestImage.makePNGData()
@@ -132,11 +131,11 @@ import Testing
         .environment(\.inspectorSelection, selection),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ImageView.imageIdentifier)?.label == Self.imageName)
     try harness.press(identifier: ImageView.imageIdentifier)
-    await harness.pump(until: Self.waitSeconds) { selection.attachment != nil }
+    await ObservationWait.until { selection.attachment != nil }
 
     let attachment = try #require(selection.attachment)
     #expect(attachment.name == Self.imageName)
@@ -149,7 +148,7 @@ import Testing
     let harness = HostedViewHarness(
       ContentBlockView(block: .image(image), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ImageView.placeholderIdentifier) != nil)
     #expect(harness.element(identifier: ImageView.imageIdentifier) == nil)
@@ -161,7 +160,7 @@ import Testing
     let harness = HostedViewHarness(
       ContentBlockView(block: .image(image), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ImageView.placeholderIdentifier) != nil)
     #expect(harness.element(identifier: ImageView.imageIdentifier) == nil)
@@ -169,14 +168,20 @@ import Testing
 
   // MARK: - Audio
 
+  /// A sound with data that is not base64 shows the failure label.
+  ///
+  /// The sound view sets the state of its file write in a task, and reports
+  /// each state through ``SwiftUI/EnvironmentValues/audioFileReport``. The
+  /// test waits for the failed state, then renders, then reads the label.
   @Test func aWireSoundWithDataThatIsNotBase64ShowsTheFailureLabel() async {
+    let fileStates = ReportRecorder<PreviewLoadState<URL>>()
     let audio = FoundationModelsACP.AudioContent(data: Self.notBase64, mimeType: MediaType(rawValue: "audio/wav"))
     let harness = HostedViewHarness(
-      ContentBlockView(block: .audio(audio), id: Self.blockID), size: Self.hostSize)
+      ContentBlockView(block: .audio(audio), id: Self.blockID)
+        .environment(\.audioFileReport, fileStates.report),
+      size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: AudioPlayerView.failureIdentifier) != nil
-    }
+    await harness.render { fileStates.values.contains(where: Self.isFailed) }
 
     #expect(harness.element(identifier: AudioPlayerView.failureIdentifier) != nil)
   }
@@ -190,11 +195,10 @@ import Testing
         .environment(\.openURL, OpenURLAction(handler: recorder.open)),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
     try harness.press(identifier: LinkView.cardIdentifier)
-    harness.pump()
 
     #expect(recorder.urls == [try #require(URL(string: Self.linkURI))])
   }
@@ -210,7 +214,7 @@ import Testing
     let harness = HostedViewHarness(
       ContentBlockView(block: .resource(resource), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(Self.labels(in: harness).contains { $0.contains(Self.archiveName) })
   }
@@ -220,7 +224,7 @@ import Testing
     let harness = HostedViewHarness(
       ContentBlockView(block: .resource(resource), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
   }
@@ -238,7 +242,7 @@ import Testing
       },
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let elements = harness.accessibilityElements()
     #expect(elements.contains { $0.label == "host" })
@@ -258,7 +262,7 @@ import Testing
         .contentBlockView(for: kind) { _ in marker(Self.customIdentifier) },
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: Self.customIdentifier) != nil)
     #expect(harness.element(identifier: ContentBlockView.identifier(for: kind)) == nil)
@@ -270,7 +274,7 @@ import Testing
         .contentBlockView(for: .resourceLink, Self.makeCustomLinkView(of:)),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: Self.customIdentifier)?.label == Self.linkName)
     #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
@@ -284,16 +288,14 @@ import Testing
         "agent_message_chunk", messageID: Self.entryMessageID,
         block: WireBlockJSON.makeResourceLink(name: Self.linkName, uri: Self.linkURI)))
     let model = session.model
-    _ = await waitUntil { !model.transcript.isEmpty }
+    await ObservationWait.until { !model.transcript.isEmpty }
     let entry = try #require(model.transcript.first)
 
     let harness = HostedViewHarness(
       ItemRow(entry: entry).contentBlockView(for: .resourceLink, Self.makeCustomLinkView(of:)),
       size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: Self.customIdentifier) != nil
-    }
+    harness.render()
 
     #expect(harness.element(identifier: Self.customIdentifier)?.label == Self.linkName)
     #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
@@ -332,6 +334,14 @@ import Testing
   }
 
   // MARK: - Helpers
+
+  /// Tells whether a state of a file write is the failed state.
+  ///
+  /// - Parameter state: The state that the sound view reported.
+  /// - Returns: `true` for ``PreviewLoadState/failed``.
+  static func isFailed(_ state: PreviewLoadState<URL>) -> Bool {
+    if case .failed = state { true } else { false }
+  }
 
   /// Makes the registered view of a resource link block in the tests: a text
   /// with the name of the link and the identifier ``customIdentifier``.

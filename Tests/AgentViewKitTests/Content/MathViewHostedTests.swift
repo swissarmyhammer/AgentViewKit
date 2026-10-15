@@ -38,7 +38,7 @@ import Testing
   /// - Returns: The harness that hosts the response.
   static func mountResponse(id: String, text: String) -> HostedViewHarness<ResponseView> {
     let harness = HostedViewHarness(ResponseView(id: id, markdown: text), size: hostSize)
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -48,7 +48,7 @@ import Testing
     let harness = HostedViewHarness(
       MathView(latex: Self.inlineSource, display: false), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: MathView.inlineIdentifier)
     #expect(element?.label == Self.inlineSource)
@@ -59,7 +59,7 @@ import Testing
     let harness = HostedViewHarness(
       MathView(latex: Self.blockSource, display: true), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: MathView.blockIdentifier)
     #expect(element?.label == Self.blockSource)
@@ -71,7 +71,7 @@ import Testing
     let harness = HostedViewHarness(
       MathView(latex: Self.malformedSource, display: display), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: MathView.identifier(display: display))
     #expect(element?.value == Self.malformedSource)

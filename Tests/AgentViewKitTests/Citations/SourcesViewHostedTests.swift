@@ -26,9 +26,6 @@ private struct OpenURLButton: View {
   /// The size of the host view.
   static let hostSize = CGSize(width: 600, height: 600)
 
-  /// The longest time that a test waits for a view change, in seconds.
-  static let waitSeconds: TimeInterval = 2
-
   /// The text of the cited message: two paragraphs.
   static let text = "First claim.\n\nSecond claim."
 
@@ -82,7 +79,7 @@ private struct OpenURLButton: View {
   @Test func aFooterWithTwoSourcesHasTwoRows() {
     let harness = HostedViewHarness(SourcesView(payload: Self.payload), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: SourcesView.identifier) != nil)
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 1)) != nil)
@@ -102,7 +99,7 @@ private struct OpenURLButton: View {
         .environment(\.openURL, OpenURLAction(handler: recorder.open)),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: LinkView.cardIdentifier)
 
@@ -113,7 +110,7 @@ private struct OpenURLButton: View {
     let harness = HostedViewHarness(
       SourcesView(payload: Self.payload, isExpanded: false), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: SourcesView.identifier) != nil)
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 1)) == nil)
@@ -121,47 +118,40 @@ private struct OpenURLButton: View {
 
   // MARK: - Pills
 
-  @Test func eachCitedParagraphShowsItsPill() async {
+  @Test func eachCitedParagraphShowsItsPill() {
     let harness = HostedViewHarness(
       Self.citedResponse(id: "cited-pills"), size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
-    }
+    harness.render()
 
     #expect(harness.element(identifier: InlineCitation.identifier(index: 1))?.label == "Source 1")
     #expect(harness.element(identifier: InlineCitation.identifier(index: 2))?.label == "Source 2")
   }
 
-  @Test func aResponseWithNoCitationsShowsNoPill() async {
+  @Test func aResponseWithNoCitationsShowsNoPill() {
     let harness = HostedViewHarness(
       ResponseView(id: "uncited", markdown: Self.text), size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: ResponseView.paragraphIdentifier(index: 1)) != nil
-    }
+    harness.render()
 
     #expect(harness.element(identifier: ResponseView.paragraphIdentifier(index: 1)) != nil)
     #expect(harness.element(identifier: InlineCitation.identifier(index: 1)) == nil)
   }
 
-  @Test func aTapOnPillTwoHighlightsRowTwo() async throws {
+  @Test func aTapOnPillTwoHighlightsRowTwo() throws {
     let harness = HostedViewHarness(
       Self.citedResponse(id: "cited-tap"), size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: InlineCitation.identifier(index: 2)) != nil
-    }
+    harness.render()
     #expect(!Self.isHighlighted(harness, index: 2))
 
     try harness.press(identifier: InlineCitation.identifier(index: 2))
-    await harness.pump(until: Self.waitSeconds) { Self.isHighlighted(harness, index: 2) }
 
     #expect(Self.isHighlighted(harness, index: 2))
     #expect(!Self.isHighlighted(harness, index: 1))
   }
 
-  @Test func aStandaloneInlineCitationHighlightsItsRow() async throws {
+  @Test func aStandaloneInlineCitationHighlightsItsRow() throws {
     let harness = HostedViewHarness(
       VStack {
         InlineCitation(index: 1)
@@ -170,16 +160,20 @@ private struct OpenURLButton: View {
       .citationScope(),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: InlineCitation.identifier(index: 1))
-    await harness.pump(until: Self.waitSeconds) { Self.isHighlighted(harness, index: 1) }
 
     #expect(Self.isHighlighted(harness, index: 1))
     #expect(!Self.isHighlighted(harness, index: 2))
   }
 
-  @Test func aPillOpensACollapsedFooter() async throws {
+  /// A pill opens a collapsed footer and highlights the row of its source.
+  ///
+  /// The footer opens in the `onChange` action of the render pass of the
+  /// press. That action changes the state of the footer, so one more render
+  /// pass shows the row.
+  @Test func aPillOpensACollapsedFooter() throws {
     let harness = HostedViewHarness(
       VStack {
         InlineCitation(index: 2)
@@ -188,15 +182,23 @@ private struct OpenURLButton: View {
       .citationScope(),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: InlineCitation.identifier(index: 2))
-    await harness.pump(until: Self.waitSeconds) { Self.isHighlighted(harness, index: 2) }
+    harness.render()
 
     #expect(Self.isHighlighted(harness, index: 2))
   }
 
+  /// A pill scrolls the row of its source into view.
+  ///
+  /// The row scrolls in a main-actor task after the render pass of the press,
+  /// and reports the scroll through
+  /// ``SwiftUI/EnvironmentValues/citationScrollReport`` in the same step. The
+  /// test waits for that report, so it reads the scroll position after the
+  /// scroll, with no clock.
   @Test func aPillScrollsItsRowIntoView() async throws {
+    let scrolls = ReportRecorder<Int>()
     let harness = HostedViewHarness(
       ScrollView {
         VStack {
@@ -205,21 +207,23 @@ private struct OpenURLButton: View {
           SourcesView(payload: Self.payload)
         }
       }
-      .citationScope())
+      .citationScope()
+      .environment(\.citationScrollReport, scrolls.report))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     let scrollView = try #require(Self.firstScrollView(in: harness.hostingView))
     #expect(scrollView.contentView.bounds.minY == 0)
 
     try harness.press(identifier: InlineCitation.identifier(index: 2))
-    await harness.pump(until: Self.waitSeconds) { scrollView.contentView.bounds.minY > 0 }
+    await ObservationWait.until { !scrolls.values.isEmpty }
 
+    #expect(scrolls.values.count == 1)
     #expect(scrollView.contentView.bounds.minY > 0)
   }
 
   // MARK: - Links
 
-  @Test func aCitationLinkInTheScopeHighlightsItsRow() async throws {
+  @Test func aCitationLinkInTheScopeHighlightsItsRow() throws {
     let recorder = OpenedURLRecorder()
     let url = try #require(InlineCitation.url(index: 2))
     let harness = HostedViewHarness(
@@ -231,10 +235,9 @@ private struct OpenURLButton: View {
       .environment(\.openURL, OpenURLAction(handler: recorder.open)),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: OpenURLButton.identifier)
-    await harness.pump(until: Self.waitSeconds) { Self.isHighlighted(harness, index: 2) }
 
     #expect(Self.isHighlighted(harness, index: 2))
     #expect(recorder.urls.isEmpty)
@@ -249,7 +252,7 @@ private struct OpenURLButton: View {
         .environment(\.openURL, OpenURLAction(handler: recorder.open)),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: OpenURLButton.identifier)
 

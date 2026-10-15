@@ -178,9 +178,11 @@ private struct ScrollIntoView: NSViewRepresentable {
   func updateNSView(_ view: NSView, context: Context) {
     guard let request, request != context.coordinator.lastRequest else { return }
     context.coordinator.lastRequest = request
+    let reportScroll = context.environment.citationScrollReport
     // The layout of this update is not done yet. Scroll after it.
     Task { @MainActor in
       view.scrollToVisible(view.bounds)
+      reportScroll?(request)
     }
   }
 
@@ -193,4 +195,14 @@ private struct ScrollIntoView: NSViewRepresentable {
     /// The last request that the view did, or `nil`.
     var lastRequest: Int?
   }
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets the selection revision of each scroll
+  /// that a row of a ``SourcesView`` did, or `nil`.
+  ///
+  /// The row scrolls in a task after the update, and calls the report in the
+  /// same step as the scroll. Thus a test waits for the report before it reads
+  /// the scroll position.
+  @Entry var citationScrollReport: ObservationReport<Int>? = nil
 }

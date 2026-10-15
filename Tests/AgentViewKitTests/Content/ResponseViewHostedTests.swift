@@ -32,7 +32,7 @@ import Testing
     let harness = HostedViewHarness(
       ResponseView(id: "response-four", markdown: Self.fourParagraphText), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let paragraphs = Self.paragraphIdentifiers(in: harness, limit: 5)
     #expect(paragraphs == (0..<4).map(ResponseView.paragraphIdentifier(index:)))
@@ -42,7 +42,7 @@ import Testing
     let harness = HostedViewHarness(
       ResponseView(id: "response-blank-end", markdown: "One.\n\n"), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(Self.paragraphIdentifiers(in: harness, limit: 2) == [
       ResponseView.paragraphIdentifier(index: 0)
@@ -56,7 +56,7 @@ import Testing
       ResponseView(id: "response-fence", markdown: "Some code:\n\n```swift\nlet x = 1\n```"),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: CodeBlockView.identifier)?.label == "swift code block")
     #expect(Self.paragraphIdentifiers(in: harness, limit: 3).count == 2)
