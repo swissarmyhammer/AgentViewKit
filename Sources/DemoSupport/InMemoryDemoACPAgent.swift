@@ -17,13 +17,18 @@ import OSLog
 /// ```
 ///
 /// Each answer decodes the scripted result of ``InMemoryDemoAgent``. Each
-/// prompt echoes the user message with
-/// `AgentSideConnection.insertUserMessage(_:messageId:)`, answers with its
-/// `messageId`, and then sends the turn of
-/// ``InMemoryDemoAgent/turnNotifications(for:turn:)``. A turn ends before
-/// its prompt result goes out, so `session/cancel` has nothing to stop. A
-/// `session/resume` with `replayFrom: .start` sends the saved history of
-/// ``InMemoryDemoAgent/historyNotifications(sessionId:)`` before its result.
+/// prompt answers with the `messageId` of the user message. After the
+/// response, the agent echoes the user message with
+/// `AgentSideConnection.insertUserMessage(_:messageId:)`, and then sends the
+/// turn of ``InMemoryDemoAgent/turnNotifications(for:turn:)``: the ACPAgent
+/// order. A `session/resume` with `replayFrom: .start` sends the saved
+/// history of ``InMemoryDemoAgent/historyNotifications(sessionId:)`` before
+/// its result.
+///
+/// A `session/cancel` ends the open requests of the scripted sessions of its
+/// session. The connection then sends a `$/cancel_request` for each of them.
+/// After the requests ended, the agent sends `idle` with the `cancelled`
+/// stop reason. Thus the cancelled idle can come after the prompt response.
 ///
 /// The ``InMemoryDemoScript`` of the agent adds scripted sessions and selects
 /// the sign-in:
@@ -54,6 +59,10 @@ public actor InMemoryDemoACPAgent: Agent {
 
   /// The number of prompts that the agent got.
   private var promptCount = 0
+
+  /// The tasks that send the open requests of the resumed scripted sessions,
+  /// keyed by session. A `session/cancel` cancels the tasks of its session.
+  private var requestTasks: [SessionId: [Task<Void, Never>]] = [:]
 
   /// Makes the agent of a connection.
   ///
@@ -124,7 +133,31 @@ public actor InMemoryDemoACPAgent: Agent {
     return PromptResponse(messageId: messageId)
   }
 
-  public func sessionCancel(_ params: CancelSessionNotification) async {}
+  /// Ends the open requests of the scripted sessions of the session, and
+  /// then sends `idle` with the `cancelled` stop reason.
+  ///
+  /// The cancel of each request task makes the connection send a
+  /// `$/cancel_request` for its request. The agent waits until each request
+  /// ended, so the idle comes after the end of the requests.
+  ///
+  /// - Parameter params: The cancel notification.
+  public func sessionCancel(_ params: CancelSessionNotification) async {
+    let tasks = requestTasks.removeValue(forKey: params.sessionId) ?? []
+    for task in tasks {
+      task.cancel()
+    }
+    for task in tasks {
+      await task.value
+    }
+    guard let connection = try? openConnection() else { return }
+    let idle = UpdateSessionNotification(
+      sessionId: params.sessionId, update: .stateUpdate(.idle(IdleStateUpdate(stopReason: .cancelled))))
+    do {
+      try await connection.sessionUpdate(idle)
+    } catch {
+      Self.logger.info("The cancelled idle of a session did not go out: \(error, privacy: .public)")
+    }
+  }
 
   // MARK: - Connection
 
@@ -166,8 +199,8 @@ public actor InMemoryDemoACPAgent: Agent {
   /// that a defect of the script fails the resume. With `replayingHistory`,
   /// it then sends the history before the result of `session/resume` goes
   /// out. After the result, it sends each request of the session at one
-  /// time. Each request waits for the answer of the user, or for the close
-  /// of the connection.
+  /// time. Each request waits for the answer of the user, for a
+  /// `session/cancel` of the session, or for the close of the connection.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
@@ -187,8 +220,22 @@ public actor InMemoryDemoACPAgent: Agent {
       }
     }
     connection.afterRespondingToCurrentRequest {
-      await Self.send(senders, over: connection)
+      await self.startRequests(senders, of: sessionId, over: connection)
     }
+  }
+
+  /// Starts the task that sends the requests of a scripted session, and
+  /// keeps it, so that a `session/cancel` of the session can end it.
+  ///
+  /// - Parameters:
+  ///   - senders: The senders of the requests.
+  ///   - sessionId: The session of the requests.
+  ///   - connection: The connection of the requests.
+  private func startRequests(
+    _ senders: [RequestSender], of sessionId: SessionId, over connection: AgentSideConnection
+  ) {
+    let task = Task { await Self.send(senders, over: connection) }
+    requestTasks[sessionId, default: []].append(task)
   }
 
   /// Sends requests at one time, and waits for each answer.
