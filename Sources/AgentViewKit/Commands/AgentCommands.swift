@@ -58,11 +58,11 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   public var title: String {
     switch self {
     case .send: String(localized: "Send Message")
-    case .cancel: String(localized: "Stop Turn")
+    case .cancel: String(localized: "Stop")
     case .approvePending: String(localized: "Approve Request")
     case .rejectPending: String(localized: "Reject Request")
-    case .jumpToNext: String(localized: "Next Turn")
-    case .jumpToPrevious: String(localized: "Previous Turn")
+    case .jumpToNext: String(localized: "Next Prompt")
+    case .jumpToPrevious: String(localized: "Previous Prompt")
     case .copyThread: String(localized: "Copy Thread")
     case .toggleExpandAll: String(localized: "Expand or Collapse All")
     case .scrollToBottom: String(localized: "Scroll to Bottom")

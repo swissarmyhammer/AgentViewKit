@@ -17,6 +17,11 @@ import SwiftUI
 /// idle state, when the agent gives one. The `message(for:)` function that
 /// takes a `StateUpdate` gives the text of each value.
 ///
+/// The body also reads the pending requests of the model. While the state is
+/// `.idle` and a permission request or an elicitation waits for the user,
+/// the bar shows the `.requiresAction` text, because an agent can report
+/// idle while its requests wait.
+///
 /// The bar has the identifier ``bannerIdentifier``. The text of the bar has
 /// the ``Message/identifier`` of its message.
 ///
@@ -115,6 +120,25 @@ public struct StateBanner: View {
     }
   }
 
+  /// The text of the bar for an agent state and the pending requests of its
+  /// session.
+  ///
+  /// An agent can report idle while its requests wait for the user:
+  /// FoundationModelsACPAgent never sends `requires_action`. Then the bar
+  /// shows the text of `.requiresAction`, the text of a request that waits
+  /// for the user. Each other case shows the text of ``message(for:)``, so
+  /// the `.requiresAction` state of other agents keeps its text.
+  ///
+  /// - Parameters:
+  ///   - state: The `agentState` of a session model.
+  ///   - hasPendingRequests: Whether a permission request or an elicitation
+  ///     of the session waits for the answer of the user.
+  /// - Returns: The text.
+  static func message(for state: StateUpdate, hasPendingRequests: Bool) -> Message {
+    guard hasPendingRequests, case .idle = state else { return message(for: state) }
+    return requiresActionMessage
+  }
+
   /// The text of the bar for an idle agent.
   ///
   /// - Parameter idle: The idle state, with its optional stop reason and its
@@ -143,7 +167,9 @@ public struct StateBanner: View {
 
   public var body: some View {
     if let state = session.agentState {
-      bar(Self.message(for: state), showError: Self.makeShowErrorAction(in: session, onShowError))
+      bar(
+        Self.message(for: state, hasPendingRequests: AgentCommandTarget.hasPendingRequests(session)),
+        showError: Self.makeShowErrorAction(in: session, onShowError))
     }
   }
 
@@ -184,35 +210,38 @@ public struct StateBanner: View {
 }
 
 extension StateBanner {
-  /// The text for an agent that runs a turn.
+  /// The text for an agent that runs. The agent can run with no prompt open,
+  /// for example for background work or a compaction.
   private static let runningMessage = Message(
     title: String(localized: "The agent is working"),
-    explanation: String(localized: "The agent runs the turn. Wait for the answer, or stop the turn."),
+    explanation: String(localized: "Wait for the result, or stop the work."),
     symbolName: SharedSymbol.inProgress,
     identifier: "state-banner-running")
 
   /// The text for an idle agent that gave no stop reason.
   private static let readyMessage = Message(
     title: String(localized: "The agent is ready"),
-    explanation: String(localized: "Send a message to start a turn."),
+    explanation: String(localized: "Send a message to the agent."),
     symbolName: SharedSymbol.completed,
     identifier: "state-banner-ready")
 
   /// The text for a turn that ended with `end_turn`.
   private static let turnCompleteMessage = Message(
-    title: String(localized: "The turn is complete"),
-    explanation: String(localized: "The agent finished the turn. Send a message to continue."),
+    title: String(localized: "The response is complete"),
+    explanation: String(localized: "The agent finished the response. Send a message to continue."),
     symbolName: SharedSymbol.completed,
     identifier: "state-banner-end-turn")
 
   /// The text for a turn that ended with `cancelled`.
   private static let cancelledMessage = Message(
-    title: String(localized: "The turn was cancelled"),
-    explanation: String(localized: "The agent stopped the turn because of the cancel request."),
+    title: String(localized: "The response was cancelled"),
+    explanation: String(localized: "The agent stopped the work because of the cancel request."),
     symbolName: SharedSymbol.cancelled,
     identifier: "state-banner-cancelled")
 
-  /// The text for an agent that waits for the user.
+  /// The text for an agent that waits for the user: the `.requiresAction`
+  /// state, or an idle state while a request of the session waits for the
+  /// answer of the user.
   private static let requiresActionMessage = Message(
     title: String(localized: "The agent needs your input"),
     explanation: String(localized: "Answer the request to let the agent continue."),
@@ -229,9 +258,9 @@ extension StateBanner {
 
   /// The text for a turn that ended with `max_turn_requests`.
   private static let maxTurnRequestsMessage = Message(
-    title: String(localized: "The turn stopped"),
+    title: String(localized: "The response reached its request limit"),
     explanation: String(
-      localized: "The turn used its maximum number of model requests. Send a message to continue."),
+      localized: "The response used its maximum number of model requests. Send a message to continue."),
     symbolName: SharedSymbol.maxTurnRequests,
     identifier: "state-banner-max-turn-requests")
 
@@ -254,9 +283,9 @@ extension StateBanner {
   ///   explanation shows its `message`.
   private static func failedTurnMessage(error: ACPError?) -> Message {
     Message(
-      title: String(localized: "The turn failed"),
+      title: String(localized: "The response failed"),
       explanation: error.map { String(localized: "The agent reported this failure: \($0.message)") }
-        ?? String(localized: "The turn stopped because of a failure in the agent. Send the request again."),
+        ?? String(localized: "The response stopped because of a failure in the agent. Send the request again."),
       symbolName: SharedSymbol.error,
       identifier: failedTurnIdentifier)
   }

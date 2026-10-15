@@ -107,7 +107,7 @@ alpha.7 to alpha.8 change these parts of the wire:
 
 | change | effect on the kit |
 |---|---|
-| `StopReason` has the new value `error`. The agent sends it when the active work fails after the agent inserted the user message. A failure before that point is an error response to `session/prompt`. | `StateBanner` shows "The turn failed" with the identifier `state-banner-error`. The turn announcement of VoiceOver speaks the same title. Before, a switch over `StopReason` did not compile. |
+| `StopReason` has the new value `error`. The agent sends it when the active work fails after the agent inserted the user message. A failure before that point is an error response to `session/prompt`. | `StateBanner` shows "The response failed" with the identifier `state-banner-error`. The turn announcement of VoiceOver speaks the same title. Before, a switch over `StopReason` did not compile. |
 | `IdleStateUpdate.error` is new and optional. It is a JSON-RPC error object (`code`, `message`, `data`). | When the stop reason is `error` and the agent gives the error object, `StateBanner` shows its `message` in the explanation. With no error object, the bar shows a general explanation. |
 | The `notice`, `compaction_update` and `compaction_summary_chunk` session updates are stable. Their wire names and their fields do not change. | The Swift types are top-level types now: `CompactionId`, `CompactionStatus`, `CompactionUpdate`, `CompactionSummaryChunk`, `Notice` and `NoticeSeverity`. The `Unstable.` prefix is gone from `AgentTheme`, `CompactionEntryView`, `SessionNoticeBanner` and the tests. FoundationModelsACPClient `24643be` uses the same names. |
 

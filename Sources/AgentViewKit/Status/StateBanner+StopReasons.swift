@@ -41,13 +41,13 @@ extension StateBanner {
     "_error": Message(
       title: String(localized: "The agent had an error"),
       explanation: String(
-        localized: "The turn stopped because of an error in the agent. Send the request again."),
+        localized: "The response stopped because of an error in the agent. Send the request again."),
       symbolName: SharedSymbol.error,
       identifier: "state-banner-stop-reason-error"),
     "_no_output": Message(
       title: String(localized: "The model gave no answer"),
       explanation: String(
-        localized: "The turn ended, but the model wrote no text. Send the request again."),
+        localized: "The response ended, but the model wrote no text. Send the request again."),
       symbolName: SharedSymbol.noOutput,
       identifier: "state-banner-stop-reason-no-output"),
     "_stalled": Message(
@@ -68,7 +68,7 @@ extension StateBanner {
   public static func message(forUnknownStopReason wireValue: String) -> Message {
     extensionStopReasonMessages[wireValue]
       ?? Message(
-        title: String(localized: "The turn stopped for an unknown reason"),
+        title: String(localized: "The response stopped for an unknown reason"),
         explanation: String(localized: "The agent sent the stop reason \(wireValue)."),
         symbolName: SharedSymbol.unknown,
         identifier: unknownStopReasonIdentifier)

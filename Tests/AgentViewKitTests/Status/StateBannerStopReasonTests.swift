@@ -25,14 +25,18 @@ import Testing
   nonisolated static let errorReason = "error"
 
   /// The title of the bar for the ACP stop reason `error`.
-  nonisolated static let failedTurnTitle = "The turn failed"
+  nonisolated static let failedTurnTitle = "The response failed"
 
   /// The `message` of the idle error object in the failure tests.
   nonisolated static let idleErrorMessage = "The model server closed the connection."
 
+  /// The ACP stop reason of a response that used its maximum number of model
+  /// requests.
+  nonisolated static let maxTurnRequestsReason = "max_turn_requests"
+
   /// Each stop reason that a test shows: the known reasons, one unknown
-  /// reason, and the ACP stop reason `error`.
-  nonisolated static let shownReasons = knownReasons.map(\.0) + [customReason, errorReason]
+  /// reason, and the ACP stop reasons `error` and `max_turn_requests`.
+  nonisolated static let shownReasons = knownReasons.map(\.0) + [customReason, errorReason, maxTurnRequestsReason]
 
   /// Decodes an idle state update with a stop reason.
   ///

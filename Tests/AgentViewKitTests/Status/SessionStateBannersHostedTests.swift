@@ -45,14 +45,14 @@
       (stateUpdate(#""state": "running""#), "The agent is working"),
       (stateUpdate(#""state": "requires_action""#), "The agent needs your input"),
       (stateUpdate(#""state": "idle""#), "The agent is ready"),
-      (stateUpdate(#""state": "idle", "stopReason": "end_turn""#), "The turn is complete"),
-      (stateUpdate(#""state": "idle", "stopReason": "cancelled""#), "The turn was cancelled"),
+      (stateUpdate(#""state": "idle", "stopReason": "end_turn""#), "The response is complete"),
+      (stateUpdate(#""state": "idle", "stopReason": "cancelled""#), "The response was cancelled"),
       (stateUpdate(#""state": "idle", "stopReason": "max_tokens""#), "The response is incomplete"),
-      (stateUpdate(#""state": "idle", "stopReason": "max_turn_requests""#), "The turn stopped"),
+      (stateUpdate(#""state": "idle", "stopReason": "max_turn_requests""#), "The response reached its request limit"),
       (stateUpdate(#""state": "idle", "stopReason": "refusal""#), "The model refused to continue"),
-      (stateUpdate(#""state": "idle", "stopReason": "error""#), "The turn failed"),
+      (stateUpdate(#""state": "idle", "stopReason": "error""#), "The response failed"),
       (stateUpdate(#""state": "idle", "stopReason": "_truncated""#), "The response was cut off"),
-      (stateUpdate(#""state": "idle", "stopReason": "_custom_stop""#), "The turn stopped for an unknown reason"),
+      (stateUpdate(#""state": "idle", "stopReason": "_custom_stop""#), "The response stopped for an unknown reason"),
       (stateUpdate(#""state": "paused""#), "The agent reported an unknown state"),
     ]
 
@@ -113,12 +113,16 @@
       defer { session.close() }
       let harness = Self.mount(session, draft: PromptInputHostedTestModel())
       defer { harness.close() }
-      harness.pump()
+      let model = session.model
+      harness.hostingView.layoutSubtreeIfNeeded()
       #expect(harness.stateBannerLabel == nil)
 
+      // Each state of the list differs from the state before it, so a change
+      // of `agentState` is the event that the model folded the update.
       for (update, title) in Self.stateTitles {
+        let before = model.agentState
         try await session.sendUpdate(update)
-        await harness.pump(until: Self.waitTimeout) { harness.stateBannerLabel == title }
+        await AgentWorkOrderHostedTests.layOut(harness) { model.agentState != before }
 
         #expect(harness.stateBannerLabel == title, "The banner is wrong after \(update).")
       }

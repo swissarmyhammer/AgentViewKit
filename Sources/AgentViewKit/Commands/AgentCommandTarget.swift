@@ -169,10 +169,10 @@ final class AgentCommandTarget {
   static func reason(for verb: AgentCommandVerb) -> String {
     switch verb {
     case .send: String(localized: "Type a message first.")
-    case .cancel: String(localized: "The agent does not run a turn.")
+    case .cancel: String(localized: "The agent has no work to stop.")
     case .approvePending, .rejectPending: String(localized: "No request waits for an answer.")
-    case .jumpToNext: String(localized: "No turn is below.")
-    case .jumpToPrevious: String(localized: "No turn is above.")
+    case .jumpToNext: String(localized: "No prompt is below.")
+    case .jumpToPrevious: String(localized: "No prompt is above.")
     case .copyThread: String(localized: "The thread has no messages.")
     case .toggleExpandAll: String(localized: "The thread has no items.")
     case .scrollToBottom: String(localized: "The thread list is not shown.")
@@ -220,10 +220,13 @@ final class AgentCommandTarget {
 
   /// Tells if a request of `session` waits for the answer of the user.
   ///
+  /// ``StateBanner`` reads it too, to show the text of a request that waits
+  /// while the agent reports idle.
+  ///
   /// - Parameter session: The session model.
   /// - Returns: `true` when `pendingPermissions` or `pendingElicitations` is
   ///   not empty.
-  private static func hasPendingRequests(_ session: SessionModel) -> Bool {
+  static func hasPendingRequests(_ session: SessionModel) -> Bool {
     !session.pendingPermissions.isEmpty || !session.pendingElicitations.isEmpty
   }
 
