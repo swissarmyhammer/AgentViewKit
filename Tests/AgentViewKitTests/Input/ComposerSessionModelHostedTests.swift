@@ -252,7 +252,7 @@
       let errorIdentifier = ErrorView.identifier
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-      await harness.render { Self.hasErrorEntry(model) }
+      await harness.render { TranscriptChecks.hasErrorEntry(model) }
       let entry = try #require(Self.userMessages(of: model).first)
 
       #expect(entry.sendState == .failed)
@@ -430,16 +430,6 @@
     }
 
     // MARK: - Helpers
-
-    /// Tells whether the transcript of a session model has an error entry.
-    ///
-    /// - Parameter model: The session model.
-    /// - Returns: `true` when an entry of `transcript` is `.error`.
-    static func hasErrorEntry(_ model: SessionModel) -> Bool {
-      model.transcript.contains { entry in
-        if case .error = entry { true } else { false }
-      }
-    }
 
     /// Sends the running state of the agent, waits until the session model
     /// has the running state, and then renders the composer.

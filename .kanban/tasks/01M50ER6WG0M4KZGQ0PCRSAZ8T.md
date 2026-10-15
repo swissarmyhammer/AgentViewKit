@@ -82,10 +82,64 @@ comments:
     - readme gate: Scripts/check-readme.sh exit 0. "README gate passed: each snippet is in its file, and each snippet compiles."
     - next: review.
   timestamp: 2026-10-15T20:41:07.726746+00:00
+- actor: claude-code
+  id: 01m50nenjanc2dp5s6hrf2hz50
+  text: |-
+    ### review — findings
+    - evidence: `review sha 772217b~1..772217b` gave 3 findings (3 confirmed, 3 refuted, 14 attempted, 0 failed). Sources/AgentViewKit/Input/SpeechInputButton.swift:188 (duplication/duplication), Sources/AgentViewKit/Input/SpeechInputButton.swift:188 (reuse/reuse), Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift:438 (reuse/reuse).
+    - ToolTogglesHostedTests.swift (the sed edit): the diff has 6 changes. Each change replaces `harness.pump()` with `harness.render()` on one line. No other line changed. No assertion changed. The engine gave no finding for this file.
+    - test-integrity: the engine gave no finding for a read-back of a value that the test wrote, or for a weaker assertion.
+    - next: implement the 3 findings in the "Review Findings (2026-10-15 15:46)" section, then review again.
+  timestamp: 2026-10-15T20:53:25.194946+00:00
+- actor: claude-code
+  id: 01m50nfewq3cgrbyrdryq47p2n
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 96 of 96 sites; 9 test files and 5 source files
+    - test: green — swift test, 1201 + 127 + 1 passed (1 run, with ^2wj1arn)
+    - commit: 772217b
+    - review: findings — SpeechInputButton.swift:188 (duplication), SpeechInputButton.swift:188 (reuse), ComposerSessionModelHostedTests.swift:438 (reuse)
+  timestamp: 2026-10-15T20:53:51.127084+00:00
+- actor: claude-code
+  id: 01m50ntzqfexxsxtt6keat5d4n
+  text: |-
+    ### implement — changed (3 findings of "Review Findings (2026-10-15 15:46)")
+    - duplication + reuse (SpeechInputButton.swift): new internal generic `ObservationReport<Value>` in Sources/AgentViewKit/Input/ObservationReport.swift (stored `@MainActor (Value) -> Void`, `callAsFunction` forwards). `PromptSubmitReport` and `SpeechInputPhaseReport` are deleted. `promptSubmitReport` is `ObservationReport<PromptSubmitOutcome>?`, `speechInputPhaseReport` is `ObservationReport<SpeechInputButton.Phase>?`. The call sites in PromptInputView and StockPromptEditor (`reportSubmit?(...)`) and SpeechInputButton (`reportPhase?(...)`) did not change text. The tests make the report with `ObservationReport { recorder.record($0) }`.
+    - reuse (ComposerSessionModelHostedTests.swift): one shared `TranscriptChecks.hasErrorEntry(_:)` in Tests/AgentViewKitTests/Helpers/TranscriptChecks.swift (an enum namespace, as NameChecks does). The local copies in ComposerSessionModelHostedTests and ConfigOptionsSessionModelHostedTests are deleted, and the 3 call sites use the shared helper. A search of Tests found no other copy.
+    - No behavior change. A search of the repository finds no `PromptSubmitReport`, `SpeechInputPhaseReport` or `Self.hasErrorEntry`.
+    - test: one run of `swift test --filter '<12 Input suites>|ConfigOptionsSessionModelHostedTests'`: 119 tests in 13 suites passed after 7.180 s, exit 0. Only warning: the SwiftPM mlx-swift_Cmlx "missing creator for mutated node". Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/input-a1-findings.log
+    - The 3 findings are checked (`- [x]`). The task stays in doing.
+
+    step: implement
+    outcome: changed
+    evidence: 8 files — Sources/AgentViewKit/Input/ObservationReport.swift (new), Sources/AgentViewKit/Input/PromptEditorContext.swift, Sources/AgentViewKit/Input/SpeechInputButton.swift, Tests/AgentViewKitTests/Helpers/TranscriptChecks.swift (new), Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift, Tests/AgentViewKitTests/Input/PromptInputViewHostedTests.swift, Tests/AgentViewKitTests/Input/SpeechInputButtonHostedTests.swift, Tests/AgentViewKitTests/Config/ConfigOptionsSessionModelHostedTests.swift; swift test --filter (13 suites) one run: 119 passed, 0 failed
+    task: ^crsaz8t
+  timestamp: 2026-10-15T21:00:08.815861+00:00
+- actor: claude-code
+  id: 01m50rk0aj5q8x72yca3me3a9y
+  text: |-
+    ### test - green
+    - evidence: swift test, run one time, log /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-9.log. Exit 0. 1201 tests in 138 suites passed. 0 failures. 0 skipped. 2 known issues: aWrappedTextWithAFixedVerticalSizeFails (HostedLayoutExpectationsTests.swift:23) and aViewThatIgnoresTheThemeFails (ThemeHeightExpectationsTests.swift:35). Each test expects a failure by design.
+    - warnings: 0 from project sources. 1 warning from the mlx-swift_Cmlx bundle (dependency, not counted).
+    - readme gate: Scripts/check-readme.sh exit 0. "README gate passed: each snippet is in its file, and each snippet compiles."
+    - code changed: none.
+    - next: review.
+  timestamp: 2026-10-15T21:48:13.010593+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
 position_column: doing
-position_ordinal: '8180'
+position_ordinal: '80'
 title: 'Mail step 7 T4-A1: Remove the clock waits and polls from the Input tests'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Input (about 97 sites). Replace each `pump(until:)`, `waitUntil`, `harness.pump()`, `pump(for:)` with the decided pattern: a direct render pass (from T4-A0), and an event wait (ObservationWait.until on a value that is certain to change) where the render pass is not enough; or a gate or a fixed order. No time bound. A hosted test holds HostedTestLock, so each wait with no bound must be for a certain event. Do not read back a value that the test wrote (test-integrity). Delete no test. If a wait has no event and no direct render, report it to the step owner with an example before you change it. One full run, one commit. Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-15 15:46)
+
+> Scope: `review sha 772217b~1..772217b` — reviewed the diffs only — lines this change added or modified. 14 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Sources/AgentViewKit/Input/SpeechInputButton.swift:188` `duplication/duplication` — SpeechInputPhaseReport repeats the structure of PromptSubmitReport. Both have a stored `let report: @MainActor (X) -> Void`, the same callAsFunction forwarding body, and a matching EnvironmentValues @Entry optional. The two copies differ only in the outcome type they carry. Copies that carry logic drift apart: a fix to one wrapper does not reach the other. Extract one generic wrapper, for example `struct ObservationReport<Value> { let report: @MainActor (Value) -> Void; func callAsFunction(_ value: Value) { report(value) } }`. Declare `promptSubmitReport` as `ObservationReport<PromptSubmitOutcome>?` and `speechInputPhaseReport` as `ObservationReport<SpeechInputButton.Phase>?`. Delete `PromptSubmitReport` and `SpeechInputPhaseReport`, and update the call sites in PromptInputView.swift, StockPromptEditor.swift, SpeechInputButton.swift, and the hosted tests.
+- [x] `Sources/AgentViewKit/Input/SpeechInputButton.swift:188` `reuse/reuse` — SpeechInputPhaseReport repeats the shape of PromptSubmitReport: a stored @MainActor function plus a callAsFunction that forwards to it. The two types differ only in the element type. Two copies of the same forwarding behavior must be kept in step by hand. Replace both types with one generic wrapper, for example `struct ObservationReport<Value> { let report: @MainActor (Value) -> Void; func callAsFunction(_ value: Value) { report(value) } }`. Keep the environment entries typed as `ObservationReport<PromptSubmitOutcome>?` and `ObservationReport<SpeechInputButton.Phase>?`.
+- [x] `Tests/AgentViewKitTests/Input/ComposerSessionModelHostedTests.swift:438` `reuse/reuse` — hasErrorEntry is a copy of an existing test helper with the same body. Each copy must be updated if the error entry rule changes. Move one shared `hasErrorEntry(_:)` into a common test-support file and call it from both ComposerSessionModelHostedTests and ConfigOptionsSessionModelHostedTests. Remove the local copy in ComposerSessionModelHostedTests.

@@ -46,8 +46,8 @@ import Testing
   ///
   /// - Parameter recorder: The recorder of the phases.
   /// - Returns: The report.
-  static func report(to recorder: SpeechPhaseRecorder) -> SpeechInputPhaseReport {
-    SpeechInputPhaseReport { recorder.record($0) }
+  static func report(to recorder: SpeechPhaseRecorder) -> ObservationReport<SpeechInputButton.Phase> {
+    ObservationReport { recorder.record($0) }
   }
 
   // MARK: - Mount

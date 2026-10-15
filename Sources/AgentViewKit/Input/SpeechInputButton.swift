@@ -179,26 +179,10 @@ public struct SpeechInputButton: View {
   }
 }
 
-/// The function that gets each phase that a ``SpeechInputButton`` sets.
-///
-/// The value is an internal observation point for the tests. The button calls
-/// the function in the same step as the change of its phase, so a test that
-/// records the phases in an observable model can wait for the event with no
-/// clock.
-struct SpeechInputPhaseReport {
-  /// The function that gets each phase.
-  let report: @MainActor (SpeechInputButton.Phase) -> Void
-
-  /// Gives one phase to the function.
-  ///
-  /// - Parameter phase: The new phase of the button.
-  func callAsFunction(_ phase: SpeechInputButton.Phase) {
-    report(phase)
-  }
-}
-
 extension EnvironmentValues {
-  /// The ``SpeechInputPhaseReport`` of the nearest ``SpeechInputButton``, or
-  /// `nil`.
-  @Entry var speechInputPhaseReport: SpeechInputPhaseReport? = nil
+  /// The ``ObservationReport`` that gets each phase of the nearest
+  /// ``SpeechInputButton``, or `nil`.
+  ///
+  /// The button calls the report in the same step as the change of its phase.
+  @Entry var speechInputPhaseReport: ObservationReport<SpeechInputButton.Phase>? = nil
 }

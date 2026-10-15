@@ -144,16 +144,6 @@ import Testing
     session.agent.messages(method: setMethod).compactMap { $0["params"] }
   }
 
-  /// Tells whether the transcript of a session model has an error entry.
-  ///
-  /// - Parameter model: The session model.
-  /// - Returns: `true` when an entry is an error entry.
-  static func hasErrorEntry(_ model: SessionModel) -> Bool {
-    model.transcript.contains { entry in
-      if case .error = entry { true } else { false }
-    }
-  }
-
   // MARK: - Grouping
 
   @Test func sectionsFollowTheCategoryOrderAndDropUnknownTypes() {
@@ -331,9 +321,9 @@ import Testing
     let model = session.model
 
     try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
-    await harness.pump(until: Self.waitTimeout) { Self.hasErrorEntry(model) }
+    await harness.pump(until: Self.waitTimeout) { TranscriptChecks.hasErrorEntry(model) }
 
-    #expect(Self.hasErrorEntry(model))
+    #expect(TranscriptChecks.hasErrorEntry(model))
     #expect(Self.choiceValue("fast-1", of: Self.modelID, in: harness) == Self.selected)
     #expect(Self.choiceValue("deep-1", of: Self.modelID, in: harness) == Self.notSelected)
   }

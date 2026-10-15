@@ -149,28 +149,12 @@ enum PromptSubmitOutcome: Equatable {
   case newline
 }
 
-/// The function that gets each ``PromptSubmitOutcome`` of a composer.
-///
-/// The value is an internal observation point for the tests. The composer
-/// calls the function in the same step as the submit decision, so a test that
-/// records the outcomes in an observable model can wait for the event with no
-/// clock.
-struct PromptSubmitReport {
-  /// The function that gets each outcome.
-  let report: @MainActor (PromptSubmitOutcome) -> Void
-
-  /// Gives one outcome to the function.
-  ///
-  /// - Parameter outcome: The outcome of one submit or one Shift-Return press.
-  func callAsFunction(_ outcome: PromptSubmitOutcome) {
-    report(outcome)
-  }
-}
-
 extension EnvironmentValues {
-  /// The ``PromptSubmitReport`` of the nearest ``PromptInputView`` and its
-  /// ``StockPromptEditor``, or `nil`.
-  @Entry var promptSubmitReport: PromptSubmitReport? = nil
+  /// The ``ObservationReport`` that gets each ``PromptSubmitOutcome`` of the
+  /// nearest ``PromptInputView`` and its ``StockPromptEditor``, or `nil`.
+  ///
+  /// The composer calls the report in the same step as the submit decision.
+  @Entry var promptSubmitReport: ObservationReport<PromptSubmitOutcome>? = nil
 }
 
 extension View {

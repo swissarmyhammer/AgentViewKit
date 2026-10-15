@@ -90,8 +90,8 @@ struct PromptInputHost: View {
   ///
   /// - Parameter recorder: The recorder of the outcomes.
   /// - Returns: The report.
-  static func report(to recorder: PromptSubmitRecorder) -> PromptSubmitReport {
-    PromptSubmitReport { recorder.record($0) }
+  static func report(to recorder: PromptSubmitRecorder) -> ObservationReport<PromptSubmitOutcome> {
+    ObservationReport { recorder.record($0) }
   }
 
   /// The `session/new` result with a `mode` option, for the picker test.
