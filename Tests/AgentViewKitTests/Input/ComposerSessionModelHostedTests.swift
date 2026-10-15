@@ -319,13 +319,13 @@
       let draft = PromptInputHostedTestModel()
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
+      let model = session.model
       let framesBefore = session.agent.received.count
 
       try await Self.startRunning(session, in: harness)
       try await session.sendUpdate(ScriptedSession.idleState)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil
-      }
+      await ObservationWait.until { CancelAvailabilityTests.isIdle(model.agentState) }
+      harness.render()
 
       #expect(session.agent.received.count == framesBefore)
     }
