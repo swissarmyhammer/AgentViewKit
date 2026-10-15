@@ -11,6 +11,9 @@
   /// The minimap rail over the transcript of a `SessionModel`: one tick for
   /// each entry, in transcript order, tinted by the entry case and the status
   /// of a tool call.
+  ///
+  /// Each test waits for a model value that the update is certain to change,
+  /// and then makes one render pass before it reads the view.
   @Suite(.serialized, .hostedSerially) @MainActor struct ThreadMinimapViewHostedTests {
     /// The number of tool call entries, and of agent message entries, in the
     /// transcripts of the kind tests.
@@ -51,9 +54,6 @@
     /// The smallest width of the conversation in the width tests.
     static let minimumWidth: CGFloat = 400
 
-    /// The longest time that a test waits for a view change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// The `messageId` start of the agent messages of the kind test.
     static let messagePrefix = "minimap-message-"
 
@@ -71,7 +71,10 @@
     }
 
     /// Sends a mouse-down and a mouse-up event at `point` to the window of
-    /// `harness`, then pumps the run loop.
+    /// `harness`, then makes one ``HostedViewHarness/render()`` pass.
+    ///
+    /// The window gives each event to the scrub surface of the rail at once,
+    /// so the jump of the click is done when the events are sent.
     ///
     /// - Parameters:
     ///   - point: The point in the coordinates of the window.
@@ -93,11 +96,11 @@
           harness.window.sendEvent(event)
         }
       }
-      harness.pump()
+      harness.render()
     }
 
     /// Sends `count` tool calls of the session from the agent, in progress,
-    /// and waits until the model holds `total` entries.
+    /// and waits for the event that the model holds `total` entries.
     ///
     /// - Parameters:
     ///   - count: The number of tool calls to send.
@@ -108,7 +111,8 @@
       for index in 0..<count {
         try await session.sendToolCallUpdate(title: "\(callPrefix)\(index)", status: .inProgress)
       }
-      _ = await waitUntil { session.model.transcript.count == total }
+      let model = session.model
+      await ObservationWait.until { model.transcript.count == total }
     }
 
     /// Opens a session whose transcript holds `count` tool calls.
@@ -127,11 +131,11 @@
     /// - Parameters:
     ///   - session: The scripted session.
     ///   - anchors: The manager of the rail.
-    /// - Returns: The harness, after one pump.
+    /// - Returns: The harness, after one ``HostedViewHarness/render()`` pass.
     static func mountRail(_ session: ScriptedSession, anchors: ScrollAnchorManager) -> HostedViewHarness<some View> {
       let harness = HostedViewHarness(
         ThreadMinimapView(session: session.model, anchors: anchors, minimumItemCount: minimumEntryCount))
-      harness.pump()
+      harness.render()
       return harness
     }
 
@@ -148,9 +152,6 @@
       try await Self.sendCalls(Self.pairCount, untilTotal: Self.pairCount * Self.kindCount, in: session)
       let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
       defer { harness.close() }
-      let total = session.model.transcript.count
-      await harness.pump(until: Self.waitTimeout) { Self.tickIdentifiers(in: harness).count == total }
-
       let ticks = Self.tickIdentifiers(in: harness)
       #expect(ticks.count == Self.pairCount * Self.kindCount)
       let expected = Dictionary(
@@ -167,13 +168,12 @@
       try await Self.sendCalls(Self.minimumEntryCount, untilTotal: Self.minimumEntryCount, in: session)
       let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
       defer { harness.close() }
-      await harness.pump(until: Self.waitTimeout) {
-        Self.tickIdentifiers(in: harness).count == Self.minimumEntryCount
-      }
+      #expect(Self.tickIdentifiers(in: harness).count == Self.minimumEntryCount)
 
       try await session.sendToolCallUpdate(title: ActivityTimelineHostedTests.laterCall, status: .inProgress)
       let total = Self.minimumEntryCount + 1
-      await harness.pump(until: Self.waitTimeout) { Self.tickIdentifiers(in: harness).count == total }
+      let model = session.model
+      await harness.render { model.transcript.count == total }
 
       #expect(Self.tickIdentifiers(in: harness).count == total)
     }
@@ -183,18 +183,18 @@
       defer { session.close() }
       let title = ActivityTimelineHostedTests.firstCall
       try await session.sendToolCallUpdate(title: title, status: .inProgress)
-      _ = await waitUntil { !session.model.transcript.isEmpty }
-      let entry = try #require(session.model.transcript.first)
+      let model = session.model
+      await ObservationWait.until { !model.transcript.isEmpty }
+      let entry = try #require(model.transcript.first)
       let tickID = ThreadMinimapView.tickIdentifier(for: entry)
       let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
       defer { harness.close() }
       let running = FoundationModelsACP.ToolCallStatus.inProgress.wireValue
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: tickID)?.value == running }
       #expect(harness.element(identifier: tickID)?.value == running)
 
       try await session.sendToolCallUpdate(title: title, status: .completed)
       let completed = FoundationModelsACP.ToolCallStatus.completed.wireValue
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: tickID)?.value == completed }
+      await harness.render { BackgroundRunsHostedTests.toolCall(id: title, in: model)?.status == .completed }
 
       #expect(harness.element(identifier: tickID)?.value == completed)
     }
@@ -205,15 +205,15 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       try await Self.sendCalls(Self.summaryCallCount, untilTotal: Self.summaryCallCount, in: session)
-      try await session.sendToolCallUpdate(title: "\(Self.callPrefix)\(Self.summaryCallCount - 1)", status: .completed)
-      session.model.appendError(code: .internalError, message: "failed", data: nil)
+      let lastCall = "\(Self.callPrefix)\(Self.summaryCallCount - 1)"
+      try await session.sendToolCallUpdate(title: lastCall, status: .completed)
+      let model = session.model
+      await ObservationWait.until { BackgroundRunsHostedTests.toolCall(id: lastCall, in: model)?.status == .completed }
+      model.appendError(code: .internalError, message: "failed", data: nil)
       let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
       defer { harness.close() }
 
       let expected = "In progress: 1, Completed: 1, and Error: 1"
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ThreadMinimapView.summaryIdentifier)?.value == expected
-      }
 
       let summary = harness.element(identifier: ThreadMinimapView.summaryIdentifier)
       #expect(summary?.label == "Thread status")
@@ -226,13 +226,10 @@
       try await session.sendUpdate(
         SessionTranscriptViewHostedTests.chunk(
           "agent_message_chunk", messageID: "\(Self.messagePrefix)0", text: "Done."))
-      _ = await waitUntil { !session.model.transcript.isEmpty }
+      let model = session.model
+      await ObservationWait.until { !model.transcript.isEmpty }
       let harness = Self.mountRail(session, anchors: ScrollAnchorManager())
       defer { harness.close() }
-
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ThreadMinimapView.summaryIdentifier) != nil
-      }
 
       #expect(harness.element(identifier: ThreadMinimapView.summaryIdentifier)?.value == "No status")
     }
@@ -301,9 +298,6 @@
       defer { harness.close() }
 
       let expected = "Item \(Self.firstVisiblePosition + 1) of \(Self.entryCount)"
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ThreadMinimapView.railIdentifier)?.value == expected
-      }
       #expect(harness.element(identifier: ThreadMinimapView.railIdentifier)?.value == expected)
     }
 
@@ -317,7 +311,6 @@
       defer { harness.close() }
 
       try harness.increment(identifier: ThreadMinimapView.railIdentifier)
-      await harness.pump(until: Self.waitTimeout) { anchors.anchorID != nil }
 
       #expect(anchors.anchorID == keys[Self.firstVisiblePosition + 1])
     }
@@ -331,7 +324,7 @@
         session: session.model, anchors: ScrollAnchorManager(), minimumItemCount: Self.entryCount + 1)
       let harness = HostedViewHarness(view)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ThreadMinimapView.railIdentifier) == nil)
       #expect(Self.tickIdentifiers(in: harness).isEmpty)
@@ -346,7 +339,7 @@
         view,
         size: CGSize(width: Self.narrowWidth, height: HostedViewHarness<Color>.defaultSize.height))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ThreadMinimapView.railIdentifier) == nil)
     }
@@ -358,11 +351,10 @@
         .threadMinimap(session: session.model, anchors: ScrollAnchorManager(), minimumWidth: Self.minimumWidth)
       let harness = HostedViewHarness(view)
       defer { harness.close() }
-      harness.pump()
+      // The mount lays out the view one time, and that pass gives the width
+      // to the modifier. This second pass shows the rail.
+      harness.render()
 
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ThreadMinimapView.railIdentifier) != nil
-      }
       #expect(harness.element(identifier: ThreadMinimapView.railIdentifier) != nil)
     }
   }

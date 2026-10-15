@@ -19,11 +19,6 @@
     /// The number of entries in the transcript of the modifier test.
     static let smallEntryCount = 25
 
-    /// The longest time that a test waits for a view change, in seconds. A
-    /// wait ends when its condition is true, so the limit costs no time on a
-    /// pass.
-    static let waitTimeout: TimeInterval = 5
-
     /// The message id of the agent message that the scroll tests add.
     static let insertedMessageID = "inserted-message"
 
@@ -250,11 +245,10 @@
       defer { session.close() }
       let harness = HostedViewHarness(ConversationView(session: session.model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let firstPage = ConversationLayout.listValue(
         shown: ConversationLayout.defaultPageSize, count: Self.longEntryCount)
-      await harness.pump(until: Self.waitTimeout) { Self.listValue(in: harness) == firstPage }
       #expect(Self.listValue(in: harness) == firstPage)
       #expect(harness.element(identifier: ConversationLayout.loadEarlierIdentifier) != nil)
 
@@ -262,7 +256,6 @@
 
       let allEntries = ConversationLayout.listValue(
         shown: Self.longEntryCount, count: Self.longEntryCount)
-      await harness.pump(until: Self.waitTimeout) { Self.listValue(in: harness) == allEntries }
       #expect(Self.listValue(in: harness) == allEntries)
       #expect(harness.element(identifier: ConversationLayout.loadEarlierIdentifier) == nil)
     }
@@ -273,11 +266,10 @@
       let view = ConversationView(session: session.model).conversationPageSize(Self.smallPageSize)
       let harness = HostedViewHarness(view)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let expected = ConversationLayout.listValue(
         shown: Self.smallPageSize, count: Self.smallEntryCount)
-      await harness.pump(until: Self.waitTimeout) { Self.listValue(in: harness) == expected }
       #expect(Self.listValue(in: harness) == expected)
     }
 
@@ -286,11 +278,10 @@
       defer { session.close() }
       let harness = HostedViewHarness(ConversationView(session: session.model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let expected = ConversationLayout.listValue(
         shown: Self.smallEntryCount, count: Self.smallEntryCount)
-      await harness.pump(until: Self.waitTimeout) { Self.listValue(in: harness) == expected }
       #expect(Self.listValue(in: harness) == expected)
       #expect(harness.element(identifier: ConversationLayout.loadEarlierIdentifier) == nil)
     }
@@ -302,7 +293,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(ConversationView(session: session.model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
       #expect(harness.element(identifier: ConversationLayout.listIdentifier) == nil)
@@ -317,15 +308,14 @@
       }
       let harness = HostedViewHarness(view)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: Self.customEmptyIdentifier)?.label == "Nothing yet")
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) == nil)
 
       let insertedKey = try await Self.insertMessage(into: session)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: ConversationLayout.listIdentifier) != nil
-      }
+      harness.render()
+      #expect(harness.element(identifier: ConversationLayout.listIdentifier) != nil)
       #expect(harness.element(identifier: Self.customEmptyIdentifier) == nil)
       #expect(harness.element(identifier: ItemRow.identifier(for: insertedKey)) != nil)
     }
@@ -485,7 +475,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(ConversationView(session: session.model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: StateBanner.bannerIdentifier) == nil)
     }

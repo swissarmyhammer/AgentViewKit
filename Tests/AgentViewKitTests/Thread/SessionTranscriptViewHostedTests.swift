@@ -8,15 +8,25 @@
 
   /// The thread view over the transcript of a `SessionModel` (plan.md §3.2,
   /// §3.8 "Row identity").
+  ///
+  /// Each test waits for a model value that the update is certain to change,
+  /// and then makes one render pass before it reads the view. The agent sends
+  /// the frames in order, so a wait for the effect of the last update also
+  /// covers the earlier updates.
   @Suite(.serialized, .hostedSerially) @MainActor struct SessionTranscriptViewHostedTests {
-    /// The longest time that a test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows each row of the tests.
     static let tallSize = CGSize(width: 480, height: 1_200)
 
     /// The number of entries in the chunk test.
     static let chunkMessageCount = 3
+
+    /// The number of rows of the order test: a user message, a thought and
+    /// an agent message.
+    static let orderedRowCount = 3
+
+    /// The number of rows of the override test: a tool call and an agent
+    /// message.
+    static let overrideRowCount = 2
 
     /// The position of the entry that the chunk test changes.
     static let chunkedPosition = 1
@@ -112,6 +122,12 @@
     /// then one more chunk to the entry at ``chunkedPosition``, and expects
     /// that the last chunk evaluates the content of that row only.
     ///
+    /// The mount makes its body evaluations in the render pass after the
+    /// model has each entry, before the reset of the counters. Then the test
+    /// waits for the text of the changed entry, which the last chunk is
+    /// certain to change, and makes one render pass before it reads the
+    /// counts.
+    ///
     /// - Parameter kind: The `sessionUpdate` tag of the chunks, such as
     ///   `agent_message_chunk` or `agent_thought_chunk`.
     static func expectAChunkEvaluatesOnlyTheRowOfItsEntry(kind: String) async throws {
@@ -124,8 +140,9 @@
       for position in 0..<chunkMessageCount {
         try await session.sendUpdate(chunk(kind, messageID: "chunk-m\(position)", text: "Message \(position)."))
       }
-      await harness.pump(until: waitTimeout) { rowKeys(in: harness).count == chunkMessageCount }
+      await harness.render { model.transcript.count == chunkMessageCount }
       let keys = model.transcript.map(\.id.rowKey)
+      #expect(rowKeys(in: harness) == keys)
       for key in keys {
         #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) >= 1)
         BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
@@ -133,10 +150,9 @@
       }
 
       try await session.sendUpdate(chunk(kind, messageID: "chunk-m\(chunkedPosition)", text: " More."))
-      await harness.pump(until: waitTimeout) {
+      await harness.render {
         entryText(of: model, at: chunkedPosition) == "Message \(chunkedPosition). More."
       }
-      harness.pump()
 
       for (position, key) in keys.enumerated() {
         let expected = position == chunkedPosition ? 1 : 0
@@ -157,10 +173,10 @@
       try await session.sendUpdate(Self.chunk("user_message_chunk", messageID: "order-u", text: "Question."))
       try await session.sendUpdate(Self.chunk("agent_thought_chunk", messageID: "order-m", text: "Thinking."))
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "order-m", text: "Answer."))
-      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 3 }
+      await harness.render { session.model.transcript.count == Self.orderedRowCount }
 
       let expected = session.model.transcript.map(\.id.rowKey)
-      #expect(expected.count == 3)
+      #expect(expected.count == Self.orderedRowCount)
       #expect(Self.rowKeys(in: harness) == expected)
       #expect(harness.element(identifier: UserMessageView.identifier(for: expected[0])) != nil)
       #expect(harness.element(identifier: ReasoningView.identifier(for: expected[1])) != nil)
@@ -176,13 +192,12 @@
       let model = session.model
 
       let prompt = Task { try await model.prompt([.text(TextContent(text: "Hello."))]) }
-      await harness.pump(until: Self.waitTimeout) { !model.transcript.isEmpty }
+      await ObservationWait.until { !model.transcript.isEmpty }
       let firstEntry = try #require(model.transcript.first)
       let pending = try #require(Self.userMessage(firstEntry))
       #expect(firstEntry.id.origin == .local)
       _ = try await prompt.value
-      await harness.pump(until: Self.waitTimeout) { pending.sendState == .sent }
-      harness.pump()
+      await harness.render { pending.sendState == .sent }
 
       #expect(pending.messageId != nil)
       #expect(model.transcript.map(\.id) == [firstEntry.id])
@@ -198,7 +213,7 @@
 
       try await session.sendUpdate(
         #"{"sessionUpdate":"tool_call_update","toolCallId":"row-c","status":"pending","title":"Read"}"#)
-      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 1 }
+      await harness.render { !session.model.transcript.isEmpty }
 
       let key = try #require(session.model.transcript.first?.rowKey)
       #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == "Read, Pending")
@@ -215,8 +230,7 @@
 
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "Hello "))
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "world."))
-      await harness.pump(until: Self.waitTimeout) { Self.entryText(of: model, at: 0) == "Hello world." }
-      harness.pump()
+      await harness.render { Self.entryText(of: model, at: 0) == "Hello world." }
 
       let paragraphs = harness.accessibilityElements().filter {
         $0.identifier == ResponseView.paragraphIdentifier(index: 0)
@@ -272,16 +286,14 @@
           Self.chunk("agent_message_chunk", messageID: Self.streamedMessageID, text: chunk))
         model.flushPendingChunks()
         let sent = Self.streamedChunks[...index].joined()
-        await harness.pump(until: Self.waitTimeout) { Self.entryText(of: model, at: 0) == sent }
+        await harness.render { Self.entryText(of: model, at: 0) == sent }
         let text = try #require(Self.entryText(of: model, at: 0))
-        await harness.pump(until: Self.waitTimeout) { Self.showsParagraphs(of: text, in: harness) }
         #expect(Self.showsParagraphs(of: text, in: harness), "\(text)")
       }
       #expect(ComposerSessionModelHostedTests.isRunning(model))
 
       try await session.sendUpdate(ScriptedSession.idleState)
-      await harness.pump(until: Self.waitTimeout) { !ComposerSessionModelHostedTests.isRunning(model) }
-      harness.pump()
+      await harness.render { !ComposerSessionModelHostedTests.isRunning(model) }
 
       #expect(Self.showsParagraphs(of: Self.streamedChunks.joined(), in: harness))
     }
@@ -344,9 +356,10 @@
 
       try await session.sendUpdate(Self.overrideCallUpdate(status: "pending"))
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: Self.overrideMessageID, text: "Done."))
-      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 2 }
-      let keys = session.model.transcript.map(\.rowKey)
-      #expect(keys.count == 2)
+      let model = session.model
+      await harness.render { model.transcript.count == Self.overrideRowCount }
+      let keys = model.transcript.map(\.rowKey)
+      #expect(keys.count == Self.overrideRowCount)
       let callKey = try #require(keys.first)
       let messageKey = try #require(keys.last)
       #expect(harness.element(identifier: Self.customToolCallIdentifier)?.label == Self.customLabel(status: .pending))
@@ -355,8 +368,8 @@
 
       try await session.sendUpdate(Self.overrideCallUpdate(status: "completed"))
       let completed = Self.customLabel(status: .completed)
-      await harness.pump(until: Self.waitTimeout) {
-        harness.element(identifier: Self.customToolCallIdentifier)?.label == completed
+      await harness.render {
+        BackgroundRunsHostedTests.toolCall(id: Self.overrideCallID, in: model)?.status == .completed
       }
 
       #expect(harness.element(identifier: Self.customToolCallIdentifier)?.label == completed)
@@ -375,15 +388,18 @@
       }
       defer { harness.close() }
 
+      let model = session.model
       try await session.sendUpdate(Self.overrideCallUpdate(status: "in_progress"))
-      await harness.pump(until: Self.waitTimeout) { Self.rowKeys(in: harness).count == 1 }
-      let key = try #require(session.model.transcript.first?.rowKey)
+      await harness.render { !model.transcript.isEmpty }
+      let key = try #require(model.transcript.first?.rowKey)
       let body = ToolCallView.bodyIdentifier(for: key)
       #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
       #expect(harness.element(identifier: body) == nil)
 
       try await session.sendUpdate(Self.overrideCallUpdate(status: "failed"))
-      await harness.pump(until: Self.waitTimeout) { harness.element(identifier: body) != nil }
+      await harness.render {
+        BackgroundRunsHostedTests.toolCall(id: Self.overrideCallID, in: model)?.status == .failed
+      }
 
       #expect(harness.element(identifier: body) != nil)
     }

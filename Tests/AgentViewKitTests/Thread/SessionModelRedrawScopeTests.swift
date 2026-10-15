@@ -12,10 +12,12 @@
   /// `SessionModel.defaultCoalescingCadence`. Each row binds directly to its
   /// `TranscriptEntry` object, so a flush evaluates the row of the streamed
   /// entry only.
+  ///
+  /// The mount makes its body evaluations in the render pass after the model
+  /// has each row, before the reset of the counters. Then the test waits for
+  /// the whole text of the streamed entry, which the last flush is certain to
+  /// give, and makes one render pass before it reads the counts.
   @Suite(.serialized, .hostedSerially) @MainActor struct SessionModelRedrawScopeTests {
-    /// The longest time that the test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows each row of the test.
     static let tallSize = CGSize(width: 480, height: 1_200)
 
@@ -83,11 +85,10 @@
       for position in 0..<Self.rowCount {
         try await session.sendUpdate(Self.makeChunk(position: position, text: Self.firstChunk(at: position)))
       }
-      await harness.pump(until: Self.waitTimeout) {
-        SessionTranscriptViewHostedTests.rowKeys(in: harness).count == Self.rowCount
-      }
+      await harness.render { model.transcript.count == Self.rowCount }
       let keys = model.transcript.map(\.id.rowKey)
       try #require(keys.count == Self.rowCount)
+      #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == keys)
       Self.resetCounts(of: keys)
 
       for index in 0..<Self.streamedChunkCount {
@@ -96,10 +97,9 @@
       let expected =
         Self.firstChunk(at: Self.streamedPosition)
         + (0..<Self.streamedChunkCount).map(Self.streamedChunk(at:)).joined()
-      await harness.pump(until: Self.waitTimeout) {
+      await harness.render {
         SessionTranscriptViewHostedTests.entryText(of: model, at: Self.streamedPosition) == expected
       }
-      harness.pump()
 
       let entryText = try #require(SessionTranscriptViewHostedTests.entryText(of: model, at: Self.streamedPosition))
       #expect(entryText == expected)

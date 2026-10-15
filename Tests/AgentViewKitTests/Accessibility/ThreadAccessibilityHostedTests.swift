@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import Foundation
@@ -7,8 +7,44 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
+/// The steps that the reader of the turn announcements of a hosted thread
+/// reports through ``SwiftUI/EnvironmentValues/turnAnnouncementReport``.
+@MainActor @Observable final class TurnAnnouncementStepRecorder {
+  /// Each step, in report order.
+  private(set) var steps: [TurnAnnouncementStep] = []
+
+  /// Whether the reader started to read the update tap of the session model.
+  var hasStarted: Bool {
+    steps.contains { if case .started = $0 { true } else { false } }
+  }
+
+  /// The announcement of each idle state update that the reader handled, in
+  /// report order. `nil` is an idle with no announcement.
+  var idleAnnouncements: [String?] {
+    steps.compactMap { step -> String?? in
+      guard case .handled(.stateUpdate(.idle), let announcement) = step else { return nil }
+      return .some(announcement)
+    }
+  }
+
+  /// Records one step.
+  ///
+  /// - Parameter step: The step that the reader reports.
+  func record(_ step: TurnAnnouncementStep) {
+    steps.append(step)
+  }
+}
+
 /// Hosted tests of the thread accessibility (plan.md §6): reading groups,
 /// announcements, focus moves, and Reduce Motion.
+///
+/// Each test waits for a model value that the update is certain to change,
+/// and then makes one render pass before it reads the view. The tool result
+/// and action required announcements, and the focus moves, come from the
+/// change actions and the appear actions of the views, which the render pass
+/// runs. The turn announcements come from a reader task; the tests wait for
+/// the steps that the reader reports (``TurnAnnouncementStepRecorder``) or for
+/// the announcement in the observable ``RecordingAnnouncer``.
 @Suite(.serialized, .hostedSerially) @MainActor struct ThreadAccessibilityHostedTests {
   /// The longest time that a test waits for a change, in seconds.
   static let waitTimeout: TimeInterval = 2
@@ -47,25 +83,46 @@ import Testing
   static let streamedMessageID = "accessibility-streamed"
 
   /// Makes an ``AgentThreadView`` of a scripted session and its connection
-  /// model, with the recording announcer.
+  /// model, with the recording announcer and a recorder of the steps of the
+  /// turn announcement reader.
+  ///
+  /// The helper makes one ``HostedViewHarness/render()`` pass, and then waits
+  /// for the event that the reader started to read the update tap. Thus the
+  /// reader sees each update that the test sends after this call.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - announcer: The announcer of the environment.
-  /// - Returns: The harness, pumped one time.
-  static func makeHarness(session: ScriptedSession, announcer: RecordingAnnouncer) -> HostedViewHarness<some View> {
+  ///   - steps: The recorder of the steps of the turn announcement reader.
+  /// - Returns: The harness.
+  static func makeHarness(
+    session: ScriptedSession, announcer: RecordingAnnouncer,
+    steps: TurnAnnouncementStepRecorder = TurnAnnouncementStepRecorder()
+  ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: hostSize) {
       AgentThreadView(session: session.model, connection: session.connection)
         .environment(\.announcer, announcer)
+        .environment(\.turnAnnouncementReport, report(to: steps))
         .transaction { $0.disablesAnimations = true }
     }
-    harness.pump()
+    harness.render()
+    await ObservationWait.until { steps.hasStarted }
     return harness
   }
 
-  /// Sends two agent messages from the agent of `session`, and pumps
-  /// `harness` until the thread shows the row of each message. The first
-  /// message has three paragraphs.
+  /// The report that gives each step of the turn announcement reader to
+  /// `recorder`.
+  ///
+  /// - Parameter recorder: The recorder of the steps.
+  /// - Returns: The report.
+  static func report(to recorder: TurnAnnouncementStepRecorder) -> ObservationReport<TurnAnnouncementStep> {
+    ObservationReport { recorder.record($0) }
+  }
+
+  /// Sends two agent messages from the agent of `session`, waits for the
+  /// event that the model holds each message, and makes one
+  /// ``HostedViewHarness/render()`` pass of `harness`. The first message has
+  /// three paragraphs.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
@@ -73,18 +130,15 @@ import Testing
   /// - Returns: The row key of each message entry, in transcript order.
   /// - Throws: The error of the transport.
   static func sendTwoMessages(
-    to session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
   ) async throws -> [String] {
     try await session.send(
       update: BackgroundRunScript.makeChunkUpdate(messageID: firstMessageID, text: threeParagraphs))
     try await session.send(
       update: BackgroundRunScript.makeChunkUpdate(messageID: secondMessageID, text: secondMessageText))
-    await harness.pump(until: waitTimeout) {
-      session.model.transcript.count == readingMessageCount
-        && session.model.transcript.allSatisfy { harness.element(identifier: ItemRow.identifier(for: $0.rowKey)) != nil }
-    }
-    harness.pump()
-    return session.model.transcript.map(\.rowKey)
+    let model = session.model
+    await harness.render { model.transcript.count == readingMessageCount }
+    return model.transcript.map(\.rowKey)
   }
 
   /// Expects that the shimmer of the activity indicator of a running session
@@ -101,13 +155,12 @@ import Testing
         .environment(\._accessibilityReduceMotion, reduceMotion)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: ShimmerView.identifier) == nil)
 
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.pump(until: waitTimeout) {
-      harness.element(identifier: ShimmerView.identifier) != nil
-    }
+    let model = session.model
+    await harness.render { ComposerSessionModelHostedTests.isRunning(model) }
 
     #expect(harness.element(identifier: ShimmerView.identifier)?.value == value)
   }
@@ -131,37 +184,35 @@ import Testing
   }
 
   /// Starts a `session/resume` request that replays the history from the
-  /// start, and pumps `harness` until the session model replays. The agent
-  /// of `session` must hold its answer to the request.
+  /// start, and waits for the event that the session model replays. The
+  /// agent of `session` must hold its answer to the request.
   ///
-  /// - Parameters:
-  ///   - session: The scripted session.
-  ///   - harness: The harness to pump while the test waits.
+  /// - Parameter session: The scripted session.
   /// - Returns: The task of the request.
-  static func beginReplay(
-    of session: ScriptedSession, pumping harness: HostedViewHarness<some View>
-  ) async -> Task<SessionModel, any Error> {
+  static func beginReplay(of session: ScriptedSession) async -> Task<SessionModel, any Error> {
     let resume = Task { try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest) }
-    await harness.pump(until: waitTimeout) { session.model.isReplaying }
+    let model = session.model
+    await ObservationWait.until { model.isReplaying }
     return resume
   }
 
-  /// Releases the held answer of the `session/resume` request, and pumps
-  /// `harness` until the replay ends.
+  /// Releases the held answer of the `session/resume` request, waits for the
+  /// event that the replay ends, and makes one ``HostedViewHarness/render()``
+  /// pass of `harness`.
   ///
   /// - Parameters:
-  ///   - resume: The task of the request from ``beginReplay(of:pumping:)``.
+  ///   - resume: The task of the request from ``beginReplay(of:)``.
   ///   - session: The scripted session.
-  ///   - harness: The harness to pump while the test waits.
+  ///   - harness: The harness that shows the thread of the session.
   /// - Throws: The error of the request.
   static func endReplay(
     _ resume: Task<SessionModel, any Error>, of session: ScriptedSession,
-    pumping harness: HostedViewHarness<some View>
+    rendering harness: HostedViewHarness<some View>
   ) async throws {
     session.agent.releaseHeldAnswer()
     _ = try await resume.value
-    await harness.pump(until: waitTimeout) { !session.model.isReplaying }
-    harness.pump()
+    let model = session.model
+    await harness.render { !model.isReplaying }
   }
 
   // MARK: - Reading groups
@@ -169,9 +220,9 @@ import Testing
   @Test func eachParagraphOfAnAgentMessageEntryLinksTheOtherParagraphs() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = Self.makeHarness(session: session, announcer: RecordingAnnouncer())
+    let harness = await Self.makeHarness(session: session, announcer: RecordingAnnouncer())
     defer { harness.close() }
-    _ = try await Self.sendTwoMessages(to: session, pumping: harness)
+    _ = try await Self.sendTwoMessages(to: session, rendering: harness)
 
     let identifiers = (0..<Self.paragraphCount).map(ResponseView.paragraphIdentifier(index:))
     for identifier in identifiers {
@@ -185,9 +236,9 @@ import Testing
   @Test func eachRowOfTheThreadOfASessionLinksTheOtherRows() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = Self.makeHarness(session: session, announcer: RecordingAnnouncer())
+    let harness = await Self.makeHarness(session: session, announcer: RecordingAnnouncer())
     defer { harness.close() }
-    let keys = try await Self.sendTwoMessages(to: session, pumping: harness)
+    let keys = try await Self.sendTwoMessages(to: session, rendering: harness)
     let firstKey = try #require(keys.first)
     let secondKey = try #require(keys.last)
 
@@ -199,7 +250,7 @@ import Testing
   @Test func aStandaloneResponseLinksItsParagraphs() throws {
     let harness = HostedViewHarness(ResponseView(id: "standalone", markdown: Self.threeParagraphs), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let first = try #require(harness.element(identifier: ResponseView.paragraphIdentifier(index: 0)))
     let linked = first.linkedElements.compactMap(\.identifier)
@@ -209,7 +260,7 @@ import Testing
   @Test func aParagraphReadsItsMathAtItsPlaceAndKeepsTheMathElement() {
     let harness = HostedViewHarness(ResponseView(id: "math", markdown: "Let $x^2$ be big."), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains("Let x^2 be big."))
@@ -218,27 +269,40 @@ import Testing
 
   // MARK: - Announcements of a session model
 
+  /// The idle that ends the work of the prompt announces "Response
+  /// complete" one time, and the streamed chunks before it announce
+  /// nothing.
+  ///
+  /// The announcement comes from a reader task
+  /// (``ThreadAccessibility/makeTurnAnnouncements(of:report:)``). The test
+  /// waits for the event that the observable ``RecordingAnnouncer`` holds an
+  /// announcement: the idle after the echo of the prompt is certain to give
+  /// one.
   @Test func aPromptThatGoesIdleAfterItRunsAnnouncesThatTheResponseIsCompleteOneTime() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let harness = Self.makeHarness(session: session, announcer: announcer)
+    let harness = await Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
+    let model = session.model
 
-    _ = try await session.model.prompt([.text(TextContent(text: "Hello."))])
+    _ = try await model.prompt([.text(TextContent(text: "Hello."))])
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.pump(until: Self.waitTimeout) { session.model.agentState != nil }
+    await ObservationWait.until { model.agentState != nil }
     for index in 0..<Self.chunkCount {
       try await session.send(
-        update: BackgroundRunScript.makeChunkUpdate(messageID: Self.streamedMessageID, text: "Chunk \(index). "))
-      harness.pump()
+        update: BackgroundRunScript.makeChunkUpdate(
+          messageID: Self.streamedMessageID, text: SessionModelRedrawScopeTests.streamedChunk(at: index)))
+      let sent = (0...index).map(SessionModelRedrawScopeTests.streamedChunk(at:)).joined()
+      await harness.render {
+        BackgroundRunsHostedTests.agentMessage(messageID: Self.streamedMessageID, in: model)
+          .map { SessionTranscriptViewHostedTests.text(of: $0.content) } == sent
+      }
     }
-    await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
     #expect(announcer.announcements.isEmpty)
 
     try await session.sendUpdate(ScriptedSession.endTurnState)
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
-    harness.pump()
+    await ObservationWait.until { !announcer.announcements.isEmpty }
 
     #expect(
       announcer.announcements == [
@@ -250,16 +314,16 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let harness = Self.makeHarness(session: session, announcer: announcer)
+    let harness = await Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
+    let model = session.model
 
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
-    await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
-    harness.pump()
+    await harness.render { !model.transcript.isEmpty }
     #expect(announcer.announcements.isEmpty)
 
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .completed)
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
+    await harness.render { Self.isCompletedToolCall(model.transcript.first) }
 
     #expect(
       announcer.announcements == [
@@ -272,13 +336,12 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let harness = Self.makeHarness(session: session, announcer: announcer)
+    let harness = await Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
 
     _ = try await session.sendPermissionRequest(
       id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
-    harness.pump()
+    harness.render()
 
     let request = try #require(session.model.pendingPermissions.first)
     #expect(
@@ -291,12 +354,12 @@ import Testing
     let session = try await ScriptedSession.openWithLoginElicitation(id: Self.agentRequestID)
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let harness = Self.makeHarness(session: session, announcer: announcer)
+    let harness = await Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
+    let connection = session.connection
 
     let login = session.startLogin()
-    await harness.pump(until: Self.waitTimeout) { !announcer.announcements.isEmpty }
-    harness.pump()
+    await harness.render { !connection.pendingElicitations.isEmpty }
     session.agent.releaseHeldAnswer()
     try await login.value
 
@@ -311,38 +374,46 @@ import Testing
     let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let harness = Self.makeHarness(session: session, announcer: announcer)
+    let harness = await Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
+    let model = session.model
 
-    let resume = await Self.beginReplay(of: session, pumping: harness)
+    let resume = await Self.beginReplay(of: session)
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
-    await harness.pump(until: Self.waitTimeout) { !session.model.transcript.isEmpty }
-    harness.pump()
+    await harness.render { !model.transcript.isEmpty }
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .completed)
-    await harness.pump(until: Self.waitTimeout) { Self.isCompletedToolCall(session.model.transcript.first) }
-    harness.pump()
-    #expect(Self.isCompletedToolCall(session.model.transcript.first))
-    try await Self.endReplay(resume, of: session, pumping: harness)
+    await harness.render { Self.isCompletedToolCall(model.transcript.first) }
+    #expect(Self.isCompletedToolCall(model.transcript.first))
+    try await Self.endReplay(resume, of: session, rendering: harness)
 
     #expect(announcer.announcements.isEmpty)
   }
 
+  /// A replay of a run that ends announces no stop.
+  ///
+  /// The stop announcement comes from a reader task
+  /// (``ThreadAccessibility/makeTurnAnnouncements(of:report:)``). The reader
+  /// reports each update that it handled (``TurnAnnouncementStepRecorder``).
+  /// The test waits for the event that the reader handled the idle of the
+  /// replay, and then checks that the reader gave no announcement for it and
+  /// that the announcer holds none.
   @Test func aReplayOfARunThatEndsMakesNoStopAnnouncement() async throws {
     let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let harness = Self.makeHarness(session: session, announcer: announcer)
+    let steps = TurnAnnouncementStepRecorder()
+    let harness = await Self.makeHarness(session: session, announcer: announcer, steps: steps)
     defer { harness.close() }
+    let model = session.model
 
-    let resume = await Self.beginReplay(of: session, pumping: harness)
+    let resume = await Self.beginReplay(of: session)
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.pump(until: Self.waitTimeout) { session.model.agentState != nil }
-    harness.pump()
+    await harness.render { model.agentState != nil }
     try await session.sendUpdate(ScriptedSession.endTurnState)
-    await harness.pump(until: Self.waitTimeout) { Self.isIdle(session.model.agentState) }
-    harness.pump()
-    #expect(Self.isIdle(session.model.agentState))
-    try await Self.endReplay(resume, of: session, pumping: harness)
+    await harness.render { Self.isIdle(model.agentState) }
+    await ObservationWait.until { !steps.idleAnnouncements.isEmpty }
+    #expect(steps.idleAnnouncements == [nil])
+    try await Self.endReplay(resume, of: session, rendering: harness)
 
     #expect(announcer.announcements.isEmpty)
   }
@@ -359,19 +430,18 @@ import Testing
         .transaction { $0.disablesAnimations = true }
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
+    let model = session.model
 
     let id = try #require(
       try await session.sendPermissionRequest(id: 1, pumping: harness, timeout: Self.waitTimeout))
-    await harness.pump(until: Self.waitTimeout) { reporter.moves.count >= 2 }
+    harness.render()
 
     #expect(reporter.moves.contains(PendingRequestsHost.identifier(for: id.uuidString)))
     #expect(reporter.moves.contains(PermissionView.identifier))
 
     await session.model.cancelPermission(id)
-    await harness.pump(until: Self.waitTimeout) {
-      reporter.moves.last == StockPromptEditor.identifier
-    }
+    await harness.render { model.pendingPermissions.isEmpty }
 
     #expect(reporter.moves.last == StockPromptEditor.identifier)
   }
@@ -386,18 +456,17 @@ import Testing
         .transaction { $0.disablesAnimations = true }
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(mover.lastMove == nil)
+    let model = session.model
 
     let id = try #require(
       try await session.sendPermissionRequest(id: 1, pumping: harness, timeout: Self.waitTimeout))
-    await harness.pump(until: Self.waitTimeout) { mover.lastMove != nil }
+    harness.render()
     #expect(mover.lastMove != nil)
 
     await session.model.cancelPermission(id)
-    await harness.pump(until: Self.waitTimeout) {
-      mover.lastMove?.identifier == StockPromptEditor.identifier
-    }
+    await harness.render { model.pendingPermissions.isEmpty }
 
     #expect(mover.lastMove?.identifier == StockPromptEditor.identifier)
   }

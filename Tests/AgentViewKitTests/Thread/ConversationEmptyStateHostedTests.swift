@@ -65,7 +65,7 @@
       }
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
       #expect(harness.hasElement(label: Self.heading))
@@ -84,14 +84,13 @@
       }
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
       #expect(harness.hasElement(label: Self.heading))
 
       let insertedKey = try await ConversationViewHostedTests.insertMessage(into: session)
-      await harness.pump(until: ConversationViewHostedTests.waitTimeout) {
-        harness.element(identifier: ConversationLayout.listIdentifier) != nil
-      }
+      harness.render()
 
+      #expect(harness.element(identifier: ConversationLayout.listIdentifier) != nil)
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) == nil)
       #expect(!harness.hasElement(label: Self.heading))
       #expect(harness.element(identifier: ItemRow.identifier(for: insertedKey)) != nil)
@@ -105,7 +104,7 @@
       }
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let title = try #require(harness.frame(identifier: ConversationLayout.emptyStateTitleIdentifier))
       let code = try #require(harness.frame(identifier: CodeBlockView.identifier))
@@ -122,7 +121,7 @@
       }
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier) == nil)
     }
@@ -134,7 +133,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(ConversationView(session: session.model), size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.defaultTitle)
       #expect(harness.hasElement(label: Self.defaultMessage))
@@ -149,7 +148,7 @@
         .conversationEmptyState(title: Self.title, markdown: Self.environmentMarkdown)
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.title)
@@ -166,7 +165,7 @@
       .conversationEmptyState(markdown: Self.environmentMarkdown)
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.hasElement(label: Self.heading))
       #expect(!harness.hasElement(label: Self.environmentMarkdown))

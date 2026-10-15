@@ -78,13 +78,38 @@ public enum ThreadAccessibility {
   /// - Returns: The text of each idle that ends the work of a prompt of
   ///   this client, as ``turnAnnouncement(for:)`` gives it, in order.
   public static func makeTurnAnnouncements(of session: SessionModel) -> AsyncStream<String> {
+    makeTurnAnnouncements(of: session, report: nil)
+  }
+
+  /// The announcements of ``makeTurnAnnouncements(of:)``, and a report of
+  /// each step of the reader.
+  ///
+  /// The reader calls `report` with ``TurnAnnouncementStep/started`` when
+  /// the tap starts, and with ``TurnAnnouncementStep/handled(_:announcement:)``
+  /// in the same step as it handles an update. Thus a test can wait for the
+  /// event that the reader handled an update, and then check that no
+  /// announcement came.
+  ///
+  /// - Parameters:
+  ///   - session: The session model.
+  ///   - report: The internal observation point for the tests, or `nil`.
+  /// - Returns: The text of each idle that ends the work of a prompt of
+  ///   this client, in order.
+  static func makeTurnAnnouncements(
+    of session: SessionModel, report: ObservationReport<TurnAnnouncementStep>?
+  ) -> AsyncStream<String> {
     let updates = session.updateTap()
+    report?(.started)
     let (announcements, continuation) = AsyncStream<String>.makeStream()
     let reader = Task { [weak session] in
       var tracker = PromptEndTracker()
       for await update in updates {
-        guard let session, !session.isReplaying else { continue }
-        if let text = tracker.receive(update, sentPromptIDs: sentPromptIDs(in: session.transcript)) {
+        guard let session else { continue }
+        let text =
+          session.isReplaying
+          ? nil : tracker.receive(update, sentPromptIDs: sentPromptIDs(in: session.transcript))
+        report?(.handled(update, announcement: text))
+        if let text {
           continuation.yield(text)
         }
       }
@@ -394,12 +419,13 @@ struct SessionAnnouncementObserver: View {
   let connection: ConnectionModel?
 
   @Environment(\.announcer) private var announcer
+  @Environment(\.turnAnnouncementReport) private var reportTurnStep
 
   var body: some View {
     Color.clear
       .accessibilityHidden(true)
       .task(id: ObjectIdentifier(session)) {
-        for await text in ThreadAccessibility.makeTurnAnnouncements(of: session) {
+        for await text in ThreadAccessibility.makeTurnAnnouncements(of: session, report: reportTurnStep) {
           announcer.announce(text, priority: .medium)
         }
       }
@@ -412,6 +438,30 @@ struct SessionAnnouncementObserver: View {
         changesOf: ThreadAccessibility.pendingRequests(of: session, connection: connection), to: announcer,
         priority: .high, texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:))
   }
+}
+
+/// One step of the reader of the turn announcements
+/// (``ThreadAccessibility/makeTurnAnnouncements(of:report:)``).
+///
+/// The reader reports each step through
+/// ``SwiftUI/EnvironmentValues/turnAnnouncementReport``. A test reads the
+/// report to learn that the reader handled an update, and that it gave no
+/// announcement for it.
+enum TurnAnnouncementStep {
+  /// The reader started to read the update tap of the session model.
+  case started
+
+  /// The reader handled `update`, and gave `announcement`, or `nil` for no
+  /// announcement.
+  case handled(SessionUpdate, announcement: String?)
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets each ``TurnAnnouncementStep`` of the
+  /// nearest ``SessionAnnouncementObserver``, or `nil`.
+  ///
+  /// The reader calls the report in the same step as it handles an update.
+  @Entry var turnAnnouncementReport: ObservationReport<TurnAnnouncementStep>? = nil
 }
 
 extension View {

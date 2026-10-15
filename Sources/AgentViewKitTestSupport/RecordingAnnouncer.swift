@@ -1,6 +1,12 @@
 import AgentViewKit
+import Observation
 
 /// An ``Announcer`` that records each announcement and speaks nothing.
+///
+/// The class is `@Observable`, so that a test can wait for a new
+/// announcement in ``announcements`` with an observation wait and no clock.
+@MainActor
+@Observable
 public final class RecordingAnnouncer: Announcer {
   /// One recorded announcement.
   public struct Announcement: Equatable, Sendable {

@@ -111,9 +111,10 @@ import Testing
     try await session.sendUpdate(
       #"{"sessionUpdate": "agent_message_chunk", "messageId": "m1", "content": {"type": "text", "text": "Hello."}}"#)
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
-    #expect(await waitUntil { session.model.transcript.count == Self.transcriptEntryCount })
+    let model = session.model
+    await ObservationWait.until { model.transcript.count == Self.transcriptEntryCount }
 
-    let toolCall = try #require(session.model.transcript.last)
+    let toolCall = try #require(model.transcript.last)
     #expect(
       ThreadAccessibility.toolCallProgress(in: session.model.transcript) == [
         Progress(id: toolCall.id.rowKey, title: Self.toolTitle, status: .inProgress)
@@ -137,7 +138,8 @@ import Testing
     let session = try await ScriptedSession.openWithLoginElicitation(id: Self.agentRequestID)
     defer { session.close() }
     let login = session.startLogin()
-    #expect(await waitUntil { !session.connection.pendingElicitations.isEmpty })
+    let connection = session.connection
+    await ObservationWait.until { !connection.pendingElicitations.isEmpty }
     let loginElicitation = try #require(session.connection.pendingElicitations.first)
     let elicitation = try await session.receiveElicitation(
       id: Self.agentRequestID + 1, params: ScriptedSession.formElicitationParams)

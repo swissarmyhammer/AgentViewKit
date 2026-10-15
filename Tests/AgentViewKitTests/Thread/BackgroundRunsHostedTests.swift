@@ -14,9 +14,6 @@
   /// The kit keeps no state for this order. Each row and the state banner
   /// show only what the session model reports.
   @Suite(.serialized, .hostedSerially) @MainActor struct BackgroundRunsHostedTests {
-    /// The longest time that a test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// A size that shows each row of the script and the state banner.
     static let tallSize = CGSize(width: 480, height: 1_200)
 
@@ -132,8 +129,9 @@
     }
 
     /// Sends each step of ``BackgroundRunScript`` through the scripted agent.
-    /// After each step, waits until the model reports the change of the step
-    /// and the view shows the model, and then calls `afterStep`.
+    /// After each step, waits for the event that the model reports the
+    /// change of the step, makes one ``HostedViewHarness/render()`` pass, and
+    /// then calls `afterStep`.
     ///
     /// - Parameters:
     ///   - session: The scripted session.
@@ -147,8 +145,7 @@
       let model = session.model
       for step in BackgroundRunScript.steps {
         try await session.send(update: step.update)
-        await harness.pump(until: waitTimeout) { isReported(change: step.change, by: model) }
-        await harness.pump(until: waitTimeout) { showsTheModel(model, in: harness) }
+        await harness.render { isReported(change: step.change, by: model) }
         afterStep(step)
       }
     }

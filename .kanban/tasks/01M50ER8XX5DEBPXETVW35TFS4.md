@@ -45,10 +45,26 @@ comments:
     - code changed: none.
     - next: review.
   timestamp: 2026-10-15T21:48:14.819206+00:00
+- actor: claude-code
+  id: 01m50s3j3zg9hwenxytqx61zks
+  text: |-
+    ### review — clean
+    - evidence: review sha 3750fe0~1..3750fe0 — 0 findings (attempted 14, failed 0, skipped 0); 9 files reviewed. No prior review findings on the task. The validators found no test-integrity problem (no read-back of a written value, no weaker assertion) and no duplication or reuse finding on the new lookups. Full suite green (1201 tests, 1 run).
+    - next: none. Task moved to done.
+  timestamp: 2026-10-15T21:57:15.519769+00:00
+- actor: claude-code
+  id: 01m50s46an4d58rg022a3fa8s7
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 90 sites in 9 files (Items)
+    - test: green — swift test, 1201 passed in 138 suites (1 run, with the T4-A1 fix)
+    - commit: 3750fe0
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T21:57:36.213284+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffc680
 title: 'Mail step 7 T4-A2: Remove the clock waits and polls from the Items tests'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Items (about 85 sites). Same rules as T4-A1: direct render pass, event wait on a certain event where needed, gate or fixed order; no time bound; no read-back of a value that the test wrote; delete no test; report a wait with no event and no direct render before you change it. One full run, one commit. Write all text in STE. #mail-step-7

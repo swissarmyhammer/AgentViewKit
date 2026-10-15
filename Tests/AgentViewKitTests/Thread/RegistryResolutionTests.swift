@@ -147,10 +147,11 @@ func marker(_ identifier: String) -> some View {
 }
 
 @Suite(.serialized, .hostedSerially) @MainActor struct RegistryResolutionTests {
-  /// Mounts `content`, pumps the run loop, and gives the harness.
+  /// Mounts `content`, makes one ``HostedViewHarness/render()`` pass, and
+  /// gives the harness.
   static func mount<Content: View>(_ content: Content) -> HostedViewHarness<Content> {
     let harness = HostedViewHarness(content)
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -362,12 +363,13 @@ func marker(_ identifier: String) -> some View {
 
   /// Makes the one entry of `kind` in the transcript of `session`.
   ///
+  /// The helper waits for the event that the model holds the entry.
+  ///
   /// - Parameters:
   ///   - kind: The entry case.
   ///   - session: A scripted session with an empty transcript.
   /// - Returns: The entry.
-  /// - Throws: The error of the transport, or an issue when the transcript
-  ///   has no entry at the time limit.
+  /// - Throws: The error of the transport.
   static func makeEntry(_ kind: OverrideKind, in session: ScriptedSession) async throws -> TranscriptEntry {
     if let update = update(making: kind) {
       try await session.sendUpdate(update)
@@ -375,7 +377,7 @@ func marker(_ identifier: String) -> some View {
       session.model.appendError(code: .invalidParams, message: entryText, data: nil)
     }
     let model = session.model
-    _ = await waitUntil { !model.transcript.isEmpty }
+    await ObservationWait.until { !model.transcript.isEmpty }
     return try #require(model.transcript.first)
   }
 

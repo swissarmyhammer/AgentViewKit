@@ -70,6 +70,9 @@ struct MeasuredView<Content: View>: View {
 
   /// The height of `view` at a Dynamic Type size.
   ///
+  /// The mount and one ``HostedViewHarness/render()`` pass lay out the view,
+  /// and the layout gives the height to the recorder.
+  ///
   /// - Parameters:
   ///   - view: The view to measure.
   ///   - size: The Dynamic Type size.
@@ -82,7 +85,7 @@ struct MeasuredView<Content: View>: View {
         .frame(maxHeight: .infinity, alignment: .top),
       size: hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     return recorder.height
   }
 

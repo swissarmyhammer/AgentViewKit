@@ -125,10 +125,26 @@ comments:
     - code changed: none.
     - next: review.
   timestamp: 2026-10-15T21:48:13.010593+00:00
+- actor: claude-code
+  id: 01m50rtyd7dw6bbpp5n97jt31y
+  text: |-
+    ### review — clean
+    - evidence: review sha 8b2c9bb~1..8b2c9bb — 0 findings (attempted 7, failed 0, skipped 0); 8 files reviewed. All 3 prior findings are checked. A search of all Swift files shows no PromptSubmitReport, no SpeechInputPhaseReport and one hasErrorEntry only (Tests/AgentViewKitTests/Helpers/TranscriptChecks.swift). ObservationReport<Value> is in Sources/AgentViewKit/Input/ObservationReport.swift. Full suite green (1201 tests, 1 run).
+    - next: none. Task moved to done.
+  timestamp: 2026-10-15T21:52:33.191102+00:00
+- actor: claude-code
+  id: 01m50s44w60cs21dv4g60afyfj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ObservationReport<Value>, TranscriptChecks.hasErrorEntry
+    - test: green — swift test, 1201 passed in 138 suites (1 run, with T4-A2)
+    - commit: 8b2c9bb
+    - review: clean — 0 new findings; 3 of 3 prior findings checked
+  timestamp: 2026-10-15T21:57:34.726059+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffc580
 title: 'Mail step 7 T4-A1: Remove the clock waits and polls from the Input tests'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Input (about 97 sites). Replace each `pump(until:)`, `waitUntil`, `harness.pump()`, `pump(for:)` with the decided pattern: a direct render pass (from T4-A0), and an event wait (ObservationWait.until on a value that is certain to change) where the render pass is not enough; or a gate or a fixed order. No time bound. A hosted test holds HostedTestLock, so each wait with no bound must be for a certain event. Do not read back a value that the test wrote (test-integrity). Delete no test. If a wait has no event and no direct render, report it to the step owner with an example before you change it. One full run, one commit. Write all text in STE. #mail-step-7
