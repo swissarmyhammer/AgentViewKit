@@ -12,6 +12,11 @@ import Testing
 /// count the body evaluations of each ``ParagraphView`` in a hosted
 /// ``ResponseView`` while its Markdown text grows one chunk after the other,
 /// as the text of a transcript entry grows.
+///
+/// The tests do not turn the run loop and do not suspend. Each change of the
+/// text has exactly one ``HostedViewHarness/render()`` pass before the test
+/// reads the counts. Thus a count shows only the evaluations of that change,
+/// and no window event or late update from outside the test adds to it.
 @Suite(.serialized, .hostedSerially) @MainActor struct ParagraphReuseTests {
   /// The text that the hosted response view shows. A test appends each chunk
   /// to it, as the session model appends a chunk to the text of an entry.
@@ -43,9 +48,6 @@ import Testing
   /// The size of the host window. It is tall enough for each paragraph.
   static let hostSize = CGSize(width: 480, height: 1_200)
 
-  /// The longest time that a test waits for the view to change, in seconds.
-  static let changeWaitSeconds: TimeInterval = 2
-
   /// The number of paragraphs of the long text.
   static let paragraphCount = 8
 
@@ -71,38 +73,33 @@ import Testing
       })
   }
 
-  /// Appends one chunk to the text, and waits until the last paragraph of
-  /// the new text evaluates.
+  /// Appends one chunk to the text, and makes one render pass.
+  ///
+  /// The change is on the main actor, so the pass applies it to the view
+  /// graph at once, with no run loop turn. The caller then checks that the
+  /// changed paragraphs evaluated.
   ///
   /// - Parameters:
   ///   - chunk: The chunk.
   ///   - growing: The text of the response view.
-  ///   - id: The id of the response view.
   ///   - harness: The harness that hosts the response view.
-  static func append(
-    _ chunk: String, to growing: GrowingText, id: String, harness: HostedViewHarness<some View>
-  ) async {
+  static func append(_ chunk: String, to growing: GrowingText, harness: HostedViewHarness<some View>) {
     growing.text += chunk
-    let last = ParagraphSplitter.paragraphs(growing.text).last
-    let lastKey = last.map { ParagraphView.counterKey(messageID: id, paragraphID: $0.id) }
-    await harness.pump(until: changeWaitSeconds) {
-      lastKey.map { BodyEvaluationCounter.count($0) >= 1 } ?? true
-    }
-    harness.pump()
+    harness.render()
   }
 
-  @Test func aChunkThatStartsAParagraphEvaluatesOnlyTheChangedParagraphs() async {
+  @Test func aChunkThatStartsAParagraphEvaluatesOnlyTheChangedParagraphs() {
     let id = "paragraph-reuse-start"
     let growing = GrowingText("One.\n\nTwo")
     let harness = HostedViewHarness(GrowingResponse(id: id, growing: growing), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     let paragraphs = ParagraphSplitter.paragraphs(growing.text)
     let firstKey = ParagraphView.counterKey(messageID: id, paragraphID: paragraphs[0].id)
     #expect(BodyEvaluationCounter.count(firstKey) >= 1)
     BodyEvaluationCounter.reset(prefix: ParagraphView.counterKeyPrefix + id)
 
-    await Self.append(".\n\nThree", to: growing, id: id, harness: harness)
+    Self.append(".\n\nThree", to: growing, harness: harness)
 
     let thirdKey = ParagraphView.counterKey(
       messageID: id, paragraphID: ParagraphSplitter.paragraphs(growing.text)[2].id)
@@ -111,19 +108,19 @@ import Testing
     BodyEvaluationCounter.reset(prefix: ParagraphView.counterKeyPrefix + id)
   }
 
-  @Test func aLongTextNeverEvaluatesAnEarlierParagraphAgain() async {
+  @Test func aLongTextNeverEvaluatesAnEarlierParagraphAgain() {
     let id = "paragraph-reuse-long"
     let growing = GrowingText("")
     let harness = HostedViewHarness(GrowingResponse(id: id, growing: growing), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     // A chunk can change the text of the last paragraph, and so its id. Each
     // paragraph before the last one keeps its text, its id and its count.
     var previous: [String: Int] = [:]
     var previousLastKey: String?
     for chunk in Self.chunks {
-      await Self.append(chunk, to: growing, id: id, harness: harness)
+      Self.append(chunk, to: growing, harness: harness)
       let current = Self.counts(of: growing.text, id: id)
       for (key, count) in previous where key != previousLastKey {
         #expect(current[key] == count, "The earlier paragraph \(key) evaluated again.")
