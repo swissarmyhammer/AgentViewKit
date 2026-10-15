@@ -265,14 +265,17 @@ public struct ConversationView<EmptyState: View>: View {
   ///
   /// The row identity is `TranscriptEntry.id` (plan.md §3.8). The scroll
   /// target of each row is its text key, because the scroll anchors use
-  /// text.
+  /// text. The text key is ``ItemRow/id``, the same value that the
+  /// accessibility identifier of the row holds, so a test can read the
+  /// scroll target of a row from the accessibility tree.
   ///
   /// - Parameter shownCount: The number of rows that the list shows.
   /// - Returns: One row for each shown entry.
   private func rows(shownCount: Int) -> some View {
     ForEach(session.transcript.suffix(shownCount), id: \.id) { entry in
-      readingRow(ItemRow(entry: entry))
-        .id(entry.rowKey)
+      let row = ItemRow(entry: entry)
+      readingRow(row)
+        .id(row.id)
     }
   }
 

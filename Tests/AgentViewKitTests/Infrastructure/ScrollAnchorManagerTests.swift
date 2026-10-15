@@ -102,6 +102,23 @@ import Testing
     #expect(manager.visibleIDs == ["c", "a", "b"])
   }
 
+  /// The visibility reports of a list whose thread grows from one row to
+  /// two rows, and then scrolls so that it shows only the second row, in
+  /// the order that the list sends them. Each report holds the row keys in
+  /// transcript order, as `ConversationView` gives them.
+  private static let growingListReports = [["u"], ["u", "m"], ["m"]]
+
+  @Test func eachVisibilityReportSetsTheVisibleIdsToItsIds() {
+    let manager = ScrollAnchorManager()
+    manager.noteAppended(ids: ["u", "m"])
+
+    for report in Self.growingListReports {
+      manager.noteVisible(ids: report)
+
+      #expect(manager.visibleIDs == report)
+    }
+  }
+
   // MARK: - New item count
 
   @Test func eachIdAppendedWhileUnpinnedIncrementsTheCount() {
