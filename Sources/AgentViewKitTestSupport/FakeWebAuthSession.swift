@@ -1,11 +1,17 @@
 import AgentViewKit
 import AuthenticationServices
 import Foundation
+import Observation
 
 /// A ``WebAuthSessionFactory`` that makes sessions with a scripted result.
 ///
 /// The factory and each session that it makes write to one call list, so a
-/// test can read the full order of calls.
+/// test can read the full order of calls. The factory and its sessions are
+/// `@Observable`, so that a test can wait for a new call in ``calls``, a new
+/// session in ``sessions`` or a session that waits (``Session/isWaiting``),
+/// with an observation wait and no clock.
+@MainActor
+@Observable
 public final class FakeWebAuthSession: WebAuthSessionFactory {
   /// The result that a session gives when it starts.
   public enum Script: Equatable, Sendable {
@@ -75,9 +81,11 @@ public final class FakeWebAuthSession: WebAuthSessionFactory {
   }
 
   /// A session that ``FakeWebAuthSession`` made.
+  @MainActor
+  @Observable
   public final class Session: WebAuthSession {
     /// The factory that records the calls of the session.
-    private weak var factory: FakeWebAuthSession?
+    @ObservationIgnored private weak var factory: FakeWebAuthSession?
 
     /// The result that the session gives when it starts.
     private let script: Script
@@ -87,7 +95,8 @@ public final class FakeWebAuthSession: WebAuthSessionFactory {
 
     public var prefersEphemeralWebBrowserSession = false
 
-    public weak var presentationContextProvider: (any ASWebAuthenticationPresentationContextProviding)?
+    @ObservationIgnored public weak var presentationContextProvider:
+      (any ASWebAuthenticationPresentationContextProviding)?
 
     /// Whether a ``start()`` waits for ``cancel()`` now.
     public var isWaiting: Bool { waitingStart != nil }

@@ -16,9 +16,6 @@ import Testing
 /// the thread view opens the auth card while `authState` asks for a sign-in,
 /// for example after an answer with the code `-32000`.
 @Suite(.serialized, .hostedSerially) @MainActor struct ConnectionModelViewsHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// A size that shows the thread with its header, its banners and the auth
   /// card.
   static let size = CGSize(width: 480, height: 800)
@@ -103,6 +100,27 @@ import Testing
     }
   }
 
+  /// Whether the auth state of `connection` is no longer the state that
+  /// `initialize` gives: `.required` with the methods of the agent.
+  ///
+  /// A sign-in, a sign-out or a terminal sign-in from the card changes the
+  /// state when the call ends, with success or with a failure. Thus a test
+  /// that pressed a button of the card waits for this event.
+  ///
+  /// - Parameter connection: The connection model.
+  /// - Returns: `true` when `authState` is not `.required(authMethods)`.
+  static func hasLeftTheRequiredState(_ connection: ConnectionModel) -> Bool {
+    connection.authState != .required(connection.authMethods)
+  }
+
+  /// Whether the connection state of `connection` is `.failed`.
+  ///
+  /// - Parameter connection: The connection model.
+  /// - Returns: `true` when the read from the agent failed.
+  static func hasFailed(_ connection: ConnectionModel) -> Bool {
+    if case .failed = connection.state { true } else { false }
+  }
+
   // MARK: - Connection banner
 
   @Test func aTransportCloseShowsTheDisconnectedBanner() async throws {
@@ -110,13 +128,12 @@ import Testing
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentConnectionBanner.disconnectedIdentifier) == nil)
 
     session.close()
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentConnectionBanner.disconnectedIdentifier) != nil
-    }
+    let connection = session.connection
+    await harness.render { connection.state == .disconnected }
 
     #expect(session.connection.state == .disconnected)
     #expect(harness.element(identifier: AgentConnectionBanner.disconnectedIdentifier) != nil)
@@ -128,9 +145,7 @@ import Testing
     defer { harness.close() }
 
     _ = await connection.connect(over: FailingTransport())
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentConnectionBanner.failedIdentifier) != nil
-    }
+    await harness.render { Self.hasFailed(connection) }
 
     let label = try #require(harness.element(identifier: AgentConnectionBanner.failedIdentifier)?.label)
     #expect(label.contains(Self.transportFailureText))
@@ -144,7 +159,7 @@ import Testing
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentInfoHeader.nameIdentifier)?.label == "scripted-agent")
     #expect(harness.element(identifier: AgentInfoHeader.versionIdentifier)?.label == "Version 1.0.0")
@@ -155,7 +170,7 @@ import Testing
     defer { session.close() }
     let harness = HostedViewHarness(size: Self.size) { AgentInfoHeader(connection: session.connection) }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentInfoHeader.nameIdentifier)?.label == "Scripted Agent")
     #expect(harness.element(identifier: AgentInfoHeader.versionIdentifier)?.label == "Version 2.1.0")
@@ -165,7 +180,7 @@ import Testing
     let connection = ConnectionModel(coalescingCadence: .zero)
     let harness = HostedViewHarness(size: Self.size) { AgentInfoHeader(connection: connection) }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentInfoHeader.identifier) == nil)
   }
@@ -177,15 +192,15 @@ import Testing
     defer { session.close() }
     let harness = Self.mountAuth(session.connection)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
     try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
-        && harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.isEnabled == true
-    }
+    // The failure and the end of the progress come in one main-actor turn.
+    let connection = session.connection
+    await harness.render { Self.hasLeftTheRequiredState(connection) }
 
+    #expect(harness.element(identifier: AgentAuthView.failureIdentifier) != nil)
     #expect(
       session.connection.authState
         == .failed(AuthFailure(operation: .login(Self.agentMethodID), reason: .request(Self.scriptedRefusal))))
@@ -199,13 +214,12 @@ import Testing
     defer { session.close() }
     let harness = Self.mountAuth(session.connection)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
 
     try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) == nil
-    }
+    let connection = session.connection
+    await harness.render { Self.hasLeftTheRequiredState(connection) }
 
     let login = try #require(session.agent.messages(method: Self.loginMethod).first)
     #expect(login["params"]?["methodId"]?.stringValue == Self.agentMethodID.rawValue)
@@ -232,7 +246,7 @@ import Testing
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(session.connection.authState == .required(session.connection.authMethods))
     #expect(session.model.transcript.isEmpty)
@@ -248,11 +262,13 @@ import Testing
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.identifier) == nil)
 
     _ = try? await session.model.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: AgentAuthView.identifier) != nil }
+    // The connection model records the `-32000` answer before the prompt
+    // call throws it again, so `authState` is final when the call returns.
+    harness.render()
 
     #expect(session.connection.authState == .required(session.connection.authMethods))
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
@@ -264,12 +280,14 @@ import Testing
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     _ = try? await session.model.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
     let lastEntry = try #require(session.model.transcript.last)
     let lastErrorCode: ErrorCode? = if case .error(let entry) = lastEntry { entry.code } else { nil }
-    harness.pump()
+    // The connection model reads the error of the prompt before the prompt
+    // call throws it again, so `authState` is final when the call returns.
+    harness.render()
 
     #expect(lastErrorCode == .internalError)
 

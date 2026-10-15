@@ -53,9 +53,6 @@ struct HostedTextField: View {
   /// The size of a hosted field.
   static let fieldSize = CGSize(width: 480, height: 400)
 
-  /// The longest time that a test waits for the field to change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// Makes a field schema.
   static func field(
     _ name: String,
@@ -77,7 +74,7 @@ struct HostedTextField: View {
     -> HostedViewHarness<HostedField>
   {
     let harness = HostedViewHarness(HostedField(schema: schema, box: box), size: fieldSize)
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -90,15 +87,15 @@ struct HostedTextField: View {
     let harness = HostedViewHarness(
       HostedTextField(schema: schema, box: box, model: model), size: Self.fieldSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "name")) != nil)
     model.replaceAll("Ada")
-    harness.pump()
+    harness.render()
     #expect(box.value == .string("Ada"))
 
     model.replaceAll("")
-    harness.pump()
+    harness.render()
     #expect(box.value == nil)
   }
 
@@ -109,11 +106,11 @@ struct HostedTextField: View {
     let harness = HostedViewHarness(
       HostedTextField(schema: schema, box: box, model: model), size: Self.fieldSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(model.text == "first")
 
     box.value = .string("second")
-    harness.pump()
+    harness.render()
     #expect(model.text == "second")
   }
 
@@ -226,7 +223,6 @@ struct HostedTextField: View {
     let selected = String(localized: "Selected")
 
     try harness.press(identifier: radio)
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: radio)?.value == selected }
 
     #expect(harness.element(identifier: radio)?.value == selected)
   }
@@ -314,7 +310,7 @@ struct HostedTextField: View {
       },
       size: Self.fieldSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: "custom-toggle")?.label == "Custom Agree")
     #expect(harness.element(identifier: ElicitationFieldView.identifier(for: "agree")) != nil)

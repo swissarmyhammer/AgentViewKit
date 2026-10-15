@@ -81,9 +81,6 @@ import Testing
   /// The size of a window that shows the full card.
   static let cardSize = CGSize(width: cardWidth, height: cardHeight)
 
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// The text of the error that the throwing runner gives when the agent
   /// program does not start.
   nonisolated static let launchErrorText = "The agent program did not start."
@@ -136,7 +133,10 @@ import Testing
   }
 
   /// A host closure that counts its calls, for the Reconnect button.
-  @MainActor final class ReconnectRecorder {
+  ///
+  /// The class is `@Observable`, so that a test can wait for a call with an
+  /// observation wait and no clock.
+  @MainActor @Observable final class ReconnectRecorder {
     /// The number of calls.
     private(set) var callCount = 0
 
@@ -188,8 +188,8 @@ import Testing
     }
   }
 
-  /// Presses the Run button of the terminal method, and waits until the
-  /// model records the end of the run.
+  /// Presses the Run button of the terminal method, waits until the model
+  /// records the end of the run, and makes one render pass.
   ///
   /// - Parameters:
   ///   - harness: The harness of the card.
@@ -198,14 +198,12 @@ import Testing
     in harness: HostedViewHarness<some View>, of session: ScriptedSession
   ) async throws {
     try harness.press(identifier: AgentAuthView.runIdentifier(for: terminalMethodID))
-    await harness.pump(until: waitTimeout) {
-      session.connection.authState != .required(session.connection.authMethods)
-    }
-    harness.pump()
+    let connection = session.connection
+    await harness.render { ConnectionModelViewsHostedTests.hasLeftTheRequiredState(connection) }
   }
 
-  /// Runs the terminal method with `runner` in a new card, and waits until
-  /// the card shows a failure.
+  /// Runs the terminal method with `runner` in a new card, and gives what
+  /// the card shows when the model records the end of the run.
   ///
   /// - Parameter runner: The runner of the host.
   /// - Returns: The auth state and the texts that the card shows after the
@@ -215,13 +213,10 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: runner)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
     try await pressRunAndWait(in: harness, of: session)
-    await harness.pump(until: waitTimeout) {
-      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
-    }
 
     return TerminalFailure(
       authState: session.connection.authState,
@@ -231,7 +226,10 @@ import Testing
   }
 
   /// Shows the card of `session`, runs an auth call that the agent does not
-  /// advertise, and waits until the card shows a failure.
+  /// advertise, and gives the failure that the card shows.
+  ///
+  /// The model records the refusal in `authState` before the call throws, so
+  /// one render pass after the call shows the failure.
   ///
   /// - Parameters:
   ///   - session: The scripted session of the card.
@@ -245,13 +243,11 @@ import Testing
   ) async -> FailureTexts {
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
     await #expect(throws: error) { try await call(session.connection) }
-    await harness.pump(until: waitTimeout) {
-      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
-    }
+    harness.render()
 
     return FailureTexts(
       title: harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label,
@@ -273,7 +269,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
@@ -299,7 +295,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
     #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.agentMethodID)) == nil)
@@ -310,7 +306,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(
       harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.label
@@ -324,7 +320,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: FakeTerminalAuthRunner(exitStatus: Self.successStatus))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(!session.connection.canLogin)
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
@@ -342,7 +338,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
     #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.terminalMethodID)) == nil)
@@ -354,7 +350,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: runner)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.terminalMethodID)) == nil)
 
     try await Self.pressRunAndWait(in: harness, of: session)
@@ -402,13 +398,10 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: runner, reconnect: recorder.reconnect)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) == nil)
 
     try await Self.pressRunAndWait(in: harness, of: session)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.reconnectIdentifier) != nil
-    }
 
     #expect(session.connection.authState == .reconnectRequired(Self.terminalMethodID))
     #expect(
@@ -418,8 +411,7 @@ import Testing
     #expect(recorder.callCount == 0)
 
     try harness.press(identifier: AgentAuthView.reconnectIdentifier)
-    await harness.pump(until: Self.waitTimeout) { recorder.callCount > 0 }
-    harness.pump()
+    await harness.render { recorder.callCount > 0 }
 
     #expect(recorder.callCount == 1)
   }
@@ -430,12 +422,9 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session, runner: runner)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try await Self.pressRunAndWait(in: harness, of: session)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil
-    }
 
     #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil)
     #expect(harness.element(identifier: AgentAuthView.reconnectIdentifier) == nil)
@@ -446,7 +435,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.terminalMethodID)) != nil)
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
@@ -459,7 +448,7 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(!session.connection.canLogout)
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
@@ -472,13 +461,12 @@ import Testing
     try await session.connection.login(LoginAuthRequest(methodId: Self.agentMethodID))
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) == nil)
 
     try harness.press(identifier: AgentAuthView.signOutIdentifier)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil
-    }
+    let connection = session.connection
+    await harness.render { !ConnectionModelViewsHostedTests.hasLeftTheRequiredState(connection) }
 
     #expect(session.agent.messages(method: Self.logoutMethod).count == 1)
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
@@ -489,16 +477,14 @@ import Testing
     defer { session.close() }
     let harness = Self.harness(session)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
     try harness.press(identifier: AgentAuthView.signOutIdentifier)
     // The failure and the end of the progress come in one main-actor turn,
-    // but the view draws the enabled button in a later pass.
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: AgentAuthView.failureIdentifier) != nil
-        && harness.element(identifier: AgentAuthView.signOutIdentifier)?.isEnabled == true
-    }
+    // so one render pass after the failure shows the enabled button.
+    let connection = session.connection
+    await harness.render { ConnectionModelViewsHostedTests.hasLeftTheRequiredState(connection) }
 
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier)?.label == Self.scriptedErrorMessage)
     #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == Self.signOutFailureTitle)

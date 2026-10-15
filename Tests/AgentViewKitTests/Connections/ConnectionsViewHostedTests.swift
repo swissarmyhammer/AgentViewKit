@@ -26,7 +26,7 @@ import Testing
     for status in Self.statuses {
       let harness = HostedViewHarness(ConnectionStatusChip(status: status))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let identifier = ConnectionStatusChip.identifier(for: status)
       let element = harness.element(identifier: identifier)
@@ -43,7 +43,7 @@ import Testing
   @Test func aFailedChipWithNoReasonHasNoValue() {
     let harness = HostedViewHarness(ConnectionStatusChip(status: .failed(reason: nil)))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: ConnectionStatusChip.identifier(for: .failed(reason: nil)))
     #expect(element?.label == "Failed")
@@ -55,7 +55,7 @@ import Testing
   @Test func aViewWithNoSessionModelShowsTheEmptyState() {
     let harness = HostedViewHarness(ConnectionsView(), size: Self.listSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ConnectionsView.emptyIdentifier) != nil)
   }

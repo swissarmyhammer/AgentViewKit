@@ -134,6 +134,7 @@ public struct PermissionView: View {
 
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.permissionAnswerReport) private var reportAnswer
 
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
@@ -400,12 +401,16 @@ public struct PermissionView: View {
   /// Selects `option` on the session model, then sends the comment as the
   /// next prompt, with `SessionModel.answerPermission(_:option:comment:)`.
   ///
+  /// The card reports the answer through
+  /// ``SwiftUI/EnvironmentValues/permissionAnswerReport`` in the same step.
+  ///
   /// - Parameters:
   ///   - option: The option that the user selected.
   ///   - comment: The comment of the user, or `nil`.
   private func answer(with option: FoundationModelsACP.PermissionOption, comment: String?) {
     guard isPending else { return }
     session.answerPermission(request.id, option: option.optionId, comment: comment)
+    reportAnswer?(PermissionAnswer(option: option.optionId, comment: comment))
   }
 
   /// Selects `allow` on the session model, then sets the mode option to auto.
@@ -425,4 +430,27 @@ public struct PermissionView: View {
   private var isPending: Bool {
     session.pendingPermissions.contains { $0.id == request.id }
   }
+}
+
+/// One answer that a ``PermissionView`` gave to the session model.
+///
+/// The card reports each answer through
+/// ``SwiftUI/EnvironmentValues/permissionAnswerReport``. A test reads the report
+/// to learn that the card handled a press, and which comment it gave. With no
+/// comment, the session model sends no prompt.
+struct PermissionAnswer: Equatable {
+  /// The id of the option that the card selected.
+  let option: PermissionOptionId
+
+  /// The comment that goes out as the next prompt, or `nil` for no prompt.
+  let comment: String?
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets each ``PermissionAnswer`` of the
+  /// nearest ``PermissionView``, or `nil`.
+  ///
+  /// The card calls the report in the same step as it gives the answer to the
+  /// session model.
+  @Entry var permissionAnswerReport: ObservationReport<PermissionAnswer>? = nil
 }

@@ -119,7 +119,7 @@ import Testing
     let view = content(ElicitationView(request: pending, owner: session.model))
       .environment(\.focusReporter, reporter)
     let harness = HostedViewHarness(AnyView(view), size: formSize)
-    harness.pump()
+    harness.render()
     return Mounted(harness: harness, session: session)
   }
 

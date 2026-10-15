@@ -11,9 +11,6 @@ import Testing
 /// session updates, then changes the status of one server. The view reads
 /// the list of the client model directly. No test sets a kit store.
 @Suite(.serialized, .hostedSerially) @MainActor struct MCPServersHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// The name of the HTTP server. The agent reports it first.
   static let webName = "web"
 
@@ -66,9 +63,19 @@ import Testing
     try await session.sendUpdate(makeStatusUpdate(name: webName, transport: httpTransport, status: "connecting"))
     try await session.sendUpdate(makeStatusUpdate(name: filesName, transport: stdioTransport, status: "connected"))
     let model = session.model
-    let reported = await waitUntil { model.mcpServers.count == serverCount }
-    #expect(reported, "The model did not get the two servers.")
+    await ObservationWait.until { model.mcpServers.count == serverCount }
     return session
+  }
+
+  /// Whether the server `name` of `model` has `status`.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the server.
+  ///   - status: The status to compare.
+  ///   - model: The session model.
+  /// - Returns: `true` when `mcpServers` has a server `name` with `status`.
+  static func server(_ name: String, has status: MCPServerStatus, in model: SessionModel) -> Bool {
+    model.mcpServers.first { $0.name == name }?.status == status
   }
 
   /// Shows a ``ConnectionsView`` with only the session model in the
@@ -81,7 +88,7 @@ import Testing
       ConnectionsView()
         .environment(\.sessionModel, session.model)
     }
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -143,8 +150,9 @@ import Testing
       Self.makeStatusUpdate(
         name: Self.filesName, transport: Self.stdioTransport, status: "failed", reason: Self.failureReason))
     let failed = ConnectionStatusChip.identifier(for: .failed(reason: nil))
-    await harness.pump(until: Self.waitTimeout) {
-      Self.chip(inRowOf: Self.filesName, in: harness)?.identifier == failed
+    let model = session.model
+    await harness.render {
+      Self.server(Self.filesName, has: .failed(reason: Self.failureReason), in: model)
     }
 
     let chip = try #require(Self.chip(inRowOf: Self.filesName, in: harness))
@@ -178,7 +186,8 @@ import Testing
 
     try await session.sendUpdate(
       Self.makeStatusUpdate(name: Self.unknownTransportName, transport: nil, status: "connected"))
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: rowIdentifier) != nil }
+    let model = session.model
+    await harness.render { Self.server(Self.unknownTransportName, has: .connected, in: model) }
 
     #expect(harness.element(identifier: rowIdentifier)?.label == Self.unknownTransportName)
     #expect(harness.element(identifier: ConnectionRow.transportIdentifier(for: Self.unknownTransportName)) == nil)

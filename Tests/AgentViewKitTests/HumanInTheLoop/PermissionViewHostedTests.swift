@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import DemoSupport
@@ -132,18 +132,22 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - params: The JSON text of the params of the request.
+  ///   - answerReport: The report that gets each answer of the card, or
+  ///     `nil`.
   /// - Returns: The harness of the card.
   /// - Throws: The error of the transport, or an issue when the model holds
   ///   no request.
   static func mountCard(
-    in session: ScriptedSession, params: String = makeParams()
+    in session: ScriptedSession, params: String = makeParams(),
+    answerReport: ObservationReport<PermissionAnswer>? = nil
   ) async throws -> HostedViewHarness<some View> {
     let pending = try await session.receivePermissionRequest(id: agentRequestID, params: params)
     let harness = HostedViewHarness(size: cardSize) {
       PermissionView(request: pending, session: session.model)
+        .environment(\.permissionAnswerReport, answerReport)
         .transaction { $0.disablesAnimations = true }
     }
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -282,7 +286,6 @@ import Testing
     #expect(harness.element(identifier: PermissionView.commentIdentifier) == nil)
 
     try Self.press(.rejectOnce, in: harness)
-    harness.pump()
     #expect(harness.element(identifier: PermissionView.commentIdentifier) != nil)
     #expect(session.model.pendingPermissions.count == 1)
 
@@ -290,7 +293,7 @@ import Testing
     harness.type(Self.comment)
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
     let result = await session.result(ofRequest: Self.agentRequestID)
-    #expect(await waitUntil { !Self.promptTexts(session).isEmpty })
+    await ObservationWait.until { !Self.promptTexts(session).isEmpty }
 
     #expect(result == (try Self.selectedResult(.rejectOnce)))
     #expect(Self.promptTexts(session) == [Self.comment])
@@ -303,23 +306,28 @@ import Testing
     defer { harness.close() }
 
     try Self.press(.rejectOnce, in: harness)
-    harness.pump()
 
     harness.expectButton(identifier: PermissionView.commentSubmitIdentifier, label: "Send")
   }
 
+  /// An empty comment selects the reject option and sends no prompt.
+  ///
+  /// The card reports its answer in the same step as it gives the answer to
+  /// the session model, so the test knows that the card handled the Send
+  /// press and gave no comment. With no comment, the session model sends no
+  /// prompt, so no prompt frame can come after the check.
   @Test func anEmptyCommentSendsNoPrompt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = try await Self.mountCard(in: session)
+    var answers: [PermissionAnswer] = []
+    let harness = try await Self.mountCard(in: session, answerReport: ObservationReport { answers.append($0) })
     defer { harness.close() }
 
     try Self.press(.rejectAlways, in: harness)
-    harness.pump()
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
     let result = await session.result(ofRequest: Self.agentRequestID)
-    harness.pump()
 
+    #expect(answers == [PermissionAnswer(option: Self.optionID(.rejectAlways), comment: nil)])
     #expect(result == (try Self.selectedResult(.rejectAlways)))
     #expect(Self.promptTexts(session).isEmpty)
   }
@@ -383,7 +391,7 @@ import Testing
 
     try harness.press(identifier: PermissionView.switchToAutoIdentifier)
     let result = await session.result(ofRequest: Self.agentRequestID)
-    #expect(await waitUntil { !agent.messages(method: Self.setConfigOptionMethod).isEmpty })
+    await ObservationWait.until { !agent.messages(method: Self.setConfigOptionMethod).isEmpty }
 
     #expect(result == (try Self.selectedResult(.allowOnce)))
     #expect(allowedBeforeModeSet.value)
@@ -409,7 +417,6 @@ import Testing
     #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Show Terminal")
 
     try harness.press(identifier: PermissionView.terminalLinkIdentifier)
-    harness.pump()
 
     #expect(harness.element(identifier: TerminalView.identifier) != nil)
     #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Hide Terminal")
@@ -447,7 +454,7 @@ import Testing
         .environment(\.focusReporter, reporter)
         .transaction { $0.disablesAnimations = true }
     }
-    harness.pump()
+    harness.render()
     return harness
   }
 
@@ -475,7 +482,9 @@ import Testing
 
     let id = try await Self.sendPermissionRequest(session, harness: harness)
     let cardIdentifier = PendingRequestsHost.identifier(for: id.uuidString)
-    await harness.pump(until: Self.waitTimeout) { reporter.moves.count >= 2 }
+    // The host reports the focus move when it sees the new card, and the card
+    // reports itself when it appears. A render pass runs both actions.
+    harness.render()
 
     // The host reports the card container, and the card reports itself.
     #expect(Set(reporter.moves) == [cardIdentifier, PermissionView.identifier])
@@ -484,7 +493,7 @@ import Testing
 
     let movesBeforeAnswer = reporter.moves.count
     await session.model.cancelPermission(id)
-    await harness.pump(until: Self.waitTimeout) { reporter.moves.count > movesBeforeAnswer }
+    harness.render()
 
     #expect(reporter.moves.dropFirst(movesBeforeAnswer) == [StockPromptEditor.identifier])
     #expect(harness.element(identifier: cardIdentifier) == nil)
@@ -499,11 +508,9 @@ import Testing
     let permissionID = try await Self.sendPermissionRequest(session, harness: harness)
     try await session.sendRequest(
       "elicitation/create", id: Self.agentRequestID + 1, params: ScriptedSession.formElicitationParams)
-    await harness.pump(until: Self.waitTimeout) { !session.model.pendingElicitations.isEmpty }
+    let model = session.model
+    await harness.render { !model.pendingElicitations.isEmpty }
     let elicitationID = try #require(session.model.pendingElicitations.first).id
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: ElicitationView.formIdentifier) != nil
-    }
 
     for id in [permissionID, elicitationID] {
       #expect(harness.element(identifier: PendingRequestsHost.identifier(for: id.uuidString)) != nil)
@@ -517,11 +524,11 @@ import Testing
     let harness = HostedViewHarness(
       AgentThreadView(session: session.model), size: Self.cardSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let id = try await Self.sendPermissionRequest(session, harness: harness)
     let cardIdentifier = PendingRequestsHost.identifier(for: id.uuidString)
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: cardIdentifier) != nil }
+    harness.render()
 
     #expect(harness.element(identifier: cardIdentifier) != nil)
   }

@@ -90,7 +90,7 @@ import Testing
       try await presenter.present(
         url: Self.authorizationURL, callbackScheme: Self.callbackScheme, ephemeral: false)
     }
-    try await waitUntilTheSessionWaits(factory)
+    await waitForTheWaitingSession(of: factory)
     #expect(presenter.isPresenting)
     presenter.cancel()
 
@@ -109,7 +109,7 @@ import Testing
       try await presenter.present(
         url: Self.authorizationURL, callbackScheme: Self.callbackScheme, ephemeral: false)
     }
-    try await waitUntilTheSessionWaits(factory)
+    await waitForTheWaitingSession(of: factory)
     present.cancel()
 
     await #expect(throws: AuthorizationPresenterError.cancelled) {
@@ -155,11 +155,12 @@ import Testing
 
   /// Waits until the first session of `factory` waits for a cancel.
   ///
+  /// The factory and its sessions are observable, so the wait is an
+  /// observation wait with no clock. The present task starts the session, so
+  /// the event is certain to come.
+  ///
   /// - Parameter factory: The factory that made the session.
-  private func waitUntilTheSessionWaits(_ factory: FakeWebAuthSession) async throws {
-    while factory.sessions.first?.isWaiting != true {
-      try #require(!Task.isCancelled)
-      await Task.yield()
-    }
+  private func waitForTheWaitingSession(of factory: FakeWebAuthSession) async {
+    await ObservationWait.until { factory.sessions.first?.isWaiting == true }
   }
 }

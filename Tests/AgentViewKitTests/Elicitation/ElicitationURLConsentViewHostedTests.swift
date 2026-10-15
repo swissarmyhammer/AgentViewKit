@@ -11,9 +11,6 @@ import Testing
 /// of a ``ScriptedSession``, shows it in an ``ElicitationURLConsentView``, and
 /// reads the response that the scripted agent receives.
 @Suite(.serialized, .hostedSerially) @MainActor struct ElicitationURLConsentViewHostedTests {
-  /// The longest time that a test waits for a call, in seconds.
-  static let callWaitSeconds: TimeInterval = 1
-
   /// The size of a hosted card.
   static let cardSize = CGSize(width: 520, height: 320)
 
@@ -99,7 +96,7 @@ import Testing
       .environment(\.authorizationPresenter, AuthorizationPresenter(factory: browser))
       .environment(\.focusReporter, reporter)
     let harness = HostedViewHarness(AnyView(view), size: cardSize)
-    harness.pump()
+    harness.render()
     return Mounted(harness: harness, session: session, browser: browser)
   }
 
@@ -111,10 +108,14 @@ import Testing
     }
   }
 
-  /// Presses Open in Browser and waits for the answer and the session start.
+  /// Presses Open in Browser, waits for the answer and the session start,
+  /// and makes one render pass.
+  ///
+  /// The scripted agent and the browser sessions are observable, and the
+  /// press is certain to send the answer and to start a session.
   static func open(_ mounted: Mounted) async throws {
     try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
-    await mounted.harness.pump(until: callWaitSeconds) {
+    await mounted.harness.render {
       !mounted.responses.isEmpty && mounted.browser.sessions.contains(where: \.isWaiting)
     }
   }
@@ -178,7 +179,7 @@ import Testing
   @Test func theCardOpensNothingBeforeAPress() async throws {
     let mounted = try await Self.mount()
     defer { mounted.close() }
-    mounted.harness.pump()
+    mounted.harness.render()
 
     #expect(mounted.browser.calls.isEmpty)
     #expect(mounted.responses.isEmpty)
@@ -244,7 +245,7 @@ import Testing
     try await Self.open(mounted)
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.retryIdentifier)
-    await mounted.harness.pump(until: Self.callWaitSeconds) {
+    await ObservationWait.until {
       Self.openedURLs(mounted.browser).count == 2 && mounted.browser.sessions.last?.isWaiting == true
     }
 
@@ -270,7 +271,7 @@ import Testing
     try await Self.open(mounted)
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
-    await mounted.harness.pump(until: Self.callWaitSeconds) { mounted.browser.calls.contains(.cancel) }
+    await ObservationWait.until { mounted.browser.calls.contains(.cancel) }
 
     #expect(mounted.browser.calls.last == .cancel)
     #expect(mounted.responses.count == 1)
@@ -306,10 +307,8 @@ import Testing
 
     try await session.sendRequest("elicitation/create", id: 1, params: Self.makeParams(url: "https://example.com/auth"))
     try await session.sendRequest("elicitation/create", id: 2, params: ScriptedSession.formElicitationParams)
-    await harness.pump(until: Self.callWaitSeconds) {
-      harness.element(identifier: ElicitationURLConsentView.identifier) != nil
-        && harness.element(identifier: ElicitationView.formIdentifier) != nil
-    }
+    let model = session.model
+    await harness.render { model.pendingElicitations.count == 2 }
 
     #expect(harness.element(identifier: ElicitationURLConsentView.identifier) != nil)
     #expect(harness.element(identifier: ElicitationURLConsentView.openIdentifier) != nil)
