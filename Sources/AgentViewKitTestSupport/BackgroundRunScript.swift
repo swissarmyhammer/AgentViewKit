@@ -71,13 +71,8 @@ public enum BackgroundRunScript {
   ///
   /// No prompt ended, so the idle has no stop reason, as the idle of
   /// ACPAgent after background work only.
-  public static let backgroundOnlySteps: [Step] = [
-    makeStateStep(isRunning: true),
-    makeToolCallStep(title: buildTitle, status: .pending, isFirst: true),
-    makeToolCallStep(title: buildTitle, status: .inProgress, isFirst: false),
-    makeToolCallStep(title: buildTitle, status: .completed, isFirst: false),
-    makeStateStep(isRunning: false),
-  ]
+  public static let backgroundOnlySteps: [Step] =
+    [makeStateStep(isRunning: true)] + buildToolCallSteps + [makeStateStep(isRunning: false)]
 
   /// One step for each chunk of the streamed answer. After each chunk, the
   /// answer has the text of all the chunks up to it.
@@ -92,12 +87,19 @@ public enum BackgroundRunScript {
   /// The tool call updates: both calls start, then the build runs and
   /// completes, and then the test completes.
   private static var toolCallSteps: [Step] {
+    let buildSteps = buildToolCallSteps
+    let testStartStep = makeToolCallStep(title: testTitle, status: .pending, isFirst: true)
+    let testEndStep = makeToolCallStep(title: testTitle, status: .completed, isFirst: false)
+    return Array(buildSteps.prefix(1)) + [testStartStep] + Array(buildSteps.dropFirst()) + [testEndStep]
+  }
+
+  /// The updates of the build tool call, in send order: it starts, runs and
+  /// completes.
+  private static var buildToolCallSteps: [Step] {
     [
       makeToolCallStep(title: buildTitle, status: .pending, isFirst: true),
-      makeToolCallStep(title: testTitle, status: .pending, isFirst: true),
       makeToolCallStep(title: buildTitle, status: .inProgress, isFirst: false),
       makeToolCallStep(title: buildTitle, status: .completed, isFirst: false),
-      makeToolCallStep(title: testTitle, status: .completed, isFirst: false),
     ]
   }
 

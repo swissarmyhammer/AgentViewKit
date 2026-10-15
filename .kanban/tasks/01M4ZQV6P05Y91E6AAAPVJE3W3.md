@@ -187,6 +187,43 @@ comments:
     - No hang. Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-3.log
     - next: review
   timestamp: 2026-10-15T17:44:50.419411+00:00
+- actor: claude-code
+  id: 01m50cs6zspffpfz74qhg6v53s
+  text: |-
+    ### review — findings
+    - evidence: `review sha a2799b8..76bb73d`: 1 finding (1 confirmed, 1 refuted) — Sources/AgentViewKitTestSupport/BackgroundRunScript.swift:76 (duplication/duplication). The extra check `review file Tests/AgentViewKitTests/Input/PromptAccessoryButtonsHostedTests.swift` (the file that was edited with perl, reviewed whole, test-integrity rules included): 0 findings.
+    - next: implement the finding. Remove the duplicated build tool call steps from backgroundOnlySteps and toolCallSteps with one shared helper. Then test and review again. The task stays in review.
+  timestamp: 2026-10-15T18:21:53.529237+00:00
+- actor: claude-code
+  id: 01m50csn0pkr4wggvd5nm7bbch
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — pass A (G7, G8, G9, G11) and pass B (G4, G5, G10), with the decisions D1 to D3
+    - test: red (1 run: hang from ^809cwz0), red (1 run: no-report cause → ^fn4p8gy), then green — swift test, 1193 passed in 136 suites (1 run)
+    - commit: d57b9cf, 2f28317, ef8765e, 1576064, 1d7b99a, c24beb9, 76bb73d
+    - review: findings — Sources/AgentViewKitTestSupport/BackgroundRunScript.swift:76 (duplication)
+  timestamp: 2026-10-15T18:22:07.894450+00:00
+- actor: claude-code
+  id: 01m50cy6yxvdhcbghcwrx9d498
+  text: |-
+    Finding BackgroundRunScript.swift duplication/duplication: added the private static buildToolCallSteps (build pending, inProgress, completed). backgroundOnlySteps is now running + buildToolCallSteps + idle. toolCallSteps puts the test start step after the first build step and the test end step after the last build step, so the send order does not change: build pending, test pending, build inProgress, build completed, test completed. The file has no other copy of these steps. The build-system warning "missing creator for mutated node" comes from the mlx-swift_Cmlx bundle of a dependency, not from this change.
+
+    ### implement — changed
+    - evidence: Sources/AgentViewKitTestSupport/BackgroundRunScript.swift; swift test --filter 'BackgroundRunsHostedTests|AgentWorkOrderHostedTests|ThreadAccessibilityHostedTests|ScriptedSessionTests' — 28 tests in 4 suites passed, 0 failed
+    - next: test, then review
+  timestamp: 2026-10-15T18:24:37.341599+00:00
+- actor: claude-code
+  id: 01m50d66damxna7dv2dx763f59
+  text: |-
+    ### test — green
+    - command: swift test (one run, exit code 0). Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-5.log
+    - counts: 1 test in 1 suite passed; 123 tests in 16 suites passed; 1193 tests in 136 suites passed. Total 1317 passed, 0 failed, 0 skipped. XCTest suites ran 0 tests, 0 failures.
+    - known issues: 2. Both are expected. aWrappedTextWithAFixedVerticalSizeFails (HostedLayoutExpectationsTests.swift:23) and aViewThatIgnoresTheThemeFails (ThemeHeightExpectationsTests.swift:35) test that the expectation helper reports a failure. They pass.
+    - warnings: 0 project warnings. The only warning is the mlx-swift "missing creator for mutated node" build system warning. The step owner says it does not count.
+    - hang: none. No sample taken. No process killed.
+    - code change: none. No test deleted.
+    - next: review
+  timestamp: 2026-10-15T18:28:58.922657+00:00
 depends_on:
 - 01M4ZQTYBRCAQQP8V7VWF0YM0J
 position_column: doing
@@ -200,3 +237,15 @@ The demo agents (ScriptedWireAgent, InMemoryDemoACPAgent) follow the new order w
 Keep the general behavior for other ACP agents (for example the .requiresAction display).
 
 Ask the step owner before a decision that is not in the plan. Commit with AgentViewKit green. Report after the task. Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-15 13:10)
+
+> Scope: `review sha a2799b8..76bb73d` — reviewed the diffs only — lines this change added or modified. 20 file(s) reviewed, 13 not reviewed.
+
+> 12 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 12 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/acp-version.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKitTestSupport/BackgroundRunScript.swift:76` `duplication/duplication` — The build tool call steps in backgroundOnlySteps repeat the build tool call steps in toolCallSteps. If one copy changes, the other can fall out of step. Extract a static helper, for example buildToolCallSteps, that returns the three build steps. Call it from backgroundOnlySteps and from toolCallSteps. Delete the copied lines in the new code.

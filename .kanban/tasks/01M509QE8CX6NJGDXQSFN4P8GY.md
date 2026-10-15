@@ -77,8 +77,24 @@ comments:
     - note: The run shows 2 known issues. Both are on purpose, in negative-control tests that use known-issue marking: aWrappedTextWithAFixedVerticalSizeFails (HostedLayoutExpectationsTests.swift:23) and aViewThatIgnoresTheThemeFails (ThemeHeightExpectationsTests.swift:35). The only warning is the mlx-swift "missing creator for mutated node" build-system warning, which the step owner says is not a project warning.
     - next: review or commit.
   timestamp: 2026-10-15T18:01:35.517293+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m50bw0ber5sdzscysnafwa28
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (c6d76da): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 3 files reviewed. 2 .kanban files not reviewed (ignore rule). The 3 prior items of "Review Findings (2026-10-15 12:46)" are checked. A search of the whole of the 3 files found no `#expect` on `visibleIDs` after a given report. The remaining checks after `reportRows`/`noteVisible` are on reactions only: `isPinnedToBottom`, `newItemsSinceUnpinned`, the pill, `anchorID` after a press, click or command, and the row frames. Each affected test names the gap (^2pbwh3e).
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T18:05:56.462272+00:00
+- actor: claude-code
+  id: 01m50bwgrr04b6nr11j571agj3
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — the 3 test files; no read-back of the written visibility state; 4 renames
+    - test: green — swift test, 1193 passed in 136 suites (1 run)
+    - commit: c6d76da
+    - review: clean — 0 new findings; 3 of 3 prior findings checked
+  timestamp: 2026-10-15T18:06:13.272660+00:00
+position_column: done
+position_ordinal: ffbd80
 title: 'Mail step 7: The hosted tests that wait for the SwiftUI visibility report fail when SwiftUI sends no report (give them the ^809cwz0 treatment now)'
 ---
 Found in the T3 full run (^pvje3w3). Same cause as ^809cwz0.
