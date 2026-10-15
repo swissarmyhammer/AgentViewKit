@@ -61,6 +61,13 @@
     /// bottom reports the distance `.greatestFiniteMagnitude`, as
     /// `ConversationView` does.
     ///
+    /// A test that calls this helper must not check the state that the
+    /// report writes, such as ``ScrollAnchorManager/visibleIDs``. That check
+    /// reads back the input of the test, and it proves nothing about the
+    /// view. A test checks only the reaction to the report or to an action:
+    /// the pill, the count of new entries, the pin state, the anchor that an
+    /// action sets, and the frames of the rows.
+    ///
     /// Gap: no hosted test proves that SwiftUI calls the
     /// `onScrollTargetVisibilityChange` action of `ConversationView`, or that
     /// the action gives the report to ``ScrollAnchorManager``. The action is
@@ -325,20 +332,25 @@
 
     // MARK: - Scroll anchoring
 
-    /// An insert while the list is at the bottom keeps the manager pinned,
-    /// shows the new row, and shows no pill.
+    /// The reaction of the view to a given report of the rows at the bottom,
+    /// around an insert: the manager is pinned, the list has the row of the
+    /// new entry, and the view shows no pill.
     ///
-    /// After the model has the new entry, one layout pass runs the change
-    /// action of the list, which tells the manager about the append. Until
-    /// the list reports the new row, the manager can be unpinned, and that
-    /// pass can show the pill. Then the test gives the manager the report of
-    /// the rows at the bottom, and one more layout pass shows the state of
-    /// the manager after that report.
+    /// The pin state comes from the manager: a report of the bottom rows pins
+    /// it only when the last row of the report is the last item that the
+    /// view told it. After the model has the new entry, one layout pass runs
+    /// the change action of the list, which tells the manager about the
+    /// append. Until the list reports the new row, the manager can be
+    /// unpinned, and that pass can show the pill. Then the test gives the
+    /// manager the report of the rows at the bottom, and one more layout pass
+    /// shows the reaction of the view to the state of the manager.
     ///
-    /// Gap: the test gives the visibility reports to the manager itself
-    /// (``reportRows(at:of:to:)``). No hosted test proves that SwiftUI sends
-    /// them. Task ^2pbwh3e checks that on a real screen.
-    @Test func anInsertWhilePinnedKeepsTheLastEntryVisible() async throws {
+    /// The test does not check the rows in view that the manager keeps: the
+    /// given report writes them. Gap: the test gives the visibility reports
+    /// to the manager itself (``reportRows(at:of:to:)``). No hosted test
+    /// proves that SwiftUI sends them. Task ^2pbwh3e checks that on a real
+    /// screen.
+    @Test func anInsertAfterAGivenBottomReportShowsTheNewRowWithNoPill() async throws {
       let (session, anchors, harness) = try await Self.mountScrolledConversation()
       defer { session.close() }
       defer { harness.close() }
@@ -349,23 +361,28 @@
       Self.reportRows(at: .bottom, of: session.model, to: anchors)
       harness.hostingView.layoutSubtreeIfNeeded()
 
-      #expect(anchors.visibleIDs.last == insertedKey)
       #expect(anchors.isPinnedToBottom)
       #expect(harness.element(identifier: ItemRow.identifier(for: insertedKey)) != nil)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
 
-    /// An insert while the list shows its first rows adds one to the count
-    /// of the manager, and the pill shows "1 new".
+    /// The reaction of the view to an insert after a given report of the
+    /// rows at the top: the view tells the manager about the append, the
+    /// count of the manager is one, the pill shows "1 new", and the list
+    /// does not move to the new row.
     ///
     /// The report of the rows at the top unpins the manager. After the model
-    /// has the new entry, the first layout pass tells the manager about the
-    /// append, and the second layout pass shows the count in the pill.
+    /// has the new entry, the first layout pass runs the change action of the
+    /// list, which tells the manager about the append, and the second layout
+    /// pass shows the count in the pill. The test reads the frame of the new
+    /// row to know that the list did not scroll to it.
     ///
-    /// Gap: the test gives the visibility reports to the manager itself
-    /// (``reportRows(at:of:to:)``). No hosted test proves that SwiftUI sends
-    /// them. Task ^2pbwh3e checks that on a real screen.
-    @Test func anInsertWhileUnpinnedShowsOneNewInThePill() async throws {
+    /// The test does not check the rows in view that the manager keeps: the
+    /// given report writes them. Gap: the test gives the visibility reports
+    /// to the manager itself (``reportRows(at:of:to:)``). No hosted test
+    /// proves that SwiftUI sends them. Task ^2pbwh3e checks that on a real
+    /// screen.
+    @Test func anInsertAfterAGivenTopReportShowsOneNewInThePill() async throws {
       let (session, anchors, harness) = try await Self.mountScrolledConversation()
       defer { session.close() }
       defer { harness.close() }
@@ -379,51 +396,66 @@
       #expect(expected == "1 new")
       #expect(anchors.newItemsSinceUnpinned == 1)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier)?.label == expected)
-      #expect(anchors.visibleIDs.last != insertedKey)
+      #expect(!Self.showsRow(insertedKey, in: harness))
     }
 
-    /// A press on the pill pins the manager, sets the count to zero, and
-    /// hides the pill.
+    /// The reaction of the view to a press on the pill: the count of new
+    /// entries of the manager goes to zero. Then the reaction of the view to
+    /// a given report of the rows at the bottom: the manager is pinned, and
+    /// the pill goes away.
     ///
-    /// The press pins the manager at once. Then the test gives the manager
-    /// the report of the rows at the bottom, which the list sends after the
-    /// scroll to the end, and lays out the views one time.
+    /// The test checks the count before it gives a report, because a report
+    /// of the bottom rows also pins the manager and sets the count to zero.
+    /// Only the press can set the count to zero before that report. The test
+    /// does not check the pin state right after the press: a geometry change
+    /// of the list can send the old rows in view to the manager again, and
+    /// that unpins it until the list reports its new rows.
+    ///
+    /// The test does not check that the list scrolls to the new entry: in
+    /// the off-screen harness window, the scroll to the bottom that the press
+    /// requests does not move the list in the pump of the press and one
+    /// layout pass. The test does not check the rows in view that the
+    /// manager keeps: the given report writes them.
     ///
     /// Gap: the test gives the visibility reports to the manager itself
     /// (``reportRows(at:of:to:)``). No hosted test proves that SwiftUI sends
     /// them. Task ^2pbwh3e checks that on a real screen.
-    @Test func aPressOnThePillPinsAndHidesIt() async throws {
+    @Test func aPressOnThePillSetsTheNewEntryCountToZero() async throws {
       let (session, anchors, harness) = try await Self.mountScrolledConversation()
       defer { session.close() }
       defer { harness.close() }
       try Self.scrollToTop(session: session.model, anchors: anchors, harness: harness)
-      let insertedKey = try await Self.insertMessage(into: session)
+      _ = try await Self.insertMessage(into: session)
       Self.layOutTheManagerChange(in: harness)
+      #expect(anchors.newItemsSinceUnpinned == 1)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
 
       try harness.press(identifier: ScrollToBottomPill.identifier)
+
+      #expect(anchors.newItemsSinceUnpinned == 0)
+
       Self.reportRows(at: .bottom, of: session.model, to: anchors)
       harness.hostingView.layoutSubtreeIfNeeded()
 
       #expect(anchors.isPinnedToBottom)
-      #expect(anchors.newItemsSinceUnpinned == 0)
-      #expect(anchors.visibleIDs.last == insertedKey)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
 
     // MARK: - Banner and errors
 
-    /// The Show Error button scrolls the list to the error entry, and the
-    /// manager keeps the error row in its rows in view.
+    /// The reaction of the view to a press on the Show Error button: the list
+    /// scrolls to the error entry, and the manager keeps the error entry as
+    /// its anchor.
     ///
     /// After the model has the new state, one layout pass shows the button.
     /// After the press, one layout pass moves the list, and the test reads
-    /// the frame of the error row. Then the test gives the manager the
-    /// report of the rows at the top, which the list sends after the jump.
+    /// the frame of the error row. The press sets the anchor; no report that
+    /// the test gives sets it. The test gives no report after the press, and
+    /// it does not check the rows in view that the manager keeps.
     ///
-    /// Gap: the test gives the visibility reports to the manager itself
-    /// (``reportRows(at:of:to:)``). No hosted test proves that SwiftUI sends
-    /// them. Task ^2pbwh3e checks that on a real screen.
+    /// Gap: the mount gives the report of the rows at the bottom to the
+    /// manager itself (``reportRows(at:of:to:)``). No hosted test proves that
+    /// SwiftUI sends the reports. Task ^2pbwh3e checks that on a real screen.
     @Test func theShowErrorButtonMovesToTheErrorEntry() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
@@ -445,9 +477,7 @@
 
       #expect(Self.showsRow(errorKey, in: harness))
       #expect(harness.element(identifier: ItemRow.identifier(for: errorKey)) != nil)
-      Self.reportRows(at: .top, of: model, to: anchors)
-      // A Load Earlier press now keeps the error row as the anchor.
-      #expect(anchors.visibleIDs.first == errorKey)
+      #expect(anchors.anchorID == errorKey)
     }
 
     @Test func aSessionWithNoStateUpdateShowsNoBanner() async throws {

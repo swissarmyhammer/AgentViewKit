@@ -338,8 +338,9 @@ import Testing
     #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
   }
 
-  /// The jump command goes from the first row in view to the next user
-  /// message, and the manager keeps that row as its anchor.
+  /// The reaction of the jump command of a session to a given visibility
+  /// report: the command goes from the first row of the report to the next
+  /// user message, and the manager keeps that entry as its anchor.
   ///
   /// After the model has the four messages, one layout pass shows the four
   /// rows in the tall window. The test then gives the manager the
@@ -349,9 +350,13 @@ import Testing
   /// harness window it can send no report. A wait for it holds
   /// `HostedTestLock` and stops all hosted tests.
   ///
+  /// The command sets the anchor; the given report does not set it. The
+  /// test does not check the rows in view that the manager keeps, because
+  /// the given report writes them.
+  ///
   /// Gap: no hosted test proves that SwiftUI sends the report to the
   /// manager. Task ^2pbwh3e checks that on a real screen.
-  @Test func theJumpCommandOfASessionGoesToTheNextUserMessageEntry() async throws {
+  @Test func theJumpCommandOfASessionAnchorsTheNextUserMessageOfAGivenReport() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model

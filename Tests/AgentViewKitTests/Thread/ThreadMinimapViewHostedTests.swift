@@ -239,22 +239,23 @@
 
     // MARK: - Scroll
 
-    /// A click on the top tick of the rail scrolls the conversation to the
-    /// row of the first entry, and the manager keeps that entry as its
-    /// anchor.
+    /// The reaction of the views to a click on the top tick of the rail: the
+    /// conversation scrolls to the row of the first entry, and the manager
+    /// keeps that entry as its anchor.
     ///
     /// The mount lays out the views one time, and that pass gives the width
     /// of the conversation to the rail modifier. A second layout pass shows
     /// the rail. The test then gives the manager the report of the rows at
     /// the bottom. After the click, one layout pass moves the list, and the
-    /// test reads the frame of the first row. Then the test gives the manager
-    /// the report of the rows at the top, which the list sends after the
-    /// jump.
+    /// test reads the frame of the first row. The click sets the anchor; no
+    /// report that the test gives sets it. The test gives no report after
+    /// the click, and it does not check the rows in view that the manager
+    /// keeps.
     ///
-    /// Gap: the test gives the visibility reports to the manager itself
-    /// (``ConversationViewHostedTests/reportRows(at:of:to:)``). No hosted
-    /// test proves that SwiftUI sends them. Task ^2pbwh3e checks that on a
-    /// real screen.
+    /// Gap: the test gives the report of the rows at the bottom to the
+    /// manager itself (``ConversationViewHostedTests/reportRows(at:of:to:)``).
+    /// No hosted test proves that SwiftUI sends the reports. Task ^2pbwh3e
+    /// checks that on a real screen.
     @Test func aClickOnATickScrollsTheConversationToTheRowOfTheEntry() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
@@ -287,8 +288,6 @@
 
       #expect(ConversationViewHostedTests.showsRow(firstKey, in: harness))
       #expect(anchors.anchorID == firstKey)
-      ConversationViewHostedTests.reportRows(at: .top, of: model, to: anchors)
-      #expect(anchors.visibleIDs.first == firstKey)
     }
 
     @Test func theValueTellsTheFirstVisibleEntry() async throws {
