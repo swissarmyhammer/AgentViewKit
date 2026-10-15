@@ -1,6 +1,16 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4zyg8n0fjsnps585aj8jzm5
+  text: |-
+    ### Decisions from the step owner (after T0)
+    - ExampleGateTimeLimitTests.swift:53: remove the .timeLimit trait. If the subject of the test is the value of the CI example time limit, check that value as data, with no trait.
+    - Replace the 3 Task.sleep, the 39 waitUntil polls, the 327 pump(until: waitTimeout) and the 273 harness.pump() calls with waits on events (withObservationTracking on the models, gates, fixed orders). Do it in several commits by area, each with one full run.
+    - If a wait has no event (for example a SwiftUI or AppKit render that the test must let happen), report that kind of wait with an example to the step owner BEFORE you change it. Do not invent a time bound.
+    - The 9 XCUITest waitFor…Existence(timeout:) calls can stay (XCUITest drives the app in another process). Add no new ones.
+  timestamp: 2026-10-15T14:12:20.256310+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
 position_column: todo

@@ -1,6 +1,15 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m4zyg2f19qv8kbg62pn492pe
+  text: |-
+    ### Decisions from the step owner (after T0)
+    - G3 is in T1: Esc in PromptInputView.swift:154 uses the same rule as the cancel command (running, requiresAction, or idle with pending requests). A test for Esc in each case.
+    - Do ^w8bpyhn (B1) before T1.
+    - Row 7 base: Router 61fd1392, Extras f3d5cf1 (accepted).
+  timestamp: 2026-10-15T14:12:13.921446+00:00
 depends_on:
 - 01M4ZQTNC75QAVM51C2DBMNHSV
 - 01M4ZYC293BWWZQ4N2JW8BPYHN

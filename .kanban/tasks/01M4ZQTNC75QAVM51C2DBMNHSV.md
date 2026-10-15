@@ -127,8 +127,24 @@ comments:
     - evidence: check only, no tracked file changed (`git status` shows only kanban files). Pins: ACPClient 838bbad, ACPAgent 293be4b, ACP 7570149, Router 61fd1392 (expected 77b2da68, docs only), Extras f3d5cf1 (expected 3f18e9e, step 8 removal). `swift build` PASS; `swift build --build-tests` FAIL with 1 break B1 `Examples/ReadmeSnippets/Snippets/HostApp.swift:21` (also `README.md:217`); demo `xcodebuild build-for-testing` PASS. Gaps G1 to G11 in the report comment. New task ^w8bpyhn for B1.
     - next: the step owner accepts the gaps; ^w8bpyhn before T1 (^dh5h115). The task stays in `doing`.
   timestamp: 2026-10-15T14:11:08.767137+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m4zyjz2qkd2nywgfyjmp8n19
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (6867c29). Counts: findings 0, confirmed 0, refuted 0. The commit has only 14 .kanban files. The .reviewignore rule excludes all of them. The task description has no prior review findings.
+    - next: The task is in done. The step owner accepted the T0 report.
+  timestamp: 2026-10-15T14:13:48.759554+00:00
+- actor: claude-code
+  id: 01m4zykdszvqmgtttg694xxcrm
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: no-change — check only; report in a comment; new task ^w8bpyhn
+    - test: not run — no code change; the test build fails only at B1 (^w8bpyhn)
+    - commit: 6867c29 (kanban only)
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T14:14:03.839163+00:00
+position_column: done
+position_ordinal: ffb880
 title: 'Mail step 7 T0: Check the build and list the UI places that assume the old ACPAgent behavior'
 ---
 Step 7 of the mail work (mailbox.md section 8 rows 4, 6 and 7; elicitation-plan.md sections 4, 8 and 9, tasks 47 and 48). All items in mailbox.md are decisions.
