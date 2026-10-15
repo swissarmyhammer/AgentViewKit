@@ -50,8 +50,7 @@ import Testing
     return ScriptRun(output: String(decoding: data, as: UTF8.self), status: process.terminationStatus)
   }
 
-  @Test(.timeLimit(.minutes(1)))
-  func theTimeLimitStopsTheCommandTheAppUnderTestAndTheTestRunner() throws {
+  @Test func theTimeLimitStopsTheCommandTheAppUnderTestAndTheTestRunner() throws {
     let run = try Self.runScript(arguments: ["--self-test"])
 
     #expect(run.status == 0, "\(run.output)")

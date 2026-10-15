@@ -91,7 +91,7 @@ struct SizedBoxesView: View {
   @Test func readsTheLabelOfMountedText() {
     let harness = HostedViewHarness(Text("hi"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let labelled = harness.accessibilityElements().filter { $0.label == "hi" }
     #expect(labelled.count == 1)
@@ -100,7 +100,7 @@ struct SizedBoxesView: View {
   @Test func findsAnElementByIdentifier() {
     let harness = HostedViewHarness(Text("named").accessibilityIdentifier("named-text"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let element = harness.element(identifier: "named-text")
     #expect(element?.label == "named")
@@ -110,7 +110,7 @@ struct SizedBoxesView: View {
   @Test func readsTheFrameOfAnElement() throws {
     let harness = HostedViewHarness(SizedBoxesView())
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let top = try #require(harness.frame(identifier: SizedBoxesView.topIdentifier))
     let bottom = try #require(harness.frame(identifier: SizedBoxesView.bottomIdentifier))
@@ -141,7 +141,7 @@ struct SizedBoxesView: View {
       }
       .accessibilityIdentifier("options-menu"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.accessibilityElements().contains { $0.identifier == "options-menu" })
     #expect(harness.element(identifier: "options-menu") != nil)
@@ -154,7 +154,7 @@ struct SizedBoxesView: View {
         .accessibilityIdentifier("go-button")
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: "go-button")
 
@@ -164,7 +164,7 @@ struct SizedBoxesView: View {
   @Test func pressThrowsForAMissingIdentifier() {
     let harness = HostedViewHarness(Text("none"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(throws: HostedViewHarnessError.noElement(identifier: "absent")) {
       try harness.press(identifier: "absent")
@@ -175,7 +175,7 @@ struct SizedBoxesView: View {
     let log = HostedEventLog()
     let harness = HostedViewHarness(KeyRecordingView(log: log))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.sendKey("k", modifiers: .command)
     try harness.sendKey(.escape)
@@ -187,7 +187,7 @@ struct SizedBoxesView: View {
     let log = HostedEventLog()
     let harness = HostedViewHarness(KeyRecordingView(log: log))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     harness.type("ab")
 
@@ -206,7 +206,7 @@ struct SizedBoxesView: View {
   @Test func readsTheLinkedElements() throws {
     let harness = HostedViewHarness(LinkedLabelsView())
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let question = try #require(harness.element(identifier: "question"))
     #expect(question.linkedElements.map(\.identifier).contains("answer"))
@@ -223,7 +223,7 @@ struct SizedBoxesView: View {
       }
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: "first-row")?.label == "first")
     try harness.press(identifier: "row-button")
@@ -234,7 +234,7 @@ struct SizedBoxesView: View {
     let level = HostedLevel()
     let harness = HostedViewHarness(SliderView(level: level))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.increment(identifier: "level")
     #expect(level.value > SliderView.lowerBound)
@@ -243,7 +243,7 @@ struct SizedBoxesView: View {
   @Test func incrementThrowsForAMissingIdentifier() {
     let harness = HostedViewHarness(Text("hi"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(throws: HostedViewHarnessError.noElement(identifier: "missing")) {
       try harness.increment(identifier: "missing")
@@ -253,7 +253,7 @@ struct SizedBoxesView: View {
   @Test func incrementThrowsForAnElementWithNoIncrementAction() {
     let harness = HostedViewHarness(Text("hi").accessibilityIdentifier("text"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(throws: HostedViewHarnessError.incrementFailed(identifier: "text")) {
       try harness.increment(identifier: "text")
@@ -271,10 +271,93 @@ struct SizedBoxesView: View {
       }
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: "enabled")?.isEnabled == true)
     #expect(harness.element(identifier: "disabled")?.isEnabled == false)
+  }
+}
+
+/// The tests of the direct render pass of ``HostedViewHarness``.
+///
+/// Each test changes an observable model in a fixed order, calls
+/// ``HostedViewHarness/render()``, ``HostedViewHarness/render(when:)`` or an
+/// action of the harness, and reads the accessibility tree at once. No test
+/// turns the run loop or waits on a clock.
+@Suite(.serialized, .hostedSerially) @MainActor struct HostedViewHarnessRenderTests {
+  @Test func aModelChangeShowsInTheAccessibilityTreeAfterOneRenderPass() {
+    let model = HostedCaption()
+    let harness = HostedViewHarness(CaptionView(model: model))
+    defer { harness.close() }
+    harness.render()
+    #expect(harness.element(identifier: CaptionView.captionIdentifier)?.label == HostedCaption.initialText)
+
+    model.text = HostedCaption.changedText
+    harness.render()
+
+    #expect(harness.element(identifier: CaptionView.captionIdentifier)?.label == HostedCaption.changedText)
+  }
+
+  @Test func pressShowsTheResultOfTheButtonActionInTheAccessibilityTree() throws {
+    let model = HostedCaption()
+    let harness = HostedViewHarness(CaptionView(model: model))
+    defer { harness.close() }
+    harness.render()
+
+    try harness.press(identifier: CaptionView.buttonIdentifier)
+
+    #expect(model.text == HostedCaption.changedText)
+    #expect(harness.element(identifier: CaptionView.captionIdentifier)?.label == HostedCaption.changedText)
+  }
+
+  @Test func renderWhenShowsTheChangeOfATaskThatRunsAfterTheWaitStarts() async {
+    let model = HostedCaption()
+    let harness = HostedViewHarness(CaptionView(model: model))
+    defer { harness.close() }
+    harness.render()
+    // The task runs on the main actor when the wait suspends, so the change
+    // comes after the wait starts.
+    let writer = Task { @MainActor in model.text = HostedCaption.changedText }
+
+    await harness.render(when: { model.text == HostedCaption.changedText })
+
+    #expect(harness.element(identifier: CaptionView.captionIdentifier)?.label == HostedCaption.changedText)
+    await writer.value
+  }
+}
+
+/// Holds the text of a hosted caption.
+@Observable
+final class HostedCaption {
+  /// The text before a change.
+  static let initialText = "before"
+
+  /// The text after a change.
+  static let changedText = "after"
+
+  /// The text that the caption shows.
+  var text = initialText
+}
+
+/// A caption that shows the text of a ``HostedCaption``, and a button that
+/// changes the text.
+struct CaptionView: View {
+  /// The accessibility identifier of the caption.
+  static let captionIdentifier = "caption"
+
+  /// The accessibility identifier of the button.
+  static let buttonIdentifier = "change-caption"
+
+  /// The holder of the text.
+  let model: HostedCaption
+
+  var body: some View {
+    VStack {
+      Text(model.text)
+        .accessibilityIdentifier(Self.captionIdentifier)
+      Button("Change") { model.text = HostedCaption.changedText }
+        .accessibilityIdentifier(Self.buttonIdentifier)
+    }
   }
 }
 

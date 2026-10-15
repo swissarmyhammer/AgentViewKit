@@ -25,13 +25,6 @@ private let markerRequestID = 3.0
 /// The method of the marker request. The scripted agent answers it with `{}`.
 private let markerMethod = "session/marker"
 
-/// The number of milliseconds in ``heldReadPause``.
-private let heldReadPauseMilliseconds = 50
-
-/// The time that the hold test waits before it examines that the agent did
-/// not read the marker request.
-private let heldReadPause = Duration.milliseconds(heldReadPauseMilliseconds)
-
 extension RawWireClient {
   /// Writes a `session/prompt` request with one text block.
   ///
@@ -226,20 +219,31 @@ private func promptFrames(from client: RawWireClient) async throws -> PromptFram
   }
 
   @Test func aHeldPromptAnswerStopsTheAgentUntilTheRelease() async throws {
-    let (agent, client) = startScriptedAgent { $0.heldMethods = ["session/prompt"] }
+    // The hold state of the agent at the time when it reads the marker
+    // request. The lead-in of the marker method records it.
+    var holdsWhenTheMarkerIsRead: [Bool] = []
+    let (agent, client) = startScriptedAgent { agent in
+      agent.heldMethods = ["session/prompt"]
+      agent.leadIns[markerMethod] = { [weak agent] _, _ in
+        holdsWhenTheMarkerIsRead.append(agent?.isHoldingAnswer ?? false)
+        return []
+      }
+    }
     defer { agent.stop() }
 
     try await client.prompt(id: firstPromptID)
     try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
-    #expect(await waitUntil { !agent.messages(method: "session/prompt").isEmpty })
-    // A held answer stops the reader of the agent, so the marker request
-    // stays unread. Without the hold, the agent reads it within the pause.
-    try await Task.sleep(for: heldReadPause)
+    await ObservationWait.until { agent.isHoldingAnswer }
+    // A held answer stops the reader of the agent. The reader handles one
+    // frame at a time, and the prompt came before the marker request, so
+    // the marker request stays unread until the release.
+    #expect(agent.messages(method: "session/prompt").count == 1)
     #expect(agent.messages(method: markerMethod).isEmpty)
     agent.releaseHeldAnswer()
     let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
     let prompt = try PromptFrames(frames: frames, promptID: firstPromptID)
 
+    #expect(holdsWhenTheMarkerIsRead == [false])
     #expect(prompt.resultMessageID != nil)
     #expect(prompt.echo != nil)
   }

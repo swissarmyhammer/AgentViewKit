@@ -13,6 +13,11 @@ private let pollInterval = Duration.milliseconds(pollMilliseconds)
 /// can run. It does not fail at the time limit. The test then checks the
 /// return value with an expectation, so that a time-out shows as a failure.
 ///
+/// Do not use this function in a new test. It polls and sleeps on a clock.
+/// Use ``ObservationWait/until(_:)`` on an observable value that is certain
+/// to change, or ``HostedViewHarness/render(when:)`` in a hosted test. The
+/// function stays only until no test uses it.
+///
 /// - Parameter condition: The condition to check.
 /// - Returns: The last value of the condition.
 public func waitUntil(_ condition: () -> Bool) async -> Bool {

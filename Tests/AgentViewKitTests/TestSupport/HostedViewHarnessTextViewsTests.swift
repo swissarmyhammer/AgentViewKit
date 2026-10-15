@@ -9,7 +9,7 @@ import Testing
   @Test func aViewWithNoTextInputHasNoEditableTextView() {
     let harness = HostedViewHarness(Text("Label"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.firstEditableTextView() == nil)
     #expect(harness.focusFirstEditableTextView() == false)
@@ -18,7 +18,7 @@ import Testing
   @Test func aTextFieldIsAnEditableTextView() {
     let harness = HostedViewHarness(TextField("Name", text: .constant("")))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.firstEditableTextView() is NSTextField)
     #expect(harness.focusFirstEditableTextView())
@@ -27,7 +27,7 @@ import Testing
   @Test func aTextEditorIsAnEditableTextView() {
     let harness = HostedViewHarness(TextEditor(text: .constant("")))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.firstEditableTextView() is NSTextView)
     #expect(harness.focusFirstEditableTextView())
@@ -40,7 +40,7 @@ import Testing
         TextField("Name", text: .constant(""))
       })
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.firstEditableTextView() is NSTextView)
     #expect(harness.firstEditableTextView(of: NSTextField.self) != nil)

@@ -56,11 +56,11 @@
       let value = CountedValue()
       let harness = HostedViewHarness(CountedView(key: key, value: value))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
       let first = BodyEvaluationCounter.count(key)
 
       value.text = "two"
-      harness.pump()
+      harness.render()
 
       #expect(first >= 1)
       #expect(BodyEvaluationCounter.count(key) > first)

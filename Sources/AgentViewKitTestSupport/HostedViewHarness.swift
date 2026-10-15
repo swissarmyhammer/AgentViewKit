@@ -108,8 +108,11 @@ private enum HarnessConstants {
 ///
 /// The harness puts the view in an `NSHostingView`, which is the content view
 /// of an `NSWindow` that is not on a screen. A `swift test` process needs no
-/// application bundle for this. The test calls ``pump(for:)`` after a change,
-/// so that SwiftUI can update the view, and calls ``close()`` at the end.
+/// application bundle for this. The test calls ``render()`` after a change on
+/// the main actor, or ``render(when:)`` after a change that comes from
+/// asynchronous work, so that SwiftUI updates the view. The test calls
+/// ``close()`` at the end. The actions of the harness, such as
+/// ``press(identifier:)`` and ``type(_:)``, call ``render()`` themselves.
 public final class HostedViewHarness<Content: View> {
   /// The default time that ``pump(for:)`` runs the run loop.
   public static var defaultPumpDuration: TimeInterval { HarnessConstants.defaultPumpDuration }
@@ -157,8 +160,50 @@ public final class HostedViewHarness<Content: View> {
     self.init(content(), size: size)
   }
 
+  /// Makes SwiftUI update the view now, with no run loop turn and no clock.
+  ///
+  /// The pass lays out the hosting view and its subviews, and then displays
+  /// the window. The layout pass of the hosting view applies each pending
+  /// change of the observed values to the view graph, so the accessibility
+  /// tree shows the change when the function returns.
+  ///
+  /// Result of the check in `HostedViewHarnessRenderTests`: after a change
+  /// of an `@Observable` model, this pass alone, with no run loop turn, puts
+  /// the new text in the accessibility tree. After the press action
+  /// (`accessibilityPerformPress`) of a button, the action has run, and this
+  /// pass alone puts its result in the accessibility tree. Thus a test that
+  /// changes a model on the main actor calls this function and reads the
+  /// tree at once. A change that comes from asynchronous work, such as a
+  /// frame of an agent, is not there yet: use ``render(when:)`` for it.
+  public func render() {
+    hostingView.layoutSubtreeIfNeeded()
+    window.displayIfNeeded()
+  }
+
+  /// Waits until `condition` is `true`, and then makes SwiftUI update the
+  /// view with ``render()``.
+  ///
+  /// Use this function after an action that starts asynchronous work, for
+  /// example a request to the scripted agent. The wait is
+  /// ``ObservationWait/until(_:)``: it has no clock and no time limit, and it
+  /// does not poll. Thus `condition` must read observable model values that
+  /// are certain to change, such as the transcript of a `SessionModel`. Do
+  /// not read the accessibility tree in `condition`: the tree is not
+  /// observable, so the wait does not see its changes.
+  ///
+  /// - Parameter condition: The condition on the model values to wait for.
+  public func render(when condition: @MainActor () -> Bool) async {
+    await ObservationWait.until(condition)
+    render()
+  }
+
   /// Runs the main run loop for `duration`, so that SwiftUI can update the
   /// view.
+  ///
+  /// Do not use this function in a new test. It waits on a clock. Use
+  /// ``render()`` after a change on the main actor, and ``render(when:)``
+  /// after a change that comes from asynchronous work. The function stays
+  /// only until no test uses it.
   ///
   /// - Parameter duration: The time to run the run loop, in seconds.
   public func pump(for duration: TimeInterval = HostedViewHarness.defaultPumpDuration) {
@@ -218,7 +263,7 @@ public final class HostedViewHarness<Content: View> {
     liveElement(identifier: identifier).map(Self.frame(of:))
   }
 
-  /// Mounts `content`, pumps the run loop one time, and gives the height of
+  /// Mounts `content`, makes one ``render()`` pass, and gives the height of
   /// the first accessibility element with `identifier`. The harness closes
   /// before the function returns.
   ///
@@ -237,15 +282,15 @@ public final class HostedViewHarness<Content: View> {
   ) throws -> CGFloat {
     let harness = HostedViewHarness(content, size: size)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     guard let frame = harness.frame(identifier: identifier) else {
       throw HostedViewHarnessError.noElement(identifier: identifier)
     }
     return frame.height
   }
 
-  /// Does the press action of the element with `identifier`, then pumps the
-  /// run loop.
+  /// Does the press action of the element with `identifier`, then makes a
+  /// ``render()`` pass.
   ///
   /// Do not use this function on a segment of a segmented `Picker`. The
   /// AppKit segmented control does the press, but it reports a failure, and
@@ -262,8 +307,8 @@ public final class HostedViewHarness<Content: View> {
       on: identifier, action: Self.performPress, failure: HostedViewHarnessError.pressFailed)
   }
 
-  /// Does the increment action of the element with `identifier`, then pumps
-  /// the run loop.
+  /// Does the increment action of the element with `identifier`, then makes
+  /// a ``render()`` pass.
   ///
   /// A slider does the increment action. Do not use this function on a
   /// stepper: an AppKit stepper shows the increment with a blocking
@@ -282,8 +327,8 @@ public final class HostedViewHarness<Content: View> {
       failure: HostedViewHarnessError.incrementFailed)
   }
 
-  /// Does `action` on the element with `identifier`, then pumps the run
-  /// loop.
+  /// Does `action` on the element with `identifier`, then makes a
+  /// ``render()`` pass.
   ///
   /// - Parameters:
   ///   - identifier: The accessibility identifier of the element.
@@ -305,13 +350,13 @@ public final class HostedViewHarness<Content: View> {
     guard action(element) else {
       throw failure(identifier)
     }
-    pump()
+    render()
   }
 
   // MARK: - Keyboard
 
   /// Sends a key-down and a key-up event for each character of `text` to
-  /// the window, then pumps the run loop.
+  /// the window, then makes a ``render()`` pass.
   ///
   /// The events go to the first responder of the window, as typed keys do.
   ///
@@ -320,11 +365,11 @@ public final class HostedViewHarness<Content: View> {
     for character in text {
       postKey(characters: String(character), keyCode: HarnessConstants.printableKeyCode, modifiers: [])
     }
-    pump()
+    render()
   }
 
   /// Sends a key-down and a key-up event for `key` with `modifiers` to the
-  /// window, then pumps the run loop.
+  /// window, then makes a ``render()`` pass.
   ///
   /// - Parameters:
   ///   - key: The key to send.
@@ -337,11 +382,11 @@ public final class HostedViewHarness<Content: View> {
       throw HostedViewHarnessError.unsupportedKey(characters)
     }
     postKey(characters: characters, keyCode: keyCode, modifiers: Self.modifierFlags(for: modifiers))
-    pump()
+    render()
   }
 
   /// Sends a key-down event for `key` with `modifiers` straight to the
-  /// `keyDown(with:)` method of `view`, then pumps the run loop.
+  /// `keyDown(with:)` method of `view`, then makes a ``render()`` pass.
   ///
   /// The event does not go through the window, so SwiftUI key press
   /// handlers do not see it. Use this function to test the key handling of
@@ -364,7 +409,7 @@ public final class HostedViewHarness<Content: View> {
       throw HostedViewHarnessError.unsupportedKey(characters)
     }
     view.keyDown(with: event)
-    pump()
+    render()
   }
 
   // MARK: - Private

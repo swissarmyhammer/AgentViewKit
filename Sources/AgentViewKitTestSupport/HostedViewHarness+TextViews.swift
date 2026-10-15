@@ -36,7 +36,7 @@ extension HostedViewHarness {
   }
 
   /// Makes ``firstEditableTextView(of:)`` the first responder of the
-  /// window, then pumps the run loop, so that typed keys go to it.
+  /// window, then makes a ``render()`` pass, so that typed keys go to it.
   ///
   /// - Parameter type: The class of the view to focus.
   /// - Returns: `true` when the harness found an editable view and it became
@@ -45,7 +45,7 @@ extension HostedViewHarness {
   public func focusFirstEditableTextView<Found: NSView>(of type: Found.Type = NSView.self) -> Bool {
     guard let view = firstEditableTextView(of: type) else { return false }
     let isFocused = window.makeFirstResponder(view)
-    pump()
+    render()
     return isFocused
   }
 

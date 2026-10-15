@@ -317,10 +317,7 @@ import Testing
 
     selection.wrappedValue = SessionConfigValueId(rawValue: "ask")
     selection.wrappedValue = SessionConfigValueId(rawValue: "auto")
-    let deadline = Date(timeIntervalSinceNow: Self.waitTimeout)
-    while Self.setParams(in: session).isEmpty, Date() < deadline {
-      try await Task.sleep(for: .milliseconds(10))
-    }
+    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
 
     #expect(selection.wrappedValue.rawValue == "ask")
     #expect(Self.setParams(in: session).map { $0["value"]?.stringValue } == ["auto"])

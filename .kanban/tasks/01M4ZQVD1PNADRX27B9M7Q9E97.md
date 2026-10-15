@@ -51,8 +51,22 @@ comments:
     - ACPClient 904e541 (task 28): a question in a mode that the client did not advertise gets cancel at once. AgentViewKit advertises form and URL, so nothing changes for it.
     - Before the final full run: `swift package update` to the mains of that time, and record the resolved revisions in the final report.
   timestamp: 2026-10-15T18:44:13.738139+00:00
+- actor: claude-code
+  id: 01m50eryksna6q0dfz83tzk8tf
+  text: |-
+    ### T4 split into area tasks
+    The test waits are done in the area tasks T4-A0 (harness, .timeLimit, Task.sleep) and T4-A1 to T4-A6 (one folder group each), and ^yr4zgpz. Each area has one full run and one commit. This task (T4) keeps: the removal of the deprecated wait helpers when no use is left, the docs and comments (no turn words in doc comments; the new ACPAgent behavior), the update to the current mains, the final full run, the examples check, the push, the CI check and the final report with the row 7 check.
+  timestamp: 2026-10-15T18:56:42.105512+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
+- 01M50ER0NN5DRGV5S3HGQ8H07P
+- 01M50ER6WG0M4KZGQ0PCRSAZ8T
+- 01M50ER8XX5DEBPXETVW35TFS4
+- 01M50ERBW1VKTTV9CJJE9ZR6DX
+- 01M50ERDTD2K1RZGM21N0JVM90
+- 01M50ERG58ANWMMVTG535SW345
+- 01M50ERJRW6EXQ0YFCRYVDG1F4
+- 01M50752E2QZQ69JD3WYR4ZGPZ
 position_column: todo
 position_ordinal: '8480'
 title: 'Mail step 7 T4: Remove time limits and clock waits from the tests, align the docs, run the full suite, push, and report'

@@ -21,7 +21,9 @@ import Testing
     try await session.sendUpdate(
       #"{"sessionUpdate":"agent_message_chunk","messageId":"m1","content":{"type":"text","text":"Hi."}}"#)
 
-    #expect(await waitUntil { model.transcript.count == 1 })
+    await ObservationWait.until { model.transcript.count == 1 }
+
+    #expect(model.transcript.count == 1)
   }
 
   @Test func theSessionUpdateFrameHoldsTheSessionIdAndTheUpdate() throws {

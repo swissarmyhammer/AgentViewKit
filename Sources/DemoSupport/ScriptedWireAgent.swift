@@ -1,6 +1,7 @@
 import AgentViewKit
 import Foundation
 import FoundationModelsACP
+import Observation
 
 /// The byte that ends each JSON-RPC frame on the wire.
 private let frameEnd = UInt8(ascii: "\n")
@@ -42,7 +43,12 @@ private let jsonRPCVersion = "2.0"
 ///
 /// The class states `@MainActor`. The default isolation of the target gives
 /// the same isolation.
+///
+/// The class is `@Observable`, so that a test can wait for an event of the
+/// agent, such as a new frame in ``received`` or a held answer
+/// (``isHoldingAnswer``), with an observation wait and no clock.
 @MainActor
+@Observable
 public final class ScriptedWireAgent {
   /// Gives the frames that the agent sends before or after it answers one
   /// request.
@@ -92,6 +98,12 @@ public final class ScriptedWireAgent {
 
   /// The continuation of the held answer, or `nil`.
   private var heldAnswer: CheckedContinuation<Void, Never>?
+
+  /// Whether the agent holds an answer now.
+  ///
+  /// While this is `true`, the agent sends no frame and reads no frame, until
+  /// ``releaseHeldAnswer()``.
+  public var isHoldingAnswer: Bool { heldAnswer != nil }
 
   /// The transport end of the agent.
   private let transport: InMemoryTransport

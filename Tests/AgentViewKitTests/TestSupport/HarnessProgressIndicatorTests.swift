@@ -8,7 +8,7 @@ import Testing
   @Test func aProgressViewCountsAsOneProgressIndicator() {
     let harness = HostedViewHarness(ProgressView().controlSize(.mini))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.progressIndicatorCount() == 1)
   }
@@ -16,7 +16,7 @@ import Testing
   @Test func aTextHasNoProgressIndicator() {
     let harness = HostedViewHarness(Text(verbatim: "Done"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.progressIndicatorCount() == 0)
   }
