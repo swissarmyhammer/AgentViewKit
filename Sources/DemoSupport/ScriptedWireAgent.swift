@@ -24,11 +24,15 @@ private let jsonRPCVersion = "2.0"
 /// or with `{}`. A method in ``failingMethods`` gets an error with the code
 /// that ``errorCodes`` gives. The result of
 /// each `session/prompt` request gets a new `messageId` (a UUID string), and
-/// the agent echoes the prompt text in a `user_message_chunk` update with the
-/// same `messageId`. ``promptEchoOrder`` tells if the echo comes before or
-/// after the result. Before the answer, the agent sends the frames that
-/// ``leadIns`` gives for the method. After the answer, the agent sends the
-/// frames that ``followUps`` gives for the method. The agent can also send a
+/// the agent echoes the user message with the same `messageId`. By default,
+/// the agent sends the prompts in the ACPAgent order: the result, then a
+/// `user_message` echo with the whole prompt content, then the frames that
+/// ``followUps`` gives (for example `running`, the work, and `idle`).
+/// ``promptEchoOrder`` and ``promptEchoKind`` select the other orders and the
+/// `user_message_chunk` echo of other agents. Before the answer, the agent
+/// sends the frames that ``leadIns`` gives for the method. After the answer
+/// and its echo, the agent sends the frames that ``followUps`` gives for the
+/// method. The agent can also send a
 /// raw frame to the client. The agent holds the answer to each request with
 /// a method in ``heldMethods`` until ``releaseHeldAnswer()``.
 ///
@@ -57,8 +61,23 @@ public final class ScriptedWireAgent {
     case afterResult
   }
 
-  /// The position of the echoed user message of each prompt.
-  public var promptEchoOrder = PromptEchoOrder.beforeResult
+  /// The position of the echoed user message of each prompt. The default is
+  /// ``PromptEchoOrder/afterResult``, the ACPAgent order.
+  public var promptEchoOrder = PromptEchoOrder.afterResult
+
+  /// The kind of the echoed user message of a prompt.
+  public enum PromptEchoKind: Sendable {
+    /// A `user_message` update with the whole content of the prompt.
+    case userMessage
+
+    /// A `user_message_chunk` update with the text of the prompt in one
+    /// text block.
+    case userMessageChunk
+  }
+
+  /// The kind of the echoed user message of each prompt. The default is
+  /// ``PromptEchoKind/userMessage``, the echo of ACPAgent.
+  public var promptEchoKind = PromptEchoKind.userMessage
 
   /// The methods whose answers the agent holds until ``releaseHeldAnswer()``.
   ///
@@ -258,9 +277,9 @@ public final class ScriptedWireAgent {
 
   /// Answers a `session/prompt` request.
   ///
-  /// The result gets a new `messageId`. The agent echoes the prompt text in a
-  /// `user_message_chunk` update with the same `messageId`, before or after
-  /// the result as ``promptEchoOrder`` tells.
+  /// The result gets a new `messageId`. The agent echoes the user message
+  /// with the same `messageId`, in the update that ``promptEchoKind`` tells,
+  /// before or after the result as ``promptEchoOrder`` tells.
   ///
   /// - Parameters:
   ///   - request: The request frame.
@@ -268,7 +287,7 @@ public final class ScriptedWireAgent {
   private func answerPrompt(request: JSONValue, idText: String) async {
     let messageID = JSONValue.string(UUID().uuidString)
     let result = Self.resultFrame(idText: idText, result: promptResult(messageID: messageID))
-    let echo = Self.echoFrame(of: request, messageID: messageID)
+    let echo = Self.echoFrame(of: request, messageID: messageID, kind: promptEchoKind)
     let frames =
       switch promptEchoOrder {
       case .beforeResult: [echo, result]
@@ -314,18 +333,28 @@ public final class ScriptedWireAgent {
     #"{"jsonrpc":"2.0","id":\#(idText),"result":\#(result)}"#
   }
 
-  /// The `session/update` frame that echoes the text of a prompt as a
-  /// `user_message_chunk`.
+  /// The `session/update` frame that echoes the user message of a prompt.
+  ///
+  /// A `user_message` echo holds the whole content of the prompt, as
+  /// `AgentSideConnection.insertUserMessage(_:messageId:)` sends it. A
+  /// `user_message_chunk` echo holds the text of the prompt in one text
+  /// block.
   ///
   /// - Parameters:
   ///   - request: The `session/prompt` request frame.
   ///   - messageID: The ID of the user message of the prompt.
+  ///   - kind: The kind of the echo.
   /// - Returns: The frame.
-  private static func echoFrame(of request: JSONValue, messageID: JSONValue) -> String {
+  private static func echoFrame(of request: JSONValue, messageID: JSONValue, kind: PromptEchoKind) -> String {
+    let (sessionUpdate, content): (String, JSONValue) =
+      switch kind {
+      case .userMessage: ("user_message", request["params"]?["prompt"] ?? .array([]))
+      case .userMessageChunk: ("user_message_chunk", textBlock(text: promptText(of: request)))
+      }
     let update = JSONValue.object([
-      "sessionUpdate": .string("user_message_chunk"),
+      "sessionUpdate": .string(sessionUpdate),
       "messageId": messageID,
-      "content": textBlock(text: promptText(of: request)),
+      "content": content,
     ])
     let sessionId = request["params"]?["sessionId"] ?? .null
     return makeSessionUpdateFrame(params: .object(["sessionId": sessionId, "update": update]))

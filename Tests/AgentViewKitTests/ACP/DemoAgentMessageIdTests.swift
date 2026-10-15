@@ -5,9 +5,6 @@ import Foundation
 import FoundationModelsACP
 import Testing
 
-/// The byte that ends each JSON-RPC frame on the wire.
-private let frameEnd = UInt8(ascii: "\n")
-
 /// The session of each prompt.
 private let sessionID = "s1"
 
@@ -35,56 +32,41 @@ private let heldReadPauseMilliseconds = 50
 /// not read the marker request.
 private let heldReadPause = Duration.milliseconds(heldReadPauseMilliseconds)
 
-/// The client end of an agent. It writes raw request frames and reads the raw
-/// frames of the agent.
-private struct RawClient {
-  /// The client end of the transport.
-  let transport: InMemoryTransport
-
-  /// Writes one request frame.
-  ///
-  /// - Parameters:
-  ///   - method: The JSON-RPC method.
-  ///   - id: The JSON-RPC id.
-  ///   - params: The parameters.
-  func request(method: String, id: Double, params: JSONValue) async throws {
-    let frame = JSONValue.object([
-      "jsonrpc": .string("2.0"), "id": .number(id), "method": .string(method), "params": params,
-    ])
-    try await transport.write(Data((frame.jsonString + "\n").utf8))
-  }
-
+extension RawWireClient {
   /// Writes a `session/prompt` request with one text block.
   ///
   /// - Parameter id: The JSON-RPC id.
-  func prompt(id: Double) async throws {
+  /// - Throws: The error of the transport.
+  fileprivate func prompt(id: Double) async throws {
     let params = JSONValue.object([
       "sessionId": .string(sessionID),
-      "prompt": .array([.object(["type": .string("text"), "text": .string(promptText)])]),
+      "prompt": .array([promptBlock]),
     ])
     try await request(method: "session/prompt", id: id, params: params)
   }
-
-  /// Reads the frames of the agent until a frame matches `isLast`.
-  ///
-  /// - Parameter isLast: Tells if a frame is the last frame to read.
-  /// - Returns: The frames in arrival order, the last frame included.
-  func frames(through isLast: (JSONValue) -> Bool) async throws -> [JSONValue] {
-    var frames: [JSONValue] = []
-    var buffer = Data()
-    for try await chunk in transport.bytes {
-      buffer.append(chunk)
-      while let end = buffer.firstIndex(of: frameEnd) {
-        let line = Data(buffer[buffer.startIndex..<end])
-        buffer = Data(buffer[buffer.index(after: end)...])
-        let frame = try JSONDecoder().decode(JSONValue.self, from: line)
-        frames.append(frame)
-        if isLast(frame) { return frames }
-      }
-    }
-    return frames
-  }
 }
+
+/// The label of the whole `user_message` echo of a prompt.
+private let userMessageLabel = "user_message"
+
+/// The label of a `running` state update.
+private let runningLabel = "state_update/running"
+
+/// The update of a `session/update` frame that tells that the agent runs.
+private let runningUpdate = JSONValue.object([
+  "sessionUpdate": .string("state_update"), "state": .string("running"),
+])
+
+/// The text block of each prompt.
+private let promptBlock = JSONValue.object(["type": .string("text"), "text": .string(promptText)])
+
+/// The labels of the `session/update` frames of ``InMemoryDemoAgent`` after
+/// the prompt result, in the ACPAgent order: the echo, then `running`, then
+/// the turn, then the idle state.
+private let inMemoryTurnLabels = [
+  userMessageLabel, runningLabel, "agent_message_chunk", "agent_message_chunk", "agent_message", "plan_update",
+  "usage_update", "state_update/idle/end_turn",
+]
 
 /// Tells if `frame` is the response to the request with `id`.
 private func isResponse(frame: JSONValue, to id: Double) -> Bool {
@@ -100,6 +82,18 @@ private func userMessageEcho(in frame: JSONValue) -> JSONValue? {
     kind == "user_message_chunk" || kind == "user_message"
   else { return nil }
   return update
+}
+
+/// The label of a `session/update` frame: its `sessionUpdate` kind, then its
+/// `state` and its `stopReason` when the update has them, joined with `/`.
+/// For example `state_update/idle/end_turn`.
+///
+/// - Parameter frame: A frame of the agent.
+/// - Returns: The label, or `nil` when the frame is not a `session/update`.
+private func updateLabel(of frame: JSONValue) -> String? {
+  guard frame["method"]?.stringValue == "session/update", let update = frame["params"]?["update"] else { return nil }
+  let parts = [update["sessionUpdate"], update["state"], update["stopReason"]].compactMap { $0?.stringValue }
+  return parts.joined(separator: "/")
 }
 
 /// The frames of one prompt, read from an agent.
@@ -133,6 +127,12 @@ private struct PromptFrames {
   var echo: JSONValue? {
     echoIndexes.count == 1 ? userMessageEcho(in: frames[echoIndexes[0]]) : nil
   }
+
+  /// The label of each `session/update` frame after the response, in arrival
+  /// order (``updateLabel(of:)``).
+  var updateLabelsAfterResponse: [String] {
+    frames[(responseIndex + 1)...].compactMap(updateLabel(of:))
+  }
 }
 
 /// Starts a plain scripted agent and gives the client end.
@@ -141,12 +141,12 @@ private struct PromptFrames {
 /// - Returns: The agent and the client end.
 private func startScriptedAgent(
   _ configure: (ScriptedWireAgent) -> Void = { _ in }
-) -> (ScriptedWireAgent, RawClient) {
+) -> (ScriptedWireAgent, RawWireClient) {
   let (clientEnd, agentEnd) = InMemoryTransport.pair()
   let agent = ScriptedWireAgent(transport: agentEnd)
   configure(agent)
   agent.start()
-  return (agent, RawClient(transport: clientEnd))
+  return (agent, RawWireClient(transport: clientEnd))
 }
 
 /// Sends one prompt to a scripted agent, then the marker request, and reads
@@ -154,7 +154,7 @@ private func startScriptedAgent(
 ///
 /// - Parameter client: The client end of the scripted agent.
 /// - Returns: The frames of the prompt.
-private func promptFrames(from client: RawClient) async throws -> PromptFrames {
+private func promptFrames(from client: RawWireClient) async throws -> PromptFrames {
   try await client.prompt(id: firstPromptID)
   try await client.request(method: markerMethod, id: markerRequestID, params: .object([:]))
   let frames = try await client.frames { isResponse(frame: $0, to: markerRequestID) }
@@ -175,8 +175,30 @@ private func promptFrames(from client: RawClient) async throws -> PromptFrames {
     #expect(UUID(uuidString: messageID) != nil)
   }
 
-  @Test func theScriptedAgentEchoesThePromptBeforeTheResultByDefault() async throws {
-    let (agent, client) = startScriptedAgent()
+  @Test func theScriptedAgentSendsTheResultThenAUserMessageEchoThenTheFollowUpsByDefault() async throws {
+    let (agent, client) = startScriptedAgent { agent in
+      agent.followUps["session/prompt"] = { request, _ in
+        let sessionId = request["params"]?["sessionId"] ?? .null
+        return [ScriptedWireAgent.makeSessionUpdateFrame(params: .object(["sessionId": sessionId, "update": runningUpdate]))]
+      }
+    }
+    defer { agent.stop() }
+
+    let prompt = try await promptFrames(from: client)
+
+    let echo = try #require(prompt.echo)
+    #expect(prompt.updateLabelsAfterResponse == [userMessageLabel, runningLabel])
+    #expect(prompt.echoIndexes == [prompt.responseIndex + 1])
+    #expect(echo["messageId"]?.stringValue == prompt.resultMessageID)
+    #expect(echo["content"] == .array([promptBlock]))
+    #expect(prompt.frames[prompt.echoIndexes[0]]["params"]?["sessionId"] == .string(sessionID))
+  }
+
+  @Test func theScriptedAgentEchoesAChunkBeforeTheResultWhenTheOptionsAreSet() async throws {
+    let (agent, client) = startScriptedAgent { agent in
+      agent.promptEchoOrder = .beforeResult
+      agent.promptEchoKind = .userMessageChunk
+    }
     defer { agent.stop() }
 
     let prompt = try await promptFrames(from: client)
@@ -185,19 +207,7 @@ private func promptFrames(from client: RawClient) async throws -> PromptFrames {
     #expect(prompt.echoIndexes == [prompt.responseIndex - 1])
     #expect(echo["sessionUpdate"] == .string("user_message_chunk"))
     #expect(echo["messageId"]?.stringValue == prompt.resultMessageID)
-    #expect(echo["content"] == .object(["type": .string("text"), "text": .string(promptText)]))
-    #expect(prompt.frames[prompt.echoIndexes[0]]["params"]?["sessionId"] == .string(sessionID))
-  }
-
-  @Test func theScriptedAgentEchoesThePromptAfterTheResultWhenTheOptionIsSet() async throws {
-    let (agent, client) = startScriptedAgent { $0.promptEchoOrder = .afterResult }
-    defer { agent.stop() }
-
-    let prompt = try await promptFrames(from: client)
-
-    let echo = try #require(prompt.echo)
-    #expect(prompt.echoIndexes == [prompt.responseIndex + 1])
-    #expect(echo["messageId"]?.stringValue == prompt.resultMessageID)
+    #expect(echo["content"] == promptBlock)
   }
 
   @Test func eachScriptedPromptGetsANewMessageId() async throws {
@@ -246,11 +256,11 @@ private func promptFrames(from client: RawClient) async throws -> PromptFrames {
 
   // MARK: - InMemoryDemoAgent
 
-  @Test func theInMemoryAgentGivesAMessageIdAndOneEchoBeforeTheResult() async throws {
+  @Test func theInMemoryAgentSendsTheResultThenTheEchoThenRunningThenTheTurnThenIdle() async throws {
     let (clientEnd, agentEnd) = InMemoryTransport.pair()
     let agent = InMemoryDemoAgent.start(on: agentEnd)
     defer { agent.stop() }
-    let client = RawClient(transport: clientEnd)
+    let client = RawWireClient(transport: clientEnd)
 
     try await client.prompt(id: firstPromptID)
     let frames = try await client.frames { $0["params"]?["update"]?["state"] == .string("idle") }
@@ -259,8 +269,8 @@ private func promptFrames(from client: RawClient) async throws -> PromptFrames {
     let messageID = try #require(prompt.resultMessageID)
     #expect(UUID(uuidString: messageID) != nil)
     let echo = try #require(prompt.echo)
-    #expect(prompt.echoIndexes == [prompt.responseIndex - 1])
+    #expect(prompt.updateLabelsAfterResponse == inMemoryTurnLabels)
     #expect(echo["messageId"]?.stringValue == messageID)
-    #expect(echo["content"] == .object(["type": .string("text"), "text": .string(promptText)]))
+    #expect(echo["content"] == .array([promptBlock]))
   }
 }
