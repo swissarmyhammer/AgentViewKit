@@ -401,7 +401,8 @@ public struct PermissionView: View {
   /// Selects `option` on the session model, then sends the comment as the
   /// next prompt, with `SessionModel.answerPermission(_:option:comment:)`.
   ///
-  /// The card reports the answer through
+  /// The card makes one ``PermissionAnswer``, gives its option and comment to
+  /// the session model, and reports the same value through
   /// ``SwiftUI/EnvironmentValues/permissionAnswerReport`` in the same step.
   ///
   /// - Parameters:
@@ -409,8 +410,9 @@ public struct PermissionView: View {
   ///   - comment: The comment of the user, or `nil`.
   private func answer(with option: FoundationModelsACP.PermissionOption, comment: String?) {
     guard isPending else { return }
-    session.answerPermission(request.id, option: option.optionId, comment: comment)
-    reportAnswer?(PermissionAnswer(option: option.optionId, comment: comment))
+    let answer = PermissionAnswer(option: option.optionId, comment: comment)
+    session.answerPermission(request.id, option: answer.option, comment: answer.comment)
+    reportAnswer?(answer)
   }
 
   /// Selects `allow` on the session model, then sets the mode option to auto.
@@ -434,7 +436,8 @@ public struct PermissionView: View {
 
 /// One answer that a ``PermissionView`` gave to the session model.
 ///
-/// The card reports each answer through
+/// The card gives the option and the comment of this value to the session
+/// model, and reports the same value through
 /// ``SwiftUI/EnvironmentValues/permissionAnswerReport``. A test reads the report
 /// to learn that the card handled a press, and which comment it gave. With no
 /// comment, the session model sends no prompt.

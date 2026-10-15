@@ -61,10 +61,26 @@ comments:
     - readme gate: Scripts/check-readme.sh passed. 4 snippets compile.
     - next: review.
   timestamp: 2026-10-15T22:48:26.749338+00:00
+- actor: claude-code
+  id: 01m50wtgt8kk0fn03etx9ryv61
+  text: |-
+    ### review — clean
+    - evidence: review sha 962fcdd~1..962fcdd. 0 findings, 0 confirmed, 1 refuted, 14 attempted, 0 failed. 12 files reviewed. 6 .kanban files are not reviewed (ignore rule). swift test: 1201 tests in 138 suites pass in 1 run (2 known issues are the intended expectation self-tests).
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T23:02:13.576998+00:00
+- actor: claude-code
+  id: 01m50wvc91vtj9mvxyma8vqm5k
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 101 sites in 12 files (3 sendPermissionRequest calls stay for T4-A6)
+    - test: green — swift test, 1201 passed in 138 suites (1 run, with T4-A4)
+    - commit: 962fcdd
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T23:02:41.697677+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffc780
 title: 'Mail step 7 T4-A3: Remove the clock waits and polls from the Thread and Accessibility tests'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Thread and Tests/AgentViewKitTests/Accessibility (about 95 sites, including the waits that ^fn4p8gy left in ConversationViewHostedTests, ThreadMinimapViewHostedTests and AgentCommandScopeHostedTests helpers). Same rules as T4-A1. Tests that need the SwiftUI visibility report use the ^809cwz0 treatment. One full run, one commit. Write all text in STE. #mail-step-7

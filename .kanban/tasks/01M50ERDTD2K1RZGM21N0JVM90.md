@@ -40,10 +40,59 @@ comments:
     - readme gate: Scripts/check-readme.sh passed. 4 snippets compile.
     - next: review.
   timestamp: 2026-10-15T22:48:28.279834+00:00
+- actor: claude-code
+  id: 01m50wtk5nd2dqzr3maft8ys8r
+  text: |-
+    ### review — findings
+    - evidence: review sha 69e3b0b~1..69e3b0b. 2 findings, 2 confirmed, 0 refuted, 14 attempted, 0 failed. Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift:443 (code-hygiene/dead-code-swift: `option` is assignOnlyProperty), Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift:446 (code-hygiene/dead-code-swift: `comment` is assignOnlyProperty). swift test: 1201 tests in 138 suites pass in 1 run.
+    - next: implement the 2 findings in the Review Findings (2026-10-15 17:53) section. Then review again. The task stays in review.
+  timestamp: 2026-10-15T23:02:15.989186+00:00
+- actor: claude-code
+  id: 01m50wvdzmjtwrtz57bens8hf8
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 100 sites in 12 files
+    - test: green — swift test, 1201 passed in 138 suites (1 run, with T4-A3)
+    - commit: 69e3b0b
+    - review: findings — PermissionView.swift:443, PermissionView.swift:446 (code-hygiene/dead-code-swift)
+  timestamp: 2026-10-15T23:02:43.444667+00:00
+- actor: claude-code
+  id: 01m50x01d2q1n6k83mpqs9dcvm
+  text: |-
+    ### implement — changed
+    - cause: PermissionAnswer had 2 fields that only the test read. The view gave option.optionId and comment to SessionModel.answerPermission directly, and made a second value only for the report.
+    - fix: PermissionView.answer(with:comment:) now makes one PermissionAnswer, gives answer.option and answer.comment to session.answerPermission, and reports the same value. So Sources read both fields, and the report is the value of the answer path. No public API change. The test anEmptyCommentSendsNoPrompt did not change: it still checks the reported answer (comment nil), the selected result and that no prompt frame exists.
+    - files: Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift
+    - test: one run of `swift test --filter 'PermissionViewHostedTests'` (the only suite that uses permissionAnswerReport): "Test run with 22 tests in 1 suite passed after 1.538 seconds." Only warning: SwiftPM mlx-swift_Cmlx "missing creator for mutated node" (dependency). Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/a4-fix-run1.log
+    - findings: 2 of 2 flipped to [x].
+
+    step: implement
+    outcome: changed
+    evidence: 1 file — Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift; swift test --filter PermissionViewHostedTests: 22 passed, 0 failed
+    task: ^n0jvm90
+  timestamp: 2026-10-15T23:05:14.402434+00:00
+- actor: claude-code
+  id: 01m50y0730hamc7xt1a322t1s2
+  text: |-
+    ### test — green
+    - evidence: swift test, one run: 1201 tests in 138 suites passed, 0 failures, 0 skipped. 2 known issues come from two tests that prove an expectation helper fails on purpose (aWrappedTextWithAFixedVerticalSizeFails, aViewThatIgnoresTheThemeFails). Scripts/check-readme.sh passed. No warning from project sources. The only warning is the mlx-swift dependency warning.
+    - log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-11.log
+    - next: review
+  timestamp: 2026-10-15T23:22:48.800800+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
 position_column: doing
-position_ordinal: '8180'
+position_ordinal: '80'
 title: 'Mail step 7 T4-A4: Remove the clock waits and polls from the Connections, HumanInTheLoop and Elicitation tests'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Connections, HumanInTheLoop and Elicitation (about 93 sites). Same rules as T4-A1. One full run, one commit. Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-15 17:53)
+
+> Scope: `review sha 69e3b0b~1..69e3b0b` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift:443` `code-hygiene/dead-code-swift` — var.instance `option` is assignOnlyProperty.
+- [x] `Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift:446` `code-hygiene/dead-code-swift` — var.instance `comment` is assignOnlyProperty.
