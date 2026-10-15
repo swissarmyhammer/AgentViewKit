@@ -174,13 +174,13 @@ struct SymbolNameScanner {
   /// - Parameters:
   ///   - directory: The directory to scan. The scan includes subdirectories.
   ///   - base: The directory that the file name of each use is relative to.
-  /// - Returns: The uses, in file order, then in source order.
+  /// - Returns: The uses, in the order of the file paths, then in source
+  ///   order.
   /// - Throws: An error when the directory or a file cannot be read, or
   ///   `PackageFiles.FileOutsideDirectory` when a file is not below `base`.
   static func names(inSwiftFilesBelow directory: URL, relativeTo base: URL) throws -> [SymbolNameUse] {
-    try PackageFiles.swiftFiles(in: directory).flatMap { url in
-      let scanner = SymbolNameScanner(source: try String(contentsOf: url, encoding: .utf8))
-      return scanner.names(file: try PackageFiles.relativePath(of: url, to: base))
+    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base).flatMap { file in
+      SymbolNameScanner(source: file.text).names(file: file.path)
     }
   }
 }

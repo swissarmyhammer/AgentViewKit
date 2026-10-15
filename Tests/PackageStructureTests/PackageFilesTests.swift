@@ -103,6 +103,29 @@ import Testing
     #expect(names.allSatisfy { $0.hasSuffix(".swift") })
   }
 
+  /// A fixture directory, relative to the package root. It holds one Swift
+  /// file at the top and one Swift file in a subdirectory.
+  private static let fixturesPath = "Tests/PackageStructureTests/Fixtures/ImportBoundary/Violating"
+
+  @Test func swiftFileTextsGivesEachRelativePathAndTextSortedByPath() throws {
+    let fixtures = try PackageFiles.file(Self.fixturesPath)
+    let base = fixtures.deletingLastPathComponent()
+    let expectedPaths = ["Violating/ImportsNothingForbidden.swift", "Violating/Nested/ImportsRuntimes.swift"]
+
+    let files = try PackageFiles.swiftFileTexts(below: fixtures, relativeTo: base)
+
+    #expect(files.map(\.path) == expectedPaths)
+    #expect(try files.map(\.text) == expectedPaths.map { try String(contentsOf: base.appending(path: $0), encoding: .utf8) })
+  }
+
+  @Test func swiftFileTextsThrowsForAMissingDirectory() throws {
+    let missing = try PackageFiles.file("Sources/NoSuchDirectory")
+
+    #expect(throws: CocoaError.self) {
+      try PackageFiles.swiftFileTexts(below: missing, relativeTo: missing)
+    }
+  }
+
   @Test func swiftFilesThrowsForAMissingDirectory() throws {
     let missing = try PackageFiles.file("Sources/NoSuchDirectory")
 

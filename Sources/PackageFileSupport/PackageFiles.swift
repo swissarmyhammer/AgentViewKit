@@ -130,4 +130,26 @@ public enum PackageFiles {
     }
     return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == swiftExtension }
   }
+
+  /// The relative path and the text of each Swift file below a directory.
+  ///
+  /// This is the one traversal for a test that reads Swift sources: it lists
+  /// the files with ``swiftFiles(in:)``, makes each path with
+  /// ``relativePath(of:to:)``, and reads each file as UTF-8 text.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory to read. The scan includes subdirectories.
+  ///   - base: The directory that the path of each file is relative to.
+  /// - Returns: The path and the text of each file, sorted by path.
+  /// - Throws: `CocoaError(.fileReadNoSuchFile)` when `directory` is not an
+  ///   existing directory, ``FileOutsideDirectory`` when a file is not below
+  ///   `base`, or the error of `String(contentsOf:encoding:)` when a file
+  ///   cannot be read or is not UTF-8.
+  public static func swiftFileTexts(below directory: URL, relativeTo base: URL) throws -> [(path: String, text: String)] {
+    try swiftFiles(in: directory)
+      .map { url in
+        (path: try relativePath(of: url, to: base), text: try String(contentsOf: url, encoding: .utf8))
+      }
+      .sorted { $0.path < $1.path }
+  }
 }

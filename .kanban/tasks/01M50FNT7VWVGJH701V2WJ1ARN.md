@@ -38,8 +38,48 @@ comments:
     - log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-7.log
     - next: Push is decided by this green result.
   timestamp: 2026-10-15T19:33:52.534909+00:00
+- actor: claude-code
+  id: 01m50hkqnmwcdr89jq8a48qmmg
+  text: |-
+    ### review — findings
+    - evidence: review sha a8960ee~1..a8960ee — 2 findings (2 confirmed, 1 refuted, 7 attempted, 0 failed). Tests/AgentViewKitTests/Content/MathEngineDecisionTests.swift:109, Tests/PackageStructureTests/SymbolNameScanner.swift:183 (reuse/reuse).
+    - next: implement the 2 findings in the "Review Findings (2026-10-15 14:42)" section, then review again.
+  timestamp: 2026-10-15T19:46:16.884585+00:00
+- actor: claude-code
+  id: 01m50hv6sc7jw8k97nngeeaza8
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — PackageFiles.swift, MathEngineDecisionTests.swift, SourceLineScanner.swift, SymbolNameScanner.swift, PackageFilesTests.swift
+    - test: green — swift test, 1201 passed in 138 suites (1 run)
+    - commit: a8960ee (pushed in 277f657)
+    - review: findings — MathEngineDecisionTests.swift:109, SymbolNameScanner.swift:183 (reuse)
+  timestamp: 2026-10-15T19:50:21.740166+00:00
+- actor: claude-code
+  id: 01m50j1g3eqa9bmh2cg3njnmj2
+  text: |-
+    ### implement — changed
+    - evidence: 5 files. Sources/PackageFileSupport/PackageFiles.swift (new public `swiftFileTexts(below:relativeTo:)` -> `[(path: String, text: String)]`: it lists with `swiftFiles(in:)`, makes each path with `relativePath(of:to:)`, reads UTF-8 text, and sorts by path); Tests/AgentViewKitTests/Content/MathEngineDecisionTests.swift (`spiFiles()` uses it, its own sort is gone because the helper sorts); Tests/PackageStructureTests/SourceLineScanner.swift and Tests/PackageStructureTests/SymbolNameScanner.swift (the copied loops are gone, both use the helper; the doc comments now say "in the order of the file paths"); Tests/PackageStructureTests/PackageFilesTests.swift (new tests `swiftFileTextsGivesEachRelativePathAndTextSortedByPath` and `swiftFileTextsThrowsForAMissingDirectory`).
+    - Both findings are `- [x]`.
+    - Run, one time: `swift test --filter 'MathEngineDecisionTests|PackageFilesTests|SourceLineScannerTests|SymbolNameTests|ImportBoundaryTests'`. Exit 0. PackageStructureTests: 36 tests in 4 suites passed. AgentViewKitTests: 6 tests in 1 suite passed. The only warning is the mlx-swift "missing creator for mutated node" line from the dependency build.
+    - Note: the scanners now give their results in path order. Before, the order was the order of the enumerator, which has no contract. The callers that I checked (SourceLineScannerTests, ImportScanner, SymbolNameTests) do not depend on that order.
+    - Other callers of `swiftFiles(in:)` that read text without a relative path (for example WireContentBlockViewHostedTests, RemovedVocabularyTests) are not in the scope of this card. No change.
+    - No separate RED run: the order was one run only.
+    - next: review.
+  timestamp: 2026-10-15T19:53:47.886346+00:00
+- actor: claude-code
+  id: 01m50mr2cq4qt47ryr0qrcrctr
+  text: |-
+    ### test - green
+    - command: swift test, one run, exit 0. Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-8.log
+    - counts: 1 test in 1 suite (ReadmeSnippetsTests), 127 tests in 16 suites (package structure), 1201 tests in 138 suites. All passed. 0 XCTest tests. 0 failures.
+    - known issues: 2. Both come from tests that check a failing expectation on purpose: aWrappedTextWithAFixedVerticalSizeFails (HostedLayoutExpectationsTests.swift:23:60, minimumSize.height 3456.0) and aViewThatIgnoresTheThemeFails (ThemeHeightExpectationsTests.swift:35:61, themed 16.0, themed > unthemed false).
+    - warnings: only the dependency warning "missing creator for mutated node" for mlx-swift_Cmlx.bundle. No warning from project sources.
+    - Package.resolved: not updated. Revisions: editorkit 65393f5, foundationmodelsacp fb55b2f, foundationmodelsacpagent 180333b, foundationmodelsacpclient 9cedcb9, foundationmodelsagents 50595af, foundationmodelscodecontext c9075fe, foundationmodelsextras dbd91de, foundationmodelsmetadataregistry 858f5da, foundationmodelsmultitool dca2527, foundationmodelsranker 6156346, foundationmodelsrouter fa9bf08, foundationmodelsskills cf1ce54, mlx-swift 0.32.3 (1960120), mlx-swift-lm stable d609e75, swift-sdk dbea702, GRDB 7.11.1, swift-syntax 604.0.0, textual 0.5.0.
+    - readme gate: Scripts/check-readme.sh exit 0. "README gate passed: each snippet is in its file, and each snippet compiles."
+    - next: review.
+  timestamp: 2026-10-15T20:41:04.663070+00:00
 position_column: doing
-position_ordinal: '8380'
+position_ordinal: '80'
 title: 'Mail step 7: MathEngineDecisionTests cuts the root prefix by length, so it fails when the package path has a symlink'
 ---
 Found in the full run of the rebased push branch (worktree under /tmp, which is a symlink to /private/tmp).
@@ -48,3 +88,13 @@ Found in the full run of the rebased push branch (worktree under /tmp, which is 
 - Failure: `section.contains(file.path)` was false for "vk-push/Sources/AgentViewKit/Content/MathMarkdownParser.swift" and "vk-push/Sources/AgentViewKit/Content/MathView.swift". The worktree directory is avk-push, so the first character is lost.
 - Cause: `spiFiles()` (line 115) makes each relative path with `url.path(percentEncoded: false).dropFirst(prefix.count)`. The enumerated URLs and the root prefix do not have the same form when the path holds a symlink (/tmp → /private/tmp), so the prefix length is wrong.
 - Fix: make the relative path from the path components of the standardized URLs (resolvingSymlinksInPath on both the root and each file), or use the shared helper of Tests/AgentViewKitTests/Helpers/SourceLines.swift if it does this correctly. The test must not depend on the location of the checkout. Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-15 14:42)
+
+> Scope: `review sha a8960ee~1..a8960ee` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Content/MathEngineDecisionTests.swift:109` `reuse/reuse` — The new spiFiles body repeats a traversal that already exists in the test scanners. It lists the Swift files, reads each file as UTF-8 text, and turns each URL into a package-relative path. SourceLineScanner.matches and SymbolNameScanner.names do the same steps. A shared helper that returns the (path, text) pairs would keep one copy of this logic, so a fix to the traversal is made once. Add one helper to PackageFiles, for example swiftFileTexts(below:relativeTo:) returning [(path: String, text: String)]. Use it in spiFiles, SourceLineScanner.matches, and SymbolNameScanner.names. Keep the sort in spiFiles where it is needed.
+- [x] `Tests/PackageStructureTests/SymbolNameScanner.swift:183` `reuse/reuse` — The marked line computes the relative path of each file inside the same loop that reads the file text and lists the Swift files. SourceLineScanner.matches and spiFiles repeat that loop, so the traversal exists in three places. Replace the loop with one shared PackageFiles helper that returns the path and text of each Swift file, and call it from this function.

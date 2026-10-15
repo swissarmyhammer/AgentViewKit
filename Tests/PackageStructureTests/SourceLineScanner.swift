@@ -24,7 +24,8 @@ enum SourceLineScanner {
   ///   - directory: The directory to scan. The scan includes subdirectories.
   ///   - base: The directory that the file name of each line is relative to.
   ///   - match: The function that finds the matches on one line.
-  /// - Returns: The matches, in file order, then in line order.
+  /// - Returns: The matches, in the order of the file paths, then in line
+  ///   order.
   /// - Throws: An error when the directory or a file cannot be read, or
   ///   `PackageFiles.FileOutsideDirectory` when a file is not below `base`.
   static func matches<Match>(
@@ -32,9 +33,8 @@ enum SourceLineScanner {
     relativeTo base: URL,
     match: (SourceLine) -> [Match]
   ) throws -> [Match] {
-    try PackageFiles.swiftFiles(in: directory).flatMap { url in
-      let text = try String(contentsOf: url, encoding: .utf8)
-      return matches(inSource: text, file: try PackageFiles.relativePath(of: url, to: base), match: match)
+    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base).flatMap { file in
+      matches(inSource: file.text, file: file.path, match: match)
     }
   }
 
