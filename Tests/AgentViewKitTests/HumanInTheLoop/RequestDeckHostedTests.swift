@@ -104,26 +104,40 @@ import Testing
     RequestDeck.identifier(for: request.id.uuidString)
   }
 
+  /// The height between the bottom of the "k of N" text and the top of the
+  /// front card. The top edges of the cards behind the front card take this
+  /// space, so the height grows one step for each edge.
+  ///
+  /// - Parameters:
+  ///   - front: The front request.
+  ///   - harness: The harness.
+  /// - Returns: The height, in points.
+  /// - Throws: An issue when the harness has no such element.
+  static func edgeSpace(above front: PendingRequest, in harness: HostedViewHarness<some View>) throws -> CGFloat {
+    let position = try #require(harness.frame(identifier: RequestDeck.positionIdentifier))
+    let card = try #require(harness.frame(identifier: cardIdentifier(front)))
+    return position.minY - card.maxY
+  }
+
   @Test func sixRequestsShowOneOfSixThreeEdgesAndPlusTwo() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
     let harness = Self.mount(session: session, system: system)
     defer { harness.close() }
+    try await Self.sendRequests(2, to: session, rendering: harness)
+    let front = try #require(session.model.pendingRequests.first)
+    let oneEdgeSpace = try Self.edgeSpace(above: front, in: harness)
 
-    try await Self.sendRequests(6, to: session, rendering: harness)
+    try await Self.sendRequests(4, firstID: Self.firstRequestID + 2, to: session, rendering: harness)
 
-    let requests = session.model.pendingRequests
-    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "1 of 6")
-    #expect(Self.label(of: RequestDeck.moreIdentifier, in: harness) == "+2")
-    let front = try #require(harness.frame(identifier: Self.cardIdentifier(requests[0])))
-    for edge in requests[1...3] {
-      let frame = try #require(harness.frame(identifier: Self.cardIdentifier(edge)))
-      #expect(frame.maxY > front.maxY, "An edge card shows its top above the front card.")
-    }
-    for hidden in requests[4...5] {
-      #expect(harness.element(identifier: Self.cardIdentifier(hidden)) == nil)
-    }
+    // The cards behind the front card are not in the accessibility tree, so
+    // the test measures the space that their top edges take: two more edges
+    // take two more steps.
+    let edgeStep = AgentTheme.default.spacing.s
+    #expect(try Self.edgeSpace(above: front, in: harness) - oneEdgeSpace == 2 * edgeStep)
+    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 1 of 6, 2 more")
+    #expect(harness.element(identifier: RequestDeck.moreIdentifier) == nil)
   }
 
   @Test func nextAndThenTheNextKeyGiveTwoOfSixAndThenThreeOfSix() async throws {
@@ -136,13 +150,13 @@ import Testing
     let model = session.model
 
     try harness.press(identifier: RequestDeck.nextIdentifier)
-    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "2 of 6")
+    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 2 of 6, 2 more")
 
     let key = try #require(AgentKeymap.defaultChords[.nextRequest])
     #expect(system.registry.performKey(key.asSequence, mode: .cua, at: Self.path(of: model)))
     harness.render()
 
-    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "3 of 6")
+    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 3 of 6, 2 more")
     #expect(model.frontRequest?.id == model.pendingRequests[2].id)
   }
 
@@ -180,7 +194,7 @@ import Testing
     await ObservationWait.until { model.pendingRequests.count == 5 }
     harness.render()
 
-    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "1 of 5")
+    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 1 of 5, 1 more")
   }
 
   @Test func oneRequestHasNoHeaderAndNoControlsAndTheVerbsAreNotAvailable() async throws {
@@ -214,6 +228,6 @@ import Testing
     try await Self.sendRequests(1, firstID: Self.firstRequestID + 3, to: session, rendering: harness)
 
     #expect(model.frontRequest?.id == front.id)
-    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "2 of 4")
+    #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 2 of 4")
   }
 }

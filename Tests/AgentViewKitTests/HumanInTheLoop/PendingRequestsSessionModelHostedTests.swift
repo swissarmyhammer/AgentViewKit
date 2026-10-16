@@ -282,7 +282,10 @@
         id: elicitationRequestID, params: ScriptedSession.formElicitationParams)
       let cards = [permission.id, elicitation.id].map(Self.cardIdentifier)
       harness.render()
-      #expect(cards.allSatisfy { harness.element(identifier: $0) != nil })
+      // Only the front card is in the accessibility tree. The header counts
+      // the two cards.
+      #expect(harness.element(identifier: Self.cardIdentifier(permission.id)) != nil)
+      #expect(harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 1 of 2")
 
       session.model.cancelAllPending()
       let model = session.model

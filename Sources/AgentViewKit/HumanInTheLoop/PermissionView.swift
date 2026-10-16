@@ -136,9 +136,6 @@ public struct PermissionView: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.permissionAnswerReport) private var reportAnswer
 
-  /// The action that moves the VoiceOver focus and tells the host.
-  private let moveFocus = AccessibilityFocusMove()
-
   /// Makes the card of a pending permission request.
   ///
   /// - Parameters:
@@ -176,7 +173,6 @@ public struct PermissionView: View {
     .accessibilityLabel(request.request.title)
     .accessibilityIdentifier(Self.identifier)
     .accessibilityFocusTarget(Self.identifier)
-    .onAppear { moveFocus(to: Self.identifier) }
   }
 
   /// The title and the description.

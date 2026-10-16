@@ -46,6 +46,13 @@ comments:
     ### review — clean
     - evidence: sah `review working`: 1 finding, RequestDeck.swift:476 magic number 2. Fixed: DeckStackLayout.insetSideCount. RequestDeckHostedTests + RequestDeckLayoutTests after the fix: 9 of 9 passed (one run).
   timestamp: 2026-10-16T12:56:32.577693+00:00
+- actor: claude-code
+  id: 01m52cjxc5557zbvjnqm9fc1mq
+  text: |-
+    ### commit — changed
+    - evidence: e4dd9b2 feat(deck): show the deck with depth, FIFO order, and Previous and Next (^46zhh46). Pushed to main (d2a8b51..e4dd9b2).
+    - next: CI of e4dd9b2; then card 37.
+  timestamp: 2026-10-16T12:56:55.941619+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCA56W69EXCFBTGCKJK0S

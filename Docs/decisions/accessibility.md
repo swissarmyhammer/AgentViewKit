@@ -49,7 +49,7 @@ announcement.
 |----------|------|----------|
 | The first `idle` after the echo of a prompt of this client (by the `messageId` of the prompt response) | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
-| A new pending request of the models | "Action required: <title>" | high |
+| A new pending request of the model of a `RequestDeck` | "Action required: <title>" | high |
 | The check before the send refuses an elicitation answer (`ElicitationView` does not send it) | "The agent cannot accept this answer: <reason>" | high |
 
 - A prompt is mail (ACPAgent 293be4b). The order on the wire is: the
@@ -71,13 +71,18 @@ announcement.
   prompt response and on the echo. An agent that sends no echo for a prompt
   gives no "Response complete" for that prompt.
 - `SessionAnnouncementObserver` is a hidden background of `AgentThreadView`.
-  It reads the stream of `makeTurnAnnouncements(of:)`, the status of each
-  `ToolCallEntry` of the transcript, and the pending requests of
-  `SessionModel` and of `ConnectionModel` (`pendingPermissions` and
-  `pendingElicitations`). It keeps no copy of these values. Each tool result
-  and action required announcement compares only the old and the new value
-  of one change of the model. It does not read the content of an entry, so
-  a streamed chunk does not evaluate it.
+  It reads the stream of `makeTurnAnnouncements(of:)` and the status of each
+  `ToolCallEntry` of the transcript. It keeps no copy of these values. Each
+  tool result announcement compares only the old and the new value of one
+  change of the model. It does not read the content of an entry, so a
+  streamed chunk does not evaluate it.
+- Each `RequestDeck` announces the new requests of its own model:
+  `RequestDeck(session:)` the permission requests and the elicitations of
+  the session, `RequestDeck(connection:)` the request-scoped elicitations of
+  the connection. Thus each request is announced one time. The announcement
+  compares only the old and the new requests of one change. Previous, Next,
+  a request that the agent withdraws, and a URL waiting state give no
+  announcement.
 - A tool call that the session model did not have before the change gives
   no announcement. While `SessionModel.isReplaying` is true, the replay of a
   resume gives no stop announcement and no tool result announcement. Thus a
@@ -101,12 +106,23 @@ announcement.
   action (`AccessibilityFocusMove`). There is one `focusReporter`
   environment value.
 - `RequestDeck` shows one card for each pending request of its model. It
-  moves the focus to the `pending-card-<id>` container of a new request, and
-  to `prompt-editor` when no card stays. It keeps no list of the requests:
-  the models remove a request when it resolves.
-  `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` also
-  report their own identifier when they appear. Thus a reporter records the
-  container and the card for a new permission request.
+  keeps no list of the requests: the models remove a request when it
+  resolves.
+- A new card does not take the VoiceOver focus or the keyboard focus.
+  `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` do not
+  move the focus when they appear. A card takes the keyboard focus only as
+  the default focus of its window.
+- The deck moves the focus only in two cases
+  (`RequestDeck.focusTarget(oldIDs:newIDs:oldFront:newFront:)`):
+  - The old front request left the deck: the focus goes to the
+    `pending-card-<id>` container of the new front request, or to
+    `prompt-editor` when no card stays.
+  - The user changed the front (Previous, Next, a key, the tool call
+    status): the focus goes to the card of the new front request, and the
+    keyboard focus goes into that card.
+- Only the front card is in the accessibility tree. The edges and the cards
+  that do not show are hidden from VoiceOver. "k of N" and "+N" are one
+  element, for example "Request 1 of 6, 2 more".
 - `PromptInputView` puts the `prompt-editor` focus target on its editor slot,
   so the focus goes back to a custom editor too.
 

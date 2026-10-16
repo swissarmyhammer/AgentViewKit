@@ -36,6 +36,12 @@ import SwiftUI
 /// The view keeps its state. Give each request its own view identity, for
 /// example with `.id(request.id)`.
 ///
+/// The card does not move the VoiceOver focus when it appears. The
+/// ``RequestDeck`` announces the new request and moves the focus. The card
+/// takes the keyboard focus only as the default focus of its window, and
+/// the deck gives it the keyboard focus when the user brings it to the
+/// front.
+///
 /// The URL text and the warning do not use a fixed vertical size. A text
 /// with a fixed vertical size gives its full wrapped height at a narrow
 /// width as its minimum height. ``AgentThreadView`` shows the card outside
@@ -111,8 +117,6 @@ public struct ElicitationURLConsentView: View {
   @FocusState private var isFocused: Bool
 
   @Environment(\.authorizationPresenter) private var presenter
-  /// The action that moves the VoiceOver focus and tells the host.
-  private let moveFocus = AccessibilityFocusMove()
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
 
@@ -147,14 +151,11 @@ public struct ElicitationURLConsentView: View {
     .focusable()
     .focusEffectDisabled()
     .focused($isFocused)
+    .defaultFocus($isFocused, true)
     .onExitCommand(perform: cancel)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
     .accessibilityFocusTarget(Self.identifier)
-    .onAppear {
-      isFocused = true
-      moveFocus(to: Self.identifier)
-    }
     .onDisappear {
       browserTask?.cancel()
     }

@@ -469,30 +469,26 @@ import Testing
     try await session.sendPermissionRequest(id: agentRequestID, rendering: harness)
   }
 
-  @Test func theDeckReportsANewCardThenThePromptEditor() async throws {
+  @Test func theDeckReportsNoMoveForANewCardThenThePromptEditor() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let reporter = RecordingFocusReporter()
     let harness = Self.mountDeck(session, reporter: reporter)
     defer { harness.close() }
-    #expect(reporter.moves.isEmpty)
 
     let id = try await Self.sendPermissionRequest(session, harness: harness)
     let cardIdentifier = RequestDeck.identifier(for: id.uuidString)
-    // The deck reports the focus move when it sees the new card, and the card
-    // reports itself when it appears. A render pass runs both actions.
-    harness.render()
 
-    // The deck reports the card container, and the card reports itself.
-    #expect(Set(reporter.moves) == [cardIdentifier, PermissionView.identifier])
+    // A new card does not take the focus, and the card does not report
+    // itself when it appears.
+    #expect(reporter.moves.isEmpty)
     #expect(harness.element(identifier: cardIdentifier) != nil)
     #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
-    let movesBeforeAnswer = reporter.moves.count
     await session.model.cancelPermission(id)
     harness.render()
 
-    #expect(reporter.moves.dropFirst(movesBeforeAnswer) == [StockPromptEditor.identifier])
+    #expect(reporter.moves == [StockPromptEditor.identifier])
     #expect(harness.element(identifier: cardIdentifier) == nil)
   }
 
@@ -508,10 +504,13 @@ import Testing
     let model = session.model
     await harness.render { !model.pendingElicitations.isEmpty }
     let elicitationID = try #require(session.model.pendingElicitations.first).id
+    #expect(harness.element(identifier: RequestDeck.identifier(for: permissionID.uuidString)) != nil)
 
-    for id in [permissionID, elicitationID] {
-      #expect(harness.element(identifier: RequestDeck.identifier(for: id.uuidString)) != nil)
-    }
+    // Only the front card is in the accessibility tree. Next brings the card
+    // behind it to the front.
+    try harness.press(identifier: RequestDeck.nextIdentifier)
+
+    #expect(harness.element(identifier: RequestDeck.identifier(for: elicitationID.uuidString)) != nil)
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }
 
@@ -534,17 +533,5 @@ import Testing
     #expect(!session.model.pendingPermissions.isEmpty)
     #expect(cards.isEmpty)
     #expect(harness.element(identifier: PermissionView.identifier) == nil)
-  }
-
-  // MARK: - Focus target
-
-  @Test func theFocusTargetFollowsTheChange() {
-    let card = { (requestID: String) in RequestDeck.identifier(for: requestID) }
-    #expect(RequestDeck.focusTarget(old: [], new: ["a"]) == card("a"))
-    #expect(RequestDeck.focusTarget(old: ["a"], new: ["a", "b", "c"]) == card("c"))
-    #expect(RequestDeck.focusTarget(old: ["a"], new: []) == StockPromptEditor.identifier)
-    #expect(RequestDeck.focusTarget(old: ["a", "b"], new: ["a"]) == card("a"))
-    #expect(RequestDeck.focusTarget(old: ["a"], new: ["a"]) == nil)
-    #expect(RequestDeck.focusTarget(old: ["a", "b"], new: ["b", "a"]) == nil)
   }
 }

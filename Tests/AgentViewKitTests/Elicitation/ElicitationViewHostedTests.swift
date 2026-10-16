@@ -558,12 +558,13 @@ import Testing
 
   // MARK: - Focus
 
-  @Test func theFormReportsTheFocusOnAppear() async throws {
+  /// A new card does not take the focus. The ``RequestDeck`` moves the focus.
+  @Test func theFormMovesNoFocusOnAppear() async throws {
     let reporter = RecordingFocusReporter()
     let mounted = try await Self.mount(Self.oneFieldParams, reporter: reporter)
     defer { mounted.close() }
 
-    #expect(reporter.moves == [ElicitationView.formIdentifier])
+    #expect(reporter.moves.isEmpty)
   }
 
   // MARK: - URL mode

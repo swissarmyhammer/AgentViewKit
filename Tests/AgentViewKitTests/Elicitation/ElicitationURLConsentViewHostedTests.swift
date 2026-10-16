@@ -189,12 +189,13 @@ import Testing
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.declineIdentifier) != nil)
   }
 
-  @Test func theCardReportsTheFocusOnAppear() async throws {
+  /// A new card does not take the focus. The ``RequestDeck`` moves the focus.
+  @Test func theCardMovesNoFocusOnAppear() async throws {
     let reporter = RecordingFocusReporter()
     let mounted = try await Self.mount(reporter: reporter)
     defer { mounted.close() }
 
-    #expect(reporter.moves == [ElicitationURLConsentView.identifier])
+    #expect(reporter.moves.isEmpty)
   }
 
   // MARK: - Actions
@@ -305,13 +306,21 @@ import Testing
     let harness = HostedViewHarness(RequestDeck(session: session.model), size: Self.hostSize)
     defer { harness.close() }
 
-    try await session.sendRequest("elicitation/create", id: 1, params: Self.makeParams(url: "https://example.com/auth"))
-    try await session.sendRequest("elicitation/create", id: 2, params: ScriptedSession.formElicitationParams)
+    // The client handles each request in its own task, so the test sends the
+    // second request only after the model holds the first.
     let model = session.model
+    try await session.sendRequest("elicitation/create", id: 1, params: Self.makeParams(url: "https://example.com/auth"))
+    await ObservationWait.until { model.pendingElicitations.count == 1 }
+    try await session.sendRequest("elicitation/create", id: 2, params: ScriptedSession.formElicitationParams)
     await harness.render { model.pendingElicitations.count == 2 }
 
     #expect(harness.element(identifier: ElicitationURLConsentView.identifier) != nil)
     #expect(harness.element(identifier: ElicitationURLConsentView.openIdentifier) != nil)
+    // Only the front card is in the accessibility tree.
+    #expect(harness.element(identifier: ElicitationView.formIdentifier) == nil)
+
+    try harness.press(identifier: RequestDeck.nextIdentifier)
+
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }
 }

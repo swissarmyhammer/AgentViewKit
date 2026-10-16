@@ -101,6 +101,11 @@ struct RequestDeckLayoutTests {
     #expect(layout.role(of: Self.ids[5]) == .hidden)
   }
 
+  @Test func thePositionLabelTellsTheMoreCountOnlyWhenCardsDoNotShow() {
+    #expect(RequestDeck.layout(requests: Self.ids, front: nil).positionLabel == "Request 1 of 6, 2 more")
+    #expect(RequestDeck.layout(requests: Self.ids(0, 1, 2, 3), front: Self.ids[1]).positionLabel == "Request 2 of 4")
+  }
+
   @Test func onlyADeckWithMoreThanOneRequestShowsItsHeader() {
     #expect(!RequestDeck.layout(requests: [], front: nil).showsHeader)
     #expect(!RequestDeck.layout(requests: Self.ids(0), front: nil).showsHeader)

@@ -81,7 +81,9 @@ import Testing
 
   /// Makes an ``AgentThreadView`` of a scripted session and its connection
   /// model, with the recording announcer and a recorder of the steps of the
-  /// turn announcement reader.
+  /// turn announcement reader. A ``RequestDeck`` of the session and a deck of
+  /// the connection are next to the thread view, as an app arranges them,
+  /// because each deck announces the new requests of its model.
   ///
   /// The helper makes one ``HostedViewHarness/render()`` pass, and then waits
   /// for the event that the reader started to read the update tap. Thus the
@@ -97,10 +99,15 @@ import Testing
     steps: TurnAnnouncementStepRecorder = TurnAnnouncementStepRecorder()
   ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: hostSize) {
-      AgentThreadView(session: session.model, connection: session.connection)
-        .environment(\.announcer, announcer)
-        .environment(\.turnAnnouncementReport, report(to: steps))
-        .transaction { $0.disablesAnimations = true }
+      VStack {
+        AgentThreadView(session: session.model, connection: session.connection)
+        RequestDeck(session: session.model)
+        RequestDeck(connection: session.connection)
+      }
+      .accessibilityFocusScope()
+      .environment(\.announcer, announcer)
+      .environment(\.turnAnnouncementReport, report(to: steps))
+      .transaction { $0.disablesAnimations = true }
     }
     harness.render()
     await ObservationWait.until { steps.hasStarted }
@@ -429,7 +436,7 @@ import Testing
     .accessibilityFocusScope()
   }
 
-  @Test func theFocusMovesToTheCardThenBackToThePromptEditor() async throws {
+  @Test func aNewCardTakesNoFocusAndTheLastAnswerMovesTheFocusToThePromptEditor() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let reporter = RecordingFocusReporter()
@@ -445,13 +452,12 @@ import Testing
     let id = try await session.sendPermissionRequest(id: 1, rendering: harness)
     harness.render()
 
-    #expect(reporter.moves.contains(RequestDeck.identifier(for: id.uuidString)))
-    #expect(reporter.moves.contains(PermissionView.identifier))
+    #expect(reporter.moves.isEmpty)
 
     await session.model.cancelPermission(id)
     await harness.render { model.pendingPermissions.isEmpty }
 
-    #expect(reporter.moves.last == StockPromptEditor.identifier)
+    #expect(reporter.moves == [StockPromptEditor.identifier])
   }
 
   @Test func theThreadAndTheDeckMoveTheFocusOfTheMoverOfTheHost() async throws {
@@ -470,7 +476,7 @@ import Testing
 
     let id = try await session.sendPermissionRequest(id: 1, rendering: harness)
     harness.render()
-    #expect(mover.lastMove != nil)
+    #expect(mover.lastMove == nil)
 
     await session.model.cancelPermission(id)
     await harness.render { model.pendingPermissions.isEmpty }

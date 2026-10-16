@@ -59,10 +59,9 @@ import SwiftUI
 ///   rows (``SwiftUI/View/accessibilityReadingScope()``).
 /// - It tells the ``SwiftUI/EnvironmentValues/announcer`` when the work of a
 ///   prompt of this client ends (the first idle after the echo of the
-///   prompt), when a tool call gets its result, and when a request needs the
-///   user. A streaming chunk gives no announcement. The
-///   announcements read the session model, and the connection model when the
-///   host gives it, directly.
+///   prompt), and when a tool call gets its result. A streaming chunk gives
+///   no announcement. The announcements read the session model directly.
+///   The ``RequestDeck`` announces each new request that needs the user.
 /// - It gives an ``AccessibilityFocusMover`` to its subtree
 ///   (``SwiftUI/View/accessibilityFocusScope()``) when the environment has
 ///   no mover, so that the views in its rows can move the VoiceOver focus.
@@ -142,7 +141,7 @@ public struct AgentThreadView: View {
         AgentLoginPrompt(session: session, connection: connection)
       }
     }
-    .background { SessionAnnouncementObserver(session: session, connection: connection) }
+    .background { SessionAnnouncementObserver(session: session) }
     .agentCommandScope(session: session, anchors: anchors)
     .onDisappear(perform: closeWhenSupported)
   }

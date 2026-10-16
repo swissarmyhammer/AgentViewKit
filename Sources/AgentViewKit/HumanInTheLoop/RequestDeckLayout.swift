@@ -45,6 +45,15 @@ nonisolated struct DeckLayout: Equatable, Sendable {
   /// controls. Only a deck with more than one request shows it.
   var showsHeader: Bool { count > 1 }
 
+  /// The VoiceOver label of the header: "Request k of N", and ", M more"
+  /// when M cards do not show. VoiceOver reads "k of N" and "+N" as this one
+  /// element.
+  var positionLabel: String {
+    let request = String(localized: "Request \(position) of \(count)")
+    guard moreCount > 0 else { return request }
+    return String(localized: "\(request), \(moreCount) more")
+  }
+
   /// The place of a card in the deck.
   ///
   /// - Parameter id: The id of the request of the card.

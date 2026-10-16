@@ -55,10 +55,13 @@ import SwiftUI
 ///   cards that do not show (identifier ``moreIdentifier``).
 /// - With more than one request, the header shows "k of N" (identifier
 ///   ``positionIdentifier``), where k is the position of the front request
-///   in `pendingRequests`. The Previous and Next buttons (identifiers
-///   ``previousIdentifier`` and ``nextIdentifier``) bring the request before
-///   or after the front request to the front, with `bringToFront(_:)` of the
-///   model. They do not wrap. ``AgentCommandVerb/previousRequest`` and
+///   in `pendingRequests`. VoiceOver reads "k of N" and "+N" as one element,
+///   for example "Request 1 of 6, 2 more" (``DeckLayout/positionLabel``), so
+///   the "+N" text is hidden from VoiceOver. The Previous and Next buttons
+///   (identifiers ``previousIdentifier`` and ``nextIdentifier``) bring the
+///   request before or after the front request to the front, with
+///   `bringToFront(_:)` of the model. They do not wrap.
+///   ``AgentCommandVerb/previousRequest`` and
 ///   ``AgentCommandVerb/nextRequest`` do the same from a key or the command
 ///   palette.
 /// - Only the front card takes a click or the keyboard focus. A card that
@@ -76,6 +79,22 @@ import SwiftUI
 /// identity of its request, so that each card keeps its own state, for
 /// example a partly completed form. The deck is not in the lazy list of the
 /// conversation, so a card is always mounted.
+///
+/// The focus and the announcements (deck design section 4):
+///
+/// - A new card does not take the VoiceOver focus or the keyboard focus. The
+///   deck announces each new request of its model, "Action required:
+///   <title>", at `.high` to the ``SwiftUI/EnvironmentValues/announcer``.
+///   Previous, Next and a request that the agent withdraws give no
+///   announcement.
+/// - The deck moves the focus only in two cases
+///   (``focusTarget(oldIDs:newIDs:oldFront:newFront:)``). When the front
+///   request leaves the deck, the VoiceOver focus goes to the new front
+///   card, or to the prompt editor when the deck is empty. When the user
+///   brings a request to the front, for example with Previous or Next, the
+///   VoiceOver focus and the keyboard focus go into its card.
+/// - Only the front card is in the accessibility tree. The edges and the
+///   cards that do not show are hidden from VoiceOver.
 ///
 /// The deck applies ``SwiftUI/View/accessibilityFocusScope()``, which does
 /// nothing when the environment already has a mover. The deck tells the
@@ -117,30 +136,6 @@ public struct RequestDeck: View, PrefixedAccessibilityIdentifier {
   /// - Parameter connection: The connection model.
   public init(connection: ConnectionModel) {
     source = .connection(connection)
-  }
-
-  /// The accessibility identifier of the view that gets the focus after the
-  /// pending requests change.
-  ///
-  /// - A new request moves the focus to its card. When more than one request
-  ///   is new, the last new card gets the focus.
-  /// - When no request is new and a request was resolved, the focus goes to
-  ///   the last card that stays. When no card stays, the focus goes back to
-  ///   the prompt editor (``StockPromptEditor/identifier``).
-  ///
-  /// - Parameters:
-  ///   - old: The raw request identifiers before the change.
-  ///   - new: The raw request identifiers after the change.
-  /// - Returns: The identifier, or `nil` when the focus does not move.
-  static func focusTarget(old: [String], new: [String]) -> String? {
-    let oldIDs = Set(old)
-    if let added = new.last(where: { !oldIDs.contains($0) }) {
-      return identifier(for: added)
-    }
-    let newIDs = Set(new)
-    guard old.contains(where: { !newIDs.contains($0) }) else { return nil }
-    guard let last = new.last else { return StockPromptEditor.identifier }
-    return identifier(for: last)
   }
 
   public var body: some View {
@@ -254,6 +249,11 @@ private struct DeckCards: View {
 
   @Environment(\.agentTheme) private var theme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.announcer) private var announcer
+
+  /// The request whose card has the keyboard focus, or `nil`. The deck sets
+  /// it only when the user brings a request to the front.
+  @FocusState private var keyboardFocus: PendingRequest.ID?
 
   /// The action that moves the VoiceOver focus and tells the host.
   private let moveFocus = AccessibilityFocusMove()
@@ -267,19 +267,47 @@ private struct DeckCards: View {
       }
       DeckStackLayout(edgeStep: theme.spacing.s, edgeInset: theme.spacing.m) {
         ForEach(requests) { request in
-          DeckCard(source: source, request: request, role: layout.role(of: request.id))
+          DeckCard(
+            source: source, request: request, role: layout.role(of: request.id), keyboardFocus: $keyboardFocus)
         }
       }
     }
     .padding(requests.isEmpty ? 0 : theme.spacing.m)
     .contentContainer(identifier: RequestDeck.identifier)
     .animation(reduceMotion ? nil : .default, value: layout.front)
-    .onChange(of: requests.map(\.id.uuidString)) { old, new in
-      if let target = RequestDeck.focusTarget(old: old, new: new) {
-        moveFocus(to: target)
-      }
+    .announcing(
+      changesOf: requests.map(ThreadAccessibility.PendingRequestSummary.init(request:)), to: announcer,
+      priority: .high, texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:)
+    )
+    .onChange(of: DeckOrder(ids: requests.map(\.id), front: layout.front), deckDidChange(from:to:))
+  }
+
+  /// Moves the focus after one change of the requests or of the front, as
+  /// ``RequestDeck/focusTarget(oldIDs:newIDs:oldFront:newFront:)`` tells.
+  ///
+  /// - Parameters:
+  ///   - old: The requests and the front before the change.
+  ///   - new: The requests and the front after the change.
+  private func deckDidChange(from old: DeckOrder, to new: DeckOrder) {
+    guard
+      let move = RequestDeck.focusTarget(
+        oldIDs: old.ids, newIDs: new.ids, oldFront: old.front, newFront: new.front)
+    else { return }
+    moveFocus(to: move.identifier)
+    if let id = move.keyboardFocus {
+      keyboardFocus = id
     }
   }
+}
+
+/// The ids of the requests of a ``RequestDeck`` and its front request, for
+/// the comparison of one change.
+private struct DeckOrder: Equatable {
+  /// The ids of the requests, oldest first.
+  let ids: [PendingRequest.ID]
+
+  /// The id of the front request, or `nil` when the deck is empty.
+  let front: PendingRequest.ID?
 }
 
 /// The header of a ``RequestDeck`` with more than one request: the Previous
@@ -300,6 +328,7 @@ private struct DeckHeader: View {
         identifier: RequestDeck.previousIdentifier)
       Text(String(localized: "\(layout.position) of \(layout.count)"))
         .monospacedDigit()
+        .accessibilityLabel(layout.positionLabel)
         .accessibilityIdentifier(RequestDeck.positionIdentifier)
       stepButton(
         verb: .nextRequest, symbol: SharedSymbol.nextRequest, neighbor: \.next,
@@ -310,6 +339,8 @@ private struct DeckHeader: View {
           .monospacedDigit()
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(RequestDeck.moreIdentifier)
+          // The label of "k of N" reads the count.
+          .accessibilityHidden(true)
       }
     }
     .font(.callout)
@@ -362,6 +393,10 @@ private struct DeckCard: View {
   /// The place of the card in the deck.
   let role: DeckCardRole
 
+  /// The keyboard focus of the deck: the card gets the keyboard focus when
+  /// it holds the id of the request.
+  let keyboardFocus: FocusState<PendingRequest.ID?>.Binding
+
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
@@ -369,12 +404,14 @@ private struct DeckCard: View {
     let isFront = role == .front
     let shape = RoundedRectangle(cornerRadius: theme.radii.l, style: .continuous)
     cardContent
+      .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
       .background(.background, in: shape)
       .overlay(shape.strokeBorder(.separator))
       .clipShape(shape)
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
+      .accessibilityHidden(!isFront)
       .opacity(role == .hidden ? 0 : 1)
       .allowsHitTesting(isFront)
       .disabled(!isFront)

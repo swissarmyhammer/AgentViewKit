@@ -12,6 +12,11 @@ import SwiftUI
 /// client model, and ``ToolCallView`` shows one card for each elicitation
 /// that is linked to its tool call. Each card sends the answer of the user
 /// to the reply methods of the model that holds the elicitation.
+///
+/// The card does not move the focus and does not announce when it appears.
+/// The ``RequestDeck`` announces each new request, and moves the focus only
+/// when the front request leaves the deck or when the user brings a request
+/// to the front.
 struct ElicitationCard: View {
   /// The log of an elicitation that the kit cannot show.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "ElicitationCard")

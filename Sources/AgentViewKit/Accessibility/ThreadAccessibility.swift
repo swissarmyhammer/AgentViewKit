@@ -16,8 +16,10 @@ import SwiftUI
 ///   groups comes from ``SwiftUI/View/accessibilityReadingScope()``.
 /// - Announcements: the kit announces only at four boundaries: the end of
 ///   the work of a prompt of this client, tool result, action required, and
-///   an elicitation answer that the agent cannot accept. ``ElicitationView``
-///   announces the last one at `.high`. A streaming chunk is not a boundary.
+///   an elicitation answer that the agent cannot accept. ``AgentThreadView``
+///   announces the first two. ``RequestDeck`` announces each new request of
+///   its model at `.high`. ``ElicitationView`` announces the last one at
+///   `.high`. A streaming chunk is not a boundary.
 /// - Focus: see ``AccessibilityFocusMover``.
 public enum ThreadAccessibility {
   /// The id of the linked group of the rows of a thread.
@@ -222,16 +224,28 @@ public enum ThreadAccessibility {
       self.id = id
       self.title = title
     }
+
+    /// Makes the summary of a pending request of a model.
+    ///
+    /// - Parameter request: The pending request.
+    init(request: PendingRequest) {
+      switch request {
+      case .permission(let permission):
+        self.init(id: permission.id.uuidString, title: permission.request.title)
+      case .elicitation(let elicitation):
+        self.init(id: elicitation.id.uuidString, title: elicitation.request.message)
+      }
+    }
   }
 
   /// The summary of each pending request of a session model and of its
   /// connection model.
   ///
-  /// The order is the order of the cards: the `pendingPermissions` of the
-  /// session, then its `pendingElicitations`, then the request-scoped
-  /// `pendingElicitations` of the connection. An elicitation of a mode that
-  /// has no card (``RequestDeck``) gives no summary. The value is
-  /// only for the comparison of one change. The view keeps no copy of it.
+  /// The order is: the `pendingPermissions` of the session, then its
+  /// `pendingElicitations`, then the request-scoped `pendingElicitations` of
+  /// the connection. An elicitation of a mode that has no card
+  /// (``RequestDeck``) gives no summary. The value is only for the
+  /// comparison of one change. A view keeps no copy of it.
   ///
   /// - Parameters:
   ///   - session: The session model.
@@ -243,11 +257,9 @@ public enum ThreadAccessibility {
   ) -> [PendingRequestSummary] {
     let elicitations = (session.pendingElicitations + (connection?.pendingElicitations ?? []))
       .filter(ElicitationCard.hasCard(for:))
-    let permissions = session.pendingPermissions.map {
-      PendingRequestSummary(id: $0.id.uuidString, title: $0.request.title)
-    }
-    let requests = elicitations.map { PendingRequestSummary(id: $0.id.uuidString, title: $0.request.message) }
-    return permissions + requests
+    let requests =
+      session.pendingPermissions.map(PendingRequest.permission) + elicitations.map(PendingRequest.elicitation)
+    return requests.map(PendingRequestSummary.init(request:))
   }
 
   /// The announcements of the requests that are new.
@@ -255,8 +267,8 @@ public enum ThreadAccessibility {
   /// - Parameters:
   ///   - old: The pending requests before the change.
   ///   - new: The pending requests after the change.
-  /// - Returns: "Action required: <title>" for each new request, in card
-  ///   order.
+  /// - Returns: "Action required: <title>" for each new request, in the
+  ///   order of `new`.
   public static func actionRequiredAnnouncements(
     old: [PendingRequestSummary], new: [PendingRequestSummary]
   ) -> [String] {
@@ -404,20 +416,16 @@ private struct ReadingGroupModifier: ViewModifier {
 ///   status.
 /// - While `SessionModel.isReplaying` is true, the history replay of a
 ///   `session/resume` request makes no tool result announcement.
-/// - A new request in `SessionModel.pendingPermissions`,
-///   `SessionModel.pendingElicitations`, or
-///   `ConnectionModel.pendingElicitations` announces that an action is
-///   required, with high priority.
+///
+/// The view does not announce the pending requests. Each ``RequestDeck``
+/// announces the new requests of its own model, so each request is
+/// announced one time.
 ///
 /// A streamed chunk changes only the content of its entry, which the view
 /// does not read, so a chunk does not evaluate its body.
 struct SessionAnnouncementObserver: View {
   /// The session model to observe.
   let session: SessionModel
-
-  /// The connection model of the session, whose request-scoped
-  /// elicitations the view observes, or `nil`.
-  let connection: ConnectionModel?
 
   @Environment(\.announcer) private var announcer
   @Environment(\.turnAnnouncementReport) private var reportTurnStep
@@ -435,9 +443,6 @@ struct SessionAnnouncementObserver: View {
       ) { old, new in
         session.isReplaying ? [] : ThreadAccessibility.toolResultAnnouncements(old: old, new: new)
       }
-      .announcing(
-        changesOf: ThreadAccessibility.pendingRequests(of: session, connection: connection), to: announcer,
-        priority: .high, texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:))
   }
 }
 
@@ -476,7 +481,7 @@ extension View {
   ///   - priority: The priority of each text.
   ///   - texts: The texts of one change, from the old and the new value.
   /// - Returns: A view that announces the changes of `value`.
-  fileprivate func announcing<Value: Equatable>(
+  func announcing<Value: Equatable>(
     changesOf value: Value,
     to announcer: any Announcer,
     priority: AnnouncementPriority,

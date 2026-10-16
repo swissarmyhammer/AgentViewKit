@@ -87,8 +87,6 @@ public struct ElicitationView: View {
   /// Whether the form has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  /// The action that moves the VoiceOver focus and tells the host.
-  private let moveFocus = AccessibilityFocusMove()
   @Environment(\.elicitationHeaderOverride) private var headerOverride
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
@@ -147,14 +145,11 @@ public struct ElicitationView: View {
     .focusable()
     .focusEffectDisabled()
     .focused($isFocused)
+    .defaultFocus($isFocused, true)
     .onExitCommand { owner.cancelElicitation(request.id) }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.formIdentifier)
     .accessibilityFocusTarget(Self.formIdentifier)
-    .onAppear {
-      isFocused = true
-      moveFocus(to: Self.formIdentifier)
-    }
     .onChange(of: values) { answerFailure = nil }
   }
 
