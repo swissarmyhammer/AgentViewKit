@@ -35,7 +35,7 @@ model loaded and nothing downloaded:
 |---|---|
 | Attachments | A user message with a `resource_link` block and a `resource` block |
 | Compaction | A compaction entry from the `/compact` command |
-| Cancelled | A turn with the stop reason `cancelled` |
+| Cancelled | A prompt whose work ended with the stop reason `cancelled` |
 
 To record these sessions again:
 
@@ -63,10 +63,10 @@ To record these sessions again:
 ## The scripted sessions of the Gallery
 
 FoundationModelsACPAgent cannot make some entry kinds and states, or makes
-them only in a live turn that a resume does not replay. The Gallery shows
-these from `InMemoryDemoACPAgent` of `DemoSupport` (`DemoGallery` and
-`DemoConnectionState`), next to the recorded sessions. They are not in this
-directory.
+them only in the live work of a prompt that a resume does not replay. The
+Gallery shows these from `InMemoryDemoACPAgent` of `DemoSupport`
+(`DemoGallery` and `DemoConnectionState`), next to the recorded sessions.
+They are not in this directory.
 
 ## Replace the sessions
 

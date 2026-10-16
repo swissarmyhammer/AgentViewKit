@@ -20,8 +20,8 @@ import OSLog
 /// prompt answers with the `messageId` of the user message. After the
 /// response, the agent echoes the user message with
 /// `AgentSideConnection.insertUserMessage(_:messageId:)`, and then sends the
-/// turn of ``InMemoryDemoAgent/turnNotifications(for:turn:)``: the ACPAgent
-/// order. A `session/resume` with `replayFrom: .start` sends the saved
+/// work of the prompt, ``InMemoryDemoAgent/turnNotifications(for:turn:)``:
+/// the ACPAgent order. A `session/resume` with `replayFrom: .start` sends the saved
 /// history of ``InMemoryDemoAgent/historyNotifications(sessionId:)`` before
 /// its result.
 ///
@@ -138,7 +138,7 @@ public actor InMemoryDemoACPAgent: Agent {
     let connection = try openConnection()
     promptCount += 1
     let updates = try await Self.turnUpdates(for: params, turn: promptCount)
-    // The echo and the turn follow the response. Register them with no
+    // The echo and the work of the prompt follow the response. Register them with no
     // suspension between the two calls, in the order that they go out.
     let messageId = connection.insertUserMessage(params)
     connection.afterRespondingToCurrentRequest {
@@ -323,11 +323,11 @@ public actor InMemoryDemoACPAgent: Agent {
   /// The log of the agent.
   private static let logger = Logger(subsystem: "DemoSupport", category: "InMemoryDemoACPAgent")
 
-  /// The `session/update` notifications of one turn.
+  /// The `session/update` notifications of the work of one prompt.
   ///
   /// - Parameters:
   ///   - request: The prompt request.
-  ///   - turn: The number of the turn, from 1.
+  ///   - turn: The number of the prompt in the session, from 1.
   /// - Returns: The notifications, in send order.
   /// - Throws: The error of the encoder or of the decoder.
   private static func turnUpdates(for request: PromptRequest, turn: Int) async throws -> [UpdateSessionNotification] {

@@ -24,11 +24,14 @@ extension EnvironmentValues {
 }
 
 extension SessionModel {
-  /// Whether the agent runs a turn: `agentState` is `.running`.
+  /// Whether the agent runs: `agentState` is `.running`.
   ///
-  /// The Stop control of the composer reads this value. No transcript row
-  /// reads it: a row shows its entry with the same look while the agent runs
-  /// and after it stops.
+  /// The agent runs for a prompt, for background work, or for a compaction,
+  /// also when no prompt is open. ``ActivityIndicator`` and the suggestions
+  /// of ``DefaultPromptAccessory`` read this value. The Stop control reads
+  /// the cancel rule of the kit (``AgentCommandTarget/canCancel(_:)``). No
+  /// transcript row reads this value: a row shows its entry with the same
+  /// look while the agent runs and after it stops.
   var isRunning: Bool {
     guard case .running = agentState else { return false }
     return true

@@ -26,10 +26,11 @@ import SwiftUI
 /// time, and clears the list. When the host gives no `attachments` binding,
 /// the composer keeps the list itself.
 ///
-/// Each submit sends the text at once, also while the agent runs a turn. The
-/// composer keeps no queue and does not wait for the end of a turn. In ACP v2
-/// the agent accepts a `session/prompt` at once, and the agent decides how to
-/// handle a message that comes while it runs. Command-Return also submits
+/// Each submit sends the text at once, also while the agent runs and while
+/// an earlier prompt is open. The composer keeps no queue and does not wait
+/// for the end of the work of a prompt. In ACP v2 the agent accepts a
+/// `session/prompt` at once, and the agent decides how to handle a message
+/// that comes while it runs. Command-Return also submits
 /// the text. Esc cancels the work of the session while the agent runs,
 /// while it requires action, and while it is idle with a pending permission
 /// request or a pending elicitation. Esc uses the same rule as
@@ -210,7 +211,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     cancel()
   }
 
-  /// Sends the text at once, also while the agent runs a turn. Then clears
+  /// Sends the text at once, also while the agent runs. Then clears
   /// the text and calls the host closure.
   ///
   /// The prompt blocks follow the prompt capabilities of the connection

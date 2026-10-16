@@ -73,7 +73,14 @@ comments:
     - readme gate: Scripts/check-readme.sh passed.
     - next: review.
   timestamp: 2026-10-16T00:43:54.885918+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m5138zx0kkwwpp9hscqtkwv2
+  text: |-
+    ### review — clean
+    - evidence: review sha 347209f~1..347209f; 0 findings (0 confirmed, 0 refuted); 2 files reviewed.
+    - next: The task stays open in review on the instruction of the user. The cause of the failure in the full run 12 is not confirmed. Find and confirm the run-12 cause before the task moves to done.
+  timestamp: 2026-10-16T00:54:59.232797+00:00
+position_column: review
 position_ordinal: '8180'
 title: 'Mail step 7: aLongTextNeverEvaluatesAnEarlierParagraphAgain fails in the A6 full run (each earlier paragraph evaluates one more time on each chunk)'
 ---
@@ -83,3 +90,12 @@ Found in the full run of T4-A6 (^yvdg1f4, uncommitted on top of e082aa3). Log: /
 - History: ^z2sya2g (commit 277f657) made the test render each chunk directly. The test passed in the full runs 7 to 11 (A0 to A5). It failed in run 12, with the A6 changes in the tree. A6 did not change this file.
 - The failure is systematic within the run (every chunk), so a state that is present before this test starts probably makes SwiftUI evaluate all ParagraphView bodies on each render. Candidates: a window, a key-window or an app state that an earlier test leaves (an A6 test that does not close its harness or its window, a changed environment such as controlActiveState or the appearance), a shared static value (BodyEvaluationCounter not reset, a global store), or the order of the suites. Or a real product defect: ParagraphView is not equal for an earlier paragraph in some state.
 - Rule: a test that fails only sometimes is a bad test. Find the cause by reading first (the A6 diff, ParagraphView, GrowingResponse, BodyEvaluationCounter, HostedViewHarness close and window state). One filtered run of a single suite or test is allowed to confirm a cause found by reading; never run again and again. The fix must make the test independent of earlier tests (or fix the product defect). No time bound. Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-15 19:52)
+
+> Scope: `review sha 347209f~1..347209f` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+The review of commit 347209f is clean: 0 findings. The task stays open in the review column. The cause of the failure in the full run 12 is not confirmed. Do not move this task to done until the run-12 cause is confirmed.

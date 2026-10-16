@@ -21,7 +21,8 @@ call in backticks.
 
 Granularity values:
 
-- `turn`: one restore point for each completed turn.
+- `turn`: one restore point for the completed work of each prompt. The
+  Router names this granularity `turn`.
 - `unavailable`: the kit cannot use the source to restore anything in v1.
 
 ## Survey
@@ -35,14 +36,15 @@ Granularity values:
   no parameter for an earlier point.
 - `RoutedSession.fork(workingDirectory:)` is the public call. It forks a
   child session with `parentId` set to the parent id. It refuses a fork from
-  a tool call of the turn of the same session
+  a tool call of the work of a prompt of the same session
   (`SessionReentryError.forkDuringSameSessionTurn`). Thus a fork occurs only
-  between turns. The granularity is `turn`: the kit forks after each
-  completed turn and keeps the child session as the restore point.
+  after the work of a prompt ends and before the work of the next prompt
+  starts. The granularity is `turn`: the kit forks after the completed work
+  of each prompt and keeps the child session as the restore point.
 - A fork holds one slot of the Router `maxConcurrentForks` limit until the
-  child session is deinitialized. A thread with many turns must not keep a
-  live fork for each turn. The source keeps the child session id, then closes
-  and releases the child. To restore, it calls
+  child session is deinitialized. A thread with many prompts must not keep a
+  live fork for each prompt. The source keeps the child session id, then
+  closes and releases the child. To restore, it calls
   `RoutedModel.restoreSession(id:recordingRoot:instructions:tools:)` with the
   child id. That call rebuilds the child from its recorded transcript. The
   task that adds the Router checkpoint source must prove this path with a
@@ -78,7 +80,7 @@ Granularity values:
 - The stable v2 surface (`session/new`, `session/list`, `session/resume`,
   `session/close`, `session/prompt`, `session/cancel`) has no rewind method.
   `session/resume` with `replayFrom` replays updates. It does not remove
-  turns.
+  prompts or their responses.
 - Thus v1 restores nothing from an ACP agent. When `session/fork` becomes
   stable, a new decision changes the `acp` row to restore the conversation
   at `turn` granularity.
@@ -90,9 +92,9 @@ The v1 `Checkpoint` model has these fields:
 | field | type | value |
 |---|---|---|
 | `id` | `Identifier<Checkpoint>` | The id of the restore point. For the Router, the id of the child session that the fork made. |
-| `turnIndex` | `Int` | The zero-based index of the completed turn that the restore point follows. |
+| `turnIndex` | `Int` | The zero-based index of the prompt whose completed work the restore point follows. |
 | `createdAt` | `Date` | The host clock when the source made the restore point (plan.md §3.2). |
-| `label` | `String` | A short text for the slider stop, such as the start of the user prompt of the turn. |
+| `label` | `String` | A short text for the slider stop, such as the start of the user prompt. |
 | `canRestoreCode` | `Bool` | `CheckpointCapabilities.restoresCode` of the source. |
 | `canRestoreConversation` | `Bool` | `CheckpointCapabilities.restoresConversation` of the source. |
 
@@ -107,5 +109,6 @@ Rules:
   source that sets the flag.
 - A source with `unavailable` granularity supplies no checkpoints. The ACP
   thread shows no checkpoint slider in v1.
-- A conversation restore to turn `n` removes the turns after `n` from the
-  thread. `CheckpointView` asks for a confirmation first.
+- A conversation restore to prompt `n` removes the prompts after `n`, and
+  their responses, from the thread. `CheckpointView` asks for a confirmation
+  first.

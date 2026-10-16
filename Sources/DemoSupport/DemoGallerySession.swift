@@ -4,8 +4,8 @@
 /// `session/resume` with `replayFrom: .start` sends each update of
 /// ``history`` before its result. After its result, the agent sends each
 /// request of ``requests``, and the request waits for the answer of the user.
-/// Thus the thread of the session shows the pending requests, as a thread of
-/// a live turn does.
+/// Thus the thread of the session shows the pending requests, as the thread
+/// of a live session does.
 ///
 /// The value is constant data, so the type is not isolated to the main
 /// actor, and ``InMemoryDemoACPAgent`` reads it from its own actor.

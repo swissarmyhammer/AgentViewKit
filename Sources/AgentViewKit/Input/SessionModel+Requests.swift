@@ -74,7 +74,7 @@ extension SessionModel {
   /// ``sendPrompt(with:accepting:)``.
   ///
   /// The composer calls this function at once for each submit, also while
-  /// the agent runs a turn.
+  /// the agent runs and while an earlier prompt is open.
   ///
   /// - Parameters:
   ///   - input: The text and the attachments of the prompt.
@@ -137,8 +137,9 @@ extension SessionModel {
   /// `cancel(meta:)`.
   ///
   /// The `_meta` of the notification is ``promptTraceMeta``, so that the
-  /// cancel joins the trace of the turn. A failure adds an error entry to the
-  /// transcript.
+  /// cancel joins the trace of the last prompt. The cancel applies to all of
+  /// the work of the session: no prompt, one prompt, or more than one prompt
+  /// can be open. A failure adds an error entry to the transcript.
   func startCancel() {
     startRequest("session/cancel") { try await self.cancel(meta: self.promptTraceMeta) }
   }

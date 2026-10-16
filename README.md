@@ -8,7 +8,7 @@ elicitation, artifacts, config options, and context usage. An ACP v2 agent
 streams to FoundationModelsACPClient. The client keeps the observable models
 `ConnectionModel` and `SessionModel`, and each view binds directly to them: a
 view shows what the model holds, and it calls the methods of the model. The
-kit keeps no copy of the model data and no turn logic
+kit keeps no copy of the model data and no logic that tracks the prompts
 ([`Docs/decisions/acp-client-kit.md`](Docs/decisions/acp-client-kit.md)). A
 FoundationModels agent and a FoundationModelsRouter agent reach the kit as an
 ACP agent, through FoundationModelsACPAgent.
@@ -292,7 +292,8 @@ entry has no time, so its row shows none. A thought shows "Thought for N
 seconds" from the `duration` of the thought entry. The system formatters write
 the times in the locale of the environment, and VoiceOver reads the time after
 the entry. The font comes from the EditorKit theme, and the spacing comes from
-the `AgentTheme`. There are no turn times: the client model has no turns.
+the `AgentTheme`. There is no time for the work of a prompt: the client model
+does not put the entries in groups by prompt.
 
 ### The theme
 
@@ -376,7 +377,7 @@ two lists equal.
 - `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state with Markdown text from the host.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.
 - `ThreadMinimapView`: the rail of the transcript entries, with the tool call status. A drag moves the thread.
-- `StateBanner`: shows `requiresAction` and a stop reason that needs attention, also the extension stop reasons.
+- `StateBanner`: shows `requiresAction`, an idle session with a pending request, and a stop reason that needs attention, also the extension stop reasons.
 - `SessionStreamBanner`: the replay marker, the partial-history note, the missed-updates banner with Reload, and the closed state.
 - `SessionNoticeBanner`: one banner for each notice of the session model.
 - `SessionListView`: the sessions of `ConnectionModel.sessions`, with cursor paging.
@@ -510,6 +511,17 @@ swift test                  # the unit tests, the hosted view tests, and the REA
 Scripts/check-readme.sh     # the README gate
 Scripts/test-examples.sh    # the demo UI tests
 ```
+
+### The test rule
+
+A test does not wait on a clock: no sleep, no poll, no time limit, and no
+run of the run loop for a time. After a change on the main actor, a hosted
+test calls `HostedViewHarness.render()` and reads the accessibility tree.
+After a change that comes from asynchronous work, the test waits for its
+event with `render(when:)` or `ObservationWait.until(_:)`, and then checks
+the result with an expectation. A hosted test holds `HostedTestLock`, and a
+wait has no time limit, so each hosted wait must be for an event that is
+certain to come.
 
 ### The README gate
 

@@ -65,10 +65,6 @@ public enum HostedViewHarnessError: Error, Equatable {
 /// A generic type cannot hold a stored static property, so the values are
 /// in this separate type.
 private enum HarnessConstants {
-  /// The default time that ``HostedViewHarness/pump(for:)`` runs the run
-  /// loop, in seconds.
-  static let defaultPumpDuration: TimeInterval = 0.05
-
   /// The default width of the content, in points.
   static let defaultWidth: CGFloat = 480
 
@@ -113,10 +109,18 @@ private enum HarnessConstants {
 /// asynchronous work, so that SwiftUI updates the view. The test calls
 /// ``close()`` at the end. The actions of the harness, such as
 /// ``press(identifier:)`` and ``type(_:)``, call ``render()`` themselves.
+///
+/// The test rule:
+/// - A test does not wait on a clock. It has no sleep, no poll, no time
+///   limit and no run of the run loop for a time.
+/// - A change on the main actor: call ``render()``, then read the tree.
+/// - A change that comes from asynchronous work: wait for its event with
+///   ``render(when:)`` or ``ObservationWait/until(_:)``, then check the
+///   result with an expectation. The wait is not a check.
+/// - A hosted test holds ``HostedTestLock``, and a wait has no time limit.
+///   Thus each wait of a hosted test must be for an event that is certain to
+///   come.
 public final class HostedViewHarness<Content: View> {
-  /// The default time that ``pump(for:)`` runs the run loop.
-  public static var defaultPumpDuration: TimeInterval { HarnessConstants.defaultPumpDuration }
-
   /// The default size of the content.
   public static var defaultSize: CGSize {
     CGSize(width: HarnessConstants.defaultWidth, height: HarnessConstants.defaultHeight)
@@ -195,23 +199,6 @@ public final class HostedViewHarness<Content: View> {
   public func render(when condition: @MainActor () -> Bool) async {
     await ObservationWait.until(condition)
     render()
-  }
-
-  /// Runs the main run loop for `duration`, so that SwiftUI can update the
-  /// view.
-  ///
-  /// Do not use this function in a new test. It waits on a clock. Use
-  /// ``render()`` after a change on the main actor, and ``render(when:)``
-  /// after a change that comes from asynchronous work. The function stays
-  /// only until no test uses it.
-  ///
-  /// - Parameter duration: The time to run the run loop, in seconds.
-  public func pump(for duration: TimeInterval = HostedViewHarness.defaultPumpDuration) {
-    let deadline = Date(timeIntervalSinceNow: duration)
-    while Date() < deadline {
-      RunLoop.main.run(mode: .default, before: deadline)
-    }
-    hostingView.layoutSubtreeIfNeeded()
   }
 
   /// Removes the window from the screen list and closes it.

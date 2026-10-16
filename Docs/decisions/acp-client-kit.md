@@ -80,10 +80,10 @@ The kit keeps none of these:
   in a `@State`, in an `@Observable` class of the kit, or in a value type of
   the kit. The section "ACP values in the views" applies the same rule to the
   ACP value types.
-- No logic that the model owns: no turn tracking, no turn order, no queue
-  that waits for the end of a turn, no list of pending requests, no
-  connection state, no session list, and no copy of the usage or of the
-  config options.
+- No logic that the model owns: no tracking of prompts, no order of prompts,
+  no queue that waits for the end of the work of a prompt, no list of
+  pending requests, no connection state, no session list, and no copy of
+  the usage or of the config options.
 
 A view can keep view state. View state is a value that no model holds and
 that only changes what one view shows:
@@ -112,9 +112,9 @@ host values are platform services or host actions, not session state:
 
 ## Host hooks
 
-Task ^gzj5cye removed the old kit session model, its stream copy, its turn
-logic and its thread actions protocol. `RemovedVocabularyTests` names each
-removed type. The views call the models directly.
+Task ^gzj5cye removed the old kit session model, its stream copy, its
+tracking of prompts and its thread actions protocol. `RemovedVocabularyTests`
+names each removed type. The views call the models directly.
 
 The host gives the kit only these two environment values. The models do not
 have this behavior:

@@ -20,17 +20,18 @@ nonisolated enum SharedSymbol {
   static let inProgress = "ellipsis.circle.fill"
 
   /// The symbol of work that is complete: a completed tool call or plan
-  /// entry, a complete turn, a sent message, a command that succeeded, an
-  /// answered field and a connected MCP server.
+  /// entry, an idle state that ends the work of a prompt, a sent message, a
+  /// command that succeeded, an answered field and a connected MCP server.
   static let completed = "checkmark.circle.fill"
 
-  /// The symbol of an error: a failed tool call, turn, message, command or
-  /// connection, a failed MCP server, an error notice, an error card and a
-  /// patch that the kit cannot read.
+  /// The symbol of an error: a failed tool call, an idle state with the stop
+  /// reason `error`, a failed message, command or connection, a failed MCP
+  /// server, an error notice, an error card and a patch that the kit cannot
+  /// read.
   static let error = "xmark.octagon.fill"
 
-  /// The symbol of work that the user cancelled: a cancelled tool call, plan
-  /// entry or turn.
+  /// The symbol of work that the user cancelled: a cancelled tool call or
+  /// plan entry, and an idle state with the stop reason `cancelled`.
   static let cancelled = "stop.circle.fill"
 
   /// The symbol of a value that the kit does not know: a status, a kind, a
@@ -73,7 +74,7 @@ nonisolated enum SharedSymbol {
   static let terminal = "apple.terminal"
 
   /// The symbol of the reasoning of the model: a thinking tool, a thought,
-  /// and a turn that stopped during the reasoning.
+  /// and a response that stopped during the reasoning.
   static let reasoning = "brain"
 
   /// The symbol of a tool that fetches a web resource.
@@ -96,7 +97,7 @@ nonisolated enum SharedSymbol {
   /// The symbol of a response that stopped at its maximum number of tokens.
   static let maxTokens = "text.badge.xmark"
 
-  /// The symbol of a turn that stopped at its maximum number of model
+  /// The symbol of a response that stopped at its maximum number of model
   /// requests.
   static let maxTurnRequests = "arrow.trianglehead.2.clockwise.rotate.90"
 
@@ -245,7 +246,7 @@ nonisolated enum SharedSymbol {
   /// request.
   static let send = "arrow.up"
 
-  /// The symbol of the button that stops the turn.
+  /// The symbol of the button that cancels the work of the session.
   static let stop = "stop.fill"
 
   /// The symbol of the button that starts the speech input.

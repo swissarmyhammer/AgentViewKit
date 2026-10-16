@@ -53,7 +53,7 @@ The bet: the web has three good answers (Vercel AI Elements, assistant-ui, Copil
 
 ACP is the correct layer. It defines all of the agent surfaces that the kit shows: messages, thoughts, tool calls, terminals, plans, permission requests, elicitations, config options, slash commands, usage, the agent state and the stop reason. FoundationModelsACPClient keeps these as client-side state in `@MainActor` `@Observable` models. `Docs/decisions/acp-client-kit.md` gives the reasons, and why the earlier plans with a FoundationModels `Transcript` and with Router types failed.
 
-**The binding rule** (`Docs/decisions/acp-client-kit.md`, section "Binding rule"). Each view of the kit binds directly to `ConnectionModel`, `SessionModel` and the `TranscriptEntry` objects. A view shows what the model holds, and it calls the methods of the model. The kit keeps no parallel state, no copy of model data, and no logic that the model owns: no turn tracking, no turn order, no queue that waits for a turn, no list of pending requests, no connection state, no session list, and no copy of the usage or of the config options. A view keeps only view state: the open state of a row, the scroll position, the focus, a selection, and the draft of the composer.
+**The binding rule** (`Docs/decisions/acp-client-kit.md`, section "Binding rule"). Each view of the kit binds directly to `ConnectionModel`, `SessionModel` and the `TranscriptEntry` objects. A view shows what the model holds, and it calls the methods of the model. The kit keeps no parallel state, no copy of model data, and no logic that the model owns: no tracking of prompts, no order of prompts, no queue that waits for the end of the work of a prompt, no list of pending requests, no connection state, no session list, and no copy of the usage or of the config options. A view keeps only view state: the open state of a row, the scroll position, the focus, a selection, and the draft of the composer.
 
 The models are in FoundationModelsACPClient. The pins of the two ACP packages are in `Docs/decisions/dependencies.md` and in the three `Package.resolved` files. When a pin moves, read the real API of the models, and change §3.2 to §3.7 first.
 
@@ -121,7 +121,7 @@ The wire has no field for a permission comment. When a comment exists, the card 
 
 ### 3.5 In-progress state comes from the model
 
-There is no `isStreaming` flag on a view, and no turn of the kit. `SessionModel.agentState` tells if the agent runs. A `ToolCallEntry` with the status `inProgress` still runs. The shimmer (§5) and `ActivityIndicator` are functions of these model values.
+There is no `isStreaming` flag on a view, and the kit does not track prompts. `SessionModel.agentState` tells if the agent runs. A `ToolCallEntry` with the status `inProgress` still runs. The shimmer (§5) and `ActivityIndicator` are functions of these model values.
 
 ### 3.6 Views per entry kind, each replaceable by a typed modifier
 
@@ -169,12 +169,12 @@ The tool call registry selects a view by the `name` of the `ToolCallEntry`, the 
 Each item is built. Each view reads the model value in its body and keeps no copy.
 
 - **Row identity:** `ForEach` over the transcript uses `TranscriptEntry.id`.
-- **Composer:** each submit calls the prompt helper of `SessionModel` at once, also while the agent runs. The pending user message shows at once. The composer keeps no queue and waits for no turn. Esc and the Stop button call `cancel(meta:)`.
+- **Composer:** each submit calls the prompt helper of `SessionModel` at once, also while the agent runs. The pending user message shows at once. The composer keeps no queue and does not wait for the end of the work of a prompt. More than one prompt can be open. Esc and the Stop button call `cancel(meta:)` with the one cancel rule of the kit: the user can cancel while the agent runs, while it requires action, and while it is idle and the session has a pending permission request or elicitation.
 - **Prompt capabilities:** the composer reads `ConnectionModel.agentCapabilities` at each submit. An image goes out only when the agent advertises `image`. A file goes out as an embedded resource when the agent advertises `embeddedContext`, else as a resource link.
 - **Error rows** come from the model. The kit keeps no error list. For a failed request that the kit did not send through the model, the kit calls `appendError(code:message:data:)`.
 - **Login on error `-32000`:** while the last entry of the transcript is an error entry with the code `-32000` (authentication required), `AgentThreadView` shows `AgentAuthView` for the auth methods of the connection model.
-- **Agent state and stop reasons:** `StateBanner` shows `.running`, `.idle` with its stop reason, and `.requiresAction`. It shows a banner with clear text for each extension stop reason that the kit knows (`_truncated`, `_ended_in_reasoning`, `_repeated`, `_reasoning_limit`, `_error`, `_no_output`, `_stalled`), and a general banner with the raw value for each other unknown value. It shows a general state for `.unknown`.
-- **Background runs:** after the streamed answer, the agent keeps `agentState` at `.running` until its background runs end. The transcript shows each entry of the model in its order, also a second agent message, and the state banner shows `.running` until `.idle`. The kit adds no logic for this order.
+- **Agent state and stop reasons:** `StateBanner` shows `.running`, `.idle` with its stop reason, and `.requiresAction`. It shows a banner with clear text for each extension stop reason that the kit knows (`_truncated`, `_ended_in_reasoning`, `_repeated`, `_reasoning_limit`, `_error`, `_no_output`, `_stalled`), and a general banner with the raw value for each other unknown value. It shows a general state for `.unknown`. While the state is `.idle` and the session has a pending permission request or elicitation, `StateBanner` shows the `.requiresAction` text. The reason: FoundationModelsACPAgent never sends `requires_action`, and its session can be idle while a question waits. Other agents can still send `.requiresAction`. An idle can have no stop reason (after background work only). Then the banner shows the ready text.
+- **Background runs:** `running` and `idle` follow the work of the agent, also when no prompt is open (background work, a compaction). After the streamed answer, the agent keeps `agentState` at `.running` until its background runs end. An idle after background work only has no stop reason. One idle can end the work of two open prompts. The transcript shows each entry of the model in its order, also a second agent message and an entry that comes after the prompt ended, such as a compaction entry. The state banner shows `.running` until `.idle`. The kit adds no logic for this order.
 - **Resume:** a resume sends `replayFrom: .start`. `SessionStreamBanner` shows a marker while `isReplaying` is true, and a "history can be partial" note from `history`. It does not tell the user that the history is complete.
 - **Missed updates:** when `hasMissedUpdates` is true, `SessionStreamBanner` shows a banner with a "Reload" action. The action resumes the session again with `replayFrom: .start`. The client model clears `hasMissedUpdates` only after a successful `.start` replay.
 - **Closed thread:** `SessionStreamBanner` shows a closed state when `isClosed` is true, and the composer is disabled.
@@ -249,7 +249,7 @@ Accessibility is a default. The kit ships fully accessible. A builder override i
 
 **Lean on the styling system.** Stock controls emit correct elements. Restyle stock controls before you build custom ones. The kit documents what an override must re-expose: label, value, actions.
 
-**Streaming, made VoiceOver-sane.** Stream silently. Announce at boundaries only: the agent state goes to idle, a tool call gets its result, a request needs an action. Each boundary is one change of a model value (`Docs/decisions/accessibility.md`). Expose the settled message as the accessible value. Respect Reduce Motion: no glass morphing, no streaming animation. Honor Dynamic Type throughout. Research R11 checks EditorKit font scaling.
+**Streaming, made VoiceOver-sane.** Stream silently. Announce at boundaries only: the end of the work of a prompt of this client (the first idle after the echo of the prompt), a tool call gets its result, a request needs an action. The tool result and the request boundaries are each one change of a model value. The end of the work of a prompt comes from the order of the session updates (`Docs/decisions/accessibility.md`). Expose the settled message as the accessible value. Respect Reduce Motion: no glass morphing, no streaming animation. Honor Dynamic Type throughout. Research R11 checks EditorKit font scaling.
 
 **Long-form reading.** The SwiftUI API is `accessibilityLinkedGroup(id:in:)`. When every element in the group is text, VoiceOver treats the group as one text element, and line, word, and character navigation crosses element boundaries. The transcript uses one linked group per message and one for the thread, so a VoiceOver user reads across rows. `causesPageTurn` is an existing trait, not new in 27. Pair it with `accessibilityScrollAction` on the "load earlier" row for windowed pages (§8).
 
@@ -272,7 +272,7 @@ public struct PromptEditorContext {           // what the kit hands whatever edi
     public let placeholder: String
     public let onSubmit: Submit
     public let onSendNow: Submit
-    public let onCancel: Submit?               // nil while the agent does not run
+    public let onCancel: Submit?               // nil while the user cannot cancel
     public let commands: [AvailableCommand]?   // SessionModel.availableCommands, for the slash completion source
 }
 
@@ -315,7 +315,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 - `ConversationView`: container with auto-scroll, scroll-to-bottom, empty state. *native*
 - `MessageActions`: copy, copy thread, export, retry, edit, in a footer. *native*
 - `ThreadMinimapView`: scrubbable rail of the transcript entries, with the tool call status. *net-new*
-- `StateBanner`: shows `requiresAction` and a stop reason that needs attention (`max_tokens`, `refusal`, `max_turn_requests`, and the extension stop reasons). *net-new*
+- `StateBanner`: shows `requiresAction`, an idle session with a pending request, and a stop reason that needs attention (`max_tokens`, `refusal`, `max_turn_requests`, and the extension stop reasons). *net-new*
 - `SessionStreamBanner`: the replay marker, the partial-history note, the missed-updates banner with Reload, and the closed state. *net-new*
 - `SessionNoticeBanner`: one banner for each notice of the session model. *net-new*
 - `SessionListView`: sessions from `ConnectionModel.sessions` with title and updated time, cursor paging. *net-new*

@@ -57,6 +57,40 @@ comments:
     ### T4 split into area tasks
     The test waits are done in the area tasks T4-A0 (harness, .timeLimit, Task.sleep) and T4-A1 to T4-A6 (one folder group each), and ^yr4zgpz. Each area has one full run and one commit. This task (T4) keeps: the removal of the deprecated wait helpers when no use is left, the docs and comments (no turn words in doc comments; the new ACPAgent behavior), the update to the current mains, the final full run, the examples check, the push, the CI check and the final report with the row 7 check.
   timestamp: 2026-10-15T18:56:42.105512+00:00
+- actor: claude-code
+  id: 01m5141w0artmz582kkyzjbec2
+  text: |-
+    ### implement — changed (items a, b, c only; the package update, the final run, the push and the report come later from the step owner)
+    (a) Old wait helpers removed:
+    - Sources/AgentViewKitTestSupport/HostedViewHarness.swift: `pump(for:)`, `HostedViewHarness.defaultPumpDuration` and `HarnessConstants.defaultPumpDuration` removed (no caller). render()/render(when:) docs named no old helper; no change there.
+    - Sources/AgentViewKitTestSupport/Polling.swift: `waitUntil` and its constants removed (this removes the third Task.sleep). NOTE: the files tool cannot delete a file, so the file is now EMPTY. Delete the file (git rm) before the commit.
+    - Tests/AgentViewKitTests/Helpers/HarnessWaiting.swift: `pump(until:)` removed (the only caller of `pump()`). NOTE: the file is now EMPTY for the same reason. Delete it before the commit.
+    - Search after the change (Sources, Tests, Examples incl. Examples/AgentViewKitDemo, README.md, plan.md, Docs, Scripts): no `pump(`, `pump`, `waitUntil`, `defaultPumpDuration` or `Task.sleep` left. Only `process.waitUntilExit()` (Foundation) stays.
+    - Tests/AgentViewKitTests/Thread/ConversationViewHostedTests.swift: a doc comment said "in the pump of the press"; now "in the render pass of the press".
+    (b) Docs and comments agree with the new ACPAgent behavior:
+    - Doc comments (Swift): AgentCommands.swift (cancel, jumpToNext, jumpToPrevious), AgentCommandTarget.swift (jump helpers; the private `turnRows`/`turns`/`turn` names are now `promptRows`/`prompts`/`prompt`), SessionTranscriptEnvironment.swift (isRunning: running also with no prompt open; Stop reads canCancel), SessionModel+Requests.swift (submit while a prompt is open; cancel is session-wide), PromptInputView.swift, PromptEditorContext.swift, SuggestionsView.swift, Announcer.swift, AgentThreadView.swift and ThreadAccessibility.swift (announcement only for the first idle after the echo of a prompt of this client), ActivityTimeline.swift, ActivityIndicator.swift, StateBanner.swift ("a turn that ended with X" -> "an idle state with the stop reason X"), SharedSymbol.swift, DemoSupport InMemoryDemoACPAgent.swift, InMemoryDemoAgent.swift, DemoGallerySession.swift, DemoGallery.swift.
+    - Kept on purpose: identifiers and parameter names (`turn:` of replyID/turnFrames/turnNotifications, `makeTurnAnnouncements`, `TurnAnnouncementStep`, `failedTurnIdentifier`, `turnCompleteMessage`, `tokensPerTurn`, `turnSession`), wire values (`end_turn`, `max_turn_requests`, Router granularity `turn`, `turnIndex`), "turn the tools on and off" (verb), "run loop turn" and "quarter turn" (other meanings), the `.requiresAction` display text for other ACP agents.
+    - Test rule in the test-support docs: HostedViewHarness class doc ("The test rule": no clock waits; render() after a main-actor change; render(when:)/ObservationWait.until for asynchronous work, then an expectation; a hosted wait must be for a certain event), HostedTestLock doc (a hosted wait holds the lock with no time limit, so it must wait for a certain event), HostedSerialTrait doc (no run-loop pass any more), README.md "### The test rule".
+    (c) Doc files changed (Markdown): README.md, plan.md, Docs/decisions/acp-client-kit.md, Docs/decisions/branches.md, Docs/decisions/checkpoints.md, Docs/decisions/subagent-source.md, Docs/decisions/acp-version.md, Examples/AgentViewKitDemo/RecordedSessions/README.md. Docs/decisions/accessibility.md already agreed (no change). No ARCHITECTURE.md exists.
+    - build: `swift build --build-tests` one time: Build complete, only the mlx-swift_Cmlx dependency warning.
+    - test: `swift test --skip-build --filter` (A6 fix suites + TestSupport suites): 80 tests in 16 suites passed, 1 known issue (on purpose). No hang. Log: scratchpad/t4-filtered.log.
+
+    step: implement
+    outcome: changed
+    evidence: 29 files (23 Swift, 8 Markdown incl. README.md and plan.md; 2 Swift files emptied for deletion); build complete; filtered run 80 tests in 16 suites passed
+    task: ^m7q9e97
+  timestamp: 2026-10-16T01:08:34.442749+00:00
+- actor: claude-code
+  id: 01m514trqccg2tv9c44m3dca36
+  text: |-
+    ### test (final, mail step 7) - stuck
+    - swift test: green. 1201 tests in 138 suites passed with 2 known issues (expected-failure tests). 0 failures, 0 skipped. No warning from project sources. Only dependency warning: mlx-swift_Cmlx.bundle "missing creator for mutated node".
+    - Scripts/check-readme.sh: passed.
+    - Scripts/test-examples.sh AgentViewKitDemo: FAIL. Build passed. UI tests did not start: "Timed out while enabling automation mode." No UI Automation mode in this session. Nothing changed.
+    - Revisions: editorkit bae8f9556349; foundationmodelsacp fb55b2fe90c1; foundationmodelsacpagent 4359b57a2be7; foundationmodelsacpclient 7676d81a44fc; foundationmodelsagents bf9bbe9f8daf; foundationmodelscodecontext c9075feba59a; foundationmodelsextras 83c34f055502; foundationmodelsmetadataregistry 858f5da3d26c; foundationmodelsmultitool 4171660fa706; foundationmodelsranker 61563468972b; foundationmodelsrouter f3ac39be2332; foundationmodelsskills cf1ce5456c8b; swift-sdk dbea70214ea3; textual 0.5.0 01b51875a540.
+    - Full detail: see the comment on ^yvdg1f4.
+    - next: a person must run the examples gate where UI Automation mode is on.
+  timestamp: 2026-10-16T01:22:10.284283+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
 - 01M50ER0NN5DRGV5S3HGQ8H07P
@@ -67,8 +101,8 @@ depends_on:
 - 01M50ERG58ANWMMVTG535SW345
 - 01M50ERJRW6EXQ0YFCRYVDG1F4
 - 01M50752E2QZQ69JD3WYR4ZGPZ
-position_column: todo
-position_ordinal: '8480'
+position_column: doing
+position_ordinal: '8180'
 title: 'Mail step 7 T4: Remove time limits and clock waits from the tests, align the docs, run the full suite, push, and report'
 ---
 1. Remove the .timeLimit trait and each sleep, clock wait and poll in the tests. Use a wait on an event, a gate or a fixed order. A clock may only measure and print time.

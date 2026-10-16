@@ -9,8 +9,9 @@ import SwiftUI
 ///
 /// The timeline shows one row for each `ThoughtEntry`, `ToolCallEntry`,
 /// `TerminalEntry` and `ErrorEntry` of `SessionModel.transcript`, in
-/// transcript order. The other entries show no row. The model has no turns,
-/// so the timeline shows no turn section and no time bar. The title of a
+/// transcript order. The other entries show no row. The model does not put
+/// the entries in groups by prompt, so the timeline shows no section for
+/// each prompt and no time bar. The title of a
 /// thought row tells the `duration` of the thought entry from the client
 /// model, as ``ReasoningView/completedTitle(duration:)`` gives it. The kit
 /// records no time. A new entry of the model adds a row with no other step.

@@ -15,8 +15,9 @@ public enum AnnouncementPriority: Sendable, Equatable, CaseIterable {
 
 /// The object that speaks a VoiceOver announcement (plan.md §6).
 ///
-/// The kit streams text silently and announces only at boundaries: turn
-/// complete, tool result, and action required. The accessibility views call
+/// The kit streams text silently and announces only at boundaries: the end
+/// of the work of a prompt of this client (the first idle after the echo of
+/// the prompt), tool result, and action required. The accessibility views call
 /// an `Announcer` at those boundaries, so that a test can record the
 /// announcements.
 public protocol Announcer: AnyObject {

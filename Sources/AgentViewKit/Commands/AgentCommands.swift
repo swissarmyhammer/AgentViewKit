@@ -18,7 +18,8 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Sends the text of the composer, or the text of the payload.
   case send
 
-  /// Stops the current turn.
+  /// Cancels the work of the session: the open prompts, the background work,
+  /// and the requests that wait for the user.
   case cancel
 
   /// Selects an allow option of a pending permission request.
@@ -27,10 +28,11 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Selects a reject option of a pending permission request.
   case rejectPending
 
-  /// Scrolls the thread list to the next turn.
+  /// Scrolls the thread list to the next prompt: the next user message.
   case jumpToNext
 
-  /// Scrolls the thread list to the previous turn.
+  /// Scrolls the thread list to the previous prompt: the previous user
+  /// message.
   case jumpToPrevious
 
   /// Copies the messages of the thread as plain text.

@@ -53,9 +53,10 @@ import SwiftUI
 ///
 /// - It owns the namespace of the linked reading groups of its messages and
 ///   rows (``SwiftUI/View/accessibilityReadingScope()``).
-/// - It tells the ``SwiftUI/EnvironmentValues/announcer`` when the agent
-///   state goes to idle, when a tool call gets its result, and when a request
-///   needs the user. A streaming chunk gives no announcement. The
+/// - It tells the ``SwiftUI/EnvironmentValues/announcer`` when the work of a
+///   prompt of this client ends (the first idle after the echo of the
+///   prompt), when a tool call gets its result, and when a request needs the
+///   user. A streaming chunk gives no announcement. The
 ///   announcements read the session model, and the connection model when the
 ///   host gives it, directly.
 /// - It gives an ``AccessibilityFocusMover`` to its subtree

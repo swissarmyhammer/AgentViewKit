@@ -32,8 +32,8 @@ decision: `router`
   writes it to the first `TranscriptEvent` of the child session, which has
   the kind `session`.
 - `TranscriptEvent.agentSpawn` is public. A live recorder sink gets the
-  `session` event when the first turn of the child session starts. It does
-  not get the event when the session is made.
+  `session` event when the work of the first prompt of the child session
+  starts. It does not get the event when the session is made.
 - `TranscriptEvent.parentId` is the fork link. It is `nil` for a spawned
   session. A fork has no `agentSpawn`. Thus the two kinds of child session
   stay different.

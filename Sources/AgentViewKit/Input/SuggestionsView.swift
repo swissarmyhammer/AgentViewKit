@@ -9,7 +9,7 @@ import SwiftUI
 ///
 /// ``DefaultPromptAccessory`` shows this view with the prompts of
 /// ``SwiftUI/EnvironmentValues/promptSuggestions``, in the empty state and
-/// after a turn.
+/// while the agent does not run.
 public struct SuggestionsView: View {
   /// The start of the accessibility identifier of each chip.
   public static let chipIdentifierPrefix = "prompt-suggestion-"

@@ -403,9 +403,9 @@
     ///
     /// The test does not check that the list scrolls to the new entry: in
     /// the off-screen harness window, the scroll to the bottom that the press
-    /// requests does not move the list in the pump of the press and one
-    /// layout pass. The test does not check the rows in view that the
-    /// manager keeps: the given report writes them.
+    /// requests does not move the list in the render pass of the press and
+    /// one more layout pass. The test does not check the rows in view that
+    /// the manager keeps: the given report writes them.
     ///
     /// Gap: the test gives the visibility reports to the manager itself
     /// (``reportRows(at:of:to:)``). No hosted test proves that SwiftUI sends

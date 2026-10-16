@@ -31,11 +31,11 @@ the thread shows.
 - When the thread has a branch set, `SessionThreadSource.stream(_:)` first
   writes the entries of the shown items to `session.transcript`. Thus the
   model sees only the shown branch.
-- For a Regenerate turn, the source also removes the prompt entry of the
+- For a Regenerate prompt, the source also removes the prompt entry of the
   regenerated user message from the transcript. The session adds a new prompt
   entry with a new id. The source shows that entry with the id of the user
   message. Thus the model does not see the old answer, and the thread has one
-  user message for the turn.
+  user message for the prompt.
 - When the session removes the new prompt (for example with the
   `.revertTranscript` policy), the source writes the old prompt entry back to
   the transcript. The thread keeps the user message.
@@ -51,10 +51,10 @@ newest point, so a fork also keeps the old answer.
 decision: the Router keeps the old context.
 
 - `RouterThreadActions.send(_:)` does not add a user message for a Regenerate
-  send. The thread has one user message for the turn.
-- The new turn of the session has the old answer in its context. A future
-  public Router call that removes entries, or a fork at an earlier point,
-  changes this decision.
+  send. The thread has one user message for the prompt.
+- The work of the new prompt of the session has the old answer in its
+  context. A future public Router call that removes entries, or a fork at an
+  earlier point, changes this decision.
 - `RouterThreadSource` does not apply an event change to an item in a hidden
   branch.
 

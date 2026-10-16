@@ -21,8 +21,8 @@ public struct PromptEditorContext {
   /// The closure that submits the prompt.
   ///
   /// The closure sends the text to the agent at once, also while the agent
-  /// runs a turn, and clears the text. It does nothing while the text is
-  /// blank.
+  /// runs and while an earlier prompt is open, and clears the text. It does
+  /// nothing while the text is blank.
   public let onSubmit: Submit
 
   /// The closure that sends the prompt at once ("send now").
@@ -161,7 +161,8 @@ extension View {
   /// Sets the follow-up prompts that ``DefaultPromptAccessory`` shows for
   /// this view and each view in it.
   ///
-  /// Give the prompts for the empty state, or the follow-ups after a turn.
+  /// Give the prompts for the empty state, or the follow-ups after the agent
+  /// stops.
   ///
   /// - Parameter suggestions: The prompts to show. An empty list hides the
   ///   ``SuggestionsView``.

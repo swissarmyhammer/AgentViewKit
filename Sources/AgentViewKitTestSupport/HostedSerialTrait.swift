@@ -8,6 +8,11 @@ import Testing
 /// Each test target of the package runs in the same test process. This type
 /// is in the test support target, so the hosted tests of each test target use
 /// the same ``shared`` lock.
+///
+/// A hosted test that waits holds the lock for all of its wait. The wait has
+/// no time limit, so a wait for an event that does not come stops all other
+/// hosted tests. Thus each wait of a hosted test must be for an event that is
+/// certain to come, such as a frame that the scripted agent sends.
 public actor HostedTestLock {
   /// The lock that all hosted tests of this process use.
   public static let shared = HostedTestLock()
@@ -60,10 +65,10 @@ public actor HostedTestLock {
 /// ``HostedTestLock/shared``.
 ///
 /// `swift test` runs suites in parallel. A hosted test mounts a view in a
-/// window, makes that window the key window, and runs the main run loop.
+/// window, makes that window the key window, and waits on the main actor.
 /// When two hosted tests run at the same time, one window takes the key
-/// status from the other, and a run loop pass of one test runs the main actor
-/// work of the other test. Then a test that needs the focus, such as a
+/// status from the other, and a wait of one test lets the main actor work of
+/// the other test run. Then a test that needs the focus, such as a
 /// completion list test, fails on some runs. With this trait, hosted tests
 /// run one at a time, and the other tests still run in parallel.
 public struct HostedSerialTrait: SuiteTrait, TestTrait, TestScoping {

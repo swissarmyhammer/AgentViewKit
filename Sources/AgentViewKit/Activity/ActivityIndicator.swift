@@ -3,10 +3,11 @@ import SwiftUI
 
 /// What the agent does now, for an ``ActivityIndicator`` (plan.md §3.5, §5).
 public nonisolated enum ActivityState: Hashable, Sendable {
-  /// The agent does not run a turn.
+  /// The agent does not run.
   case idle
 
-  /// The agent runs a turn and no tool call runs.
+  /// The agent runs, for a prompt or for background work, and no tool call
+  /// runs.
   case thinking
 
   /// A tool call runs. The value is the title of the call.

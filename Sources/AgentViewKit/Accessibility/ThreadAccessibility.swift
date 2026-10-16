@@ -24,13 +24,13 @@ public enum ThreadAccessibility {
 
   // MARK: - Announcements
 
-  /// The announcement of a turn that stopped with no reason to report, or
-  /// with `end_turn`.
+  /// The announcement of the end of the work of a prompt with no stop reason
+  /// to report, or with `end_turn`.
   private static var responseCompleteText: String {
     String(localized: "Response complete")
   }
 
-  /// The announcement of a turn that stopped with `cancelled`.
+  /// The announcement of the end of the work of a prompt with `cancelled`.
   private static var responseCancelledText: String {
     String(localized: "Response cancelled")
   }
@@ -440,7 +440,8 @@ struct SessionAnnouncementObserver: View {
   }
 }
 
-/// One step of the reader of the turn announcements
+/// One step of the reader of the announcements of the end of the work of a
+/// prompt
 /// (``ThreadAccessibility/makeTurnAnnouncements(of:report:)``).
 ///
 /// The reader reports each step through

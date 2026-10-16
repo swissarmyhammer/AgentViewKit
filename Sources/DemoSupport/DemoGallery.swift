@@ -186,7 +186,7 @@ nonisolated public enum DemoGallery {
       then: notices + [idleState(stopReason: "end_turn")])
   }()
 
-  /// A failed tool call, and a turn that stopped with an error.
+  /// A failed tool call, and a response that stopped with an error.
   static let error: DemoGallerySession = {
     let id = idPrefix + "error"
     let failedToolCall = #"""
@@ -220,8 +220,8 @@ nonisolated public enum DemoGallery {
       id: id, title: "Attachments", history: [prompt, reply, idleState(stopReason: "end_turn")], requests: [])
   }()
 
-  /// Makes the session of one stop reason: one turn that stops for that
-  /// reason.
+  /// Makes the session of one stop reason: one prompt whose work ends with
+  /// an idle state with that stop reason.
   ///
   /// - Parameter stopReason: The wire value of the stop reason.
   /// - Returns: The session.
@@ -233,7 +233,7 @@ nonisolated public enum DemoGallery {
 
   // MARK: - Session shapes
 
-  /// Makes a session of one turn: a prompt of the user, the reply of the
+  /// Makes a session of one prompt: a prompt of the user, the reply of the
   /// agent, and the updates after the reply.
   ///
   /// - Parameters:
@@ -252,7 +252,7 @@ nonisolated public enum DemoGallery {
       id: id, title: title, history: exchange(in: id, prompt: prompt, reply: reply) + updates, requests: requests)
   }
 
-  /// Makes a session of one turn that waits for the user: a prompt of the
+  /// Makes a session of one prompt that waits for the user: a prompt of the
   /// user, the reply of the agent, the pending updates, and the
   /// ``requiresActionState``. The agent sends the requests after each
   /// resume.
@@ -281,13 +281,14 @@ nonisolated public enum DemoGallery {
   static let screenshotPNG =
     "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABlklEQVR42g3LQQEAIQgAQSMQwQhEIIIRjEAEIhjBCETguU8jGMEId/Of1hrS6A1tWGM0ZsMb0ViN3chGNU7jNl6jNUGELqhgwhCm4EIIS9hCCiUc4QpP/tCRTu9oxzqjMzveic7q7E52qnM6t/P6HxRRuqKKKUOZiiuhLGUrqZRylKs8/YMhRjfUMGMY03AjjGVsI40yjnGNZ38YyKAPdGCDMZgDH8RgDfYgBzU4gzt44w8TmfSJTmwyJnPik5isyZ7kpCZncidv/sERpzvqmDOc6bgTznK2k045x7nO8z8EEvRAAwtGMAMPIljBDjKo4AQ3ePGHhSz6Qhe2GIu58EUs1mIvclGLs7iLt/6wkU3f6MY2YzM3vonN2uxNbmpzNnfz9h8SSXqiiSUjmYknkaxkJ5lUcpKbvPxDIUUvtLBiFLPwIopV7CKLKk5xi1d/OMihH/Rgh3GYBz/EYR32IQ91OId7eOcPF7n0i17sMi7z4pe4rMu+5KUu53Iv7/7hIY/+0Ic9xmM+/BGP9diPfNTjPO7jPT6GdLgQ8hjYogAAAABJRU5ErkJggg=="
 
-  /// The `state_update` of a turn that waits for the user.
+  /// The `state_update` of an agent that waits for the user, as other
+  /// agents send it.
   static let requiresActionState = #"{"sessionUpdate": "state_update", "state": "requires_action"}"#
 
-  /// The `state_update` of a turn that runs.
+  /// The `state_update` of an agent that runs.
   static let runningState = #"{"sessionUpdate": "state_update", "state": "running"}"#
 
-  /// The `state_update` of a turn that stopped.
+  /// The `state_update` of an agent that stopped its work.
   ///
   /// - Parameter stopReason: The wire value of the stop reason.
   /// - Returns: The JSON text of the update.

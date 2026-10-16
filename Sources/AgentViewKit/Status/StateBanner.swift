@@ -55,8 +55,8 @@ public struct StateBanner: View {
     /// a different identifier.
     public let identifier: String
 
-    /// Whether the message tells of a failure, such as a failed turn or a
-    /// failed connection.
+    /// Whether the message tells of a failure, such as an idle state with
+    /// the stop reason `error`, or a failed connection.
     ///
     /// Each concept has one symbol in the kit, so a message whose symbol is
     /// the error symbol tells of a failure. The bar shows the symbol of a
@@ -65,12 +65,12 @@ public struct StateBanner: View {
       symbolName == SharedSymbol.error
     }
 
-    /// The symbols of the messages of work that goes on: a running turn, and
-    /// a history that the agent sends again.
+    /// The symbols of the messages of work that goes on: an agent that runs,
+    /// and a history that the agent sends again.
     static let ongoingSymbols: Set<String> = [SharedSymbol.inProgress, SharedSymbol.replaying]
 
-    /// Whether the message tells of work that goes on, such as a running turn
-    /// or a replay of the history.
+    /// Whether the message tells of work that goes on, such as an agent that
+    /// runs or a replay of the history.
     ///
     /// Each concept has one symbol in the kit, so the symbol of the message
     /// tells the concept. The bar animates the symbol of such a message with
@@ -225,14 +225,14 @@ extension StateBanner {
     symbolName: SharedSymbol.completed,
     identifier: "state-banner-ready")
 
-  /// The text for a turn that ended with `end_turn`.
+  /// The text for an idle state with the stop reason `end_turn`.
   private static let turnCompleteMessage = Message(
     title: String(localized: "The response is complete"),
     explanation: String(localized: "The agent finished the response. Send a message to continue."),
     symbolName: SharedSymbol.completed,
     identifier: "state-banner-end-turn")
 
-  /// The text for a turn that ended with `cancelled`.
+  /// The text for an idle state with the stop reason `cancelled`.
   private static let cancelledMessage = Message(
     title: String(localized: "The response was cancelled"),
     explanation: String(localized: "The agent stopped the work because of the cancel request."),
@@ -248,7 +248,7 @@ extension StateBanner {
     symbolName: SharedSymbol.userAction,
     identifier: "state-banner-requires-action")
 
-  /// The text for a turn that ended with `max_tokens`.
+  /// The text for an idle state with the stop reason `max_tokens`.
   private static let maxTokensMessage = Message(
     title: String(localized: "The response is incomplete"),
     explanation: String(
@@ -256,7 +256,7 @@ extension StateBanner {
     symbolName: SharedSymbol.maxTokens,
     identifier: "state-banner-max-tokens")
 
-  /// The text for a turn that ended with `max_turn_requests`.
+  /// The text for an idle state with the stop reason `max_turn_requests`.
   private static let maxTurnRequestsMessage = Message(
     title: String(localized: "The response reached its request limit"),
     explanation: String(
@@ -264,18 +264,19 @@ extension StateBanner {
     symbolName: SharedSymbol.maxTurnRequests,
     identifier: "state-banner-max-turn-requests")
 
-  /// The text for a turn that ended with `refusal`.
+  /// The text for an idle state with the stop reason `refusal`.
   private static let refusalMessage = Message(
     title: String(localized: "The model refused to continue"),
     explanation: String(localized: "Change the request and send it again."),
     symbolName: SharedSymbol.refusal,
     identifier: "state-banner-refusal")
 
-  /// The accessibility identifier of the text for a turn that ended with
-  /// `error`.
+  /// The accessibility identifier of the text for an idle state with the
+  /// stop reason `error`.
   public static let failedTurnIdentifier = "state-banner-error"
 
-  /// The text for a turn that ended with `error` (ACP schema alpha.8).
+  /// The text for an idle state with the stop reason `error` (ACP schema
+  /// alpha.8).
   ///
   /// - Parameter error: The error object of the idle state, or `nil` when the
   ///   agent gave none.

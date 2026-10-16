@@ -368,42 +368,42 @@ final class AgentCommandTarget {
 
   // MARK: - Jump
 
-  /// The row key of the turn that a jump goes to.
+  /// The row key of the prompt that a jump goes to.
   ///
-  /// A turn starts at a user message. The jump starts at the first row in
-  /// view. With no row in view, a forward jump goes to the first turn.
+  /// A prompt is a user message row. The jump starts at the first row in
+  /// view. With no row in view, a forward jump goes to the first prompt.
   ///
-  /// - Parameter forward: `true` for the next turn, `false` for the previous
-  ///   turn.
-  /// - Returns: The row key of the turn, or `nil` when there is none.
+  /// - Parameter forward: `true` for the next prompt, `false` for the
+  ///   previous prompt.
+  /// - Returns: The row key of the prompt, or `nil` when there is none.
   private func jumpTarget(forward: Bool) -> String? {
     guard let session else { return nil }
     let transcript = session.transcript
     let current = anchors?.visibleIDs.first.flatMap { key in
       transcript.firstIndex { $0.rowKey == key }
     }
-    let turns = Self.turnRows(of: transcript)
+    let prompts = Self.promptRows(of: transcript)
     if forward {
-      return turns.first { turn in current.map { turn.position > $0 } ?? true }?.key
+      return prompts.first { prompt in current.map { prompt.position > $0 } ?? true }?.key
     }
     guard let current else { return nil }
-    return turns.last { $0.position < current }?.key
+    return prompts.last { $0.position < current }?.key
   }
 
   /// The position and the row key of each user message row, in order.
   ///
   /// - Parameter transcript: The entries of `SessionModel.transcript`.
   /// - Returns: One row for each `UserMessageEntry` of the transcript.
-  private static func turnRows(of transcript: [TranscriptEntry]) -> [(position: Int, key: String)] {
+  private static func promptRows(of transcript: [TranscriptEntry]) -> [(position: Int, key: String)] {
     transcript.enumerated().compactMap { position, entry in
       if case .userMessage = entry { (position, entry.rowKey) } else { nil }
     }
   }
 
-  /// Scrolls the list to the next or the previous turn.
+  /// Scrolls the list to the next or the previous prompt.
   ///
-  /// - Parameter forward: `true` for the next turn, `false` for the previous
-  ///   turn.
+  /// - Parameter forward: `true` for the next prompt, `false` for the
+  ///   previous prompt.
   private func jump(forward: Bool) {
     guard let anchors, let id = jumpTarget(forward: forward) else { return }
     anchors.noteJump(to: id)

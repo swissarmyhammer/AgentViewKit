@@ -20,9 +20,9 @@ import FoundationModelsACP
 /// - `session/prompt` with a new `messageId`, in the ACPAgent order. After the
 ///   result, it echoes the whole prompt in a `user_message` with the same
 ///   `messageId` (``ScriptedWireAgent``). After the echo, it sends the
-///   `session/update` notifications of one turn: a running state, the reply
-///   in two chunks, the whole reply, a plan, the context usage, and an idle
-///   state.
+///   `session/update` notifications of the work of the prompt: a running
+///   state, the reply in two chunks, the whole reply, a plan, the context
+///   usage, and an idle state.
 public enum InMemoryDemoAgent {
   /// The launch argument that makes the demo app bind this agent.
   public static let launchArgument = "--in-memory-agent"
@@ -51,13 +51,13 @@ public enum InMemoryDemoAgent {
   /// The start of the id of each reply.
   static let replyIDPrefix = "demo-reply-"
 
-  /// The id of the plan of each turn.
+  /// The id of the plan of each prompt.
   static let planID = "demo-plan"
 
-  /// The size of the context window that each turn reports.
+  /// The size of the context window that the work of each prompt reports.
   static let contextSize = 200_000
 
-  /// The number of context tokens that each turn adds.
+  /// The number of context tokens that each prompt adds.
   static let tokensPerTurn = 1_200
 
   /// The number of text chunks of each reply.
@@ -77,9 +77,9 @@ public enum InMemoryDemoAgent {
     replyText(to: historyPrompt)
   }
 
-  /// The id of the reply of a turn.
+  /// The id of the reply to a prompt.
   ///
-  /// - Parameter turn: The number of the turn, from 1.
+  /// - Parameter turn: The number of the prompt in the session, from 1.
   /// - Returns: `demo-reply-<turn>`.
   public static func replyID(turn: Int) -> String {
     replyIDPrefix + String(turn)
@@ -192,20 +192,21 @@ public enum InMemoryDemoAgent {
     ])
   }
 
-  // MARK: - Turn
+  // MARK: - Work of a prompt
 
-  /// The notification frames of one turn, after the prompt result.
+  /// The notification frames of the work of one prompt, after the prompt
+  /// result.
   ///
   /// - Parameters:
   ///   - request: The `session/prompt` request frame.
-  ///   - turn: The number of the turn, from 1.
+  ///   - turn: The number of the prompt in the session, from 1.
   /// - Returns: The frames, in send order.
   static func turnFrames(for request: JSONValue, turn: Int) -> [String] {
     turnNotifications(for: request, turn: turn).map(ScriptedWireAgent.makeSessionUpdateFrame(params:))
   }
 
-  /// The params of the `session/update` notifications of one turn, after the
-  /// prompt result.
+  /// The params of the `session/update` notifications of the work of one
+  /// prompt, after the prompt result.
   ///
   /// ``turnFrames(for:turn:)`` sends them as raw frames, and
   /// ``InMemoryDemoACPAgent`` sends them through an `AgentSideConnection`.
@@ -213,7 +214,7 @@ public enum InMemoryDemoAgent {
   /// - Parameters:
   ///   - request: The `session/prompt` request frame. Only its `params`
   ///     member is read.
-  ///   - turn: The number of the turn, from 1.
+  ///   - turn: The number of the prompt in the session, from 1.
   /// - Returns: The params, in send order.
   static func turnNotifications(for request: JSONValue, turn: Int) -> [JSONValue] {
     let sessionId = request["params"]?["sessionId"] ?? .string(sessionID)
