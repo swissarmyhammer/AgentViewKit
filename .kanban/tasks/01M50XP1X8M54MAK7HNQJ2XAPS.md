@@ -55,8 +55,24 @@ comments:
     - evidence: the implement step ran the full suite one time after the change: swift test --skip-build, 1295 tests in 151 suites passed, 2 known issues (the same as before). swift build --build-tests: no warning in Sources/ or Tests/. It was not run again (no repeat runs).
     - next: commit, review, push.
   timestamp: 2026-10-16T23:20:59.540071+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m53gmdhz9b6ym19g68vhvk7q
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b80159f). 5 Swift files reviewed, 4 kanban files not reviewed (ignore rule). Counts: findings 0, confirmed 0, refuted 0, attempted 7, failed 0. A read of the diff agrees: each assertion stays (only the name of the property changes to values). In PromptInputViewHostedTests, each `try #require(!recorder.values.isEmpty)` is still synchronous, right after sendKey, and before the next render. The waits in SpeechInputButtonHostedTests and ThreadAccessibilityHostedTests read recorder.values of the @MainActor @Observable ReportRecorder, so they get the same change events. No file in Sources changes. The extension ReportRecorder<TurnAnnouncementStep> in ThreadAccessibilityHostedTests holds only hasStarted and idleAnnouncements, which only that file uses. The list of classes that do not fit is correct: each class was examined (ReconnectRecorder, HeightRecorder, HostedEventLog, CallLog, OpenedSessions, CallCounter, OpenedURLRecorder, RecordingAnnouncer, RecordingFocusReporter, FakeSpeechTranscriber), and no other test class has the same shape.
+    - next: none. The task is in done.
+  timestamp: 2026-10-16T23:26:54.015758+00:00
+- actor: claude-code
+  id: 01m53gn14ym04jv1ywtt30kjqa
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 test files; recorders replaced: PromptSubmitRecorder, SpeechPhaseRecorder, TurnAnnouncementStepRecorder, ToolToggleRecorder, ScrollRecorder
+    - test: green — full swift test --skip-build, 1295 tests in 151 suites passed, 2 known issues
+    - commit: b80159f
+    - review: clean — 0 findings
+  timestamp: 2026-10-16T23:27:14.078098+00:00
+position_column: done
+position_ordinal: ffe380
 title: Use the shared ReportRecorder for the per-file ObservationReport recorders
 ---
 T4-A5 (^35sw345) added the shared generic test recorder ReportRecorder<Value> (Tests/AgentViewKitTests/Helpers/ReportRecorder.swift). Three older test recorders have the same shape, one class for each file: PromptSubmitRecorder (Input/PromptInputViewHostedTests.swift), SpeechPhaseRecorder (Input/SpeechInputButtonHostedTests.swift) and TurnAnnouncementStepRecorder (Accessibility/ThreadAccessibilityHostedTests.swift). Replace each one with ReportRecorder<Value>, and delete the copies. Keep each assertion. Run the affected suites one time. Write all text in STE. #mail-step-7
