@@ -85,6 +85,10 @@ public struct ResponseView: View {
 ///
 /// This view, and not each ``ParagraphView``, reads the reading group of the
 /// message from the environment, and gives it to each paragraph as a value.
+///
+/// The list gives each paragraph view through a ``ParagraphViewCache``, so a
+/// settled paragraph keeps the same stored value from one update to the next.
+/// Then SwiftUI does not evaluate it again, also before SwiftUI can call `==`.
 private struct ParagraphList: View {
   /// The id of the message.
   let messageID: String
@@ -99,16 +103,22 @@ private struct ParagraphList: View {
   /// to use the group of ``messageID``.
   @Environment(\.accessibilityMessageGroupID) private var messageGroupID
 
+  /// The last view of each paragraph.
+  @State private var cache = ParagraphViewCache()
+
   var body: some View {
     let readingGroupID = messageGroupID ?? messageID
-    ForEach(paragraphs) { paragraph in
-      ParagraphSlot(
-        paragraph: ParagraphView(
+    let views = cache.reuse(
+      paragraphs.map { paragraph in
+        ParagraphView(
           messageID: messageID,
           paragraph: paragraph,
           citations: citations[paragraph.id.index] ?? [],
           readingGroupID: readingGroupID
-        ))
+        )
+      })
+    ForEach(views, id: \.paragraph.id) { view in
+      ParagraphSlot(paragraph: view)
     }
   }
 }

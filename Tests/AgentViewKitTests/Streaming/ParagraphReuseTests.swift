@@ -1,6 +1,5 @@
 import AgentViewKit
 import AgentViewKitTestSupport
-import AppKit
 import Foundation
 import Observation
 import SwiftUI
@@ -23,11 +22,12 @@ import Testing
 /// disables animations above the hosted view, as the other hosted tests
 /// apply it. A paragraph must not evaluate again in either case.
 ///
-/// Diagnostic of task ^fzn2beh: in one full run, each earlier paragraph
-/// evaluated again on each chunk, and the test passes alone. The cause is
-/// not known yet. Each test records the window state of the process before
-/// it mounts its view, and attaches that record to the test when a check
-/// fails. The record does not change the result of the test.
+/// The checks hold also before SwiftUI can call `==` for the paragraph view
+/// type (task ^fzn2beh). SwiftUI computes that compare layout on a background
+/// queue, and until it is ready, SwiftUI compares the bytes of the view
+/// values. Early in a process, or in a busy full run, that time can be all of
+/// a test. ``ResponseView`` gives a settled paragraph its stored view value
+/// again, so the bytes are equal and the paragraph does not evaluate again.
 @Suite(.serialized, .hostedSerially) @MainActor struct ParagraphReuseTests {
   /// The text that the hosted response view shows. A test appends each chunk
   /// to it, as the session model appends a chunk to the text of an entry.
@@ -73,9 +73,6 @@ import Testing
   /// The number of paragraphs of the long text.
   static let paragraphCount = 8
 
-  /// The name of the attachment that holds the window state record.
-  static let windowStateAttachmentName = "window-state.txt"
-
   /// The chunks of the long text. Each paragraph comes in three chunks, and
   /// the first chunk of each paragraph after the first starts a new
   /// paragraph.
@@ -113,41 +110,7 @@ import Testing
     harness.render()
   }
 
-  /// A text record of the window state of the process: each window of the
-  /// application, the key window, the first responder of the key window,
-  /// whether the application is active, and its appearance.
-  ///
-  /// A window that a test closed and that is still alive is in the list of
-  /// the application windows, with `visible=false`.
-  ///
-  /// - Returns: One line for each value.
-  static func windowStateRecord() -> String {
-    let application = NSApplication.shared
-    let windows = application.windows.map { window in
-      "window \(type(of: window)) title=\"\(window.title)\" visible=\(window.isVisible) "
-        + "key=\(window.isKeyWindow) releasedWhenClosed=\(window.isReleasedWhenClosed) "
-        + "content=\(window.contentView.map { String(describing: type(of: $0)) } ?? "none")"
-    }
-    let keyWindow = application.keyWindow
-    let summary = [
-      "windows=\(windows.count)",
-      "keyWindow=\(keyWindow.map { String(describing: type(of: $0)) } ?? "none")",
-      "firstResponder=\(keyWindow?.firstResponder.map { String(describing: type(of: $0)) } ?? "none")",
-      "isActive=\(application.isActive)",
-      "appearance=\(application.effectiveAppearance.name.rawValue)",
-    ]
-    return (summary + windows).joined(separator: "\n")
-  }
-
-  /// Attaches the window state record to the current test.
-  ///
-  /// - Parameter record: The record from ``windowStateRecord()``.
-  static func attachWindowState(_ record: String) {
-    Attachment.record(record, named: windowStateAttachmentName)
-  }
-
   @Test func aChunkThatStartsAParagraphEvaluatesOnlyTheChangedParagraphs() {
-    let windowState = Self.windowStateRecord()
     let id = "paragraph-reuse-start"
     let growing = GrowingText("One.\n\nTwo")
     let harness = HostedViewHarness(
@@ -164,11 +127,7 @@ import Testing
     let thirdKey = ParagraphView.counterKey(
       messageID: id, paragraphID: ParagraphSplitter.paragraphs(growing.text)[2].id)
     let firstCount = BodyEvaluationCounter.count(firstKey)
-    let firstIsReused = firstCount == 0
-    #expect(firstIsReused, "The first paragraph evaluated again: \(firstCount) times.")
-    if !firstIsReused {
-      Self.attachWindowState(windowState)
-    }
+    #expect(firstCount == 0, "The first paragraph evaluated again: \(firstCount) times.")
     #expect(BodyEvaluationCounter.count(thirdKey) >= 1, "The new paragraph did not evaluate.")
     BodyEvaluationCounter.reset(prefix: ParagraphView.counterKeyPrefix + id)
   }
@@ -181,7 +140,6 @@ import Testing
   ///   above the response view.
   @Test(arguments: [true, false])
   func aLongTextNeverEvaluatesAnEarlierParagraphAgain(disablesAnimations: Bool) {
-    let windowState = Self.windowStateRecord()
     let id = "paragraph-reuse-long-\(disablesAnimations ? "transaction" : "plain")"
     let growing = GrowingText("")
     let harness = HostedViewHarness(
@@ -193,14 +151,13 @@ import Testing
     // paragraph before the last one keeps its text, its id and its count.
     var previous: [String: Int] = [:]
     var previousLastKey: String?
-    var anEarlierParagraphEvaluated = false
     for chunk in Self.chunks {
       Self.append(chunk, to: growing, harness: harness)
       let current = Self.counts(of: growing.text, id: id)
       for (key, count) in previous where key != previousLastKey {
-        let isReused = current[key] == count
-        #expect(isReused, "The earlier paragraph \(key) evaluated again: \(String(describing: current[key])) after \(count).")
-        anEarlierParagraphEvaluated = anEarlierParagraphEvaluated || !isReused
+        #expect(
+          current[key] == count,
+          "The earlier paragraph \(key) evaluated again: \(String(describing: current[key])) after \(count).")
       }
       for (key, count) in current where previous[key] == nil {
         #expect(count >= 1, "The new paragraph \(key) did not evaluate.")
@@ -209,9 +166,6 @@ import Testing
       previousLastKey = ParagraphSplitter.paragraphs(growing.text).last.map {
         ParagraphView.counterKey(messageID: id, paragraphID: $0.id)
       }
-    }
-    if anEarlierParagraphEvaluated {
-      Self.attachWindowState(windowState)
     }
 
     #expect(ParagraphSplitter.paragraphs(growing.text).count == Self.paragraphCount)

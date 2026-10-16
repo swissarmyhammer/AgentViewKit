@@ -80,8 +80,34 @@ comments:
     - evidence: review sha 347209f~1..347209f; 0 findings (0 confirmed, 0 refuted); 2 files reviewed.
     - next: The task stays open in review on the instruction of the user. The cause of the failure in the full run 12 is not confirmed. Find and confirm the run-12 cause before the task moves to done.
   timestamp: 2026-10-16T00:54:59.232797+00:00
-position_column: review
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m51shk6zzh8ykfk3bj46qpjw
+  text: |-
+    ### Research 3: the cause is found (AttributeGraph async compare layouts)
+    - Full run of today (sah shell cmd 924, 1218 tests): only the case `disablesAnimations: true` failed, 77 issues; `false` passed. The `window-state.txt` attachment was NOT saved, because `swift test` had no `--attachments-path`. Thus no record can be read from that run.
+    - The premise "now it fails on every run" is NOT correct. The filtered run `swift test --filter ParagraphReuseTests` (scratchpad/zn2beh-deps.log) PASSED (2 tests). The failure stays order and time dependent.
+    - Dependency update is NOT the cause: EditorKit bae8f95 was already the pin of the green full run swift-test-final.log (pkg-update-final.log at 20:09, run at 20:15). The later update (pkg-update-b.log) moved only ACPClient 7676d81..66dd9b6, Router f3ac39b..2f78fda, ACPAgent 4359b57..8412749, Multitool 4171660..c620900, Extras 83c34f0..6cfd13c. Their diffs have no SwiftUI, AppKit, NSApp, NSWindow, MainActor, Transaction or RunLoop text.
+    - Probe (temporary test, filtered runs, scratchpad/zn2beh-probe*.log): early in a process, a ResponseView with NO modifier also evaluates each earlier paragraph on each chunk (77 of 77), then later cases in the same process give 0. Window state is the same in good and bad cases (harness window not key, app not active, one window). So the window state is not the cause.
+    - `_printChanges()` in the bad state says "ParagraphView: @self changed", and a counter in `ParagraphView.==` shows that SwiftUI did NOT call `==` at all (0 calls). In the good state `==` is called (84 calls) and returns true.
+    - With `AG_ASYNC_LAYOUTS=0` (AttributeGraph computes compare layouts at once), the bad state does not occur (all 10 probe cases 0, `==` called from the first case; zn2beh-probe6.log). In the 5 runs without it, the first case was bad each time (77, 77, 18, 1, 77).
+    - Cause: AttributeGraph computes the compare layout of a view type on a background queue. Until that layout is ready, it compares the old and the new view value byte by byte and does not call `==`. ParagraphList makes NEW ParagraphView values on each chunk (new String buffers from the split), so the bytes differ, and each paragraph evaluates again. `.equatable()` is only a best-effort guarantee. In a busy full run (many new types, model load on other threads), the layout queue is late for a long time, so the test fails. ParagraphSlot (347209f) did not address this.
+    - Fix check by experiment (zn2beh-probe8.log): when the list gives the SAME stored value for a settled paragraph (bytes equal), the bad state gives 0 re-evaluations (cache on: 0, cache off: 77 in the same process), and in the good state SwiftUI needs no `==` call (0 calls).
+    - Plan: ParagraphList keeps the last ParagraphView of each paragraph id in a reference cache in @State, and gives the cached value again when it is `==` to the new one. Then SwiftUI sees equal bytes with or without the layout.
+  timestamp: 2026-10-16T07:24:09.823754+00:00
+- actor: claude-code
+  id: 01m51t7tntnn71s1g50d193mhh
+  text: |-
+    ### implement — changed
+    - cause: AttributeGraph computes the compare layout of a view type on a background queue. Until it is ready, SwiftUI compares the bytes of the old and new ParagraphView value and does not call `==`. ParagraphList made new ParagraphView values (new text storage) on each chunk, so each settled paragraph evaluated again. Not the dependency update (EditorKit pin same as the last green full run; other updated packages have no UI code). Not a window state.
+    - fix: new Sources/AgentViewKit/Content/ParagraphViewCache.swift (`@MainActor final class ParagraphViewCache`, `reuse(_:)` gives the stored view when it is `==` to the new one, and forgets paragraphs that left the list). ParagraphList (ResponseView.swift) keeps it in `@State` and gives the views from it to `ForEach(views, id: \.paragraph.id)`. ParagraphView.swift: doc text only. ParagraphSlot stays.
+    - tests: new Tests/AgentViewKitTests/Content/ParagraphViewCacheTests.swift (4 tests, byte compare as SwiftUI does). RED with a pass-through stub: 3 tests failed, 4 issues (zn2beh-cache-red.log). GREEN: 4 passed (zn2beh-cache-green.log). ParagraphReuseTests.swift: the window-state diagnostic is removed (cause is known), the doc states the cause; no assertion removed or weakened.
+    - hosted proof: in the bad state (no `==` call) the experimental cache gave 0 re-evaluations against 77 without it, in the same process (zn2beh-probe8.log). The temporary probe test is deleted.
+    - runs (one each): `swift test --filter ParagraphReuseTests` 2 tests (3 cases) passed; Streaming `ParagraphSplitterTests|StreamingMarkdownBalancerTests` 54 tests passed; Content + ResponseView callers (11 suites) 107 tests passed. No project warning.
+    - new task: ^mjkwsp4 (other `.equatable()` views can have the same gap).
+    - next: review; a full `swift test` run must confirm the full-run case.
+  timestamp: 2026-10-16T07:36:18.362160+00:00
+position_column: doing
+position_ordinal: '8380'
 title: 'Mail step 7: aLongTextNeverEvaluatesAnEarlierParagraphAgain fails in the A6 full run (each earlier paragraph evaluates one more time on each chunk)'
 ---
 Found in the full run of T4-A6 (^yvdg1f4, uncommitted on top of e082aa3). Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-12.log

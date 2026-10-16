@@ -14,7 +14,9 @@ import SwiftUI
 /// value itself. SwiftUI can evaluate the body of a view that reads the
 /// environment again on the first change of the paragraph list after the
 /// mount, with no Equatable check. A view with no environment property
-/// evaluates again only when `==` gives `false`.
+/// evaluates again when `==` gives `false`. Before SwiftUI can call `==` for
+/// this type, SwiftUI compares the bytes of the values, so ``ResponseView``
+/// gives a settled paragraph its stored view value again on each update.
 ///
 /// The view gives its code block identity to the environment. Thus
 /// ``EditorKitCodeBlockStyle`` gets the cached model of a fenced block from
