@@ -41,11 +41,28 @@ comments:
     - evidence: README.md and Examples/ReadmeSnippets are not in `git status`. Scripts/check-readme.sh was not run.
     - next: none. No code was changed. No commit and no push.
   timestamp: 2026-10-16T13:33:06.250157+00:00
+- actor: claude-code
+  id: 01m52f4gk5kez9y9v3m2kj3rdn
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d9ad793). 0 findings, 0 confirmed, 2 refuted, 21 attempted, 0 failed. 18 files reviewed. Not reviewed: 4 .kanban files (.reviewignore), Docs/decisions/accessibility.md (no validator matches).
+    - design check: ElicitationView and ElicitationURLConsentView use `.defaultFocus($isFocused, true)`, as PermissionView does. The default priority is `.automatic`. SwiftUI uses it only when the system puts the focus by itself, for example when the window first appears. It does not move the focus from a focused composer when a new card mounts. No code sets `isFocused = true`. The deck sets `keyboardFocus` only for `.broughtToFront`. Docs/decisions/accessibility.md and the ElicitationURLConsentView doc comment state "only as the default focus of its window". This does not break "A new card does not take the VoiceOver focus or the keyboard focus". No finding.
+    - next: none. Task moved to done.
+  timestamp: 2026-10-16T13:41:29.829360+00:00
+- actor: claude-code
+  id: 01m52f5a9pny5yx13rv2ssq0kp
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — new RequestDeckFocus.swift, RequestDeckFocusTests.swift, RequestDeckAccessibilityHostedTests.swift; 20 files changed
+    - test: green — swift test --skip-build, 1245 tests in 145 suites passed, 0 failed, 2 known issues (withKnownIssue)
+    - commit: d9ad793
+    - review: clean — review sha HEAD~1..HEAD, 0 findings (2 refuted); the defaultFocus choice agrees with the design
+  timestamp: 2026-10-16T13:41:56.150803+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCCSP0GHTT66H046ZHH46
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffd680
 title: 'Elicitation task 37: do not move focus to new cards; announce them'
 ---
 elicitation-plan.md task 37, section 4: a new card does not take the focus; a screen reader announces it; only the front card is available to VoiceOver. Do it as the accepted deck design says. Tests with the step 7 rules (RecordingAnnouncer is @Observable). Write all text in STE.
