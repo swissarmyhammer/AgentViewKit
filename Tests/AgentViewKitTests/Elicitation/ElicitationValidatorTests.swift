@@ -110,36 +110,68 @@ import Testing
         == ["The text must have 3 or fewer characters."])
   }
 
-  @Test func aPrecomposedLetterIsOneCharacter() {
-    #expect(passes(.string("é"), field(text(maxLength: 1))))
+  @Test func aPrecomposedLetterIsOneCodePoint() {
+    // U+00E9 is one Unicode code point.
+    #expect(passes(.string("\u{E9}"), field(text(maxLength: 1))))
   }
 
-  @Test func aLetterWithACombiningMarkIsOneCharacter() {
-    // "e" and U+0301 are two Unicode scalars and one character.
-    #expect(passes(.string("e\u{301}"), field(text(maxLength: 1))))
-  }
-
-  @Test func aFlagIsOneCharacter() {
-    // A flag is two regional indicator scalars and one character.
+  @Test func aLetterWithACombiningMarkIsTwoCodePoints() {
+    // "e" and U+0301 are two Unicode code points and one character.
     let state = ElicitationValidator.validate(
-      .string("🇨🇭"), against: field(text(minLength: 2)))
+      .string("e\u{301}"), against: field(text(maxLength: 1)))
 
-    #expect(state.errors == ["The text must have 2 or more characters."])
+    #expect(state.errors == ["The text must have 1 or fewer characters."])
   }
 
-  @Test func patternIsAppliedToTheFullString() {
+  @Test func anEmojiIsOneCodePoint() {
+    // U+1F44D is one Unicode code point and two UTF-16 code units.
+    #expect(passes(.string("👍"), field(text(maxLength: 1))))
+  }
+
+  @Test func aFlagIsTwoCodePoints() {
+    // A flag is two regional indicator code points and one character.
+    let flag = JSONValue.string("🇨🇭")
+
+    #expect(passes(flag, field(text(minLength: 2))))
+    #expect(
+      ElicitationValidator.validate(flag, against: field(text(maxLength: 1))).errors
+        == ["The text must have 1 or fewer characters."])
+  }
+
+  @Test func aPatternIsASearchInTheText() {
     let schema = field(text(pattern: "[a-z]+"))
 
     #expect(passes(.string("abc"), schema))
-    #expect(!passes(.string("abc1"), schema))
-    #expect(!passes(.string("1abc"), schema))
+    #expect(passes(.string("abc1"), schema))
+    #expect(passes(.string("1abc"), schema))
     #expect(
-      ElicitationValidator.validate(.string("abc1"), against: schema).errors
+      ElicitationValidator.validate(.string("123"), against: schema).errors
         == ["The text does not match the necessary pattern."])
   }
 
-  @Test func aPatternThatDoesNotCompileIsIgnored() {
-    #expect(passes(.string("abc"), field(text(pattern: "[a-"))))
+  @Test func aPatternMatchesAPartOfTheText() {
+    #expect(passes(.string("zip 12345"), field(text(pattern: "[0-9]{5}"))))
+  }
+
+  @Test func anAnchoredPatternMustMatchTheFullText() {
+    let schema = field(text(pattern: "^[a-z]+$"))
+
+    #expect(passes(.string("abc"), schema))
+    #expect(!passes(.string("abc1"), schema))
+  }
+
+  @Test func anArabicIndicDigitIsNotADigit() {
+    // ECMA-262 \d is [0-9]. U+0663 is the Arabic-Indic digit three.
+    let state = ElicitationValidator.validate(
+      .string("\u{663}"), against: field(text(pattern: #"^\d$"#)))
+
+    #expect(state.errors == ["The text does not match the necessary pattern."])
+  }
+
+  @Test func aPatternThatDoesNotCompileFailsTheField() {
+    let state = ElicitationValidator.validate(.string("abc"), against: field(text(pattern: "[a-")))
+
+    #expect(state.errors == ["The pattern of this field is not correct."])
   }
 
   @Test(arguments: [

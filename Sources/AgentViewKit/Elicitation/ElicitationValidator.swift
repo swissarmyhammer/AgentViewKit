@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModelsACP
+import FoundationModelsACPClient
 
 /// The validation result of one elicitation field (plan.md §13.1, §13.2).
 ///
@@ -36,10 +37,21 @@ public nonisolated enum ElicitationValidator {
   /// The other constraints do not apply to an empty answer. `false` is not
   /// empty.
   ///
-  /// A `pattern` must match the full text. A pattern that does not compile
-  /// as a Swift regular expression is ignored, because the kit cannot apply
-  /// it. A ``ElicitationFieldSchema/TextFormat/unknown(_:)`` format is
-  /// ignored, as ACP v2 tells a client to do.
+  /// The `minLength`, `maxLength` and `pattern` checks follow JSON Schema,
+  /// with the functions of `PendingElicitation` that the check at Submit
+  /// also uses. `minLength` and `maxLength` count Unicode code points, so
+  /// `"e\u{301}"` has the length 2 and `"👍"` has the length 1. A `pattern`
+  /// is an ECMA-262 regular expression. The check is a search and is not
+  /// anchored, so a match in a part of the text passes. A pattern that does
+  /// not compile fails the field. A
+  /// ``ElicitationFieldSchema/TextFormat/unknown(_:)`` format is ignored, as
+  /// ACP v2 tells a client to do.
+  ///
+  /// Some rules are not the same as the check at Submit
+  /// (`PendingElicitation.validationFailure(of:)`). The `date-time` check
+  /// accepts `t`, `z` and the second 60. The `uri` check needs an RFC 3986
+  /// scheme. An empty string and an empty array are no answer. The check at
+  /// Submit stops an answer that it refuses.
   ///
   /// - Parameters:
   ///   - value: The answer, or `nil` when there is no answer.
@@ -147,17 +159,15 @@ public nonisolated enum ElicitationValidator {
     format: ElicitationFieldSchema.TextFormat?
   ) -> [String] {
     var errors: [String] = []
-    // The agent counts the length in characters, so the kit counts it the
-    // same way.
-    let length = text.count
+    let length = PendingElicitation.codePointLength(text)
     if let minLength, length < minLength {
       errors.append(Message.tooShort(minLength))
     }
     if let maxLength, length > maxLength {
       errors.append(Message.tooLong(maxLength))
     }
-    if let pattern, !matchesFully(text, pattern: pattern) {
-      errors.append(Message.patternMismatch)
+    if let pattern, let patternError = patternError(text, pattern: pattern) {
+      errors.append(patternError)
     }
     switch format {
     case .email where !isEmailAddress(text):
@@ -216,13 +226,25 @@ public nonisolated enum ElicitationValidator {
     return errors
   }
 
-  /// Tells whether `pattern` matches all of `text`.
+  /// The message for the `pattern` constraint that `text` fails.
   ///
-  /// - Returns: `true` for a match, and `true` when the pattern does not
-  ///   compile.
-  private static func matchesFully(_ text: String, pattern: String) -> Bool {
-    guard let regex = try? Regex(pattern) else { return true }
-    return (try? regex.wholeMatch(in: text)) != nil
+  /// The check is the ECMA-262 search of
+  /// `PendingElicitation.patternMatches(_:pattern:)`, with the rules of the
+  /// check at Submit. The search is not anchored, so a match in a part of
+  /// `text` passes. A full-text match needs `^` and `$` in the pattern.
+  ///
+  /// - Parameters:
+  ///   - text: An answer that is not empty.
+  ///   - pattern: The `pattern` of the field.
+  /// - Returns: `nil` when `text` has a match, the mismatch message when it
+  ///   has no match, and the incorrect-pattern message when `pattern` does
+  ///   not compile.
+  private static func patternError(_ text: String, pattern: String) -> String? {
+    switch PendingElicitation.patternMatches(text, pattern: pattern) {
+    case true?: nil
+    case false?: Message.patternMismatch
+    case nil: Message.patternNotCorrect
+    }
   }
 
   /// Tells whether `text` has the form `local@domain.tld`, with no space.
@@ -245,6 +267,7 @@ public nonisolated enum ElicitationValidator {
     static let notEmail = "The value must be an email address."
     static let notURI = "The value must be a URI."
     static let patternMismatch = "The text does not match the necessary pattern."
+    static let patternNotCorrect = "The pattern of this field is not correct."
     static let notDate = "The value must be a date in the format YYYY-MM-DD."
     static let notDateTime = "The value must be a date and time in RFC 3339 format."
     static let notNumber = "The value must be a number."

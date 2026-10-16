@@ -56,10 +56,15 @@ import Testing
   static let tagsProperty =
     #"{"type": "array", "title": "Tags", "minItems": 1, "items": {"type": "string", "enum": ["a", "b"]}}"#
 
-  /// The JSON text of a property schema of a text field with a default and a
-  /// pattern that does not compile. The kit ignores the pattern, but Extras
-  /// refuses it.
-  static let codeProperty = #"{"type": "string", "title": "Code", "pattern": "[", "default": "abc"}"#
+  /// The default of ``leapSecondProperty``: a date and time with the second
+  /// 60.
+  static let leapSecond = "2026-12-31T23:59:60Z"
+
+  /// The JSON text of a property schema of a date-time field with the default
+  /// ``leapSecond``. The RFC 3339 check of the kit accepts the second 60, but
+  /// the ISO 8601 check of Extras refuses it.
+  static let leapSecondProperty =
+    #"{"type": "string", "title": "When", "format": "date-time", "default": "\#(leapSecond)"}"#
 
   /// The JSON text of a property schema of a multi-choice field with no
   /// choices. The kit makes no field for it, but Extras decodes it.
@@ -453,12 +458,12 @@ import Testing
 
   @Test func anAnswerThatExtrasRefusesIsNotSent() async throws {
     let announcer = RecordingAnnouncer()
-    let params = Self.makeFormParams(properties: ["code": Self.codeProperty], required: ["code"])
+    let params = Self.makeFormParams(properties: ["when": Self.leapSecondProperty], required: ["when"])
     let mounted = try await Self.mountRefused(params, announcer: announcer)
     defer { mounted.close() }
     let harness = mounted.harness
     let pending = try #require(mounted.session.model.pendingElicitations.first)
-    let reason = try #require(pending.validationFailure(of: .object(["code": .string("abc")])))
+    let reason = try #require(pending.validationFailure(of: .object(["when": .string(Self.leapSecond)])))
     let expected = Self.failureLead + reason
 
     try harness.press(identifier: ElicitationView.submitIdentifier)

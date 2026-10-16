@@ -69,9 +69,10 @@ extension ElicitationFieldSchema {
     /// A `string` property that is not a date and has no choices.
     ///
     /// - Parameters:
-    ///   - minLength: The minimum number of characters.
-    ///   - maxLength: The maximum number of characters.
-    ///   - pattern: A regular expression that must match the full text.
+    ///   - minLength: The minimum number of Unicode code points.
+    ///   - maxLength: The maximum number of Unicode code points.
+    ///   - pattern: An ECMA-262 regular expression that must have a match in
+    ///     the text. The check is a search and is not anchored.
     ///   - format: The format of the text.
     case text(minLength: Int?, maxLength: Int?, pattern: String?, format: TextFormat?)
 
