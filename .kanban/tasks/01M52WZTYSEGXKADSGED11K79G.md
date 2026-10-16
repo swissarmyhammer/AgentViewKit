@@ -25,10 +25,28 @@ comments:
     - evidence: the change is only in Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift, and `swift test` of the package does not build the demo. The full test of this change is the demo CI gate: `./Scripts/test-examples.sh AgentViewKitDemo`, one full run in the implement step: BUILD SUCCEEDED, TEST SUCCEEDED, 5 tests, 0 failures. No warning in the demo code. It was not run again (no repeat runs).
     - next: commit, review, push with ^74gyjm5.
   timestamp: 2026-10-16T18:53:53.861947+00:00
+- actor: claude-code
+  id: 01m53195ynp4yr2fszkfvxqrbk
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (2a0b016) gives 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed). 1 file reviewed: Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift. 4 .kanban files not reviewed (ignore rule). The task has no earlier Review Findings section.
+    - code check: the sidebar reads the session from phase .started(.running(agent, session)) and gives currentSession: session.sessionId. Each change of the session on screen sets phase: select(_:on:) (first session, New Session, retry after a sign-in, through openSession), and the onOpen closure (resume). Thus the sidebar gets the new id each time. In each other phase (starting, signingIn, failed), the sidebar shows DemoStartView and no SessionListView, so no current session goes to the list. currentSession is SessionId? with the default nil. The change is only in the sidebar: the new argument, the rename of the closure parameter to resumed, and the doc. The other demo behavior does not change.
+    - next: done. The push item stays for the orchestrator (push with ^74gyjm5).
+  timestamp: 2026-10-16T18:58:37.141866+00:00
+- actor: claude-code
+  id: 01m531a40x91vynbaq622xxahz
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPTabView.swift gives currentSession the id of the session on screen
+    - test: green — ./Scripts/test-examples.sh AgentViewKitDemo, one full run: BUILD SUCCEEDED, TEST SUCCEEDED, 5 tests, 0 failures
+    - commit: 2a0b016
+    - review: clean — 0 findings (1 refuted)
+    - push: with ^74gyjm5 (the last to-do item)
+  timestamp: 2026-10-16T18:59:07.933617+00:00
 depends_on:
 - 01M52QADYKA9KNNYBY174GYJM5
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffdb80
 title: 'Demo: give SessionListView the current session in ACPTabView'
 ---
 Request of the step owner after card 40 (^b94apm2, commits ee57f08 and 4e86318). Write all text in STE.
@@ -40,4 +58,4 @@ Request of the step owner after card 40 (^b94apm2, commits ee57f08 and 4e86318).
 ## To do
 - [x] In ACPTabView, give `currentSession` the id of the session that the tab shows.
 - [x] Build the demo and run its tests one time (the Examples CI job builds AgentViewKitDemo). Use the commands of the demo target; follow the test rules: fixed order, no clock wait, sleep, poll, retry or timeLimit.
-- [ ] Push with ^74gyjm5. #elicitation-phase-6
+- [x] Push with ^74gyjm5. #elicitation-phase-6
