@@ -69,10 +69,34 @@ comments:
     - note: Package.resolved is git-ignored. The local pins are now ACPClient fdd66eb and FoundationModelsACP d419cd3; CI resolves branch main of both. The git-ignored demo Xcode project was made again with Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb, so that ResolvedPinsTests passes.
     - next: commit, review, push.
   timestamp: 2026-10-16T20:17:06.250569+00:00
+- actor: claude-code
+  id: 01m5362n6m7q2944w5kfkmqrev
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c00115b). Counts: findings 0, confirmed 0, refuted 1, attempted 7, failed 0. Reviewed 6 files. Not reviewed: 6 .kanban files (from .reviewignore) and README.md (no validator matches it).
+    - Check by reading the code against the accepted design (sections 1, 2, 4, 5A, 5B, 5D):
+      - Table rows: ElicitationWhoAsks.swift whoAsks and whoAsksAccessibilityLabel give the text and the label of each row. An empty path with a nil source gives nil, and ElicitationWhoAsksLine then shows no view. With 4 or more names, the text is the root, "…" and the last two names. The label keeps the full path. ElicitationWhoAsksTests has 8 rows for each function (4 names, 5 names and a custom root label included).
+      - Localization: the separators " › ", ", " and "…", the "\(path) · \(source)" format, "Asked by…" and "from…" use String(localized:). The names and the source are interpolated arguments and are not translated. ElicitationHeader.title(server:) uses String(localized:). This is the same form as the other String(localized:) calls in Sources (no bundle argument).
+      - Accessibility: the line is one element (children .ignore), with identifier elicitation-who-asks. The hosted test onlyTheFrontCardLineIsInTheTreeAndNextShowsTheSecondLine shows one label before and after Next. The diff does not change "Action required" or any announcement.
+      - Theme: .callout, .secondary, lineLimit 1, middle truncation, selectable. No fixed color and no new symbol.
+      - Hosted tests: all sends use sendInOrder and then render(). After the Next press there is a synchronous require on frontRequest, then render(). No clock, sleep, poll, retry or timeLimit.
+      - Docs: the ElicitationHeader doc, the elicitationHeader(_:) doc, the RequestDeck doc and the README say only what the code and the tests show. The waiting-card statement is true in the code: ElicitationURLConsentView always shows ElicitationHeader.
+    - Out of scope: card 39a (^f82081q), the withdrawn notice.
+    - next: the task is in done.
+  timestamp: 2026-10-16T20:22:26.260798+00:00
+- actor: claude-code
+  id: 01m53635bnyj5tndyhq5rj8gjw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — new ElicitationWhoAsks.swift, ElicitationView.swift, RequestDeck.swift, README.md, ScriptedSessionRequests.swift doc, 2 new test suites; local pins ACPClient fdd66eb and FoundationModelsACP d419cd3
+    - test: green — swift test --skip-build, 1277 tests in 149 suites passed, 2 known issues; Scripts/check-readme.sh passed
+    - commit: c00115b
+    - review: clean — 0 findings (1 refuted)
+  timestamp: 2026-10-16T20:22:42.805993+00:00
 depends_on:
 - 01M51BCMH8VHWE68GXDERGVEFT
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffde80
 title: 'Elicitation task 39: show who asks on each deck card'
 ---
 elicitation-plan.md task 39 (who asks). Before this card, the design card ^aqqthfk said that task 39 waits for phase 4. Write all text in STE.
