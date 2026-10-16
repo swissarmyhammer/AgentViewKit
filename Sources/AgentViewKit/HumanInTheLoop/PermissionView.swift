@@ -399,7 +399,7 @@ public struct PermissionView: View {
   }
 
   /// Selects `option` on the session model, then sends the comment as the
-  /// next prompt, with `SessionModel.answerPermission(_:option:comment:)`.
+  /// next prompt, with `SessionModel.answerPermission(_:option:comment:reporting:)`.
   ///
   /// The card makes one ``PermissionAnswer``, gives its option and comment to
   /// the session model, and reports the same value through

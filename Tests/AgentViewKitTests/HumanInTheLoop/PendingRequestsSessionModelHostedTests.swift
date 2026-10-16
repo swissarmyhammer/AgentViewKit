@@ -237,7 +237,7 @@
     /// An answer with a comment writes the permission response frame before
     /// the prompt frame of the comment.
     ///
-    /// `SessionModel.answerPermission(_:option:comment:)` sends the prompt
+    /// `SessionModel.answerPermission(_:option:comment:reporting:)` sends the prompt
     /// only after `selectPermission(_:option:)` returns, and that call
     /// returns after the client writes the response frame. The scripted agent
     /// records the frames in arrival order. The test runs many times to find

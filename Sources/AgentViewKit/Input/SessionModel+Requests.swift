@@ -99,8 +99,12 @@ extension SessionModel {
   /// Starts a main-actor task that sends `text` as `session/prompt` with
   /// ``sendPrompt(text:)``.
   ///
-  /// - Parameter text: The text of the prompt.
-  func startPrompt(text: String) {
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - report: The report that gets `session/prompt` in the same step,
+  ///     before the task starts, or `nil`.
+  func startPrompt(text: String, reporting report: ObservationReport<String>? = nil) {
+    report?(Self.promptMethod)
     Task { @MainActor in await sendPrompt(text: text) }
   }
 
@@ -118,7 +122,13 @@ extension SessionModel {
   ///   - id: The local id of the pending request.
   ///   - optionID: The id of the option that the user selected.
   ///   - comment: The comment of the user, or `nil` for no prompt.
-  func answerPermission(_ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId, comment: String?) {
+  ///   - report: The report that gets `session/request_permission` in the
+  ///     same step, before the task starts, or `nil`.
+  func answerPermission(
+    _ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId, comment: String?,
+    reporting report: ObservationReport<String>? = nil
+  ) {
+    report?(Self.requestPermissionMethod)
     Task { @MainActor in
       await selectPermission(id, option: optionID)
       guard let comment else { return }

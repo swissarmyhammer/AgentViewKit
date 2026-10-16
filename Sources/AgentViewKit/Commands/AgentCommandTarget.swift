@@ -73,8 +73,10 @@ final class AgentCommandTarget {
   /// The pasteboard that ``AgentCommandVerb/copyThread`` writes to.
   var pasteboard: any Pasteboard = NSPasteboard.general
 
-  /// The report that gets the method of the cancel that
-  /// ``AgentCommandVerb/cancel`` starts, or `nil`.
+  /// The report that gets the method of the request that
+  /// ``AgentCommandVerb/cancel``, a ``AgentCommandVerb/send`` with a text
+  /// payload, ``AgentCommandVerb/approvePending`` or
+  /// ``AgentCommandVerb/rejectPending`` starts, or `nil`.
   var requestStartReport: ObservationReport<String>?
 
   /// The store of the expanded items, or `nil` when no thread view is shown.
@@ -296,7 +298,7 @@ final class AgentCommandTarget {
       composer?.submit()
       return
     }
-    session.startPrompt(text: text)
+    session.startPrompt(text: text, reporting: requestStartReport)
   }
 
   // MARK: - Permission
@@ -384,7 +386,8 @@ final class AgentCommandTarget {
   ///
   /// The session model gets `selectPermission(_:option:)`, and a comment of
   /// the payload goes out as the next prompt
-  /// (`SessionModel.answerPermission(_:option:comment:)`).
+  /// (`SessionModel.answerPermission(_:option:comment:reporting:)`), with
+  /// ``requestStartReport``.
   ///
   /// - Parameters:
   ///   - payload: The payload of the dispatch, or `nil`.
@@ -392,7 +395,8 @@ final class AgentCommandTarget {
   private func respond(payload: CommandPayload?, rejects: Bool) {
     guard let session, let answer = answer(payload: payload, rejects: rejects) else { return }
     let comment = AgentCommandPayload.string(AgentCommandPayload.commentKey, in: payload)
-    session.answerPermission(answer.id, option: answer.option.optionId, comment: comment)
+    session.answerPermission(
+      answer.id, option: answer.option.optionId, comment: comment, reporting: requestStartReport)
   }
 
   // MARK: - Jump

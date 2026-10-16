@@ -63,11 +63,14 @@ import Testing
   ///   - pasteboard: The pasteboard of the copy command.
   ///   - requestStartReport: The report that gets the method of each request
   ///     that a view starts, or `nil`.
+  ///   - submitReport: The report that gets each submit outcome of the
+  ///     composer, or `nil`.
   /// - Returns: The harness.
   static func mount(
     session: ScriptedSession, system: CommandSystem, outerScope: Bool,
     composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard(),
-    requestStartReport: ObservationReport<String>? = nil
+    requestStartReport: ObservationReport<String>? = nil,
+    submitReport: ObservationReport<PromptSubmitOutcome>? = nil
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: windowSize) {
       scoped(
@@ -84,6 +87,7 @@ import Testing
       .environment(\.sessionModel, session.model)
       .environment(\.pasteboard, pasteboard)
       .environment(\.requestStartReport, requestStartReport)
+      .environment(\.promptSubmitReport, submitReport)
       .commandSystem(system)
       .transaction { $0.disablesAnimations = true }
     }
@@ -206,7 +210,9 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let composer = PromptInputHostedTestModel()
-    let harness = Self.mount(session: session, system: system, outerScope: true, composer: composer)
+    let submits = ReportRecorder<PromptSubmitOutcome>()
+    let harness = Self.mount(
+      session: session, system: system, outerScope: true, composer: composer, submitReport: submits.report)
     defer { harness.close() }
     harness.render()
     let path = Self.path(of: session.model)
@@ -215,6 +221,9 @@ import Testing
     composer.text = AttributedString(Self.message)
     harness.render()
     try #require(system.registry.perform(AgentCommandVerb.send.id, at: path))
+    // The composer starts the prompt in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(submits.values == [.sent])
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
@@ -317,13 +326,17 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mount(session: session, system: system, outerScope: false)
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(session: session, system: system, outerScope: false, requestStartReport: starts.report)
     defer { harness.close() }
     let pending = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
     let card = RequestDeck.identifier(for: pending.uuidString)
     #expect(harness.element(identifier: card) != nil)
 
     try #require(system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))
+    // The command starts the answer in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.agentRequestID)
     let model = session.model
     await harness.render { model.pendingPermissions.isEmpty }

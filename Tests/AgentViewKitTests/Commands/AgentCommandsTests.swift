@@ -282,10 +282,14 @@ final class CallCounter {
   @Test func approveSelectsTheAllowOnceOptionOfTheFirstRequest() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = Self.makeFixture(session: session.model)
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(session: session.model) { $0.requestStartReport = starts.report }
     _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
 
     try #require(fixture.system.perform(AgentCommandVerb.approvePending.id))
+    // The command starts the answer in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.agentRequestID)
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
@@ -295,7 +299,8 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let fixture = Self.makeFixture(session: model)
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(session: model) { $0.requestStartReport = starts.report }
     _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
     try await session.sendRequest(
       ScriptedSession.permissionMethod, id: Self.secondRequestID, params: ScriptedSession.permissionParams)
@@ -305,6 +310,9 @@ final class CallCounter {
       request: second.id, option: PermissionOptionId(rawValue: Self.rejectOptionID), comment: Self.comment)
 
     try #require(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
+    // The command starts the answer in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.secondRequestID)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
@@ -334,11 +342,15 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let fixture = Self.makeFixture(session: model)
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(session: model) { $0.requestStartReport = starts.report }
     let requests = try await Self.receiveTwoPermissionRequests(in: session)
     model.bringToFront(requests.second.id)
 
     try #require(fixture.system.perform(AgentCommandVerb.approvePending.id))
+    // The command starts the answer in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.secondRequestID)
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
@@ -518,7 +530,8 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let fixture = Self.makeFixture(session: model)
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(session: model) { $0.requestStartReport = starts.report }
 
     #expect(try !Self.isAvailable(.approvePending, in: fixture))
     #expect(try !Self.isAvailable(.rejectPending, in: fixture))
@@ -528,6 +541,9 @@ final class CallCounter {
     #expect(try Self.isAvailable(.rejectPending, in: fixture))
 
     try #require(fixture.system.perform(AgentCommandVerb.rejectPending.id))
+    // The command starts the answer in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.agentRequestID)
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
@@ -539,9 +555,13 @@ final class CallCounter {
   @Test func sendWithATextPayloadSendsAPromptOfTheSessionModel() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = Self.makeFixture(session: session.model)
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(session: session.model) { $0.requestStartReport = starts.report }
 
     try #require(fixture.system.perform(AgentCommandVerb.send.id, payload: AgentCommandPayload.text(Self.message)))
+    // The command starts the prompt in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.promptMethod])
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
