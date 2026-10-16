@@ -83,7 +83,9 @@ extension View {
 /// view shows no form for an elicitation or a permission request: the deck is
 /// the only place to answer. With no session model in the environment, the
 /// view shows no status. If the app shows no deck, a press has no visible
-/// effect.
+/// effect. While an accepted URL mode elicitation that names the call waits
+/// for the end of the flow in the browser (`awaitingURLCompletions`), the
+/// status is the text "Waiting for <host>", with the same identifier.
 ///
 /// The user decision is in the ``ExpandedBlocksStore`` of the environment,
 /// keyed by the row key of the entry. An entry with no decision uses the
@@ -245,14 +247,18 @@ public struct ToolCallView: View {
     bodyCounterPrefix + id
   }
 
-  /// The accessibility identifier of the "Waiting for your answer" status of
-  /// the call of `id`.
+  /// The accessibility identifier of the waiting status of the call of `id`:
+  /// "Waiting for your answer" or "Waiting for <host>".
   ///
   /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-call-<id>-waiting`.
   public static func waitingIdentifier(for id: String) -> String {
     suffixedIdentifier(for: id, suffix: waitingSuffix)
   }
+
+  /// The symbol of the "Waiting for <host>" status of a call whose URL
+  /// elicitation waits for the end of the flow in the browser.
+  static let urlWaitingSymbol = SharedSymbol.pending
 
   // MARK: - Text
 
@@ -592,8 +598,15 @@ private struct ToolCallBody: View, Equatable {
 /// The view reads `ToolCallEntry.linkedElicitationIDs` and the
 /// `pendingElicitations` of the ``SwiftUI/EnvironmentValues/sessionModel``.
 /// With no session model in the environment, or with no linked elicitation
-/// that has a card, it shows nothing. The identifier of the button is
+/// that has a card, it shows no button. The identifier of the button is
 /// ``ToolCallView/waitingIdentifier(for:)``.
+///
+/// The accept of a URL mode elicitation removes its link, and the session
+/// model keeps the elicitation in `awaitingURLCompletions` until the flow in
+/// the browser ends (deck design section 7). While an elicitation there names
+/// the tool call (`toolCallId`), and no linked elicitation waits for an
+/// answer, the view shows the text "Waiting for <host>" with the same
+/// identifier, where <host> is `PendingElicitation.targetHost`.
 private struct ToolCallWaitingStatus: View {
   /// The log of a link that the session model has no pending request for.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "ToolCallView")
@@ -604,16 +617,49 @@ private struct ToolCallWaitingStatus: View {
   @Environment(\.sessionModel) private var session
 
   var body: some View {
-    if let session, !Self.elicitations(linkedTo: entry, in: session).isEmpty {
-      Button {
-        session.bringToFront(toolCall: entry)
-      } label: {
-        Label(String(localized: "Waiting for your answer"), systemImage: SharedSymbol.question)
+    if let session {
+      if !Self.elicitations(linkedTo: entry, in: session).isEmpty {
+        answerButton(session: session)
+      } else if let host = Self.waitingHost(of: entry, in: session) {
+        let text = String(localized: "Waiting for \(host)")
+        Label(text, systemImage: ToolCallView.urlWaitingSymbol)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(text)
+          .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
       }
-      .buttonStyle(.borderless)
-      .font(.callout)
-      .accessibilityHint(Text("Shows the question"))
-      .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
+    }
+  }
+
+  /// The "Waiting for your answer" button, which brings the linked
+  /// elicitation to the front of the deck.
+  ///
+  /// - Parameter session: The session model of the entry.
+  /// - Returns: The button.
+  private func answerButton(session: SessionModel) -> some View {
+    Button {
+      session.bringToFront(toolCall: entry)
+    } label: {
+      Label(String(localized: "Waiting for your answer"), systemImage: SharedSymbol.question)
+    }
+    .buttonStyle(.borderless)
+    .font(.callout)
+    .accessibilityHint(Text("Shows the question"))
+    .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
+  }
+
+  /// The host of the first accepted URL mode elicitation that names the tool
+  /// call of `entry` and waits for the end of the flow.
+  ///
+  /// - Parameters:
+  ///   - entry: The tool call entry.
+  ///   - session: The session model of the entry.
+  /// - Returns: `PendingElicitation.targetHost`, the agent when the URL has
+  ///   no host, or `nil` when no such elicitation waits.
+  private static func waitingHost(of entry: ToolCallEntry, in session: SessionModel) -> String? {
+    session.awaitingURLCompletions.first { $0.toolCallId == entry.toolCallId }.map {
+      $0.targetHost ?? ElicitationHeader.agentServer
     }
   }
 

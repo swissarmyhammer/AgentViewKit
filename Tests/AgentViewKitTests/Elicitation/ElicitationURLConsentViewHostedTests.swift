@@ -20,8 +20,27 @@ import Testing
   /// The JSON-RPC id of the elicitation request of the agent.
   static let agentRequestID = 9
 
+  /// The JSON-RPC id of the form elicitation that waits behind the URL
+  /// request in the deck tests.
+  static let formRequestID = 10
+
+  /// The `elicitationId` of each URL request of the tests.
+  static let elicitationID = "url-test"
+
   /// The URL that the default request opens.
   static let defaultURL = "https://example.com/continue"
+
+  /// The host of ``defaultURL``.
+  static let defaultHost = "example.com"
+
+  /// The text of the waiting step of a card for ``defaultURL``.
+  static let waitingText = "Waiting for \(defaultHost) to finish"
+
+  /// The `elicitation/complete` notification of the agent for
+  /// ``elicitationID``.
+  static let completeFrame = #"""
+    {"jsonrpc": "2.0", "method": "elicitation/complete", "params": {"elicitationId": "\#(elicitationID)"}}
+    """#
 
   /// The message of each request of the tests.
   static let message = "Sign in to continue."
@@ -79,9 +98,14 @@ import Testing
   static func makeParams(url: String = defaultURL) -> String {
     #"""
     {"sessionId": "\#(ScriptedSession.sessionID)", "message": "\#(message)", "mode": "url",
-     "url": "\#(url)", "elicitationId": "url-test"}
+     "url": "\#(url)", "elicitationId": "\#(elicitationID)"}
     """#
   }
+
+  /// The URL mode elicitation of ``makeParams(url:)`` with the default URL,
+  /// with the id ``agentRequestID``.
+  static let urlRequest = ScriptedSession.AgentRequest(
+    method: ScriptedSession.elicitationMethod, id: agentRequestID, params: makeParams())
 
   /// Gets a URL mode elicitation from the agent and shows its card with a
   /// presenter over fake browser sessions that wait until they are stopped.
@@ -98,15 +122,67 @@ import Testing
   ) async throws -> Mounted {
     let session = try await ScriptedSession.open()
     let pending = try await session.receiveElicitation(id: agentRequestID, params: params)
+    return mount(
+      ElicitationURLConsentView(request: pending, owner: session.model), of: session, size: cardSize,
+      reporter: reporter)
+  }
+
+  /// Gets each of `requests` from the agent, in order, and shows them in the
+  /// ``RequestDeck`` of the session, with a presenter over fake browser
+  /// sessions that wait until they are stopped.
+  ///
+  /// - Parameter requests: The requests of the agent.
+  /// - Returns: The mounted deck.
+  /// - Throws: The error of the transport.
+  static func mountDeck(_ requests: [ScriptedSession.AgentRequest]) async throws -> Mounted {
+    let session = try await ScriptedSession.open()
+    try await session.sendInOrder(requests)
+    return mount(RequestDeck(session: session.model), of: session, size: hostSize)
+  }
+
+  /// Shows `view` with a presenter over fake browser sessions that wait
+  /// until they are stopped, and makes one render pass.
+  ///
+  /// - Parameters:
+  ///   - view: The card or the deck.
+  ///   - session: The scripted session whose model holds the requests.
+  ///   - size: The size of the harness.
+  ///   - reporter: The reporter that records each focus move.
+  /// - Returns: The mounted view.
+  static func mount(
+    _ view: some View, of session: ScriptedSession, size: CGSize,
+    reporter: RecordingFocusReporter = RecordingFocusReporter()
+  ) -> Mounted {
     let browser = FakeWebAuthSession(script: .waitsForCancel)
     let browserSteps = ReportRecorder<ElicitationBrowserStep>()
-    let view = ElicitationURLConsentView(request: pending, owner: session.model)
+    let content = view
       .environment(\.authorizationPresenter, AuthorizationPresenter(factory: browser))
       .environment(\.focusReporter, reporter)
       .environment(\.elicitationBrowserReport, browserSteps.report)
-    let harness = HostedViewHarness(AnyView(view), size: cardSize)
+    let harness = HostedViewHarness(AnyView(content), size: size)
     harness.render()
     return Mounted(harness: harness, session: session, browser: browser, browserSteps: browserSteps)
+  }
+
+  /// Presses Open in Browser in a deck, and waits until the browser session
+  /// of the card waits.
+  ///
+  /// The press accepts the request and starts the browser task in the same
+  /// step, and the render pass after it keeps the card in the deck. The
+  /// function requires each of these before the wait, so a broken path
+  /// stops the test at once. Then the browser session is certain to start.
+  ///
+  /// - Parameter mounted: The mounted deck.
+  /// - Throws: An issue when the press did not accept the request, did not
+  ///   start the browser task, or removed the card.
+  static func openInDeck(_ mounted: Mounted) async throws {
+    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
+    try #require(mounted.browserSteps.values == [.open])
+    try #require(mounted.session.model.awaitingURLCompletions.count == 1)
+    mounted.harness.render()
+    // A deck that removes the card of an accepted request stops the test here.
+    try #require(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
+    await mounted.harness.render { mounted.browser.sessions.contains(where: \.isWaiting) }
   }
 
   /// The URLs that the browser sessions of `browser` opened.
@@ -142,6 +218,8 @@ import Testing
     #expect(ElicitationURLConsentView.cancelIdentifier == "elicitation-cancel")
     #expect(ElicitationURLConsentView.declineIdentifier == "elicitation-decline")
     #expect(ElicitationURLConsentView.waitingIdentifier == "elicitation-waiting")
+    #expect(ElicitationURLConsentView.stopWaitingIdentifier == "elicitation-stop-waiting")
+    #expect(RequestDeck.waitingIdentifier == "request-deck-waiting")
   }
 
   // MARK: - Content
@@ -197,6 +275,7 @@ import Testing
     #expect(mounted.responses.isEmpty)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) == nil)
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.stopWaitingIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.declineIdentifier) != nil)
   }
@@ -226,10 +305,40 @@ import Testing
         .start(ephemeral: false),
       ])
     #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
-    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
+    #expect(mounted.session.model.awaitingURLCompletions.map(\.elicitationId?.rawValue) == [Self.elicitationID])
+    #expect(
+      mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) != nil)
-    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.stopWaitingIdentifier) != nil)
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.openIdentifier) == nil)
+  }
+
+  @Test func stopWaitingKeepsItsTextAsItsLabel() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.close() }
+    try await Self.open(mounted)
+
+    mounted.harness.expectButton(identifier: ElicitationURLConsentView.stopWaitingIdentifier, label: "Stop Waiting")
+  }
+
+  /// The card reads the waiting step from the model. Thus a card that mounts
+  /// again for an accepted request shows the waiting step and no consent
+  /// buttons.
+  @Test func aNewCardForAnAcceptedRequestShowsTheWaitingStep() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.close() }
+    try await Self.open(mounted)
+    let accepted = try #require(mounted.session.model.awaitingURLCompletions.first)
+
+    let harness = HostedViewHarness(
+      ElicitationURLConsentView(request: accepted, owner: mounted.session.model), size: Self.cardSize)
+    defer { harness.close() }
+    harness.render()
+
+    #expect(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
+    #expect(harness.element(identifier: ElicitationURLConsentView.openIdentifier) == nil)
+    #expect(harness.element(identifier: ElicitationURLConsentView.declineIdentifier) == nil)
   }
 
   @Test func theButtonsBeforeThePressKeepTheirTextAsTheirLabels() async throws {
@@ -281,20 +390,20 @@ import Testing
     #expect(mounted.browser.calls.isEmpty)
   }
 
-  @Test func cancelWhileWaitingStopsTheBrowserAndSendsNoSecondAnswer() async throws {
+  @Test func escapeWhileWaitingStopsTheBrowserAndTheWait() async throws {
     let mounted = try await Self.mount()
     defer { mounted.close() }
     try await Self.open(mounted)
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
-    // Cancel stops the browser task in the same step as the press, so a press
-    // that stopped nothing stops the test here.
+    try mounted.harness.sendKey(.escape)
+    // Esc stops the browser task and the wait in the same step as the key, so
+    // a key that stopped nothing stops the test here.
     try #require(mounted.browserSteps.values == [.open, .stop])
+    try #require(mounted.session.model.awaitingURLCompletions.isEmpty)
     await ObservationWait.until { mounted.browser.calls.contains(.cancel) }
 
     #expect(mounted.browser.calls.last == .cancel)
     #expect(mounted.responses.count == 1)
-    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
   }
 
   @Test func declineSendsDecline() async throws {
@@ -340,5 +449,62 @@ import Testing
     try harness.press(identifier: RequestDeck.nextIdentifier)
 
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
+  }
+
+  // MARK: - Deck waiting state (task 41)
+
+  /// The accept keeps the card in the deck, so the browser session of the
+  /// card does not stop (bug card ^rkwj84j).
+  @Test func openInTheDeckKeepsTheBrowserSessionAndBringsTheNextCardToTheFront() async throws {
+    let mounted = try await Self.mountDeck([Self.urlRequest, .formElicitation(id: Self.formRequestID)])
+    defer { mounted.close() }
+
+    try await Self.openInDeck(mounted)
+
+    let harness = mounted.harness
+    #expect(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
+    #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
+    #expect(harness.element(identifier: RequestDeck.waitingIdentifier)?.label == "1 waiting")
+    #expect(harness.element(identifier: RequestDeck.positionIdentifier) == nil)
+    #expect(mounted.browserSteps.values == [.open])
+    #expect(!mounted.browser.calls.contains(.cancel))
+  }
+
+  @Test func aCompleteFromTheAgentRemovesTheWaitingCardAndStopsTheBrowser() async throws {
+    let mounted = try await Self.mountDeck([Self.urlRequest])
+    defer { mounted.close() }
+    let model = mounted.session.model
+    try await Self.openInDeck(mounted)
+
+    try await mounted.session.agent.send(Self.completeFrame)
+    await ObservationWait.until { model.awaitingURLCompletions.isEmpty }
+    mounted.harness.render()
+    // The card stops its browser task when it goes away, in the same render
+    // pass, so a card that stayed or stopped nothing stops the test here.
+    try #require(mounted.browserSteps.values == [.open, .stop])
+    await ObservationWait.until { mounted.browser.calls.contains(.cancel) }
+
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.identifier) == nil)
+    #expect(mounted.harness.element(identifier: RequestDeck.waitingIdentifier) == nil)
+    #expect(mounted.responses.count == 1)
+  }
+
+  @Test func stopWaitingRemovesTheCardStopsTheBrowserAndSendsNoSecondAnswer() async throws {
+    let mounted = try await Self.mountDeck([Self.urlRequest])
+    defer { mounted.close() }
+    let model = mounted.session.model
+    try await Self.openInDeck(mounted)
+
+    try mounted.harness.press(identifier: ElicitationURLConsentView.stopWaitingIdentifier)
+    // Stop Waiting stops the browser task and the wait in the same step as
+    // the press, so a press that stopped nothing stops the test here.
+    try #require(mounted.browserSteps.values == [.open, .stop])
+    try #require(model.awaitingURLCompletions.isEmpty)
+    mounted.harness.render()
+    await ObservationWait.until { mounted.browser.calls.contains(.cancel) }
+
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.identifier) == nil)
+    #expect(mounted.responses.count == 1)
+    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
   }
 }

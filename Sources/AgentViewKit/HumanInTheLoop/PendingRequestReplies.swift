@@ -10,14 +10,29 @@ import FoundationModelsACPClient
 /// ``ElicitationURLConsentView`` call these methods of the model that holds
 /// the `PendingElicitation` they show. The model removes the elicitation when
 /// it resolves, so the card goes away with no state of its own.
+///
+/// An accepted URL mode elicitation moves to ``awaitingURLCompletions``, with
+/// the same id, until the flow in the browser ends. The model removes it when
+/// the agent sends `elicitation/complete`, or when ``stopWaiting(_:)`` stops
+/// the wait.
 @MainActor
 public protocol PendingElicitationOwner: AnyObject {
+  /// The accepted URL mode elicitations that wait for the
+  /// `elicitation/complete` of the agent, oldest first.
+  var awaitingURLCompletions: [PendingElicitation] { get }
+
   /// Accepts one pending elicitation.
   ///
   /// - Parameters:
   ///   - id: The local id of the pending elicitation.
   ///   - content: The form values as ACP JSON, or `nil` for no content.
   func acceptElicitation(_ id: PendingElicitation.ID, content: FoundationModelsACP.JSONValue?)
+
+  /// Stops the wait for one accepted URL mode elicitation, and removes it
+  /// from ``awaitingURLCompletions``. The agent gets no message.
+  ///
+  /// - Parameter id: The local id of the accepted elicitation.
+  func stopWaiting(_ id: PendingElicitation.ID)
 
   /// Declines one pending elicitation.
   ///

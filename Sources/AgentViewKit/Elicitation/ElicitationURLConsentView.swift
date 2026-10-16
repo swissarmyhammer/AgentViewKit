@@ -22,19 +22,27 @@ import SwiftUI
 ///    `acceptElicitation(_:content:)` on the ``PendingElicitationOwner`` that
 ///    holds the elicitation. The answer tells the agent that the user gave
 ///    consent. It does not wait for the browser.
-/// 3. The card shows a waiting state until the model removes the request.
-///    The accept removes the request at once, so the host then removes the
-///    card.
+/// 3. The accept moves the request to `awaitingURLCompletions` of the owner,
+///    with the same id. While the owner holds it there, the card shows the
+///    waiting state "Waiting for <host> to finish" (identifier
+///    ``waitingIdentifier``), where <host> is `PendingElicitation.targetHost`.
+///    The owner removes the request when the agent sends
+///    `elicitation/complete`, and then the host removes the card.
 ///
-/// Before the press, the card shows Cancel, Decline, and Open in Browser. In
-/// the waiting state, the card shows Cancel and Retry. Retry opens the
-/// browser again, and it does not send a second answer. Cancel calls
-/// `cancelElicitation(_:)` and stops the browser session of the card. Esc
-/// also calls `cancelElicitation(_:)`. A call for an elicitation that already
-/// resolved changes nothing in the model.
+/// Before the press, the card shows Cancel, Decline, and Open in Browser.
+/// Cancel and Esc call `cancelElicitation(_:)`. In the waiting state, the card
+/// shows Stop Waiting and Retry. Retry opens the browser again, and it does
+/// not send a second answer. Stop Waiting and Esc stop the browser session of
+/// the card and call `stopWaiting(_:)`, which sends nothing to the agent. A
+/// call for an elicitation that already resolved changes nothing in the
+/// model.
 ///
-/// The view keeps its state. Give each request its own view identity, for
-/// example with `.id(request.id)`.
+/// The card reads the waiting state from the owner, so a new card for an
+/// accepted request shows the waiting state. The browser session runs in the
+/// state of the view, and the card stops it when it goes away. Give each
+/// request its own view identity, for example with `.id(request.id)`.
+/// ``RequestDeck`` keeps the same card, with the same identity, from the
+/// accept to the end of the wait.
 ///
 /// The card does not move the VoiceOver focus or the keyboard focus when it
 /// appears. The ``RequestDeck`` announces the new request and moves the
@@ -63,6 +71,8 @@ public struct ElicitationURLConsentView: View {
   public static let cancelIdentifier = ElicitationView.cancelIdentifier
   /// The accessibility identifier of the waiting state.
   public static let waitingIdentifier = "elicitation-waiting"
+  /// The accessibility identifier of the Stop Waiting button.
+  public static let stopWaitingIdentifier = "elicitation-stop-waiting"
 
   /// The URL scheme that the browser session waits for.
   ///
@@ -88,6 +98,9 @@ public struct ElicitationURLConsentView: View {
   static let declineSymbol = ElicitationView.declineSymbol
   /// The symbol of the Cancel button: the symbol of the form.
   static let cancelSymbol = ElicitationView.cancelSymbol
+  /// The symbol of the Stop Waiting button, which stops the browser and the
+  /// wait.
+  static let stopWaitingSymbol = SharedSymbol.stop
 
   /// The step of the consent.
   enum Phase: Equatable {
@@ -103,8 +116,17 @@ public struct ElicitationURLConsentView: View {
   /// The model that holds the elicitation.
   let owner: any PendingElicitationOwner
 
-  /// The step of the consent.
-  @State private var phase: Phase = .idle
+  /// The step of the consent, from the model: `.waiting` while the owner
+  /// holds the request in `awaitingURLCompletions`, else `.idle`.
+  private var phase: Phase {
+    owner.awaitingURLCompletions.contains { $0.id == request.id } ? .waiting : .idle
+  }
+
+  /// The host that the waiting step names: the host of the URL, or the
+  /// agent when the URL has no host.
+  private var waitingHost: String {
+    request.targetHost ?? ElicitationHeader.agentServer
+  }
 
   /// The task that runs the browser session, or `nil`.
   @State private var browserTask: Task<Void, Never>?
@@ -150,13 +172,11 @@ public struct ElicitationURLConsentView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .focusable()
     .focusEffectDisabled()
-    .onExitCommand(perform: cancel)
+    .onExitCommand(perform: didPressEscape)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
     .accessibilityFocusTarget(Self.identifier)
-    .onDisappear {
-      browserTask?.cancel()
-    }
+    .onDisappear(perform: stopBrowser)
   }
 
   /// The URL text, and the warning when the host needs one.
@@ -185,11 +205,11 @@ public struct ElicitationURLConsentView: View {
     HStack(spacing: theme.spacing.s) {
       ProgressView()
         .controlSize(.small)
-      Text("Waiting for \(ElicitationHeader.agentServer) to finish")
+      Text("Waiting for \(waitingHost) to finish")
         .foregroundStyle(.secondary)
     }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Waiting for \(ElicitationHeader.agentServer) to finish")
+    .accessibilityLabel("Waiting for \(waitingHost) to finish")
     .accessibilityIdentifier(Self.waitingIdentifier)
   }
 
@@ -197,10 +217,10 @@ public struct ElicitationURLConsentView: View {
   private var footer: some View {
     HStack(spacing: theme.spacing.s) {
       Spacer()
-      Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: cancel)
-        .accessibilityIdentifier(Self.cancelIdentifier)
       switch phase {
       case .idle:
+        Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: cancel)
+          .accessibilityIdentifier(Self.cancelIdentifier)
         Button("Decline", systemImage: Self.declineSymbol, action: decline)
           .accessibilityIdentifier(Self.declineIdentifier)
         Button("Open in Browser", systemImage: Self.openSymbol, action: open)
@@ -208,6 +228,8 @@ public struct ElicitationURLConsentView: View {
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
+        Button("Stop Waiting", systemImage: Self.stopWaitingSymbol, action: stopWaiting)
+          .accessibilityIdentifier(Self.stopWaitingIdentifier)
         Button("Retry", systemImage: Self.retrySymbol, action: openBrowser)
           .buttonStyle(.glassProminent)
           .accessibilityLabel("Open \(ElicitationHeader.agentServer) in the browser again")
@@ -218,12 +240,13 @@ public struct ElicitationURLConsentView: View {
 
   // MARK: Actions
 
-  /// Opens the browser, sends the consent, and shows the waiting state.
+  /// Opens the browser and sends the consent. The accept moves the request
+  /// to `awaitingURLCompletions` of the owner, so the card shows the waiting
+  /// state.
   private func open() {
     guard phase == .idle, request.url != nil else { return }
     openBrowser()
     owner.acceptElicitation(request.id, content: nil)
-    phase = .waiting
   }
 
   /// Starts a browser session on the URL of the request, in place of the
@@ -252,17 +275,36 @@ public struct ElicitationURLConsentView: View {
   }
 
   /// Stops the browser session of the card and cancels the elicitation.
-  ///
-  /// When the card has a browser task, the card gives ``ElicitationBrowserStep/stop``
-  /// to ``SwiftUI/EnvironmentValues/elicitationBrowserReport`` in the same
-  /// step as it stops the task.
   private func cancel() {
-    if let browserTask {
-      browserTask.cancel()
-      reportBrowser?(.stop)
-    }
-    browserTask = nil
+    stopBrowser()
     owner.cancelElicitation(request.id)
+  }
+
+  /// Stops the browser session of the card and the wait for the
+  /// `elicitation/complete` of the agent. The agent gets no message.
+  private func stopWaiting() {
+    stopBrowser()
+    owner.stopWaiting(request.id)
+  }
+
+  /// Answers Esc: Stop Waiting in the waiting state, else Cancel.
+  private func didPressEscape() {
+    switch phase {
+    case .idle: cancel()
+    case .waiting: stopWaiting()
+    }
+  }
+
+  /// Stops the browser task of the card, when the card has one.
+  ///
+  /// The card gives ``ElicitationBrowserStep/stop`` to
+  /// ``SwiftUI/EnvironmentValues/elicitationBrowserReport`` in the same step
+  /// as it stops the task.
+  private func stopBrowser() {
+    guard let browserTask else { return }
+    browserTask.cancel()
+    reportBrowser?(.stop)
+    self.browserTask = nil
   }
 }
 

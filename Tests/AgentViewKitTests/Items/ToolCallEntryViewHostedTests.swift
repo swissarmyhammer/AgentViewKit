@@ -42,6 +42,13 @@
     /// user.
     static let waitingLabel = "Waiting for your answer"
 
+    /// The host of the URL of the linked URL elicitation.
+    static let urlHost = "example.com"
+
+    /// The label of the status of a call whose URL elicitation waits for the
+    /// end of the flow in the browser.
+    static let urlWaitingLabel = "Waiting for \(urlHost)"
+
     /// The default branch of the linked form of the accept test.
     static let defaultBranch = "main"
 
@@ -504,6 +511,31 @@
       #expect(harness.element(identifier: PermissionView.identifier) == nil)
     }
 
+    /// The accept of a URL elicitation removes its link, and the model keeps
+    /// the elicitation in `awaitingURLCompletions` (deck design section 7).
+    @Test func aCallWhoseURLElicitationWaitsShowsWaitingForTheHost() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThread(session, store: ExpandedBlocksStore())
+      defer { harness.close() }
+      let model = session.model
+      let key = try await Self.sendCall("url-c", thenRequests: [.linkedURLElicitation(toolCall: "url-c")], to: session)
+      let pending = try #require(model.pendingElicitations.first)
+
+      model.acceptElicitation(pending.id)
+      // The accept moves the elicitation in the same step, so an accept that
+      // did not reach the model stops the test here.
+      try #require(model.awaitingURLCompletions.map(\.id) == [pending.id])
+      harness.render()
+
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key))?.label == Self.urlWaitingLabel)
+
+      model.stopWaiting(pending.id)
+      harness.render()
+
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)
+    }
+
     @Test func aCallWithNoSessionModelInTheEnvironmentShowsNoWaitingStatus() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
@@ -539,6 +571,24 @@
          "message": "Which branch?", "mode": "form",
          "requestedSchema": {"type": "object",
                              "properties": {"branch": {"type": "string", "default": "\#(branch)"}}}}
+        """#
+      return Self(
+        method: ScriptedSession.elicitationMethod, id: ToolCallEntryViewHostedTests.elicitationRequestID,
+        params: params)
+    }
+
+    /// A URL elicitation that the agent links to the tool call of `id`, with
+    /// the id ``ToolCallEntryViewHostedTests/elicitationRequestID``. The URL
+    /// has the host ``ToolCallEntryViewHostedTests/urlHost``.
+    ///
+    /// - Parameter id: The `toolCallId` of the call.
+    /// - Returns: The request.
+    static func linkedURLElicitation(toolCall id: String) -> Self {
+      let host = ToolCallEntryViewHostedTests.urlHost
+      let params = #"""
+        {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "\#(id)",
+         "message": "Sign in.", "mode": "url", "url": "https://\#(host)/login",
+         "elicitationId": "url-\#(id)"}
         """#
       return Self(
         method: ScriptedSession.elicitationMethod, id: ToolCallEntryViewHostedTests.elicitationRequestID,

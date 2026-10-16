@@ -130,9 +130,11 @@ announcement.
     keyboard focus goes into that card. Hosted tests show this with Next for
     a permission card and for a URL consent card: after Next, Esc cancels
     only the request of the new front card.
-- Only the front card is in the accessibility tree. The edges and the cards
-  that do not show are hidden from VoiceOver. "k of N" and "+N" are one
-  element, for example "Request 1 of 6, 2 more".
+- Only the front card and the waiting cards of accepted URL elicitations are
+  in the accessibility tree. The edges and the cards that do not show are
+  hidden from VoiceOver. "k of N" and "+N" are one element, for example
+  "Request 1 of 6, 2 more". A waiting card is not in "k of N"; the header
+  shows "N waiting".
 - `PromptInputView` puts the `prompt-editor` focus target on its editor slot,
   so the focus goes back to a custom editor too.
 
@@ -151,6 +153,11 @@ announcement.
 - Tool call: "<title>, <status>".
 - Tool call that waits for an elicitation: the button "Waiting for your
   answer", with the hint "Shows the question". The row shows no form.
+- Tool call whose accepted URL elicitation waits for the end of the flow in
+  the browser: the text "Waiting for <host>".
+- URL elicitation card in the waiting state: "Waiting for <host> to finish",
+  the button "Stop Waiting", and the Retry button with the label "Open
+  <agent> in the browser again".
 - Reasoning block: "Reasoning, in progress", "Reasoning, N seconds", or
   "Reasoning" when the time is not known.
 - Diff file row: "<language> diff, +A −R".

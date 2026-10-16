@@ -35,15 +35,16 @@ import SwiftUI
 ///   column. The model removes each elicitation when its client request
 ///   ends.
 ///
-/// The deck keeps no copy of the requests. It reads `pendingRequests` and
-/// `frontRequest` of the model in each body, and the model removes a request
-/// when it resolves. A permission card is a ``PermissionView``. An
-/// elicitation card is an ``ElicitationView`` for a form mode request, or an
-/// ``ElicitationURLConsentView`` for a URL mode request. The deck shows no
-/// card for an elicitation mode that the kit does not know. Each card sends
-/// the answer of the user to the reply methods of the model that holds the
-/// request. To change the cards, use the field overrides of the elicitation
-/// views and the ``SwiftUI/EnvironmentValues/agentTheme``.
+/// The deck keeps no copy of the requests. It reads `pendingRequests`,
+/// `awaitingURLCompletions` and `frontRequest` of the model in each body, and
+/// the model removes a request when it resolves. A permission card is a
+/// ``PermissionView``. An elicitation card is an ``ElicitationView`` for a
+/// form mode request, or an ``ElicitationURLConsentView`` for a URL mode
+/// request. The deck shows no card for an elicitation mode that the kit does
+/// not know. Each card sends the answer of the user to the reply methods of
+/// the model that holds the request. To change the cards, use the field
+/// overrides of the elicitation views and the
+/// ``SwiftUI/EnvironmentValues/agentTheme``.
 ///
 /// The cards are in one stack, in FIFO order (deck design sections 2 and 3):
 ///
@@ -64,8 +65,16 @@ import SwiftUI
 ///   ``AgentCommandVerb/previousRequest`` and
 ///   ``AgentCommandVerb/nextRequest`` do the same from a key or the command
 ///   palette.
-/// - Only the front card takes a click or the keyboard focus. A card that
-///   does not show has no opacity.
+/// - An accepted URL mode elicitation stays in the deck while the model holds
+///   it in `awaitingURLCompletions` (deck design section 7). Its card is a
+///   waiting card below the front card, at full size, and it is not in
+///   "k of N". The header shows "N waiting" (identifier
+///   ``waitingIdentifier``). The card keeps the identity that it had before
+///   the accept, so its browser session continues. The card goes away when
+///   the agent sends `elicitation/complete`, or when the user presses Stop
+///   waiting (``ElicitationURLConsentView``).
+/// - Only the front card and the waiting cards take a click or the keyboard
+///   focus. A card that does not show has no opacity.
 /// - An empty deck shows nothing and takes no space. The change of the front
 ///   card is animated only when Reduce Motion is off.
 ///
@@ -93,8 +102,9 @@ import SwiftUI
 ///   card, or to the prompt editor when the deck is empty. When the user
 ///   brings a request to the front, for example with Previous or Next, the
 ///   VoiceOver focus and the keyboard focus go into its card.
-/// - Only the front card is in the accessibility tree. The edges and the
-///   cards that do not show are hidden from VoiceOver.
+/// - Only the front card and the waiting cards are in the accessibility tree.
+///   The edges and the cards that do not show are hidden from VoiceOver. A
+///   waiting card gives no announcement and moves no focus.
 ///
 /// The deck applies ``SwiftUI/View/accessibilityFocusScope()``, which does
 /// nothing when the environment already has a mover. The deck tells the
@@ -120,6 +130,9 @@ public struct RequestDeck: View, PrefixedAccessibilityIdentifier {
 
   /// The accessibility identifier of the "+N" text of the header.
   public static let moreIdentifier = "request-deck-more"
+
+  /// The accessibility identifier of the "N waiting" text of the header.
+  public static let waitingIdentifier = "request-deck-waiting"
 
   /// The model whose pending requests the deck shows.
   let source: DeckSource
@@ -166,6 +179,13 @@ enum DeckSource {
       case .connection(let connection): connection.pendingRequests
       }
     return pending.filter(Self.hasCard(for:))
+  }
+
+  /// The accepted URL mode elicitations of the model that wait for the end
+  /// of the flow in the browser (`awaitingURLCompletions`) and have a card,
+  /// oldest first. They are not in ``requests``.
+  var awaiting: [PendingRequest] {
+    elicitationOwner.awaitingURLCompletions.filter(ElicitationCard.hasCard(for:)).map(PendingRequest.elicitation)
   }
 
   /// The pending request that the model shows first, or `nil` when no
@@ -260,19 +280,25 @@ private struct DeckCards: View {
 
   var body: some View {
     let requests = source.requests
+    let awaiting = source.awaiting
     let layout = source.layout(of: requests)
+    let waitingIDs = Set(awaiting.map(\.id))
     VStack(alignment: .leading, spacing: theme.spacing.s) {
-      if layout.showsHeader {
-        DeckHeader(source: source, layout: layout)
+      if layout.showsHeader || !awaiting.isEmpty {
+        DeckHeader(source: source, layout: layout, waitingCount: awaiting.count)
       }
-      DeckStackLayout(edgeStep: theme.spacing.s, edgeInset: theme.spacing.m) {
-        ForEach(requests) { request in
+      DeckStackLayout(edgeStep: theme.spacing.s, edgeInset: theme.spacing.m, waitingSpacing: theme.spacing.s) {
+        // One `ForEach` for the pending and the waiting cards, so that an
+        // accepted card keeps its identity and its browser session.
+        ForEach(requests + awaiting) { request in
           DeckCard(
-            source: source, request: request, role: layout.role(of: request.id), keyboardFocus: $keyboardFocus)
+            source: source, request: request,
+            role: waitingIDs.contains(request.id) ? .waiting : layout.role(of: request.id),
+            keyboardFocus: $keyboardFocus)
         }
       }
     }
-    .padding(requests.isEmpty ? 0 : theme.spacing.m)
+    .padding(requests.isEmpty && awaiting.isEmpty ? 0 : theme.spacing.m)
     .contentContainer(identifier: RequestDeck.identifier)
     .animation(reduceMotion ? nil : .default, value: layout.front)
     .announcing(
@@ -310,8 +336,9 @@ private struct DeckOrder: Equatable {
   let front: PendingRequest.ID?
 }
 
-/// The header of a ``RequestDeck`` with more than one request: the Previous
-/// button, "k of N", the Next button, and "+N".
+/// The header of a ``RequestDeck``: with more than one pending request, the
+/// Previous button, "k of N", the Next button, and "+N"; with a waiting card,
+/// "N waiting".
 private struct DeckHeader: View {
   /// The model whose front the buttons change.
   let source: DeckSource
@@ -319,20 +346,16 @@ private struct DeckHeader: View {
   /// The layout of the deck.
   let layout: DeckLayout
 
+  /// The number of the waiting cards, which are not in "k of N".
+  let waitingCount: Int
+
   @Environment(\.agentTheme) private var theme
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
-      stepButton(
-        verb: .previousRequest, symbol: SharedSymbol.previousRequest, neighbor: \.previous,
-        identifier: RequestDeck.previousIdentifier)
-      Text(String(localized: "\(layout.position) of \(layout.count)"))
-        .monospacedDigit()
-        .accessibilityLabel(layout.positionLabel)
-        .accessibilityIdentifier(RequestDeck.positionIdentifier)
-      stepButton(
-        verb: .nextRequest, symbol: SharedSymbol.nextRequest, neighbor: \.next,
-        identifier: RequestDeck.nextIdentifier)
+      if layout.showsHeader {
+        position
+      }
       Spacer()
       if layout.moreCount > 0 {
         Text(String(localized: "+\(layout.moreCount)"))
@@ -342,10 +365,31 @@ private struct DeckHeader: View {
           // The label of "k of N" reads the count.
           .accessibilityHidden(true)
       }
+      if waitingCount > 0 {
+        Text(String(localized: "\(waitingCount) waiting"))
+          .monospacedDigit()
+          .foregroundStyle(.secondary)
+          .accessibilityIdentifier(RequestDeck.waitingIdentifier)
+      }
     }
     .font(.callout)
     .labelStyle(.iconOnly)
     .buttonStyle(.borderless)
+  }
+
+  /// The Previous button, "k of N", and the Next button.
+  @ViewBuilder
+  private var position: some View {
+    stepButton(
+      verb: .previousRequest, symbol: SharedSymbol.previousRequest, neighbor: \.previous,
+      identifier: RequestDeck.previousIdentifier)
+    Text(String(localized: "\(layout.position) of \(layout.count)"))
+      .monospacedDigit()
+      .accessibilityLabel(layout.positionLabel)
+      .accessibilityIdentifier(RequestDeck.positionIdentifier)
+    stepButton(
+      verb: .nextRequest, symbol: SharedSymbol.nextRequest, neighbor: \.next,
+      identifier: RequestDeck.nextIdentifier)
   }
 
   /// The Previous or the Next button. It is disabled when the layout has no
@@ -384,6 +428,10 @@ private struct DeckCard: View {
   /// The z index of a card that does not show, below each edge.
   static let hiddenZIndex = -Double(DeckLayout.maximumEdgeCount + 1)
 
+  /// The z index of a waiting card. It is below the front card and has no
+  /// overlap with the other cards.
+  static let waitingZIndex: Double = 0
+
   /// The model that holds the request.
   let source: DeckSource
 
@@ -401,7 +449,7 @@ private struct DeckCard: View {
 
   var body: some View {
     let identifier = RequestDeck.identifier(for: request.id.uuidString)
-    let isFront = role == .front
+    let showsWhole = role.showsWhole
     let shape = RoundedRectangle(cornerRadius: theme.radii.l, style: .continuous)
     cardContent
       .focused(keyboardFocus, equals: request.id)
@@ -411,10 +459,10 @@ private struct DeckCard: View {
       .clipShape(shape)
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
-      .accessibilityHidden(!isFront)
+      .accessibilityHidden(!showsWhole)
       .opacity(role == .hidden ? 0 : 1)
-      .allowsHitTesting(isFront)
-      .disabled(!isFront)
+      .allowsHitTesting(showsWhole)
+      .disabled(!showsWhole)
       .zIndex(Self.zIndex(of: role))
       .layoutValue(key: DeckCardRoleKey.self, value: role)
   }
@@ -432,14 +480,16 @@ private struct DeckCard: View {
     }
   }
 
-  /// The drawing order of a card: the front card on top, then the edges from
-  /// the nearest to the deepest, then the cards that do not show.
+  /// The drawing order of a card: the front card on top, then the waiting
+  /// cards, then the edges from the nearest to the deepest, then the cards
+  /// that do not show.
   ///
   /// - Parameter role: The place of the card.
   /// - Returns: The z index.
   private static func zIndex(of role: DeckCardRole) -> Double {
     switch role {
     case .front: frontZIndex
+    case .waiting: waitingZIndex
     case .edge(let depth): -Double(depth)
     case .hidden: hiddenZIndex
     }
@@ -453,12 +503,13 @@ private nonisolated struct DeckCardRoleKey: LayoutValueKey {
 
 /// The stack of the cards of a ``RequestDeck``.
 ///
-/// The front card has its ideal height, and the stack has the height of the
-/// front card and of the top edges above it. Each edge has the frame of the
-/// front card, a step higher for each depth and an inset narrower on each
-/// side, so that only its top edge shows above the front card. A card that
-/// does not show has the frame of the front card. An empty stack has no
-/// size.
+/// The front card has its ideal height, and the top edges are above it. Each
+/// edge has the frame of the front card, a step higher for each depth and an
+/// inset narrower on each side, so that only its top edge shows above the
+/// front card. A card that does not show has the frame of the front card.
+/// Each waiting card has its ideal height, below the front card, or at the
+/// top when no card is at the front, with ``waitingSpacing`` between two
+/// cards. An empty stack has no size.
 private struct DeckStackLayout: Layout {
   /// The number of sides of an edge card that the inset makes narrower: the
   /// left side and the right side.
@@ -470,21 +521,43 @@ private struct DeckStackLayout: Layout {
   /// The horizontal inset of each side of a card, for each step of depth.
   let edgeInset: CGFloat
 
+  /// The space above each waiting card that has a card above it.
+  let waitingSpacing: CGFloat
+
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-    guard let front = subviews.first(where: { $0[DeckCardRoleKey.self] == .front }) else {
-      return .zero
-    }
-    let size = front.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
-    return CGSize(width: proposal.width ?? size.width, height: size.height + topInset(of: subviews))
+    let wholeCards = subviews.filter { $0[DeckCardRoleKey.self].showsWhole }
+    guard !wholeCards.isEmpty else { return .zero }
+    let ideal = ProposedViewSize(width: proposal.width, height: nil)
+    let heights = wholeCards.map { $0.sizeThatFits(ideal).height }
+    let width = proposal.width ?? wholeCards.map { $0.sizeThatFits(ideal).width }.max() ?? 0
+    let height = heights.reduce(0, +) + CGFloat(heights.count - 1) * waitingSpacing + topInset(of: subviews)
+    return CGSize(width: width, height: height)
   }
 
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
     let inset = topInset(of: subviews)
+    let ideal = ProposedViewSize(width: bounds.width, height: nil)
+    let waiting = subviews.filter { $0[DeckCardRoleKey.self] == .waiting }
+    let waitingHeight = waiting.map { $0.sizeThatFits(ideal).height + waitingSpacing }.reduce(0, +)
+    let hasFront = subviews.contains { $0[DeckCardRoleKey.self] == .front }
+    // The front card takes the height that the edges and the waiting cards
+    // do not take.
     let frontFrame = CGRect(
-      x: bounds.minX, y: bounds.minY + inset, width: bounds.width, height: bounds.height - inset)
+      x: bounds.minX, y: bounds.minY + inset, width: bounds.width,
+      height: hasFront ? max(0, bounds.height - inset - waitingHeight) : 0)
+    var waitingTop = hasFront ? frontFrame.maxY + waitingSpacing : bounds.minY
     for subview in subviews {
-      let frame = Self.frame(of: subview[DeckCardRoleKey.self], front: frontFrame, step: edgeStep, inset: edgeInset)
-      subview.place(at: frame.origin, anchor: .topLeading, proposal: ProposedViewSize(frame.size))
+      let role = subview[DeckCardRoleKey.self]
+      if role == .waiting {
+        let height = subview.sizeThatFits(ideal).height
+        subview.place(
+          at: CGPoint(x: bounds.minX, y: waitingTop), anchor: .topLeading,
+          proposal: ProposedViewSize(width: bounds.width, height: height))
+        waitingTop += height + waitingSpacing
+      } else {
+        let frame = Self.frame(of: role, front: frontFrame, step: edgeStep, inset: edgeInset)
+        subview.place(at: frame.origin, anchor: .topLeading, proposal: ProposedViewSize(frame.size))
+      }
     }
   }
 

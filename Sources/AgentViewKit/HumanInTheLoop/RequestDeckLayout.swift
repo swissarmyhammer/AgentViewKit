@@ -9,6 +9,17 @@ nonisolated enum DeckCardRole: Equatable, Sendable {
   case edge(depth: Int)
   /// A card that does not show.
   case hidden
+  /// The card of an accepted URL mode elicitation that waits for the end of
+  /// the flow in the browser. It shows below the front card, at full size,
+  /// and is not in "k of N".
+  case waiting
+
+  /// Tells if the card shows whole: it is in the accessibility tree, and it
+  /// takes a click and the keyboard focus. The value is `true` for the front
+  /// card and for a waiting card.
+  var showsWhole: Bool {
+    self == .front || self == .waiting
+  }
 }
 
 /// The layout of a ``RequestDeck``: the front card, the top edges behind it,

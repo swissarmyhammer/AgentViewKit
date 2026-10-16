@@ -46,7 +46,9 @@ struct AgentComposerHook {
 ///   `agentState` of the session model is `.running` or `.requiresAction`,
 ///   or while it is `.idle` and the session has a pending request. It calls
 ///   `SessionModel.cancel(meta:)`.
-/// - Send with a text payload calls `SessionModel.prompt(_:meta:)`.
+/// - Send with a text payload calls `SessionModel.startPrompt(text:reporting:)`
+///   with ``requestStartReport``. The call starts a task that sends the text
+///   as `session/prompt`.
 /// - Approve and reject read `SessionModel.pendingPermissions`, and call
 ///   `selectPermission(_:option:)`. With no request in the payload, they
 ///   answer the front request (`SessionModel.frontRequest`) when it is a
