@@ -26,6 +26,9 @@ extension ScriptedSession {
   /// The method of a cancel notification.
   static let cancelMethod = "session/cancel"
 
+  /// The method of the notification that withdraws a request of the agent.
+  static let cancelRequestMethod = "$/cancel_request"
+
   /// The `session/update` value that tells that the agent runs.
   static let runningState = #"{"sessionUpdate":"state_update","state":"running"}"#
 
@@ -267,6 +270,27 @@ extension ScriptedSession {
   func receiveElicitation(id: Int, params: String) async throws -> PendingElicitation {
     try await sendInOrder([AgentRequest(method: Self.elicitationMethod, id: id, params: params)])
     return try #require(model.pendingElicitations.first)
+  }
+
+  /// Sends one `$/cancel_request` frame from the agent, which withdraws the
+  /// request of the agent with `id`.
+  ///
+  /// The model removes the request from its pending requests, and its
+  /// record comes into `withdrawnRequests` in a later main-actor step. The
+  /// caller waits for the record.
+  ///
+  /// - Parameters:
+  ///   - id: The JSON-RPC id of the request of the agent.
+  ///   - reason: The reason in the `_meta` of the frame, under
+  ///     `CancelRequestNotification.reasonMetaKey`, or `nil` for a frame with
+  ///     no `_meta`.
+  /// - Throws: The error of the transport.
+  func sendCancelRequest(id: Int, reason: String?) async throws {
+    var params: [String: JSONValue] = ["requestId": .number(Double(id))]
+    if let reason {
+      params["_meta"] = .object([CancelRequestNotification.reasonMetaKey: .string(reason)])
+    }
+    try await agent.send(#"{"jsonrpc":"2.0","method":"\#(Self.cancelRequestMethod)","params":\#(JSONValue.object(params).jsonString)}"#)
   }
 
   /// Waits until the agent has the response to its request with `id`.

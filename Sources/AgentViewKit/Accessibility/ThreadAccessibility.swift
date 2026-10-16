@@ -14,12 +14,13 @@ import SwiftUI
 ///   the message, and each row of a conversation is in the linked group of
 ///   the thread. VoiceOver then reads across the rows. The namespace of the
 ///   groups comes from ``SwiftUI/View/accessibilityReadingScope()``.
-/// - Announcements: the kit announces only at four boundaries: the end of
-///   the work of a prompt of this client, tool result, action required, and
-///   an elicitation answer that the agent cannot accept. ``AgentThreadView``
-///   announces the first two. ``RequestDeck`` announces each new request of
-///   its model at `.high`. ``ElicitationView`` announces the last one at
-///   `.high`. A streaming chunk is not a boundary.
+/// - Announcements: the kit announces only at five boundaries: the end of
+///   the work of a prompt of this client, tool result, action required, a
+///   request that the agent withdraws, and an elicitation answer that the
+///   agent cannot accept. ``AgentThreadView`` announces the first two.
+///   ``RequestDeck`` announces each new request of its model at `.high`, and
+///   each new notice of a withdrawn request at `.medium`. ``ElicitationView``
+///   announces the last one at `.high`. A streaming chunk is not a boundary.
 /// - Focus: see ``AccessibilityFocusMover``.
 public enum ThreadAccessibility {
   /// The id of the linked group of the rows of a thread.
@@ -272,10 +273,22 @@ public enum ThreadAccessibility {
   public static func actionRequiredAnnouncements(
     old: [PendingRequestSummary], new: [PendingRequestSummary]
   ) -> [String] {
-    let oldIDs = Set(old.map(\.id))
-    return new.filter { !oldIDs.contains($0.id) }.map {
+    added(in: new, since: old, id: \.id).map {
       String(localized: "Action required: \($0.title)")
     }
+  }
+
+  /// The items of a list that were not in the list before one change.
+  ///
+  /// - Parameters:
+  ///   - new: The items after the change.
+  ///   - old: The items before the change.
+  ///   - id: The identity of an item.
+  /// - Returns: Each item of `new` whose identity is not in `old`, in the
+  ///   order of `new`.
+  static func added<Item, ID: Hashable>(in new: [Item], since old: [Item], id: (Item) -> ID) -> [Item] {
+    let oldIDs = Set(old.map(id))
+    return new.filter { !oldIDs.contains(id($0)) }
   }
 }
 

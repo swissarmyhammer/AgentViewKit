@@ -100,8 +100,9 @@ import Testing
     }
   }
 
-  /// The symbols of the other banners: the notices, the connection and the
-  /// session stream.
+  /// The symbols of the other banners: the notices, the notice of a withdrawn
+  /// request, the Dismiss button of a notice, the connection and the session
+  /// stream.
   static func otherBannerUses() -> [Use] {
     let severities: [(NoticeSeverity, Concept)] = [
       (.info, .information), (.warning, .warning), (.error, .error), (.unknown("custom"), .unknown),
@@ -112,7 +113,14 @@ import Testing
       (SessionStreamBanner.missedUpdatesMessage, .warning),
       (SessionStreamBanner.partialHistoryMessage, .partialHistory),
     ]
+    let notices = [
+      Use(
+        concept: .information, place: "withdrawn request notice",
+        name: NoticeBanner.symbolName(for: WithdrawnNoticeRow.severity)),
+      Use(concept: .dismiss, place: "notice Dismiss", name: NoticeRow.dismissSymbol),
+    ]
     return severities.map { Use(concept: $1, place: "notice \($0)", name: NoticeBanner.symbolName(for: $0)) }
+      + notices
       + connection.compactMap { state, concept in
         AgentConnectionBanner.makeMessage(for: state).map {
           Use(concept: concept, place: "connection \($0.identifier)", name: $0.symbolName)

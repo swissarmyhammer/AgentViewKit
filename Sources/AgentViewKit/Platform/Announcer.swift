@@ -17,7 +17,8 @@ public enum AnnouncementPriority: Sendable, Equatable, CaseIterable {
 ///
 /// The kit streams text silently and announces only at boundaries: the end
 /// of the work of a prompt of this client (the first idle after the echo of
-/// the prompt), tool result, action required, and an elicitation answer that
+/// the prompt), tool result, action required, a request that the agent
+/// withdraws (``RequestDeck``), and an elicitation answer that
 /// the agent cannot accept (``ElicitationView`` does not send it). The kit
 /// views call an `Announcer` at those boundaries, so that a test can record
 /// the announcements.

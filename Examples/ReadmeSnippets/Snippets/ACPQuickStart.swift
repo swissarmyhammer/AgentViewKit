@@ -44,7 +44,7 @@ struct ACPThread: View {
       AgentThreadView(session: session, connection: connection)
       // The questions of the session, such as a permission request. The
       // thread view shows no card. The deck takes no space while no question
-      // waits.
+      // waits and no notice of a withdrawn question shows.
       RequestDeck(session: session)
       PromptInputView(text: $draft) {}
     }

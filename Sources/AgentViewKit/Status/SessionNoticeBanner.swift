@@ -79,15 +79,12 @@ struct NoticeBanner: View {
   /// The closure that the Dismiss button calls.
   let dismiss: () -> Void
 
-  @Environment(\.agentTheme) private var theme
-  @Environment(\.editorTheme) private var editorTheme
-
   /// The name of a severity.
   ///
   /// - Parameter severity: The severity of a notice.
   /// - Returns: The name of the severity. A severity that the kit does not
   ///   know gives its wire value.
-  private static func severityLabel(_ severity: NoticeSeverity) -> String {
+  static func severityLabel(_ severity: NoticeSeverity) -> String {
     switch severity {
     case .info: String(localized: "Information")
     case .warning: String(localized: "Warning")
@@ -121,32 +118,74 @@ struct NoticeBanner: View {
   }
 
   var body: some View {
+    NoticeRow(
+      severity: notice.severity, title: notice.title, description: notice.description,
+      label: Self.label(for: notice), identifier: SessionNoticeBanner.identifier(for: notice.id),
+      dismissIdentifier: SessionNoticeBanner.dismissIdentifier(for: notice.id), dismiss: dismiss)
+  }
+}
+
+/// One glass row of a notice: the symbol and the tint of a severity, a
+/// title, an optional description, and a Dismiss button.
+///
+/// The text is one accessibility element with the label of the row, and the
+/// Dismiss button is its sibling. ``NoticeBanner`` and the notice of a request
+/// that the agent withdraws (``WithdrawnNoticeRow``) show this row.
+struct NoticeRow: View {
+  /// The SF Symbol name of the Dismiss button.
+  static let dismissSymbol = SharedSymbol.dismiss
+
+  /// The severity, which gives the symbol and the tint.
+  let severity: NoticeSeverity
+
+  /// The title, in the headline font.
+  let title: String
+
+  /// The description below the title, or `nil` for no description.
+  let description: String?
+
+  /// The accessibility label of the text.
+  let label: String
+
+  /// The accessibility identifier of the text.
+  let identifier: String
+
+  /// The accessibility identifier of the Dismiss button.
+  let dismissIdentifier: String
+
+  /// The closure that the Dismiss button calls.
+  let dismiss: () -> Void
+
+  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
+
+  var body: some View {
     HStack(alignment: .top, spacing: theme.spacing.m) {
       StatusSymbolImage(
-        name: Self.symbolName(for: notice.severity),
-        color: editorTheme.tint(for: notice.severity)
+        name: NoticeBanner.symbolName(for: severity),
+        color: editorTheme.tint(for: severity)
       )
-        .help(Self.severityLabel(notice.severity))
+        .help(NoticeBanner.severityLabel(severity))
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
-        Text(notice.title)
+        Text(title)
           .font(.headline)
-        if let description = notice.description {
+        if let description {
           Text(description)
             .font(.callout)
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
         }
       }
-      // The text is the element of the banner, and the button is its sibling.
+      // The text is the element of the row, and the button is its sibling.
       .accessibilityElement(children: .ignore)
-      .accessibilityLabel(Self.label(for: notice))
-      .accessibilityIdentifier(SessionNoticeBanner.identifier(for: notice.id))
+      .accessibilityLabel(label)
+      .accessibilityIdentifier(identifier)
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Dismiss"), systemImage: SharedSymbol.dismiss, action: dismiss)
+      Button(String(localized: "Dismiss"), systemImage: Self.dismissSymbol, action: dismiss)
         .labelStyle(.iconOnly)
         .buttonStyle(.glass)
-        .accessibilityIdentifier(SessionNoticeBanner.dismissIdentifier(for: notice.id))
+        .accessibilityIdentifier(dismissIdentifier)
     }
     .padding(theme.spacing.m)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))

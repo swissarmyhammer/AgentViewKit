@@ -19,7 +19,8 @@ struct HostApp: App {
     WindowGroup {
       VStack(spacing: 0) {
         // The questions of a connection request, such as a sign-in form. The
-        // deck takes no space while no question waits.
+        // deck takes no space while no question waits and no notice of a
+        // withdrawn question shows.
         RequestDeck(connection: connection)
         // The window shows an open session of the connection model.
         if let session = connection.openSessions.first {

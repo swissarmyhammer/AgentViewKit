@@ -84,9 +84,23 @@ import SwiftUI
 ///   Waiting (``ElicitationURLConsentView``).
 /// - Only the front card and the waiting cards take a click or the keyboard
 ///   focus. A card that does not show has no opacity.
-/// - A deck with no pending request and no waiting card shows nothing and
-///   takes no space. The change of the front card is animated only when
-///   Reduce Motion is off.
+/// - A deck with no pending request, no waiting card and no notice of a
+///   withdrawn request shows nothing and takes no space. A deck with only
+///   notices shows the notices in the deck padding. The change of the front
+///   card is animated only when Reduce Motion is off.
+///
+/// The deck shows one notice above the header for each request that the
+/// agent withdrew with `$/cancel_request`, from `withdrawnRequests` of the
+/// model, in withdrawal order. The text is "<title> was withdrawn: <reason>",
+/// or "<title> was withdrawn." when the agent gave no reason. The title is
+/// the permission title or the elicitation message. A notice has the
+/// information symbol, the information tint of the EditorKit theme, glass,
+/// and a Dismiss button that calls `dismissWithdrawn(_:)` of the model. The
+/// text has the identifier `request-deck-withdrawn-<id>`
+/// (``identifier(forWithdrawn:)``) and the button has the identifier
+/// `request-deck-withdrawn-dismiss-<id>`, where `<id>` is the id that the
+/// request had while it was pending. A notice stays until the user presses
+/// Dismiss: a new request does not remove it.
 ///
 /// ``layout(requests:front:)`` gives the front card, the edges, "+N",
 /// "k of N" and the state of Previous and Next.
@@ -104,8 +118,9 @@ import SwiftUI
 /// - A new card does not take the VoiceOver focus or the keyboard focus. The
 ///   deck announces each new request of its model, "Action required:
 ///   <title>", at `.high` to the ``SwiftUI/EnvironmentValues/announcer``.
-///   Previous, Next and a request that the agent withdraws give no
-///   announcement.
+///   The deck announces each new notice of a withdrawn request one time,
+///   with the text of the notice, at `.medium`. Previous, Next and Dismiss
+///   give no announcement.
 /// - The deck moves the focus only in two cases
 ///   (``focusTarget(oldIDs:newIDs:oldFront:newFront:)``). When the front
 ///   request leaves `pendingRequests`, the VoiceOver focus goes to the new
@@ -115,7 +130,8 @@ import SwiftUI
 ///   card asks for no input and is not a pending request: when only waiting
 ///   cards stay, the focus goes to the prompt editor. When the user brings a
 ///   request to the front, for example with Previous or Next, the VoiceOver
-///   focus and the keyboard focus go into its card.
+///   focus and the keyboard focus go into its card. A notice of a withdrawn
+///   request takes no focus, and its Dismiss button moves no focus.
 /// - Only the front card and the waiting cards are in the accessibility tree.
 ///   The edges and the cards that do not show are hidden from VoiceOver. A
 ///   waiting card gives no announcement and moves no focus.
@@ -211,6 +227,27 @@ enum DeckSource {
     }
   }
 
+  /// The notice of each request that the agent withdrew from the model
+  /// (`withdrawnRequests`), in withdrawal order.
+  var withdrawn: [WithdrawnNotice] {
+    let records =
+      switch self {
+      case .session(let session): session.withdrawnRequests
+      case .connection(let connection): connection.withdrawnRequests
+      }
+    return records.map(WithdrawnNotice.init(record:))
+  }
+
+  /// Removes the record of one withdrawn request from the model.
+  ///
+  /// - Parameter id: The id of the record.
+  func dismissWithdrawn(_ id: WithdrawnRequest.ID) {
+    switch self {
+    case .session(let session): session.dismissWithdrawn(id)
+    case .connection(let connection): connection.dismissWithdrawn(id)
+    }
+  }
+
   /// The layout of the deck now.
   var layout: DeckLayout {
     layout(of: requests)
@@ -295,29 +332,41 @@ private struct DeckCards: View {
   var body: some View {
     let requests = source.requests
     let awaiting = source.awaiting
+    let cards = requests + awaiting
+    let withdrawn = source.withdrawn
     let layout = source.layout(of: requests)
     let waitingIDs = Set(awaiting.map(\.id))
     VStack(alignment: .leading, spacing: theme.spacing.s) {
+      ForEach(withdrawn) { notice in
+        WithdrawnNoticeRow(notice: notice) { source.dismissWithdrawn(notice.id) }
+      }
       if layout.showsHeader || !awaiting.isEmpty {
         DeckHeader(source: source, layout: layout, waitingCount: awaiting.count)
       }
-      DeckStackLayout(edgeStep: theme.spacing.s, edgeInset: theme.spacing.m, waitingSpacing: theme.spacing.s) {
-        // One `ForEach` for the pending and the waiting cards, so that an
-        // accepted card keeps its identity and its browser session.
-        ForEach(requests + awaiting) { request in
-          DeckCard(
-            source: source, request: request,
-            role: waitingIDs.contains(request.id) ? .waiting : layout.role(of: request.id),
-            keyboardFocus: $keyboardFocus)
+      // With no card, the stack is not in the deck, so a deck with only
+      // notices has no space below the notices.
+      if !cards.isEmpty {
+        DeckStackLayout(edgeStep: theme.spacing.s, edgeInset: theme.spacing.m, waitingSpacing: theme.spacing.s) {
+          // One `ForEach` for the pending and the waiting cards, so that an
+          // accepted card keeps its identity and its browser session.
+          ForEach(cards) { request in
+            DeckCard(
+              source: source, request: request,
+              role: waitingIDs.contains(request.id) ? .waiting : layout.role(of: request.id),
+              keyboardFocus: $keyboardFocus)
+          }
         }
       }
     }
-    .padding(requests.isEmpty && awaiting.isEmpty ? 0 : theme.spacing.m)
+    .padding(cards.isEmpty && withdrawn.isEmpty ? 0 : theme.spacing.m)
     .contentContainer(identifier: RequestDeck.identifier)
     .animation(reduceMotion ? nil : .default, value: layout.front)
     .announcing(
       changesOf: requests.map(ThreadAccessibility.PendingRequestSummary.init(request:)), to: announcer,
       priority: .high, texts: ThreadAccessibility.actionRequiredAnnouncements(old:new:)
+    )
+    .announcing(
+      changesOf: withdrawn, to: announcer, priority: .medium, texts: RequestDeck.withdrawnAnnouncements(old:new:)
     )
     .onChange(of: DeckOrder(ids: requests.map(\.id), front: layout.front), deckDidChange(from:to:))
   }

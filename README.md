@@ -123,7 +123,7 @@ struct ACPThread: View {
       AgentThreadView(session: session, connection: connection)
       // The questions of the session, such as a permission request. The
       // thread view shows no card. The deck takes no space while no question
-      // waits.
+      // waits and no notice of a withdrawn question shows.
       RequestDeck(session: session)
       PromptInputView(text: $draft) {}
     }
@@ -231,7 +231,8 @@ struct HostApp: App {
     WindowGroup {
       VStack(spacing: 0) {
         // The questions of a connection request, such as a sign-in form. The
-        // deck takes no space while no question waits.
+        // deck takes no space while no question waits and no notice of a
+        // withdrawn question shows.
         RequestDeck(connection: connection)
         // The window shows an open session of the connection model.
         if let session = connection.openSessions.first {
@@ -446,7 +447,7 @@ two lists equal.
 
 - `PermissionView`: a pending permission request of a `SessionModel`, with its options, its subject, and a comment field.
 - `PermissionModePicker`: the `mode` config option as a segmented control.
-- `RequestDeck`: the deck of the pending requests of a `SessionModel`, or of the request-scoped elicitations of a `ConnectionModel`. It is a component of its own, next to the thread view and the composer. When an elicitation request has an agent path or a source, its card shows who asks: the root label, the agent path and the source, for example "root › reviewer · runCode". A permission card shows no such line. Set the root label with the `elicitationRootAgentLabel` environment value. The default is "root".
+- `RequestDeck`: the deck of the pending requests of a `SessionModel`, or of the request-scoped elicitations of a `ConnectionModel`. It is a component of its own, next to the thread view and the composer. When an elicitation request has an agent path or a source, its card shows who asks: the root label, the agent path and the source, for example "root › reviewer · runCode". A permission card shows no such line. Set the root label with the `elicitationRootAgentLabel` environment value. The default is "root". When the agent withdraws a request, the deck shows a notice above the cards, for example "Your name? was withdrawn: The run ended.", and VoiceOver reads the notice one time. The notice stays until the user presses its Dismiss button.
 
 **Connections and authorization**
 

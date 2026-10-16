@@ -42,7 +42,7 @@ that paragraph.
 
 ## Announcements
 
-The kit announces only at four boundaries. A streaming chunk gives no
+The kit announces only at five boundaries. A streaming chunk gives no
 announcement.
 
 | Boundary | Text | Priority |
@@ -50,6 +50,7 @@ announcement.
 | The first `idle` after the echo of a prompt of this client (by the `messageId` of the prompt response) | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
 | A new pending request of the model of a `RequestDeck` | "Action required: <title>" | high |
+| A new record in `withdrawnRequests` of the model of a `RequestDeck` (the agent withdrew a pending request with `$/cancel_request`) | "<title> was withdrawn: <reason>", or "<title> was withdrawn." with no reason | medium |
 | The check before the send refuses an elicitation answer (`ElicitationView` does not send it) | "The agent cannot accept this answer: <reason>" | high |
 
 - A prompt is mail (ACPAgent 293be4b). The order on the wire is: the
@@ -81,8 +82,14 @@ announcement.
   the session, `RequestDeck(connection:)` the request-scoped elicitations of
   the connection. Thus each request is announced one time. The announcement
   compares only the old and the new requests of one change. Previous, Next,
-  a request that the agent withdraws, and a URL waiting state give no
-  announcement.
+  and a URL waiting state give no announcement.
+- Each `RequestDeck` also announces each new record of a withdrawn request
+  of its own model one time, with the text of the notice that the deck
+  shows. The model removes the request from `pendingRequests` first, and the
+  record comes in a later main-actor step. The announcement compares only
+  the old and the new records of one change, so the Dismiss button of a
+  notice gives no announcement. The notice takes no focus, and Dismiss moves
+  no focus.
 - A tool call that the session model did not have before the change gives
   no announcement. While `SessionModel.isReplaying` is true, the replay of a
   resume gives no stop announcement and no tool result announcement. Thus a
