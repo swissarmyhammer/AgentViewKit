@@ -130,6 +130,25 @@ import Testing
       reporter: reporter)
   }
 
+  /// Gets the URL mode elicitation of ``makeParams(url:)`` from the agent and
+  /// shows its card under a header override. The override shows
+  /// "Banner for <message>" with the identifier
+  /// ``ElicitationViewHostedTests/customHeaderIdentifier``.
+  ///
+  /// - Returns: The mounted card.
+  /// - Throws: The error of the transport, or an issue when the model holds
+  ///   no elicitation.
+  static func mountWithCustomHeader() async throws -> Mounted {
+    let session = try await ScriptedSession.open()
+    let pending = try await session.receiveElicitation(id: agentRequestID, params: makeParams())
+    let card = ElicitationURLConsentView(request: pending, owner: session.model)
+      .elicitationHeader { pending in
+        Text("Banner for \(pending.request.message)")
+          .accessibilityIdentifier(ElicitationViewHostedTests.customHeaderIdentifier)
+      }
+    return mount(card, of: session, size: cardSize)
+  }
+
   /// Gets each of `requests` from the agent, in order, and shows them in the
   /// ``RequestDeck`` of the session, with a presenter over fake browser
   /// sessions that wait until they are stopped.
@@ -308,6 +327,36 @@ import Testing
     defer { mounted.close() }
 
     #expect(reporter.moves.isEmpty)
+  }
+
+  // MARK: - Header override
+
+  /// The header override of the app replaces the header of a URL card, as it
+  /// replaces the header of a form card.
+  @Test func aHeaderOverrideReplacesTheHeaderOfTheConsentState() async throws {
+    let mounted = try await Self.mountWithCustomHeader()
+    defer { mounted.close() }
+    let harness = mounted.harness
+
+    #expect(
+      harness.element(identifier: ElicitationViewHostedTests.customHeaderIdentifier)?.label
+        == "Banner for \(Self.message)")
+    #expect(harness.element(identifier: ElicitationView.headerIdentifier) == nil)
+    #expect(harness.element(identifier: ElicitationURLConsentView.openIdentifier) != nil)
+  }
+
+  /// The waiting state shows the same header override as the consent state.
+  @Test func aHeaderOverrideReplacesTheHeaderOfTheWaitingState() async throws {
+    let mounted = try await Self.mountWithCustomHeader()
+    defer { mounted.close() }
+    try await Self.open(mounted)
+    let harness = mounted.harness
+
+    #expect(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
+    #expect(
+      harness.element(identifier: ElicitationViewHostedTests.customHeaderIdentifier)?.label
+        == "Banner for \(Self.message)")
+    #expect(harness.element(identifier: ElicitationView.headerIdentifier) == nil)
   }
 
   // MARK: - Actions

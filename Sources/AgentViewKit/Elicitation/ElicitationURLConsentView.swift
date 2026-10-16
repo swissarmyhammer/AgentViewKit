@@ -12,6 +12,11 @@ import SwiftUI
 /// of the EditorKit theme. When the host can look like a different
 /// host, the card also shows the text of ``URLDisplay/warning(for:)``.
 ///
+/// The header of the card is ``ElicitationHeader``, or the override of
+/// ``SwiftUI/View/elicitationHeader(_:)`` when the environment has one, as on
+/// the form card of ``ElicitationView``. The consent state and the waiting
+/// state show the same header.
+///
 /// The card never opens or loads the URL by itself. Only a press on
 /// "Open in Browser" opens it:
 ///
@@ -161,7 +166,7 @@ public struct ElicitationURLConsentView: View {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
-      ElicitationHeader(request: request)
+      ElicitationHeaderSlot(request: request)
       if let url = request.url {
         urlSection(url)
       }

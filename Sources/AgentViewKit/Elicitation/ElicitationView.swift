@@ -84,7 +84,6 @@ public struct ElicitationView: View {
   /// ``values`` removes it.
   @State private var answerFailure: String?
 
-  @Environment(\.elicitationHeaderOverride) private var headerOverride
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
   @Environment(\.elicitationTabThreshold) private var tabThreshold
@@ -132,7 +131,7 @@ public struct ElicitationView: View {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
-      header
+      ElicitationHeaderSlot(request: request)
       layout
       failure
       footer
@@ -149,16 +148,6 @@ public struct ElicitationView: View {
   }
 
   // MARK: Slots
-
-  /// The header override, or the default header.
-  @ViewBuilder
-  private var header: some View {
-    if let headerOverride {
-      headerOverride(request)
-    } else {
-      ElicitationHeader(request: request)
-    }
-  }
 
   /// The layout override, or the default layout.
   @ViewBuilder
@@ -286,8 +275,9 @@ public struct ElicitationView: View {
 /// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment value.
 /// A request with an empty `agentPath` and no `source` shows no line.
 ///
-/// ``ElicitationView`` and ``ElicitationURLConsentView`` show this header, so
-/// the line shows on form cards, on URL cards and on waiting cards.
+/// ``ElicitationView`` and ``ElicitationURLConsentView`` show this header when
+/// the environment has no header override (``SwiftUI/View/elicitationHeader(_:)``),
+/// so the line shows on form cards, on URL cards and on waiting cards.
 public struct ElicitationHeader: View {
   /// The symbol of the header.
   static let symbol = SharedSymbol.question
@@ -328,6 +318,29 @@ public struct ElicitationHeader: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(ElicitationView.headerIdentifier)
+  }
+}
+
+/// The header slot of an elicitation card: the
+/// ``SwiftUI/EnvironmentValues/elicitationHeaderOverride`` when the
+/// environment has one, else ``ElicitationHeader``.
+///
+/// ``ElicitationView`` and ``ElicitationURLConsentView`` show this slot. Thus
+/// one override replaces the header of a form card and of a URL card, in the
+/// consent state and in the waiting state.
+struct ElicitationHeaderSlot: View {
+  /// The pending elicitation of the card.
+  let request: PendingElicitation
+
+  /// The header override of the app, or `nil`.
+  @Environment(\.elicitationHeaderOverride) private var headerOverride
+
+  var body: some View {
+    if let headerOverride {
+      headerOverride(request)
+    } else {
+      ElicitationHeader(request: request)
+    }
   }
 }
 
@@ -409,15 +422,20 @@ public struct ElicitationFooter: View {
 
 // MARK: - Slots
 
-/// A function that makes the header of an elicitation form.
+/// A function that makes the header of an elicitation card: a form card or a
+/// URL card.
 public typealias ElicitationHeaderRenderer = @MainActor (PendingElicitation) -> AnyView
 
 /// A function that makes the footer of an elicitation form.
 public typealias ElicitationFooterRenderer = @MainActor (ElicitationFooterContext) -> AnyView
 
 extension EnvironmentValues {
-  /// The override of the header of an elicitation form, or `nil` for
+  /// The override of the header of each elicitation card, or `nil` for
   /// ``ElicitationHeader``.
+  ///
+  /// ``ElicitationView`` and ``ElicitationURLConsentView`` read this value.
+  /// The override replaces the header of the form card, and the header of the
+  /// URL card in the consent state and in the waiting state.
   @Entry public var elicitationHeaderOverride: ElicitationHeaderRenderer? = nil
 
   /// The override of the footer of an elicitation form, or `nil` for
@@ -426,7 +444,9 @@ extension EnvironmentValues {
 }
 
 extension View {
-  /// Replaces the header of each elicitation form in this view.
+  /// Replaces the header of each elicitation card in this view: the form card
+  /// of ``ElicitationView``, and the URL card of ``ElicitationURLConsentView``
+  /// in the consent state and in the waiting state.
   ///
   /// A custom header must name the server of the request (plan.md §13.4).
   ///
