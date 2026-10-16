@@ -123,18 +123,23 @@ import Testing
   /// observable ``InspectorSelection``. The test waits for that selection.
   @Test func aPressOnAWireImageSelectsItsBytesInTheInspector() async throws {
     let selection = InspectorSelection()
+    let selects = ReportRecorder<String>()
     let png = try TestImage.makePNGData()
     let image = FoundationModelsACP.ImageContent(
       data: png.base64EncodedString(), mimeType: MediaType(rawValue: "image/png"), uri: Self.imageURI)
     let harness = HostedViewHarness(
       ContentBlockView(block: .image(image), id: Self.blockID)
-        .environment(\.inspectorSelection, selection),
+        .environment(\.inspectorSelection, selection)
+        .environment(\.imageSelectReport, selects.report),
       size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
     #expect(harness.element(identifier: ImageView.imageIdentifier)?.label == Self.imageName)
     try harness.press(identifier: ImageView.imageIdentifier)
+    // The image starts the file write in the same step as the press, so a
+    // press that started nothing stops the test here.
+    try #require(selects.values == [Self.imageName])
     await ObservationWait.until { selection.attachment != nil }
 
     let attachment = try #require(selection.attachment)

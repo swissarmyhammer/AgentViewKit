@@ -60,6 +60,10 @@ public struct SessionStreamBanner: View {
 
   @Environment(\.agentTheme) private var theme
 
+  /// The report that gets the method of the resume that Reload starts, or
+  /// `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   /// Makes the banners of the stream state of a session model.
   ///
   /// - Parameters:
@@ -124,13 +128,15 @@ public struct SessionStreamBanner: View {
     return StatusBar.Action(
       title: String(localized: "Reload"), systemImage: Self.reloadSymbol, identifier: Self.reloadIdentifier,
       isEnabled: isEnabled
-    ) { [session] in
+    ) { [session, reportRequestStart] in
       let request = ResumeSessionRequest.makeAgentViewKitRequest(
         sessionId: session.sessionId,
         cwd: cwd,
         additionalDirectories: session.additionalDirectories,
         replayFrom: .start(ReplayFromStart()))
-      session.startRequest("session/resume") { _ = try await connection.resumeSession(request) }
+      session.startRequest("session/resume", reporting: reportRequestStart) {
+        _ = try await connection.resumeSession(request)
+      }
     }
   }
 }

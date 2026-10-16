@@ -1,5 +1,5 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
   import Foundation
   import FoundationModelsACP
@@ -80,9 +80,12 @@
     /// - Parameters:
     ///   - session: The scripted session.
     ///   - draft: The model that holds the text of the composer.
+    ///   - requestStartReport: The report that gets the method of each request
+    ///     that a view starts, or `nil`.
     /// - Returns: The harness.
     static func mount(
-      _ session: ScriptedSession, draft: PromptInputHostedTestModel
+      _ session: ScriptedSession, draft: PromptInputHostedTestModel,
+      requestStartReport: ObservationReport<String>? = nil
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
@@ -91,6 +94,7 @@
         }
         .environment(\.sessionModel, session.model)
         .environment(\.connectionModel, session.connection)
+        .environment(\.requestStartReport, requestStartReport)
         .transaction { $0.disablesAnimations = true }
       }
     }
@@ -203,7 +207,8 @@
     @Test func anOverflowShowsTheMissedUpdatesBannerAndReloadReplaysFromTheStart() async throws {
       let session = try await Self.openOverflowingSession()
       defer { session.close() }
-      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      let starts = ReportRecorder<String>()
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel(), requestStartReport: starts.report)
       defer { harness.close() }
       let model = session.model
       let agent = session.agent
@@ -213,6 +218,9 @@
       #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.label == "Reload")
 
       try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      // The Reload button starts the resume in the same step as the press, so
+      // a press that started nothing stops the test here.
+      try #require(starts.values == [ScriptedSession.resumeMethod])
       await harness.render { model.isReplaying && !agent.messages(method: ScriptedSession.resumeMethod).isEmpty }
 
       #expect(model.isReplaying)
@@ -234,7 +242,8 @@
     @Test func reloadSendsTheWorkingDirectoryAndTheAdditionalDirectoriesOfTheSessionModel() async throws {
       let session = try await Self.openOverflowingSession(additionalDirectories: Self.additionalDirectories)
       defer { session.close() }
-      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      let starts = ReportRecorder<String>()
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel(), requestStartReport: starts.report)
       defer { harness.close() }
       let model = session.model
       let agent = session.agent
@@ -243,6 +252,9 @@
       #expect(model.additionalDirectories == Self.additionalDirectories)
 
       try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      // The Reload button starts the resume in the same step as the press, so
+      // a press that started nothing stops the test here.
+      try #require(starts.values == [ScriptedSession.resumeMethod])
       await ObservationWait.until { !agent.messages(method: ScriptedSession.resumeMethod).isEmpty }
 
       let resume = try #require(agent.messages(method: ScriptedSession.resumeMethod).first)

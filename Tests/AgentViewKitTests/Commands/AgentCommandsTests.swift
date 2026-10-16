@@ -234,10 +234,14 @@ final class CallCounter {
   @Test func dispatchingCancelSendsSessionCancel() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = Self.makeFixture(session: session.model)
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(session: session.model) { $0.requestStartReport = starts.report }
     try await Self.sendState(ScriptedSession.runningState, to: session)
 
     try #require(fixture.system.perform(AgentCommandVerb.cancel.id))
+    // The command starts the cancel in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.cancelMethod])
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
     #expect(agent.messages(method: ScriptedSession.cancelMethod).count == 1)

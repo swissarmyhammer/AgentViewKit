@@ -267,6 +267,10 @@ struct ConfigOptionControl: View {
   /// Whether a select shows its choices in place, and not in a menu.
   let inlineChoices: Bool
 
+  /// The report that gets the method of each request that a change starts,
+  /// or `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   var body: some View {
     switch option.type {
     case .select(let select):
@@ -386,11 +390,13 @@ struct ConfigOptionControl: View {
   /// - Parameters:
   ///   - current: The value that the session model holds.
   ///   - send: The function that makes the request value of a new value.
-  /// - Returns: The binding from `SessionModel.makeConfigBinding(for:current:send:)`.
+  /// - Returns: The binding from
+  ///   `SessionModel.makeConfigBinding(for:current:reporting:send:)`, with
+  ///   the ``SwiftUI/EnvironmentValues/requestStartReport`` of the view.
   private func binding<Value: Equatable>(
     _ current: Value,
     send: @escaping (Value) -> SetSessionConfigOptionRequest.Value
   ) -> Binding<Value> {
-    session.makeConfigBinding(for: option.configId, current: current, send: send)
+    session.makeConfigBinding(for: option.configId, current: current, reporting: reportRequestStart, send: send)
   }
 }

@@ -1,5 +1,5 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
   import DemoSupport
   import FoundationModelsACP
@@ -162,9 +162,12 @@
     /// - Parameters:
     ///   - session: The scripted session.
     ///   - draft: The model that holds the text of the composer.
+    ///   - requestStartReport: The report that gets the method of each
+    ///     request that a view starts, or `nil`.
     /// - Returns: The harness.
     static func mount(
-      session: ScriptedSession, draft: PromptInputHostedTestModel
+      session: ScriptedSession, draft: PromptInputHostedTestModel,
+      requestStartReport: ObservationReport<String>? = nil
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         VStack(spacing: 0) {
@@ -172,6 +175,7 @@
           PromptInputHost(model: draft)
         }
         .environment(\.sessionModel, session.model)
+        .environment(\.requestStartReport, requestStartReport)
         .transaction { $0.disablesAnimations = true }
       }
     }
@@ -355,11 +359,15 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let draft = PromptInputHostedTestModel()
-      let harness = Self.mount(session: session, draft: draft)
+      let starts = ReportRecorder<String>()
+      let harness = Self.mount(session: session, draft: draft, requestStartReport: starts.report)
       defer { harness.close() }
 
       try await Self.startRunning(session, in: harness)
       try harness.press(identifier: DefaultPromptAccessory.stopIdentifier)
+      // The Stop button starts the cancel in the same step as the press, so a
+      // press that started nothing stops the test here.
+      try #require(starts.values == [ScriptedSession.cancelMethod])
       await ObservationWait.until { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 
       let cancels = session.agent.messages(method: ScriptedSession.cancelMethod)

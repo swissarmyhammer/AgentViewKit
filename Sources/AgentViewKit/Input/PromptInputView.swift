@@ -88,6 +88,10 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.agentCommandTarget) private var commandTarget
   @Environment(\.promptSubmitReport) private var reportSubmit
 
+  /// The report that gets the method of the cancel that the composer starts
+  /// with no command scope, or `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   /// Makes a composer with a custom editor and a custom accessory row.
   ///
   /// - Parameters:
@@ -230,7 +234,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// Cancels the work of the session with `SessionModel.cancel(meta:)`. The
   /// text does not change.
   private func cancel() {
-    session?.startCancel()
+    session?.startCancel(reporting: reportRequestStart)
   }
 
   /// The files of a submit: the attachment list, then the files that the

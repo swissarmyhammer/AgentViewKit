@@ -136,6 +136,10 @@ public struct PermissionView: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.permissionAnswerReport) private var reportAnswer
 
+  /// The report that gets the method of each request that the "switch to
+  /// auto" button starts, or `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   /// Makes the card of a pending permission request.
   ///
   /// - Parameters:
@@ -419,8 +423,9 @@ public struct PermissionView: View {
   ///     ``PermissionPresentation/autoModeOption(in:)`` gave.
   private func switchToAuto(allow: FoundationModelsACP.PermissionOption, modeOption: SessionConfigOption) {
     guard isPending else { return }
-    session.startSelectPermission(request.id, option: allow.optionId)
-    session.startSetConfigOption(modeOption.configId, to: PermissionPresentation.autoModeValue)
+    session.startSelectPermission(request.id, option: allow.optionId, reporting: reportRequestStart)
+    session.startSetConfigOption(
+      modeOption.configId, to: PermissionPresentation.autoModeValue, reporting: reportRequestStart)
   }
 
   /// Whether the session model still holds the request. An answer after the

@@ -1,5 +1,5 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
   import EditorSwiftUI
   import Foundation
@@ -490,23 +490,28 @@
 
     /// The client gives the text of a connection that closes before the
     /// answer. The test reads that text from `RequestError(reporting:)` of the
-    /// client, and does not copy it. The file has no `@testable` import, so
-    /// the test presses a config choice to send the kit request.
+    /// client, and does not copy it. The test presses a config choice to send
+    /// the kit request.
     @Test func aConnectionThatClosesBeforeTheAnswerShowsTheClientTextInTheErrorRow() async throws {
       let config = ConfigOptionsSessionModelHostedTests.self
       let session = try await config.openSession { $0.heldMethods = [config.setMethod] }
       defer { session.close() }
+      let starts = ReportRecorder<String>()
       let harness = HostedViewHarness(size: Self.tallSize) {
         VStack {
           ConfigOptionsView(session: session.model, style: .form)
           AgentThreadView(session: session.model)
         }
+        .environment(\.requestStartReport, starts.report)
       }
       defer { harness.close() }
       let model = session.model
       let clientText = RequestError(reporting: ConnectionError.closed).message
 
       try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: config.modelID, value: "deep-1"))
+      // The choice starts the set request in the same step as the press, so a
+      // press that started nothing stops the test here.
+      try #require(starts.values == [config.setMethod])
       await ObservationWait.until { !config.setParams(in: session).isEmpty }
       session.close()
       await harness.render { TranscriptChecks.hasErrorEntry(model) }

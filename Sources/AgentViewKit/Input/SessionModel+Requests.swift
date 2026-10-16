@@ -2,6 +2,7 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import OSLog
+import SwiftUI
 
 /// The log of the composer requests of a session model.
 private let sessionRequestLogger = Logger(subsystem: "AgentViewKit", category: "SessionModel")
@@ -10,6 +11,12 @@ private let sessionRequestLogger = Logger(subsystem: "AgentViewKit", category: "
 /// other requests that a kit view sends (plan.md §3.2 "Prompt helper",
 /// "Other requests", §3.8 "Composer").
 extension SessionModel {
+  /// The ACP method of a prompt request.
+  private static let promptMethod = "session/prompt"
+
+  /// The ACP method of the permission request that a selected option answers.
+  private static let requestPermissionMethod = "session/request_permission"
+
   /// Sends `input` as `session/prompt` with `prompt(_:meta:)`, and returns
   /// when the prompt returns.
   ///
@@ -54,8 +61,12 @@ extension SessionModel {
   /// Retry uses this call to send the content of an earlier user message
   /// entry again, with no copy of the message.
   ///
-  /// - Parameter content: The ACP content blocks of the prompt.
-  func startPrompt(content: [FoundationModelsACP.ContentBlock]) {
+  /// - Parameters:
+  ///   - content: The ACP content blocks of the prompt.
+  ///   - report: The report that gets `session/prompt` in the same step,
+  ///     before the task starts, or `nil`.
+  func startPrompt(content: [FoundationModelsACP.ContentBlock], reporting report: ObservationReport<String>? = nil) {
+    report?(Self.promptMethod)
     Task { @MainActor in await sendPrompt(content) }
   }
 
@@ -121,7 +132,13 @@ extension SessionModel {
   /// - Parameters:
   ///   - id: The local id of the pending request.
   ///   - optionID: The id of the option that the user selected.
-  func startSelectPermission(_ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId) {
+  ///   - report: The report that gets `session/request_permission` in the
+  ///     same step, before the task starts, or `nil`.
+  func startSelectPermission(
+    _ id: PendingPermissionRequest.ID, option optionID: PermissionOptionId,
+    reporting report: ObservationReport<String>? = nil
+  ) {
+    report?(Self.requestPermissionMethod)
     Task { @MainActor in await selectPermission(id, option: optionID) }
   }
 
@@ -140,8 +157,11 @@ extension SessionModel {
   /// cancel joins the trace of the last prompt. The cancel applies to all of
   /// the work of the session: no prompt, one prompt, or more than one prompt
   /// can be open. A failure adds an error entry to the transcript.
-  func startCancel() {
-    startRequest("session/cancel") { try await self.cancel(meta: self.promptTraceMeta) }
+  ///
+  /// - Parameter report: The report that gets `session/cancel` in the same
+  ///   step, before the task starts, or `nil`.
+  func startCancel(reporting report: ObservationReport<String>? = nil) {
+    startRequest("session/cancel", reporting: report) { try await self.cancel(meta: self.promptTraceMeta) }
   }
 
   /// Starts a main-actor task that sends one request of the session.
@@ -150,9 +170,15 @@ extension SessionModel {
   /// with `appendError(reporting:)`.
   ///
   /// - Parameters:
-  ///   - method: The ACP method of the request, for the log.
+  ///   - method: The ACP method of the request, for the log and the report.
+  ///   - report: The report that gets `method` in the same step, before the
+  ///     task starts, or `nil`.
   ///   - send: The call that sends the request.
-  func startRequest(_ method: String, _ send: @escaping @MainActor () async throws -> Void) {
+  func startRequest(
+    _ method: String, reporting report: ObservationReport<String>? = nil,
+    _ send: @escaping @MainActor () async throws -> Void
+  ) {
+    report?(method)
     Task { @MainActor in
       do {
         try await send()
@@ -162,4 +188,14 @@ extension SessionModel {
       }
     }
   }
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets the ACP method of each request that
+  /// a kit view or an agent command starts on its session model, or `nil`.
+  ///
+  /// The view gives the report to the start function of the session model,
+  /// and the function calls the report in the same step, before it starts
+  /// the task of the request.
+  @Entry var requestStartReport: ObservationReport<String>? = nil
 }

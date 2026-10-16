@@ -131,17 +131,21 @@ import Testing
   ///   - params: The JSON text of the params of the request.
   ///   - answerReport: The report that gets each answer of the card, or
   ///     `nil`.
+  ///   - requestStartReport: The report that gets the method of each request
+  ///     that the card starts, or `nil`.
   /// - Returns: The harness of the card.
   /// - Throws: The error of the transport, or an issue when the model holds
   ///   no request.
   static func mountCard(
     in session: ScriptedSession, params: String = makeParams(),
-    answerReport: ObservationReport<PermissionAnswer>? = nil
+    answerReport: ObservationReport<PermissionAnswer>? = nil,
+    requestStartReport: ObservationReport<String>? = nil
   ) async throws -> HostedViewHarness<some View> {
     let pending = try await session.receivePermissionRequest(id: agentRequestID, params: params)
     let harness = HostedViewHarness(size: cardSize) {
       PermissionView(request: pending, session: session.model)
         .environment(\.permissionAnswerReport, answerReport)
+        .environment(\.requestStartReport, requestStartReport)
         .transaction { $0.disablesAnimations = true }
     }
     harness.render()
@@ -389,7 +393,8 @@ import Testing
   @Test func switchToAutoAllowsThenSetsTheMode() async throws {
     let session = try await Self.openSessionInAskMode()
     defer { session.close() }
-    let harness = try await Self.mountCard(in: session)
+    let starts = ReportRecorder<String>()
+    let harness = try await Self.mountCard(in: session, requestStartReport: starts.report)
     defer { harness.close() }
     let agent = session.agent
     let allowedBeforeModeSet = ChangeFlag.observing {
@@ -399,6 +404,9 @@ import Testing
     }
 
     try harness.press(identifier: PermissionView.switchToAutoIdentifier)
+    // The card starts both requests in the same step as the press, so a
+    // press that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod, Self.setConfigOptionMethod])
     let result = await session.result(ofRequest: Self.agentRequestID)
     await ObservationWait.until { !agent.messages(method: Self.setConfigOptionMethod).isEmpty }
 

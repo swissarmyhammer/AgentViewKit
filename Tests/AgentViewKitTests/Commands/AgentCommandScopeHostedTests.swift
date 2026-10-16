@@ -61,10 +61,13 @@ import Testing
   ///     registers the commands.
   ///   - composer: The text of the composer, or `nil` for no composer.
   ///   - pasteboard: The pasteboard of the copy command.
+  ///   - requestStartReport: The report that gets the method of each request
+  ///     that a view starts, or `nil`.
   /// - Returns: The harness.
   static func mount(
     session: ScriptedSession, system: CommandSystem, outerScope: Bool,
-    composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard()
+    composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard(),
+    requestStartReport: ObservationReport<String>? = nil
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: windowSize) {
       scoped(
@@ -80,6 +83,7 @@ import Testing
       )
       .environment(\.sessionModel, session.model)
       .environment(\.pasteboard, pasteboard)
+      .environment(\.requestStartReport, requestStartReport)
       .commandSystem(system)
       .transaction { $0.disablesAnimations = true }
     }
@@ -286,7 +290,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = Self.mount(session: session, system: system, outerScope: false)
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(session: session, system: system, outerScope: false, requestStartReport: starts.report)
     defer { harness.close() }
     harness.render()
     let path = Self.path(of: session.model)
@@ -294,6 +299,9 @@ import Testing
     #expect(!system.registry.perform(AgentCommandVerb.cancel.id, at: path))
     try await Self.sendState(ScriptedSession.runningState, to: session, rendering: harness)
     try #require(system.registry.perform(AgentCommandVerb.cancel.id, at: path))
+    // The command starts the cancel in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.cancelMethod])
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 

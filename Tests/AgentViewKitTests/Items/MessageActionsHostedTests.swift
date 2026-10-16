@@ -104,15 +104,19 @@ import Testing
   /// - Parameters:
   ///   - turn: The session turn.
   ///   - pasteboard: The pasteboard of the copy buttons.
+  ///   - requestStartReport: The report that gets the method of each request
+  ///     that a view starts, or `nil`.
   ///   - content: The view to show.
   /// - Returns: The harness.
   static func mount(
-    _ turn: SessionTurn, pasteboard: FakePasteboard = FakePasteboard(), @ViewBuilder content: () -> some View
+    _ turn: SessionTurn, pasteboard: FakePasteboard = FakePasteboard(),
+    requestStartReport: ObservationReport<String>? = nil, @ViewBuilder content: () -> some View
   ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: windowSize) {
       content()
         .environment(\.sessionModel, turn.session.model)
         .environment(\.pasteboard, pasteboard)
+        .environment(\.requestStartReport, requestStartReport)
     }
     harness.render()
     return harness
@@ -122,10 +126,14 @@ import Testing
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
     let model = turn.session.model
-    let harness = Self.mount(turn) { MessageActions(entry: turn.agent) }
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(turn, requestStartReport: starts.report) { MessageActions(entry: turn.agent) }
     defer { harness.close() }
 
     try harness.press(identifier: MessageActions.Action.retry.identifier)
+    // The Retry button starts the prompt in the same step as the press, so a
+    // press that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.promptMethod])
     await ObservationWait.until {
       Self.userEntries(in: model).count == Self.userEntryCountAfterRetry
         && !turn.session.agent.messages(method: ScriptedSession.promptMethod).isEmpty

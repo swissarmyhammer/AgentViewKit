@@ -45,14 +45,18 @@ struct EditorKitPromptInputHost: View {
   ///   - model: The text model.
   ///   - session: The scripted session.
   ///   - fileRoot: The file root, or `nil`.
+  ///   - requestStartReport: The report that gets the method of each request
+  ///     that a view starts, or `nil`.
   /// - Returns: The harness.
   /// - Throws: An error when the editor cannot get the focus.
   static func mount(
-    _ model: PromptInputHostedTestModel, session: ScriptedSession, fileRoot: URL? = nil
+    _ model: PromptInputHostedTestModel, session: ScriptedSession, fileRoot: URL? = nil,
+    requestStartReport: ObservationReport<String>? = nil
   ) throws -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: composerSize) {
       EditorKitPromptInputHost(model: model, fileRoot: fileRoot)
         .environment(\.sessionModel, session.model)
+        .environment(\.requestStartReport, requestStartReport)
     }
     harness.render()
     try #require(harness.focusFirstEditableTextView())
@@ -169,11 +173,15 @@ struct EditorKitPromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let harness = try Self.mount(model, session: session)
+    let starts = ReportRecorder<String>()
+    let harness = try Self.mount(model, session: session, requestStartReport: starts.report)
     defer { harness.close() }
     try await Self.startRunning(session, in: harness)
 
     try harness.sendKey(.escape)
+    // Esc starts the cancel in the same step as the key, so a key that
+    // started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.cancelMethod])
     await ObservationWait.until { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 
     #expect(session.agent.messages(method: ScriptedSession.cancelMethod).count == 1)

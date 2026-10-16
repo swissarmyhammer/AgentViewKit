@@ -116,6 +116,10 @@ public struct ElicitationURLConsentView: View {
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
 
+  /// The report that gets each start and each stop of the browser task, or
+  /// `nil`.
+  @Environment(\.elicitationBrowserReport) private var reportBrowser
+
   /// Makes the consent card of a pending elicitation.
   ///
   /// - Parameters:
@@ -234,6 +238,7 @@ public struct ElicitationURLConsentView: View {
     let previous = browserTask
     previous?.cancel()
     let presenter = presenter ?? fallbackPresenter
+    reportBrowser?(.open)
     browserTask = Task {
       await previous?.value
       _ = try? await presenter.present(
@@ -247,15 +252,38 @@ public struct ElicitationURLConsentView: View {
   }
 
   /// Stops the browser session of the card and cancels the elicitation.
+  ///
+  /// When the card has a browser task, the card gives ``ElicitationBrowserStep/stop``
+  /// to ``SwiftUI/EnvironmentValues/elicitationBrowserReport`` in the same
+  /// step as it stops the task.
   private func cancel() {
-    browserTask?.cancel()
+    if let browserTask {
+      browserTask.cancel()
+      reportBrowser?(.stop)
+    }
     browserTask = nil
     owner.cancelElicitation(request.id)
   }
+}
+
+/// One change of the browser task of an ``ElicitationURLConsentView``.
+enum ElicitationBrowserStep: Equatable {
+  /// The card started a task that opens a browser session.
+  case open
+
+  /// The card stopped its browser task.
+  case stop
 }
 
 extension EnvironmentValues {
   /// The presenter that opens the browser for a URL mode elicitation, or
   /// `nil` for a presenter that each ``ElicitationURLConsentView`` makes.
   @Entry public var authorizationPresenter: AuthorizationPresenter? = nil
+
+  /// The ``ObservationReport`` that gets each ``ElicitationBrowserStep`` of
+  /// the nearest ``ElicitationURLConsentView``, or `nil`.
+  ///
+  /// The card calls the report in the same step as it starts or stops its
+  /// browser task.
+  @Entry var elicitationBrowserReport: ObservationReport<ElicitationBrowserStep>? = nil
 }

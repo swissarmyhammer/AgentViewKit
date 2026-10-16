@@ -107,6 +107,10 @@ public struct MessageActions: View {
   @Environment(\.promptText) private var promptText
   @Environment(\.agentCommandTarget) private var commandTarget
 
+  /// The report that gets the method of the prompt that Retry starts, or
+  /// `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   @State private var exportDocument: MarkdownDocument?
 
   private let logger = Logger(subsystem: "AgentViewKit", category: "MessageActions")
@@ -236,7 +240,7 @@ public struct MessageActions: View {
       logger.error("Retry found no user message entry before \(id.rowKey, privacy: .private).")
       return
     }
-    session.startPrompt(content: user.content)
+    session.startPrompt(content: user.content, reporting: reportRequestStart)
   }
 
   /// Puts the text of this message in the composer.

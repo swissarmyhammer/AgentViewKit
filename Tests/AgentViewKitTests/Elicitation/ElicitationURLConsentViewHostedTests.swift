@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
 import FoundationModelsACP
@@ -38,6 +38,8 @@ import Testing
     let session: ScriptedSession
     /// The browser sessions that record each call of the presenter.
     let browser: FakeWebAuthSession
+    /// The recorder of each start and each stop of the browser task of the card.
+    let browserSteps: ReportRecorder<ElicitationBrowserStep>
 
     /// Stops each waiting browser session, closes the harness, then stops the
     /// scripted agent.
@@ -97,12 +99,14 @@ import Testing
     let session = try await ScriptedSession.open()
     let pending = try await session.receiveElicitation(id: agentRequestID, params: params)
     let browser = FakeWebAuthSession(script: .waitsForCancel)
+    let browserSteps = ReportRecorder<ElicitationBrowserStep>()
     let view = ElicitationURLConsentView(request: pending, owner: session.model)
       .environment(\.authorizationPresenter, AuthorizationPresenter(factory: browser))
       .environment(\.focusReporter, reporter)
+      .environment(\.elicitationBrowserReport, browserSteps.report)
     let harness = HostedViewHarness(AnyView(view), size: cardSize)
     harness.render()
-    return Mounted(harness: harness, session: session, browser: browser)
+    return Mounted(harness: harness, session: session, browser: browser, browserSteps: browserSteps)
   }
 
   /// The URLs that the browser sessions of `browser` opened.
@@ -254,6 +258,9 @@ import Testing
     try await Self.open(mounted)
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.retryIdentifier)
+    // Retry starts the browser task in the same step as the press, so a press
+    // that started nothing stops the test here.
+    try #require(mounted.browserSteps.values == [.open, .open])
     await ObservationWait.until {
       Self.openedURLs(mounted.browser).count == 2 && mounted.browser.sessions.last?.isWaiting == true
     }
@@ -280,6 +287,9 @@ import Testing
     try await Self.open(mounted)
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
+    // Cancel stops the browser task in the same step as the press, so a press
+    // that stopped nothing stops the test here.
+    try #require(mounted.browserSteps.values == [.open, .stop])
     await ObservationWait.until { mounted.browser.calls.contains(.cancel) }
 
     #expect(mounted.browser.calls.last == .cancel)

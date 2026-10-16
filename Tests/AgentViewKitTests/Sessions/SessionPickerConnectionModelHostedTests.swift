@@ -145,12 +145,13 @@ import Testing
   ///   - cwd: The working directory that filters the sessions, or `nil`.
   ///   - currentSession: The session that shows on screen, or `nil`.
   ///   - calls: The recorder of the call reports of the picker.
+  ///   - presses: The recorder of the press reports of the picker.
   ///   - onOpen: The action for a resumed session.
   ///   - onNewSession: The new session action, or `nil` for no button.
   /// - Returns: The harness that shows the picker.
   static func mountPicker(
     _ session: ScriptedSession, cwd: AbsolutePath? = nil, currentSession: SessionId? = nil,
-    calls: ReportRecorder<String?> = ReportRecorder(),
+    calls: ReportRecorder<String?> = ReportRecorder(), presses: ReportRecorder<String> = ReportRecorder(),
     onOpen: @escaping (SessionModel) -> Void = { _ in }, onNewSession: (() -> Void)? = nil
   ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
@@ -158,25 +159,34 @@ import Testing
         connection: session.connection, cwd: cwd, currentSession: currentSession, onOpen: onOpen,
         onNewSession: onNewSession
       )
-      .environment(\.sessionListCallReport, calls.report),
+      .environment(\.sessionListCallReport, calls.report)
+      .environment(\.sessionListPressReport, presses.report),
       size: listSize)
     await harness.render { !calls.values.isEmpty }
     return harness
   }
 
-  /// Presses the element with `identifier`, waits until the picker reports
-  /// the end of the call that the press starts, and then renders `harness`.
+  /// Presses the element with `identifier`, makes sure that the picker
+  /// reports the press, waits until the picker reports the end of the call
+  /// that the press starts, and then renders `harness`.
   ///
   /// - Parameters:
   ///   - identifier: The accessibility identifier of the button.
   ///   - harness: The harness that shows the picker.
   ///   - calls: The recorder of the call reports of the picker.
-  /// - Throws: The error of the press.
+  ///   - presses: The recorder of the press reports of the picker.
+  /// - Throws: The error of the press, or an issue when the picker does not
+  ///   report the press.
   static func pressAndRenderTheCall(
-    _ identifier: String, in harness: HostedViewHarness<some View>, calls: ReportRecorder<String?>
+    _ identifier: String, in harness: HostedViewHarness<some View>, calls: ReportRecorder<String?>,
+    presses: ReportRecorder<String>
   ) async throws {
     let reportsBefore = calls.values.count
+    let pressesBefore = presses.values.count
     try harness.press(identifier: identifier)
+    // The picker reports the press in the same step as it starts the call,
+    // so a press that started nothing stops the test here.
+    try #require(Array(presses.values.dropFirst(pressesBefore)) == [identifier])
     await harness.render { calls.values.count > reportsBefore }
   }
 
@@ -216,10 +226,12 @@ import Testing
     let session = try await Self.openSession()
     defer { session.close() }
     let calls = ReportRecorder<String?>()
-    let harness = await Self.mountPicker(session, calls: calls)
+    let presses = ReportRecorder<String>()
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses)
     defer { harness.close() }
 
-    try await Self.pressAndRenderTheCall(SessionListView.loadMoreIdentifier, in: harness, calls: calls)
+    try await Self.pressAndRenderTheCall(
+      SessionListView.loadMoreIdentifier, in: harness, calls: calls, presses: presses)
 
     #expect(
       Self.rowIdentifiers(in: harness) == [
@@ -235,11 +247,14 @@ import Testing
     let session = try await Self.openSession()
     defer { session.close() }
     let calls = ReportRecorder<String?>()
-    let harness = await Self.mountPicker(session, cwd: AbsolutePath(rawValue: Self.listedDirectory), calls: calls)
+    let presses = ReportRecorder<String>()
+    let harness = await Self.mountPicker(
+      session, cwd: AbsolutePath(rawValue: Self.listedDirectory), calls: calls, presses: presses)
     defer { harness.close() }
     #expect(!Self.rowIdentifiers(in: harness).isEmpty)
 
-    try await Self.pressAndRenderTheCall(SessionListView.refreshIdentifier, in: harness, calls: calls)
+    try await Self.pressAndRenderTheCall(
+      SessionListView.refreshIdentifier, in: harness, calls: calls, presses: presses)
 
     let lists = session.agent.messages(method: "session/list")
     #expect(lists.map { $0["params"]?["cwd"] } == [.string(Self.listedDirectory), .string(Self.listedDirectory)])
@@ -303,10 +318,11 @@ import Testing
     defer { session.close() }
     var opened: [SessionModel] = []
     let calls = ReportRecorder<String?>()
-    let harness = await Self.mountPicker(session, calls: calls) { opened.append($0) }
+    let presses = ReportRecorder<String>()
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses) { opened.append($0) }
     defer { harness.close() }
 
-    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls)
+    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls, presses: presses)
 
     #expect(opened.map(\.sessionId.rawValue) == [Self.closedSessionID])
     let resume = try #require(session.agent.messages(method: "session/resume").first)
@@ -324,10 +340,11 @@ import Testing
     defer { session.close() }
     var opened: [SessionModel] = []
     let calls = ReportRecorder<String?>()
-    let harness = await Self.mountPicker(session, calls: calls) { opened.append($0) }
+    let presses = ReportRecorder<String>()
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses) { opened.append($0) }
     defer { harness.close() }
 
-    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls)
+    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls, presses: presses)
 
     #expect(!opened.isEmpty)
     let resume = try #require(session.agent.messages(method: "session/resume").first)
@@ -342,11 +359,13 @@ import Testing
     let session = try await Self.openSession(initialize: Self.deleteCapableInitialize)
     defer { session.close() }
     let calls = ReportRecorder<String?>()
-    let harness = await Self.mountPicker(session, calls: calls)
+    let presses = ReportRecorder<String>()
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses)
     defer { harness.close() }
 
     try await Self.pressAndRenderTheCall(
-      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls)
+      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls,
+      presses: presses)
 
     let delete = try #require(session.agent.messages(method: "session/delete").first)
     #expect(delete["params"]?["sessionId"] == .string(Self.closedSessionID))
@@ -362,11 +381,13 @@ import Testing
     }
     defer { session.close() }
     let calls = ReportRecorder<String?>()
-    let harness = await Self.mountPicker(session, calls: calls)
+    let presses = ReportRecorder<String>()
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses)
     defer { harness.close() }
 
     try await Self.pressAndRenderTheCall(
-      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls)
+      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls,
+      presses: presses)
 
     #expect(harness.element(identifier: SessionListView.failureIdentifier) != nil)
     #expect(Self.rowIdentifiers(in: harness).count == 2)

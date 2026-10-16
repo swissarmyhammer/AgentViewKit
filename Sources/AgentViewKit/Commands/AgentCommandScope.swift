@@ -38,6 +38,10 @@ struct AgentCommandScope: ViewModifier {
   @Environment(\.pasteboard) private var pasteboard
   @Environment(\.expandedBlocksStore) private var expandedBlocks
 
+  /// The report that the target gives to the requests that its commands
+  /// start, or `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   /// The target of this scope.
   @State private var ownTarget = AgentCommandTarget()
 
@@ -54,7 +58,7 @@ struct AgentCommandScope: ViewModifier {
       let path = parentPath?.appending(segment) ?? .root(segment)
       let scope = AgentCommandMount.Scope(
         system: ambientSystem ?? standaloneSystem, path: path, session: session,
-        pasteboard: pasteboard)
+        pasteboard: pasteboard, requestStartReport: reportRequestStart)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
@@ -156,6 +160,8 @@ struct AgentCommandMount: NSViewRepresentable {
     let session: SessionModel
     /// The pasteboard of the copy command.
     let pasteboard: any Pasteboard
+    /// The report of the requests that the commands start, or `nil`.
+    let requestStartReport: ObservationReport<String>?
   }
 
   /// The target to keep current.
@@ -225,6 +231,7 @@ struct AgentCommandMount: NSViewRepresentable {
     if let scope {
       target.session = scope.session
       target.pasteboard = scope.pasteboard
+      target.requestStartReport = scope.requestStartReport
       target.system = scope.system
       target.path = scope.path
       AgentCommandRegistration.register(target, at: scope.path, into: &scope.system.registry)

@@ -39,6 +39,10 @@ public struct DefaultPromptAccessory: View {
   @Environment(\.promptSuggestions) private var suggestions
   @Environment(\.agentTheme) private var theme
 
+  /// The report that gets the method of the cancel that the Stop button
+  /// starts, or `nil`.
+  @Environment(\.requestStartReport) private var reportRequestStart
+
   /// Makes the accessory row.
   public init() {}
 
@@ -94,7 +98,7 @@ public struct DefaultPromptAccessory: View {
   /// The button that cancels the work of the session.
   private var stopButton: some View {
     Button {
-      session?.startCancel()
+      session?.startCancel(reporting: reportRequestStart)
     } label: {
       Label(String(localized: "Stop"), systemImage: SharedSymbol.stop)
         .labelStyle(.iconOnly)

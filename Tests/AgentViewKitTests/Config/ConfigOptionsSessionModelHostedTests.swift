@@ -109,14 +109,20 @@ import Testing
 
   /// Shows the form and the mode picker of a session.
   ///
-  /// - Parameter session: The scripted session.
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - requestStartReport: The report that gets the method of each request
+  ///     that a view starts, or `nil`.
   /// - Returns: The harness, after one render pass.
-  static func mount(session: ScriptedSession) -> HostedViewHarness<some View> {
+  static func mount(
+    session: ScriptedSession, requestStartReport: ObservationReport<String>? = nil
+  ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: size) {
       VStack {
         ConfigOptionsView(session: session.model, style: .form)
         PermissionModePicker(session: session.model)
       }
+      .environment(\.requestStartReport, requestStartReport)
     }
     harness.render()
     return harness
@@ -247,11 +253,15 @@ import Testing
       agent.followUps[Self.setMethod] = { _, _ in [reportedFrame] }
     }
     defer { session.close() }
-    let harness = Self.mount(session: session)
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(session: session, requestStartReport: starts.report)
     defer { harness.close() }
     let model = session.model
 
     try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
+    // The choice starts the set request in the same step as the press, so a
+    // press that started nothing stops the test here.
+    try #require(starts.values == [Self.setMethod])
     await harness.render { !Self.setParams(in: session).isEmpty }
 
     let params = try #require(Self.setParams(in: session).first)
@@ -272,10 +282,14 @@ import Testing
   @Test func changingAToggleSendsABooleanValue() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let harness = Self.mount(session: session)
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(session: session, requestStartReport: starts.report)
     defer { harness.close() }
 
     try harness.press(identifier: ConfigOptionsView.controlIdentifier(for: Self.webID))
+    // The toggle starts the set request in the same step as the press, so a
+    // press that started nothing stops the test here.
+    try #require(starts.values == [Self.setMethod])
     await ObservationWait.until { !Self.setParams(in: session).isEmpty }
 
     let params = try #require(Self.setParams(in: session).first)
@@ -292,11 +306,18 @@ import Testing
   @Test func selectingTheCurrentValueSendsNothing() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let harness = Self.mount(session: session)
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(session: session, requestStartReport: starts.report)
     defer { harness.close() }
 
     try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modeID, value: "ask"))
+    // The press of the current value starts no request, so a press that
+    // started a request stops the test here.
+    try #require(starts.values.isEmpty)
     try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
+    // The fence choice starts the set request in the same step as the press,
+    // so a press that started nothing stops the test here.
+    try #require(starts.values == [Self.setMethod])
     await ObservationWait.until { !Self.setParams(in: session).isEmpty }
 
     #expect(Self.setParams(in: session).map { $0["configId"]?.stringValue } == ["model"])
@@ -323,11 +344,15 @@ import Testing
   @Test func aFailedCallKeepsTheModelValueAndAddsAnErrorEntry() async throws {
     let session = try await Self.openSession { $0.failingMethods = [Self.setMethod] }
     defer { session.close() }
-    let harness = Self.mount(session: session)
+    let starts = ReportRecorder<String>()
+    let harness = Self.mount(session: session, requestStartReport: starts.report)
     defer { harness.close() }
     let model = session.model
 
     try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
+    // The choice starts the set request in the same step as the press, so a
+    // press that started nothing stops the test here.
+    try #require(starts.values == [Self.setMethod])
     await harness.render { TranscriptChecks.hasErrorEntry(model) }
 
     #expect(TranscriptChecks.hasErrorEntry(model))

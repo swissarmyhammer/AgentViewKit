@@ -73,6 +73,10 @@ final class AgentCommandTarget {
   /// The pasteboard that ``AgentCommandVerb/copyThread`` writes to.
   var pasteboard: any Pasteboard = NSPasteboard.general
 
+  /// The report that gets the method of the cancel that
+  /// ``AgentCommandVerb/cancel`` starts, or `nil`.
+  var requestStartReport: ObservationReport<String>?
+
   /// The store of the expanded items, or `nil` when no thread view is shown.
   var expandedBlocks: ExpandedBlocksStore?
 
@@ -251,7 +255,7 @@ final class AgentCommandTarget {
     guard let session, availability(of: verb, payload: payload).isAvailable else { return false }
     switch verb {
     case .send: send(payload: payload, to: session)
-    case .cancel: session.startCancel()
+    case .cancel: session.startCancel(reporting: requestStartReport)
     case .approvePending: respond(payload: payload, rejects: false)
     case .rejectPending: respond(payload: payload, rejects: true)
     case .previousRequest: DeckSource.session(session).bringToFront(neighbor: \.previous)

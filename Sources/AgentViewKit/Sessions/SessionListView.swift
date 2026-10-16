@@ -120,6 +120,10 @@ public struct SessionListView: View {
   /// The report that gets the result of each call of the view, or `nil`.
   @Environment(\.sessionListCallReport) private var reportCall
 
+  /// The report that gets the identifier of each button whose call the view
+  /// starts, or `nil`.
+  @Environment(\.sessionListPressReport) private var reportPress
+
   /// Makes the session picker of a connection model.
   ///
   /// - Parameters:
@@ -164,7 +168,7 @@ public struct SessionListView: View {
         .accessibilityIdentifier(Self.searchIdentifier)
       if connection.canListSessions {
         Button {
-          Task { await refresh() }
+          start(Self.refreshIdentifier) { await refresh() }
         } label: {
           Label("Refresh", systemImage: SharedSymbol.reload)
             .labelStyle(.iconOnly)
@@ -216,7 +220,7 @@ public struct SessionListView: View {
       }
       if connection.hasMoreSessions {
         Button("Load More", systemImage: Self.loadMoreSymbol) {
-          Task { await perform { try await connection.loadMoreSessions() } }
+          start(Self.loadMoreIdentifier) { await perform { try await connection.loadMoreSessions() } }
         }
         .accessibilityIdentifier(Self.loadMoreIdentifier)
       }
@@ -266,7 +270,9 @@ public struct SessionListView: View {
       }
       if connection.canDeleteSessions {
         Button(role: .destructive) {
-          Task { await perform { try await connection.deleteSession(info.sessionId) } }
+          start(Self.deleteIdentifier(for: info.sessionId)) {
+            await perform { try await connection.deleteSession(info.sessionId) }
+          }
         } label: {
           Label("Delete", systemImage: SharedSymbol.delete)
             .labelStyle(.iconOnly)
@@ -286,7 +292,7 @@ public struct SessionListView: View {
   @ViewBuilder private func resumeControl(for info: SessionInfo) -> some View {
     if connection.canResumeSessions {
       Button {
-        Task { await resume(info) }
+        start(Self.rowIdentifier(for: info.sessionId)) { await resume(info) }
       } label: {
         summary(of: info)
       }
@@ -339,6 +345,20 @@ public struct SessionListView: View {
       additionalDirectories: info.additionalDirectories ?? [],
       replayFrom: .start(ReplayFromStart()))
     await perform { onOpen(try await connection.resumeSession(request)) }
+  }
+
+  /// Starts the call of a button in a task.
+  ///
+  /// The view gives `identifier` to the
+  /// ``SwiftUI/EnvironmentValues/sessionListPressReport`` value in the same
+  /// step, before it starts the task.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the pressed button.
+  ///   - call: The call that the task runs.
+  private func start(_ identifier: String, _ call: @escaping @MainActor () async -> Void) {
+    reportPress?(identifier)
+    Task { await call() }
   }
 
   /// Runs one call of the model, and keeps its error message for the view.
@@ -426,4 +446,13 @@ extension EnvironmentValues {
   /// `nil`. The view keeps the message in its own state, so a test waits for
   /// the report before it reads the failure message.
   @Entry var sessionListCallReport: ObservationReport<String?>? = nil
+
+  /// The ``ObservationReport`` that gets the accessibility identifier of each
+  /// button of the nearest ``SessionListView`` whose call the view starts, or
+  /// `nil`.
+  ///
+  /// The view calls the report in the same step as the press, before it
+  /// starts the task of the call: the Refresh button, the "Load More" row, a
+  /// resume row, and a delete button.
+  @Entry var sessionListPressReport: ObservationReport<String>? = nil
 }

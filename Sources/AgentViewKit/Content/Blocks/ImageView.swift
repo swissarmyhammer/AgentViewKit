@@ -28,6 +28,10 @@ public struct ImageView: View {
 
   @Environment(\.inspectorSelection) private var selection
 
+  /// The report that gets the file name of each image that a tap starts to
+  /// write, or `nil`.
+  @Environment(\.imageSelectReport) private var reportSelect
+
   /// Makes the view of an ACP image of a transcript entry.
   ///
   /// - Parameter image: The ACP image to show, as the entry holds it.
@@ -65,13 +69,28 @@ public struct ImageView: View {
   /// Writes the image to a file and selects the file in the inspector
   /// selection of the environment.
   ///
+  /// The view gives the file name to
+  /// ``SwiftUI/EnvironmentValues/imageSelectReport`` in the same step, before
+  /// it starts the task that writes the file.
+  ///
   /// - Parameter data: The bytes of the image.
   private func select(data: Data) {
     guard let selection else { return }
     let name = name
+    reportSelect?(name)
     Task {
       guard let url = await ContentBlockFile.write(data, named: name) else { return }
       selection.select(Attachment(url: url))
     }
   }
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets the file name of each image that the
+  /// nearest ``ImageView`` starts to write for the inspector selection, or
+  /// `nil`.
+  ///
+  /// The view calls the report in the same step as the tap, before it starts
+  /// the task that writes the file.
+  @Entry var imageSelectReport: ObservationReport<String>? = nil
 }
