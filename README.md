@@ -14,8 +14,9 @@ FoundationModels agent and a FoundationModelsRouter agent reach the kit as an
 ACP agent, through FoundationModelsACPAgent.
 
 There are two levels of use. `AgentThreadView(session:connection:)` shows
-the whole surface. The primitives below it give full control. To start, use
-one of the two quick starts: [an ACP agent](#an-acp-agent) program, or
+the whole thread, and `RequestDeck` shows the requests next to it. The
+primitives below them give full control. To start, use one of the two quick
+starts: [an ACP agent](#an-acp-agent) program, or
 [an agent in this process](#an-agent-in-this-process).
 
 The direct dependencies are:
@@ -110,15 +111,28 @@ struct ACPThread: View {
   let connection: ConnectionModel
   let session: SessionModel
 
+  /// The text of the composer.
+  @State private var draft = AttributedString()
+
   var body: some View {
     // The session views send the prompts, the cancel, and the answers to the
     // permission and elicitation cards through the two models. The host gives
     // only the work that no model does: a terminal sign-in runner with
     // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
-    AgentThreadView(session: session, connection: connection)
-      // The composer reads the two models from the environment.
-      .environment(\.sessionModel, session)
-      .environment(\.connectionModel, connection)
+    VStack(spacing: 0) {
+      AgentThreadView(session: session, connection: connection)
+      // The questions of the session, such as a permission request. The
+      // thread view shows no card. The deck takes no space while no question
+      // waits.
+      RequestDeck(session: session)
+      PromptInputView(text: $draft) {}
+    }
+    // One focus scope for the three views, so that the VoiceOver focus goes
+    // from an answered card back to the composer.
+    .accessibilityFocusScope()
+    // The composer reads the two models from the environment.
+    .environment(\.sessionModel, session)
+    .environment(\.connectionModel, connection)
   }
 }
 ```
@@ -189,8 +203,10 @@ enum InProcessQuickStart {
 
 ## The host app
 
-Two things belong in the host. Call `GrammarBundle.register()` at launch, so
-that the first code block does not wait for the grammars to load. Add the
+Three things belong in the host. Call `GrammarBundle.register()` at launch, so
+that the first code block does not wait for the grammars to load. Put a
+`RequestDeck(connection:)` at the window level, so that the questions of a
+connection request, such as a sign-in form of `auth/login`, show. Add the
 typed modifiers for the item kinds that your app shows in its own way.
 
 ```swift
@@ -213,11 +229,16 @@ struct HostApp: App {
 
   var body: some Scene {
     WindowGroup {
-      // The window shows an open session of the connection model.
-      if let session = connection.openSessions.first {
-        HostThread(connection: connection, session: session)
-      } else {
-        ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")
+      VStack(spacing: 0) {
+        // The questions of a connection request, such as a sign-in form. The
+        // deck takes no space while no question waits.
+        RequestDeck(connection: connection)
+        // The window shows an open session of the connection model.
+        if let session = connection.openSessions.first {
+          HostThread(connection: connection, session: session)
+        } else {
+          ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")
+        }
       }
     }
   }
@@ -373,7 +394,7 @@ two lists equal.
 
 **Thread**
 
-- `AgentThreadView`: the drop-in view. It binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and shows the whole surface.
+- `AgentThreadView`: the drop-in view. It binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and shows the whole surface except the request cards. Put a `RequestDeck` next to it.
 - `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state with Markdown text from the host.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.
 - `ThreadMinimapView`: the rail of the transcript entries, with the tool call status. A drag moves the thread.
@@ -425,7 +446,7 @@ two lists equal.
 
 - `PermissionView`: a pending permission request of a `SessionModel`, with its options, its subject, and a comment field.
 - `PermissionModePicker`: the `mode` config option as a segmented control.
-- `PendingRequestsHost`: one card for each pending request of a `SessionModel`, or each request-scoped elicitation of a `ConnectionModel`.
+- `RequestDeck`: the deck of the pending requests of a `SessionModel`, or of the request-scoped elicitations of a `ConnectionModel`. It is a component of its own, next to the thread view and the composer.
 
 **Connections and authorization**
 

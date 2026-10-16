@@ -8,7 +8,7 @@ import SwiftUI
 ///
 /// The card is an ``ElicitationView`` for a form mode request, or an
 /// ``ElicitationURLConsentView`` for a URL mode request.
-/// ``PendingRequestsHost`` shows one card for each pending elicitation of a
+/// ``RequestDeck`` shows one card for each pending elicitation of a
 /// client model, and ``ToolCallView`` shows one card for each elicitation
 /// that is linked to its tool call. Each card sends the answer of the user
 /// to the reply methods of the model that holds the elicitation.

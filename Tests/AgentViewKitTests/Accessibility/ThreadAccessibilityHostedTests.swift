@@ -416,12 +416,25 @@ import Testing
 
   // MARK: - Focus
 
+  /// Shows the thread view and the deck of a session in one focus scope, as
+  /// an app arranges them.
+  ///
+  /// - Parameter model: The session model.
+  /// - Returns: The thread view and the deck.
+  static func threadAndDeck(of model: SessionModel) -> some View {
+    VStack {
+      AgentThreadView(session: model)
+      RequestDeck(session: model)
+    }
+    .accessibilityFocusScope()
+  }
+
   @Test func theFocusMovesToTheCardThenBackToThePromptEditor() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let reporter = RecordingFocusReporter()
     let harness = HostedViewHarness(size: Self.hostSize) {
-      AgentThreadView(session: session.model)
+      Self.threadAndDeck(of: session.model)
         .environment(\.focusReporter, reporter)
         .transaction { $0.disablesAnimations = true }
     }
@@ -432,7 +445,7 @@ import Testing
     let id = try await session.sendPermissionRequest(id: 1, rendering: harness)
     harness.render()
 
-    #expect(reporter.moves.contains(PendingRequestsHost.identifier(for: id.uuidString)))
+    #expect(reporter.moves.contains(RequestDeck.identifier(for: id.uuidString)))
     #expect(reporter.moves.contains(PermissionView.identifier))
 
     await session.model.cancelPermission(id)
@@ -441,12 +454,12 @@ import Testing
     #expect(reporter.moves.last == StockPromptEditor.identifier)
   }
 
-  @Test func theThreadViewMovesTheFocusOfTheMoverOfTheHost() async throws {
+  @Test func theThreadAndTheDeckMoveTheFocusOfTheMoverOfTheHost() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let mover = AccessibilityFocusMover()
     let harness = HostedViewHarness(size: Self.hostSize) {
-      AgentThreadView(session: session.model)
+      Self.threadAndDeck(of: session.model)
         .environment(\.accessibilityFocusMover, mover)
         .transaction { $0.disablesAnimations = true }
     }

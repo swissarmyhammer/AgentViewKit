@@ -8,7 +8,7 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// Hosted tests of ``PermissionView`` and ``PendingRequestsHost``.
+/// Hosted tests of ``PermissionView`` and ``RequestDeck``.
 ///
 /// Each card test gets a `PendingPermissionRequest` from the session model of
 /// a ``ScriptedSession``, shows it in a ``PermissionView``, and reads the
@@ -191,7 +191,8 @@ import Testing
         == "permission-option-allow_once")
     #expect(PermissionView.commentIdentifier == "permission-comment")
     #expect(PermissionView.switchToAutoIdentifier == "permission-switch-auto")
-    #expect(PendingRequestsHost.identifier(for: "p-1") == "pending-card-p-1")
+    #expect(RequestDeck.identifier == "request-deck")
+    #expect(RequestDeck.identifier(for: "p-1") == "pending-card-p-1")
   }
 
   // MARK: - Options
@@ -440,14 +441,14 @@ import Testing
     #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier) == nil)
   }
 
-  // MARK: - Host
+  // MARK: - Deck
 
-  /// Mounts the host of the session model of `session` with `reporter`.
-  static func mountHost(
+  /// Mounts the deck of the session model of `session` with `reporter`.
+  static func mountDeck(
     _ session: ScriptedSession, reporter: RecordingFocusReporter
   ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: cardSize) {
-      PendingRequestsHost(session: session.model)
+      RequestDeck(session: session.model)
         .environment(\.focusReporter, reporter)
         .transaction { $0.disablesAnimations = true }
     }
@@ -468,21 +469,21 @@ import Testing
     try await session.sendPermissionRequest(id: agentRequestID, rendering: harness)
   }
 
-  @Test func theHostReportsANewCardThenThePromptEditor() async throws {
+  @Test func theDeckReportsANewCardThenThePromptEditor() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let reporter = RecordingFocusReporter()
-    let harness = Self.mountHost(session, reporter: reporter)
+    let harness = Self.mountDeck(session, reporter: reporter)
     defer { harness.close() }
     #expect(reporter.moves.isEmpty)
 
     let id = try await Self.sendPermissionRequest(session, harness: harness)
-    let cardIdentifier = PendingRequestsHost.identifier(for: id.uuidString)
-    // The host reports the focus move when it sees the new card, and the card
+    let cardIdentifier = RequestDeck.identifier(for: id.uuidString)
+    // The deck reports the focus move when it sees the new card, and the card
     // reports itself when it appears. A render pass runs both actions.
     harness.render()
 
-    // The host reports the card container, and the card reports itself.
+    // The deck reports the card container, and the card reports itself.
     #expect(Set(reporter.moves) == [cardIdentifier, PermissionView.identifier])
     #expect(harness.element(identifier: cardIdentifier) != nil)
     #expect(harness.element(identifier: PermissionView.identifier) != nil)
@@ -495,10 +496,10 @@ import Testing
     #expect(harness.element(identifier: cardIdentifier) == nil)
   }
 
-  @Test func theHostShowsOneCardForEachPendingRequest() async throws {
+  @Test func theDeckShowsOneCardForEachPendingRequest() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = Self.mountHost(session, reporter: RecordingFocusReporter())
+    let harness = Self.mountDeck(session, reporter: RecordingFocusReporter())
     defer { harness.close() }
 
     let permissionID = try await Self.sendPermissionRequest(session, harness: harness)
@@ -509,12 +510,14 @@ import Testing
     let elicitationID = try #require(session.model.pendingElicitations.first).id
 
     for id in [permissionID, elicitationID] {
-      #expect(harness.element(identifier: PendingRequestsHost.identifier(for: id.uuidString)) != nil)
+      #expect(harness.element(identifier: RequestDeck.identifier(for: id.uuidString)) != nil)
     }
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }
 
-  @Test func theThreadViewShowsThePendingCards() async throws {
+  /// The thread view shows no card. The app mounts a ``RequestDeck`` next to
+  /// the thread view.
+  @Test func theThreadViewWithAPendingPermissionShowsNoPendingCard() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(
@@ -522,22 +525,26 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    let id = try await Self.sendPermissionRequest(session, harness: harness)
-    let cardIdentifier = PendingRequestsHost.identifier(for: id.uuidString)
+    _ = try await Self.sendPermissionRequest(session, harness: harness)
     harness.render()
 
-    #expect(harness.element(identifier: cardIdentifier) != nil)
+    let cards = harness.accessibilityElements().compactMap(\.identifier).filter {
+      $0.hasPrefix(RequestDeck.identifierPrefix)
+    }
+    #expect(!session.model.pendingPermissions.isEmpty)
+    #expect(cards.isEmpty)
+    #expect(harness.element(identifier: PermissionView.identifier) == nil)
   }
 
   // MARK: - Focus target
 
   @Test func theFocusTargetFollowsTheChange() {
-    let card = PendingRequestsHost.identifier(for:)
-    #expect(PendingRequestsHost.focusTarget(old: [], new: ["a"]) == card("a"))
-    #expect(PendingRequestsHost.focusTarget(old: ["a"], new: ["a", "b", "c"]) == card("c"))
-    #expect(PendingRequestsHost.focusTarget(old: ["a"], new: []) == StockPromptEditor.identifier)
-    #expect(PendingRequestsHost.focusTarget(old: ["a", "b"], new: ["a"]) == card("a"))
-    #expect(PendingRequestsHost.focusTarget(old: ["a"], new: ["a"]) == nil)
-    #expect(PendingRequestsHost.focusTarget(old: ["a", "b"], new: ["b", "a"]) == nil)
+    let card = { (requestID: String) in RequestDeck.identifier(for: requestID) }
+    #expect(RequestDeck.focusTarget(old: [], new: ["a"]) == card("a"))
+    #expect(RequestDeck.focusTarget(old: ["a"], new: ["a", "b", "c"]) == card("c"))
+    #expect(RequestDeck.focusTarget(old: ["a"], new: []) == StockPromptEditor.identifier)
+    #expect(RequestDeck.focusTarget(old: ["a", "b"], new: ["a"]) == card("a"))
+    #expect(RequestDeck.focusTarget(old: ["a"], new: ["a"]) == nil)
+    #expect(RequestDeck.focusTarget(old: ["a", "b"], new: ["b", "a"]) == nil)
   }
 }

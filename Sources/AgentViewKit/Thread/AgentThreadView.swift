@@ -13,10 +13,22 @@ import SwiftUI
 /// each notice of the session model, and a ``SessionStreamBanner`` shows the
 /// stream state: the replay marker, the partial-history note, the
 /// missed-updates banner with its Reload button, and the closed state. Below
-/// the conversation, a ``StateBanner`` shows the agent state, and a
-/// ``PendingRequestsHost`` shows one card for each pending permission request
-/// and elicitation request of the session model. Each banner view and each
-/// card, and not this view, reads its part of the model.
+/// the conversation, a ``StateBanner`` shows the agent state. Each banner
+/// view, and not this view, reads its part of the model.
+///
+/// The view shows no card for a pending permission request or a pending
+/// elicitation of the session. Put a ``RequestDeck`` next to the view, and
+/// put the thread view, the deck and the prompt editor in one
+/// ``SwiftUI/View/accessibilityFocusScope()``:
+///
+/// ```swift
+/// VStack {
+///   AgentThreadView(session: session, connection: connection)
+///   RequestDeck(session: session)
+///   PromptInputView(text: $draft) {}
+/// }
+/// .accessibilityFocusScope()
+/// ```
 ///
 /// When the host gives the connection model, an ``AgentInfoHeader`` names the
 /// agent from its `initialize` answer, an ``AgentConnectionBanner`` shows the
@@ -60,8 +72,10 @@ import SwiftUI
 ///   announcements read the session model, and the connection model when the
 ///   host gives it, directly.
 /// - It gives an ``AccessibilityFocusMover`` to its subtree
-///   (``SwiftUI/View/accessibilityFocusScope()``), so that a new request
-///   card takes the VoiceOver focus.
+///   (``SwiftUI/View/accessibilityFocusScope()``) when the environment has
+///   no mover, so that the views in its rows can move the VoiceOver focus.
+///   A scope around the thread view, the deck and the prompt editor gives
+///   one mover to the three.
 public struct AgentThreadView: View {
   /// The session model whose transcript the view shows.
   let session: SessionModel
@@ -135,7 +149,6 @@ public struct AgentThreadView: View {
       if let connection {
         AgentLoginPrompt(session: session, connection: connection)
       }
-      PendingRequestsHost(session: session)
     }
     .background { SessionAnnouncementObserver(session: session, connection: connection) }
     .agentCommandScope(session: session, anchors: anchors)

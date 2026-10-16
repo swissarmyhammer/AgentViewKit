@@ -19,8 +19,8 @@
   /// change (``ObservationWait/until(_:)``), does one layout pass, and reads
   /// the banner. No test reads a clock, polls, or has a time limit.
   @Suite(.serialized, .hostedSerially) @MainActor struct StateBannerPendingRequestsHostedTests {
-    /// A size that shows the banner.
-    static let size = CGSize(width: 480, height: 200)
+    /// A size that shows the banner of the thread and a card of the deck.
+    static let size = CGSize(width: 480, height: 640)
 
     /// The word that the running and ready texts do not have.
     static let turnWord = "turn"
@@ -34,14 +34,20 @@
     /// The title of the banner for a prompt that ended with `end_turn`.
     static let endTurnTitle = StateBanner.message(for: endTurn).title
 
-    /// Shows the banner of a session model, and lays it out one time.
+    /// Shows the thread view and the deck of a session model in one focus
+    /// scope, as an app arranges them, and lays them out one time. The
+    /// thread view shows the banner, and the deck shows the cards.
     ///
     /// - Parameter model: The session model.
     /// - Returns: The harness.
     static func mount(_ model: SessionModel) -> HostedViewHarness<some View> {
       let harness = HostedViewHarness(size: size) {
-        StateBanner(session: model)
-          .transaction { $0.disablesAnimations = true }
+        VStack {
+          AgentThreadView(session: model)
+          RequestDeck(session: model)
+        }
+        .accessibilityFocusScope()
+        .transaction { $0.disablesAnimations = true }
       }
       harness.hostingView.layoutSubtreeIfNeeded()
       return harness

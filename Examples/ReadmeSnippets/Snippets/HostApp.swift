@@ -17,11 +17,16 @@ struct HostApp: App {
 
   var body: some Scene {
     WindowGroup {
-      // The window shows an open session of the connection model.
-      if let session = connection.openSessions.first {
-        HostThread(connection: connection, session: session)
-      } else {
-        ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")
+      VStack(spacing: 0) {
+        // The questions of a connection request, such as a sign-in form. The
+        // deck takes no space while no question waits.
+        RequestDeck(connection: connection)
+        // The window shows an open session of the connection model.
+        if let session = connection.openSessions.first {
+          HostThread(connection: connection, session: session)
+        } else {
+          ContentUnavailableView("No session", systemImage: "bubble.left.and.bubble.right")
+        }
       }
     }
   }

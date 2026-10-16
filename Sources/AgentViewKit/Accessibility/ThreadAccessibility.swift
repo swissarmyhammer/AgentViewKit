@@ -230,7 +230,7 @@ public enum ThreadAccessibility {
   /// The order is the order of the cards: the `pendingPermissions` of the
   /// session, then its `pendingElicitations`, then the request-scoped
   /// `pendingElicitations` of the connection. An elicitation of a mode that
-  /// has no card (``PendingRequestsHost``) gives no summary. The value is
+  /// has no card (``RequestDeck``) gives no summary. The value is
   /// only for the comparison of one change. The view keeps no copy of it.
   ///
   /// - Parameters:
@@ -498,8 +498,9 @@ extension View {
 /// Each view that can take the focus applies
 /// ``SwiftUI/View/accessibilityFocusTarget(_:)``. That modifier keeps an
 /// `@AccessibilityFocusState` and sets it when ``focusMoved(to:)`` names its
-/// identifier. ``AgentThreadView`` gives a mover to its subtree through
-/// ``SwiftUI/View/accessibilityFocusScope()``. The views of the kit tell the
+/// identifier. ``AgentThreadView`` and ``RequestDeck`` give a mover to their
+/// subtrees through ``SwiftUI/View/accessibilityFocusScope()``, when the
+/// environment has none. The views of the kit tell the
 /// mover and the ``SwiftUI/EnvironmentValues/focusReporter`` of the host.
 @Observable
 public final class AccessibilityFocusMover: FocusReporter {
@@ -534,9 +535,9 @@ extension View {
   /// Gives an ``AccessibilityFocusMover`` to this subtree, when the
   /// environment has none.
   ///
-  /// ``AgentThreadView`` applies this modifier. When the composer is not in
-  /// the thread view, apply the modifier to a view that holds both, so that
-  /// the focus goes back to the composer.
+  /// ``AgentThreadView`` and ``RequestDeck`` apply this modifier. Apply it to
+  /// a view that holds the thread view, the deck and the composer, so that
+  /// the focus goes from a card back to the composer.
   ///
   /// - Returns: A view whose subtree has a focus mover.
   public func accessibilityFocusScope() -> some View {

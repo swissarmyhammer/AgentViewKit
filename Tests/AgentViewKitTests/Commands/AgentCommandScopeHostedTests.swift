@@ -45,9 +45,9 @@ import Testing
     .root(AgentCommandTarget.segment(for: model))
   }
 
-  /// Shows the thread view of a session and its connection model, and a
-  /// composer below it when the test gives one, with a command system and a
-  /// pasteboard.
+  /// Shows the thread view of a session and its connection model, the deck
+  /// of the session, and a composer below them when the test gives one, in
+  /// one focus scope, with a command system and a pasteboard.
   ///
   /// The composer reads the session model from the environment, so that a
   /// submit sends a prompt to the agent.
@@ -70,10 +70,12 @@ import Testing
       scoped(
         VStack {
           AgentThreadView(session: session.model, connection: session.connection)
+          RequestDeck(session: session.model)
           if let composer {
             PromptInputHost(model: composer)
           }
-        },
+        }
+        .accessibilityFocusScope(),
         in: outerScope ? session.model : nil
       )
       .environment(\.sessionModel, session.model)
@@ -307,7 +309,7 @@ import Testing
     let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
     let pending = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
-    let card = PendingRequestsHost.identifier(for: pending.uuidString)
+    let card = RequestDeck.identifier(for: pending.uuidString)
     #expect(harness.element(identifier: card) != nil)
 
     #expect(system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))

@@ -32,14 +32,27 @@ struct ACPThread: View {
   let connection: ConnectionModel
   let session: SessionModel
 
+  /// The text of the composer.
+  @State private var draft = AttributedString()
+
   var body: some View {
     // The session views send the prompts, the cancel, and the answers to the
     // permission and elicitation cards through the two models. The host gives
     // only the work that no model does: a terminal sign-in runner with
     // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
-    AgentThreadView(session: session, connection: connection)
-      // The composer reads the two models from the environment.
-      .environment(\.sessionModel, session)
-      .environment(\.connectionModel, connection)
+    VStack(spacing: 0) {
+      AgentThreadView(session: session, connection: connection)
+      // The questions of the session, such as a permission request. The
+      // thread view shows no card. The deck takes no space while no question
+      // waits.
+      RequestDeck(session: session)
+      PromptInputView(text: $draft) {}
+    }
+    // One focus scope for the three views, so that the VoiceOver focus goes
+    // from an answered card back to the composer.
+    .accessibilityFocusScope()
+    // The composer reads the two models from the environment.
+    .environment(\.sessionModel, session)
+    .environment(\.connectionModel, connection)
   }
 }

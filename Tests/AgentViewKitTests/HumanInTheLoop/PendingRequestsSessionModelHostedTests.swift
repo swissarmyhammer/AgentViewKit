@@ -12,7 +12,7 @@
   /// The pending request cards over the client models (plan.md §3.2
   /// "Pending requests", §3.3 "Request-scoped elicitations", §11 decision 4).
   ///
-  /// Each test shows a ``PendingRequestsHost`` over a `SessionModel` or a
+  /// Each test shows a ``RequestDeck`` over a `SessionModel` or a
   /// `ConnectionModel` of a ``ScriptedSession``. The scripted agent sends the
   /// request, and the test reads the frames that the agent receives.
   @Suite(.serialized, .hostedSerially) @MainActor struct PendingRequestsSessionModelHostedTests {
@@ -65,13 +65,24 @@
       session.agent.response(to: Double(id))
     }
 
-    /// Shows the host of a session model.
+    /// Shows the deck of a session model.
     ///
     /// - Parameter session: The scripted session.
     /// - Returns: The harness.
     static func mount(session: ScriptedSession) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
-        PendingRequestsHost(session: session.model)
+        RequestDeck(session: session.model)
+          .transaction { $0.disablesAnimations = true }
+      }
+    }
+
+    /// Shows the deck of a connection model.
+    ///
+    /// - Parameter connection: The connection model.
+    /// - Returns: The harness.
+    static func mount(connection: ConnectionModel) -> HostedViewHarness<some View> {
+      HostedViewHarness(size: size) {
+        RequestDeck(connection: connection)
           .transaction { $0.disablesAnimations = true }
       }
     }
@@ -81,7 +92,7 @@
     /// - Parameter id: The local id of the request.
     /// - Returns: The identifier.
     static func cardIdentifier(_ id: UUID) -> String {
-      PendingRequestsHost.identifier(for: id.uuidString)
+      RequestDeck.identifier(for: id.uuidString)
     }
 
     /// The position of the prompt frame with `text` in the frames of `agent`.
@@ -141,8 +152,7 @@
     ///   - session: The scripted session.
     /// - Returns: `true` when both events came.
     static func isAnswered(_ id: Int, in session: ScriptedSession) -> Bool {
-      response(to: id, in: session) != nil && session.model.pendingPermissions.isEmpty
-        && session.model.pendingElicitations.isEmpty
+      response(to: id, in: session) != nil && session.model.pendingRequests.isEmpty
     }
 
     // MARK: - Permission
@@ -158,6 +168,7 @@
         Self.permissionMethod, id: Self.agentRequestID, params: ScriptedSession.permissionParams)
       await harness.render { !model.pendingPermissions.isEmpty }
       let pending = try #require(model.pendingPermissions.first)
+      #expect(harness.element(identifier: RequestDeck.identifier) != nil)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
@@ -341,15 +352,12 @@
 
     // MARK: - Request-scoped elicitation
 
-    @Test func aLoginElicitationShowsInTheConnectionHostAndGoesAwayWhenTheLoginEnds() async throws {
+    @Test func aLoginElicitationShowsInTheConnectionDeckAndGoesAwayWhenTheLoginEnds() async throws {
       let elicitationID = Self.agentRequestID
       let session = try await ScriptedSession.openWithLoginElicitation(id: elicitationID)
       defer { session.close() }
       let connection = session.connection
-      let harness = HostedViewHarness(size: Self.size) {
-        PendingRequestsHost(connection: connection)
-          .transaction { $0.disablesAnimations = true }
-      }
+      let harness = Self.mount(connection: connection)
       defer { harness.close() }
 
       let login = session.startLogin()
@@ -368,6 +376,39 @@
       await ObservationWait.until { Self.response(to: elicitationID, in: session) != nil }
       let response = try #require(Self.response(to: elicitationID, in: session))
       #expect(response["result"] == (try Self.json(#"{"action": "cancel"}"#)))
+    }
+
+    /// A decline in the card of the connection deck answers the login
+    /// elicitation, and the card goes away.
+    ///
+    /// The scripted agent reads the next frame only after it sends its held
+    /// answer to `auth/login`. Thus the test lets the login end before it
+    /// waits for the response of the decline.
+    @Test func aDeclineInTheConnectionDeckGoesToTheAgentAndTheCardGoesAway() async throws {
+      let elicitationID = Self.agentRequestID
+      let session = try await ScriptedSession.openWithLoginElicitation(id: elicitationID)
+      defer { session.close() }
+      let connection = session.connection
+      let harness = Self.mount(connection: connection)
+      defer { harness.close() }
+
+      let login = session.startLogin()
+      await harness.render { !connection.pendingRequests.isEmpty }
+      let pending = try #require(connection.pendingElicitations.first)
+      #expect(harness.element(identifier: RequestDeck.identifier) != nil)
+      #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
+
+      try harness.press(identifier: ElicitationView.declineIdentifier)
+      session.agent.releaseHeldAnswer()
+      try await login.value
+      await ObservationWait.until {
+        Self.response(to: elicitationID, in: session) != nil && connection.pendingRequests.isEmpty
+      }
+      harness.render()
+
+      let response = try #require(Self.response(to: elicitationID, in: session))
+      #expect(response["result"] == (try Self.json(ElicitationAnswer.decline.expectedResult)))
+      #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) == nil)
     }
   }
 #endif

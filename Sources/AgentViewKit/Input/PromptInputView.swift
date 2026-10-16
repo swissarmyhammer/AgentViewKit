@@ -55,13 +55,16 @@ import SwiftUI
 /// `image`; else its chip shows the "not accepted" mark and the prompt does
 /// not carry it. A file goes out as an embedded resource when the agent
 /// advertises `embeddedContext`, else as a resource link. Give both models to
-/// the composer:
+/// the composer, and put the composer, the thread view and the
+/// ``RequestDeck`` in one ``SwiftUI/View/accessibilityFocusScope()``:
 ///
 /// ```swift
 /// VStack {
 ///   AgentThreadView(session: model)
+///   RequestDeck(session: model)
 ///   PromptInputView(text: $draft) {}
 /// }
+/// .accessibilityFocusScope()
 /// .environment(\.sessionModel, model)
 /// .environment(\.connectionModel, connection)
 /// ```
@@ -178,7 +181,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       }
       editor(context)
         // A resolved request moves the VoiceOver focus back to the editor
-        // (`PendingRequestsHost.focusTarget(old:new:)`).
+        // (`RequestDeck`).
         .accessibilityFocusTarget(StockPromptEditor.identifier)
         .background {
           if let commandTarget {

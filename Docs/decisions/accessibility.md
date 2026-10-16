@@ -92,16 +92,18 @@ announcement.
   move. Each view that can take the focus applies
   `accessibilityFocusTarget(_:)`, which sets an `@AccessibilityFocusState`
   when a move names its identifier.
-- `AgentThreadView` gives a mover to its subtree
-  (`accessibilityFocusScope()`). A host that shows the composer outside the
-  thread view applies the same modifier to a view that holds both.
+- `AgentThreadView` and `RequestDeck` give a mover to their subtrees
+  (`accessibilityFocusScope()`) when the environment has none. The thread
+  view shows no request card. The host puts the thread view, the
+  `RequestDeck` and the composer in one view, and applies the same modifier
+  to that view, so that the three use one mover.
 - The kit views tell the mover and the host `focusReporter` through one
   action (`AccessibilityFocusMove`). There is one `focusReporter`
   environment value.
-- `PendingRequestsHost` shows one card for each pending request of the
-  models. It moves the focus to the `pending-card-<id>` container of a new
-  request, and to `prompt-editor` when no card stays. It keeps no list of
-  the requests: the models remove a request when it resolves.
+- `RequestDeck` shows one card for each pending request of its model. It
+  moves the focus to the `pending-card-<id>` container of a new request, and
+  to `prompt-editor` when no card stays. It keeps no list of the requests:
+  the models remove a request when it resolves.
   `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` also
   report their own identifier when they appear. Thus a reporter records the
   container and the card for a new permission request.

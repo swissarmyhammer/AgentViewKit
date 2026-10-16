@@ -14,7 +14,7 @@ import Testing
   /// The size of a hosted card.
   static let cardSize = CGSize(width: 520, height: 320)
 
-  /// The size of a hosted pending request host with two cards.
+  /// The size of a hosted request deck with two cards.
   static let hostSize = CGSize(width: 520, height: 800)
 
   /// The JSON-RPC id of the elicitation request of the agent.
@@ -297,12 +297,12 @@ import Testing
     #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
 
-  // MARK: - Host
+  // MARK: - Deck
 
-  @Test func thePendingHostShowsTheConsentCardForAURLRequest() async throws {
+  @Test func theDeckShowsTheConsentCardForAURLRequest() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = HostedViewHarness(PendingRequestsHost(session: session.model), size: Self.hostSize)
+    let harness = HostedViewHarness(RequestDeck(session: session.model), size: Self.hostSize)
     defer { harness.close() }
 
     try await session.sendRequest("elicitation/create", id: 1, params: Self.makeParams(url: "https://example.com/auth"))

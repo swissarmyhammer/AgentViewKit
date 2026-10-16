@@ -28,7 +28,8 @@ import SwiftUI
 ///   sign-in states. A state starts its own agent, and the tab stops that
 ///   agent when the detail shows another session.
 /// - The detail is the ``AgentThreadView`` of the open session, in a
-///   ``SessionThreadColumn`` with no composer.
+///   ``SessionThreadColumn`` with no composer, under the ``RequestDeck`` of
+///   the connection model.
 /// - The Look button of the toolbar shows the ``GalleryLookControls`` in a
 ///   popover: the EditorKit theme, the appearance, the increased contrast,
 ///   the density, and the text size. ``GalleryColumns`` tells why the
@@ -253,7 +254,12 @@ struct GalleryTabView: View, DemoStartingTab {
     if case .started = phase {
       switch detailContent {
       case .opened(let opened):
-        SessionThreadColumn(session: opened.session, connection: opened.connection) {}
+        // The deck of the connection shows the request-scoped elicitations,
+        // such as a sign-in form. It takes no space while no question waits.
+        VStack(spacing: 0) {
+          RequestDeck(connection: opened.connection)
+          SessionThreadColumn(session: opened.session, connection: opened.connection) {}
+        }
       case .failed(let error):
         DemoFailureLabel(error: error, identifier: Self.stateFailureIdentifier)
       case .empty:

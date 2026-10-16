@@ -1,6 +1,15 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m522jkxrzpymfq3nncq6szp1
+  text: |-
+    Note from ^mw15y7w (for card 34 ^2z2xgtq): DeckSource in Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift no longer has `front` and `bringToFront(_:)`. They had no caller, so card 34 must not ship them with `// periphery:ignore`. This card must add them to DeckSource when the depth layout and the Previous/Next controls call them:
+    - `var front: PendingRequest?` — `session.frontRequest` for `.session`, `connection.frontRequest` for `.connection`.
+    - `func bringToFront(_ id: PendingRequest.ID)` — `session.bringToFront(id)` for `.session`, `connection.bringToFront(id)` for `.connection`.
+    Also add "the front request and the move of a request to the front" back to the DeckSource doc comment.
+  timestamp: 2026-10-16T10:02:00.504931+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCA56W69EXCFBTGCKJK0S

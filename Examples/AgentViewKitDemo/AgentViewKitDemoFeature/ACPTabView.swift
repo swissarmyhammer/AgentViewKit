@@ -13,7 +13,9 @@ import SwiftUI
 ///
 /// - a sidebar with the ``SessionListView`` of the connection model,
 /// - the ``AgentThreadView`` of the selected session, the
-///   ``ContextUsageView`` of the session, and a ``PromptInputView``,
+///   ``ContextUsageView`` of the session, the ``RequestDeck`` of the
+///   session, and a ``PromptInputView``, under the ``RequestDeck`` of the
+///   connection model,
 /// - a toolbar with the ``ConfigOptionsView`` menu, a button that stops the
 ///   agent, and a button that opens the settings sheet
 ///   (``ACPSettingsSheet``).
@@ -268,8 +270,22 @@ struct ACPTabView: View, DemoStartingTab {
 
   // MARK: - Detail
 
+  /// The request deck of the connection model over the content of the detail.
+  ///
+  /// The deck shows the request-scoped elicitations of the connection model,
+  /// such as a sign-in form of `auth/login`. It takes no space while no
+  /// question waits.
+  private var detail: some View {
+    VStack(spacing: 0) {
+      if let agent {
+        RequestDeck(connection: agent.connection)
+      }
+      detailContent
+    }
+  }
+
   /// The selected session, the sign-in card, or the state of the start.
-  @ViewBuilder private var detail: some View {
+  @ViewBuilder private var detailContent: some View {
     switch phase {
     case .started(.running(let agent, let session)):
       thread(of: session, on: agent)

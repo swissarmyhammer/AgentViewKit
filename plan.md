@@ -311,7 +311,7 @@ The thread is a long, append-heavy list in `ScrollView { LazyVStack { ForEach �
 Source: native (build on stock), reuse (existing library), net-new (agent-grade, build).
 
 **A. Thread**
-- `AgentThreadView`: the drop-in. Binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and renders the whole surface. *net-new*
+- `AgentThreadView`: the drop-in. Binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and renders the whole surface except the request cards. The app puts a `RequestDeck` next to it. *net-new*
 - `ConversationView`: container with auto-scroll, scroll-to-bottom, empty state. *native*
 - `MessageActions`: copy, copy thread, export, retry, edit, in a footer. *native*
 - `ThreadMinimapView`: scrubbable rail of the transcript entries, with the tool call status. *net-new*
@@ -358,7 +358,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 **E. Human-in-the-loop**
 - `PermissionView`: renders a `PendingPermissionRequest` of a `SessionModel`. Shows the required title, the description, and the subject: a tool call, or a command with its cwd. Options come from the request. The four ACP kinds (allow once, allow always, reject once, reject always) are the v1 bar. A directory-scoped grant ("always for this folder") is not on the ACP wire, and no agent sends it (`Docs/decisions/permission-ux.md`). When the subject has a `terminalId`, the card links to the related `TerminalView`. Adds a deny-with-comment field (§3.4). Offers "switch to auto" when the mode config option exists. *net-new*
 - `PermissionModePicker`: the `mode` config option as a segmented control. *net-new*
-- `PendingRequestsHost`: one card for each pending request of a `SessionModel`, or each request-scoped elicitation of a `ConnectionModel`. *net-new*
+- `RequestDeck`: the deck of the pending requests of a `SessionModel`, or of the request-scoped elicitations of a `ConnectionModel`. It is a component of its own, next to the thread view and the composer. *net-new*
 
 **E2. Connections and authorization (§12)**
 - `AgentConnectionBanner`: the banner of `ConnectionModel.state`. *net-new*
@@ -407,7 +407,7 @@ Source: native (build on stock), reuse (existing library), net-new (agent-grade,
 Four distinct things, kept distinct:
 
 1. **App sign-in.** Out of scope. The host's job.
-2. **Agent authentication.** An ACP agent advertises `AuthMethod`s at `initialize`. `ConnectionModel.authState` tells if a sign-in is necessary. The `agent` method goes through `auth/login` with `ConnectionModel.login(_:)`. The `terminal` method must not go through `auth/login`: the client runs the configured agent program as a separate interactive process, with the extra `args` and `env` of the method. `ConnectionModel.loginWithTerminal(_:runner:)` does that with the `terminalAuthRunner` of the host. After a terminal sign-in, `authState` is `.reconnectRequired`, and the Reconnect button calls the `agentReconnect` hook of the host. `AgentAuthView` renders both methods and a sign-out control that calls `logout(_:)`. A request-scoped elicitation of `auth/login` shows through `PendingRequestsHost(connection:)`.
+2. **Agent authentication.** An ACP agent advertises `AuthMethod`s at `initialize`. `ConnectionModel.authState` tells if a sign-in is necessary. The `agent` method goes through `auth/login` with `ConnectionModel.login(_:)`. The `terminal` method must not go through `auth/login`: the client runs the configured agent program as a separate interactive process, with the extra `args` and `env` of the method. `ConnectionModel.loginWithTerminal(_:runner:)` does that with the `terminalAuthRunner` of the host. After a terminal sign-in, `authState` is `.reconnectRequired`, and the Reconnect button calls the `agentReconnect` hook of the host. `AgentAuthView` renders both methods and a sign-out control that calls `logout(_:)`. A request-scoped elicitation of `auth/login` shows through `RequestDeck(connection:)`.
 3. **MCP servers of a session.** The agent connects to the MCP servers and reports their status. `ConnectionsView` lists `SessionModel.mcpServers` with the transport and a `ConnectionStatusChip` for each server (`Docs/decisions/connection-states.md`). A tool call that waits for a server shows a chip inline when the host gives `toolCallConnectionState`. The kit keeps no connection store and no edge table.
 4. **Per-action permission.** "Allow this tool to run?" `PermissionView` (§9 E). Separate from connecting.
 
@@ -422,7 +422,7 @@ Elicitation is how a server asks the user for input mid-tool-call. It reaches th
 - A session elicitation is in `SessionModel.pendingElicitations`. One with a `toolCallId` is also linked to its tool call entry (`ToolCallEntry.linkedElicitationIDs`), and the tool call view shows it next to the call.
 - A request-scoped elicitation (for example of `auth/login`) is in `ConnectionModel.pendingElicitations`, with its `requestId` and its `requestMethod`.
 
-`PendingRequestsHost` shows one card for each request. The card calls the reply methods of the model that holds the request, through `PendingElicitationOwner`: `acceptElicitation(_:content:)`, `declineElicitation(_:)` or `cancelElicitation(_:)`. The model removes the request when it resolves, so the card goes away with no state of its own. `eventplan.md` in the Multitool repo names AgentViewKit as the presenting layer and lists the URL-mode obligations. They match §13.4.
+`RequestDeck` shows one card for each request. The card calls the reply methods of the model that holds the request, through `PendingElicitationOwner`: `acceptElicitation(_:content:)`, `declineElicitation(_:)` or `cancelElicitation(_:)`. The model removes the request when it resolves, so the card goes away with no state of its own. `eventplan.md` in the Multitool repo names AgentViewKit as the presenting layer and lists the URL-mode obligations. They match §13.4.
 
 **The spec** (MCP 2025-11-25). A server sends a `message` and a `mode`.
 
