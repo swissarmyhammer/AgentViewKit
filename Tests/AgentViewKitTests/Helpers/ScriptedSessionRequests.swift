@@ -118,66 +118,73 @@ extension ScriptedSession {
   }
 
   /// Sends a permission request of the session from the agent, with
-  /// ``ScriptedSession/permissionParams``, and pumps `harness` until the
-  /// session model holds it.
+  /// ``ScriptedSession/permissionParams``, waits until the session model
+  /// holds it, and then makes `harness` show it.
+  ///
+  /// The wait is `HostedViewHarness.render(when:)` on the pending
+  /// permissions of the session model, with no clock: the model holds each
+  /// request that the agent sends, so the request is certain to come.
   ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
-  ///   - harness: The harness to pump while the test waits.
-  ///   - timeout: The longest time to wait, in seconds.
-  /// - Returns: The local id of the pending request, or `nil` when the model
-  ///   holds no request at the timeout.
+  ///   - harness: The harness that renders the view after the wait.
+  /// - Returns: The local id of the pending request.
   /// - Throws: The error of the transport.
-  func sendPermissionRequest(
-    id: Int, pumping harness: HostedViewHarness<some View>, timeout: TimeInterval
-  ) async throws -> UUID? {
+  func sendPermissionRequest(id: Int, rendering harness: HostedViewHarness<some View>) async throws -> UUID {
     try await sendRequest(Self.permissionMethod, id: id, params: Self.permissionParams)
-    await harness.pump(until: timeout) { !model.pendingPermissions.isEmpty }
-    return model.pendingPermissions.first?.id
+    await harness.render { !model.pendingPermissions.isEmpty }
+    return try #require(model.pendingPermissions.first?.id)
   }
 
   /// Sends a permission request of the session from the agent, and waits
   /// until the session model holds it.
   ///
   /// The test can then show the pending request in a view that it mounts.
+  /// The wait is ``ObservationWait/until(_:)`` on the pending permissions of
+  /// the session model, with no clock.
   ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
   ///   - params: The JSON text of the params.
   /// - Returns: The pending request that the session model holds.
-  /// - Throws: The error of the transport, or an issue when the model holds
-  ///   no request at the time limit.
+  /// - Throws: The error of the transport.
   func receivePermissionRequest(id: Int, params: String = permissionParams) async throws
     -> PendingPermissionRequest
   {
     try await sendRequest(Self.permissionMethod, id: id, params: params)
-    _ = await waitUntil { !model.pendingPermissions.isEmpty }
+    await ObservationWait.until { !model.pendingPermissions.isEmpty }
     return try #require(model.pendingPermissions.first)
   }
 
   /// Sends an elicitation request of the session from the agent, and waits
   /// until the session model holds it.
   ///
+  /// The wait is ``ObservationWait/until(_:)`` on the pending elicitations
+  /// of the session model, with no clock.
+  ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
   ///   - params: The JSON text of the params, such as
   ///     ``ScriptedSession/formElicitationParams``.
   /// - Returns: The pending elicitation that the session model holds.
-  /// - Throws: The error of the transport, or an issue when the model holds
-  ///   no elicitation at the time limit.
+  /// - Throws: The error of the transport.
   func receiveElicitation(id: Int, params: String) async throws -> PendingElicitation {
     try await sendRequest(Self.elicitationMethod, id: id, params: params)
-    _ = await waitUntil { !model.pendingElicitations.isEmpty }
+    await ObservationWait.until { !model.pendingElicitations.isEmpty }
     return try #require(model.pendingElicitations.first)
   }
 
   /// Waits until the agent has the response to its request with `id`.
   ///
+  /// The wait is ``ObservationWait/until(_:)`` on the frames that the
+  /// observable agent got, with no clock. Call it only after an action that
+  /// answers the request.
+  ///
   /// - Parameter id: The JSON-RPC id of the request of the agent.
-  /// - Returns: The `result` member of the response, or `nil` when no response
-  ///   came before the time limit.
+  /// - Returns: The `result` member of the response, or `nil` when the
+  ///   response has no `result` member.
   func result(ofRequest id: Int) async -> JSONValue? {
-    _ = await waitUntil { agent.response(to: Double(id)) != nil }
+    await ObservationWait.until { agent.response(to: Double(id)) != nil }
     return agent.response(to: Double(id))?["result"]
   }
 

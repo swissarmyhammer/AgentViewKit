@@ -53,7 +53,7 @@ import Testing
 
     let expected = InMemoryDemoAgent.replyText(to: Self.promptText)
     let replyID = InMemoryDemoAgent.replyID(turn: Self.firstTurn)
-    #expect(await waitUntil { session.agentMessageText(id: replyID) == expected })
+    await ObservationWait.until { session.agentMessageText(id: replyID) == expected }
     await model.disconnect()
   }
 
@@ -62,7 +62,7 @@ import Testing
 
     await agent.close()
 
-    #expect(await waitUntil { model.state == .disconnected })
+    await ObservationWait.until { model.state == .disconnected }
   }
 
   /// A disconnect of the model stops the read of the client end of the pair.

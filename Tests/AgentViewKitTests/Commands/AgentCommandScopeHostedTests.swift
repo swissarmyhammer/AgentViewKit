@@ -10,15 +10,16 @@ import Testing
 
 /// Tests for the agent command scope in a window: the registration of a
 /// mounted thread view, and the composer that runs the commands.
+///
+/// A change that the test makes on the main actor is followed by one render
+/// pass. A frame of the agent is followed by a wait for the model value that
+/// the frame is certain to change, and then by one render pass.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentCommandScopeHostedTests {
   /// The text that the composer tests send.
   static let message = "Hello"
 
   /// The size of a window that shows a thread and a composer.
   static let windowSize = CGSize(width: 480, height: 480)
-
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
 
   /// The number of verbs of the kit.
   static let verbCount = 10
@@ -121,37 +122,41 @@ import Testing
     }
   }
 
-  /// Sends one user message from the agent, and pumps `harness` until the
-  /// transcript of the session holds it. The scroll and expand commands act
-  /// only on a transcript with an entry.
+  /// Sends one user message from the agent, waits until the transcript of
+  /// the session holds it, and then renders `harness`. The scroll and expand
+  /// commands act only on a transcript with an entry.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
-  ///   - harness: The harness to pump while the test waits.
+  ///   - harness: The harness that renders the view after the wait.
   /// - Throws: The error of the transport.
   static func sendScopeMessage(
-    to session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
   ) async throws {
     try await send([ChunkMessage(kind: "user_message_chunk", messageID: "scope-message", text: message)], to: session)
-    await harness.pump(until: waitTimeout) { !session.model.transcript.isEmpty }
-    harness.pump()
+    let model = session.model
+    await harness.render { !model.transcript.isEmpty }
   }
 
-  /// Sends a `state_update` from the agent, and pumps `harness` until the
-  /// agent state of the session model changes.
+  /// Sends a `state_update` from the agent, waits until the agent state of
+  /// the session model changes, and then renders `harness`.
+  ///
+  /// The update must differ from the agent state of the model, so that its
+  /// fold is certain to change the state.
   ///
   /// - Parameters:
   ///   - update: The JSON text of the update, such as
   ///     ``ScriptedSession/runningState``.
   ///   - session: The scripted session.
-  ///   - harness: The harness to pump while the test waits.
+  ///   - harness: The harness that renders the view after the wait.
   /// - Throws: The error of the transport.
   static func sendState(
-    _ update: String, to session: ScriptedSession, pumping harness: HostedViewHarness<some View>
+    _ update: String, to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
   ) async throws {
-    let before = session.model.agentState
+    let model = session.model
+    let before = model.agentState
     try await session.sendUpdate(update)
-    await harness.pump(until: waitTimeout) { session.model.agentState != before }
+    await harness.render { model.agentState != before }
   }
 
   /// The test mounts no outer agent command scope on purpose. The session
@@ -165,7 +170,7 @@ import Testing
     let system = CommandSystem()
     let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
-    try await Self.sendScopeMessage(to: session, pumping: harness)
+    try await Self.sendScopeMessage(to: session, rendering: harness)
 
     let path = Self.path(of: session.model)
     let ids = Set(system.registry.definitions(at: path).map(\.id))
@@ -181,7 +186,7 @@ import Testing
     let system = CommandSystem()
     let harness = Self.mount(session: session, system: system, outerScope: true)
     defer { harness.close() }
-    try await Self.sendScopeMessage(to: session, pumping: harness)
+    try await Self.sendScopeMessage(to: session, rendering: harness)
 
     let scopes = system.registry.tree.nodes.filter {
       $0.path.segments.contains { $0.kind == AgentCommandTarget.segmentKind }
@@ -197,18 +202,17 @@ import Testing
     let composer = PromptInputHostedTestModel()
     let harness = Self.mount(session: session, system: system, outerScope: true, composer: composer)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     let path = Self.path(of: session.model)
 
     #expect(!system.registry.perform(AgentCommandVerb.send.id, at: path))
     composer.text = AttributedString(Self.message)
-    harness.pump()
+    harness.render()
     #expect(system.registry.perform(AgentCommandVerb.send.id, at: path))
-    await harness.pump(until: Self.waitTimeout) {
-      !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
-    }
+    let agent = session.agent
+    await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
-    let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
+    let prompts = agent.messages(method: ScriptedSession.promptMethod)
     #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
     #expect(composer.plainText.isEmpty)
     #expect(composer.submitCount == 1)
@@ -224,10 +228,10 @@ import Testing
         .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
-    await harness.pump(until: Self.waitTimeout) { !session.promptTexts.isEmpty }
+    await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.submitCount == 1)
@@ -240,13 +244,13 @@ import Testing
     let harness = Self.mount(
       session: session, system: system, outerScope: true, composer: PromptInputHostedTestModel())
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
     harness.window.makeFirstResponder(nil)
-    harness.pump()
+    harness.render()
 
     #expect(system.registry.perform(AgentCommandVerb.focusComposer.id, at: Self.path(of: session.model)))
-    harness.pump()
+    harness.render()
 
     #expect(harness.window.firstResponder === editor)
   }
@@ -261,12 +265,12 @@ import Testing
         .commandSystem(system)
     }
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     let path = Self.path(of: session.model)
     #expect(system.registry.tree.nodes.contains { $0.path == path })
 
     model.isShown = false
-    harness.pump()
+    harness.render()
 
     #expect(!system.registry.tree.nodes.contains { $0.path == path })
   }
@@ -279,21 +283,20 @@ import Testing
     let system = CommandSystem()
     let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     let path = Self.path(of: session.model)
 
     #expect(!system.registry.perform(AgentCommandVerb.cancel.id, at: path))
-    try await Self.sendState(ScriptedSession.runningState, to: session, pumping: harness)
+    try await Self.sendState(ScriptedSession.runningState, to: session, rendering: harness)
     #expect(system.registry.perform(AgentCommandVerb.cancel.id, at: path))
-    await harness.pump(until: Self.waitTimeout) {
-      !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
-    }
+    let agent = session.agent
+    await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 
-    let cancels = session.agent.messages(method: ScriptedSession.cancelMethod)
+    let cancels = agent.messages(method: ScriptedSession.cancelMethod)
     #expect(cancels.count == 1)
     #expect(cancels.first?["params"]?["sessionId"]?.stringValue == ScriptedSession.sessionID)
 
-    try await Self.sendState(ScriptedSession.idleState, to: session, pumping: harness)
+    try await Self.sendState(ScriptedSession.idleState, to: session, rendering: harness)
     #expect(!system.registry.perform(AgentCommandVerb.cancel.id, at: path))
   }
 
@@ -303,18 +306,17 @@ import Testing
     let system = CommandSystem()
     let harness = Self.mount(session: session, system: system, outerScope: false)
     defer { harness.close() }
-    let pending = try await session.sendPermissionRequest(
-      id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
-    let card = PendingRequestsHost.identifier(for: try #require(pending).uuidString)
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: card) != nil }
+    let pending = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
+    let card = PendingRequestsHost.identifier(for: pending.uuidString)
+    #expect(harness.element(identifier: card) != nil)
 
     #expect(system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))
-    await harness.pump(until: Self.waitTimeout) { session.agent.response(to: Double(Self.agentRequestID)) != nil }
-    await harness.pump(until: Self.waitTimeout) { harness.element(identifier: card) == nil }
+    let result = await session.result(ofRequest: Self.agentRequestID)
+    let model = session.model
+    await harness.render { model.pendingPermissions.isEmpty }
 
-    let response = try #require(session.agent.response(to: Double(Self.agentRequestID)))
-    #expect(response["result"]?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
-    #expect(session.model.pendingPermissions.isEmpty)
+    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
+    #expect(model.pendingPermissions.isEmpty)
     #expect(harness.element(identifier: card) == nil)
   }
 
@@ -331,9 +333,10 @@ import Testing
       ChunkMessage(kind: "user_message_chunk", messageID: "copy-u2", text: "Again."),
     ]
     try await Self.send(messages, to: session)
-    await harness.pump(until: Self.waitTimeout) { session.model.transcript.count == messages.count }
+    let model = session.model
+    await harness.render { model.transcript.count == messages.count }
 
-    #expect(system.registry.perform(AgentCommandVerb.copyThread.id, at: Self.path(of: session.model)))
+    #expect(system.registry.perform(AgentCommandVerb.copyThread.id, at: Self.path(of: model)))
 
     #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
   }

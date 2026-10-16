@@ -26,11 +26,6 @@ import Testing
   /// package root.
   static let recordingsPath = "Examples/AgentViewKitDemo/RecordedSessions"
 
-  /// The longest time that the session list test waits for a row, in
-  /// seconds. It is the time that the end-to-end test of the Gallery tab
-  /// waits for a row of the session list.
-  static let rowTimeout: TimeInterval = 20
-
   /// The agent of one test, and the temporary directory of its stage.
   struct Scenario {
     /// The temporary directory that holds the stage.
@@ -82,16 +77,19 @@ import Testing
     await scenario.stop()
   }
 
+  /// The list reports the end of its first refresh, so the test waits for
+  /// that report, with no clock, and then renders the list.
   @Test(.hostedSerially) func theSessionListOfTheGalleryShowsARowOfARecordedSession() async throws {
     let scenario = try await Self.start()
+    let calls = ReportRecorder<String?>()
     let harness = HostedViewHarness(
-      SessionListView(connection: scenario.agent.connection, cwd: scenario.agent.workingDirectory, onOpen: { _ in }),
+      SessionListView(connection: scenario.agent.connection, cwd: scenario.agent.workingDirectory, onOpen: { _ in })
+        .environment(\.sessionListCallReport, calls.report),
       size: SessionPickerConnectionModelHostedTests.listSize)
 
-    await harness.pump(until: Self.rowTimeout) {
-      !SessionPickerConnectionModelHostedTests.rowIdentifiers(in: harness).isEmpty
-    }
+    await harness.render { !calls.values.isEmpty }
 
+    #expect(calls.values == [nil])
     #expect(!SessionPickerConnectionModelHostedTests.rowIdentifiers(in: harness).isEmpty)
     harness.close()
     await scenario.stop()
@@ -107,7 +105,7 @@ import Testing
     try await Self.hostTheGalleryWindowOfEachSession { info, harness in
       harness.window.styleMask.insert(.resizable)
       harness.window.setContentSize(CGSize(width: Self.narrowWindowWidth, height: GalleryWindowReplica.windowSize.height))
-      harness.pump()
+      harness.render()
 
       #expect(harness.hostingView.frame.width == Self.narrowWindowWidth, "\(info.sessionId)")
     }
@@ -212,7 +210,11 @@ extension RecordedSessionsAgentTests {
   static let narrowWindowWidth: CGFloat = 1100
 
   /// Resumes each listed session from the start, shows it in the window of
-  /// the Gallery tab, waits for a transcript row, and runs `check`.
+  /// the Gallery tab, and runs `check`.
+  ///
+  /// The resume returns after the replay, so the model holds the transcript
+  /// of the session. The helper waits for that transcript, with no clock,
+  /// and then makes one render pass before `check` reads the window.
   ///
   /// - Parameter check: The checks of one session and its window.
   /// - Throws: The error of the start or of a request.
@@ -224,7 +226,7 @@ extension RecordedSessionsAgentTests {
     try await resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
       let harness = HostedViewHarness(
         GalleryWindowReplica(session: session, connection: connection), size: GalleryWindowReplica.windowSize)
-      await harness.pump(until: rowTimeout) { !transcriptRowIdentifiers(in: harness).isEmpty }
+      await harness.render { !session.transcript.isEmpty }
       check(info, harness)
       harness.close()
     }

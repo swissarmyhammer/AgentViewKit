@@ -14,9 +14,6 @@ import Testing
 /// a ``ScriptedSession``, shows it in a ``PermissionView``, and reads the
 /// frames that the scripted agent receives.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 2
-
   /// The size of a hosted card.
   static let cardSize = CGSize(width: 640, height: 480)
 
@@ -458,18 +455,17 @@ import Testing
     return harness
   }
 
-  /// Sends a permission request of the session from the agent, and waits
-  /// until the session model holds it.
+  /// Sends a permission request of the session from the agent, waits until
+  /// the session model holds it, and then renders `harness`.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
-  ///   - harness: The harness to pump while the test waits.
+  ///   - harness: The harness that renders the view after the wait.
   /// - Returns: The local id of the pending request.
   static func sendPermissionRequest(
     _ session: ScriptedSession, harness: HostedViewHarness<some View>
   ) async throws -> UUID {
-    try #require(
-      try await session.sendPermissionRequest(id: agentRequestID, pumping: harness, timeout: waitTimeout))
+    try await session.sendPermissionRequest(id: agentRequestID, rendering: harness)
   }
 
   @Test func theHostReportsANewCardThenThePromptEditor() async throws {

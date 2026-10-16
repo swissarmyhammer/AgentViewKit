@@ -158,7 +158,8 @@ import Testing
 
     await started.agent.stop()
 
-    #expect(await waitUntil { started.agent.connection.state == .disconnected })
+    let connection = started.agent.connection
+    await ObservationWait.until { connection.state == .disconnected }
     started.removeFiles()
   }
 

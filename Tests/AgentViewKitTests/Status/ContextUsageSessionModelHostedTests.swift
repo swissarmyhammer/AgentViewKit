@@ -13,9 +13,6 @@ import Testing
 /// ``ScriptedSession``. The scripted agent sends `usage_update` values, and
 /// the test reads the text that the view shows.
 @Suite(.serialized, .hostedSerially) @MainActor struct ContextUsageSessionModelHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// The size of the hosted view.
   static let size = CGSize(width: 320, height: 80)
 
@@ -52,6 +49,26 @@ import Testing
     }
   }
 
+  /// Sends one `usage_update` from the agent, waits until the usage of the
+  /// session model changes, and then renders `harness`.
+  ///
+  /// The update must differ from the usage of the model, so that its fold
+  /// is certain to change the usage.
+  ///
+  /// - Parameters:
+  ///   - update: The JSON text of the update, such as ``firstUsage``.
+  ///   - session: The scripted session.
+  ///   - harness: The harness that renders the view after the wait.
+  /// - Throws: The error of the transport.
+  static func sendUsage(
+    _ update: String, to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
+  ) async throws {
+    let model = session.model
+    let before = model.usage
+    try await session.sendUpdate(update)
+    await harness.render { model.usage != before }
+  }
+
   /// The text of the usage element, or `nil` when the view shows no usage.
   ///
   /// - Parameter harness: The harness of the view.
@@ -76,8 +93,7 @@ import Testing
     let expected = UsageRingView.detailText(
       numerator: 1200, denominator: 4000, caption: Self.tokensCaption)
 
-    try await session.sendUpdate(Self.firstUsage)
-    await harness.pump(until: Self.waitTimeout) { Self.usageText(in: harness) == expected }
+    try await Self.sendUsage(Self.firstUsage, to: session, rendering: harness)
 
     #expect(Self.usageText(in: harness) == expected)
     #expect(Self.costText(in: harness) == nil)
@@ -94,10 +110,9 @@ import Testing
       numerator: 3000, denominator: 4000, caption: Self.tokensCaption)
     let cost = ContextUsageView.costText(for: Cost(amount: 1.25, currency: "USD"))
 
-    try await session.sendUpdate(Self.firstUsage)
-    await harness.pump(until: Self.waitTimeout) { Self.usageText(in: harness) == first }
-    try await session.sendUpdate(Self.secondUsage)
-    await harness.pump(until: Self.waitTimeout) { Self.usageText(in: harness) == second }
+    try await Self.sendUsage(Self.firstUsage, to: session, rendering: harness)
+    #expect(Self.usageText(in: harness) == first)
+    try await Self.sendUsage(Self.secondUsage, to: session, rendering: harness)
 
     #expect(Self.usageText(in: harness) == second)
     #expect(Self.costText(in: harness) == cost)
@@ -110,8 +125,7 @@ import Testing
     defer { harness.close() }
     let expected = UsageRingView.percentText(numerator: 1200, denominator: 4000)
 
-    try await session.sendUpdate(Self.firstUsage)
-    await harness.pump(until: Self.waitTimeout) { Self.usageText(in: harness) == expected }
+    try await Self.sendUsage(Self.firstUsage, to: session, rendering: harness)
 
     #expect(Self.usageText(in: harness) == expected)
   }
@@ -123,9 +137,9 @@ import Testing
     defer { harness.close() }
     let expected = UsageRingView.percentText(numerator: 1200, denominator: 4000)
 
-    try await session.sendUpdate(Self.firstUsage)
-    await harness.pump(until: Self.waitTimeout) { Self.usageText(in: harness) == expected }
+    try await Self.sendUsage(Self.firstUsage, to: session, rendering: harness)
 
+    #expect(Self.usageText(in: harness) == expected)
     #expect(harness.element(identifier: ContextUsageView.usageIdentifier)?.label == "Context used")
   }
 
@@ -137,7 +151,7 @@ import Testing
     let model = session.model
 
     try await session.sendUpdate(Self.markerUpdate)
-    await harness.pump(until: Self.waitTimeout) { !model.transcript.isEmpty }
+    await harness.render { !model.transcript.isEmpty }
 
     #expect(!model.transcript.isEmpty)
     #expect(model.usage == nil)

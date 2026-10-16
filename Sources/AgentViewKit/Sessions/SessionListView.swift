@@ -113,6 +113,9 @@ public struct SessionListView: View {
   /// The error message of the last call of the view, or `nil`.
   @State private var failureMessage: String?
 
+  /// The report that gets the result of each call of the view, or `nil`.
+  @Environment(\.sessionListCallReport) private var reportCall
+
   /// Makes the session picker of a connection model.
   ///
   /// - Parameters:
@@ -286,8 +289,15 @@ public struct SessionListView: View {
   }
 
   /// Calls `refreshSessions(cwd:)` when the agent lists its sessions.
+  ///
+  /// When the agent does not list its sessions, the view sends nothing, and
+  /// it gives `nil` to the ``SwiftUI/EnvironmentValues/sessionListCallReport``
+  /// value in the same step.
   private func refresh() async {
-    guard connection.canListSessions else { return }
+    guard connection.canListSessions else {
+      reportCall?(nil)
+      return
+    }
     await perform { try await connection.refreshSessions(cwd: cwd) }
   }
 
@@ -306,16 +316,22 @@ public struct SessionListView: View {
 
   /// Runs one call of the model, and keeps its error message for the view.
   ///
-  /// A call that succeeds removes the last message.
+  /// A call that succeeds removes the last message. The view gives the
+  /// result of the call to the
+  /// ``SwiftUI/EnvironmentValues/sessionListCallReport`` value in the same
+  /// step as it keeps the message.
   ///
   /// - Parameter call: The call of the model.
   private func perform(_ call: () async throws -> Void) async {
+    let message: String?
     do {
       try await call()
-      failureMessage = nil
+      message = nil
     } catch {
-      failureMessage = error.localizedDescription
+      message = error.localizedDescription
     }
+    failureMessage = message
+    reportCall?(message)
   }
 
   /// The title of a session, or ``untitledTitle``.
@@ -346,4 +362,17 @@ public struct SessionListView: View {
       [info.title ?? "", info.cwd.rawValue].contains { $0.localizedStandardContains(needle) }
     }
   }
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets the result of each call of the
+  /// nearest ``SessionListView``, or `nil`.
+  ///
+  /// The view calls the report when a call of the connection model ends, in
+  /// the same step as it keeps the error message: `nil` for a call that
+  /// succeeds, the error message for a call that fails. A refresh that the
+  /// view skips, because the agent does not list its sessions, also gives
+  /// `nil`. The view keeps the message in its own state, so a test waits for
+  /// the report before it reads the failure message.
+  @Entry var sessionListCallReport: ObservationReport<String?>? = nil
 }

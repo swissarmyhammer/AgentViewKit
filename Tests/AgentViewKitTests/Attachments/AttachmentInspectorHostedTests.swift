@@ -6,12 +6,18 @@ import SwiftUI
 import Testing
 import UniformTypeIdentifiers
 
+/// Hosted tests of the attachment views, the inspector and the artifact view.
+///
+/// Each change comes from the test on the main actor: a mount, a press, or a
+/// change of the selection. One render pass after the change puts its result
+/// in the accessibility tree, so the test reads the tree after that pass. An
+/// inspector that opens after the mount shows its split view item only after
+/// a run loop turn, so the two tests of that case wait for the selection and
+/// read the inspector content in its own harness
+/// (``mountInspectorContent(of:)``).
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorHostedTests {
   /// The size of a view that shows the attachment and the inspector.
   static let hostSize = CGSize(width: 900, height: 600)
-
-  /// The time that a test waits for a view change, in seconds.
-  static let waitSeconds: TimeInterval = 2
 
   /// The text that each temporary file holds.
   static let fileText = "let answer = 42\n"
@@ -27,7 +33,7 @@ import UniformTypeIdentifiers
     let attachment = try Self.attachment(named: "Main.swift", in: directory)
     let harness = HostedViewHarness(AttachmentView(attachment), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: AttachmentView.identifier(for: .code)) != nil)
     #expect(harness.element(identifier: AttachmentView.identifier(for: .chip)) == nil)
@@ -39,7 +45,7 @@ import UniformTypeIdentifiers
     let attachment = try Self.attachment(named: "blob.bin", in: directory)
     let harness = HostedViewHarness(AttachmentView(attachment), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     let chip = try #require(harness.element(identifier: AttachmentView.identifier(for: .chip)))
     #expect(chip.label?.contains("blob.bin") == true)
@@ -57,7 +63,7 @@ import UniformTypeIdentifiers
         },
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: Self.customPDFIdentifier)?.label == "paper.pdf")
     #expect(harness.element(identifier: AttachmentView.identifier(for: .pdf)) == nil)
@@ -65,7 +71,16 @@ import UniformTypeIdentifiers
 
   // MARK: - Inspector
 
-  @Test func aPressOnAChipOpensTheInspector() async throws {
+  /// A press on a chip selects its attachment, and the inspector content of
+  /// that selection shows the name and the five actions.
+  ///
+  /// The test waits for the selection, and then mounts the inspector content
+  /// of the selection in its own harness with one render pass.
+  ///
+  /// Gap: the test does not prove that the AppKit split view shows the
+  /// inspector item. In the off-screen harness window the item shows only
+  /// after a run loop turn. Task ^2pbwh3e checks that on a real screen.
+  @Test func aPressOnAChipSelectsItsAttachmentForTheInspectorContent() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(named: "blob.bin", in: directory)
@@ -73,20 +88,20 @@ import UniformTypeIdentifiers
     let harness = HostedViewHarness(
       AttachmentView(attachment).attachmentInspector(selection: selection), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
 
     try Self.withoutAnimation {
       try harness.press(identifier: AttachmentView.identifier(for: .chip))
     }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: AttachmentInspector.nameIdentifier) != nil
-    }
+    await ObservationWait.until { selection.attachment != nil }
 
     #expect(selection.attachment == attachment)
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
+    let content = try Self.mountInspectorContent(of: selection)
+    defer { content.close() }
+    #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
     for identifier in AttachmentInspector.actionIdentifiers {
-      #expect(harness.element(identifier: identifier) != nil, "No action \(identifier).")
+      #expect(content.element(identifier: identifier) != nil, "No action \(identifier).")
     }
   }
 
@@ -98,7 +113,7 @@ import UniformTypeIdentifiers
       ])
   }
 
-  @Test func aClearedSelectionClosesTheInspector() async throws {
+  @Test func aClearedSelectionClosesTheInspector() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(named: "blob.bin", in: directory)
@@ -106,21 +121,28 @@ import UniformTypeIdentifiers
     let harness = HostedViewHarness(
       Text("host").attachmentInspector(selection: selection), size: Self.hostSize)
     defer { harness.close() }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: AttachmentInspector.nameIdentifier) != nil
-    }
+    harness.render()
     #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) != nil)
 
     selection.clear()
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: AttachmentInspector.nameIdentifier) == nil
-    }
+    harness.render()
 
     #expect(selection.attachment == nil)
     #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
   }
 
-  @Test func theThreadViewOfASessionShowsTheSelectionOfTheHost() async throws {
+  /// A thread view of a session with a host selection shows no inspector
+  /// before the host selects, and the selection of the host then holds the
+  /// attachment, whose inspector content shows its name.
+  ///
+  /// The test waits for the selection, and then mounts the inspector content
+  /// of the selection in its own harness with one render pass.
+  ///
+  /// Gap: the test does not prove that the AppKit split view of the thread
+  /// view shows the inspector item. In the off-screen harness window the
+  /// item shows only after a run loop turn. Task ^2pbwh3e checks that on a
+  /// real screen.
+  @Test func theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(named: "notes.md", in: directory)
@@ -132,15 +154,16 @@ import UniformTypeIdentifiers
         .environment(\.inspectorSelection, selection),
       size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
     #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
 
     try Self.withoutAnimation { selection.select(attachment) }
-    await harness.pump(until: Self.waitSeconds) {
-      harness.element(identifier: AttachmentInspector.nameIdentifier) != nil
-    }
+    await ObservationWait.until { selection.attachment != nil }
 
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == "notes.md")
+    #expect(selection.attachment == attachment)
+    let content = try Self.mountInspectorContent(of: selection)
+    defer { content.close() }
+    #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "notes.md")
   }
 
   // MARK: - Artifact
@@ -153,7 +176,7 @@ import UniformTypeIdentifiers
       id: "artifact-1", title: "The plan", type: UTType.swiftSource.identifier, url: url)
     let harness = HostedViewHarness(ArtifactView(artifact: artifact), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ArtifactView.titleIdentifier)?.label == "The plan")
     #expect(harness.element(identifier: AttachmentView.identifier(for: .code)) != nil)
@@ -168,7 +191,7 @@ import UniformTypeIdentifiers
       inlineText: "Step one")
     let harness = HostedViewHarness(ArtifactView(artifact: artifact), size: Self.hostSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: ArtifactView.inlineTextIdentifier) != nil)
     for identifier in ArtifactView.actionIdentifiers {
@@ -190,6 +213,22 @@ import UniformTypeIdentifiers
     var transaction = Transaction()
     transaction.disablesAnimations = true
     try withTransaction(transaction, body)
+  }
+
+  /// Mounts the inspector content of the attachment that `selection` holds,
+  /// as the split view item of the inspector shows it, and makes one render
+  /// pass.
+  ///
+  /// - Parameter selection: The selection whose attachment the content shows.
+  /// - Returns: The harness of the content. The caller closes it.
+  /// - Throws: An issue when the selection holds no attachment.
+  static func mountInspectorContent(of selection: InspectorSelection) throws
+    -> HostedViewHarness<AttachmentInspector>
+  {
+    let attachment = try #require(selection.attachment)
+    let harness = HostedViewHarness(AttachmentInspector(attachment), size: hostSize)
+    harness.render()
+    return harness
   }
 
   /// Writes a file and makes its attachment.

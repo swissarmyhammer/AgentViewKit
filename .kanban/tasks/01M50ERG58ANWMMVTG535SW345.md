@@ -43,10 +43,26 @@ comments:
     - log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-11.log
     - next: review
   timestamp: 2026-10-15T23:22:50.455897+00:00
+- actor: claude-code
+  id: 01m50yn7krc7v9rpexj97rrc3k
+  text: |-
+    ### review — clean
+    - evidence: review sha e082aa3~1..e082aa3 gave 0 findings (0 confirmed, 0 refuted, 14 attempted, 0 failed). 12 files were reviewed. 4 .kanban files were not reviewed because of an ignore rule. The task had no prior findings. The engine gave no test-integrity, dead-code, duplication or reuse finding for this commit. It gave no finding about the 3 older per-file recorders (task ^qj2xaps).
+    - next: none. The task is in done.
+  timestamp: 2026-10-15T23:34:17.464527+00:00
+- actor: claude-code
+  id: 01m50yp2se48npj9ed2pdten3v
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 75 of 75 sites; 2 internal observation points; shared ReportRecorder
+    - test: green — swift test, 1201 passed in 138 suites (1 run, with the T4-A4 fix)
+    - commit: e082aa3
+    - review: clean — 0 findings
+  timestamp: 2026-10-15T23:34:45.294809+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffc980
 title: 'Mail step 7 T4-A5: Remove the clock waits and polls from the Content, Citations, Code, Diff, Streaming and Theme tests'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Content, Citations, Code, Diff, Streaming and Theme (about 78 sites). Same rules as T4-A1. One full run, one commit. Write all text in STE. #mail-step-7

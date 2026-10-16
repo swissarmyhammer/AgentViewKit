@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
     let harness = HostedViewHarness(
       AttachmentTextContent(text: markdown, type: AttachmentTextContent.markdown, filename: "notes.md"))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: CodeBlockView.identifier)?.label == "json code block")
   }

@@ -1,4 +1,3 @@
-import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import DemoSupport
@@ -8,16 +7,21 @@ import Observation
 import SwiftUI
 import Testing
 
+@testable import AgentViewKit
+
 /// The session picker and the thread close over a `ConnectionModel`
 /// (plan.md §3.3, §3.8 "Session picker", "Capabilities", "Close").
 ///
 /// Each test opens a ``ScriptedSession``. The view reads the session list,
 /// the cursor flag and the capability flags of its connection model. The
 /// tests assert on the frames that the scripted agent received.
+///
+/// The picker keeps the failure message of its calls in its own state, and
+/// it reports the end of each call through
+/// ``SwiftUI/EnvironmentValues/sessionListCallReport``. A test waits for that
+/// report, with no clock, and then makes one render pass before it reads
+/// the view.
 @Suite(.serialized, .hostedSerially) @MainActor struct SessionPickerConnectionModelHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 5
-
   /// The size of a list that shows each row.
   static let listSize = CGSize(width: 480, height: 640)
 
@@ -129,19 +133,46 @@ import Testing
     }
   }
 
-  /// Mounts the picker of a session, and waits until the first page shows.
+  /// Mounts the picker of a session, waits until the picker reports the end
+  /// of its first refresh, and then renders it.
+  ///
+  /// The picker starts the refresh when it shows, so the report is certain
+  /// to come: the end of the first page, its failure, or the skipped
+  /// refresh of an agent that does not list its sessions.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
+  ///   - cwd: The working directory that filters the sessions, or `nil`.
+  ///   - calls: The recorder of the call reports of the picker.
   ///   - onOpen: The action for a resumed session.
+  ///   - onNewSession: The new session action, or `nil` for no button.
   /// - Returns: The harness that shows the picker.
   static func mountPicker(
-    _ session: ScriptedSession, onOpen: @escaping (SessionModel) -> Void = { _ in }
-  ) async -> HostedViewHarness<SessionListView> {
+    _ session: ScriptedSession, cwd: AbsolutePath? = nil, calls: ReportRecorder<String?> = ReportRecorder(),
+    onOpen: @escaping (SessionModel) -> Void = { _ in }, onNewSession: (() -> Void)? = nil
+  ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
-      SessionListView(connection: session.connection, onOpen: onOpen), size: listSize)
-    await harness.pump(until: waitTimeout) { !rowIdentifiers(in: harness).isEmpty }
+      SessionListView(connection: session.connection, cwd: cwd, onOpen: onOpen, onNewSession: onNewSession)
+        .environment(\.sessionListCallReport, calls.report),
+      size: listSize)
+    await harness.render { !calls.values.isEmpty }
     return harness
+  }
+
+  /// Presses the element with `identifier`, waits until the picker reports
+  /// the end of the call that the press starts, and then renders `harness`.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the button.
+  ///   - harness: The harness that shows the picker.
+  ///   - calls: The recorder of the call reports of the picker.
+  /// - Throws: The error of the press.
+  static func pressAndRenderTheCall(
+    _ identifier: String, in harness: HostedViewHarness<some View>, calls: ReportRecorder<String?>
+  ) async throws {
+    let reportsBefore = calls.values.count
+    try harness.press(identifier: identifier)
+    await harness.render { calls.values.count > reportsBefore }
   }
 
   /// The identifiers of the rows that show.
@@ -179,11 +210,11 @@ import Testing
   @Test func oneLoadMoreShowsTwoPagesAndSendsTheCursor() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let harness = await Self.mountPicker(session)
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, calls: calls)
     defer { harness.close() }
 
-    try harness.press(identifier: SessionListView.loadMoreIdentifier)
-    await harness.pump(until: Self.waitTimeout) { Self.rowIdentifiers(in: harness).count == 3 }
+    try await Self.pressAndRenderTheCall(SessionListView.loadMoreIdentifier, in: harness, calls: calls)
 
     #expect(
       Self.rowIdentifiers(in: harness) == [
@@ -198,16 +229,12 @@ import Testing
   @Test func aRefreshSendsTheWorkingDirectoryAndReplacesTheList() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
-    let harness = HostedViewHarness(
-      SessionListView(
-        connection: session.connection, cwd: AbsolutePath(rawValue: Self.listedDirectory), onOpen: { _ in }),
-      size: Self.listSize)
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, cwd: AbsolutePath(rawValue: Self.listedDirectory), calls: calls)
     defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) { !Self.rowIdentifiers(in: harness).isEmpty }
+    #expect(!Self.rowIdentifiers(in: harness).isEmpty)
 
-    try harness.press(identifier: SessionListView.refreshIdentifier)
-    await harness.pump(until: Self.waitTimeout) { session.agent.messages(method: "session/list").count == 2 }
-    await harness.pump(until: Self.waitTimeout) { Self.rowIdentifiers(in: harness).count == 1 }
+    try await Self.pressAndRenderTheCall(SessionListView.refreshIdentifier, in: harness, calls: calls)
 
     let lists = session.agent.messages(method: "session/list")
     #expect(lists.map { $0["params"]?["cwd"] } == [.string(Self.listedDirectory), .string(Self.listedDirectory)])
@@ -227,16 +254,18 @@ import Testing
 
   // MARK: - Session info
 
+  /// The update patches the listed item of the open session in the
+  /// connection model, so the test waits for that change of the list.
   @Test func aSessionInfoUpdateOfTheOpenSessionChangesItsRowTitle() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     let harness = await Self.mountPicker(session)
     defer { harness.close() }
+    let connection = session.connection
+    let sessionsBefore = connection.sessions
 
     try await session.sendUpdate(#"{"sessionUpdate": "session_info_update", "title": "\#(Self.renamedTitle)"}"#)
-    await harness.pump(until: Self.waitTimeout) {
-      harness.accessibilityElements().compactMap(\.label).contains { $0.contains(Self.renamedTitle) }
-    }
+    await harness.render { connection.sessions != sessionsBefore }
 
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains { $0.contains(Self.renamedTitle) })
@@ -254,7 +283,6 @@ import Testing
 
     #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
     harness.type("docs")
-    await harness.pump(until: Self.waitTimeout) { Self.rowIdentifiers(in: harness).count == 1 }
 
     #expect(Self.rowIdentifiers(in: harness) == [Self.row(Self.closedSessionID)])
     #expect(session.connection.sessions.count == 2)
@@ -262,15 +290,18 @@ import Testing
 
   // MARK: - Resume
 
+  /// The picker gives the resumed model to its open action before it
+  /// reports the end of the call, so the action has the model after the
+  /// report.
   @Test func aRowPressResumesTheSessionFromTheStartAndOpensItsModel() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     var opened: [SessionModel] = []
-    let harness = await Self.mountPicker(session) { opened.append($0) }
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, calls: calls) { opened.append($0) }
     defer { harness.close() }
 
-    try harness.press(identifier: Self.row(Self.closedSessionID))
-    await harness.pump(until: Self.waitTimeout) { !opened.isEmpty }
+    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls)
 
     #expect(opened.map(\.sessionId.rawValue) == [Self.closedSessionID])
     let resume = try #require(session.agent.messages(method: "session/resume").first)
@@ -287,12 +318,13 @@ import Testing
     }
     defer { session.close() }
     var opened: [SessionModel] = []
-    let harness = await Self.mountPicker(session) { opened.append($0) }
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, calls: calls) { opened.append($0) }
     defer { harness.close() }
 
-    try harness.press(identifier: Self.row(Self.closedSessionID))
-    await harness.pump(until: Self.waitTimeout) { !opened.isEmpty }
+    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls)
 
+    #expect(!opened.isEmpty)
     let resume = try #require(session.agent.messages(method: "session/resume").first)
     #expect(resume["params"]?["cwd"] == .string(Self.docsDirectory))
     #expect(resume["params"]?["additionalDirectories"] == .array(Self.listedAdditionalDirectories.map { .string($0) }))
@@ -304,11 +336,12 @@ import Testing
   @Test func aDeleteSendsSessionDeleteAndTheRowGoesAwayWithTheItem() async throws {
     let session = try await Self.openSession(initialize: Self.deleteCapableInitialize)
     defer { session.close() }
-    let harness = await Self.mountPicker(session)
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, calls: calls)
     defer { harness.close() }
 
-    try harness.press(identifier: SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)))
-    await harness.pump(until: Self.waitTimeout) { Self.rowIdentifiers(in: harness).count == 1 }
+    try await Self.pressAndRenderTheCall(
+      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls)
 
     let delete = try #require(session.agent.messages(method: "session/delete").first)
     #expect(delete["params"]?["sessionId"] == .string(Self.closedSessionID))
@@ -323,13 +356,12 @@ import Testing
       agent.failingMethods = ["session/delete"]
     }
     defer { session.close() }
-    let harness = await Self.mountPicker(session)
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, calls: calls)
     defer { harness.close() }
 
-    try harness.press(identifier: SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)))
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SessionListView.failureIdentifier) != nil
-    }
+    try await Self.pressAndRenderTheCall(
+      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls)
 
     #expect(harness.element(identifier: SessionListView.failureIdentifier) != nil)
     #expect(Self.rowIdentifiers(in: harness).count == 2)
@@ -351,16 +383,16 @@ import Testing
     #expect(deleteControls.isEmpty)
   }
 
+  /// The picker reports the refresh that it skips, in the same step as the
+  /// decision. Thus no `session/list` can go out after the report.
   @Test func withNoSessionCapabilityTheListAndResumeAreHiddenAndNothingIsListed() async throws {
     let session = try await Self.openSession(initialize: Self.sessionlessInitialize)
     defer { session.close() }
-    let harness = HostedViewHarness(
-      SessionListView(connection: session.connection, onOpen: { _ in }), size: Self.listSize)
+    let calls = ReportRecorder<String?>()
+    let harness = await Self.mountPicker(session, calls: calls)
     defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SessionListView.unavailableIdentifier) != nil
-    }
 
+    #expect(calls.values == [nil])
     #expect(!session.connection.canListSessions)
     #expect(!session.connection.canResumeSessions)
     #expect(harness.element(identifier: SessionListView.unavailableIdentifier) != nil)
@@ -372,12 +404,8 @@ import Testing
   @Test func aFailedFirstPageShowsTheError() async throws {
     let session = try await ScriptedSession.open { $0.failingMethods = ["session/list"] }
     defer { session.close() }
-    let harness = HostedViewHarness(
-      SessionListView(connection: session.connection, onOpen: { _ in }), size: Self.listSize)
+    let harness = await Self.mountPicker(session)
     defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) {
-      harness.element(identifier: SessionListView.failureIdentifier) != nil
-    }
 
     #expect(harness.element(identifier: SessionListView.failureIdentifier) != nil)
     #expect(Self.rowIdentifiers(in: harness).isEmpty)
@@ -389,11 +417,9 @@ import Testing
     let session = try await Self.openSession()
     defer { session.close() }
     var count = 0
-    let harness = HostedViewHarness(
-      SessionListView(connection: session.connection, onOpen: { _ in }, onNewSession: { count += 1 }),
-      size: Self.listSize)
+    let harness = await Self.mountPicker(session, onNewSession: { count += 1 })
     defer { harness.close() }
-    await harness.pump(until: Self.waitTimeout) { !Self.rowIdentifiers(in: harness).isEmpty }
+    #expect(!Self.rowIdentifiers(in: harness).isEmpty)
 
     try harness.press(identifier: SessionListView.newSessionIdentifier)
 
@@ -408,17 +434,24 @@ import Testing
     let visibility = Visibility()
     let harness = HostedViewHarness(ClosingHost(session: session, visibility: visibility), size: Self.listSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
+    let model = session.model
 
     visibility.showsThread = false
-    await harness.pump(until: Self.waitTimeout) { session.model.isClosed }
+    harness.render()
+    await ObservationWait.until { model.isClosed }
 
     let close = try #require(session.agent.messages(method: "session/close").first)
     #expect(close["params"]?["sessionId"] == .string(ScriptedSession.sessionID))
-    #expect(session.model.isClosed)
-    #expect(session.connection.session(for: session.model.sessionId) == nil)
+    #expect(model.isClosed)
+    #expect(session.connection.session(for: model.sessionId) == nil)
   }
 
+  /// The thread view reports its close decision when it goes away, in the
+  /// same step as the decision, so the test knows that the view decided to
+  /// send nothing. The `session/new` request after the decision is a fence:
+  /// the frames go over the transport in order, so its answer comes after
+  /// each frame that the close sent.
   @Test func withNoCloseCapabilityTheCloseOfAThreadViewSendsNothing() async throws {
     let session = try await ScriptedSession.open { agent in
       agent.results["initialize"] = Self.sessionlessInitialize
@@ -426,16 +459,20 @@ import Testing
     }
     defer { session.close() }
     let visibility = Visibility()
-    let harness = HostedViewHarness(ClosingHost(session: session, visibility: visibility), size: Self.listSize)
+    let closes = ReportRecorder<Bool>()
+    let harness = HostedViewHarness(
+      ClosingHost(session: session, visibility: visibility)
+        .environment(\.threadCloseReport, closes.report),
+      size: Self.listSize)
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     visibility.showsThread = false
-    harness.pump()
-    // The frames go over the transport in order, so the answer to this
-    // request comes after each frame that the close sent.
+    harness.render()
+    await ObservationWait.until { !closes.values.isEmpty }
     _ = try await session.connection.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: Self.listedDirectory)))
 
+    #expect(closes.values == [false])
     #expect(!session.connection.canCloseSessions)
     #expect(session.agent.messages(method: "session/close").isEmpty)
     #expect(!session.model.isClosed)

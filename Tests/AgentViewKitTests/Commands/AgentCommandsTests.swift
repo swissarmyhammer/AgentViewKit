@@ -15,6 +15,10 @@ final class CallCounter {
 
 /// Tests for the agent commands through the EditorKit headless harness:
 /// registration, eligibility, dispatch, and the default keymap.
+///
+/// A test that waits for the agent waits with `ObservationWait.until` on a
+/// value of the session model or of the scripted agent that the frame is
+/// certain to change, with no clock.
 @MainActor struct AgentCommandsTests {
   /// The text that the send tests send.
   static let message = "Hello"
@@ -94,8 +98,7 @@ final class CallCounter {
   ///
   /// - Parameter session: The scripted session.
   /// - Returns: The row key of each user message entry, in order.
-  /// - Throws: The error of the transport, or an issue when the model does
-  ///   not hold each entry at the time limit.
+  /// - Throws: The error of the transport.
   static func sendTurns(to session: ScriptedSession) async throws -> [String] {
     for turn in 0..<turnCount {
       try await session.sendUpdate(
@@ -105,8 +108,9 @@ final class CallCounter {
         WireBlockJSON.makeChunk(
           "agent_message_chunk", messageID: "answer-\(turn)", block: WireBlockJSON.makeText("Answer \(turn).")))
     }
-    try #require(await waitUntil { session.model.transcript.count == 2 * turnCount })
-    return session.model.transcript.compactMap { entry in
+    let model = session.model
+    await ObservationWait.until { model.transcript.count == 2 * turnCount }
+    return model.transcript.compactMap { entry in
       if case .userMessage = entry { entry.rowKey } else { nil }
     }
   }
@@ -234,8 +238,9 @@ final class CallCounter {
     try await Self.sendState(ScriptedSession.runningState, to: session)
 
     #expect(fixture.system.perform(AgentCommandVerb.cancel.id))
-    #expect(await waitUntil { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty })
-    #expect(session.agent.messages(method: ScriptedSession.cancelMethod).count == 1)
+    let agent = session.agent
+    await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
+    #expect(agent.messages(method: ScriptedSession.cancelMethod).count == 1)
   }
 
   // MARK: - Keymap
@@ -290,14 +295,14 @@ final class CallCounter {
     _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
     try await session.sendRequest(
       ScriptedSession.permissionMethod, id: Self.secondRequestID, params: ScriptedSession.permissionParams)
-    try #require(await waitUntil { model.pendingPermissions.count == 2 })
+    await ObservationWait.until { model.pendingPermissions.count == 2 }
     let second = try #require(model.pendingPermissions.last)
     let payload = AgentCommandPayload.permission(
       request: second.id, option: PermissionOptionId(rawValue: Self.rejectOptionID), comment: Self.comment)
 
     #expect(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
     let result = await session.result(ofRequest: Self.secondRequestID)
-    #expect(await waitUntil { !session.promptTexts.isEmpty })
+    await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
     #expect(model.pendingPermissions.count == 1)
@@ -332,26 +337,30 @@ final class CallCounter {
       WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
-    try #require(await waitUntil { model.transcript.count == 3 })
+    await ObservationWait.until { model.transcript.count == 3 }
 
     #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
     #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.")
   }
 
+  /// The manager sends the scroll to the bottom from a main-actor task, so
+  /// the scroll target comes after the command returns. The observable
+  /// recorder of the targets is the event that the task ran.
   @Test func scrollToBottomPinsTheList() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let userKeys = try await Self.sendTurns(to: session)
-    var targets: [ScrollAnchorTarget] = []
-    let anchors = ScrollAnchorManager { targets.append($0) }
+    let targets = ReportRecorder<ScrollAnchorTarget>()
+    let anchors = ScrollAnchorManager { targets.report($0) }
     anchors.noteLastItemChanged(to: session.model.transcript.last?.rowKey)
     anchors.noteVisible(ids: [try #require(userKeys.first)], distanceFromBottom: .greatestFiniteMagnitude)
     let fixture = Self.makeFixture(session: session.model) { $0.anchors = anchors }
-    targets.removeAll()
+    let targetsBefore = targets.values.count
 
     #expect(fixture.system.perform(AgentCommandVerb.scrollToBottom.id))
     #expect(anchors.isPinnedToBottom)
-    #expect(await waitUntil { targets == [.bottom] })
+    await ObservationWait.until { targets.values.count > targetsBefore }
+    #expect(Array(targets.values.dropFirst(targetsBefore)) == [.bottom])
   }
 
   @Test func theJumpCommandsGoToTheNextAndThePreviousTurn() async throws {
@@ -409,15 +418,19 @@ final class CallCounter {
   /// Sends a `state_update` from the agent, and waits until the agent state
   /// of the session model changes.
   ///
+  /// The update must differ from the agent state of the model, so that its
+  /// fold is certain to change the state.
+  ///
   /// - Parameters:
   ///   - update: The JSON text of the update, such as
   ///     ``ScriptedSession/runningState``.
   ///   - session: The scripted session.
   /// - Throws: The error of the transport.
   static func sendState(_ update: String, to session: ScriptedSession) async throws {
-    let before = session.model.agentState
+    let model = session.model
+    let before = model.agentState
     try await session.sendUpdate(update)
-    #expect(await waitUntil { session.model.agentState != before })
+    await ObservationWait.until { model.agentState != before }
   }
 
   @Test func cancelFollowsTheAgentStateOfTheSessionModel() async throws {
@@ -465,23 +478,31 @@ final class CallCounter {
     let fixture = Self.makeFixture(session: session.model)
 
     #expect(fixture.system.perform(AgentCommandVerb.send.id, payload: AgentCommandPayload.text(Self.message)))
-    #expect(await waitUntil { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty })
+    let agent = session.agent
+    await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
     #expect(session.promptTexts == [Self.message])
   }
 
+  /// The agent sends the chunks in order, and the model folds them in
+  /// order. The last chunk is only for the assistant, so the plain text does
+  /// not change with it; the wait is for the agent message entry to hold the
+  /// three blocks.
   @Test func theCopyTextOfASessionJoinsTheChunksAndOmitsBlocksThatAreNotForTheUser() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
     let expected = "User:\nHi.\n\nAssistant:\nHello."
+    let blocks = [WireBlockJSON.makeText("Hel"), WireBlockJSON.makeText("lo."), Self.assistantOnlyText]
 
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("user_message_chunk", messageID: "copy-u", block: WireBlockJSON.makeText("Hi.")))
-    for block in [WireBlockJSON.makeText("Hel"), WireBlockJSON.makeText("lo."), Self.assistantOnlyText] {
+    for block in blocks {
       try await session.sendUpdate(WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: block))
     }
-    _ = await waitUntil { AgentCommandTarget.plainText(of: model) == expected }
+    await ObservationWait.until {
+      BackgroundRunsHostedTests.agentMessage(messageID: "copy-m", in: model)?.content.count == blocks.count
+    }
 
     #expect(AgentCommandTarget.plainText(of: model) == expected)
   }
@@ -498,7 +519,7 @@ final class CallCounter {
       WireBlockJSON.makeChunk("user_message_chunk", messageID: "expand-u", block: WireBlockJSON.makeText("Hi.")))
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "expand-m", block: WireBlockJSON.makeText("Hello.")))
-    #expect(await waitUntil { model.transcript.count == 2 })
+    await ObservationWait.until { model.transcript.count == 2 }
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))
     #expect(model.transcript.allSatisfy { store.isExpanded(entry: $0) })
@@ -515,7 +536,7 @@ final class CallCounter {
     let fixture = Self.makeFixture(session: model) { $0.expandedBlocks = store }
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_message_chunk", messageID: "policy-m", block: WireBlockJSON.makeText("Hello.")))
-    #expect(await waitUntil { !model.transcript.isEmpty })
+    await ObservationWait.until { !model.transcript.isEmpty }
     #expect(model.transcript.allSatisfy { store.isExpanded(entry: $0) })
 
     #expect(fixture.system.perform(AgentCommandVerb.toggleExpandAll.id))

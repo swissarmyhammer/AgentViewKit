@@ -10,6 +10,10 @@
   /// Hosted tests of one ``TerminalView`` over a `TerminalEntry` of a scripted
   /// session. `SessionEntryRowsHostedTests` tests the terminal rows of the
   /// thread.
+  ///
+  /// The view syncs the editor model in a change action that runs with the
+  /// update, so one render pass after the mount, or after a press, gives the
+  /// text that the test reads.
   @Suite(.serialized, .hostedSerially) @MainActor struct TerminalViewHostedTests {
     /// The command in the header.
     static let command = "npm test"
@@ -25,8 +29,6 @@
     static let rowLimit = 3
     /// The number of lines in the long output.
     static let longLineCount = 10
-    /// The longest time that a test waits for a view update, in seconds.
-    static let timeout: TimeInterval = 5
     /// The size that the pixel tests render the view at.
     static let renderSize = CGSize(width: 480, height: 240)
     /// The `command` and `cwd` members of a `terminal_update`.
@@ -62,8 +64,7 @@
     ///
     /// - Parameter fields: The other members of the update, as JSON members.
     /// - Returns: The session and the terminal entry.
-    /// - Throws: The error of the transport, or an issue when the model holds
-    ///   no terminal entry at the time limit.
+    /// - Throws: The error of the transport.
     static func openTerminal(_ fields: String) async throws -> (ScriptedSession, TerminalEntry) {
       try await ScriptedSession.openWithEntry(
         update: SessionEntryRowsHostedTests.terminalUpdate(fields), lookingUp: firstTerminal(in:))
@@ -76,7 +77,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(TerminalView(entry: terminal))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal, \(Self.command)")
       #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == Self.command)
@@ -90,7 +91,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(TerminalView(entry: terminal))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal")
       #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == "Terminal")
@@ -107,7 +108,7 @@
       let model = EditorModel("")
       let harness = HostedViewHarness(TerminalView(entry: terminal, model: model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(model.text == "red\ndone")
       #expect(model.isReadOnly)
@@ -122,7 +123,7 @@
       let harness = HostedViewHarness(
         TerminalView(entry: terminal, model: model).editorTheme(DistinctRolesTheme()))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(
         model.colorRuns == [
@@ -149,7 +150,7 @@
       let model = EditorModel("")
       let harness = HostedViewHarness(TerminalView(entry: terminal, model: model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(model.text == "a\u{FFFD}(")
     }
@@ -161,7 +162,7 @@
       let model = EditorModel("")
       let harness = HostedViewHarness(TerminalView(entry: terminal, rowLimit: Self.rowLimit, model: model))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(
         harness.element(identifier: TerminalView.capIdentifier)?.label
@@ -169,7 +170,6 @@
       #expect(model.text == lines.suffix(Self.rowLimit).joined(separator: "\n"))
 
       try harness.press(identifier: TerminalView.showAllIdentifier)
-      harness.pump()
 
       #expect(model.text == lines.joined(separator: "\n"))
       #expect(harness.element(identifier: TerminalView.capIdentifier) == nil)
@@ -182,15 +182,13 @@
       defer { session.close() }
       let harness = HostedViewHarness(TerminalView(entry: terminal))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
       #expect(harness.element(identifier: TerminalView.progressIdentifier) != nil)
       #expect(harness.element(identifier: TerminalView.footerIdentifier) == nil)
 
       try await session.sendUpdate(
         SessionEntryRowsHostedTests.terminalUpdate(#""exitStatus": {"exitCode": \#(Self.failureExitCode)}"#))
-      await harness.pump(until: Self.timeout) {
-        harness.element(identifier: TerminalView.footerIdentifier) != nil
-      }
+      await harness.render { terminal.exitStatus != nil }
 
       let footer = harness.element(identifier: TerminalView.footerIdentifier)
       #expect(footer?.label == "Exit code \(Self.failureExitCode)")
@@ -203,7 +201,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(TerminalView(entry: terminal))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       let footer = harness.element(identifier: TerminalView.footerIdentifier)
       #expect(footer?.label == "Stopped by \(Self.signal)")
@@ -215,7 +213,7 @@
       defer { session.close() }
       let harness = HostedViewHarness(TerminalView(entry: terminal))
       defer { harness.close() }
-      harness.pump()
+      harness.render()
 
       #expect(harness.element(identifier: TerminalView.footerIdentifier)?.label == "Exited")
       #expect(harness.element(identifier: TerminalView.progressIdentifier) == nil)

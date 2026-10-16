@@ -56,7 +56,7 @@ import Testing
   @Test func theRingHasAnAccessibilityLabel() {
     let harness = HostedViewHarness(Self.ring.accessibilityIdentifier(Self.identifier))
     defer { harness.close() }
-    harness.pump()
+    harness.render()
 
     #expect(harness.element(identifier: Self.identifier)?.label == UsageRingView.labelText)
   }

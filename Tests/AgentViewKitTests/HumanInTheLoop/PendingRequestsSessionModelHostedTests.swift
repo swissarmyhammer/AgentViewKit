@@ -16,9 +16,6 @@
   /// `ConnectionModel` of a ``ScriptedSession``. The scripted agent sends the
   /// request, and the test reads the frames that the agent receives.
   @Suite(.serialized, .hostedSerially) @MainActor struct PendingRequestsSessionModelHostedTests {
-    /// The longest time that a test waits for a change, in seconds.
-    static let waitTimeout: TimeInterval = 5
-
     /// The size of the hosted cards.
     static let size = CGSize(width: 640, height: 480)
 
@@ -233,9 +230,8 @@
       let agent = session.agent
       let requestID = Double(Self.agentRequestID)
 
-      let pendingID = try await session.sendPermissionRequest(
-        id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
-      model.answerPermission(try #require(pendingID), option: Self.rejectOptionID, comment: Self.comment)
+      let pendingID = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
+      model.answerPermission(pendingID, option: Self.rejectOptionID, comment: Self.comment)
       await ObservationWait.until {
         Self.indexOfPrompt(withText: Self.comment, in: agent) != nil
           && agent.index(ofResponseTo: requestID) != nil

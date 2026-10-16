@@ -26,14 +26,14 @@ import Testing
   ///
   /// - Returns: The session and its two entries.
   /// - Throws: The error of the transport, or an issue when the transcript
-  ///   does not hold the two entries at the time limit.
+  ///   does not hold the two entries.
   private static func openPolicyEntries() async throws -> PolicyEntries {
     let session = try await ScriptedSession.open()
     try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "tool-1", fields: #""title": "Read file""#))
     try await session.sendUpdate(
       WireBlockJSON.makeChunk("agent_thought_chunk", messageID: "thought-1", block: WireBlockJSON.makeText("Think")))
     let model = session.model
-    _ = await waitUntil { model.transcript.count == policyEntryCount }
+    await ObservationWait.until { model.transcript.count == policyEntryCount }
     let toolCall = try #require(model.transcript.first { if case .toolCall = $0 { true } else { false } })
     let thought = try #require(model.transcript.first { if case .thought = $0 { true } else { false } })
     return PolicyEntries(session: session, toolCall: toolCall, thought: thought)

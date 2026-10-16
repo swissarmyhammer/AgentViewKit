@@ -84,6 +84,10 @@ public struct AgentThreadView: View {
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
 
+  /// The report that gets the close decision of the view when it goes away,
+  /// or `nil`.
+  @Environment(\.threadCloseReport) private var reportClose
+
   /// Makes the view of the transcript of a session model.
   ///
   /// When the host gives the connection model of the session, the view
@@ -139,8 +143,14 @@ public struct AgentThreadView: View {
 
   /// Starts the close of the session when the host gave the connection
   /// model, the agent serves `session/close`, and the session is not closed.
+  ///
+  /// The view gives the decision to the
+  /// ``SwiftUI/EnvironmentValues/threadCloseReport`` value in the same step,
+  /// before the close starts.
   private func closeWhenSupported() {
-    guard let connection, connection.canCloseSessions, !session.isClosed else { return }
+    let closes = connection.map { $0.canCloseSessions && !session.isClosed } ?? false
+    reportClose?(closes)
+    guard closes, let connection else { return }
     Task { [session] in await Self.close(session, on: connection) }
   }
 
@@ -157,4 +167,15 @@ public struct AgentThreadView: View {
       session.appendError(reporting: error)
     }
   }
+}
+
+extension EnvironmentValues {
+  /// The ``ObservationReport`` that gets the close decision of the nearest
+  /// ``AgentThreadView`` when the view goes away, or `nil`.
+  ///
+  /// The view calls the report in the same step as the decision: `true`
+  /// when it starts the close of the session, `false` when it sends nothing.
+  /// Thus a test that checks that no `session/close` goes out waits for the
+  /// report, and not for a time.
+  @Entry var threadCloseReport: ObservationReport<Bool>? = nil
 }

@@ -46,9 +46,6 @@ import Testing
 /// the steps that the reader reports (``TurnAnnouncementStepRecorder``) or for
 /// the announcement in the observable ``RecordingAnnouncer``.
 @Suite(.serialized, .hostedSerially) @MainActor struct ThreadAccessibilityHostedTests {
-  /// The longest time that a test waits for a change, in seconds.
-  static let waitTimeout: TimeInterval = 2
-
   /// The size of the host window. It is tall enough for each row.
   static let hostSize = CGSize(width: 640, height: 720)
 
@@ -339,8 +336,7 @@ import Testing
     let harness = await Self.makeHarness(session: session, announcer: announcer)
     defer { harness.close() }
 
-    _ = try await session.sendPermissionRequest(
-      id: Self.agentRequestID, pumping: harness, timeout: Self.waitTimeout)
+    _ = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
     harness.render()
 
     let request = try #require(session.model.pendingPermissions.first)
@@ -433,8 +429,7 @@ import Testing
     harness.render()
     let model = session.model
 
-    let id = try #require(
-      try await session.sendPermissionRequest(id: 1, pumping: harness, timeout: Self.waitTimeout))
+    let id = try await session.sendPermissionRequest(id: 1, rendering: harness)
     harness.render()
 
     #expect(reporter.moves.contains(PendingRequestsHost.identifier(for: id.uuidString)))
@@ -460,8 +455,7 @@ import Testing
     #expect(mover.lastMove == nil)
     let model = session.model
 
-    let id = try #require(
-      try await session.sendPermissionRequest(id: 1, pumping: harness, timeout: Self.waitTimeout))
+    let id = try await session.sendPermissionRequest(id: 1, rendering: harness)
     harness.render()
     #expect(mover.lastMove != nil)
 
