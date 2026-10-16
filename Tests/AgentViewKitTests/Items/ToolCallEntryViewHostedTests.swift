@@ -35,6 +35,13 @@
     /// The JSON-RPC id of the elicitation request of the agent.
     static let elicitationRequestID = 41
 
+    /// The JSON-RPC id of the permission request of the agent.
+    static let permissionRequestID = 42
+
+    /// The label of the status of a call that waits for the answer of the
+    /// user.
+    static let waitingLabel = "Waiting for your answer"
+
     /// The default branch of the linked form of the accept test.
     static let defaultBranch = "main"
 
@@ -313,70 +320,195 @@
 
     // MARK: - Linked elicitation
 
-    @Test func aLinkedElicitationShowsInTheRowOfItsToolCallOnly() async throws {
-      let session = try await ScriptedSession.open()
-      defer { session.close() }
-      let store = ExpandedBlocksStore()
-      let harness = Self.mountThread(session, store: store)
-      defer { harness.close() }
-      let model = session.model
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "ask-c", fields: Self.readFields))
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "other-c", fields: Self.readFields))
-      await ObservationWait.until { Self.rowKey(ofCall: "other-c", in: model) != nil }
-      let askKey = try #require(Self.rowKey(ofCall: "ask-c", in: model))
-      let otherKey = try #require(Self.rowKey(ofCall: "other-c", in: model))
+    // The tool call row shows only a status for a linked elicitation. The
+    // card of the elicitation is in the ``RequestDeck`` (deck design
+    // section 5, test plan row 38).
 
-      let params = #"""
-        {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "ask-c",
-         "message": "Which branch?", "mode": "form",
-         "requestedSchema": {"type": "object", "properties": {"branch": {"type": "string"}}}}
-        """#
-      try await session.agent.send(
-        #"{"jsonrpc":"2.0","id":\#(Self.elicitationRequestID),"method":"elicitation/create","params":\#(params)}"#)
-      // The model links the elicitation to its tool call in the same step as
-      // it adds the pending elicitation.
-      await harness.render { !model.pendingElicitations.isEmpty }
+    /// One request of the agent to the client.
+    struct AgentRequest {
+      /// The JSON-RPC method of the request.
+      let method: String
 
-      let linked = try #require(Self.toolCallEntry("ask-c", in: model)?.linkedElicitationIDs.first)
-      #expect(model.pendingElicitations.map(\.id) == [linked])
-      #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: askKey)) != nil)
-      #expect(harness.element(identifier: ElicitationView.headerIdentifier) != nil)
-      #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: otherKey)) == nil)
+      /// The JSON-RPC id of the request.
+      let id: Int
+
+      /// The JSON text of the params.
+      let params: String
+
+      /// A form elicitation that the agent links to the tool call of `id`,
+      /// with the id ``elicitationRequestID``. The one field `branch` has the
+      /// default ``defaultBranch``, so the form can submit at once.
+      ///
+      /// - Parameter id: The `toolCallId` of the call.
+      /// - Returns: The request.
+      static func linkedElicitation(toolCall id: String) -> AgentRequest {
+        let params = #"""
+          {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "\#(id)",
+           "message": "Which branch?", "mode": "form",
+           "requestedSchema": {"type": "object",
+                               "properties": {"branch": {"type": "string", "default": "\#(defaultBranch)"}}}}
+          """#
+        return AgentRequest(method: ScriptedSession.elicitationMethod, id: elicitationRequestID, params: params)
+      }
+
+      /// A permission request that the agent links to the tool call of `id`,
+      /// with the id ``permissionRequestID``.
+      ///
+      /// - Parameter id: The `toolCallId` of the call.
+      /// - Returns: The request.
+      static func linkedPermission(toolCall id: String) -> AgentRequest {
+        let params = #"""
+          {"sessionId": "\#(ScriptedSession.sessionID)", "toolCall": {"toolCallId": "\#(id)"},
+           "title": "Edit a.swift",
+           "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"}]}
+          """#
+        return AgentRequest(method: ScriptedSession.permissionMethod, id: permissionRequestID, params: params)
+      }
+
+      /// A permission request with no tool call, with the id
+      /// ``permissionRequestID``.
+      static let permission = AgentRequest(
+        method: ScriptedSession.permissionMethod, id: permissionRequestID, params: ScriptedSession.permissionParams)
     }
 
-    @Test func aLinkedElicitationAcceptSendsTheFormValuesAsTheACPContent() async throws {
+    /// Mounts the thread and the deck of `session` in one focus scope, as an
+    /// app does, with `reporter` as the focus reporter.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - reporter: The focus reporter of the environment.
+    /// - Returns: The harness.
+    static func mountThreadAndDeck(
+      _ session: ScriptedSession, reporter: RecordingFocusReporter
+    ) -> HostedViewHarness<some View> {
+      HostedViewHarness(size: tallSize) {
+        ThreadAccessibilityHostedTests.threadAndDeck(of: session.model)
+          .environment(\.focusReporter, reporter)
+          .transaction { $0.disablesAnimations = true }
+      }
+    }
+
+    /// Sends the tool call of `id`, and then each of `requests`, in order.
+    /// The function waits until the model holds the entry of the call and
+    /// each request.
+    ///
+    /// The client handles each request of the agent in its own task, so the
+    /// function sends a request only after the model holds the request before
+    /// it. Then the order of the model is the order of `requests`. The caller
+    /// makes the render pass.
+    ///
+    /// - Parameters:
+    ///   - id: The `toolCallId` of the call.
+    ///   - requests: The requests of the agent.
+    ///   - session: The scripted session.
+    /// - Returns: The row key of the call.
+    /// - Throws: The error of the transport, or a missing entry.
+    static func sendCall(
+      _ id: String, thenRequests requests: [AgentRequest], to session: ScriptedSession
+    ) async throws -> String {
+      let model = session.model
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: readFields))
+      await ObservationWait.until { toolCallEntry(id, in: model) != nil }
+      for (offset, request) in requests.enumerated() {
+        try await session.sendRequest(request.method, id: request.id, params: request.params)
+        await ObservationWait.until { model.pendingRequests.count == offset + 1 }
+      }
+      return try #require(rowKey(ofCall: id, in: model))
+    }
+
+    @Test func aLinkedCallShowsTheWaitingStatusInItsRowOnlyAndNoForm() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
-      let store = ExpandedBlocksStore()
-      let harness = Self.mountThread(session, store: store)
+      let harness = Self.mountThread(session, store: ExpandedBlocksStore())
       defer { harness.close() }
       let model = session.model
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "accept-c", fields: Self.readFields))
-      await ObservationWait.until { Self.rowKey(ofCall: "accept-c", in: model) != nil }
-      let key = try #require(Self.rowKey(ofCall: "accept-c", in: model))
+      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "other-c", fields: Self.readFields))
+      await ObservationWait.until { Self.rowKey(ofCall: "other-c", in: model) != nil }
+      let otherKey = try #require(Self.rowKey(ofCall: "other-c", in: model))
 
-      let params = #"""
-        {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "accept-c",
-         "message": "Which branch?", "mode": "form",
-         "requestedSchema": {"type": "object",
-                             "properties": {"branch": {"type": "string", "default": "\#(Self.defaultBranch)"}}}}
-        """#
-      let pending = try await session.receiveElicitation(id: Self.elicitationRequestID, params: params)
+      let key = try await Self.sendCall("ask-c", thenRequests: [.linkedElicitation(toolCall: "ask-c")], to: session)
       harness.render()
-      #expect(Self.toolCallEntry("accept-c", in: model)?.linkedElicitationIDs == [pending.id])
-      #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) != nil)
+
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key))?.label == Self.waitingLabel)
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: otherKey)) == nil)
+      #expect(harness.element(identifier: ElicitationView.formIdentifier) == nil)
+    }
+
+    @Test func aPressOnTheWaitingStatusBringsTheLinkedCardToTheFrontWithTheFocus() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let reporter = RecordingFocusReporter()
+      let harness = Self.mountThreadAndDeck(session, reporter: reporter)
+      defer { harness.close() }
+      let model = session.model
+      let key = try await Self.sendCall(
+        "front-c", thenRequests: [.permission, .linkedElicitation(toolCall: "front-c")], to: session)
+      harness.render()
+      let linked = try #require(model.pendingElicitations.first?.id)
+      #expect(model.frontRequest?.id != linked)
+
+      try harness.press(identifier: ToolCallView.waitingIdentifier(for: key))
+
+      #expect(model.frontRequestID == linked)
+      #expect(harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 2 of 2")
+      #expect(reporter.moves.last == RequestDeck.identifier(for: linked.uuidString))
+    }
+
+    @Test func anAnswerInTheDeckRemovesTheWaitingStatus() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThreadAndDeck(session, reporter: RecordingFocusReporter())
+      defer { harness.close() }
+      let model = session.model
+      let key = try await Self.sendCall(
+        "accept-c", thenRequests: [.linkedElicitation(toolCall: "accept-c")], to: session)
+      harness.render()
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) != nil)
 
       try harness.press(identifier: ElicitationView.submitIdentifier)
+      let result = await session.result(ofRequest: Self.elicitationRequestID)
       // The model removes the pending elicitation and its link in the same
       // step as it sends the answer that the agent gets.
-      let result = await session.result(ofRequest: Self.elicitationRequestID)
+      await ObservationWait.until { model.pendingRequests.isEmpty }
       harness.render()
 
       let expected = try JSONValue(
         json: #"{"action": "accept", "content": {"branch": "\#(Self.defaultBranch)"}}"#)
       #expect(result == expected)
-      #expect(model.pendingElicitations.isEmpty)
-      #expect(harness.element(identifier: ToolCallView.elicitationsIdentifier(for: key)) == nil)
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)
+    }
+
+    @Test func noToolCallRowShowsAnInlineFormForAPermissionOrAnElicitation() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThread(session, store: ExpandedBlocksStore())
+      defer { harness.close() }
+
+      let key = try await Self.sendCall(
+        "both-c",
+        thenRequests: [.linkedPermission(toolCall: "both-c"), .linkedElicitation(toolCall: "both-c")],
+        to: session)
+      harness.render()
+
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) != nil)
+      #expect(harness.element(identifier: ElicitationView.formIdentifier) == nil)
+      #expect(harness.element(identifier: PermissionView.identifier) == nil)
+    }
+
+    @Test func aCallWithNoSessionModelInTheEnvironmentShowsNoWaitingStatus() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let key = try await Self.sendCall(
+        "alone-c", thenRequests: [.linkedElicitation(toolCall: "alone-c")], to: session)
+      let entry = try #require(Self.toolCallEntry("alone-c", in: session.model))
+      #expect(!entry.linkedElicitationIDs.isEmpty)
+
+      let harness = HostedViewHarness(size: Self.tallSize) { ToolCallView(entry: entry) }
+      defer { harness.close() }
+      harness.render()
+
+      #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)
     }
   }
 #endif

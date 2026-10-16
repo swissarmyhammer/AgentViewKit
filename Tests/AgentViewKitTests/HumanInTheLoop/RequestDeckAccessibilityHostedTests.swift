@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import AppKit
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -136,6 +137,55 @@ import Testing
 
     #expect(result == (try JSONValue(json: #"{"outcome": {"outcome": "cancelled"}}"#)))
     #expect(model.pendingElicitations.count == 1)
+  }
+
+  // The cards use `defaultFocus`. The two tests below show that the default
+  // focus runs in a hosted window: a card alone in a window gets the keyboard
+  // focus, and a new card does not take the keyboard focus from the prompt
+  // editor.
+
+  @Test func aCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    try await session.sendRequest(
+      ScriptedSession.elicitationMethod, id: Self.firstRequestID, params: ScriptedSession.formElicitationParams)
+    await ObservationWait.until { !model.pendingRequests.isEmpty }
+    let harness = Self.mountDeck(of: session)
+    defer { harness.close() }
+
+    try harness.sendKey(.escape)
+
+    // The card cancels the request on the main actor. Only then is the
+    // answer to the agent certain to come.
+    try #require(model.pendingElicitations.isEmpty)
+    let result = await session.result(ofRequest: Self.firstRequestID)
+    #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))
+  }
+
+  @Test func aNewCardDoesNotTakeTheKeyboardFocusFromThePromptEditor() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = HostedViewHarness(size: Self.size) {
+      VStack {
+        RequestDeck(session: session.model)
+        Spacer()
+        PromptInputHost(model: PromptInputHostedTestModel())
+      }
+      .accessibilityFocusScope()
+      .environment(\.sessionModel, session.model)
+      .transaction { $0.disablesAnimations = true }
+    }
+    defer { harness.close() }
+    harness.render()
+    let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
+    try #require(harness.window.makeFirstResponder(editor))
+    harness.render()
+
+    try await RequestDeckHostedTests.sendRequests(1, to: session, rendering: harness)
+
+    #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
+    #expect(harness.window.firstResponder === editor)
   }
 
   @Test func theThreadAndTheDeckWithTwoRequestsGiveExactlyTwoAnnouncements() async throws {

@@ -73,10 +73,17 @@ extension View {
 /// ``SwiftUI/EnvironmentValues/toolCallRegistry`` shows the registered view
 /// in place of the default body. See ``SwiftUI/View/toolCallView(named:_:)``.
 ///
-/// Under the row of an entry, the view shows a card for each pending
-/// elicitation of the ``SwiftUI/EnvironmentValues/sessionModel`` that is
-/// linked to the call (`ToolCallEntry.linkedElicitationIDs`). The cards show
-/// also while the call is collapsed, because they wait for the user.
+/// Under the row of an entry that links a pending elicitation of the
+/// ``SwiftUI/EnvironmentValues/sessionModel``
+/// (`ToolCallEntry.linkedElicitationIDs`), the view shows one "Waiting for
+/// your answer" button (identifier ``waitingIdentifier(for:)``). The button
+/// shows also while the call is collapsed. A press calls
+/// `SessionModel.bringToFront(toolCall:)`, and the ``RequestDeck`` then shows
+/// the card of the elicitation at the front and moves the focus into it. The
+/// view shows no form for an elicitation or a permission request: the deck is
+/// the only place to answer. With no session model in the environment, the
+/// view shows no status. If the app shows no deck, a press has no visible
+/// effect.
 ///
 /// The user decision is in the ``ExpandedBlocksStore`` of the environment,
 /// keyed by the row key of the entry. An entry with no decision uses the
@@ -118,8 +125,8 @@ public struct ToolCallView: View {
   /// index.
   static let contentInfix = "-content-"
 
-  /// The end of the accessibility identifier of the linked elicitations.
-  static let elicitationsSuffix = "-elicitations"
+  /// The end of the accessibility identifier of the waiting status.
+  static let waitingSuffix = "-waiting"
 
   /// The language of the code blocks that show the raw input and output.
   static let jsonLanguage = "json"
@@ -238,13 +245,13 @@ public struct ToolCallView: View {
     bodyCounterPrefix + id
   }
 
-  /// The accessibility identifier of the cards of the elicitations that are
-  /// linked to the call of `id`.
+  /// The accessibility identifier of the "Waiting for your answer" status of
+  /// the call of `id`.
   ///
   /// - Parameter id: The row key of the entry.
-  /// - Returns: `tool-call-<id>-elicitations`.
-  public static func elicitationsIdentifier(for id: String) -> String {
-    suffixedIdentifier(for: id, suffix: elicitationsSuffix)
+  /// - Returns: `tool-call-<id>-waiting`.
+  public static func waitingIdentifier(for id: String) -> String {
+    suffixedIdentifier(for: id, suffix: waitingSuffix)
   }
 
   // MARK: - Text
@@ -314,7 +321,7 @@ public struct ToolCallView: View {
     let expanded = store.isExpanded(entry: .toolCall(entry))
     return VStack(alignment: .leading, spacing: theme.spacing.xs) {
       ToolCallHeader(entry: entry, store: store, expanded: expanded)
-      LinkedElicitations(entry: entry)
+      ToolCallWaitingStatus(entry: entry)
       if expanded {
         ToolCallBody(entry: entry, registration: toolCallRegistry.registration(named: entry.name), theme: theme)
           .equatable()
@@ -572,16 +579,22 @@ private struct ToolCallBody: View, Equatable {
   }
 }
 
-/// The cards of the pending elicitations that are linked to a tool call entry
-/// (plan.md §3.2 "Pending requests", §3.8 "Tool call view").
+/// The "Waiting for your answer" status of a tool call entry that links a
+/// pending elicitation (plan.md §3.2 "Pending requests", §3.8 "Tool call
+/// view", deck design section 5).
 ///
-/// The view reads `ToolCallEntry.linkedElicitationIDs` and finds each one in
-/// the `pendingElicitations` of the ``SwiftUI/EnvironmentValues/sessionModel``.
-/// It gives each `PendingElicitation` to an ``ElicitationCard`` with no
-/// conversion, in link order, and the card answers to the session model. With
-/// no session model in the environment, or with no linked elicitation, it
-/// shows nothing.
-private struct LinkedElicitations: View {
+/// The status is one button with a question symbol. A press calls
+/// `SessionModel.bringToFront(toolCall:)`, which brings the oldest linked
+/// elicitation to the front of the ``RequestDeck`` of the session. The deck
+/// then moves the VoiceOver focus and the keyboard focus into its card. The
+/// row shows no form, so the deck is the only place to answer.
+///
+/// The view reads `ToolCallEntry.linkedElicitationIDs` and the
+/// `pendingElicitations` of the ``SwiftUI/EnvironmentValues/sessionModel``.
+/// With no session model in the environment, or with no linked elicitation
+/// that has a card, it shows nothing. The identifier of the button is
+/// ``ToolCallView/waitingIdentifier(for:)``.
+private struct ToolCallWaitingStatus: View {
   /// The log of a link that the session model has no pending request for.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "ToolCallView")
 
@@ -589,19 +602,18 @@ private struct LinkedElicitations: View {
   let entry: ToolCallEntry
 
   @Environment(\.sessionModel) private var session
-  @Environment(\.agentTheme) private var theme
 
   var body: some View {
-    if let session {
-      let elicitations = Self.elicitations(linkedTo: entry, in: session)
-      if !elicitations.isEmpty {
-        VStack(alignment: .leading, spacing: theme.spacing.s) {
-          ForEach(elicitations) { elicitation in
-            ElicitationCard(request: elicitation, owner: session)
-          }
-        }
-        .contentContainer(identifier: ToolCallView.elicitationsIdentifier(for: entry.id.rowKey))
+    if let session, !Self.elicitations(linkedTo: entry, in: session).isEmpty {
+      Button {
+        session.bringToFront(toolCall: entry)
+      } label: {
+        Label(String(localized: "Waiting for your answer"), systemImage: SharedSymbol.question)
       }
+      .buttonStyle(.borderless)
+      .font(.callout)
+      .accessibilityHint(Text("Shows the question"))
+      .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
     }
   }
 

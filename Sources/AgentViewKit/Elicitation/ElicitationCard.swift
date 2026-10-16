@@ -9,9 +9,10 @@ import SwiftUI
 /// The card is an ``ElicitationView`` for a form mode request, or an
 /// ``ElicitationURLConsentView`` for a URL mode request.
 /// ``RequestDeck`` shows one card for each pending elicitation of a
-/// client model, and ``ToolCallView`` shows one card for each elicitation
-/// that is linked to its tool call. Each card sends the answer of the user
-/// to the reply methods of the model that holds the elicitation.
+/// client model. The deck is the only place that shows the card:
+/// ``ToolCallView`` shows only a "Waiting for your answer" status for an
+/// elicitation that is linked to its tool call. Each card sends the answer of
+/// the user to the reply methods of the model that holds the elicitation.
 ///
 /// The card does not move the focus and does not announce when it appears.
 /// The ``RequestDeck`` announces each new request, and moves the focus only

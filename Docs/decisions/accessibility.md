@@ -111,7 +111,9 @@ announcement.
 - A new card does not take the VoiceOver focus or the keyboard focus.
   `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` do not
   move the focus when they appear. A card takes the keyboard focus only as
-  the default focus of its window.
+  the default focus of its window. Hosted tests show that the default focus
+  runs in a window: a card alone in a window gets the keyboard focus, and a
+  new card does not take the keyboard focus from a focused prompt editor.
 - The deck moves the focus only in two cases
   (`RequestDeck.focusTarget(oldIDs:newIDs:oldFront:newFront:)`):
   - The old front request left the deck: the focus goes to the
@@ -139,6 +141,8 @@ announcement.
 ## Labels
 
 - Tool call: "<title>, <status>".
+- Tool call that waits for an elicitation: the button "Waiting for your
+  answer", with the hint "Shows the question". The row shows no form.
 - Reasoning block: "Reasoning, in progress", "Reasoning, N seconds", or
   "Reasoning" when the time is not known.
 - Diff file row: "<language> diff, +A −R".

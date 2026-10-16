@@ -419,7 +419,7 @@ Four distinct things, kept distinct:
 
 Elicitation is how a server asks the user for input mid-tool-call. It reaches the kit through ACP `elicitation/create` with a `scope`, and the client models keep each request as a `PendingElicitation`:
 
-- A session elicitation is in `SessionModel.pendingElicitations`. One with a `toolCallId` is also linked to its tool call entry (`ToolCallEntry.linkedElicitationIDs`), and the tool call view shows it next to the call.
+- A session elicitation is in `SessionModel.pendingElicitations`. One with a `toolCallId` is also linked to its tool call entry (`ToolCallEntry.linkedElicitationIDs`). The tool call view then shows a "Waiting for your answer" status and no form. A press on the status calls `SessionModel.bringToFront(toolCall:)`, and the `RequestDeck` shows the card at the front.
 - A request-scoped elicitation (for example of `auth/login`) is in `ConnectionModel.pendingElicitations`, with its `requestId` and its `requestMethod`.
 
 `RequestDeck` shows one card for each request. The card calls the reply methods of the model that holds the request, through `PendingElicitationOwner`: `acceptElicitation(_:content:)`, `declineElicitation(_:)` or `cancelElicitation(_:)`. The model removes the request when it resolves, so the card goes away with no state of its own. `eventplan.md` in the Multitool repo names AgentViewKit as the presenting layer and lists the URL-mode obligations. They match §13.4.
