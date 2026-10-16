@@ -1,10 +1,33 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m51wc3fwg3tn28n903fp8hm9
+  text: |-
+    ### Design accepted by the step owner
+    The design file: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/deck-design.md (ACPClient checkout 66dd9b6). The phase 6 cards (34, 35, 36, 37, 38, 40, 41) now hold the parts of the design that apply to them.
+
+    Answers:
+    - Q1 yes. ACPClient adds ConnectionModel.frontRequest and bringToFront(_:) before task 34 (elicitation-plan task 51, in the ACPClient package, by another session). No view-local @State.
+    - Q2 yes. The deck announces each new request, so each request is announced one time.
+    - Q3 yes. "+N" counts only the cards that do not show (6 requests: "1 of 6", 3 edges, "+2").
+    - Q4 yes. After an answer to a card that was brought to the front, the next front is the oldest card that stays (model behavior now).
+    - Q5 yes. Keys ⇧⌘[ (previous) and ⇧⌘] (next).
+    - Q6 yes. A currentSession parameter on SessionListView, and a public PendingRequestCountBadge(session:).
+    - Q7 yes for v1. Stop waiting does not tell the agent. A separate card records the need for a later ACP message.
+    - Q8 yes. No tool call status for a pending permission now. Also: if a tool call row shows an inline permission form today, remove it, so that the deck is the only place to answer.
+    - Q9 yes. Keep .high for each new request.
+
+    Path facts:
+    - A. The URL "waiting" state has no data source. acceptElicitation removes the request from the model, so ModelClient.elicitationComplete (ModelClient.swift:126) finds no match later. Task 41 needs an ACPClient change first: awaitingURLCompletions and stopWaiting (elicitation-plan task 52, in the ACPClient package).
+    - B. The browser session of a URL card stops when the user accepts. ElicitationURLConsentView.open() (:223-228) accepts the request; the accept removes the card; onDisappear (:158-160) cancels the browser task; AuthorizationPresenter.present stops the browser on a cancel (:83-87). This is a defect today. Task 41 repairs it. A bug card records it.
+    - C. ConnectionModel has pendingRequests, but no frontRequest and no bringToFront. The connection deck needs them (Q1, task 51).
+  timestamp: 2026-10-16T08:13:35.612770+00:00
 depends_on:
 - 01M51BBM80Z31P06YPYQ6XE3HD
-position_column: todo
-position_ordinal: '9380'
+position_column: done
+position_ordinal: ffd080
 title: 'Request deck: one design for the deck, sent to the step owner before any deck code (elicitation phase 6)'
 ---
 elicitation-plan.md sections 4 and 9, phase 6. The ACPClient model is done: `PendingRequest`, `pendingRequests` on the session and the connection model (ACPClient 50ce00c), `frontRequest`, `bringToFront(_:)`, `bringToFront(toolCall:)` (ACPClient 7676d81).
