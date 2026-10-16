@@ -98,21 +98,22 @@ import Testing
     harness.element(identifier: SessionListView.rowIdentifier(for: id))?.label
   }
 
-  @Test func twoOtherOpenSessionsShowTheirCountsAndTheCurrentSessionShowsNoBadge() async throws {
+  /// The badge is visual only, so the row label is the one reading of the
+  /// count. The current session has a request, but its row label has no
+  /// count text. The session that is not open has no model and no count.
+  @Test func twoOtherOpenSessionsShowTheirCountsAndTheCurrentSessionShowsNoCount() async throws {
     let (fixture, harness) = try await Self.openSessionsWithRequests()
     defer { fixture.session.close() }
     defer { harness.close() }
     let current = fixture.session.model.sessionId
 
     #expect(fixture.session.model.pendingRequests.count == 1)
-    #expect(harness.element(identifier: PendingRequestCountBadge.identifier(for: Self.secondSessionID))?.label == "2")
-    #expect(harness.element(identifier: PendingRequestCountBadge.identifier(for: Self.thirdSessionID))?.label == "1")
-    #expect(harness.element(identifier: PendingRequestCountBadge.identifier(for: current)) == nil)
-    #expect(harness.element(identifier: PendingRequestCountBadge.identifier(for: Self.closedSessionID)) == nil)
-    #expect(Self.rowLabel(of: Self.secondSessionID, in: harness)?.contains("2 open questions") == true)
-    #expect(Self.rowLabel(of: Self.thirdSessionID, in: harness)?.contains("1 open question") == true)
-    #expect(Self.rowLabel(of: current, in: harness)?.contains("open question") == false)
-    #expect(Self.rowLabel(of: Self.closedSessionID, in: harness)?.contains("open question") == false)
+    #expect(Self.rowLabel(of: Self.secondSessionID, in: harness) == "Second, 2 open questions")
+    #expect(Self.rowLabel(of: Self.thirdSessionID, in: harness) == "Third, 1 open question")
+    #expect(Self.rowLabel(of: current, in: harness) == "Current")
+    #expect(Self.rowLabel(of: Self.closedSessionID, in: harness) == "Closed")
+    #expect(!harness.hasElement(label: "2"))
+    #expect(!harness.hasElement(label: "1"))
   }
 
   /// The answer removes the elicitation from the model of the second
@@ -129,15 +130,14 @@ import Testing
     await ObservationWait.until { second.pendingRequests.count == 1 }
     harness.render()
 
-    #expect(harness.element(identifier: PendingRequestCountBadge.identifier(for: Self.secondSessionID))?.label == "1")
-    #expect(Self.rowLabel(of: Self.secondSessionID, in: harness)?.contains("1 open question") == true)
-    #expect(Self.rowLabel(of: Self.secondSessionID, in: harness)?.contains("2 open questions") == false)
+    #expect(Self.rowLabel(of: Self.secondSessionID, in: harness) == "Second, 1 open question")
+    #expect(!harness.hasElement(label: "1"))
   }
 
   /// The answer removes the permission request from the model of the third
   /// session before the call returns, so the test requires the empty list
-  /// at once and then renders.
-  @Test func theAnswerOfTheLastRequestRemovesTheBadge() async throws {
+  /// at once and then renders. A row with 0 requests has no count text.
+  @Test func theAnswerOfTheLastRequestRemovesTheCountText() async throws {
     let (fixture, harness) = try await Self.openSessionsWithRequests()
     defer { fixture.session.close() }
     defer { harness.close() }
@@ -148,7 +148,6 @@ import Testing
     try #require(third.pendingRequests.isEmpty)
     harness.render()
 
-    #expect(harness.element(identifier: PendingRequestCountBadge.identifier(for: Self.thirdSessionID)) == nil)
-    #expect(Self.rowLabel(of: Self.thirdSessionID, in: harness)?.contains("open question") == false)
+    #expect(Self.rowLabel(of: Self.thirdSessionID, in: harness) == "Third")
   }
 }

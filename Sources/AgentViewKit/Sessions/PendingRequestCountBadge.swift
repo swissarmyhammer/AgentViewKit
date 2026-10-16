@@ -21,8 +21,10 @@ import SwiftUI
 /// }
 /// ```
 ///
-/// The accessibility identifier of the badge is ``identifier(for:)``, and its
-/// text is the number.
+/// The badge is visual only: it is hidden from accessibility, so VoiceOver
+/// does not read the number. The label of the row tells the count with
+/// ``openQuestionsLabel(count:)``, so VoiceOver reads the count one time.
+/// The view keeps the identifier ``identifier(for:)`` for the code.
 public struct PendingRequestCountBadge: View {
   /// The text after the row identifier in the identifier of a badge.
   public static let identifierSuffix = "-pending"
@@ -80,6 +82,7 @@ public struct PendingRequestCountBadge: View {
         .padding(.vertical, Self.verticalPadding)
         .background(Capsule().fill(editorTheme.accent.opacity(Self.fillOpacity)))
         .accessibilityIdentifier(Self.identifier(for: session.sessionId))
+        .accessibilityHidden(true)
     }
   }
 }

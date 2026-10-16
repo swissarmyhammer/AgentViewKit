@@ -99,7 +99,7 @@ public struct SessionListView: View {
   let cwd: AbsolutePath?
 
   /// The session that shows on screen, or `nil`. Its row has no
-  /// ``PendingRequestCountBadge``.
+  /// ``PendingRequestCountBadge`` and no open question text in its label.
   let currentSession: SessionId?
 
   /// The action that gets the model of a resumed session.
@@ -237,6 +237,13 @@ public struct SessionListView: View {
   }
 
   /// The row of one session.
+  ///
+  /// The resume control is the one accessibility element of the row that
+  /// tells the session. For an open session that is not ``currentSession``
+  /// and has pending requests, its label is the label of the session and the
+  /// open question text, such as "Second, 2 open questions". The
+  /// ``PendingRequestCountBadge`` is visual only and is hidden from
+  /// accessibility, so VoiceOver reads the count one time.
   ///
   /// - Parameter info: The session to show.
   /// - Returns: The resume control, the ``PendingRequestCountBadge`` of an

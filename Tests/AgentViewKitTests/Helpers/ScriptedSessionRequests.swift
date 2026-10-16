@@ -131,15 +131,19 @@ extension ScriptedSession {
     /// The JSON text of the params.
     let params: String
 
-    /// A form elicitation with ``ScriptedSession/formElicitationParams``.
+    /// A form elicitation of the scripted session, with
+    /// ``ScriptedSession/formElicitationParams``.
+    ///
+    /// The request is ``formElicitation(id:sessionId:)`` with
+    /// ``ScriptedSession/sessionID``.
     ///
     /// - Parameter id: The JSON-RPC id of the request.
     /// - Returns: The request.
     static func formElicitation(id: Int) -> AgentRequest {
-      AgentRequest(method: ScriptedSession.elicitationMethod, id: id, params: ScriptedSession.formElicitationParams)
+      formElicitation(id: id, sessionId: SessionId(rawValue: ScriptedSession.sessionID))
     }
 
-    /// A form elicitation of another session, with the params of
+    /// A form elicitation of a session, with the params of
     /// ``ScriptedSession/formElicitationParams``.
     ///
     /// - Parameters:
@@ -152,15 +156,19 @@ extension ScriptedSession {
         params: ScriptedSession.makeFormElicitationParams(sessionId: sessionId.rawValue))
     }
 
-    /// A permission request with ``ScriptedSession/permissionParams``.
+    /// A permission request of the scripted session, with
+    /// ``ScriptedSession/permissionParams``.
+    ///
+    /// The request is ``permission(id:sessionId:)`` with
+    /// ``ScriptedSession/sessionID``.
     ///
     /// - Parameter id: The JSON-RPC id of the request.
     /// - Returns: The request.
     static func permission(id: Int) -> AgentRequest {
-      AgentRequest(method: ScriptedSession.permissionMethod, id: id, params: ScriptedSession.permissionParams)
+      permission(id: id, sessionId: SessionId(rawValue: ScriptedSession.sessionID))
     }
 
-    /// A permission request of another session, with the params of
+    /// A permission request of a session, with the params of
     /// ``ScriptedSession/permissionParams``.
     ///
     /// - Parameters:
