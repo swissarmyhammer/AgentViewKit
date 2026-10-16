@@ -274,6 +274,20 @@ public struct ElicitationView: View {
 /// The header names the agent that asks for the input and shows the message
 /// of the pending elicitation. An elicitation over ACP comes from the agent,
 /// so the header names ``agentServer``.
+///
+/// Between the headline and the message, the header shows the "who asks"
+/// line (identifier ``ElicitationView/whoAsksIdentifier``): the root label,
+/// the `agentPath` and the `source` of the pending elicitation, for example
+/// "root › planner › reviewer · runCode". The text is
+/// ``whoAsks(agentPath:source:rootLabel:)``, and VoiceOver reads the line as
+/// one element with the label of
+/// ``whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``, for example
+/// "Asked by root, planner, reviewer, from runCode". The root label is the
+/// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment value.
+/// A request with an empty `agentPath` and no `source` shows no line.
+///
+/// ``ElicitationView`` and ``ElicitationURLConsentView`` show this header, so
+/// the line shows on form cards, on URL cards and on waiting cards.
 public struct ElicitationHeader: View {
   /// The symbol of the header.
   static let symbol = SharedSymbol.question
@@ -299,13 +313,14 @@ public struct ElicitationHeader: View {
   /// - Parameter server: The display name of the server.
   /// - Returns: The title.
   public static func title(server: String) -> String {
-    "\(server) asks for input"
+    String(localized: "\(server) asks for input")
   }
 
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       Label(Self.title(server: Self.agentServer), systemImage: Self.symbol)
         .font(.headline)
+      ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
       Text(request.request.message)
         .foregroundStyle(.secondary)
         .textSelection(.enabled)
@@ -414,6 +429,13 @@ extension View {
   /// Replaces the header of each elicitation form in this view.
   ///
   /// A custom header must name the server of the request (plan.md §13.4).
+  ///
+  /// A custom header replaces the "who asks" line of ``ElicitationHeader``.
+  /// To show the same line, give `agentPath` and `source` of the pending
+  /// elicitation and the
+  /// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment
+  /// value to ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)`` and
+  /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``.
   ///
   /// - Parameter content: The function that makes the header from the
   ///   pending elicitation of the card.

@@ -46,6 +46,15 @@ import SwiftUI
 /// overrides of the elicitation views and the
 /// ``SwiftUI/EnvironmentValues/agentTheme``.
 ///
+/// An elicitation card shows who asks, in the "who asks" line of
+/// ``ElicitationHeader`` (identifier ``ElicitationView/whoAsksIdentifier``),
+/// when the request has an agent path or a source, for example
+/// "root › reviewer · runCode". The root label is the
+/// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment value.
+/// Set it on the deck to give the root agent a name, for example
+/// `.environment(\.elicitationRootAgentLabel, "Claude")`. A permission card
+/// shows no such line.
+///
 /// The cards are in one stack, in FIFO order (deck design sections 2 and 3):
 ///
 /// - The front card is the `frontRequest` of the model, at full size. A new

@@ -446,7 +446,7 @@ two lists equal.
 
 - `PermissionView`: a pending permission request of a `SessionModel`, with its options, its subject, and a comment field.
 - `PermissionModePicker`: the `mode` config option as a segmented control.
-- `RequestDeck`: the deck of the pending requests of a `SessionModel`, or of the request-scoped elicitations of a `ConnectionModel`. It is a component of its own, next to the thread view and the composer.
+- `RequestDeck`: the deck of the pending requests of a `SessionModel`, or of the request-scoped elicitations of a `ConnectionModel`. It is a component of its own, next to the thread view and the composer. When an elicitation request has an agent path or a source, its card shows who asks: the root label, the agent path and the source, for example "root › reviewer · runCode". A permission card shows no such line. Set the root label with the `elicitationRootAgentLabel` environment value. The default is "root".
 
 **Connections and authorization**
 

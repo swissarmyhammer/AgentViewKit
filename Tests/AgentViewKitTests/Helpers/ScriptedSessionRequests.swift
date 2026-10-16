@@ -196,13 +196,12 @@ extension ScriptedSession {
   /// Sends each of `requests` from the agent, in order, and waits until
   /// `target` holds each one.
   ///
-  /// The client handles each request of the agent in its own task, so two
-  /// requests sent together can come into the model in a different order.
-  /// Thus the function sends a request only after the model holds the
-  /// request before it, and the order of the model is the order of
-  /// `requests`. The wait is ``ObservationWait/until(_:)`` on the count of
-  /// the pending requests, with no clock: each request is certain to add one
-  /// pending request. The caller makes the render pass.
+  /// The model keeps the wire order in `pendingRequests`. The function
+  /// gives the point at which the model holds each request, so the test can
+  /// read the request at that point. It sends a request only after the model
+  /// holds the request before it. The wait is ``ObservationWait/until(_:)``
+  /// on the count of the pending requests, with no clock: each request is
+  /// certain to add one pending request. The caller makes the render pass.
   ///
   /// - Parameters:
   ///   - requests: The requests of the agent. The `sessionId` of each one
