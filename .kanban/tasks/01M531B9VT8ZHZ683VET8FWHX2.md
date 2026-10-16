@@ -1,6 +1,20 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m537aj704w8wqm6xmm31x6jy
+  text: |-
+    ### Extras rules (from the step owner; Extras is pushed, its CI run 38964017964 was running)
+    Source of truth: FoundationModelsExtras Sources/FoundationModelsExtras/OperationEvents/ElicitationValidation.swift — the doc of ElicitationRequestedSchema.validationFailure(of:) and the private enum ECMAPattern.
+    Rules:
+    - minLength and maxLength count Unicode code points (String.unicodeScalars): "e\u{301}" has length 2, "👍" has length 1.
+    - pattern is ECMA-262, with no flags, and it is NOT anchored (a search; a whole-value match needs ^ and $). A pattern that does not compile fails the field.
+    - Translation onto NSRegularExpression: \d = [0-9]; \w = [A-Za-z0-9_]; \b and \B use that \w; \s adds U+000B and U+FEFF; \v = U+000B; "." = any code point except \n, \r, U+2028 and U+2029; $ = end of the value only (\z); [] matches nothing; [^] matches each code point; in a class, "[" and "&" are literal, and [\b] is U+0008.
+    - NaN and plus or minus infinity fail each number field.
+    Recommendation of the step owner: one source of truth. AgentViewKit already gets FoundationModelsExtras through ACPAgent and ACPClient. If the form schema of the kit maps cleanly to ElicitationRequestedSchema, call validationFailure(of:) and delete the own check of the kit. If the map is not clean, tell the step owner why before you copy the translation.
+    Tests: use the same examples as Extras — an Arabic-Indic digit against \d; "zip 12345" against "[0-9]{5}"; "e\u{301}" with maxLength 1.
+  timestamp: 2026-10-16T20:44:13.920295+00:00
 depends_on:
 - 01M51BCMH8VHWE68GXDERGVEFT
 position_column: todo
