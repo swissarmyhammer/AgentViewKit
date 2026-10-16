@@ -188,17 +188,29 @@
       return (session, anchors, harness)
     }
 
-    /// Mounts the conversation of `session` with a new manager, and gives the
-    /// manager the report of the rows at the bottom
-    /// (``reportRows(at:of:to:)``).
+    /// Makes a new manager, and mounts the conversation of `session` with that
+    /// manager. The helper gives no visibility report to the manager.
+    ///
+    /// - Parameter session: The scripted session.
+    /// - Returns: The manager and the harness.
+    static func makeManagedConversation(
+      of session: ScriptedSession
+    ) -> (ScrollAnchorManager, HostedViewHarness<ConversationView<ConversationEmptyState>>) {
+      let anchors = ScrollAnchorManager()
+      let harness = HostedViewHarness(ConversationView(session: session.model, anchors: anchors))
+      return (anchors, harness)
+    }
+
+    /// Mounts the conversation of `session` with a new manager
+    /// (``makeManagedConversation(of:)``), and gives the manager the report of
+    /// the rows at the bottom (``reportRows(at:of:to:)``).
     ///
     /// - Parameter session: The scripted session.
     /// - Returns: The manager and the harness.
     static func mountConversation(
       of session: ScriptedSession
     ) -> (ScrollAnchorManager, HostedViewHarness<ConversationView<ConversationEmptyState>>) {
-      let anchors = ScrollAnchorManager()
-      let harness = HostedViewHarness(ConversationView(session: session.model, anchors: anchors))
+      let (anchors, harness) = makeManagedConversation(of: session)
       reportRows(at: .bottom, of: session.model, to: anchors)
       return (anchors, harness)
     }
@@ -262,10 +274,11 @@
       return targets
     }
 
-    /// Mounts the conversation of `session` with a new manager, records the
-    /// scroll targets of the manager, and scrolls up to the row with
-    /// `firstKey`. The helper gives no visibility report to the manager: only
-    /// the actions of the list tell the manager which rows are in view.
+    /// Mounts the conversation of `session` with a new manager
+    /// (``makeManagedConversation(of:)``), records the scroll targets of the
+    /// manager, and scrolls up to the row with `firstKey`. The helper gives no
+    /// visibility report to the manager: only the actions of the list tell the
+    /// manager which rows are in view.
     ///
     /// - Parameters:
     ///   - session: The scripted session, with more entries than the harness
@@ -279,8 +292,7 @@
       ScrollAnchorManager, ReportRecorder<ScrollAnchorTarget>,
       HostedViewHarness<ConversationView<ConversationEmptyState>>
     ) {
-      let anchors = ScrollAnchorManager()
-      let harness = HostedViewHarness(ConversationView(session: session.model, anchors: anchors))
+      let (anchors, harness) = makeManagedConversation(of: session)
       harness.render()
       let targets = recordScrollTargets(of: anchors)
       jump(to: firstKey, anchors: anchors, harness: harness)
