@@ -139,6 +139,19 @@ extension ScriptedSession {
       AgentRequest(method: ScriptedSession.elicitationMethod, id: id, params: ScriptedSession.formElicitationParams)
     }
 
+    /// A form elicitation of another session, with the params of
+    /// ``ScriptedSession/formElicitationParams``.
+    ///
+    /// - Parameters:
+    ///   - id: The JSON-RPC id of the request.
+    ///   - sessionId: The id of the session of the request.
+    /// - Returns: The request.
+    static func formElicitation(id: Int, sessionId: SessionId) -> AgentRequest {
+      AgentRequest(
+        method: ScriptedSession.elicitationMethod, id: id,
+        params: ScriptedSession.makeFormElicitationParams(sessionId: sessionId.rawValue))
+    }
+
     /// A permission request with ``ScriptedSession/permissionParams``.
     ///
     /// - Parameter id: The JSON-RPC id of the request.
@@ -146,10 +159,34 @@ extension ScriptedSession {
     static func permission(id: Int) -> AgentRequest {
       AgentRequest(method: ScriptedSession.permissionMethod, id: id, params: ScriptedSession.permissionParams)
     }
+
+    /// A permission request of another session, with the params of
+    /// ``ScriptedSession/permissionParams``.
+    ///
+    /// - Parameters:
+    ///   - id: The JSON-RPC id of the request.
+    ///   - sessionId: The id of the session of the request.
+    /// - Returns: The request.
+    static func permission(id: Int, sessionId: SessionId) -> AgentRequest {
+      AgentRequest(
+        method: ScriptedSession.permissionMethod, id: id,
+        params: ScriptedSession.makePermissionParams(sessionId: sessionId.rawValue))
+    }
   }
 
   /// Sends each of `requests` of the session from the agent, in order, and
   /// waits until the session model holds each one.
+  ///
+  /// The wait is ``sendInOrder(_:to:)`` on ``model``.
+  ///
+  /// - Parameter requests: The requests of the agent.
+  /// - Throws: The error of the transport.
+  func sendInOrder(_ requests: [AgentRequest]) async throws {
+    try await sendInOrder(requests, to: model)
+  }
+
+  /// Sends each of `requests` from the agent, in order, and waits until
+  /// `target` holds each one.
   ///
   /// The client handles each request of the agent in its own task, so two
   /// requests sent together can come into the model in a different order.
@@ -159,13 +196,16 @@ extension ScriptedSession {
   /// the pending requests, with no clock: each request is certain to add one
   /// pending request. The caller makes the render pass.
   ///
-  /// - Parameter requests: The requests of the agent.
+  /// - Parameters:
+  ///   - requests: The requests of the agent. The `sessionId` of each one
+  ///     is the id of `target`.
+  ///   - target: The open session model that gets the requests.
   /// - Throws: The error of the transport.
-  func sendInOrder(_ requests: [AgentRequest]) async throws {
+  func sendInOrder(_ requests: [AgentRequest], to target: SessionModel) async throws {
     for request in requests {
-      let before = model.pendingRequests.count
+      let before = target.pendingRequests.count
       try await sendRequest(request.method, id: request.id, params: request.params)
-      await ObservationWait.until { model.pendingRequests.count == before + 1 }
+      await ObservationWait.until { target.pendingRequests.count == before + 1 }
     }
   }
 

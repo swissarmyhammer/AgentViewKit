@@ -205,19 +205,35 @@ public final class ScriptedSession {
 
   /// The params of a permission request of the session, with the
   /// `allow_once` option `yes` and the `reject_once` option `no`.
-  public static let permissionParams = #"""
-    {"sessionId": "\#(sessionID)", "title": "Edit a.swift",
-     "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"},
-                 {"optionId": "no", "name": "Reject", "kind": "reject_once"}]}
-    """#
+  public static let permissionParams = makePermissionParams(sessionId: sessionID)
 
   /// The params of a form elicitation of the session. The one field `name`
   /// has the default `Ada`, so the form can submit at once.
-  public static let formElicitationParams = #"""
-    {"sessionId": "\#(sessionID)", "message": "Your name?", "mode": "form",
+  public static let formElicitationParams = makeFormElicitationParams(sessionId: sessionID)
+
+  /// Makes the params of ``permissionParams`` for a session.
+  ///
+  /// - Parameter sessionId: The raw id of the session of the request.
+  /// - Returns: The JSON text of the params.
+  public static func makePermissionParams(sessionId: String) -> String {
+    #"""
+    {"sessionId": "\#(sessionId)", "title": "Edit a.swift",
+     "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"},
+                 {"optionId": "no", "name": "Reject", "kind": "reject_once"}]}
+    """#
+  }
+
+  /// Makes the params of ``formElicitationParams`` for a session.
+  ///
+  /// - Parameter sessionId: The raw id of the session of the request.
+  /// - Returns: The JSON text of the params.
+  public static func makeFormElicitationParams(sessionId: String) -> String {
+    #"""
+    {"sessionId": "\#(sessionId)", "message": "Your name?", "mode": "form",
      "requestedSchema": {"type": "object",
                          "properties": {"name": {"type": "string", "default": "Ada"}}}}
     """#
+  }
 
   /// A JSON-RPC request frame from the agent to the client.
   ///

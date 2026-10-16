@@ -143,17 +143,22 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - cwd: The working directory that filters the sessions, or `nil`.
+  ///   - currentSession: The session that shows on screen, or `nil`.
   ///   - calls: The recorder of the call reports of the picker.
   ///   - onOpen: The action for a resumed session.
   ///   - onNewSession: The new session action, or `nil` for no button.
   /// - Returns: The harness that shows the picker.
   static func mountPicker(
-    _ session: ScriptedSession, cwd: AbsolutePath? = nil, calls: ReportRecorder<String?> = ReportRecorder(),
+    _ session: ScriptedSession, cwd: AbsolutePath? = nil, currentSession: SessionId? = nil,
+    calls: ReportRecorder<String?> = ReportRecorder(),
     onOpen: @escaping (SessionModel) -> Void = { _ in }, onNewSession: (() -> Void)? = nil
   ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
-      SessionListView(connection: session.connection, cwd: cwd, onOpen: onOpen, onNewSession: onNewSession)
-        .environment(\.sessionListCallReport, calls.report),
+      SessionListView(
+        connection: session.connection, cwd: cwd, currentSession: currentSession, onOpen: onOpen,
+        onNewSession: onNewSession
+      )
+      .environment(\.sessionListCallReport, calls.report),
       size: listSize)
     await harness.render { !calls.values.isEmpty }
     return harness

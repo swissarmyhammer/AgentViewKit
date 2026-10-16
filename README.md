@@ -401,7 +401,7 @@ two lists equal.
 - `StateBanner`: shows `requiresAction`, an idle session with a pending request, and a stop reason that needs attention, also the extension stop reasons.
 - `SessionStreamBanner`: the replay marker, the partial-history note, the missed-updates banner with Reload, and the closed state.
 - `SessionNoticeBanner`: one banner for each notice of the session model.
-- `SessionListView`: the sessions of `ConnectionModel.sessions`, with cursor paging.
+- `SessionListView`: the sessions of `ConnectionModel.sessions`, with cursor paging. The row of each open session that is not the `currentSession` shows a `PendingRequestCountBadge`: the number of its open questions.
 
 **Entry views**
 

@@ -90,8 +90,27 @@ comments:
     - evidence: `git diff --stat -- Sources` is empty (Sources has no diff). No swift-build or swift test of this package was running (other processes belong to other packages). `swift build --build-tests`: Build complete, exit 0. One warning, from the build system and not from a file in Sources/ or Tests/ of this package: "missing creator for mutated node: .../mlx-swift_Cmlx.bundle/Contents/MacOS". `swift test --skip-build` (one run): 1252 tests in 145 suites passed, 0 failed, 0 skipped, 2 known issues (existing withKnownIssue marks: aWrappedTextWithAFixedVerticalSizeFails, aViewThatIgnoresTheThemeFails). README.md and Examples/ReadmeSnippets are not changed, so Scripts/check-readme.sh did not run.
     - next: review.
   timestamp: 2026-10-16T16:32:50.599804+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m52s7z8tm4tvjw19z0avxjgp
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (a136046). Counts: 0 findings, 0 confirmed, 0 refuted. 7 attempted, 0 failed. 6 files reviewed. 2 `.kanban/` files were excluded by `.reviewignore`.
+    - prior items: I examined all 4 items in the code. Each one is fixed. (1) Both `Mounted.result(sourceLocation:)` wrappers now call `ScriptedSession.resultOfAnsweredElicitation(ofRequest:sourceLocation:)`, and no test has a copy of the `#require` plus `session.result(ofRequest:)` steps. (2)-(4) The doc comments of `requireKeyboardFocusOutsideText` and `requireTextViewShows` now say only what each function checks and when it throws. They have no text about callers or keys.
+    - new helper: Its doc comment says only what it does. Its `#require` reads `model.pendingElicitations` with no `await`, in an extension of the `@MainActor` class `ScriptedSession`. Thus the read is synchronous on the main actor.
+    - next: none. The task is in done.
+  timestamp: 2026-10-16T16:38:08.922345+00:00
+- actor: claude-code
+  id: 01m52s8kspxfqkq3v1fbhg3tbj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 6 test files; shared helper ScriptedSession.resultOfAnsweredElicitation(ofRequest:sourceLocation:); doc comments of HostedViewHarness+KeyChecks.swift corrected; no Sources change
+    - test: green — swift test --skip-build, 1252 tests in 145 suites passed, 2 known issues
+    - commit: a136046
+    - review: clean — 0 findings, 4 of 4 prior items fixed
+    - push: with card 40 (^b94apm2), by request of the step owner
+  timestamp: 2026-10-16T16:38:29.942422+00:00
+position_column: done
+position_ordinal: ffd880
 title: Hosted test nextMovesTheFocusAndTheKeyboardFocusIntoTheNewFrontCard waits without end when the focus move breaks
 ---
 Found during the review of card 38 (^stwa42z, commit 768dfd0). Write all text in STE.

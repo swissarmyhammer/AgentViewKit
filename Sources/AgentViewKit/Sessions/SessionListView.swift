@@ -98,6 +98,10 @@ public struct SessionListView: View {
   /// session of the agent.
   let cwd: AbsolutePath?
 
+  /// The session that shows on screen, or `nil`. Its row has no
+  /// ``PendingRequestCountBadge``.
+  let currentSession: SessionId?
+
   /// The action that gets the model of a resumed session.
   let onOpen: (SessionModel) -> Void
 
@@ -123,16 +127,20 @@ public struct SessionListView: View {
   ///     shows.
   ///   - cwd: The absolute path of the working directory that filters the
   ///     sessions, or `nil` for each session of the agent.
+  ///   - currentSession: The session that shows on screen, or `nil`. Its
+  ///     row has no count of open questions.
   ///   - onOpen: The action that gets the model of a resumed session.
   ///   - onNewSession: The new session action, or `nil` for no button.
   public init(
     connection: ConnectionModel,
     cwd: AbsolutePath? = nil,
+    currentSession: SessionId? = nil,
     onOpen: @escaping (SessionModel) -> Void,
     onNewSession: (() -> Void)? = nil
   ) {
     self.connection = connection
     self.cwd = cwd
+    self.currentSession = currentSession
     self.onOpen = onOpen
     self.onNewSession = onNewSession
   }
@@ -231,12 +239,24 @@ public struct SessionListView: View {
   /// The row of one session.
   ///
   /// - Parameter info: The session to show.
-  /// - Returns: The resume control and, when the agent serves
-  ///   `session/delete`, the delete button.
+  /// - Returns: The resume control, the ``PendingRequestCountBadge`` of an
+  ///   open session that is not ``currentSession``, and, when the agent
+  ///   serves `session/delete`, the delete button.
   private func row(for info: SessionInfo) -> some View {
-    HStack {
+    let otherSession = otherOpenSession(for: info.sessionId)
+    let openQuestions = Self.openQuestionsLabel(of: otherSession)
+    return HStack {
       resumeControl(for: info)
+        .accessibilityLabel { label in
+          label
+          if let openQuestions {
+            Text(openQuestions)
+          }
+        }
         .accessibilityIdentifier(Self.rowIdentifier(for: info.sessionId))
+      if let otherSession {
+        PendingRequestCountBadge(session: otherSession)
+      }
       if connection.canDeleteSessions {
         Button(role: .destructive) {
           Task { await perform { try await connection.deleteSession(info.sessionId) } }
@@ -332,6 +352,30 @@ public struct SessionListView: View {
     }
     failureMessage = message
     reportCall?(message)
+  }
+
+  /// The open model of a session that is not ``currentSession``.
+  ///
+  /// The call reads `ConnectionModel.session(for:)`. A session that is not
+  /// open has no model.
+  ///
+  /// - Parameter id: The id of the session.
+  /// - Returns: The model, or `nil` for the current session and for a
+  ///   session that is not open.
+  private func otherOpenSession(for id: SessionId) -> SessionModel? {
+    guard id != currentSession else { return nil }
+    return connection.session(for: id)
+  }
+
+  /// The text that the label of a row adds for the open questions of its
+  /// session.
+  ///
+  /// - Parameter session: The open model of the session, or `nil`.
+  /// - Returns: ``PendingRequestCountBadge/openQuestionsLabel(count:)``, or
+  ///   `nil` when there is no model or the model has no pending request.
+  private static func openQuestionsLabel(of session: SessionModel?) -> String? {
+    guard let count = session?.pendingRequests.count, count > 0 else { return nil }
+    return PendingRequestCountBadge.openQuestionsLabel(count: count)
   }
 
   /// The title of a session, or ``untitledTitle``.
