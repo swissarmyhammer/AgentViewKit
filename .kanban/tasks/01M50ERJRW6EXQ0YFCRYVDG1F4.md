@@ -67,6 +67,50 @@ comments:
     - readme gate: Scripts/check-readme.sh passed. Each snippet is in its file and each snippet compiles.
     - next: review.
   timestamp: 2026-10-16T00:43:53.333819+00:00
+- actor: claude-code
+  id: 01m5133fb0zac5szq0pn7krt72
+  text: |-
+    ### review — findings
+    - evidence: review sha 1bb5b9b~1..1bb5b9b; 2 findings (2 confirmed, 3 refuted) — Tests/AgentViewKitTests/ACP/DemoAgentTests.swift:162, Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift:65 (test-integrity/no-test-cheating). The engine did not report theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent.
+    - next: Add the missing assertions after the waits. Then run the review again. The task stays in review.
+  timestamp: 2026-10-16T00:51:58.432338+00:00
+- actor: claude-code
+  id: 01m5139p7a9trer399fxjgvpeg
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 24 files (2 source, 22 test); the 2 inspector sites with option (a)
+    - test: red (1 run: ParagraphReuse → ^fzn2beh), then green — swift test, 1201 passed in 138 suites (1 run, with ^fzn2beh)
+    - commit: 1bb5b9b
+    - review: findings — DemoAgentTests.swift:162, InProcessAgentTests.swift:65 (test-integrity/no-test-cheating: a wait with no assertion after it)
+  timestamp: 2026-10-16T00:55:22.090047+00:00
+- actor: claude-code
+  id: 01m5141ejjmt7yqfspad6n71w2
+  text: |-
+    ### implement — changed (review findings, iteration 2)
+    - Finding DemoAgentTests.swift:162 (test-integrity/no-test-cheating): stopMakesTheStateOfTheModelDisconnected now has `defer { started.removeFiles() }` after the start, and `#expect(connection.state == .disconnected)` after the wait. Finding checked.
+    - Finding InProcessAgentTests.swift:65 (test-integrity/no-test-cheating): theStateOfTheModelBecomesDisconnectedAfterTheAgentCloses now has `#expect(model.state == .disconnected)` after the wait. Finding checked.
+    - Same cause, whole Tests search: a script (scratchpad/waitcheck.py) parsed each @Test body in Tests and listed each test whose last ObservationWait.until or render(when:) has no #expect/#require/Issue.record after it. Before the fix it found 3 tests, all in ACP; the third is InProcessAgentTests aPromptRoundTripPutsTheReplyOfTheAgentInTheTranscript, which now has `#expect(session.agentMessageText(id: replyID) == expected)` after the wait. After the fix: 0 tests. A second script (scratchpad/waithelpers.py) checked the tests whose last call is a helper that waits: all hits had the helper call inside an #expect (no finding).
+    - Files: Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift.
+    - build: `swift build --build-tests` one time (with the T4 changes), Build complete, only warning is the mlx-swift_Cmlx "missing creator for mutated node" (dependency).
+    - test: `swift test --skip-build --filter` with DemoAgentTests, DemoAgentSignInTests, InProcessAgentTests and the TestSupport suites: 80 tests in 16 suites passed, 1 known issue (aWrappedTextWithAFixedVerticalSizeFails, on purpose). No hang. Log: scratchpad/t4-filtered.log.
+
+    step: implement
+    outcome: changed
+    evidence: 2 files — Tests/AgentViewKitTests/ACP/DemoAgentTests.swift, Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift; build complete; filtered run 80 tests in 16 suites passed
+    task: ^yvdg1f4
+  timestamp: 2026-10-16T01:08:20.690223+00:00
+- actor: claude-code
+  id: 01m514tmspcwrt656xk57cyvy5
+  text: |-
+    ### test (final, mail step 7) - stuck
+    - generate_xcodeproj.rb: done, exit 0.
+    - swift test: green. 1201 tests in 138 suites passed (125.905 s) with 2 known issues; 127 tests in 16 suites passed (35.888 s). 0 failures, 0 skipped. The 2 known issues are the expected-failure tests aWrappedTextWithAFixedVerticalSizeFails and aViewThatIgnoresTheThemeFails. aLongTextNeverEvaluatesAnEarlierParagraphAgain passed. Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-final.log
+    - Warnings: one, from mlx-swift_Cmlx.bundle ("missing creator for mutated node"). It is a dependency warning. No warning from project sources.
+    - Scripts/check-readme.sh: passed. "README gate passed: each snippet is in its file, and each snippet compiles."
+    - Scripts/test-examples.sh AgentViewKitDemo: FAIL. The build step passed. The UI test step could not start: "Failed to initialize for UI testing: Error Domain=com.apple.dt.XCTest.XCTFuture Code=1000 'Timed out while enabling automation mode.'" and "Testing failed: AgentViewKitDemoUITests-Runner (35016) encountered an error (The test runner failed to initialize for UI testing. (Underlying Error: Timed out while enabling automation mode.))". No UI test ran. Cause: this session has no UI Automation mode. I changed nothing. No process of the run stays alive. Log: .../scratchpad/test-examples-final.log; result bundle: /Users/wballard/github/swissarmyhammer/AgentViewKit/.build/examples/AgentViewKitDemo/AgentViewKitDemo-test.xcresult
+    - Resolved revisions (Package.resolved, branch main unless noted): editorkit bae8f9556349; foundationmodelsacp fb55b2fe90c1; foundationmodelsacpagent 4359b57a2be7; foundationmodelsacpclient 7676d81a44fc; foundationmodelsagents bf9bbe9f8daf; foundationmodelscodecontext c9075feba59a; foundationmodelsextras 83c34f055502; foundationmodelsmetadataregistry 858f5da3d26c; foundationmodelsmultitool 4171660fa706; foundationmodelsranker 61563468972b; foundationmodelsrouter f3ac39be2332; foundationmodelsskills cf1ce5456c8b; swift-sdk dbea70214ea3; textual 0.5.0 01b51875a540; mlx-swift-lm d609e75d0d1f (stable).
+    - next: a person must run Scripts/test-examples.sh AgentViewKitDemo in a session with UI Automation mode enabled.
+  timestamp: 2026-10-16T01:22:06.262005+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
 position_column: doing
@@ -74,3 +118,13 @@ position_ordinal: '80'
 title: 'Mail step 7 T4-A6: Remove the clock waits and polls from the other test folders'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Status, Activity, Commands, Sessions, Attachments, Terminal, Config, Helpers, ACP, TestSupport, the files at the root of Tests/AgentViewKitTests, and Tests/PackageStructureTests. Same rules as T4-A1. At the end, no use of `pump(for:)` with a fixed time, `waitUntil` or `pump(until:)` is left in Tests; check with a search. One full run, one commit. Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-15 19:44)
+
+> Scope: `review sha 1bb5b9b~1..1bb5b9b` — reviewed the diffs only — lines this change added or modified. 24 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Tests/AgentViewKitTests/ACP/DemoAgentTests.swift:162` `test-integrity/no-test-cheating` — The test `stopMakesTheStateOfTheModelDisconnected` now has no assertion. The wait replaces the old check of the disconnected state, so the test cannot fail except by hanging. Add `#expect(connection.state == .disconnected)` after the wait, before `removeFiles()`. Keep the cleanup in a `defer` so it runs even if the check fails.
+- [x] `Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift:65` `test-integrity/no-test-cheating` — The test waits until the model is disconnected, but it has no assertion after the wait. The test cannot fail. It only passes or hangs. The wait is not an assertion. Keep the wait, then add `#expect(model.state == .disconnected)` after it. This keeps the test able to fail, for example when the state is wrong.

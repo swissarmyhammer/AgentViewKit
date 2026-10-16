@@ -155,12 +155,13 @@ import Testing
   @Test(arguments: InProcessAgentFactory.allCases)
   func stopMakesTheStateOfTheModelDisconnected(factory: InProcessAgentFactory) async throws {
     let started = try await factory.start()
+    defer { started.removeFiles() }
 
     await started.agent.stop()
 
     let connection = started.agent.connection
     await ObservationWait.until { connection.state == .disconnected }
-    started.removeFiles()
+    #expect(connection.state == .disconnected)
   }
 
   @Test func aResumeFromTheStartReplaysTheSavedHistoryOfTheSession() async throws {
