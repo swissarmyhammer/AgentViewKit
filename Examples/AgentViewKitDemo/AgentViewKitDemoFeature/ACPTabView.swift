@@ -236,8 +236,8 @@ struct ACPTabView: View, DemoStartingTab {
 
   /// The session list of the connection model, or the state of the start.
   @ViewBuilder private var sidebar: some View {
-    if case .started(.running(let agent, _)) = phase {
-      sessionList(of: agent)
+    if case .started(.running(let agent, let session)) = phase {
+      sessionList(of: agent, showing: session)
     } else {
       DemoStartView(phase: phase, tab: self)
     }
@@ -250,14 +250,22 @@ struct ACPTabView: View, DemoStartingTab {
   /// button opens a session. The list shows each action only when the agent
   /// sends its capability.
   ///
-  /// - Parameter agent: The running agent.
+  /// The list gets the id of the selected session as its current session.
+  /// Thus the row of the session on screen shows no count of open requests.
+  /// When the tab selects a different session, the phase changes, and the
+  /// list gets the id of that session.
+  ///
+  /// - Parameters:
+  ///   - agent: The running agent.
+  ///   - session: The selected session, which the detail shows.
   /// - Returns: The sidebar.
-  private func sessionList(of agent: DemoAgent) -> some View {
+  private func sessionList(of agent: DemoAgent, showing session: SessionModel) -> some View {
     VStack(spacing: 0) {
       SessionListView(
         connection: agent.connection,
         cwd: agent.workingDirectory,
-        onOpen: { session in phase = .started(.running(agent, session)) },
+        currentSession: session.sessionId,
+        onOpen: { resumed in phase = .started(.running(agent, resumed)) },
         onNewSession: {
           Task { await openNewSession(on: agent) }
         }

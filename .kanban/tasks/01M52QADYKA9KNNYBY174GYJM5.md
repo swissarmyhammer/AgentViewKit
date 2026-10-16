@@ -103,8 +103,26 @@ comments:
     - README.md and Examples are unchanged, so check-readme.sh did not run.
     - next: review
   timestamp: 2026-10-16T18:35:42.949077+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m530czxwqb434aqdg13xgmnx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8a5f603) gives 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). 6 files reviewed. 2 .kanban files not reviewed (ignore rule). All 7 prior items are checked, and the code agrees with each one. startPrompt(text:reporting:) and answerPermission(_:option:comment:reporting:) set the report first, in the same main-actor step, before the Task. The default nil keeps the old behavior. AgentCommandTarget.send(payload:to:) and respond(payload:rejects:) give requestStartReport after every guard. The 7 tests require the report, or promptSubmitReport .sent, after the dispatch and before the wait. No other command test in AgentCommandsTests or AgentCommandScopeHostedTests waits after a dispatch with no synchronous proof. Build of the tests passes. 38 tests in the 2 suites pass. Mutation run (the two calls in AgentCommandTarget removed): the 6 dispatch tests fail at once at the require. The source is put back.
+    - next: done
+  timestamp: 2026-10-16T18:43:13.468497+00:00
+- actor: claude-code
+  id: 01m530e0pcwf24ynbfqn5es26n
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — startPrompt(text:reporting:) and answerPermission(_:option:comment:reporting:) report before their Task; AgentCommandTarget gives them requestStartReport; 7 command tests require the report; mutation run: 7 of 7 failed at once (0.389 s)
+    - test: green — swift test --skip-build, 1258 tests in 147 suites passed, 2 known issues
+    - commit: 8a5f603
+    - review: clean — 0 findings, 7 of 7 prior items fixed; reviewer mutation run: 6 of 6 dispatch tests failed at once
+    - note: the class doc of AgentCommandTarget still says that send with a text payload calls SessionModel.prompt(_:meta:). This change did not write that line.
+    - push: with ^d11k79g
+  timestamp: 2026-10-16T18:43:47.020775+00:00
+position_column: done
+position_ordinal: ffda80
 title: Give a synchronous proof to the press paths that answer only in a task, so that their hosted tests cannot wait without end
 ---
 Found during ^nmy2ctx. Write all text in STE.
