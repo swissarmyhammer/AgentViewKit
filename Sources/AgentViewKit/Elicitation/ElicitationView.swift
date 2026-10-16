@@ -17,7 +17,8 @@ import SwiftUI
 /// ``PendingElicitationOwner`` that holds the elicitation:
 /// `acceptElicitation(_:content:)` with the answers as ACP JSON,
 /// `declineElicitation(_:)` or `cancelElicitation(_:)`. The owner removes the
-/// elicitation when it resolves.
+/// elicitation when it resolves. The accepted content has no empty answer
+/// (see `answerContent(values:)`).
 ///
 /// The view keeps its answers in state. Give each request its own view
 /// identity, for example with `.id(request.id)`, so that a new request
@@ -193,10 +194,24 @@ public struct ElicitationView: View {
     return ElicitationFieldContext(schema: schema, value: binding)
   }
 
+  /// The content of an accepted form.
+  ///
+  /// The content has no empty answer: no JSON `null`, no empty string, and
+  /// no empty array. The agent validates each key of the content against its
+  /// property, so an empty optional answer can fail a constraint such as
+  /// `minLength`. The agent also cannot decode JSON `null`, and then cancels
+  /// the full answer. `false` and `0` are answers, so they stay.
+  ///
+  /// - Parameter values: The answers, keyed by field name.
+  /// - Returns: The answers that are not empty, keyed by field name.
+  static func answerContent(values: [String: JSONValue]) -> [String: JSONValue] {
+    values.filter { !ElicitationValidator.isEmpty($0.value) }
+  }
+
   /// Sends the answers when each field passes validation.
   private func submit() {
     guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
-    owner.acceptElicitation(request.id, content: JSONValue.object(values))
+    owner.acceptElicitation(request.id, content: JSONValue.object(Self.answerContent(values: values)))
   }
 }
 

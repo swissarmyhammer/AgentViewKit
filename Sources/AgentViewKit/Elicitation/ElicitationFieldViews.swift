@@ -754,7 +754,8 @@ public struct ElicitationMultiChoiceField: View {
   }
 
   /// Adds `value` to the answer or removes it, and writes the answer in the
-  /// order of `choices`.
+  /// order of `choices`. When no choice stays selected, the field has no
+  /// answer, because an empty list can fail `minItems` on the agent side.
   ///
   /// - Parameters:
   ///   - value: The value of the choice.
@@ -768,6 +769,6 @@ public struct ElicitationMultiChoiceField: View {
       values.remove(value)
     }
     let ordered = choices.map(\.const).filter(values.contains)
-    context.value.wrappedValue = .array(ordered.map(JSONValue.string))
+    context.value.wrappedValue = ordered.isEmpty ? nil : .array(ordered.map(JSONValue.string))
   }
 }

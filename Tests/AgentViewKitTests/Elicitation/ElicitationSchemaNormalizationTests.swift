@@ -225,6 +225,18 @@ import Testing
     #expect(field.defaultValue == .array([.string("a")]))
   }
 
+  @Test(arguments: [
+    #"{"type": "string", "default": ""}"#,
+    #"{"type": "string", "enum": ["a", "b"], "default": ""}"#,
+    #"{"type": "array", "items": {"type": "string", "enum": ["a", "b"]}, "default": []}"#,
+    #"{"type": "array", "items": {"type": "string", "enum": ["a"]}, "default": [1]}"#,
+  ])
+  func anEmptyDefaultGivesNoDefaultValue(property: String) throws {
+    let field = try onlyField(property)
+
+    #expect(field.defaultValue == nil)
+  }
+
   // MARK: - Schema-level fields
 
   @Test func theFieldsHaveTheirNamesTitlesDescriptionsAndRequiredMarks() throws {

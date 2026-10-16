@@ -42,6 +42,29 @@ import Testing
   /// The JSON text of a property schema of a number field with a default.
   static let countProperty = #"{"type": "integer", "title": "Count", "minimum": 1, "maximum": 9, "default": 3}"#
 
+  /// The JSON text of a property schema of a text field with a minimum
+  /// length.
+  static let noteProperty = #"{"type": "string", "title": "Note", "minLength": 2}"#
+
+  /// The JSON text of a property schema of a text field with a minimum
+  /// length and an empty default.
+  static let emptyDefaultNoteProperty = #"{"type": "string", "title": "Note", "minLength": 2, "default": ""}"#
+
+  /// The JSON text of a property schema of a multi-choice field with the
+  /// values `a` and `b` and one or more items.
+  static let tagsProperty =
+    #"{"type": "array", "title": "Tags", "minItems": 1, "items": {"type": "string", "enum": ["a", "b"]}}"#
+
+  /// The accessibility identifier of the button of the custom text field.
+  static let customTextFieldIdentifier = "custom-text-field-write"
+
+  /// The tab threshold that shows each field of a two-field form inline.
+  static let inlineTabThreshold = 2
+
+  /// The response of the agent to an accepted form whose only answer is
+  /// `color: red`.
+  static let acceptedRed = #"{"action": "accept", "content": {"color": "red"}}"#
+
   /// The params of a URL mode elicitation of the scripted session.
   static let urlParams = #"""
     {"sessionId": "\#(ScriptedSession.sessionID)", "message": "Sign in", "mode": "url",
@@ -130,6 +153,60 @@ import Testing
     reporter: RecordingFocusReporter = RecordingFocusReporter()
   ) async throws -> Mounted {
     try await mount(params, reporter: reporter) { $0 }
+  }
+
+  /// The params of a request with a required `color` field and one optional
+  /// field.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the optional field.
+  ///   - property: The JSON text of the property schema of the optional
+  ///     field.
+  /// - Returns: The JSON text of the params.
+  static func colorParams(with name: String, _ property: String) -> String {
+    makeFormParams(properties: ["color": colorProperty, name: property], required: ["color"])
+  }
+
+  /// Shows a form with a required `color` field and one optional field
+  /// inline.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the optional field.
+  ///   - property: The JSON text of the property schema of the optional
+  ///     field.
+  /// - Returns: The mounted form.
+  /// - Throws: The error of ``mount(_:reporter:content:)``.
+  static func mountInline(_ name: String, _ property: String) async throws -> Mounted {
+    try await mount(colorParams(with: name, property)) { form in
+      form.elicitationLayout(tabThreshold: inlineTabThreshold)
+    }
+  }
+
+  /// Shows a form with a required `color` field and an optional `note` text
+  /// field. A custom text field has a button that writes `value` to the
+  /// answer of `note`.
+  ///
+  /// - Parameter value: The value that the button writes.
+  /// - Returns: The mounted form.
+  /// - Throws: The error of ``mount(_:reporter:content:)``.
+  static func mountCustomNote(writing value: JSONValue) async throws -> Mounted {
+    try await mount(colorParams(with: "note", noteProperty)) { form in
+      form
+        .elicitationLayout(tabThreshold: inlineTabThreshold)
+        .elicitationTextField { context in
+          Button("Write") { context.value.wrappedValue = value }
+            .accessibilityIdentifier(customTextFieldIdentifier)
+        }
+    }
+  }
+
+  /// Selects `red` in the `color` field and presses Submit.
+  ///
+  /// - Parameter harness: The harness of the form.
+  /// - Throws: The error of a press.
+  static func submitRed(_ harness: HostedViewHarness<AnyView>) throws {
+    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
+    try harness.press(identifier: ElicitationView.submitIdentifier)
   }
 
   /// The identifiers of the tab elements of a harness.
@@ -284,6 +361,53 @@ import Testing
 
     #expect(result == (try JSONValue(json: #"{"action": "accept", "content": {"color": "red", "count": 3}}"#)))
     #expect(mounted.session.model.pendingElicitations.isEmpty)
+  }
+
+  // MARK: - Answer content
+
+  @Test func anEmptyTextDefaultIsNotSent() async throws {
+    let mounted = try await Self.mountInline("note", Self.emptyDefaultNoteProperty)
+    defer { mounted.close() }
+
+    try Self.submitRed(mounted.harness)
+
+    #expect(await mounted.result() == (try JSONValue(json: Self.acceptedRed)))
+  }
+
+  @Test func aMultiChoiceWithNoCheckIsNotSent() async throws {
+    let mounted = try await Self.mountInline("tags", Self.tagsProperty)
+    defer { mounted.close() }
+    let harness = mounted.harness
+    let choice = ElicitationFieldView.choiceIdentifier(for: "tags", value: "a")
+
+    try harness.press(identifier: choice)
+    try harness.press(identifier: choice)
+    try Self.submitRed(harness)
+
+    #expect(await mounted.result() == (try JSONValue(json: Self.acceptedRed)))
+  }
+
+  @Test func aNullFromACustomFieldIsNotSent() async throws {
+    let mounted = try await Self.mountCustomNote(writing: .null)
+    defer { mounted.close() }
+
+    try mounted.harness.press(identifier: Self.customTextFieldIdentifier)
+    try Self.submitRed(mounted.harness)
+
+    #expect(await mounted.result() == (try JSONValue(json: Self.acceptedRed)))
+  }
+
+  @Test func aWrongTypeFromACustomFieldIsNotSent() async throws {
+    let mounted = try await Self.mountCustomNote(writing: .number(3))
+    defer { mounted.close() }
+    let harness = mounted.harness
+
+    try harness.press(identifier: Self.customTextFieldIdentifier)
+    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
+
+    let submit = try #require(harness.element(identifier: ElicitationView.submitIdentifier))
+    #expect(!submit.isEnabled)
+    #expect(mounted.session.model.pendingElicitations.count == 1)
   }
 
   @Test func theFooterButtonsKeepTheirTextAsTheirLabels() async throws {

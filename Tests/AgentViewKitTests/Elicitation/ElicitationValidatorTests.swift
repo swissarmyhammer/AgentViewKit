@@ -110,8 +110,21 @@ import Testing
         == ["The text must have 3 or fewer characters."])
   }
 
-  @Test func theLengthCountsUnicodeScalars() {
+  @Test func aPrecomposedLetterIsOneCharacter() {
     #expect(passes(.string("é"), field(text(maxLength: 1))))
+  }
+
+  @Test func aLetterWithACombiningMarkIsOneCharacter() {
+    // "e" and U+0301 are two Unicode scalars and one character.
+    #expect(passes(.string("e\u{301}"), field(text(maxLength: 1))))
+  }
+
+  @Test func aFlagIsOneCharacter() {
+    // A flag is two regional indicator scalars and one character.
+    let state = ElicitationValidator.validate(
+      .string("🇨🇭"), against: field(text(minLength: 2)))
+
+    #expect(state.errors == ["The text must have 2 or more characters."])
   }
 
   @Test func patternIsAppliedToTheFullString() {

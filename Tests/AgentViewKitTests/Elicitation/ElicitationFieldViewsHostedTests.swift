@@ -274,6 +274,20 @@ struct HostedTextField: View {
     #expect(harness.element(identifier: third)?.isEnabled == true)
   }
 
+  @Test func uncheckingTheLastCheckRemovesTheAnswer() throws {
+    let kind = ElicitationFieldSchema.Kind.multiChoice(Self.choices(3), minItems: 1, maxItems: nil)
+    let box = AnswerBox()
+    let harness = Self.mount(Self.field("tags", kind), box: box)
+    defer { harness.close() }
+    let first = ElicitationFieldView.choiceIdentifier(for: "tags", value: "c0")
+
+    try harness.press(identifier: first)
+    #expect(box.value == .array([.string("c0")]))
+
+    try harness.press(identifier: first)
+    #expect(box.value == nil)
+  }
+
   // MARK: - Chrome
 
   @Test func aRequiredEmptyFieldShowsItsError() {

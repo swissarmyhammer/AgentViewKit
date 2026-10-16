@@ -26,6 +26,7 @@ public nonisolated struct ElicitationFieldSchema: Sendable, Hashable, Identifiab
   /// The value always has the JSON type of ``kind``: a string for text, date,
   /// and single-choice fields, a number for number fields, a boolean for
   /// boolean fields, and an array of strings for multi-choice fields.
+  /// ``normalize(from:)`` gives no empty string and no empty array.
   public var defaultValue: JSONValue?
 
   /// The identifier of the field. This is ``name``.
@@ -68,8 +69,8 @@ extension ElicitationFieldSchema {
     /// A `string` property that is not a date and has no choices.
     ///
     /// - Parameters:
-    ///   - minLength: The minimum number of Unicode scalars.
-    ///   - maxLength: The maximum number of Unicode scalars.
+    ///   - minLength: The minimum number of characters.
+    ///   - maxLength: The maximum number of characters.
     ///   - pattern: A regular expression that must match the full text.
     ///   - format: The format of the text.
     case text(minLength: Int?, maxLength: Int?, pattern: String?, format: TextFormat?)
@@ -169,7 +170,8 @@ extension ElicitationFieldSchema {
   ///
   /// A `default` that does not have the JSON type of the field is ignored,
   /// as ACP v2 tells a client to do. In an `array` default, each item that is
-  /// not a string is ignored.
+  /// not a string is ignored. An empty string or an empty array default is
+  /// also ignored.
   ///
   /// - Parameter requestedSchema: The `requestedSchema` object.
   /// - Returns: The fields, in the order of their names. The list is empty
@@ -313,6 +315,25 @@ extension ElicitationFieldSchema {
     }
   }
 
+  /// The default value of a field, if it has the JSON type of the kind and
+  /// is not empty.
+  ///
+  /// An empty string or an empty array is not a default. The form does not
+  /// send an empty value, because the agent validates it against the
+  /// constraints of its property.
+  ///
+  /// - Parameters:
+  ///   - value: The `default` member.
+  ///   - kind: The kind of the field.
+  /// - Returns: The default value, or `nil` when there is none, when its
+  ///   type is wrong, or when it is empty.
+  private static func defaultValue(_ value: JSONValue?, for kind: Kind) -> JSONValue? {
+    guard let typed = typedDefaultValue(value, for: kind),
+      !ElicitationValidator.isEmpty(typed)
+    else { return nil }
+    return typed
+  }
+
   /// The default value of a field, if it has the JSON type of the kind.
   ///
   /// - Parameters:
@@ -320,7 +341,7 @@ extension ElicitationFieldSchema {
   ///   - kind: The kind of the field.
   /// - Returns: The default value, or `nil` when there is none or when its
   ///   type is wrong.
-  private static func defaultValue(_ value: JSONValue?, for kind: Kind) -> JSONValue? {
+  private static func typedDefaultValue(_ value: JSONValue?, for kind: Kind) -> JSONValue? {
     guard let value else { return nil }
     switch kind {
     case .text, .date, .singleChoice:

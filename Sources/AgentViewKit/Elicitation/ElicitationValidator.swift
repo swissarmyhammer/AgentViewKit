@@ -90,7 +90,14 @@ public nonisolated enum ElicitationValidator {
   // MARK: - Checks
 
   /// Tells whether an answer is empty.
-  private static func isEmpty(_ value: JSONValue) -> Bool {
+  ///
+  /// JSON `null`, an empty string, and an empty array are empty. `false`
+  /// and `0` are not empty. The validation and the content of an accepted
+  /// form use this one rule.
+  ///
+  /// - Parameter value: The answer.
+  /// - Returns: `true` when the answer is empty.
+  static func isEmpty(_ value: JSONValue) -> Bool {
     switch value {
     case .null: true
     case .string(let text): text.isEmpty
@@ -140,8 +147,9 @@ public nonisolated enum ElicitationValidator {
     format: ElicitationFieldSchema.TextFormat?
   ) -> [String] {
     var errors: [String] = []
-    // JSON Schema counts the length in Unicode code points.
-    let length = text.unicodeScalars.count
+    // The agent counts the length in characters, so the kit counts it the
+    // same way.
+    let length = text.count
     if let minLength, length < minLength {
       errors.append(Message.tooShort(minLength))
     }
