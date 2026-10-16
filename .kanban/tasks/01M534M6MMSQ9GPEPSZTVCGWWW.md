@@ -35,8 +35,24 @@ comments:
     - evidence: the implement step ran the full suite one time after the change: swift test --skip-build, 1295 tests in 151 suites, 127 tests in 16 suites and 1 test in 1 suite passed, 0 failures, 2 known issues (the same as before). swift build --build-tests: no warning in Sources/ or Tests/. It was not run again (no repeat runs).
     - next: commit, review, push.
   timestamp: 2026-10-16T22:17:14.161571+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m53cvjwtf4y9qmh34ea0acq2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ee80d11). counts: findings 0, confirmed 0, refuted 0, attempted 7, failed 0. 3 files reviewed. 2 .kanban files not reviewed (.reviewignore). Read checks: the form card uses ElicitationHeaderSlot, and the slot has the same if-else as the old private header property (override, else ElicitationHeader). The URL card has one body for the consent state and the waiting state, and that body shows the slot, so both states use it. ElicitationHeader did not change: the container, ElicitationView.headerIdentifier and ElicitationWhoAsksLine are the same, and the slot adds no accessibility modifier. The two new hosted tests check the custom header identifier and label, and that the default header is absent; the waiting test uses open(_:): press, then try #require, then an event render wait. The tests have no clock, sleep, poll, retry or timeLimit. The implement record shows RED (2 tests, 4 issues) before the change. The doc comments agree with the code and the tests.
+    - next: done
+  timestamp: 2026-10-16T22:20:54.554924+00:00
+- actor: claude-code
+  id: 01m53cw6g2q26swe7yjxdnkcjv
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ElicitationView.swift (new internal ElicitationHeaderSlot), ElicitationURLConsentView.swift (uses the slot in the consent and the waiting state), 2 new hosted tests
+    - test: green — full swift test --skip-build, 1295 + 127 + 1 tests passed, 2 known issues
+    - commit: ee80d11
+    - review: clean — 0 findings
+  timestamp: 2026-10-16T22:21:14.626031+00:00
+position_column: done
+position_ordinal: ffe280
 title: 'ElicitationURLConsentView: use elicitationHeaderOverride'
 ---
 From the card 39 design, question Q7 (the step owner: not in card 39, a separate card for later). Write all text in STE.
