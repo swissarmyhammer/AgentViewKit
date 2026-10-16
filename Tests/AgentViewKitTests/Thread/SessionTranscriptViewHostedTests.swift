@@ -250,13 +250,11 @@
     /// off-screen harness window it can send no report. A wait for it with no
     /// bound holds `HostedTestLock` and stops all hosted tests.
     ///
-    /// Gap: no test proves that SwiftUI calls the
-    /// `onScrollTargetVisibilityChange` action of the view, or that the
-    /// action gives the report to ``ScrollAnchorManager``. The action is a
-    /// closure in the body of the view, so a test cannot get it or compare
-    /// it. `ScrollAnchorManagerTests` covers what the manager does with a
-    /// report. The demo app XCUITests do not cover the link yet; task
-    /// ^2pbwh3e adds that check on a real screen.
+    /// The `onScrollTargetVisibilityChange` action of the view is a closure
+    /// in the body of the view, so a test cannot get it or compare it.
+    /// `ScrollAnchorManagerTests` covers what the manager does with a report.
+    /// ``ConversationViewHostedTests/aScrollUpMakesTheListReportItsRowsAndShowThePill()``
+    /// covers the link: the list gives its report to ``ScrollAnchorManager``.
     @Test func eachRowHasTheRowKeyOfItsEntryAsItsScrollTargetID() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }

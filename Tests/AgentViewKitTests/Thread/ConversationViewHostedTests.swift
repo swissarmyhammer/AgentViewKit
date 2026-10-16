@@ -1,5 +1,5 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
   import FoundationModelsACPClient
   import SwiftUI
@@ -63,12 +63,13 @@
     /// the pill, the count of new entries, the pin state, the anchor that an
     /// action sets, and the frames of the rows.
     ///
-    /// Gap: no hosted test proves that SwiftUI calls the
-    /// `onScrollTargetVisibilityChange` action of `ConversationView`, or that
-    /// the action gives the report to ``ScrollAnchorManager``. The action is
-    /// a closure in the body of the view, so a test cannot get it.
+    /// The action of `onScrollTargetVisibilityChange` is a closure in the
+    /// body of `ConversationView`, so a test cannot get it.
     /// `ScrollAnchorManagerTests` covers what the manager does with a report.
-    /// Task ^2pbwh3e adds the check of the link on a real screen.
+    /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` and
+    /// ``aPressOnThePillScrollsTheListToTheLastRow()`` give no report: they
+    /// check that the actions of the list give the reports to
+    /// ``ScrollAnchorManager``.
     ///
     /// - Parameters:
     ///   - edge: The edge of the list that is in view.
@@ -206,11 +207,9 @@
     /// and gives the manager the report of the rows at the top
     /// (``reportRows(at:of:to:)``). The report unpins the manager.
     ///
-    /// The helper jumps as the thread minimap does with no proxy: it calls
-    /// ``ScrollAnchorManager/noteJump(to:)`` before it sends the scroll. The
-    /// jump cancels the scroll to the bottom that the mount can leave pending.
-    /// Without the jump, that late scroll can move the list back to the
-    /// bottom.
+    /// The helper scrolls with ``jump(to:anchors:harness:)``. Without the
+    /// jump, the late scroll to the bottom that the mount can leave pending
+    /// can move the list back to the bottom.
     ///
     /// - Parameters:
     ///   - session: The session model of the conversation.
@@ -221,10 +220,72 @@
       session: SessionModel, anchors: ScrollAnchorManager, harness: HostedViewHarness<Content>
     ) throws {
       let firstKey = try #require(session.transcript.first?.rowKey)
-      anchors.noteJump(to: firstKey)
-      anchors.onScroll(.item(firstKey))
-      harness.hostingView.layoutSubtreeIfNeeded()
+      jump(to: firstKey, anchors: anchors, harness: harness)
       reportRows(at: .top, of: session, to: anchors)
+    }
+
+    /// Scrolls the conversation to the row with `key`, and lays it out one
+    /// time. The helper gives no visibility report to the manager.
+    ///
+    /// The helper jumps as the thread minimap does with no proxy: it calls
+    /// ``ScrollAnchorManager/noteJump(to:)`` before it sends the scroll. The
+    /// jump cancels the scroll to the bottom that the mount can leave pending.
+    /// The jump does not change the pin state of the manager.
+    ///
+    /// - Parameters:
+    ///   - key: The row key of the entry to scroll to.
+    ///   - anchors: The manager of the conversation.
+    ///   - harness: The harness that shows the conversation.
+    static func jump<Content: View>(
+      to key: String, anchors: ScrollAnchorManager, harness: HostedViewHarness<Content>
+    ) {
+      anchors.noteJump(to: key)
+      anchors.onScroll(.item(key))
+      harness.hostingView.layoutSubtreeIfNeeded()
+    }
+
+    /// Records each scroll target that `anchors` sends, and then gives the
+    /// target to the scroll closure that the conversation set.
+    ///
+    /// Call this helper after the first layout of the conversation: the
+    /// conversation sets ``ScrollAnchorManager/onScroll`` when it appears.
+    ///
+    /// - Parameter anchors: The manager of the conversation.
+    /// - Returns: The recorder of the scroll targets.
+    static func recordScrollTargets(of anchors: ScrollAnchorManager) -> ReportRecorder<ScrollAnchorTarget> {
+      let targets = ReportRecorder<ScrollAnchorTarget>()
+      let viewScroll = anchors.onScroll
+      anchors.onScroll = { target in
+        targets.report(target)
+        viewScroll(target)
+      }
+      return targets
+    }
+
+    /// Mounts the conversation of `session` with a new manager, records the
+    /// scroll targets of the manager, and scrolls up to the row with
+    /// `firstKey`. The helper gives no visibility report to the manager: only
+    /// the actions of the list tell the manager which rows are in view.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session, with more entries than the harness
+    ///     window shows.
+    ///   - firstKey: The row key of the first entry of the transcript.
+    /// - Returns: The manager, the recorder of its scroll targets, and the
+    ///   harness, after the scroll and one ``HostedViewHarness/render()`` pass.
+    static func mountAndScrollUp(
+      _ session: ScriptedSession, to firstKey: String
+    ) -> (
+      ScrollAnchorManager, ReportRecorder<ScrollAnchorTarget>,
+      HostedViewHarness<ConversationView<ConversationEmptyState>>
+    ) {
+      let anchors = ScrollAnchorManager()
+      let harness = HostedViewHarness(ConversationView(session: session.model, anchors: anchors))
+      harness.render()
+      let targets = recordScrollTargets(of: anchors)
+      jump(to: firstKey, anchors: anchors, harness: harness)
+      harness.render()
+      return (anchors, targets, harness)
     }
 
     /// Lays out the views of `harness` two times: the first pass runs the
@@ -337,9 +398,9 @@
     ///
     /// The test does not check the rows in view that the manager keeps: the
     /// given report writes them. Gap: the test gives the visibility reports
-    /// to the manager itself (``reportRows(at:of:to:)``). No hosted test
-    /// proves that SwiftUI sends them. Task ^2pbwh3e checks that on a real
-    /// screen.
+    /// to the manager itself (``reportRows(at:of:to:)``).
+    /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` checks that the
+    /// list sends them.
     @Test func anInsertAfterAGivenBottomReportShowsTheNewRowWithNoPill() async throws {
       let (session, anchors, harness) = try await Self.mountScrolledConversation()
       defer { session.close() }
@@ -369,9 +430,9 @@
     ///
     /// The test does not check the rows in view that the manager keeps: the
     /// given report writes them. Gap: the test gives the visibility reports
-    /// to the manager itself (``reportRows(at:of:to:)``). No hosted test
-    /// proves that SwiftUI sends them. Task ^2pbwh3e checks that on a real
-    /// screen.
+    /// to the manager itself (``reportRows(at:of:to:)``).
+    /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` checks that the
+    /// list sends them.
     @Test func anInsertAfterAGivenTopReportShowsOneNewInThePill() async throws {
       let (session, anchors, harness) = try await Self.mountScrolledConversation()
       defer { session.close() }
@@ -404,12 +465,14 @@
     /// The test does not check that the list scrolls to the new entry: in
     /// the off-screen harness window, the scroll to the bottom that the press
     /// requests does not move the list in the render pass of the press and
-    /// one more layout pass. The test does not check the rows in view that
+    /// one more layout pass. ``aPressOnThePillScrollsTheListToTheLastRow()``
+    /// waits for that scroll. The test does not check the rows in view that
     /// the manager keeps: the given report writes them.
     ///
     /// Gap: the test gives the visibility reports to the manager itself
-    /// (``reportRows(at:of:to:)``). No hosted test proves that SwiftUI sends
-    /// them. Task ^2pbwh3e checks that on a real screen.
+    /// (``reportRows(at:of:to:)``).
+    /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` checks that the
+    /// list sends them.
     @Test func aPressOnThePillSetsTheNewEntryCountToZero() async throws {
       let (session, anchors, harness) = try await Self.mountScrolledConversation()
       defer { session.close() }
@@ -431,6 +494,64 @@
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
 
+    /// The link between the list and the manager, with no given report: a
+    /// scroll up makes the list report its rows in view to the manager, the
+    /// report unpins the manager, and the view shows the pill.
+    ///
+    /// The test gives no visibility report to the manager. The jump sets the
+    /// rows in view of the manager to the first row only, and it does not
+    /// change the pin state. Thus only the actions of the list can write more
+    /// rows and unpin the manager. In the harness window, SwiftUI calls the
+    /// `onScrollTargetVisibilityChange` action in the layout pass that moves
+    /// the list, so the test checks at once after that pass, with no wait.
+    @Test func aScrollUpMakesTheListReportItsRowsAndShowThePill() async throws {
+      let session = try await Self.openSession(messages: Self.scrollEntryCount)
+      defer { session.close() }
+      let firstKey = try #require(session.model.transcript.first?.rowKey)
+      let (anchors, _, harness) = Self.mountAndScrollUp(session, to: firstKey)
+      defer { harness.close() }
+
+      #expect(Self.showsRow(firstKey, in: harness))
+      #expect(anchors.visibleIDs.first == firstKey)
+      #expect(anchors.visibleIDs.count > 1)
+      #expect(!anchors.isPinnedToBottom)
+      #expect(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
+    }
+
+    /// The link between the pill, the manager and the list, with no given
+    /// report: a press on the pill pins the manager, the manager sends the
+    /// scroll to the bottom, the list moves to the last row, and the pill
+    /// goes away.
+    ///
+    /// The manager sends the scroll on the next main-actor tick after the
+    /// press. The press always requests that scroll, and no jump cancels it,
+    /// so the test waits for the event that the recorder gets the bottom
+    /// target. Then one ``HostedViewHarness/render()`` pass moves the list,
+    /// and the list reports its new rows to the manager in that pass.
+    @Test func aPressOnThePillScrollsTheListToTheLastRow() async throws {
+      let session = try await Self.openSession(messages: Self.scrollEntryCount)
+      defer { session.close() }
+      let model = session.model
+      let firstKey = try #require(model.transcript.first?.rowKey)
+      let lastKey = try #require(model.transcript.last?.rowKey)
+      let (anchors, targets, harness) = Self.mountAndScrollUp(session, to: firstKey)
+      defer { harness.close() }
+      try #require(Self.showsRow(firstKey, in: harness))
+      try #require(!Self.showsRow(lastKey, in: harness))
+      try #require(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
+
+      try harness.press(identifier: ScrollToBottomPill.identifier)
+      try #require(anchors.isPinnedToBottom)
+      try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
+
+      await ObservationWait.until { targets.values.last == .bottom }
+      harness.render()
+
+      #expect(Self.showsRow(lastKey, in: harness))
+      #expect(anchors.isPinnedToBottom)
+      #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
+    }
+
     // MARK: - Banner and errors
 
     /// The reaction of the view to a press on the Show Error button: the list
@@ -444,8 +565,9 @@
     /// it does not check the rows in view that the manager keeps.
     ///
     /// Gap: the mount gives the report of the rows at the bottom to the
-    /// manager itself (``reportRows(at:of:to:)``). No hosted test proves that
-    /// SwiftUI sends the reports. Task ^2pbwh3e checks that on a real screen.
+    /// manager itself (``reportRows(at:of:to:)``).
+    /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` checks that the
+    /// list sends the reports.
     @Test func theShowErrorButtonMovesToTheErrorEntry() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }

@@ -251,8 +251,8 @@
     ///
     /// Gap: the test gives the report of the rows at the bottom to the
     /// manager itself (``ConversationViewHostedTests/reportRows(at:of:to:)``).
-    /// No hosted test proves that SwiftUI sends the reports. Task ^2pbwh3e
-    /// checks that on a real screen.
+    /// ``ConversationViewHostedTests/aScrollUpMakesTheListReportItsRowsAndShowThePill()``
+    /// checks that the list sends the reports.
     @Test func aClickOnATickScrollsTheConversationToTheRowOfTheEntry() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
