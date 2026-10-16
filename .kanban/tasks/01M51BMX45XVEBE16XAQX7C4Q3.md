@@ -37,10 +37,26 @@ comments:
     - evidence: 5 files — Sources/AgentViewKit/Elicitation/ElicitationView.swift, Sources/AgentViewKit/Platform/Announcer.swift, Sources/AgentViewKit/Accessibility/ThreadAccessibility.swift, Docs/decisions/accessibility.md, Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift. `swift test --filter Elicitation`: 123 tests in 12 suites passed (120 before plus 3 new). One SwiftPM line `warning: missing creator for mutated node ... mlx-swift_Cmlx.bundle` comes from the mlx package, not from this change.
     - next: /review. Part A (^q6mny1d) and part B share ElicitationView.swift and ElicitationViewHostedTests.swift. The part B hunks are listed in the report to the coordinator.
   timestamp: 2026-10-16T06:54:17.298473+00:00
+- actor: claude-code
+  id: 01m51vkb2391sf40v94h4b827w
+  text: |-
+    ### review — clean
+    - evidence: review sha 2c268f4~1..2c268f4 — 0 findings (confirmed 0, refuted 0, attempted 7, failed 0). The engine reviewed 4 files. It did not review 3 files: 2 .kanban files (ignore rule) and Docs/decisions/accessibility.md (no validator matches this file).
+    - next: none. The card is in done.
+  timestamp: 2026-10-16T08:00:04.163527+00:00
+- actor: claude-code
+  id: 01m51vkzn5we4qwgv90ybt89ty
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files (ElicitationView.swift, Announcer.swift, ThreadAccessibility.swift, Docs/decisions/accessibility.md, ElicitationViewHostedTests.swift); source-a fixture = the required multi select with no choices (step owner choice A)
+    - test: green — swift test, 1350 passed, 0 failed, 0 skipped (one full run shared with ^q6mny1d, ^q6xe3hd and ^fzn2beh); check-readme passed
+    - commit: 2c268f4
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-16T08:00:25.253297+00:00
 depends_on:
 - 01M50NQYCATQ3K3VYGNQ6MNY1D
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: ffce80
 title: 'ElicitationView: call PendingElicitation.validationFailure(of:) before the send, keep the form open and show the failure'
 ---
 Second part of ^q6mny1d (design accepted on that card). Waits for the FoundationModelsACPClient head with the public bridge `PendingElicitation.validationFailure(of: JSONValue?) -> String?` (the step owner gives the head).

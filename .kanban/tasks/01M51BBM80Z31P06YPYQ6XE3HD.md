@@ -81,10 +81,26 @@ comments:
     - evidence: 3 files — Sources/AgentViewKit/ACP/KitInitializeRequest.swift, Sources/AgentViewKit/ACP/InProcessAgent.swift, Tests/AgentViewKitTests/ACP/KitInitializeRequestTests.swift; `swift test --filter KitInitializeRequestTests`: 6 passed, 0 failed.
     - next: /test, then /review. Commit after part A of ^q6mny1d.
   timestamp: 2026-10-16T03:32:28.112938+00:00
+- actor: claude-code
+  id: 01m51vbwxr2q0taa8pk1w2n9cj
+  text: |-
+    ### review — clean
+    - evidence: review sha b998f83~1..b998f83 — 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). The engine reviewed 3 files. An ignore rule (.reviewignore) excluded 2 files in .kanban/.
+    - next: None. The task is in done.
+  timestamp: 2026-10-16T07:56:00.312800+00:00
+- actor: claude-code
+  id: 01m51vcc82fxhcamazzafd43py
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files (KitInitializeRequest.swift, InProcessAgent.swift, KitInitializeRequestTests.swift)
+    - test: green — swift test, 1350 passed, 0 failed, 0 skipped (one full run shared with ^q6mny1d, ^qx7c4q3 and ^fzn2beh); check-readme passed
+    - commit: b998f83
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-16T07:56:16.002540+00:00
 depends_on:
 - 01M50NQYCATQ3K3VYGNQ6MNY1D
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffcd80
 title: 'Elicitation task 28 (AgentViewKit part): make ClientCapabilities.agentViewKit come from ACPClient.capabilities(for: .interactive)'
 ---
 elicitation-plan.md task 28. ACPClient 904e541 made the elicitation capability an explicit client setting: `ACPClient.UserPresence` and `capabilities(for:)`. An elicitation of a mode that the client did not advertise now gets cancel at once, with the reason in `_meta`.

@@ -108,8 +108,25 @@ comments:
     - evidence: 8 files — Sources/AgentViewKit/Elicitation/ElicitationValidator.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldSchema.swift, Sources/AgentViewKit/Elicitation/ElicitationView.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift, Tests/AgentViewKitTests/Elicitation/ElicitationAnswerContentTests.swift (new), Tests/AgentViewKitTests/Elicitation/ElicitationSchemaNormalizationTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationValidatorTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationFieldViewsHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift; `swift test --filter Elicitation`: 120 tests in 12 suites passed.
     - next: /review. The check before the send and source a stay on the new card (they need the ACPClient bridge).
   timestamp: 2026-10-16T03:28:38.693554+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m51v4wfspcr4whs3mxaz24ck
+  text: |-
+    ### review — clean
+    - evidence: review sha eb6ab8b~1..eb6ab8b — 0 findings (confirmed 0, refuted 1, attempted 7, failed 0). 9 files reviewed. 22 .kanban/ files are not reviewed because of .reviewignore.
+    - scope: this commit is part A only. The check before the send is in commit 2c268f4 (card ^qx7c4q3). This review does not examine that check.
+    - next: none. The card is in done.
+  timestamp: 2026-10-16T07:52:10.489434+00:00
+- actor: claude-code
+  id: 01m51v5b674zm6hc6jfamrcn76
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — part A (sources b, c, d, e), 9 files
+    - test: green — swift test, 1350 passed, 0 failed, 0 skipped (one full run with task 28, part B and ^fzn2beh); check-readme passed
+    - commit: eb6ab8b
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-16T07:52:25.543093+00:00
+position_column: done
+position_ordinal: ffcc80
 title: 'ElicitationView: check the answer with validationFailure(of:) before send, show the failure, and send no value that the agent refuses'
 ---
 Do not start this task during mail step 7 T4.

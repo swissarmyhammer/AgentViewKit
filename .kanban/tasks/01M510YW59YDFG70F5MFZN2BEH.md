@@ -106,8 +106,26 @@ comments:
     - new task: ^mjkwsp4 (other `.equatable()` views can have the same gap).
     - next: review; a full `swift test` run must confirm the full-run case.
   timestamp: 2026-10-16T07:36:18.362160+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m51vve5faan3vhn6k6wfbxqw
+  text: |-
+    ### review — clean
+    - evidence: review sha cf3ea85~1..cf3ea85; 0 findings (0 confirmed, 0 refuted); 5 files reviewed, 4 .kanban files not reviewed (ignore rule). All prior Review Findings sections have no open item.
+    - The run-12 cause is found and recorded (Research 3: AttributeGraph async compare layouts). The card moved to done.
+    - next: The implement record says that a full `swift test` run must confirm the full-run case. This review did not run the test suite.
+  timestamp: 2026-10-16T08:04:29.487076+00:00
+- actor: claude-code
+  id: 01m51vvx1es024vfyz3c9ddfkt
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — cause found (SwiftUI compares the bytes of the view values until its async compare layout is ready, and does not call == until then); fix: ParagraphViewCache gives back the stored ParagraphView when the new one is ==; 5 files
+    - test: green — swift test, 1350 passed, 0 failed, 0 skipped (the second full run, with this fix in the tree; the first full run was red in this test before the fix); check-readme passed
+    - commit: cf3ea85
+    - review: clean — 0 findings; card moved to done
+    - follow-up card: ^mjkwsp4 (the other two .equatable() views)
+  timestamp: 2026-10-16T08:04:44.718528+00:00
+position_column: done
+position_ordinal: ffcf80
 title: 'Mail step 7: aLongTextNeverEvaluatesAnEarlierParagraphAgain fails in the A6 full run (each earlier paragraph evaluates one more time on each chunk)'
 ---
 Found in the full run of T4-A6 (^yvdg1f4, uncommitted on top of e082aa3). Log: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/43998bc3-6f4e-4bb7-909b-93c5172edb4f/scratchpad/swift-test-12.log
