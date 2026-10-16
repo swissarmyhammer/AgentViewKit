@@ -104,10 +104,33 @@ comments:
     - Notes for the step owner: (1) the validator messages are not localized; this was so before D-1. (2) The length messages say "characters" and count code points.
     - next: commit, review, push.
   timestamp: 2026-10-16T21:48:41.907448+00:00
+- actor: claude-code
+  id: 01m53b94qz8ew9xvpp4be50qzp
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c7e3ddd): counts findings 0, confirmed 0, refuted 0 (7 attempted, 0 failed). 4 files reviewed; 2 .kanban files not reviewed (ignore rule). No prior Review Findings section on the card.
+    - Checks by reading the code at the pins ACPClient 26b7bf7 and Extras 1804680:
+      - Sources has no import of FoundationModelsExtras. ElicitationValidator imports FoundationModelsACPClient only. ImportBoundaryTests keeps Extras in forbiddenInSources.
+      - The kit has no copy of the ECMA translation. matchesFully (Swift Regex wholeMatch) and text.count are removed. The lengths use PendingElicitation.codePointLength. The pattern uses PendingElicitation.patternMatches (true: pass, false: patternMismatch, nil: patternNotCorrect "The pattern of this field is not correct."). The wholeMatch calls that stay are for email and RFC 3339 only.
+      - The bridge calls Extras ElicitationValidation.codePointLength and patternMatches. Extras validationFailure(of:) uses the same two functions, so the check of each field and the check at Submit use the same D-1 rules.
+      - ElicitationValidatorTests has the Extras examples: anArabicIndicDigitIsNotADigit (U+0663 against ^\d$), aPatternMatchesAPartOfTheText ("zip 12345" against [0-9]{5}), aLetterWithACombiningMarkIsTwoCodePoints ("e\u{301}" fails maxLength 1), anEmojiIsOneCodePoint ("👍" passes maxLength 1), aPatternThatDoesNotCompileFailsTheField ("[a-").
+      - anAnswerThatExtrasRefusesIsNotSent: the kit RFC3339.isDateTime accepts second 60 (maximumSecond = 60). Extras isDateTime uses ISO8601DateFormatter .withInternetDateTime (with and without fractional seconds). The test requires a non-nil validationFailure(of:) for "2026-12-31T23:59:60Z" and expects the request to stay and the failure text to show after Submit. Thus the test proves the Submit gate. The implement and test steps record it as passed.
+      - The doc of validate(_:against:) and of Kind.text say only what the code does. The known gap (date-time "t", "z" and second 60; uri RFC 3986 scheme; "" and [] are no answer; the check at Submit stops an answer that it refuses) agrees with the decision of the step owner (option D).
+    - next: none. The task moves to done.
+  timestamp: 2026-10-16T21:53:21.663973+00:00
+- actor: claude-code
+  id: 01m53b9xjch3np8qktpy25394q
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ElicitationValidator.swift (codePointLength, patternMatches; the own whole match and String.count are gone), ElicitationFieldSchema.swift doc, ElicitationValidatorTests.swift (Extras examples), ElicitationViewHostedTests.swift (the Submit gate test uses a second-60 date-time); local pins ACPClient 26b7bf7 and Extras 1804680
+    - test: green — full run 1293 tests in 151 suites passed (2 known issues); ResolvedPinsTests passed after the demo project was made again; verification run after the message style change: 21 and 61 tests passed
+    - commit: c7e3ddd
+    - review: clean — 0 findings
+  timestamp: 2026-10-16T21:53:47.084261+00:00
 depends_on:
 - 01M51BCMH8VHWE68GXDERGVEFT
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffe080
 title: 'Decision D-1: answer checks follow JSON Schema (pattern not anchored, lengths in code points)'
 ---
 Decision D-1 of the step owner (elicitation-plan.md section 10). Write all text in STE.
