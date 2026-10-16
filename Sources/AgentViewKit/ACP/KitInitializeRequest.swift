@@ -5,24 +5,25 @@ extension ClientCapabilities {
   /// The client capabilities that a kit host advertises at `initialize`.
   ///
   /// ACP v2 tells a client to advertise only the capabilities that it
-  /// supports. This value gives each capability that a kit view shows, and
-  /// no other capability:
+  /// supports. This value comes from the client:
+  /// `ACPClient.capabilities(for: .interactive)`, the capabilities of a host
+  /// with a UI. Thus the kit and the client cannot advertise different
+  /// elicitation modes. The kit shows each mode in a view:
   ///
   /// - `elicitation.form`: ``ElicitationView`` shows a form elicitation.
   /// - `elicitation.url`: ``ElicitationURLConsentView`` shows a URL
   ///   elicitation.
+  ///
+  /// The kit is for a host with a UI only, so this value has no user
+  /// presence parameter. A host with no UI does not show the kit views. It
+  /// sends `ACPClient.capabilities(for: .headless)` directly.
   ///
   /// The value does not set `auth`. Only a host can run the agent program in
   /// an interactive terminal, so the agent must not give a `terminal` auth
   /// method when the host has no runner.
   /// ``FoundationModelsACP/InitializeRequest/makeAgentViewKitRequest(info:terminalAuthRunner:)``
   /// adds `auth.terminal` when the host gives a runner.
-  public static let agentViewKit = ClientCapabilities(
-    elicitation: ElicitationCapabilities(
-      form: ElicitationFormCapabilities(),
-      url: ElicitationUrlCapabilities()
-    )
-  )
+  public static let agentViewKit = ACPClient.capabilities(for: .interactive)
 }
 
 extension InitializeRequest {

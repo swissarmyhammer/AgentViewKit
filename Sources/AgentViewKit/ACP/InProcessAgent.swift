@@ -49,7 +49,7 @@ public enum InProcessAgent {
   ///
   /// The returned model is connected and not initialized. Send `initialize`
   /// with `ConnectionModel.initialize(_:)`, for example with
-  /// ``FoundationModelsACP/InitializeRequest/makeAgentViewKitRequest(info:)``.
+  /// ``FoundationModelsACP/InitializeRequest/makeAgentViewKitRequest(info:terminalAuthRunner:)``.
   ///
   /// - Parameter makeAgent: Makes the agent from the agent side of the
   ///   connection. The agent sends its session updates through that

@@ -9,9 +9,13 @@ import Testing
 /// Tests of the `initialize` request that a kit host sends.
 ///
 /// The request advertises only the capabilities that the kit views can show:
-/// the form and the URL elicitation modes. It advertises `auth.terminal` only
-/// when the host gives a terminal auth runner.
+/// the form and the URL elicitation modes. These capabilities come from
+/// `ACPClient.capabilities(for: .interactive)`. The request advertises
+/// `auth.terminal` only when the host gives a terminal auth runner.
 struct KitInitializeRequestTests {
+  /// The capabilities that the client advertises for a host with a UI.
+  static let interactiveCapabilities = ACPClient.capabilities(for: .interactive)
+
   /// The JSON value of an empty capability object, such as `{}`.
   static let emptyCapability = JSONValue.object([:])
 
@@ -69,5 +73,30 @@ struct KitInitializeRequestTests {
     #expect(capabilities["auth"]?["terminal"] == Self.emptyCapability)
     #expect(capabilities["elicitation"]?["form"] == Self.emptyCapability)
     #expect(capabilities["elicitation"]?["url"] == Self.emptyCapability)
+  }
+
+  @Test func theKitCapabilitiesAreTheInteractiveCapabilitiesOfTheClient() {
+    #expect(ClientCapabilities.agentViewKit == Self.interactiveCapabilities)
+  }
+
+  @Test func aRequestWithNoTerminalAuthRunnerHasTheInteractiveCapabilitiesOfTheClient() {
+    let request = InitializeRequest.makeAgentViewKitRequest(
+      info: ScriptedSession.clientInfo,
+      terminalAuthRunner: nil
+    )
+
+    #expect(request.capabilities == Self.interactiveCapabilities)
+  }
+
+  @Test func aTerminalAuthRunnerAddsOnlyTerminalAuthToTheInteractiveCapabilities() {
+    var expected = Self.interactiveCapabilities
+    expected.auth = AuthCapabilities(terminal: TerminalAuthCapabilities())
+
+    let request = InitializeRequest.makeAgentViewKitRequest(
+      info: ScriptedSession.clientInfo,
+      terminalAuthRunner: FakeTerminalAuthRunner(exitStatus: nil)
+    )
+
+    #expect(request.capabilities == expected)
   }
 }
