@@ -91,6 +91,25 @@ comments:
     - Full detail: see the comment on ^yvdg1f4.
     - next: a person must run the examples gate where UI Automation mode is on.
   timestamp: 2026-10-16T01:22:10.284283+00:00
+- actor: claude-code
+  id: 01m515egaqa6yw8jsz7600w88d
+  text: |-
+    ### review — clean
+    - evidence: review sha a51dfde~1..a51dfde — 0 findings (0 confirmed, 0 refuted, 14 attempted, 0 failed). 23 files reviewed. No validator matches the 8 Markdown docs (README.md, plan.md, Docs/decisions/acp-client-kit.md, acp-version.md, branches.md, checkpoints.md, subagent-source.md, Examples/AgentViewKitDemo/RecordedSessions/README.md). Thus the driver checked them with a read of the diff and with a search of all *.md files. The changed text agrees with the new ACPAgent behavior: state changes with no prompt open, an idle with no stop reason, more than one open prompt, one cancel rule (running, requires action, or idle with a pending request), the announcement only for the first idle after the echo of a prompt of this client, entries after the prompt ended, and the StateBanner shows the requires-action text for an idle session with a pending request. Docs/decisions/accessibility.md (not changed) also agrees. The remaining "turn" words in Docs/decisions are the Router granularity value `turn` and the commit history in acp-client-kit.md. The code symbols with "turn" (makeTurnAnnouncements and others) are public names, and the task did not rename them. Full suite green (1201 tests, 1 run).
+    - observation (not an engine finding, a person must decide): comparison.md (a dated survey, 2026-10-11, not in the task list, not changed by this commit) still uses the "turn" noun ("There are no turn times: the client model has no turns"; "Turn logic is in the kit"; "the cancel command and the turn announcements use it").
+    - next: the task is not finished. It stays in review. The push, the CI check and the final report remain.
+  timestamp: 2026-10-16T01:32:57.047205+00:00
+- actor: claude-code
+  id: 01m51b9ehypa8tr3ctxw6nvxsf
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — the clock wait helpers removed (Polling.swift and HarnessWaiting.swift deleted); doc comments and 8 Markdown files agree with the new ACPAgent behavior; README "The test rule"
+    - test: green — swift test, 1201 passed in 138 suites (1 run) on the current mains (ACPClient 7676d81, ACP fb55b2f, ACPAgent 4359b57, Router f3ac39b, Extras 83c34f0, EditorKit bae8f95); README gate passed; local examples check could not start the UI tests (no UI Automation mode in this session)
+    - commit: a51dfde, pushed (277f657..a51dfde)
+    - review: clean — 0 findings
+    - CI: run 38835772942 success (README gate, Build & test, Examples (AgentViewKitDemo); Integration opt-in skipped)
+    - final report sent to the step owner. Step 7 is done.
+  timestamp: 2026-10-16T03:15:02.846229+00:00
 depends_on:
 - 01M4ZQV6P05Y91E6AAAPVJE3W3
 - 01M50ER0NN5DRGV5S3HGQ8H07P
@@ -101,8 +120,8 @@ depends_on:
 - 01M50ERG58ANWMMVTG535SW345
 - 01M50ERJRW6EXQ0YFCRYVDG1F4
 - 01M50752E2QZQ69JD3WYR4ZGPZ
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffcb80
 title: 'Mail step 7 T4: Remove time limits and clock waits from the tests, align the docs, run the full suite, push, and report'
 ---
 1. Remove the .timeLimit trait and each sleep, clock wait and poll in the tests. Use a wait on an event, a gate or a fixed order. A clock may only measure and print time.

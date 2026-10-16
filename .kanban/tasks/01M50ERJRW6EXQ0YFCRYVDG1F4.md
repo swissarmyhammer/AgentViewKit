@@ -111,10 +111,26 @@ comments:
     - Resolved revisions (Package.resolved, branch main unless noted): editorkit bae8f9556349; foundationmodelsacp fb55b2fe90c1; foundationmodelsacpagent 4359b57a2be7; foundationmodelsacpclient 7676d81a44fc; foundationmodelsagents bf9bbe9f8daf; foundationmodelscodecontext c9075feba59a; foundationmodelsextras 83c34f055502; foundationmodelsmetadataregistry 858f5da3d26c; foundationmodelsmultitool 4171660fa706; foundationmodelsranker 61563468972b; foundationmodelsrouter f3ac39be2332; foundationmodelsskills cf1ce5456c8b; swift-sdk dbea70214ea3; textual 0.5.0 01b51875a540; mlx-swift-lm d609e75d0d1f (stable).
     - next: a person must run Scripts/test-examples.sh AgentViewKitDemo in a session with UI Automation mode enabled.
   timestamp: 2026-10-16T01:22:06.262005+00:00
+- actor: claude-code
+  id: 01m5151pvd4qsxt9cqbh4t5jqn
+  text: |-
+    ### review — clean
+    - evidence: review sha aab9502~1..aab9502 — 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). The 2 prior findings (DemoAgentTests.swift and InProcessAgentTests.swift, test-integrity/no-test-cheating) are checked. In the full files, each ObservationWait.until has an #expect on the result after it. The cleanup in DemoAgentTests is in a defer. Full suite green (1201 tests, 1 run).
+    - next: none. The task is in done.
+  timestamp: 2026-10-16T01:25:57.741647+00:00
+- actor: claude-code
+  id: 01m51b9ay0n8gvacb93rsxfvsm
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — DemoAgentTests.swift, InProcessAgentTests.swift (#expect after each wait)
+    - test: green — swift test, 1201 passed in 138 suites (1 run, on the current mains, with T4)
+    - commit: aab9502 (pushed in a51dfde)
+    - review: clean — 0 new findings; 2 of 2 prior findings checked
+  timestamp: 2026-10-16T03:14:59.136629+00:00
 depends_on:
 - 01M50ER0NN5DRGV5S3HGQ8H07P
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffca80
 title: 'Mail step 7 T4-A6: Remove the clock waits and polls from the other test folders'
 ---
 Part of T4 (^m7q9e97). Area: Tests/AgentViewKitTests/Status, Activity, Commands, Sessions, Attachments, Terminal, Config, Helpers, ACP, TestSupport, the files at the root of Tests/AgentViewKitTests, and Tests/PackageStructureTests. Same rules as T4-A1. At the end, no use of `pump(for:)` with a fixed time, `waitUntil` or `pump(until:)` is left in Tests; check with a search. One full run, one commit. Write all text in STE. #mail-step-7
