@@ -69,11 +69,27 @@ comments:
     - evidence: swift build --build-tests, one run: Build complete, 0 compiler errors, 0 compiler warnings. The output has one SwiftPM build-system line "warning: missing creator for mutated node: ... mlx-swift_Cmlx.bundle/Contents/MacOS". It comes from the mlx dependency bundle, not from a source file. A doc-comment change cannot cause it. No test run: the change is doc comments only, with no behavior change. No commit.
     - next: /review.
   timestamp: 2026-10-16T10:52:23.468089+00:00
+- actor: claude-code
+  id: 01m525q5489jjh4hkv6nmpsakk
+  text: |-
+    ### review — clean
+    - evidence: review sha 53bd964~1..53bd964 — 0 findings (4 files reviewed; 4 .kanban files ignored). The prior finding (AgentThreadView.swift:27 duplication/duplication) is checked and correct: the RequestDeck doc has the one full example, and AgentThreadView, PromptInputView and ThreadAccessibility have a link sentence.
+    - next: none. The card is in done.
+  timestamp: 2026-10-16T10:56:54.920468+00:00
+- actor: claude-code
+  id: 01m525qpk0f5ch4s16tqpf2nxp
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — doc comments only: RequestDeck.swift (the one full mounting example), AgentThreadView.swift, PromptInputView.swift, ThreadAccessibility.swift (link sentences)
+    - test: build only — swift build --build-tests, 0 errors, 0 compiler warnings (doc-only change; the full run of iteration 1 was green)
+    - commit: 53bd964
+    - review: clean — 0 findings; the prior finding is checked; card moved to done
+  timestamp: 2026-10-16T10:57:12.800177+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BC7WBQ93BAV1Q42Z2XGTQ
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: ffd380
 title: 'Elicitation task 35: remove the pending requests host from AgentThreadView'
 ---
 elicitation-plan.md task 35. AgentThreadView mounts PendingRequestsHost (a VStack of cards) today. Remove it; the app mounts the deck (task 34). Update the demo app and the docs so that the requests still show. Do it as the accepted deck design says. Tests with the step 7 rules. Write all text in STE.
