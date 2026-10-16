@@ -144,11 +144,33 @@ comments:
     - Nothing was committed or pushed. No code was changed.
     - next: review
   timestamp: 2026-10-16T14:58:06.908899+00:00
+- actor: claude-code
+  id: 01m52nmwkmv0qyzje09vcdba5y
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (768dfd0): 0 findings (7 attempted, 0 confirmed, 0 refuted). Not reviewed: `.kanban/` (ignore rule), `Docs/decisions/accessibility.md` (no validator; the driver checked it by hand).
+    - prior items: all 6 items of the two earlier `## Review Findings` sections are checked, and the code or the text fixes each one. sendCall uses ScriptedSession.sendInOrder; aCancelOfTheLinkedCardRemovesTheWaitingStatus covers the cancel button and cancel-all; the lone-card test uses the URL consent card and asserts that the first responder does not edit text; the Focus text no longer says "a card alone in a window gets the keyboard focus" as a general rule; the doc and the test comment name the URL consent card; nextMovesTheKeyboardFocusIntoAnElicitationCardSoEscapeCancelsOnlyIt is added.
+    - can the new test fail: yes. One mutation run: `keyboardFocus = id` in DeckCards.deckDidChange (RequestDeck.swift) was replaced with `_ = id`. The new test failed at once (0.331 s) at RequestDeckAccessibilityHostedTests.swift:175, `#require(model.pendingElicitations.isEmpty)`, and it did not reach `session.result(ofRequest:)`. The source is restored (git diff of Sources, Tests and Docs is empty).
+    - note (unchanged lines, thus not a finding of this diff review): in the first mutation run the filter `.../next` also matched nextMovesTheFocusAndTheKeyboardFocusIntoTheNewFrontCard. That test has no `#require` before `await session.result(ofRequest:)`. With the mutation, the run did not stop after 30 minutes, and the process was killed.
+    - docs: Docs/decisions/accessibility.md and the ElicitationURLConsentView doc comment agree with the code and with the tests.
+    - The open "- [ ] Manual:" item is a check for a person, by decision of the step owner. It is not a review finding.
+    - next: task moved to done.
+  timestamp: 2026-10-16T15:35:17.876102+00:00
+- actor: claude-code
+  id: 01m52np5h6skgrbh98y3snyc6q
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — accessibility.md, ElicitationURLConsentView.swift (doc comment), RequestDeckAccessibilityHostedTests.swift (renamed lone-card test, new test nextMovesTheKeyboardFocusIntoAnElicitationCardSoEscapeCancelsOnlyIt)
+    - test: green — swift test --skip-build, 1252 tests in 145 suites passed, 2 known issues
+    - commit: 768dfd0
+    - review: clean — 0 findings, 6 of 6 prior items fixed; a mutation check shows that the new test fails at once (RequestDeckAccessibilityHostedTests.swift:175)
+    - open: "- [ ] Manual:" check for a person (decision of the step owner)
+  timestamp: 2026-10-16T15:35:59.782063+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCEHVNTKRD8YY4WZMKDF5
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffd780
 title: 'Elicitation task 38: replace the inline elicitation form with a status that brings its card to the front'
 ---
 elicitation-plan.md task 38, section 4: a tool call shows only "Waiting for your answer"; a click brings its card to the front (ACPClient bringToFront(toolCall:)); there is no second inline form in ToolCallView. Do it as the accepted deck design says. Tests with the step 7 rules. Write all text in STE.
