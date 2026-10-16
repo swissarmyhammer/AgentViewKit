@@ -139,25 +139,45 @@ import Testing
     #expect(model.pendingElicitations.count == 1)
   }
 
-  // The cards use `defaultFocus`. The two tests below show that the default
-  // focus runs in a hosted window: a card alone in a window gets the keyboard
-  // focus, and a new card does not take the keyboard focus from the prompt
-  // editor.
+  // The elicitation cards have no `defaultFocus`. The window gives the
+  // keyboard focus to its first focusable view: a card alone in a window gets
+  // the keyboard focus, and a focusable view before the deck keeps it. The
+  // two tests below show that the card itself, and not a text field in it,
+  // gets the keyboard focus, and that a new card does not take the keyboard
+  // focus from the prompt editor.
+
+  /// Tells whether `responder` edits text: a text view, a text field, or the
+  /// field editor of a text field.
+  ///
+  /// - Parameter responder: The first responder of a window.
+  /// - Returns: `true` when the responder edits text.
+  static func editsText(_ responder: NSResponder?) -> Bool {
+    responder is NSText || responder is NSTextField
+  }
 
   @Test func aCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    try await session.sendRequest(
-      ScriptedSession.elicitationMethod, id: Self.firstRequestID, params: ScriptedSession.formElicitationParams)
-    await ObservationWait.until { !model.pendingRequests.isEmpty }
+    // The URL consent card has no editable text, so no text field can take
+    // the first responder and send Esc up to the card. Its Esc action
+    // cancels on the main actor.
+    let request = ScriptedSession.AgentRequest(
+      method: ScriptedSession.elicitationMethod, id: Self.firstRequestID,
+      params: ElicitationURLConsentViewHostedTests.makeParams())
+    try await session.sendInOrder([request])
     let harness = Self.mountDeck(of: session)
     defer { harness.close() }
 
+    // The keyboard focus is in the view of the window, and no text view or
+    // field editor has it.
+    let responder = try #require(harness.window.firstResponder as? NSView)
+    try #require(responder.isDescendant(of: harness.hostingView))
+    try #require(!Self.editsText(responder))
+
     try harness.sendKey(.escape)
 
-    // The card cancels the request on the main actor. Only then is the
-    // answer to the agent certain to come.
+    // Only the card with the keyboard focus cancels the request on Esc.
     try #require(model.pendingElicitations.isEmpty)
     let result = await session.result(ofRequest: Self.firstRequestID)
     #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))

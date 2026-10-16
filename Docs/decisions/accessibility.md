@@ -110,10 +110,14 @@ announcement.
   resolves.
 - A new card does not take the VoiceOver focus or the keyboard focus.
   `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` do not
-  move the focus when they appear. A card takes the keyboard focus only as
-  the default focus of its window. Hosted tests show that the default focus
-  runs in a window: a card alone in a window gets the keyboard focus, and a
-  new card does not take the keyboard focus from a focused prompt editor.
+  move the focus when they appear. `ElicitationView` and
+  `ElicitationURLConsentView` have no `defaultFocus`. `PermissionView` keeps
+  its `defaultFocus`. A window gives the keyboard focus to its first
+  focusable view. Thus a card alone in a window gets the keyboard focus, and
+  a focusable view before the deck keeps the keyboard focus. Hosted tests
+  show that a card alone in a window gets the keyboard focus itself, and not
+  a text field in it, and that a new card does not take the keyboard focus
+  from a focused prompt editor.
 - The deck moves the focus only in two cases
   (`RequestDeck.focusTarget(oldIDs:newIDs:oldFront:newFront:)`):
   - The old front request left the deck: the focus goes to the

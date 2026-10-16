@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m52h6b3snyfpz4yv29m3c2f9
+  text: 'Note from the step owner: ACPClient 6e2332b is CI green (run 38912283139). The first to-do item ("make sure that its CI is green") is true for 6e2332b. This card can use 6e2332b when its turn comes.'
+  timestamp: 2026-10-16T14:17:26.905397+00:00
 depends_on:
 - 01M51BCMH8VHWE68GXDERGVEFT
 position_column: todo

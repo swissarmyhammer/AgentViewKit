@@ -34,6 +34,71 @@ comments:
     - evidence: git status shows no change to README.md or Examples/ReadmeSnippets. Scripts/check-readme.sh was not run.
     - next: review.
   timestamp: 2026-10-16T14:02:30.036962+00:00
+- actor: claude-code
+  id: 01m52gpwark082ghjcr435sjej
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD — engine counts: 2 findings, 2 confirmed, 3 refuted. Driver check of the two new focus tests: 1 more finding. Open: Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift:406, Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift:457, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift:147. The test aNewCardDoesNotTakeTheKeyboardFocusFromThePromptEditor proves its claim: it makes the editor the first responder before the card arrives, waits with ObservationWait.until on the request count and then render(), and asserts that the form is present.
+    - next: implement the 3 open findings, then review again.
+  timestamp: 2026-10-16T14:09:00.248759+00:00
+- actor: claude-code
+  id: 01m52gqms95zyxzwsb1gz13y7e
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 6 files (ToolCallView.swift, ElicitationCard.swift, ToolCallEntryViewHostedTests.swift, RequestDeckAccessibilityHostedTests.swift, plan.md, accessibility.md)
+    - test: green — swift test --skip-build, 1250 tests in 145 suites passed, 2 known issues
+    - commit: c7047d3
+    - review: findings — Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift:406, Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift:457, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift:147
+  timestamp: 2026-10-16T14:09:25.289021+00:00
+- actor: claude-code
+  id: 01m52hjykc6nec4n6gfdweb56t
+  text: |-
+    Fix of the 3 review findings (2026-10-16):
+    - Finding 1 (reuse): ScriptedSessionRequests now has ScriptedSession.AgentRequest (method, id, params; factories formElicitation(id:) and permission(id:)) and sendInOrder(_:). sendInOrder sends each request only after the model holds one more pending request. These use it: ToolCallEntryViewHostedTests.sendCall, RequestDeckHostedTests.sendRequests, the focus test of RequestDeckAccessibilityHostedTests, and the existing helpers sendPermissionRequest(id:rendering:), receivePermissionRequest(id:params:) and receiveElicitation(id:params:) in the same file. The linkedElicitation and linkedPermission factories are now an extension of ScriptedSession.AgentRequest in ToolCallEntryViewHostedTests. In that file, receiveCall(_:id:in:) is the one copy of "send the update, wait for the entry"; showExpandedCall and sendCall use it. ActivityTimelineHostedTests.sendCall sends no request, so it has no request loop to share.
+    - Finding 2 (cancel path): new test aCancelOfTheLinkedCardRemovesTheWaitingStatus(exit:) with two arguments: the Cancel button of the card, and SessionModel.cancelAllPending(). Each waits for the agent result {"action": "cancel"}, then ObservationWait.until { pendingRequests.isEmpty }, render(), and asserts that tool-call-<id>-waiting is gone. A helper showWaitingCall(_:in:harness:) is shared with the answer test. I did not use Esc in the thread and deck window, because the keyboard focus there is not certain (see below).
+    - Finding 3 (defaultFocus proof): a hosted test CANNOT prove that defaultFocus gives the focus. Evidence, one run each:
+      1. PermissionView with .defaultFocus removed: the card-alone test (permission card, first responder in the hosting view and not a text view) PASSED. A card alone is the only focusable view, so the window gives it the focus with no defaultFocus.
+      2. A focusable Color.clear view before the deck, URL consent card, .defaultFocus removed: Esc did not cancel (FAILED as expected).
+      3. The same test with .defaultFocus present: also FAILED. The view before the deck keeps the focus. Thus defaultFocus on the card does not change the first focus of a hosted window.
+      Both temporary source edits are reverted (git diff of Sources/ is empty). The test aCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt now uses the URL consent card (no editable field; Esc cancels on the main actor, so a lost focus fails the try #require and cannot hang), and asserts before Esc that the first responder is a view in the hosting view and not an NSText or NSTextField. Its comment and Docs/decisions/accessibility.md no longer claim that it proves defaultFocus. The card has a new "- [ ] Manual:" check item for the default focus.
+    - Discovery: result 3 suggests that `.defaultFocus($isFocused, true)` on a card has no effect when another focusable view comes first in the window. The manual check must find out if this is also true in the app.
+  timestamp: 2026-10-16T14:24:20.076748+00:00
+- actor: claude-code
+  id: 01m52hk8bajf76nve4daa56qfx
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift, Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift, Docs/decisions/accessibility.md. No change in Sources/. `swift build --build-tests`: Build complete, 0 errors; the one warning is the build-system mlx bundle warning, not in Sources/ or Tests/. `swift test --skip-build --filter 'ToolCallEntryViewHostedTests|RequestDeckHostedTests|RequestDeckAccessibilityHostedTests|AgentCommandScopeHostedTests|PermissionViewHostedTests|ThreadAccessibilityHostedTests|ElicitationURLConsentViewHostedTests|PendingRequestsSessionModelHostedTests|AgentCommandsTests|ElicitationViewHostedTests|ThreadAccessibilityTests'`: 162 tests in 11 suites, 161 passed, 1 failed (the decoy defaultFocus test, which showed that a hosted test cannot prove defaultFocus; removed). After the change: `swift test --skip-build --filter 'RequestDeckAccessibilityHostedTests'`: 7 tests in 1 suite passed. All 3 findings are checked; a new "- [ ] Manual:" item is open for the default focus.
+    - next: review
+  timestamp: 2026-10-16T14:24:30.058868+00:00
+- actor: claude-code
+  id: 01m52j0pq4ch3a8tvxqsa6q0gp
+  text: |-
+    Step owner decision (2026-10-16): remove the `.defaultFocus($isFocused, true)` of card 37 from the elicitation cards.
+    - `git show d9ad793` shows that card 37 added `.defaultFocus($isFocused, true)` to ElicitationView and ElicitationURLConsentView. Before card 37, `onAppear { isFocused = true }` used the focus state. Card 37 removed that onAppear. PermissionView already had `.defaultFocus` before card 37, and it did not change in this step.
+    - After the removal, `@FocusState isFocused` and `.focused($isFocused)` had no other read or write in the two views. The focus move of card 37 for a card brought to the front uses `keyboardFocus` of DeckCards, with `.focused(keyboardFocus, equals: request.id)` on the DeckCard. It does not use `isFocused`. Thus `isFocused` and `.focused($isFocused)` were dead code, and I removed them. `.focusable()`, `.focusEffectDisabled()` and `.onExitCommand` stay.
+    - No test failed without the modifier: the six suites passed (89 tests). Thus I found no case where the modifier is necessary.
+    - Text: ElicitationURLConsentView doc comment, Docs/decisions/accessibility.md (Focus section), and the comment before the focus tests in RequestDeckAccessibilityHostedTests no longer say that a card takes the focus as the default focus. accessibility.md says that PermissionView keeps its `defaultFocus`. The ElicitationView, ElicitationCard and RequestDeck doc comments did not mention defaultFocus, so they did not change.
+    - The "- [ ] Manual:" item stays open. Its old text told the tester to remove `.defaultFocus` from the card, and that modifier is now gone. The new text asks the tester to record the first keyboard focus in the app window and to make sure that a card brought to the front gets the keyboard focus and that Esc cancels the request.
+    - Not done: I did not read the full validator dump (754,249 characters, 12,098 lines). The change removes code and changes text only.
+  timestamp: 2026-10-16T14:31:50.756722+00:00
+- actor: claude-code
+  id: 01m52j0t5sfvn6z5dqxw3wqe5v
+  text: |-
+    ### implement — changed
+    - evidence: 4 files in this step — Sources/AgentViewKit/Elicitation/ElicitationView.swift, Sources/AgentViewKit/Elicitation/ElicitationURLConsentView.swift, Docs/decisions/accessibility.md, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift (comment only), plus the task description. The iteration 1 fixes in the working tree are kept. `swift build --build-tests`: Build complete; the one warning is the build-system mlx bundle warning, not in Sources/ or Tests/. One `swift test --skip-build --filter` run each: RequestDeckAccessibilityHostedTests 7 passed, ElicitationViewHostedTests 25 passed, ElicitationURLConsentViewHostedTests 16 passed, RequestDeckHostedTests 6 passed, ThreadAccessibilityHostedTests 14 passed, PermissionViewHostedTests 21 passed (89 tests, 0 failures).
+    - next: review
+  timestamp: 2026-10-16T14:31:54.297951+00:00
+- actor: claude-code
+  id: 01m52j9dr3e0ynbqd0mhv0hgth
+  text: |-
+    ### test — green
+    - evidence: `swift build --build-tests` completed with no warning in Sources/ or Tests/. One build-system line: "warning: missing creator for mutated node ... mlx-swift_Cmlx.bundle/Contents/MacOS". It is not in the code of this package.
+    - evidence: `swift test --skip-build` ran one time. Swift Testing: 1251 tests in 145 suites passed, 0 failures. XCTest: 0 tests, 0 failures. 0 skipped.
+    - evidence: 2 known issues. They are the existing withKnownIssue marks: aWrappedTextWithAFixedVerticalSizeFails and aViewThatIgnoresTheThemeFails. They are not failures.
+    - evidence: README.md and Examples/ReadmeSnippets did not change, so Scripts/check-readme.sh did not run.
+    - note: Before the build, pgrep found swift-build processes for other packages. One process (pid 86126) built a dependency checkout under AgentViewKit/.build/index-build with its own scratch path (IDE index build). It was not a build of this package, so the build and the test ran.
+    - next: review
+  timestamp: 2026-10-16T14:36:36.483223+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCEHVNTKRD8YY4WZMKDF5
@@ -68,6 +133,23 @@ Test plan (row 38). Rules: no clock wait, sleep, poll, retry or timeLimit. Hoste
 - [x] Press: frontRequestID is the linked id, the header shows its position, and the last focus move is to its card.
 - [x] Answer: the status goes away.
 - [x] No tool call row shows an inline form for a permission or an elicitation.
+- [x] Step owner decision: remove the `.defaultFocus($isFocused, true)` that card 37 (d9ad793) added to ElicitationView and ElicitationURLConsentView. Nothing proves that it helps. Keep PermissionView as it was before card 37. Remove `@FocusState isFocused` and `.focused($isFocused)` if they have no other use. Update Docs/decisions/accessibility.md and the doc comments so that they say only what the code does.
+- [ ] Manual: in the demo app, show the thread, the deck, and the prompt editor in one window. Let a pending elicitation card appear, and do not click a view. Record which view has the keyboard focus. The elicitation cards have no `defaultFocus`, so the window gives the keyboard focus to its first focusable view. Then bring the card to the front with the "Waiting for your answer" status or with Next, and make sure that the card gets the keyboard focus and that Esc cancels the request. A hosted test cannot prove the first keyboard focus of the app window (see the comments of 2026-10-16 on this card).
 - Waits: render(when: !pendingRequests.isEmpty) for the linked request; render() after the press; ObservationWait.until { pendingRequests.isEmpty } after the answer, then render().
 
 #elicitation-phase-6
+
+## Review Findings (2026-10-16 09:03)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/accessibility.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift:406` `reuse/reuse` — The sendCall helper repeats the send-then-wait pattern of other hosted test helpers in the same suite family. Its loop of sending a request and waiting for the pending count is a copy of the sendRequests and ActivityTimelineHostedTests.sendCall pattern, and it is not shared. Move the shared send-and-wait steps into one helper in ScriptedSessionRequests, and call it from sendCall and the other helpers. Keep the call-specific update in each caller.
+- [x] `Tests/AgentViewKitTests/Items/ToolCallEntryViewHostedTests.swift:457` `completeness/inverse-operation-coverage` — The test proves that answering a linked elicitation in the deck removes the 'Waiting for your answer' status. It does not prove the other exit of the same link: a linked elicitation that the user cancels (for example with Escape, or through cancel-all) must also remove the status. If the cancel path leaves the link or the status behind, the row keeps a dead button that points to a card that no longer exists. Add one hosted test in this suite. Send a call with a linked elicitation, press Escape on the deck card (or cancel all), wait until `model.pendingRequests.isEmpty`, render, and assert `harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil`.
+- [x] `Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift:147` `tests/proves-its-claim` (driver check of the focus tests, asked for by the caller) — The test `aCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt` does not prove that `defaultFocus` gives the card the keyboard focus. It uses `formElicitationParams`, and that form has an editable `name` text field. `HostedViewHarness` calls `window.makeKeyAndOrderFront(nil)` with no `initialFirstResponder`, so AppKit can make the `name` field the first responder. Escape from that field goes up the responder chain to the `onExitCommand` of `ElicitationView`, and the request cancels. Thus the test can pass when `.defaultFocus($isFocused, true)` is removed. The test also does not assert where the first responder is before Escape. Use a card with no editable field (a permission request with `ScriptedSession.permissionParams`, whose `PermissionView` also uses `defaultFocus` and `onExitCommand`), or assert before Escape that `harness.window.firstResponder` is not an editable text view or field editor. Then the test fails when `defaultFocus` does not give the focus.

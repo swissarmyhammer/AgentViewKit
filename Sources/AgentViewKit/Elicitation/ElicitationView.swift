@@ -84,9 +84,6 @@ public struct ElicitationView: View {
   /// ``values`` removes it.
   @State private var answerFailure: String?
 
-  /// Whether the form has the keyboard focus.
-  @FocusState private var isFocused: Bool
-
   @Environment(\.elicitationHeaderOverride) private var headerOverride
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
@@ -144,8 +141,6 @@ public struct ElicitationView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .focusable()
     .focusEffectDisabled()
-    .focused($isFocused)
-    .defaultFocus($isFocused, true)
     .onExitCommand { owner.cancelElicitation(request.id) }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.formIdentifier)

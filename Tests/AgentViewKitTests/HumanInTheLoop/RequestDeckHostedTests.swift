@@ -58,10 +58,9 @@ import Testing
   /// permission requests. Waits until the session model holds them all, and
   /// then makes `harness` show them.
   ///
-  /// The client handles each request of the agent in its own task, so two
-  /// requests sent together can come into the model in a different order.
-  /// Thus the function sends a request only after the model holds the
-  /// request before it, and the order of the model is the order of the ids.
+  /// ``ScriptedSession/sendInOrder(_:)`` sends a request only after the
+  /// model holds the request before it, so the order of the model is the
+  /// order of the ids.
   ///
   /// - Parameters:
   ///   - count: The number of requests, one or more.
@@ -73,16 +72,12 @@ import Testing
     _ count: Int, firstID: Int = firstRequestID, to session: ScriptedSession,
     rendering harness: HostedViewHarness<some View>
   ) async throws {
-    let model = session.model
-    let before = model.pendingRequests.count
-    for offset in 0..<count {
-      let isFirst = before == 0 && offset == 0
-      try await session.sendRequest(
-        isFirst ? ScriptedSession.elicitationMethod : ScriptedSession.permissionMethod,
-        id: firstID + offset,
-        params: isFirst ? ScriptedSession.formElicitationParams : ScriptedSession.permissionParams)
-      await ObservationWait.until { model.pendingRequests.count == before + offset + 1 }
+    let isEmpty = session.model.pendingRequests.isEmpty
+    let requests = (0..<count).map { offset -> ScriptedSession.AgentRequest in
+      let id = firstID + offset
+      return isEmpty && offset == 0 ? .formElicitation(id: id) : .permission(id: id)
     }
+    try await session.sendInOrder(requests)
     harness.render()
   }
 

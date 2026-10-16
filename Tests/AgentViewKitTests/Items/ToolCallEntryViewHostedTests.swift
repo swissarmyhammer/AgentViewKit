@@ -149,6 +149,24 @@
       }
     }
 
+    /// Sends one update, and waits until the model holds the entry of the
+    /// call. The caller makes the render pass.
+    ///
+    /// - Parameters:
+    ///   - update: The `tool_call_update` value.
+    ///   - id: The `toolCallId` of the call.
+    ///   - session: The scripted session.
+    /// - Returns: The entry of the call.
+    /// - Throws: The error of the transport, or a missing entry.
+    static func receiveCall(
+      _ update: String, id: String, in session: ScriptedSession
+    ) async throws -> ToolCallEntry {
+      try await session.sendUpdate(update)
+      let model = session.model
+      await ObservationWait.until { toolCallEntry(id, in: model) != nil }
+      return try #require(toolCallEntry(id, in: model))
+    }
+
     /// Sends one update, waits until the model holds the entry of the call,
     /// expands the row of the call, and makes one render pass.
     ///
@@ -164,10 +182,7 @@
       _ update: String, id: String, in session: ScriptedSession,
       harness: HostedViewHarness<some View>, store: ExpandedBlocksStore
     ) async throws -> String {
-      try await session.sendUpdate(update)
-      let model = session.model
-      await ObservationWait.until { toolCallEntry(id, in: model) != nil }
-      let call = try #require(toolCallEntry(id, in: model))
+      let call = try await receiveCall(update, id: id, in: session)
       store.expand(entry: .toolCall(call))
       harness.render()
       return call.id.rowKey
@@ -324,53 +339,6 @@
     // card of the elicitation is in the ``RequestDeck`` (deck design
     // section 5, test plan row 38).
 
-    /// One request of the agent to the client.
-    struct AgentRequest {
-      /// The JSON-RPC method of the request.
-      let method: String
-
-      /// The JSON-RPC id of the request.
-      let id: Int
-
-      /// The JSON text of the params.
-      let params: String
-
-      /// A form elicitation that the agent links to the tool call of `id`,
-      /// with the id ``elicitationRequestID``. The one field `branch` has the
-      /// default ``defaultBranch``, so the form can submit at once.
-      ///
-      /// - Parameter id: The `toolCallId` of the call.
-      /// - Returns: The request.
-      static func linkedElicitation(toolCall id: String) -> AgentRequest {
-        let params = #"""
-          {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "\#(id)",
-           "message": "Which branch?", "mode": "form",
-           "requestedSchema": {"type": "object",
-                               "properties": {"branch": {"type": "string", "default": "\#(defaultBranch)"}}}}
-          """#
-        return AgentRequest(method: ScriptedSession.elicitationMethod, id: elicitationRequestID, params: params)
-      }
-
-      /// A permission request that the agent links to the tool call of `id`,
-      /// with the id ``permissionRequestID``.
-      ///
-      /// - Parameter id: The `toolCallId` of the call.
-      /// - Returns: The request.
-      static func linkedPermission(toolCall id: String) -> AgentRequest {
-        let params = #"""
-          {"sessionId": "\#(ScriptedSession.sessionID)", "toolCall": {"toolCallId": "\#(id)"},
-           "title": "Edit a.swift",
-           "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"}]}
-          """#
-        return AgentRequest(method: ScriptedSession.permissionMethod, id: permissionRequestID, params: params)
-      }
-
-      /// A permission request with no tool call, with the id
-      /// ``permissionRequestID``.
-      static let permission = AgentRequest(
-        method: ScriptedSession.permissionMethod, id: permissionRequestID, params: ScriptedSession.permissionParams)
-    }
-
     /// Mounts the thread and the deck of `session` in one focus scope, as an
     /// app does, with `reporter` as the focus reporter.
     ///
@@ -388,13 +356,9 @@
       }
     }
 
-    /// Sends the tool call of `id`, and then each of `requests`, in order.
-    /// The function waits until the model holds the entry of the call and
-    /// each request.
-    ///
-    /// The client handles each request of the agent in its own task, so the
-    /// function sends a request only after the model holds the request before
-    /// it. Then the order of the model is the order of `requests`. The caller
+    /// Sends the running read call of `id`, and then each of `requests`, in
+    /// order. The function waits until the model holds the entry of the call
+    /// and each request (``ScriptedSession/sendInOrder(_:)``). The caller
     /// makes the render pass.
     ///
     /// - Parameters:
@@ -404,16 +368,41 @@
     /// - Returns: The row key of the call.
     /// - Throws: The error of the transport, or a missing entry.
     static func sendCall(
-      _ id: String, thenRequests requests: [AgentRequest], to session: ScriptedSession
+      _ id: String, thenRequests requests: [ScriptedSession.AgentRequest] = [], to session: ScriptedSession
     ) async throws -> String {
-      let model = session.model
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: readFields))
-      await ObservationWait.until { toolCallEntry(id, in: model) != nil }
-      for (offset, request) in requests.enumerated() {
-        try await session.sendRequest(request.method, id: request.id, params: request.params)
-        await ObservationWait.until { model.pendingRequests.count == offset + 1 }
-      }
-      return try #require(rowKey(ofCall: id, in: model))
+      let update = WireBlockJSON.makeToolCallUpdate(id: id, fields: readFields)
+      let call = try await receiveCall(update, id: id, in: session)
+      try await session.sendInOrder(requests)
+      return call.id.rowKey
+    }
+
+    /// Sends the call of `id` with one linked elicitation, makes one render
+    /// pass, and makes sure that the row of the call shows the waiting
+    /// status.
+    ///
+    /// - Parameters:
+    ///   - id: The `toolCallId` of the call.
+    ///   - session: The scripted session.
+    ///   - harness: The harness that shows the thread and the deck.
+    /// - Returns: The row key of the call.
+    /// - Throws: The error of the transport, or an issue when the row shows
+    ///   no waiting status.
+    static func showWaitingCall(
+      _ id: String, in session: ScriptedSession, harness: HostedViewHarness<some View>
+    ) async throws -> String {
+      let key = try await sendCall(id, thenRequests: [.linkedElicitation(toolCall: id)], to: session)
+      harness.render()
+      try #require(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) != nil)
+      return key
+    }
+
+    /// A way that the user cancels a linked elicitation of the deck.
+    enum CancelExit: CaseIterable, Sendable {
+      /// A press on the Cancel button of the card.
+      case cancelButton
+
+      /// Cancel-all of the session model, as when the session closes.
+      case cancelAll
     }
 
     @Test func aLinkedCallShowsTheWaitingStatusInItsRowOnlyAndNoForm() async throws {
@@ -421,10 +410,7 @@
       defer { session.close() }
       let harness = Self.mountThread(session, store: ExpandedBlocksStore())
       defer { harness.close() }
-      let model = session.model
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "other-c", fields: Self.readFields))
-      await ObservationWait.until { Self.rowKey(ofCall: "other-c", in: model) != nil }
-      let otherKey = try #require(Self.rowKey(ofCall: "other-c", in: model))
+      let otherKey = try await Self.sendCall("other-c", to: session)
 
       let key = try await Self.sendCall("ask-c", thenRequests: [.linkedElicitation(toolCall: "ask-c")], to: session)
       harness.render()
@@ -442,7 +428,9 @@
       defer { harness.close() }
       let model = session.model
       let key = try await Self.sendCall(
-        "front-c", thenRequests: [.permission, .linkedElicitation(toolCall: "front-c")], to: session)
+        "front-c",
+        thenRequests: [.permission(id: Self.permissionRequestID), .linkedElicitation(toolCall: "front-c")],
+        to: session)
       harness.render()
       let linked = try #require(model.pendingElicitations.first?.id)
       #expect(model.frontRequest?.id != linked)
@@ -460,10 +448,7 @@
       let harness = Self.mountThreadAndDeck(session, reporter: RecordingFocusReporter())
       defer { harness.close() }
       let model = session.model
-      let key = try await Self.sendCall(
-        "accept-c", thenRequests: [.linkedElicitation(toolCall: "accept-c")], to: session)
-      harness.render()
-      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) != nil)
+      let key = try await Self.showWaitingCall("accept-c", in: session, harness: harness)
 
       try harness.press(identifier: ElicitationView.submitIdentifier)
       let result = await session.result(ofRequest: Self.elicitationRequestID)
@@ -475,6 +460,29 @@
       let expected = try JSONValue(
         json: #"{"action": "accept", "content": {"branch": "\#(Self.defaultBranch)"}}"#)
       #expect(result == expected)
+      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)
+    }
+
+    @Test(arguments: CancelExit.allCases)
+    func aCancelOfTheLinkedCardRemovesTheWaitingStatus(exit: CancelExit) async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.mountThreadAndDeck(session, reporter: RecordingFocusReporter())
+      defer { harness.close() }
+      let model = session.model
+      let key = try await Self.showWaitingCall("cancel-c", in: session, harness: harness)
+
+      switch exit {
+      case .cancelButton: try harness.press(identifier: ElicitationView.cancelIdentifier)
+      case .cancelAll: model.cancelAllPending()
+      }
+      let result = await session.result(ofRequest: Self.elicitationRequestID)
+      // The model removes the pending elicitation and its link in the same
+      // step as it sends the cancel that the agent gets.
+      await ObservationWait.until { model.pendingRequests.isEmpty }
+      harness.render()
+
+      #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))
       #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)
     }
 
@@ -509,6 +517,47 @@
 
       #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
       #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)
+    }
+  }
+
+  /// The requests that the agent of ``ToolCallEntryViewHostedTests`` links
+  /// to a tool call.
+  @MainActor extension ScriptedSession.AgentRequest {
+    /// A form elicitation that the agent links to the tool call of `id`,
+    /// with the id ``ToolCallEntryViewHostedTests/elicitationRequestID``. The
+    /// one field `branch` has the default
+    /// ``ToolCallEntryViewHostedTests/defaultBranch``, so the form can submit
+    /// at once.
+    ///
+    /// - Parameter id: The `toolCallId` of the call.
+    /// - Returns: The request.
+    static func linkedElicitation(toolCall id: String) -> Self {
+      let branch = ToolCallEntryViewHostedTests.defaultBranch
+      let params = #"""
+        {"sessionId": "\#(ScriptedSession.sessionID)", "toolCallId": "\#(id)",
+         "message": "Which branch?", "mode": "form",
+         "requestedSchema": {"type": "object",
+                             "properties": {"branch": {"type": "string", "default": "\#(branch)"}}}}
+        """#
+      return Self(
+        method: ScriptedSession.elicitationMethod, id: ToolCallEntryViewHostedTests.elicitationRequestID,
+        params: params)
+    }
+
+    /// A permission request that the agent links to the tool call of `id`,
+    /// with the id ``ToolCallEntryViewHostedTests/permissionRequestID``.
+    ///
+    /// - Parameter id: The `toolCallId` of the call.
+    /// - Returns: The request.
+    static func linkedPermission(toolCall id: String) -> Self {
+      let params = #"""
+        {"sessionId": "\#(ScriptedSession.sessionID)", "toolCall": {"toolCallId": "\#(id)"},
+         "title": "Edit a.swift",
+         "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"}]}
+        """#
+      return Self(
+        method: ScriptedSession.permissionMethod, id: ToolCallEntryViewHostedTests.permissionRequestID,
+        params: params)
     }
   }
 #endif

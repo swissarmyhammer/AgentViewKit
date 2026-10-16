@@ -117,13 +117,65 @@ extension ScriptedSession {
         ToolCallUpdate(toolCallId: ToolCallId(rawValue: title), status: .value(status), title: .value(title))))
   }
 
+  /// One request of the agent to the client.
+  ///
+  /// The factories read the main-actor values of ``ScriptedSession``, so the
+  /// type has the same isolation.
+  @MainActor struct AgentRequest {
+    /// The JSON-RPC method of the request.
+    let method: String
+
+    /// The JSON-RPC id of the request.
+    let id: Int
+
+    /// The JSON text of the params.
+    let params: String
+
+    /// A form elicitation with ``ScriptedSession/formElicitationParams``.
+    ///
+    /// - Parameter id: The JSON-RPC id of the request.
+    /// - Returns: The request.
+    static func formElicitation(id: Int) -> AgentRequest {
+      AgentRequest(method: ScriptedSession.elicitationMethod, id: id, params: ScriptedSession.formElicitationParams)
+    }
+
+    /// A permission request with ``ScriptedSession/permissionParams``.
+    ///
+    /// - Parameter id: The JSON-RPC id of the request.
+    /// - Returns: The request.
+    static func permission(id: Int) -> AgentRequest {
+      AgentRequest(method: ScriptedSession.permissionMethod, id: id, params: ScriptedSession.permissionParams)
+    }
+  }
+
+  /// Sends each of `requests` of the session from the agent, in order, and
+  /// waits until the session model holds each one.
+  ///
+  /// The client handles each request of the agent in its own task, so two
+  /// requests sent together can come into the model in a different order.
+  /// Thus the function sends a request only after the model holds the
+  /// request before it, and the order of the model is the order of
+  /// `requests`. The wait is ``ObservationWait/until(_:)`` on the count of
+  /// the pending requests, with no clock: each request is certain to add one
+  /// pending request. The caller makes the render pass.
+  ///
+  /// - Parameter requests: The requests of the agent.
+  /// - Throws: The error of the transport.
+  func sendInOrder(_ requests: [AgentRequest]) async throws {
+    for request in requests {
+      let before = model.pendingRequests.count
+      try await sendRequest(request.method, id: request.id, params: request.params)
+      await ObservationWait.until { model.pendingRequests.count == before + 1 }
+    }
+  }
+
   /// Sends a permission request of the session from the agent, with
   /// ``ScriptedSession/permissionParams``, waits until the session model
   /// holds it, and then makes `harness` show it.
   ///
-  /// The wait is `HostedViewHarness.render(when:)` on the pending
-  /// permissions of the session model, with no clock: the model holds each
-  /// request that the agent sends, so the request is certain to come.
+  /// The wait is ``sendInOrder(_:)``, with no clock: the model holds each
+  /// request that the agent sends, so the request is certain to come. Then
+  /// one render pass shows it.
   ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
@@ -131,8 +183,8 @@ extension ScriptedSession {
   /// - Returns: The local id of the pending request.
   /// - Throws: The error of the transport.
   func sendPermissionRequest(id: Int, rendering harness: HostedViewHarness<some View>) async throws -> UUID {
-    try await sendRequest(Self.permissionMethod, id: id, params: Self.permissionParams)
-    await harness.render { !model.pendingPermissions.isEmpty }
+    try await sendInOrder([.permission(id: id)])
+    harness.render()
     return try #require(model.pendingPermissions.first?.id)
   }
 
@@ -140,8 +192,7 @@ extension ScriptedSession {
   /// until the session model holds it.
   ///
   /// The test can then show the pending request in a view that it mounts.
-  /// The wait is ``ObservationWait/until(_:)`` on the pending permissions of
-  /// the session model, with no clock.
+  /// The wait is ``sendInOrder(_:)``, with no clock.
   ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
@@ -151,16 +202,14 @@ extension ScriptedSession {
   func receivePermissionRequest(id: Int, params: String = permissionParams) async throws
     -> PendingPermissionRequest
   {
-    try await sendRequest(Self.permissionMethod, id: id, params: params)
-    await ObservationWait.until { !model.pendingPermissions.isEmpty }
+    try await sendInOrder([AgentRequest(method: Self.permissionMethod, id: id, params: params)])
     return try #require(model.pendingPermissions.first)
   }
 
   /// Sends an elicitation request of the session from the agent, and waits
   /// until the session model holds it.
   ///
-  /// The wait is ``ObservationWait/until(_:)`` on the pending elicitations
-  /// of the session model, with no clock.
+  /// The wait is ``sendInOrder(_:)``, with no clock.
   ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
@@ -169,8 +218,7 @@ extension ScriptedSession {
   /// - Returns: The pending elicitation that the session model holds.
   /// - Throws: The error of the transport.
   func receiveElicitation(id: Int, params: String) async throws -> PendingElicitation {
-    try await sendRequest(Self.elicitationMethod, id: id, params: params)
-    await ObservationWait.until { !model.pendingElicitations.isEmpty }
+    try await sendInOrder([AgentRequest(method: Self.elicitationMethod, id: id, params: params)])
     return try #require(model.pendingElicitations.first)
   }
 
