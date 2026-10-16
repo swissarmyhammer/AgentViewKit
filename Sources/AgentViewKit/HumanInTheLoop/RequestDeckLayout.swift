@@ -33,7 +33,8 @@ nonisolated struct DeckLayout: Equatable, Sendable {
   /// edges.
   static let maximumEdgeCount = 3
 
-  /// The id of the front request, or `nil` when the deck is empty.
+  /// The id of the front request, or `nil` when the deck has no pending
+  /// request. The waiting cards are not in the layout.
   let front: PendingRequest.ID?
   /// The ids of the cards that show their top edges, in FIFO order, with
   /// the front skipped.
@@ -41,7 +42,7 @@ nonisolated struct DeckLayout: Equatable, Sendable {
   /// The number of the cards that do not show: "+N".
   let moreCount: Int
   /// The position k of the front in "k of N", from 1. It is 0 when the deck
-  /// is empty.
+  /// has no pending request.
   let position: Int
   /// The number N of the requests in "k of N".
   let count: Int

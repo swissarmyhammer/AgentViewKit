@@ -72,11 +72,12 @@ import SwiftUI
 ///   ``waitingIdentifier``). The card keeps the identity that it had before
 ///   the accept, so its browser session continues. The card goes away when
 ///   the agent sends `elicitation/complete`, or when the user presses Stop
-///   waiting (``ElicitationURLConsentView``).
+///   Waiting (``ElicitationURLConsentView``).
 /// - Only the front card and the waiting cards take a click or the keyboard
 ///   focus. A card that does not show has no opacity.
-/// - An empty deck shows nothing and takes no space. The change of the front
-///   card is animated only when Reduce Motion is off.
+/// - A deck with no pending request and no waiting card shows nothing and
+///   takes no space. The change of the front card is animated only when
+///   Reduce Motion is off.
 ///
 /// ``layout(requests:front:)`` gives the front card, the edges, "+N",
 /// "k of N" and the state of Previous and Next.
@@ -98,10 +99,14 @@ import SwiftUI
 ///   announcement.
 /// - The deck moves the focus only in two cases
 ///   (``focusTarget(oldIDs:newIDs:oldFront:newFront:)``). When the front
-///   request leaves the deck, the VoiceOver focus goes to the new front
-///   card, or to the prompt editor when the deck is empty. When the user
-///   brings a request to the front, for example with Previous or Next, the
-///   VoiceOver focus and the keyboard focus go into its card.
+///   request leaves `pendingRequests`, the VoiceOver focus goes to the new
+///   front card, or to the prompt editor when no pending request stays. The
+///   accept of a URL mode elicitation removes it from `pendingRequests`, so
+///   the focus moves also when its card stays as a waiting card. A waiting
+///   card asks for no input and is not a pending request: when only waiting
+///   cards stay, the focus goes to the prompt editor. When the user brings a
+///   request to the front, for example with Previous or Next, the VoiceOver
+///   focus and the keyboard focus go into its card.
 /// - Only the front card and the waiting cards are in the accessibility tree.
 ///   The edges and the cards that do not show are hidden from VoiceOver. A
 ///   waiting card gives no announcement and moves no focus.
@@ -326,13 +331,14 @@ private struct DeckCards: View {
   }
 }
 
-/// The ids of the requests of a ``RequestDeck`` and its front request, for
-/// the comparison of one change.
+/// The ids of the pending requests of a ``RequestDeck`` and its front
+/// request, for the comparison of one change. The waiting cards are not in
+/// the order.
 private struct DeckOrder: Equatable {
-  /// The ids of the requests, oldest first.
+  /// The ids of the pending requests, oldest first.
   let ids: [PendingRequest.ID]
 
-  /// The id of the front request, or `nil` when the deck is empty.
+  /// The id of the front request, or `nil` when no pending request stays.
   let front: PendingRequest.ID?
 }
 

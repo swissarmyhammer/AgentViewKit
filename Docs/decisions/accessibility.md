@@ -105,9 +105,10 @@ announcement.
 - The kit views tell the mover and the host `focusReporter` through one
   action (`AccessibilityFocusMove`). There is one `focusReporter`
   environment value.
-- `RequestDeck` shows one card for each pending request of its model. It
-  keeps no list of the requests: the models remove a request when it
-  resolves.
+- `RequestDeck` shows one card for each pending request of its model, and
+  one waiting card for each accepted URL elicitation in
+  `awaitingURLCompletions`. It keeps no list of the requests: the models
+  remove a request when it resolves.
 - A new card does not take the VoiceOver focus or the keyboard focus.
   `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` do not
   move the focus when they appear. `ElicitationView` and
@@ -122,9 +123,15 @@ announcement.
   demo app records the first keyboard focus of the app window.
 - The deck moves the focus only in two cases
   (`RequestDeck.focusTarget(oldIDs:newIDs:oldFront:newFront:)`):
-  - The old front request left the deck: the focus goes to the
+  - The old front request left `pendingRequests`: the focus goes to the
     `pending-card-<id>` container of the new front request, or to
-    `prompt-editor` when no card stays.
+    `prompt-editor` when no pending request stays. The accept of a URL
+    elicitation removes it from `pendingRequests`, and its card stays as a
+    waiting card. A waiting card asks for no input and does not count, so
+    the accept of the only pending request moves the focus to
+    `prompt-editor` while the waiting card shows. The hosted test
+    `anAcceptOfTheOnlyURLRequestMovesTheFocusToThePromptEditorAndKeepsTheWaitingCard`
+    shows this.
   - The user changed the front (Previous, Next, a key, the tool call
     status): the focus goes to the card of the new front request, and the
     keyboard focus goes into that card. Hosted tests show this with Next for

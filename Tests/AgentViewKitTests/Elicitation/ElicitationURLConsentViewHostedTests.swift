@@ -49,6 +49,9 @@ import Testing
   /// warning.
   static let punycodeURL = "https://xn--pple-43d.com/login"
 
+  /// A URL with no host, so that the waiting step names the agent.
+  static let hostlessURL = "urn:example:continue"
+
   /// The objects that a hosted card uses.
   struct Mounted {
     /// The harness of the card.
@@ -131,13 +134,17 @@ import Testing
   /// ``RequestDeck`` of the session, with a presenter over fake browser
   /// sessions that wait until they are stopped.
   ///
-  /// - Parameter requests: The requests of the agent.
+  /// - Parameters:
+  ///   - requests: The requests of the agent.
+  ///   - reporter: The reporter that records each focus move.
   /// - Returns: The mounted deck.
   /// - Throws: The error of the transport.
-  static func mountDeck(_ requests: [ScriptedSession.AgentRequest]) async throws -> Mounted {
+  static func mountDeck(
+    _ requests: [ScriptedSession.AgentRequest], reporter: RecordingFocusReporter = RecordingFocusReporter()
+  ) async throws -> Mounted {
     let session = try await ScriptedSession.open()
     try await session.sendInOrder(requests)
-    return mount(RequestDeck(session: session.model), of: session, size: hostSize)
+    return mount(RequestDeck(session: session.model), of: session, size: hostSize, reporter: reporter)
   }
 
   /// Shows `view` with a presenter over fake browser sessions that wait
@@ -244,6 +251,20 @@ import Testing
     let warning = try #require(
       mounted.harness.element(identifier: ElicitationURLConsentView.warningIdentifier))
     #expect(warning.label?.contains("Punycode") == true)
+  }
+
+  /// The waiting card and the tool call status read the host from
+  /// `PendingElicitation.waitingHostName`.
+  @Test func theWaitingHostNameIsTheHostOfTheURLOrTheAgent() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let withHost = try await session.receiveElicitation(id: Self.agentRequestID, params: Self.makeParams())
+    session.model.cancelElicitation(withHost.id)
+    let withoutHost = try await session.receiveElicitation(
+      id: Self.formRequestID, params: Self.makeParams(url: Self.hostlessURL))
+
+    #expect(withHost.waitingHostName == Self.defaultHost)
+    #expect(withoutHost.waitingHostName == ElicitationHeader.agentServer)
   }
 
   @Test func theURLUsesTheEditorFontOfTheEditorTheme() async throws {

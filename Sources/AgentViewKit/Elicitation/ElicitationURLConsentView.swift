@@ -25,7 +25,9 @@ import SwiftUI
 /// 3. The accept moves the request to `awaitingURLCompletions` of the owner,
 ///    with the same id. While the owner holds it there, the card shows the
 ///    waiting state "Waiting for <host> to finish" (identifier
-///    ``waitingIdentifier``), where <host> is `PendingElicitation.targetHost`.
+///    ``waitingIdentifier``), where <host> is
+///    `PendingElicitation.waitingHostName`: the host of the URL, or the agent
+///    when the URL has no host.
 ///    The owner removes the request when the agent sends
 ///    `elicitation/complete`, and then the host removes the card.
 ///
@@ -125,7 +127,7 @@ public struct ElicitationURLConsentView: View {
   /// The host that the waiting step names: the host of the URL, or the
   /// agent when the URL has no host.
   private var waitingHost: String {
-    request.targetHost ?? ElicitationHeader.agentServer
+    request.waitingHostName
   }
 
   /// The task that runs the browser session, or `nil`.
@@ -305,6 +307,17 @@ public struct ElicitationURLConsentView: View {
     browserTask.cancel()
     reportBrowser?(.stop)
     self.browserTask = nil
+  }
+}
+
+/// The host that the kit shows while an accepted URL mode elicitation waits.
+extension PendingElicitation {
+  /// The host that the waiting state of an accepted URL mode elicitation
+  /// names: `targetHost`, or ``ElicitationHeader/agentServer`` when the URL
+  /// has no host. ``ElicitationURLConsentView`` and the tool call status of
+  /// ``ToolCallView`` show this host.
+  var waitingHostName: String {
+    targetHost ?? ElicitationHeader.agentServer
   }
 }
 

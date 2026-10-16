@@ -62,6 +62,52 @@ comments:
     - evidence: Scripts/check-readme.sh was not run. README.md and Examples/ReadmeSnippets did not change.
     - next: review or commit by the caller. No commit and no push was made.
   timestamp: 2026-10-16T19:24:23.068248+00:00
+- actor: claude-code
+  id: 01m533bb8ypadxa8nhrs1zpeaz
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (110a732). Engine counts: findings 1, confirmed 1, refuted 5, attempted 14, failed 0. Engine finding: Sources/AgentViewKit/Items/ToolCallView.swift:662 (reuse/reuse). The reviewer read the code for the checks of the caller and added 2 findings: Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift:74 (doc text "Stop waiting", the accepted text is "Stop Waiting"), Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift:68 (the focus doc says "when the deck is empty", but the accept of the only pending request moves the focus to the prompt editor while the waiting card shows).
+    - evidence (checks that passed): the waiting card gives no announcement and moves no focus (announcing and DeckOrder read only pendingRequests); it is not in "k of N" (test openInTheDeckKeepsTheBrowserSessionAndBringsTheNextCardToTheFront requires no position element). Stop Waiting and Esc in the waiting state report .stop in the same step, and each hosted test requires the report after the press or key and before the wait. Retry reports .open before its Task, and its test requires it before the wait; Retry sends no second answer (responses.count == 1). stopWaiting only removes the item from awaitingURLCompletions and sends nothing. Bug card ^rkwj84j: acceptElicitation moves the item to awaitingURLCompletions in the same main-actor step, and the deck shows pending and waiting cards in one ForEach with the same id, so the card stays mounted and the browser task is not cancelled. All hosts of the deck are not conditional on pendingRequests. The AgentCommandTarget doc matches startPrompt(text:reporting:).
+    - next: implement the 3 open findings; the task stays in review.
+  timestamp: 2026-10-16T19:34:45.278479+00:00
+- actor: claude-code
+  id: 01m533c4pp4v284rmv2ea89xty
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 11 files (6 Sources, 3 Tests, plan.md, accessibility.md); then the button text "Stop Waiting" by decision of the step owner
+    - test: green — swift test --skip-build, 1264 tests in 147 suites passed, 2 known issues
+    - commit: 110a732
+    - review: findings — Sources/AgentViewKit/Items/ToolCallView.swift:662, Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift:74, Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift:68
+  timestamp: 2026-10-16T19:35:11.318081+00:00
+- actor: claude-code
+  id: 01m533sncb7nm9wpaf3a22t05t
+  text: |-
+    ### Review findings (2026-10-16 14:25) repaired
+    - reuse: new `PendingElicitation.waitingHostName` (extension in ElicitationURLConsentView.swift): `targetHost`, or `ElicitationHeader.agentServer` when the URL has no host. `ElicitationURLConsentView.waitingHost` and `ToolCallWaitingStatus.waitingHost(of:in:)` use it. The expression `targetHost ??` is now in one place only. New test `theWaitingHostNameIsTheHostOfTheURLOrTheAgent` (URL with a host, and the hostless URL `urn:example:continue`).
+    - Stop Waiting: a multiline search (`Stop\s+(///\s*)?waiting`) over all files of the change found one place, the class doc of RequestDeck. It now says "Stop Waiting".
+    - Focus doc: RequestDeck class doc, DeckOrder, DeckFocusMove (`nextFront`, `promptEditor`), focusTarget doc, DeckLayout (`front`, `position`) and Docs/decisions/accessibility.md now say: the focus moves when the front request leaves `pendingRequests`; it goes to the prompt editor when no pending request stays; a waiting card asks for no input and does not count. Behavior is not changed.
+    - New hosted test `RequestDeckAccessibilityHostedTests.anAcceptOfTheOnlyURLRequestMovesTheFocusToThePromptEditorAndKeepsTheWaitingCard`: one URL request, press Open in the deck, require at once that pendingRequests is empty and awaitingURLCompletions has 1, one render(), require that the last focus move is `StockPromptEditor.identifier` and that the waiting card shows, then an event wait for the browser session. `ElicitationURLConsentViewHostedTests.mountDeck` got a `reporter:` parameter for this.
+    - No focusTarget table row: focusTarget gets only the ids of the pending requests, so a row for this case is the same as the row for "the last request left". The hosted test shows the difference.
+    - Discovery: the validator dump for .swift is 750K characters; only the headings were read.
+  timestamp: 2026-10-16T19:42:34.379868+00:00
+- actor: claude-code
+  id: 01m533ssc0qneketmcf3ffp6nf
+  text: |-
+    ### implement — changed
+    - evidence: 8 files — Sources/AgentViewKit/Elicitation/ElicitationURLConsentView.swift, Sources/AgentViewKit/Items/ToolCallView.swift, Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift, Sources/AgentViewKit/HumanInTheLoop/RequestDeckFocus.swift, Sources/AgentViewKit/HumanInTheLoop/RequestDeckLayout.swift, Docs/decisions/accessibility.md, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift. `swift build --build-tests` passed with no warnings. One run of `swift test --skip-build --filter 'ElicitationURLConsentViewHostedTests|ToolCallEntryViewHostedTests|RequestDeckFocusTests|RequestDeckAccessibilityHostedTests|RequestDeckHostedTests'`: 5 suites passed (55 test functions), 0 failures. RED: the build failed on the missing `waitingHostName` before the change. 3 of 3 findings checked.
+    - next: review
+  timestamp: 2026-10-16T19:42:38.464894+00:00
+- actor: claude-code
+  id: 01m5340gwhdf5zw2g2nf7p9zfc
+  text: |-
+    ### test — green
+    - No other build of this package ran. Process 93181 was an IDE index build in .build/index-build. This is not a conflict.
+    - Command: swift build --build-tests. Result: Build complete. There is no warning in Sources or Tests of this package. The build system gave one warning: "missing creator for mutated node" for the mlx-swift_Cmlx.bundle path in .build/out. It is not in a source file of this package.
+    - Command: swift test --skip-build (one run). Result: exit 0. Swift Testing summary lines: "1 test in 1 suite passed", "127 tests in 16 suites passed", "1266 tests in 147 suites passed ... with 2 known issues". XCTest summary lines: Executed 0 tests, 0 failures (3 times). Failures: 0. Skipped: 0.
+    - Known issues: 2. They are the existing withKnownIssue marks in aWrappedTextWithAFixedVerticalSizeFails and aViewThatIgnoresTheThemeFails. They are not failures.
+    - README.md and Examples/ReadmeSnippets did not change. Scripts/check-readme.sh did not run.
+    - No code change in this step. No commit. No push.
+  timestamp: 2026-10-16T19:46:19.153470+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCJD70S015GWDGB94APM2
@@ -103,3 +149,20 @@ Test plan (row 41). Rules: no clock wait, sleep, poll, retry or timeLimit. Hoste
 - Waits on awaitingURLCompletions.count and fake.cancelCount (ObservationWait.until on each, then render()).
 
 #elicitation-phase-6
+
+## Review Findings (2026-10-16 14:25)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 8 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/accessibility.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Items/ToolCallView.swift:662` `reuse/reuse` — The host fallback `$0.targetHost ?? ElicitationHeader.agentServer` is written again here. The same expression already exists in the consent card, so the rule that picks the host for a waiting URL request now lives in two places. If one copy changes, the card and the tool call row can show different hosts for the same request. Move the fallback into one shared place, for example a computed property on `PendingElicitation` such as `waitingHostName`, or a static helper next to `ElicitationHeader`. Have both `ElicitationURLConsentView.waitingHost` and `ToolCallView.waitingHost(of:in:)` call it.
+
+### Checks of the caller (reviewer read the code)
+- [x] `Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift:74` `caller/accepted-design` — The class doc says "when the user presses Stop waiting". The decision of the step owner sets the button text to "Stop Waiting" (title case). Change the doc text to "Stop Waiting". Look for the same text in all other docs and doc comments of the change.
+- [x] `Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift:68` `caller/docs-match-code` — The new bullet says that an accepted URL card stays in the deck. The focus bullet of the same doc says: "When the front request leaves the deck, the VoiceOver focus goes to the new front card, or to the prompt editor when the deck is empty." After this change, the accept of the only pending request removes it from `pendingRequests`, and `RequestDeck.focusTarget(oldIDs:newIDs:oldFront:newFront:)` (RequestDeckFocus.swift) returns `.promptEditor`, but the deck is not empty: it shows the waiting card. Make the doc say what the code does: the focus moves when the front request leaves `pendingRequests` (also on an accept that keeps a waiting card), and it goes to the prompt editor when no pending request stays, also while a waiting card shows. If a test shows this focus move, name it; if no test shows it, add a hosted test that requires the focus move after the press and before any wait.

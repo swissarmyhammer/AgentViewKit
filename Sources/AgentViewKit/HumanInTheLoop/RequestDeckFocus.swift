@@ -6,12 +6,14 @@ import FoundationModelsACPClient
 /// move. The move is a value with no view and no model, so a table test can
 /// examine it.
 nonisolated enum DeckFocusMove: Equatable, Sendable {
-  /// The old front request left the deck. The VoiceOver focus goes to the
-  /// card of the new front request. The keyboard focus does not move.
+  /// The old front request left `pendingRequests`. The VoiceOver focus goes
+  /// to the card of the new front request. The keyboard focus does not move.
   case nextFront(PendingRequest.ID)
 
-  /// The last request left the deck. The VoiceOver focus goes back to the
-  /// prompt editor (``StockPromptEditor/identifier``).
+  /// The last pending request left `pendingRequests`. The VoiceOver focus
+  /// goes back to the prompt editor (``StockPromptEditor/identifier``). A
+  /// waiting card can stay in the deck: it asks for no input and is not a
+  /// pending request.
   case promptEditor
 
   /// The user brought a request to the front, for example with Previous or
@@ -41,16 +43,19 @@ extension RequestDeck {
   /// A new card does not take the focus. The deck moves the focus only in
   /// two cases:
   ///
-  /// 1. The old front request left the deck: the focus goes to the card of
-  ///    the new front request, or to the prompt editor when the deck is
-  ///    empty.
+  /// 1. The old front request left `pendingRequests`: the focus goes to the
+  ///    card of the new front request, or to the prompt editor when no
+  ///    pending request stays. The accept of a URL mode elicitation also
+  ///    removes it from `pendingRequests`, while its card stays as a waiting
+  ///    card. The ids are only the ids of the pending requests, so a waiting
+  ///    card does not count.
   /// 2. The old front request stays, and the front changed: the user brought
   ///    a request to the front. The focus and the keyboard focus go into its
   ///    card.
   ///
   /// - Parameters:
-  ///   - oldIDs: The ids of the requests before the change.
-  ///   - newIDs: The ids of the requests after the change.
+  ///   - oldIDs: The ids of the pending requests before the change.
+  ///   - newIDs: The ids of the pending requests after the change.
   ///   - oldFront: The front request before the change, or `nil`.
   ///   - newFront: The front request after the change, or `nil`.
   /// - Returns: The move, or `nil` when the focus does not move.

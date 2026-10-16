@@ -606,7 +606,8 @@ private struct ToolCallBody: View, Equatable {
 /// the browser ends (deck design section 7). While an elicitation there names
 /// the tool call (`toolCallId`), and no linked elicitation waits for an
 /// answer, the view shows the text "Waiting for <host>" with the same
-/// identifier, where <host> is `PendingElicitation.targetHost`.
+/// identifier, where <host> is `PendingElicitation.waitingHostName`: the
+/// host of the URL, or the agent when the URL has no host.
 private struct ToolCallWaitingStatus: View {
   /// The log of a link that the session model has no pending request for.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "ToolCallView")
@@ -655,12 +656,10 @@ private struct ToolCallWaitingStatus: View {
   /// - Parameters:
   ///   - entry: The tool call entry.
   ///   - session: The session model of the entry.
-  /// - Returns: `PendingElicitation.targetHost`, the agent when the URL has
-  ///   no host, or `nil` when no such elicitation waits.
+  /// - Returns: `PendingElicitation.waitingHostName` of the elicitation, or
+  ///   `nil` when no such elicitation waits.
   private static func waitingHost(of entry: ToolCallEntry, in session: SessionModel) -> String? {
-    session.awaitingURLCompletions.first { $0.toolCallId == entry.toolCallId }.map {
-      $0.targetHost ?? ElicitationHeader.agentServer
-    }
+    session.awaitingURLCompletions.first { $0.toolCallId == entry.toolCallId }.map(\.waitingHostName)
   }
 
   /// The pending elicitations that are linked to `entry` and have a card.

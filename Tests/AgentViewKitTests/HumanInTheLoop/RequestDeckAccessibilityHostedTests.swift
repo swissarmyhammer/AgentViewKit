@@ -113,6 +113,32 @@ import Testing
     #expect(reporter.moves == [RequestDeck.identifier(for: permission.id.uuidString), StockPromptEditor.identifier])
   }
 
+  /// The accept of the only pending request keeps its card in the deck as a
+  /// waiting card. The waiting card asks for no input, so the focus goes to
+  /// the prompt editor while the waiting card shows.
+  @Test func anAcceptOfTheOnlyURLRequestMovesTheFocusToThePromptEditorAndKeepsTheWaitingCard() async throws {
+    let reporter = RecordingFocusReporter()
+    let mounted = try await ElicitationURLConsentViewHostedTests.mountDeck(
+      [ElicitationURLConsentViewHostedTests.urlRequest], reporter: reporter)
+    defer { mounted.close() }
+    let harness = mounted.harness
+    try #require(reporter.moves.isEmpty)
+
+    try harness.press(identifier: ElicitationURLConsentView.openIdentifier)
+    // The press accepts the request in the same step, and the render pass
+    // after it moves the focus. A press or a deck that broke stops the test
+    // here, before the wait.
+    try #require(mounted.session.model.pendingRequests.isEmpty)
+    try #require(mounted.session.model.awaitingURLCompletions.count == 1)
+    harness.render()
+    try #require(reporter.moves.last == StockPromptEditor.identifier)
+    try #require(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
+    await harness.render { mounted.browser.sessions.contains(where: \.isWaiting) }
+
+    #expect(reporter.moves == [StockPromptEditor.identifier])
+    #expect(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
+  }
+
   @Test func theCardsBehindTheFrontAreNotInTheAccessibilityTree() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
