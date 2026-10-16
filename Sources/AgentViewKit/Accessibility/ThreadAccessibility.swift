@@ -537,7 +537,8 @@ extension View {
   ///
   /// ``AgentThreadView`` and ``RequestDeck`` apply this modifier. Apply it to
   /// a view that holds the thread view, the deck and the composer, so that
-  /// the focus goes from a card back to the composer.
+  /// the focus goes from a card back to the composer. The ``RequestDeck``
+  /// documentation shows the full example.
   ///
   /// - Returns: A view whose subtree has a focus mover.
   public func accessibilityFocusScope() -> some View {

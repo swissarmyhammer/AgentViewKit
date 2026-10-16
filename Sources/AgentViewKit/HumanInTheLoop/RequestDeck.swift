@@ -8,7 +8,10 @@ import SwiftUI
 /// The deck is a component of its own. The chat stream, the deck and the
 /// prompt editor are three separate components, and the app arranges them.
 /// Put the three in one ``SwiftUI/View/accessibilityFocusScope()``, so that
-/// the focus can go back to the prompt editor:
+/// the focus can go back to the prompt editor. Give the session model and the
+/// connection model to the prompt editor in the environment
+/// (``SwiftUI/EnvironmentValues/sessionModel``,
+/// ``SwiftUI/EnvironmentValues/connectionModel``):
 ///
 /// ```swift
 /// VStack {
@@ -17,6 +20,8 @@ import SwiftUI
 ///   PromptInputView(text: $draft) {}
 /// }
 /// .accessibilityFocusScope()
+/// .environment(\.sessionModel, session)
+/// .environment(\.connectionModel, connection)
 /// ```
 ///
 /// ``AgentThreadView`` shows no card. Thus, without a session deck, the

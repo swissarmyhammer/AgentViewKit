@@ -55,19 +55,9 @@ import SwiftUI
 /// `image`; else its chip shows the "not accepted" mark and the prompt does
 /// not carry it. A file goes out as an embedded resource when the agent
 /// advertises `embeddedContext`, else as a resource link. Give both models to
-/// the composer, and put the composer, the thread view and the
-/// ``RequestDeck`` in one ``SwiftUI/View/accessibilityFocusScope()``:
-///
-/// ```swift
-/// VStack {
-///   AgentThreadView(session: model)
-///   RequestDeck(session: model)
-///   PromptInputView(text: $draft) {}
-/// }
-/// .accessibilityFocusScope()
-/// .environment(\.sessionModel, model)
-/// .environment(\.connectionModel, connection)
-/// ```
+/// the composer in the environment, and put the composer, the thread view and
+/// the ``RequestDeck`` in one ``SwiftUI/View/accessibilityFocusScope()``. The
+/// ``RequestDeck`` documentation shows the full example.
 ///
 /// In an agent command scope (``SwiftUI/View/agentCommandScope(session:)``),
 /// a submit runs ``AgentCommandVerb/send`` and Esc runs

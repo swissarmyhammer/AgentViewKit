@@ -19,16 +19,8 @@ import SwiftUI
 /// The view shows no card for a pending permission request or a pending
 /// elicitation of the session. Put a ``RequestDeck`` next to the view, and
 /// put the thread view, the deck and the prompt editor in one
-/// ``SwiftUI/View/accessibilityFocusScope()``:
-///
-/// ```swift
-/// VStack {
-///   AgentThreadView(session: session, connection: connection)
-///   RequestDeck(session: session)
-///   PromptInputView(text: $draft) {}
-/// }
-/// .accessibilityFocusScope()
-/// ```
+/// ``SwiftUI/View/accessibilityFocusScope()``. The ``RequestDeck``
+/// documentation shows the full example.
 ///
 /// When the host gives the connection model, an ``AgentInfoHeader`` names the
 /// agent from its `initialize` answer, an ``AgentConnectionBanner`` shows the

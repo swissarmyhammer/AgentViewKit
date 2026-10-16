@@ -40,10 +40,27 @@ comments:
   id: 01m522jqjfgdfxwk8s88a4q3qc
   text: 'Change from ^mw15y7w in RequestDeck.swift: the two `// periphery:ignore` markers are gone. DeckSource.front and DeckSource.bringToFront(_:) had no caller in source, so they are removed, and the DeckSource doc comment names only the requests, the session model for permissions, and the elicitation owner. Card 36 (^46zhh46) has a note to add them back when its layout calls them. Also: the hang that ^mw15y7w recorded was not in cancelAllPendingOnTheModelRemovesTheShownCards. It was the first form of aDeclineInTheConnectionDeckGoesToTheAgentAndTheCardGoesAway (same test binary as rest.log); the working tree already has the fixed form. One run of the whole PendingRequestsSessionModelHostedTests suite after the change: 8 tests (103 cases) passed, 0 failed, 0 warnings.'
   timestamp: 2026-10-16T10:02:04.239226+00:00
+- actor: claude-code
+  id: 01m524q6yjsys1y7s1wsqyskch
+  text: |-
+    ### review — clean
+    - evidence: review sha 005dfa1~1..005dfa1. Counts: findings 0, confirmed 0, refuted 3, attempted 14, failed 0, skipped 0. 17 files reviewed. 11 files not reviewed: 8 .kanban files (excluded by .reviewignore); Docs/decisions/accessibility.md, README.md and plan.md (no validator matches these files). Five code-hygiene Swift tool rules did not read Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift, because the commit deletes that file. No finding for card 34 [34]. No finding for card 35 [35].
+    - scope: the commit holds card 34 and card 35. This pass records the result of the full range on card 34. Card 35 is not moved.
+    - next: card 35 (^gckjk0s) gets its review on the same range.
+  timestamp: 2026-10-16T10:39:28.210662+00:00
+- actor: claude-code
+  id: 01m5256c4yjmq6mgtz0c9y2zgs
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — RequestDeck.swift (new), PendingRequestsHost.swift, 4 test files, README.md, plan.md, HostApp snippet; the hang ^mw15y7w came from the first form of the new decline test (fixed)
+    - test: green — script -q swift test, one run: 1223 passed in 140 suites (plus the package and snippet targets), 0 failed, 0 skipped, 2 known issues; check-readme passed
+    - commit: 005dfa1 (one commit with card 35 ^gckjk0s, because the two cards share seven files)
+    - review: clean — 0 findings; card moved to done; the three test-plan boxes ticked after a check of the tests
+  timestamp: 2026-10-16T10:47:45.054080+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffd280
 title: 'Elicitation task 34: make the request deck a separate public view (session and connection)'
 ---
 elicitation-plan.md task 34, section 4. Do it as the accepted deck design (card 01M51BBZPSYD6PQ2CSQAQQTHFK) says. A public deck view for a SessionModel and for a ConnectionModel, on ACPClient pendingRequests / frontRequest / bringToFront. The prompt editor, the deck and the chat stream are three separate components; the app arranges them. Tests with the step 7 rules. Write all text in STE.
@@ -71,9 +88,9 @@ Answers:
 - Q1 yes: ACPClient adds ConnectionModel.frontRequest and bringToFront(_:) (task 51) before this task. No view-local @State.
 
 Test plan (row 34). Rules: no clock wait, sleep, poll, retry or timeLimit. Hosted suites use .hostedSerially (HostedTestLock). After a main-actor change: render(). After async work: render(when:) or ObservationWait.until on a certain event. No new XCUITest, no new waitForExistence.
-- [ ] Port the PendingRequestsHost tests (PendingRequestsSessionModelHostedTests, PermissionViewHostedTests) to RequestDeck(session:) and RequestDeck(connection:): a card shows and its answer reaches the agent.
-- [ ] identifier(for:) gives pending-card-<id>.
-- [ ] README snippets compile and the components test passes.
+- [x] Port the PendingRequestsHost tests (PendingRequestsSessionModelHostedTests, PermissionViewHostedTests) to RequestDeck(session:) and RequestDeck(connection:): a card shows and its answer reaches the agent.
+- [x] identifier(for:) gives pending-card-<id>.
+- [x] README snippets compile and the components test passes.
 - Waits: render(when: !pendingRequests.isEmpty); ObservationWait.until { response != nil && pendingRequests.isEmpty }.
 
 #elicitation-phase-6

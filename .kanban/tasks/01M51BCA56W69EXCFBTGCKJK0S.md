@@ -40,6 +40,35 @@ comments:
     - evidence: RED one run of PermissionViewHostedTests/theThreadViewWithAPendingPermissionShowsNoPendingCard: 2 issues (pending-card-<id> and permission-card found). swift build --build-tests: 0 errors, 0 warnings. One filtered run (PermissionViewHostedTests, ThreadAccessibilityHostedTests, AgentCommandScopeHostedTests, ElicitationURLConsentViewHostedTests, StateBannerPendingRequestsHostedTests, DemoGalleryTests, SessionTranscriptViewHostedTests, ToolCallEntryViewHostedTests, ReadmeCoverageTests): 96 tests in 8 suites passed, and 12 tests in ReadmeCoverageTests passed. After the StateBanner port, one run of StateBannerPendingRequestsHostedTests: 7 tests passed. Scripts/check-readme.sh: passed. Demo: generate_xcodeproj.rb + xcodebuild -scheme AgentViewKitDemo build: BUILD SUCCEEDED, no warning in the changed files. No full suite run, no commit.
     - next: /review.
   timestamp: 2026-10-16T10:26:28.339553+00:00
+- actor: claude-code
+  id: 01m5255sbz0jhjavtng94nwd8p
+  text: |-
+    ### review — findings
+    - evidence: review sha 005dfa1~1..005dfa1; counts: 1 finding, 1 confirmed, 7 refuted. Sources/AgentViewKit/Thread/AgentThreadView.swift:27 (duplication/duplication).
+    - note: 5 code-hygiene Swift tool rules declined the deleted file Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift because the file does not exist after the change. README.md, plan.md and Docs/decisions/accessibility.md have no validator.
+    - next: implement the finding. Keep one full focus scope example and put a short sentence with a link in the AgentThreadView doc comment. Then do the review again.
+  timestamp: 2026-10-16T10:47:25.823338+00:00
+- actor: claude-code
+  id: 01m5256edrnzc07q0cg9jfzxq9
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — AgentThreadView.swift, PendingRequestsHost.swift deleted, docs, snippets, demo, 6 test files
+    - test: green — script -q swift test, one run: 1223 passed in 140 suites (plus the package and snippet targets), 0 failed, 0 skipped, 2 known issues; check-readme passed; demo xcodebuild succeeded
+    - commit: 005dfa1 (one commit with card 34 ^2z2xgtq)
+    - review: findings — Sources/AgentViewKit/Thread/AgentThreadView.swift:27 (duplication)
+  timestamp: 2026-10-16T10:47:47.384604+00:00
+- actor: claude-code
+  id: 01m525ew1c9b74x7v2db0n24jw
+  text: |-
+    ### implement — changed
+    - finding: `Sources/AgentViewKit/Thread/AgentThreadView.swift:27` `duplication/duplication` is fixed and checked.
+    - RequestDeck type doc keeps the one full mounting example. The example now also has `.environment(\.sessionModel, session)` and `.environment(\.connectionModel, connection)`, because the PromptInputView copy had these two lines and the composer needs them. The prose before the example links ``SwiftUI/EnvironmentValues/sessionModel`` and ``SwiftUI/EnvironmentValues/connectionModel``.
+    - AgentThreadView doc and PromptInputView doc: the code copy is removed. Each one now has a short sentence: "The ``RequestDeck`` documentation shows the full example."
+    - ThreadAccessibility accessibilityFocusScope() doc had prose only, not a copy. It gets the same short link sentence.
+    - rg "RequestDeck\(" Sources: one match only, in RequestDeck.swift. README snippets are not changed.
+    - evidence: swift build --build-tests, one run: Build complete, 0 compiler errors, 0 compiler warnings. The output has one SwiftPM build-system line "warning: missing creator for mutated node: ... mlx-swift_Cmlx.bundle/Contents/MacOS". It comes from the mlx dependency bundle, not from a source file. A doc-comment change cannot cause it. No test run: the change is doc comments only, with no behavior change. No commit.
+    - next: /review.
+  timestamp: 2026-10-16T10:52:23.468089+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BC7WBQ93BAV1Q42Z2XGTQ
@@ -75,3 +104,32 @@ Test plan (row 35). Rules: no clock wait, sleep, poll, retry or timeLimit. Hoste
 - Waits: render() after a main-actor change; render(when: !pendingRequests.isEmpty) after the agent sends a request.
 
 #elicitation-phase-6
+
+## Review Findings (2026-10-16 05:40)
+
+> Scope: `review sha 005dfa1~1..005dfa1` — reviewed the diffs only — lines this change added or modified. 17 file(s) reviewed, 11 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+> 3 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/accessibility.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/HumanInTheLoop/PendingRequestsHost.swift, so its declarations are unread
+
+- [x] `Sources/AgentViewKit/Thread/AgentThreadView.swift:27` `duplication/duplication` — The focus scope example in the AgentThreadView doc comment repeats the snippet in RequestDeck and PromptInputView. The copies can drift apart when one of them is edited. Keep one full example and use a short sentence with a link in this comment.
