@@ -39,7 +39,7 @@ import SwiftUI
 /// The card does not move the VoiceOver focus or the keyboard focus when it
 /// appears. The ``RequestDeck`` announces the new request and moves the
 /// focus. The deck gives the card the keyboard focus when the user brings it
-/// to the front.
+/// to the front with Next, and then Esc cancels the request of the card.
 ///
 /// The URL text and the warning do not use a fixed vertical size. A text
 /// with a fixed vertical size gives its full wrapped height at a narrow

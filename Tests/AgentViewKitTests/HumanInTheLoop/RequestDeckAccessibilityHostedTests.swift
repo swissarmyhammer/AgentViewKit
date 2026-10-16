@@ -63,6 +63,17 @@ import Testing
     }
   }
 
+  /// A URL consent elicitation with
+  /// ``ElicitationURLConsentViewHostedTests/makeParams(url:)``. Its card has
+  /// no editable text, so no text field can take Esc.
+  ///
+  /// - Parameter id: The JSON-RPC id of the request.
+  /// - Returns: The request.
+  static func urlConsent(id: Int) -> ScriptedSession.AgentRequest {
+    ScriptedSession.AgentRequest(
+      method: ScriptedSession.elicitationMethod, id: id, params: ElicitationURLConsentViewHostedTests.makeParams())
+  }
+
   @Test func aNewRequestAnnouncesOneTimeAtTheHighPriorityAndMovesNoFocus() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -139,12 +150,41 @@ import Testing
     #expect(model.pendingElicitations.count == 1)
   }
 
-  // The elicitation cards have no `defaultFocus`. The window gives the
-  // keyboard focus to its first focusable view: a card alone in a window gets
-  // the keyboard focus, and a focusable view before the deck keeps it. The
-  // two tests below show that the card itself, and not a text field in it,
-  // gets the keyboard focus, and that a new card does not take the keyboard
-  // focus from the prompt editor.
+  @Test func nextMovesTheKeyboardFocusIntoAnElicitationCardSoEscapeCancelsOnlyIt() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let reporter = RecordingFocusReporter()
+    let harness = Self.mountDeck(of: session, reporter: reporter)
+    defer { harness.close() }
+    // The permission request is at the front. The URL consent card has no
+    // editable text, so no text field can take Esc, and its Esc action
+    // cancels on the main actor.
+    let elicitationRequestID = Self.firstRequestID + 1
+    try await session.sendInOrder([.permission(id: Self.firstRequestID), Self.urlConsent(id: elicitationRequestID)])
+    harness.render()
+    let elicitation = try #require(model.pendingElicitations.first)
+
+    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try #require(model.frontRequestID == elicitation.id)
+    #expect(reporter.moves == [RequestDeck.identifier(for: elicitation.id.uuidString)])
+
+    // Esc goes to the card with the keyboard focus. When no card has it, the
+    // elicitation stays pending, and the test stops here and does not wait.
+    try harness.sendKey(.escape)
+    try #require(model.pendingElicitations.isEmpty)
+    let result = await session.result(ofRequest: elicitationRequestID)
+
+    #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(model.pendingPermissions.count == 1)
+  }
+
+  // The elicitation cards set no initial keyboard focus, and the kit gives a
+  // new card no keyboard focus. AppKit decides the first keyboard focus of a
+  // window. The two tests below show this: in a window with only the URL
+  // consent card, a view of the card gets the keyboard focus, and Esc cancels
+  // the request; a new card does not take the keyboard focus from a prompt
+  // editor that has it.
 
   /// Tells whether `responder` edits text: a text view, a text field, or the
   /// field editor of a text field.
@@ -155,17 +195,14 @@ import Testing
     responder is NSText || responder is NSTextField
   }
 
-  @Test func aCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt() async throws {
+  @Test func aURLConsentCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
     // The URL consent card has no editable text, so no text field can take
     // the first responder and send Esc up to the card. Its Esc action
     // cancels on the main actor.
-    let request = ScriptedSession.AgentRequest(
-      method: ScriptedSession.elicitationMethod, id: Self.firstRequestID,
-      params: ElicitationURLConsentViewHostedTests.makeParams())
-    try await session.sendInOrder([request])
+    try await session.sendInOrder([Self.urlConsent(id: Self.firstRequestID)])
     let harness = Self.mountDeck(of: session)
     defer { harness.close() }
 

@@ -112,12 +112,14 @@ announcement.
   `PermissionView`, `ElicitationView`, and `ElicitationURLConsentView` do not
   move the focus when they appear. `ElicitationView` and
   `ElicitationURLConsentView` have no `defaultFocus`. `PermissionView` keeps
-  its `defaultFocus`. A window gives the keyboard focus to its first
-  focusable view. Thus a card alone in a window gets the keyboard focus, and
-  a focusable view before the deck keeps the keyboard focus. Hosted tests
-  show that a card alone in a window gets the keyboard focus itself, and not
-  a text field in it, and that a new card does not take the keyboard focus
-  from a focused prompt editor.
+  its `defaultFocus`. The kit gives a new card no keyboard focus. AppKit
+  decides the first keyboard focus of a window. Hosted tests show two
+  results. In a window with only a URL consent card, which has no text
+  field, a view of the card gets the keyboard focus and Esc cancels the
+  request. A new card does not take the keyboard focus from a prompt editor
+  that has it. No test shows the first keyboard focus for a card with a text
+  field, or for a window with other focusable views. A manual check of the
+  demo app records the first keyboard focus of the app window.
 - The deck moves the focus only in two cases
   (`RequestDeck.focusTarget(oldIDs:newIDs:oldFront:newFront:)`):
   - The old front request left the deck: the focus goes to the
@@ -125,7 +127,9 @@ announcement.
     `prompt-editor` when no card stays.
   - The user changed the front (Previous, Next, a key, the tool call
     status): the focus goes to the card of the new front request, and the
-    keyboard focus goes into that card.
+    keyboard focus goes into that card. Hosted tests show this with Next for
+    a permission card and for a URL consent card: after Next, Esc cancels
+    only the request of the new front card.
 - Only the front card is in the accessibility tree. The edges and the cards
   that do not show are hidden from VoiceOver. "k of N" and "+N" are one
   element, for example "Request 1 of 6, 2 more".
