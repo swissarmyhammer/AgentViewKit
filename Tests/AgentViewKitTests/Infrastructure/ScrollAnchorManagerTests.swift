@@ -1,17 +1,8 @@
-import AgentViewKit
+@testable import AgentViewKit
 import CoreGraphics
 import Testing
 
 @Suite @MainActor struct ScrollAnchorManagerTests {
-  /// Records each scroll target that the manager sends.
-  private final class ScrollRecorder {
-    private(set) var targets: [ScrollAnchorTarget] = []
-
-    func record(_ target: ScrollAnchorTarget) {
-      targets.append(target)
-    }
-  }
-
   /// A distance from the bottom that is in the tolerance of the manager.
   private static let distanceInsideTolerance: CGFloat = 10
 
@@ -22,8 +13,8 @@ import Testing
   private static let tolerance: CGFloat = 24
 
   /// Makes a manager that sends its scroll targets to `recorder`.
-  private static func makeManager(recorder: ScrollRecorder) -> ScrollAnchorManager {
-    ScrollAnchorManager(tolerance: tolerance) { recorder.record($0) }
+  private static func makeManager(recorder: ReportRecorder<ScrollAnchorTarget>) -> ScrollAnchorManager {
+    ScrollAnchorManager(tolerance: tolerance) { recorder.report($0) }
   }
 
   /// Lets each main-actor task that is scheduled now run to its end.
@@ -44,7 +35,7 @@ import Testing
   }
 
   @Test func theLastIdInsideTheToleranceIsPinned() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c"])
 
@@ -56,7 +47,7 @@ import Testing
   }
 
   @Test func theToleranceIncludesItsOwnValue() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a"])
 
@@ -66,7 +57,7 @@ import Testing
   }
 
   @Test func theLastIdOutsideTheToleranceIsUnpinned() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
 
@@ -76,7 +67,7 @@ import Testing
   }
 
   @Test func aViewWithoutTheLastIdIsUnpinned() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c"])
 
@@ -122,7 +113,7 @@ import Testing
   // MARK: - New item count
 
   @Test func eachIdAppendedWhileUnpinnedIncrementsTheCount() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
@@ -135,7 +126,7 @@ import Testing
   }
 
   @Test func pinningResetsTheCountToZero() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
@@ -149,7 +140,7 @@ import Testing
   }
 
   @Test func pinToBottomPinsClearsTheCountAndScrolls() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
@@ -165,11 +156,11 @@ import Testing
     #expect(manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 0)
     #expect(manager.anchorID == nil)
-    #expect(recorder.targets == [.bottom, .bottom])
+    #expect(recorder.values == [.bottom, .bottom])
   }
 
   @Test func aNewLastItemWhileUnpinnedDoesNotCount() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c"])
     manager.noteVisible(ids: ["a"])
@@ -180,25 +171,25 @@ import Testing
 
     #expect(!manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 0)
-    #expect(recorder.targets == [.bottom])
+    #expect(recorder.values == [.bottom])
 
     manager.noteVisible(ids: ["a", "b"])
     #expect(manager.isPinnedToBottom)
   }
 
   @Test func aNewLastItemWhilePinnedScrolls() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
 
     manager.noteLastItemChanged(to: "a")
     await Self.runScheduledTasks()
 
     #expect(manager.isPinnedToBottom)
-    #expect(recorder.targets == [.bottom])
+    #expect(recorder.values == [.bottom])
   }
 
   @Test func noLastItemPinsAndDoesNotScroll() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
@@ -208,22 +199,22 @@ import Testing
     await Self.runScheduledTasks()
 
     #expect(manager.isPinnedToBottom)
-    #expect(recorder.targets == [.bottom])
+    #expect(recorder.values == [.bottom])
   }
 
   @Test func anAppendWhilePinnedDoesNotCount() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
 
     manager.noteAppended(ids: ["a", "b"])
     await Self.runScheduledTasks()
 
     #expect(manager.newItemsSinceUnpinned == 0)
-    #expect(recorder.targets == [.bottom])
+    #expect(recorder.values == [.bottom])
   }
 
   @Test func anEmptyAppendChangesNothing() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a"])
     manager.noteVisible(ids: [])
@@ -234,26 +225,26 @@ import Testing
 
     #expect(!manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 0)
-    #expect(recorder.targets == [.bottom])
+    #expect(recorder.values == [.bottom])
   }
 
   // MARK: - Coalesce
 
   @Test func tenRequestsInOneTickScrollOneTime() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
 
     for _ in 0..<10 {
       manager.requestScrollToBottom()
     }
-    #expect(recorder.targets.isEmpty)
+    #expect(recorder.values.isEmpty)
     await Self.runScheduledTasks()
 
-    #expect(recorder.targets == [.bottom])
+    #expect(recorder.values == [.bottom])
   }
 
   @Test func aRequestAfterTheTickScrollsAgain() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
 
     manager.requestScrollToBottom()
@@ -261,13 +252,13 @@ import Testing
     manager.requestScrollToBottom()
     await Self.runScheduledTasks()
 
-    #expect(recorder.targets == [.bottom, .bottom])
+    #expect(recorder.values == [.bottom, .bottom])
   }
 
   // MARK: - Anchor
 
   @Test func theAnchorIsSavedAndRestoredWhileUnpinned() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c", "d"])
     manager.noteVisible(ids: ["b", "c"])
@@ -276,12 +267,12 @@ import Testing
     #expect(manager.anchorID == "b")
 
     manager.restoreAnchor()
-    #expect(recorder.targets == [.item("b")])
+    #expect(recorder.values == [.item("b")])
     #expect(manager.anchorID == nil)
   }
 
   @Test func restoreWhilePinnedClearsTheAnchorAndDoesNotScrollToIt() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a", "b"])
@@ -291,18 +282,18 @@ import Testing
     manager.restoreAnchor()
 
     #expect(manager.anchorID == nil)
-    #expect(!recorder.targets.contains(.item("a")))
+    #expect(!recorder.values.contains(.item("a")))
   }
 
   @Test func restoreWithNoAnchorDoesNothing() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
 
     manager.restoreAnchor()
 
-    #expect(recorder.targets.isEmpty)
+    #expect(recorder.values.isEmpty)
     #expect(manager.anchorID == nil)
   }
 
@@ -315,7 +306,7 @@ import Testing
   }
 
   @Test func aJumpKeepsTheItemAsTheAnchorAndSendsNoScroll() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c", "d"])
     manager.noteVisible(ids: ["a", "b"])
@@ -323,11 +314,11 @@ import Testing
     manager.noteJump(to: "c")
 
     #expect(manager.anchorID == "c")
-    #expect(recorder.targets.isEmpty)
+    #expect(recorder.values.isEmpty)
   }
 
   @Test func aJumpCancelsTheRequestedScrollToTheBottom() async {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteLastItemChanged(to: "d")
 
@@ -335,7 +326,7 @@ import Testing
     await Self.runScheduledTasks()
 
     #expect(manager.anchorID == "a")
-    #expect(recorder.targets.isEmpty)
+    #expect(recorder.values.isEmpty)
   }
 
   @Test func aReturnToTheBottomClearsTheJumpAnchor() {
@@ -357,7 +348,7 @@ import Testing
   ///
   /// - Parameter recorder: The recorder that gets the scroll targets.
   /// - Returns: The manager, after the jump and before the next report.
-  private static func makeJumpedManager(recorder: ScrollRecorder) -> ScrollAnchorManager {
+  private static func makeJumpedManager(recorder: ReportRecorder<ScrollAnchorTarget>) -> ScrollAnchorManager {
     let manager = makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c", "d", "e"])
     manager.noteVisible(ids: ["d", "e"])
@@ -366,13 +357,13 @@ import Testing
   }
 
   @Test func aJumpSetsTheVisibleIdsToTheItem() {
-    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
 
     #expect(manager.visibleIDs == ["c"])
   }
 
   @Test func aSaveAfterAJumpAndAReportWithoutTheItemKeepsTheItem() {
-    let recorder = ScrollRecorder()
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeJumpedManager(recorder: recorder)
 
     // A layout pass before the list placed the item reports other rows.
@@ -382,11 +373,11 @@ import Testing
 
     #expect(manager.visibleIDs == ["c"])
     #expect(!manager.isPinnedToBottom)
-    #expect(recorder.targets == [.item("c")])
+    #expect(recorder.values == [.item("c")])
   }
 
   @Test func aReportEqualToTheVisibleIdsDoesNotEndTheWaitForTheJumpReport() {
-    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
 
     // The scroll geometry callback reports the same identifiers again.
     manager.noteVisible(ids: ["c"], distanceFromBottom: Self.distanceOutsideTolerance)
@@ -396,7 +387,7 @@ import Testing
   }
 
   @Test func aJumpReportWithTheItemReplacesTheVisibleIds() {
-    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
 
     manager.noteVisible(ids: ["b", "c"], distanceFromBottom: Self.distanceOutsideTolerance)
 
@@ -404,7 +395,7 @@ import Testing
   }
 
   @Test func theReportAfterAReportWithoutTheItemReplacesTheVisibleIds() {
-    let manager = Self.makeJumpedManager(recorder: ScrollRecorder())
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
     manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
 
     // The user scrolls.

@@ -1,12 +1,13 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
 import SwiftUI
 import Testing
 
-/// The calls of a ``ToolToggles`` host closure.
-@Observable final class ToolToggleRecorder {
-  /// One call of the host closure.
+/// Hosted tests of ``ToolToggles`` with a host list, and of the default
+/// composer.
+@Suite(.serialized, .hostedSerially) @MainActor struct ToolTogglesHostedTests {
+  /// One call of a ``ToolToggles`` host closure.
   struct Call: Equatable {
     /// The identifier of the tool.
     let id: ToolToggleID
@@ -14,22 +15,6 @@ import Testing
     let isEnabled: Bool
   }
 
-  /// Each call, in call order.
-  private(set) var calls: [Call] = []
-
-  /// Records one call.
-  ///
-  /// - Parameters:
-  ///   - id: The identifier of the tool.
-  ///   - isEnabled: The new value.
-  func record(_ id: ToolToggleID, _ isEnabled: Bool) {
-    calls.append(Call(id: id, isEnabled: isEnabled))
-  }
-}
-
-/// Hosted tests of ``ToolToggles`` with a host list, and of the default
-/// composer.
-@Suite(.serialized, .hostedSerially) @MainActor struct ToolTogglesHostedTests {
   /// The identifier of the search tool.
   static let searchID = ToolToggleID("search")
 
@@ -45,9 +30,9 @@ import Testing
   // MARK: - Host list
 
   @Test func aSwitchCallsOnToggleWithTheIdAndTheNewValue() throws {
-    let recorder = ToolToggleRecorder()
+    let recorder = ReportRecorder<Call>()
     let harness = HostedViewHarness(
-      ToolToggles(tools: Self.tools, style: .list, onToggle: recorder.record),
+      ToolToggles(tools: Self.tools, style: .list) { recorder.report(Call(id: $0, isEnabled: $1)) },
       size: ConnectionsViewHostedTests.listSize)
     defer { harness.close() }
     harness.render()
@@ -56,7 +41,7 @@ import Testing
     try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.searchID))
 
     #expect(
-      recorder.calls == [
+      recorder.values == [
         .init(id: Self.issueID, isEnabled: true),
         .init(id: Self.searchID, isEnabled: false),
       ])

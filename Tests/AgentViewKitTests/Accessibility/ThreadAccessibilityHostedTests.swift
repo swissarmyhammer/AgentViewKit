@@ -7,31 +7,22 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// The steps that the reader of the turn announcements of a hosted thread
-/// reports through ``SwiftUI/EnvironmentValues/turnAnnouncementReport``.
-@MainActor @Observable final class TurnAnnouncementStepRecorder {
-  /// Each step, in report order.
-  private(set) var steps: [TurnAnnouncementStep] = []
-
+/// The questions that the tests ask of the steps that the reader of the turn
+/// announcements of a hosted thread reports through
+/// ``SwiftUI/EnvironmentValues/turnAnnouncementReport``.
+extension ReportRecorder<TurnAnnouncementStep> {
   /// Whether the reader started to read the update tap of the session model.
   var hasStarted: Bool {
-    steps.contains { if case .started = $0 { true } else { false } }
+    values.contains { if case .started = $0 { true } else { false } }
   }
 
   /// The announcement of each idle state update that the reader handled, in
   /// report order. `nil` is an idle with no announcement.
   var idleAnnouncements: [String?] {
-    steps.compactMap { step -> String?? in
+    values.compactMap { step -> String?? in
       guard case .handled(.stateUpdate(.idle), let announcement) = step else { return nil }
       return .some(announcement)
     }
-  }
-
-  /// Records one step.
-  ///
-  /// - Parameter step: The step that the reader reports.
-  func record(_ step: TurnAnnouncementStep) {
-    steps.append(step)
   }
 }
 
@@ -43,7 +34,7 @@ import Testing
 /// and action required announcements, and the focus moves, come from the
 /// change actions and the appear actions of the views, which the render pass
 /// runs. The turn announcements come from a reader task; the tests wait for
-/// the steps that the reader reports (``TurnAnnouncementStepRecorder``) or for
+/// the steps that the reader reports (a ``ReportRecorder``) or for
 /// the announcement in the observable ``RecordingAnnouncer``.
 @Suite(.serialized, .hostedSerially) @MainActor struct ThreadAccessibilityHostedTests {
   /// The size of the host window. It is tall enough for each row.
@@ -96,7 +87,7 @@ import Testing
   /// - Returns: The harness.
   static func makeHarness(
     session: ScriptedSession, announcer: RecordingAnnouncer,
-    steps: TurnAnnouncementStepRecorder = TurnAnnouncementStepRecorder()
+    steps: ReportRecorder<TurnAnnouncementStep> = ReportRecorder()
   ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: hostSize) {
       VStack {
@@ -106,21 +97,12 @@ import Testing
       }
       .accessibilityFocusScope()
       .environment(\.announcer, announcer)
-      .environment(\.turnAnnouncementReport, report(to: steps))
+      .environment(\.turnAnnouncementReport, steps.report)
       .transaction { $0.disablesAnimations = true }
     }
     harness.render()
     await ObservationWait.until { steps.hasStarted }
     return harness
-  }
-
-  /// The report that gives each step of the turn announcement reader to
-  /// `recorder`.
-  ///
-  /// - Parameter recorder: The recorder of the steps.
-  /// - Returns: The report.
-  static func report(to recorder: TurnAnnouncementStepRecorder) -> ObservationReport<TurnAnnouncementStep> {
-    ObservationReport { recorder.record($0) }
   }
 
   /// Sends two agent messages from the agent of `session`, waits for the
@@ -396,7 +378,7 @@ import Testing
   ///
   /// The stop announcement comes from a reader task
   /// (``ThreadAccessibility/makeTurnAnnouncements(of:report:)``). The reader
-  /// reports each update that it handled (``TurnAnnouncementStepRecorder``).
+  /// reports each update that it handled (a ``ReportRecorder``).
   /// The test waits for the event that the reader handled the idle of the
   /// replay, and then checks that the reader gave no announcement for it and
   /// that the announcer holds none.
@@ -404,7 +386,7 @@ import Testing
     let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
     defer { session.close() }
     let announcer = RecordingAnnouncer()
-    let steps = TurnAnnouncementStepRecorder()
+    let steps = ReportRecorder<TurnAnnouncementStep>()
     let harness = await Self.makeHarness(session: session, announcer: announcer, steps: steps)
     defer { harness.close() }
     let model = session.model

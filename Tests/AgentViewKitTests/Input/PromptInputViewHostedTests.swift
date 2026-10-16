@@ -42,20 +42,6 @@ struct PromptInputHost: View {
   }
 }
 
-/// The submit outcomes that a hosted composer reports through
-/// ``SwiftUI/EnvironmentValues/promptSubmitReport``.
-@MainActor @Observable final class PromptSubmitRecorder {
-  /// Each outcome, in report order.
-  private(set) var outcomes: [PromptSubmitOutcome] = []
-
-  /// Records one outcome.
-  ///
-  /// - Parameter outcome: The outcome that the composer reports.
-  func record(_ outcome: PromptSubmitOutcome) {
-    outcomes.append(outcome)
-  }
-}
-
 @Suite(.serialized, .hostedSerially) @MainActor struct PromptInputViewHostedTests {
   /// The text that the tests type.
   static let message = "Hello"
@@ -74,24 +60,19 @@ struct PromptInputHost: View {
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - model: The model that holds the text of the composer.
-  ///   - recorder: The recorder of the submit outcomes, or `nil`.
+  ///   - recorder: The recorder of the submit outcomes that the composer
+  ///     reports through ``SwiftUI/EnvironmentValues/promptSubmitReport``,
+  ///     or `nil`.
   /// - Returns: The harness.
   static func mount(
-    _ session: ScriptedSession, model: PromptInputHostedTestModel, recorder: PromptSubmitRecorder? = nil
+    _ session: ScriptedSession, model: PromptInputHostedTestModel,
+    recorder: ReportRecorder<PromptSubmitOutcome>? = nil
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: composerSize) {
       PromptInputHost(model: model)
         .environment(\.sessionModel, session.model)
-        .environment(\.promptSubmitReport, recorder.map(Self.report(to:)))
+        .environment(\.promptSubmitReport, recorder?.report)
     }
-  }
-
-  /// The submit report that gives each outcome to `recorder`.
-  ///
-  /// - Parameter recorder: The recorder of the outcomes.
-  /// - Returns: The report.
-  static func report(to recorder: PromptSubmitRecorder) -> ObservationReport<PromptSubmitOutcome> {
-    ObservationReport { recorder.record($0) }
   }
 
   /// The `session/new` result with a `mode` option, for the picker test.
@@ -208,7 +189,7 @@ struct PromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let recorder = PromptSubmitRecorder()
+    let recorder = ReportRecorder<PromptSubmitOutcome>()
     let harness = Self.mount(session, model: model, recorder: recorder)
     defer { harness.close() }
     harness.render()
@@ -217,10 +198,10 @@ struct PromptInputHost: View {
     harness.type(Self.message)
     try harness.sendKey(.return, modifiers: .shift)
     // The editor reports the outcome in the same step as the key.
-    try #require(!recorder.outcomes.isEmpty)
+    try #require(!recorder.values.isEmpty)
     harness.render()
 
-    #expect(recorder.outcomes == [.newline])
+    #expect(recorder.values == [.newline])
     #expect(session.promptTexts.isEmpty)
     #expect(model.plainText == Self.message + "\n")
     #expect(model.submitCount == 0)
@@ -230,17 +211,17 @@ struct PromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = PromptInputHostedTestModel()
-    let recorder = PromptSubmitRecorder()
+    let recorder = ReportRecorder<PromptSubmitOutcome>()
     let harness = Self.mount(session, model: model, recorder: recorder)
     defer { harness.close() }
     harness.render()
 
     try #require(harness.focusFirstEditableTextView())
     try harness.sendKey(.return)
-    try #require(!recorder.outcomes.isEmpty)
+    try #require(!recorder.values.isEmpty)
     harness.render()
 
-    #expect(recorder.outcomes == [.notSent])
+    #expect(recorder.values == [.notSent])
     #expect(session.promptTexts.isEmpty)
     #expect(model.submitCount == 0)
   }

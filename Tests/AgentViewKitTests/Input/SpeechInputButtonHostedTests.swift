@@ -4,20 +4,6 @@ import Foundation
 import SwiftUI
 import Testing
 
-/// The phases that a hosted ``SpeechInputButton`` reports through
-/// ``SwiftUI/EnvironmentValues/speechInputPhaseReport``.
-@MainActor @Observable final class SpeechPhaseRecorder {
-  /// Each phase, in report order.
-  private(set) var phases: [SpeechInputButton.Phase] = []
-
-  /// Records one phase.
-  ///
-  /// - Parameter phase: The phase that the button reports.
-  func record(_ phase: SpeechInputButton.Phase) {
-    phases.append(phase)
-  }
-}
-
 /// Hosted tests of ``SpeechInputButton`` in the default composer, with a
 /// ``FakeSpeechTranscriber``.
 @Suite(.serialized, .hostedSerially) @MainActor struct SpeechInputButtonHostedTests {
@@ -26,28 +12,21 @@ import Testing
   /// - Parameters:
   ///   - model: The model that holds the composer text.
   ///   - transcriber: The transcriber of the environment, or `nil`.
-  ///   - recorder: The recorder of the phases of the button, or `nil`.
+  ///   - recorder: The recorder of the phases that the button reports through
+  ///     ``SwiftUI/EnvironmentValues/speechInputPhaseReport``, or `nil`.
   /// - Returns: The harness.
   static func mount(
     _ model: PromptInputHostedTestModel,
     transcriber: FakeSpeechTranscriber?,
-    recorder: SpeechPhaseRecorder? = nil
+    recorder: ReportRecorder<SpeechInputButton.Phase>? = nil
   ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: PromptInputViewHostedTests.composerSize) {
       PromptInputHost(model: model)
         .speechTranscriber(transcriber)
-        .environment(\.speechInputPhaseReport, recorder.map(Self.report(to:)))
+        .environment(\.speechInputPhaseReport, recorder?.report)
     }
     harness.render()
     return harness
-  }
-
-  /// The phase report that gives each phase to `recorder`.
-  ///
-  /// - Parameter recorder: The recorder of the phases.
-  /// - Returns: The report.
-  static func report(to recorder: SpeechPhaseRecorder) -> ObservationReport<SpeechInputButton.Phase> {
-    ObservationReport { recorder.record($0) }
   }
 
   /// Presses the button to start a session, and requires that the button
@@ -144,7 +123,7 @@ import Testing
   @Test func theEndOfASessionResetsTheButton() async throws {
     let transcriber = FakeSpeechTranscriber()
     let model = PromptInputHostedTestModel()
-    let recorder = SpeechPhaseRecorder()
+    let recorder = ReportRecorder<SpeechInputButton.Phase>()
     let harness = Self.mount(model, transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
@@ -152,9 +131,9 @@ import Testing
     await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("done")
     transcriber.finish()
-    await harness.render { recorder.phases.last == .idle }
+    await harness.render { recorder.values.last == .idle }
 
-    #expect(recorder.phases == [.recording, .idle])
+    #expect(recorder.values == [.recording, .idle])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
     #expect(model.plainText == "done")
     #expect(transcriber.calls == [.requestAuthorization, .start])
@@ -163,14 +142,14 @@ import Testing
   @Test func aDeniedPermissionStartsNoSession() async throws {
     let transcriber = FakeSpeechTranscriber(isAuthorized: false)
     let model = PromptInputHostedTestModel()
-    let recorder = SpeechPhaseRecorder()
+    let recorder = ReportRecorder<SpeechInputButton.Phase>()
     let harness = Self.mount(model, transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
     try Self.pressToRecord(in: harness)
-    await harness.render { recorder.phases.last == .denied }
+    await harness.render { recorder.values.last == .denied }
 
-    #expect(recorder.phases == [.recording, .denied])
+    #expect(recorder.values == [.recording, .denied])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not allowed")
     #expect(transcriber.calls == [.requestAuthorization])
     #expect(model.plainText.isEmpty)
