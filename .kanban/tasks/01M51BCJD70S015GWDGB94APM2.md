@@ -84,11 +84,32 @@ comments:
     - No source or test file was changed. No commit. No push.
     - next: review
   timestamp: 2026-10-16T17:38:28.572065+00:00
+- actor: claude-code
+  id: 01m52wy4fshk3xek0q6myf8pyr
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (4e86318) — 0 findings (confirmed 0, refuted 0, attempted 7, failed 0). README.md had no validator, so it got a check by reading.
+    - prior items, checked in the code and text: (1) ScriptedSessionRequests.swift formElicitation(id:) and permission(id:) now forward to the sessionId overloads, and the duplicate AgentRequest bodies are gone. (2) The README SessionListView bullet tells that the badge shows only when there are open requests, that the row label adds the count text, and that the badge is hidden from VoiceOver. (3) Blocker, option A: PendingRequestCountBadge.body has .accessibilityHidden(true); no hosted test reads the badge element from the AX tree.
+    - the check "no element reads the count alone": HostedViewHarness.hasElement(label:) needs an exact label match over all AX elements. The implement record shows RED (3 issues) on these checks before the hide, so the check can fail.
+    - count 0: SessionListView.openQuestionsLabel(of:) gives nil when the count is 0 or there is no model, so the row label stays the plain session label. The tests require "Third" after the last answer, "Current" for the current session with 1 request, and "Closed" for the session that is not open.
+    - doc comments (PendingRequestCountBadge, SessionListView row(for:) and currentSession) and README: each statement agrees with the code and the hosted tests.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-16T17:42:40.889311+00:00
+- actor: claude-code
+  id: 01m52wyv9pkxsqask536caftst
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — option A of the step owner (the badge is hidden from accessibility; the row label tells the count); duplicate test helpers forward to one; README bullet corrected
+    - test: green — swift test --skip-build, 1258 tests in 147 suites passed, 2 known issues; Scripts/check-readme.sh passed
+    - commit: 4e86318
+    - review: clean — 0 findings, 4 of 4 prior items fixed
+    - push: with ^nmy2ctx
+  timestamp: 2026-10-16T17:43:04.246963+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCGGAV4K4YPJ5ZSTWA42Z
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffd980
 title: 'Elicitation task 40: show open question counts for sessions not on screen'
 ---
 elicitation-plan.md task 40, section 4: a session that is not on screen shows a count of its open questions (from its pendingRequests). Where the count shows comes from the accepted deck design. Tests with the step 7 rules. Write all text in STE.
