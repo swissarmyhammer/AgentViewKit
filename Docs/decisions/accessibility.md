@@ -42,7 +42,7 @@ that paragraph.
 
 ## Announcements
 
-The kit announces only at three boundaries. A streaming chunk gives no
+The kit announces only at four boundaries. A streaming chunk gives no
 announcement.
 
 | Boundary | Text | Priority |
@@ -50,6 +50,7 @@ announcement.
 | The first `idle` after the echo of a prompt of this client (by the `messageId` of the prompt response) | "Response complete", "Response cancelled", or the `StateBanner` title of the stop reason | medium |
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
 | A new pending request of the models | "Action required: <title>" | high |
+| The check before the send refuses an elicitation answer (`ElicitationView` does not send it) | "The agent cannot accept this answer: <reason>" | high |
 
 - A prompt is mail (ACPAgent 293be4b). The order on the wire is: the
   prompt response with the `messageId`, the `user_message` echo with that

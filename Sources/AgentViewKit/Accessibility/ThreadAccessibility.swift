@@ -14,9 +14,10 @@ import SwiftUI
 ///   the message, and each row of a conversation is in the linked group of
 ///   the thread. VoiceOver then reads across the rows. The namespace of the
 ///   groups comes from ``SwiftUI/View/accessibilityReadingScope()``.
-/// - Announcements: the kit announces only at three boundaries: the end of
-///   the work of a prompt of this client, tool result, and action required.
-///   A streaming chunk is not a boundary.
+/// - Announcements: the kit announces only at four boundaries: the end of
+///   the work of a prompt of this client, tool result, action required, and
+///   an elicitation answer that the agent cannot accept. ``ElicitationView``
+///   announces the last one at `.high`. A streaming chunk is not a boundary.
 /// - Focus: see ``AccessibilityFocusMover``.
 public enum ThreadAccessibility {
   /// The id of the linked group of the rows of a thread.

@@ -17,9 +17,10 @@ public enum AnnouncementPriority: Sendable, Equatable, CaseIterable {
 ///
 /// The kit streams text silently and announces only at boundaries: the end
 /// of the work of a prompt of this client (the first idle after the echo of
-/// the prompt), tool result, and action required. The accessibility views call
-/// an `Announcer` at those boundaries, so that a test can record the
-/// announcements.
+/// the prompt), tool result, action required, and an elicitation answer that
+/// the agent cannot accept (``ElicitationView`` does not send it). The kit
+/// views call an `Announcer` at those boundaries, so that a test can record
+/// the announcements.
 public protocol Announcer: AnyObject {
   /// Speaks `message` at `priority`.
   ///

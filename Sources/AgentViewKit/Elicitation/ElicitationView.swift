@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -20,6 +22,12 @@ import SwiftUI
 /// elicitation when it resolves. The accepted content has no empty answer
 /// (see `answerContent(values:)`).
 ///
+/// Before the send of an accepted answer, the view checks the content with
+/// `PendingElicitation.validationFailure(of:)`. When the agent cannot accept
+/// the answer, the view does not send it. The form stays open, shows the
+/// failure in the element ``failureIdentifier``, and announces it. A change
+/// of an answer removes the failure.
+///
 /// The view keeps its answers in state. Give each request its own view
 /// identity, for example with `.id(request.id)`, so that a new request
 /// starts with new answers.
@@ -39,6 +47,9 @@ public struct ElicitationView: View {
   public static let declineIdentifier = "elicitation-decline"
   /// The accessibility identifier of the Cancel button.
   public static let cancelIdentifier = "elicitation-cancel"
+  /// The accessibility identifier of the text that tells why the agent
+  /// cannot accept the answer.
+  public static let failureIdentifier = "elicitation-failure"
 
   /// The symbol of the Submit button, which accepts the elicitation.
   static let submitSymbol = SharedSymbol.accept
@@ -68,6 +79,11 @@ public struct ElicitationView: View {
   /// The answers, keyed by field name. A field with no answer has no key.
   @State private var values: [String: JSONValue]
 
+  /// The text that tells why the agent cannot accept the last submitted
+  /// answer, or `nil` when there is no such failure. A change of
+  /// ``values`` removes it.
+  @State private var answerFailure: String?
+
   /// Whether the form has the keyboard focus.
   @FocusState private var isFocused: Bool
 
@@ -78,6 +94,8 @@ public struct ElicitationView: View {
   @Environment(\.elicitationFooterOverride) private var footerOverride
   @Environment(\.elicitationTabThreshold) private var tabThreshold
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.announcer) private var announcer
 
   /// Makes the form of a pending elicitation.
   ///
@@ -121,6 +139,7 @@ public struct ElicitationView: View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       header
       layout
+      failure
       footer
     }
     .padding(theme.spacing.m)
@@ -136,6 +155,7 @@ public struct ElicitationView: View {
       isFocused = true
       moveFocus(to: Self.formIdentifier)
     }
+    .onChange(of: values) { answerFailure = nil }
   }
 
   // MARK: Slots
@@ -159,6 +179,19 @@ public struct ElicitationView: View {
       layoutOverride(context)
     } else {
       ElicitationLayout(context: context)
+    }
+  }
+
+  /// The text that tells why the agent cannot accept the answer, when the
+  /// check before the send found a failure.
+  @ViewBuilder
+  private var failure: some View {
+    if let answerFailure {
+      Text(answerFailure)
+        .font(.callout)
+        .foregroundStyle(editorTheme.severityError)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier(Self.failureIdentifier)
     }
   }
 
@@ -208,10 +241,39 @@ public struct ElicitationView: View {
     values.filter { !ElicitationValidator.isEmpty($0.value) }
   }
 
-  /// Sends the answers when each field passes validation.
+  /// The text that the form shows and announces when the agent cannot
+  /// accept the answer.
+  ///
+  /// - Parameter reason: The failure text of
+  ///   `PendingElicitation.validationFailure(of:)`.
+  /// - Returns: "The agent cannot accept this answer: " and `reason`.
+  static func failureText(reason: String) -> String {
+    String(localized: "The agent cannot accept this answer: \(reason)")
+  }
+
+  /// Sends the answers when each field passes validation and the check
+  /// before the send finds no failure.
+  ///
+  /// The check before the send is `PendingElicitation.validationFailure(of:)`:
+  /// the rules of the agent (FoundationModelsExtras) on the same content
+  /// that the view sends. When it finds a failure, the view does not send.
+  /// The form stays open, shows the failure, and announces it at `.high`.
+  ///
+  /// The check cannot examine each answer. When FoundationModelsExtras
+  /// cannot decode the schema, for example because a property has a type
+  /// that Extras does not know, the check gives `nil` ("cannot check"). The
+  /// view then sends, and the agent judges the answer. Thus a required
+  /// property of such a type is not caught before the send.
   private func submit() {
     guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
-    owner.acceptElicitation(request.id, content: JSONValue.object(Self.answerContent(values: values)))
+    let content = JSONValue.object(Self.answerContent(values: values))
+    if let reason = request.validationFailure(of: content) {
+      let text = Self.failureText(reason: reason)
+      answerFailure = text
+      announcer.announce(text, priority: .high)
+      return
+    }
+    owner.acceptElicitation(request.id, content: content)
   }
 }
 
@@ -276,7 +338,8 @@ public struct ElicitationFooterContext {
   public let canSubmit: Bool
 
   /// Accepts the elicitation with the answers. The call does nothing when
-  /// ``canSubmit`` is `false`.
+  /// ``canSubmit`` is `false`. When the agent cannot accept the answers, the
+  /// call does not send them, and the form shows the failure.
   public let submit: @MainActor () -> Void
 
   /// Declines the elicitation.

@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
 import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -54,6 +55,18 @@ import Testing
   /// values `a` and `b` and one or more items.
   static let tagsProperty =
     #"{"type": "array", "title": "Tags", "minItems": 1, "items": {"type": "string", "enum": ["a", "b"]}}"#
+
+  /// The JSON text of a property schema of a text field with a default and a
+  /// pattern that does not compile. The kit ignores the pattern, but Extras
+  /// refuses it.
+  static let codeProperty = #"{"type": "string", "title": "Code", "pattern": "[", "default": "abc"}"#
+
+  /// The JSON text of a property schema of a multi-choice field with no
+  /// choices. The kit makes no field for it, but Extras decodes it.
+  static let noChoicesProperty = #"{"type": "array", "title": "Files", "items": {"type": "string", "enum": []}}"#
+
+  /// The text before the reason of Extras in the failure of a refused answer.
+  static let failureLead = "The agent cannot accept this answer: "
 
   /// The accessibility identifier of the button of the custom text field.
   static let customTextFieldIdentifier = "custom-text-field-write"
@@ -225,6 +238,7 @@ import Testing
     #expect(ElicitationView.submitIdentifier == "elicitation-submit")
     #expect(ElicitationView.declineIdentifier == "elicitation-decline")
     #expect(ElicitationView.cancelIdentifier == "elicitation-cancel")
+    #expect(ElicitationView.failureIdentifier == "elicitation-failure")
   }
 
   // MARK: - Layout
@@ -408,6 +422,71 @@ import Testing
     let submit = try #require(harness.element(identifier: ElicitationView.submitIdentifier))
     #expect(!submit.isEnabled)
     #expect(mounted.session.model.pendingElicitations.count == 1)
+  }
+
+  // MARK: - Check before the send
+
+  /// Shows a form whose answer Extras refuses, with `announcer` as the
+  /// announcer of the form.
+  ///
+  /// - Parameters:
+  ///   - params: The JSON text of the params of the request.
+  ///   - announcer: The announcer that records each announcement.
+  /// - Returns: The mounted form.
+  /// - Throws: The error of ``mount(_:reporter:content:)``.
+  static func mountRefused(_ params: String, announcer: RecordingAnnouncer) async throws -> Mounted {
+    try await mount(params) { form in
+      form.environment(\.announcer, announcer)
+    }
+  }
+
+  /// The params of a request with a required `color` field and a required
+  /// `files` field that has no choices.
+  static var noChoicesParams: String {
+    makeFormParams(properties: ["color": colorProperty, "files": noChoicesProperty], required: ["color", "files"])
+  }
+
+  @Test func anAnswerThatExtrasRefusesIsNotSent() async throws {
+    let announcer = RecordingAnnouncer()
+    let params = Self.makeFormParams(properties: ["code": Self.codeProperty], required: ["code"])
+    let mounted = try await Self.mountRefused(params, announcer: announcer)
+    defer { mounted.close() }
+    let harness = mounted.harness
+    let pending = try #require(mounted.session.model.pendingElicitations.first)
+    let reason = try #require(pending.validationFailure(of: .object(["code": .string("abc")])))
+    let expected = Self.failureLead + reason
+
+    try harness.press(identifier: ElicitationView.submitIdentifier)
+
+    #expect(mounted.session.model.pendingElicitations.count == 1)
+    #expect(harness.element(identifier: ElicitationView.failureIdentifier)?.label == expected)
+    #expect(announcer.announcements == [RecordingAnnouncer.Announcement(message: expected, priority: .high)])
+    #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
+  }
+
+  @Test func aRequiredFieldWithNoControlIsNotSent() async throws {
+    let mounted = try await Self.mountRefused(Self.noChoicesParams, announcer: RecordingAnnouncer())
+    defer { mounted.close() }
+    let harness = mounted.harness
+
+    try Self.submitRed(harness)
+
+    #expect(mounted.session.model.pendingElicitations.count == 1)
+    let failure = try #require(harness.element(identifier: ElicitationView.failureIdentifier)?.label)
+    #expect(failure.hasPrefix(Self.failureLead))
+    #expect(failure.contains(#""files""#))
+  }
+
+  @Test func aChangeOfTheAnswersRemovesTheFailure() async throws {
+    let mounted = try await Self.mountRefused(Self.noChoicesParams, announcer: RecordingAnnouncer())
+    defer { mounted.close() }
+    let harness = mounted.harness
+    try Self.submitRed(harness)
+    #expect(harness.element(identifier: ElicitationView.failureIdentifier) != nil)
+
+    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
+
+    #expect(harness.element(identifier: ElicitationView.failureIdentifier) == nil)
   }
 
   @Test func theFooterButtonsKeepTheirTextAsTheirLabels() async throws {
