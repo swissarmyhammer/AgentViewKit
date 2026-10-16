@@ -102,13 +102,33 @@ private struct ParagraphList: View {
   var body: some View {
     let readingGroupID = messageGroupID ?? messageID
     ForEach(paragraphs) { paragraph in
-      ParagraphView(
-        messageID: messageID,
-        paragraph: paragraph,
-        citations: citations[paragraph.id.index] ?? [],
-        readingGroupID: readingGroupID
-      )
-      .equatable()
+      ParagraphSlot(
+        paragraph: ParagraphView(
+          messageID: messageID,
+          paragraph: paragraph,
+          citations: citations[paragraph.id.index] ?? [],
+          readingGroupID: readingGroupID
+        ))
     }
+  }
+}
+
+/// The element of the ``ParagraphList`` ForEach: it shows its
+/// ``ParagraphView`` with `.equatable()` one level below the ForEach.
+///
+/// The ForEach updates an element that it inserted after the mount again on
+/// each update when a transaction modifier, such as
+/// `.transaction { $0.disablesAnimations = true }`, is above the list. When
+/// the `.equatable()` view is the direct element, SwiftUI then evaluates the
+/// body of each such paragraph again, and `==` has no effect. This slot takes
+/// that update: its body is only the equatable paragraph, so SwiftUI compares
+/// the new paragraph view with the old one, and a settled paragraph does not
+/// evaluate again.
+private struct ParagraphSlot: View {
+  /// The paragraph view to show.
+  let paragraph: ParagraphView
+
+  var body: some View {
+    paragraph.equatable()
   }
 }
