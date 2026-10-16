@@ -108,11 +108,28 @@ comments:
     - README.md and Examples/ReadmeSnippets did not change. Scripts/check-readme.sh did not run.
     - No code change in this step. No commit. No push.
   timestamp: 2026-10-16T19:46:19.153470+00:00
+- actor: claude-code
+  id: 01m5346kgqb7n540q2ztg8y9nf
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (7ff403d): 0 findings, 0 confirmed, 1 refuted, 7 files attempted. The 3 prior findings (2026-10-16 14:25) are fixed in the code and the text: PendingElicitation.waitingHostName in ElicitationURLConsentView.swift is the one host fallback, and ElicitationURLConsentView.waitingHost and ToolCallView.waitingHost(of:in:) call it (test theWaitingHostNameIsTheHostOfTheURLOrTheAgent). The RequestDeck class doc says "Stop Waiting". The focus docs in RequestDeck.swift, RequestDeckFocus.swift and Docs/decisions/accessibility.md agree with focusTarget and DeckOrder (only pending ids). The hosted test anAcceptOfTheOnlyURLRequestMovesTheFocusToThePromptEditorAndKeepsTheWaitingCard requires the focus move and the waiting card after the press and render(), before the wait. rg -U 'Stop\s+(///\s*)?waiting' finds no match outside .build, .kanban and .git.
+    - next: none. The task is in done.
+  timestamp: 2026-10-16T19:49:38.455664+00:00
+- actor: claude-code
+  id: 01m5347968w9p9d1pwd902fmnm
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared PendingElicitation.waitingHostName with a test; "Stop Waiting" in the RequestDeck class doc; focus docs say "when no pending request stays" (a waiting card does not count), with a new hosted test
+    - test: green — swift test --skip-build, 1266 tests in 147 suites passed, 2 known issues; 127 and 1 in the other runs
+    - commit: 7ff403d
+    - review: clean — 0 findings, 3 of 3 prior items fixed
+    - bug card ^rkwj84j: fixed by 110a732, closed with this card
+  timestamp: 2026-10-16T19:50:00.648318+00:00
 depends_on:
 - 01M51BBZPSYD6PQ2CSQAQQTHFK
 - 01M51BCJD70S015GWDGB94APM2
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffdc80
 title: 'Elicitation task 41: show the URL elicitation waiting state'
 ---
 elicitation-plan.md task 41: show the waiting state of a URL elicitation after the user gave consent and until the flow ends. Needs ACPAgent task 8 (send URL elicitation complete only when the flow ends); check its state before the work. Do it as the accepted deck design says. Tests with the step 7 rules. Write all text in STE.

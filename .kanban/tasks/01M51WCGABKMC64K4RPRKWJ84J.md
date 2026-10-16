@@ -6,8 +6,16 @@ comments:
   id: 01m532fe71d2v1wsyn80snjfts
   text: 'Card 41 (^ergveft, 01M51BCMH8VHWE68GXDERGVEFT) fixes this defect, in the work tree (not committed). The RequestDeck now shows the accepted URL elicitation (awaitingURLCompletions) as a waiting card in the same ForEach, with the same id, so the card does not go away at the accept and onDisappear does not stop the browser. Hosted test: ElicitationURLConsentViewHostedTests.openInTheDeckKeepsTheBrowserSessionAndBringsTheNextCardToTheFront (no cancel on the fake presenter after the accept). aCompleteFromTheAgentRemovesTheWaitingCardAndStopsTheBrowser shows that the browser stops when the agent sends elicitation/complete. Before the fix, the first test failed at once: the waiting card was not in the deck after the render pass. This card stays in todo; the step owner moves it.'
   timestamp: 2026-10-16T19:19:30.785379+00:00
-position_column: todo
-position_ordinal: 9c80
+- actor: claude-code
+  id: 01m5347bcxdy2yrc4yzrwk4n6b
+  text: |-
+    ### Fixed by card 41 (^ergveft)
+    - fix: 110a732. After an accept, the URL card stays in the deck as a waiting card with the same id (the pending cards and the waiting cards are in one ForEach), so the card stays mounted and its browser task is not cancelled.
+    - test: openInTheDeckKeepsTheBrowserSessionAndBringsTheNextCardToTheFront failed before the fix and passes now.
+    - review: the card 41 reviews checked the fix (iteration 1 and 2, the last one clean at 7ff403d).
+  timestamp: 2026-10-16T19:50:02.909301+00:00
+position_column: done
+position_ordinal: ffdd80
 title: 'ElicitationURLConsentView: the browser session stops when the user accepts a URL request'
 ---
 Fact B of the accepted deck design (design card 01M51BBZPSYD6PQ2CSQAQQTHFK).
