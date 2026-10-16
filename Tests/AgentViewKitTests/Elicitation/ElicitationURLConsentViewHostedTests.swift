@@ -56,22 +56,17 @@ import Testing
       }
     }
 
-    /// Requires that the model holds no pending elicitation, and then waits
-    /// for the response of the agent to the request.
-    ///
-    /// Each answer of the card removes the request from the pending
-    /// elicitations of the model in the same step as the press or the key.
-    /// Thus a press or a key that did not answer stops the test at the
-    /// check, and the test does not wait for a response that cannot come.
+    /// Calls ``ScriptedSession/resultOfAnsweredElicitation(ofRequest:sourceLocation:)``
+    /// with ``ElicitationURLConsentViewHostedTests/agentRequestID``.
     ///
     /// - Parameter sourceLocation: The location of the caller, for the
     ///   failure report.
-    /// - Returns: The `result` member of the response, or `nil` when no
-    ///   response came.
-    /// - Throws: An issue when the model still holds a pending elicitation.
+    /// - Returns: The `result` member of the response, or `nil` when the
+    ///   response has no `result` member.
+    /// - Throws: An issue when the model holds a pending elicitation.
     func result(sourceLocation: SourceLocation = #_sourceLocation) async throws -> JSONValue? {
-      try #require(session.model.pendingElicitations.isEmpty, sourceLocation: sourceLocation)
-      return await session.result(ofRequest: ElicitationURLConsentViewHostedTests.agentRequestID)
+      try await session.resultOfAnsweredElicitation(
+        ofRequest: ElicitationURLConsentViewHostedTests.agentRequestID, sourceLocation: sourceLocation)
     }
   }
 

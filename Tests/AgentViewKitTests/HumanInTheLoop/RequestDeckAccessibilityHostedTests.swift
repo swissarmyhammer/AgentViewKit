@@ -176,8 +176,7 @@ import Testing
     // Esc goes to the card with the keyboard focus. When no card has it, the
     // elicitation stays pending, and the test stops here and does not wait.
     try harness.sendKey(.escape)
-    try #require(model.pendingElicitations.isEmpty)
-    let result = await session.result(ofRequest: elicitationRequestID)
+    let result = try await session.resultOfAnsweredElicitation(ofRequest: elicitationRequestID)
 
     #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))
     #expect(model.pendingPermissions.count == 1)
@@ -193,7 +192,6 @@ import Testing
   @Test func aURLConsentCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let model = session.model
     // The URL consent card has no editable text, so no text field can take
     // the first responder and send Esc up to the card. Its Esc action
     // cancels on the main actor.
@@ -208,8 +206,7 @@ import Testing
     try harness.sendKey(.escape)
 
     // Only the card with the keyboard focus cancels the request on Esc.
-    try #require(model.pendingElicitations.isEmpty)
-    let result = await session.result(ofRequest: Self.firstRequestID)
+    let result = try await session.resultOfAnsweredElicitation(ofRequest: Self.firstRequestID)
     #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
 

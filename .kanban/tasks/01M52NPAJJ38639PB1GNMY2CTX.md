@@ -45,6 +45,51 @@ comments:
     - evidence: README.md and Examples/ReadmeSnippets have no change, so Scripts/check-readme.sh did not run.
     - next: review.
   timestamp: 2026-10-16T16:09:57.364181+00:00
+- actor: claude-code
+  id: 01m52ra305jy08dv30dfy47hat
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (4861b30): counts findings 1, confirmed 1, refuted 1, attempted 28, failed 0. Engine finding: Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift:114 (reuse/reuse).
+    - evidence: reading check of the step owner, 3 items: Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:11, :13, :30 (the doc comments tell about callers and claim more than the helpers check).
+    - evidence: each new `#require` comes after a synchronous press, key or type (each one does one render() pass) and before the first await. The models are on the main actor, so the check gives the same result on each run. The production paths are synchronous: acceptElicitation, declineElicitation and cancelElicitation of SessionModel and ConnectionModel remove the request at once; PermissionView.answer calls permissionAnswerReport in the same step; AgentAuthView.perform inserts the operation in `running` before its Task; SpeechInputButton.toggle shows `.recording` before its Task; PromptInputView.submit clears the text and the attachments and calls onSubmit in the same step. Card test mutation (`keyboardFocus = id` -> `_ = id`) failed at once (0.330 s), from the implement record.
+    - evidence: no added line uses a clock, sleep, poll, retry, timeout or timeLimit. `git diff --stat HEAD~1..HEAD -- Sources` is empty. No mutation run in this review.
+    - next: implement the 4 open items; then /review.
+  timestamp: 2026-10-16T16:21:49.701239+00:00
+- actor: claude-code
+  id: 01m52rb0xan816cara4zasg5pj
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 21 test files and new Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift; no Sources change; new card ^74gyjm5
+    - test: green — swift test --skip-build, 1252 tests in 145 suites passed, 2 known issues
+    - commit: 4861b30
+    - review: findings — Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift:114, Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:11, Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:13, Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:30
+  timestamp: 2026-10-16T16:22:20.330140+00:00
+- actor: claude-code
+  id: 01m52rmgrkjv5h7mxzmms585sc
+  text: |-
+    Implementation of the 4 review findings (implement step):
+    - New helper `ScriptedSession.resultOfAnsweredElicitation(ofRequest:sourceLocation:)` in Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift, beside `result(ofRequest:)`. It requires that the session model holds no pending elicitation, and then calls `result(ofRequest:)`.
+    - `Mounted.result(sourceLocation:)` in ElicitationViewHostedTests and ElicitationURLConsentViewHostedTests now each call the helper with the request id of the suite. The other copies of the same two lines also call it now: RequestDeckHostedTests/aTypedValueSurvivesNextAndPrevious, RequestDeckAccessibilityHostedTests/nextMovesTheKeyboardFocusIntoAnElicitationCardSoEscapeCancelsOnlyIt and aURLConsentCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt (its `model` local had no other use, so it is removed). `ElicitationURLConsentViewHostedTests.open(_:)` keeps its own `#require`, because it waits for the responses and the browser session, not for `result(ofRequest:)`.
+    - HostedViewHarness+KeyChecks.swift: each doc comment (summary, Parameters, Throws) now says only what the function checks and when it throws. No text about callers, keys, waits, or which card has the focus.
+    - No Sources change.
+  timestamp: 2026-10-16T16:27:31.475695+00:00
+- actor: claude-code
+  id: 01m52rmr4m1zrt27ad78jc2z4w
+  text: |-
+    ### implement — changed
+    - evidence: 6 test files — Tests/AgentViewKitTests/Helpers/ScriptedSessionRequests.swift, Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift, Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckHostedTests.swift, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift. `git diff --stat -- Sources` is empty.
+    - evidence: `swift build --build-tests`: Build complete. No compiler warning; only the known build-system note "missing creator for mutated node" for the mlx bundle.
+    - evidence: `swift test --skip-build --filter '\.(ElicitationViewHostedTests|ElicitationURLConsentViewHostedTests|RequestDeckHostedTests|RequestDeckAccessibilityHostedTests|PermissionViewHostedTests|EditorKitPromptEditorHostedTests|SlashCommandSessionModelTests)/'`, one run: 88 tests in 7 suites passed, 0 failures, 0 issues.
+    - evidence: the 4 review findings are checked.
+    - next: /review.
+  timestamp: 2026-10-16T16:27:39.028136+00:00
+- actor: claude-code
+  id: 01m52ry8d7ajs7878z58f9md0a
+  text: |-
+    ### test — green
+    - evidence: `git diff --stat -- Sources` is empty (Sources has no diff). No swift-build or swift test of this package was running (other processes belong to other packages). `swift build --build-tests`: Build complete, exit 0. One warning, from the build system and not from a file in Sources/ or Tests/ of this package: "missing creator for mutated node: .../mlx-swift_Cmlx.bundle/Contents/MacOS". `swift test --skip-build` (one run): 1252 tests in 145 suites passed, 0 failed, 0 skipped, 2 known issues (existing withKnownIssue marks: aWrappedTextWithAFixedVerticalSizeFails, aViewThatIgnoresTheThemeFails). README.md and Examples/ReadmeSnippets are not changed, so Scripts/check-readme.sh did not run.
+    - next: review.
+  timestamp: 2026-10-16T16:32:50.599804+00:00
 position_column: doing
 position_ordinal: '80'
 title: Hosted test nextMovesTheFocusAndTheKeyboardFocusIntoTheNewFrontCard waits without end when the focus move breaks
@@ -66,3 +111,18 @@ This card is test-only. It covers the card 37 test and each press path that has 
 - [x] Prove the fix with one mutation run of each corrected test (put the source back after it), and one normal run.
 
 #elicitation-phase-6 #bug
+
+## Review Findings (2026-10-16 11:10)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 20 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Elicitation/ElicitationViewHostedTests.swift:114` `reuse/reuse` — The new `Mounted.result(sourceLocation:)` repeats the same two-step body as `Mounted.result(sourceLocation:)` in ElicitationURLConsentViewHostedTests: a `#require` that the model has no pending elicitation, then `session.result(ofRequest:)`. Two copies of this check will drift apart, and the next form-style test has to copy it again. Move the shared check into one helper, for example an extension on `ScriptedSession` such as `resultAfterAnswer(ofRequest:sourceLocation:)`, that takes the request id and runs the pending-elicitation `#require` before awaiting the result. Both `Mounted.result` wrappers then call it, or the tests call it directly.
+
+> Items from the reading check of the step owner (the doc comments of the new helpers must say only what the helpers do):
+
+- [x] `Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:11` `caller-check/doc-comments` — The doc comment of `requireKeyboardFocusOutsideText(sourceLocation:)` says which tests call it: "A test calls this function before it sends Esc to a card whose Esc action answers in a task, such as a permission card." This is about the callers, not about the function. Also it is not true for each caller: `aURLConsentCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt` calls it before Esc on a URL consent card, and that card cancels in the same step (`cancelElicitation`). Remove the text about the callers. Say only what the function checks.
+- [x] `Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:13` `caller-check/doc-comments` — The doc comment of `requireKeyboardFocusOutsideText(sourceLocation:)` says "this check is the proof that the key can get to the card". The function checks only that the first responder is a view of the hosting view and does not edit text. It does not check which card holds the first responder. Remove this claim, and remove the related text on lines 10 and 14-15 ("Esc then goes to the SwiftUI focus of the window", "the test stops here and does not wait for an answer that cannot come"). Say only what the function checks and when it throws.
+- [x] `Tests/AgentViewKitTests/Helpers/HostedViewHarness+KeyChecks.swift:30` `caller-check/doc-comments` — The doc comment of `requireTextViewShows(_:sourceLocation:)` says what the callers do: "The binding of a composer can take the change later, so a test waits for the binding after this check. When the key went to no text view, the test stops here and does not wait for a change that cannot come." The function does not wait and does not read a key. It requires that the first editable `NSTextView` of the hosting view shows `text`. Remove the text about the callers and about keys. Say only what the function checks.

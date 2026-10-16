@@ -172,8 +172,7 @@ import Testing
     try harness.press(identifier: ElicitationView.submitIdentifier)
     // The model removes the answered elicitation in the same step as the
     // Submit press, so a press that did not answer stops the test here.
-    try #require(session.model.pendingElicitations.isEmpty)
-    let result = await session.result(ofRequest: Self.firstRequestID)
+    let result = try await session.resultOfAnsweredElicitation(ofRequest: Self.firstRequestID)
 
     let name = try #require(result?["content"]?["name"]?.stringValue)
     #expect(name.contains(Self.typedText))

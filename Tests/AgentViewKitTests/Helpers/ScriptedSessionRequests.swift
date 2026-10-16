@@ -236,6 +236,24 @@ extension ScriptedSession {
     return agent.response(to: Double(id))?["result"]
   }
 
+  /// Requires that the session model holds no pending elicitation, and then
+  /// waits until the agent has the response to its request with `id`.
+  ///
+  /// The wait is ``result(ofRequest:)``. It starts only after the check.
+  ///
+  /// - Parameters:
+  ///   - id: The JSON-RPC id of the request of the agent.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Returns: The `result` member of the response, or `nil` when the
+  ///   response has no `result` member.
+  /// - Throws: An issue when the session model holds a pending elicitation.
+  func resultOfAnsweredElicitation(
+    ofRequest id: Int, sourceLocation: SourceLocation = #_sourceLocation
+  ) async throws -> JSONValue? {
+    try #require(model.pendingElicitations.isEmpty, sourceLocation: sourceLocation)
+    return await result(ofRequest: id)
+  }
+
   /// The prompt blocks of each `session/prompt` frame that the agent got.
   var promptBlocks: [[JSONValue]] {
     agent.messages(method: Self.promptMethod).map { message in
