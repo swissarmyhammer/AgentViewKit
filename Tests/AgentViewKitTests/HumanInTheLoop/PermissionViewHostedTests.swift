@@ -263,10 +263,14 @@ import Testing
   @Test func anAllowPressSendsTheOptionWithNoComment() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = try await Self.mountCard(in: session)
+    var answers: [PermissionAnswer] = []
+    let harness = try await Self.mountCard(in: session, answerReport: ObservationReport { answers.append($0) })
     defer { harness.close() }
 
     try Self.press(.allowOnce, in: harness)
+    // The card reports its answer in the same step as it starts the answer
+    // task, so a press that the card did not handle stops the test here.
+    try #require(answers == [PermissionAnswer(option: Self.optionID(.allowOnce), comment: nil)])
     let result = await session.result(ofRequest: Self.agentRequestID)
 
     #expect(result == (try Self.selectedResult(.allowOnce)))
@@ -279,7 +283,8 @@ import Testing
   @Test func aRejectPressMountsTheCommentAndSubmitSendsIt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = try await Self.mountCard(in: session)
+    var answers: [PermissionAnswer] = []
+    let harness = try await Self.mountCard(in: session, answerReport: ObservationReport { answers.append($0) })
     defer { harness.close() }
     #expect(harness.element(identifier: PermissionView.commentIdentifier) == nil)
 
@@ -287,9 +292,12 @@ import Testing
     #expect(harness.element(identifier: PermissionView.commentIdentifier) != nil)
     #expect(session.model.pendingPermissions.count == 1)
 
-    #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
+    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
     harness.type(Self.comment)
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
+    // The card reports its answer in the same step as it starts the answer
+    // task, so a Send press that the card did not handle stops the test here.
+    try #require(answers == [PermissionAnswer(option: Self.optionID(.rejectOnce), comment: Self.comment)])
     let result = await session.result(ofRequest: Self.agentRequestID)
     await ObservationWait.until { !Self.promptTexts(session).isEmpty }
 
@@ -323,9 +331,9 @@ import Testing
 
     try Self.press(.rejectAlways, in: harness)
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
+    try #require(answers == [PermissionAnswer(option: Self.optionID(.rejectAlways), comment: nil)])
     let result = await session.result(ofRequest: Self.agentRequestID)
 
-    #expect(answers == [PermissionAnswer(option: Self.optionID(.rejectAlways), comment: nil)])
     #expect(result == (try Self.selectedResult(.rejectAlways)))
     #expect(Self.promptTexts(session).isEmpty)
   }
@@ -338,6 +346,9 @@ import Testing
     let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
+    // The card cancels in a task, so no model state changes in the same step
+    // as Esc. The keyboard focus is the proof that Esc can get to the card.
+    try harness.requireKeyboardFocusOutsideText()
     try harness.sendKey(.escape)
     let result = await session.result(ofRequest: Self.agentRequestID)
 

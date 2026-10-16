@@ -50,6 +50,22 @@ import Testing
     ObservationReport { recorder.record($0) }
   }
 
+  /// Presses the button to start a session, and requires that the button
+  /// shows the recording phase.
+  ///
+  /// The button shows the recording phase in the same step as the press,
+  /// and then asks for permission and starts the transcriber in a task. Thus
+  /// a press that the button did not handle stops the test here, and the
+  /// test does not wait for a session that cannot start.
+  ///
+  /// - Parameter harness: The harness of the composer.
+  /// - Throws: The error of the press, or an issue when the button does not
+  ///   show the recording phase.
+  static func pressToRecord(in harness: HostedViewHarness<some View>) throws {
+    try harness.press(identifier: SpeechInputButton.identifier)
+    try #require(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording")
+  }
+
   // MARK: - Mount
 
   @Test func aComposerWithNoTranscriberShowsNoMic() {
@@ -78,7 +94,7 @@ import Testing
     defer { harness.close() }
 
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try Self.pressToRecord(in: harness)
     await ObservationWait.until { transcriber.isRunning }
     transcriber.feed(level: 0.5)
     transcriber.feed("hello")
@@ -96,7 +112,7 @@ import Testing
     let harness = Self.mount(model, transcriber: transcriber)
     defer { harness.close() }
 
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try Self.pressToRecord(in: harness)
     await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("hello there")
     await ObservationWait.until { model.plainText == "hello there" }
@@ -116,7 +132,7 @@ import Testing
     let harness = Self.mount(model, transcriber: transcriber)
     defer { harness.close() }
 
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try Self.pressToRecord(in: harness)
     await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("the")
     transcriber.feed("the bug")
@@ -132,7 +148,7 @@ import Testing
     let harness = Self.mount(model, transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try Self.pressToRecord(in: harness)
     await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("done")
     transcriber.finish()
@@ -151,7 +167,7 @@ import Testing
     let harness = Self.mount(model, transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try Self.pressToRecord(in: harness)
     await harness.render { recorder.phases.last == .denied }
 
     #expect(recorder.phases == [.recording, .denied])

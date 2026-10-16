@@ -164,12 +164,15 @@ import Testing
     try await Self.sendRequests(3, to: session, rendering: harness)
     // The form field is the first editable text view: the cards behind are
     // permission cards, which show no text field until a reject option.
-    #expect(harness.focusFirstEditableTextView())
+    try #require(harness.focusFirstEditableTextView())
     harness.type(Self.typedText)
 
     try harness.press(identifier: RequestDeck.nextIdentifier)
     try harness.press(identifier: RequestDeck.previousIdentifier)
     try harness.press(identifier: ElicitationView.submitIdentifier)
+    // The model removes the answered elicitation in the same step as the
+    // Submit press, so a press that did not answer stops the test here.
+    try #require(session.model.pendingElicitations.isEmpty)
     let result = await session.result(ofRequest: Self.firstRequestID)
 
     let name = try #require(result?["content"]?["name"]?.stringValue)
@@ -185,9 +188,10 @@ import Testing
     try await Self.sendRequests(6, to: session, rendering: harness)
     let model = session.model
 
+    // The model removes the answered elicitation in the same step as the
+    // Submit press, and the press renders the deck.
     try harness.press(identifier: ElicitationView.submitIdentifier)
-    await ObservationWait.until { model.pendingRequests.count == 5 }
-    harness.render()
+    try #require(model.pendingRequests.count == 5)
 
     #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 1 of 5, 1 more")
   }

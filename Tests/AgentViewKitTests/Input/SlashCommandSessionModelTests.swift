@@ -110,6 +110,7 @@ import Testing
     await harness.render { model.availableCommands != nil }
 
     harness.type("/")
+    try harness.requireTextViewShows("/")
     await harness.render { draft.plainText == "/" }
 
     #expect(model.availableCommands?.isEmpty == true)

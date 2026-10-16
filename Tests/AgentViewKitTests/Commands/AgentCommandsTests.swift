@@ -237,7 +237,7 @@ final class CallCounter {
     let fixture = Self.makeFixture(session: session.model)
     try await Self.sendState(ScriptedSession.runningState, to: session)
 
-    #expect(fixture.system.perform(AgentCommandVerb.cancel.id))
+    try #require(fixture.system.perform(AgentCommandVerb.cancel.id))
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
     #expect(agent.messages(method: ScriptedSession.cancelMethod).count == 1)
@@ -281,7 +281,7 @@ final class CallCounter {
     let fixture = Self.makeFixture(session: session.model)
     _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
 
-    #expect(fixture.system.perform(AgentCommandVerb.approvePending.id))
+    try #require(fixture.system.perform(AgentCommandVerb.approvePending.id))
     let result = await session.result(ofRequest: Self.agentRequestID)
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
@@ -300,7 +300,7 @@ final class CallCounter {
     let payload = AgentCommandPayload.permission(
       request: second.id, option: PermissionOptionId(rawValue: Self.rejectOptionID), comment: Self.comment)
 
-    #expect(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
+    try #require(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
     let result = await session.result(ofRequest: Self.secondRequestID)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
@@ -334,7 +334,7 @@ final class CallCounter {
     let requests = try await Self.receiveTwoPermissionRequests(in: session)
     model.bringToFront(requests.second.id)
 
-    #expect(fixture.system.perform(AgentCommandVerb.approvePending.id))
+    try #require(fixture.system.perform(AgentCommandVerb.approvePending.id))
     let result = await session.result(ofRequest: Self.secondRequestID)
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
@@ -417,8 +417,8 @@ final class CallCounter {
     let fixture = Self.makeFixture(session: session.model) { $0.anchors = anchors }
     let targetsBefore = targets.values.count
 
-    #expect(fixture.system.perform(AgentCommandVerb.scrollToBottom.id))
-    #expect(anchors.isPinnedToBottom)
+    try #require(fixture.system.perform(AgentCommandVerb.scrollToBottom.id))
+    try #require(anchors.isPinnedToBottom)
     await ObservationWait.until { targets.values.count > targetsBefore }
     #expect(Array(targets.values.dropFirst(targetsBefore)) == [.bottom])
   }
@@ -523,7 +523,7 @@ final class CallCounter {
     #expect(try Self.isAvailable(.approvePending, in: fixture))
     #expect(try Self.isAvailable(.rejectPending, in: fixture))
 
-    #expect(fixture.system.perform(AgentCommandVerb.rejectPending.id))
+    try #require(fixture.system.perform(AgentCommandVerb.rejectPending.id))
     let result = await session.result(ofRequest: Self.agentRequestID)
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
@@ -537,7 +537,7 @@ final class CallCounter {
     defer { session.close() }
     let fixture = Self.makeFixture(session: session.model)
 
-    #expect(fixture.system.perform(AgentCommandVerb.send.id, payload: AgentCommandPayload.text(Self.message)))
+    try #require(fixture.system.perform(AgentCommandVerb.send.id, payload: AgentCommandPayload.text(Self.message)))
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 

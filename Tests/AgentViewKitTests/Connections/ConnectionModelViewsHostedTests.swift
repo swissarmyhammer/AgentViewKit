@@ -100,6 +100,24 @@ import Testing
     }
   }
 
+  /// Presses an action button of ``AgentAuthView``, and requires that the
+  /// button shows the progress of its call.
+  ///
+  /// The card disables the button in the same step as the press, and then
+  /// runs the call in a task. Thus a press that the card did not handle
+  /// stops the test here, and the test does not wait for an end of a call
+  /// that did not start.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the button.
+  ///   - harness: The harness of the card.
+  /// - Throws: The error of the press, or an issue when the button is still
+  ///   enabled.
+  static func pressAuthAction(_ identifier: String, in harness: HostedViewHarness<some View>) throws {
+    try harness.press(identifier: identifier)
+    try #require(harness.element(identifier: identifier)?.isEnabled == false)
+  }
+
   /// Whether the auth state of `connection` is no longer the state that
   /// `initialize` gives: `.required` with the methods of the agent.
   ///
@@ -195,7 +213,7 @@ import Testing
     harness.render()
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
-    try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))
+    try Self.pressAuthAction(AgentAuthView.signInIdentifier(for: Self.agentMethodID), in: harness)
     // The failure and the end of the progress come in one main-actor turn.
     let connection = session.connection
     await harness.render { Self.hasLeftTheRequiredState(connection) }
@@ -217,7 +235,7 @@ import Testing
     harness.render()
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
 
-    try harness.press(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))
+    try Self.pressAuthAction(AgentAuthView.signInIdentifier(for: Self.agentMethodID), in: harness)
     let connection = session.connection
     await harness.render { Self.hasLeftTheRequiredState(connection) }
 

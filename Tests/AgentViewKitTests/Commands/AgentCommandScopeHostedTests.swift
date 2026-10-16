@@ -210,7 +210,7 @@ import Testing
     #expect(!system.registry.perform(AgentCommandVerb.send.id, at: path))
     composer.text = AttributedString(Self.message)
     harness.render()
-    #expect(system.registry.perform(AgentCommandVerb.send.id, at: path))
+    try #require(system.registry.perform(AgentCommandVerb.send.id, at: path))
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
@@ -233,6 +233,9 @@ import Testing
     harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    // The composer calls the host closure in the same step as it starts the
+    // prompt task, so a press that sent nothing stops the test here.
+    try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
@@ -290,7 +293,7 @@ import Testing
 
     #expect(!system.registry.perform(AgentCommandVerb.cancel.id, at: path))
     try await Self.sendState(ScriptedSession.runningState, to: session, rendering: harness)
-    #expect(system.registry.perform(AgentCommandVerb.cancel.id, at: path))
+    try #require(system.registry.perform(AgentCommandVerb.cancel.id, at: path))
     let agent = session.agent
     await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
 
@@ -312,7 +315,7 @@ import Testing
     let card = RequestDeck.identifier(for: pending.uuidString)
     #expect(harness.element(identifier: card) != nil)
 
-    #expect(system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))
+    try #require(system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))
     let result = await session.result(ofRequest: Self.agentRequestID)
     let model = session.model
     await harness.render { model.pendingPermissions.isEmpty }

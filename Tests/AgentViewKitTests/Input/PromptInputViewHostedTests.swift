@@ -170,6 +170,9 @@ struct PromptInputHost: View {
     #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
     #expect(harness.element(identifier: "custom-editor")?.label == "plan")
     try harness.press(identifier: "custom-editor")
+    // The composer takes the text in the same step as it starts the prompt
+    // task, so a press that sent nothing stops the test here.
+    try #require(model.plainText.isEmpty)
     await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
     let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
@@ -189,8 +192,11 @@ struct PromptInputHost: View {
 
     try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
-    #expect(model.plainText == Self.message)
+    try #require(model.plainText == Self.message)
     try harness.sendKey(.return)
+    // The composer calls the host closure in the same step as it starts the
+    // prompt task, so a key that sent nothing stops the test here.
+    try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
@@ -210,7 +216,8 @@ struct PromptInputHost: View {
     try #require(harness.focusFirstEditableTextView())
     harness.type(Self.message)
     try harness.sendKey(.return, modifiers: .shift)
-    await ObservationWait.until { !recorder.outcomes.isEmpty }
+    // The editor reports the outcome in the same step as the key.
+    try #require(!recorder.outcomes.isEmpty)
     harness.render()
 
     #expect(recorder.outcomes == [.newline])
@@ -230,7 +237,7 @@ struct PromptInputHost: View {
 
     try #require(harness.focusFirstEditableTextView())
     try harness.sendKey(.return)
-    await ObservationWait.until { !recorder.outcomes.isEmpty }
+    try #require(!recorder.outcomes.isEmpty)
     harness.render()
 
     #expect(recorder.outcomes == [.notSent])
@@ -249,6 +256,7 @@ struct PromptInputHost: View {
     harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])

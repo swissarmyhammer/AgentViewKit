@@ -214,6 +214,9 @@ struct AttachmentComposerHost: View {
     harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    // The composer clears its attachments in the same step as it starts the
+    // prompt task, so a submit that sent nothing stops the test here.
+    try #require(model.attachments.isEmpty)
     await ObservationWait.until { !session.promptBlocks.isEmpty }
 
     #expect(session.promptBlocks.count == 1)
@@ -236,6 +239,7 @@ struct AttachmentComposerHost: View {
     harness.render()
 
     try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try #require(model.attachments.isEmpty)
     await ObservationWait.until { !session.promptBlocks.isEmpty }
 
     #expect(session.promptBlocks.count == 1)

@@ -197,7 +197,7 @@ import Testing
   static func pressRunAndWait(
     in harness: HostedViewHarness<some View>, of session: ScriptedSession
   ) async throws {
-    try harness.press(identifier: AgentAuthView.runIdentifier(for: terminalMethodID))
+    try ConnectionModelViewsHostedTests.pressAuthAction(AgentAuthView.runIdentifier(for: terminalMethodID), in: harness)
     let connection = session.connection
     await harness.render { ConnectionModelViewsHostedTests.hasLeftTheRequiredState(connection) }
   }
@@ -410,7 +410,7 @@ import Testing
     #expect(harness.element(identifier: AgentAuthView.reconnectIdentifier)?.label == "Reconnect to the agent")
     #expect(recorder.callCount == 0)
 
-    try harness.press(identifier: AgentAuthView.reconnectIdentifier)
+    try ConnectionModelViewsHostedTests.pressAuthAction(AgentAuthView.reconnectIdentifier, in: harness)
     await harness.render { recorder.callCount > 0 }
 
     #expect(recorder.callCount == 1)
@@ -464,7 +464,7 @@ import Testing
     harness.render()
     #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) == nil)
 
-    try harness.press(identifier: AgentAuthView.signOutIdentifier)
+    try ConnectionModelViewsHostedTests.pressAuthAction(AgentAuthView.signOutIdentifier, in: harness)
     let connection = session.connection
     await harness.render { !ConnectionModelViewsHostedTests.hasLeftTheRequiredState(connection) }
 
@@ -480,7 +480,7 @@ import Testing
     harness.render()
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) == nil)
 
-    try harness.press(identifier: AgentAuthView.signOutIdentifier)
+    try ConnectionModelViewsHostedTests.pressAuthAction(AgentAuthView.signOutIdentifier, in: harness)
     // The failure and the end of the progress come in one main-actor turn,
     // so one render pass after the failure shows the enabled button.
     let connection = session.connection

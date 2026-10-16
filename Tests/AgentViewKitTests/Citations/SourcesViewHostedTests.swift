@@ -215,6 +215,9 @@ private struct OpenURLButton: View {
     #expect(scrollView.contentView.bounds.minY == 0)
 
     try harness.press(identifier: InlineCitation.identifier(index: 2))
+    // The pill selects its row in the same step, and the row then starts the
+    // scroll task. A press that selected nothing stops the test here.
+    try #require(Self.isHighlighted(harness, index: 2))
     await ObservationWait.until { !scrolls.values.isEmpty }
 
     #expect(scrolls.values.count == 1)

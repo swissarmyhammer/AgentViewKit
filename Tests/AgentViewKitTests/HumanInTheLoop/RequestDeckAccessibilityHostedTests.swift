@@ -139,10 +139,14 @@ import Testing
     let permission = try #require(model.pendingPermissions.first)
 
     try harness.press(identifier: RequestDeck.nextIdentifier)
+    try #require(model.frontRequestID == permission.id)
     #expect(reporter.moves == [RequestDeck.identifier(for: permission.id.uuidString)])
 
     // Esc goes to the card with the keyboard focus, and the permission card
-    // cancels its request.
+    // cancels its request in a task. No model state changes in the same step
+    // as Esc, so the test requires the keyboard focus before Esc. When Next
+    // moves no keyboard focus, the test stops here and does not wait.
+    try harness.requireKeyboardFocusOutsideText()
     try harness.sendKey(.escape)
     let result = await session.result(ofRequest: Self.firstRequestID + 1)
 
@@ -186,15 +190,6 @@ import Testing
   // the request; a new card does not take the keyboard focus from a prompt
   // editor that has it.
 
-  /// Tells whether `responder` edits text: a text view, a text field, or the
-  /// field editor of a text field.
-  ///
-  /// - Parameter responder: The first responder of a window.
-  /// - Returns: `true` when the responder edits text.
-  static func editsText(_ responder: NSResponder?) -> Bool {
-    responder is NSText || responder is NSTextField
-  }
-
   @Test func aURLConsentCardAloneInAWindowGetsTheKeyboardFocusSoEscapeCancelsIt() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -208,9 +203,7 @@ import Testing
 
     // The keyboard focus is in the view of the window, and no text view or
     // field editor has it.
-    let responder = try #require(harness.window.firstResponder as? NSView)
-    try #require(responder.isDescendant(of: harness.hostingView))
-    try #require(!Self.editsText(responder))
+    try harness.requireKeyboardFocusOutsideText()
 
     try harness.sendKey(.escape)
 

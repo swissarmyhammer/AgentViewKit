@@ -451,11 +451,11 @@
       let key = try await Self.showWaitingCall("accept-c", in: session, harness: harness)
 
       try harness.press(identifier: ElicitationView.submitIdentifier)
-      let result = await session.result(ofRequest: Self.elicitationRequestID)
       // The model removes the pending elicitation and its link in the same
-      // step as it sends the answer that the agent gets.
-      await ObservationWait.until { model.pendingRequests.isEmpty }
-      harness.render()
+      // step as the Submit press, so a press that did not answer stops the
+      // test here.
+      try #require(model.pendingRequests.isEmpty)
+      let result = await session.result(ofRequest: Self.elicitationRequestID)
 
       let expected = try JSONValue(
         json: #"{"action": "accept", "content": {"branch": "\#(Self.defaultBranch)"}}"#)
@@ -476,11 +476,12 @@
       case .cancelButton: try harness.press(identifier: ElicitationView.cancelIdentifier)
       case .cancelAll: model.cancelAllPending()
       }
-      let result = await session.result(ofRequest: Self.elicitationRequestID)
       // The model removes the pending elicitation and its link in the same
-      // step as it sends the cancel that the agent gets.
-      await ObservationWait.until { model.pendingRequests.isEmpty }
+      // step as the cancel, so a cancel that did not reach the model stops
+      // the test here.
+      try #require(model.pendingRequests.isEmpty)
       harness.render()
+      let result = await session.result(ofRequest: Self.elicitationRequestID)
 
       #expect(result == (try JSONValue(json: #"{"action": "cancel"}"#)))
       #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) == nil)

@@ -56,12 +56,22 @@ import Testing
       }
     }
 
-    /// Waits for the response of the agent to the request.
+    /// Requires that the model holds no pending elicitation, and then waits
+    /// for the response of the agent to the request.
     ///
+    /// Each answer of the card removes the request from the pending
+    /// elicitations of the model in the same step as the press or the key.
+    /// Thus a press or a key that did not answer stops the test at the
+    /// check, and the test does not wait for a response that cannot come.
+    ///
+    /// - Parameter sourceLocation: The location of the caller, for the
+    ///   failure report.
     /// - Returns: The `result` member of the response, or `nil` when no
     ///   response came.
-    func result() async -> JSONValue? {
-      await session.result(ofRequest: ElicitationURLConsentViewHostedTests.agentRequestID)
+    /// - Throws: An issue when the model still holds a pending elicitation.
+    func result(sourceLocation: SourceLocation = #_sourceLocation) async throws -> JSONValue? {
+      try #require(session.model.pendingElicitations.isEmpty, sourceLocation: sourceLocation)
+      return await session.result(ofRequest: ElicitationURLConsentViewHostedTests.agentRequestID)
     }
   }
 
@@ -111,10 +121,13 @@ import Testing
   /// Presses Open in Browser, waits for the answer and the session start,
   /// and makes one render pass.
   ///
-  /// The scripted agent and the browser sessions are observable, and the
-  /// press is certain to send the answer and to start a session.
+  /// The scripted agent and the browser sessions are observable. The press
+  /// accepts the request in the same step, so the function requires that the
+  /// model holds no pending elicitation before the wait. Then the press is
+  /// certain to send the answer and to start a session.
   static func open(_ mounted: Mounted) async throws {
     try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
+    try #require(mounted.session.model.pendingElicitations.isEmpty)
     await mounted.harness.render {
       !mounted.responses.isEmpty && mounted.browser.sessions.contains(where: \.isWaiting)
     }
@@ -213,7 +226,7 @@ import Testing
           callbackScheme: ElicitationURLConsentView.callbackScheme),
         .start(ephemeral: false),
       ])
-    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
+    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
@@ -262,7 +275,7 @@ import Testing
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
 
-    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
     #expect(mounted.browser.calls.isEmpty)
   }
 
@@ -276,7 +289,7 @@ import Testing
 
     #expect(mounted.browser.calls.last == .cancel)
     #expect(mounted.responses.count == 1)
-    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
+    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "accept"}"#)))
   }
 
   @Test func declineSendsDecline() async throws {
@@ -285,7 +298,7 @@ import Testing
 
     try mounted.harness.press(identifier: ElicitationURLConsentView.declineIdentifier)
 
-    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
+    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
     #expect(mounted.browser.calls.isEmpty)
   }
 
@@ -295,7 +308,7 @@ import Testing
 
     try mounted.harness.sendKey(.escape)
 
-    #expect(await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
+    #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
 
   // MARK: - Deck

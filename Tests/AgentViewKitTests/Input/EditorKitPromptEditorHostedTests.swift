@@ -111,8 +111,12 @@ struct EditorKitPromptInputHost: View {
     defer { harness.close() }
 
     harness.type(Self.message)
+    try harness.requireTextViewShows(Self.message)
     await ObservationWait.until { model.plainText == Self.message }
     try Self.pressReturn(in: harness)
+    // The composer calls the host closure in the same step as it starts the
+    // prompt task, so a key that sent nothing stops the test here.
+    try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
@@ -131,8 +135,10 @@ struct EditorKitPromptInputHost: View {
     defer { harness.close() }
 
     harness.type(Self.message)
+    try harness.requireTextViewShows(Self.message)
     await ObservationWait.until { model.plainText == Self.message }
     try Self.pressReturn(modifiers: .shift, in: harness)
+    try harness.requireTextViewShows(Self.message + "\n")
     await ObservationWait.until { model.plainText == Self.message + "\n" }
 
     #expect(session.promptTexts.isEmpty)
@@ -148,8 +154,10 @@ struct EditorKitPromptInputHost: View {
     try await Self.startRunning(session, in: harness)
 
     harness.type(Self.message)
+    try harness.requireTextViewShows(Self.message)
     await ObservationWait.until { model.plainText == Self.message }
     try Self.pressReturn(modifiers: .command, in: harness)
+    try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])

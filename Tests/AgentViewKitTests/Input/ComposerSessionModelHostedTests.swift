@@ -225,6 +225,9 @@
       let model = session.model
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      // The composer calls the host closure in the same step as it starts the
+      // prompt task, so a submit that sent nothing stops the test here.
+      try #require(draft.submitCount == 1)
       await harness.render { !Self.userMessages(of: model).isEmpty }
       let entry = try #require(Self.userMessages(of: model).first)
 
@@ -252,6 +255,7 @@
       let errorIdentifier = ErrorView.identifier
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try #require(draft.submitCount == 1)
       await harness.render { TranscriptChecks.hasErrorEntry(model) }
       let entry = try #require(Self.userMessages(of: model).first)
 
@@ -272,6 +276,7 @@
       try await Self.startRunning(session, in: harness)
 
       try Self.submitWithReturn(in: harness)
+      try #require(draft.submitCount == 1)
       await harness.render { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
       let entry = try #require(Self.userMessages(of: model).first)
 
@@ -291,10 +296,12 @@
       try await Self.startRunning(session, in: harness)
 
       try Self.submitWithReturn(in: harness)
+      try #require(draft.submitCount == 1)
       await ObservationWait.until { session.agent.messages(method: ScriptedSession.promptMethod).count == 1 }
       draft.text = AttributedString(Self.secondMessage)
       harness.render()
       try Self.submitWithReturn(in: harness)
+      try #require(draft.submitCount == 2)
       await harness.render { session.agent.messages(method: ScriptedSession.promptMethod).count == 2 }
 
       #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage, Self.secondMessage])
@@ -379,6 +386,9 @@
       #expect(harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id)) == nil)
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      // The composer clears its attachments in the same step as it starts the
+      // prompt task, so a submit that sent nothing stops the test here.
+      try #require(draft.attachments.isEmpty)
       await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
       let blocks = Self.promptBlocks(of: session.agent)
@@ -397,6 +407,7 @@
       harness.render()
 
       try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try #require(draft.attachments.isEmpty)
       await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 
       let blocks = Self.promptBlocks(of: session.agent)

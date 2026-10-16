@@ -67,11 +67,17 @@
 
     /// Shows the deck of a session model.
     ///
-    /// - Parameter session: The scripted session.
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - answerReport: The report that gets each answer of a permission
+    ///     card, or `nil`.
     /// - Returns: The harness.
-    static func mount(session: ScriptedSession) -> HostedViewHarness<some View> {
+    static func mount(
+      session: ScriptedSession, answerReport: ObservationReport<PermissionAnswer>? = nil
+    ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
         RequestDeck(session: session.model)
+          .environment(\.permissionAnswerReport, answerReport)
           .transaction { $0.disablesAnimations = true }
       }
     }
@@ -160,7 +166,8 @@
     @Test func aSelectedOptionGoesToTheAgentAndTheCardGoesAway() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
-      let harness = Self.mount(session: session)
+      var answers: [PermissionAnswer] = []
+      let harness = Self.mount(session: session, answerReport: ObservationReport { answers.append($0) })
       defer { harness.close() }
       let model = session.model
 
@@ -173,6 +180,9 @@
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
       try harness.press(identifier: PermissionView.optionIdentifier(for: Self.allowOptionID))
+      // The card reports its answer in the same step as it starts the answer
+      // task, so a press that the card did not handle stops the test here.
+      try #require(answers == [PermissionAnswer(option: Self.allowOptionID, comment: nil)])
       await harness.render { Self.isAnswered(Self.agentRequestID, in: session) }
 
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
@@ -194,7 +204,8 @@
     @Test func aRejectWithACommentAnswersTheRequestBeforeItSendsThePrompt() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
-      let harness = Self.mount(session: session)
+      var answers: [PermissionAnswer] = []
+      let harness = Self.mount(session: session, answerReport: ObservationReport { answers.append($0) })
       defer { harness.close() }
       let model = session.model
 
@@ -203,10 +214,13 @@
       await harness.render { !model.pendingPermissions.isEmpty }
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
       try harness.press(identifier: PermissionView.optionIdentifier(for: Self.rejectOptionID))
-      #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
+      try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
       harness.type(Self.comment)
       let answeredBeforePrompt = Self.flagAnswerBeforePrompt(withText: Self.comment, in: model)
       try harness.press(identifier: PermissionView.commentSubmitIdentifier)
+      // The card reports its answer in the same step as it starts the answer
+      // task, so a Send press that the card did not handle stops the test here.
+      try #require(answers == [PermissionAnswer(option: Self.rejectOptionID, comment: Self.comment)])
       let agent = session.agent
       await ObservationWait.until {
         Self.indexOfPrompt(withText: Self.comment, in: agent) != nil
@@ -345,6 +359,9 @@
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
       try harness.press(identifier: answer.buttonIdentifier)
+      // The model removes the answered elicitation in the same step as the
+      // press, so a press that did not answer stops the test here.
+      try #require(model.pendingElicitations.isEmpty)
       await harness.render { Self.isAnswered(Self.agentRequestID, in: session) }
 
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
@@ -402,6 +419,9 @@
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
       try harness.press(identifier: ElicitationView.declineIdentifier)
+      // The connection model removes the declined elicitation in the same
+      // step as the press, so a press that did not answer stops the test here.
+      try #require(connection.pendingElicitations.isEmpty)
       session.agent.releaseHeldAnswer()
       try await login.value
       await ObservationWait.until {

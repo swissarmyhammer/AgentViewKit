@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 /// change of the selection. One render pass after the change puts its result
 /// in the accessibility tree, so the test reads the tree after that pass. An
 /// inspector that opens after the mount shows its split view item only after
-/// a run loop turn, so the two tests of that case wait for the selection and
+/// a run loop turn, so the two tests of that case check the selection and
 /// read the inspector content in its own harness
 /// (``mountInspectorContent(of:)``).
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorHostedTests {
@@ -74,8 +74,9 @@ import UniformTypeIdentifiers
   /// A press on a chip selects its attachment, and the inspector content of
   /// that selection shows the name and the five actions.
   ///
-  /// The test waits for the selection, and then mounts the inspector content
-  /// of the selection in its own harness with one render pass.
+  /// The chip selects its attachment in the same step as the press, so the
+  /// test requires the selection at once. Then it mounts the inspector
+  /// content of the selection in its own harness with one render pass.
   ///
   /// Gap: the test does not prove that the AppKit split view shows the
   /// inspector item. In the off-screen harness window the item shows only
@@ -94,9 +95,8 @@ import UniformTypeIdentifiers
     try Self.withoutAnimation {
       try harness.press(identifier: AttachmentView.identifier(for: .chip))
     }
-    await ObservationWait.until { selection.attachment != nil }
-
-    #expect(selection.attachment == attachment)
+    // The chip selects its attachment in the same step as the press.
+    try #require(selection.attachment == attachment)
     let content = try Self.mountInspectorContent(of: selection)
     defer { content.close() }
     #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
