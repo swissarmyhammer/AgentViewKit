@@ -22,7 +22,7 @@ import Testing
   static let windowSize = CGSize(width: 480, height: 480)
 
   /// The number of verbs of the kit.
-  static let verbCount = 10
+  static let verbCount = 12
 
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
@@ -166,7 +166,7 @@ import Testing
   /// proves it. An outer scope from the host would register the same
   /// commands, and then the test would not find a thread view that lost its
   /// own scope.
-  @Test func aMountedSessionThreadViewRegistersTheTenCommands() async throws {
+  @Test func aMountedSessionThreadViewRegistersTheTwelveCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()

@@ -24,7 +24,7 @@ final class CallCounter {
   static let message = "Hello"
 
   /// The number of verbs of the kit.
-  static let verbCount = 10
+  static let verbCount = 12
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
@@ -117,7 +117,7 @@ final class CallCounter {
 
   // MARK: - Registration
 
-  @Test func theScopeListsTheTenCommands() async throws {
+  @Test func theScopeListsTheTwelveCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let fixture = Self.makeFixture(session: session.model)
@@ -259,10 +259,10 @@ final class CallCounter {
         == .command(AgentCommandVerb.cancel.id, scope: fixture.path))
   }
 
-  @Test func theDefaultKeymapBindsTheFiveChords() {
+  @Test func theDefaultKeymapBindsTheSevenChords() {
     let expected: [(String, AgentCommandVerb)] = [
       ("⌘↩", .send), ("⎋", .cancel), ("⇧⌘C", .copyThread), ("⌥↑", .jumpToPrevious),
-      ("⌥↓", .jumpToNext),
+      ("⌥↓", .jumpToNext), ("⇧⌘{", .previousRequest), ("⇧⌘}", .nextRequest),
     ]
 
     #expect(AgentKeymap.defaultChords.count == expected.count)
@@ -307,6 +307,66 @@ final class CallCounter {
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
     #expect(model.pendingPermissions.count == 1)
     #expect(session.promptTexts == [Self.comment])
+  }
+
+  /// Sends two permission requests from the agent, and waits until the
+  /// session model holds both.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The two pending requests, oldest first.
+  /// - Throws: The error of the transport.
+  static func receiveTwoPermissionRequests(
+    in session: ScriptedSession
+  ) async throws -> (first: PendingPermissionRequest, second: PendingPermissionRequest) {
+    let model = session.model
+    let first = try await session.receivePermissionRequest(id: agentRequestID)
+    try await session.sendRequest(
+      ScriptedSession.permissionMethod, id: secondRequestID, params: ScriptedSession.permissionParams)
+    await ObservationWait.until { model.pendingPermissions.count == 2 }
+    return (first, try #require(model.pendingPermissions.last))
+  }
+
+  @Test func approveAnswersTheFrontRequestWhenItIsAPermission() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let fixture = Self.makeFixture(session: model)
+    let requests = try await Self.receiveTwoPermissionRequests(in: session)
+    model.bringToFront(requests.second.id)
+
+    #expect(fixture.system.perform(AgentCommandVerb.approvePending.id))
+    let result = await session.result(ofRequest: Self.secondRequestID)
+
+    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
+    #expect(model.pendingPermissions.map(\.id) == [requests.first.id])
+  }
+
+  @Test func previousAndNextMoveTheFrontOfTheSessionAndStopAtTheEnds() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let fixture = Self.makeFixture(session: model)
+    #expect(try !Self.isAvailable(.previousRequest, in: fixture))
+    #expect(try !Self.isAvailable(.nextRequest, in: fixture))
+
+    let requests = try await Self.receiveTwoPermissionRequests(in: session)
+    #expect(try !Self.isAvailable(.previousRequest, in: fixture))
+    #expect(fixture.system.perform(AgentCommandVerb.nextRequest.id))
+    #expect(model.frontRequest?.id == requests.second.id)
+    #expect(try !Self.isAvailable(.nextRequest, in: fixture))
+
+    #expect(fixture.system.perform(AgentCommandVerb.previousRequest.id))
+    #expect(model.frontRequest?.id == requests.first.id)
+  }
+
+  @Test func previousAndNextAreNotAvailableWithOneRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = Self.makeFixture(session: session.model)
+    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
+
+    #expect(try !Self.isAvailable(.previousRequest, in: fixture))
+    #expect(try !Self.isAvailable(.nextRequest, in: fixture))
   }
 
   @Test func theAnswerCommandsNeedAMatchingOption() async throws {

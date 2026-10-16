@@ -9,11 +9,18 @@ import EditorCommands
 /// | Command-Shift-C | ``AgentCommandVerb/copyThread`` |
 /// | Option-Up Arrow | ``AgentCommandVerb/jumpToPrevious`` |
 /// | Option-Down Arrow | ``AgentCommandVerb/jumpToNext`` |
+/// | Command-Shift-[ | ``AgentCommandVerb/previousRequest`` |
+/// | Command-Shift-] | ``AgentCommandVerb/nextRequest`` |
 ///
 /// An ``AgentCommandScope`` binds these keys in the CUA layer of its scope.
 /// The keys use the EditorKit chord spelling, with the modifier glyphs in the
 /// order `⌃⌥⇧⌘`. A key that the focused view uses first, such as Return in
 /// the composer, does not get to the scope.
+///
+/// The EditorKit translator spells a key event from its
+/// `charactersIgnoringModifiers`. On a US keyboard, Shift changes `[` to `{`
+/// and `]` to `}`, thus Command-Shift-[ is the chord `⇧⌘{` and
+/// Command-Shift-] is the chord `⇧⌘}`.
 public nonisolated enum AgentKeymap {
   /// The Command-Return chord.
   public static let commandReturn = KeyChord("⌘" + KeyChord.return.rawValue)
@@ -27,6 +34,12 @@ public nonisolated enum AgentKeymap {
   /// The Option-Down Arrow chord.
   public static let optionDown = KeyChord("⌥" + KeyChord.downArrow.rawValue)
 
+  /// The Command-Shift-[ chord. Shift changes `[` to `{`.
+  public static let commandShiftLeftBracket: KeyChord = "⇧⌘{"
+
+  /// The Command-Shift-] chord. Shift changes `]` to `}`.
+  public static let commandShiftRightBracket: KeyChord = "⇧⌘}"
+
   /// The default chord of each verb that has one.
   public static let defaultChords: [AgentCommandVerb: KeyChord] = [
     .send: commandReturn,
@@ -34,6 +47,8 @@ public nonisolated enum AgentKeymap {
     .copyThread: commandShiftC,
     .jumpToPrevious: optionUp,
     .jumpToNext: optionDown,
+    .previousRequest: commandShiftLeftBracket,
+    .nextRequest: commandShiftRightBracket,
   ]
 
   /// The default keymap: each chord of ``defaultChords`` bound to the

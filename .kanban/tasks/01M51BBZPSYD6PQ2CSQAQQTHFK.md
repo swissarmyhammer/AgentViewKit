@@ -13,7 +13,7 @@ comments:
     - Q2 yes. The deck announces each new request, so each request is announced one time.
     - Q3 yes. "+N" counts only the cards that do not show (6 requests: "1 of 6", 3 edges, "+2").
     - Q4 yes. After an answer to a card that was brought to the front, the next front is the oldest card that stays (model behavior now).
-    - Q5 yes. Keys ⇧⌘[ (previous) and ⇧⌘] (next).
+    - Q5 yes. Keys Command-Shift-[ (previous) and Command-Shift-] (next). Changed spelling (card 36, accepted by the step owner): the chords are ONLY "⇧⌘{" and "⇧⌘}". EditorKit KeyChordTranslator.chord(for:) reads charactersIgnoringModifiers, which keeps Shift, so a real Shift-Command-[ gives "⇧⌘{".
     - Q6 yes. A currentSession parameter on SessionListView, and a public PendingRequestCountBadge(session:).
     - Q7 yes for v1. Stop waiting does not tell the agent. A separate card records the need for a later ACP message.
     - Q8 yes. No tool call status for a pending permission now. Also: if a tool call row shows an inline permission form today, remove it, so that the deck is the only place to answer.

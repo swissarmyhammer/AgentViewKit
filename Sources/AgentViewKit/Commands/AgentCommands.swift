@@ -28,6 +28,16 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Selects a reject option of a pending permission request.
   case rejectPending
 
+  /// Brings the request before the front request of the ``RequestDeck`` to
+  /// the front. It is not available at the first request, or with one
+  /// request or none.
+  case previousRequest
+
+  /// Brings the request after the front request of the ``RequestDeck`` to
+  /// the front. It is not available at the last request, or with one
+  /// request or none.
+  case nextRequest
+
   /// Scrolls the thread list to the next prompt: the next user message.
   case jumpToNext
 
@@ -63,6 +73,8 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .cancel: String(localized: "Stop")
     case .approvePending: String(localized: "Approve Request")
     case .rejectPending: String(localized: "Reject Request")
+    case .previousRequest: String(localized: "Previous Request")
+    case .nextRequest: String(localized: "Next Request")
     case .jumpToNext: String(localized: "Next Prompt")
     case .jumpToPrevious: String(localized: "Previous Prompt")
     case .copyThread: String(localized: "Copy Thread")

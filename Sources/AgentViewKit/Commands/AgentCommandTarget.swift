@@ -48,7 +48,12 @@ struct AgentComposerHook {
 ///   `SessionModel.cancel(meta:)`.
 /// - Send with a text payload calls `SessionModel.prompt(_:meta:)`.
 /// - Approve and reject read `SessionModel.pendingPermissions`, and call
-///   `selectPermission(_:option:)`.
+///   `selectPermission(_:option:)`. With no request in the payload, they
+///   answer the front request (`SessionModel.frontRequest`) when it is a
+///   permission request, else the first pending permission request.
+/// - Previous and next read the layout of the ``RequestDeck`` of the session
+///   (``RequestDeck/layout(requests:front:)``), and call
+///   `SessionModel.bringToFront(_:)`.
 /// - Copy reads the user message entries and the agent message entries of the
 ///   transcript. Jump goes to the next or the previous user message entry.
 ///   Expand all gives each entry to the store, so that the store reads the
@@ -153,6 +158,8 @@ final class AgentCommandTarget {
     case .cancel: Self.canCancel(session)
     case .approvePending: answer(payload: payload, rejects: false) != nil
     case .rejectPending: answer(payload: payload, rejects: true) != nil
+    case .previousRequest: DeckSource.session(session).layout.previous != nil
+    case .nextRequest: DeckSource.session(session).layout.next != nil
     case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
     case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
     case .copyThread: !Self.plainText(of: session).isEmpty
@@ -171,6 +178,8 @@ final class AgentCommandTarget {
     case .send: String(localized: "Type a message first.")
     case .cancel: String(localized: "The agent has no work to stop.")
     case .approvePending, .rejectPending: String(localized: "No request waits for an answer.")
+    case .previousRequest: String(localized: "No request is before the front request.")
+    case .nextRequest: String(localized: "No request is after the front request.")
     case .jumpToNext: String(localized: "No prompt is below.")
     case .jumpToPrevious: String(localized: "No prompt is above.")
     case .copyThread: String(localized: "The thread has no messages.")
@@ -245,6 +254,8 @@ final class AgentCommandTarget {
     case .cancel: session.startCancel()
     case .approvePending: respond(payload: payload, rejects: false)
     case .rejectPending: respond(payload: payload, rejects: true)
+    case .previousRequest: DeckSource.session(session).bringToFront(neighbor: \.previous)
+    case .nextRequest: DeckSource.session(session).bringToFront(neighbor: \.next)
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
@@ -298,8 +309,9 @@ final class AgentCommandTarget {
 
   /// The request and the option that a permission answer selects.
   ///
-  /// With no request key in the payload, the answer is for the first pending
-  /// request. With no option key, the answer selects the first option of the
+  /// With no request key in the payload, the answer is for the front request
+  /// when it is a permission request, else for the first pending request.
+  /// With no option key, the answer selects the first option of the
   /// kind in display order (``PermissionPresentation/order(of:)``). The
   /// request key of a session model is the `uuidString` of the local id of
   /// the pending request, and the option key is the `optionId`.
@@ -322,14 +334,16 @@ final class AgentCommandTarget {
   /// - Parameters:
   ///   - session: The session model.
   ///   - requestID: The `uuidString` of the local id of the request, or
-  ///     `nil` for the first one.
+  ///     `nil` for the front request when it is a permission request, else
+  ///     for the first one.
   ///   - optionID: The `optionId` of the option, or `nil` for the first one.
   ///   - rejects: `true` for a reject option, `false` for an allow option.
   /// - Returns: The answer, or `nil` when there is none.
   private static func answer(
     in session: SessionModel, requestID: String?, optionID: String?, rejects: Bool
   ) -> PermissionAnswer? {
-    guard let pending = select(session.pendingPermissions, id: requestID, key: \.id.uuidString) else {
+    let id = requestID ?? frontPermissionID(of: session)
+    guard let pending = select(session.pendingPermissions, id: id, key: \.id.uuidString) else {
       return nil
     }
     let options = PermissionPresentation.order(of: pending.request.options)
@@ -337,6 +351,17 @@ final class AgentCommandTarget {
     return select(options, id: optionID, key: \.optionId.rawValue).map {
       PermissionAnswer(id: pending.id, option: $0)
     }
+  }
+
+  /// The raw identifier of the front request of a session model, when the
+  /// front request is a permission request.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: The `uuidString` of the local id of the front request, or
+  ///   `nil` when the front request is an elicitation or no request waits.
+  private static func frontPermissionID(of session: SessionModel) -> String? {
+    guard case .permission(let permission) = session.frontRequest else { return nil }
+    return permission.id.uuidString
   }
 
   /// The item whose key is `id`, or the first item when there is no `id`.

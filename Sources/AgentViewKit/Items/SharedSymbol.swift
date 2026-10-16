@@ -205,6 +205,14 @@ nonisolated enum SharedSymbol {
   /// Error button of a banner.
   static let details = "text.magnifyingglass"
 
+  /// The symbol of the Previous button of the request deck, which brings the
+  /// request before the front request to the front.
+  static let previousRequest = "chevron.backward"
+
+  /// The symbol of the Next button of the request deck, which brings the
+  /// request after the front request to the front.
+  static let nextRequest = "chevron.forward"
+
   /// The symbol of the button that loads the next page of a list.
   static let loadMore = "arrow.down.to.line"
 
