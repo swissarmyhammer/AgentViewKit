@@ -55,7 +55,9 @@ public struct PendingRequestCountBadge: View {
   /// - Returns: "1 open question" for one request, and "N open questions"
   ///   for each other count.
   public static func openQuestionsLabel(count: Int) -> String {
-    count == 1 ? String(localized: "1 open question") : String(localized: "\(count) open questions")
+    count == 1
+      ? String(localized: "1 open question", bundle: .module)
+      : String(localized: "\(count) open questions", bundle: .module)
   }
 
   /// The session model whose pending requests the badge counts.

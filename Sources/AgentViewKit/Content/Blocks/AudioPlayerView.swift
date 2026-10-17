@@ -67,9 +67,12 @@ public struct AudioPlayerView: View {
         .controlSize(.small)
     case .loaded(let url):
       MediaPlayerPreview(url: url, height: PreviewLayout.audioPlayerHeight)
-        .accessibilityLabel("Audio")
+        .accessibilityLabel(String(localized: "Audio", bundle: .module))
     case .failed:
-      Label("The audio cannot play", systemImage: SharedSymbol.audioFailure)
+      Label(
+        String(localized: "The audio cannot play", bundle: .module),
+        systemImage: SharedSymbol.audioFailure
+      )
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(Self.failureIdentifier)
     }

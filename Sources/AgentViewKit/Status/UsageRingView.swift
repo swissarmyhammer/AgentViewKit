@@ -112,12 +112,12 @@ public struct UsageRingView: View {
   ) -> String {
     let part = numerator.formatted(.number.locale(locale))
     let whole = denominator.formatted(.number.locale(locale))
-    return String(localized: "\(part) of \(whole) \(caption)")
+    return String(localized: "\(part) of \(whole) \(caption)", bundle: .module)
   }
 
   /// The accessibility label of the view: the name of the value, before the
   /// value and the hint.
-  static var labelText: String { String(localized: "Usage") }
+  static var labelText: String { String(localized: "Usage", bundle: .module) }
 
   /// The SF Symbol name of the ring for a part of a whole.
   ///

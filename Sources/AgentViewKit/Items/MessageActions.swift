@@ -60,11 +60,11 @@ public struct MessageActions: View {
     /// The name of the button.
     var title: String {
       switch self {
-      case .copy: String(localized: "Copy")
-      case .copyThread: String(localized: "Copy Thread")
-      case .export: String(localized: "Export Thread")
-      case .retry: String(localized: "Retry")
-      case .edit: String(localized: "Edit")
+      case .copy: String(localized: "Copy", bundle: .module)
+      case .copyThread: String(localized: "Copy Thread", bundle: .module)
+      case .export: String(localized: "Export Thread", bundle: .module)
+      case .retry: String(localized: "Retry", bundle: .module)
+      case .edit: String(localized: "Edit", bundle: .module)
       }
     }
 
@@ -96,7 +96,7 @@ public struct MessageActions: View {
 
   /// The name of an exported file, with no extension.
   static var exportFilename: String {
-    String(localized: "Thread")
+    String(localized: "Thread", bundle: .module)
   }
 
   /// The message entry of the row.

@@ -52,8 +52,8 @@ public struct ErrorView: View {
   ///   symbol.
   public static func content(code: Int, message: String) -> Content {
     Content(
-      title: String(localized: "The agent sent an error"),
-      detail: String(localized: "Error \(String(code)): \(message)"),
+      title: String(localized: "The agent sent an error", bundle: .module),
+      detail: String(localized: "Error \(String(code)): \(message)", bundle: .module),
       symbolName: SharedSymbol.error)
   }
 
@@ -74,7 +74,9 @@ public struct ErrorView: View {
         // The text is the element of the card. A container element here
         // merges into the element of an `ItemRow` and loses its identifier.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(content.title), \(content.detail)")
+        .accessibilityLabel(
+          String(localized: "\(content.title), \(content.detail)", bundle: .module)
+        )
         .accessibilityIdentifier(Self.identifier)
         Spacer(minLength: theme.spacing.s)
       }

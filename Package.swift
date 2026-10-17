@@ -88,6 +88,8 @@ let mathEngineProducts: [Target.Dependency] = [
 
 let package = Package(
   name: "AgentViewKit",
+  // The language of the source strings of the string catalog of the kit.
+  defaultLocalization: "en",
   platforms: [
     .macOS("27.0")
   ],
@@ -116,8 +118,17 @@ let package = Package(
     .target(
       name: "AgentViewKit",
       dependencies: editorKitProducts + acpProducts + textualProducts + mathEngineProducts,
-      // The TextMate grammars of GrammarBundle, and their licenses.
-      resources: [.copy("Resources/Grammars")],
+      // The TextMate grammars of GrammarBundle, and their licenses. The string
+      // catalog holds the English source text of each localized string of
+      // the kit. Each `String(localized:)` call and each SwiftUI text key of
+      // the kit names `bundle: .module`, so that a host app gets the text
+      // from this catalog and not from its main bundle. Each entry has an
+      // explicit English value in the `translated` state, because the build
+      // does not compile an entry that has no value.
+      resources: [
+        .copy("Resources/Grammars"),
+        .process("Resources/Localizable.xcstrings"),
+      ],
       swiftSettings: mainActorIsolated
     ),
     // The hosted view harness, the recording fakes, and the session model

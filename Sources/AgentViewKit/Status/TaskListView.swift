@@ -132,10 +132,11 @@ public struct TaskListView: View {
   ///   string.
   public static func priorityLabel(_ priority: FoundationModelsACP.PlanEntryPriority) -> String {
     switch priority {
-    case .high: String(localized: "High priority")
-    case .medium: String(localized: "Medium priority")
-    case .low: String(localized: "Low priority")
-    case .unknown(let wireValue): String(localized: "Unknown priority: \(wireValue)")
+    case .high: String(localized: "High priority", bundle: .module)
+    case .medium: String(localized: "Medium priority", bundle: .module)
+    case .low: String(localized: "Low priority", bundle: .module)
+    case .unknown(let wireValue):
+      String(localized: "Unknown priority: \(wireValue)", bundle: .module)
     }
   }
 
@@ -156,7 +157,7 @@ public struct TaskListView: View {
   ///   `2 of 5 done`.
   public static func headerText(for entries: [FoundationModelsACP.PlanEntry]) -> String {
     let done = entries.count { $0.status == .completed }
-    return String(localized: "\(done) of \(entries.count) done")
+    return String(localized: "\(done) of \(entries.count) done", bundle: .module)
   }
 
   // MARK: - Body
@@ -169,7 +170,7 @@ public struct TaskListView: View {
       if let unknown = entry.unknownContent {
         JSONDisclosure(
           id: key,
-          title: String(localized: "Unknown plan content: \(unknown.type)"),
+          title: String(localized: "Unknown plan content: \(unknown.type)", bundle: .module),
           json: unknown.payload.prettyPrinted,
           identifier: TaskListView.unknownContentIdentifier(row: key),
           isExpanded: false)

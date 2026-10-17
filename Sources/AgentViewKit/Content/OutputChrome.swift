@@ -24,13 +24,19 @@ struct OutputCapRow: View {
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
-      Text(String(localized: "Showing the last \(rows.visibleCount) of \(rows.totalCount) lines"))
+      Text(
+        String(
+          localized: "Showing the last \(rows.visibleCount) of \(rows.totalCount) lines",
+          bundle: .module)
+      )
         .font(.caption)
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(capIdentifier)
       Spacer(minLength: theme.spacing.s)
       Button(
-        String(localized: "Show all \(rows.totalCount) lines"), systemImage: Self.showAllSymbol, action: showAll)
+        String(localized: "Show all \(rows.totalCount) lines", bundle: .module),
+        systemImage: Self.showAllSymbol, action: showAll
+      )
         .buttonStyle(.borderless)
         .font(.caption)
         .accessibilityIdentifier(showAllIdentifier)

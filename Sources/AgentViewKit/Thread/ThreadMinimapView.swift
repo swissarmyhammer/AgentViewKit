@@ -183,7 +183,7 @@ public struct ThreadMinimapView: View {
   ///   - count: The number of entries.
   /// - Returns: "Item N of M", where N counts from one.
   static func positionValue(position: Int, count: Int) -> String {
-    String(localized: "Item \(position + 1) of \(count)")
+    String(localized: "Item \(position + 1) of \(count)", bundle: .module)
   }
 
   /// The position of the entry at `fraction` of the rail height.
@@ -228,11 +228,13 @@ public struct ThreadMinimapView: View {
       #endif
       Color.clear
         .valueElement(
-          label: Text("Thread status"), value: Text(Self.statusSummary(of: entries)),
+          label: Text("Thread status", bundle: .module),
+          value: Text(Self.statusSummary(of: entries)),
           identifier: Self.summaryIdentifier)
       Color.clear
         .valueElement(
-          label: Text("Thread minimap"), value: Text(Self.positionValue(position: current, count: keys.count)),
+          label: Text("Thread minimap", bundle: .module),
+          value: Text(Self.positionValue(position: current, count: keys.count)),
           identifier: Self.railIdentifier
         )
         .accessibilityAdjustableAction { direction in
@@ -402,12 +404,13 @@ public struct ThreadMinimapView: View {
   ///   1", or "No status" when no entry has a status.
   static func statusSummary(of entries: [TranscriptEntry]) -> String {
     let names = entries.compactMap(statusName(of:))
-    guard !names.isEmpty else { return String(localized: "No status") }
+    guard !names.isEmpty else { return String(localized: "No status", bundle: .module) }
     let counts = Dictionary(names.map { ($0, 1) }, uniquingKeysWith: +)
     let order = names.reduce(into: [String]()) { order, name in
       if !order.contains(name) { order.append(name) }
     }
-    return order.map { String(localized: "\($0): \(counts[$0, default: 0])") }.formatted(.list(type: .and))
+    return order.map { String(localized: "\($0): \(counts[$0, default: 0])", bundle: .module) }
+      .formatted(.list(type: .and))
   }
 
   /// The name of the status of `entry`, for the status summary.
@@ -418,7 +421,7 @@ public struct ThreadMinimapView: View {
   private static func statusName(of entry: TranscriptEntry) -> String? {
     switch entry {
     case .toolCall(let toolCall): ToolStatusSymbol.label(for: toolCall.shownStatus)
-    case .error: String(localized: "Error")
+    case .error: String(localized: "Error", bundle: .module)
     case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction: nil
     }
   }

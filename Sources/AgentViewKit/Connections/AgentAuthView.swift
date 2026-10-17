@@ -214,9 +214,9 @@ public struct AgentAuthView: View {
   /// - Returns: The text that names the operation.
   private static func title(of operation: AuthFailure.Operation) -> String {
     switch operation {
-    case .login: String(localized: "Sign-in failed")
-    case .logout: String(localized: "Sign-out failed")
-    case .terminalLogin: String(localized: "Terminal sign-in failed")
+    case .login: String(localized: "Sign-in failed", bundle: .module)
+    case .logout: String(localized: "Sign-out failed", bundle: .module)
+    case .terminalLogin: String(localized: "Terminal sign-in failed", bundle: .module)
     }
   }
 
@@ -243,7 +243,7 @@ public struct AgentAuthView: View {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
-      Label(String(localized: "Sign in to the agent"), systemImage: Self.symbol)
+      Label(String(localized: "Sign in to the agent", bundle: .module), systemImage: Self.symbol)
         .font(.headline)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)
@@ -266,7 +266,7 @@ public struct AgentAuthView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
     .accessibilityElement(children: .contain)
-    .accessibilityLabel(String(localized: "Sign in to the agent"))
+    .accessibilityLabel(String(localized: "Sign in to the agent", bundle: .module))
     .accessibilityIdentifier(Self.identifier)
   }
 
@@ -304,8 +304,9 @@ public struct AgentAuthView: View {
     switch row {
     case .agent(let method):
       actionButton(
-        String(localized: "Sign In"), systemImage: Self.signInSymbol, operation: .method(method.methodId),
-        accessibilityLabel: String(localized: "Sign in with \(method.name)"),
+        String(localized: "Sign In", bundle: .module), systemImage: Self.signInSymbol,
+        operation: .method(method.methodId),
+        accessibilityLabel: String(localized: "Sign in with \(method.name)", bundle: .module),
         identifier: Self.signInIdentifier(for: method.methodId)
       ) { [connection] in
         try await connection.login(LoginAuthRequest(methodId: method.methodId))
@@ -313,8 +314,9 @@ public struct AgentAuthView: View {
     case .terminal(let method):
       if let runner {
         actionButton(
-          String(localized: "Run"), systemImage: Self.runSymbol, operation: .method(method.methodId),
-          accessibilityLabel: String(localized: "Run \(method.name)"),
+          String(localized: "Run", bundle: .module), systemImage: Self.runSymbol,
+          operation: .method(method.methodId),
+          accessibilityLabel: String(localized: "Run \(method.name)", bundle: .module),
           identifier: Self.runIdentifier(for: method.methodId)
         ) { [connection] in
           try await connection.loginWithTerminal(method.methodId, runner: runner)
@@ -346,13 +348,14 @@ public struct AgentAuthView: View {
   /// Reconnect button when the environment has a closure.
   private var reconnectView: some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
-      Text(String(localized: "Reconnect to the agent to finish the sign-in"))
+      Text(String(localized: "Reconnect to the agent to finish the sign-in", bundle: .module))
         .font(.callout)
         .accessibilityIdentifier(Self.reconnectMessageIdentifier)
       if let reconnect {
         actionButton(
-          String(localized: "Reconnect"), systemImage: Self.reconnectSymbol, operation: .reconnect,
-          accessibilityLabel: String(localized: "Reconnect to the agent"),
+          String(localized: "Reconnect", bundle: .module), systemImage: Self.reconnectSymbol,
+          operation: .reconnect,
+          accessibilityLabel: String(localized: "Reconnect to the agent", bundle: .module),
           identifier: Self.reconnectIdentifier
         ) {
           await reconnect()
@@ -366,8 +369,9 @@ public struct AgentAuthView: View {
     VStack(alignment: .trailing, spacing: theme.spacing.s) {
       Divider()
       actionButton(
-        String(localized: "Sign Out"), systemImage: Self.signOutSymbol, operation: .signOut,
-        accessibilityLabel: String(localized: "Sign out of the agent"),
+        String(localized: "Sign Out", bundle: .module), systemImage: Self.signOutSymbol,
+        operation: .signOut,
+        accessibilityLabel: String(localized: "Sign out of the agent", bundle: .module),
         identifier: Self.signOutIdentifier
       ) { [connection] in
         try await connection.logout(LogoutAuthRequest())

@@ -24,9 +24,9 @@ public struct ConnectionsView: View {
       }
     } else {
       ContentUnavailableView(
-        "No MCP Servers",
+        String(localized: "No MCP Servers", bundle: .module),
         systemImage: SharedSymbol.connection,
-        description: Text("The MCP servers of the session show here.")
+        description: Text("The MCP servers of the session show here.", bundle: .module)
       )
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier(Self.emptyIdentifier)

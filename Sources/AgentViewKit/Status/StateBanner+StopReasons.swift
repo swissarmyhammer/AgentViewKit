@@ -15,45 +15,52 @@ extension StateBanner {
   /// ``message(forUnknownStopReason:)``.
   public static let extensionStopReasonMessages: [String: Message] = [
     "_truncated": Message(
-      title: String(localized: "The response was cut off"),
+      title: String(localized: "The response was cut off", bundle: .module),
       explanation: String(
-        localized: "The output stopped at the token limit. Ask the model to continue."),
+        localized: "The output stopped at the token limit. Ask the model to continue.",
+        bundle: .module),
       symbolName: SharedSymbol.truncated,
       identifier: "state-banner-stop-reason-truncated"),
     "_ended_in_reasoning": Message(
-      title: String(localized: "The model stopped during its reasoning"),
+      title: String(localized: "The model stopped during its reasoning", bundle: .module),
       explanation: String(
-        localized: "The model did not write an answer after its reasoning. Send the request again."),
+        localized: "The model did not write an answer after its reasoning. Send the request again.",
+        bundle: .module),
       symbolName: SharedSymbol.reasoning,
       identifier: "state-banner-stop-reason-ended-in-reasoning"),
     "_repeated": Message(
-      title: String(localized: "The model repeated itself"),
+      title: String(localized: "The model repeated itself", bundle: .module),
       explanation: String(
-        localized: "The model wrote the same text again and again. Change the request."),
+        localized: "The model wrote the same text again and again. Change the request.",
+        bundle: .module),
       symbolName: SharedSymbol.repeated,
       identifier: "state-banner-stop-reason-repeated"),
     "_reasoning_limit": Message(
-      title: String(localized: "The reasoning was too long"),
+      title: String(localized: "The reasoning was too long", bundle: .module),
       explanation: String(
-        localized: "The model used all of its reasoning tokens. Send a smaller request."),
+        localized: "The model used all of its reasoning tokens. Send a smaller request.",
+        bundle: .module),
       symbolName: SharedSymbol.reasoningLimit,
       identifier: "state-banner-stop-reason-reasoning-limit"),
     "_error": Message(
-      title: String(localized: "The agent had an error"),
+      title: String(localized: "The agent had an error", bundle: .module),
       explanation: String(
-        localized: "The response stopped because of an error in the agent. Send the request again."),
+        localized: "The response stopped because of an error in the agent. Send the request again.",
+        bundle: .module),
       symbolName: SharedSymbol.error,
       identifier: "state-banner-stop-reason-error"),
     "_no_output": Message(
-      title: String(localized: "The model gave no answer"),
+      title: String(localized: "The model gave no answer", bundle: .module),
       explanation: String(
-        localized: "The response ended, but the model wrote no text. Send the request again."),
+        localized: "The response ended, but the model wrote no text. Send the request again.",
+        bundle: .module),
       symbolName: SharedSymbol.noOutput,
       identifier: "state-banner-stop-reason-no-output"),
     "_stalled": Message(
-      title: String(localized: "The response stopped"),
+      title: String(localized: "The response stopped", bundle: .module),
       explanation: String(
-        localized: "The model did not write text for too long. Send the request again."),
+        localized: "The model did not write text for too long. Send the request again.",
+        bundle: .module),
       symbolName: SharedSymbol.stalled,
       identifier: "state-banner-stop-reason-stalled"),
   ]
@@ -68,8 +75,9 @@ extension StateBanner {
   public static func message(forUnknownStopReason wireValue: String) -> Message {
     extensionStopReasonMessages[wireValue]
       ?? Message(
-        title: String(localized: "The response stopped for an unknown reason"),
-        explanation: String(localized: "The agent sent the stop reason \(wireValue)."),
+        title: String(localized: "The response stopped for an unknown reason", bundle: .module),
+        explanation: String(
+          localized: "The agent sent the stop reason \(wireValue).", bundle: .module),
         symbolName: SharedSymbol.unknown,
         identifier: unknownStopReasonIdentifier)
   }

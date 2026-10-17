@@ -29,16 +29,16 @@ public enum MessageRole: Sendable, Hashable, CaseIterable {
   /// The name of the sender that the header shows.
   public var title: String {
     switch self {
-    case .user: String(localized: "You")
-    case .assistant: String(localized: "Assistant")
+    case .user: String(localized: "You", bundle: .module)
+    case .assistant: String(localized: "Assistant", bundle: .module)
     }
   }
 
   /// The accessibility label of a message of the role.
   public var accessibilityLabel: String {
     switch self {
-    case .user: String(localized: "You said")
-    case .assistant: String(localized: "Assistant said")
+    case .user: String(localized: "You said", bundle: .module)
+    case .assistant: String(localized: "Assistant said", bundle: .module)
     }
   }
 }

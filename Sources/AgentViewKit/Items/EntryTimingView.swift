@@ -134,8 +134,10 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent
   ) -> String {
     let start = startText(for: startedAt, locale: locale)
-    return spokenDuration(duration, locale: locale).map { String(localized: "Started at \(start), took \($0)") }
-      ?? String(localized: "Started at \(start)")
+    return spokenDuration(duration, locale: locale).map {
+      String(localized: "Started at \(start), took \($0)", bundle: .module)
+    }
+      ?? String(localized: "Started at \(start)", bundle: .module)
   }
 
   public var body: some View {

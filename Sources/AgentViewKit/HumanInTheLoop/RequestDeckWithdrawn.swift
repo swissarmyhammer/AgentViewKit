@@ -65,8 +65,10 @@ extension RequestDeck {
   /// - Returns: "<title> was withdrawn: <reason>", or "<title> was
   ///   withdrawn." with no reason.
   static func withdrawnText(title: String, reason: String?) -> String {
-    guard let reason, !reason.isEmpty else { return String(localized: "\(title) was withdrawn.") }
-    return String(localized: "\(title) was withdrawn: \(reason)")
+    guard let reason, !reason.isEmpty else {
+      return String(localized: "\(title) was withdrawn.", bundle: .module)
+    }
+    return String(localized: "\(title) was withdrawn: \(reason)", bundle: .module)
   }
 
   /// The announcements of the notices that are new.

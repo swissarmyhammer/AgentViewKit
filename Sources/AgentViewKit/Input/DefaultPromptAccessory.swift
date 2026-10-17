@@ -84,14 +84,14 @@ public struct DefaultPromptAccessory: View {
     Button {
       submit()
     } label: {
-      Label(String(localized: "Send"), systemImage: SharedSymbol.send)
+      Label(String(localized: "Send", bundle: .module), systemImage: SharedSymbol.send)
         .labelStyle(.iconOnly)
         .fontWeight(theme.symbolWeight)
     }
     .buttonStyle(.glassProminent)
     .buttonBorderShape(.circle)
     .disabled(!submit.isEnabled)
-    .help(String(localized: "Send the prompt"))
+    .help(String(localized: "Send the prompt", bundle: .module))
     .accessibilityIdentifier(Self.submitIdentifier)
   }
 
@@ -100,13 +100,13 @@ public struct DefaultPromptAccessory: View {
     Button {
       session?.startCancel(reporting: reportRequestStart)
     } label: {
-      Label(String(localized: "Stop"), systemImage: SharedSymbol.stop)
+      Label(String(localized: "Stop", bundle: .module), systemImage: SharedSymbol.stop)
         .labelStyle(.iconOnly)
         .fontWeight(theme.symbolWeight)
     }
     .buttonStyle(.glassProminent)
     .buttonBorderShape(.circle)
-    .help(String(localized: "Stop the work of the agent"))
+    .help(String(localized: "Stop the work of the agent", bundle: .module))
     .accessibilityIdentifier(Self.stopIdentifier)
   }
 }

@@ -66,7 +66,7 @@ public enum ConversationLayout {
   ///   - count: The number of items in the thread.
   /// - Returns: "N of M items".
   public static func listValue(shown: Int, count: Int) -> String {
-    String(localized: "\(shown) of \(count) items")
+    String(localized: "\(shown) of \(count) items", bundle: .module)
   }
 }
 
@@ -223,7 +223,7 @@ public struct ConversationView<EmptyState: View>: View {
       }
       .padding(theme.rowPadding)
     }
-    .accessibilityLabel(Text("Conversation"))
+    .accessibilityLabel(Text("Conversation", bundle: .module))
     .accessibilityValue(
       Text(ConversationLayout.listValue(shown: shownCount, count: count))
     )
@@ -287,7 +287,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// The row at the top of the list that shows one more page.
   private var loadEarlierRow: some View {
     Button(action: showEarlierPage) {
-      Label("Load Earlier", systemImage: ConversationLayout.loadEarlierSymbolName)
+      Label(
+        String(localized: "Load Earlier", bundle: .module),
+        systemImage: ConversationLayout.loadEarlierSymbolName
+      )
         .fontWeight(theme.symbolWeight)
     }
     .buttonStyle(.glass)

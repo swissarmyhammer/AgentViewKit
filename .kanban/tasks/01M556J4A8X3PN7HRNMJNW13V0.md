@@ -1,0 +1,53 @@
+---
+assignees:
+- claude-code
+comments:
+- actor: claude-code
+  id: 01m5572vnc82q5w654gbc1kye8
+  text: |-
+    Research:
+    - Package.swift has no `defaultLocalization`. The kit target has `resources: [.copy("Resources/Grammars")]`. GrammarBundle uses `Bundle.module` for the grammar folder.
+    - 257 `String(localized:)` calls in Sources/AgentViewKit. No call has `bundle:`, `comment:`, `table:` or `defaultValue:`. So `, bundle: .module` goes last in each call. One doc comment in ElicitationValidator.swift names `String(localized:)`.
+    - The test target has no resources, so `Bundle.module` in the tests is the kit bundle through `@testable import AgentViewKit` (many tests already use `@testable`).
+    - RED: Tests/AgentViewKitTests/Infrastructure/StringCatalogTests.swift. 4 tests (5 cases) fail: no `Localizable.strings` in en.lproj, and lookups with a sentinel default give the sentinel.
+    - Discovery: `Bundle.module.localizations.contains("en")` is already true without the catalog, so that check does not prove anything. A plain `String(localized: "Copy Thread", bundle: .module)` also gives "Copy Thread" without a catalog (the key is the fallback). The test therefore uses a sentinel `defaultValue:`, so the English text can come only from the catalog.
+  timestamp: 2026-10-17T15:18:30.316904+00:00
+- actor: claude-code
+  id: 01m558qxkbnxec01bzjxt00zj5
+  text: |-
+    Implementation landed (not committed):
+    - Package.swift: `defaultLocalization: "en"`, and `.process("Resources/Localizable.xcstrings")` beside `.copy("Resources/Grammars")`.
+    - 269 `String(localized:)` calls in Sources/AgentViewKit now have `bundle: .module`, 12 of them multi-line `String(\n localized:)` calls that `rg 'String\(localized:'` does not show. A scratchpad script found the close paren and respected string literals and `\( )` interpolation.
+    - 61 SwiftUI literal keys changed: `Text("x")` became `Text("x", bundle: .module)`; `Text("")` became `Text(verbatim: "")`; the literal of `Button`, `Label`, `TextField`, `ContentUnavailableView`, `.help`, `.accessibilityLabel/Hint/Value` became `String(localized: "x", bundle: .module)` (the existing pattern of the kit).
+    - Lines that became longer than 100 characters were formatted with `swift format format --lines` (all rules off, so only the layout changed), then checked by hand.
+    - Catalog: `xcodebuild -scheme AgentViewKit build SWIFT_EMIT_LOC_STRINGS=YES -skipMacroValidation -skipPackagePluginValidation`, then `xcstringstool sync` with only the AgentViewKit-t `*.stringsdata` files. 305 keys. A check script found a catalog key for each of the 329 localized literals of the kit.
+    - DISCOVERY: `xcstringstool compile` does NOT compile an extracted entry that has no value, or an entry in the `new` state. With the plain sync output, the bundle got no `en.lproj` at all and the test stayed red. Each entry now has an explicit English value in the `translated` state (the value Xcode wrote, for example `Request %1$lld of %2$lld`). A second `xcstringstool sync` does not change the file, so the format is canonical. The compiled `en.lproj/Localizable.strings` has all 305 keys. A future sync adds new keys with no value; those keys still show the English key at run time, but they are not in the compiled table until they get a value.
+    - Test: Tests/AgentViewKitTests/Infrastructure/StringCatalogTests.swift, 5 tests: the compiled table is in `Bundle.module`, two `localizedString(forKey:value:table:)` lookups with a sentinel default value, and two `String(localized:defaultValue:bundle: .module)` lookups with a sentinel default value. The first version expected the key as the value of the format key. The catalog value is positional, so the test now expects `Request %1$lld of %2$lld`.
+  timestamp: 2026-10-17T15:47:29.003677+00:00
+- actor: claude-code
+  id: 01m558r53h290p2vn2tecttjd2
+  text: |-
+    ### implement — changed
+    - evidence: 67 paths — Package.swift; Sources/AgentViewKit/Resources/Localizable.xcstrings (new, 305 keys); Tests/AgentViewKitTests/Infrastructure/StringCatalogTests.swift (new); 64 files in Sources/AgentViewKit (bundle: .module). TDD: RED 4 tests / 5 issues (no catalog), GREEN 5/5. `swift build --build-tests`: 0 warnings from the package sources (only the known mlx-swift_Cmlx "missing creator for mutated node" build-graph warning, which shows on a no-op build too). `swift test`: 1324 tests in 155 suites passed (2 known issues from the existing withKnownIssue negative tests), plus 127 PackageStructureTests and 1 ReadmeSnippetsTests. `Scripts/check-readme.sh`: passed. Demo app: `ruby Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb` and `xcodebuild -project ... -scheme AgentViewKitDemo build`: BUILD SUCCEEDED, and the app holds AgentViewKit_AgentViewKit.bundle/en.lproj/Localizable.strings. `Scripts/test-examples.sh` (UI tests) was NOT run, as the caller instructed.
+    - next: /review
+  timestamp: 2026-10-17T15:47:36.689543+00:00
+position_column: doing
+position_ordinal: '80'
+title: Add a String Catalog to the AgentViewKit target
+---
+Request from swissarmyhammer-96 (elicitation-plan.md, section "AgentViewKit", "Known gaps": the kit has no string catalog of its own).
+
+## Work
+- Package.swift: set `defaultLocalization: "en"`. Add `Resources/Localizable.xcstrings` to the AgentViewKit target as a processed resource.
+- Each `String(localized:)` call in `Sources/AgentViewKit` must use `bundle: .module`. Else the text is looked up in the main bundle of the host app. There are about 257 calls; no call has the bundle now.
+- The SwiftUI calls with a string literal key (`Text("…")`, `Button("…", systemImage:)`, `Label("…", systemImage:)`, `TextField("…")`, and the like) also look up the main bundle. Change them to use the kit bundle too.
+- Fill the catalog with the English source strings. Extract them with the build (`SWIFT_EMIT_LOC_STRINGS`, then `xcstringstool sync`). No translation now.
+- Test: a test proves that `Bundle.module` contains the catalog and that one `String(localized:bundle: .module)` gives the English text. No sleep, poll, retry or time limit.
+- The package build and tests, the README gate (`Scripts/check-readme.sh`) and the Examples gate (`Scripts/test-examples.sh`) must stay green.
+
+## Acceptance
+- [ ] `rg 'String\(localized:' Sources/AgentViewKit` shows no call without `bundle: .module`.
+- [ ] No SwiftUI string literal key in the kit looks up the main bundle.
+- [ ] The catalog has all the English source strings.
+- [ ] The new test passes; `swift test` passes.
+- [ ] The README gate and the Examples gate build. #elicitation #foundation

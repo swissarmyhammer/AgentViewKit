@@ -108,8 +108,8 @@ public enum ThreadExporter {
   static func heading(for role: MessageRole) -> String {
     let title =
       switch role {
-      case .user: String(localized: "User")
-      case .assistant: String(localized: "Assistant")
+      case .user: String(localized: "User", bundle: .module)
+      case .assistant: String(localized: "Assistant", bundle: .module)
       }
     return "## " + title
   }

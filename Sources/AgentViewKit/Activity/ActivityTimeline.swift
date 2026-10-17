@@ -88,9 +88,9 @@ public struct ActivityTimeline: View {
     VStack(spacing: 0) {
       if entries.isEmpty {
         ContentUnavailableView(
-          "No Activity",
+          String(localized: "No Activity", bundle: .module),
           systemImage: Self.emptySymbolName,
-          description: Text("Tool calls and reasoning show here.")
+          description: Text("Tool calls and reasoning show here.", bundle: .module)
         )
         .accessibilityIdentifier(Self.emptyStateIdentifier)
       } else {
@@ -225,7 +225,10 @@ private struct ActivityEntryRow: View {
       }
       .buttonStyle(.plain)
       .accessibilityLabel(appearance.label)
-      .accessibilityHint(isExpanded ? Text("Hides the details") : Text("Shows the details"))
+      .accessibilityHint(
+        isExpanded
+          ? Text("Hides the details", bundle: .module) : Text("Shows the details", bundle: .module)
+      )
       .accessibilityIdentifier(ActivityTimeline.rowIdentifier(for: key))
       if isExpanded {
         detail
@@ -247,7 +250,7 @@ private struct ActivityEntryRow: View {
       toolCallAppearance(toolCall)
     case .terminal(let terminal):
       Appearance(
-        title: terminal.command ?? String(localized: "Terminal"),
+        title: terminal.command ?? String(localized: "Terminal", bundle: .module),
         symbolName: SharedSymbol.terminal, tint: Color.secondary)
     case .error(let error):
       errorAppearance(ErrorView.content(code: error.code.wireValue, message: error.message))

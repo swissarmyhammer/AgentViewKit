@@ -72,7 +72,8 @@ struct EditorKitDiffRenderer: View {
       EditorSwiftUI.DiffView(patch: diff)
         .diffLayout(layout.documentLayout)
     case .failure(let error):
-      let text = String(localized: "Cannot read the patch at line \(Self.line(of: error))")
+      let text = String(
+        localized: "Cannot read the patch at line \(Self.line(of: error))", bundle: .module)
       Label(text, systemImage: SharedSymbol.error)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)

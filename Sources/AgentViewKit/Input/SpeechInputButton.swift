@@ -67,7 +67,7 @@ public struct SpeechInputButton: View {
       .buttonStyle(.glass)
       .buttonBorderShape(.circle)
       .help(helpText)
-      .accessibilityLabel(String(localized: "Dictate"))
+      .accessibilityLabel(String(localized: "Dictate", bundle: .module))
       .accessibilityValue(valueText)
       .accessibilityIdentifier(Self.identifier)
       .onDisappear { stop(transcriber: transcriber) }
@@ -95,18 +95,18 @@ public struct SpeechInputButton: View {
   /// The help text of the button.
   private var helpText: String {
     switch phase {
-    case .recording: String(localized: "Stop dictation")
-    case .idle: String(localized: "Dictate the prompt")
-    case .denied: String(localized: "Dictation is not allowed")
+    case .recording: String(localized: "Stop dictation", bundle: .module)
+    case .idle: String(localized: "Dictate the prompt", bundle: .module)
+    case .denied: String(localized: "Dictation is not allowed", bundle: .module)
     }
   }
 
   /// The accessibility value of the button.
   private var valueText: String {
     switch phase {
-    case .recording: String(localized: "Recording")
-    case .idle: String(localized: "Not recording")
-    case .denied: String(localized: "Not allowed")
+    case .recording: String(localized: "Recording", bundle: .module)
+    case .idle: String(localized: "Not recording", bundle: .module)
+    case .denied: String(localized: "Not allowed", bundle: .module)
     }
   }
 

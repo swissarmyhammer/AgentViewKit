@@ -126,7 +126,8 @@ public struct SessionStreamBanner: View {
   private func makeReloadAction(isEnabled: Bool) -> StatusBar.Action? {
     guard let connection, connection.canResumeSessions, let cwd = session.cwd else { return nil }
     return StatusBar.Action(
-      title: String(localized: "Reload"), systemImage: Self.reloadSymbol, identifier: Self.reloadIdentifier,
+      title: String(localized: "Reload", bundle: .module), systemImage: Self.reloadSymbol,
+      identifier: Self.reloadIdentifier,
       isEnabled: isEnabled
     ) { [session, reportRequestStart] in
       let request = ResumeSessionRequest.makeAgentViewKitRequest(
@@ -144,31 +145,35 @@ public struct SessionStreamBanner: View {
 extension SessionStreamBanner {
   /// The text of the closed banner.
   static let closedMessage = StateBanner.Message(
-    title: String(localized: "The session is closed"),
-    explanation: String(localized: "The agent sends no more updates. You can read the transcript."),
+    title: String(localized: "The session is closed", bundle: .module),
+    explanation: String(
+      localized: "The agent sends no more updates. You can read the transcript.", bundle: .module),
     symbolName: SharedSymbol.closed,
     identifier: closedIdentifier)
 
   /// The text of the replay marker.
   static let replayingMessage = StateBanner.Message(
-    title: String(localized: "Loading the history"),
-    explanation: String(localized: "The agent sends the history of the session again."),
+    title: String(localized: "Loading the history", bundle: .module),
+    explanation: String(
+      localized: "The agent sends the history of the session again.", bundle: .module),
     symbolName: SharedSymbol.replaying,
     identifier: replayingIdentifier)
 
   /// The text of the missed-updates banner.
   static let missedUpdatesMessage = StateBanner.Message(
-    title: String(localized: "Updates are missing"),
+    title: String(localized: "Updates are missing", bundle: .module),
     explanation: String(
-      localized: "The connection did not keep all updates of this session. Reload the history from the agent."),
+      localized: "The connection did not keep all updates of this session. Reload the history from the agent.",
+      bundle: .module),
     symbolName: SharedSymbol.warning,
     identifier: missedUpdatesIdentifier)
 
   /// The text of the partial-history note.
   static let partialHistoryMessage = StateBanner.Message(
-    title: String(localized: "The history can be partial"),
+    title: String(localized: "The history can be partial", bundle: .module),
     explanation: String(
-      localized: "The agent replayed only the history that it keeps. Older messages can be missing."),
+      localized: "The agent replayed only the history that it keeps. Older messages can be missing.",
+      bundle: .module),
     symbolName: SharedSymbol.partialHistory,
     identifier: partialHistoryIdentifier)
 }

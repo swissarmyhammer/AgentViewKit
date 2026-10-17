@@ -271,7 +271,8 @@ public struct ToolCallView: View {
   public static func accessibilityLabel(
     title: String, status: FoundationModelsACP.ToolCallStatus
   ) -> String {
-    String(localized: "\(displayTitle(title)), \(ToolStatusSymbol.label(for: status))")
+    String(
+      localized: "\(displayTitle(title)), \(ToolStatusSymbol.label(for: status))", bundle: .module)
   }
 
   /// The title that the row shows.
@@ -279,7 +280,7 @@ public struct ToolCallView: View {
   /// - Parameter title: The title of the call.
   /// - Returns: `title`, or "Tool call" when `title` is empty.
   static func displayTitle(_ title: String) -> String {
-    title.isEmpty ? String(localized: "Tool call") : title
+    title.isEmpty ? String(localized: "Tool call", bundle: .module) : title
   }
 
   /// The command in the raw input of an `execute` call.
@@ -392,7 +393,9 @@ private struct ToolCallHeader: View {
       }
       .buttonStyle(.plain)
       .accessibilityLabel(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus))
-      .accessibilityValue(expanded ? Text("Expanded") : Text("Collapsed"))
+      .accessibilityValue(
+        expanded ? Text("Expanded", bundle: .module) : Text("Collapsed", bundle: .module)
+      )
       .accessibilityIdentifier(ToolCallView.toggleIdentifier(for: id))
       if let status = connectionState?(entry) {
         ConnectionStatusChip(status: status)
@@ -542,7 +545,7 @@ struct ToolCallBody: View, Equatable {
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
       }
       if let rawInput = entry.rawInput {
-        jsonBlock(rawInput, title: String(localized: "Input"))
+        jsonBlock(rawInput, title: String(localized: "Input", bundle: .module))
           .contentContainer(identifier: ToolCallView.inputIdentifier(for: id))
       }
       ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
@@ -550,7 +553,7 @@ struct ToolCallBody: View, Equatable {
           .contentContainer(identifier: ToolCallView.contentIdentifier(for: id, index: index))
       }
       if let rawOutput = entry.rawOutput {
-        jsonBlock(rawOutput, title: String(localized: "Output"))
+        jsonBlock(rawOutput, title: String(localized: "Output", bundle: .module))
           .contentContainer(identifier: ToolCallView.outputIdentifier(for: id))
       }
     }
@@ -590,7 +593,10 @@ struct ToolCallBody: View, Equatable {
     case .diff(let diff):
       DiffView(diff: diff)
     case .terminal(let terminalID):
-      Label(String(localized: "Terminal \(terminalID)"), systemImage: SharedSymbol.terminal)
+      Label(
+        String(localized: "Terminal \(terminalID)", bundle: .module),
+        systemImage: SharedSymbol.terminal
+      )
         .foregroundStyle(.secondary)
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: partID)
@@ -635,7 +641,7 @@ private struct ToolCallWaitingStatus: View {
       if !Self.elicitations(linkedTo: entry, in: session).isEmpty {
         answerButton(session: session)
       } else if let host = Self.waitingHost(of: entry, in: session) {
-        let text = String(localized: "Waiting for \(host)")
+        let text = String(localized: "Waiting for \(host)", bundle: .module)
         Label(text, systemImage: ToolCallView.urlWaitingSymbol)
           .font(.callout)
           .foregroundStyle(.secondary)
@@ -655,11 +661,13 @@ private struct ToolCallWaitingStatus: View {
     Button {
       session.bringToFront(toolCall: entry)
     } label: {
-      Label(String(localized: "Waiting for your answer"), systemImage: SharedSymbol.question)
+      Label(
+        String(localized: "Waiting for your answer", bundle: .module),
+        systemImage: SharedSymbol.question)
     }
     .buttonStyle(.borderless)
     .font(.callout)
-    .accessibilityHint(Text("Shows the question"))
+    .accessibilityHint(Text("Shows the question", bundle: .module))
     .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
   }
 

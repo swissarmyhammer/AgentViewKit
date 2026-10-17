@@ -17,9 +17,9 @@ struct ConversationEmptyContent: Equatable, Sendable {
   /// The content that shows when the host gives no content.
   static var standard: ConversationEmptyContent {
     ConversationEmptyContent(
-      title: String(localized: "No Messages"),
+      title: String(localized: "No Messages", bundle: .module),
       systemImage: SharedSymbol.conversation,
-      markdown: String(localized: "Send a message to start the conversation.")
+      markdown: String(localized: "Send a message to start the conversation.", bundle: .module)
     )
   }
 }

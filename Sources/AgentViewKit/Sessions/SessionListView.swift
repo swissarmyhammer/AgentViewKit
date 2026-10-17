@@ -163,25 +163,27 @@ public struct SessionListView: View {
   /// The search field, the Refresh button and the new session button.
   private var header: some View {
     HStack {
-      TextField("Search", text: $query)
+      TextField(String(localized: "Search", bundle: .module), text: $query)
         .textFieldStyle(.roundedBorder)
         .accessibilityIdentifier(Self.searchIdentifier)
       if connection.canListSessions {
         Button {
           start(Self.refreshIdentifier) { await refresh() }
         } label: {
-          Label("Refresh", systemImage: SharedSymbol.reload)
+          Label(String(localized: "Refresh", bundle: .module), systemImage: SharedSymbol.reload)
             .labelStyle(.iconOnly)
         }
-        .help("Refresh")
+        .help(String(localized: "Refresh", bundle: .module))
         .accessibilityIdentifier(Self.refreshIdentifier)
       }
       if let onNewSession {
         Button(action: onNewSession) {
-          Label("New Session", systemImage: SharedSymbol.newSession)
+          Label(
+            String(localized: "New Session", bundle: .module), systemImage: SharedSymbol.newSession
+          )
             .labelStyle(.iconOnly)
         }
-        .help("New Session")
+        .help(String(localized: "New Session", bundle: .module))
         .accessibilityIdentifier(Self.newSessionIdentifier)
       }
     }
@@ -193,17 +195,17 @@ public struct SessionListView: View {
   @ViewBuilder private var content: some View {
     if !connection.canListSessions {
       ContentUnavailableView(
-        "Session List Not Available",
+        String(localized: "Session List Not Available", bundle: .module),
         systemImage: SharedSymbol.sessionList,
-        description: Text("The agent does not list its sessions.")
+        description: Text("The agent does not list its sessions.", bundle: .module)
       )
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier(Self.unavailableIdentifier)
     } else if connection.sessions.isEmpty {
       ContentUnavailableView(
-        "No Sessions",
+        String(localized: "No Sessions", bundle: .module),
         systemImage: SharedSymbol.conversation,
-        description: Text("The sessions of the agent show here.")
+        description: Text("The sessions of the agent show here.", bundle: .module)
       )
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier(Self.emptyIdentifier)
@@ -219,7 +221,7 @@ public struct SessionListView: View {
         row(for: info)
       }
       if connection.hasMoreSessions {
-        Button("Load More", systemImage: Self.loadMoreSymbol) {
+        Button(String(localized: "Load More", bundle: .module), systemImage: Self.loadMoreSymbol) {
           start(Self.loadMoreIdentifier) { await perform { try await connection.loadMoreSessions() } }
         }
         .accessibilityIdentifier(Self.loadMoreIdentifier)
@@ -274,11 +276,11 @@ public struct SessionListView: View {
             await perform { try await connection.deleteSession(info.sessionId) }
           }
         } label: {
-          Label("Delete", systemImage: SharedSymbol.delete)
+          Label(String(localized: "Delete", bundle: .module), systemImage: SharedSymbol.delete)
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.borderless)
-        .help("Delete")
+        .help(String(localized: "Delete", bundle: .module))
         .accessibilityIdentifier(Self.deleteIdentifier(for: info.sessionId))
       }
     }

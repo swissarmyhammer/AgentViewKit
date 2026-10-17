@@ -143,7 +143,7 @@ final class AgentCommandTarget {
   /// - Returns: The availability.
   func availability(of verb: AgentCommandVerb, payload: CommandPayload?) -> Availability {
     guard let session else {
-      return .unavailable(reason: String(localized: "The thread is not shown."))
+      return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
     }
     guard isAvailable(verb, payload: payload, in: session) else {
       return .unavailable(reason: Self.reason(for: verb))
@@ -183,17 +183,19 @@ final class AgentCommandTarget {
   /// - Returns: The reason.
   static func reason(for verb: AgentCommandVerb) -> String {
     switch verb {
-    case .send: String(localized: "Type a message first.")
-    case .cancel: String(localized: "The agent has no work to stop.")
-    case .approvePending, .rejectPending: String(localized: "No request waits for an answer.")
-    case .previousRequest: String(localized: "No request is before the front request.")
-    case .nextRequest: String(localized: "No request is after the front request.")
-    case .jumpToNext: String(localized: "No prompt is below.")
-    case .jumpToPrevious: String(localized: "No prompt is above.")
-    case .copyThread: String(localized: "The thread has no messages.")
-    case .toggleExpandAll: String(localized: "The thread has no items.")
-    case .scrollToBottom: String(localized: "The thread list is not shown.")
-    case .focusComposer: String(localized: "The composer is not shown.")
+    case .send: String(localized: "Type a message first.", bundle: .module)
+    case .cancel: String(localized: "The agent has no work to stop.", bundle: .module)
+    case .approvePending, .rejectPending:
+      String(localized: "No request waits for an answer.", bundle: .module)
+    case .previousRequest:
+      String(localized: "No request is before the front request.", bundle: .module)
+    case .nextRequest: String(localized: "No request is after the front request.", bundle: .module)
+    case .jumpToNext: String(localized: "No prompt is below.", bundle: .module)
+    case .jumpToPrevious: String(localized: "No prompt is above.", bundle: .module)
+    case .copyThread: String(localized: "The thread has no messages.", bundle: .module)
+    case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
+    case .scrollToBottom: String(localized: "The thread list is not shown.", bundle: .module)
+    case .focusComposer: String(localized: "The composer is not shown.", bundle: .module)
     }
   }
 
@@ -463,10 +465,10 @@ final class AgentCommandTarget {
   // MARK: - Copy
 
   /// The role line of a user message.
-  private static var userRole: String { String(localized: "User") }
+  private static var userRole: String { String(localized: "User", bundle: .module) }
 
   /// The role line of an agent message.
-  private static var assistantRole: String { String(localized: "Assistant") }
+  private static var assistantRole: String { String(localized: "Assistant", bundle: .module) }
 
   /// The message entries of the transcript of a session model as plain text,
   /// in transcript order.

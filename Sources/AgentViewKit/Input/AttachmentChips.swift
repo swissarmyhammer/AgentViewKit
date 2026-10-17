@@ -183,12 +183,12 @@ public struct AttachmentChips: View {
             Button {
               remove(attachment.id)
             } label: {
-              Label(String(localized: "Remove"), systemImage: SharedSymbol.remove)
+              Label(String(localized: "Remove", bundle: .module), systemImage: SharedSymbol.remove)
                 .labelStyle(.iconOnly)
             }
             .buttonStyle(.borderless)
-            .help(String(localized: "Remove this attachment"))
-            .accessibilityLabel(String(localized: "Remove \(attachment.name)"))
+            .help(String(localized: "Remove this attachment", bundle: .module))
+            .accessibilityLabel(String(localized: "Remove \(attachment.name)", bundle: .module))
             .accessibilityIdentifier(Self.removeIdentifier(for: attachment.id))
           }
         }
@@ -210,11 +210,17 @@ public struct AttachmentChips: View {
   /// - Parameter attachment: The attachment that the agent does not accept.
   /// - Returns: The mark.
   private func notAcceptedMark(for attachment: Attachment) -> some View {
-    Label(String(localized: "Not accepted"), systemImage: SharedSymbol.warning)
+    Label(String(localized: "Not accepted", bundle: .module), systemImage: SharedSymbol.warning)
       .labelStyle(.iconOnly)
       .foregroundStyle(editorTheme.severityWarning)
-      .help(String(localized: "The agent does not accept this kind of file. The prompt does not send it."))
-      .accessibilityLabel(String(localized: "The agent does not accept \(attachment.name)"))
+      .help(
+        String(
+          localized: "The agent does not accept this kind of file. The prompt does not send it.",
+          bundle: .module)
+      )
+      .accessibilityLabel(
+        String(localized: "The agent does not accept \(attachment.name)", bundle: .module)
+      )
       .accessibilityIdentifier(Self.notAcceptedIdentifier(for: attachment.id))
   }
 }

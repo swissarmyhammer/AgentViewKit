@@ -157,7 +157,7 @@ public nonisolated enum DiffSummary {
   static let gitNewPathSeparator = " b/"
 
   /// The language name of a file with no extension.
-  static let plainLanguage = String(localized: "Text")
+  static let plainLanguage = String(localized: "Text", bundle: .module)
 
   /// The language names of the common file extensions.
   static let languageNames: [String: String] = [
@@ -192,7 +192,7 @@ public nonisolated enum DiffSummary {
   ///   - removed: The number of removed lines.
   /// - Returns: "<language> diff, +<added> −<removed>".
   public static func accessibilityLabel(language: String, added: Int, removed: Int) -> String {
-    String(localized: "\(language) diff, +\(added) \u{2212}\(removed)")
+    String(localized: "\(language) diff, +\(added) \u{2212}\(removed)", bundle: .module)
   }
 
   // MARK: - Parse

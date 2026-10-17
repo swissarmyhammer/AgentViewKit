@@ -50,7 +50,7 @@ public struct EditorKitPromptEditor: View {
   /// The text of the note that the menu shows when the agent reports an
   /// empty command list.
   public static var noCommandsNote: String {
-    String(localized: "No commands")
+    String(localized: "No commands", bundle: .module)
   }
 
   /// The largest height of the completion list, in points.

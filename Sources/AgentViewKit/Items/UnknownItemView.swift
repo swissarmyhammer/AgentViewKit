@@ -65,7 +65,7 @@ public struct UnknownItemView: View {
     let (id, kind, json) = resolved
     JSONDisclosure(
       id: id,
-      title: String(localized: "Unknown item: \(kind)"),
+      title: String(localized: "Unknown item: \(kind)", bundle: .module),
       json: json,
       identifier: Self.identifier,
       isExpanded: isExpanded

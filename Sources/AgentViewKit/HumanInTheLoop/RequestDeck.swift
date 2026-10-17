@@ -422,7 +422,7 @@ private struct DeckHeader: View {
       }
       Spacer()
       if layout.moreCount > 0 {
-        Text(String(localized: "+\(layout.moreCount)"))
+        Text(String(localized: "+\(layout.moreCount)", bundle: .module))
           .monospacedDigit()
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(RequestDeck.moreIdentifier)
@@ -430,7 +430,7 @@ private struct DeckHeader: View {
           .accessibilityHidden(true)
       }
       if waitingCount > 0 {
-        Text(String(localized: "\(waitingCount) waiting"))
+        Text(String(localized: "\(waitingCount) waiting", bundle: .module))
           .monospacedDigit()
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(RequestDeck.waitingIdentifier)
@@ -447,7 +447,7 @@ private struct DeckHeader: View {
     stepButton(
       verb: .previousRequest, symbol: SharedSymbol.previousRequest, neighbor: \.previous,
       identifier: RequestDeck.previousIdentifier)
-    Text(String(localized: "\(layout.position) of \(layout.count)"))
+    Text(String(localized: "\(layout.position) of \(layout.count)", bundle: .module))
       .monospacedDigit()
       .accessibilityLabel(layout.positionLabel)
       .accessibilityIdentifier(RequestDeck.positionIdentifier)

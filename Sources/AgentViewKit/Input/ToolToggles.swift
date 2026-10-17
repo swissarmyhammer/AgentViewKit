@@ -96,12 +96,12 @@ public struct ToolToggles: View {
     if !tools.isEmpty {
       switch style {
       case .menu:
-        Menu(String(localized: "Tools"), systemImage: Self.menuSymbolName) {
+        Menu(String(localized: "Tools", bundle: .module), systemImage: Self.menuSymbolName) {
           toolSection
         }
         .menuIndicator(.hidden)
         .fixedSize()
-        .help(String(localized: "Turn tools on or off"))
+        .help(String(localized: "Turn tools on or off", bundle: .module))
         .accessibilityIdentifier(Self.menuIdentifier)
       case .list:
         Form {

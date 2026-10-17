@@ -113,8 +113,8 @@ public struct StateBanner: View {
       message(forIdle: idle)
     case .unknown(let wireValue, _):
       Message(
-        title: String(localized: "The agent reported an unknown state"),
-        explanation: String(localized: "The agent sent the state \(wireValue)."),
+        title: String(localized: "The agent reported an unknown state", bundle: .module),
+        explanation: String(localized: "The agent sent the state \(wireValue).", bundle: .module),
         symbolName: SharedSymbol.unknown,
         identifier: "state-banner-state-unknown")
     }
@@ -185,7 +185,8 @@ public struct StateBanner: View {
       message: message,
       action: showError.map {
         StatusBar.Action(
-          title: String(localized: "Show Error"), systemImage: Self.showErrorSymbol,
+          title: String(localized: "Show Error", bundle: .module),
+          systemImage: Self.showErrorSymbol,
           identifier: Self.showErrorIdentifier, isEnabled: true, perform: $0)
       }
     )
@@ -213,29 +214,31 @@ extension StateBanner {
   /// The text for an agent that runs. The agent can run with no prompt open,
   /// for example for background work or a compaction.
   private static let runningMessage = Message(
-    title: String(localized: "The agent is working"),
-    explanation: String(localized: "Wait for the result, or stop the work."),
+    title: String(localized: "The agent is working", bundle: .module),
+    explanation: String(localized: "Wait for the result, or stop the work.", bundle: .module),
     symbolName: SharedSymbol.inProgress,
     identifier: "state-banner-running")
 
   /// The text for an idle agent that gave no stop reason.
   private static let readyMessage = Message(
-    title: String(localized: "The agent is ready"),
-    explanation: String(localized: "Send a message to the agent."),
+    title: String(localized: "The agent is ready", bundle: .module),
+    explanation: String(localized: "Send a message to the agent.", bundle: .module),
     symbolName: SharedSymbol.completed,
     identifier: "state-banner-ready")
 
   /// The text for an idle state with the stop reason `end_turn`.
   private static let turnCompleteMessage = Message(
-    title: String(localized: "The response is complete"),
-    explanation: String(localized: "The agent finished the response. Send a message to continue."),
+    title: String(localized: "The response is complete", bundle: .module),
+    explanation: String(
+      localized: "The agent finished the response. Send a message to continue.", bundle: .module),
     symbolName: SharedSymbol.completed,
     identifier: "state-banner-end-turn")
 
   /// The text for an idle state with the stop reason `cancelled`.
   private static let cancelledMessage = Message(
-    title: String(localized: "The response was cancelled"),
-    explanation: String(localized: "The agent stopped the work because of the cancel request."),
+    title: String(localized: "The response was cancelled", bundle: .module),
+    explanation: String(
+      localized: "The agent stopped the work because of the cancel request.", bundle: .module),
     symbolName: SharedSymbol.cancelled,
     identifier: "state-banner-cancelled")
 
@@ -243,31 +246,34 @@ extension StateBanner {
   /// state, or an idle state while a request of the session waits for the
   /// answer of the user.
   private static let requiresActionMessage = Message(
-    title: String(localized: "The agent needs your input"),
-    explanation: String(localized: "Answer the request to let the agent continue."),
+    title: String(localized: "The agent needs your input", bundle: .module),
+    explanation: String(
+      localized: "Answer the request to let the agent continue.", bundle: .module),
     symbolName: SharedSymbol.userAction,
     identifier: "state-banner-requires-action")
 
   /// The text for an idle state with the stop reason `max_tokens`.
   private static let maxTokensMessage = Message(
-    title: String(localized: "The response is incomplete"),
+    title: String(localized: "The response is incomplete", bundle: .module),
     explanation: String(
-      localized: "The model used its maximum number of output tokens. Ask it to continue."),
+      localized: "The model used its maximum number of output tokens. Ask it to continue.",
+      bundle: .module),
     symbolName: SharedSymbol.maxTokens,
     identifier: "state-banner-max-tokens")
 
   /// The text for an idle state with the stop reason `max_turn_requests`.
   private static let maxTurnRequestsMessage = Message(
-    title: String(localized: "The response reached its request limit"),
+    title: String(localized: "The response reached its request limit", bundle: .module),
     explanation: String(
-      localized: "The response used its maximum number of model requests. Send a message to continue."),
+      localized: "The response used its maximum number of model requests. Send a message to continue.",
+      bundle: .module),
     symbolName: SharedSymbol.maxTurnRequests,
     identifier: "state-banner-max-turn-requests")
 
   /// The text for an idle state with the stop reason `refusal`.
   private static let refusalMessage = Message(
-    title: String(localized: "The model refused to continue"),
-    explanation: String(localized: "Change the request and send it again."),
+    title: String(localized: "The model refused to continue", bundle: .module),
+    explanation: String(localized: "Change the request and send it again.", bundle: .module),
     symbolName: SharedSymbol.refusal,
     identifier: "state-banner-refusal")
 
@@ -284,9 +290,13 @@ extension StateBanner {
   ///   explanation shows its `message`.
   private static func failedTurnMessage(error: ACPError?) -> Message {
     Message(
-      title: String(localized: "The response failed"),
-      explanation: error.map { String(localized: "The agent reported this failure: \($0.message)") }
-        ?? String(localized: "The response stopped because of a failure in the agent. Send the request again."),
+      title: String(localized: "The response failed", bundle: .module),
+      explanation: error.map {
+        String(localized: "The agent reported this failure: \($0.message)", bundle: .module)
+      }
+        ?? String(
+          localized: "The response stopped because of a failure in the agent. Send the request again.",
+          bundle: .module),
       symbolName: SharedSymbol.error,
       identifier: failedTurnIdentifier)
   }

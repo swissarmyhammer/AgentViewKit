@@ -119,7 +119,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   /// The text that the editor shows while the prompt is empty.
   static var placeholder: String {
-    String(localized: "Message the agent")
+    String(localized: "Message the agent", bundle: .module)
   }
 
   /// The text that a submit sends, or `nil` when the text is blank.

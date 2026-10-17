@@ -61,9 +61,9 @@ nonisolated struct DeckLayout: Equatable, Sendable {
   /// when M cards do not show. VoiceOver reads "k of N" and "+N" as this one
   /// element.
   var positionLabel: String {
-    let request = String(localized: "Request \(position) of \(count)")
+    let request = String(localized: "Request \(position) of \(count)", bundle: .module)
     guard moreCount > 0 else { return request }
-    return String(localized: "\(request), \(moreCount) more")
+    return String(localized: "\(request), \(moreCount) more", bundle: .module)
   }
 
   /// The place of a card in the deck.

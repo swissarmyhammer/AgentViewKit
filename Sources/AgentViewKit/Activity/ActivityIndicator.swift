@@ -53,7 +53,7 @@ public struct ActivityIndicator: View {
 
   /// The text that a shimmer shows while the agent thinks.
   static var thinkingText: String {
-    String(localized: "Thinking…")
+    String(localized: "Thinking…", bundle: .module)
   }
 
   /// The model that gives the state of the indicator.

@@ -227,7 +227,7 @@ public struct ElicitationView: View {
   ///   `PendingElicitation.validationFailure(of:)`.
   /// - Returns: "The agent cannot accept this answer: " and `reason`.
   static func failureText(reason: String) -> String {
-    String(localized: "The agent cannot accept this answer: \(reason)")
+    String(localized: "The agent cannot accept this answer: \(reason)", bundle: .module)
   }
 
   /// Sends the answers when each field passes validation and the check
@@ -284,7 +284,7 @@ public struct ElicitationHeader: View {
 
   /// The name of the server that each header shows. An elicitation over ACP
   /// comes from the agent.
-  public static let agentServer = String(localized: "The agent")
+  public static let agentServer = String(localized: "The agent", bundle: .module)
 
   /// The pending elicitation of the card.
   let request: PendingElicitation
@@ -303,7 +303,7 @@ public struct ElicitationHeader: View {
   /// - Parameter server: The display name of the server.
   /// - Returns: The title.
   public static func title(server: String) -> String {
-    String(localized: "\(server) asks for input")
+    String(localized: "\(server) asks for input", bundle: .module)
   }
 
   public var body: some View {
@@ -407,11 +407,18 @@ public struct ElicitationFooter: View {
   public var body: some View {
     HStack(spacing: theme.spacing.s) {
       Spacer()
-      Button("Cancel", systemImage: ElicitationView.cancelSymbol, role: .cancel) { context.cancel() }
+      Button(
+        String(localized: "Cancel", bundle: .module), systemImage: ElicitationView.cancelSymbol,
+        role: .cancel
+      ) { context.cancel() }
         .accessibilityIdentifier(ElicitationView.cancelIdentifier)
-      Button("Decline", systemImage: ElicitationView.declineSymbol) { context.decline() }
+      Button(
+        String(localized: "Decline", bundle: .module), systemImage: ElicitationView.declineSymbol
+      ) { context.decline() }
         .accessibilityIdentifier(ElicitationView.declineIdentifier)
-      Button("Submit", systemImage: ElicitationView.submitSymbol) { context.submit() }
+      Button(
+        String(localized: "Submit", bundle: .module), systemImage: ElicitationView.submitSymbol
+      ) { context.submit() }
         .buttonStyle(.glassProminent)
         .keyboardShortcut(.defaultAction)
         .disabled(!context.canSubmit)

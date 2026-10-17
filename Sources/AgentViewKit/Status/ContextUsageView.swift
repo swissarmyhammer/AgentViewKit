@@ -26,7 +26,7 @@ public struct ContextUsageView: View {
   @Environment(\.agentTheme) private var theme
 
   /// The caption of the token counts of the ring.
-  private static var tokensCaption: String { String(localized: "tokens") }
+  private static var tokensCaption: String { String(localized: "tokens", bundle: .module) }
 
   /// Makes the view.
   ///
@@ -53,7 +53,7 @@ public struct ContextUsageView: View {
       HStack(spacing: theme.spacing.s) {
         UsageRingView(
           numerator: usage.used, denominator: usage.size, caption: Self.tokensCaption, style: style)
-        .accessibilityLabel("Context used")
+        .accessibilityLabel(String(localized: "Context used", bundle: .module))
         .accessibilityIdentifier(Self.usageIdentifier)
         if let cost = usage.cost {
           Text(Self.costText(for: cost))

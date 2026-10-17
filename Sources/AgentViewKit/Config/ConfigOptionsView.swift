@@ -57,11 +57,11 @@ public struct ConfigOptionsView: View {
     /// The header of the section.
     public var title: String {
       switch category {
-      case .mode: String(localized: "Mode")
-      case .model: String(localized: "Model")
-      case .thoughtLevel: String(localized: "Thought Level")
-      case .modelConfig: String(localized: "Model Settings")
-      case .unknown, nil: String(localized: "Other")
+      case .mode: String(localized: "Mode", bundle: .module)
+      case .model: String(localized: "Model", bundle: .module)
+      case .thoughtLevel: String(localized: "Thought Level", bundle: .module)
+      case .modelConfig: String(localized: "Model Settings", bundle: .module)
+      case .unknown, nil: String(localized: "Other", bundle: .module)
       }
     }
   }
@@ -222,7 +222,8 @@ public struct ConfigOptionsView: View {
   private func content(_ sections: [CategorySection]) -> some View {
     switch style {
     case .menu:
-      Menu(String(localized: "Session Options"), systemImage: Self.menuSymbolName) {
+      Menu(String(localized: "Session Options", bundle: .module), systemImage: Self.menuSymbolName)
+      {
         sectionList(sections, inlineChoices: false)
       }
       .accessibilityIdentifier(Self.menuIdentifier)

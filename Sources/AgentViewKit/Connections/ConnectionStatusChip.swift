@@ -94,11 +94,11 @@ public struct ConnectionStatusChip: View {
   /// - Returns: The name, such as `Not reported`.
   private static func label(for status: MCPServerStatus) -> String {
     switch status {
-    case .notReported: String(localized: "Not reported")
-    case .connecting: String(localized: "Connecting")
-    case .connected: String(localized: "Connected")
+    case .notReported: String(localized: "Not reported", bundle: .module)
+    case .connecting: String(localized: "Connecting", bundle: .module)
+    case .connected: String(localized: "Connected", bundle: .module)
     case .failed: WorkStatusLabel.failed
-    case .closed: String(localized: "Closed")
+    case .closed: String(localized: "Closed", bundle: .module)
     }
   }
 

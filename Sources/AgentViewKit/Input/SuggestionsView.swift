@@ -50,7 +50,7 @@ public struct SuggestionsView: View {
               text.wrappedValue = AttributedString(suggestion)
             }
             .buttonStyle(.glass)
-            .help(String(localized: "Use this prompt"))
+            .help(String(localized: "Use this prompt", bundle: .module))
             .accessibilityIdentifier(Self.chipIdentifier(at: index))
           }
         }

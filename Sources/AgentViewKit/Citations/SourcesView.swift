@@ -85,7 +85,7 @@ public struct SourcesView: View {
       .padding(.top, theme.spacing.xs)
     } label: {
       Label {
-        Text("Sources (\(payload.sources.count))")
+        Text("Sources (\(payload.sources.count))", bundle: .module)
       } icon: {
         Image(systemName: SharedSymbol.sources)
       }
@@ -127,8 +127,8 @@ private struct SourceRow: View {
       InlineCitationPill(index: index)
         .accessibilityElement()
         .accessibilityAddTraits(.isStaticText)
-        .accessibilityLabel(Text("Source \(index)"))
-        .accessibilityValue(isHighlighted ? Text(SourcesView.highlightedValue) : Text(""))
+        .accessibilityLabel(Text("Source \(index)", bundle: .module))
+        .accessibilityValue(isHighlighted ? Text(SourcesView.highlightedValue) : Text(verbatim: ""))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
         .accessibilityIdentifier(SourcesView.numberIdentifier(index: index))
       VStack(alignment: .leading, spacing: theme.spacing.xs) {

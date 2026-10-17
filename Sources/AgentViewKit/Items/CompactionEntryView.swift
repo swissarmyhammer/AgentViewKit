@@ -58,7 +58,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
 
   /// The title of each row.
   private static var title: String {
-    String(localized: "Context compaction")
+    String(localized: "Context compaction", bundle: .module)
   }
 
   /// The name of a compaction status.
@@ -73,7 +73,8 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     case .completed: WorkStatusLabel.completed
     case .failed: WorkStatusLabel.failed
     case .cancelled: WorkStatusLabel.cancelled
-    case SessionEntry.Compaction.unreportedStatus: String(localized: "No status yet")
+    case SessionEntry.Compaction.unreportedStatus:
+      String(localized: "No status yet", bundle: .module)
     case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
     }
   }
@@ -115,7 +116,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       // The text is the element of the header. A container element here
       // merges into the element of an `ItemRow` and loses its identifier.
       .accessibilityElement(children: .ignore)
-      .accessibilityLabel("\(Self.title), \(statusText)")
+      .accessibilityLabel(String(localized: "\(Self.title), \(statusText)", bundle: .module))
       .accessibilityIdentifier(Self.identifier(for: key))
     }
   }

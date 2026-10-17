@@ -42,11 +42,12 @@ extension ElicitationHeader {
     guard hasWhoAsks(agentPath: agentPath, source: source) else { return nil }
     let shownNames =
       agentPath.count > whoAsksFullPathLimit
-      ? [String(localized: "…")] + agentPath.suffix(whoAsksTailCount)
+      ? [String(localized: "…", bundle: .module)] + agentPath.suffix(whoAsksTailCount)
       : agentPath
-    let path = ([rootLabel] + shownNames).joined(separator: String(localized: " › "))
+    let path = ([rootLabel] + shownNames).joined(
+      separator: String(localized: " › ", bundle: .module))
     guard let source else { return path }
-    return String(localized: "\(path) · \(source)")
+    return String(localized: "\(path) · \(source)", bundle: .module)
   }
 
   /// The accessibility label of the "who asks" line of an elicitation card.
@@ -65,9 +66,10 @@ extension ElicitationHeader {
   ///   and `source` is `nil`.
   public static func whoAsksAccessibilityLabel(agentPath: [String], source: String?, rootLabel: String) -> String? {
     guard hasWhoAsks(agentPath: agentPath, source: source) else { return nil }
-    let names = ([rootLabel] + agentPath).joined(separator: String(localized: ", "))
-    guard let source else { return String(localized: "Asked by \(names)") }
-    return String(localized: "Asked by \(names), from \(source)")
+    let names = ([rootLabel] + agentPath).joined(
+      separator: String(localized: ", ", bundle: .module))
+    guard let source else { return String(localized: "Asked by \(names)", bundle: .module) }
+    return String(localized: "Asked by \(names), from \(source)", bundle: .module)
   }
 
   /// Tells whether a request has "who asks" data.
@@ -123,5 +125,5 @@ extension EnvironmentValues {
   ///
   /// The agent sends no name for the root agent, so the app gives one, for
   /// example the name of the agent.
-  @Entry public var elicitationRootAgentLabel: String = String(localized: "root")
+  @Entry public var elicitationRootAgentLabel: String = String(localized: "root", bundle: .module)
 }

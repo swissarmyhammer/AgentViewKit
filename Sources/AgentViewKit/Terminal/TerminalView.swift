@@ -78,9 +78,9 @@ public struct TerminalView: View {
     /// The text of the footer.
     public var label: String {
       switch self {
-      case .code(let code): String(localized: "Exit code \(code)")
-      case .signal(let signal): String(localized: "Stopped by \(signal)")
-      case .unknown: String(localized: "Exited")
+      case .code(let code): String(localized: "Exit code \(code)", bundle: .module)
+      case .signal(let signal): String(localized: "Stopped by \(signal)", bundle: .module)
+      case .unknown: String(localized: "Exited", bundle: .module)
       }
     }
 
@@ -185,9 +185,9 @@ public struct TerminalView: View {
   /// The label that VoiceOver reads for the view.
   var accessibilityLabel: String {
     if let command = entry.command {
-      String(localized: "Terminal, \(command)")
+      String(localized: "Terminal, \(command)", bundle: .module)
     } else {
-      String(localized: "Terminal")
+      String(localized: "Terminal", bundle: .module)
     }
   }
 
@@ -197,7 +197,7 @@ public struct TerminalView: View {
       Image(systemName: SharedSymbol.terminal)
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
-      Text(entry.command ?? String(localized: "Terminal"))
+      Text(entry.command ?? String(localized: "Terminal", bundle: .module))
         .font(editorTheme.editorFont)
         .foregroundStyle(entry.command == nil ? .secondary : .primary)
         .lineLimit(1)
@@ -211,7 +211,7 @@ public struct TerminalView: View {
           .lineLimit(1)
           .truncationMode(.head)
           .help(cwd)
-          .accessibilityLabel(String(localized: "Working directory \(cwd)"))
+          .accessibilityLabel(String(localized: "Working directory \(cwd)", bundle: .module))
           .accessibilityIdentifier(Self.cwdIdentifier)
       }
     }
@@ -244,9 +244,9 @@ public struct TerminalView: View {
       HStack(spacing: theme.spacing.s) {
         ProgressView()
           .controlSize(.mini)
-          .accessibilityLabel(String(localized: "Running"))
+          .accessibilityLabel(String(localized: "Running", bundle: .module))
           .accessibilityIdentifier(Self.progressIdentifier)
-        Text(String(localized: "Running"))
+        Text(String(localized: "Running", bundle: .module))
           .font(.caption)
           .foregroundStyle(.secondary)
           .accessibilityHidden(true)

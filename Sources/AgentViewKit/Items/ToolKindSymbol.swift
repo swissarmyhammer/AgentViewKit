@@ -71,7 +71,7 @@ public nonisolated enum ToolStatusSymbol {
     case .completed: WorkStatusLabel.completed
     case .failed: WorkStatusLabel.failed
     case .cancelled: WorkStatusLabel.cancelled
-    case .unknown(Self.lostWireValue): String(localized: "Result lost")
+    case .unknown(Self.lostWireValue): String(localized: "Result lost", bundle: .module)
     case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
     }
   }

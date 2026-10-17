@@ -55,7 +55,7 @@ public struct AgentInfoHeader: View {
           .font(.headline)
           .accessibilityAddTraits(.isHeader)
           .accessibilityIdentifier(Self.nameIdentifier)
-        Text(String(localized: "Version \(info.version)"))
+        Text(String(localized: "Version \(info.version)", bundle: .module))
           .font(.callout)
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(Self.versionIdentifier)

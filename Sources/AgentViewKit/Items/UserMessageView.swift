@@ -69,9 +69,9 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     /// - Returns: "Sending", "Sent", or "Not sent".
     static func title(of state: SendState) -> String {
       switch state {
-      case .pending: String(localized: "Sending")
-      case .sent: String(localized: "Sent")
-      case .failed: String(localized: "Not sent")
+      case .pending: String(localized: "Sending", bundle: .module)
+      case .sent: String(localized: "Sent", bundle: .module)
+      case .failed: String(localized: "Not sent", bundle: .module)
       }
     }
 

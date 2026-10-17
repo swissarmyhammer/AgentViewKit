@@ -78,12 +78,12 @@ nonisolated extension DiffSummary.Operation {
   /// An operation that the kit does not know gives "Changed".
   public var label: String {
     switch self {
-    case .added: String(localized: "Added")
-    case .deleted: String(localized: "Deleted")
-    case .modified: String(localized: "Modified")
-    case .renamed: String(localized: "Renamed")
-    case .copied: String(localized: "Copied")
-    case .unknown: String(localized: "Changed")
+    case .added: String(localized: "Added", bundle: .module)
+    case .deleted: String(localized: "Deleted", bundle: .module)
+    case .modified: String(localized: "Modified", bundle: .module)
+    case .renamed: String(localized: "Renamed", bundle: .module)
+    case .copied: String(localized: "Copied", bundle: .module)
+    case .unknown: String(localized: "Changed", bundle: .module)
     }
   }
 }
@@ -93,6 +93,6 @@ nonisolated extension DiffSummary.FileSummary {
   ///
   /// The label is "<operation> <language> file", such as "Added Swift file".
   public var changeAccessibilityLabel: String {
-    String(localized: "\(operation.label) \(language) file")
+    String(localized: "\(operation.label) \(language) file", bundle: .module)
   }
 }

@@ -100,12 +100,12 @@ public struct CodeBlockView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      Button("Copy code", systemImage: SharedSymbol.copy) {
+      Button(String(localized: "Copy code", bundle: .module), systemImage: SharedSymbol.copy) {
         pasteboard.copyText(code)
       }
       .labelStyle(.iconOnly)
       .buttonStyle(.borderless)
-      .help("Copy code")
+      .help(String(localized: "Copy code", bundle: .module))
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .padding(.horizontal, theme.spacing.m)

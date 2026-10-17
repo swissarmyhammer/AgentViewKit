@@ -288,7 +288,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
           attachButton(file: file, actions: actions)
         }
       } else {
-        Text("The agent sent no patch text for these changes.")
+        Text("The agent sent no patch text for these changes.", bundle: .module)
           .font(.caption)
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(Self.noPatchIdentifier)
@@ -310,7 +310,8 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
         let lines = selection.lines.isEmpty ? file.changedLines : selection.lines
         onAttach(DiffAttachment(file: file.path, lines: lines))
       } label: {
-        Label(String(localized: "Attach to prompt"), systemImage: SharedSymbol.attach)
+        Label(
+          String(localized: "Attach to prompt", bundle: .module), systemImage: SharedSymbol.attach)
       }
       .accessibilityIdentifier(Self.attachIdentifier)
     }
@@ -353,17 +354,17 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
           .truncationMode(.tail)
         Spacer(minLength: theme.spacing.s)
         if let onAccept = actions.onAccept {
-          Button(String(localized: "Accept"), systemImage: Self.acceptSymbol) {
+          Button(String(localized: "Accept", bundle: .module), systemImage: Self.acceptSymbol) {
             onAccept(file.path, index)
           }
-          .accessibilityLabel(String(localized: "Accept hunk \(index + 1)"))
+          .accessibilityLabel(String(localized: "Accept hunk \(index + 1)", bundle: .module))
           .accessibilityIdentifier(Self.acceptIdentifier(for: index))
         }
         if let onReject = actions.onReject {
-          Button(String(localized: "Reject"), systemImage: Self.rejectSymbol) {
+          Button(String(localized: "Reject", bundle: .module), systemImage: Self.rejectSymbol) {
             onReject(file.path, index)
           }
-          .accessibilityLabel(String(localized: "Reject hunk \(index + 1)"))
+          .accessibilityLabel(String(localized: "Reject hunk \(index + 1)", bundle: .module))
           .accessibilityIdentifier(Self.rejectIdentifier(for: index))
         }
       }

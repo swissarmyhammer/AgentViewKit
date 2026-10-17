@@ -122,6 +122,6 @@ struct SelectOnTap: ViewModifier {
       .contentShape(.rect)
       .onTapGesture(perform: action)
       .accessibilityAction(.default, action)
-      .help("Show in the inspector")
+      .help(String(localized: "Show in the inspector", bundle: .module))
   }
 }

@@ -95,8 +95,10 @@ public struct ReasoningView: View {
   ///   "Thought" when ``EntryTimingView/spokenDuration(_:locale:)`` gives
   ///   no duration text.
   public static func completedTitle(duration: TimeInterval?) -> String {
-    EntryTimingView.spokenDuration(duration).map { String(localized: "Thought for \($0)") }
-      ?? String(localized: "Thought")
+    EntryTimingView.spokenDuration(duration).map {
+      String(localized: "Thought for \($0)", bundle: .module)
+    }
+      ?? String(localized: "Thought", bundle: .module)
   }
 
   /// The label that VoiceOver reads for a block (plan.md §6).
@@ -110,10 +112,12 @@ public struct ReasoningView: View {
   ///   when complete, or "Reasoning" when complete with no shown duration.
   public static func accessibilityLabel(isInProgress: Bool, duration: TimeInterval?) -> String {
     if isInProgress {
-      return String(localized: "Reasoning, in progress")
+      return String(localized: "Reasoning, in progress", bundle: .module)
     }
-    return EntryTimingView.spokenDuration(duration).map { String(localized: "Reasoning, \($0)") }
-      ?? String(localized: "Reasoning")
+    return EntryTimingView.spokenDuration(duration).map {
+      String(localized: "Reasoning, \($0)", bundle: .module)
+    }
+      ?? String(localized: "Reasoning", bundle: .module)
   }
 
   public var body: some View {
@@ -194,7 +198,7 @@ struct ReasoningBlock<Content: View>: View {
       }
       .buttonStyle(.borderless)
       .accessibilityLabel(
-        expanded ? Text("Hide reasoning") : Text("Show reasoning")
+        expanded ? Text("Hide reasoning", bundle: .module) : Text("Show reasoning", bundle: .module)
       )
       .accessibilityIdentifier(ReasoningView.toggleIdentifier(for: id))
     }

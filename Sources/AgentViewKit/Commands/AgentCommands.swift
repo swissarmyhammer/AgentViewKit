@@ -69,18 +69,18 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// The title that the menus and the palette show.
   public var title: String {
     switch self {
-    case .send: String(localized: "Send Message")
-    case .cancel: String(localized: "Stop")
-    case .approvePending: String(localized: "Approve Request")
-    case .rejectPending: String(localized: "Reject Request")
-    case .previousRequest: String(localized: "Previous Request")
-    case .nextRequest: String(localized: "Next Request")
-    case .jumpToNext: String(localized: "Next Prompt")
-    case .jumpToPrevious: String(localized: "Previous Prompt")
-    case .copyThread: String(localized: "Copy Thread")
-    case .toggleExpandAll: String(localized: "Expand or Collapse All")
-    case .scrollToBottom: String(localized: "Scroll to Bottom")
-    case .focusComposer: String(localized: "Focus Composer")
+    case .send: String(localized: "Send Message", bundle: .module)
+    case .cancel: String(localized: "Stop", bundle: .module)
+    case .approvePending: String(localized: "Approve Request", bundle: .module)
+    case .rejectPending: String(localized: "Reject Request", bundle: .module)
+    case .previousRequest: String(localized: "Previous Request", bundle: .module)
+    case .nextRequest: String(localized: "Next Request", bundle: .module)
+    case .jumpToNext: String(localized: "Next Prompt", bundle: .module)
+    case .jumpToPrevious: String(localized: "Previous Prompt", bundle: .module)
+    case .copyThread: String(localized: "Copy Thread", bundle: .module)
+    case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)
+    case .scrollToBottom: String(localized: "Scroll to Bottom", bundle: .module)
+    case .focusComposer: String(localized: "Focus Composer", bundle: .module)
     }
   }
 
@@ -175,7 +175,7 @@ nonisolated struct AgentCommand: Command {
   func availability(in context: CommandContext) -> Availability {
     MainActor.assumeIsolated {
       guard let target else {
-        return .unavailable(reason: String(localized: "The thread is not shown."))
+        return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
       }
       return target.availability(of: verb, payload: payload)
     }

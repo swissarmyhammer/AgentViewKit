@@ -262,24 +262,30 @@ public nonisolated enum ElicitationValidator {
 
   /// The validation messages, in ASD-STE100 Simplified Technical English.
   ///
-  /// Each message is localized with `String(localized:)`. A message with a
-  /// count or a bound is a format string with the value as an argument.
+  /// Each message is a localized string of the string catalog of the kit
+  /// (`bundle: .module`). A message with a count or a bound is a format string
+  /// with the value as an argument.
   private enum Message {
-    static let required = String(localized: "This field is necessary.")
-    static let notText = String(localized: "The value must be text.")
-    static let notEmail = String(localized: "The value must be an email address.")
-    static let notURI = String(localized: "The value must be a URI.")
-    static let patternMismatch = String(localized: "The text does not match the necessary pattern.")
-    static let patternNotCorrect = String(localized: "The pattern of this field is not correct.")
-    static let notDate = String(localized: "The value must be a date in the format YYYY-MM-DD.")
+    static let required = String(localized: "This field is necessary.", bundle: .module)
+    static let notText = String(localized: "The value must be text.", bundle: .module)
+    static let notEmail = String(localized: "The value must be an email address.", bundle: .module)
+    static let notURI = String(localized: "The value must be a URI.", bundle: .module)
+    static let patternMismatch = String(
+      localized: "The text does not match the necessary pattern.", bundle: .module)
+    static let patternNotCorrect = String(
+      localized: "The pattern of this field is not correct.", bundle: .module)
+    static let notDate = String(
+      localized: "The value must be a date in the format YYYY-MM-DD.", bundle: .module)
     static let notDateTime = String(
-      localized: "The value must be a date and time in RFC 3339 format.")
-    static let notNumber = String(localized: "The value must be a number.")
-    static let notInteger = String(localized: "The value must be a whole number.")
-    static let notBoolean = String(localized: "The value must be true or false.")
-    static let notAChoice = String(localized: "The value must be one of the choices.")
-    static let notAList = String(localized: "The value must be a list of choices.")
-    static let itemNotAChoice = String(localized: "Each item must be one of the choices.")
+      localized: "The value must be a date and time in RFC 3339 format.", bundle: .module)
+    static let notNumber = String(localized: "The value must be a number.", bundle: .module)
+    static let notInteger = String(localized: "The value must be a whole number.", bundle: .module)
+    static let notBoolean = String(localized: "The value must be true or false.", bundle: .module)
+    static let notAChoice = String(
+      localized: "The value must be one of the choices.", bundle: .module)
+    static let notAList = String(localized: "The value must be a list of choices.", bundle: .module)
+    static let itemNotAChoice = String(
+      localized: "Each item must be one of the choices.", bundle: .module)
 
     /// The message for a text that is shorter than `minLength`.
     ///
@@ -290,7 +296,7 @@ public nonisolated enum ElicitationValidator {
     /// - Parameter count: The `minLength` of the field, in code points.
     /// - Returns: The localized message.
     static func tooShort(_ count: Int) -> String {
-      String(localized: "The text must have \(count) or more characters.")
+      String(localized: "The text must have \(count) or more characters.", bundle: .module)
     }
 
     /// The message for a text that is longer than `maxLength`.
@@ -302,23 +308,23 @@ public nonisolated enum ElicitationValidator {
     /// - Parameter count: The `maxLength` of the field, in code points.
     /// - Returns: The localized message.
     static func tooLong(_ count: Int) -> String {
-      String(localized: "The text must have \(count) or fewer characters.")
+      String(localized: "The text must have \(count) or fewer characters.", bundle: .module)
     }
 
     static func belowMinimum(_ bound: Double) -> String {
-      String(localized: "The value must be \(text(of: bound)) or more.")
+      String(localized: "The value must be \(text(of: bound)) or more.", bundle: .module)
     }
 
     static func aboveMaximum(_ bound: Double) -> String {
-      String(localized: "The value must be \(text(of: bound)) or less.")
+      String(localized: "The value must be \(text(of: bound)) or less.", bundle: .module)
     }
 
     static func tooFewItems(_ count: Int) -> String {
-      String(localized: "Select \(count) or more items.")
+      String(localized: "Select \(count) or more items.", bundle: .module)
     }
 
     static func tooManyItems(_ count: Int) -> String {
-      String(localized: "Select \(count) or fewer items.")
+      String(localized: "Select \(count) or fewer items.", bundle: .module)
     }
 
     /// The text of a bound, with no fraction for a whole number.

@@ -67,8 +67,8 @@ public struct CommandOutputView: View {
     /// The text that VoiceOver reads as the value of the footer.
     public var label: String {
       switch self {
-      case .success: String(localized: "Succeeded")
-      case .failure: String(localized: "Failed")
+      case .success: String(localized: "Succeeded", bundle: .module)
+      case .failure: String(localized: "Failed", bundle: .module)
       }
     }
 
@@ -199,27 +199,27 @@ public struct CommandOutputView: View {
   /// The label that VoiceOver reads for the view.
   var accessibilityLabel: String {
     if let exitCode {
-      String(localized: "Command output, exit \(exitCode)")
+      String(localized: "Command output, exit \(exitCode)", bundle: .module)
     } else {
-      String(localized: "Command output")
+      String(localized: "Command output", bundle: .module)
     }
   }
 
   /// The row with the command and the Copy button.
   private var header: some View {
     HStack(spacing: theme.spacing.s) {
-      Text(command ?? String(localized: "Output"))
+      Text(command ?? String(localized: "Output", bundle: .module))
         .font(editorTheme.editorFont)
         .foregroundStyle(command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Copy output"), systemImage: SharedSymbol.copy) {
+      Button(String(localized: "Copy output", bundle: .module), systemImage: SharedSymbol.copy) {
         pasteboard.copyText(output)
       }
       .labelStyle(.iconOnly)
       .buttonStyle(.borderless)
-      .help(String(localized: "Copy output"))
+      .help(String(localized: "Copy output", bundle: .module))
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .padding(.horizontal, theme.spacing.m)
@@ -248,7 +248,8 @@ public struct CommandOutputView: View {
   /// - Returns: The row.
   private func footer(exitCode: Int, outcome: ExitOutcome) -> some View {
     OutputExitLabel(
-      text: String(localized: "Exit code \(exitCode)"), symbolName: outcome.symbolName,
+      text: String(localized: "Exit code \(exitCode)", bundle: .module),
+      symbolName: outcome.symbolName,
       outcome: outcome, identifier: Self.footerIdentifier)
   }
 }

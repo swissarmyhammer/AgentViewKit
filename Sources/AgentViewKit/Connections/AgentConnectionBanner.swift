@@ -54,7 +54,7 @@ public struct AgentConnectionBanner: View {
       disconnectedMessage
     case .failed(let error):
       StateBanner.Message(
-        title: String(localized: "The connection to the agent failed"),
+        title: String(localized: "The connection to the agent failed", bundle: .module),
         explanation: error.localizedDescription,
         symbolName: SharedSymbol.error,
         identifier: failedIdentifier)
@@ -65,8 +65,10 @@ public struct AgentConnectionBanner: View {
 
   /// The text of the disconnected banner.
   private static let disconnectedMessage = StateBanner.Message(
-    title: String(localized: "The agent is not connected"),
-    explanation: String(localized: "No connection to the agent is open. The agent receives no messages."),
+    title: String(localized: "The agent is not connected", bundle: .module),
+    explanation: String(
+      localized: "No connection to the agent is open. The agent receives no messages.",
+      bundle: .module),
     symbolName: SharedSymbol.disconnected,
     identifier: disconnectedIdentifier)
 }

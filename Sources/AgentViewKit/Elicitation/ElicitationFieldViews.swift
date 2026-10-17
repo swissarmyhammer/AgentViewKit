@@ -105,7 +105,7 @@ public struct ElicitationFieldView: View {
 /// field.
 struct ElicitationFieldChrome<Control: View>: View {
   /// The text that VoiceOver reads for the required mark.
-  static var requiredLabel: String { String(localized: "Required") }
+  static var requiredLabel: String { String(localized: "Required", bundle: .module) }
 
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -485,12 +485,13 @@ public struct ElicitationDateField: View {
         )
         .labelsHidden()
         .accessibilityIdentifier(context.controlIdentifier)
-        Button("Remove Date", systemImage: SharedSymbol.remove) {
+        Button(String(localized: "Remove Date", bundle: .module), systemImage: SharedSymbol.remove)
+        {
           value.wrappedValue = nil
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
-        .help("Remove Date")
+        .help(String(localized: "Remove Date", bundle: .module))
         .accessibilityIdentifier(Self.clearIdentifier(for: context.schema.name))
       }
     } else {
@@ -560,10 +561,10 @@ public struct ElicitationSingleChoiceField: View {
   public static let radioGroupLimit = 5
 
   /// The title of the menu item that removes the answer.
-  static var noSelectionTitle: String { String(localized: "None") }
+  static var noSelectionTitle: String { String(localized: "None", bundle: .module) }
 
   /// The accessibility value of the selected radio button.
-  static var selectedValue: String { String(localized: "Selected") }
+  static var selectedValue: String { String(localized: "Selected", bundle: .module) }
 
   /// The accessibility identifier of the radio group of the field named
   /// `name`.

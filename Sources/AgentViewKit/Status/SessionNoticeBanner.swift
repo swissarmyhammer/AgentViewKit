@@ -86,10 +86,11 @@ struct NoticeBanner: View {
   ///   know gives its wire value.
   static func severityLabel(_ severity: NoticeSeverity) -> String {
     switch severity {
-    case .info: String(localized: "Information")
-    case .warning: String(localized: "Warning")
-    case .error: String(localized: "Error")
-    case .unknown(let wireValue): String(localized: "Unknown severity: \(wireValue)")
+    case .info: String(localized: "Information", bundle: .module)
+    case .warning: String(localized: "Warning", bundle: .module)
+    case .error: String(localized: "Error", bundle: .module)
+    case .unknown(let wireValue):
+      String(localized: "Unknown severity: \(wireValue)", bundle: .module)
     }
   }
 
@@ -182,7 +183,10 @@ struct NoticeRow: View {
       .accessibilityLabel(label)
       .accessibilityIdentifier(identifier)
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Dismiss"), systemImage: Self.dismissSymbol, action: dismiss)
+      Button(
+        String(localized: "Dismiss", bundle: .module), systemImage: Self.dismissSymbol,
+        action: dismiss
+      )
         .labelStyle(.iconOnly)
         .buttonStyle(.glass)
         .accessibilityIdentifier(dismissIdentifier)

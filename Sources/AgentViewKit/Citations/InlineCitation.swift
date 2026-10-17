@@ -169,8 +169,8 @@ extension View {
   /// - Parameter index: The one-based number of the source.
   /// - Returns: A view with the label "Source <index>".
   func inlineCitationAccessibility(index: Int) -> some View {
-    accessibilityLabel(Text("Source \(index)"))
-      .accessibilityHint(Text("Shows the source in the list of sources."))
+    accessibilityLabel(Text("Source \(index)", bundle: .module))
+      .accessibilityHint(Text("Shows the source in the list of sources.", bundle: .module))
       .accessibilityIdentifier(InlineCitation.identifier(index: index))
   }
 }

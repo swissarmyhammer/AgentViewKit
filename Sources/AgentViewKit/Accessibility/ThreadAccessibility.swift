@@ -31,12 +31,12 @@ public enum ThreadAccessibility {
   /// The announcement of the end of the work of a prompt with no stop reason
   /// to report, or with `end_turn`.
   private static var responseCompleteText: String {
-    String(localized: "Response complete")
+    String(localized: "Response complete", bundle: .module)
   }
 
   /// The announcement of the end of the work of a prompt with `cancelled`.
   private static var responseCancelledText: String {
-    String(localized: "Response cancelled")
+    String(localized: "Response cancelled", bundle: .module)
   }
 
   /// The announcement of the idle that ends the work of a prompt.
@@ -274,7 +274,7 @@ public enum ThreadAccessibility {
     old: [PendingRequestSummary], new: [PendingRequestSummary]
   ) -> [String] {
     added(in: new, since: old, id: \.id).map {
-      String(localized: "Action required: \($0.title)")
+      String(localized: "Action required: \($0.title)", bundle: .module)
     }
   }
 

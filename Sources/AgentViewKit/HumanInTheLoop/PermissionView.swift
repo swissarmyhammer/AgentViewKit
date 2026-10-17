@@ -235,7 +235,9 @@ public struct PermissionView: View {
         }
       }
     } else {
-      Label("Tool call \(id.rawValue)", systemImage: Self.toolCallSymbol)
+      Label(
+        String(localized: "Tool call \(id.rawValue)", bundle: .module),
+        systemImage: Self.toolCallSymbol)
     }
   }
 
@@ -254,7 +256,9 @@ public struct PermissionView: View {
       }
       .font(editorTheme.editorFont)
       .accessibilityElement(children: .ignore)
-      .accessibilityLabel("Command \(command.command), in \(command.cwd.rawValue)")
+      .accessibilityLabel(
+        String(localized: "Command \(command.command), in \(command.cwd.rawValue)", bundle: .module)
+      )
       .accessibilityIdentifier(Self.subjectIdentifier)
       if let terminalId = command.terminalId,
         let entry = session.transcript.entry(withID: .wire(.terminal(terminalId)))?.terminal
@@ -318,11 +322,15 @@ public struct PermissionView: View {
   /// - Returns: The row.
   private func commentRow(for option: FoundationModelsACP.PermissionOption) -> some View {
     HStack(spacing: theme.spacing.s) {
-      TextField("Tell the agent what to do instead", text: $comment)
+      TextField(
+        String(localized: "Tell the agent what to do instead", bundle: .module), text: $comment
+      )
         .textFieldStyle(.roundedBorder)
         .onSubmit { sendReject(option: option) }
         .accessibilityIdentifier(Self.commentIdentifier)
-      Button("Send", systemImage: Self.commentSubmitSymbol) { sendReject(option: option) }
+      Button(String(localized: "Send", bundle: .module), systemImage: Self.commentSubmitSymbol) {
+        sendReject(option: option)
+      }
         .buttonStyle(.glass)
         .accessibilityIdentifier(Self.commentSubmitIdentifier)
     }
@@ -337,7 +345,10 @@ public struct PermissionView: View {
     if let modeOption = PermissionPresentation.autoModeOption(in: session.configOptions ?? []),
       let allow = options.first(where: { $0.kind == .allowOnce })
     {
-      Button("Allow and Switch to Auto Mode", systemImage: Self.switchToAutoSymbol) {
+      Button(
+        String(localized: "Allow and Switch to Auto Mode", bundle: .module),
+        systemImage: Self.switchToAutoSymbol
+      ) {
         switchToAuto(allow: allow, modeOption: modeOption)
       }
       .buttonStyle(.glass)

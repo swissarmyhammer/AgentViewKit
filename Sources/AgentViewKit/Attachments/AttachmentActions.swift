@@ -51,17 +51,26 @@ struct AttachmentActions: View {
 
   var body: some View {
     HStack {
-      Button("Open", systemImage: SharedSymbol.open, action: didTapOpen)
+      Button(
+        String(localized: "Open", bundle: .module), systemImage: SharedSymbol.open,
+        action: didTapOpen
+      )
         .accessibilityIdentifier(Action.open.identifier(prefix: identifierPrefix))
-      Button("Reveal in Finder", systemImage: SharedSymbol.folder, action: didTapReveal)
+      Button(
+        String(localized: "Reveal in Finder", bundle: .module), systemImage: SharedSymbol.folder,
+        action: didTapReveal
+      )
         .accessibilityIdentifier(Action.reveal.identifier(prefix: identifierPrefix))
       ShareLink(item: attachment.url) {
-        Label("Share", systemImage: SharedSymbol.share)
+        Label(String(localized: "Share", bundle: .module), systemImage: SharedSymbol.share)
       }
       .accessibilityIdentifier(Action.share.identifier(prefix: identifierPrefix))
-      Button("Save", systemImage: SharedSymbol.save) { isExporting = true }
+      Button(String(localized: "Save", bundle: .module), systemImage: SharedSymbol.save) {
+        isExporting = true
+      }
         .accessibilityIdentifier(Action.save.identifier(prefix: identifierPrefix))
-      Button("Quick Look", systemImage: SharedSymbol.quickLook) { quickLookURL = attachment.url }
+      Button(String(localized: "Quick Look", bundle: .module), systemImage: SharedSymbol.quickLook)
+      { quickLookURL = attachment.url }
         .accessibilityIdentifier(Action.quickLook.identifier(prefix: identifierPrefix))
     }
     .labelStyle(.iconOnly)

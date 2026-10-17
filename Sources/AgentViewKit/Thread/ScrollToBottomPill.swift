@@ -39,8 +39,8 @@ public struct ScrollToBottomPill: View {
   /// - Returns: "N new" when `newItemCount` is more than zero, otherwise
   ///   "Scroll to Bottom".
   public static func title(newItemCount: Int) -> String {
-    guard newItemCount > 0 else { return String(localized: "Scroll to Bottom") }
-    return String(localized: "\(newItemCount) new")
+    guard newItemCount > 0 else { return String(localized: "Scroll to Bottom", bundle: .module) }
+    return String(localized: "\(newItemCount) new", bundle: .module)
   }
 
   public var body: some View {

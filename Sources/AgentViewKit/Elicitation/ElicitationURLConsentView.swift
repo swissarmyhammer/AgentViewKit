@@ -230,17 +230,30 @@ public struct ElicitationURLConsentView: View {
       switch phase {
       case .idle:
         cancelButton(action: cancel)
-        Button("Decline", systemImage: Self.declineSymbol, action: decline)
+        Button(
+          String(localized: "Decline", bundle: .module), systemImage: Self.declineSymbol,
+          action: decline
+        )
           .accessibilityIdentifier(Self.declineIdentifier)
-        Button("Open in Browser", systemImage: Self.openSymbol, action: open)
+        Button(
+          String(localized: "Open in Browser", bundle: .module), systemImage: Self.openSymbol,
+          action: open
+        )
           .buttonStyle(.glassProminent)
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
         cancelButton(action: stopWaiting)
-        Button("Retry", systemImage: Self.retrySymbol, action: openBrowser)
+        Button(
+          String(localized: "Retry", bundle: .module), systemImage: Self.retrySymbol,
+          action: openBrowser
+        )
           .buttonStyle(.glassProminent)
-          .accessibilityLabel("Open \(ElicitationHeader.agentServer) in the browser again")
+        .accessibilityLabel(
+          String(
+            localized: "Open \(ElicitationHeader.agentServer) in the browser again", bundle: .module
+          )
+        )
           .accessibilityIdentifier(Self.retryIdentifier)
       }
     }
@@ -252,7 +265,10 @@ public struct ElicitationURLConsentView: View {
   /// - Parameter action: The action of the button in the current step.
   /// - Returns: The Cancel button.
   private func cancelButton(action: @escaping () -> Void) -> some View {
-    Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: action)
+    Button(
+      String(localized: "Cancel", bundle: .module), systemImage: Self.cancelSymbol, role: .cancel,
+      action: action
+    )
       .accessibilityIdentifier(Self.cancelIdentifier)
   }
 
