@@ -41,8 +41,24 @@ comments:
     - evidence: the implement step ran one full swift test --skip-build after the change: 1301 tests in 152 suites passed with 2 known issues, 127 tests in 16 suites passed, 1 test in 1 suite passed. swift build --build-tests: no warning in Sources/ or Tests/. It was not run again (no repeat runs).
     - next: commit, review, push. New card from this work: ^xbdpt4y (ConversationView.position(of:) and AgentCommandTarget have the same position lookup).
   timestamp: 2026-10-17T00:14:56.006833+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m53kpa21268bw8xr1v8pgy0a
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (70dc6a0): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 4 files reviewed. 4 .kanban files were not reviewed (.reviewignore). Manual read: (1) No behavior change. The old helper did `session.transcript.first { $0.id == .wire(id) }.flatMap(object)`. The new call does `session.transcript.entry(withID: .wire(...))?.toolCall` or `?.terminal`, and `entry(withID:)` is `first { $0.id == id }`. Thus both give the first entry with the id, nil when no entry has the id, and nil when the first entry with the id is of a different case. (2) `TranscriptEntry.terminal` matches `case .terminal(let terminal)`, the same case as the old terminalEntry(withID:) closure. (3) No public API change: the two extensions have no access modifier (internal), and the deleted helpers were private. (4) The doc comments in TranscriptEntryLookup.swift, TranscriptEntryKind.swift and TranscriptEntryLookupTests.swift say only what the code does. (5) TranscriptEntryLookupTests uses no clock, sleep, poll, retry or timeLimit. Its one wait is ObservationWait.until, which uses withObservationTracking and has no clock. (6) The list of places that were not changed is correct. A search of Sources/ found no other lookup of a transcript entry by id. MessageActions.lastUserEntry(before:in:) uses firstIndex for a position. ConversationView.position(of:) and AgentCommandTarget.jumpTarget(forward:) look up a position by row key (card ^xbdpt4y). AgentCommandTarget.select(_:id:key:) does not use the transcript.
+    - next: done. No commit and no push in this step.
+  timestamp: 2026-10-17T00:20:21.697576+00:00
+- actor: claude-code
+  id: 01m53kpyqzv7jp102zw7bwxs8q
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — new TranscriptEntryLookup.swift and TranscriptEntryLookupTests.swift; TranscriptEntryKind.swift (terminal); PermissionView.swift (3 private helpers deleted); new card ^xbdpt4y
+    - test: green — full swift test --skip-build, 1301 tests in 152 suites passed, 2 known issues
+    - commit: 70dc6a0
+    - review: clean — 0 findings
+  timestamp: 2026-10-17T00:20:42.879873+00:00
+position_column: done
+position_ordinal: ffe580
 title: 'PermissionView: toolCallEntry(withID:) repeats the logic of terminalEntry(withID:)'
 ---
 Found in a whole-file review of Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift during mail step 7 (T4-A4 ^n0jvm90). The finding is not in a line that step 7 changed: commit e677b04 (2026-10-06) wrote the lines.
