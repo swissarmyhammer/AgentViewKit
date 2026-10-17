@@ -61,6 +61,46 @@ comments:
     - evidence: swift build --build-tests complete. One full swift test --skip-build: 1319 tests in 154 suites passed, 0 failed, 0 skipped. The 2 known issues are the planned negative tests aWrappedTextWithAFixedVerticalSizeFails and aViewThatIgnoresTheThemeFails, and both tests passed. The two new split view tests passed: aPressOnAChipShowsTheInspectorItemOfTheSplitView and theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView. The demo gate was not run (no Examples change).
     - next: review
   timestamp: 2026-10-17T10:37:34.063918+00:00
+- actor: claude-code
+  id: 01m54qdcdpjc4rc23cw1hr09v2
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit f99948a): engine counts findings 0, confirmed 0, refuted 0, attempted 7, failed 0. 3 files reviewed. The 2 .kanban files are not reviewed (.reviewignore). The caller check gave 4 open items in the section "Caller Check Findings (2026-10-17 05:38)", all in Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift: (1) the suite doc says that each failure is a change of SwiftUI, but the mutation check shows a failure from an AgentViewKit change; (2) the suite doc and the doc of the thread view test say that a block from a render pass shows the item, but the two samples are of diagnoseChipPress() only; (3) the doc of withoutAnimation says that the tests show that the block shows the item, but only the samples show this; (4) the first sentence of the suite doc comes from the diagnostic samples, not from a test.
+    - caller check, items that pass: the fence doc names CFRunLoop.c (swift-corelibs-foundation), CFExecutor.swift and the lldb samples. It limits the claim to the sampled chain, says that a later SwiftUI can make the order not fixed, and says to investigate with a new sample, not with repeat runs. lldb2 shows the modes argument kCFRunLoopCommonModes (po $x2 at -[NSRunLoop performInModes:block:]). Between the end of the press and the KVO change, there is no performInModes call. The block always runs (CFRunLoopWakeUp after the add, and main thread under CFMainExecutor.run() and CFRunLoopRun). The cancel handler and the fence block call the same Release, the resume runs only one time, and the state is behind a Mutex. Each hosted test does a synchronous require after the press or the select, and the thread view test calls render() before the fence. There is no sleep, poll, retry, time limit, timeLimit or XCUITest. The split view item is found with public AppKit API only (NSSplitView.delegate, NSSplitViewController.splitViewItems, NSSplitViewItem.behavior .inspector). The state tests are kept. Only their docs changed.
+    - note for the step owner (not an item): the order proof reads CFRunLoop.c of swift-corelibs-foundation. The test process runs the CoreFoundation of macOS. The samples show __CFRunLoopDoBlocks in that binary, but they do not show the FIFO code of the block list. The fence doc does not state this assumption. Also, the samples show the enqueue on thread 7 (named by Swift Testing) with the queue com.apple.main-thread, and the run loop blocks on thread 1. The fence uses RunLoop.main, so the proof does not depend on the thread number.
+    - next: the implementer corrects the 4 caller check items. Then run /review again.
+  timestamp: 2026-10-17T10:44:37.942236+00:00
+- actor: claude-code
+  id: 01m54qea4c6bmwmw0vgs8dg5j7
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 3 files (RunLoopBlockFence.swift, RunLoopBlockFenceTests.swift, AttachmentInspectorHostedTests.swift); mutation check 2 of 2 failed at once, undone
+    - test: green — swift test --skip-build, 1319 tests in 154 suites passed, 2 known issues
+    - commit: f99948a
+    - review: findings — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift (suite doc 2 items, thread view test doc, withoutAnimation doc)
+  timestamp: 2026-10-17T10:45:08.364785+00:00
+- actor: claude-code
+  id: 01m54qxyyc6jwszz84ev55bj5w
+  text: |-
+    ### Sample of the thread view test (2026-10-17, lldb, one run)
+    - Test: theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView(), run with swiftpm-testing-helper under lldb. Command file: scratchpad lldb-thread.cmds. Output: scratchpad lldb-thread.txt (1355 lines). The test passed in that run.
+    - Breakpoints: (1) regex "SplitViewCoordinator\.updateInspector" with bt 70; (2) CFRunLoopPerformBlock with bt 30; (3) added to the two named breakpoints, as a marker for the change of isCollapsed (this test has no KVO print): -[NSSplitViewItem setCollapsed:] with p/x $x2 (the BOOL argument) and bt 30. The modes argument of -[NSRunLoop performInModes:block:] was not read in this sample.
+    - At the mount (HostedViewHarness.init, makeKeyAndOrderFront at HostedViewHarness.swift:151, via -[NSWindow _setUpFirstResponder], recalculateKeyViewLoop and NSHostingView.responderNode): setCollapsed: YES from SystemSplitView.makeNSViewController, then SplitViewCoordinator.updateInspector, then CFRunLoopPerformBlock from -[NSRunLoop performInModes:block:], onNextMainRunLoop(do:) and updateInspector. Between the mount and the render() at AttachmentInspectorHostedTests.swift:214 there is no suspension, so this block did not run before the fence.
+    - In the render() before the fence (AttachmentInspectorHostedTests.swift:214): HostedViewHarness.render() (HostedViewHarness.swift:183), -[NSView layoutSubtreeIfNeeded], NSHostingView.layout(), ViewGraphRootValueUpdater.render, GraphHost.flushTransactions(), SystemSplitView.updateNSViewController(_:context:), SplitViewCoordinator.updateInspector(_:with:animated:), then CFRunLoopPerformBlock from -[NSRunLoop performInModes:block:], onNextMainRunLoop(do:) and updateInspector. This is the same chain as the chip press samples, in one synchronous call on the thread of the test task (thread 8, queue com.apple.main-thread). After it, in the same render, 4 more CFRunLoopPerformBlock calls come from FocusState.Box.update(property:phase:) through onNextMainRunLoop(do:) (ViewGraph.updateOutputs).
+    - Next CFRunLoopPerformBlock: the fence, from RunLoopBlockFence.afterPendingBlocks() at AttachmentInspectorHostedTests.swift:215, through -[NSRunLoop performInModes:block:].
+    - Then on thread 1 (main, swift_task_asyncMainDrainQueue, CFMainExecutor.run(), CFRunLoopRun, _CFRunLoopRunSpecificWithOptions, __CFRunLoopRun, __CFRunLoopDoBlocks): two blocks run closures of SplitViewCoordinator.updateInspector through the closure of Transaction.addAnimationListener(allFinished:) (stops 1.2 and 1.3, two times). After the second one, -[NSSplitViewItem setCollapsed:] with NO (x2 = 0) in __CFRunLoopDoBlocks.
+    - Between the end of the render() at line 214 and setCollapsed: NO, the only CFRunLoopPerformBlock call is the one of the fence. After setCollapsed: NO, 8 more FocusState enqueues come on thread 1 from NSHostingView.layout() passes, and then enqueues from HostedViewHarness.close() and from other threads (QuickLook, LaunchServices).
+    - Result: the sample shows the same chain inside the render() that comes before the fence. It shows one more fact: the mount also adds an updateInspector block that is still in the list at the fence. The fence waits for it too, because it waits for each common-mode block that was added before it. The docs now cite this sample.
+    - Doc changes: suite doc (item 1: "is treated as a SwiftUI change", plus "a change in AgentViewKit can also make these tests fail"; item 4: the collapsed state after the render passes comes from the diagnostic lldb samples of a chip press; the block chain comes from the samples of the chip press and of the thread view test), doc of the chip split view test (the samples are the source), doc of the thread view split view test (item 2: this sample, with the mount block), doc of withoutAnimation (item 3: the lldb samples show that the block sets the item to not collapsed; the tests show only the state after the render, the fence and one more render), doc of RunLoopBlockFence (note 1: the assumption that the CoreFoundation of macOS adds, selects and runs the blocks as CFRunLoop.c of swift-corelibs-foundation does; the samples show __CFRunLoopDoBlocks in the macOS binary, not its list code; the limit names both samples, and says that only a chip press sample reads the modes argument).
+    - Note 2 of the reviewer (thread 7 or 8 for the enqueue, thread 1 for the run loop): no change. The fence uses RunLoop.main.
+  timestamp: 2026-10-17T10:53:41.196237+00:00
+- actor: claude-code
+  id: 01m54qy9b6dasf0988ryhj8beg
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift (suite doc, doc of aPressOnAChipShowsTheInspectorItemOfTheSplitView, doc of theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView, doc of withoutAnimation), Sources/AgentViewKitTestSupport/RunLoopBlockFence.swift (assumption about the CoreFoundation of macOS, limit names both samples). Doc comments only, no code change. One lldb sample of the thread view test: scratchpad lldb-thread.txt (see the sample comment). `swift build --build-tests` exit 0 (only the known "missing creator for mutated node" line of the mlx-swift_Cmlx bundle). `swift test --skip-build --filter 'RunLoopBlockFenceTests|AttachmentInspectorHostedTests'` one run: 16 tests in 2 suites passed. All 4 caller check items are checked. No commit and no push.
+    - next: /review
+  timestamp: 2026-10-17T10:53:51.846029+00:00
 position_column: doing
 position_ordinal: '80'
 title: Find a certain way to test that the AppKit split view shows the attachment inspector item
@@ -88,3 +128,19 @@ Facts:
 A failure of these tests is treated as a SwiftUI change. Investigate it with a new sample (an lldb call stack of the enqueue). Do not run the tests again to find the cause, and do not add a retry.
 
 Write all text in STE.
+
+## Review Findings (2026-10-17 05:38)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+## Caller Check Findings (2026-10-17 05:38)
+
+> Scope: the adversarial check that the caller of the review asked for, on commit f99948a. The engine gave 0 findings. These items come from a read of the diff, the card and the samples lldb1.txt and lldb2.txt.
+
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift` suite doc of `AttachmentInspectorHostedTests` — The doc says "A failure of these tests is a change of SwiftUI". The mutation check on this card shows that a change in AgentViewKit (the get closure of the binding of AttachmentInspectorModifier) also makes the two split view tests fail. The rule on this card says only that a failure is treated as a SwiftUI change. Change the doc so that it says what the rule says, and does not give SwiftUI as the cause of each failure.
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift` suite doc, and the doc of `theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView()` — The docs say that the render pass of the thread view adds the block that shows the item ("In the sampled stacks, the render pass adds a block to the main run loop", and "that pass adds the block that shows the item to the main run loop"). The two samples, lldb1.txt and lldb2.txt, are of one diagnostic test only: diagnoseChipPress(). No sample shows the chain of AgentThreadView. The doc of the fence limits the proof to the sampled chain. Make a sample of the enqueue for the thread view (an lldb call stack, one run) and record it on this card, or change the docs so that they say that the chain of the thread view has no sample.
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift` doc of `withoutAnimation(_:)` — The doc says "the split view tests show that the block that the render pass adds to the main run loop shows the inspector item". The tests show only that the item is not collapsed after the render pass, the fence and one more render pass. The lldb samples (the KVO stack in `__CFRunLoopDoBlocks`) show that the block shows the item. The tests do not show it. Change the doc so that it names the samples as the source of that claim.
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift` suite doc — The first sentence says "After a change of the selection, the render pass does not show the inspector item of the AppKit split view". No test in the commit checks that the item is collapsed after the render pass and before the fence. The diagnostic samples show it (DIAG afterRender2 and afterRender3 in lldb1.txt and lldb2.txt). Change the doc so that it names the samples as the source of that claim.

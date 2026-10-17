@@ -34,16 +34,26 @@ import Synchronization
 /// wake the run loop, so the fence calls `CFRunLoopWakeUp` after it adds the
 /// block.
 ///
+/// The assumption of the proofs: `CFRunLoop.c` is the source of
+/// swift-corelibs-foundation, but the test process runs the CoreFoundation of
+/// macOS. The samples show that the blocks of the main run loop run in
+/// `__CFRunLoopDoBlocks` of the CoreFoundation binary of macOS. The samples do
+/// not show how that binary adds a block to the list or in which order it runs
+/// the list. Thus the proofs assume that the CoreFoundation of macOS adds,
+/// selects and runs the blocks as `CFRunLoop.c` does.
+///
 /// The limit of the claim: the order is proven only for the sampled chain of
-/// the inspector of a split view. That chain is `HostedViewHarness.render()`,
+/// the inspector of a split view. The samples are of a chip press and of a host
+/// selection of a thread view. That chain is `HostedViewHarness.render()`,
 /// `NSHostingView.layout()`, `SplitViewCoordinator.updateInspector`,
 /// `onNextMainRunLoop`, `-[NSRunLoop performInModes:block:]` with
 /// `kCFRunLoopCommonModes`, and `CFRunLoopPerformBlock`, all in one
-/// synchronous call of the render pass. If a later SwiftUI moves that work to
-/// the main dispatch queue or to a Core Animation commit, the order to the
-/// fence is not fixed, and a test that uses the fence can then fail only
-/// sometimes. Investigate such a failure with a new sample of the stack of
-/// the enqueue. Do not run the test again to find the cause.
+/// synchronous call of the render pass. Only a sample of a chip press reads
+/// the modes argument. If a later SwiftUI moves that work to the main dispatch
+/// queue or to a Core Animation commit, the order to the fence is not fixed,
+/// and a test that uses the fence can then fail only sometimes. Investigate
+/// such a failure with a new sample of the stack of the enqueue. Do not run
+/// the test again to find the cause.
 @MainActor
 public enum RunLoopBlockFence {
   /// Suspends until the main run loop runs a block that this call adds.

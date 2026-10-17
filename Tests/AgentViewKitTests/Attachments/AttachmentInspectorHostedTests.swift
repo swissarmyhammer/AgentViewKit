@@ -14,15 +14,23 @@ import UniformTypeIdentifiers
 /// inspector that is open at the mount shows its split view item after the
 /// first render pass.
 ///
-/// After a change of the selection, the render pass does not show the
-/// inspector item of the AppKit split view. In the sampled stacks, the render
-/// pass adds a block to the main run loop, and that block shows the item. Thus
-/// the split view tests wait with ``RunLoopBlockFence/afterPendingBlocks()``
-/// after the render pass that adds the block, make one more render pass, and
-/// then read the split view item and the tree. The doc of the fence gives the
-/// proof of the order and its limit. A failure of these tests is a change of
-/// SwiftUI: investigate it with a new sample, and do not run the tests again
-/// to find the cause.
+/// The diagnostic lldb samples of a chip press (2026-10-17) show that the
+/// render pass does not show the inspector item of the AppKit split view after
+/// a change of the selection: the item stays collapsed after the press and
+/// after two more render passes. The lldb samples of a chip press and of
+/// ``theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView()``
+/// show that the render pass adds a block to the main run loop
+/// (`SplitViewCoordinator.updateInspector`, `onNextMainRunLoop`,
+/// `CFRunLoopPerformBlock`), and that a block of
+/// `SplitViewCoordinator.updateInspector` sets the item to not collapsed in
+/// `__CFRunLoopDoBlocks`. Thus the split view tests wait with
+/// ``RunLoopBlockFence/afterPendingBlocks()`` after the render pass that adds
+/// the block, make one more render pass, and then read the split view item and
+/// the tree. The doc of the fence gives the proof of the order and its limit.
+/// A failure of these tests is treated as a SwiftUI change: investigate it
+/// with a new sample (an lldb call stack of the enqueue), and do not run the
+/// tests again to find the cause. A change in AgentViewKit can also make these
+/// tests fail.
 ///
 /// The state tests check the input to the split view: after a chip press, and
 /// after a host selection of a thread view, they check the selection
@@ -173,8 +181,10 @@ import UniformTypeIdentifiers
   /// A press on a chip shows the inspector item of the AppKit split view, and
   /// the item shows the name and the five actions of the attachment.
   ///
-  /// The press makes a render pass, and that pass adds the block that shows
-  /// the item to the main run loop. The fence waits until that block ran.
+  /// The press makes a render pass. In the lldb samples of a chip press, that
+  /// pass adds the block that sets the item to not collapsed to the main run
+  /// loop. The fence waits until each common-mode block that was added before
+  /// it ran.
   @Test func aPressOnAChipShowsTheInspectorItemOfTheSplitView() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -195,9 +205,13 @@ import UniformTypeIdentifiers
   /// split view of the thread view, and the item shows the name and the five
   /// actions of the attachment.
   ///
-  /// The select does not make a render pass, so the test makes one: that pass
-  /// adds the block that shows the item to the main run loop. The fence waits
-  /// until that block ran.
+  /// The select does not make a render pass, so the test makes one. In the
+  /// lldb sample of this test (2026-10-17), that pass adds a block of
+  /// `SplitViewCoordinator.updateInspector` to the main run loop with the same
+  /// chain as the chip press. The mount also adds such a block, and that block
+  /// did not run before the fence. Both blocks ran in `__CFRunLoopDoBlocks`,
+  /// and the item was set to not collapsed after both. The fence waits until
+  /// each common-mode block that was added before it ran.
   @Test func theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -273,9 +287,11 @@ import UniformTypeIdentifiers
   /// Runs `body` in a transaction with no animation.
   ///
   /// The tests make each change that opens the inspector with no animation.
-  /// With no animation, the split view tests show that the block that the
-  /// render pass adds to the main run loop shows the inspector item. No test
-  /// checks a change that opens the inspector with an animation.
+  /// With no animation, the lldb samples show that the block that the render
+  /// pass adds to the main run loop sets the inspector item to not collapsed
+  /// in `__CFRunLoopDoBlocks`. The split view tests show only that the item is
+  /// not collapsed after that render pass, the fence and one more render pass.
+  /// No test checks a change that opens the inspector with an animation.
   ///
   /// - Parameter body: The change to make.
   /// - Throws: The error of `body`.
