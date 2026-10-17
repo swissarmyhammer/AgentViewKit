@@ -80,7 +80,8 @@ import UniformTypeIdentifiers
   ///
   /// Gap: the test does not prove that the AppKit split view shows the
   /// inspector item. In the off-screen harness window the item shows only
-  /// after a run loop turn. Task ^2pbwh3e checks that on a real screen.
+  /// after a run loop turn. Task ^kk004eb adds a hosted test that reads the
+  /// item after one hop through the main queue.
   @Test func aPressOnAChipSelectsItsAttachmentForTheInspectorContent() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -140,8 +141,8 @@ import UniformTypeIdentifiers
   ///
   /// Gap: the test does not prove that the AppKit split view of the thread
   /// view shows the inspector item. In the off-screen harness window the
-  /// item shows only after a run loop turn. Task ^2pbwh3e checks that on a
-  /// real screen.
+  /// item shows only after a run loop turn. Task ^kk004eb adds a hosted test
+  /// that reads the item after one hop through the main queue.
   @Test func theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
