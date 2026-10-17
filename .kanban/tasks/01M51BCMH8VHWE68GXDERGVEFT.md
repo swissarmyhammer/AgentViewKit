@@ -156,7 +156,7 @@ The deck:
 - No announcement for a URL waiting state (task 37).
 
 Answers:
-- Q7 yes for v1: Stop waiting does not tell the agent. Card ^6hnfscd (01M51WCMFZP7V301NFF6HNFSCD) records the need for a later ACP message.
+- Q7 yes for v1: Stop waiting does not tell the agent. The ACP specification has no message for this, and we do not plan a change to the specification. (Card 01M51WCMFZP7V301NFF6HNFSCD was deleted on 2026-10-17 by decision of the user.)
 
 Test plan (row 41). Rules: no clock wait, sleep, poll, retry or timeLimit. Hosted suites use .hostedSerially (HostedTestLock). After a main-actor change: render(). After async work: render(when:) or ObservationWait.until on a certain event. No new XCUITest, no new waitForExistence.
 - [x] ACPClient tests for awaitingURLCompletions (in that package, task 52).
