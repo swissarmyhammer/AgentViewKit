@@ -14,15 +14,21 @@ import UniformTypeIdentifiers
 /// inspector that is open at the mount shows its split view item after the
 /// first render pass.
 ///
-/// No hosted test proves that the AppKit split view shows the inspector item
-/// after a change of the selection. That work is in SwiftUI and AppKit, and
-/// the code does not prove its order with the steps of a test, so such a test
-/// can fail only sometimes. Task ^aw6wmda records this gap for a later UI
-/// test. The state tests cover the input to the split view: after a chip
-/// press, and after a host selection of a thread view, they check the
-/// selection synchronously, and they read the inspector content of the
-/// selection in its own harness (``mountInspectorContent(of:)``). Other state
-/// tests check the selection that ``AgentThreadView`` gives to its inspector.
+/// After a change of the selection, the render pass does not show the
+/// inspector item of the AppKit split view. In the sampled stacks, the render
+/// pass adds a block to the main run loop, and that block shows the item. Thus
+/// the split view tests wait with ``RunLoopBlockFence/afterPendingBlocks()``
+/// after the render pass that adds the block, make one more render pass, and
+/// then read the split view item and the tree. The doc of the fence gives the
+/// proof of the order and its limit. A failure of these tests is a change of
+/// SwiftUI: investigate it with a new sample, and do not run the tests again
+/// to find the cause.
+///
+/// The state tests check the input to the split view: after a chip press, and
+/// after a host selection of a thread view, they check the selection
+/// synchronously, and they read the inspector content of the selection in its
+/// own harness (``mountInspectorContent(of:)``). Other state tests check the
+/// selection that ``AgentThreadView`` gives to its inspector.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorHostedTests {
   /// The size of a view that shows the attachment and the inspector.
   static let hostSize = CGSize(width: 900, height: 600)
@@ -86,9 +92,9 @@ import UniformTypeIdentifiers
   /// test requires the selection at once. Then it mounts the inspector
   /// content of the selection in its own harness with one render pass.
   ///
-  /// Gap: the test checks the input to the AppKit split view, not the item
-  /// that the split view shows. No hosted test proves that item. Task
-  /// ^aw6wmda records this gap for a later UI test.
+  /// The test checks the input to the AppKit split view.
+  /// ``aPressOnAChipShowsTheInspectorItemOfTheSplitView()`` checks the item
+  /// that the split view shows.
   @Test func aPressOnAChipSelectsItsAttachmentForTheInspectorContent() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -142,9 +148,9 @@ import UniformTypeIdentifiers
   /// the inspector content of the selection in its own harness with one
   /// render pass.
   ///
-  /// Gap: the test checks the input to the AppKit split view of the thread
-  /// view, not the item that the split view shows. No hosted test proves that
-  /// item. Task ^aw6wmda records this gap for a later UI test.
+  /// The test checks the input to the AppKit split view of the thread view.
+  /// ``theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView()``
+  /// checks the item that the split view shows.
   @Test func theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -162,6 +168,54 @@ import UniformTypeIdentifiers
     let content = try Self.mountInspectorContent(of: selection)
     defer { content.close() }
     #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "notes.md")
+  }
+
+  /// A press on a chip shows the inspector item of the AppKit split view, and
+  /// the item shows the name and the five actions of the attachment.
+  ///
+  /// The press makes a render pass, and that pass adds the block that shows
+  /// the item to the main run loop. The fence waits until that block ran.
+  @Test func aPressOnAChipShowsTheInspectorItemOfTheSplitView() async throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let attachment = try Self.attachment(named: "blob.bin", in: directory)
+    let selection = InspectorSelection()
+    let harness = Self.mountChip(of: attachment, selection: selection)
+    defer { harness.close() }
+    try #require(Self.inspectorItem(in: harness)?.isCollapsed == true)
+
+    try Self.pressChip(in: harness, selecting: attachment, in: selection)
+    await RunLoopBlockFence.afterPendingBlocks()
+    harness.render()
+
+    try Self.requireInspectorItem(in: harness, showsTheNameOf: "blob.bin")
+  }
+
+  /// A host selection of a thread view shows the inspector item of the AppKit
+  /// split view of the thread view, and the item shows the name and the five
+  /// actions of the attachment.
+  ///
+  /// The select does not make a render pass, so the test makes one: that pass
+  /// adds the block that shows the item to the main run loop. The fence waits
+  /// until that block ran.
+  @Test func theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView() async throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let attachment = try Self.attachment(named: "notes.md", in: directory)
+    let selection = InspectorSelection()
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mountThreadView(of: session, selection: selection)
+    defer { harness.close() }
+    try #require(Self.inspectorItem(in: harness)?.isCollapsed == true)
+
+    try Self.withoutAnimation { selection.select(attachment) }
+    try #require(selection.attachment == attachment)
+    harness.render()
+    await RunLoopBlockFence.afterPendingBlocks()
+    harness.render()
+
+    try Self.requireInspectorItem(in: harness, showsTheNameOf: "notes.md")
   }
 
   /// A thread view gives the selection of its host to its inspector, when the
@@ -218,10 +272,10 @@ import UniformTypeIdentifiers
 
   /// Runs `body` in a transaction with no animation.
   ///
-  /// The inspector opens with an AppKit split view animation. The harness
-  /// window is not on a screen, so that animation does not end, and the
-  /// inspector stays closed. Thus the tests make each change that opens the
-  /// inspector with no animation.
+  /// The tests make each change that opens the inspector with no animation.
+  /// With no animation, the split view tests show that the block that the
+  /// render pass adds to the main run loop shows the inspector item. No test
+  /// checks a change that opens the inspector with an animation.
   ///
   /// - Parameter body: The change to make.
   /// - Throws: The error of `body`.
@@ -301,6 +355,50 @@ import UniformTypeIdentifiers
     let harness = HostedViewHarness(AttachmentInspector(attachment), size: hostSize)
     harness.render()
     return harness
+  }
+
+  /// The split view item of the inspector in the window of `harness`.
+  ///
+  /// The inspector is an AppKit split view whose delegate is a split view
+  /// controller. The function walks the views under the hosting view for that
+  /// split view, and gives its item whose behavior is `.inspector`.
+  ///
+  /// - Parameter harness: The harness that shows the inspector.
+  /// - Returns: The item, or `nil` when the window has no inspector item.
+  static func inspectorItem<Content: View>(in harness: HostedViewHarness<Content>)
+    -> NSSplitViewItem?
+  {
+    views(under: harness.hostingView)
+      .compactMap { ($0 as? NSSplitView)?.delegate as? NSSplitViewController }
+      .flatMap(\.splitViewItems)
+      .first { $0.behavior == .inspector }
+  }
+
+  /// `view` and each view under it, in depth first order.
+  ///
+  /// - Parameter view: The view at the top.
+  /// - Returns: The views.
+  static func views(under view: NSView) -> [NSView] {
+    [view] + view.subviews.flatMap(views(under:))
+  }
+
+  /// Requires that the split view of `harness` shows the inspector item, and
+  /// that the item shows the name and the five actions of the attachment.
+  ///
+  /// - Parameters:
+  ///   - harness: The harness that shows the inspector.
+  ///   - name: The file name of the attachment.
+  /// - Throws: An issue when the window has no inspector item, or when the
+  ///   item is collapsed.
+  static func requireInspectorItem<Content: View>(
+    in harness: HostedViewHarness<Content>, showsTheNameOf name: String
+  ) throws {
+    let item = try #require(inspectorItem(in: harness))
+    try #require(!item.isCollapsed)
+    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == name)
+    for identifier in AttachmentInspector.actionIdentifiers {
+      #expect(harness.element(identifier: identifier) != nil, "No action \(identifier).")
+    }
   }
 
   /// Writes a file and makes its attachment.
