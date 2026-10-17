@@ -5,47 +5,10 @@ import Testing
 /// Tests for `ElicitationValidator` (plan.md §13.1).
 @Suite struct ElicitationValidatorTests {
   typealias Choice = ElicitationFieldSchema.Choice
-
-  /// Makes a field schema with the name `field`.
-  ///
-  /// - Parameters:
-  ///   - kind: The kind of the field.
-  ///   - required: Whether the field is required.
-  /// - Returns: The field schema.
-  private func field(
-    _ kind: ElicitationFieldSchema.Kind,
-    required: Bool = false
-  ) -> ElicitationFieldSchema {
-    ElicitationFieldSchema(
-      name: "field",
-      title: "Field",
-      description: nil,
-      required: required,
-      kind: kind,
-      defaultValue: nil
-    )
-  }
-
-  /// A text kind with the given constraints.
-  private func text(
-    minLength: Int? = nil,
-    maxLength: Int? = nil,
-    pattern: String? = nil,
-    format: ElicitationFieldSchema.TextFormat? = nil
-  ) -> ElicitationFieldSchema.Kind {
-    .text(minLength: minLength, maxLength: maxLength, pattern: pattern, format: format)
-  }
-
-  /// A multi-choice kind over `a`, `b`, and `c`.
-  private func multiChoice(minItems: Int? = nil, maxItems: Int? = nil)
-    -> ElicitationFieldSchema.Kind
-  {
-    .multiChoice(
-      ["a", "b", "c"].map { Choice(const: $0, title: $0) },
-      minItems: minItems,
-      maxItems: maxItems
-    )
-  }
+  /// The shared field helpers. A field made with no name has the name
+  /// `field`, and a multi-choice kind made with no choices has the choices
+  /// `a`, `b`, and `c`.
+  typealias Fields = ElicitationTestFields
 
   /// Validates `value` against `schema` and returns whether it is satisfied.
   private func passes(_ value: JSONValue?, _ schema: ElicitationFieldSchema) -> Bool {
@@ -58,7 +21,7 @@ import Testing
 
   @Test(arguments: [nil, JSONValue.null, .string(""), .array([])])
   func aMissingRequiredFieldFails(value: JSONValue?) {
-    let state = ElicitationValidator.validate(value, against: field(text(), required: true))
+    let state = ElicitationValidator.validate(value, against: Fields.field(Fields.text(), required: true))
 
     #expect(!state.isSatisfied)
     #expect(state.errors == ["This field is necessary."])
@@ -66,14 +29,14 @@ import Testing
 
   @Test(arguments: [nil, JSONValue.null, .string(""), .array([])])
   func anEmptyOptionalFieldPasses(value: JSONValue?) {
-    let state = ElicitationValidator.validate(value, against: field(text(minLength: 3)))
+    let state = ElicitationValidator.validate(value, against: Fields.field(Fields.text(minLength: 3)))
 
     #expect(state.isSatisfied)
     #expect(state.errors.isEmpty)
   }
 
   @Test func aRequiredBooleanThatIsFalsePasses() {
-    #expect(passes(.bool(false), field(.boolean, required: true)))
+    #expect(passes(.bool(false), Fields.field(.boolean, required: true)))
   }
 
   @Test func theSatisfiedStateHasNoErrors() {
@@ -85,13 +48,13 @@ import Testing
   // MARK: - Text
 
   @Test func aTextFieldRejectsAValueThatIsNotAString() {
-    let state = ElicitationValidator.validate(.number(1), against: field(text()))
+    let state = ElicitationValidator.validate(.number(1), against: Fields.field(Fields.text()))
 
     #expect(state.errors == ["The value must be text."])
   }
 
   @Test func minLengthIsApplied() {
-    let schema = field(text(minLength: 3))
+    let schema = Fields.field(Fields.text(minLength: 3))
 
     #expect(!passes(.string("ab"), schema))
     #expect(passes(.string("abc"), schema))
@@ -101,7 +64,7 @@ import Testing
   }
 
   @Test func maxLengthIsApplied() {
-    let schema = field(text(maxLength: 3))
+    let schema = Fields.field(Fields.text(maxLength: 3))
 
     #expect(passes(.string("abc"), schema))
     #expect(!passes(.string("abcd"), schema))
@@ -112,34 +75,34 @@ import Testing
 
   @Test func aPrecomposedLetterIsOneCodePoint() {
     // U+00E9 is one Unicode code point.
-    #expect(passes(.string("\u{E9}"), field(text(maxLength: 1))))
+    #expect(passes(.string("\u{E9}"), Fields.field(Fields.text(maxLength: 1))))
   }
 
   @Test func aLetterWithACombiningMarkIsTwoCodePoints() {
     // "e" and U+0301 are two Unicode code points and one character.
     let state = ElicitationValidator.validate(
-      .string("e\u{301}"), against: field(text(maxLength: 1)))
+      .string("e\u{301}"), against: Fields.field(Fields.text(maxLength: 1)))
 
     #expect(state.errors == ["The text must have 1 or fewer characters."])
   }
 
   @Test func anEmojiIsOneCodePoint() {
     // U+1F44D is one Unicode code point and two UTF-16 code units.
-    #expect(passes(.string("👍"), field(text(maxLength: 1))))
+    #expect(passes(.string("👍"), Fields.field(Fields.text(maxLength: 1))))
   }
 
   @Test func aFlagIsTwoCodePoints() {
     // A flag is two regional indicator code points and one character.
     let flag = JSONValue.string("🇨🇭")
 
-    #expect(passes(flag, field(text(minLength: 2))))
+    #expect(passes(flag, Fields.field(Fields.text(minLength: 2))))
     #expect(
-      ElicitationValidator.validate(flag, against: field(text(maxLength: 1))).errors
+      ElicitationValidator.validate(flag, against: Fields.field(Fields.text(maxLength: 1))).errors
         == ["The text must have 1 or fewer characters."])
   }
 
   @Test func aPatternIsASearchInTheText() {
-    let schema = field(text(pattern: "[a-z]+"))
+    let schema = Fields.field(Fields.text(pattern: "[a-z]+"))
 
     #expect(passes(.string("abc"), schema))
     #expect(passes(.string("abc1"), schema))
@@ -150,11 +113,11 @@ import Testing
   }
 
   @Test func aPatternMatchesAPartOfTheText() {
-    #expect(passes(.string("zip 12345"), field(text(pattern: "[0-9]{5}"))))
+    #expect(passes(.string("zip 12345"), Fields.field(Fields.text(pattern: "[0-9]{5}"))))
   }
 
   @Test func anAnchoredPatternMustMatchTheFullText() {
-    let schema = field(text(pattern: "^[a-z]+$"))
+    let schema = Fields.field(Fields.text(pattern: "^[a-z]+$"))
 
     #expect(passes(.string("abc"), schema))
     #expect(!passes(.string("abc1"), schema))
@@ -163,13 +126,14 @@ import Testing
   @Test func anArabicIndicDigitIsNotADigit() {
     // ECMA-262 \d is [0-9]. U+0663 is the Arabic-Indic digit three.
     let state = ElicitationValidator.validate(
-      .string("\u{663}"), against: field(text(pattern: #"^\d$"#)))
+      .string("\u{663}"), against: Fields.field(Fields.text(pattern: #"^\d$"#)))
 
     #expect(state.errors == ["The text does not match the necessary pattern."])
   }
 
   @Test func aPatternThatDoesNotCompileFailsTheField() {
-    let state = ElicitationValidator.validate(.string("abc"), against: field(text(pattern: "[a-")))
+    let state = ElicitationValidator.validate(
+      .string("abc"), against: Fields.field(Fields.text(pattern: "[a-")))
 
     #expect(state.errors == ["The pattern of this field is not correct."])
   }
@@ -184,7 +148,7 @@ import Testing
     ("person@example", false),
   ])
   func emailFormatIsApplied(value: String, isValid: Bool) {
-    let schema = field(text(format: .email))
+    let schema = Fields.field(Fields.text(format: .email))
 
     #expect(passes(.string(value), schema) == isValid)
     if !isValid {
@@ -202,7 +166,7 @@ import Testing
     ("not a uri", false),
   ])
   func uriFormatIsApplied(value: String, isValid: Bool) {
-    let schema = field(text(format: .uri))
+    let schema = Fields.field(Fields.text(format: .uri))
 
     #expect(passes(.string(value), schema) == isValid)
     if !isValid {
@@ -213,13 +177,13 @@ import Testing
   }
 
   @Test func anUnknownFormatIsIgnored() {
-    #expect(passes(.string("anything"), field(text(format: .unknown("hostname")))))
+    #expect(passes(.string("anything"), Fields.field(Fields.text(format: .unknown("hostname")))))
   }
 
   @Test func aTextFieldReportsEachFailedConstraint() {
     let state = ElicitationValidator.validate(
       .string("A"),
-      against: field(text(minLength: 2, pattern: "[a-z]+", format: .email))
+      against: Fields.field(Fields.text(minLength: 2, pattern: "[a-z]+", format: .email))
     )
 
     #expect(
@@ -245,7 +209,7 @@ import Testing
     ("2026-09-16T10:00:00Z", false),
   ])
   func dateFormatIsApplied(value: String, isValid: Bool) {
-    let schema = field(.date(dateTime: false))
+    let schema = Fields.field(.date(dateTime: false))
 
     #expect(passes(.string(value), schema) == isValid)
     if !isValid {
@@ -271,7 +235,7 @@ import Testing
     ("yesterday", false),
   ])
   func dateTimeFormatIsApplied(value: String, isValid: Bool) {
-    let schema = field(.date(dateTime: true))
+    let schema = Fields.field(.date(dateTime: true))
 
     #expect(passes(.string(value), schema) == isValid)
     if !isValid {
@@ -283,14 +247,14 @@ import Testing
 
   @Test func aDateFieldRejectsAValueThatIsNotAString() {
     #expect(
-      ElicitationValidator.validate(.number(1), against: field(.date(dateTime: false))).errors
+      ElicitationValidator.validate(.number(1), against: Fields.field(.date(dateTime: false))).errors
         == ["The value must be text."])
   }
 
   // MARK: - Number
 
   @Test func minimumIsApplied() {
-    let schema = field(.number(integer: false, minimum: 1.5, maximum: nil))
+    let schema = Fields.field(.number(integer: false, minimum: 1.5, maximum: nil))
 
     #expect(passes(.number(1.5), schema))
     #expect(!passes(.number(1.4), schema))
@@ -300,7 +264,7 @@ import Testing
   }
 
   @Test func maximumIsApplied() {
-    let schema = field(.number(integer: false, minimum: nil, maximum: 10))
+    let schema = Fields.field(.number(integer: false, minimum: nil, maximum: 10))
 
     #expect(passes(.number(10), schema))
     #expect(!passes(.number(10.5), schema))
@@ -310,7 +274,7 @@ import Testing
   }
 
   @Test func anIntegerFieldRejectsAFraction() {
-    let schema = field(.number(integer: true, minimum: nil, maximum: nil))
+    let schema = Fields.field(.number(integer: true, minimum: nil, maximum: nil))
 
     #expect(passes(.number(3), schema))
     #expect(
@@ -319,7 +283,7 @@ import Testing
   }
 
   @Test func aNumberFieldRejectsAValueThatIsNotANumber() {
-    let schema = field(.number(integer: false, minimum: nil, maximum: nil))
+    let schema = Fields.field(.number(integer: false, minimum: nil, maximum: nil))
 
     #expect(
       ElicitationValidator.validate(.string("3"), against: schema).errors
@@ -330,16 +294,16 @@ import Testing
   // MARK: - Boolean
 
   @Test func aBooleanFieldRejectsAValueThatIsNotABoolean() {
-    #expect(passes(.bool(true), field(.boolean)))
+    #expect(passes(.bool(true), Fields.field(.boolean)))
     #expect(
-      ElicitationValidator.validate(.string("true"), against: field(.boolean)).errors
+      ElicitationValidator.validate(.string("true"), against: Fields.field(.boolean)).errors
         == ["The value must be true or false."])
   }
 
   // MARK: - Single choice
 
   @Test func aSingleChoiceMustBeOneOfTheChoices() {
-    let schema = field(.singleChoice([Choice(const: "a", title: "A")]))
+    let schema = Fields.field(.singleChoice([Choice(const: "a", title: "A")]))
 
     #expect(passes(.string("a"), schema))
     #expect(
@@ -353,7 +317,7 @@ import Testing
   // MARK: - Multi choice
 
   @Test func minItemsIsApplied() {
-    let schema = field(multiChoice(minItems: 2))
+    let schema = Fields.field(Fields.multiChoice(minItems: 2))
 
     #expect(passes(.array([.string("a"), .string("b")]), schema))
     #expect(
@@ -362,7 +326,7 @@ import Testing
   }
 
   @Test func maxItemsIsApplied() {
-    let schema = field(multiChoice(maxItems: 1))
+    let schema = Fields.field(Fields.multiChoice(maxItems: 1))
 
     #expect(passes(.array([.string("a")]), schema))
     #expect(
@@ -371,7 +335,7 @@ import Testing
   }
 
   @Test func eachItemMustBeOneOfTheChoices() {
-    let schema = field(multiChoice())
+    let schema = Fields.field(Fields.multiChoice())
 
     #expect(
       ElicitationValidator.validate(.array([.string("a"), .string("z")]), against: schema).errors
@@ -383,19 +347,15 @@ import Testing
 
   @Test func aMultiChoiceRejectsAValueThatIsNotAList() {
     #expect(
-      ElicitationValidator.validate(.string("a"), against: field(multiChoice())).errors
+      ElicitationValidator.validate(.string("a"), against: Fields.field(Fields.multiChoice())).errors
         == ["The value must be a list of choices."])
   }
 
   // MARK: - Completeness
 
   @Test func aFormIsCompleteWhenEachFieldIsSatisfied() {
-    let name = ElicitationFieldSchema(
-      name: "name", title: "Name", description: nil, required: true,
-      kind: text(minLength: 1), defaultValue: nil)
-    let age = ElicitationFieldSchema(
-      name: "age", title: "Age", description: nil, required: false,
-      kind: .number(integer: true, minimum: 0, maximum: nil), defaultValue: nil)
+    let name = Fields.field(Fields.text(minLength: 1), name: "name", title: "Name", required: true)
+    let age = Fields.field(.number(integer: true, minimum: 0, maximum: nil), name: "age", title: "Age")
     let schemas = [name, age]
 
     #expect(ElicitationValidator.isComplete(values: ["name": .string("Ada")], schemas: schemas))
@@ -412,7 +372,7 @@ import Testing
   // MARK: - Answered
 
   @Test func onlyAValidAnswerThatIsNotEmptyIsAnswered() {
-    let age = field(.number(integer: true, minimum: 1, maximum: 9))
+    let age = Fields.field(.number(integer: true, minimum: 1, maximum: 9))
 
     #expect(!ElicitationValidator.hasValidAnswer(value: nil, against: age))
     #expect(!ElicitationValidator.hasValidAnswer(value: .null, against: age))
@@ -421,8 +381,10 @@ import Testing
   }
 
   @Test func anEmptyListIsNotAnsweredAndFalseIsAnswered() {
-    #expect(!ElicitationValidator.hasValidAnswer(value: .array([]), against: field(multiChoice())))
-    #expect(ElicitationValidator.hasValidAnswer(value: .array([.string("a")]), against: field(multiChoice())))
-    #expect(ElicitationValidator.hasValidAnswer(value: .bool(false), against: field(.boolean)))
+    let tags = Fields.field(Fields.multiChoice())
+
+    #expect(!ElicitationValidator.hasValidAnswer(value: .array([]), against: tags))
+    #expect(ElicitationValidator.hasValidAnswer(value: .array([.string("a")]), against: tags))
+    #expect(ElicitationValidator.hasValidAnswer(value: .bool(false), against: Fields.field(.boolean)))
   }
 }

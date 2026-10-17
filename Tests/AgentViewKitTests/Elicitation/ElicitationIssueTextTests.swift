@@ -11,7 +11,8 @@ import Testing
 @Suite struct ElicitationIssueTextTests {
   typealias Issue = PendingElicitation.ValidationIssue
   typealias Kind = PendingElicitation.ValidationIssue.Kind
-  typealias Choice = ElicitationFieldSchema.Choice
+  /// The shared field helpers.
+  typealias Fields = ElicitationTestFields
 
   /// The requested schema of the tests. The `name` property has the title
   /// `Name`. The `code` property has no title.
@@ -122,34 +123,19 @@ import Testing
 
     /// The field schema of the field check.
     var field: ElicitationFieldSchema {
-      ElicitationFieldSchema(
-        name: "name", title: "Name", description: nil, required: required, kind: fieldKind,
-        defaultValue: nil)
+      Fields.field(fieldKind, name: "name", title: "Name", required: required)
     }
   }
 
-  /// A text kind with the given constraints.
-  nonisolated static func text(
-    minLength: Int? = nil, maxLength: Int? = nil, pattern: String? = nil,
-    format: ElicitationFieldSchema.TextFormat? = nil
-  ) -> ElicitationFieldSchema.Kind {
-    .text(minLength: minLength, maxLength: maxLength, pattern: pattern, format: format)
-  }
-
-  /// The choices `a` and `b`.
-  nonisolated static let choices = ["a", "b"].map { Choice(const: $0, title: $0) }
-
-  /// A multi-choice kind over ``choices``.
-  nonisolated static func multiChoice(minItems: Int? = nil, maxItems: Int? = nil) -> ElicitationFieldSchema.Kind {
-    .multiChoice(choices, minItems: minItems, maxItems: maxItems)
-  }
+  /// The values of the choices of the choice fields.
+  nonisolated static let choiceValues = ["a", "b"]
 
   /// One case for each kind that the field check also has.
   ///
   /// `@Test(arguments:)` reads the list outside the main actor.
   nonisolated static let sharedRuleCases: [SharedRuleCase] = [
-    SharedRuleCase(kind: .requiredFieldMissing, value: nil, fieldKind: text(), required: true),
-    SharedRuleCase(kind: .wrongType(expected: .string), value: .number(1), fieldKind: text()),
+    SharedRuleCase(kind: .requiredFieldMissing, value: nil, fieldKind: Fields.text(), required: true),
+    SharedRuleCase(kind: .wrongType(expected: .string), value: .number(1), fieldKind: Fields.text()),
     SharedRuleCase(
       kind: .wrongType(expected: .number), value: .string("x"),
       fieldKind: .number(integer: false, minimum: nil, maximum: nil)),
@@ -157,26 +143,34 @@ import Testing
       kind: .wrongType(expected: .wholeNumber), value: .number(1.5),
       fieldKind: .number(integer: true, minimum: nil, maximum: nil)),
     SharedRuleCase(kind: .wrongType(expected: .boolean), value: .string("x"), fieldKind: .boolean),
-    SharedRuleCase(kind: .wrongType(expected: .stringList), value: .string("a"), fieldKind: multiChoice()),
-    SharedRuleCase(kind: .tooShort(minLength: 3), value: .string("ab"), fieldKind: text(minLength: 3)),
-    SharedRuleCase(kind: .tooLong(maxLength: 2), value: .string("abc"), fieldKind: text(maxLength: 2)),
-    SharedRuleCase(kind: .patternMismatch(pattern: "^a+$"), value: .string("b"), fieldKind: text(pattern: "^a+$")),
-    SharedRuleCase(kind: .invalidPattern(pattern: "("), value: .string("b"), fieldKind: text(pattern: "(")),
-    SharedRuleCase(kind: .invalidFormat(.email), value: .string("x"), fieldKind: text(format: .email)),
-    SharedRuleCase(kind: .invalidFormat(.uri), value: .string("x"), fieldKind: text(format: .uri)),
+    SharedRuleCase(
+      kind: .wrongType(expected: .stringList), value: .string("a"),
+      fieldKind: Fields.multiChoice(choices: choiceValues)),
+    SharedRuleCase(kind: .tooShort(minLength: 3), value: .string("ab"), fieldKind: Fields.text(minLength: 3)),
+    SharedRuleCase(kind: .tooLong(maxLength: 2), value: .string("abc"), fieldKind: Fields.text(maxLength: 2)),
+    SharedRuleCase(
+      kind: .patternMismatch(pattern: "^a+$"), value: .string("b"), fieldKind: Fields.text(pattern: "^a+$")),
+    SharedRuleCase(kind: .invalidPattern(pattern: "("), value: .string("b"), fieldKind: Fields.text(pattern: "(")),
+    SharedRuleCase(kind: .invalidFormat(.email), value: .string("x"), fieldKind: Fields.text(format: .email)),
+    SharedRuleCase(kind: .invalidFormat(.uri), value: .string("x"), fieldKind: Fields.text(format: .uri)),
     SharedRuleCase(kind: .invalidFormat(.date), value: .string("x"), fieldKind: .date(dateTime: false)),
     SharedRuleCase(kind: .invalidFormat(.dateTime), value: .string("x"), fieldKind: .date(dateTime: true)),
     SharedRuleCase(
       kind: .belowMinimum(2.5), value: .number(1), fieldKind: .number(integer: false, minimum: 2.5, maximum: nil)),
     SharedRuleCase(
       kind: .aboveMaximum(3), value: .number(4), fieldKind: .number(integer: false, minimum: nil, maximum: 3)),
-    SharedRuleCase(kind: .valueNotAllowed(allowed: ["a", "b"]), value: .string("z"), fieldKind: .singleChoice(choices)),
     SharedRuleCase(
-      kind: .itemNotAllowed(value: "z", allowed: ["a", "b"]), value: .array([.string("z")]), fieldKind: multiChoice()),
-    SharedRuleCase(kind: .tooFewItems(minItems: 2), value: .array([.string("a")]), fieldKind: multiChoice(minItems: 2)),
+      kind: .valueNotAllowed(allowed: choiceValues), value: .string("z"),
+      fieldKind: .singleChoice(Fields.choices(choiceValues))),
+    SharedRuleCase(
+      kind: .itemNotAllowed(value: "z", allowed: choiceValues), value: .array([.string("z")]),
+      fieldKind: Fields.multiChoice(choices: choiceValues)),
+    SharedRuleCase(
+      kind: .tooFewItems(minItems: 2), value: .array([.string("a")]),
+      fieldKind: Fields.multiChoice(choices: choiceValues, minItems: 2)),
     SharedRuleCase(
       kind: .tooManyItems(maxItems: 1), value: .array([.string("a"), .string("b")]),
-      fieldKind: multiChoice(maxItems: 1)),
+      fieldKind: Fields.multiChoice(choices: choiceValues, maxItems: 1)),
   ]
 
   @Test(arguments: sharedRuleCases)
