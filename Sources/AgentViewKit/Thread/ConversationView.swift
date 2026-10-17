@@ -180,14 +180,6 @@ public struct ConversationView<EmptyState: View>: View {
     session.transcript.last?.rowKey
   }
 
-  /// The position of the entry with the row key `key`.
-  ///
-  /// - Parameter key: The row key of an entry.
-  /// - Returns: The position, or `nil` when no entry has the key.
-  private func position(of key: String) -> Int? {
-    session.transcript.firstIndex { $0.rowKey == key }
-  }
-
   public var body: some View {
     VStack(spacing: 0) {
       if session.transcript.isEmpty {
@@ -334,7 +326,7 @@ public struct ConversationView<EmptyState: View>: View {
       guard let lastID = lastRowKey else { return }
       position.scrollTo(id: lastID, anchor: .bottom)
     case .item(let id):
-      if let itemPosition = position(of: id) {
+      if let itemPosition = session.transcript.position(ofRowKey: id) {
         let needed = ConversationLayout.pageCount(
           toShow: itemPosition, count: session.transcript.count, pageSize: pageSize)
         pageCount = max(pageCount, needed)
@@ -355,7 +347,8 @@ public struct ConversationView<EmptyState: View>: View {
     }
     // Each id gets its position one time, and the sort compares the stored
     // positions.
-    let sorted = ids.map { (id: $0, position: position(of: $0) ?? 0) }
+    let transcript = session.transcript
+    let sorted = ids.map { (id: $0, position: transcript.position(ofRowKey: $0) ?? 0) }
       .sorted { $0.position < $1.position }
       .map(\.id)
     anchors.noteVisible(
@@ -377,7 +370,7 @@ public struct ConversationView<EmptyState: View>: View {
     // thread removed gives no start: the change is not an append.
     let start: Int?
     if let old {
-      start = position(of: old).map { $0 + 1 }
+      start = session.transcript.position(ofRowKey: old).map { $0 + 1 }
     } else {
       start = keys.startIndex
     }

@@ -5,8 +5,9 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The lookup of a transcript entry by its id, and the objects of the tool
-/// call case and the terminal case of an entry.
+/// The lookup of a transcript entry by its id, the lookup of the position of
+/// an entry by its row key, and the objects of the tool call case and the
+/// terminal case of an entry.
 @Suite @MainActor struct TranscriptEntryLookupTests {
   /// The number of entries of ``openTranscript()``.
   private static let entryCount = 2
@@ -59,6 +60,23 @@ import Testing
     defer { transcript.session.close() }
 
     #expect(transcript.entries.entry(withID: Self.missingID) == nil)
+  }
+
+  // MARK: - Position by row key
+
+  @Test func theLookupGivesThePositionOfTheEntryWithTheRowKey() async throws {
+    let transcript = try await Self.openTranscript()
+    defer { transcript.session.close() }
+
+    #expect(transcript.entries.position(ofRowKey: Self.toolCallID.rowKey) == 0)
+    #expect(transcript.entries.position(ofRowKey: Self.terminalID.rowKey) == 1)
+  }
+
+  @Test func theLookupGivesNilWhenNoEntryHasTheRowKey() async throws {
+    let transcript = try await Self.openTranscript()
+    defer { transcript.session.close() }
+
+    #expect(transcript.entries.position(ofRowKey: Self.missingID.rowKey) == nil)
   }
 
   // MARK: - Objects of a case

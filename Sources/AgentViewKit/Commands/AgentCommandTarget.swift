@@ -414,9 +414,7 @@ final class AgentCommandTarget {
   private func jumpTarget(forward: Bool) -> String? {
     guard let session else { return nil }
     let transcript = session.transcript
-    let current = anchors?.visibleIDs.first.flatMap { key in
-      transcript.firstIndex { $0.rowKey == key }
-    }
+    let current = anchors?.visibleIDs.first.flatMap(transcript.position(ofRowKey:))
     let prompts = Self.promptRows(of: transcript)
     if forward {
       return prompts.first { prompt in current.map { prompt.position > $0 } ?? true }?.key
