@@ -13,6 +13,17 @@ comments:
     - Fact 4: the public Transaction.addAnimationCompletion(criteria:) completion runs from a dispatch source of the main queue (Transaction.dispatchPending, AllFinishedListener.finalizeTransaction). It is not the same mechanism as fact 3, so no document gives the order between them. The completion is not a correct fence.
     - Candidate: CoreFoundation is open source, and __CFRunLoopDoBlocks runs the blocks in FIFO order. If SwiftUI enqueues its block (CFRunLoopPerformBlock) inside render(), a test block that is enqueued after render() runs after it. Next step: read the call stack of the enqueue with an lldb breakpoint on CFRunLoopPerformBlock (this reads the stack, it measures no time).
   timestamp: 2026-10-17T10:12:07.312338+00:00
+- actor: claude-code
+  id: 01m54nz9y4s5rd9zgzr3cpztv1
+  text: |-
+    ### Research (2026-10-17): a certain way is found (lldb call stacks, one run each)
+    - lldb breakpoint on SplitViewCoordinator.updateInspector: the press calls HostedViewHarness.render() (HostedViewHarness.swift:183), then NSHostingView.layout(), SystemSplitView.updateNSViewController(_:context:), SplitViewCoordinator.updateInspector(_:with:animated:), onNextMainRunLoop(do:), -[NSRunLoop performInModes:block:] with the mode kCFRunLoopCommonModes, and CFRunLoopPerformBlock. This is one synchronous call chain inside render().
+    - lldb breakpoint on CFRunLoopPerformBlock: between the end of the press and the KVO change of isCollapsed, no other block is added. The block from updateInspector runs in __CFRunLoopDoBlocks and sets isCollapsed to false in the same call (KVO stack). After that block, the name element of the inspector is in the accessibility tree.
+    - Order proof: CFRunLoop.c (open source) adds each block of CFRunLoopPerformBlock at the end of the block list, and __CFRunLoopDoBlocks runs the list from the start, for each block whose mode is the current mode or a common mode. Thus a test block that RunLoop.main.perform(inModes: [.common]) adds after render() runs after the SwiftUI block.
+    - No wait without end: the main actor of the test runs on the main run loop in the default mode, which is a common mode, so the run loop runs the test block. The test block resumes a continuation, so the test does not poll and has no time limit.
+    - Plan: a test support function that adds one common-mode block to the main run loop and waits for it, with a doc that gives this proof. Two hosted tests: (1) chip press with no animation, the fence, render, then require that the inspector item is not collapsed and the name element and the 5 actions show; (2) thread view host selection with no animation, render() (so that the enqueue is inside a render), the fence, render, check. Mutation check: when the binding stays false, the item stays collapsed after the fence and the test fails at once.
+    - If SwiftUI changes this chain, the test fails on each run. It does not fail only sometimes, because no step depends on time.
+  timestamp: 2026-10-17T10:19:28.068656+00:00
 position_column: todo
 position_ordinal: '9e80'
 title: Find a certain way to test that the AppKit split view shows the attachment inspector item

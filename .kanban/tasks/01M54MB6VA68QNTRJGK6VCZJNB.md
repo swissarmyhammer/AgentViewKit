@@ -53,8 +53,24 @@ comments:
     - evidence: 1 file: Sources/AgentViewKit/Elicitation/ElicitationURLConsentView.swift (new private cancelButton(action:), called from the idle and the waiting case; new private waitingMessage for the waiting text and its label). swift build --build-tests: Build complete, no compiler warning (one SwiftPM message about a mutated node in the mlx-swift_Cmlx bundle, not from this code). swift test --skip-build --filter 'ElicitationURLConsentViewHostedTests|SymbolConceptTests|RequestDeck': 66 tests in 8 suites passed, 0 failures, 0 skipped. The finding of 2026-10-17 05:05 is checked.
     - next: review
   timestamp: 2026-10-17T10:15:38.267079+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m54nzdhnryrqp131xgrnpngk
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit e964e0b). counts: findings 0, confirmed 0, refuted 0, attempted 7, failed 0. One file reviewed: Sources/AgentViewKit/Elicitation/ElicitationURLConsentView.swift. Four .kanban files are not reviewed (.reviewignore). The finding of 2026-10-17 05:05 is fixed: the two switch cases call cancelButton(action:). The consent step passes cancel. The waiting step passes stopWaiting. The helper keeps the label "Cancel", cancelSymbol, role .cancel and cancelIdentifier. waitingMessage gives the same text as before to the visible text and to the VoiceOver label. The doc comments say only what the code does. All prior review items are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-17T10:19:31.765748+00:00
+- actor: claude-code
+  id: 01m54p04gj3aph0065m1bb0e2z
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared cancelButton(action:) and waitingMessage in ElicitationURLConsentView.swift
+    - test: green — swift test --skip-build --filter 'ElicitationURLConsentViewHostedTests|SymbolConceptTests|RequestDeck': 66 tests in 8 suites passed
+    - commit: e964e0b
+    - review: clean — 0 findings, 1 of 1 prior item fixed
+  timestamp: 2026-10-17T10:19:55.282429+00:00
+position_column: done
+position_ordinal: ffea80
 title: Rename the Stop Waiting button of the URL waiting card to Cancel
 ---
 Decision of the user (2026-10-17): do not expand the protocol or the UX of elicitation. In the waiting state of ElicitationURLConsentView, the button "Stop Waiting" becomes "Cancel". The behavior does not change: it stops the browser session of the card and calls stopWaiting(_:) on the owner, and the agent gets no message. Esc does the same.
