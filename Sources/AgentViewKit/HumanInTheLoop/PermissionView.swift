@@ -225,7 +225,7 @@ public struct PermissionView: View {
   ///   When the session model has no such entry, the summary shows the id.
   @ViewBuilder
   private func toolCallSummary(id: ToolCallId) -> some View {
-    if let entry = toolCallEntry(withID: id) {
+    if let entry = session.transcript.entry(withID: .wire(.toolCall(id)))?.toolCall {
       HStack(spacing: theme.spacing.s) {
         Label(entry.title ?? id.rawValue, systemImage: Self.toolCallSymbol)
         if let kind = entry.kind {
@@ -256,7 +256,9 @@ public struct PermissionView: View {
       .accessibilityElement(children: .ignore)
       .accessibilityLabel("Command \(command.command), in \(command.cwd.rawValue)")
       .accessibilityIdentifier(Self.subjectIdentifier)
-      if let terminalId = command.terminalId, let entry = terminalEntry(withID: terminalId) {
+      if let terminalId = command.terminalId,
+        let entry = session.transcript.entry(withID: .wire(.terminal(terminalId)))?.terminal
+      {
         terminalLink(to: entry)
       }
     }
@@ -277,40 +279,6 @@ public struct PermissionView: View {
         TerminalView(entry: entry)
       }
     }
-  }
-
-  /// The tool call entry of the session model with the id of a tool call.
-  ///
-  /// - Parameter id: The id of the tool call.
-  /// - Returns: The entry, or `nil` when the transcript has none.
-  private func toolCallEntry(withID id: ToolCallId) -> ToolCallEntry? {
-    transcriptEntry(withID: .toolCall(id)) { entry in
-      if case .toolCall(let toolCall) = entry { toolCall } else { nil }
-    }
-  }
-
-  /// The terminal entry of the session model with the id of a terminal.
-  ///
-  /// - Parameter id: The id of the terminal.
-  /// - Returns: The entry, or `nil` when the transcript has none.
-  private func terminalEntry(withID id: TerminalId) -> TerminalEntry? {
-    transcriptEntry(withID: .terminal(id)) { entry in
-      if case .terminal(let terminal) = entry { terminal } else { nil }
-    }
-  }
-
-  /// The entry of the transcript of the session model with a wire id.
-  ///
-  /// - Parameters:
-  ///   - id: The wire id of the entry.
-  ///   - object: Gives the entry object of the expected kind.
-  /// - Returns: The entry object, or `nil` when the transcript has no entry of
-  ///   that kind with that id.
-  private func transcriptEntry<Entry>(
-    withID id: FoundationModelsACP.SessionEntry.ID, as object: (TranscriptEntry) -> Entry?
-  ) -> Entry? {
-    let identity = TranscriptEntry.ID.wire(id)
-    return session.transcript.first { $0.id == identity }.flatMap(object)
   }
 
   // MARK: Options

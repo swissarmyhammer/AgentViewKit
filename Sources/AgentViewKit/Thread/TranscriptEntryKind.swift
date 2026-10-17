@@ -44,4 +44,11 @@ extension TranscriptEntry {
     guard case .toolCall(let toolCall) = self else { return nil }
     return toolCall
   }
+
+  /// The terminal object of the entry, or `nil` when the entry is not a
+  /// terminal.
+  var terminal: TerminalEntry? {
+    guard case .terminal(let terminal) = self else { return nil }
+    return terminal
+  }
 }
