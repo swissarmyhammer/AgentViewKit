@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import Foundation
 import Testing
 
@@ -76,6 +76,23 @@ import Testing
     #expect(
       EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: nil, locale: Self.locale)
         == "Started at \(start)")
+  }
+
+  @Test func theDurationPhraseHoldsTheSpokenDuration() {
+    let phrase = EntryTimingView.durationPhrase(
+      Self.minuteAndQuarter, locale: Self.locale, phrase: { "Took \($0)" }, fallback: { "No time" })
+
+    #expect(phrase == "Took 1 minute, 15 seconds")
+  }
+
+  @Test func theDurationPhraseIsTheFallbackWhenTheDurationIsNotShown() {
+    let tooShort = EntryTimingView.durationPhrase(
+      Self.tooShort, locale: Self.locale, phrase: { "Took \($0)" }, fallback: { "No time" })
+    let missing = EntryTimingView.durationPhrase(
+      nil, locale: Self.locale, phrase: { "Took \($0)" }, fallback: { "No time" })
+
+    #expect(tooShort == "No time")
+    #expect(missing == "No time")
   }
 
   @Test func theThoughtTitleTellsTheDurationInWholeWords() {

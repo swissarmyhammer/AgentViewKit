@@ -156,17 +156,18 @@ public nonisolated enum DiffSummary {
   /// The separator before the new path on a `diff --git` line.
   static let gitNewPathSeparator = " b/"
 
-  /// The language name of a file with no extension.
+  /// The language name of a file with no extension and of a `.txt` file.
   static let plainLanguage = String(localized: "Text", bundle: .module)
 
-  /// The language names of the common file extensions.
+  /// The language names of the common file extensions. The `txt` entry is
+  /// ``plainLanguage``, so the two paths give one localized name.
   static let languageNames: [String: String] = [
     "c": "C", "cc": "C++", "cpp": "C++", "cs": "C#", "css": "CSS", "go": "Go",
     "h": "C", "hpp": "C++", "html": "HTML", "java": "Java", "js": "JavaScript",
     "json": "JSON", "jsx": "JavaScript", "kt": "Kotlin", "m": "Objective-C",
     "md": "Markdown", "mm": "Objective-C++", "php": "PHP", "py": "Python",
     "rb": "Ruby", "rs": "Rust", "sh": "Shell", "sql": "SQL", "swift": "Swift",
-    "toml": "TOML", "ts": "TypeScript", "tsx": "TypeScript", "txt": "Text",
+    "toml": "TOML", "ts": "TypeScript", "tsx": "TypeScript", "txt": plainLanguage,
     "xml": "XML", "yaml": "YAML", "yml": "YAML", "zsh": "Shell",
   ]
 
@@ -177,7 +178,8 @@ public nonisolated enum DiffSummary {
   /// - Parameter path: The path of the file.
   /// - Returns: The name for a known extension, such as "Swift". The
   ///   extension in capitals for an unknown extension, such as "XYZ".
-  ///   "Text" for a file with no extension.
+  ///   ``plainLanguage`` ("Text") for a `.txt` file and for a file with no
+  ///   extension.
   public static func language(forPath path: String) -> String {
     let pathExtension = URL(fileURLWithPath: path).pathExtension.lowercased()
     guard !pathExtension.isEmpty else { return plainLanguage }

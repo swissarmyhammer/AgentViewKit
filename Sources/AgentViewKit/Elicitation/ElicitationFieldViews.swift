@@ -443,6 +443,22 @@ public struct ElicitationDateField: View {
     ElicitationFieldView.identifier(for: name) + "-clear"
   }
 
+  /// The title and the help text of the button that removes the answer.
+  static var removeDateTitle: String { String(localized: "Remove Date", bundle: .module) }
+
+  /// The title of the button that sets the answer to the current date.
+  ///
+  /// - Parameter dateTime: Whether the field has a time.
+  /// - Returns: "Set Date and Time" for a `date-time` field, or "Set Date"
+  ///   for a `date` field.
+  static func setDateTitle(dateTime: Bool) -> String {
+    if dateTime {
+      String(localized: "Set Date and Time", bundle: .module)
+    } else {
+      String(localized: "Set Date", bundle: .module)
+    }
+  }
+
   /// The context of the field.
   let context: ElicitationFieldContext
 
@@ -485,17 +501,16 @@ public struct ElicitationDateField: View {
         )
         .labelsHidden()
         .accessibilityIdentifier(context.controlIdentifier)
-        Button(String(localized: "Remove Date", bundle: .module), systemImage: SharedSymbol.remove)
-        {
+        Button(Self.removeDateTitle, systemImage: SharedSymbol.remove) {
           value.wrappedValue = nil
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
-        .help(String(localized: "Remove Date", bundle: .module))
+        .help(Self.removeDateTitle)
         .accessibilityIdentifier(Self.clearIdentifier(for: context.schema.name))
       }
     } else {
-      Button(dateTime ? "Set Date and Time" : "Set Date") {
+      Button(Self.setDateTitle(dateTime: dateTime)) {
         value.wrappedValue = .string(coding.string(from: Date()))
       }
       .accessibilityIdentifier(context.controlIdentifier)

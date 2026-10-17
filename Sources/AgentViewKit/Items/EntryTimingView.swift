@@ -121,6 +121,27 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     shownDuration(duration).map { durationText(for: $0, width: .wide, locale: locale) }
   }
 
+  /// A localized phrase that holds the ``spokenDuration(_:locale:)`` of a
+  /// duration, or a fallback phrase when the view shows no duration.
+  ///
+  /// The VoiceOver label of the time and the titles and labels of a
+  /// ``ReasoningView`` use this shape. Each caller gives its own phrases.
+  ///
+  /// - Parameters:
+  ///   - duration: The duration of an entry, in seconds, or `nil` when the
+  ///     entry has no end time.
+  ///   - locale: The locale of the duration text.
+  ///   - phrase: Makes the phrase from the spoken duration text.
+  ///   - fallback: Makes the phrase when the view shows no duration.
+  /// - Returns: `phrase` of the spoken duration, or `fallback()` when
+  ///   ``spokenDuration(_:locale:)`` gives `nil`.
+  static func durationPhrase(
+    _ duration: TimeInterval?, locale: Locale = .autoupdatingCurrent,
+    phrase: (String) -> String, fallback: () -> String
+  ) -> String {
+    spokenDuration(duration, locale: locale).map(phrase) ?? fallback()
+  }
+
   /// The label that VoiceOver reads for the time of an entry.
   ///
   /// - Parameters:
@@ -134,10 +155,11 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent
   ) -> String {
     let start = startText(for: startedAt, locale: locale)
-    return spokenDuration(duration, locale: locale).map {
+    return durationPhrase(duration, locale: locale) {
       String(localized: "Started at \(start), took \($0)", bundle: .module)
+    } fallback: {
+      String(localized: "Started at \(start)", bundle: .module)
     }
-      ?? String(localized: "Started at \(start)", bundle: .module)
   }
 
   public var body: some View {

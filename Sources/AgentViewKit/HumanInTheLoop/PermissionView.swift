@@ -274,7 +274,7 @@ public struct PermissionView: View {
   /// - Returns: The link and, while it is open, the ``TerminalView``.
   private func terminalLink(to entry: TerminalEntry) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
-      Button(showsTerminal ? "Hide Terminal" : "Show Terminal", systemImage: Self.terminalLinkSymbol) {
+      Button(terminalLinkTitle, systemImage: Self.terminalLinkSymbol) {
         showsTerminal.toggle()
       }
       .buttonStyle(.link)
@@ -282,6 +282,16 @@ public struct PermissionView: View {
       if showsTerminal {
         TerminalView(entry: entry)
       }
+    }
+  }
+
+  /// The title of the button that shows or hides the terminal, from the
+  /// String Catalog of the kit.
+  private var terminalLinkTitle: String {
+    if showsTerminal {
+      String(localized: "Hide Terminal", bundle: .module)
+    } else {
+      String(localized: "Show Terminal", bundle: .module)
     }
   }
 

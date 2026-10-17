@@ -95,10 +95,11 @@ public struct ReasoningView: View {
   ///   "Thought" when ``EntryTimingView/spokenDuration(_:locale:)`` gives
   ///   no duration text.
   public static func completedTitle(duration: TimeInterval?) -> String {
-    EntryTimingView.spokenDuration(duration).map {
+    EntryTimingView.durationPhrase(duration) {
       String(localized: "Thought for \($0)", bundle: .module)
+    } fallback: {
+      String(localized: "Thought", bundle: .module)
     }
-      ?? String(localized: "Thought", bundle: .module)
   }
 
   /// The label that VoiceOver reads for a block (plan.md §6).
@@ -114,10 +115,11 @@ public struct ReasoningView: View {
     if isInProgress {
       return String(localized: "Reasoning, in progress", bundle: .module)
     }
-    return EntryTimingView.spokenDuration(duration).map {
+    return EntryTimingView.durationPhrase(duration) {
       String(localized: "Reasoning, \($0)", bundle: .module)
+    } fallback: {
+      String(localized: "Reasoning", bundle: .module)
     }
-      ?? String(localized: "Reasoning", bundle: .module)
   }
 
   public var body: some View {

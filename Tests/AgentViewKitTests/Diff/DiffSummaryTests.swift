@@ -163,6 +163,10 @@ import Testing
     #expect(DiffSummary.language(forPath: "Makefile") == "Text")
   }
 
+  @Test func aTextFileAndAFileWithNoExtensionHaveTheSameLanguageName() {
+    #expect(DiffSummary.language(forPath: "notes.txt") == DiffSummary.language(forPath: "Makefile"))
+  }
+
   @Test func theAccessibilityLabelHasTheLanguageAndTheCounts() {
     let file = DiffSummary.parse(gitPatch: Self.addPatch)[0]
 

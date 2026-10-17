@@ -47,6 +47,9 @@ public struct CommandOutputView: View {
   /// The exit code of a command that completed.
   static let successExitCode = 0
 
+  /// The title and the help text of the Copy button.
+  private static var copyTitle: String { String(localized: "Copy output", bundle: .module) }
+
   /// The result of a command, from its exit code.
   public enum ExitOutcome: Equatable, Sendable {
     /// The command completed. Its exit code is zero.
@@ -214,12 +217,12 @@ public struct CommandOutputView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)
-      Button(String(localized: "Copy output", bundle: .module), systemImage: SharedSymbol.copy) {
+      Button(Self.copyTitle, systemImage: SharedSymbol.copy) {
         pasteboard.copyText(output)
       }
       .labelStyle(.iconOnly)
       .buttonStyle(.borderless)
-      .help(String(localized: "Copy output", bundle: .module))
+      .help(Self.copyTitle)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .padding(.horizontal, theme.spacing.m)
