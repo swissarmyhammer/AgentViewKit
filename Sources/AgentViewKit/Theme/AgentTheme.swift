@@ -16,6 +16,12 @@ import SwiftUI
 /// `Docs/decisions/visual-audit.md` (research R12) records the values of
 /// ``default``, and `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
 /// the same values. Change the two files and ``default`` together.
+///
+/// The stored properties are in the order of their alignment, from the
+/// largest to the smallest, so the type has no padding byte. A view value
+/// holds the theme, and until SwiftUI can call `==` for a view type, it
+/// compares the bytes of the old and the new value. A padding byte can differ
+/// between two equal values. Keep this order when you add a property.
 nonisolated public struct AgentTheme: Equatable, Sendable {
   /// The spacing steps, in points, from the smallest to the largest.
   public struct Spacing: Equatable, Sendable, Codable {
@@ -91,10 +97,10 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   public var spacing: Spacing
   /// The corner radii.
   public var radii: Radii
-  /// The strength of the glass material on the chrome.
-  public var materialLevel: MaterialLevel
   /// The weight of the SF Symbols.
   public var symbolWeight: Font.Weight
+  /// The strength of the glass material on the chrome.
+  public var materialLevel: MaterialLevel
   /// How much detail and space each row shows.
   public var density: Density
 

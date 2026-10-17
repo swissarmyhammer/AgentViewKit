@@ -453,7 +453,13 @@ private struct ToolCallHeader: View {
 /// registration as two values. In a hosted test, a stored registration value
 /// with the function inside it made SwiftUI evaluate the body with no `==`
 /// check. With two values, SwiftUI calls `==`.
-private struct ToolCallBody: View, Equatable {
+///
+/// The stored properties are in the order of their alignment, from the
+/// largest to the smallest, so the type has no padding byte: `registrationID`
+/// (alignment 1) comes last. Until SwiftUI can call `==` for this type, it
+/// compares the bytes of the old and the new value, and a padding byte can
+/// differ between two equal values. Keep this order when you add a property.
+struct ToolCallBody: View, Equatable {
   /// The tool call entry to show.
   let entry: ToolCallEntry
 
@@ -461,12 +467,12 @@ private struct ToolCallBody: View, Equatable {
   /// default body.
   let renderer: ToolCallRegistry.Renderer?
 
+  /// The theme of the kit.
+  let theme: AgentTheme
+
   /// The identity of the registration of ``renderer``, or `nil` for the
   /// default body.
   let registrationID: ToolCallRegistry.Registration.ID?
-
-  /// The theme of the kit.
-  let theme: AgentTheme
 
   /// Makes the body of an entry.
   ///
