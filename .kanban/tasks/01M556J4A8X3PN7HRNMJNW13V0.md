@@ -86,8 +86,30 @@ comments:
     - evidence: 3ee4bc8 fix(localization): use one source for the titles and the Text key in the kit bundle (^jnw13v0)
     - next: /review. The commit is local. It is not pushed.
   timestamp: 2026-10-17T16:16:25.553229+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m55akzd0a04qdbckm55cgbvw
+  text: 'Correction to the commit step record: the sha 3ee4bc8 in that comment is not correct. After an amend, the real sha of the iteration 2 commit is 9d2b43d ("fix(localization): use one source for the titles and the Text key in the kit bundle (^jnw13v0)").'
+  timestamp: 2026-10-17T16:20:16.928730+00:00
+- actor: claude-code
+  id: 01m55am3cx00wbr6203k9b37td
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 9d2b43d). Counts: 0 findings, 0 confirmed, 1 refuted. 9 files reviewed. The 2 .kanban files were not reviewed (ignore rule). All 5 items in "Review Findings (2026-10-17 10:48)" are checked.
+    - extra check, String(localized:): a script that reads each full call (multi-line calls and string interpolation included) found 312 calls in Sources/AgentViewKit. All 312 have `bundle: .module`.
+    - extra check, SwiftUI literal keys: no `Text("...")` without `bundle: .module`. No string literal key in `Button`, `Label`, `Toggle`, `TextField`, `Picker`, `Section`, `Menu`, `Link`, `ContentUnavailableView` and the like. No string literal key in `.help`, `.accessibilityLabel/Hint/Value`, `.navigationTitle`, `.alert` and the like. A search for ternaries of string literals (one line and multi-line) found only 3 plain `String` values (SpeechInputButton.swift, FileReferenceSource.swift, StreamingMarkdownBalancer.swift). These are not keys. The PermissionView.swift and ElicitationFieldViews.swift ternary keys are gone. No SwiftUI key in the kit looks up the main bundle.
+    - next: none. The task moves to done.
+  timestamp: 2026-10-17T16:20:21.021535+00:00
+- actor: claude-code
+  id: 01m55amxfk9eds290fkdseh4tr
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 9 files
+    - test: green — swift test, 1327 + 129 + 1 passed; check-readme.sh passed (from the implement run)
+    - commit: 9d2b43d
+    - review: clean — 0 findings; 5/5 prior findings checked; card moved to done
+  timestamp: 2026-10-17T16:20:47.731590+00:00
+position_column: done
+position_ordinal: ffec80
 title: Add a String Catalog to the AgentViewKit target
 ---
 Request from swissarmyhammer-96 (elicitation-plan.md, section "AgentViewKit", "Known gaps": the kit has no string catalog of its own).
