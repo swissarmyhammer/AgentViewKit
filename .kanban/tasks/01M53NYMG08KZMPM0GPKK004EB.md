@@ -87,7 +87,27 @@ comments:
     - evidence: the implement step of iteration 2 ran one full swift test --skip-build after the change: 1314 tests in 153 suites passed with 2 known issues, 127 tests in 16 suites passed, 1 test in 1 suite passed, XCTest 0 tests. AttachmentInspectorHostedTests: 11 tests passed. swift build --build-tests: no warning in Sources/ or Tests/. rg MainQueueHop: no match outside .kanban and .build. It was not run again (no repeat runs).
     - note: the internal AgentThreadView.inspectorSelection(host:own:) (an extraction of `host ?? own`, no behavior change) makes the input of the inspector testable with no render, as item 2 of the decision asks.
   timestamp: 2026-10-17T01:38:03.007972+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m53rdznbntwa7gk307hfdktk
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (9cd7802): engine 0 findings (7 attempted, 0 failed; 5 declined items for the deleted MainQueueHop.swift). Doc check: 1 finding. Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:223. The 3 items of the section of 2026-10-16 20:25 are really resolved (the code that they named is gone). git diff 4b2aad0~1 -- Sources/AgentViewKitTestSupport/ is empty. inspectorSelection(host:own:) is internal and gives the same value at the same place.
+    - next: change the withoutAnimation doc so that it does not say that each change of the selection has no animation (aClearedSelectionClosesTheInspector calls selection.clear() with no withoutAnimation). Then review again.
+  timestamp: 2026-10-17T01:43:11.787702+00:00
+- actor: claude-code
+  id: 01m53rjxezekz6907tpj48hw9g
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — option C of the step owner: the split view hop tests and MainQueueHop removed; AgentThreadView.inspectorSelection(host:own:) with 2 state tests; docs name ^aw6wmda
+    - test: green — full swift test --skip-build, 1314 + 127 + 1 tests passed, 2 known issues
+    - commit: 9cd7802 (local)
+    - review: findings — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:223
+
+    ### iteration 3 — implement and test
+    - implement: changed — the withoutAnimation doc now says "each change that opens the inspector" (the two opening changes, pressChip at line 284 and the host select at line 159, use withoutAnimation; selection.clear() at line 129 closes it). No other doc in the file says "each change" for animation.
+    - test: green — swift build --build-tests complete with no warning; AttachmentInspectorHostedTests 11 of 11 passed (comment-only change).
+  timestamp: 2026-10-17T01:45:53.375407+00:00
+position_column: review
 position_ordinal: '80'
 title: Add hosted tests that the AppKit split view shows the attachment inspector item after a selection change
 ---
@@ -119,3 +139,37 @@ Write all text in STE.
 - [x] `Sources/AgentViewKitTestSupport/MainQueueHop.swift:11` `tests/deterministic-wait` — The doc says as a fact that the inspector item of an AppKit split view shows after a turn of the main queue. The code does not prove this (see the item above). The same claim is in Sources/AgentViewKitTestSupport/HostedViewHarness.swift:120, and in Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift at the suite doc (line 14), the chip test doc (line 107) and the withoutAnimation doc (line 253). The other statements of the MainQueueHop doc are true: the block always runs, the work that is already on the main dispatch queue runs first, and the hop has no clock, no poll, no retry and no time limit. When the wait changes, change these docs so that they state only the mechanism that the code proves. If no test uses the hop after the change, remove the split view example from the MainQueueHop doc and from the rule in the HostedViewHarness doc. Resolved by the decision of the step owner (option C): MainQueueHop.swift is deleted, the HostedViewHarness rule is as before 4b2aad0, and the suite doc, the test notes and the withoutAnimation doc no longer make the claim.
 
 Checks with no finding: after each press or selection, the synchronous require comes before the hop (lines 120 and 206). The two older tests check the same things as before; only the mount and the press moved to the shared helpers mountChip, mountThreadView and pressChip. The change has no XCUITest, no waitForExistence, no sleep, no poll, no retry and no timeLimit.
+
+## Review Findings (2026-10-16 20:38)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKitTestSupport/MainQueueHop.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKitTestSupport/MainQueueHop.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKitTestSupport/MainQueueHop.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKitTestSupport/MainQueueHop.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKitTestSupport/MainQueueHop.swift, so its declarations are unread
+
+> The engine gave 0 findings. The five declined items are for the deleted file MainQueueHop.swift; a deleted file has no code to judge. The item below comes from the doc check that the caller of this review asked for: the docs must say only what is true.
+
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:223` `docs/true-statement` — The withoutAnimation doc says: "Thus the tests make each change of the selection with no animation." This is not true. aClearedSelectionClosesTheInspector calls selection.clear() (line 129) with no withoutAnimation. The reason in the doc (the open animation does not end in the off-screen window) is about a change that opens the inspector. Change the sentence so that it states only what the tests do, for example: "Thus the tests make each change that opens the inspector with no animation." Read the full file again, and make sure that no other doc says "each change" when one test does not obey it.
+
+Checks with no finding:
+- The three items of the section of 2026-10-16 20:25 are really resolved. The tests theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemInTheSplitView and aPressOnAChipShowsTheInspectorItemInTheSplitView are removed. Sources/AgentViewKitTestSupport/MainQueueHop.swift is deleted, and rg MainQueueHop (no .kanban, no .build) has no match. The hop rule is removed from the HostedViewHarness doc. The suite doc, the chip test note and the withoutAnimation doc no longer say that the item shows after a turn of the main queue.
+- git diff 4b2aad0~1 -- Sources/AgentViewKitTestSupport/ is empty.
+- AgentThreadView.inspectorSelection(host:own:) returns host ?? own. host is the environment value hostInspectorSelection (InspectorSelection?), own is the state ownInspectorSelection (InspectorSelection). The view calls it in the same attachmentInspector(selection:) modifier as the old inline expression. Thus the behavior does not change. The function has no access modifier, so it is internal; the test file uses @testable import.
+- Each changed or new test has no clock, no sleep, no poll, no retry, no timeLimit, no MainQueueHop and no ObservationWait. The chip test and the two inspectorSelection tests are synchronous. The thread view test has one await: ScriptedSession.open() for the setup, as before this change; after the select it has no wait, and the require is synchronous. Each test reads the inspector content in its own harness after one render, or reads no view; no test reads the split view item after a change of the selection.
+- The suite doc and the two gap notes say that no hosted test proves that the split view item appears after a change of the selection, that the state tests cover the input to it, and that ^aw6wmda records the gap. The sentence "An inspector that is open at the mount shows its split view item after the first render pass" agrees with the older test aClearedSelectionClosesTheInspector, which checks this after the mount.
+- Card ^aw6wmda is clear: it names the gap, the facts (no FIFO order with the main queue, an onAppear wait can wait without end), the rules (no XCUITest, no waitForExistence, no sleep, no poll, no retry, no time limit), and the two steps.

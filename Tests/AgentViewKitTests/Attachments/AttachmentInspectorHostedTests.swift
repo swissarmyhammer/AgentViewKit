@@ -220,8 +220,8 @@ import UniformTypeIdentifiers
   ///
   /// The inspector opens with an AppKit split view animation. The harness
   /// window is not on a screen, so that animation does not end, and the
-  /// inspector stays closed. Thus the tests make each change of the selection
-  /// with no animation.
+  /// inspector stays closed. Thus the tests make each change that opens the
+  /// inspector with no animation.
   ///
   /// - Parameter body: The change to make.
   /// - Throws: The error of `body`.
