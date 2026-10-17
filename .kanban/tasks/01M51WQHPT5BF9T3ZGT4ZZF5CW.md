@@ -41,6 +41,31 @@ comments:
     - evidence: the implement step ran one full swift test --skip-build after the change: 1310 tests in 153 suites passed with 2 known issues, 127 tests in 16 suites passed, 1 test in 1 suite passed. swift build --build-tests: no warning in Sources/ or Tests/. It was not run again (no repeat runs).
     - next: commit (local only; the step owner asked to batch pushes), review.
   timestamp: 2026-10-17T00:41:45.918285+00:00
+- actor: claude-code
+  id: 01m53n9vt6rh1nr1gya6vh7nsm
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD: engine counts 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed). Code reading: 2 findings — Sources/AgentViewKit/Items/ToolCallView.swift:457, Sources/AgentViewKit/Theme/AgentTheme.swift:20 (the doc comment rule "order of alignment, from the largest to the smallest, gives no padding" is not sufficient).
+    - checked and correct: AgentTheme public init keeps its parameter order and assigns by name; Equatable is synthesized; AgentTheme has no Codable; each doc comment moved with its property. ToolCallBody has an explicit init and a custom ==, so the reorder does not change behavior. Internal is the smallest access that @testable import can read (private and fileprivate cannot be read). The helper proves no padding: a missing field makes size larger than the sum (test fails); a duplicate stored field fails the distinct-offset check; a duplicate function field or a computed key path fails the offsetless count. The tests use no clock, sleep, poll, retry or timeLimit.
+    - next: implement the 2 findings, then review again. Task stays in review.
+  timestamp: 2026-10-17T00:48:31.046944+00:00
+- actor: claude-code
+  id: 01m53nah6ep6pfjxz9t3hnt863
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — AgentTheme.swift and ToolCallView.swift (field order), new StoredLayout.swift and ViewValueLayoutTests.swift
+    - test: green — full swift test --skip-build, 1310 tests in 153 suites passed, 2 known issues
+    - commit: 6cb2d07 (local)
+    - review: findings — Sources/AgentViewKit/Items/ToolCallView.swift:457, Sources/AgentViewKit/Theme/AgentTheme.swift:20
+  timestamp: 2026-10-17T00:48:52.942002+00:00
+- actor: claude-code
+  id: 01m53ngwreqnmz5zrvf585cv2y
+  text: |-
+    ### implement — changed
+    - evidence: doc comments only, no code change. Sources/AgentViewKit/Theme/AgentTheme.swift and Sources/AgentViewKit/Items/ToolCallView.swift: the incorrect rule "order of alignment, from the largest to the smallest" is removed. The new text gives the rule that Swift puts each stored property, in the order of declaration, at the next offset that is a multiple of its alignment, so the type has no padding byte only when each property starts where the property before it ends. AgentTheme: `symbolWeight` is the last property with alignment 8; a property with alignment 8 and a size that is not a multiple of 8 (for example `CGFloat?`, size 9) must come after all the other properties with alignment 8. ToolCallBody: `theme` (alignment 8, size 66) must be the last property with alignment 8, and `registrationID` (alignment 1) comes after it. Each comment tells the reader to add a new stored property to its test (theThemeHasNoPaddingByte, theToolCallBodyHasNoPaddingByte); the test fails when the type has a padding byte. Both findings are flipped to done.
+    - tests: `swift build --build-tests`: build complete, no warning in Sources or Tests (one build-system warning on .build/out/Products/Debug/mlx-swift_Cmlx.bundle). `swift test --skip-build --filter ViewValueLayoutTests`: 9 tests in 1 suite passed. No full run: the change is to comments only.
+    - next: review. No commit, no push. Task stays in doing.
+  timestamp: 2026-10-17T00:52:21.390564+00:00
 position_column: doing
 position_ordinal: '80'
 title: Remove the padding bytes of ToolCallBody (and AgentTheme) so that the byte compare of SwiftUI finds no change
@@ -56,3 +81,15 @@ Probe (session scratchpad, probe/main.swift, `swiftc -Onone`): a struct with the
 - [x] Remove the padding: put the fields in an order with no gaps (for example `registrationID` last in ToolCallBody, and `materialLevel` and `density` after `symbolWeight` in AgentTheme). Keep the public API of AgentTheme.
 - [x] Check ParagraphView and ItemRow for padding too (ItemRow is one 8-byte enum of object references, no padding).
 Write all text in STE. #mail-step-7
+
+## Review Findings (2026-10-16 19:42)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> Engine counts: 0 findings, 0 confirmed, 0 refuted. The items below come from the code reading that the caller of this review asked for.
+
+- [x] `Sources/AgentViewKit/Items/ToolCallView.swift:457` `reviewer/doc-accuracy` — The doc comment says that the order of alignment, from the largest to the smallest, gives no padding byte. This is not true for this type: `theme` has size 66 and alignment 8, so a new field with alignment 8 (for example an `Int`) after `theme` keeps the order of alignment but adds 6 padding bytes. Write the correct rule: each field must start at an offset that is a multiple of its alignment with no gap, thus `theme` (size 66, not a multiple of 8) must be the last field with alignment 8, and only fields with alignment 1 or 2 can follow it. Also tell the reader to add the new field to `ViewValueLayoutTests.theToolCallBodyHasNoPaddingByte`.
+- [x] `Sources/AgentViewKit/Theme/AgentTheme.swift:20` `reviewer/doc-accuracy` — The doc comment has the same incorrect rule. A new field such as `CGFloat?` (size 9, alignment 8) put with the other fields of alignment 8 keeps the order of alignment but adds 7 padding bytes. Write the correct rule (a field with alignment 8 and a size that is not a multiple of 8 must be the last field with alignment 8), and tell the reader to add the new field to `ViewValueLayoutTests.theThemeHasNoPaddingByte`.

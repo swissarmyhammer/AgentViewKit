@@ -454,11 +454,18 @@ private struct ToolCallHeader: View {
 /// with the function inside it made SwiftUI evaluate the body with no `==`
 /// check. With two values, SwiftUI calls `==`.
 ///
-/// The stored properties are in the order of their alignment, from the
-/// largest to the smallest, so the type has no padding byte: `registrationID`
-/// (alignment 1) comes last. Until SwiftUI can call `==` for this type, it
-/// compares the bytes of the old and the new value, and a padding byte can
-/// differ between two equal values. Keep this order when you add a property.
+/// The type has no padding byte. Until SwiftUI can call `==` for this type,
+/// it compares the bytes of the old and the new value, and a padding byte can
+/// differ between two equal values.
+///
+/// Swift puts each stored property, in the order of declaration, at the next
+/// offset that is a multiple of its alignment. Thus the type has no padding
+/// byte only when each property starts where the property before it ends.
+/// `theme` has alignment 8 and a size (66) that is not a multiple of 8, so it
+/// must be the last property with alignment 8. `registrationID` (alignment 1)
+/// comes after it. When you add a stored property, also add it to
+/// `ViewValueLayoutTests.theToolCallBodyHasNoPaddingByte`. That test fails
+/// when the type has a padding byte.
 struct ToolCallBody: View, Equatable {
   /// The tool call entry to show.
   let entry: ToolCallEntry

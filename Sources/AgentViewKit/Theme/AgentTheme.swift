@@ -17,11 +17,20 @@ import SwiftUI
 /// ``default``, and `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
 /// the same values. Change the two files and ``default`` together.
 ///
-/// The stored properties are in the order of their alignment, from the
-/// largest to the smallest, so the type has no padding byte. A view value
-/// holds the theme, and until SwiftUI can call `==` for a view type, it
-/// compares the bytes of the old and the new value. A padding byte can differ
-/// between two equal values. Keep this order when you add a property.
+/// The type has no padding byte. A view value holds the theme, and until
+/// SwiftUI can call `==` for a view type, it compares the bytes of the old and
+/// the new value. A padding byte can differ between two equal values.
+///
+/// Swift puts each stored property, in the order of declaration, at the next
+/// offset that is a multiple of its alignment. Thus the type has no padding
+/// byte only when each property starts where the property before it ends.
+/// `symbolWeight` is the last property with alignment 8, and `materialLevel`
+/// and `density` (alignment 1) come after it. A property with alignment 8 and
+/// a size that is not a multiple of 8 (for example `CGFloat?`, size 9) must
+/// come after all the other properties with alignment 8. When you add a
+/// stored property, also add it to
+/// `ViewValueLayoutTests.theThemeHasNoPaddingByte`. That test fails when the
+/// type has a padding byte.
 nonisolated public struct AgentTheme: Equatable, Sendable {
   /// The spacing steps, in points, from the smallest to the largest.
   public struct Spacing: Equatable, Sendable, Codable {
