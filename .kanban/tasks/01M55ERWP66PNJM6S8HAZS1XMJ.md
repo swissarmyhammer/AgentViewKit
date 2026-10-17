@@ -71,8 +71,32 @@ comments:
     - evidence: 3 files — Tests/AgentViewKitTests/Helpers/ElicitationTestFields.swift (new), Tests/AgentViewKitTests/Elicitation/ElicitationValidatorTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationIssueTextTests.swift. Review finding flipped to - [x]. `swift build --build-tests`: Build complete, no Swift warning (only the SwiftPM note "missing creator for mutated node" for the mlx-swift_Cmlx bundle, which is not from this change). `swift test`: 1334 + 129 + 1 tests pass, 0 failures, 2 known issues (the existing helper self-tests). Test-only refactor: no production code changed, so no RED step.
     - next: /review. The Push section of the card is still open (no commit and no push by order of the dispatcher).
   timestamp: 2026-10-17T18:13:24.231401+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m55h3y70cgzp99zq8zxzpr2v
+  text: |-
+    ### commit — changed
+    - evidence: 8f37602 test(elicitation): move the test field helpers to one shared helper (^azs1xmj)
+    - next: review
+  timestamp: 2026-10-17T18:13:51.456264+00:00
+- actor: claude-code
+  id: 01m55h86wc85dkb70v4nwjr2g6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 8f37602); 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed. 3 files reviewed. The prior finding (reuse/reuse, ElicitationIssueTextTests.swift multiChoice helper) is checked.
+    - next: none. The card moved to done.
+  timestamp: 2026-10-17T18:16:11.404043+00:00
+- actor: claude-code
+  id: 01m55h8taxw4fgex1gnxj40kh8
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 3 files
+    - test: green — swift test, 1334 + 129 + 1 passed (from the implement run)
+    - commit: 8f37602
+    - review: clean — 0 findings; 1/1 prior finding checked; card moved to done
+    - push: not done. It waits for green ACPClient CI on f50f3b3 (run 39054190166 failed in the mlx-swift Metal compile).
+  timestamp: 2026-10-17T18:16:31.325571+00:00
+position_column: done
+position_ordinal: ffed80
 title: Show a kit text for the elicitation validation issue at Submit
 ---
 Request from swissarmyhammer-96 (elicitation plan, step 4; part 2 of the localization work). Known gap: the Extras failure text at Submit is English.
