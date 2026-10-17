@@ -13,6 +13,26 @@ enum DemoTestValues {
 
   /// The number of seconds that a test waits for an element.
   static let elementTimeout: TimeInterval = 20
+
+  /// The launch arguments that each test gives to the app before its own
+  /// arguments.
+  ///
+  /// AppKit can treat a launch argument that does not start with "-", for
+  /// example `gallery` in `--tab gallery`, as a document to open. Then the
+  /// app opens no window, and the test finds no element. CI run 39072794341
+  /// on Xcode 27.1 showed this. `-NSTreatUnknownArgumentsAsOpen NO` stops
+  /// AppKit from opening such an argument.
+  static let appKitArguments = ["-NSTreatUnknownArgumentsAsOpen", "NO"]
+}
+
+extension XCUIApplication {
+  /// Starts the app with `DemoTestValues.appKitArguments` and then `arguments`.
+  ///
+  /// - Parameter arguments: The launch arguments of the test.
+  func launch(arguments: [String]) {
+    launchArguments = DemoTestValues.appKitArguments + arguments
+    launch()
+  }
 }
 
 extension XCUIElement {

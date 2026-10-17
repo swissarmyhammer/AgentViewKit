@@ -38,8 +38,7 @@ final class GalleryTabEndToEndTests: XCTestCase {
   override func setUp() async throws {
     try await super.setUp()
     continueAfterFailure = false
-    app.launchArguments = [Self.inMemoryAgentArgument, Self.tabArgument, Self.galleryTab]
-    app.launch()
+    app.launch(arguments: [Self.inMemoryAgentArgument, Self.tabArgument, Self.galleryTab])
   }
 
   override func tearDown() async throws {
