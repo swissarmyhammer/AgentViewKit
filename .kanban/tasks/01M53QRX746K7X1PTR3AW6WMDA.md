@@ -157,8 +157,28 @@ comments:
     - note: in lldb-thread.txt, the stops in the updateInspector closures and the setCollapsed: NO stop are each called from a closure of Transaction.addAnimationListener(allFinished:) in __CFRunLoopDoBlocks.
     - next: /review
   timestamp: 2026-10-17T11:09:32.966094+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m54s59669sgq92x5jr3mtvdj
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 8f7028d): engine counts findings 0, confirmed 0, refuted 0, attempted 7, failed 0. 1 file reviewed (Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift). The 2 .kanban files are not reviewed (.reviewignore). The caller check gave 0 new items. All items of all prior sections are checked.
+    - caller check, the 3 prior items of "Caller Check Findings (2026-10-17 05:54)": (1) fixed: the doc of aPressOnAChipShowsTheInspectorItemOfTheSplitView() names the mount block and the block of the render pass of the press, says that the item is set to not collapsed after both blocks ran, and says that the samples do not show which block sets the item. lldb2.txt agrees: the mount enqueue (performInModes from updateInspector under makeKeyAndOrderFront and HostedViewHarness.init), the press enqueue (performInModes from updateInspector under HostedViewHarness.render() at HostedViewHarness.swift:183, HostedViewHarness.press), DIAG afterPress, afterRender2 and afterRender3 with collapsed=true, then on thread 1 the stops 1.2, 1.3, 1.2 and 1.3 in __CFRunLoopDoBlocks, then the KVO change to false in __CFRunLoopDoBlocks. lldb1.txt has the two updateInspector enqueues (mount and press) and has no breakpoint in the blocks, so "the samples that stop in the blocks" is correct. (2) fixed: the doc of withoutAnimation(_:) has the same text, and lldb-thread.txt agrees (stops 1.2, 1.3, 1.2, 1.3 on thread 1, then setCollapsed: with x2 = 0 in __CFRunLoopDoBlocks). (3) fixed: rg on lldb-thread.txt gives 20 lines with FocusState.Box.update and 5 with HostPreferencesTransform. The breakpoint 2.1 stops with FocusState.Box.update are at lines 332, 367, 402, 437, 472 (thread 8, HostPreferencesTransform at frame 28), 616, 651, 686, 721, 756 (thread 8, ViewGraph.updateOutputs at frame 15) and 950 to 1268 (10 stops, thread 1, NSHostingView.layout() in each stack). The other lines of the correction comment and its addition (30, 38, 82, 84, 119, 193, 228, 263, 298, 507, 581, 791, 824, 845, 866, 887, 908, 910, 934, 1303, 1337) agree with the sample.
+    - caller check, the proof: in lldb-thread.txt, the only CFRunLoopPerformBlock stop between the updateInspector enqueue of the render before the fence (line 581) and setCollapsed: NO (line 910) is the fence enqueue (line 791). Thus each block that the sample shows before the change of isCollapsed was added before the fence block. In the chip press samples, each updateInspector enqueue comes before DIAG afterPress, and no enqueue comes between afterPress and the KVO change. In the test, the fence comes directly after the press.
+    - caller check, claims that pass: the suite doc ("the render pass after the change adds one more such block", "after the render pass that adds the second block"); the test code (press, then fence, then render; select, render, fence, render); the press makes a render pass (HostedViewHarness.press calls perform, and lldb2 shows HostedViewHarness.render() under HostedViewHarness.press); the doc of the thread view test. RunLoopBlockFence.swift has no change in this commit. Its doc agrees with its code (perform(inModes: [.common]), CFRunLoopWakeUp, withTaskCancellationHandler, one Release for the block and the cancel handler, Mutex) and with the samples (CFMainExecutor.run(), CFRunLoopRun, __CFRunLoopDoBlocks on thread 1; kCFRunLoopCommonModes only in lldb2.txt).
+    - note (not an item): the correction comment puts the 5 HostPreferencesTransform enqueues "before the render() before the fence". Their stacks (bt 30) do not show the caller, so they can also come from that render before its updateInspector enqueue. In both cases they come before the fence enqueue, so the proof and the counts do not change.
+    - next: none. The card moves to done. No commit.
+  timestamp: 2026-10-17T11:15:09.638908+00:00
+- actor: claude-code
+  id: 01m54s656zt0gkbcf1pvqz98sz
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — doc comments in AttachmentInspectorHostedTests.swift; 2 card comments that correct the FocusState counts
+    - test: green — swift test --skip-build --filter 'RunLoopBlockFenceTests|AttachmentInspectorHostedTests', 16 tests in 2 suites passed (doc change only; the full run of iteration 1 had 1319 tests passed)
+    - commit: 8f7028d
+    - review: clean — 0 findings, all prior items fixed
+  timestamp: 2026-10-17T11:15:38.335992+00:00
+position_column: done
+position_ordinal: ffeb80
 title: Find a certain way to test that the AppKit split view shows the attachment inspector item
 ---
 Found in ^kk004eb. No hosted test proves that the AppKit split view shows the attachment inspector item after a chip press or after a host selection of a thread view. The state tests in Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift check only the input to the split view: the selection, and the selection that AgentThreadView gives to its inspector.
