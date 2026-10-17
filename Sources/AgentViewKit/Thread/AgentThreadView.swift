@@ -123,7 +123,21 @@ public struct AgentThreadView: View {
       .accessibilityReadingScope()
       .accessibilityFocusScope()
       .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
-      .attachmentInspector(selection: hostInspectorSelection ?? ownInspectorSelection)
+      .attachmentInspector(
+        selection: Self.inspectorSelection(host: hostInspectorSelection, own: ownInspectorSelection))
+  }
+
+  /// The selection that the view gives to its inspector.
+  ///
+  /// - Parameters:
+  ///   - host: The selection of the environment, or `nil` when the
+  ///     environment has none.
+  ///   - own: The selection that the view makes itself.
+  /// - Returns: `host` when it is not `nil`, otherwise `own`.
+  static func inspectorSelection(host: InspectorSelection?, own: InspectorSelection)
+    -> InspectorSelection
+  {
+    host ?? own
   }
 
   /// The conversation of the session model, with the parts that read the

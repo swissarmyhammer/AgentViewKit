@@ -30,6 +30,63 @@ comments:
     - evidence: the implement step ran one full swift test --skip-build after the change: 1314 tests in 153 suites passed with 2 known issues, 127 tests in 16 suites passed, 1 test in 1 suite passed, XCTest 0 tests. AttachmentInspectorHostedTests: 11 tests passed. swift build --build-tests: no warning in Sources/ or Tests/. It was not run again (no repeat runs).
     - next: commit (local), review.
   timestamp: 2026-10-17T01:25:10.199408+00:00
+- actor: claude-code
+  id: 01m53qk54r9g22px516wt06g7d
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (4b2aad0): engine 0 findings (7 attempted, 0 failed). Order check: 3 findings. Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:207, Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:121, Sources/AgentViewKitTestSupport/MainQueueHop.swift:11
+    - next: make the wait for the split view item an event that the inspector content sets (or prove the order from the code), add a render before the hop in the thread view test, and change the docs to state only what the code proves. Then review again.
+  timestamp: 2026-10-17T01:28:32.664497+00:00
+- actor: claude-code
+  id: 01m53qm60zh83jk8qyf520g3bz
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — new Sources/AgentViewKitTestSupport/MainQueueHop.swift, HostedViewHarness.swift doc, AttachmentInspectorHostedTests.swift (2 new tests, 3 shared helpers)
+    - test: green — full swift test --skip-build, 1314 + 127 + 1 tests passed, 2 known issues
+    - commit: 4b2aad0 (local)
+    - review: findings — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:207, Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:121, Sources/AgentViewKitTestSupport/MainQueueHop.swift:11
+    - open: decision of the step owner. The code does not prove that one main-queue hop is enough; a wait on an onAppear event can wait without end if the split view breaks. Options A (keep the hop, add render() before it, honest docs; recommendation), B (onAppear report and event wait), C (remove the two tests).
+  timestamp: 2026-10-17T01:29:06.335134+00:00
+- actor: claude-code
+  id: 01m53qn4b3dnwwb38gs1bbt5a6
+  text: |-
+    ### Decision of the step owner: option C, with one addition
+    - Reason: the user's rule is that a test that can fail only sometimes is a bad test. Option A depends on SwiftUI and AppKit timing that has no fixed order with the main queue, so it can fail on a slow machine with no defect. Option B can wait without end when the split view breaks (rule T1). Both break a rule.
+    - Do not push 4b2aad0 as it is.
+    1. Remove the two hosted split-view tests and MainQueueHop (and the hop text in the HostedViewHarness doc).
+    2. Add or keep tests of the state that drives the inspector, with no render: after a chip press, and after a host selection, the model or view state that selects the inspector item has the expected value. These tests are synchronous and certain.
+    3. The docs say that no hosted test proves that the split-view item appears on screen, and that the state tests cover the input to it. Keep the gap on a card for a later UI test, if a certain way is found.
+    - Then commit, and push with the next batch.
+  timestamp: 2026-10-17T01:29:37.379426+00:00
+- actor: claude-code
+  id: 01m53r3dt81kcc51703k7n1m80
+  text: |-
+    Option C done in the working tree on top of 4b2aad0 (no history change).
+    - Removed the tests aPressOnAChipShowsTheInspectorItemInTheSplitView and theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemInTheSplitView. Deleted Sources/AgentViewKitTestSupport/MainQueueHop.swift. The HostedViewHarness doc is again the same as before 4b2aad0 (git diff 4b2aad0~1 -- Sources/AgentViewKitTestSupport/ is empty).
+    - Kept the shared helpers mountChip, mountThreadView and pressChip. The older tests use them, and they check the same things.
+    - Changed the older thread view test: the ObservationWait.until wait is now a synchronous try #require(selection.attachment == attachment). InspectorSelection.select sets the value at once, so the test has no wait.
+    - Discovery: no test checked the value that AgentThreadView gives to its inspector (hostInspectorSelection ?? ownInspectorSelection). I moved that expression into an internal static function AgentThreadView.inspectorSelection(host:own:) and added two synchronous tests: aThreadViewGivesTheSelectionOfItsHostToItsInspector and aThreadViewWithNoHostSelectionGivesItsOwnSelectionToItsInspector (identity check with ===). The test file now uses @testable import AgentViewKit. RED: the build failed only with "type 'AgentThreadView' has no member 'inspectorSelection'".
+    - New card ^aw6wmda (todo) records the gap. The suite doc and the gap notes of the two older tests name it.
+  timestamp: 2026-10-17T01:37:25.832631+00:00
+- actor: claude-code
+  id: 01m53r3mqnec4hcvrhqc9ty4ge
+  text: |-
+    ### implement — changed
+    - evidence: 4 files. Deleted: Sources/AgentViewKitTestSupport/MainQueueHop.swift. Changed: Sources/AgentViewKitTestSupport/HostedViewHarness.swift (hop rule removed; same as before 4b2aad0), Sources/AgentViewKit/Thread/AgentThreadView.swift (internal static inspectorSelection(host:own:)), Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift (2 split-view tests removed, 2 state tests added, thread view test with no wait, docs name ^aw6wmda). New card: ^aw6wmda.
+    - swift build --build-tests: "Build complete! (24.96 sec)". No warning in Sources/ or Tests/. One build system warning: "missing creator for mutated node: .../mlx-swift_Cmlx.bundle/Contents/MacOS".
+    - swift test --skip-build --filter AttachmentInspectorHostedTests: "Test run with 11 tests in 1 suite passed after 0.358 seconds."
+    - swift test --skip-build (full): "Executed 0 tests, with 0 failures (0 unexpected)" (3 times); "Test run with 1 test in 1 suite passed after 0.001 seconds."; "Test run with 127 tests in 16 suites passed after 18.842 seconds."; "Test run with 1314 tests in 153 suites passed after 66.711 seconds with 2 known issues." (aWrappedTextWithAFixedVerticalSizeFails and aViewThatIgnoresTheThemeFails record a known issue on purpose).
+    - rg MainQueueHop (no .kanban, no .build): no match.
+    - Not committed, not pushed. Task stays in doing.
+    - next: review
+  timestamp: 2026-10-17T01:37:32.917225+00:00
+- actor: claude-code
+  id: 01m53r4j3zr6g0wys54mccz53t
+  text: |-
+    ### test — green
+    - evidence: the implement step of iteration 2 ran one full swift test --skip-build after the change: 1314 tests in 153 suites passed with 2 known issues, 127 tests in 16 suites passed, 1 test in 1 suite passed, XCTest 0 tests. AttachmentInspectorHostedTests: 11 tests passed. swift build --build-tests: no warning in Sources/ or Tests/. rg MainQueueHop: no match outside .kanban and .build. It was not run again (no repeat runs).
+    - note: the internal AgentThreadView.inspectorSelection(host:own:) (an extraction of `host ?? own`, no behavior change) makes the input of the inspector testable with no render, as item 2 of the decision asks.
+  timestamp: 2026-10-17T01:38:03.007972+00:00
 position_column: doing
 position_ordinal: '80'
 title: Add hosted tests that the AppKit split view shows the attachment inspector item after a selection change
@@ -47,3 +104,18 @@ The hop is an event that is certain to come: the main queue always runs the bloc
 - [x] Do not add an XCUITest and do not add waitForExistence. No sleep, no poll, no retry, no timeLimit trait.
 
 Write all text in STE.
+
+## Review Findings (2026-10-16 20:25)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> The engine gave 0 findings. The items below come from the order check that the caller of this review asked for (one main queue hop must be deterministically enough). The rule is the test rule in the doc of HostedViewHarness: each wait of a hosted test must be for an event that is certain to come, and a test must not pass only on most runs.
+
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:207` `tests/deterministic-wait` — In theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemInTheSplitView, no harness.render() is between the select and the hop. In the chip test, harness.press calls render() (HostedViewHarness.perform) before the hop, so SwiftUI applies the selection to the view graph, and the split view starts its change, before the test puts the hop block on the main queue. In the thread view test, the select only marks the view graph as not current. The graph update, and thus the work of the split view, can go on the main queue or the run loop after the hop block. Then the render after the hop applies the graph, and the item can need one more turn. The order is not certain from the code. Call harness.render() after the require and before the hop, so that both tests have the same order: change, render, wait, render, check. Resolved by the decision of the step owner (option C): the test is removed.
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift:121` `tests/deterministic-wait` — The code does not prove that the work that shows the split view item is a block on the main dispatch queue that goes on the queue before the hop block. That work is in SwiftUI and AppKit, not in this repository. It can be a run loop observer, a run loop perform, a timer with zero delay, or a Core Animation transaction commit. These do not have FIFO order with the blocks of the main dispatch queue. Thus the result after one hop is known only from one experiment run (0.265 s), not from the code, and the test can pass only on most runs. The same cause is in the thread view test at line 207. Wait on an event that the inspector content itself sets. For example, give AttachmentInspectorModifier an internal report (an ObservationReport, as the other views of the kit have) or an observable value that the inspector content sets in onAppear. Wait for it with ObservationWait.until or render(when:), then render and check. If no such event is possible, record the reason on the task. Resolved by the decision of the step owner (option C): the two split-view tests are removed, and ^aw6wmda records the gap.
+- [x] `Sources/AgentViewKitTestSupport/MainQueueHop.swift:11` `tests/deterministic-wait` — The doc says as a fact that the inspector item of an AppKit split view shows after a turn of the main queue. The code does not prove this (see the item above). The same claim is in Sources/AgentViewKitTestSupport/HostedViewHarness.swift:120, and in Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift at the suite doc (line 14), the chip test doc (line 107) and the withoutAnimation doc (line 253). The other statements of the MainQueueHop doc are true: the block always runs, the work that is already on the main dispatch queue runs first, and the hop has no clock, no poll, no retry and no time limit. When the wait changes, change these docs so that they state only the mechanism that the code proves. If no test uses the hop after the change, remove the split view example from the MainQueueHop doc and from the rule in the HostedViewHarness doc. Resolved by the decision of the step owner (option C): MainQueueHop.swift is deleted, the HostedViewHarness rule is as before 4b2aad0, and the suite doc, the test notes and the withoutAnimation doc no longer make the claim.
+
+Checks with no finding: after each press or selection, the synchronous require comes before the hop (lines 120 and 206). The two older tests check the same things as before; only the mount and the press moved to the shared helpers mountChip, mountThreadView and pressChip. The change has no XCUITest, no waitForExistence, no sleep, no poll, no retry and no timeLimit.

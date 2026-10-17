@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import Foundation
@@ -11,11 +11,18 @@ import UniformTypeIdentifiers
 /// Each change comes from the test on the main actor: a mount, a press, or a
 /// change of the selection. One render pass after the change puts its result
 /// in the accessibility tree, so the test reads the tree after that pass. An
-/// inspector that opens after the mount shows its split view item only after
-/// a turn of the main queue. The tests that read that item hop one time
-/// through the main queue with ``MainQueueHop/run()``, make one render pass,
-/// and then read the tree. Two other tests check the selection and read the
-/// inspector content in its own harness (``mountInspectorContent(of:)``).
+/// inspector that is open at the mount shows its split view item after the
+/// first render pass.
+///
+/// No hosted test proves that the AppKit split view shows the inspector item
+/// after a change of the selection. That work is in SwiftUI and AppKit, and
+/// the code does not prove its order with the steps of a test, so such a test
+/// can fail only sometimes. Task ^aw6wmda records this gap for a later UI
+/// test. The state tests cover the input to the split view: after a chip
+/// press, and after a host selection of a thread view, they check the
+/// selection synchronously, and they read the inspector content of the
+/// selection in its own harness (``mountInspectorContent(of:)``). Other state
+/// tests check the selection that ``AgentThreadView`` gives to its inspector.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorHostedTests {
   /// The size of a view that shows the attachment and the inspector.
   static let hostSize = CGSize(width: 900, height: 600)
@@ -79,10 +86,10 @@ import UniformTypeIdentifiers
   /// test requires the selection at once. Then it mounts the inspector
   /// content of the selection in its own harness with one render pass.
   ///
-  /// The test does not read the AppKit split view.
-  /// ``aPressOnAChipShowsTheInspectorItemInTheSplitView()`` reads the item in
-  /// the split view.
-  @Test func aPressOnAChipSelectsItsAttachmentForTheInspectorContent() async throws {
+  /// Gap: the test checks the input to the AppKit split view, not the item
+  /// that the split view shows. No hosted test proves that item. Task
+  /// ^aw6wmda records this gap for a later UI test.
+  @Test func aPressOnAChipSelectsItsAttachmentForTheInspectorContent() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(named: "blob.bin", in: directory)
@@ -97,33 +104,6 @@ import UniformTypeIdentifiers
     #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
     for identifier in AttachmentInspector.actionIdentifiers {
       #expect(content.element(identifier: identifier) != nil, "No action \(identifier).")
-    }
-  }
-
-  /// A press on a chip shows the inspector item in the AppKit split view, with
-  /// the name and the five actions.
-  ///
-  /// The chip selects its attachment in the same step as the press, so the
-  /// test requires the selection at once. The split view shows the item only
-  /// after a turn of the main queue, so the test hops one time through the
-  /// main queue, makes one render pass, and then reads the tree of the
-  /// harness.
-  @Test func aPressOnAChipShowsTheInspectorItemInTheSplitView() async throws {
-    let directory = try TemporaryDirectory()
-    defer { directory.remove() }
-    let attachment = try Self.attachment(named: "blob.bin", in: directory)
-    let selection = InspectorSelection()
-    let harness = Self.mountChip(of: attachment, selection: selection)
-    defer { harness.close() }
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
-
-    try Self.pressChip(in: harness, selecting: attachment, in: selection)
-    await MainQueueHop.run()
-    harness.render()
-
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
-    for identifier in AttachmentInspector.actionIdentifiers {
-      #expect(harness.element(identifier: identifier) != nil, "No action \(identifier).")
     }
   }
 
@@ -157,12 +137,14 @@ import UniformTypeIdentifiers
   /// before the host selects, and the selection of the host then holds the
   /// attachment, whose inspector content shows its name.
   ///
-  /// The test waits for the selection, and then mounts the inspector content
-  /// of the selection in its own harness with one render pass.
+  /// The selection holds the attachment in the same step as the select, so
+  /// the test requires the selection at once, with no wait. Then it mounts
+  /// the inspector content of the selection in its own harness with one
+  /// render pass.
   ///
-  /// The test does not read the AppKit split view of the thread view.
-  /// ``theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemInTheSplitView()``
-  /// reads the item in the split view.
+  /// Gap: the test checks the input to the AppKit split view of the thread
+  /// view, not the item that the split view shows. No hosted test proves that
+  /// item. Task ^aw6wmda records this gap for a later UI test.
   @Test func theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -175,39 +157,28 @@ import UniformTypeIdentifiers
     #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
 
     try Self.withoutAnimation { selection.select(attachment) }
-    await ObservationWait.until { selection.attachment != nil }
 
-    #expect(selection.attachment == attachment)
+    try #require(selection.attachment == attachment)
     let content = try Self.mountInspectorContent(of: selection)
     defer { content.close() }
     #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "notes.md")
   }
 
-  /// A thread view of a session with a host selection shows the inspector
-  /// item in the AppKit split view after the host selects an attachment.
-  ///
-  /// The selection holds the attachment in the same step as the select, so
-  /// the test requires the selection at once. Then it hops one time through
-  /// the main queue, makes one render pass, and reads the tree of the
-  /// harness.
-  @Test func theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemInTheSplitView() async throws {
-    let directory = try TemporaryDirectory()
-    defer { directory.remove() }
-    let attachment = try Self.attachment(named: "notes.md", in: directory)
-    let selection = InspectorSelection()
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let harness = Self.mountThreadView(of: session, selection: selection)
-    defer { harness.close() }
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
+  /// A thread view gives the selection of its host to its inspector, when the
+  /// environment has one.
+  @Test func aThreadViewGivesTheSelectionOfItsHostToItsInspector() {
+    let host = InspectorSelection()
+    let own = InspectorSelection()
 
-    try Self.withoutAnimation { selection.select(attachment) }
-    // The selection holds the attachment in the same step as the select.
-    try #require(selection.attachment == attachment)
-    await MainQueueHop.run()
-    harness.render()
+    #expect(AgentThreadView.inspectorSelection(host: host, own: own) === host)
+  }
 
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == "notes.md")
+  /// A thread view gives its own selection to its inspector, when the
+  /// environment has no selection.
+  @Test func aThreadViewWithNoHostSelectionGivesItsOwnSelectionToItsInspector() {
+    let own = InspectorSelection()
+
+    #expect(AgentThreadView.inspectorSelection(host: nil, own: own) === own)
   }
 
   // MARK: - Artifact
@@ -249,8 +220,8 @@ import UniformTypeIdentifiers
   ///
   /// The inspector opens with an AppKit split view animation. The harness
   /// window is not on a screen, so that animation does not end, and the
-  /// inspector stays closed. A change with no animation opens it, and the
-  /// split view shows its item after one turn of the main queue.
+  /// inspector stays closed. Thus the tests make each change of the selection
+  /// with no animation.
   ///
   /// - Parameter body: The change to make.
   /// - Throws: The error of `body`.
