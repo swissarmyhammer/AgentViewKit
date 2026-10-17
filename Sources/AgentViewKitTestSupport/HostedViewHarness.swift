@@ -117,6 +117,10 @@ private enum HarnessConstants {
 /// - A change that comes from asynchronous work: wait for its event with
 ///   ``render(when:)`` or ``ObservationWait/until(_:)``, then check the
 ///   result with an expectation. The wait is not a check.
+/// - A change that the view shows only after a turn of the main queue, such
+///   as the inspector item of an AppKit split view: hop one time with
+///   ``MainQueueHop/run()``, call ``render()``, then check the result with an
+///   expectation. Do not hop again when the result is not there.
 /// - A hosted test holds ``HostedTestLock``, and a wait has no time limit.
 ///   Thus each wait of a hosted test must be for an event that is certain to
 ///   come.
