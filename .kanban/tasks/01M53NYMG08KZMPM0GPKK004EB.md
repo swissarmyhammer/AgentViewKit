@@ -107,8 +107,26 @@ comments:
     - implement: changed — the withoutAnimation doc now says "each change that opens the inspector" (the two opening changes, pressChip at line 284 and the host select at line 159, use withoutAnimation; selection.clear() at line 129 closes it). No other doc in the file says "each change" for animation.
     - test: green — swift build --build-tests complete with no warning; AttachmentInspectorHostedTests 11 of 11 passed (comment-only change).
   timestamp: 2026-10-17T01:45:53.375407+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m53rszry8myb24wptkwaqkjg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (bb12277). Counts: 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed, 0 skipped). 1 file reviewed: Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift. All prior items in the sections of 2026-10-16 20:25 and 20:38 are checked.
+    - doc check (the caller asked for it): the withoutAnimation doc now says "Thus the tests make each change that opens the inspector with no animation." This is true. The two changes that open the inspector use withoutAnimation: the chip press in pressChip, and selection.select(attachment) in theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent. selection.clear() in aClearedSelectionClosesTheInspector closes the inspector, and the doc does not name it. The only other "each change" text is in the suite doc: "Each change comes from the test on the main actor: a mount, a press, or a change of the selection. One render pass after the change puts its result in the accessibility tree, so the test reads the tree after that pass." Each test obeys it: each mount helper calls render(), the press calls render() through the harness, the clear is followed by render(), and the thread view test reads no tree of that harness after the select.
+    - next: none. The task is in done.
+  timestamp: 2026-10-17T01:49:45.118514+00:00
+- actor: claude-code
+  id: 01m53rtm00ey3hvdyw9v4xck7w
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — the withoutAnimation doc names only the changes that open the inspector
+    - test: green — AttachmentInspectorHostedTests 11 of 11 passed (comment-only change; the full run of iteration 2 covers the code)
+    - commit: bb12277
+    - review: clean — 0 findings, 4 of 4 prior items checked
+    - result: option C of the step owner. No hosted split-view test; the state tests cover the input to the inspector; the gap is on ^aw6wmda.
+  timestamp: 2026-10-17T01:50:05.824722+00:00
+position_column: done
+position_ordinal: ffe980
 title: Add hosted tests that the AppKit split view shows the attachment inspector item after a selection change
 ---
 Found in ^7s6r89d. The tests aPressOnAChipSelectsItsAttachmentForTheInspectorContent and theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent in Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift do not prove that the AppKit split view shows the inspector item. They check the selection, and then mount AttachmentInspector in its own harness (mountInspectorContent(of:)). In the off-screen harness window, the split view shows the item only after a run loop turn.
