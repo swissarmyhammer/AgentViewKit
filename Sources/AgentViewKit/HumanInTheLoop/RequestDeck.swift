@@ -80,8 +80,8 @@ import SwiftUI
 ///   "k of N". The header shows "N waiting" (identifier
 ///   ``waitingIdentifier``). The card keeps the identity that it had before
 ///   the accept, so its browser session continues. The card goes away when
-///   the agent sends `elicitation/complete`, or when the user presses Stop
-///   Waiting (``ElicitationURLConsentView``).
+///   the agent sends `elicitation/complete`, or when the user presses Cancel
+///   in the waiting state (``ElicitationURLConsentView``).
 /// - Only the front card and the waiting cards take a click or the keyboard
 ///   focus. A card that does not show has no opacity.
 /// - A deck with no pending request, no waiting card and no notice of a

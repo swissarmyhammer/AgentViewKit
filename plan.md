@@ -473,7 +473,7 @@ Free text defaults to EditorKit. This is the opposite default from `PromptInputV
 
 ### 13.3 URL mode
 
-`ElicitationURLConsentView` shows the server, the message, and the full URL with the domain highlighted. It warns on Punycode or ambiguous hosts. On consent it opens the system browser through `AuthorizationPresenter`. It never auto-opens or pre-fetches. It answers `accept` for consent to open. The client model then keeps the request in `awaitingURLCompletions` until `elicitation/complete` by `elicitationId`, and the card shows "Waiting for <host> to finish" with Retry and Stop Waiting. Stop Waiting stops the browser and the wait, and sends nothing to the agent. A `-32042` error renders the same card.
+`ElicitationURLConsentView` shows the server, the message, and the full URL with the domain highlighted. It warns on Punycode or ambiguous hosts. On consent it opens the system browser through `AuthorizationPresenter`. It never auto-opens or pre-fetches. It answers `accept` for consent to open. The client model then keeps the request in `awaitingURLCompletions` until `elicitation/complete` by `elicitationId`, and the card shows "Waiting for <host> to finish" with Retry and Cancel. In the waiting state, Cancel stops the browser and the wait, and sends nothing to the agent. A `-32042` error renders the same card.
 
 ### 13.4 Security posture
 

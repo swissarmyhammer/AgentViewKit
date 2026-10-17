@@ -170,7 +170,7 @@ announcement.
 - Tool call whose accepted URL elicitation waits for the end of the flow in
   the browser: the text "Waiting for <host>".
 - URL elicitation card in the waiting state: "Waiting for <host> to finish",
-  the button "Stop Waiting", and the Retry button with the label "Open
+  the button "Cancel", and the Retry button with the label "Open
   <agent> in the browser again".
 - Reasoning block: "Reasoning, in progress", "Reasoning, N seconds", or
   "Reasoning" when the time is not known.

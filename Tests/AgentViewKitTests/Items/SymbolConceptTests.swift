@@ -28,7 +28,7 @@ import Testing
     case time
     case accept, acceptAlways, reject, rejectAlways
     case details, loadMore, showAll, signIn, signOut, suggestion
-    case send, dismiss, open, stop
+    case send, dismiss, open
     case usage, usageFull
   }
 
@@ -243,15 +243,15 @@ import Testing
   }
 
   /// The symbols of the buttons of the URL consent card: Open in Browser,
-  /// Retry, Decline, Cancel and Stop Waiting, and the symbol of the tool call
-  /// status while the URL flow runs.
+  /// Retry, Decline and Cancel, and the symbol of the tool call status while
+  /// the URL flow runs. The Cancel button of the waiting state uses the same
+  /// symbol as the Cancel button before the press.
   static func urlConsentButtonUses() -> [Use] {
     [
       Use(concept: .open, place: "URL consent Open in Browser", name: ElicitationURLConsentView.openSymbol),
       Use(concept: .reload, place: "URL consent Retry", name: ElicitationURLConsentView.retrySymbol),
       Use(concept: .reject, place: "URL consent Decline", name: ElicitationURLConsentView.declineSymbol),
       Use(concept: .dismiss, place: "URL consent Cancel", name: ElicitationURLConsentView.cancelSymbol),
-      Use(concept: .stop, place: "URL consent Stop Waiting", name: ElicitationURLConsentView.stopWaitingSymbol),
       Use(concept: .pending, place: "tool call URL waiting status", name: ToolCallView.urlWaitingSymbol),
     ]
   }

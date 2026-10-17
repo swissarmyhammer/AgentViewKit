@@ -38,9 +38,11 @@ import SwiftUI
 ///
 /// Before the press, the card shows Cancel, Decline, and Open in Browser.
 /// Cancel and Esc call `cancelElicitation(_:)`. In the waiting state, the card
-/// shows Stop Waiting and Retry. Retry opens the browser again, and it does
-/// not send a second answer. Stop Waiting and Esc stop the browser session of
-/// the card and call `stopWaiting(_:)`, which sends nothing to the agent. A
+/// shows Cancel and Retry. Retry opens the browser again, and it does not
+/// send a second answer. In the waiting state, Cancel and Esc stop the
+/// browser session of the card and call `stopWaiting(_:)`, which sends
+/// nothing to the agent. The Cancel button of the waiting state has the same
+/// label, symbol, role and identifier as the Cancel button before the press. A
 /// call for an elicitation that already resolved changes nothing in the
 /// model.
 ///
@@ -78,8 +80,6 @@ public struct ElicitationURLConsentView: View {
   public static let cancelIdentifier = ElicitationView.cancelIdentifier
   /// The accessibility identifier of the waiting state.
   public static let waitingIdentifier = "elicitation-waiting"
-  /// The accessibility identifier of the Stop Waiting button.
-  public static let stopWaitingIdentifier = "elicitation-stop-waiting"
 
   /// The URL scheme that the browser session waits for.
   ///
@@ -105,9 +105,6 @@ public struct ElicitationURLConsentView: View {
   static let declineSymbol = ElicitationView.declineSymbol
   /// The symbol of the Cancel button: the symbol of the form.
   static let cancelSymbol = ElicitationView.cancelSymbol
-  /// The symbol of the Stop Waiting button, which stops the browser and the
-  /// wait.
-  static let stopWaitingSymbol = SharedSymbol.stop
 
   /// The step of the consent.
   enum Phase: Equatable {
@@ -235,8 +232,8 @@ public struct ElicitationURLConsentView: View {
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
-        Button("Stop Waiting", systemImage: Self.stopWaitingSymbol, action: stopWaiting)
-          .accessibilityIdentifier(Self.stopWaitingIdentifier)
+        Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: stopWaiting)
+          .accessibilityIdentifier(Self.cancelIdentifier)
         Button("Retry", systemImage: Self.retrySymbol, action: openBrowser)
           .buttonStyle(.glassProminent)
           .accessibilityLabel("Open \(ElicitationHeader.agentServer) in the browser again")
@@ -294,7 +291,8 @@ public struct ElicitationURLConsentView: View {
     owner.stopWaiting(request.id)
   }
 
-  /// Answers Esc: Stop Waiting in the waiting state, else Cancel.
+  /// Answers Esc as the Cancel button of the current step does: it stops the
+  /// wait in the waiting state, else it cancels the elicitation.
   private func didPressEscape() {
     switch phase {
     case .idle: cancel()

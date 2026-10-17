@@ -244,7 +244,6 @@ import Testing
     #expect(ElicitationURLConsentView.cancelIdentifier == "elicitation-cancel")
     #expect(ElicitationURLConsentView.declineIdentifier == "elicitation-decline")
     #expect(ElicitationURLConsentView.waitingIdentifier == "elicitation-waiting")
-    #expect(ElicitationURLConsentView.stopWaitingIdentifier == "elicitation-stop-waiting")
     #expect(RequestDeck.waitingIdentifier == "request-deck-waiting")
   }
 
@@ -315,7 +314,6 @@ import Testing
     #expect(mounted.responses.isEmpty)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) == nil)
-    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.stopWaitingIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.declineIdentifier) != nil)
   }
@@ -379,17 +377,19 @@ import Testing
     #expect(
       mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) != nil)
-    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.stopWaitingIdentifier) != nil)
-    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) == nil)
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.cancelIdentifier) != nil)
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.declineIdentifier) == nil)
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.openIdentifier) == nil)
   }
 
-  @Test func stopWaitingKeepsItsTextAsItsLabel() async throws {
+  /// In the waiting state, the button that stops the wait is a Cancel button
+  /// with the identifier of the Cancel button of the consent state.
+  @Test func cancelWhileWaitingKeepsItsTextAsItsLabel() async throws {
     let mounted = try await Self.mount()
     defer { mounted.close() }
     try await Self.open(mounted)
 
-    mounted.harness.expectButton(identifier: ElicitationURLConsentView.stopWaitingIdentifier, label: "Stop Waiting")
+    mounted.harness.expectButton(identifier: ElicitationURLConsentView.cancelIdentifier, label: "Cancel")
   }
 
   /// The card reads the waiting step from the model. Thus a card that mounts
@@ -559,15 +559,16 @@ import Testing
     #expect(mounted.responses.count == 1)
   }
 
-  @Test func stopWaitingRemovesTheCardStopsTheBrowserAndSendsNoSecondAnswer() async throws {
+  @Test func cancelWhileWaitingRemovesTheCardStopsTheBrowserAndSendsNoSecondAnswer() async throws {
     let mounted = try await Self.mountDeck([Self.urlRequest])
     defer { mounted.close() }
     let model = mounted.session.model
     try await Self.openInDeck(mounted)
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.stopWaitingIdentifier)
-    // Stop Waiting stops the browser task and the wait in the same step as
-    // the press, so a press that stopped nothing stops the test here.
+    try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
+    // Cancel in the waiting state stops the browser task and the wait in the
+    // same step as the press, so a press that stopped nothing stops the test
+    // here.
     try #require(mounted.browserSteps.values == [.open, .stop])
     try #require(model.awaitingURLCompletions.isEmpty)
     mounted.harness.render()
