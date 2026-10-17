@@ -1,6 +1,18 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m54nhvgg5f89ae6a0ebfy15x
+  text: |-
+    ### Research (2026-10-17): diagnostic samples (scratchpad test, not committed)
+    - The user wants this card done here, with the coordination of the step owner. The step owner and the other sessions know no proven way.
+    - Fact 1: the SwiftUI inspector is an NSSplitView whose delegate is SwiftUI.SplitViewController. It has 2 items. The inspector item has behavior 3 (inspector). It is collapsed at the mount.
+    - Fact 2: after the chip press (in a transaction with disablesAnimations) and 2 more harness.render() calls, the item stays collapsed (isCollapsed true, view not in the window). No KVO change of isCollapsed comes in a render. Thus layoutSubtreeIfNeeded does not show the item, and a test with no wait cannot see it.
+    - Fact 3: the KVO change of isCollapsed to false comes from a CFRunLoop block (__CFRunLoopDoBlocks), in a SwiftUI closure (symbol near Transaction.addAnimationListener(allFinished:)). It is not a block of the main dispatch queue. Thus the old hop test passed only because of the order of the run loop work.
+    - Fact 4: the public Transaction.addAnimationCompletion(criteria:) completion runs from a dispatch source of the main queue (Transaction.dispatchPending, AllFinishedListener.finalizeTransaction). It is not the same mechanism as fact 3, so no document gives the order between them. The completion is not a correct fence.
+    - Candidate: CoreFoundation is open source, and __CFRunLoopDoBlocks runs the blocks in FIFO order. If SwiftUI enqueues its block (CFRunLoopPerformBlock) inside render(), a test block that is enqueued after render() runs after it. Next step: read the call stack of the enqueue with an lldb breakpoint on CFRunLoopPerformBlock (this reads the stack, it measures no time).
+  timestamp: 2026-10-17T10:12:07.312338+00:00
 position_column: todo
 position_ordinal: '9e80'
 title: Find a certain way to test that the AppKit split view shows the attachment inspector item

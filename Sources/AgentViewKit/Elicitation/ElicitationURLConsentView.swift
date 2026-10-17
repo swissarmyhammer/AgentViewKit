@@ -209,12 +209,18 @@ public struct ElicitationURLConsentView: View {
     HStack(spacing: theme.spacing.s) {
       ProgressView()
         .controlSize(.small)
-      Text("Waiting for \(waitingHost) to finish")
+      Text(waitingMessage)
         .foregroundStyle(.secondary)
     }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Waiting for \(waitingHost) to finish")
+    .accessibilityLabel(waitingMessage)
     .accessibilityIdentifier(Self.waitingIdentifier)
+  }
+
+  /// The text of the waiting state. The visible text and the VoiceOver
+  /// label of the waiting state use this text.
+  private var waitingMessage: String {
+    "Waiting for \(waitingHost) to finish"
   }
 
   /// The buttons of the current step.
@@ -223,8 +229,7 @@ public struct ElicitationURLConsentView: View {
       Spacer()
       switch phase {
       case .idle:
-        Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: cancel)
-          .accessibilityIdentifier(Self.cancelIdentifier)
+        cancelButton(action: cancel)
         Button("Decline", systemImage: Self.declineSymbol, action: decline)
           .accessibilityIdentifier(Self.declineIdentifier)
         Button("Open in Browser", systemImage: Self.openSymbol, action: open)
@@ -232,14 +237,23 @@ public struct ElicitationURLConsentView: View {
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
-        Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: stopWaiting)
-          .accessibilityIdentifier(Self.cancelIdentifier)
+        cancelButton(action: stopWaiting)
         Button("Retry", systemImage: Self.retrySymbol, action: openBrowser)
           .buttonStyle(.glassProminent)
           .accessibilityLabel("Open \(ElicitationHeader.agentServer) in the browser again")
           .accessibilityIdentifier(Self.retryIdentifier)
       }
     }
+  }
+
+  /// The Cancel button of a step. Each step shows the same label, symbol,
+  /// role and identifier. Only the action changes.
+  ///
+  /// - Parameter action: The action of the button in the current step.
+  /// - Returns: The Cancel button.
+  private func cancelButton(action: @escaping () -> Void) -> some View {
+    Button("Cancel", systemImage: Self.cancelSymbol, role: .cancel, action: action)
+      .accessibilityIdentifier(Self.cancelIdentifier)
   }
 
   // MARK: Actions
