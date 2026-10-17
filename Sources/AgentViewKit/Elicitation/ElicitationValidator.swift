@@ -48,7 +48,7 @@ public nonisolated enum ElicitationValidator {
   /// ACP v2 tells a client to do.
   ///
   /// Some rules are not the same as the check at Submit
-  /// (`PendingElicitation.validationFailure(of:)`). The `date-time` check
+  /// (`PendingElicitation.validationIssue(of:)`). The `date-time` check
   /// accepts `t`, `z` and the second 60. The `uri` check needs an RFC 3986
   /// scheme. An empty string and an empty array are no answer. The check at
   /// Submit stops an answer that it refuses.
@@ -258,6 +258,67 @@ public nonisolated enum ElicitationValidator {
     return URL(string: text, encodingInvalidCharacters: false) != nil
   }
 
+  // MARK: - Issues at Submit
+
+  /// The message for a rule that the check at Submit found
+  /// (`PendingElicitation.validationIssue(of:)`).
+  ///
+  /// A rule that the field check also has gives the same message as the
+  /// field check. Thus the user sees one sentence for one rule, from the
+  /// field and from Submit.
+  ///
+  /// - Parameter kind: The rule that the answer breaks.
+  /// - Returns: The localized message, with no field name.
+  static func message(for kind: PendingElicitation.ValidationIssue.Kind) -> String {
+    switch kind {
+    case .requiredFieldMissing: Message.required
+    case .fieldNotInSchema: Message.notInForm
+    case .wrongType(let expected): message(forExpected: expected)
+    case .tooShort(let minLength): Message.tooShort(minLength)
+    case .tooLong(let maxLength): Message.tooLong(maxLength)
+    case .patternMismatch: Message.patternMismatch
+    case .invalidPattern: Message.patternNotCorrect
+    case .invalidFormat(let format): message(forFormat: format)
+    case .belowMinimum(let minimum): Message.belowMinimum(minimum)
+    case .aboveMaximum(let maximum): Message.aboveMaximum(maximum)
+    case .valueNotAllowed: Message.notAChoice
+    case .itemNotAllowed: Message.itemNotAChoice
+    case .tooFewItems(let minItems): Message.tooFewItems(minItems)
+    case .tooManyItems(let maxItems): Message.tooManyItems(maxItems)
+    }
+  }
+
+  /// The message for a value that does not have the type of its field.
+  ///
+  /// - Parameter expected: The type of value that the field takes.
+  /// - Returns: The message of the field check for the same type.
+  private static func message(
+    forExpected expected: PendingElicitation.ValidationIssue.ExpectedValue
+  ) -> String {
+    switch expected {
+    case .string: Message.notText
+    case .number: Message.notNumber
+    case .wholeNumber: Message.notInteger
+    case .boolean: Message.notBoolean
+    case .stringList: Message.notAList
+    }
+  }
+
+  /// The message for a string that does not have the format of its field.
+  ///
+  /// - Parameter format: The `format` of the field.
+  /// - Returns: The message of the field check for the same format.
+  private static func message(
+    forFormat format: PendingElicitation.ValidationIssue.StringFormat
+  ) -> String {
+    switch format {
+    case .email: Message.notEmail
+    case .uri: Message.notURI
+    case .date: Message.notDate
+    case .dateTime: Message.notDateTime
+    }
+  }
+
   // MARK: - Messages
 
   /// The validation messages, in ASD-STE100 Simplified Technical English.
@@ -286,6 +347,10 @@ public nonisolated enum ElicitationValidator {
     static let notAList = String(localized: "The value must be a list of choices.", bundle: .module)
     static let itemNotAChoice = String(
       localized: "Each item must be one of the choices.", bundle: .module)
+    /// The message for an answer key that is not a property of the schema.
+    /// Only the check at Submit finds this rule.
+    static let notInForm = String(
+      localized: "The form does not have this field.", bundle: .module)
 
     /// The message for a text that is shorter than `minLength`.
     ///

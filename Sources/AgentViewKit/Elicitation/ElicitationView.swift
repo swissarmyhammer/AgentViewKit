@@ -23,10 +23,10 @@ import SwiftUI
 /// (see `answerContent(values:)`).
 ///
 /// Before the send of an accepted answer, the view checks the content with
-/// `PendingElicitation.validationFailure(of:)`. When the agent cannot accept
-/// the answer, the view does not send it. The form stays open, shows the
-/// failure in the element ``failureIdentifier``, and announces it. A change
-/// of an answer removes the failure.
+/// `PendingElicitation.validationIssue(of:)`. When the agent cannot accept
+/// the answer, the view does not send it. The form stays open, shows a
+/// localized kit text of the issue in the element ``failureIdentifier``, and
+/// announces it. A change of an answer removes the failure.
 ///
 /// The view keeps its answers in state. Give each request its own view
 /// identity, for example with `.id(request.id)`, so that a new request
@@ -73,6 +73,9 @@ public struct ElicitationView: View {
   /// The model that holds the elicitation.
   let owner: any PendingElicitationOwner
 
+  /// The JSON form of the ACP `requestedSchema` of the request.
+  let requestedSchema: JSONValue
+
   /// The fields of the request, in the order of the form.
   let fields: [ElicitationFieldSchema]
 
@@ -100,21 +103,23 @@ public struct ElicitationView: View {
   public init(request: PendingElicitation, owner: any PendingElicitationOwner) {
     self.request = request
     self.owner = owner
-    let fields = Self.fields(of: request)
+    let requestedSchema = Self.requestedSchema(of: request)
+    self.requestedSchema = requestedSchema
+    let fields = ElicitationFieldSchema.normalize(from: requestedSchema)
     self.fields = fields
     _values = State(initialValue: Self.defaultValues(of: fields))
   }
 
-  /// The fields of a pending elicitation.
+  /// The JSON form of the ACP `requestedSchema` of a pending elicitation.
   ///
-  /// The fields read the JSON form of the ACP `requestedSchema`.
+  /// The fields and the field titles of a failure text read this value.
   ///
   /// - Parameter request: The pending elicitation.
-  /// - Returns: The normalized fields of a form mode elicitation, or no fields
-  ///   for another mode.
-  static func fields(of request: PendingElicitation) -> [ElicitationFieldSchema] {
-    guard case .form(let form) = request.request.mode else { return [] }
-    return ElicitationFieldSchema.normalize(from: JSONValue.encodedOrNull(form.requestedSchema))
+  /// - Returns: The `requestedSchema` of a form mode elicitation, or JSON
+  ///   `null` for another mode. JSON `null` gives no fields.
+  static func requestedSchema(of request: PendingElicitation) -> JSONValue {
+    guard case .form(let form) = request.request.mode else { return .null }
+    return JSONValue.encodedOrNull(form.requestedSchema)
   }
 
   /// The first answers of a form.
@@ -223,20 +228,38 @@ public struct ElicitationView: View {
   /// The text that the form shows and announces when the agent cannot
   /// accept the answer.
   ///
-  /// - Parameter reason: The failure text of
-  ///   `PendingElicitation.validationFailure(of:)`.
-  /// - Returns: "The agent cannot accept this answer: " and `reason`.
-  static func failureText(reason: String) -> String {
-    String(localized: "The agent cannot accept this answer: \(reason)", bundle: .module)
+  /// The text is a localized kit text, not the English `failureText` of the
+  /// issue. The rule is ``ElicitationValidator/message(for:)``, so a rule
+  /// that the field check also has gives the sentence of the field check.
+  /// The field is the `title` of its property, or the field name when the
+  /// property has no title.
+  ///
+  /// - Parameters:
+  ///   - issue: The issue of `PendingElicitation.validationIssue(of:)`.
+  ///   - requestedSchema: The JSON form of the ACP `requestedSchema`.
+  /// - Returns: "The agent cannot accept the answer for “<field>”: " and the
+  ///   rule, or "The agent cannot accept this answer: " and the rule when
+  ///   the issue has no field.
+  static func failureText(
+    for issue: PendingElicitation.ValidationIssue,
+    requestedSchema: JSONValue
+  ) -> String {
+    let rule = ElicitationValidator.message(for: issue.kind)
+    guard let field = issue.field else {
+      return String(localized: "The agent cannot accept this answer: \(rule)", bundle: .module)
+    }
+    let title = ElicitationFieldSchema.title(ofProperty: field, in: requestedSchema)
+    return String(localized: "The agent cannot accept the answer for “\(title)”: \(rule)", bundle: .module)
   }
 
   /// Sends the answers when each field passes validation and the check
   /// before the send finds no failure.
   ///
-  /// The check before the send is `PendingElicitation.validationFailure(of:)`:
+  /// The check before the send is `PendingElicitation.validationIssue(of:)`:
   /// the rules of the agent (FoundationModelsExtras) on the same content
-  /// that the view sends. When it finds a failure, the view does not send.
-  /// The form stays open, shows the failure, and announces it at `.high`.
+  /// that the view sends. When it finds an issue, the view does not send.
+  /// The form stays open, shows the kit text of the issue
+  /// (``failureText(for:requestedSchema:)``), and announces it at `.high`.
   ///
   /// The check cannot examine each answer. When FoundationModelsExtras
   /// cannot decode the schema, for example because a property has a type
@@ -246,8 +269,8 @@ public struct ElicitationView: View {
   private func submit() {
     guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
     let content = JSONValue.object(Self.answerContent(values: values))
-    if let reason = request.validationFailure(of: content) {
-      let text = Self.failureText(reason: reason)
+    if let issue = request.validationIssue(of: content) {
+      let text = Self.failureText(for: issue, requestedSchema: requestedSchema)
       answerFailure = text
       announcer.announce(text, priority: .high)
       return

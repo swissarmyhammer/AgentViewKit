@@ -2001,6 +2001,16 @@
         }
       }
     },
+    "The agent cannot accept the answer for “%@”: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent cannot accept the answer for “%1$@”: %2$@"
+          }
+        }
+      }
+    },
     "The agent cannot accept this answer: %@" : {
       "localizations" : {
         "en" : {
@@ -2247,6 +2257,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The connection to the agent failed"
+          }
+        }
+      }
+    },
+    "The form does not have this field." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The form does not have this field."
           }
         }
       }

@@ -51,7 +51,7 @@ announcement.
 | A known tool call gets its result (completed, failed, cancelled, lost) | "<title>, <status>" (`ToolCallView.accessibilityLabel`) | medium |
 | A new pending request of the model of a `RequestDeck` | "Action required: <title>" | high |
 | A new record in `withdrawnRequests` of the model of a `RequestDeck` (the agent withdrew a pending request with `$/cancel_request`) | "<title> was withdrawn: <reason>", or "<title> was withdrawn." with no reason | medium |
-| The check before the send refuses an elicitation answer (`ElicitationView` does not send it) | "The agent cannot accept this answer: <reason>" | high |
+| The check before the send refuses an elicitation answer (`ElicitationView` does not send it) | "The agent cannot accept the answer for “<field title>”: <rule>", or "The agent cannot accept this answer: <rule>" when the issue has no field. The rule is the localized kit text of the issue kind, the same text as the field check for the same rule. | high |
 
 - A prompt is mail (ACPAgent 293be4b). The order on the wire is: the
   prompt response with the `messageId`, the `user_message` echo with that

@@ -70,8 +70,10 @@ import Testing
   /// choices. The kit makes no field for it, but Extras decodes it.
   static let noChoicesProperty = #"{"type": "array", "title": "Files", "items": {"type": "string", "enum": []}}"#
 
-  /// The text before the reason of Extras in the failure of a refused answer.
-  static let failureLead = "The agent cannot accept this answer: "
+  /// The kit text that Submit shows when Extras refuses the answer
+  /// ``leapSecond`` of the field `when` (title `When`).
+  static let leapSecondFailure =
+    "The agent cannot accept the answer for “When”: The value must be a date and time in RFC 3339 format."
 
   /// The accessibility identifier of the button of the custom text field.
   static let customTextFieldIdentifier = "custom-text-field-write"
@@ -456,22 +458,39 @@ import Testing
     makeFormParams(properties: ["color": colorProperty, "files": noChoicesProperty], required: ["color", "files"])
   }
 
+  /// The params of a request with the required field ``leapSecondProperty``.
+  static var leapSecondParams: String {
+    makeFormParams(properties: ["when": leapSecondProperty], required: ["when"])
+  }
+
   @Test func anAnswerThatExtrasRefusesIsNotSent() async throws {
     let announcer = RecordingAnnouncer()
-    let params = Self.makeFormParams(properties: ["when": Self.leapSecondProperty], required: ["when"])
-    let mounted = try await Self.mountRefused(params, announcer: announcer)
+    let mounted = try await Self.mountRefused(Self.leapSecondParams, announcer: announcer)
     defer { mounted.close() }
     let harness = mounted.harness
-    let pending = try #require(mounted.session.model.pendingElicitations.first)
-    let reason = try #require(pending.validationFailure(of: .object(["when": .string(Self.leapSecond)])))
-    let expected = Self.failureLead + reason
 
     try harness.press(identifier: ElicitationView.submitIdentifier)
 
     #expect(mounted.session.model.pendingElicitations.count == 1)
-    #expect(harness.element(identifier: ElicitationView.failureIdentifier)?.label == expected)
-    #expect(announcer.announcements == [RecordingAnnouncer.Announcement(message: expected, priority: .high)])
+    #expect(harness.element(identifier: ElicitationView.failureIdentifier)?.label == Self.leapSecondFailure)
+    #expect(
+      announcer.announcements == [RecordingAnnouncer.Announcement(message: Self.leapSecondFailure, priority: .high)])
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
+  }
+
+  @Test func theFailureShowsTheKitTextAndNotTheEnglishTextOfExtras() async throws {
+    let mounted = try await Self.mountRefused(Self.leapSecondParams, announcer: RecordingAnnouncer())
+    defer { mounted.close() }
+    let harness = mounted.harness
+    let pending = try #require(mounted.session.model.pendingElicitations.first)
+    let issue = try #require(pending.validationIssue(of: .object(["when": .string(Self.leapSecond)])))
+    #expect(issue == PendingElicitation.ValidationIssue(field: "when", kind: .invalidFormat(.dateTime)))
+
+    try harness.press(identifier: ElicitationView.submitIdentifier)
+
+    let failure = try #require(harness.element(identifier: ElicitationView.failureIdentifier)?.label)
+    #expect(failure == Self.leapSecondFailure)
+    #expect(!failure.contains(issue.failureText))
   }
 
   @Test func aRequiredFieldWithNoControlIsNotSent() async throws {
@@ -482,9 +501,9 @@ import Testing
     try Self.submitRed(harness)
 
     #expect(mounted.session.model.pendingElicitations.count == 1)
-    let failure = try #require(harness.element(identifier: ElicitationView.failureIdentifier)?.label)
-    #expect(failure.hasPrefix(Self.failureLead))
-    #expect(failure.contains(#""files""#))
+    #expect(
+      harness.element(identifier: ElicitationView.failureIdentifier)?.label
+        == "The agent cannot accept the answer for “Files”: This field is necessary.")
   }
 
   @Test func aChangeOfTheAnswersRemovesTheFailure() async throws {

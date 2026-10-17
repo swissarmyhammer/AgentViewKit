@@ -185,6 +185,30 @@ extension ElicitationFieldSchema {
     }
   }
 
+  /// The label of the property named `name` of a `requestedSchema`.
+  ///
+  /// The label is the rule of ``title``. Thus a property that has no field,
+  /// for example an `array` property with no choices, gets the same label.
+  ///
+  /// - Parameters:
+  ///   - name: The property name.
+  ///   - requestedSchema: The `requestedSchema` object.
+  /// - Returns: The `title` of the property, or `name` when the property has
+  ///   no title or the schema has no such property.
+  static func title(ofProperty name: String, in requestedSchema: JSONValue) -> String {
+    title(named: name, property: requestedSchema["properties"]?[name])
+  }
+
+  /// The label of one property schema.
+  ///
+  /// - Parameters:
+  ///   - name: The property name.
+  ///   - property: The property schema, or `nil` when there is none.
+  /// - Returns: The `title` of the property, or `name` when it has no title.
+  private static func title(named name: String, property: JSONValue?) -> String {
+    property?["title"]?.stringValue ?? name
+  }
+
   /// Makes the field for one property schema.
   ///
   /// - Parameters:
@@ -201,7 +225,7 @@ extension ElicitationFieldSchema {
     else { return nil }
     return ElicitationFieldSchema(
       name: name,
-      title: property["title"]?.stringValue ?? name,
+      title: title(named: name, property: property),
       description: property["description"]?.stringValue,
       required: required,
       kind: kind,
