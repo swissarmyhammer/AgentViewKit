@@ -74,7 +74,7 @@ struct AttachmentActions: View {
         .accessibilityIdentifier(Action.quickLook.identifier(prefix: identifierPrefix))
     }
     .labelStyle(.iconOnly)
-    .buttonStyle(.glass)
+    .buttonStyle(.borderless)
     .fileExporter(
       isPresented: $isExporting,
       document: AttachmentDocument(url: attachment.url),

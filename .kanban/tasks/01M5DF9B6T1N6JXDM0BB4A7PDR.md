@@ -1,8 +1,27 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: 8f80
+comments:
+- actor: claude-code
+  id: 01m5dsrsqmfhkxsbtmrr99j6sy
+  text: 'Research: The three lines are still at the card locations (ConversationView `loadEarlierRow`, MessageActions `body`, AttachmentActions `body`). A pixel test cannot show a glass button style: the window cache shows no glass (GlassRenderProbeHostedTests), and the surface probe checks only the surface. Thus the test is a source scan, as in MessageViewsHostedTests and SessionStateBannersHostedTests. It uses `SourceLines.matching(_:inPackageFiles:)`. The test checks that each file has no `.buttonStyle(.glass` and no `.buttonStyle(.glassProminent` line, and that each file has the style of the card. The other glass button styles (SuggestionsView, DefaultPromptAccessory, SpeechInputButton, ScrollToBottomPill, PermissionView, StatusBar, SessionNoticeBanner, AgentAuthView, Elicitation views) are not in the scope of this card.'
+  timestamp: 2026-10-20T23:18:59.060546+00:00
+- actor: claude-code
+  id: 01m5dszt3cgmk7j21jwnvfc3r5
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Thread/ConversationView.swift (`.bordered`), Sources/AgentViewKit/Items/MessageActions.swift (`.borderless`, `.foregroundStyle(.secondary)` kept), Sources/AgentViewKit/Attachments/AttachmentActions.swift (`.borderless`), Tests/AgentViewKitTests/Theme/ContentButtonStyleTests.swift (new source-scan test, 2 tests x 3 files; RED with 6 issues, then GREEN). Labels, help text, identifiers and actions did not change. Full `swift test`: 1408 tests in 171 suites passed, 2 known issues (existed before), only the mlx bundle warning.
+    - next: /review
+  timestamp: 2026-10-20T23:22:48.812031+00:00
+- actor: claude-code
+  id: 01m5dt5b76d98bv4cy2zb38m86
+  text: |-
+    ### test — green
+    - evidence: swift test — 1408 tests in 171 suites passed, 0 failed, 0 skipped, 2 known issues (existed before). swift build --build-tests — only the known mlx bundle warning.
+    - next: review
+  timestamp: 2026-10-20T23:25:50.182934+00:00
+position_column: doing
+position_ordinal: '80'
 title: 'AVK-8h Remove the glass button style from buttons in content: Load Earlier, message actions, attachment actions'
 ---
 ## Why
@@ -17,10 +36,10 @@ D110 (b), (c). Glass is only for floating controls and for the action buttons of
 
 ## What to do
 
-- [ ] Load Earlier: use `.buttonStyle(.bordered)`.
-- [ ] Message actions: use `.buttonStyle(.borderless)`. Keep `.foregroundStyle(.secondary)` (a vibrant style).
-- [ ] Attachment actions: use `.buttonStyle(.borderless)`.
-- [ ] Do not change labels, help text, identifiers or actions.
+- [x] Load Earlier: use `.buttonStyle(.bordered)`.
+- [x] Message actions: use `.buttonStyle(.borderless)`. Keep `.foregroundStyle(.secondary)` (a vibrant style).
+- [x] Attachment actions: use `.buttonStyle(.borderless)`.
+- [x] Do not change labels, help text, identifiers or actions.
 
 ## Acceptance
 

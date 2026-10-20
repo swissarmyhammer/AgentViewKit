@@ -293,7 +293,7 @@ public struct ConversationView<EmptyState: View>: View {
       )
         .fontWeight(theme.symbolWeight)
     }
-    .buttonStyle(.glass)
+    .buttonStyle(.bordered)
     .frame(maxWidth: .infinity)
     .accessibilityAddTraits(.causesPageTurn)
     .accessibilityScrollAction { edge in

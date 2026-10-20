@@ -150,7 +150,7 @@ public struct MessageActions: View {
       }
     }
     .labelStyle(.iconOnly)
-    .buttonStyle(.glass)
+    .buttonStyle(.borderless)
     .foregroundStyle(.secondary)
     .fileExporter(
       isPresented: Binding(
