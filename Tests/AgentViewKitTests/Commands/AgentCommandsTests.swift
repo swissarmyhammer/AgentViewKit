@@ -17,8 +17,9 @@ final class CallCounter {
 /// registration, eligibility, dispatch, and the default keymap.
 ///
 /// A test that waits for the agent waits with `ObservationWait.until` on a
-/// value of the session model or of the scripted agent that the frame is
-/// certain to change, with no clock.
+/// value of the session model, of the scripted agent, or of the request
+/// sender of a preview model that the frame is certain to change, with no
+/// clock.
 @MainActor struct AgentCommandsTests {
   /// The text that the send tests send.
   static let message = "Hello"
@@ -291,20 +292,22 @@ final class CallCounter {
     #expect(submits.count == 1)
   }
 
+  /// The session is a preview model that the test builds from values, with
+  /// no wire. `apply(_:)` folds the `running` state at once, and the request
+  /// sender records the notification that the cancel sends.
   @Test func dispatchingCancelSendsSessionCancel() async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
+    let sender = PreviewSessionRequestSender()
+    let model = SessionModel.preview(requestSender: sender)
     let starts = ReportRecorder<String>()
-    let fixture = Self.makeFixture(session: session.model) { $0.requestStartReport = starts.report }
-    try await Self.sendState(ScriptedSession.runningState, to: session)
+    let fixture = Self.makeFixture(session: model) { $0.requestStartReport = starts.report }
+    model.apply(.stateUpdate(.running(RunningStateUpdate())))
 
     try #require(fixture.system.perform(AgentCommandVerb.cancel.id))
     // The command starts the cancel in the same step as the dispatch, so a
     // dispatch that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.cancelMethod])
-    let agent = session.agent
-    await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
-    #expect(agent.messages(method: ScriptedSession.cancelMethod).count == 1)
+    await ObservationWait.until { !sender.sent.isEmpty }
+    #expect(sender.sent == [.cancel(CancelSessionNotification(sessionId: model.sessionId))])
   }
 
   // MARK: - Keymap
