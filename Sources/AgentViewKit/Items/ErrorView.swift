@@ -7,10 +7,14 @@ import SwiftUI
 /// The default view of an `ErrorEntry` of a `SessionModel` (plan.md §3.8
 /// "Error rows", §9 A2).
 ///
-/// The view is a glass card with a symbol, a title, and a detail with the
-/// JSON-RPC code and the message of the entry. When the entry has `data`, the
-/// card also shows the data as JSON. The view reads the entry object at the
-/// time of the body. The model keeps the errors: the kit keeps no error list.
+/// The view is a card with a symbol, a title, and a detail with the JSON-RPC
+/// code and the message of the entry. When the entry has `data`, the card
+/// also shows the data as JSON. The view reads the entry object at the time
+/// of the body. The model keeps the errors: the kit keeps no error list.
+///
+/// The card is a row of the transcript, or of the activity timeline. Both are
+/// content, so the card is on the content surface of the kit
+/// (``SwiftUI/View/agentContentSurface()``) and has no glass (D110 (b)).
 public struct ErrorView: View {
   /// The accessibility identifier of the text of each card.
   public static let identifier = "error-acp"
@@ -89,7 +93,7 @@ public struct ErrorView: View {
       }
     }
     .padding(theme.spacing.m)
-    .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+    .agentContentSurface()
   }
 }
 
