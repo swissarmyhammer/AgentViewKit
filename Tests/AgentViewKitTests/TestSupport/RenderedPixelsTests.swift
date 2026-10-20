@@ -12,6 +12,21 @@ import Testing
   /// The size that the tests render at.
   static let size = CGSize(width: 40, height: 20)
 
+  /// A view with ``drawn`` in its leading half and ``notDrawn`` in its
+  /// trailing half.
+  static var halves: some View {
+    HStack(spacing: 0) {
+      drawn
+      notDrawn
+    }
+  }
+
+  /// The center of the leading half of ``halves`` at ``size``, in points.
+  static let leadingPoint = CGPoint(x: 10, y: 10)
+
+  /// The center of the trailing half of ``halves`` at ``size``, in points.
+  static let trailingPoint = CGPoint(x: 30, y: 10)
+
   @Test func thePixelsContainTheColorThatTheViewDraws() throws {
     let pixels = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
     #expect(pixels.contains(Self.drawn))
@@ -32,6 +47,24 @@ import Testing
     let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
     let notDrawn = try #require(RenderedPixels(rendering: Self.notDrawn, size: Self.size))
     #expect(drawn != notDrawn)
+  }
+
+  @Test func aPointHasTheColorThatTheViewDrawsThere() throws {
+    let pixels = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
+    #expect(pixels.contains(Self.drawn, at: Self.leadingPoint))
+    #expect(pixels.contains(Self.notDrawn, at: Self.trailingPoint))
+  }
+
+  @Test func aPointDoesNotHaveAColorThatTheViewDrawsAtADifferentPoint() throws {
+    let pixels = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
+    #expect(!pixels.contains(Self.notDrawn, at: Self.leadingPoint))
+    #expect(!pixels.contains(Self.drawn, at: Self.trailingPoint))
+  }
+
+  @Test func aPointOutsideTheRenderHasNoColor() throws {
+    let pixels = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let outside = CGPoint(x: Self.size.width, y: Self.size.height)
+    #expect(!pixels.contains(Self.drawn, at: outside))
   }
 
   @Test func aRenderDrawsTheLiquidGlassOfTheView() throws {

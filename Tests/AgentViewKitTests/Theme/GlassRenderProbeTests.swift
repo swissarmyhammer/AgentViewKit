@@ -42,10 +42,12 @@ import Testing
   ///   - view: The view to render.
   ///   - setting: The setting to change, or `nil` for no change.
   ///   - isOn: Whether `setting` is on.
+  ///   - renderSize: The size to render at.
   /// - Returns: The pixels.
   /// - Throws: An error when the renderer gives no pixels.
   static func pixels(
-    of view: some View, with setting: GlassProbeSetting? = nil, on isOn: Bool = false
+    of view: some View, with setting: GlassProbeSetting? = nil, on isOn: Bool = false,
+    size renderSize: CGSize = size
   ) throws -> RenderedPixels {
     // An environment value near the view replaces the same value farther
     // out. Thus the changed setting stays, and each other setting is off.
@@ -54,7 +56,7 @@ import Testing
       AnyView(each.apply(false, to: pinned))
     }
     return try #require(
-      RenderedPixels(rendering: pinned.environment(\.colorScheme, .light), size: size))
+      RenderedPixels(rendering: pinned.environment(\.colorScheme, .light), size: renderSize))
   }
 
   @Test(arguments: GlassProbeSetting.allCases)
