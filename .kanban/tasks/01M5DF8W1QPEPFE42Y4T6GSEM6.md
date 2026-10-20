@@ -38,10 +38,27 @@ comments:
   id: 01m5dqx1p40s03eqvnehzz73dc
   text: 'testudoapp-4c confirmed (AVK-8 Decisions for the plan, item 4): status banners, errors, compaction entries and the sign-in view are content. They use materials, not glass.'
   timestamp: 2026-10-20T22:46:21.124487+00:00
+- actor: claude-code
+  id: 01m5dr03r3gbx3a9y3za38x9ds
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (803d431). 0 findings, 0 confirmed, 0 refuted. 3 files reviewed. 2 .kanban files not reviewed (ignore rule).
+    - next: The task is in done. No work is open.
+  timestamp: 2026-10-20T22:48:01.539137+00:00
+- actor: claude-code
+  id: 01m5dr0gf0zckg9vh8rfqcwbh8
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files
+    - test: green — swift test, 1402 passed, 2 known issues that were there before
+    - commit: 803d431
+    - review: clean — 0 findings
+    - The open question in the description is answered: testudoapp-4c confirmed that the state banners are content.
+  timestamp: 2026-10-20T22:48:14.560468+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fffc80
 title: 'AVK-8e StatusBar: change the state banners from glass to the content surface'
 ---
 ## Why
