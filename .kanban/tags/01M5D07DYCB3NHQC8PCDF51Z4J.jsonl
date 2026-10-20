@@ -1,0 +1,1 @@
+{"id":"01M5D07DYC12NX9E9829XMFH02","timestamp":"2026-10-20T15:52:35.532795Z","op":"create","item_id":"01M5D07DYCB3NHQC8PCDF51Z4J","forward_patch":"--- original\n+++ modified\n@@ -0,0 +1,2 @@\n+color: 0e8a16\n+tag_name: avk-7\n","reverse_patch":"--- original\n+++ modified\n@@ -1,2 +0,0 @@\n-color: 0e8a16\n-tag_name: avk-7\n","transaction_id":null}
