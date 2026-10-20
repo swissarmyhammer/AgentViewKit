@@ -39,32 +39,20 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
     return .update(.compactionUpdate(update))
   }
 
-  /// The pixels of one entry with the backdrop, in light mode, with only
-  /// Reduce Transparency changed.
+  /// The view of one entry.
   ///
-  /// - Parameters:
-  ///   - kind: The entry to show.
-  ///   - placement: Where the backdrop is.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
-  /// - Returns: The pixels.
-  /// - Throws: An issue when the preview model makes no entry of the kind,
-  ///   or an error when AppKit gives no pixels.
-  static func pixels(
-    of kind: TranscriptEntrySurfaceKind, backdrop placement: BackdropPlacement,
-    reducesTransparency: Bool
-  ) throws -> RenderedPixels {
+  /// - Parameter kind: The entry to show.
+  /// - Returns: An ``ErrorView`` or a ``CompactionEntryView``.
+  /// - Throws: An issue when the preview model makes no entry of the kind.
+  @ViewBuilder static func entryView(of kind: TranscriptEntrySurfaceKind) throws -> some View {
     switch kind {
     case .error:
       let entry = try #require(
         PreviewFixtures.entry(.error(code: .internalError, message: errorMessage), as: ErrorEntry.self))
-      return try ContentSurfaceHostedProbe.pixels(
-        of: ErrorView(entry: entry), backdrop: placement, reducesTransparency: reducesTransparency,
-        size: size)
+      ErrorView(entry: entry)
     case .compaction:
       let entry = try #require(PreviewFixtures.entry(compactionItem, as: CompactionEntry.self))
-      return try ContentSurfaceHostedProbe.pixels(
-        of: CompactionEntryView(entry: entry), backdrop: placement,
-        reducesTransparency: reducesTransparency, size: size)
+      CompactionEntryView(entry: entry)
     }
   }
 
@@ -72,15 +60,17 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
   func theBackdropShowsWhenItIsInFrontOfTheEntry(
     kind: TranscriptEntrySurfaceKind, reducesTransparency: Bool
   ) throws {
-    let pixels = try Self.pixels(of: kind, backdrop: .inFront, reducesTransparency: reducesTransparency)
-    #expect(pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.entryView(of: kind), backdrop: .inFront, reducesTransparency: reducesTransparency,
+      size: Self.size)
   }
 
   @Test(arguments: TranscriptEntrySurfaceKind.allCases, ContentSurfaceHostedProbe.reduceTransparencyValues)
   func noPixelOfTheBackdropShowsInsideTheEntry(
     kind: TranscriptEntrySurfaceKind, reducesTransparency: Bool
   ) throws {
-    let pixels = try Self.pixels(of: kind, backdrop: .behind, reducesTransparency: reducesTransparency)
-    #expect(!pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.entryView(of: kind), backdrop: .behind, reducesTransparency: reducesTransparency,
+      size: Self.size)
   }
 }

@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import SwiftUI
+import Testing
 
 /// The shared method of the tests that check that a view of the kit is on
 /// the content surface (``SwiftUI/View/agentContentSurface()``), and not on
@@ -38,6 +39,30 @@ enum ContentSurfaceHostedProbe {
     return try GlassRenderProbeHostedTests.cachedPixels(
       of: GlassRenderProbeTests.pinned(surface, with: .reduceTransparency, on: reducesTransparency),
       size: windowSize)
+  }
+
+  /// Checks that the backdrop shows only when it is in front of `view`.
+  ///
+  /// With the backdrop in front, the window must show the color of the
+  /// backdrop. This is the control: it shows that the render can find the
+  /// color. With the backdrop behind, no pixel of the color must show. Thus
+  /// `view` is on an opaque surface, and not on glass.
+  ///
+  /// - Parameters:
+  ///   - view: The view on the surface.
+  ///   - placement: Where the backdrop is.
+  ///   - reducesTransparency: Whether Reduce Transparency is on.
+  ///   - windowSize: The size of the content of the window.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: An error when AppKit gives no pixels.
+  static func expectBackdropShowsOnlyInFront(
+    of view: some View, backdrop placement: BackdropPlacement, reducesTransparency: Bool,
+    size windowSize: CGSize, sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let rendered = try pixels(
+      of: view, backdrop: placement, reducesTransparency: reducesTransparency, size: windowSize)
+    let backdropShows = rendered.contains(GlassRenderProbeTests.backdrop)
+    #expect(backdropShows == (placement == .inFront), "\(placement)", sourceLocation: sourceLocation)
   }
 }
 

@@ -30,34 +30,25 @@ import Testing
     ])
   }
 
-  /// The pixels of the card with the backdrop, in light mode, with only
-  /// Reduce Transparency changed.
+  /// The card of the one request of ``session``.
   ///
-  /// - Parameters:
-  ///   - placement: Where the backdrop is.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
-  /// - Returns: The pixels.
-  /// - Throws: An issue when the session model holds no request, or AppKit
-  ///   gives no pixels.
-  static func pixels(backdrop placement: BackdropPlacement, reducesTransparency: Bool) throws
-    -> RenderedPixels
-  {
+  /// - Returns: The card.
+  /// - Throws: An issue when the session model holds no request.
+  static func card() throws -> PermissionView {
     let session = session
     let request = try #require(session.pendingPermissions.first)
-    return try ContentSurfaceHostedProbe.pixels(
-      of: PermissionView(request: request, session: session), backdrop: placement,
-      reducesTransparency: reducesTransparency, size: size)
+    return PermissionView(request: request, session: session)
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
   func theBackdropShowsWhenItIsInFrontOfTheCard(reducesTransparency: Bool) throws {
-    let pixels = try Self.pixels(backdrop: .inFront, reducesTransparency: reducesTransparency)
-    #expect(pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.card(), backdrop: .inFront, reducesTransparency: reducesTransparency, size: Self.size)
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
   func noPixelOfTheBackdropShowsInsideTheCard(reducesTransparency: Bool) throws {
-    let pixels = try Self.pixels(backdrop: .behind, reducesTransparency: reducesTransparency)
-    #expect(!pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.card(), backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

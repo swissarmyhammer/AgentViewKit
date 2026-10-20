@@ -25,33 +25,24 @@ import Testing
     return SessionModel.preview(transcript: [.update(.notice(notice))])
   }
 
-  /// The pixels of the banner with the backdrop, in light mode, with only
-  /// Reduce Transparency changed.
+  /// The banner of the one notice of ``session``.
   ///
-  /// - Parameters:
-  ///   - placement: Where the backdrop is.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
-  /// - Returns: The pixels.
-  /// - Throws: An issue when the session model holds no notice, or AppKit
-  ///   gives no pixels.
-  static func pixels(backdrop placement: BackdropPlacement, reducesTransparency: Bool) throws
-    -> RenderedPixels
-  {
+  /// - Returns: The banner.
+  /// - Throws: An issue when the session model holds no notice.
+  static func banner() throws -> NoticeBanner {
     let notice = try #require(session.notices.first)
-    return try ContentSurfaceHostedProbe.pixels(
-      of: NoticeBanner(notice: notice) {}, backdrop: placement,
-      reducesTransparency: reducesTransparency, size: size)
+    return NoticeBanner(notice: notice) {}
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
   func theBackdropShowsWhenItIsInFrontOfTheBanner(reducesTransparency: Bool) throws {
-    let pixels = try Self.pixels(backdrop: .inFront, reducesTransparency: reducesTransparency)
-    #expect(pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.banner(), backdrop: .inFront, reducesTransparency: reducesTransparency, size: Self.size)
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
   func noPixelOfTheBackdropShowsInsideTheBanner(reducesTransparency: Bool) throws {
-    let pixels = try Self.pixels(backdrop: .behind, reducesTransparency: reducesTransparency)
-    #expect(!pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.banner(), backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

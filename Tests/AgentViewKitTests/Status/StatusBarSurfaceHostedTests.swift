@@ -24,30 +24,15 @@ import Testing
         identifier: SessionStreamBanner.reloadIdentifier, isEnabled: true, perform: {}))
   }
 
-  /// The pixels of the bar with the backdrop, in light mode, with only
-  /// Reduce Transparency changed.
-  ///
-  /// - Parameters:
-  ///   - placement: Where the backdrop is.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
-  /// - Returns: The pixels.
-  /// - Throws: An error when AppKit gives no pixels.
-  static func pixels(backdrop placement: BackdropPlacement, reducesTransparency: Bool) throws
-    -> RenderedPixels
-  {
-    try ContentSurfaceHostedProbe.pixels(
-      of: bar, backdrop: placement, reducesTransparency: reducesTransparency, size: size)
-  }
-
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
   func theBackdropShowsWhenItIsInFrontOfTheBar(reducesTransparency: Bool) throws {
-    let pixels = try Self.pixels(backdrop: .inFront, reducesTransparency: reducesTransparency)
-    #expect(pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.bar, backdrop: .inFront, reducesTransparency: reducesTransparency, size: Self.size)
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
   func noPixelOfTheBackdropShowsInsideTheBar(reducesTransparency: Bool) throws {
-    let pixels = try Self.pixels(backdrop: .behind, reducesTransparency: reducesTransparency)
-    #expect(!pixels.contains(GlassRenderProbeTests.backdrop))
+    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
+      of: Self.bar, backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
   }
 }
