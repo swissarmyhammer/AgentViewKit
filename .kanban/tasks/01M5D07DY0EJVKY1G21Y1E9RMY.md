@@ -15,6 +15,13 @@ comments:
   id: 01m5d0a3cv2rvzdr3wq9kkj3ab
   text: 'Final cases from foundationmodelsacpclient-29: `.permissionResponse(id: PendingPermissionRequest.ID, response: RequestPermissionResponse)` and `.elicitationResponse(id: <local pending id of the elicitation>, response: ...)`. No toolCallId field: a test reads the tool call from the pending request.'
   timestamp: 2026-10-20T15:54:03.035233+00:00
+- actor: claude-code
+  id: 01m5d8y9xjz1kam3hnmpzzzanr
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — FoundationModelsACPClient origin/main 8a287da does not have the API. `SessionModel.apply(_:)` is internal. `PreviewSessionRequestSender` has no `sent: [Sent]` recorder.
+    - next: continue this card when ^yvrk73p is merged into FoundationModelsACPClient main.
+  timestamp: 2026-10-20T18:24:53.682205+00:00
 position_column: todo
 position_ordinal: '80'
 title: 'AVK-7a Use the code-built SessionModel: public apply(_:) and request recorder'

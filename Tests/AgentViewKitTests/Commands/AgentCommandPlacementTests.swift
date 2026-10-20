@@ -133,7 +133,9 @@ import Testing
     defer { session.close() }
     let userKeys = try await AgentCommandsTests.sendTurns(to: session)
     let pasteboard = FakePasteboard()
-    let fixture = AgentCommandsTests.makeFixture(session: session.model) { $0.pasteboard = pasteboard }
+    let fixture = AgentCommandsTests.makeFixture(
+      session: session.model, items: AgentCommandsTests.messageItems(of: session.model)
+    ) { $0.pasteboard = pasteboard }
     let path = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[1]))
 
     #expect(!fixture.system.perform(AgentCommandVerb.copyMessage.id))
@@ -147,8 +149,10 @@ import Testing
     defer { session.close() }
     let model = session.model
     let starts = ReportRecorder<String>()
-    let fixture = AgentCommandsTests.makeFixture(session: model) { $0.requestStartReport = starts.report }
     let requests = try await AgentCommandsTests.receiveTwoPermissionRequests(in: session)
+    let fixture = AgentCommandsTests.makeFixture(
+      session: model, items: AgentCommandsTests.requestItems(of: model)
+    ) { $0.requestStartReport = starts.report }
     try #require(model.frontRequest?.id == requests.first.id)
     let path = fixture.path.appending(AgentScopeKind.request(requests.second.id))
 

@@ -21,7 +21,8 @@ import SwiftUI
 /// when the environment has a footer.
 ///
 /// In an agent command scope, the view is in the item scope
-/// `agentMessage:<rowKey>`, with the context menu of that scope (AVK-1).
+/// `agentMessage:<rowKey>`, with the context menu of that scope (AVK-1). The
+/// scope gives the `TranscriptEntry` of the message as its live subject.
 ///
 /// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
 /// ``BodyEvaluationCounter``, because it is the view that the content of the
@@ -43,6 +44,6 @@ struct TranscriptMessageView: View {
         footer(entry)
       }
     }
-    .agentItemScope(AgentScopeKind.message(rowKey: key))
+    .agentItemScope(AgentScopeKind.message(rowKey: key), subject: entry.transcriptEntry)
   }
 }

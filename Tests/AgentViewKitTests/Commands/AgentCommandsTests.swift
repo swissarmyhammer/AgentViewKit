@@ -57,14 +57,48 @@ final class CallCounter {
     let path: FocusPath
   }
 
+  /// One item scope in the scope of a fixture: the segment of the item and its
+  /// live subject, as the view of the item gives them.
+  nonisolated struct Item: Sendable {
+    /// The segment of the item, such as `agentMessage:<rowKey>`.
+    let segment: FocusSegment
+    /// The live object of the item.
+    let subject: any Sendable
+  }
+
+  /// The item scope of each message entry of `session`, as each message row
+  /// gives it.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: One item for each user message entry and agent message entry.
+  static func messageItems(of session: SessionModel) -> [Item] {
+    session.transcript.compactMap { entry in
+      switch entry {
+      case .userMessage, .agentMessage: Item(segment: AgentScopeKind.message(rowKey: entry.rowKey), subject: entry)
+      default: nil
+      }
+    }
+  }
+
+  /// The item scope of each pending permission request of `session`, as each
+  /// request card gives it.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: One item for each pending permission request.
+  static func requestItems(of session: SessionModel) -> [Item] {
+    session.pendingPermissions.map { Item(segment: AgentScopeKind.request($0.id), subject: $0) }
+  }
+
   /// Makes a harness with one agent command scope for `session`.
   ///
   /// - Parameters:
   ///   - session: The session model of the scope.
+  ///   - items: The item scopes in the scope, each with its live subject.
   ///   - configure: Changes to the target before the test.
   /// - Returns: The fixture, focused at the scope.
   static func makeFixture(
     session: SessionModel,
+    items: [Item] = [],
     configure: (AgentCommandTarget) -> Void = { _ in }
   ) -> Fixture {
     let target = AgentCommandTarget()
@@ -75,7 +109,11 @@ final class CallCounter {
       AgentCommand.definitions(for: target).map { .command($0) }
       + AgentKeymap.secondaryChords.map { .key($0.chord.asSequence, .command($0.verb.id), .cua) }
     let system = CommandSystemHarness {
-      Scope(segment, bindings: bindings)
+      Scope(segment, bindings: bindings) {
+        for item in items {
+          Scope(item.segment, contributes: { $0.contributeSubject(item.segment, item.subject) })
+        }
+      }
     }
     let path = FocusPath.root(segment)
     system.focus(path)
@@ -167,6 +205,28 @@ final class CallCounter {
 
     AgentCommandRegistration.deregister(at: path, from: &registry)
     #expect(registry.tree.nodes.isEmpty)
+  }
+
+  /// The `.commandScope` of the thread writes the subject as the `.scope`
+  /// part of the node. The registration writes only its own part, so the
+  /// fold has the subject while the scope part stays, and no copy of it after
+  /// the scope part goes.
+  @Test func theRegistrationKeepsNoCopyOfTheSubjectOfTheScope() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let target = AgentCommandTarget()
+    target.session = model
+    let segment = AgentCommandTarget.segment(for: model)
+    let path = FocusPath.root(segment)
+    var registry = CommandRegistry()
+    registry.tree = registry.tree.merging({ $0.contributeSubject(segment, model) }, by: .scope, at: path)
+
+    AgentCommandRegistration.register(target, at: path, into: &registry)
+    #expect(registry.tree.fold(at: path).subject(for: segment) as? SessionModel === model)
+
+    registry.tree = registry.tree.removing(.scope, at: path)
+    #expect(registry.tree.fold(at: path).subject(for: segment) == nil)
   }
 
   // MARK: - Eligibility

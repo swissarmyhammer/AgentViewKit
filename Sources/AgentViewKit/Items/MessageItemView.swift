@@ -24,6 +24,15 @@ public enum MessageEntry {
     }
   }
 
+  /// The transcript entry of the message: the case of `TranscriptEntry` that
+  /// holds the same object.
+  var transcriptEntry: TranscriptEntry {
+    switch self {
+    case .user(let entry): .userMessage(entry)
+    case .agent(let entry): .agentMessage(entry)
+    }
+  }
+
   /// The sender of the message.
   var role: MessageRole {
     switch self {

@@ -7,17 +7,22 @@ import SwiftUI
 /// request card (AVK-1).
 ///
 /// The modifier adds the segment of the item to the path of the enclosing
-/// ``AgentCommandScope``, and attaches the EditorKit context menu of that
-/// path. The context menu shows the agent commands whose
+/// ``AgentCommandScope``, gives the live object of the item as the subject of
+/// that segment, and attaches the EditorKit context menu of that path. The
+/// context menu shows the agent commands whose
 /// ``AgentCommandVerb/itemKind`` is the kind of the item, and the commands
 /// that a host registers for the item. A command of the context menu runs at
-/// the path of the item, so it acts on that item.
+/// the path of the item, and reads the item with `@FromTarget`, so it acts on
+/// that item.
 ///
 /// With no enclosing agent command scope, the modifier does not change the
 /// view.
-struct AgentItemScope: ViewModifier {
+struct AgentItemScope<Subject: Sendable>: ViewModifier {
   /// The segment of the item, such as `agentMessage:<rowKey>`.
   let segment: FocusSegment
+
+  /// The live object of the item, such as its `TranscriptEntry`.
+  let subject: Subject
 
   @Environment(\.agentCommandSystem) private var system
 
@@ -25,7 +30,7 @@ struct AgentItemScope: ViewModifier {
     if let system {
       content
         .commandContextMenu(system)
-        .commandScope(segment: segment)
+        .commandScope(segment: segment, subject: subject)
     } else {
       content
     }
@@ -36,10 +41,13 @@ extension View {
   /// Puts this view in the focus scope of one item of a thread, with the
   /// context menu of that scope.
   ///
-  /// - Parameter segment: The segment of the item.
+  /// - Parameters:
+  ///   - segment: The segment of the item.
+  ///   - subject: The live object of the item. A command reads it with
+  ///     `@FromTarget(kind: segment.kind)`.
   /// - Returns: A view in the scope of the item.
-  func agentItemScope(_ segment: FocusSegment) -> some View {
-    modifier(AgentItemScope(segment: segment))
+  func agentItemScope(_ segment: FocusSegment, subject: some Sendable) -> some View {
+    modifier(AgentItemScope(segment: segment, subject: subject))
   }
 }
 

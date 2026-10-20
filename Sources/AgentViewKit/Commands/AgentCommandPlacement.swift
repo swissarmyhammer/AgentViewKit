@@ -18,6 +18,19 @@ nonisolated extension MenuPath {
 /// `uuidString` of the local id of the `PendingPermissionRequest`. A host
 /// registers its own commands for a message or a request in these scopes,
 /// for example with `requires: .enclosing(AgentScopeKind.message)`.
+///
+/// Each scope gives its live object as the subject of its segment, and a
+/// command reads it with `@FromTarget`:
+///
+/// | Kind | Subject |
+/// | --- | --- |
+/// | ``thread`` | the `SessionModel` |
+/// | ``message`` | the `TranscriptEntry` of the message |
+/// | ``request`` | the `PendingPermissionRequest` |
+///
+/// ```swift
+/// @FromTarget(kind: AgentScopeKind.message) var entry: TranscriptEntry?
+/// ```
 public nonisolated enum AgentScopeKind {
   /// The kind of the scope of a thread.
   public static let thread = "agentThread"

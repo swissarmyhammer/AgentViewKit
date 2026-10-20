@@ -538,7 +538,7 @@ private struct DeckCard: View {
     case .permission(let permission):
       if let session = source.session {
         PermissionView(request: permission, session: session)
-          .agentItemScope(AgentScopeKind.request(permission.id))
+          .agentItemScope(AgentScopeKind.request(permission.id), subject: permission)
       }
     case .elicitation(let elicitation):
       ElicitationCard(request: elicitation, owner: source.elicitationOwner)

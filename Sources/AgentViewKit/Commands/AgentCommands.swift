@@ -167,6 +167,10 @@ public nonisolated enum AgentCommandPayload {
 /// The command is a value, as EditorKit requires. It holds its target
 /// weakly, so a registry that outlives the thread view does not keep the
 /// thread. A command with no target is unavailable.
+///
+/// The command reads the item of its invocation path with `@FromTarget`: the
+/// live `TranscriptEntry` that a message scope gives, and the live
+/// `PendingPermissionRequest` that a request scope gives.
 nonisolated struct AgentCommand: Command {
   /// The verb of the command.
   let verb: AgentCommandVerb
@@ -177,6 +181,24 @@ nonisolated struct AgentCommand: Command {
   /// The payload of the dispatch, or `nil`.
   let payload: CommandPayload?
 
+  /// The transcript entry of the nearest message scope, or `nil`.
+  @FromTarget(kind: AgentScopeKind.message) var message: TranscriptEntry?
+
+  /// The pending request of the nearest request scope, or `nil`.
+  @FromTarget(kind: AgentScopeKind.request) var request: PendingPermissionRequest?
+
+  /// Makes the command of `verb` for `target`.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb of the command.
+  ///   - target: The target that the command acts on, or `nil`.
+  ///   - payload: The payload of the dispatch, or `nil`.
+  init(verb: AgentCommandVerb, target: AgentCommandTarget?, payload: CommandPayload?) {
+    self.verb = verb
+    self.target = target
+    self.payload = payload
+  }
+
   var id: CommandID { verb.id }
 
   var title: String { verb.title }
@@ -186,32 +208,43 @@ nonisolated struct AgentCommand: Command {
       guard let target else {
         return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
       }
-      return target.availability(of: verb, payload: payload(at: context.path))
+      return target.availability(of: verb, payload: itemPayload)
     }
   }
 
   func run(in context: CommandContext) -> Bool {
     MainActor.assumeIsolated {
-      target?.run(verb, payload: payload(at: context.path)) ?? false
+      target?.run(verb, payload: itemPayload) ?? false
     }
   }
 
-  /// The payload of the dispatch, with the item of the invocation path when
-  /// the payload does not name an item.
+  /// The payload of the dispatch, with the item of the scope when the payload
+  /// does not name an item.
   ///
-  /// A context menu runs the command at the path of its item. Thus Copy
-  /// Message in the context menu of a message copies that message, and
-  /// Approve Request in the context menu of a card answers that request.
-  ///
-  /// - Parameter path: The invocation path.
-  /// - Returns: The payload.
-  func payload(at path: FocusPath) -> CommandPayload? {
+  /// A context menu runs the command at the path of its item, and the scope
+  /// of the item gives its live object. Thus Copy Message in the context menu
+  /// of a message copies that message, and Approve Request in the context
+  /// menu of a card answers that request. A payload that names an item wins,
+  /// so a host that dispatches by id keeps the payload keys.
+  @MainActor private var itemPayload: CommandPayload? {
     guard let key = verb.itemPayloadKey, AgentCommandPayload.string(key, in: payload) == nil,
-      let item = AgentScopeKind.item(in: path), item.kind == verb.itemKind, let id = item.id
+      let id = itemID
     else { return payload }
     var values = payload?.values ?? [:]
     values[key] = id
     return CommandPayload(values: values, objects: payload?.objects ?? [:])
+  }
+
+  /// The payload value of the item that the scope gives for the verb: the row
+  /// key of the message entry, or the `uuidString` of the local id of the
+  /// pending request. `nil` when the verb does not act on an item, or when no
+  /// scope gives an item of its kind.
+  @MainActor private var itemID: String? {
+    switch verb.itemPayloadKey {
+    case AgentCommandPayload.messageKey: message?.rowKey
+    case AgentCommandPayload.requestKey: request?.id.uuidString
+    default: nil
+    }
   }
 
   /// The EditorKit definition of `verb` for `target`.

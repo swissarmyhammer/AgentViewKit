@@ -9,9 +9,13 @@ import SwiftUI
 ///
 /// The scope registers one command for each ``AgentCommandVerb``, and the keys
 /// of ``AgentKeymap``, in the ambient `CommandSystem` of EditorKit. The scope
-/// adds the segment `agentThread:<sessionId>` to the focus path. When no
-/// ancestor installs a system with `.commandSystem(_:)`, the scope uses a
-/// private system, so that the views in the scope still run the commands.
+/// adds the segment `agentThread:<sessionId>` to the focus path, and gives the
+/// `SessionModel` as the live subject of that segment, so that a command reads
+/// it with `@FromTarget(kind: AgentScopeKind.thread)`. When no ancestor
+/// installs a system with `.commandSystem(_:)`, the scope uses a private
+/// system, and installs it for the views in the scope. Thus the views in the
+/// scope still run the commands, and the item scopes in it give their
+/// subjects to that system.
 ///
 /// Each command reads its eligibility from the model directly: the
 /// `agentState`, the `pendingPermissions` and the `transcript` of a
@@ -67,7 +71,8 @@ struct AgentCommandScope: ViewModifier {
         .background(
           AgentCommandMount(
             target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks))
-        .commandScope(segment: segment)
+        .commandScope(segment: segment, subject: session)
+        .commandSystem(system)
     }
   }
 }
@@ -112,9 +117,10 @@ enum AgentCommandRegistration {
   /// `path`.
   ///
   /// `CommandRegistry.register` binds the keys of each definition. A second
-  /// call for the same path replaces the first registration. The
-  /// call keeps the layer flag and the context contribution of a node that
-  /// `.commandScope` registered at the same path.
+  /// call for the same path replaces the first registration. The call writes
+  /// only the `.host` part of the node, with no contribution. It keeps the
+  /// layer flag and the `.scope` part that `.commandScope` wrote at the same
+  /// path, so the fold gives the current live subject of the scope.
   ///
   /// - Parameters:
   ///   - target: The target that the commands act on.
@@ -123,10 +129,7 @@ enum AgentCommandRegistration {
   static func register(
     _ target: AgentCommandTarget, at path: FocusPath, into registry: inout CommandRegistry
   ) {
-    let prior = registry.tree.nodes.first { $0.path == path }
-    let node = ScopeNode(
-      path: path, isLayer: prior?.isLayer ?? false, contribution: prior?.contribution)
-    registry.tree = ScopeTree(registry.tree.nodes.filter { $0.path != path } + [node])
+    registry.tree = registry.tree.merging(nil, by: .host, at: path)
     for definition in AgentCommand.definitions(for: target) {
       registry.register(definition, at: path)
     }
