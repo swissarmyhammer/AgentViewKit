@@ -27,10 +27,26 @@ comments:
     - evidence: swift test — 1400 tests in 167 suites passed, 0 failed, 0 skipped, 2 known issues (as before). Only the old mlx bundle warning is present. No new warnings.
     - next: review
   timestamp: 2026-10-20T22:36:37.142321+00:00
+- actor: claude-code
+  id: 01m5dqdjgj2xxf1kwrt388yebb
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (1e5029d). 0 findings, 0 confirmed, 0 refuted. 5 files reviewed. 2 .kanban files not reviewed (ignore rule).
+    - next: The task is in done. No more work.
+  timestamp: 2026-10-20T22:37:54.066887+00:00
+- actor: claude-code
+  id: 01m5dqdwdwspwmrczb3q4016wc
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files
+    - test: green — swift test, 1400 passed, 2 known issues that were there before
+    - commit: 1e5029d
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T22:38:04.220076+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fffb80
 title: 'AVK-8d SessionNoticeBanner: change the notice from glass to the content surface'
 ---
 ## Why
