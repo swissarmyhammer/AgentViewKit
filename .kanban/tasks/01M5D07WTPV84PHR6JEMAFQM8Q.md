@@ -53,8 +53,24 @@ comments:
     - evidence: swift test — 1363 tests in 160 suites passed, 0 failed, 0 skipped, 2 known issues (before this change). The only warning is the mlx bundle build warning (before this change). No new warnings.
     - next: review
   timestamp: 2026-10-20T20:33:23.175376+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5dgc9sbm018kftgp3c02gnz
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (bf664b3): 0 findings, 0 confirmed, 1 refuted. 5 files reviewed. README.md and 2 .kanban files were not reviewed (no validator, or ignore rule).
+    - next: none. The task moved to done.
+  timestamp: 2026-10-20T20:34:52.331216+00:00
+- actor: claude-code
+  id: 01m5dgck0eqqb741n3mqkrjfrh
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files
+    - test: green — swift test, 1363 passed, 2 known issues that were there before
+    - commit: bf664b3
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T20:35:01.774961+00:00
+position_column: done
+position_ordinal: fff680
 title: AVK-7e Command groups that the host can turn off
 ---
 Design: AVK-7, D105 (f). KanbanViewKit plan §3.4 has the same rule. Step 5 work.
