@@ -54,6 +54,10 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// ``ConnectionsView``. ``AgentThreadView`` shows the card while `authState`
 /// asks for a sign-in.
 ///
+/// The card is content, so it is on the content surface of the kit
+/// (``SwiftUI/View/agentContentSurface()``, D110 (b)), and not on glass. Only
+/// its action buttons use the glass button style.
+///
 /// The texts of the card do not use a fixed vertical size. A text with a
 /// fixed vertical size gives its full wrapped height as its minimum height,
 /// and at a narrow width that height is very large. The card is then taller
@@ -264,7 +268,7 @@ public struct AgentAuthView: View {
     }
     .padding(theme.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+    .agentContentSurface()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(String(localized: "Sign in to the agent", bundle: .module))
     .accessibilityIdentifier(Self.identifier)
