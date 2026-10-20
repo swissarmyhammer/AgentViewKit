@@ -23,8 +23,24 @@ comments:
     - evidence: swift test — 1348 tests in 158 suites passed, 0 failed, 0 skipped, 2 known issues (existed before). The only warning is the mlx bundle build warning (existed before). No new warning.
     - next: review
   timestamp: 2026-10-20T18:45:16.474521+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5da5fgmfaz9w1mfp9vzb00x
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 678dd17). 0 findings, 0 confirmed, 0 refuted. 2 files reviewed. 4 .kanban files not reviewed (ignore rule).
+    - next: none. The task is in done.
+  timestamp: 2026-10-20T18:46:17.364806+00:00
+- actor: claude-code
+  id: 01m5da5s6653whgy8bywv97gqg
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 2 files
+    - test: green — swift test, 1348 passed, 2 known issues that were there before
+    - commit: 678dd17
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T18:46:27.270815+00:00
+position_column: done
+position_ordinal: fff280
 title: 'AVK-7g Import boundary: AgentViewKit does not import the other view kits'
 ---
 Design: D105 (g). Step 5 work, small.

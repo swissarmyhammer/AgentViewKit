@@ -1,4 +1,5 @@
 import EditorCommands
+import FoundationModelsACP
 import FoundationModelsACPClient
 
 nonisolated extension MenuPath {
@@ -13,11 +14,18 @@ nonisolated extension MenuPath {
 /// The kinds of the focus segments of the agent command scopes.
 ///
 /// An ``AgentThreadView`` adds the segment `agentThread:<sessionId>`. In that
-/// scope, each message row adds `agentMessage:<rowKey>`, and each permission
-/// request card adds `agentRequest:<id>`. The id of a request is the
-/// `uuidString` of the local id of the `PendingPermissionRequest`. A host
-/// registers its own commands for a message or a request in these scopes,
-/// for example with `requires: .enclosing(AgentScopeKind.message)`.
+/// scope, each message row adds `agentMessage:<rowKey>`, each permission
+/// request card adds `agentRequest:<id>`, and each tool call card adds
+/// `agentToolCall:<toolCallId>`. The id of a request is the `uuidString` of
+/// the local id of the `PendingPermissionRequest`. The id of a tool call is
+/// its ACP `toolCallId`. A host registers its own commands for a message, a
+/// request or a tool call in these scopes, for example with
+/// `requires: .enclosing(AgentScopeKind.message)`.
+///
+/// No agent verb shows in the context menu of a tool call. That menu shows
+/// only the commands that a host or another kit registers for
+/// ``toolCall``. The kind text is the contract, so the other kit does not
+/// link this kit.
 ///
 /// Each scope gives its live object as the subject of its segment, and a
 /// command reads it with `@FromTarget`:
@@ -27,6 +35,7 @@ nonisolated extension MenuPath {
 /// | ``thread`` | the `SessionModel` |
 /// | ``message`` | the `TranscriptEntry` of the message |
 /// | ``request`` | the `PendingPermissionRequest` |
+/// | ``toolCall`` | the `ToolCallEntry` |
 ///
 /// ```swift
 /// @FromTarget(kind: AgentScopeKind.message) var entry: TranscriptEntry?
@@ -41,8 +50,11 @@ public nonisolated enum AgentScopeKind {
   /// The kind of the scope of a permission request card.
   public static let request = "agentRequest"
 
+  /// The kind of the scope of a tool call card.
+  public static let toolCall = "agentToolCall"
+
   /// The kinds of the item scopes in a thread.
-  static let items: Set<String> = [message, request]
+  static let items: Set<String> = [message, request, toolCall]
 
   /// The segment of the scope of a message row.
   ///
@@ -60,11 +72,23 @@ public nonisolated enum AgentScopeKind {
     FocusSegment(kind: request, id: id.uuidString)
   }
 
+  /// The segment of the scope of a tool call card.
+  ///
+  /// The id is the ACP `toolCallId`, and not the row key of the entry, so
+  /// that another kit can name the same tool call. For example, a checkpoint
+  /// of SnapshotViewKit names its tool call by that id.
+  ///
+  /// - Parameter id: The ACP `toolCallId` of the tool call.
+  /// - Returns: The segment `agentToolCall:<toolCallId>`.
+  static func toolCall(_ id: ToolCallId) -> FocusSegment {
+    FocusSegment(kind: toolCall, id: id.rawValue)
+  }
+
   /// The last item segment of `path`, or `nil` when the path has no item
   /// segment.
   ///
   /// - Parameter path: The invocation path of a command.
-  /// - Returns: The segment of the message or the request.
+  /// - Returns: The segment of the message, the request or the tool call.
   static func item(in path: FocusPath) -> FocusSegment? {
     path.segments.last { items.contains($0.kind) }
   }
@@ -157,7 +181,8 @@ nonisolated extension AgentCommandVerb {
   /// segment, each verb shows, but ``copyMessage`` needs a message. At a
   /// path in an item scope, a verb with an ``itemKind`` shows only for an
   /// item of that kind. Thus the context menu of a message does not show
-  /// Approve Request.
+  /// Approve Request. No verb has the item kind ``AgentScopeKind/toolCall``,
+  /// so the context menu of a tool call shows no agent verb.
   ///
   /// - Parameter path: The invocation path.
   /// - Returns: `true` when the verb shows.

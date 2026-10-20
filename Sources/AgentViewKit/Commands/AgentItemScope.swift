@@ -4,7 +4,7 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The focus scope of one item of a thread: a message row or a permission
-/// request card (AVK-1).
+/// request card (AVK-1), or a tool call card (AVK-7c).
 ///
 /// The modifier adds the segment of the item to the path of the enclosing
 /// ``AgentCommandScope``, gives the live object of the item as the subject of

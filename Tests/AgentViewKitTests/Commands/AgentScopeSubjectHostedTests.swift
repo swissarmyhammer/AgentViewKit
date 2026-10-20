@@ -8,13 +8,14 @@ import SwiftUI
 import Synchronization
 import Testing
 
-/// Tests for the live subjects of the agent scopes in a window (AVK-7b).
+/// Tests for the live subjects of the agent scopes in a window (AVK-7b,
+/// AVK-7c).
 ///
 /// The thread scope gives its `SessionModel`, a message scope gives its
-/// `TranscriptEntry`, and a request scope gives its
-/// `PendingPermissionRequest`. A command of another module reads the subject
-/// with `@FromTarget`. The test module is that other module: its commands
-/// know only the scope kinds of ``AgentScopeKind``.
+/// `TranscriptEntry`, a request scope gives its `PendingPermissionRequest`,
+/// and a tool call scope gives its `ToolCallEntry`. A command of another
+/// module reads the subject with `@FromTarget`. The test module is that other
+/// module: its commands know only the scope kinds of ``AgentScopeKind``.
 ///
 /// A change that the test makes on the main actor is followed by one render
 /// pass. A frame of the agent is followed by a wait for the model value that
@@ -22,6 +23,10 @@ import Testing
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentScopeSubjectHostedTests {
   /// The id of the probe command that the test registers.
   nonisolated static let probeID: CommandID = "host.probeSubject"
+
+  /// The title of the tool call that the tool call tests send. It is also the
+  /// `toolCallId` of the call.
+  static let toolCallTitle = "Read README.md"
 
   /// Registers a probe command that reads the subject of `kind` at the
   /// thread path of `model`, and returns the log of the probe.
@@ -69,6 +74,58 @@ import Testing
     let expected = try #require(Self.userMessage(in: entry))
     #expect(log.subjects.count == 1)
     #expect(log.subjects.first.flatMap(Self.userMessage(in:)) === expected)
+  }
+
+  /// Sends one tool call from the agent, waits until the transcript of the
+  /// session holds it, and then renders `harness`.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness that renders the view after the wait.
+  /// - Returns: The tool call entry of the session model.
+  /// - Throws: The error of the transport, or the error of `#require` when the
+  ///   transcript has no tool call entry.
+  static func sendScopeToolCall(
+    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
+  ) async throws -> ToolCallEntry {
+    try await session.sendToolCallUpdate(title: toolCallTitle, status: .inProgress)
+    let model = session.model
+    await harness.render { BackgroundRunsHostedTests.toolCall(id: toolCallTitle, in: model) != nil }
+    return try #require(BackgroundRunsHostedTests.toolCall(id: toolCallTitle, in: model))
+  }
+
+  /// The tool call card of a mounted thread adds the scope
+  /// `agentToolCall:<toolCallId>` below the thread scope (AVK-7c). The id is
+  /// the ACP `toolCallId`, not the row key of the entry.
+  @Test func aMountedToolCallCardAddsTheScopeNodeOfItsToolCallID() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+
+    let entry = try await Self.sendScopeToolCall(to: session, rendering: harness)
+
+    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.toolCall(entry.toolCallId))
+    #expect(system.registry.tree.nodes.contains { $0.path == path })
+  }
+
+  @Test func aHostCommandReadsTheToolCallEntryOfAToolCallScopeThroughFromTarget() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+    let entry = try await Self.sendScopeToolCall(to: session, rendering: harness)
+    let log = Self.registerProbe(of: AgentScopeKind.toolCall, as: ToolCallEntry.self, at: model, in: system)
+    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.toolCall(entry.toolCallId))
+
+    try #require(system.registry.perform(Self.probeID, at: path, clicked: path))
+
+    #expect(log.subjects.count == 1)
+    #expect(log.subjects.first === entry)
   }
 
   @Test func aHostCommandReadsTheSessionModelOfTheThreadScopeThroughFromTarget() async throws {

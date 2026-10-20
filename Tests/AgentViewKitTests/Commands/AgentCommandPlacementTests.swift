@@ -23,6 +23,15 @@ import Testing
     .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .toggleExpandAll, .scrollToBottom,
   ]
 
+  /// The id of the command that a host registers for the tool call scope.
+  nonisolated static let hostToolCallCommandID: CommandID = "host.rollBackToBeforeThis"
+
+  /// The title of the command that a host registers for the tool call scope.
+  nonisolated static let hostToolCallCommandTitle = "Roll Back to Before This"
+
+  /// The ACP `toolCallId` of the tool call scope of the tests.
+  static let toolCallID = "call-1"
+
   // MARK: - Menus
 
   @Test func eachVerbIsInTheMenuOfTheDesign() {
@@ -108,6 +117,34 @@ import Testing
 
     #expect(items.map(\.id) == [AgentCommandVerb.approvePending, .rejectPending].map(\.id))
     #expect(items.allSatisfy { $0.isEnabled })
+  }
+
+  /// A command of another kit names the tool call scope by its kind text
+  /// only, for example "Roll Back to Before This" of SnapshotViewKit (AVK-7c).
+  /// The context menu of a tool call shows that command and no agent verb.
+  /// The context menu of a message does not show it.
+  @Test func aHostCommandOfTheToolCallScopeShowsOnlyInTheContextMenuOfAToolCall() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await AgentCommandsTests.sendTurns(to: session)
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let definition = CommandDefinition(
+      id: Self.hostToolCallCommandID, title: .static(Self.hostToolCallCommandTitle),
+      contextMenu: ContextMenuPlacement(group: 0, order: 0),
+      requires: .enclosing(AgentScopeKind.toolCall)
+    ) { _ in
+      AlwaysAvailableCommand(id: Self.hostToolCallCommandID, title: Self.hostToolCallCommandTitle)
+    }
+    var registry = fixture.system.registry
+    registry.register(definition, at: fixture.path)
+    let toolCallPath = fixture.path.appending(AgentScopeKind.toolCall(ToolCallId(rawValue: Self.toolCallID)))
+    let messagePath = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[0]))
+
+    let toolCallIDs = registry.contextMenuMirror(at: toolCallPath).map(\.id)
+    let messageIDs = registry.contextMenuMirror(at: messagePath).map(\.id)
+
+    #expect(toolCallIDs == [Self.hostToolCallCommandID])
+    #expect(!messageIDs.contains(Self.hostToolCallCommandID))
   }
 
   @Test func copyMessageShowsOnlyInTheScopeOfAMessage() async throws {

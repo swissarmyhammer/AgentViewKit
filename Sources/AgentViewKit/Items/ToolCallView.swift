@@ -98,6 +98,13 @@ extension View {
 /// The row and the label of the call read the status. The view itself and the
 /// expanded body do not. Thus a status change evaluates the row and the label,
 /// and not the expanded body.
+///
+/// In an agent command scope, the view is in the item scope
+/// `agentToolCall:<toolCallId>`, with the context menu of that scope (AVK-7c).
+/// The id is the ACP `toolCallId` of the entry, not its row key. The scope
+/// gives the `ToolCallEntry` as its live subject. The context menu shows no
+/// agent verb. It shows the commands that a host or another kit registers
+/// with `requires: .enclosing(AgentScopeKind.toolCall)`.
 public struct ToolCallView: View {
   /// The start of the accessibility identifier of each call.
   public static let identifierPrefix = "tool-call-"
@@ -341,6 +348,7 @@ public struct ToolCallView: View {
     // hidden child keeps SwiftUI from merging the call into the row, so the
     // call keeps its identifier. See `contentContainer(identifier:)`.
     .background { Color.clear.accessibilityHidden(true) }
+    .agentItemScope(AgentScopeKind.toolCall(entry.toolCallId), subject: entry)
   }
 }
 
