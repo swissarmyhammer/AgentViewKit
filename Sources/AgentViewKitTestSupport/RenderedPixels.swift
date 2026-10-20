@@ -2,16 +2,25 @@ import AppKit
 import CoreGraphics
 import SwiftUI
 
-/// The pixels of a SwiftUI view that `ImageRenderer` draws, in sRGB.
+/// The pixels of a SwiftUI view that `ImageRenderer` draws, or that AppKit
+/// caches for a view in a window, in sRGB.
 ///
 /// A test uses this type to learn which colors a view draws. For example, a
 /// test gives a view an EditorKit theme with a color that no other part of
-/// the view uses, and then checks that the pixels contain that color.
+/// the view uses, and then checks that the pixels contain that color. Two
+/// values are equal when they have the same bytes, so a test can also
+/// compare two renders.
 ///
 /// `ImageRenderer` draws SwiftUI content only. It does not draw the AppKit
 /// view of an `NSViewRepresentable`, such as the EditorKit editor. The
 /// renderer runs in the test process, with no window and no screen.
-public struct RenderedPixels {
+///
+/// `ImageRenderer` draws Liquid Glass, and the glass follows the
+/// accessibility values in the environment, such as
+/// `_accessibilityReduceTransparency`. The cache of a view in a window does
+/// not show the glass, because the render server of the system draws it
+/// there (`GlassRenderProbeTests`).
+public struct RenderedPixels: Equatable {
   /// The bytes of one pixel: red, green, blue and alpha, one byte each.
   private static let bytesPerPixel = 4
 
@@ -28,6 +37,14 @@ public struct RenderedPixels {
   /// between a pixel and the color that a test looks for.
   public static let defaultTolerance = 0.02
 
+  /// A hosting view that the type makes one time, before its first render.
+  ///
+  /// `ImageRenderer` draws no Liquid Glass until the process makes its first
+  /// `NSHostingView`. Before that, a `glassEffect` draws nothing. Thus,
+  /// without this view, the pixels of a glass view would change with the
+  /// order of the tests (`RenderedPixelsTests`).
+  private static let glassRenderingHost = NSHostingView(rootView: EmptyView())
+
   /// The pixel bytes, ``bytesPerPixel`` for each pixel. The color components
   /// have the alpha multiplied in, so only an opaque pixel keeps the full
   /// components of its color.
@@ -42,9 +59,36 @@ public struct RenderedPixels {
   ///   be read.
   @MainActor
   public init?(rendering view: some View, size: CGSize) {
+    _ = Self.glassRenderingHost
     let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height))
     renderer.scale = Self.renderScale
-    guard let image = renderer.cgImage, let bytes = Self.bytes(of: image) else { return nil }
+    guard let image = renderer.cgImage else { return nil }
+    self.init(image: image)
+  }
+
+  /// Reads the pixels that AppKit caches for `view` and its subviews.
+  ///
+  /// Use this initializer for a view in the window of a
+  /// ``HostedViewHarness``, for example its `hostingView`. The cache has the
+  /// scale of the window.
+  ///
+  /// - Parameter view: The view to read.
+  /// - Returns: `nil` when AppKit gives no cache or the pixels cannot be
+  ///   read.
+  @MainActor
+  public init?(cachingDisplayOf view: NSView) {
+    guard let cache = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
+    view.cacheDisplay(in: view.bounds, to: cache)
+    guard let image = cache.cgImage else { return nil }
+    self.init(image: image)
+  }
+
+  /// Reads the pixels of `image`.
+  ///
+  /// - Parameter image: The image to read.
+  /// - Returns: `nil` when the pixels cannot be read.
+  private init?(image: CGImage) {
+    guard let bytes = Self.bytes(of: image) else { return nil }
     self.bytes = bytes
   }
 
