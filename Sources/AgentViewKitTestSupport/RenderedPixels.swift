@@ -146,6 +146,25 @@ public struct RenderedPixels: Equatable {
     return pixel(atOffset: offset, matches: target, tolerance: tolerance)
   }
 
+  /// Whether these pixels and `other` show the same image.
+  ///
+  /// The renderer can change a byte of an anti-aliased edge by one level
+  /// between two renders of one view. Thus, use this method, and not `==`,
+  /// to find that a setting does not change a view. The images show the same
+  /// when they have the same size and each byte is in `tolerance` of the
+  /// byte of `other`.
+  ///
+  /// - Parameters:
+  ///   - other: The pixels to compare with.
+  ///   - tolerance: The largest difference of one component, from 0 to 1.
+  /// - Returns: `true` when the images show the same.
+  public func isClose(to other: RenderedPixels, tolerance: Double = defaultTolerance) -> Bool {
+    guard width == other.width, height == other.height, scale == other.scale else { return false }
+    return zip(bytes, other.bytes).allSatisfy {
+      abs(Double($0) - Double($1)) / Self.componentMaximum <= tolerance
+    }
+  }
+
   /// The offset in ``bytes`` of the pixel at `point`.
   ///
   /// - Parameter point: A point from the top leading corner of the view.

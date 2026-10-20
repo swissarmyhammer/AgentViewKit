@@ -49,6 +49,26 @@ import Testing
     #expect(drawn != notDrawn)
   }
 
+  @Test func twoRendersOfOneViewAreClose() throws {
+    let first = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let second = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    #expect(first.isClose(to: second))
+  }
+
+  @Test func rendersOfTwoColorsAreNotClose() throws {
+    let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let notDrawn = try #require(RenderedPixels(rendering: Self.notDrawn, size: Self.size))
+    #expect(!drawn.isClose(to: notDrawn))
+  }
+
+  @Test func rendersOfTwoSizesAreNotClose() throws {
+    let small = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let large = try #require(
+      RenderedPixels(
+        rendering: Self.drawn, size: CGSize(width: Self.size.width * 2, height: Self.size.height)))
+    #expect(!small.isClose(to: large))
+  }
+
   @Test func aPointHasTheColorThatTheViewDrawsThere() throws {
     let pixels = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
     #expect(pixels.contains(Self.drawn, at: Self.leadingPoint))

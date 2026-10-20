@@ -72,7 +72,7 @@ import Testing
     let surface = ContentSurfaceOverBackdrop(hasSurface: true)
     let on = try Self.pixels(of: surface, reducesTransparency: true)
     let off = try Self.pixels(of: surface, reducesTransparency: false)
-    #expect(on == off)
+    #expect(on.isClose(to: off))
   }
 
   @Test func theFloatingGlassFollowsReduceTransparency() throws {
