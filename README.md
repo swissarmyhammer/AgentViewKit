@@ -434,7 +434,7 @@ two lists equal.
 **Infrastructure**
 
 - `StreamingMarkdownBalancer`, `ScrollAnchorManager`, `ExpandedBlocksStore`: the balancer of open Markdown, the scroll anchors, and the expanded state of the blocks.
-- `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`).
+- `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`). The verbs are in four groups (`AgentCommandGroup`: `agent.compose`, `agent.control`, `agent.navigate`, `agent.clipboard`). A host turns off a group with `.agentCommandGroups(off:)`, and then its verbs are not in the menus, the context menus or the palette, and their keys do nothing.
 - `GrammarBundle`: the TextMate grammars of the languages that agents write most.
 
 **Input**

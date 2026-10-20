@@ -91,11 +91,17 @@ public nonisolated enum AgentKeymap {
   /// `CommandRegistry.register` of the verb at `scope` removes the binding
   /// first, and a second call of this method does not add it again.
   ///
+  /// The call binds no chord of a verb of a group in `groupsOff`, so that
+  /// chord resolves to nothing.
+  ///
   /// - Parameters:
   ///   - registry: The registry to bind into.
   ///   - scope: The path of the scope.
-  static func bindSecondaryChords(into registry: inout CommandRegistry, at scope: FocusPath) {
-    for (verb, chord) in secondaryChords {
+  ///   - groupsOff: The groups whose verbs get no chord.
+  static func bindSecondaryChords(
+    into registry: inout CommandRegistry, at scope: FocusPath, groupsOff: Set<AgentCommandGroup> = []
+  ) {
+    for (verb, chord) in secondaryChords where !groupsOff.contains(verb.group) {
       registry.bindKey(chord.asSequence, to: .command(verb.id), mode: .cua, at: scope, source: verb.id)
     }
   }

@@ -17,6 +17,10 @@ import SwiftUI
 /// scope still run the commands, and the item scopes in it give their
 /// subjects to that system.
 ///
+/// The scope does not register the verbs of the groups that the host turns
+/// off with ``SwiftUI/View/agentCommandGroups(off:)`` (see
+/// ``AgentCommandGroup``).
+///
 /// Each command reads its eligibility from the model directly: the
 /// `agentState`, the `pendingPermissions` and the `transcript` of a
 /// `SessionModel` (see ``AgentCommandTarget``). The views in the scope give the
@@ -46,6 +50,9 @@ struct AgentCommandScope: ViewModifier {
   /// start, or `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
+  /// The groups of the commands that the host turns off.
+  @Environment(\.agentCommandGroupsOff) private var groupsOff
+
   /// The target of this scope.
   @State private var ownTarget = AgentCommandTarget()
 
@@ -63,7 +70,7 @@ struct AgentCommandScope: ViewModifier {
       let system = ambientSystem ?? standaloneSystem
       let scope = AgentCommandMount.Scope(
         system: system, path: path, session: session,
-        pasteboard: pasteboard, requestStartReport: reportRequestStart)
+        pasteboard: pasteboard, requestStartReport: reportRequestStart, groupsOff: groupsOff)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
@@ -87,7 +94,8 @@ extension View {
   /// copy and jump read `transcript`. Apply the scope to a view that holds an
   /// ``AgentThreadView`` and a ``PromptInputView``, so that the commands
   /// submit and focus the composer. See ``AgentCommandVerb`` and
-  /// ``AgentKeymap``.
+  /// ``AgentKeymap``. To turn off groups of the commands, apply
+  /// ``SwiftUI/View/agentCommandGroups(off:)`` outside this scope.
   ///
   /// - Parameter session: The session model that the commands act on.
   /// - Returns: A view in the scope of the commands.
@@ -122,18 +130,29 @@ enum AgentCommandRegistration {
   /// layer flag and the `.scope` part that `.commandScope` wrote at the same
   /// path, so the fold gives the current live subject of the scope.
   ///
+  /// The call does not register a verb of a group in `groupsOff`. It
+  /// unregisters that verb, so `CommandRegistry.unregister` also removes each
+  /// key of the verb. Thus a group that a later call turns off goes away, and
+  /// a group that a later call turns on comes back.
+  ///
   /// - Parameters:
   ///   - target: The target that the commands act on.
   ///   - path: The path of the scope.
   ///   - registry: The registry to register into.
+  ///   - groupsOff: The groups whose verbs the call does not register.
   static func register(
-    _ target: AgentCommandTarget, at path: FocusPath, into registry: inout CommandRegistry
+    _ target: AgentCommandTarget, at path: FocusPath, into registry: inout CommandRegistry,
+    groupsOff: Set<AgentCommandGroup> = []
   ) {
     registry.tree = registry.tree.merging(nil, by: .host, at: path)
-    for definition in AgentCommand.definitions(for: target) {
-      registry.register(definition, at: path)
+    for verb in AgentCommandVerb.allCases {
+      if groupsOff.contains(verb.group) {
+        registry.unregister(verb.id, at: path)
+      } else {
+        registry.register(AgentCommand.definition(of: verb, for: target), at: path)
+      }
     }
-    AgentKeymap.bindSecondaryChords(into: &registry, at: path)
+    AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 
   /// Removes the scope node at `path`.
@@ -168,6 +187,8 @@ struct AgentCommandMount: NSViewRepresentable {
     let pasteboard: any Pasteboard
     /// The report of the requests that the commands start, or `nil`.
     let requestStartReport: ObservationReport<String>?
+    /// The groups of the commands that the scope does not register.
+    let groupsOff: Set<AgentCommandGroup>
   }
 
   /// The target to keep current.
@@ -240,7 +261,8 @@ struct AgentCommandMount: NSViewRepresentable {
       target.requestStartReport = scope.requestStartReport
       target.system = scope.system
       target.path = scope.path
-      AgentCommandRegistration.register(target, at: scope.path, into: &scope.system.registry)
+      AgentCommandRegistration.register(
+        target, at: scope.path, into: &scope.system.registry, groupsOff: scope.groupsOff)
       coordinator.registration = (scope.system, scope.path)
     }
     if let anchors {

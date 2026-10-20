@@ -190,6 +190,25 @@ import Testing
     #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
   }
 
+  /// The host turns off a group around a thread view with no outer scope, so
+  /// the scope that ``AgentThreadView`` applies itself reads the groups.
+  @Test func aMountedThreadViewDoesNotRegisterTheVerbsOfAGroupThatTheHostTurnsOff() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = HostedViewHarness(size: Self.windowSize) {
+      AgentThreadView(session: session.model)
+        .agentCommandGroups(off: [.navigate])
+        .commandSystem(system)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let ids = Set(system.registry.definitions(at: Self.path(of: session.model)).map(\.id))
+
+    #expect(ids == Set(AgentCommandVerb.allCases.filter { $0.group != .navigate }.map(\.id)))
+  }
+
   @Test func aSessionThreadViewInAScopeForItsSessionAddsItsPartsToThatScope() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
