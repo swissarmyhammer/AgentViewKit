@@ -37,10 +37,26 @@ comments:
     - evidence: swift test - 1351 tests in 158 suites passed, 0 failed, 0 skipped. 2 known issues (existed before). 1 warning: mlx bundle build warning (existed before). No new warnings.
     - next: review
   timestamp: 2026-10-20T18:56:04.182094+00:00
+- actor: claude-code
+  id: 01m5dasye1fpkdvz0r5pbm29tb
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 7c21716). 0 findings, 0 confirmed, 1 refuted. 5 files reviewed. 4 .kanban files not reviewed (ignore rule).
+    - next: The task is in done. No more work is necessary.
+  timestamp: 2026-10-20T18:57:28.001745+00:00
+- actor: claude-code
+  id: 01m5dat7wqd1fq4kmb0j977akg
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files
+    - test: green — swift test, 1351 passed, 2 known issues that were there before
+    - commit: 7c21716
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T18:57:37.687043+00:00
 depends_on:
 - 01M5D07HWW75H4K9ZNPBGHPRS8
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fff380
 title: AVK-7c agentToolCall scope on each tool call card
 ---
 Design: AVK-7, D105 (a), (c). Step 5 work.

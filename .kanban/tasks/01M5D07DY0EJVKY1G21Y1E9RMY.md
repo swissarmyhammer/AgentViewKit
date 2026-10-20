@@ -22,6 +22,17 @@ comments:
     - implement: stuck — FoundationModelsACPClient origin/main 8a287da does not have the API. `SessionModel.apply(_:)` is internal. `PreviewSessionRequestSender` has no `sent: [Sent]` recorder.
     - next: continue this card when ^yvrk73p is merged into FoundationModelsACPClient main.
   timestamp: 2026-10-20T18:24:53.682205+00:00
+- actor: claude-code
+  id: 01m5df0twshbw5p0q3wscb9naa
+  text: |-
+    ### blocker removed
+    - foundationmodelsacpclient-29 pushed ^yvrk73p to FoundationModelsACPClient main. The feature commit is f7ed2b0, and the head of main is 0b9c415. Pin to f7ed2b0 or later.
+    - `SessionModel.apply(_:)` is public. On a preview model, it is synchronous.
+    - `PreviewSessionRequestSender` is `@MainActor @Observable` and has `public private(set) var sent: [Sent]` in send order. The cases are `.prompt`, `.cancel`, `.setConfigOption`, `.permissionResponse(id:response:)` and `.elicitationResponse(id:response:)`. There is no toolCallId field.
+    - On a preview model, `selectPermission` and `cancelPermission` return at once.
+    - Open item (their card ^jebhkm3): the public `preview(...)` factory cannot make a pending elicitation yet.
+    - next: implement this card again.
+  timestamp: 2026-10-20T20:11:08.057531+00:00
 position_column: todo
 position_ordinal: '80'
 title: 'AVK-7a Use the code-built SessionModel: public apply(_:) and request recorder'

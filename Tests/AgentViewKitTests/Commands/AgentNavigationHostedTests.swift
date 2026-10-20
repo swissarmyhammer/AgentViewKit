@@ -1,0 +1,191 @@
+@testable import AgentViewKit
+import AgentViewKitTestSupport
+import AppKit
+import EditorCommands
+import EditorCommandsUI
+import FoundationModelsACPClient
+import SwiftUI
+import Testing
+
+/// Tests for the EditorKit navigation and jump on the items of a thread
+/// (AVK-7d).
+///
+/// Each item scope (a message row, a tool call card, a request card) is a
+/// target of the `nav.*` commands of EditorKit and of its jump mode. The host
+/// registers the `nav.*` commands, as EditorKit tells. The tests register them
+/// at the thread scope.
+///
+/// A change that the test makes on the main actor is followed by one render
+/// pass. A frame of the agent is followed by a wait for the model value that
+/// the frame is certain to change, and then by one render pass. Each key
+/// press is followed by a `#require` on its result.
+@Suite(.serialized, .hostedSerially) @MainActor struct AgentNavigationHostedTests {
+  /// The JSON-RPC id of the first permission request of the deck test.
+  static let frontRequestID = 100
+
+  /// The JSON-RPC id of the second permission request of the deck test.
+  static let edgeRequestID = 101
+
+  /// Sends a user message and an agent message from the agent, waits until
+  /// the transcript holds both, and then renders `harness`.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness that renders the view after the wait.
+  /// - Returns: The paths of the two message scopes, in transcript order.
+  /// - Throws: The error of the transport.
+  static func sendTwoMessages(
+    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
+  ) async throws -> [FocusPath] {
+    try await AgentCommandScopeHostedTests.send(
+      [
+        .init(kind: "user_message_chunk", messageID: "nav-first", text: "First"),
+        .init(kind: "agent_message_chunk", messageID: "nav-second", text: "Second"),
+      ], to: session)
+    let model = session.model
+    await harness.render { model.transcript.count == 2 }
+    let thread = AgentCommandScopeHostedTests.path(of: model)
+    return model.transcript.map { thread.appending(AgentScopeKind.message(rowKey: $0.rowKey)) }
+  }
+
+  /// The paths of `items`, in the order of the minimum y of their window
+  /// rects.
+  ///
+  /// EditorKit moves `nav.down` to a larger minimum y, and `nav.up` to a
+  /// smaller one. Thus the first path is the start of a `nav.down` move. On
+  /// macOS this order is not the visual order: task ^brhhdf4 records the
+  /// EditorKit defect.
+  ///
+  /// - Parameters:
+  ///   - items: The item paths.
+  ///   - system: The command system of the window.
+  /// - Returns: The sorted paths.
+  /// - Throws: The error of `#require` when an item has no rect.
+  static func orderedByMinY(_ items: [FocusPath], in system: CommandSystem) throws -> [FocusPath] {
+    let rects = try items.map { try #require(system.geometry.rect(of: $0)) }
+    return zip(items, rects).sorted { $0.1.minY < $1.1.minY }.map(\.0)
+  }
+
+  /// The item whose window rect holds the center of the first responder of
+  /// the window.
+  ///
+  /// - Parameters:
+  ///   - items: The item paths.
+  ///   - system: The command system of the window.
+  ///   - window: The window.
+  /// - Returns: The path, or `nil` when no item holds the first responder.
+  static func focusedItem(among items: [FocusPath], in system: CommandSystem, window: NSWindow) -> FocusPath? {
+    guard let responder = window.firstResponder as? NSView else { return nil }
+    let frame = responder.convert(responder.bounds, to: nil)
+    let center = CGPoint(x: frame.midX, y: frame.midY)
+    return items.first { system.geometry.rect(of: $0)?.contains(center) == true }
+  }
+
+  @Test func theNavChordsMoveTheFocusBetweenTwoMessageItems() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+    let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
+    let thread = AgentCommandScopeHostedTests.path(of: session.model)
+    registerNavCommands(controller: NavModeController(system: system), layer: thread, into: &system.registry)
+    let ordered = try Self.orderedByMinY(messages, in: system)
+    try #require(system.geometry.requestFocus(at: ordered[0]))
+    try #require(Self.focusedItem(among: messages, in: system, window: harness.window) == ordered[0])
+
+    try #require(system.registry.performKey(KeySequence(.downArrow), mode: .cua, at: ordered[0]))
+    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == ordered[1])
+
+    try #require(system.registry.performKey(KeySequence(.upArrow), mode: .cua, at: ordered[1]))
+    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == ordered[0])
+  }
+
+  @Test func theJumpOverlayListsTheItemsOfTheThreadAtTheirFrames() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+    let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
+    let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(to: session, rendering: harness)
+    let thread = AgentCommandScopeHostedTests.path(of: session.model)
+    let items = messages + [thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId))]
+    let jump = JumpModeController(system: system)
+
+    try #require(jump.activate(layer: thread))
+
+    let chips = try #require(jump.overlayState?.chips)
+    let anchors = Dictionary(uniqueKeysWithValues: chips.map { ($0.id, $0.anchor) })
+    for item in items {
+      let anchor = try #require(anchors[item])
+      #expect(!anchor.isEmpty)
+      #expect(anchor == system.geometry.rect(of: item))
+    }
+  }
+
+  @Test(arguments: [0, 1])
+  func aJumpToAMessageFocusesThatMessage(position: Int) async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+    let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
+    let jump = JumpModeController(system: system)
+    try #require(jump.activate(layer: AgentCommandScopeHostedTests.path(of: session.model)))
+
+    try #require(jump.commit(messages[position]))
+
+    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[position])
+  }
+
+  /// The deck shows the first request whole, and only the top edge of the
+  /// second. The second card is no jump target, because its label would be
+  /// on a card that does not show.
+  @Test func onlyTheDeckCardThatShowsWholeIsAJumpTarget() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let system = CommandSystem()
+    // The deck is beside the thread view, so the outer scope puts the cards
+    // in the scope of the thread.
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    defer { harness.close() }
+    try await session.sendInOrder([.permission(id: Self.frontRequestID), .permission(id: Self.edgeRequestID)])
+    harness.render()
+    let requests = model.pendingPermissions.map(\.id)
+    try #require(requests.count == 2)
+    let thread = AgentCommandScopeHostedTests.path(of: model)
+    let jump = JumpModeController(system: system)
+
+    try #require(jump.activate(layer: thread))
+
+    let targets = Set(try #require(jump.overlayState?.chips).map(\.id))
+    #expect(targets.contains(thread.appending(AgentScopeKind.request(requests[0]))))
+    #expect(!targets.contains(thread.appending(AgentScopeKind.request(requests[1]))))
+  }
+
+  /// A message row, a tool call card and the front request card each give
+  /// the area of their content to the navigation snapshot of the thread.
+  @Test func eachItemKindIsInTheNavigationSnapshotOfTheThread() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    defer { harness.close() }
+    try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
+    let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(to: session, rendering: harness)
+    let request = try await session.sendPermissionRequest(
+      id: Self.frontRequestID, rendering: harness)
+    let message = try #require(model.transcript.first)
+    let thread = AgentCommandScopeHostedTests.path(of: model)
+
+    let scopes = Set(system.geometry.snapshot(layer: thread).scopes.map(\.path))
+
+    #expect(scopes.contains(thread.appending(AgentScopeKind.message(rowKey: message.rowKey))))
+    #expect(scopes.contains(thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId))))
+    #expect(scopes.contains(thread.appending(AgentScopeKind.request(request))))
+  }
+}

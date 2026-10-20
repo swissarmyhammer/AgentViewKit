@@ -15,6 +15,16 @@ import SwiftUI
 /// the path of the item, and reads the item with `@FromTarget`, so it acts on
 /// that item.
 ///
+/// The item scope is a target of the EditorKit navigation and jump (AVK-7d).
+/// `.navVisible()` gives the area of the item to the scope, so the `nav.*`
+/// commands of the host move between the items, and a jump label shows on
+/// the item. An ``AgentItemFocusTarget`` behind the item takes the focus that
+/// a move or a jump puts on the item. When `isJumpTarget` is `false`, for
+/// example on a deck card that does not show whole, `.jumpTarget(.hidden)`
+/// removes the item from the jump labels. The modifier applies the same
+/// modifiers for each value of `isJumpTarget`, so a change of the value keeps
+/// the identity and the state of the item.
+///
 /// With no enclosing agent command scope, the modifier does not change the
 /// view.
 struct AgentItemScope<Subject: Sendable>: ViewModifier {
@@ -24,13 +34,19 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   /// The live object of the item, such as its `TranscriptEntry`.
   let subject: Subject
 
+  /// Tells if jump mode shows a label on the item.
+  let isJumpTarget: Bool
+
   @Environment(\.agentCommandSystem) private var system
 
   func body(content: Content) -> some View {
     if let system {
       content
+        .background(AgentItemFocusTarget())
+        .jumpTarget(isJumpTarget ? JumpTargetOverride() : .hidden)
         .commandContextMenu(system)
         .commandScope(segment: segment, subject: subject)
+        .navVisible()
     } else {
       content
     }
@@ -45,9 +61,11 @@ extension View {
   ///   - segment: The segment of the item.
   ///   - subject: The live object of the item. A command reads it with
   ///     `@FromTarget(kind: segment.kind)`.
+  ///   - isJumpTarget: `false` to show no jump label on the item, for
+  ///     example on a deck card that does not show whole.
   /// - Returns: A view in the scope of the item.
-  func agentItemScope(_ segment: FocusSegment, subject: some Sendable) -> some View {
-    modifier(AgentItemScope(segment: segment, subject: subject))
+  func agentItemScope(_ segment: FocusSegment, subject: some Sendable, isJumpTarget: Bool = true) -> some View {
+    modifier(AgentItemScope(segment: segment, subject: subject, isJumpTarget: isJumpTarget))
   }
 }
 
