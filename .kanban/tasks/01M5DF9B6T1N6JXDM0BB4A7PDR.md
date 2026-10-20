@@ -20,8 +20,24 @@ comments:
     - evidence: swift test — 1408 tests in 171 suites passed, 0 failed, 0 skipped, 2 known issues (existed before). swift build --build-tests — only the known mlx bundle warning.
     - next: review
   timestamp: 2026-10-20T23:25:50.182934+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5dt7rdxbw8qwjyz805r01ft
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 4da77d6). 0 findings, 0 confirmed, 0 refuted. 7 validator runs attempted, 0 failed. 4 files reviewed. 2 .kanban files are excluded by .reviewignore.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-20T23:27:09.245173+00:00
+- actor: claude-code
+  id: 01m5dt8p0nqhfpz925xr0nsb4r
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 4 files
+    - test: green — swift test, 1408 passed, 2 known issues that were there before
+    - commit: 4da77d6
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T23:27:39.541088+00:00
+position_column: done
+position_ordinal: ffff80
 title: 'AVK-8h Remove the glass button style from buttons in content: Load Earlier, message actions, attachment actions'
 ---
 ## Why
