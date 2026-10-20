@@ -3,8 +3,14 @@ import SwiftUI
 
 /// The composer of a thread (plan.md §7, §9 D).
 ///
-/// The view shows an editor and an accessory row in a Liquid Glass bar. The
-/// editor and the accessory are slots. The short initializer uses
+/// The view shows a field and an accessory row in one `GlassEffectContainer`
+/// (D110 (c)). The field holds the attachment chips and the editor, and it is
+/// on the floating glass of the kit (``SwiftUI/View/agentFloatingGlass()``).
+/// The accessory row is below the field and not on that glass, so its glass
+/// buttons are not glass on glass. The composer adds no glass morph, so also
+/// while Reduce Motion is on no glass shape morphs (plan.md §6).
+///
+/// The editor and the accessory are slots. The short initializer uses
 /// ``StockPromptEditor`` and ``DefaultPromptAccessory``:
 ///
 /// ```swift
@@ -169,6 +175,28 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
       onCancel: Self.cancelsOnEscape(in: session) ? cancelCommand : nil,
       commands: session?.availableCommands)
+    // The field and the accessory are siblings in one container. Only the
+    // field is on glass, so the glass buttons of the accessory are not glass
+    // on glass, and the container blends their shapes (D110 (c)).
+    GlassEffectContainer(spacing: theme.spacing.s) {
+      VStack(alignment: .leading, spacing: theme.spacing.s) {
+        field(context)
+        accessory()
+      }
+    }
+    .disabled(isSessionClosed)
+    .attachmentDropDestination(attachments)
+    .environment(
+      \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
+    .environment(\.promptText, $text)
+  }
+
+  /// The field of the composer: the attachment chips and the editor, on the
+  /// floating glass of the kit.
+  ///
+  /// - Parameter context: The context that the editor gets.
+  /// - Returns: The field on its surface.
+  private func field(_ context: PromptEditorContext) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       if !attachments.wrappedValue.isEmpty {
         AttachmentChips(attachments: attachments)
@@ -183,15 +211,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
               target: commandTarget, canSubmit: { canSubmit }, submit: submit, load: load)
           }
         }
-      accessory()
     }
-    .padding(theme.spacing.m)
-    .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
-    .disabled(isSessionClosed)
-    .attachmentDropDestination(attachments)
-    .environment(
-      \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
-    .environment(\.promptText, $text)
+    .modifier(PromptFieldSurface())
   }
 
   /// Submits the text through ``AgentCommandVerb/send`` of the command scope,
@@ -308,6 +329,32 @@ extension PromptInputView where Accessory == DefaultPromptAccessory {
     self.init(
       text: text, attachments: attachments, onSubmit: onSubmit, editor: editor,
       accessory: { DefaultPromptAccessory() })
+  }
+}
+
+/// The surface of the field of ``PromptInputView``: the attachment chips and
+/// the editor (D110 (c)).
+///
+/// The surface pads the field with the medium spacing of the theme, and puts
+/// it on the floating glass of the kit (``SwiftUI/View/agentFloatingGlass()``).
+/// The accessory row of the composer is not on this surface. Thus the glass
+/// buttons of the accessory are not glass on glass.
+///
+/// The surface is one accessibility container with ``identifier``, so that a
+/// hosted test can read its frame. The chips and the editor stay separate
+/// accessibility elements in it.
+struct PromptFieldSurface: ViewModifier {
+  /// The accessibility identifier of the field surface.
+  static let identifier = "prompt-field-surface"
+
+  @Environment(\.agentTheme) private var theme
+
+  func body(content: Content) -> some View {
+    content
+      .padding(theme.spacing.m)
+      .agentFloatingGlass()
+      .accessibilityElement(children: .contain)
+      .accessibilityIdentifier(Self.identifier)
   }
 }
 

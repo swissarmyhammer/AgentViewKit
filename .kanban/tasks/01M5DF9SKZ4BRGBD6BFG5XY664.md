@@ -1,10 +1,44 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5dv36j36v0f04d5618escy5
+  text: |-
+    Implementation landed.
+
+    - `PromptInputView.body` is now one `GlassEffectContainer(spacing: theme.spacing.s)` with a VStack of two siblings: the field and the accessory. `.disabled`, `.attachmentDropDestination` and the two environment values stay on the whole composer.
+    - The field (chips + editor) is a private `field(_:)` builder with the new internal modifier `PromptFieldSurface` (in `PromptInputView.swift`). It adds the medium padding, `.agentFloatingGlass()`, `.accessibilityElement(children: .contain)` and the identifier `prompt-field-surface` (`PromptFieldSurface.identifier`). The identifier is on a non-generic type because a generic type (`PromptInputView<Editor, Accessory>`) cannot hold a static stored property.
+    - `DefaultPromptAccessory`, `SuggestionsView` and `SpeechInputButton` did not change. Their buttons keep `.glass` / `.glassProminent`.
+    - Reduce Motion: the composer writes no `glassEffectID`, so it adds no glass morph in any mode. A structure test holds this.
+    - The composer no longer has the outer padding inside one glass; the padding is now on the field only.
+
+    Tests:
+    - `PromptInputViewHostedTests.theSubmitButtonIsOutsideTheGlassOfTheField`: the frames of `prompt-submit` and `prompt-field-surface` do not intersect.
+    - `PromptInputGlassTests.theFieldSurfaceFollowsReduceTransparency` (method of ^dbbyg9w): `PromptFieldSurface` over the backdrop in a container gives different pixels with Reduce Transparency on and off. I saw it fail with `.agentFloatingGlass()` removed.
+    - `PackageStructureTests/ComposerGlassStructureTests`: `PromptInputView.swift` has one `GlassEffectContainer(`, one `.agentFloatingGlass()`, no `.glassEffect(` and no `.glassEffectID(` on code lines.
+
+    What did not work: a pixel test of the full composer (backdrop shows behind the accessory). `ImageRenderer` does not draw the composer: `.onPasteCommand` in `attachmentDropDestination` makes it focusable, and the full composer area came out as a non-backdrop color, also 100 pt below the field. A probe without the composer showed that `agentFloatingGlass` in a container ends at the edge of its view. The window cache shows no glass. Thus the hosted frame test is the check that the accessory is outside the field glass.
+  timestamp: 2026-10-20T23:42:08.451258+00:00
+- actor: claude-code
+  id: 01m5dv3qzbzrkg1zfn88jv8t7p
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Input/PromptInputView.swift, Tests/AgentViewKitTests/Input/PromptInputViewHostedTests.swift, Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift (new), Tests/PackageStructureTests/ComposerGlassStructureTests.swift (new). `swift test`: 1410 tests in 172 suites passed with 2 known issues, 141 tests in 20 suites passed, 1 test passed. The mlx bundle warning existed before.
+    - next: /review
+  timestamp: 2026-10-20T23:42:26.283473+00:00
+- actor: claude-code
+  id: 01m5dvg7tjp1pe9v2rh06283ch
+  text: |-
+    ### test — green
+    - evidence: swift test — 1413 tests in 172 suites passed, 2 known issues (before this change), 0 new warnings. First run: 1 failure, theContentSurfaceHasNoGlassThatFollowsReduceTransparency (on == off). 28 anti-aliased edge pixels differed by one level between two renders.
+    - fix: added RenderedPixels.isClose(to:tolerance:) in Sources/AgentViewKitTestSupport/RenderedPixels.swift, with 3 tests in RenderedPixelsTests. AgentSurfacesTests now uses isClose. No clock, sleep, poll or retry.
+    - next: review
+  timestamp: 2026-10-20T23:49:15.730711+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
-position_column: todo
-position_ordinal: '9080'
+position_column: doing
+position_ordinal: '80'
 title: 'AVK-8i Composer: put the field and the accessory cluster in one GlassEffectContainer, with no glass on glass'
 ---
 ## Why
@@ -19,12 +53,12 @@ D110 (c). The composer is a floating control, so it can use glass. Today `Prompt
 
 ## What to do
 
-- [ ] Wrap the body of `PromptInputView` in `GlassEffectContainer(spacing: theme.spacing.s)`.
-- [ ] Put `agentFloatingGlass()` (AVK-8b) on the field only: the attachment chips and the editor.
-- [ ] Put the accessory below the field, as a sibling in the container, not inside the field glass. Its buttons keep their glass button styles. The container blends the shapes.
-- [ ] Give the field surface an accessibility identifier, for example `prompt-field-surface`, so a hosted test can read its frame.
-- [ ] Keep `.disabled(isSessionClosed)`, the drop destination and the environment values on the whole composer.
-- [ ] With Reduce Motion on, add no glass morph (plan.md §6).
+- [x] Wrap the body of `PromptInputView` in `GlassEffectContainer(spacing: theme.spacing.s)`.
+- [x] Put `agentFloatingGlass()` (AVK-8b) on the field only: the attachment chips and the editor.
+- [x] Put the accessory below the field, as a sibling in the container, not inside the field glass. Its buttons keep their glass button styles. The container blends the shapes.
+- [x] Give the field surface an accessibility identifier, for example `prompt-field-surface`, so a hosted test can read its frame.
+- [x] Keep `.disabled(isSessionClosed)`, the drop destination and the environment values on the whole composer.
+- [x] With Reduce Motion on, add no glass morph (plan.md §6).
 
 ## Acceptance
 

@@ -130,6 +130,20 @@ struct PromptInputHost: View {
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) != nil)
   }
 
+  // MARK: - Glass
+
+  @Test func theSubmitButtonIsOutsideTheGlassOfTheField() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = Self.mount(session, model: PromptInputHostedTestModel(text: Self.message))
+    defer { harness.close() }
+    harness.render()
+
+    let field = try #require(harness.frame(identifier: PromptFieldSurface.identifier))
+    let submit = try #require(harness.frame(identifier: DefaultPromptAccessory.submitIdentifier))
+    #expect(!field.intersects(submit), "field \(field), submit \(submit)")
+  }
+
   // MARK: - Custom editor
 
   @Test func aCustomEditorGetsTheContextOfTheComposer() async throws {
