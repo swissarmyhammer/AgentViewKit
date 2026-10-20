@@ -2,12 +2,17 @@ import EditorSwiftUI
 import EditorTheme
 import SwiftUI
 
-/// The glass bar of one status message: a symbol, a title, an explanation,
-/// and one optional button with a symbol and a text.
+/// The bar of one status message: a symbol, a title, an explanation, and one
+/// optional button with a symbol and a text.
 ///
-/// ``StateBanner`` and ``SessionStreamBanner`` show their messages in this
-/// bar. The text of the bar has the ``StateBanner/Message/identifier`` of its
-/// message. The accessibility label of the bar is the title.
+/// The bar shows in the thread with the transcript. It is content, so it is
+/// on the content surface of the kit (``SwiftUI/View/agentContentSurface()``)
+/// and has no glass (D110 (b)). Only its button uses a glass button style.
+///
+/// ``StateBanner``, ``SessionStreamBanner`` and ``AgentConnectionBanner`` show
+/// their messages in this bar. The text of the bar has the
+/// ``StateBanner/Message/identifier`` of its message. The accessibility label
+/// of the bar is the title.
 ///
 /// The symbol of a failure message (``StateBanner/Message/isFailure``) has the
 /// error color of the EditorKit theme. The symbol of each other message has
@@ -80,7 +85,7 @@ struct StatusBar: View {
       }
     }
     .padding(theme.spacing.m)
-    .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+    .agentContentSurface()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(message.title)
   }
