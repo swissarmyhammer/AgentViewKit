@@ -49,14 +49,27 @@ import Testing
     of view: some View, with setting: GlassProbeSetting? = nil, on isOn: Bool = false,
     size renderSize: CGSize = size
   ) throws -> RenderedPixels {
+    try #require(RenderedPixels(rendering: pinned(view, with: setting, on: isOn), size: renderSize))
+  }
+
+  /// `view` in light mode, with only `setting` changed.
+  ///
+  /// - Parameters:
+  ///   - view: The view to change.
+  ///   - setting: The setting to change, or `nil` for no change.
+  ///   - isOn: Whether `setting` is on.
+  /// - Returns: The view with light mode, `setting`, and each other setting
+  ///   off.
+  static func pinned(
+    _ view: some View, with setting: GlassProbeSetting? = nil, on isOn: Bool = false
+  ) -> some View {
     // An environment value near the view replaces the same value farther
     // out. Thus the changed setting stays, and each other setting is off.
     let changed = setting.map { AnyView($0.apply(isOn, to: view)) } ?? AnyView(view)
     let pinned = GlassProbeSetting.allCases.reduce(changed) { pinned, each in
       AnyView(each.apply(false, to: pinned))
     }
-    return try #require(
-      RenderedPixels(rendering: pinned.environment(\.colorScheme, .light), size: renderSize))
+    return pinned.environment(\.colorScheme, .light)
   }
 
   @Test(arguments: GlassProbeSetting.allCases)
@@ -100,11 +113,15 @@ import Testing
 
   /// The pixels that AppKit caches for `view` in an off-screen window.
   ///
-  /// - Parameter view: The view to show.
+  /// - Parameters:
+  ///   - view: The view to show.
+  ///   - windowSize: The size of the content of the window.
   /// - Returns: The pixels.
   /// - Throws: An error when AppKit gives no pixels.
-  static func cachedPixels(of view: some View) throws -> RenderedPixels {
-    let harness = HostedViewHarness(view, size: GlassRenderProbeTests.size)
+  static func cachedPixels(
+    of view: some View, size windowSize: CGSize = GlassRenderProbeTests.size
+  ) throws -> RenderedPixels {
+    let harness = HostedViewHarness(view, size: windowSize)
     defer { harness.close() }
     return try #require(RenderedPixels(cachingDisplayOf: harness.hostingView))
   }
