@@ -6,6 +6,7 @@ depends_on:
 - 01M5DF9SKZ4BRGBD6BFG5XY664
 - 01M5DFA593MWNN971T9F2GCJ20
 - 01M5DFADQHSHCRAQW0709TVAPV
+- 01M5DMH2HJK2HJBC8TQW9Y5TQ6
 position_column: todo
 position_ordinal: '9780'
 title: AVK-8p Test each glass view with Reduce Transparency, Increase Contrast and the Tinted look

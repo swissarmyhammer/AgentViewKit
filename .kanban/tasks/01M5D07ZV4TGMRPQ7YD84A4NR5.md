@@ -94,10 +94,26 @@ comments:
     - evidence: swift test - 1376 tests in 161 suites passed, 0 failed, 2 known issues (before this change). The only warning is the mlx bundle build warning (before this change).
     - next: review
   timestamp: 2026-10-20T21:21:46.795003+00:00
+- actor: claude-code
+  id: 01m5dk4cwj397b58k6sxm80jtj
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (6f669b3), 5 files reviewed, 0 findings. The prior finding is checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-20T21:22:59.090701+00:00
+- actor: claude-code
+  id: 01m5dk4px582bw62jesh6en9q0
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 5 files (one shared WordPattern.wholeWord helper)
+    - test: green — swift test, 1376 passed, 2 known issues that were there before
+    - commit: 6f669b3
+    - review: clean — 0 findings, the prior finding is checked
+  timestamp: 2026-10-20T21:23:09.349448+00:00
 depends_on:
 - 01M5D07DY0EJVKY1G21Y1E9RMY
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fff780
 title: 'AVK-7f #Preview for each public view'
 ---
 Design: AVK-7, D105 (h). Step 5 work.
