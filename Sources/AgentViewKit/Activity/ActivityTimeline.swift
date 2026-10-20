@@ -294,3 +294,7 @@ private struct ActivityEntryRow: View {
     }
   }
 }
+
+#Preview("Activity timeline") {
+  ActivityTimeline(session: .previewSample)
+}

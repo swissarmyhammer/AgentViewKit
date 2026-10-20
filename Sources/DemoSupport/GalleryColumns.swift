@@ -77,3 +77,13 @@ public enum GalleryColumnsLayout {
   /// The width of the popover with the look controls.
   public static let lookWidth: CGFloat = 300
 }
+
+#Preview("Gallery columns") {
+  GalleryColumns {
+    Text(verbatim: "Sidebar")
+  } detail: {
+    Text(verbatim: "Detail")
+  } lookControls: {
+    Text(verbatim: "Look controls")
+  }
+}

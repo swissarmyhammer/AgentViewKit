@@ -72,3 +72,7 @@ public struct AgentConnectionBanner: View {
     symbolName: SharedSymbol.disconnected,
     identifier: disconnectedIdentifier)
 }
+
+#Preview("Disconnected") {
+  AgentConnectionBanner(connection: .preview(state: .disconnected))
+}

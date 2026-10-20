@@ -68,3 +68,7 @@ public struct AgentInfoHeader: View {
     }
   }
 }
+
+#Preview("Agent header") {
+  AgentInfoHeader(connection: .previewSample)
+}

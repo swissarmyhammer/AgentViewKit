@@ -788,3 +788,25 @@ public struct ElicitationMultiChoiceField: View {
     context.value.wrappedValue = ordered.isEmpty ? nil : .array(ordered.map(JSONValue.string))
   }
 }
+
+#Preview("Field of each kind") {
+  @Previewable @State var answers: [String: JSONValue] = [:]
+  Form {
+    ForEach(PreviewFixtures.ElicitationFields.all) { field in
+      ElicitationFieldView(context: PreviewFixtures.fieldContext(field, answers: $answers))
+    }
+  }
+}
+
+#Preview("Field views") {
+  @Previewable @State var answers: [String: JSONValue] = [:]
+  let fields = PreviewFixtures.ElicitationFields.self
+  Form {
+    ElicitationTextField(context: PreviewFixtures.fieldContext(fields.text, answers: $answers))
+    ElicitationNumberField(context: PreviewFixtures.fieldContext(fields.number, answers: $answers))
+    ElicitationToggleField(context: PreviewFixtures.fieldContext(fields.boolean, answers: $answers))
+    ElicitationDateField(context: PreviewFixtures.fieldContext(fields.date, answers: $answers))
+    ElicitationSingleChoiceField(context: PreviewFixtures.fieldContext(fields.singleChoice, answers: $answers))
+    ElicitationMultiChoiceField(context: PreviewFixtures.fieldContext(fields.multiChoice, answers: $answers))
+  }
+}

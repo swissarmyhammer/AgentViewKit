@@ -294,3 +294,8 @@ private struct AttachmentDropDestination: ViewModifier {
     }
   }
 }
+
+#Preview("Attachment chips") {
+  @Previewable @State var attachments = PreviewFixtures.attachments
+  AttachmentChips(attachments: $attachments)
+}

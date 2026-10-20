@@ -283,3 +283,11 @@ nonisolated struct MarkdownDocument: ExportOnlyDocument {
     FileWrapper(regularFileWithContents: Data(text.utf8))
   }
 }
+
+#Preview("Message actions") {
+  let session = SessionModel.previewSample
+  if let entry = PreviewFixtures.firstEntry(in: session, as: AgentMessageEntry.self) {
+    MessageActions(entry: entry)
+      .environment(\.sessionModel, session)
+  }
+}

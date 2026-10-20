@@ -163,3 +163,9 @@ public struct CodeBlockView: View {
     return trimmed
   }
 }
+
+#Preview("Code block") {
+  CodeBlockView(
+    code: "import Foundation\n\nstruct Parser {\n  let source: String\n}\n", language: "swift",
+    filename: "Parser.swift")
+}

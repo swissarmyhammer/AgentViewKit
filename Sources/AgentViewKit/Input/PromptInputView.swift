@@ -310,3 +310,10 @@ extension PromptInputView where Accessory == DefaultPromptAccessory {
       accessory: { DefaultPromptAccessory() })
   }
 }
+
+#Preview("Composer") {
+  @Previewable @State var text = AttributedString()
+  @Previewable @State var attachments = PreviewFixtures.attachments
+  PromptInputView(text: $text, attachments: $attachments) {}
+    .environment(\.sessionModel, .previewSample)
+}

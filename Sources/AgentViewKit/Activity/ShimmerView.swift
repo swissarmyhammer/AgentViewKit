@@ -114,3 +114,7 @@ public struct ShimmerView: View {
     }
   }
 }
+
+#Preview("Shimmer") {
+  ShimmerView(text: "Thinking")
+}

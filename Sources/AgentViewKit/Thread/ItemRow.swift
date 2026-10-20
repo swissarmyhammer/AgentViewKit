@@ -191,3 +191,13 @@ private struct OverridableItemView<Entry, Fallback: View>: View {
     }
   }
 }
+
+#Preview("Item rows") {
+  ScrollView {
+    VStack(alignment: .leading) {
+      ForEach(SessionModel.previewSample.transcript) { entry in
+        ItemRow(entry: entry)
+      }
+    }
+  }
+}

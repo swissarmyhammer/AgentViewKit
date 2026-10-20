@@ -88,3 +88,7 @@ public struct PendingRequestCountBadge: View {
     }
   }
 }
+
+#Preview("Pending request count") {
+  PendingRequestCountBadge(session: .previewSample)
+}

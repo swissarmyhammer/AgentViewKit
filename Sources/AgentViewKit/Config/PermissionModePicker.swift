@@ -74,3 +74,7 @@ public struct PermissionModePicker: View {
     }
   }
 }
+
+#Preview("Permission mode") {
+  PermissionModePicker(session: PreviewFixtures.configuredSession)
+}

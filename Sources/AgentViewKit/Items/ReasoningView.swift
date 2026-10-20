@@ -218,3 +218,9 @@ struct ReasoningBlock<Content: View>: View {
       .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
   }
 }
+
+#Preview("Thought") {
+  if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: ThoughtEntry.self) {
+    ReasoningView(entry: entry)
+  }
+}

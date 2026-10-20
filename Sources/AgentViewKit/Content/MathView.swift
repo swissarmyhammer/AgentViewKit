@@ -151,3 +151,10 @@ extension View {
       .accessibilityIdentifier(MathView.identifier(display: display))
   }
 }
+
+#Preview("Math") {
+  VStack {
+    MathView(latex: #"\sum_{i=1}^{n} i = \frac{n(n+1)}{2}"#, display: true)
+    MathView(latex: "E = mc^2", display: false)
+  }
+}

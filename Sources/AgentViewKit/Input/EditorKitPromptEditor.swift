@@ -551,3 +551,8 @@ extension View {
     environment(\.promptFileRoot, root)
   }
 }
+
+#Preview("EditorKit prompt editor") {
+  @Previewable @State var text = AttributedString("Why does the build fail?")
+  EditorKitPromptEditor(context: PromptEditorContext(text: $text, placeholder: "Ask the agent", onSubmit: {}))
+}

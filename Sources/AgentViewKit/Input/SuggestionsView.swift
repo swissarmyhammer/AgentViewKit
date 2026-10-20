@@ -59,3 +59,9 @@ public struct SuggestionsView: View {
     }
   }
 }
+
+#Preview("Suggestions") {
+  @Previewable @State var text = AttributedString()
+  SuggestionsView(suggestions: PreviewFixtures.suggestions)
+    .environment(\.promptText, $text)
+}

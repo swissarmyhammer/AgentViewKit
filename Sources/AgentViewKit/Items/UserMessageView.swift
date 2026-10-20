@@ -97,3 +97,9 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     }
   }
 }
+
+#Preview("User message") {
+  if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: UserMessageEntry.self) {
+    UserMessageView(entry: entry)
+  }
+}

@@ -120,3 +120,9 @@ public struct ParagraphView: View, Equatable {
       .accessibilityReadingGroup(readingGroupID)
   }
 }
+
+#Preview("Paragraph") {
+  ParagraphView(
+    messageID: "preview-message",
+    paragraph: ParagraphSplitter.Paragraph(index: 0, text: "The parser needs **Foundation** for `URL`."))
+}

@@ -447,3 +447,10 @@ extension EnvironmentValues {
   /// session model.
   @Entry var permissionAnswerReport: ObservationReport<PermissionAnswer>? = nil
 }
+
+#Preview("Permission request") {
+  let session = SessionModel.previewSample
+  if let request = session.pendingPermissions.first {
+    PermissionView(request: request, session: session)
+  }
+}

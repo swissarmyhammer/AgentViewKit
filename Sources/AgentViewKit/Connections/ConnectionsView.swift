@@ -33,3 +33,12 @@ public struct ConnectionsView: View {
     }
   }
 }
+
+#Preview("MCP servers") {
+  ConnectionsView()
+    .environment(\.sessionModel, PreviewFixtures.mcpSession)
+}
+
+#Preview("No MCP servers") {
+  ConnectionsView()
+}

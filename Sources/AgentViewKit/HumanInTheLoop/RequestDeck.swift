@@ -655,3 +655,7 @@ private struct DeckStackLayout: Layout {
       width: max(0, front.width - insetSideCount * side), height: front.height)
   }
 }
+
+#Preview("Request deck") {
+  RequestDeck(session: .previewSample)
+}

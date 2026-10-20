@@ -177,3 +177,10 @@ extension SessionStreamBanner {
     symbolName: SharedSymbol.partialHistory,
     identifier: partialHistoryIdentifier)
 }
+
+#Preview("Stream state") {
+  let connection = ConnectionModel.previewSample
+  if let session = connection.openSessions.first {
+    SessionStreamBanner(session: session, connection: connection)
+  }
+}

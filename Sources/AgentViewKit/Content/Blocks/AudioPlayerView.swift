@@ -88,3 +88,9 @@ extension EnvironmentValues {
   /// the view.
   @Entry var audioFileReport: ObservationReport<PreviewLoadState<URL>>? = nil
 }
+
+#Preview("Audio") {
+  // A WAV file with no samples, as base64.
+  let silentWAV = "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="
+  AudioPlayerView(audio: AudioContent(data: silentWAV, mimeType: MediaType(rawValue: "audio/wav")))
+}

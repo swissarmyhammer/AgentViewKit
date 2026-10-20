@@ -82,3 +82,8 @@ public struct StockPromptEditor: View {
       .accessibilityIdentifier(Self.identifier)
   }
 }
+
+#Preview("Stock prompt editor") {
+  @Previewable @State var text = AttributedString()
+  StockPromptEditor(context: PromptEditorContext(text: $text, placeholder: "Ask the agent", onSubmit: {}))
+}

@@ -479,3 +479,16 @@ extension View {
     environment(\.agentReconnect, reconnect)
   }
 }
+
+#Preview("Sign in") {
+  let method = AuthMethod.agent(
+    AuthMethodAgent(
+      methodId: AuthMethodId(rawValue: "github"), name: "GitHub",
+      description: "Sign in with your GitHub account."))
+  AgentAuthView(
+    connection: .preview(
+      authState: .required([method]),
+      initializeResponse: InitializeResponse(
+        info: Implementation(name: "preview-agent", version: "1.0.0"),
+        protocolVersion: ACPClient.supportedProtocolVersion, authMethods: [method])))
+}

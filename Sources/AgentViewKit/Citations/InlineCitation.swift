@@ -257,3 +257,10 @@ struct InlineCitationPill: View {
       .background(Capsule().fill(editorTheme.accent.opacity(Self.fillOpacity)))
   }
 }
+
+#Preview("Inline citation") {
+  HStack {
+    Text(verbatim: "The parser needs Foundation")
+    InlineCitation(index: 1)
+  }
+}

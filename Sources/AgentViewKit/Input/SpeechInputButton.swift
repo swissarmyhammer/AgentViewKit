@@ -186,3 +186,10 @@ extension EnvironmentValues {
   /// The button calls the report in the same step as the change of its phase.
   @Entry var speechInputPhaseReport: ObservationReport<SpeechInputButton.Phase>? = nil
 }
+
+#Preview("Microphone") {
+  @Previewable @State var text = AttributedString()
+  SpeechInputButton()
+    .environment(\.speechTranscriber, SystemSpeechTranscriber())
+    .environment(\.promptText, $text)
+}

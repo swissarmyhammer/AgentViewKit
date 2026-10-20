@@ -432,3 +432,11 @@ private struct ConversationFollowAnchor: ViewModifier {
     content.defaultScrollAnchor(follows ? .bottom : nil, for: .sizeChanges)
   }
 }
+
+#Preview("Conversation") {
+  ConversationView(session: .previewSample)
+}
+
+#Preview("Empty conversation") {
+  ConversationView(session: .preview())
+}

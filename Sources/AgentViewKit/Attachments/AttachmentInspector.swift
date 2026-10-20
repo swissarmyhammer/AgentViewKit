@@ -159,3 +159,9 @@ private struct QuickLookPreview: NSViewRepresentable {
     (view as? QLPreviewView)?.close()
   }
 }
+
+#Preview("Attachment inspector") {
+  if let attachment = PreviewFixtures.attachments.first {
+    AttachmentInspector(attachment)
+  }
+}

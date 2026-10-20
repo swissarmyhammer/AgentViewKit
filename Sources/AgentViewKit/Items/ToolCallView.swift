@@ -804,3 +804,9 @@ private struct ChipFlowLayout: Layout {
     return frames
   }
 }
+
+#Preview("Tool call") {
+  if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: ToolCallEntry.self) {
+    ToolCallView(entry: entry)
+  }
+}

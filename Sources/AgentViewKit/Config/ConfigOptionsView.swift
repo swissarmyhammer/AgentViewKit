@@ -401,3 +401,11 @@ struct ConfigOptionControl: View {
     session.makeConfigBinding(for: option.configId, current: current, reporting: reportRequestStart, send: send)
   }
 }
+
+#Preview("Configuration form") {
+  ConfigOptionsView(session: PreviewFixtures.configuredSession, style: .form)
+}
+
+#Preview("Configuration menu") {
+  ConfigOptionsView(session: PreviewFixtures.configuredSession)
+}

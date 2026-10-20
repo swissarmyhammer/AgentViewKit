@@ -92,3 +92,11 @@ public struct ErrorView: View {
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
   }
 }
+
+#Preview("Error") {
+  if let entry = PreviewFixtures.entry(
+    .error(code: .internalError, message: "The agent stopped before it sent an answer."), as: ErrorEntry.self)
+  {
+    ErrorView(entry: entry)
+  }
+}

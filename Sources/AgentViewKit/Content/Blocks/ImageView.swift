@@ -94,3 +94,9 @@ extension EnvironmentValues {
   /// the task that writes the file.
   @Entry var imageSelectReport: ObservationReport<String>? = nil
 }
+
+#Preview("Image") {
+  // A PNG image of one pixel, as base64.
+  let onePixelPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+  ImageView(image: ImageContent(data: onePixelPNG, mimeType: MediaType(rawValue: "image/png")))
+}

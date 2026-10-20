@@ -84,3 +84,10 @@ public struct ArtifactView: View {
     return attachment
   }
 }
+
+#Preview("Artifact") {
+  ArtifactView(
+    artifact: ArtifactPayload(
+      id: "release-notes", title: "Release notes", type: UTType.plainText.identifier,
+      inlineText: "The parser now imports Foundation, and each test passes."))
+}

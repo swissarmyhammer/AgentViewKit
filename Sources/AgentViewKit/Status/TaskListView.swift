@@ -227,3 +227,14 @@ private struct PlanEntryRow: View {
     .liveSymbolEffect(isActive: entry.status == .inProgress)
   }
 }
+
+#Preview("Plan") {
+  let plan: [PlanEntry] = [
+    PlanEntry(content: "Find the type that Parser.swift uses", priority: .high, status: .completed),
+    PlanEntry(content: "Add the import of Foundation", priority: .medium, status: .inProgress),
+    PlanEntry(content: "Run swift test", priority: .low, status: .pending),
+  ]
+  if let entry = PreviewFixtures.entry(.plan(plan), as: PlanTranscriptEntry.self) {
+    TaskListView(entry: entry)
+  }
+}

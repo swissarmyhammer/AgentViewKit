@@ -66,3 +66,7 @@ public struct ContextUsageView: View {
     }
   }
 }
+
+#Preview("Context usage") {
+  ContextUsageView(session: PreviewFixtures.usageSession)
+}

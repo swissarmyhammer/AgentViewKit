@@ -110,3 +110,12 @@ public struct DefaultPromptAccessory: View {
     .accessibilityIdentifier(Self.stopIdentifier)
   }
 }
+
+#Preview("Prompt accessory") {
+  @Previewable @State var text = AttributedString()
+  DefaultPromptAccessory()
+    .environment(\.sessionModel, .previewSample)
+    .environment(\.promptText, $text)
+    .environment(\.promptSubmitAction, PromptSubmitAction(isEnabled: true) {})
+    .environment(\.promptSuggestions, PreviewFixtures.suggestions)
+}

@@ -126,3 +126,14 @@ public struct ConnectionStatusChip: View {
     }
   }
 }
+
+#Preview("MCP server states") {
+  let statuses: [MCPServerStatus] = [
+    .notReported, .connecting, .connected, .failed(reason: "The command was not found."), .closed,
+  ]
+  VStack(alignment: .leading) {
+    ForEach(Array(statuses.enumerated()), id: \.offset) { _, status in
+      ConnectionStatusChip(status: status)
+    }
+  }
+}

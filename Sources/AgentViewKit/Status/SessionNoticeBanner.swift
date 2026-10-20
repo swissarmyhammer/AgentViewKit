@@ -195,3 +195,10 @@ struct NoticeRow: View {
     .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
   }
 }
+
+#Preview("Notice") {
+  let notice = Notice(
+    severity: .warning, title: "The context is almost full",
+    description: "The agent compacts the context before the next prompt.")
+  SessionNoticeBanner(session: .preview(transcript: [.update(.notice(notice))]))
+}

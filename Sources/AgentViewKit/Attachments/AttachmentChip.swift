@@ -52,3 +52,11 @@ public struct AttachmentChip: View {
     .background(.quaternary, in: RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
   }
 }
+
+#Preview("Attachment chip") {
+  HStack {
+    ForEach(PreviewFixtures.attachments) { attachment in
+      AttachmentChip(attachment)
+    }
+  }
+}

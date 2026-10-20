@@ -257,3 +257,11 @@ public struct TerminalView: View {
     }
   }
 }
+
+#Preview("Terminal") {
+  if let entry = PreviewFixtures.entry(
+    .terminal(command: "swift test", output: "Build complete!\nAll tests passed.", exitCode: 0), as: TerminalEntry.self)
+  {
+    TerminalView(entry: entry)
+  }
+}

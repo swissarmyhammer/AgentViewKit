@@ -198,3 +198,10 @@ extension EnvironmentValues {
   /// report, and not for a time.
   @Entry var threadCloseReport: ObservationReport<Bool>? = nil
 }
+
+#Preview("Thread") {
+  let connection = ConnectionModel.previewSample
+  if let session = connection.openSessions.first {
+    AgentThreadView(session: session, connection: connection)
+  }
+}

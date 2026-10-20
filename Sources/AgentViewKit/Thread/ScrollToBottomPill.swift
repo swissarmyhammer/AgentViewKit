@@ -53,3 +53,8 @@ public struct ScrollToBottomPill: View {
     .accessibilityIdentifier(Self.identifier)
   }
 }
+
+#Preview("Scroll to bottom") {
+  let newItemCount = 3
+  ScrollToBottomPill(newItemCount: newItemCount) {}
+}

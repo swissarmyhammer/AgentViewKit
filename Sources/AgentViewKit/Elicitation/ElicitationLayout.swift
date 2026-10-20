@@ -1,5 +1,6 @@
 import EditorSwiftUI
 import EditorTheme
+import FoundationModelsACP
 import SwiftUI
 
 // MARK: - Layout context
@@ -206,4 +207,12 @@ extension View {
   ) -> some View {
     environment(\.elicitationLayoutOverride) { context in AnyView(content(context)) }
   }
+}
+
+#Preview("Form layout") {
+  @Previewable @State var answers: [String: JSONValue] = [:]
+  ElicitationLayout(
+    context: ElicitationLayoutContext(
+      fields: PreviewFixtures.ElicitationFields.all.map { PreviewFixtures.fieldContext($0, answers: $answers) },
+      tabThreshold: ElicitationLayout.defaultTabThreshold))
 }

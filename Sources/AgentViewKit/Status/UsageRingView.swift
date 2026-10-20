@@ -175,3 +175,8 @@ public struct UsageRingView: View {
     Self.isFull(filled) ? editorTheme.statusFailed : editorTheme.statusRunning
   }
 }
+
+#Preview("Usage ring") {
+  let usage = PreviewFixtures.usage
+  UsageRingView(numerator: usage.used, denominator: usage.size, caption: "Context")
+}

@@ -206,3 +206,7 @@ extension EnvironmentValues {
   /// the scroll position.
   @Entry var citationScrollReport: ObservationReport<Int>? = nil
 }
+
+#Preview("Sources") {
+  SourcesView(payload: PreviewFixtures.citations)
+}

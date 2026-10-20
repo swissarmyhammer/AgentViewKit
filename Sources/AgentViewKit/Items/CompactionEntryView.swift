@@ -131,3 +131,13 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     EntryContentView(content: entry.summary, id: key + Self.summaryIDSuffix)
   }
 }
+
+#Preview("Compaction") {
+  let update = CompactionUpdate(
+    compactionId: CompactionId(rawValue: "preview-compaction"),
+    status: .completed,
+    summary: .value([.text(TextContent(text: "The user asked why the build fails. The agent added an import."))]))
+  if let entry = PreviewFixtures.entry(.update(.compactionUpdate(update)), as: CompactionEntry.self) {
+    CompactionEntryView(entry: entry)
+  }
+}

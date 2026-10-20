@@ -139,3 +139,15 @@ public struct ToolToggles: View {
     )
   }
 }
+
+#Preview("Tool toggles") {
+  @Previewable @State var tools = [
+    ToolToggle(id: ToolToggleID("web-search"), name: "Web search", isEnabled: true),
+    ToolToggle(id: ToolToggleID("terminal"), name: "Terminal", isEnabled: false),
+  ]
+  ToolToggles(tools: tools, style: .list) { id, isEnabled in
+    if let index = tools.firstIndex(where: { $0.id == id }) {
+      tools[index].isEnabled = isEnabled
+    }
+  }
+}

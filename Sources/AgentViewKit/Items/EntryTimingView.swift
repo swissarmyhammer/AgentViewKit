@@ -280,3 +280,9 @@ struct TranscriptTimingSlot: ViewModifier {
     content.modifier(EntryTimingDecorator(entry: entry, isShown: isShown))
   }
 }
+
+#Preview("Entry time") {
+  if let entry = SessionModel.previewSample.transcript.first {
+    EntryTimingView(entry: entry)
+  }
+}

@@ -508,3 +508,20 @@ extension View {
     environment(\.elicitationFooterOverride) { context in AnyView(content(context)) }
   }
 }
+
+#Preview("Form") {
+  let session = PreviewFixtures.elicitationSession
+  if let request = session.pendingElicitations.first {
+    ElicitationView(request: request, owner: session)
+  }
+}
+
+#Preview("Form header") {
+  if let request = PreviewFixtures.elicitationSession.pendingElicitations.first {
+    ElicitationHeader(request: request)
+  }
+}
+
+#Preview("Form footer") {
+  ElicitationFooter(context: ElicitationFooterContext(canSubmit: true, submit: {}, decline: {}, cancel: {}))
+}

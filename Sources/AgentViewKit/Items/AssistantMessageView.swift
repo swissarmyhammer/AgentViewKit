@@ -33,3 +33,9 @@ public struct AssistantMessageView: View, PrefixedAccessibilityIdentifier {
     TranscriptMessageView(entry: .agent(entry))
   }
 }
+
+#Preview("Agent message") {
+  if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: AgentMessageEntry.self) {
+    AssistantMessageView(entry: entry)
+  }
+}

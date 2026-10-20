@@ -458,3 +458,7 @@ extension EnvironmentValues {
   /// resume row, and a delete button.
   @Entry var sessionListPressReport: ObservationReport<String>? = nil
 }
+
+#Preview("Sessions") {
+  SessionListView(connection: .previewSample) { _ in }
+}

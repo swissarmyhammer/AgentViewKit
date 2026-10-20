@@ -568,3 +568,7 @@ extension View {
         minimumItemCount: minimumItemCount, minimumWidth: minimumWidth))
   }
 }
+
+#Preview("Minimap") {
+  ThreadMinimapView(session: .previewSample, anchors: ScrollAnchorManager(), minimumItemCount: 1)
+}

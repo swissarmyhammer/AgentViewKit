@@ -142,3 +142,8 @@ private struct ParagraphSlot: View {
     paragraph.equatable()
   }
 }
+
+#Preview("Response with citations") {
+  ResponseView(id: "preview-response", markdown: PreviewFixtures.citedResponse, citations: PreviewFixtures.citations)
+    .citationScope()
+}

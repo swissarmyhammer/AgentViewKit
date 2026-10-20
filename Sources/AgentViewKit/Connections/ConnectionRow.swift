@@ -78,3 +78,9 @@ public struct ConnectionRow: View {
     }
   }
 }
+
+#Preview("MCP server rows") {
+  List(PreviewFixtures.mcpSession.mcpServers) { server in
+    ConnectionRow(server: server)
+  }
+}

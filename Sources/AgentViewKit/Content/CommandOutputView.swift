@@ -270,3 +270,8 @@ nonisolated extension EditorTheme.Theme {
     }
   }
 }
+
+#Preview("Command output") {
+  CommandOutputView(
+    command: "swift build", output: "Parser.swift: error: cannot find type 'URL' in scope", exitCode: 1)
+}

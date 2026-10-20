@@ -122,3 +122,16 @@ public struct ActivityIndicator: View {
     }
   }
 }
+
+#Preview("Activity states") {
+  let states: [ActivityState] = [.idle, .thinking, .runningTool("Run swift test")]
+  VStack(alignment: .leading) {
+    ForEach(states, id: \.self) { state in
+      ActivityIndicator(state: state)
+    }
+  }
+}
+
+#Preview("Activity of a session") {
+  ActivityIndicator(session: .previewSample)
+}

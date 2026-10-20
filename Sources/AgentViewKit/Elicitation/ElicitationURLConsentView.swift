@@ -375,3 +375,10 @@ extension EnvironmentValues {
   /// browser task.
   @Entry var elicitationBrowserReport: ObservationReport<ElicitationBrowserStep>? = nil
 }
+
+#Preview("URL consent") {
+  let session = PreviewFixtures.elicitationSession
+  if let request = session.pendingElicitations.last {
+    ElicitationURLConsentView(request: request, owner: session)
+  }
+}

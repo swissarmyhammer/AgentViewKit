@@ -70,3 +70,11 @@ public struct MessageHeader: View {
       .accessibilityIdentifier(Self.roleIdentifier)
   }
 }
+
+#Preview("Message headers") {
+  VStack(alignment: .leading) {
+    ForEach(MessageRole.allCases, id: \.self) { role in
+      MessageHeader(role: role)
+    }
+  }
+}

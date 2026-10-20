@@ -110,3 +110,15 @@ nonisolated extension FoundationModelsACP.ContentBlock {
     return audience.contains(.user)
   }
 }
+
+#Preview("Content blocks") {
+  VStack(alignment: .leading) {
+    ContentBlockView(block: .text(TextContent(text: PreviewFixtures.citedResponse)), id: "preview-text")
+    ContentBlockView(
+      block: .resourceLink(
+        ResourceLink(
+          name: "Parser.swift",
+          uri: PreviewFixtures.projectDirectory.appending(path: "Sources/Parser.swift").absoluteString)),
+      id: "preview-link")
+  }
+}

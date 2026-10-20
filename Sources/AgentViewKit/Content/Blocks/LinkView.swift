@@ -153,3 +153,10 @@ private struct LinkCard: NSViewRepresentable {
     return metadata
   }
 }
+
+#Preview("Resource link") {
+  LinkView(
+    link: ResourceLink(
+      name: "Package.swift", uri: PreviewFixtures.projectDirectory.appending(path: "Package.swift").absoluteString,
+      description: "The manifest of the package.", title: "Package manifest"))
+}

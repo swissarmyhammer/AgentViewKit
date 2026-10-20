@@ -309,3 +309,11 @@ extension TranscriptEntry {
     return true
   }
 }
+
+#Preview("Agent runs") {
+  StateBanner(session: .preview(transcript: [.update(.stateUpdate(.running(RunningStateUpdate())))]))
+}
+
+#Preview("Token limit") {
+  StateBanner(session: .preview(transcript: [.update(.stateUpdate(.idle(IdleStateUpdate(stopReason: .maxTokens))))]))
+}

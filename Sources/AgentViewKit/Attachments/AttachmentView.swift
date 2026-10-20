@@ -125,3 +125,11 @@ struct SelectOnTap: ViewModifier {
       .help(String(localized: "Show in the inspector", bundle: .module))
   }
 }
+
+#Preview("Attachment") {
+  VStack(alignment: .leading) {
+    ForEach(PreviewFixtures.attachments) { attachment in
+      AttachmentView(attachment)
+    }
+  }
+}

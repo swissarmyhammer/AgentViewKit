@@ -153,3 +153,7 @@ private struct ConversationEmptyHeader: View {
     }
   }
 }
+
+#Preview("Empty conversation") {
+  ConversationEmptyState()
+}
