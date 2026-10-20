@@ -7,14 +7,22 @@ import Testing
 /// The kit is one target that links the ACP packages. No target in
 /// `Sources/` imports the FoundationModels framework or the FoundationModels
 /// family packages that are not ACP. A FoundationModels agent and a Router
-/// agent reach the kit through FoundationModelsACPAgent and ACP. No Swift file
-/// imports the merged `AgentViewKitACP` module.
+/// agent reach the kit through FoundationModelsACPAgent and ACP. No target in
+/// `Sources/` imports the other view kits, `KanbanViewKit` and
+/// `SnapshotViewKit`. No Swift file imports the merged `AgentViewKitACP`
+/// module.
 @Suite struct ImportBoundaryTests {
   /// The modules that no target in `Sources/` can import.
+  ///
+  /// The FoundationModels runtimes stay out of the kit. The other view kits
+  /// stay out too, so that no kit links another kit. The scope kind text is
+  /// the contract between the kits.
   static let forbiddenInSources: Set<String> = [
     "FoundationModels",
     "FoundationModelsRouter",
     "FoundationModelsExtras",
+    "KanbanViewKit",
+    "SnapshotViewKit",
   ]
 
   /// The module that the `AgentViewKit` target now holds (plan.md §11
@@ -50,7 +58,8 @@ import Testing
   /// relative to the package root, and the modules that no Swift file in it
   /// can import.
   ///
-  /// - No target in `Sources/` imports a FoundationModels runtime.
+  /// - No target in `Sources/` imports a FoundationModels runtime or another
+  ///   view kit.
   /// - The kit target does not import the agent package.
   /// - No Swift file imports the merged ACP module.
   static let boundaries: [(directory: String, forbidden: Set<String>)] =
@@ -99,6 +108,15 @@ import Testing
       let words = line.split { $0.isWhitespace || $0 == "." }
       #expect(words.contains("import") && words.contains(Substring(violation.module)), "\(violation)")
     }
+  }
+
+  @Test func sourcesForbidTheImportsOfTheOtherViewKits() throws {
+    let violations = try ImportScanner.violations(
+      in: Self.fixtures.appending(path: "OtherKits"),
+      forbidden: Self.forbiddenInSources
+    )
+
+    #expect(violations.map(\.module) == ["KanbanViewKit", "SnapshotViewKit"])
   }
 
   @Test func scannerAcceptsTheCleanFixture() throws {

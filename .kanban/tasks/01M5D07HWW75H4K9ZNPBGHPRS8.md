@@ -36,8 +36,24 @@ comments:
     - evidence: swift test — 1348 tests in 158 suites passed, 0 failed, 2 known issues (existed before). 1 warning only: the mlx bundle build warning (existed before). No new warning. No skipped test.
     - next: review
   timestamp: 2026-10-20T18:38:17.664461+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5d9ts75q9fxjrsjmnb29bby
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 0d1e86e). 0 findings, 0 confirmed, 0 refuted. 10 files reviewed. 4 .kanban files not reviewed because .reviewignore excludes them.
+    - next: The task is in done. No more work for this step.
+  timestamp: 2026-10-20T18:40:26.853614+00:00
+- actor: claude-code
+  id: 01m5d9v2m9xxqy1f981wha911s
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 10 files
+    - test: green — swift test, 1348 passed, 2 known issues that were there before
+    - commit: 0d1e86e
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T18:40:36.489008+00:00
+position_column: done
+position_ordinal: fff180
 title: AVK-7b Live subject on each agent scope
 ---
 Design: AVK-7, D105 (b). Step 5 work.
