@@ -35,6 +35,40 @@ comments:
     - fix: added RenderedPixels.isClose(to:tolerance:) in Sources/AgentViewKitTestSupport/RenderedPixels.swift, with 3 tests in RenderedPixelsTests. AgentSurfacesTests now uses isClose. No clock, sleep, poll or retry.
     - next: review
   timestamp: 2026-10-20T23:49:15.730711+00:00
+- actor: claude-code
+  id: 01m5dvkgsz4aa3jn8c32ycsmsf
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~2..HEAD (9c9406c, 92d01f5). 1 finding (1 confirmed, 1 refuted). Sources/AgentViewKitTestSupport/RenderedPixels.swift:164 `reuse/reuse`.
+    - next: Do the open item in "Review Findings (2026-10-20 18:49)". Put the per-component tolerance comparison in one private helper and call it from isClose(to:tolerance:) and pixel(atOffset:matches:tolerance:). Then review again.
+  timestamp: 2026-10-20T23:51:03.231336+00:00
+- actor: claude-code
+  id: 01m5dvm0jvr7tvf2hqz1vd3827
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 4 files
+    - test: green — swift test, 1413 passed, 2 known issues that were there before (one fix: RenderedPixels.isClose for the content surface test)
+    - commit: 9c9406c, 92d01f5
+    - review: findings — Sources/AgentViewKitTestSupport/RenderedPixels.swift:164
+  timestamp: 2026-10-20T23:51:19.387936+00:00
+- actor: claude-code
+  id: 01m5dvsk7es0br8fh60p62f4bf
+  text: 'Fix for the finding `RenderedPixels.swift` `reuse/reuse`. The file had two copies of the cause: the byte normalization (`Double(byte) / componentMaximum`) and the tolerance comparison (`abs(a - b) <= tolerance`). Both copies were in isClose(to:tolerance:) and in pixel(atOffset:matches:tolerance:). Now two private static helpers hold them: `component(_:)` and `isWithin(_:_:tolerance:)`. Both methods call the two helpers. `abs(` and `/ componentMaximum` now occur one time each in the file. The behavior did not change, so the existing RenderedPixelsTests cover it. I added no new test.'
+  timestamp: 2026-10-20T23:54:22.318567+00:00
+- actor: claude-code
+  id: 01m5dvsmqk9aykb2pdam58s6ss
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Sources/AgentViewKitTestSupport/RenderedPixels.swift. `swift test`: 1413 tests in 172 suites passed with 2 known issues, 141 tests in 20 suites passed, 1 test passed. The 2 known issues and the mlx bundle warning existed before.
+    - next: /review
+  timestamp: 2026-10-20T23:54:23.859374+00:00
+- actor: claude-code
+  id: 01m5dw25dv3kh1qz81t4fjwn41
+  text: |-
+    ### test — green
+    - evidence: swift test — 1413 tests in 172 suites passed, 0 failed, 0 skipped, 2 known issues (existed before). Build warnings: only the known mlx bundle warning.
+    - next: review
+  timestamp: 2026-10-20T23:59:03.099343+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
 position_column: doing
@@ -66,3 +100,12 @@ D110 (c). The composer is a floating control, so it can use glass. Today `Prompt
 - A hosted test (`HostedViewHarness`) shows `PromptInputView` with `DefaultPromptAccessory`. The frame of the submit button (`prompt-submit`) does not intersect the frame of `prompt-field-surface`.
 - All tests in `Tests/AgentViewKitTests/Input/` pass.
 - Tests use Swift Testing. No clock, sleep, poll, retry, timeLimit or XCUITest. Each wait waits for a certain event. After each key press, the test waits for its result before the next step. #avk-8
+
+## Review Findings (2026-10-20 18:49)
+
+> Scope: `review sha HEAD~2..HEAD` — reviewed the diffs only — lines this change added or modified. 7 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKitTestSupport/RenderedPixels.swift:164` `reuse/reuse` — The new isClose(to:tolerance:) repeats the per-component tolerance check that the private pixel(atOffset:matches:tolerance:) already does. It normalizes each byte by componentMaximum and compares the difference with tolerance. A change to the tolerance rule must then be made in two places. Move the component comparison into one private helper, for example `isWithin(_ a: Double, _ b: Double, tolerance: Double) -> Bool`. Call it from both isClose(to:tolerance:) and pixel(atOffset:matches:tolerance:).

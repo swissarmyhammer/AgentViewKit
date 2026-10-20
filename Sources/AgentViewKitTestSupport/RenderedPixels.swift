@@ -161,7 +161,7 @@ public struct RenderedPixels: Equatable {
   public func isClose(to other: RenderedPixels, tolerance: Double = defaultTolerance) -> Bool {
     guard width == other.width, height == other.height, scale == other.scale else { return false }
     return zip(bytes, other.bytes).allSatisfy {
-      abs(Double($0) - Double($1)) / Self.componentMaximum <= tolerance
+      Self.isWithin(Self.component($0), Self.component($1), tolerance: tolerance)
     }
   }
 
@@ -184,8 +184,27 @@ public struct RenderedPixels: Equatable {
   ///   - tolerance: The largest difference of one component, from 0 to 1.
   /// - Returns: `true` when each component is in `tolerance` of `target`.
   private func pixel(atOffset offset: Int, matches target: [Double], tolerance: Double) -> Bool {
-    let pixel = (0..<Self.bytesPerPixel).map { Double(bytes[offset + $0]) / Self.componentMaximum }
-    return zip(pixel, target).allSatisfy { abs($0 - $1) <= tolerance }
+    let pixel = (0..<Self.bytesPerPixel).map { Self.component(bytes[offset + $0]) }
+    return zip(pixel, target).allSatisfy { Self.isWithin($0, $1, tolerance: tolerance) }
+  }
+
+  /// The value of the color component in `byte`, from 0 to 1.
+  ///
+  /// - Parameter byte: One byte of ``bytes``.
+  /// - Returns: `byte` divided by ``componentMaximum``.
+  private static func component(_ byte: UInt8) -> Double {
+    Double(byte) / componentMaximum
+  }
+
+  /// Whether two color components have a difference of `tolerance` or less.
+  ///
+  /// - Parameters:
+  ///   - a: One component, from 0 to 1.
+  ///   - b: The other component, from 0 to 1.
+  ///   - tolerance: The largest difference of one component, from 0 to 1.
+  /// - Returns: `true` when `a` is in `tolerance` of `b`.
+  private static func isWithin(_ a: Double, _ b: Double, tolerance: Double) -> Bool {
+    abs(a - b) <= tolerance
   }
 
   /// The sRGB components of `color`, with an alpha of one.
