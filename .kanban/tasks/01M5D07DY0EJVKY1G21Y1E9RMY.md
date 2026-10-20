@@ -65,8 +65,24 @@ comments:
     - evidence: swift test — 1356 tests in 159 suites passed, 0 failed, 0 skipped, 2 known issues (existed before). The only warning is the mlx bundle build warning (existed before). No new warnings.
     - next: review
   timestamp: 2026-10-20T20:22:52.519460+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5dfsxpc7g7gtgthamqr15nc
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit ac78817). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed.
+    - next: The task is in done.
+  timestamp: 2026-10-20T20:24:50.124686+00:00
+- actor: claude-code
+  id: 01m5dft870ad5kpdzdab873nqs
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (AgentCommandsTests.swift), local pin FoundationModelsACPClient 0b9c415
+    - test: green — swift test, 1356 passed, 2 known issues that were there before
+    - commit: ac78817
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T20:25:00.896061+00:00
+position_column: done
+position_ordinal: fff580
 title: 'AVK-7a Use the code-built SessionModel: public apply(_:) and request recorder'
 ---
 Design: TestudoApp/features/packages/agentviewkit.md "AVK-7", decision D105 (h). Step 5 work.
