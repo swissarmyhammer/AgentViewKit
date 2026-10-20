@@ -83,9 +83,9 @@ extension RequestDeck {
   }
 }
 
-/// The glass row of the notice of one withdrawn request in a
-/// ``RequestDeck``: the information symbol and tint, the text of the notice,
-/// and a Dismiss button.
+/// The row of the notice of one withdrawn request in a ``RequestDeck``: the
+/// information symbol and tint, the text of the notice, and a Dismiss button.
+/// The row is a ``NoticeRow``, so it is on the content surface of the kit.
 struct WithdrawnNoticeRow: View {
   /// The severity of each notice of a withdrawn request, which gives the
   /// symbol and the tint.

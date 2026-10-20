@@ -8,7 +8,7 @@ import SwiftUI
 /// "Notices"; the owner decision of 2026-10-04 in
 /// `Docs/decisions/acp-client-kit.md`).
 ///
-/// The view shows one glass banner for each notice in `SessionModel.notices`,
+/// The view shows one banner for each notice in `SessionModel.notices`,
 /// in arrival order. Each banner shows a symbol and a tint for the severity,
 /// the title, and the description when the agent gave one. The Dismiss button
 /// of a banner calls `SessionModel.dismissNotice(_:)`, which removes the
@@ -126,8 +126,12 @@ struct NoticeBanner: View {
   }
 }
 
-/// One glass row of a notice: the symbol and the tint of a severity, a
-/// title, an optional description, and a Dismiss button.
+/// One row of a notice: the symbol and the tint of a severity, a title, an
+/// optional description, and a Dismiss button.
+///
+/// The row is content, so it is on the content surface of the kit
+/// (``SwiftUI/View/agentContentSurface()``) and has no glass (D110 (b)).
+/// Only its Dismiss button uses a glass button style.
 ///
 /// The text is one accessibility element with the label of the row, and the
 /// Dismiss button is its sibling. ``NoticeBanner`` and the notice of a request
@@ -192,7 +196,7 @@ struct NoticeRow: View {
         .accessibilityIdentifier(dismissIdentifier)
     }
     .padding(theme.spacing.m)
-    .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.l))
+    .agentContentSurface()
   }
 }
 
