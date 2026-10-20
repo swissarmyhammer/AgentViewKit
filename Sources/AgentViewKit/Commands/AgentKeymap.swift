@@ -12,10 +12,12 @@ import EditorCommands
 /// | Command-Shift-[ | ``AgentCommandVerb/previousRequest`` |
 /// | Command-Shift-] | ``AgentCommandVerb/nextRequest`` |
 ///
-/// An ``AgentCommandScope`` binds these keys in the CUA layer of its scope.
-/// The keys use the EditorKit chord spelling, with the modifier glyphs in the
-/// order `⌃⌥⇧⌘`. A key that the focused view uses first, such as Return in
-/// the composer, does not get to the scope.
+/// The definition of each command carries its key in `keys[.cua]`. When an
+/// ``AgentCommandScope`` registers the definitions, `CommandRegistry.register`
+/// binds these keys in the CUA layer of the scope. The keys use the EditorKit
+/// chord spelling, with the modifier glyphs in the order `⌃⌥⇧⌘`. A key that the
+/// focused view uses first, such as Return in the composer, does not get to
+/// the scope.
 ///
 /// The EditorKit translator spells a key event from its
 /// `charactersIgnoringModifiers`. On a US keyboard, Shift changes `[` to `{`
@@ -66,21 +68,6 @@ public nonisolated enum AgentKeymap {
   static var sortedChords: [(verb: AgentCommandVerb, chord: KeyChord)] {
     AgentCommandVerb.allCases.compactMap { verb in
       defaultChords[verb].map { (verb, $0) }
-    }
-  }
-
-  /// Binds each default chord in the CUA layer of `scope`.
-  ///
-  /// The call first clears the CUA layer of the scope, so that a second call
-  /// does not add the bindings again.
-  ///
-  /// - Parameters:
-  ///   - registry: The registry to bind into.
-  ///   - scope: The path of the scope.
-  static func bind(into registry: inout CommandRegistry, at scope: FocusPath) {
-    registry.resetKeymap(at: scope, mode: .cua)
-    for (verb, chord) in sortedChords {
-      registry.bindKey(chord.asSequence, to: .command(verb.id), mode: .cua, at: scope)
     }
   }
 }

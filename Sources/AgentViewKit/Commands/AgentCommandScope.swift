@@ -109,7 +109,8 @@ enum AgentCommandRegistration {
   /// Registers the scope node, the commands, and the keys of `target` at
   /// `path`.
   ///
-  /// A second call for the same path replaces the first registration. The
+  /// `CommandRegistry.register` binds the keys of each definition. A second
+  /// call for the same path replaces the first registration. The
   /// call keeps the layer flag and the context contribution of a node that
   /// `.commandScope` registered at the same path.
   ///
@@ -127,7 +128,6 @@ enum AgentCommandRegistration {
     for definition in AgentCommand.definitions(for: target) {
       registry.register(definition, at: path)
     }
-    AgentKeymap.bind(into: &registry, at: path)
   }
 
   /// Removes the scope node at `path`.

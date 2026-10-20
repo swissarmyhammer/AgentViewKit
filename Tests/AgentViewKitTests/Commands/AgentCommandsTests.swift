@@ -71,9 +71,7 @@ final class CallCounter {
     target.session = session
     configure(target)
     let segment = AgentCommandTarget.segment(for: session)
-    let bindings: [ScopeBinding] =
-      AgentCommand.definitions(for: target).map { .command($0) }
-      + AgentKeymap.sortedChords.map { .key($0.chord.asSequence, .command($0.verb.id), .cua) }
+    let bindings: [ScopeBinding] = AgentCommand.definitions(for: target).map { .command($0) }
     let system = CommandSystemHarness {
       Scope(segment, bindings: bindings)
     }
