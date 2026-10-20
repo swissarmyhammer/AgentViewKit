@@ -213,6 +213,20 @@ nonisolated enum SharedSymbol {
   /// request after the front request to the front.
   static let nextRequest = "chevron.forward"
 
+  /// The symbol of the command that scrolls the thread to the next prompt.
+  static let nextPrompt = "chevron.down"
+
+  /// The symbol of the command that scrolls the thread to the previous
+  /// prompt.
+  static let previousPrompt = "chevron.up"
+
+  /// The symbol of the command that expands or collapses each item of the
+  /// thread.
+  static let expandAll = "arrow.up.left.and.arrow.down.right"
+
+  /// The symbol of the command that moves the focus to the composer.
+  static let focusComposer = "character.cursor.ibeam"
+
   /// The symbol of the button that loads the next page of a list.
   static let loadMore = "arrow.down.to.line"
 

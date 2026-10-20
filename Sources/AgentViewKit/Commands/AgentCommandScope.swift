@@ -56,12 +56,14 @@ struct AgentCommandScope: ViewModifier {
           target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks))
     } else {
       let path = parentPath?.appending(segment) ?? .root(segment)
+      let system = ambientSystem ?? standaloneSystem
       let scope = AgentCommandMount.Scope(
-        system: ambientSystem ?? standaloneSystem, path: path, session: session,
+        system: system, path: path, session: session,
         pasteboard: pasteboard, requestStartReport: reportRequestStart)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
+        .environment(\.agentCommandSystem, system)
         .background(
           AgentCommandMount(
             target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks))
@@ -128,6 +130,7 @@ enum AgentCommandRegistration {
     for definition in AgentCommand.definitions(for: target) {
       registry.register(definition, at: path)
     }
+    AgentKeymap.bindSecondaryChords(into: &registry, at: path)
   }
 
   /// Removes the scope node at `path`.

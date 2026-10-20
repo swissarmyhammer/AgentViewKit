@@ -20,6 +20,9 @@ import SwiftUI
 /// ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry object,
 /// when the environment has a footer.
 ///
+/// In an agent command scope, the view is in the item scope
+/// `agentMessage:<rowKey>`, with the context menu of that scope (AVK-1).
+///
 /// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
 /// ``BodyEvaluationCounter``, because it is the view that the content of the
 /// entry evaluates again.
@@ -40,5 +43,6 @@ struct TranscriptMessageView: View {
         footer(entry)
       }
     }
+    .agentItemScope(AgentScopeKind.message(rowKey: key))
   }
 }

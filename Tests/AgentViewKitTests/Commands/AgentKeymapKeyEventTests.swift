@@ -39,7 +39,7 @@ import Testing
 
     let chord = try #require(KeyChordTranslator.chord(for: event))
 
-    #expect(chord == AgentKeymap.defaultChords[.previousRequest])
+    #expect(chord == AgentKeymap.defaultChords[.previousRequest]?.first)
     #expect(
       AgentKeymap.defaultKeymap.bindings(for: chord.asSequence).map(\.action)
         == [.command(AgentCommandVerb.previousRequest.id)])
@@ -51,7 +51,7 @@ import Testing
 
     let chord = try #require(KeyChordTranslator.chord(for: event))
 
-    #expect(chord == AgentKeymap.defaultChords[.nextRequest])
+    #expect(chord == AgentKeymap.defaultChords[.nextRequest]?.first)
     #expect(
       AgentKeymap.defaultKeymap.bindings(for: chord.asSequence).map(\.action)
         == [.command(AgentCommandVerb.nextRequest.id)])

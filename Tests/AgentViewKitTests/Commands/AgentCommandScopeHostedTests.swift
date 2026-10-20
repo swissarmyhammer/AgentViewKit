@@ -22,7 +22,7 @@ import Testing
   static let windowSize = CGSize(width: 480, height: 480)
 
   /// The number of verbs of the kit.
-  static let verbCount = 12
+  static let verbCount = 13
 
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
@@ -174,7 +174,7 @@ import Testing
   /// proves it. An outer scope from the host would register the same
   /// commands, and then the test would not find a thread view that lost its
   /// own scope.
-  @Test func aMountedSessionThreadViewRegistersTheTwelveCommands() async throws {
+  @Test func aMountedSessionThreadViewRegistersTheThirteenCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
@@ -198,8 +198,10 @@ import Testing
     defer { harness.close() }
     try await Self.sendScopeMessage(to: session, rendering: harness)
 
+    // The message rows add item scopes below the thread scope, so the test
+    // keeps only the nodes whose last segment is a thread segment.
     let scopes = system.registry.tree.nodes.filter {
-      $0.path.segments.contains { $0.kind == AgentCommandTarget.segmentKind }
+      $0.path.segments.last?.kind == AgentCommandTarget.segmentKind
     }
     #expect(scopes.map(\.path) == [Self.path(of: session.model)])
     #expect(system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: Self.path(of: session.model)))

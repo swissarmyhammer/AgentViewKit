@@ -511,6 +511,16 @@
         }
       }
     },
+    "Copy Message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Message"
+          }
+        }
+      }
+    },
     "Copy Thread" : {
       "localizations" : {
         "en" : {
@@ -2277,6 +2287,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The history can be partial"
+          }
+        }
+      }
+    },
+    "The message has no text." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The message has no text."
           }
         }
       }

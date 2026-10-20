@@ -147,7 +147,7 @@ import Testing
     try harness.press(identifier: RequestDeck.nextIdentifier)
     #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 2 of 6, 2 more")
 
-    let key = try #require(AgentKeymap.defaultChords[.nextRequest])
+    let key = try #require(AgentKeymap.defaultChords[.nextRequest]?.first)
     #expect(system.registry.performKey(key.asSequence, mode: .cua, at: Self.path(of: model)))
     harness.render()
 

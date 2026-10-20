@@ -1,0 +1,164 @@
+@testable import AgentViewKit
+import AgentViewKitTestSupport
+import EditorCommands
+import EditorCommandsTestSupport
+import EditorCommandsUI
+import Foundation
+import FoundationModelsACP
+import FoundationModelsACPClient
+import Testing
+
+/// Tests for the places of the agent commands in the menus, the context
+/// menus and the keys (AVK-1).
+///
+/// A test that waits for the agent waits with `ObservationWait.until` on a
+/// value of the session model that the frame is certain to change, with no
+/// clock.
+@MainActor struct AgentCommandPlacementTests {
+  /// The verbs of the Session menu.
+  static let sessionMenuVerbs: Set<AgentCommandVerb> = [.send, .cancel, .focusComposer, .copyThread]
+
+  /// The verbs of the View menu.
+  static let viewMenuVerbs: Set<AgentCommandVerb> = [
+    .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .toggleExpandAll, .scrollToBottom,
+  ]
+
+  // MARK: - Menus
+
+  @Test func eachVerbIsInTheMenuOfTheDesign() {
+    for verb in AgentCommandVerb.allCases {
+      let expected: MenuPath? =
+        if Self.sessionMenuVerbs.contains(verb) { .session } else if Self.viewMenuVerbs.contains(verb) {
+          .view
+        } else { nil }
+      #expect(verb.menu?.path == expected, "\(verb)")
+    }
+  }
+
+  @Test func theDefinitionsCarryThePlacesAndTheIcons() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+
+    for verb in AgentCommandVerb.allCases {
+      let definition = try #require(fixture.system.registry.definition(for: verb.id, at: fixture.path))
+      #expect(definition.menu == verb.menu, "\(verb)")
+      #expect(definition.contextMenu == verb.contextMenu, "\(verb)")
+      #expect(definition.icon == verb.icon, "\(verb)")
+    }
+  }
+
+  // MARK: - Stop keys
+
+  @Test func stopShowsCommandPeriodAndBothKeysStopWhileRunning() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let cancel = try #require(fixture.system.registry.definition(for: AgentCommandVerb.cancel.id, at: fixture.path))
+    #expect(cancel.keys[.cua] == AgentKeymap.commandPeriod)
+
+    try await AgentCommandsTests.sendState(ScriptedSession.runningState, to: session)
+
+    for chord in [AgentKeymap.commandPeriod, KeyChord.escape] {
+      #expect(
+        fixture.system.registry.resolveKey(chord.asSequence, mode: .cua, at: fixture.path)
+          == .command(AgentCommandVerb.cancel.id, scope: fixture.path), "\(chord)")
+    }
+  }
+
+  @Test func theRegistrationBindsTheSecondStopKeyOneTime() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let target = AgentCommandTarget()
+    target.session = session.model
+    let path = FocusPath.root(AgentCommandTarget.segment(for: session.model))
+    var registry = CommandRegistry()
+
+    AgentCommandRegistration.register(target, at: path, into: &registry)
+    AgentCommandRegistration.register(target, at: path, into: &registry)
+
+    for chord in [AgentKeymap.commandPeriod, KeyChord.escape] {
+      let actions = registry.keymapStack(for: .cua, at: path).bindings(for: chord.asSequence).map(\.action)
+      #expect(actions == [.command(AgentCommandVerb.cancel.id)], "\(chord)")
+    }
+  }
+
+  // MARK: - Context menus
+
+  @Test func theContextMenuOfAMessageShowsCopyMessageAndTheJumps() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await AgentCommandsTests.sendTurns(to: session)
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let path = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[0]))
+
+    let ids = fixture.system.registry.contextMenuMirror(at: path).map(\.id)
+
+    #expect(ids == [AgentCommandVerb.copyMessage, .jumpToNext, .jumpToPrevious].map(\.id))
+  }
+
+  @Test func theContextMenuOfARequestCardShowsApproveAndReject() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let request = try await session.receivePermissionRequest(id: AgentCommandsTests.agentRequestID)
+    let path = fixture.path.appending(AgentScopeKind.request(request.id))
+
+    let items = fixture.system.registry.contextMenuMirror(at: path)
+
+    #expect(items.map(\.id) == [AgentCommandVerb.approvePending, .rejectPending].map(\.id))
+    #expect(items.allSatisfy { $0.isEnabled })
+  }
+
+  @Test func copyMessageShowsOnlyInTheScopeOfAMessage() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await AgentCommandsTests.sendTurns(to: session)
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let messagePath = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[0]))
+
+    let threadIDs = fixture.system.registry.eligible(path: fixture.path).filter(\.isVisible).map(\.id)
+    let messageIDs = fixture.system.registry.eligible(path: messagePath).filter(\.isVisible).map(\.id)
+
+    #expect(!threadIDs.contains(AgentCommandVerb.copyMessage.id))
+    #expect(threadIDs.contains(AgentCommandVerb.approvePending.id))
+    #expect(messageIDs.contains(AgentCommandVerb.copyMessage.id))
+    #expect(!messageIDs.contains(AgentCommandVerb.approvePending.id))
+  }
+
+  // MARK: - Commands of an item
+
+  @Test func copyMessageCopiesTheMessageOfItsScope() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await AgentCommandsTests.sendTurns(to: session)
+    let pasteboard = FakePasteboard()
+    let fixture = AgentCommandsTests.makeFixture(session: session.model) { $0.pasteboard = pasteboard }
+    let path = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[1]))
+
+    #expect(!fixture.system.perform(AgentCommandVerb.copyMessage.id))
+    #expect(fixture.system.registry.perform(AgentCommandVerb.copyMessage.id, at: path, clicked: path))
+
+    #expect(pasteboard.contents == "Question 1.")
+  }
+
+  @Test func approveInTheScopeOfACardAnswersThatRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let starts = ReportRecorder<String>()
+    let fixture = AgentCommandsTests.makeFixture(session: model) { $0.requestStartReport = starts.report }
+    let requests = try await AgentCommandsTests.receiveTwoPermissionRequests(in: session)
+    try #require(model.frontRequest?.id == requests.first.id)
+    let path = fixture.path.appending(AgentScopeKind.request(requests.second.id))
+
+    try #require(fixture.system.registry.perform(AgentCommandVerb.approvePending.id, at: path, clicked: path))
+    // The command starts the answer in the same step as the dispatch, so a
+    // dispatch that started nothing stops the test here.
+    try #require(starts.values == [ScriptedSession.permissionMethod])
+    let result = await session.result(ofRequest: AgentCommandsTests.secondRequestID)
+
+    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandsTests.allowOptionID)
+    #expect(model.pendingPermissions.map(\.id) == [requests.first.id])
+  }
+}

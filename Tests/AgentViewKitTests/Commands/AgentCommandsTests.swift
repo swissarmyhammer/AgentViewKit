@@ -24,7 +24,7 @@ final class CallCounter {
   static let message = "Hello"
 
   /// The number of verbs of the kit.
-  static let verbCount = 12
+  static let verbCount = 13
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
@@ -71,7 +71,9 @@ final class CallCounter {
     target.session = session
     configure(target)
     let segment = AgentCommandTarget.segment(for: session)
-    let bindings: [ScopeBinding] = AgentCommand.definitions(for: target).map { .command($0) }
+    let bindings: [ScopeBinding] =
+      AgentCommand.definitions(for: target).map { .command($0) }
+      + AgentKeymap.secondaryChords.map { .key($0.chord.asSequence, .command($0.verb.id), .cua) }
     let system = CommandSystemHarness {
       Scope(segment, bindings: bindings)
     }
@@ -115,7 +117,7 @@ final class CallCounter {
 
   // MARK: - Registration
 
-  @Test func theScopeListsTheTwelveCommands() async throws {
+  @Test func theScopeListsTheThirteenCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let fixture = Self.makeFixture(session: session.model)
@@ -261,13 +263,13 @@ final class CallCounter {
         == .command(AgentCommandVerb.cancel.id, scope: fixture.path))
   }
 
-  @Test func theDefaultKeymapBindsTheSevenChords() {
+  @Test func theDefaultKeymapBindsTheEightChords() {
     let expected: [(String, AgentCommandVerb)] = [
-      ("⌘↩", .send), ("⎋", .cancel), ("⇧⌘C", .copyThread), ("⌥↑", .jumpToPrevious),
+      ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⇧⌘C", .copyThread), ("⌥↑", .jumpToPrevious),
       ("⌥↓", .jumpToNext), ("⇧⌘{", .previousRequest), ("⇧⌘}", .nextRequest),
     ]
 
-    #expect(AgentKeymap.defaultChords.count == expected.count)
+    #expect(AgentKeymap.sortedChords.count == expected.count)
     for (chord, verb) in expected {
       let actions = AgentKeymap.defaultKeymap.bindings(for: KeySequence(canonical: chord))
         .map(\.action)

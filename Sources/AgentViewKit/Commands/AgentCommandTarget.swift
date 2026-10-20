@@ -63,7 +63,7 @@ struct AgentComposerHook {
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
-  static let segmentKind = "agentThread"
+  static let segmentKind = AgentScopeKind.thread
 
   /// The line that separates two messages in the copy text: one blank line.
   static let sectionSeparator = "\n\n"
@@ -171,6 +171,7 @@ final class AgentCommandTarget {
     case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
     case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
     case .copyThread: !Self.plainText(of: session).isEmpty
+    case .copyMessage: messageMarkdown(payload: payload, in: session)?.isEmpty == false
     case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
     case .scrollToBottom: anchors != nil && !session.transcript.isEmpty
     case .focusComposer: composer != nil
@@ -193,6 +194,7 @@ final class AgentCommandTarget {
     case .jumpToNext: String(localized: "No prompt is below.", bundle: .module)
     case .jumpToPrevious: String(localized: "No prompt is above.", bundle: .module)
     case .copyThread: String(localized: "The thread has no messages.", bundle: .module)
+    case .copyMessage: String(localized: "The message has no text.", bundle: .module)
     case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
     case .scrollToBottom: String(localized: "The thread list is not shown.", bundle: .module)
     case .focusComposer: String(localized: "The composer is not shown.", bundle: .module)
@@ -269,6 +271,7 @@ final class AgentCommandTarget {
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
+    case .copyMessage: pasteboard.copyText(messageMarkdown(payload: payload, in: session) ?? "")
     case .toggleExpandAll: toggleExpandAll(session)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false

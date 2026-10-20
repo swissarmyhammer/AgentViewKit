@@ -48,6 +48,10 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Copies the messages of the thread as plain text.
   case copyThread
 
+  /// Copies the Markdown of one message: the message of the payload, or the
+  /// message of the context menu.
+  case copyMessage
+
   /// Expands each item of the thread, or collapses each item when all items
   /// are expanded.
   case toggleExpandAll
@@ -78,6 +82,7 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .jumpToNext: String(localized: "Next Prompt", bundle: .module)
     case .jumpToPrevious: String(localized: "Previous Prompt", bundle: .module)
     case .copyThread: String(localized: "Copy Thread", bundle: .module)
+    case .copyMessage: String(localized: "Copy Message", bundle: .module)
     case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)
     case .scrollToBottom: String(localized: "Scroll to Bottom", bundle: .module)
     case .focusComposer: String(localized: "Focus Composer", bundle: .module)
@@ -114,6 +119,10 @@ public nonisolated enum AgentCommandPayload {
 
   /// The key of the comment of a permission answer.
   public static let commentKey = "comment"
+
+  /// The key of the message that ``AgentCommandVerb/copyMessage`` copies. For
+  /// a session model, the value is the row key of the transcript entry.
+  public static let messageKey = "message"
 
   /// The payload that sends `text`.
   ///
@@ -177,20 +186,40 @@ nonisolated struct AgentCommand: Command {
       guard let target else {
         return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
       }
-      return target.availability(of: verb, payload: payload)
+      return target.availability(of: verb, payload: payload(at: context.path))
     }
   }
 
   func run(in context: CommandContext) -> Bool {
     MainActor.assumeIsolated {
-      target?.run(verb, payload: payload) ?? false
+      target?.run(verb, payload: payload(at: context.path)) ?? false
     }
+  }
+
+  /// The payload of the dispatch, with the item of the invocation path when
+  /// the payload does not name an item.
+  ///
+  /// A context menu runs the command at the path of its item. Thus Copy
+  /// Message in the context menu of a message copies that message, and
+  /// Approve Request in the context menu of a card answers that request.
+  ///
+  /// - Parameter path: The invocation path.
+  /// - Returns: The payload.
+  func payload(at path: FocusPath) -> CommandPayload? {
+    guard let key = verb.itemPayloadKey, AgentCommandPayload.string(key, in: payload) == nil,
+      let item = AgentScopeKind.item(in: path), item.kind == verb.itemKind, let id = item.id
+    else { return payload }
+    var values = payload?.values ?? [:]
+    values[key] = id
+    return CommandPayload(values: values, objects: payload?.objects ?? [:])
   }
 
   /// The EditorKit definition of `verb` for `target`.
   ///
-  /// The definition carries the default key of ``AgentKeymap``, so a menu
-  /// shows the key.
+  /// The definition carries the first default key of ``AgentKeymap``, so a
+  /// menu shows the key, and the menu, context menu and icon of the verb.
+  /// The menus and the palette show the verb at a path when
+  /// ``AgentCommandVerb/isVisible(at:)`` tells so.
   ///
   /// - Parameters:
   ///   - verb: The verb.
@@ -200,11 +229,15 @@ nonisolated struct AgentCommand: Command {
     of verb: AgentCommandVerb, for target: AgentCommandTarget
   ) -> CommandDefinition {
     var keys: [KeymapMode: KeyChord] = [:]
-    keys[.cua] = AgentKeymap.defaultChords[verb]
+    keys[.cua] = AgentKeymap.defaultChords[verb]?.first
     return CommandDefinition(
       id: verb.id,
       title: .static(verb.title),
+      icon: verb.icon,
+      menu: verb.menu,
+      contextMenu: verb.contextMenu,
       keys: keys,
+      isVisible: { verb.isVisible(at: $0.path) },
       make: { [weak target] payload in
         AgentCommand(verb: verb, target: target, payload: payload)
       })
