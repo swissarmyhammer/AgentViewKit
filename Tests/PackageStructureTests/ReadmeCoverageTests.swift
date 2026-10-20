@@ -166,7 +166,7 @@ import Testing
     let blocks = ReadmeSnippets.swiftBlocks(in: try ReadmeSnippets.readme())
 
     for (position, block) in blocks.enumerated() {
-      let symbols = Self.threadPathSymbols.filter { block.contains(RemovedVocabularyTests.wholeWord($0)) }
+      let symbols = Self.threadPathSymbols.filter { block.contains(WordPattern.wholeWord($0)) }
       #expect(symbols.isEmpty, "The Swift block \(position) of README.md uses \(symbols)")
       #expect(
         !block.contains(RemovedVocabularyTests.threadInitializerCall()), "The Swift block \(position) of README.md uses the thread path")

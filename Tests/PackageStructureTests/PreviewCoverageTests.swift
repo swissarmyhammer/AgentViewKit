@@ -1,6 +1,5 @@
 import Foundation
 import PackageFileSupport
-import RegexBuilder
 import Testing
 
 /// One public view type of a Swift file.
@@ -95,21 +94,8 @@ struct PublicViewDeclaration: Equatable, CustomStringConvertible {
   static func viewsWithNoPreview(in source: String, file: String) -> [PublicViewDeclaration] {
     let bodies = previewBodies(in: source)
     return publicViewNames(in: source)
-      .filter { name in !bodies.contains { $0.contains(wordPattern(name)) } }
+      .filter { name in !bodies.contains { $0.contains(WordPattern.wholeWord(name)) } }
       .map { PublicViewDeclaration(file: file, name: $0) }
-  }
-
-  /// The pattern of a whole word.
-  ///
-  /// - Parameter word: The word.
-  /// - Returns: The pattern that finds `word` with a word boundary on each
-  ///   side.
-  static func wordPattern(_ word: String) -> Regex<Substring> {
-    Regex {
-      Anchor.wordBoundary
-      word
-      Anchor.wordBoundary
-    }
   }
 
   // MARK: - The scan

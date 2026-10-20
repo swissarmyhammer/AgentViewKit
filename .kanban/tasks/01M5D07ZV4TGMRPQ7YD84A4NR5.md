@@ -54,6 +54,46 @@ comments:
     - evidence: swift test - 1376 tests in 161 suites passed, 0 failed, 0 skipped, 2 known issues (known before). The only warning is the mlx bundle build warning (known before).
     - next: review
   timestamp: 2026-10-20T21:09:02.682529+00:00
+- actor: claude-code
+  id: 01m5djg0wd91sqyh382t5h32yg
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (f98da70); 1 finding — Tests/PackageStructureTests/PreviewCoverageTests.swift:107 (reuse/reuse)
+    - next: implement the open item in "Review Findings (2026-10-20 16:09)", then review again.
+  timestamp: 2026-10-20T21:11:51.437946+00:00
+- actor: claude-code
+  id: 01m5djgadrn95ewffr8nhb2gx3
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 71 files
+    - test: green — swift test, 1376 passed, 2 known issues that were there before
+    - commit: f98da70
+    - review: findings — Tests/PackageStructureTests/PreviewCoverageTests.swift:107
+  timestamp: 2026-10-20T21:12:01.208952+00:00
+- actor: claude-code
+  id: 01m5djthbpes7pjb69vczexaxk
+  text: |-
+    Fix of the finding at `Tests/PackageStructureTests/PreviewCoverageTests.swift:107` (reuse/reuse).
+    - New shared file `Tests/PackageStructureTests/WordPattern.swift`: `enum WordPattern` with `static func wholeWord(_:)`. It is the old `RemovedVocabularyTests.wholeWord`, with simple word boundaries.
+    - Removed both copies: `PreviewCoverageTests.wordPattern(_:)` and `RemovedVocabularyTests.wholeWord(_:)`. All 3 callers now call `WordPattern.wholeWord`: `PreviewCoverageTests.viewsWithNoPreview`, the default argument of `RemovedVocabularyTests.uses(of:on:matching:)`, and `ReadmeCoverageTests.noSwiftBlockOfTheReadmeUsesTheThreadPath` (a third caller that the finding did not name).
+    - The two signatures were the same. The only difference: `wordPattern` used the default Unicode boundaries, and `wholeWord` used simple boundaries. The shared helper keeps simple boundaries. For the preview scan this finds a view name after a `.` too, and `PlainView` still does not match `PlainViewRow`.
+    - Removed the unused `import RegexBuilder` from PreviewCoverageTests.
+    - New `Tests/PackageStructureTests/WordPatternTests.swift` (3 tests). RED: the build failed with "cannot find 'WordPattern' in scope". GREEN after the move.
+  timestamp: 2026-10-20T21:17:35.990239+00:00
+- actor: claude-code
+  id: 01m5djtnev8mxrgfhga2hxv2ze
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Tests/PackageStructureTests/WordPattern.swift (new), Tests/PackageStructureTests/WordPatternTests.swift (new), Tests/PackageStructureTests/PreviewCoverageTests.swift, Tests/PackageStructureTests/RemovedVocabularyTests.swift, Tests/PackageStructureTests/ReadmeCoverageTests.swift. `swift test --filter PackageStructureTests`: 137 tests in 19 suites passed. `swift test`: 1376 tests in 161 suites passed with the 2 known issues; ReadmeSnippetsTests 1 test passed; only the mlx bundle warning, as before.
+    - next: /review.
+  timestamp: 2026-10-20T21:17:40.187108+00:00
+- actor: claude-code
+  id: 01m5dk269bzksgqr5w0sa1qb99
+  text: |-
+    ### test - green
+    - evidence: swift test - 1376 tests in 161 suites passed, 0 failed, 2 known issues (before this change). The only warning is the mlx bundle build warning (before this change).
+    - next: review
+  timestamp: 2026-10-20T21:21:46.795003+00:00
 depends_on:
 - 01M5D07DY0EJVKY1G21Y1E9RMY
 position_column: doing
@@ -67,3 +107,12 @@ AgentViewKit has no `#Preview` (about 72 public views). Add one `#Preview` for e
 Split the work into parts that can each be one commit: thread and items; human in the loop and elicitation; input and composer; sessions, activity, usage and the rest.
 
 Acceptance: `swift build` builds all previews; a package structure test checks that each public `View` type in Sources has a `#Preview` in its file. #avk-7
+
+## Review Findings (2026-10-20 16:09)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 70 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/PackageStructureTests/PreviewCoverageTests.swift:107` `reuse/reuse` — `wordPattern(_:)` rebuilds a whole-word regex that already exists in the same test target as `RemovedVocabularyTests.wholeWord`. Two copies of the same word-boundary matching can drift apart. Move the whole-word helper to a shared location in PackageStructureTests, such as beside `SymbolNameScanner` or `PackageFiles`, and call it from both `PreviewCoverageTests` and `RemovedVocabularyTests`. If the two signatures differ, parameterize the existing helper instead of adding a second copy.

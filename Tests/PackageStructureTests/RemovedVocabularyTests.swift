@@ -392,30 +392,11 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   static func uses(
     of symbols: [String],
     on line: SourceLine,
-    matching makePattern: (String) -> Regex<Substring> = wholeWord
+    matching makePattern: (String) -> Regex<Substring> = WordPattern.wholeWord
   ) -> [RemovedSymbolUse] {
     symbols
       .filter { line.text.contains(makePattern($0)) }
       .map { RemovedSymbolUse(file: line.file, line: line.number, symbol: $0) }
-  }
-
-  /// The pattern that matches a symbol only as a whole word.
-  ///
-  /// A `Regex` is not `Sendable`, so each call makes the value again.
-  ///
-  /// The pattern uses simple word boundaries. The default boundaries follow
-  /// Unicode word segmentation, which does not break at a `.` between two
-  /// letters. Thus `thread.pendingAuthorizations` would not match.
-  ///
-  /// - Parameter symbol: The symbol.
-  /// - Returns: The pattern.
-  static func wholeWord(_ symbol: String) -> Regex<Substring> {
-    Regex {
-      Anchor.wordBoundary
-      symbol
-      Anchor.wordBoundary
-    }
-    .wordBoundaryKind(.simple)
   }
 
   @Test func usesFindsAWholeWordOnItsLine() {
