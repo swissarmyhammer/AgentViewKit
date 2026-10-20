@@ -28,8 +28,24 @@ comments:
     - evidence: swift test — 1396 tests in 165 suites passed, 0 failed, 0 skipped, 2 known issues (as before). The only warning is the mlx bundle build warning (as before).
     - next: review
   timestamp: 2026-10-20T22:07:11.192510+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5dnr9xy02qb6rj4dkb8zq5q
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 5378713). 0 findings, 0 confirmed, 0 refuted. 7 files attempted, 0 failed. 5 files reviewed. 2 .kanban files are excluded by .reviewignore.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-20T22:08:48.574358+00:00
+- actor: claude-code
+  id: 01m5dnry8k6dsavqq1fynj6hjt
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files
+    - test: green — swift test, 1396 passed, 2 known issues that were there before
+    - commit: 5378713
+    - review: clean — 0 findings
+  timestamp: 2026-10-20T22:09:09.395660+00:00
+position_column: done
+position_ordinal: fff980
 title: 'AVK-8b Add the two shared surfaces: agentContentSurface() and agentFloatingGlass()'
 ---
 ## Why
