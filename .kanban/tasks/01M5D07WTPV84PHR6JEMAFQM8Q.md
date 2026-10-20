@@ -1,6 +1,23 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5d0a0j6203msfd406r387md
+  text: |-
+    Shape from D105 (f) (TestudoApp 4d75aa8):
+    - A public type `AgentCommandGroup`. Each verb is in exactly one group.
+    - A group id has the kit prefix, for example `agent.navigate`.
+    - The host gives the groups to turn off when the kit registers its commands.
+    - A group with the same job in two kits has the same last word, for example `navigate` for the content verbs and `clipboard` for Copy.
+
+    Planned split of the 13 verbs:
+    - `agent.compose`: Send Message, Focus Composer.
+    - `agent.control`: Stop, Approve Request, Reject Request.
+    - `agent.navigate`: Next and Previous Prompt, Next and Previous Request, Scroll to Bottom, Expand or Collapse All.
+    - `agent.clipboard`: Copy Message, Copy Thread.
+    Check this split again when the card starts.
+  timestamp: 2026-10-20T15:54:00.134359+00:00
 position_column: todo
 position_ordinal: '8480'
 title: AVK-7e Command groups that the host can turn off
