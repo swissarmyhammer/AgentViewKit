@@ -6,14 +6,45 @@ comments:
   id: 01m5e93sk2qg0nwse03wan4yqm
   text: 'Changed for D113 (testudoapp-4c), answers 5, 6 and 8. New forbidden forms: `Glass.tint` (the old clean fixture held `glass.tint(accent)`; it is now a bad form), `.foregroundStyle(.tint)` and `.tint` as a shape style, and the theme accent outside the permitted uses (link, selection, current item; table on AVK-8ak ^102c8kk). D113 answer 8 is recorded: the `Terminal/ANSIText.swift` allow list stays, because colors 0 to 15 come from `TerminalPalette` and the xterm formula for 16 to 255 is not a color constant of the kit. depends_on: added AVK-8ad ^sdkm4qt, AVK-8ai ^xa3r4z2, AVK-8aj ^2g7w4mz and AVK-8ak ^102c8kk.'
   timestamp: 2026-10-21T03:47:08.002228+00:00
+- actor: claude-code
+  id: 01m5fymbd2ynn32jzmfn1ps7ez
+  text: |-
+    Research (2026-10-21):
+    - The product code obeys the card now. AVK-8ai, AVK-8aj and AVK-8ak are done. `rg` finds no `.tint(` modifier, no `Glass.tint`, no `.tint` shape style and no `accentColor` in `Sources/AgentViewKit`, `Sources/DemoSupport` or `Examples/AgentViewKitDemo`.
+    - The theme accent lines: `Citations/InlineCitation.swift` (2 lines: text and capsule fill, link), `Citations/SourcesView.swift` (1, current item), `Elicitation/ElicitationLayout.swift` (1, selection), `Thread/ThreadMinimapView.swift` (1, the band, current item). The minimap ticks do not use the accent.
+    - SDK names (MacOSX.sdk SwiftUI and SwiftUICore swiftinterface): view modifiers `tint(_:)` (2 overloads), `accentColor(_:)`, `listItemTint(_:)`, `listRowSeparatorTint(_:edges:)`, `listSectionSeparatorTint(_:edges:)`; `Glass.tint(_:)`; the shape style `ShapeStyle.tint` (`TintShapeStyle`). Each SDK `tint` call has no argument label. The kit `tint` functions have a label: `Theme.tint(for:)` and `ThreadMinimapView.tint(of:in:)`.
+    - EditorKit theme API (`.build/checkouts/EditorKit`): `View.editorTheme(_:)` calls `environment(\.editorTheme, _)`. The theme types and constants are `DefaultTheme`, `SystemTheme`, `ZedTheme`, `ZedThemeFamily`, `TmTheme`, `VSCodeTheme`, `defaultEditorTheme`, `ThemeRoleDefaults`, `DiffTintDefaults`, and the factories `.zed(`, `.tmTheme(`, `.vscode(`. The kit uses none of them. The demo (`AgentViewKitDemoApp.swift`, `GalleryLook.swift`) and `Examples/ReadmeSnippets/Snippets/HostTheme.swift` inject the theme, as D112 (d) permits for the app.
+    - `GlassPlacementTests.noControlOfTheInputUsesTheTintAsAForegroundStyle` checks `.foregroundStyle(.tint)` in `Input/` only. The new kit-wide shape style rule covers it.
+  timestamp: 2026-10-21T19:22:25.058612+00:00
+- actor: claude-code
+  id: 01m5fz94p938vmtp77s5ewj5yz
+  text: |-
+    Implementation:
+    - New `Tests/PackageStructureTests/ThemeInjectionTests.swift`. `ThemeInjectionForm` has 7 forms: `tintModifier`, `glassTint`, `tintShapeStyle`, `themeAccent`, `themeInjection`, `themeValue` and `themeType`. The scan uses `SourceLineScanner.codeMatchStarts`, so a call can continue on the next lines. The tint and accent forms scan `SystemStructureTests.scanPaths` (kit, DemoSupport, demo). The theme forms scan the kit only, because the demo is the app and must inject the theme.
+    - A `.tint(` call is forbidden only when its first argument has no label. Each SDK `tint` has no label, and the kit functions `tint(for:)` and `tint(of:in:)` have one. The Glass form finds an unlabeled `.tint(` after any name. Thus it finds `.regular`, `.clear`, `.identity`, `glass` and `Glass`, and also each other name of a glass value. `.regular.interactive().tint(` is found by the modifier form.
+    - Added to make the lists complete: `.accentColor(` and the modifiers that end in `Tint`; the shape styles `.accentColor`, `Color.accentColor` and `TintShapeStyle`; the theme members `tokenTint` and `selectedTokenTint` (default value: the accent); `.environment(\.editorTheme`, `.transformEnvironment(\.editorTheme` and `editorTheme =`; each public theme type and constant of EditorTheme; a type that conforms to `Theme`.
+    - Accent allow list: by file, with a reason and the number of uses. The numbers are InlineCitation 2, SourcesView 1, ElicitationLayout 1 and ThreadMinimapView 1 (the band only). The test `eachAllowedFileHasItsNumberOfUses` checks the numbers.
+    - Fixtures: `Fixtures/ThemeInjection/Violating/TintAndTheme.swift` and `Fixtures/ThemeInjection/Clean/ThemeInText.swift`.
+    - The `FixedColorTests.allowedFiles` comment now names D113 answer 8.
+    - I removed `GlassPlacementTests.noControlOfTheInputUsesTheTintAsAForegroundStyle` and its pattern, because the new kit-wide `tintShapeStyle` rule covers them. The suite comment now points to ThemeInjectionTests.
+    - Mutation check: I added a temporary `Sources/AgentViewKit/MutationProbe.swift` with one line for each form, and added a third accent line to `InlineCitation.swift`. All 7 form cases and the InlineCitation count case failed, each at the expected file and line. I then removed both changes.
+    - No product violation was found, so no product code changed and no snapshot changed.
+  timestamp: 2026-10-21T19:33:46.313906+00:00
+- actor: claude-code
+  id: 01m5fz989bk8zm8j0b1z8rqv3v
+  text: |-
+    ### implement — changed
+    - evidence: 5 files. New: Tests/PackageStructureTests/ThemeInjectionTests.swift, Tests/PackageStructureTests/Fixtures/ThemeInjection/Violating/TintAndTheme.swift, Tests/PackageStructureTests/Fixtures/ThemeInjection/Clean/ThemeInText.swift. Changed: Tests/PackageStructureTests/FixedColorTests.swift (comment for D113 answer 8), Tests/PackageStructureTests/GlassPlacementTests.swift (removed the Input-only `.foregroundStyle(.tint)` check, which the new rule now covers). The full suite ran with run-watched.sh: test-exit=0, 214 tests in 29 suites passed, 1571 tests in 197 suites passed with 3 known issues (these known issues were there before this change), and 0 on-screen test windows. The mutation check made each of the 7 forms and the accent count fail. No PNG changed.
+    - next: review
+  timestamp: 2026-10-21T19:33:49.995271+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5E8VGGTR59NGWNVHSDKM4QT
 - 01M5E8WVTY0ANTQVTGYXA3R4Z2
 - 01M5E8X2DC7CT94TQJG2G7W4MZ
 - 01M5E8XAAZ7ZAT3RKSG102C8KK
-position_column: todo
-position_ordinal: 9d80
+position_column: doing
+position_ordinal: '8180'
 title: 'AVK-8t Structure test: no .tint modifier, no .foregroundStyle(.tint), no Glass.tint, the accent only on a link, the selection or the current item, and the kit sets no theme of its own (D111 step 7, D112 (d), D113 answers 5, 6 and 8)'
 ---
 ## Why
@@ -41,13 +72,13 @@ Facts from a search on 2026-10-20:
 
 ## What to do
 
-- [ ] Scan `Sources/AgentViewKit`, code lines only. Report each `.tint(` that is a view modifier: a `.tint(` with no identifier character directly before the dot. Do not report `editorTheme.tint(for:`, `theme.tint(for:` or a `tint:` argument.
-- [ ] Report each `Glass` tint: `.tint(` directly after `.regular`, `.clear`, `.identity`, `glass` or `Glass` (for example `.regular.tint(accent)`, `glass.tint(`). The allow list is empty (D113 answer 6). Test files are not scanned: `GlassRenderProbeTests` keeps `.regular.tint` as probe data of ^dbbyg9w.
-- [ ] Report each `.foregroundStyle(.tint)` and each `.tint` used as a shape style in `.foregroundStyle(`, `.fill(`, `.stroke(` or `.background(` (D113 answer 5).
-- [ ] Report each `editorTheme.accent` and `theme.accent` outside an allow list. The allow list holds the permitted uses of AVK-8ak with the reason in a comment: `Citations/InlineCitation.swift` (link), `Citations/SourcesView.swift` (current item), `Elicitation/ElicitationLayout.swift` (selection), `Thread/ThreadMinimapView.swift` band (current item; only the line of the band, not the user tick). If a line-level allow list is too fragile, allow by file and add a second test that counts the accent lines of each allowed file.
-- [ ] Report each `.editorTheme(` call and each `DefaultTheme.` use. A kit view reads the theme only with `@Environment(\.editorTheme)`. If a `#Preview` needs a fixed theme, put that preview in the demo.
-- [ ] Record D113 answer 8 in the test: the `Terminal/ANSIText.swift` allow list of `FixedColorTests` (^c16tvb7) stays, with a comment that names D113 answer 8 ("colors 0 to 15 from `TerminalPalette`, the xterm formula for 16 to 255"). If `FixedColorTests` has no comment with the reason, add it.
-- [ ] Add fixtures: one bad line for each form (`.tint(.blue)`, `.regular.tint(accent)`, `.foregroundStyle(.tint)`, `.foregroundStyle(editorTheme.accent)` in a content file, `.editorTheme(.system)`, `DefaultTheme.dark`), and a clean file with `editorTheme.tint(for: severity)`, a `tint:` argument and each form in a comment and a string. Note: the old plan put `glass.tint(accent)` in the clean file. It is now a bad form.
+- [x] Scan `Sources/AgentViewKit`, code lines only. Report each `.tint(` that is a view modifier: a `.tint(` with no identifier character directly before the dot. Do not report `editorTheme.tint(for:`, `theme.tint(for:` or a `tint:` argument.
+- [x] Report each `Glass` tint: `.tint(` directly after `.regular`, `.clear`, `.identity`, `glass` or `Glass` (for example `.regular.tint(accent)`, `glass.tint(`). The allow list is empty (D113 answer 6). Test files are not scanned: `GlassRenderProbeTests` keeps `.regular.tint` as probe data of ^dbbyg9w.
+- [x] Report each `.foregroundStyle(.tint)` and each `.tint` used as a shape style in `.foregroundStyle(`, `.fill(`, `.stroke(` or `.background(` (D113 answer 5).
+- [x] Report each `editorTheme.accent` and `theme.accent` outside an allow list. The allow list holds the permitted uses of AVK-8ak with the reason in a comment: `Citations/InlineCitation.swift` (link), `Citations/SourcesView.swift` (current item), `Elicitation/ElicitationLayout.swift` (selection), `Thread/ThreadMinimapView.swift` band (current item; only the line of the band, not the user tick). If a line-level allow list is too fragile, allow by file and add a second test that counts the accent lines of each allowed file.
+- [x] Report each `.editorTheme(` call and each `DefaultTheme.` use. A kit view reads the theme only with `@Environment(\.editorTheme)`. If a `#Preview` needs a fixed theme, put that preview in the demo.
+- [x] Record D113 answer 8 in the test: the `Terminal/ANSIText.swift` allow list of `FixedColorTests` (^c16tvb7) stays, with a comment that names D113 answer 8 ("colors 0 to 15 from `TerminalPalette`, the xterm formula for 16 to 255"). If `FixedColorTests` has no comment with the reason, add it.
+- [x] Add fixtures: one bad line for each form (`.tint(.blue)`, `.regular.tint(accent)`, `.foregroundStyle(.tint)`, `.foregroundStyle(editorTheme.accent)` in a content file, `.editorTheme(.system)`, `DefaultTheme.dark`), and a clean file with `editorTheme.tint(for: severity)`, a `tint:` argument and each form in a comment and a string. Note: the old plan put `glass.tint(accent)` in the clean file. It is now a bad form.
 
 ## Acceptance
 

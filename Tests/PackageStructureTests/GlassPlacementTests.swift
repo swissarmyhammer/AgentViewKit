@@ -175,6 +175,10 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
 /// ``GlassForm`` can show only in its allowed files. In the composer
 /// directory `Input/`, one `.buttonStyle(.glassProminent)` gives the style to
 /// the one prominent action: Send, or Stop while the agent runs.
+///
+/// Only that action has a tint (D113 answer 5). ``ThemeInjectionTests``
+/// holds the tint and the accent of each other view of the kit, so this suite
+/// does not check them again.
 @Suite struct GlassPlacementTests {
   /// The composer directory, relative to the package root.
   static let inputPath = KitSourceFiles.kitFile("Input")
@@ -182,17 +186,6 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The pattern that finds the prominent glass button style.
   static var prominentButtonStylePattern: Regex<Substring> {
     GlassForm.buttonStylePattern(WordPattern.wholeWord(GlassForm.prominentStyle))
-  }
-
-  /// The pattern that finds the tint as a foreground style, such as
-  /// `.foregroundStyle(.tint)`.
-  ///
-  /// Only the primary action of an area has a tint (D113 answer 5). In the
-  /// composer, the primary action is Send, and it gets its tint from the
-  /// prominent glass button style. Thus no other control of the composer
-  /// uses the tint as a foreground style.
-  static var tintForegroundStylePattern: Regex<Substring> {
-    GlassForm.memberCallPattern("foregroundStyle", WordPattern.wholeWord("tint"))
   }
 
   /// The pattern that finds a `.glassEffect` call that names the `.regular`
@@ -326,14 +319,6 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
 
     #expect(found.count == 1, "\(found)")
     #expect(found.allSatisfy { $0.hasPrefix("\(GlassForm.sendButtonFile):") }, "\(found)")
-  }
-
-  @Test func noControlOfTheInputUsesTheTintAsAForegroundStyle() throws {
-    let found = try Self.uses(
-      of: Self.tintForegroundStylePattern, inSwiftFilesBelow: PackageFiles.file(Self.inputPath),
-      relativeTo: PackageFiles.root)
-
-    #expect(found.isEmpty, "Use .primary or .secondary. Only Send has a tint: \(found)")
   }
 
   /// The kit makes a glass only with an explicit `.regular` variant, so no
