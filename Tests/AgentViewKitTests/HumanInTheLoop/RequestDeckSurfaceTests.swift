@@ -15,6 +15,12 @@ struct RequestDeckSurfaceTests {
   /// The size of each render.
   static let size = CGSize(width: 320, height: 320)
 
+  /// The center of each render. The deck is in the center of its `ZStack`,
+  /// so this point is in the glass of a deck in the bar.
+  static var centerPoint: CGPoint {
+    CGPoint(x: size.width / 2, y: size.height / 2)
+  }
+
   /// The edge step of the band tests, in points.
   static let edgeStep: CGFloat = 8
 
@@ -85,11 +91,18 @@ struct RequestDeckSurfaceTests {
     #expect(RequestDeckPlace.content.style(of: action) == style)
   }
 
+  /// The test compares the two renders only at ``centerPoint``. The render
+  /// draws no card, because the cards are focusable
+  /// (``ContentSurfaceHostedProbe``). In the bar, it draws the glass of the
+  /// deck as a band across the full width, in the center of the render. The
+  /// center is far from the edge of the glass. The rim of a rounded glass
+  /// changes after its first renders in the process, at a render that is not
+  /// the same in each run (``RenderedPixels/isClose(to:at:tolerance:)``).
   @Test func inTheBarTheRenderDrawsTheGlassOfTheDeck() throws {
     let inBar = try #require(RenderedPixels(rendering: Self.deck(inBar: true), size: Self.size))
     let inContent = try #require(RenderedPixels(rendering: Self.deck(inBar: false), size: Self.size))
 
-    #expect(inBar != inContent)
+    #expect(!inBar.isClose(to: inContent, at: [Self.centerPoint]))
   }
 
   @Test func anEdgeCardShowsOnlyItsTopBandAndTheOutsetOfItsStroke() {

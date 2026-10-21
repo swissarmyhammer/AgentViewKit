@@ -177,11 +177,17 @@ import Testing
     insideTheRimLevels / levelsInAComponent
   }
 
+  /// The test compares the two renders only at ``insidePoints``, which are
+  /// far from the edge of the glass. The rim of a rounded glass changes after
+  /// its first renders in the process, at a render that is not the same in
+  /// each run (``RenderedPixels/isClose(to:at:tolerance:)``). Thus two full
+  /// renders can be different when Reduce Transparency has no effect on the
+  /// glass.
   @Test func theFloatingGlassFollowsReduceTransparency() throws {
     let glass = Self.floatingGlass()
     let on = try Self.pixels(of: glass, reducesTransparency: true)
     let off = try Self.pixels(of: glass, reducesTransparency: false)
-    #expect(on != off)
+    #expect(!on.isClose(to: off, at: Self.insidePoints))
   }
 
   /// The floating glass is always `.regular` glass. The system applies the
