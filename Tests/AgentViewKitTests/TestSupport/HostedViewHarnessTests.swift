@@ -74,6 +74,24 @@ struct MouseRecordingView: NSViewRepresentable {
   }
 }
 
+/// A hidden window that reports the key status, but is not the key window of
+/// the application.
+///
+/// AppKit makes a window of this kind, `NSCampoLightweightUIHostWindow`, for
+/// the Writing Tools affordance of a focused text view. Its class overrides
+/// `isKeyWindow`. The window has no size, is never visible, and does not take
+/// the focus: `NSApp.keyWindow` stays `nil` (^y2wzhsz).
+final class KeyStatusReportingWindow: NSWindow {
+  /// Makes a hidden borderless window. The test never orders it in.
+  init() {
+    super.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: true)
+    // ARC owns the window. The default value would release it a second time.
+    isReleasedWhenClosed = false
+  }
+
+  override var isKeyWindow: Bool { true }
+}
+
 /// A view that shows two linked accessibility elements.
 struct LinkedLabelsView: View {
   @Namespace private var namespace
@@ -257,8 +275,25 @@ struct SizedBoxesView: View {
     try harness.sendKey(.escape)
 
     #expect(NSApp.windows.allSatisfy { !$0.isVisible })
-    #expect(NSApp.windows.allSatisfy { !$0.isKeyWindow })
-    #expect(!NSApp.isActive)
+    #expect(!harness.processHasFocus)
+  }
+
+  /// A window that only reports the key status does not take the focus. AppKit
+  /// makes such a window for the Writing Tools affordance of a focused text
+  /// view, on a timer, at a time that the tests do not control (^y2wzhsz).
+  @Test func aWindowThatOnlyReportsTheKeyStatusTakesNoFocus() throws {
+    let reporter = KeyStatusReportingWindow()
+    defer { reporter.close() }
+    let log = HostedEventLog()
+    let harness = HostedViewHarness(KeyRecordingView(log: log))
+    defer { harness.close() }
+    harness.render()
+
+    try harness.sendKey(.escape)
+
+    try #require(NSApp.windows.contains { $0 === reporter && $0.isKeyWindow })
+    #expect(NSApp.windows.allSatisfy { !$0.isVisible })
+    #expect(!harness.processHasFocus)
   }
 
   /// A key window gives its first key view the keyboard focus. The harness
