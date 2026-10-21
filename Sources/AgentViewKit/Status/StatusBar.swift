@@ -7,8 +7,11 @@ import SwiftUI
 ///
 /// The bar shows in the thread with the transcript. It is content, so it has
 /// no fill and no glass. A separator stroke marks its edge
-/// (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its button uses a
-/// glass button style.
+/// (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its button has a
+/// button style of its own, which comes from the place of the bar
+/// (``RequestDeckPlace/style(of:)``): the `.glass` style in content, and the
+/// standard `.bordered` style in the bottom bar of a thread (TestudoApp
+/// `features/style.md`, "Bars of a view").
 ///
 /// ``StateBanner``, ``SessionStreamBanner`` and ``AgentConnectionBanner`` show
 /// their messages in this bar. The text of the bar has the
@@ -82,7 +85,7 @@ struct StatusBar: View {
       Spacer(minLength: theme.spacing.s)
       if let action {
         Button(action.title, systemImage: action.systemImage, action: action.perform)
-          .buttonStyle(.glass)
+          .requestActionStyle(.secondary)
           .disabled(!action.isEnabled)
           .accessibilityIdentifier(action.identifier)
       }

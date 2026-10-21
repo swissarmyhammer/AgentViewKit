@@ -19,6 +19,11 @@ import SwiftUI
 /// ``SwiftUI/EnvironmentValues/sessionModel`` environment value, so that a
 /// failed write to a terminal sign-in process adds its error entry to this
 /// transcript.
+///
+/// ``AgentThreadView`` shows the prompt in its bottom bar, below the state
+/// banner and above the composer, so that the list scrolls under it
+/// (TestudoApp `features/style.md`, "Scroll under the bars"). The bar gives
+/// the space around the prompt.
 struct AgentLoginPrompt: View {
   /// The session model of the thread.
   let session: SessionModel
@@ -26,13 +31,10 @@ struct AgentLoginPrompt: View {
   /// The connection model whose auth state tells that a login is necessary.
   let connection: ConnectionModel
 
-  @Environment(\.agentTheme) private var theme
-
   var body: some View {
     if requiresSignIn {
       AgentAuthView(connection: connection)
         .environment(\.sessionModel, session)
-        .padding(theme.spacing.m)
     }
   }
 

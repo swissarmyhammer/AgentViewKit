@@ -40,8 +40,9 @@ struct ACPThread: View {
     // permission and elicitation cards through the two models. The host gives
     // only the work that no model does: a terminal sign-in runner with
     // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
-    // The composer slot shows directly below the conversation, in one glass
-    // container with the scroll-to-bottom pill. The thread view gives the
+    // The composer slot shows in the bottom bar below the state banner and
+    // the scroll-to-bottom pill, in one glass container, and the
+    // conversation scrolls under the bar. The thread view gives the
     // slot its two models and its focus scope, so that the VoiceOver focus
     // goes from an answered card back to the composer. With no slot, the
     // thread view shows a default composer.

@@ -82,6 +82,13 @@ extension EnvironmentValues {
   /// An ``AgentThreadView`` sets the value to `false`, and shows the pill in
   /// its floating controls, in one glass container with the composer.
   @Entry var conversationShowsPill = true
+
+  /// Whether a ``ConversationView`` shows its ``StateBanner`` in its own
+  /// bottom bar.
+  ///
+  /// An ``AgentThreadView`` sets the value to `false`, and shows the banner
+  /// in its floating controls, in the bottom bar with the composer.
+  @Entry var conversationShowsStateBanner = true
 }
 
 extension View {
@@ -123,9 +130,13 @@ extension View {
 /// The default slot is a ``ConversationEmptyState``. Set its Markdown content
 /// with ``SwiftUI/View/conversationEmptyState(title:systemImage:markdown:)``.
 ///
-/// Below the list, ``StateBanner/init(session:onShowError:)`` shows the
-/// `agentState` of the model. Its Show Error button scrolls to the last
-/// `ErrorEntry` of the transcript.
+/// In the bottom bar of the view (`.safeAreaBar(edge: .bottom)`),
+/// ``StateBanner/init(session:onShowError:)`` shows the `agentState` of the
+/// model. The list scrolls under the bar (TestudoApp `features/style.md`,
+/// "Scroll under the bars"). The Show Error button of the banner scrolls to
+/// the last `ErrorEntry` of the transcript. In an ``AgentThreadView``, the
+/// banner is in the floating controls of the thread, and the view shows no
+/// banner of its own.
 ///
 /// The view sets ``ScrollAnchorManager/onScroll`` of the manager, so that a
 /// ``ThreadMinimapView`` with no proxy can scroll the list.
@@ -163,6 +174,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``SwiftUI/EnvironmentValues/conversationShowsPill``).
   @Environment(\.conversationShowsPill) private var showsPill
 
+  /// Whether the view shows its own state banner
+  /// (``SwiftUI/EnvironmentValues/conversationShowsStateBanner``).
+  @Environment(\.conversationShowsStateBanner) private var showsStateBanner
+
   /// Makes the list of the transcript of a session model with a custom empty
   /// state.
   ///
@@ -192,17 +207,21 @@ public struct ConversationView<EmptyState: View>: View {
   }
 
   public var body: some View {
-    VStack(spacing: 0) {
+    Group {
       if session.transcript.isEmpty {
         emptyState
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
         list
       }
+    }
+    .safeAreaBar(edge: .bottom) {
       // The banner reads `agentState` in its own body, so a change of the
       // state evaluates only the banner and not the list.
-      StateBanner(session: session) { showItem($0.rowKey) }
-        .padding(theme.spacing.m)
+      if showsStateBanner {
+        StateBanner(session: session) { showItem($0.rowKey) }
+          .padding(theme.spacing.m)
+      }
     }
     .environment(\.sessionModel, session)
     .onChange(of: lastRowKey) { old, new in

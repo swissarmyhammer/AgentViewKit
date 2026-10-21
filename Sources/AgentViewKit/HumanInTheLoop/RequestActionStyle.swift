@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// An action button of a request card, or the Dismiss button of a notice in
-/// a ``RequestDeck``. The kind of the action and the ``RequestDeckPlace``
+/// An action button of a request card, the Dismiss button of a notice in a
+/// ``RequestDeck``, the button of a ``StatusBar``, or an action button of an
+/// ``AgentAuthView``. The kind of the action and the ``RequestDeckPlace``
 /// give its button style (``RequestDeckPlace/style(of:)``).
 nonisolated enum RequestAction: Equatable, Sendable {
   /// The one primary action of the card, for example Allow once.
@@ -40,7 +41,10 @@ extension RequestDeckPlace {
   ///
   /// In the bar, the deck is on glass, and a glass button on it is glass on
   /// glass. Thus the primary action uses the `.borderedProminent` style, and
-  /// each other action uses the `.bordered` style. In content, the primary
+  /// each other action uses the `.bordered` style. A status bar and the login
+  /// card in the bottom bar of a thread have no glass, but a bar has standard
+  /// controls (TestudoApp `features/style.md`, "Bars of a view"). Thus their
+  /// buttons use the same bordered styles there. In content, the primary
   /// action uses the `.glassProminent` style, a secondary action uses the
   /// `.glass` style, and a standard action keeps the style of its
   /// environment.

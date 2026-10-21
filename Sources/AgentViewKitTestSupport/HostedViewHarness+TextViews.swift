@@ -35,6 +35,28 @@ extension HostedViewHarness {
     Self.descendants(of: hostingView).filter { $0.accessibilityIdentifier() == identifier }
   }
 
+  /// Each `NSView` of `type` under the hosting view, in depth first order.
+  ///
+  /// A test uses this function to read the frame of a view that has no
+  /// accessibility identifier of its own. For example, the accessibility
+  /// frame of a SwiftUI `ScrollView` leaves out its content insets, but the
+  /// frame of its `NSScrollView` is the full frame of the list.
+  ///
+  /// - Parameter type: The class of the views to find.
+  /// - Returns: Each view of `type`, or an empty array.
+  public func views<Found: NSView>(of type: Found.Type) -> [Found] {
+    Self.descendants(of: hostingView).compactMap { $0 as? Found }
+  }
+
+  /// The frame of `view` in screen points, the coordinate space of
+  /// ``frame(identifier:)``. The y axis goes up.
+  ///
+  /// - Parameter view: A view under the hosting view.
+  /// - Returns: The frame of the view on the screen.
+  public func screenFrame(of view: NSView) -> CGRect {
+    window.convertToScreen(view.convert(view.bounds, to: nil))
+  }
+
   /// Makes ``firstEditableTextView(of:)`` the first responder of the
   /// window, then makes a ``render()`` pass, so that typed keys go to it.
   ///

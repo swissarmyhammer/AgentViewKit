@@ -119,8 +119,9 @@ struct ACPThread: View {
     // permission and elicitation cards through the two models. The host gives
     // only the work that no model does: a terminal sign-in runner with
     // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
-    // The composer slot shows directly below the conversation, in one glass
-    // container with the scroll-to-bottom pill. The thread view gives the
+    // The composer slot shows in the bottom bar below the state banner and
+    // the scroll-to-bottom pill, in one glass container, and the
+    // conversation scrolls under the bar. The thread view gives the
     // slot its two models and its focus scope, so that the VoiceOver focus
     // goes from an answered card back to the composer. With no slot, the
     // thread view shows a default composer.
@@ -395,8 +396,8 @@ two lists equal.
 
 **Thread**
 
-- `AgentThreadView`: the drop-in view. It binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and shows the whole surface except the request cards. Its composer slot shows directly below the conversation, in one glass container with the scroll-to-bottom pill; the default slot is a `DefaultThreadComposer`. Put a `RequestDeck` in the slot above the composer, or next to the view.
-- `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, and the empty state with Markdown text from the host.
+- `AgentThreadView`: the drop-in view. It binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and shows the whole surface except the request cards. Its bottom bar (`.safeAreaBar(edge: .bottom)`) holds, from the top, the `StateBanner`, the sign-in card when the agent asks for a sign-in, the scroll-to-bottom pill and the composer slot, in one glass container; the conversation scrolls under the bar. The banner and the sign-in card have no glass, and their buttons have the bordered style of a bar. The default slot is a `DefaultThreadComposer`. Put a `RequestDeck` in the slot above the composer, or next to the view.
+- `ConversationView`: the container with auto-scroll, the scroll-to-bottom pill, the empty state with Markdown text from the host, and the `StateBanner` in its own bottom bar, which the list scrolls under.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.
 - `ThreadMinimapView`: the rail of the transcript entries, with the tool call status. A drag moves the thread.
 - `StateBanner`: shows `requiresAction`, an idle session with a pending request, and a stop reason that needs attention, also the extension stop reasons.

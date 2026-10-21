@@ -231,9 +231,9 @@ public final class ScrollAnchorManager {
   /// The call cancels a scroll to the bottom that ``requestScrollToBottom()``
   /// requested and did not send yet, so that this scroll does not move the
   /// list away from the item. A later ``restoreAnchor()`` keeps the item in
-  /// view across a list update. The Show Error button of
-  /// ``ConversationView``, the thread minimap and the jump commands call this
-  /// function.
+  /// view across a list update. The Show Error button of the state banner of
+  /// ``ConversationView`` and of ``AgentThreadView``, the thread minimap and
+  /// the jump commands call this function.
   ///
   /// The call also sets ``visibleIDs`` to the item, and the manager waits
   /// for the rows of the jump (see ``noteVisible(ids:distanceFromBottom:)``).

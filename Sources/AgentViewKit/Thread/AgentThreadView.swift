@@ -12,12 +12,17 @@ import SwiftUI
 /// Above the conversation, a ``SessionNoticeBanner`` shows one banner for
 /// each notice of the session model, and a ``SessionStreamBanner`` shows the
 /// stream state: the replay marker, the partial-history note, the
-/// missed-updates banner with its Reload button, and the closed state. Below
-/// the conversation, a ``StateBanner`` shows the agent state. Each banner
-/// view, and not this view, reads its part of the model.
+/// missed-updates banner with its Reload button, and the closed state. In the
+/// bottom bar, a ``StateBanner`` shows the agent state. Each banner view, and
+/// not this view, reads its part of the model.
 ///
-/// Below the conversation, the floating controls of the thread show the
-/// composer slot, directly below its chat (D36). The default slot is a
+/// The bottom bar of the view (`.safeAreaBar(edge: .bottom)`) holds the
+/// floating controls of the thread. The conversation scrolls under the bar
+/// (TestudoApp `features/style.md`, "Scroll under the bars"). From the top,
+/// the bar shows the state banner, the login prompt, the scroll-to-bottom
+/// pill and the composer slot. The banner and the login prompt are content
+/// with no glass. Their buttons have the bordered style of a bar. The
+/// composer slot is directly below its chat (D36). The default slot is a
 /// ``DefaultThreadComposer``: a ``PromptInputView`` that keeps its own text.
 /// Give a custom composer with ``init(session:connection:composer:)``, or
 /// `EmptyView()` for no composer. The scroll-to-bottom pill
@@ -48,9 +53,9 @@ import SwiftUI
 ///
 /// When the host gives the connection model, an ``AgentInfoHeader`` names the
 /// agent from its `initialize` answer, an ``AgentConnectionBanner`` shows the
-/// connection state, and an ``AgentAuthView`` shows below the conversation
-/// while the last entry of the transcript is an error entry with the code
-/// `-32000` (authentication required).
+/// connection state, and an ``AgentAuthView`` shows in the bottom bar while
+/// `ConnectionModel.authState` asks for a sign-in, for example after an
+/// answer with the code `-32000` (authentication required).
 ///
 /// The host gives no actions. Each view in the thread calls the methods of
 /// the session model or of the connection model directly. The two host hooks
@@ -212,12 +217,10 @@ public struct AgentThreadView<Composer: View>: View {
       SessionNoticeBanner(session: session)
       SessionStreamBanner(session: session, connection: connection)
       ConversationView(session: session, anchors: anchors)
-        // The pill is in the floating controls, in one container with the
-        // composer.
+        // The state banner and the pill are in the floating controls, in the
+        // bottom bar with the composer.
         .environment(\.conversationShowsPill, false)
-      if let connection {
-        AgentLoginPrompt(session: session, connection: connection)
-      }
+        .environment(\.conversationShowsStateBanner, false)
     }
     .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
@@ -225,16 +228,30 @@ public struct AgentThreadView<Composer: View>: View {
     .onDisappear(perform: closeWhenSupported)
   }
 
-  /// The scroll-to-bottom pill and the composer slot, in one glass container
+  /// The content of the bottom bar: the state banner, the login prompt, the
+  /// scroll-to-bottom pill and the composer slot, in one glass container
   /// (D110 (c)).
   ///
-  /// The pill is above the composer. A composer in the slot that makes its
-  /// own container, such as ``PromptInputView``, uses this container. The
-  /// controls are one accessibility container with
+  /// The list scrolls under the bar (TestudoApp `features/style.md`, "Scroll
+  /// under the bars", D113 answer 7). The banner and the login prompt are
+  /// content: they have no glass, and a container with no glass child draws
+  /// nothing. Their buttons take the bordered style of a bar from the place
+  /// mechanism of the kit (``RequestDeckPlace/style(of:)``). From the top,
+  /// the order is the banner, the login prompt when the host gave the
+  /// connection model, the pill, and the composer. VoiceOver reads them in
+  /// this order. A composer in the slot that makes its own container, such
+  /// as ``PromptInputView``, uses this container. The controls are one
+  /// accessibility container with
   /// ``AgentThreadLayout/floatingControlsIdentifier``.
   private var floatingControls: some View {
     FloatingGlassContainer(spacing: theme.spacing.s) {
       VStack(spacing: theme.spacing.s) {
+        // The banner reads `agentState` in its own body, so a change of the
+        // state evaluates only the banner.
+        StateBanner(session: session) { showItem($0.rowKey) }
+        if let connection {
+          AgentLoginPrompt(session: session, connection: connection)
+        }
         ConversationPill(anchors: anchors)
         composer
           .environment(\.sessionModel, session)
@@ -244,6 +261,19 @@ public struct AgentThreadView<Composer: View>: View {
     .padding(theme.spacing.m)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(AgentThreadLayout.floatingControlsIdentifier)
+  }
+
+  /// Moves the list to the item with `id`, for the Show Error button of the
+  /// state banner.
+  ///
+  /// The manager keeps the item as its anchor. The conversation gets the
+  /// scroll through ``ScrollAnchorManager/onScroll``, and it shows the page
+  /// of the item before it scrolls.
+  ///
+  /// - Parameter id: The row key of the item.
+  private func showItem(_ id: String) {
+    anchors.noteJump(to: id)
+    anchors.onScroll(.item(id))
   }
 
   /// Starts the close of the session when the host gave the connection
@@ -280,7 +310,8 @@ public struct AgentThreadView<Composer: View>: View {
 /// are in this separate type.
 public enum AgentThreadLayout {
   /// The accessibility identifier of the floating controls of a thread: the
-  /// scroll-to-bottom pill and the composer slot, in one glass container.
+  /// state banner, the login prompt, the scroll-to-bottom pill and the
+  /// composer slot, in one glass container in the bottom bar.
   public static let floatingControlsIdentifier = "thread-floating-controls"
 }
 

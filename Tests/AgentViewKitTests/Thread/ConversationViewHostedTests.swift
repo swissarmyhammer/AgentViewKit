@@ -556,6 +556,52 @@
 
     // MARK: - Banner and errors
 
+    /// Opens a scripted session whose first entry is an error entry, and then
+    /// ``scrollEntryCount`` agent messages. The error entry is then above the
+    /// end of the list.
+    ///
+    /// When a send fails, the helper closes the session before it throws.
+    ///
+    /// - Returns: The session, after the model shows each message, and the
+    ///   row key of the error entry.
+    /// - Throws: The error of the scripted session.
+    static func openSessionWithErrorAtTop() async throws -> (ScriptedSession, String) {
+      let session = try await ScriptedSession.open()
+      do {
+        let model = session.model
+        model.appendError(code: .internalError, message: "failed", data: nil)
+        let errorKey = try #require(model.transcript.first?.rowKey)
+        try await sendMessages(scrollEntryCount, to: session)
+        return (session, errorKey)
+      } catch {
+        session.close()
+        throw error
+      }
+    }
+
+    /// Gives the session an idle state with the stop reason `refusal`, so that
+    /// the state banner shows its Show Error button, and presses the button.
+    ///
+    /// The helper waits for the event that the model has the new state. Then
+    /// one layout pass shows the button. After the press, one layout pass
+    /// moves the list.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - harness: The harness that shows the banner and the list.
+    /// - Throws: The error of the scripted session, or an issue when the
+    ///   press fails.
+    static func pressShowError(of session: ScriptedSession, in harness: HostedViewHarness<some View>) async throws {
+      let model = session.model
+      let stateBefore = model.agentState
+      try await session.sendUpdate(
+        SessionStateBannersHostedTests.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
+      await ObservationWait.until { model.agentState != stateBefore }
+      harness.hostingView.layoutSubtreeIfNeeded()
+      try harness.press(identifier: StateBanner.showErrorIdentifier)
+      harness.hostingView.layoutSubtreeIfNeeded()
+    }
+
     /// The reaction of the view to a press on the Show Error button: the list
     /// scrolls to the error entry, and the manager keeps the error entry as
     /// its anchor.
@@ -571,23 +617,13 @@
     /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` checks that the
     /// list sends the reports.
     @Test func theShowErrorButtonMovesToTheErrorEntry() async throws {
-      let session = try await ScriptedSession.open()
+      let (session, errorKey) = try await Self.openSessionWithErrorAtTop()
       defer { session.close() }
-      let model = session.model
-      model.appendError(code: .internalError, message: "failed", data: nil)
-      let errorKey = try #require(model.transcript.first?.rowKey)
-      try await Self.sendMessages(Self.scrollEntryCount, to: session)
       let (anchors, harness) = Self.mountConversation(of: session)
       defer { harness.close() }
       #expect(!Self.showsRow(errorKey, in: harness))
 
-      let stateBefore = model.agentState
-      try await session.sendUpdate(
-        SessionStateBannersHostedTests.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
-      await ObservationWait.until { model.agentState != stateBefore }
-      harness.hostingView.layoutSubtreeIfNeeded()
-      try harness.press(identifier: StateBanner.showErrorIdentifier)
-      harness.hostingView.layoutSubtreeIfNeeded()
+      try await Self.pressShowError(of: session, in: harness)
 
       #expect(Self.showsRow(errorKey, in: harness))
       #expect(harness.element(identifier: ItemRow.identifier(for: errorKey)) != nil)

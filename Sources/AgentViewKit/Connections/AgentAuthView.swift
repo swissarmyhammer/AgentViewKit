@@ -56,7 +56,10 @@ public typealias AgentReconnect = @MainActor () async -> Void
 ///
 /// The card is content, so it has no fill and no glass. A separator stroke
 /// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its
-/// action buttons use the glass button style.
+/// action buttons have a button style of their own, which comes from the
+/// place of the card (``RequestDeckPlace/style(of:)``): the `.glass` style in
+/// content, and the standard `.bordered` style in the bottom bar of a thread
+/// (TestudoApp `features/style.md`, "Bars of a view").
 ///
 /// The texts of the card do not use a fixed vertical size. A text with a
 /// fixed vertical size gives its full wrapped height as its minimum height,
@@ -414,7 +417,7 @@ public struct AgentAuthView: View {
         Label(title, systemImage: systemImage)
       }
     }
-    .buttonStyle(.glass)
+    .requestActionStyle(.secondary)
     .disabled(isRunning)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(identifier)

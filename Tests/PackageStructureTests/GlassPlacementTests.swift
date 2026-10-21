@@ -103,14 +103,19 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// in content, and bordered on the glass of the deck in a bar.
   static let requestActionStyleFile = KitSourceFiles.kitFile("HumanInTheLoop/RequestActionStyle.swift")
 
-  /// The files of the request cards and the notices. Their action buttons
-  /// take the button style of ``requestActionStyleFile``, and have no glass
-  /// button style of their own.
+  /// The files of the request cards, the notices, the status bars and the
+  /// login card. Their action buttons take the button style of
+  /// ``requestActionStyleFile``, and have no glass button style of their own.
+  /// In the bottom bar of a thread, a status bar and the login card have
+  /// standard bordered buttons (TestudoApp `features/style.md`, "Bars of a
+  /// view").
   static let requestCardFiles: Set<String> = [
     KitSourceFiles.kitFile("HumanInTheLoop/PermissionView.swift"),
     KitSourceFiles.kitFile("Elicitation/ElicitationView.swift"),
     KitSourceFiles.kitFile("Elicitation/ElicitationURLConsentView.swift"),
     KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
+    KitSourceFiles.statusBarFile,
+    KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
   ]
 
   /// The files that can use a glass button style: the floating controls, and
@@ -121,8 +126,6 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     KitSourceFiles.kitFile("Input/SpeechInputButton.swift"),
     scrollPillFile,
     requestActionStyleFile,
-    KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
-    KitSourceFiles.kitFile("Status/StatusBar.swift"),
   ]
 
   /// The name of the prominent glass button style.
