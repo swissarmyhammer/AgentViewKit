@@ -40,6 +40,39 @@ comments:
   id: 01m5fw6yn1m0qe2jpz52xe9vc6
   text: 'Correction to the step record: AgentAttachmentCommandsTests has 15 tests, not 17 (the filtered run gave 21 tests = 15 + the 6 tests of AgentCommandGroupTests).'
   timestamp: 2026-10-21T18:40:08.865485+00:00
+- actor: claude-code
+  id: 01m5fwgn9wcq3kf0fqv75mvwtv
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (cb14a9d). 6 findings (6 confirmed, 11 refuted). Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift:87, :88, :89, :220; Tests/AgentViewKitTests/Attachments/AttachmentCommandsHostedTests.swift:179; Tests/AgentViewKitTests/Commands/AgentAttachmentCommandsTests.swift:75.
+    - next: Correct each open item in the "Review Findings (2026-10-21 13:41)" section. Then do the review again. The task stays in the review column.
+  timestamp: 2026-10-21T18:45:26.972728+00:00
+- actor: claude-code
+  id: 01m5fwh9bsjjbpe3ap24cnv95a
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — AgentAttachmentVerb, agentAttachment scope, AttachmentFileService, AttachmentActions runs the commands
+    - test: green — run-watched.sh avk11-full2, 1568 passed (3 known issues), 190 PackageStructureTests passed, 0 warnings; on-screen test windows 0
+    - commit: cb14a9d
+    - review: findings — AgentAttachmentCommands.swift:87, :88, :89, :220; AttachmentCommandsHostedTests.swift:179; AgentAttachmentCommandsTests.swift:75
+  timestamp: 2026-10-21T18:45:47.513688+00:00
+- actor: claude-code
+  id: 01m5fwxn94y66n5favnpypfbs8
+  text: |-
+    Review findings of 2026-10-21 13:41 corrected (not committed).
+    - Magic numbers (AgentAttachmentCommands.swift, the order of the verbs): the switch with the literals 0 to 4 is gone. The order is now the place of the verb in `allCases` (the cases are in the order of the buttons). The file has no numeric literal now, except `contextMenuGroup = 0`, which is a named `static let`. The test eachVerbIsInTheFileMenuAndTheContextMenuInButtonOrder holds the order.
+    - Duplication of perform: new internal `AgentCommandDispatch.perform(_:in:at:payload:)` (Sources/AgentViewKit/Commands/AgentCommandDispatch.swift) has the one guard on the system and the path. AgentAttachmentTarget.perform and AgentCommandTarget.perform both call it. The finding said to keep AgentCommandTarget.swift out of this change; the orchestrator instruction said to make that edit when it is small. The edit is one line in the body of perform, with no change of signature, so no separate task was written. New tests: AgentCommandDispatchTests (3 tests). The first run failed to compile because the type did not exist (RED), the second run passed (GREEN).
+    - verbIDs copy: AttachmentCommandsHostedTests has no own verbIDs now. It uses `Commands.verbIDs` (typealias Commands = AgentAttachmentCommandsTests), the one definition.
+    - attachment(named:in:) copy: deleted from AgentAttachmentCommandsTests, with its now unused `fileText`. The suite calls `Shared.attachment(named:in:)` (typealias Shared = AttachmentInspectorHostedTests).
+    - Tool note: the `files` edit op with `replace_all: true` replaced only one match for each call in this session, so each match took one call.
+  timestamp: 2026-10-21T18:52:32.932278+00:00
+- actor: claude-code
+  id: 01m5fwxs0txen1e71wqj9zr9d8
+  text: |-
+    ### implement — changed
+    - evidence: new Sources/AgentViewKit/Commands/AgentCommandDispatch.swift, Tests/AgentViewKitTests/Commands/AgentCommandDispatchTests.swift (3 tests); changed Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift, Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Tests/AgentViewKitTests/Commands/AgentAttachmentCommandsTests.swift, Tests/AgentViewKitTests/Attachments/AttachmentCommandsHostedTests.swift. Full suite with run-watched.sh (avk11-fix1): build-exit=0, test-exit=0, 1571 tests in 197 suites passed (3 known issues of the harness self-tests, not new), 190 PackageStructureTests passed, 0 compiler warnings (the build log has only the SwiftPM note "missing creator for mutated node" for the mlx-swift_Cmlx bundle, which is not from this code), 0 on-screen test-process windows. All 6 findings checked.
+    - next: /review
+  timestamp: 2026-10-21T18:52:36.762061+00:00
 position_column: doing
 position_ordinal: '8180'
 title: AVK-11 Make the attachment actions EditorKit commands in the scope of the attachment (D108)
@@ -59,3 +92,21 @@ Acceptance:
 - Headless tests: each command is in `definitions(at:)` at an `agentAttachment` path, and is not available at other paths; `contextMenuMirror(at:)` shows them; a run of each command does its action on the subject (use test doubles for the workspace and the share/save/Quick Look services, so no real UI opens).
 - A hosted test: a press on each button in the inspector runs the command (the recorder of the test double gets the call), in `.builtIn` and in `.host` mode.
 - No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-11
+
+## Review Findings (2026-10-21 13:41)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 19 file(s) reviewed, 8 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift:87` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift:88` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift:89` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift:220` `duplication/duplication` — AgentAttachmentTarget.perform copies the body of AgentCommandTarget.perform. Both guard on the system and the path, then call system.registry.perform with the verb id. The copies can drift apart, so a fix to one dispatch path may miss the other. Extract one shared helper that takes the system, the path, the command id and an optional payload, and returns Bool. Call it from both AgentAttachmentTarget.perform and AgentCommandTarget.perform. Do not edit AgentCommandTarget.swift in this change, because it is outside the change. Report that edit as a separate task.
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentCommandsHostedTests.swift:179` `reuse/reuse` — The static var verbIDs repeats the mapping of AgentAttachmentVerb.allCases to ids that AgentAttachmentCommandsTests also defines. The copy in this file is a second implementation of the same derivation. Use one shared definition of the verb ids for both test suites instead of two copies.
+- [x] `Tests/AgentViewKitTests/Commands/AgentAttachmentCommandsTests.swift:75` `reuse/reuse` — The static helper attachment(named:in:) rebuilds an attachment from a temporary file. AttachmentInspectorHostedTests already has the same helper, and AttachmentCommandsHostedTests calls it as Shared.attachment(named:in:). This copy duplicates that helper, so a fix to one copy will not reach the other. Delete the copy in AgentAttachmentCommandsTests and call AttachmentInspectorHostedTests.attachment(named:in:), as AttachmentCommandsHostedTests does through its Shared typealias.

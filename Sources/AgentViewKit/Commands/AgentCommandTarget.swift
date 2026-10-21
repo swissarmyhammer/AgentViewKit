@@ -121,8 +121,7 @@ final class AgentCommandTarget {
   ///   system, or when the command is not available.
   @discardableResult
   func perform(_ verb: AgentCommandVerb, payload: CommandPayload? = nil) -> Bool {
-    guard let system, let path else { return false }
-    return system.registry.perform(verb.id, at: path, payload: payload)
+    AgentCommandDispatch.perform(verb.id, in: system, at: path, payload: payload)
   }
 
   /// Removes the composer hook when `owner` registered it.

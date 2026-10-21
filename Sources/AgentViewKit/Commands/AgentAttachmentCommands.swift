@@ -79,15 +79,10 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
     ContextMenuPlacement(group: Self.contextMenuGroup, order: order)
   }
 
-  /// The sort order of the verb in its menu group: the order of the buttons.
+  /// The sort order of the verb in its menu group: the place of the verb in
+  /// `allCases`. The cases are in the order of the buttons.
   private var order: Double {
-    switch self {
-    case .openAttachment: 0
-    case .revealAttachment: 1
-    case .shareAttachment: 2
-    case .saveAttachment: 3
-    case .quickLookAttachment: 4
-    }
+    Double(Self.allCases.firstIndex(of: self) ?? Self.allCases.endIndex)
   }
 
   /// Tells if the verb needs a local file. Open and Share also work on a URL
@@ -218,8 +213,7 @@ final class AgentAttachmentTarget {
   ///   system, or when the command is not available.
   @discardableResult
   func perform(_ verb: AgentAttachmentVerb) -> Bool {
-    guard let system, let path else { return false }
-    return system.registry.perform(verb.id, at: path)
+    AgentCommandDispatch.perform(verb.id, in: system, at: path)
   }
 }
 

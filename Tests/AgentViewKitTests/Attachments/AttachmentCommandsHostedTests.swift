@@ -51,6 +51,9 @@ struct HostInspectorWithAttachmentActions: View {
   /// The suite whose helpers the tests use.
   typealias Shared = AttachmentInspectorHostedTests
 
+  /// The suite that holds the one definition of the verb ids.
+  typealias Commands = AgentAttachmentCommandsTests
+
   /// The size of a view with one attachment.
   static let viewSize = CGSize(width: 600, height: 400)
 
@@ -175,11 +178,6 @@ struct HostInspectorWithAttachmentActions: View {
     )
   }
 
-  /// The ids of each attachment verb.
-  static var verbIDs: [CommandID] {
-    AgentAttachmentVerb.allCases.map(\.id)
-  }
-
   @Test func aChipRegistersTheFiveCommandsAtItsScope() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -187,8 +185,8 @@ struct HostInspectorWithAttachmentActions: View {
 
     let ids = Self.commandIDs(of: AttachmentView(attachment), at: attachment.id)
 
-    #expect(ids.definitions == Set(Self.verbIDs))
-    #expect(ids.contextMenu == Self.verbIDs)
+    #expect(ids.definitions == Set(Commands.verbIDs))
+    #expect(ids.contextMenu == Commands.verbIDs)
   }
 
   @Test func aChipOfTheComposerRegistersTheFiveCommandsAtItsScope() throws {
@@ -198,7 +196,7 @@ struct HostInspectorWithAttachmentActions: View {
 
     let ids = Self.commandIDs(of: AttachmentChip(attachment), at: attachment.id)
 
-    #expect(ids.definitions == Set(Self.verbIDs))
+    #expect(ids.definitions == Set(Commands.verbIDs))
   }
 
   @Test func theInspectorRegistersTheFiveCommandsAtItsScope() throws {
@@ -208,7 +206,7 @@ struct HostInspectorWithAttachmentActions: View {
 
     let ids = Self.commandIDs(of: AttachmentInspector(attachment), at: attachment.id)
 
-    #expect(ids.definitions == Set(Self.verbIDs))
+    #expect(ids.definitions == Set(Commands.verbIDs))
   }
 
   /// An image is the scope of its block file. The id is the URL that
@@ -219,7 +217,7 @@ struct HostInspectorWithAttachmentActions: View {
 
     let ids = Self.commandIDs(of: ImageView(image: image), at: AttachmentID(url.absoluteString))
 
-    #expect(ids.definitions == Set(Self.verbIDs))
+    #expect(ids.definitions == Set(Commands.verbIDs))
   }
 
   /// The chip of an ``AttachmentView`` is in the scope of the view, and makes

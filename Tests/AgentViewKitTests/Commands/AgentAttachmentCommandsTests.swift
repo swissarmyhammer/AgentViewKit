@@ -15,14 +15,14 @@ import Testing
 /// subject, as `.commandScope(segment:subject:)` does. A run goes to a
 /// ``RecordingAttachmentFileService``, so no system service opens.
 @MainActor struct AgentAttachmentCommandsTests {
+  /// The suite whose file helper the tests use.
+  typealias Shared = AttachmentInspectorHostedTests
+
   /// The raw session id of the thread scope of the tests.
   static let sessionID = "attachment-thread"
 
   /// The row key of the message scope of the tests.
   static let messageRowKey = "message-1"
-
-  /// The text that each temporary file holds.
-  static let fileText = "let answer = 42\n"
 
   /// The URL of an attachment that is not a local file.
   static let webURL = URL(string: "https://example.com/report.pdf")
@@ -65,19 +65,6 @@ import Testing
     return Fixture(target: target, service: service, registry: registry, path: path)
   }
 
-  /// Writes a file and makes its attachment.
-  ///
-  /// - Parameters:
-  ///   - name: The file name, with its extension.
-  ///   - directory: The directory of the file.
-  /// - Returns: The attachment of the file.
-  /// - Throws: The error of the write.
-  static func attachment(named name: String, in directory: TemporaryDirectory) throws
-    -> AgentViewKit.Attachment
-  {
-    AgentViewKit.Attachment(url: try directory.file(named: name, contents: Data(fileText.utf8)))
-  }
-
   /// The text of a static title.
   ///
   /// - Parameter title: The title of a definition.
@@ -87,6 +74,9 @@ import Testing
   }
 
   /// The ids of each attachment verb, in the order of the verbs.
+  ///
+  /// This is the one definition of the verb ids for the attachment tests.
+  /// ``AttachmentCommandsHostedTests`` uses it too.
   static var verbIDs: [CommandID] {
     AgentAttachmentVerb.allCases.map(\.id)
   }
@@ -124,7 +114,7 @@ import Testing
   @Test func eachVerbIsInTheDefinitionsAtTheAttachmentPath() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    let fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
 
     let ids = fixture.registry.definitions(at: fixture.path).map(\.id)
 
@@ -135,7 +125,7 @@ import Testing
   @Test func theDefinitionsCarryThePlacesAndTheIcons() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    let fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
 
     for verb in AgentAttachmentVerb.allCases {
       let definition = try #require(fixture.registry.definition(for: verb.id, at: fixture.path))
@@ -149,7 +139,7 @@ import Testing
   @Test func noVerbIsAvailableAtAPathOutsideTheAttachmentScope() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    let fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
     let messagePath = Self.threadPath.appending(AgentScopeKind.message(rowKey: Self.messageRowKey))
 
     for path in [Self.threadPath, messagePath] {
@@ -166,7 +156,7 @@ import Testing
   @Test func theContextMenuOfAnAttachmentShowsTheFiveVerbs() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    let fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
 
     let items = fixture.registry.contextMenuMirror(at: fixture.path)
 
@@ -179,7 +169,7 @@ import Testing
   @Test func theContextMenuOfAnAttachmentInAThreadShowsNoMessageVerb() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    var fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    var fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
     let session = SessionModel.preview(requestSender: PreviewSessionRequestSender())
     let threadTarget = AgentCommandTarget()
     threadTarget.session = session
@@ -194,7 +184,7 @@ import Testing
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let fixture = Self.makeFixture(
-      for: try Self.attachment(named: "blob.bin", in: directory), groupsOff: [.attachment])
+      for: try Shared.attachment(named: "blob.bin", in: directory), groupsOff: [.attachment])
 
     #expect(fixture.registry.definitions(at: fixture.path).isEmpty)
     #expect(fixture.registry.contextMenuMirror(at: fixture.path).isEmpty)
@@ -203,7 +193,7 @@ import Testing
   @Test func theDeregistrationRemovesEachVerb() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    var fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    var fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
 
     AgentAttachmentRegistration.deregister(at: fixture.path, from: &fixture.registry)
 
@@ -216,7 +206,7 @@ import Testing
   @Test func aRunOfEachVerbGivesTheAttachmentOfTheScopeToTheService() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let attachment = try Self.attachment(named: "blob.bin", in: directory)
+    let attachment = try Shared.attachment(named: "blob.bin", in: directory)
     let fixture = Self.makeFixture(for: attachment)
 
     for verb in AgentAttachmentVerb.allCases {
@@ -233,7 +223,7 @@ import Testing
   @Test func theTargetRunsAVerbThroughTheRegistryOfItsScope() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let attachment = try Self.attachment(named: "blob.bin", in: directory)
+    let attachment = try Shared.attachment(named: "blob.bin", in: directory)
     let fixture = Self.makeFixture(for: attachment)
     let system = CommandSystem()
     system.registry = fixture.registry
@@ -263,7 +253,7 @@ import Testing
   @Test func noVerbIsAvailableForAFileThatDoesNotExist() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let attachment = try Self.attachment(named: "gone.bin", in: directory)
+    let attachment = try Shared.attachment(named: "gone.bin", in: directory)
     try FileManager.default.removeItem(at: attachment.url)
     let fixture = Self.makeFixture(for: attachment)
 
@@ -276,7 +266,7 @@ import Testing
   @Test func noVerbIsAvailableWithNoService() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let fixture = Self.makeFixture(for: try Self.attachment(named: "blob.bin", in: directory))
+    let fixture = Self.makeFixture(for: try Shared.attachment(named: "blob.bin", in: directory))
     fixture.target.service = nil
 
     #expect(!fixture.registry.contextMenuMirror(at: fixture.path).contains { $0.isEnabled })
