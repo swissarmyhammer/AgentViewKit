@@ -85,7 +85,8 @@ extension RequestDeck {
 
 /// The row of the notice of one withdrawn request in a ``RequestDeck``: the
 /// information symbol and tint, the text of the notice, and a Dismiss button.
-/// The row is a ``NoticeRow``, so it is on the content surface of the kit.
+/// The row is a ``NoticeRow``, so it has no fill, and the content edge of the
+/// kit marks its edge (``SwiftUI/View/agentContentEdge(radius:)``).
 struct WithdrawnNoticeRow: View {
   /// The severity of each notice of a withdrawn request, which gives the
   /// symbol and the tint.

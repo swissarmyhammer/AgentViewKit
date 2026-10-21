@@ -12,7 +12,7 @@ import Testing
 ///
 /// The test renders the surface alone, and not the full composer. The
 /// composer is a paste target, so it is focusable, and `ImageRenderer` does
-/// not draw a focusable view (``ContentSurfaceHostedProbe``). The cache of a
+/// not draw a focusable view (``ContentEdgeHostedProbe``). The cache of a
 /// window shows no glass (``GlassRenderProbeHostedTests``). Thus no render
 /// can show the glass of the full composer, and the hosted frame test in
 /// ``PromptInputViewHostedTests`` checks that the accessory is outside the

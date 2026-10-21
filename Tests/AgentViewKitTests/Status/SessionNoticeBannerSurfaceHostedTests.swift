@@ -9,7 +9,7 @@ import Testing
 /// and no glass, and that the separator stroke of the content edge marks its
 /// edge (D113).
 ///
-/// The tests use the edge check of ``ContentSurfaceHostedProbe``. They show
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. They show
 /// one ``NoticeBanner``, because ``SessionNoticeBanner`` puts a margin around
 /// its banners, and the edge check needs a banner that fills the width of
 /// the window.
@@ -36,9 +36,9 @@ import Testing
     return NoticeBanner(notice: notice) {}
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func theBackdropShowsInsideTheEdgeOfTheBanner(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.banner(), reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

@@ -8,7 +8,7 @@ import Testing
 /// ``StateBanner``, ``SessionStreamBanner`` and ``AgentConnectionBanner`` show
 /// their messages in this bar.
 ///
-/// The tests use the edge check of ``ContentSurfaceHostedProbe``. The bar has
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. The bar has
 /// a button with a glass button style, so the render also shows the one
 /// control that can use glass.
 @Suite(.serialized, .hostedSerially) @MainActor struct StatusBarSurfaceHostedTests {
@@ -25,9 +25,9 @@ import Testing
         identifier: SessionStreamBanner.reloadIdentifier, isEnabled: true, perform: {}))
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func theBackdropShowsInsideTheEdgeOfTheBar(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.bar, reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

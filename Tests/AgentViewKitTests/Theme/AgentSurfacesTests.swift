@@ -3,10 +3,9 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-/// Checks the two shared surfaces of D110: ``SwiftUI/View/agentContentSurface(radius:)``
-/// for content, and ``SwiftUI/View/agentFloatingGlass()`` for a floating
-/// control. Also checks the edge of content with no fill of D113:
-/// ``SwiftUI/View/agentContentEdge(radius:)``.
+/// Checks the shared surface of a floating control of D110,
+/// ``SwiftUI/View/agentFloatingGlass()``, and the edge of content with no
+/// fill of D113, ``SwiftUI/View/agentContentEdge(radius:)``.
 ///
 /// The render tests use the method of ^dbbyg9w (``GlassRenderProbeTests``):
 /// each test renders a view two times, one time with a setting off and one
@@ -26,10 +25,6 @@ import Testing
   /// radius: the small and the medium radius. The views of the kit use these
   /// radii with ``AgentSurface/shape(radius:)``.
   nonisolated static let smallerRadii = [AgentTheme.default.radii.s, AgentTheme.default.radii.m]
-
-  /// A fill with no dynamic part that is not the backdrop of
-  /// ``GlassRenderProbeTests`` and not the standard background.
-  nonisolated static let surfaceFill = Color(red: 0.2, green: 0.6, blue: 0.3)
 
   /// The rectangle that the shape tests make a path in.
   static let pathRect = CGRect(x: 0, y: 0, width: 100, height: 60)
@@ -86,11 +81,6 @@ import Testing
       of: view, with: .reduceTransparency, on: reducesTransparency, size: size)
   }
 
-  /// A content surface with its standard fill over the backdrop.
-  static var contentSurface: some View {
-    OverBackdrop { Color.clear.agentContentSurface() }
-  }
-
   /// A content edge over the backdrop.
   static var contentEdge: some View {
     OverBackdrop { Color.clear.agentContentEdge() }
@@ -103,17 +93,10 @@ import Testing
     }
   }
 
-  @Test func theContentSurfaceHidesTheBackdropAtEachPointInsideIt() throws {
-    let pixels = try Self.pixels(of: Self.contentSurface)
-    for point in Self.insidePoints {
-      #expect(!pixels.contains(GlassRenderProbeTests.backdrop, at: point))
-    }
-  }
-
-  @Test func theContentSurfaceHasNoGlassThatFollowsReduceTransparency() throws {
-    let surface = Self.contentSurface
-    let on = try Self.pixels(of: surface, reducesTransparency: true)
-    let off = try Self.pixels(of: surface, reducesTransparency: false)
+  @Test func theContentEdgeHasNoGlassThatFollowsReduceTransparency() throws {
+    let edge = Self.contentEdge
+    let on = try Self.pixels(of: edge, reducesTransparency: true)
+    let off = try Self.pixels(of: edge, reducesTransparency: false)
     #expect(on.isClose(to: off))
   }
 
@@ -283,35 +266,21 @@ import Testing
     #expect(path != largePath)
   }
 
-  /// The content surface and the content edge use one expected path: the
-  /// path of ``AgentSurface/shape(radius:)`` with the same radius.
-  @Test(arguments: ContentShapeModifier.allCases, radiusTokens)
-  func theContentModifierOfARadiusUsesTheShapeOfThatRadius(
-    modifier: ContentShapeModifier, radius: CGFloat
-  ) {
-    let path = modifier.shape(radius: radius, in: .default).path(in: Self.pathRect)
+  /// The expected path is the path of ``AgentSurface/shape(radius:)`` with
+  /// the same radius.
+  @Test(arguments: radiusTokens)
+  func theContentEdgeOfARadiusUsesTheShapeOfThatRadius(radius: CGFloat) {
+    let path = AgentContentEdge(radius: radius).shape(in: .default).path(in: Self.pathRect)
     #expect(path == AgentSurface.shape(radius: radius).path(in: Self.pathRect))
   }
 
-  /// The content surface and the content edge use one expected path: the
-  /// path of ``AgentSurface/shape(for:)`` of a theme with a different large
-  /// radius.
-  @Test(arguments: ContentShapeModifier.allCases)
-  func theContentModifierWithNoRadiusUsesTheLargeRadiusOfTheTheme(
-    modifier: ContentShapeModifier
-  ) {
+  /// The expected path is the path of ``AgentSurface/shape(for:)`` of a theme
+  /// with a different large radius.
+  @Test func theContentEdgeWithNoRadiusUsesTheLargeRadiusOfTheTheme() {
     var theme = AgentTheme.default
     theme.radii.l = Self.otherLargeRadius
-    let path = modifier.shape(radius: nil, in: theme).path(in: Self.pathRect)
+    let path = AgentContentEdge(radius: nil).shape(in: theme).path(in: Self.pathRect)
     #expect(path == AgentSurface.shape(for: theme).path(in: Self.pathRect))
-  }
-
-  @Test func theContentSurfaceShowsItsFillAtEachPointInsideIt() throws {
-    let pixels = try Self.pixels(
-      of: OverBackdrop { Color.clear.agentContentSurface(Self.surfaceFill) })
-    for point in Self.insidePoints {
-      #expect(pixels.contains(Self.surfaceFill, at: point))
-    }
   }
 
   @Test func theContentEdgeShowsTheBackdropAtItsCenter() throws {
@@ -326,34 +295,6 @@ import Testing
   }
 }
 
-/// The content modifiers that have a shape: the content surface and the
-/// content edge. The shape tests use each one, so that one test gives the
-/// expected path for both.
-enum ContentShapeModifier: CaseIterable, Sendable {
-  /// ``AgentContentSurface``, with the standard fill.
-  case surface
-
-  /// ``AgentContentEdge``.
-  case edge
-
-  /// The shape that the modifier gives.
-  ///
-  /// - Parameters:
-  ///   - radius: The radius token of the corners, or `nil` for the large
-  ///     radius of `theme`.
-  ///   - theme: The tokens that give the large radius.
-  /// - Returns: The shape.
-  @MainActor func shape(radius: CGFloat?, in theme: AgentTheme) -> ConcentricRectangle {
-    switch self {
-    case .surface:
-      AgentContentSurface(fill: AnyShapeStyle(.background.secondary), radius: radius)
-        .shape(in: theme)
-    case .edge:
-      AgentContentEdge(radius: radius).shape(in: theme)
-    }
-  }
-}
-
 /// A view over the backdrop of ``GlassRenderProbeTests``, with `inset` of
 /// backdrop around it.
 struct OverBackdrop<Surface: View>: View {
@@ -361,7 +302,7 @@ struct OverBackdrop<Surface: View>: View {
   var inset: CGFloat = AgentSurfacesTests.surfaceInset
 
   /// The view over the backdrop, for example a clear view with a content
-  /// surface or a content edge.
+  /// edge or a floating glass.
   @ViewBuilder let surface: Surface
 
   var body: some View {

@@ -3,8 +3,9 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// A bar that tells the user the state of the agent (plan.md §3.8 "Agent
-/// state and stop reasons", §9 A). The bar is a ``StatusBar``, so it is on
-/// the content surface of the kit.
+/// state and stop reasons", §9 A). The bar is a ``StatusBar``, so it has no
+/// fill, and the content edge of the kit marks its edge
+/// (``SwiftUI/View/agentContentEdge(radius:)``).
 ///
 /// ``init(session:onShowError:)`` binds the bar to a `SessionModel`. The
 /// body reads `SessionModel.agentState` directly, and the bar shows one

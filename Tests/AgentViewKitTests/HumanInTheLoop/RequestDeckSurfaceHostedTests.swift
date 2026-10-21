@@ -10,7 +10,7 @@ import Testing
 /// `features/style.md`, "How the steps apply").
 ///
 /// The pixel tests read the cache of a window, because the cards are
-/// `focusable()` (``ContentSurfaceHostedProbe``). The cache shows no glass,
+/// `focusable()` (``ContentEdgeHostedProbe``). The cache shows no glass,
 /// so the backdrop shows behind a deck with no fill, also on glass.
 @Suite(.serialized, .hostedSerially) @MainActor struct RequestDeckSurfaceHostedTests {
   /// The size of the window. The deck fills the width.
@@ -35,15 +35,15 @@ import Testing
     }
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func inContentTheBackdropShowsInsideTheEdgeOfTheCard(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.deckInContent, reducesTransparency: reducesTransparency, size: Self.size)
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func inTheBarTheBackdropShowsBehindTheCard(reducesTransparency: Bool) throws {
-    let rendered = try ContentSurfaceHostedProbe.pixels(
+    let rendered = try ContentEdgeHostedProbe.pixels(
       of: Self.deckInBar, backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
 
     #expect(rendered.contains(GlassRenderProbeTests.backdrop))

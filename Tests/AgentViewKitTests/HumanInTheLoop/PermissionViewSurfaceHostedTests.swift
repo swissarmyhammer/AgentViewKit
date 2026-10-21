@@ -8,7 +8,7 @@ import Testing
 /// Checks that the card of ``PermissionView`` has no fill and no glass, and
 /// that the separator stroke of the content edge marks its edge (D113).
 ///
-/// The tests use the edge check of ``ContentSurfaceHostedProbe``. The card
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. The card
 /// is `focusable()`, so the method reads the cache of a window.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewSurfaceHostedTests {
   /// The size of the window. The card fills the width and is shorter than
@@ -40,9 +40,9 @@ import Testing
     return PermissionView(request: request, session: session)
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func theBackdropShowsInsideTheEdgeOfTheCard(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.card(), reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

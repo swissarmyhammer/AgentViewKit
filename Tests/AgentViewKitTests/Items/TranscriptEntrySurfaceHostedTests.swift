@@ -18,7 +18,7 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
 /// their edge (D113). Each view is a row of the transcript, and the
 /// transcript is content.
 ///
-/// The tests use the edge check of ``ContentSurfaceHostedProbe``. Each test
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. Each test
 /// shows each entry one time with Reduce Transparency off and one time with
 /// it on.
 @Suite(.serialized, .hostedSerially) @MainActor struct TranscriptEntrySurfaceHostedTests {
@@ -58,11 +58,11 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
     }
   }
 
-  @Test(arguments: TranscriptEntrySurfaceKind.allCases, ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: TranscriptEntrySurfaceKind.allCases, ContentEdgeHostedProbe.reduceTransparencyValues)
   func theBackdropShowsInsideTheEdgeOfTheEntry(
     kind: TranscriptEntrySurfaceKind, reducesTransparency: Bool
   ) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.entryView(of: kind), reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

@@ -122,7 +122,7 @@ import Testing
   /// - Returns: `true` when a row that does not show the backdrop is below a
   ///   row that shows it and above a different row that shows it.
   static func showsALineInTheBackdrop(_ pixels: RenderedPixels, atColumn x: CGFloat) -> Bool {
-    let rows = stride(from: 0, to: size.height, by: ContentSurfaceHostedProbe.rowStep)
+    let rows = stride(from: 0, to: size.height, by: ContentEdgeHostedProbe.rowStep)
     let shows = rows.map { pixels.contains(GlassRenderProbeTests.backdrop, at: CGPoint(x: x, y: $0)) }
     guard let first = shows.firstIndex(of: true), let last = shows.lastIndex(of: true) else {
       return false

@@ -10,7 +10,7 @@ import Testing
 /// (D113). The card is a request card in the thread, and the thread is
 /// content.
 ///
-/// The tests use the edge check of ``ContentSurfaceHostedProbe``. Each test
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. Each test
 /// shows the card one time with Reduce Transparency off and one time with it
 /// on.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentAuthViewSurfaceHostedTests {
@@ -38,9 +38,9 @@ import Testing
     AgentAuthView(connection: connection)
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func theBackdropShowsInsideTheEdgeOfTheCard(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.card, reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

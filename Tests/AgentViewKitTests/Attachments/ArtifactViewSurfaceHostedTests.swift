@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 /// that the separator stroke of the content edge marks its edge (D113). The
 /// panel is content in the thread.
 ///
-/// The tests use the edge check of ``ContentSurfaceHostedProbe``. They show
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. They show
 /// an artifact with inline text, because an artifact with a URL needs a file
 /// on the disk.
 @Suite(.serialized, .hostedSerially) @MainActor struct ArtifactViewSurfaceHostedTests {
@@ -24,9 +24,9 @@ import UniformTypeIdentifiers
         inlineText: "Step one"))
   }
 
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
   func theBackdropShowsInsideTheEdgeOfThePanel(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
       of: Self.panel, reducesTransparency: reducesTransparency, size: Self.size)
   }
 }
