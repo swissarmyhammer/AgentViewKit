@@ -71,6 +71,48 @@ comments:
     - warnings: a forced rebuild of the 4 changed files (swift build --build-tests) gave only the known mlx bundle warning. No new warning.
     - next: review.
   timestamp: 2026-10-21T09:04:57.607800+00:00
+- actor: claude-code
+  id: 01m5evcfy1tvscgnee5974m8f4
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit fcef8c8). 1 finding, 1 confirmed, 0 refuted. Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:98 (reuse/reuse).
+    - next: Implement the finding in the 2026-10-21 04:05 Review Findings section. Then do a new review. The task stays in review.
+  timestamp: 2026-10-21T09:06:27.393571+00:00
+- actor: claude-code
+  id: 01m5evcxz2xjkjas1agf0kve7x
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 4 files (one DecorativeSymbolImage; a guard test)
+    - test: green — swift test, 1473 passed, 2 known issues that were there before
+    - commit: fcef8c8
+    - review: findings — Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:98 (new finding; the prior finding is checked)
+  timestamp: 2026-10-21T09:06:41.762833+00:00
+- actor: claude-code
+  id: 01m5evjb92e6za61e55km32wxc
+  text: |-
+    Fix of the reuse finding (SharedSymbolTreatmentTests.swift:98).
+
+    - New helper `SharedSymbolTreatmentTests.expectNoCall(_:in:use:sourceLocation:)`. It takes the call text, the files and the name of the shared view for the failure report. It reads each file with `SourceLineScanner.matches(inSource:file:)` and `uses(of:on:)`, then records an issue at the location of the caller. The `sourceLocation: SourceLocation = #_sourceLocation` parameter follows the pattern of `RemovedVocabularyTests` and `NameChecks`.
+    - `eachStatusSymbolDrawsWithTheSharedStatusSymbolImage` and `eachDecorativeHeaderSymbolDrawsWithTheSharedDecorativeSymbolImage` now call the helper with their own file list and view name. The two copies of the loop are deleted. No other copy of this loop is in the file: `onlyTheSharedModifierWritesTheLiveEffectAndTheReduceMotionRule` scans a directory and filters by one file, which is a different check.
+    - `SourceLineScanner.codeMatches` does not fit: it takes a directory, not a list of files. `WordPattern` does not fit: the call text `Image(systemName:` ends with `(` and `:`, so a whole-word pattern is not applicable, and the earlier tests used a plain text search. The behavior of the two tests is the same as before.
+    - TDD: this is a refactor of tests with no change of behavior. The two existing tests are the guard; both passed after the change.
+  timestamp: 2026-10-21T09:09:39.234964+00:00
+- actor: claude-code
+  id: 01m5evjd5m9sxg2q7p0f49bjr0
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift. `swift test` (exit 0): 1473 tests in 184 suites passed with the 2 known issues; 175 tests in 23 suites passed (SharedSymbolTreatmentTests passed); 1 test in 1 suite passed. Only the mlx bundle warning, which existed before.
+    - next: /review
+  timestamp: 2026-10-21T09:09:41.172383+00:00
+- actor: claude-code
+  id: 01m5evpy8j72gjy3swqwnpzsz3
+  text: |-
+    ### test - green
+    - evidence: swift test, 110 s. 1473 tests in 184 suites passed, 0 failures, 0 skipped, 2 known issues (they existed before).
+    - PackageStructureTests ran and passed. The suites SharedSymbolTreatmentTests, SourceLineScannerTests, ImportBoundaryTests and ResolvedPinsTests all passed.
+    - warnings: only the mlx bundle build warning (it existed before). No new warning.
+    - next: review. I made no code change and no commit.
+  timestamp: 2026-10-21T09:12:09.746897+00:00
 depends_on:
 - 01M5E8SRKB36TVJNFAE2F1ARB7
 position_column: doing
@@ -108,3 +150,12 @@ D113 answer 5 and `style.md` "Tint": "In content, the theme accent marks only a 
 > - `.kanban/ (from .reviewignore)` — 2 file(s)
 
 - [x] `Sources/AgentViewKit/Thread/ConversationEmptyState.swift:146` `duplication/duplication` — The symbol image of ConversationEmptyHeader is a near-copy of the symbol image of AgentInfoHeader. This change added the same `.foregroundStyle(.secondary)` modifier to both copies. The two copies can drift apart, and a later style change must be made in two places. Extract one shared symbol view that takes the symbol name and applies the secondary style, the symbol weight and the hidden accessibility trait. Call it from AgentInfoHeader.body and from ConversationEmptyHeader.body, and delete both inline copies.
+
+## Review Findings (2026-10-21 04:05)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift:98` `reuse/reuse` — The new test eachDecorativeHeaderSymbolDrawsWithTheSharedDecorativeSymbolImage repeats the loop of eachStatusSymbolDrawsWithTheSharedStatusSymbolImage (lines 88-96). Only the file list, the searched call, and the message differ. The same scan logic now exists in two places, so a fix to one can be missed in the other. Move the shared loop into one helper, for example a static func that takes the files, the call text to find, and the failure label. Each test then calls the helper with its own parameters. The file lists and the call strings stay as the per-case data.

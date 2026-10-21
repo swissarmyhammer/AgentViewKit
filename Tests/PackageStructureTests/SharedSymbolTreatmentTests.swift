@@ -85,23 +85,37 @@ import Testing
     #expect(outside.isEmpty, "Use liveSymbolEffect(isActive:) in: \(outside)")
   }
 
-  @Test func eachStatusSymbolDrawsWithTheSharedStatusSymbolImage() throws {
-    let found = try Self.statusSymbolFiles.flatMap { file in
+  /// Records an issue when one of some files writes a call.
+  ///
+  /// - Parameters:
+  ///   - call: The text of the call that the files must not write.
+  ///   - files: The files to read, relative to the package root.
+  ///   - replacement: The name of the shared view to use in place of the
+  ///     call. The failure report shows it.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: An error when a file cannot be read.
+  static func expectNoCall(
+    _ call: String,
+    in files: [String],
+    use replacement: String,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let found = try files.flatMap { file in
       SourceLineScanner.matches(inSource: try PackageFiles.text(of: file), file: file) { line in
-        Self.uses(of: [KitSourceFiles.symbolImageCall], on: line)
+        uses(of: [call], on: line)
       }
     }
 
-    #expect(found.isEmpty, "Use StatusSymbolImage in: \(found)")
+    #expect(found.isEmpty, "Use \(replacement) in: \(found)", sourceLocation: sourceLocation)
+  }
+
+  @Test func eachStatusSymbolDrawsWithTheSharedStatusSymbolImage() throws {
+    try Self.expectNoCall(
+      KitSourceFiles.symbolImageCall, in: Self.statusSymbolFiles, use: "StatusSymbolImage")
   }
 
   @Test func eachDecorativeHeaderSymbolDrawsWithTheSharedDecorativeSymbolImage() throws {
-    let found = try Self.decorativeSymbolFiles.flatMap { file in
-      SourceLineScanner.matches(inSource: try PackageFiles.text(of: file), file: file) { line in
-        Self.uses(of: [KitSourceFiles.symbolImageCall], on: line)
-      }
-    }
-
-    #expect(found.isEmpty, "Use DecorativeSymbolImage in: \(found)")
+    try Self.expectNoCall(
+      KitSourceFiles.symbolImageCall, in: Self.decorativeSymbolFiles, use: "DecorativeSymbolImage")
   }
 }
