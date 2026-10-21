@@ -174,6 +174,22 @@ comments:
     - evidence: plan.md §5 (3 sentences changed: "No fill in content" fill-with-no-shape sentence, "Glass only on floating controls" ComposerGlassStructureTests file count, "Morphs" id files). 2 of 2 findings of "Review Findings (2026-10-21 16:34)" checked. No source or test file changed. `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'`: 23 tests in 2 suites passed, 3 tests in 1 suite passed; only the known mlx bundle build warning.
     - next: /review. Not committed. Card stays in doing.
   timestamp: 2026-10-21T21:40:11.344585+00:00
+- actor: claude-code
+  id: 01m5g6kf95x0q97ntn7ctds8wp
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit d43c606): 0 findings, 0 confirmed, 0 refuted. No validator matches `plan.md`. A factual check of each sentence that d43c606 changes or adds in `plan.md` §5 found no false statement. The 7 forms and the patterns of `ContentFillForm` agree with `Tests/PackageStructureTests/ContentFillTests.swift`. The fill of the prompt menu agrees with `Sources/AgentViewKit/Input/EditorKitPromptEditor.swift`. The 6 files and the 4 ids with their modifiers agree with `Tests/PackageStructureTests/ComposerGlassStructureTests.swift`, `GlassPlacementTests.swift` and the source files. All earlier review items are checked.
+    - next: The card is in done. The open question about style.md rule 4 stays for a person.
+  timestamp: 2026-10-21T21:41:44.869051+00:00
+- actor: claude-code
+  id: 01m5g6m1cxp67sjcdvzqr2v7hm
+  text: |-
+    ### finish iteration 4 — clean
+    - implement: changed — plan.md §5 fill forms and the 6 composer files, facts copied from the test source
+    - test: green — docs tests 26 passed
+    - commit: d43c606
+    - review: clean — 0 findings; factual check found no false statement
+  timestamp: 2026-10-21T21:42:03.421718+00:00
 depends_on:
 - 01M5DFADQHSHCRAQW0709TVAPV
 - 01M5DF7Y8PDWS7XF25WDBBYG9W
@@ -200,8 +216,8 @@ depends_on:
 - 01M5E8XAAZ7ZAT3RKSG102C8KK
 - 01M5E8XMJXF8XABYA7P3ZGM5SF
 - 01M5E8XTQS654VRMEBB5A6B05B
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffffab80
 title: AVK-8q Change plan.md §5 to name the Liquid Glass rules of D110, the procedure of D111, the themes of D112 and the answers of D113
 ---
 ## Why
