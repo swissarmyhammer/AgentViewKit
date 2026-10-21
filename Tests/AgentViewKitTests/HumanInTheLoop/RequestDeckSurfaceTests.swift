@@ -92,7 +92,7 @@ struct RequestDeckSurfaceTests {
   }
 
   /// The test compares the two renders only at ``centerPoint``. The render
-  /// draws no card, because the cards are focusable
+  /// draws no card, because each card can take the VoiceOver focus
   /// (``ContentEdgeHostedProbe``). In the bar, it draws the glass of the
   /// deck as a band across the full width, in the center of the render. The
   /// center is far from the edge of the glass. The rim of a rounded glass

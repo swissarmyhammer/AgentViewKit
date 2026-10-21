@@ -16,8 +16,14 @@ import Testing
 /// (the method of ^dbbyg9w).
 ///
 /// The method reads the cache of the window, and not an `ImageRenderer`
-/// render, because `ImageRenderer` does not draw a focusable view. The cache
-/// of a window shows no glass (``GlassRenderProbeHostedTests``), also with
+/// render, because `ImageRenderer` does not draw some of the views that it
+/// checks. `ImageRenderer` draws nothing for a view with
+/// `accessibilityFocused(_:)`, for example a view that can take the VoiceOver
+/// focus (``SwiftUI/View/accessibilityFocusTarget(_:)``), such as the card
+/// of ``PermissionView`` and each card of ``RequestDeck``. A focusable view
+/// with no such modifier draws. `ImageRenderer` also does not draw an AppKit
+/// view, such as the EditorKit editor of a code block. The cache of a window
+/// shows no glass (``GlassRenderProbeHostedTests``), also with
 /// Reduce Transparency on. Thus a view on glass shows the backdrop. A view on
 /// glass has no separator stroke, so the edge check finds no edge.
 /// `GlassPlacementTests` reads the source, and keeps the glass in the files

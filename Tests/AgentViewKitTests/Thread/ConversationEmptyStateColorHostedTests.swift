@@ -13,7 +13,9 @@ import Testing
 /// come only from the accent role.
 ///
 /// The empty state is in a `ScrollView`, and `ImageRenderer` does not draw
-/// the content of a `ScrollView`. Thus the test reads the cache of a window.
+/// the content of a `ScrollView`: on macOS, a `ScrollView` is an AppKit
+/// `NSScrollView`, and `ImageRenderer` does not draw an AppKit view
+/// (``RenderedPixels``). Thus the test reads the cache of a window.
 @Suite @MainActor struct ConversationEmptyStateColorHostedTests {
   @Test(.hostedSerially) func theEmptyStateDrawsNoPixelOfTheAccent() throws {
     let pixels = try EditorThemeViewsTests.drawnCachedPixels(of: ConversationEmptyState())

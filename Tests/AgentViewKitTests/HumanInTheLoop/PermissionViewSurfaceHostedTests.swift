@@ -8,8 +8,9 @@ import Testing
 /// Checks that the card of ``PermissionView`` has no fill and no glass, and
 /// that the separator stroke of the content edge marks its edge (D113).
 ///
-/// The tests use the edge check of ``ContentEdgeHostedProbe``. The card
-/// is `focusable()`, so the method reads the cache of a window.
+/// The tests use the edge check of ``ContentEdgeHostedProbe``. The card can
+/// take the VoiceOver focus, so `ImageRenderer` draws nothing for it, and the
+/// method reads the cache of a window.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewSurfaceHostedTests {
   /// The size of the window. The card fills the width and is shorter than
   /// the height.

@@ -9,8 +9,9 @@ import Testing
 /// ``AgentThreadView`` is in the floating controls of the thread (TestudoApp
 /// `features/style.md`, "How the steps apply").
 ///
-/// The pixel tests read the cache of a window, because the cards are
-/// `focusable()` (``ContentEdgeHostedProbe``). The cache shows no glass,
+/// The pixel tests read the cache of a window, because each card can take
+/// the VoiceOver focus, so `ImageRenderer` draws nothing for it
+/// (``ContentEdgeHostedProbe``). The cache shows no glass,
 /// so the backdrop shows behind a deck with no fill, also on glass.
 @Suite(.serialized, .hostedSerially) @MainActor struct RequestDeckSurfaceHostedTests {
   /// The size of the window. The deck fills the width.

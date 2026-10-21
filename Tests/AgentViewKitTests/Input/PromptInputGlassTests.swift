@@ -3,44 +3,45 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-/// Checks that the field surface of ``PromptInputView``
-/// (``PromptFieldSurface``) is on the floating glass of the kit (D110 (c)).
+/// Checks that the field of ``PromptInputView`` is on the floating glass of
+/// the kit (D110 (c)).
 ///
 /// The test uses the method of ^dbbyg9w (``GlassRenderProbeTests``): it
-/// renders the surface two times with ``RenderedPixels``, one time with
+/// renders the full composer two times with ``RenderedPixels``, one time with
 /// Reduce Transparency off and one time with it on, and compares the pixels.
 ///
-/// The test renders the surface alone, and not the full composer. The
-/// composer is a paste target, so it is focusable, and `ImageRenderer` does
-/// not draw a focusable view (``ContentEdgeHostedProbe``). The cache of a
-/// window shows no glass (``GlassRenderProbeHostedTests``). Thus no render
-/// can show the glass of the full composer, and the hosted frame test in
-/// ``PromptInputViewHostedTests`` checks that the accessory is outside the
-/// field.
-///
-/// The test renders the surface at the size of ``AgentSurfacesTests``, and
-/// compares the two renders only at ``AgentSurfacesTests/insidePoints``,
-/// which are far from the edge of the glass. The rim of a rounded glass
+/// The editor of the composer can take the VoiceOver focus, so
+/// `ImageRenderer` does not draw it (``ContentEdgeHostedProbe``). But the
+/// renderer draws the field glass around the editor. The field fills the
+/// composer above the accessory row, so the center of the render is in the
+/// field glass. The test compares the two renders only at ``fieldPoint``,
+/// which is far from the edge of the glass. The rim of a rounded glass
 /// changes after its first renders in the process, at a render that is not
 /// the same in each run (``RenderedPixels/isClose(to:at:tolerance:)``).
 @Suite @MainActor struct PromptInputGlassTests {
-  @Test func theFieldSurfaceFollowsReduceTransparency() throws {
-    let surface = FieldSurfaceOverBackdrop()
-    let on = try AgentSurfacesTests.pixels(of: surface, reducesTransparency: true)
-    let off = try AgentSurfacesTests.pixels(of: surface, reducesTransparency: false)
-    #expect(!on.isClose(to: off, at: AgentSurfacesTests.insidePoints))
-  }
-}
+  /// The size of each render.
+  static let size = CGSize(width: 320, height: 200)
 
-/// A clear field on ``PromptFieldSurface`` that fills the view, over the
-/// backdrop of ``GlassRenderProbeTests``, in a `GlassEffectContainer`.
-struct FieldSurfaceOverBackdrop: View {
-  var body: some View {
+  /// The center of the render. The point is in the field glass, far from
+  /// each edge of the glass and from the accessory row.
+  static var fieldPoint: CGPoint {
+    CGPoint(x: size.width / 2, y: size.height / 2)
+  }
+
+  /// The composer over the backdrop of ``GlassRenderProbeTests``.
+  static var composerOverBackdrop: some View {
     ZStack {
       GlassRenderProbeTests.backdrop
-      GlassEffectContainer {
-        Color.clear.modifier(PromptFieldSurface())
-      }
+      PromptInputView(text: .constant(AttributedString())) {}
     }
+  }
+
+  @Test func theFieldOfTheComposerFollowsReduceTransparency() throws {
+    let composer = Self.composerOverBackdrop
+    let on = try GlassRenderProbeTests.pixels(
+      of: composer, with: .reduceTransparency, on: true, size: Self.size)
+    let off = try GlassRenderProbeTests.pixels(
+      of: composer, with: .reduceTransparency, on: false, size: Self.size)
+    #expect(!on.isClose(to: off, at: [Self.fieldPoint]))
   }
 }

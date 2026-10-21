@@ -186,8 +186,10 @@ public struct RenderedPixels: Equatable {
   /// differently in its first renders and in its later renders. The change
   /// comes from work that the system does in the background, so the number
   /// of renders before the change is not the same in each run. A test cannot
-  /// wait for the change: it gives no event. The change is only near the
-  /// edge: within 2 points of the edge, a byte can change by 31 levels.
+  /// wait for the change: it gives no event. The change also occurs when each
+  /// render starts from a clear image (``init(rendering:size:)``), so it does
+  /// not come from the pixels of an earlier render. The change is only near
+  /// the edge: within 2 points of the edge, a byte can change by 31 levels.
   /// Farther in, a byte changes by one level or less. Thus, to find that a
   /// setting does not change a glass, use this method with points that are
   /// far from each edge, and not ``isClose(to:tolerance:)``.
