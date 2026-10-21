@@ -90,8 +90,24 @@ comments:
     - evidence: swift test, 117 seconds, exit 0. The main run: 1446 tests in 176 suites passed, 2 known issues (the same 2 as before). PackageStructureTests ran: 153 tests in 21 suites passed, and FixedColorTests passed. 0 failures, 0 skipped. The only warning is the known mlx bundle build warning.
     - next: review
   timestamp: 2026-10-21T03:16:23.924524+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5e7edaf4tyyc0b2cakfvzy9
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~2..HEAD (f9c7fd4, e3dd15d). 0 findings. 6 files reviewed. 7 validator runs, 0 failed. All 3 prior findings are checked.
+    - next: The task is in done. No more work on this card.
+  timestamp: 2026-10-21T03:17:58.735784+00:00
+- actor: claude-code
+  id: 01m5e7exfnk9bw831knc744y01
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 6 files (product fix in ScrollAnchorManager: keep the pin after a press on the pill until the list reports the bottom rows; the pill tests check the real list reports; named constants in the fixtures)
+    - test: green — swift test, 1446 passed, 2 known issues that were there before; 153 structure tests passed
+    - commit: f9c7fd4, e3dd15d
+    - review: clean — 0 findings, the three prior findings are checked
+  timestamp: 2026-10-21T03:18:15.285784+00:00
+position_column: done
+position_ordinal: ffff8680
 title: 'AVK-8o Structure test: colors come from \.editorTheme, not from fixed colors'
 ---
 ## Why
