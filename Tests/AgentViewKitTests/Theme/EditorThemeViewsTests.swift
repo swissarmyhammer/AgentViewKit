@@ -49,11 +49,21 @@ import Testing
   }
 
   @Test func theCodeBlockBarUsesTheEditorTheme() throws {
-    // The editor fills the body of the block, so the frame background shows
-    // only in the command output test below. The two views use one frame.
     let pixels = try Self.pixels(of: CodeBlockView(code: "let x = 1", language: "swift"))
     #expect(pixels.contains(Role.statusBarBackground))
     #expect(!pixels.contains(Role.terminalBackground))
+  }
+
+  @Test(.hostedSerially) func theCodeBlockFrameHasNoEditorBackground() throws {
+    // A code block has no fill (D113). `ImageRenderer` does not draw the
+    // EditorKit editor, and the editor covers the frame below the header.
+    // Thus this test reads the cache of a window, which draws the editor. The
+    // editor draws no background of its own, so the editor background shows
+    // only when the frame fills the block.
+    let block = CodeBlockView(code: "let x = 1", language: "swift")
+      .editorTheme(DistinctRolesTheme())
+    let pixels = try GlassRenderProbeHostedTests.cachedPixels(of: block, size: Self.size)
+    #expect(!pixels.contains(Role.editorBackground))
   }
 
   @Test func withNoThemeTheCommandOutputDrawsNoRoleColor() throws {

@@ -5,23 +5,25 @@ import SwiftUI
 /// The frame of a block that holds an EditorKit editor: ``CodeBlockView``,
 /// ``TerminalView`` and ``CommandOutputView``.
 ///
-/// The frame fills the block, rounds its corners with the medium radius of
-/// the kit theme, and draws a separator border. The fill is the editor
-/// background of the EditorKit theme in the environment, or the fill that the
-/// block gives. The frame sets no EditorKit theme, so the editor in the block
-/// uses the theme of the environment too.
+/// The frame clips the block to the shape of ``AgentSurface`` with the medium
+/// radius of the kit theme, and marks its edge with the separator stroke of
+/// ``SwiftUI/View/agentContentEdge(radius:)``. A code block has no fill
+/// (D113): the content behind the block shows through it. Only the fill that
+/// a block gives, for example the terminal background, fills the block. The
+/// frame sets no EditorKit theme, so the editor in the block uses the theme
+/// of the environment.
 struct EditorBlockFrame: ViewModifier {
-  /// The fill of the block, or `nil` for the editor background of the
-  /// EditorKit theme.
+  /// The fill of the block, or `nil` for a block with no fill.
   let fill: Color?
 
   @Environment(\.agentTheme) private var theme
-  @Environment(\.editorTheme) private var editorTheme
 
   func body(content: Content) -> some View {
+    let shape = AgentSurface.shape(radius: theme.radii.m)
     content
-      .clipShape(AgentSurface.shape(radius: theme.radii.m))
-      .agentContentSurface(fill ?? editorTheme.editorBackground, radius: theme.radii.m)
+      .clipShape(shape)
+      .background(fill ?? .clear, in: shape)
+      .agentContentEdge(radius: theme.radii.m)
   }
 }
 
@@ -57,6 +59,8 @@ struct EditorBlockBar: ViewModifier {
 
 extension View {
   /// Puts this block in the frame of a block that holds an EditorKit editor.
+  ///
+  /// The frame has no fill (D113). A separator stroke marks its edge.
   ///
   /// - Returns: The framed block.
   func editorBlockFrame() -> some View {
