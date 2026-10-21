@@ -111,8 +111,7 @@
       session: ScriptedSession, connection holder: ConnectionHolder, draft: AttachmentChipsTestModel
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
-        VStack(spacing: 0) {
-          AgentThreadView(session: session.model)
+        AgentThreadView(session: session.model) {
           ConnectionComposerHost(holder: holder, model: draft)
         }
         .environment(\.sessionModel, session.model)
@@ -170,8 +169,7 @@
       requestStartReport: ObservationReport<String>? = nil
     ) -> HostedViewHarness<some View> {
       HostedViewHarness(size: size) {
-        VStack(spacing: 0) {
-          AgentThreadView(session: session.model)
+        AgentThreadView(session: session.model) {
           PromptInputHost(model: draft)
         }
         .environment(\.sessionModel, session.model)

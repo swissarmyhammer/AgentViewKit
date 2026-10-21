@@ -75,6 +75,13 @@ extension EnvironmentValues {
   ///
   /// Set the value with ``SwiftUI/View/conversationPageSize(_:)``.
   @Entry public var conversationPageSize = ConversationLayout.defaultPageSize
+
+  /// Whether a ``ConversationView`` shows its scroll-to-bottom pill over the
+  /// bottom of its list.
+  ///
+  /// An ``AgentThreadView`` sets the value to `false`, and shows the pill in
+  /// its floating controls, in one glass container with the composer.
+  @Entry var conversationShowsPill = true
 }
 
 extension View {
@@ -151,6 +158,10 @@ public struct ConversationView<EmptyState: View>: View {
 
   @Environment(\.conversationPageSize) private var pageSize
   @Environment(\.agentTheme) private var theme
+
+  /// Whether the list shows its own scroll-to-bottom pill
+  /// (``SwiftUI/EnvironmentValues/conversationShowsPill``).
+  @Environment(\.conversationShowsPill) private var showsPill
 
   /// Makes the list of the transcript of a session model with a custom empty
   /// state.
@@ -243,8 +254,12 @@ public struct ConversationView<EmptyState: View>: View {
       noteVisible(ids: anchors.visibleIDs, isNearBottom: isNearBottom)
     }
     .overlay(alignment: .bottom) {
-      ConversationPill(anchors: anchors)
-        .padding(theme.spacing.m)
+      // In an `AgentThreadView`, the pill is in the floating controls of the
+      // thread, with the composer.
+      if showsPill {
+        ConversationPill(anchors: anchors)
+          .padding(theme.spacing.m)
+      }
     }
     .onAppear {
       anchors.onScroll = { target in scroll(to: target) }
@@ -401,8 +416,10 @@ extension ConversationView where EmptyState == ConversationEmptyState {
 /// The scroll-to-bottom pill of a conversation.
 ///
 /// The pill is a separate view, so that a change to the pin state evaluates
-/// only this view and not the list.
-private struct ConversationPill: View {
+/// only this view and not the list. A ``ConversationView`` shows it over the
+/// bottom of its list. An ``AgentThreadView`` shows it in its floating
+/// controls.
+struct ConversationPill: View {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
 

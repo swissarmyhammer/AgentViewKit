@@ -45,9 +45,10 @@ import Testing
     .root(AgentCommandTarget.segment(for: model))
   }
 
-  /// Shows the thread view of a session and its connection model, the deck
-  /// of the session, and a composer below them when the test gives one, in
-  /// one focus scope, with a command system and a pasteboard.
+  /// Shows the thread view of a session and its connection model, with a
+  /// composer in the composer slot when the test gives one, and the deck of
+  /// the session below it, in one focus scope, with a command system and a
+  /// pasteboard. With no composer, the slot is empty.
   ///
   /// The composer reads the session model from the environment, so that a
   /// submit sends a prompt to the agent.
@@ -75,11 +76,12 @@ import Testing
     HostedViewHarness(size: windowSize) {
       scoped(
         VStack {
-          AgentThreadView(session: session.model, connection: session.connection)
-          RequestDeck(session: session.model)
-          if let composer {
-            PromptInputHost(model: composer)
+          AgentThreadView(session: session.model, connection: session.connection) {
+            if let composer {
+              PromptInputHost(model: composer)
+            }
           }
+          RequestDeck(session: session.model)
         }
         .accessibilityFocusScope(),
         in: outerScope ? session.model : nil

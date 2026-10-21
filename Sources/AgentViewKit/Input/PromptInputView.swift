@@ -4,8 +4,11 @@ import SwiftUI
 /// The composer of a thread (plan.md §7, §9 D).
 ///
 /// The view shows a field and an accessory row in one `GlassEffectContainer`
-/// (D110 (c)). The field holds the attachment chips and the editor, and it is
-/// on the floating glass of the kit (``SwiftUI/View/agentFloatingGlass()``).
+/// (D110 (c)). In the composer slot of an ``AgentThreadView``, the composer
+/// makes no container of its own: it is in the one container of the floating
+/// controls of the thread, with the scroll-to-bottom pill. The field holds
+/// the attachment chips and the editor, and it is on the floating glass of
+/// the kit (``SwiftUI/View/agentFloatingGlass()``).
 /// The accessory row is below the field and not on that glass, so its glass
 /// buttons are not glass on glass. A menu of the editor, for example the
 /// completion list of ``EditorKitPromptEditor``, shows above the field on its
@@ -63,10 +66,13 @@ import SwiftUI
 /// draw, and keeps no copy. An image goes out only when the agent advertises
 /// `image`; else its chip shows the "not accepted" mark and the prompt does
 /// not carry it. A file goes out as an embedded resource when the agent
-/// advertises `embeddedContext`, else as a resource link. Give both models to
-/// the composer in the environment, and put the composer, the thread view and
-/// the ``RequestDeck`` in one ``SwiftUI/View/accessibilityFocusScope()``. The
-/// ``RequestDeck`` documentation shows the full example.
+/// advertises `embeddedContext`, else as a resource link. In the composer
+/// slot of an ``AgentThreadView``, the thread view gives both models to the
+/// composer, and the composer is in the focus scope of the thread. Out of a
+/// thread view, give both models to the composer in the environment, and put
+/// the composer, the thread view and the ``RequestDeck`` in one
+/// ``SwiftUI/View/accessibilityFocusScope()``. The ``RequestDeck``
+/// documentation shows the full example.
 ///
 /// In an agent command scope (``SwiftUI/View/agentCommandScope(session:)``),
 /// a submit runs ``AgentCommandVerb/send`` and Esc runs
@@ -181,8 +187,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     // The field, the menu of the editor and the accessory are siblings in one
     // container. Only the field and the menu are on glass, so the glass
     // buttons of the accessory are not glass on glass, and the container
-    // blends their shapes (D110 (c)).
-    GlassEffectContainer(spacing: theme.spacing.s) {
+    // blends their shapes (D110 (c)). In the floating controls of a thread
+    // view, the composer uses the container of the thread.
+    FloatingGlassContainer(spacing: theme.spacing.s) {
       VStack(alignment: .leading, spacing: theme.spacing.s) {
         field(context)
         accessory()

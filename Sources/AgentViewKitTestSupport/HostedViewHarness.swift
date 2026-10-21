@@ -225,6 +225,21 @@ public final class HostedViewHarness<Content: View> {
     liveElement(identifier: identifier).map { Self.snapshot(of: $0, includingLinks: true) }
   }
 
+  /// A copy of each accessibility element under the first element with
+  /// `identifier`, in depth first order.
+  ///
+  /// A test uses this function to learn that two elements are in one
+  /// container, for example the controls in one group of floating controls.
+  /// The element with `identifier` itself is not in the list.
+  ///
+  /// - Parameter identifier: The accessibility identifier of the container.
+  /// - Returns: The flattened list of element copies, or an empty list when
+  ///   no element has `identifier`.
+  public func elements(under identifier: String) -> [AccessibilityElementSnapshot] {
+    guard let container = liveElement(identifier: identifier) else { return [] }
+    return Self.descendants(of: container).map { Self.snapshot(of: $0, includingLinks: true) }
+  }
+
   /// Whether an accessibility element under the hosting view has the label
   /// `label`.
   ///
@@ -433,9 +448,18 @@ public final class HostedViewHarness<Content: View> {
   ///
   /// - Returns: The flattened list of live elements.
   private func liveElements() -> [NSObject] {
+    Self.descendants(of: hostingView)
+  }
+
+  /// The live accessibility elements under `root`, in depth first order.
+  /// `root` itself is not in the list.
+  ///
+  /// - Parameter root: The element whose subtree the function reads.
+  /// - Returns: The flattened list of live elements.
+  private static func descendants(of root: NSObject) -> [NSObject] {
     var result: [NSObject] = []
-    for child in Self.children(of: hostingView) {
-      Self.collect(child, depth: 0, into: &result)
+    for child in children(of: root) {
+      collect(child, depth: 0, into: &result)
     }
     return result
   }

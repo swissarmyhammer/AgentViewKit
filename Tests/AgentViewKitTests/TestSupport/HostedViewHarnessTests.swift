@@ -107,6 +107,26 @@ struct SizedBoxesView: View {
     #expect(harness.element(identifier: "missing") == nil)
   }
 
+  @Test func readsOnlyTheElementsUnderAContainer() {
+    let harness = HostedViewHarness {
+      VStack {
+        VStack {
+          Text("inside")
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("container")
+        Text("outside")
+      }
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let labels = harness.elements(under: "container").compactMap(\.label)
+    #expect(labels.contains("inside"))
+    #expect(!labels.contains("outside"))
+    #expect(harness.elements(under: "missing").isEmpty)
+  }
+
   @Test func readsTheFrameOfAnElement() throws {
     let harness = HostedViewHarness(SizedBoxesView())
     defer { harness.close() }

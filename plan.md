@@ -311,7 +311,7 @@ The thread is a long, append-heavy list in `ScrollView { LazyVStack { ForEach â€
 Source: native (build on stock), reuse (existing library), net-new (agent-grade, build).
 
 **A. Thread**
-- `AgentThreadView`: the drop-in. Binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and renders the whole surface except the request cards. The app puts a `RequestDeck` next to it. *net-new*
+- `AgentThreadView`: the drop-in. Binds a `SessionModel`, and the `ConnectionModel` when the host gives it, and renders the whole surface except the request cards. Its composer slot is directly below the conversation (D36), in one `GlassEffectContainer` with the scroll-to-bottom pill (D110 (c)). The default slot is `DefaultThreadComposer`. The app puts a `RequestDeck` in the slot above the composer, or next to the view. *net-new*
 - `ConversationView`: container with auto-scroll, scroll-to-bottom, empty state. *native*
 - `MessageActions`: copy, copy thread, export, retry, edit, in a footer. *native*
 - `ThreadMinimapView`: scrubbable rail of the transcript entries, with the tool call status. *net-new*

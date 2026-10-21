@@ -40,19 +40,17 @@ struct ACPThread: View {
     // permission and elicitation cards through the two models. The host gives
     // only the work that no model does: a terminal sign-in runner with
     // `.terminalAuthRunner(_:)`, and a reconnect with `.agentReconnect(_:)`.
-    VStack(spacing: 0) {
-      AgentThreadView(session: session, connection: connection)
+    // The composer slot shows directly below the conversation, in one glass
+    // container with the scroll-to-bottom pill. The thread view gives the
+    // slot its two models and its focus scope, so that the VoiceOver focus
+    // goes from an answered card back to the composer. With no slot, the
+    // thread view shows a default composer.
+    AgentThreadView(session: session, connection: connection) {
       // The questions of the session, such as a permission request. The
       // thread view shows no card. The deck takes no space while no question
       // waits and no notice of a withdrawn question shows.
       RequestDeck(session: session)
       PromptInputView(text: $draft) {}
     }
-    // One focus scope for the three views, so that the VoiceOver focus goes
-    // from an answered card back to the composer.
-    .accessibilityFocusScope()
-    // The composer reads the two models from the environment.
-    .environment(\.sessionModel, session)
-    .environment(\.connectionModel, connection)
   }
 }

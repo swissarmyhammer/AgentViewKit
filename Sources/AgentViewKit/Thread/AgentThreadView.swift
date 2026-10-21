@@ -16,11 +16,35 @@ import SwiftUI
 /// the conversation, a ``StateBanner`` shows the agent state. Each banner
 /// view, and not this view, reads its part of the model.
 ///
+/// Below the conversation, the floating controls of the thread show the
+/// composer slot, directly below its chat (D36). The default slot is a
+/// ``DefaultThreadComposer``: a ``PromptInputView`` that keeps its own text.
+/// Give a custom composer with ``init(session:connection:composer:)``, or
+/// `EmptyView()` for no composer. The scroll-to-bottom pill
+/// (``ScrollToBottomPill``) shows above the composer, and the pill and the
+/// slot are in one `GlassEffectContainer`, with no glass on glass (D110 (c)).
+/// The thread view gives its session model and its connection model to the
+/// slot (``SwiftUI/EnvironmentValues/sessionModel``,
+/// ``SwiftUI/EnvironmentValues/connectionModel``), and the slot is in the
+/// focus scope and the agent command scope of the thread. The commands of
+/// the floating controls are ``AgentCommandVerb/scrollToBottom``,
+/// ``AgentCommandVerb/focusComposer`` and ``AgentCommandVerb/send``, so the
+/// menus, the keys and the command palette reach them.
+///
 /// The view shows no card for a pending permission request or a pending
-/// elicitation of the session. Put a ``RequestDeck`` next to the view, and
-/// put the thread view, the deck and the prompt editor in one
-/// ``SwiftUI/View/accessibilityFocusScope()``. The ``RequestDeck``
-/// documentation shows the full example.
+/// elicitation of the session. Put a ``RequestDeck`` next to the view, or in
+/// the composer slot above the composer:
+///
+/// ```swift
+/// AgentThreadView(session: session, connection: connection) {
+///   RequestDeck(session: session)
+///   PromptInputView(text: $draft) {}
+/// }
+/// ```
+///
+/// A deck next to the view goes in one
+/// ``SwiftUI/View/accessibilityFocusScope()`` with the thread view. The
+/// ``RequestDeck`` documentation shows the full example.
 ///
 /// When the host gives the connection model, an ``AgentInfoHeader`` names the
 /// agent from its `initialize` answer, an ``AgentConnectionBanner`` shows the
@@ -67,7 +91,7 @@ import SwiftUI
 ///   no mover, so that the views in its rows can move the VoiceOver focus.
 ///   A scope around the thread view, the deck and the prompt editor gives
 ///   one mover to the three.
-public struct AgentThreadView: View {
+public struct AgentThreadView<Composer: View>: View {
   /// The session model whose transcript the view shows.
   let session: SessionModel
 
@@ -76,6 +100,12 @@ public struct AgentThreadView: View {
   /// session on, or `nil`.
   let connection: ConnectionModel?
 
+  /// The manager of the scroll position that a test gave, or `nil`.
+  let hostAnchors: ScrollAnchorManager?
+
+  /// The view in the composer slot, below the conversation.
+  let composer: Composer
+
   /// The store that the view makes when the environment has none.
   @State private var ownExpandedBlocks = ExpandedBlocksStore()
 
@@ -83,37 +113,68 @@ public struct AgentThreadView: View {
   /// none.
   @State private var ownInspectorSelection = InspectorSelection()
 
-  /// The scroll anchors of the list. The agent commands use them to jump
-  /// and to scroll.
-  @State private var anchors = ScrollAnchorManager()
+  /// The scroll anchors of the list that the view makes when no manager is
+  /// given. The agent commands use them to jump and to scroll.
+  @State private var ownAnchors = ScrollAnchorManager()
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
+  @Environment(\.connectionModel) private var hostConnection
+  @Environment(\.agentTheme) private var theme
 
   /// The report that gets the close decision of the view when it goes away,
   /// or `nil`.
   @Environment(\.threadCloseReport) private var reportClose
 
-  /// Makes the view of the transcript of a session model.
+  /// Makes the view of the transcript of a session model, with a custom view
+  /// in the composer slot.
   ///
-  /// When the host gives the connection model of the session, the view
-  /// closes the session when the view goes away (plan.md §3.8 "Close"): it
-  /// calls `ConnectionModel.close(_:)` when `canCloseSessions` is true and
-  /// the session is not closed. A close that fails adds an error entry to
-  /// the transcript of the session.
+  /// The slot shows below the conversation, in one glass container with the
+  /// scroll-to-bottom pill. The slot gets the session model and the
+  /// connection model of the thread view in its environment. Give
+  /// `EmptyView()` for no composer.
   ///
-  /// With the connection model, the missed-updates banner of
-  /// ``SessionStreamBanner`` also shows its Reload button. The button
-  /// resumes the session with the `cwd` and the additional directories of
-  /// the session model.
+  /// See ``init(session:connection:)`` for the close of the session and the
+  /// Reload button.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
-  public init(session: SessionModel, connection: ConnectionModel? = nil) {
+  ///   - composer: The builder of the view in the composer slot, such as a
+  ///     ``PromptInputView``.
+  public init(
+    session: SessionModel, connection: ConnectionModel? = nil,
+    @ViewBuilder composer: () -> Composer
+  ) {
+    self.init(session: session, connection: connection, anchors: nil, composer: composer)
+  }
+
+  /// Makes the view of the transcript of a session model with a given
+  /// manager of the scroll position.
+  ///
+  /// A hosted test gives the manager, so that it can give the manager a
+  /// visibility report and read its pin state.
+  ///
+  /// - Parameters:
+  ///   - session: The session model whose transcript the view shows.
+  ///   - connection: The connection model that opened the session, or `nil`.
+  ///   - anchors: The manager of the scroll position, or `nil` to let the
+  ///     view make its own manager.
+  ///   - composer: The builder of the view in the composer slot.
+  init(
+    session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager?,
+    @ViewBuilder composer: () -> Composer
+  ) {
     self.session = session
     self.connection = connection
+    self.hostAnchors = anchors
+    self.composer = composer()
+  }
+
+  /// The manager of the scroll position that the view uses.
+  private var anchors: ScrollAnchorManager {
+    hostAnchors ?? ownAnchors
   }
 
   public var body: some View {
@@ -141,7 +202,7 @@ public struct AgentThreadView: View {
   }
 
   /// The conversation of the session model, with the parts that read the
-  /// model.
+  /// model, and the floating controls below it.
   private var content: some View {
     VStack(spacing: 0) {
       if let connection {
@@ -151,13 +212,38 @@ public struct AgentThreadView: View {
       SessionNoticeBanner(session: session)
       SessionStreamBanner(session: session, connection: connection)
       ConversationView(session: session, anchors: anchors)
+        // The pill is in the floating controls, in one container with the
+        // composer.
+        .environment(\.conversationShowsPill, false)
       if let connection {
         AgentLoginPrompt(session: session, connection: connection)
       }
     }
+    .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
     .agentCommandScope(session: session, anchors: anchors)
     .onDisappear(perform: closeWhenSupported)
+  }
+
+  /// The scroll-to-bottom pill and the composer slot, in one glass container
+  /// (D110 (c)).
+  ///
+  /// The pill is above the composer. A composer in the slot that makes its
+  /// own container, such as ``PromptInputView``, uses this container. The
+  /// controls are one accessibility container with
+  /// ``AgentThreadLayout/floatingControlsIdentifier``.
+  private var floatingControls: some View {
+    FloatingGlassContainer(spacing: theme.spacing.s) {
+      VStack(spacing: theme.spacing.s) {
+        ConversationPill(anchors: anchors)
+        composer
+          .environment(\.sessionModel, session)
+          .environment(\.connectionModel, connection ?? hostConnection)
+      }
+    }
+    .padding(theme.spacing.m)
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier(AgentThreadLayout.floatingControlsIdentifier)
   }
 
   /// Starts the close of the session when the host gave the connection
@@ -186,6 +272,16 @@ public struct AgentThreadView: View {
       session.appendError(reporting: error)
     }
   }
+}
+
+/// The fixed values of ``AgentThreadView``.
+///
+/// A generic view type cannot hold a stored static property, so the values
+/// are in this separate type.
+public enum AgentThreadLayout {
+  /// The accessibility identifier of the floating controls of a thread: the
+  /// scroll-to-bottom pill and the composer slot, in one glass container.
+  public static let floatingControlsIdentifier = "thread-floating-controls"
 }
 
 extension EnvironmentValues {

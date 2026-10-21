@@ -4,8 +4,14 @@ import Testing
 
 /// Checks the glass calls in the files of the composer (D110 (c)).
 ///
+/// One file of the kit makes a `GlassEffectContainer`: the shared
+/// `FloatingGlassContainer`. That container makes no second container in a
+/// container, so a group of floating controls has one container. The thread
+/// view puts the scroll-to-bottom pill and the composer slot in one shared
+/// container, and the composer uses the shared container too.
+///
 /// The composer puts the field, the menu of the editor and the accessory in
-/// one `GlassEffectContainer`. The field and the menu are on the floating
+/// that one container. The field and the menu are on the floating
 /// glass of the kit, through `agentFloatingGlass()`. The menu is a sibling of
 /// the field glass, not in it. The composer file writes no direct
 /// `.glassEffect` call, so that one modifier gives each glass. The file also
@@ -24,8 +30,17 @@ import Testing
   /// The file of the EditorKit editor of the composer.
   static let editorFile = KitSourceFiles.kitFile("Input/EditorKitPromptEditor.swift")
 
+  /// The file of the thread view, which holds the floating controls.
+  static let threadFile = KitSourceFiles.kitFile("Thread/AgentThreadView.swift")
+
+  /// The file of the shared container of the floating controls.
+  static let sharedContainerFile = KitSourceFiles.kitFile("Theme/FloatingGlassContainer.swift")
+
   /// The text that makes a glass effect container.
   static let containerCall = "GlassEffectContainer("
+
+  /// The text that makes the shared container of the floating controls.
+  static let sharedContainerCall = "FloatingGlassContainer("
 
   /// The text of the floating glass modifier of the kit.
   static let floatingGlassCall = ".agentFloatingGlass()"
@@ -50,13 +65,50 @@ import Testing
   static func codeLineCount(holding text: String, in file: String = composerFile) throws -> Int {
     let source = try PackageFiles.text(of: file)
     return SourceLineScanner.matches(inSource: source, file: file) { line in
-      let isComment = line.text.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-      return !isComment && line.text.contains(text) ? [line.number] : []
+      isCode(line, holding: text) ? [line.number] : []
     }.count
   }
 
-  @Test func theComposerHasOneGlassEffectContainer() throws {
-    #expect(try Self.codeLineCount(holding: Self.containerCall) == 1)
+  /// The files of the kit with a code line that holds `text`.
+  ///
+  /// - Parameter text: The text to find.
+  /// - Returns: The path of each file, relative to the package root, one
+  ///   time for each line.
+  /// - Throws: An error when a file cannot be read.
+  static func kitFiles(holding text: String) throws -> [String] {
+    try SourceLineScanner.matches(
+      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root
+    ) { line in
+      isCode(line, holding: text) ? [line.file] : []
+    }
+  }
+
+  /// Tells if `line` is a code line that holds `text`.
+  ///
+  /// - Parameters:
+  ///   - line: The line of a Swift file.
+  ///   - text: The text to find.
+  /// - Returns: `true` when the line holds `text` and is not a comment.
+  static func isCode(_ line: SourceLine, holding text: String) -> Bool {
+    let isComment = line.text.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+    return !isComment && line.text.contains(text)
+  }
+
+  @Test func onlyTheSharedContainerMakesAGlassEffectContainer() throws {
+    #expect(try Self.kitFiles(holding: Self.containerCall) == [Self.sharedContainerFile])
+  }
+
+  @Test func theComposerUsesTheSharedContainerOneTime() throws {
+    #expect(try Self.codeLineCount(holding: Self.sharedContainerCall) == 1)
+  }
+
+  @Test func theThreadViewPutsItsFloatingControlsInTheSharedContainer() throws {
+    #expect(try Self.codeLineCount(holding: Self.sharedContainerCall, in: Self.threadFile) == 1)
+  }
+
+  @Test func theThreadViewWritesNoGlassOfItsOwn() throws {
+    #expect(try Self.codeLineCount(holding: Self.glassEffectCall, in: Self.threadFile) == 0)
+    #expect(try Self.codeLineCount(holding: Self.floatingGlassCall, in: Self.threadFile) == 0)
   }
 
   @Test func theComposerPutsTheFloatingGlassOfTheKitOnTheFieldAndTheMenu() throws {

@@ -45,16 +45,13 @@ struct GalleryWindowReplica: View {
     }
   }
 
-  /// The views of the `SessionThreadColumn` of the demo app, with no composer.
+  /// The views of the `SessionThreadColumn` of the demo app, with no composer:
+  /// the usage is in the composer slot of the thread view.
   private var detail: some View {
-    VStack(spacing: 0) {
-      AgentThreadView(session: session, connection: connection)
-        .messageFooter { entry in MessageActions(entry: entry) }
+    AgentThreadView(session: session, connection: connection) {
       ContextUsageView(session: session)
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal)
     }
-    .environment(\.sessionModel, session)
-    .environment(\.connectionModel, connection)
+    .messageFooter { entry in MessageActions(entry: entry) }
   }
 }

@@ -246,7 +246,7 @@ import UniformTypeIdentifiers
     let host = InspectorSelection()
     let own = InspectorSelection()
 
-    #expect(AgentThreadView.inspectorSelection(host: host, own: own) === host)
+    #expect(AgentThreadView<DefaultThreadComposer>.inspectorSelection(host: host, own: own) === host)
   }
 
   /// A thread view gives its own selection to its inspector, when the
@@ -254,7 +254,7 @@ import UniformTypeIdentifiers
   @Test func aThreadViewWithNoHostSelectionGivesItsOwnSelectionToItsInspector() {
     let own = InspectorSelection()
 
-    #expect(AgentThreadView.inspectorSelection(host: nil, own: own) === own)
+    #expect(AgentThreadView<DefaultThreadComposer>.inspectorSelection(host: nil, own: own) === own)
   }
 
   // MARK: - Artifact
