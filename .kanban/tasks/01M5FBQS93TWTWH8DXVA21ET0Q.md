@@ -84,8 +84,24 @@ comments:
     - code change: none.
     - next: review
   timestamp: 2026-10-21T14:31:23.004208+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5fe1rhe8rcdxq11srwhxc4n
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (10fb51c). 0 findings, 0 confirmed, 0 refuted. 7 validator runs attempted, 0 failed. The prior finding (PromptInputGlassTests.swift duplication) is checked.
+    - next: The task is in done. No work remains.
+  timestamp: 2026-10-21T14:32:38.702054+00:00
+- actor: claude-code
+  id: 01m5fe23jwts1dbv80qtv2f2w7
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 2 files (one helper GlassRenderProbeTests.expectDifferentPixels for the Reduce Transparency compare)
+    - test: green — swift test, 1488 passed, 2 known issues that were there before
+    - commit: 10fb51c
+    - review: clean — 0 findings, the prior finding is checked
+  timestamp: 2026-10-21T14:32:50.012583+00:00
+position_column: done
+position_ordinal: ffffa080
 title: Check the test comments that came from the old ImageRenderer cgImage defect
 ---
 Source: ^v82ggv6. That card found that `ImageRenderer.cgImage` gives the pixels of an earlier render of the process when the content draws nothing. The fix puts each render in front of an empty `Canvas`, so each render starts from a clear image.
