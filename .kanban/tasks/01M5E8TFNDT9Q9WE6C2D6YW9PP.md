@@ -34,10 +34,26 @@ comments:
     - warnings: only the mlx bundle build warning ("missing creator for mutated node ... mlx-swift_Cmlx.bundle"), which existed before. No new warning.
     - next: review
   timestamp: 2026-10-21T05:26:02.599860+00:00
+- actor: claude-code
+  id: 01m5eew6dyw8mq3w6mgaepv7ds
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit a3a9616). 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed. 3 files reviewed. 2 .kanban files are excluded by .reviewignore.
+    - next: The task is in done. No work remains for this card.
+  timestamp: 2026-10-21T05:27:50.462991+00:00
+- actor: claude-code
+  id: 01m5eewp0fbftmhtx211309grn
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files
+    - test: green — swift test, 1449 passed, 2 known issues that were there before; 173 structure tests passed
+    - commit: a3a9616
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T05:28:06.415890+00:00
 depends_on:
 - 01M5E8S3KAQ7EV2C2K13Y1K31Q
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8e80
 title: 'AVK-8z Code blocks: remove the editor background fill of EditorBlockFrame (EditorBlockChrome.swift:24) and use agentContentEdge (D113 answer 1)'
 ---
 ## Why
