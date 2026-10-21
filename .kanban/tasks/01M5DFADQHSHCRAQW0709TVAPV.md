@@ -91,10 +91,26 @@ comments:
     - changes: none to files.
     - next: review
   timestamp: 2026-10-21T01:40:10.579653+00:00
+- actor: claude-code
+  id: 01m5e1xcf5gvyyztaa3y6gk2d6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (eddd08a). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. The prior finding at `Sources/AgentViewKit/Input/DefaultThreadComposer.swift:13` is checked.
+    - next: The task moved to done.
+  timestamp: 2026-10-21T01:41:17.925502+00:00
+- actor: claude-code
+  id: 01m5e1xwqpwzx39zfwwpp8t1kj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (DefaultThreadComposer uses `draft` directly)
+    - test: green — swift test, 1435 passed, 2 known issues that were there before
+    - commit: eddd08a
+    - review: clean — 0 findings, the prior finding is checked
+  timestamp: 2026-10-21T01:41:34.582728+00:00
 depends_on:
 - 01M5DF9SKZ4BRGBD6BFG5XY664
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8480
 title: AVK-8l Put the scroll-to-bottom pill and the composer in one GlassEffectContainer
 ---
 ## Why
