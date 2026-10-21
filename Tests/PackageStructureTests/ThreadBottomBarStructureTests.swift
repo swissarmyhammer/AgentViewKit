@@ -30,12 +30,16 @@ struct BarView: CustomTestStringConvertible, Sendable {
 /// The scan blanks the comments and the string literals of each file, then
 /// finds the block of the bar with ``PreviewCoverageTests/balancedBody(in:from:)``.
 @Suite struct ThreadBottomBarStructureTests {
+  /// The code text before the opening brace of the content of the bottom bar
+  /// of a thread: the floating controls of ``AgentThreadView``.
+  static let floatingControlsStart = "var floatingControls"
+
   /// Each view that shows only in the bottom bar of its file.
   static let bottomBarViews = [
     BarView(
-      file: ComposerGlassStructureTests.threadFile, view: "StateBanner", barStart: "var floatingControls"),
+      file: ComposerGlassStructureTests.threadFile, view: "StateBanner", barStart: floatingControlsStart),
     BarView(
-      file: ComposerGlassStructureTests.threadFile, view: "AgentLoginPrompt", barStart: "var floatingControls"),
+      file: ComposerGlassStructureTests.threadFile, view: "AgentLoginPrompt", barStart: floatingControlsStart),
     BarView(
       file: KitSourceFiles.kitFile("Thread/ConversationView.swift"), view: "StateBanner",
       barStart: ".safeAreaBar(edge: .bottom)"),

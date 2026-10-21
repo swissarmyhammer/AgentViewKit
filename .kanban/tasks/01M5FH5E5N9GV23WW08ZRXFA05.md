@@ -75,10 +75,26 @@ comments:
     - evidence: 1 file — Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift. 7 findings checked. run-watched.sh zrx-snap (--filter HostedSnapshotTests|GlassSnapshotTests): 14 tests in 2 suites passed, 0 failures. run-watched.sh zrx-full: 1544 tests in 194 suites passed + 180 tests in 26 suites + 1 test, 0 failures, 3 known issues (all on purpose, as before). On-screen test windows 0 in both runs; no frontmost app change. Build warnings: only the SwiftPM "missing creator for mutated node" message (mlx-swift_Cmlx.bundle), not from the changed file. No PNG changed. No commit.
     - next: review
   timestamp: 2026-10-21T17:43:17.762234+00:00
+- actor: claude-code
+  id: 01m5fs10qcyh1ea3wba9s3g31y
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit e977f12). 0 findings, 0 confirmed, 0 refuted. 1 file reviewed. All 7 items in the earlier Review Findings section are checked.
+    - next: The task moved to done. No more work is necessary.
+  timestamp: 2026-10-21T17:44:28.652531+00:00
+- actor: claude-code
+  id: 01m5fs19mvn77zcsmc96dc6qed
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — SnapshotFixtures.swift named constants; 7 findings checked
+    - test: green — run-watched.sh full run, 1725 passed, 0 failed, 3 known issues; on-screen test windows 0; 0 PNG changes
+    - commit: e977f12
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-21T17:44:37.787058+00:00
 depends_on:
 - 01M5FH4Z521FC705TKY8NT2787
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffffa380
 title: AVK-13 PNG snapshot images of the real views, with reference images and diffs
 ---
 Source: the user, 2026-10-21: "i want you to actually test the view, not just the model. and i want you to have images to look at cause lots of my feedback is going to be 'this is ugly'". Depends on AVK-12 (the hidden-window harness).
