@@ -274,7 +274,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 | Theme tokens | ✓ `AgentTheme`, `.agentTheme(_:)` (`Theme/`) | ✓ shadcn CSS variables | ✓ shadcn / Tailwind (core theming page ?) | ✓ shadcn oklch tokens on `[data-copilotkit]` |
 | One theme for code and chrome | ✓ `AgentTheme+EditorKit.swift` | partial: Shiki theme apart | ? | ✗ |
 | Dark mode | ✓ system appearance | ✓ `data-theme` | ✓ | ✓ `.dark` |
-| Material / glass | ✓ `AgentTheme+Glass.swift` | ✗ | ✗ | ✗ |
+| Material / glass | ✓ `agentFloatingGlass()`, always `.regular` (`Theme/AgentSurfaces.swift`) | ✗ | ✗ | ✗ |
 | Screen reader labels | ✓ `ThreadAccessibility` | partial: `label` props | ? | partial: labels |
 | Boundary announcements | ✓ `VoiceOverAnnouncer` (`Platform/Announcer.swift`) | ✗ | ? | ? |
 | Focus to new request card | ✓ `AccessibilityFocusMover` | ✗ | ? | ? |

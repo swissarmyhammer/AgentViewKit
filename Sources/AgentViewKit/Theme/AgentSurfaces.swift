@@ -102,13 +102,17 @@ struct AgentContentEdge: ViewModifier {
   }
 }
 
-/// The surface of a floating control: the Liquid Glass of the material level
-/// of the theme (D110 (c)).
+/// The surface of a floating control: `.regular` Liquid Glass (D110 (c),
+/// D113).
+///
+/// The glass is always `.regular`. The Clear look and the Tinted look are
+/// system settings, and the system applies them to `.regular` glass. Thus a
+/// theme does not select the glass variant.
 struct AgentFloatingGlass: ViewModifier {
   @Environment(\.agentTheme) private var theme
 
   func body(content: Content) -> some View {
-    content.glassEffect(theme.materialLevel.glass, in: AgentSurface.shape(for: theme))
+    content.glassEffect(.regular, in: AgentSurface.shape(for: theme))
   }
 }
 
@@ -170,8 +174,11 @@ extension View {
 
   /// Puts this floating control on the Liquid Glass of the kit (D110 (c)).
   ///
-  /// The glass is ``AgentTheme/MaterialLevel/glass`` of the theme in the
-  /// environment, in the shape of ``AgentSurface/shape(for:)``.
+  /// The glass is always `.regular` glass, in the shape of
+  /// ``AgentSurface/shape(for:)``. The system applies the Clear look and the
+  /// Tinted look to `.regular` glass when the user selects them in System
+  /// Settings. No value of the theme changes the glass, and the glass has no
+  /// tint (D113).
   ///
   /// Use it only on a floating control, for example the composer bar or a
   /// floating action button. Use it only inside a `GlassEffectContainer`.

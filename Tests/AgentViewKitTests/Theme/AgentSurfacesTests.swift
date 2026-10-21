@@ -117,13 +117,34 @@ import Testing
     #expect(on.isClose(to: off))
   }
 
-  @Test func theFloatingGlassFollowsReduceTransparency() throws {
-    let glass = OverBackdrop(inset: 0) {
+  /// The floating glass of the kit over the backdrop, with no backdrop
+  /// around it, in a `GlassEffectContainer`.
+  ///
+  /// - Parameter theme: The tokens that the glass gets from the environment.
+  /// - Returns: The view to render.
+  static func floatingGlass(in theme: AgentTheme = .default) -> some View {
+    OverBackdrop(inset: 0) {
       GlassEffectContainer { Color.clear.agentFloatingGlass() }
     }
+    .agentTheme(theme)
+  }
+
+  @Test func theFloatingGlassFollowsReduceTransparency() throws {
+    let glass = Self.floatingGlass()
     let on = try Self.pixels(of: glass, reducesTransparency: true)
     let off = try Self.pixels(of: glass, reducesTransparency: false)
     #expect(on != off)
+  }
+
+  /// The floating glass is always `.regular` glass. The system applies the
+  /// Clear look, so no material level of the theme changes the glass (D113).
+  @Test(arguments: AgentTheme.MaterialLevel.allCases)
+  func theFloatingGlassIsTheSameForEachMaterialLevel(level: AgentTheme.MaterialLevel) throws {
+    var theme = AgentTheme.default
+    theme.materialLevel = level
+    let glass = try Self.pixels(of: Self.floatingGlass(in: theme))
+    let regular = try Self.pixels(of: Self.floatingGlass())
+    #expect(glass == regular)
   }
 
   @Test func theShapeHasConcentricCornersWithTheLargeRadiusAsTheMinimum() {
