@@ -93,6 +93,50 @@ comments:
     - evidence: plan.md §5 (10 changed lines: Two layers, No fill in content, Variant and shape, Button styles first, Morphs, Tint and accent, System chrome, Themes, Accessibility, Snapshots). visual-audit.md checked, no change needed. No source or test file changed. 9 of 9 review findings checked. Docs tests: `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'` — 23 tests in 2 suites passed, 3 tests in 1 suite passed; only the known mlx bundle build warning.
     - next: /review. Not committed. Card stays in doing.
   timestamp: 2026-10-21T21:23:49.744371+00:00
+- actor: claude-code
+  id: 01m5g5vt78grrgs3qy63mdpcty
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (8093f01) gives 0 engine findings, because no validator matches Markdown. The factual check of plan.md §5 gives 3 findings: plan.md:243 (ContentFillTests claim), plan.md:246 (AVK-8b and AVK-8m attribution of the `.concentric` style), plan.md:256 (HiddenTestWindowTests claim). The 9 items of the 16:11 section are checked.
+    - next: correct the 3 items of "Review Findings (2026-10-21 16:24)" in plan.md §5, then review again. The open question about style.md rule 4 and the bordered styles of the state banner and the login prompt stays for a person. It is not a finding.
+  timestamp: 2026-10-21T21:28:49.640010+00:00
+- actor: claude-code
+  id: 01m5g5w6h7bem6tmxas860t59v
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — plan.md §5: 9 findings and 8 more false statements corrected
+    - test: green — docs tests 26 passed
+    - commit: 8093f01
+    - review: findings — plan.md:243, :246, :256 (factual check)
+  timestamp: 2026-10-21T21:29:02.247429+00:00
+- actor: claude-code
+  id: 01m5g64w173f0zyrrvmqqqc0k3
+  text: |-
+    ### fact check of the review findings (2026-10-21 16:24)
+    - plan.md:243: ContentFillTests now "finds only the 7 forms of `ContentFillForm`", with each form named, the allow list of each form, and the `.background(.selection)` fill of `Input/EditorKitPromptEditor.swift` as a fill with no shape that matches no form. The source text is `.background(isSelected ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))`; §5 gives both.
+    - plan.md:246: checked with `git show 5378713` and `git show 84e3cc4`. AVK-8b added `AgentSurface.shape(for:)` with `ConcentricRectangle(corners: .concentric(minimum: .fixed(theme.radii.l)), isUniform: true)`. AVK-8m did not remove `shape(for:)`: it added `shape(radius:)`, made `shape(for:)` call it, and replaced each `RoundedRectangle(cornerRadius:)` in 7 kit files. §5 says this.
+    - plan.md:256: HiddenTestWindowTests now names the 5 calls of `WindowFocusCall` and the 3 directories.
+
+    ### same cause, other sentences of §5 (and the §6 sentence of this card)
+    Each test sentence now says only what its test does:
+    - EditorThemeViewsTests (two places): the theme colors that it checks; it does not find the white text background of ^m231ph5.
+    - GlassPlacementTests: scans only the kit; names the 7 glass forms; `.regular` check is per code line; one `.buttonStyle(.glassProminent)` line in `Input/`; `glassEffectID` "in the kit".
+    - ComposerGlassStructureTests: the line counts in the three files, the 4 ids and the one `@Namespace` line.
+    - FixedCornerRadiusTests: the 3 forms it finds.
+    - RequestDeckSurfaceTests: the style of each action in each place.
+    - ThemeInjectionTests: the 3 tint forms, the accent form and its 4 files; the 3 theme forms; `.system` is not found.
+    - Thread bar tests and SystemStructureTests: the views and bars that they check; the forbidden forms.
+    - FixedColorTests: the fixed color forms in `Sources` and `Examples`; the NSColor.h background names; the allow list is of the fixed color scan.
+    - GlassAccessibilityTests (§5 and §6): 8 views, light mode, two points of each glass.
+    - GlassSnapshotTests: the 4 glass parts.
+  timestamp: 2026-10-21T21:33:46.407632+00:00
+- actor: claude-code
+  id: 01m5g64yjh1mnp6vbqzx6sdqt7
+  text: |-
+    ### implement — changed
+    - evidence: plan.md (§5: 13 changed list items; §6: the GlassAccessibilityTests sentence). 3 of 3 findings of "Review Findings (2026-10-21 16:24)" checked. No source or test file changed. `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'`: 23 tests in 2 suites passed, 3 tests in 1 suite passed; only the known mlx bundle build warning.
+    - next: /review. Not committed. Card stays in doing.
+  timestamp: 2026-10-21T21:33:49.009810+00:00
 depends_on:
 - 01M5DFADQHSHCRAQW0709TVAPV
 - 01M5DF7Y8PDWS7XF25WDBBYG9W
@@ -189,3 +233,19 @@ Rewrite the glass paragraph of §5 in STE. Name these rules and cite D110, D111,
 - [x] `plan.md:253` `factcheck/test-claim` — "The host injects the theme once, at the root of each window, with `.editorTheme(_:)`" does not agree with the demo host. The demo also injects a second theme in a subtree: `.editorTheme(look.theme.theme)` at `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift:121`. `ThemeInjectionTests` scans only the kit for an injection (`Tests/PackageStructureTests/ThemeInjectionTests.swift:59`). Make the statement agree with the demo, or say that the rule is for the kit and name the gallery subtree as the permitted exception.
 - [x] `plan.md:255` `factcheck/card-claim` — "A person checks them in the screenshots of AVK-8u, one time for each release" has no source. The AVK-8u card (`.kanban/tasks/01M5E8BE1VW9QK2YTDF8Q34YT8.md`) says "Do this card LAST, after all the other AVK-8 cards", and `TestudoApp/features/style.md` says "The screenshot step is part of the acceptance of each Liquid Glass card". Neither file says "release". Use the cadence that the sources give.
 - [x] `plan.md:256` `factcheck/test-claim` — "`HostedSnapshotTests` (AVK-13) records an image of each real view" says more than the test does. The suite records 10 views only (`Tests/AgentViewKitTests/Snapshots/HostedSnapshotTests.swift:41-116`): the thread, the idle composer, the running composer, the permission card, the deck in a bar, the session notice, the status banner, the code block, the terminal output and the elicitation form. Name these views, or say "an image of 10 real views".
+
+## Review Findings (2026-10-21 16:24)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 0 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `plan.md` — no validator matches this file
+
+> No validator matches Markdown. Thus a factual check of each sentence that commit 8093f01 changes or adds in `plan.md` §5 adds these items. The sources are `Tests/`, `Sources/`, the demo, the kanban cards, git history and `TestudoApp/features/` (D110 to D116, `style.md`). Each statement must agree with these sources.
+
+- [x] `plan.md:243` `factcheck/test-claim` — "`ContentFillTests` (AVK-8r) forbids each custom fill behind content in the kit, the demo support and the demo. It permits a fill only in the files of its allow list" says more than the test does. The test finds only the seven forms of `ContentFillForm` (`Tests/PackageStructureTests/ContentFillTests.swift:14-43`): `agentContentSurface`, the status bar, tab bar and gutter colors of a theme, `.background(<style>, in: <shape>)`, a card shape then `.fill(`, and `.background(editorTheme.<color>`. A fill with no shape, such as `.background(.quaternary)`, matches no form. The test itself says that the `.background(.selection)` fill of `Input/EditorKitPromptEditor.swift` matches no form (`ContentFillTests.swift:72-73`). This fill is at `Sources/AgentViewKit/Input/EditorKitPromptEditor.swift:449`, and the file is not in an allow list. Say that the test finds these seven forms, and that it permits each form only in the files of the allow list of that form.
+- [x] `plan.md:246` `factcheck/card-id` — "(`AgentSurface`: AVK-8b added the shared shape, and AVK-8m gave it the `.concentric` corner style)" does not agree with git history. AVK-8b (commit 5378713, ^c5mvvt4) added `AgentSurface.shape(for:)`, and this shape was already `ConcentricRectangle(corners: .concentric(minimum: .fixed(theme.radii.l)), isUniform: true)`. AVK-8m (commit 84e3cc4, ^vyn7qq9) changed the shape to `AgentSurface.shape(radius:)`, with a radius token as the smallest corner, and used it in place of each fixed `RoundedRectangle` radius. Say that AVK-8b added the shared shape with the `.concentric` corner style, and that AVK-8m made the shape take a radius token and used it for each rounded shape of the kit.
+- [x] `plan.md:256` `factcheck/test-claim` — "`HiddenTestWindowTests` forbids each call that shows a window or makes the application active in the test sources and the test-support sources" says more than the test does. The test finds only the five calls of `WindowFocusCall` (`Tests/PackageStructureTests/HiddenTestWindowTests.swift:8-25`): `makeKeyAndOrderFront(`, `orderFront(`, `orderFrontRegardless(`, `activate(` on `NSApp`, `NSApplication.shared` or `NSRunningApplication.current`, and `setActivationPolicy(.regular)`. It scans `Tests`, `Sources/AgentViewKitTestSupport` and `Examples/ReadmeSnippets` (`HiddenTestWindowTests.swift:71`). Say that the test forbids these five calls in these three directories.
