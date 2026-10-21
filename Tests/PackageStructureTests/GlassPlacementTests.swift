@@ -133,6 +133,22 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     GlassForm.buttonStylePattern(WordPattern.wholeWord(GlassForm.prominentStyle))
   }
 
+  /// The pattern that finds the tint as a foreground style, such as
+  /// `.foregroundStyle(.tint)`.
+  ///
+  /// Only the primary action of an area has a tint (D113 answer 5). In the
+  /// composer, the primary action is Send, and it gets its tint from the
+  /// prominent glass button style. Thus no other control of the composer
+  /// uses the tint as a foreground style.
+  static var tintForegroundStylePattern: Regex<Substring> {
+    Regex {
+      GlassForm.callPattern("foregroundStyle")
+      ZeroOrMore(.whitespace)
+      "."
+      WordPattern.wholeWord("tint")
+    }
+  }
+
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
     get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/GlassPlacement") }
@@ -215,6 +231,14 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
 
     #expect(found.count == 1, "\(found)")
     #expect(found.allSatisfy { $0.hasPrefix("\(GlassForm.sendButtonFile):") }, "\(found)")
+  }
+
+  @Test func noControlOfTheInputUsesTheTintAsAForegroundStyle() throws {
+    let found = try Self.uses(
+      of: Self.tintForegroundStylePattern, inSwiftFilesBelow: PackageFiles.file(Self.inputPath),
+      relativeTo: PackageFiles.root)
+
+    #expect(found.isEmpty, "Use .primary or .secondary. Only Send has a tint: \(found)")
   }
 
   @Test(arguments: violatingFixtureForms)

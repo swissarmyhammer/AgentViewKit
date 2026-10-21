@@ -75,14 +75,15 @@ public struct SpeechInputButton: View {
   }
 
   /// The icon of the button. While a session runs, the waveform shows the
-  /// input level.
+  /// input level. The icon has the primary style and no tint, because only
+  /// the primary action of the composer (Send) has a tint.
   @ViewBuilder
   private var label: some View {
     switch phase {
     case .recording:
       Image(systemName: SharedSymbol.listening, variableValue: level)
         .fontWeight(theme.symbolWeight)
-        .foregroundStyle(.tint)
+        .foregroundStyle(.primary)
     case .idle:
       Image(systemName: SharedSymbol.microphone)
         .fontWeight(theme.symbolWeight)
