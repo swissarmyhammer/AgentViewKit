@@ -48,10 +48,26 @@ comments:
     - `.bordered` is only for a button on a glass surface, such as the request card in the bottom bar.
     - No follow-up card is necessary.
   timestamp: 2026-10-21T11:05:00.382964+00:00
+- actor: claude-code
+  id: 01m5f288a8vdfszcqjw15f9j4z
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 471e0ac). 0 findings, 0 confirmed, 0 refuted. 7 pairs attempted, 0 failed. Not reviewed: 2 .kanban files (ignore rule), README.md and plan.md (no validator).
+    - next: The task is in done.
+  timestamp: 2026-10-21T11:06:28.552120+00:00
+- actor: claude-code
+  id: 01m5f28j95pd1ash0t78kd3eb4
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 7 files
+    - test: green — swift test, 1482 passed, 2 known issues that were there before; 177 structure tests, the README snippet test and check-readme.sh passed
+    - commit: 471e0ac
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T11:06:38.757449+00:00
 depends_on:
 - 01M5E8XMJXF8XABYA7P3ZGM5SF
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9c80
 title: 'AVK-8am Thread top bar: put AgentInfoHeader and the top banners in a top .safeAreaBar, so the list scrolls under the toolbar with the scroll edge effect (D113 answer 7)'
 ---
 ## Why
