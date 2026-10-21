@@ -103,23 +103,83 @@ import Testing
     }
   }
 
-  /// The pattern that finds a system background color (D111 step 1): the
-  /// names `windowBackgroundColor`, `controlBackgroundColor`,
-  /// `textBackgroundColor` and `underPageBackgroundColor` as whole words, or a
-  /// color from a platform color, `Color(nsColor:` or `Color(.`.
+  /// The pattern that finds a system background color (D111 step 1): a
+  /// background color name of AppKit as a whole word
+  /// (``backgroundColorSuffixPattern`` or
+  /// ``otherBackgroundColorNamePattern``), or a color from a platform color,
+  /// `Color(nsColor:` or `Color(.`.
   ///
   /// A system background is an opaque fill. It does not let the content and
   /// the glass behind it show, and it does not follow the theme.
+  ///
+  /// The list of names is complete for `AppKit/NSColor.h` of the macOS SDK
+  /// (`xcrun --show-sdk-path`). That header declares each system color.
+  /// Each name that the header calls a background, or that it replaces with
+  /// a visual effect material, is one of the two types below:
+  /// - The name ends in `BackgroundColor` or `BackgroundColors`, for example
+  ///   `windowBackgroundColor`, `selectedContentBackgroundColor` and
+  ///   `alternatingContentBackgroundColors`. The suffix pattern finds each
+  ///   such name, and also each name that a later SDK adds with this suffix.
+  /// - The name does not end in this suffix.
+  ///   ``otherBackgroundColorNamePattern`` holds each such name of the
+  ///   header.
+  ///
+  /// The package is for macOS only, so the background colors of UIKit do not
+  /// apply.
   static var systemBackgroundPattern: Regex<Substring> {
     Regex {
       ChoiceOf {
-        WordPattern.wholeWord("windowBackgroundColor")
-        WordPattern.wholeWord("controlBackgroundColor")
-        WordPattern.wholeWord("textBackgroundColor")
-        WordPattern.wholeWord("underPageBackgroundColor")
+        backgroundColorSuffixPattern
+        otherBackgroundColorNamePattern
         platformColorConversionPattern
       }
     }
+  }
+
+  /// The pattern that finds a whole word that ends in `BackgroundColor` or
+  /// `BackgroundColors`, such as `controlBackgroundColor` or
+  /// `alternatingContentBackgroundColors`.
+  static var backgroundColorSuffixPattern: Regex<Substring> {
+    Regex {
+      Anchor.wordBoundary
+      ZeroOrMore(.word)
+      "BackgroundColor"
+      Optionally("s")
+      Anchor.wordBoundary
+    }
+    .wordBoundaryKind(.simple)
+  }
+
+  /// The pattern of each background color name of `AppKit/NSColor.h` that
+  /// does not end in `BackgroundColor` or `BackgroundColors`:
+  /// - `findHighlightColor`: the header calls it the background of the find
+  ///   indicators.
+  /// - `controlColor`: the header calls it the background of the control
+  ///   faces.
+  /// - `alternateSelectedControlColor` and `secondarySelectedControlColor`:
+  ///   the header calls them the background of the selected content. They
+  ///   are the old names of `selectedContentBackgroundColor` and
+  ///   `unemphasizedSelectedContentBackgroundColor`.
+  /// - `headerColor`, `selectedMenuItemColor` and `windowFrameColor`: the
+  ///   header replaces them with a visual effect material, which is a
+  ///   background.
+  ///
+  /// The pattern finds each name only as a whole word.
+  static var otherBackgroundColorNamePattern: Regex<Substring> {
+    Regex {
+      Anchor.wordBoundary
+      ChoiceOf {
+        "findHighlightColor"
+        "controlColor"
+        "alternateSelectedControlColor"
+        "secondarySelectedControlColor"
+        "headerColor"
+        "selectedMenuItemColor"
+        "windowFrameColor"
+      }
+      Anchor.wordBoundary
+    }
+    .wordBoundaryKind(.simple)
   }
 
   /// The pattern that finds a SwiftUI color from a platform color:
@@ -147,6 +207,20 @@ import Testing
     "let control = controlBackgroundColor",
     "let text = textBackgroundColor",
     "let page = underPageBackgroundColor",
+    "let selected = selectedContentBackgroundColor",
+    "let unemphasized = unemphasizedSelectedContentBackgroundColor",
+    "let rows = alternatingContentBackgroundColors",
+    "let selectedText = selectedTextBackgroundColor",
+    "let unemphasizedText = unemphasizedSelectedTextBackgroundColor",
+    "let scrubber = scrubberTexturedBackgroundColor",
+    "let oldRows = controlAlternatingRowBackgroundColors",
+    "let find = findHighlightColor",
+    "let face = controlColor",
+    "let oldSelected = alternateSelectedControlColor",
+    "let oldUnemphasized = secondarySelectedControlColor",
+    "let header = headerColor",
+    "let menuItem = selectedMenuItemColor",
+    "let frame = windowFrameColor",
     ".background(Color(nsColor: panelColor))",
     ".background(Color( .quaternarySystemFill))",
   ]
@@ -154,6 +228,9 @@ import Testing
   /// Lines that look like a system background form, but use none.
   static let systemBackgroundLookAlikes = [
     "let windowBackgroundColorName = name",
+    "let alternatingContentBackgroundColorsCount = count",
+    "let controlColorWell = well",
+    "let pageHeaderColor = color",
     ".background(editorTheme.background)",
     ".foregroundStyle(Color.primary)",
     ".background(ThemeColor(.accent))",
@@ -186,11 +263,20 @@ import Testing
   }
 
   /// The files that can make a color from fixed values, relative to the
-  /// package root.
+  /// package root. Only the fixed color scan uses this list.
   ///
   /// The computed 256-color table of `ANSIText.swift` is terminal data, not a
   /// theme color.
   static let allowedFiles: Set<String> = [KitSourceFiles.kitFile("Terminal/ANSIText.swift")]
+
+  /// The files that can use a system background, relative to the package
+  /// root, each with the reason. Only the system background scan uses this
+  /// list.
+  ///
+  /// The list is empty: no view in the scan roots uses a system background.
+  /// `ANSIText.swift` makes fixed colors for the terminal, but it does not
+  /// use a system background, so it is not in this list.
+  static let systemBackgroundAllowedFiles: [String: String] = [:]
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
@@ -332,7 +418,7 @@ import Testing
   func noViewUsesASystemBackground(path: String) throws {
     let found = try GlassPlacementTests.uses(
       of: Self.systemBackgroundPattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
-      allowing: Self.allowedFiles)
+      allowing: Set(Self.systemBackgroundAllowedFiles.keys))
 
     #expect(found.isEmpty, "Remove the hard-coded background (D111 step 1): \(found)")
   }
