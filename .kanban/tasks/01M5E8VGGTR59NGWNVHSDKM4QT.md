@@ -23,10 +23,26 @@ comments:
     - warnings: only the known mlx bundle build warning. No new warnings.
     - next: review.
   timestamp: 2026-10-21T05:36:54.082667+00:00
+- actor: claude-code
+  id: 01m5eff4ckfgby73h06v4p3njx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ea259e1). 0 findings, 0 confirmed, 0 refuted. 7 validators ran, 0 failed. The ignore rules did not let the review examine `.kanban/` and `comparison.md`. Five Swift code-hygiene tool rules did not examine `AgentTheme+Glass.swift`, because the commit removed that file.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-21T05:38:10.963929+00:00
+- actor: claude-code
+  id: 01m5effhrjsayz04dq5400nn3f
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 4 files (AgentTheme+Glass.swift deleted)
+    - test: green — swift test, 1450 passed, 2 known issues that were there before; 173 structure tests passed
+    - commit: ea259e1
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T05:38:24.658015+00:00
 depends_on:
 - 01M5E8S3KAQ7EV2C2K13Y1K31Q
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8f80
 title: 'AVK-8ad Floating glass is always .regular: remove the materialLevel control of the glass (AgentSurfaces.swift:81, AgentTheme+Glass.swift) (D113 answer 3)'
 ---
 ## Why
