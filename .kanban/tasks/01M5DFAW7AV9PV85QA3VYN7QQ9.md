@@ -42,6 +42,53 @@ comments:
     - warnings: only the mlx-swift_Cmlx bundle build warning, which existed before. No new warning.
     - next: review
   timestamp: 2026-10-21T01:56:09.892667+00:00
+- actor: claude-code
+  id: 01m5e2wgw25ak3mcmw44yznby9
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (84e3cc4): 2 findings, 2 confirmed, 0 refuted — Sources/AgentViewKit/Attachments/ArtifactView.swift:63, Tests/PackageStructureTests/FixedCornerRadiusTests.swift:42
+    - next: Implement the two items in the Review Findings (2026-10-20 20:56) section. The task stays in review.
+  timestamp: 2026-10-21T01:58:18.242788+00:00
+- actor: claude-code
+  id: 01m5e2x3328x7491q6q5fx95w4
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 10 files
+    - test: green — swift test, 1437 passed, 2 known issues that were there before; 148 structure tests passed
+    - commit: 84e3cc4
+    - review: findings — Sources/AgentViewKit/Attachments/ArtifactView.swift:63, Tests/PackageStructureTests/FixedCornerRadiusTests.swift:42
+  timestamp: 2026-10-21T01:58:36.898672+00:00
+- actor: claude-code
+  id: 01m5e3crsbpnaptrnsfj87ppc6
+  text: |-
+    ### implementation (review findings 2026-10-20 20:56)
+    - Finding 1 (reuse/reuse): `AgentContentSurface` now has a `fill: AnyShapeStyle` and a `radius: CGFloat?`, and `shape(in:)` gives `AgentSurface.shape(radius:)`, or `AgentSurface.shape(for:)` when the radius is `nil`. `View.agentContentSurface(radius:)` keeps `.background.secondary`. A second overload `agentContentSurface(_ fill:radius:)` takes a different fill.
+    - The same cause (a background plus a `.separator` stroke made by hand) was in 3 files of 84e3cc4: ArtifactView now uses `.agentContentSurface(radius: theme.radii.m)`. EditorBlockChrome now uses `.clipShape(shape).agentContentSurface(fill ?? editorTheme.editorBackground, radius: theme.radii.m)`; the clip comes first, so the full stroke stays, as before. RequestDeck now uses `.agentContentSurface(.background).clipShape(AgentSurface.shape(for: theme))`; the look does not change.
+    - AttachmentChip, SourcesView and DiffView have only a fill and no stroke. ElicitationFieldViews has only a stroke and no fill. They do not make the content surface, so they stay as they are.
+    - Each DocC link `agentContentSurface()` now is `agentContentSurface(radius:)` (AgentSurfaces, ErrorView, StatusBar, SessionNoticeBanner, CompactionEntryView, AgentAuthView, PermissionView, 2 test files).
+    - Finding 2 (completeness/public-output-contract): the pattern now has `WordPattern.wholeWord("UnevenRoundedRectangle")`, and the fixture expects `A.swift:1`, `A.swift:2` and `A.swift:5`. `noKitViewGivesAFixedCornerRadius` passed: the kit has no `UnevenRoundedRectangle`.
+    - Tests: 3 new tests in AgentSurfacesTests (the radius gives the shape of that radius, for s and m; no radius gives the large radius of the theme; a fill shows at each point inside the surface). RED: the build failed because the API was missing. GREEN: 12 tests in AgentSurfacesTests and 2 in FixedCornerRadiusTests passed.
+  timestamp: 2026-10-21T02:07:10.635709+00:00
+- actor: claude-code
+  id: 01m5e3cwg3xeeqetz3pgna42wt
+  text: |-
+    ### implement — changed
+    - evidence: 14 files — Sources/AgentViewKit/Theme/AgentSurfaces.swift, Attachments/ArtifactView.swift, Code/EditorBlockChrome.swift, HumanInTheLoop/RequestDeck.swift, and DocC links in Items/ErrorView.swift, Items/CompactionEntryView.swift, Status/StatusBar.swift, Status/SessionNoticeBanner.swift, Connections/AgentAuthView.swift, HumanInTheLoop/PermissionView.swift; Tests/AgentViewKitTests/Theme/AgentSurfacesTests.swift, Tests/AgentViewKitTests/Theme/ContentSurfaceHostedProbe.swift, Tests/PackageStructureTests/FixedCornerRadiusTests.swift. Full `swift test`: 148 tests in 21 structure suites passed; 1440 tests in 176 suites passed with the 2 known issues that existed before (HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); only the mlx bundle warning that existed before. The 2 findings are `- [x]`.
+    - next: /review
+  timestamp: 2026-10-21T02:07:14.435019+00:00
+- actor: claude-code
+  id: 01m5e3d4nyjbb79c534jzdsk05
+  text: 'Correction to the step record above: the change has 13 source files, not 14. The list in that record is correct.'
+  timestamp: 2026-10-21T02:07:22.814206+00:00
+- actor: claude-code
+  id: 01m5e3mtnhn5rgmdbps2qna960
+  text: |-
+    ### test — green
+    - evidence: `swift test` exit 0 in 214 s. PackageStructureTests: 148 tests in 21 suites passed (FixedCornerRadiusTests passed, and noKitViewGivesAFixedCornerRadius passed). AgentViewKitTests: 1440 tests in 176 suites passed with 2 known issues (these existed before). 0 failures, 0 skipped.
+    - warnings: only the mlx bundle build warning (existed before). No new warning.
+    - code: no change made in this step.
+    - next: review.
+  timestamp: 2026-10-21T02:11:34.705013+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
 - 01M5D07S5WH2JTTWW8B56Y8Q6A
@@ -76,3 +123,13 @@ D110 (e): concentric corners. A shape inside a container uses a radius that foll
 - The `RenderedPixels` tests in `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift` pass. The code block, the command output, the diff and the citation still draw the theme colors.
 - All tests pass.
 - Tests use Swift Testing. No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-8
+
+## Review Findings (2026-10-20 20:56)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 10 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Attachments/ArtifactView.swift:63` `reuse/reuse` — The added background and separator overlay in ArtifactView rebuild the surface that `AgentContentSurface` already draws (`.background(.background.secondary, in:)` plus `.overlay(shape.stroke(.separator))`). The only difference is the corner radius. The existing modifier is a near-match that was not extended. Adding a radius parameter to `agentContentSurface()` would give one canonical surface instead of a parallel copy that can drift. Give `AgentContentSurface` and `View.agentContentSurface()` an optional radius parameter, defaulting to the large radius of the theme. Replace the inline `.background` and `.overlay` in ArtifactView.swift:63-66 with `.agentContentSurface(radius: theme.radii.m)`.
+- [x] `Tests/PackageStructureTests/FixedCornerRadiusTests.swift:42` `completeness/public-output-contract` — The fixed-corner scan does not match `UnevenRoundedRectangle(cornerRadius:)`. The pattern at lines 17-25 only matches the whole word `RoundedRectangle` and `.rect`, so an uneven rounded rectangle with a fixed corner radius passes the guard. The test fixture at line 42 shows this case, and the assertion at line 48 expects only two matches, which locks the gap in place. Kit views that use this shape would not fail the `noKitViewGivesAFixedCornerRadius` guard, so the decision to replace fixed corner radii with `AgentSurface.shape(radius:)` is not enforced for that shape. Add `UnevenRoundedRectangle` to the `ChoiceOf` at lines 19-22 with `WordPattern.wholeWord`, and change the assertion at line 48 to expect `A.swift:5` as well. Then run `noKitViewGivesAFixedCornerRadius` to confirm that no kit view uses `UnevenRoundedRectangle(cornerRadius:)`. If the kit does use it, replace those corners with `AgentSurface.shape(radius:)` in the same change.

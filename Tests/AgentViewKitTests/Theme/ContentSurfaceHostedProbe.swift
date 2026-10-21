@@ -4,7 +4,7 @@ import SwiftUI
 import Testing
 
 /// The shared method of the tests that check that a view of the kit is on
-/// the content surface (``SwiftUI/View/agentContentSurface()``), and not on
+/// the content surface (``SwiftUI/View/agentContentSurface(radius:)``), and not on
 /// glass (D110 (b)).
 ///
 /// A test shows the view over the backdrop of ``GlassRenderProbeTests`` in

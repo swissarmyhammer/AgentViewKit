@@ -3,7 +3,7 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-/// Checks the two shared surfaces of D110: ``SwiftUI/View/agentContentSurface()``
+/// Checks the two shared surfaces of D110: ``SwiftUI/View/agentContentSurface(radius:)``
 /// for content, and ``SwiftUI/View/agentFloatingGlass()`` for a floating
 /// control.
 ///
@@ -25,6 +25,10 @@ import Testing
   /// radius: the small and the medium radius. The views of the kit use these
   /// radii with ``AgentSurface/shape(radius:)``.
   nonisolated static let smallerRadii = [AgentTheme.default.radii.s, AgentTheme.default.radii.m]
+
+  /// A fill with no dynamic part that is not the backdrop of
+  /// ``GlassRenderProbeTests`` and not the standard background.
+  nonisolated static let surfaceFill = Color(red: 0.2, green: 0.6, blue: 0.3)
 
   /// The rectangle that the shape tests make a path in.
   static let pathRect = CGRect(x: 0, y: 0, width: 100, height: 60)
@@ -132,6 +136,32 @@ import Testing
     #expect(path == expected.path(in: Self.pathRect))
     #expect(path != largePath)
   }
+
+  @Test(arguments: smallerRadii)
+  func theContentSurfaceOfARadiusUsesTheShapeOfThatRadius(radius: CGFloat) {
+    let surface = AgentContentSurface(fill: AnyShapeStyle(.background.secondary), radius: radius)
+    let path = surface.shape(in: .default).path(in: Self.pathRect)
+    let expected = AgentSurface.shape(radius: radius).path(in: Self.pathRect)
+    let largePath = AgentSurface.shape(for: .default).path(in: Self.pathRect)
+    #expect(path == expected)
+    #expect(path != largePath)
+  }
+
+  @Test func theContentSurfaceWithNoRadiusUsesTheLargeRadiusOfTheTheme() {
+    var theme = AgentTheme.default
+    theme.radii.l = Self.otherLargeRadius
+    let surface = AgentContentSurface(fill: AnyShapeStyle(.background.secondary), radius: nil)
+    let path = surface.shape(in: theme).path(in: Self.pathRect)
+    #expect(path == AgentSurface.shape(for: theme).path(in: Self.pathRect))
+  }
+
+  @Test func theContentSurfaceShowsItsFillAtEachPointInsideIt() throws {
+    let pixels = try Self.pixels(
+      of: ContentSurfaceOverBackdrop(hasSurface: true, fill: Self.surfaceFill))
+    for point in Self.insidePoints {
+      #expect(pixels.contains(Self.surfaceFill, at: point))
+    }
+  }
 }
 
 /// A content surface inside the backdrop of ``GlassRenderProbeTests``, with
@@ -141,14 +171,25 @@ struct ContentSurfaceOverBackdrop: View {
   /// only the backdrop.
   let hasSurface: Bool
 
+  /// The fill of the surface. When it is `nil`, the surface uses its
+  /// standard fill.
+  var fill: Color?
+
   var body: some View {
     ZStack {
       GlassRenderProbeTests.backdrop
       if hasSurface {
-        Color.clear
-          .agentContentSurface()
-          .padding(AgentSurfacesTests.surfaceInset)
+        surface.padding(AgentSurfacesTests.surfaceInset)
       }
+    }
+  }
+
+  /// The surface, with ``fill`` when the view has one.
+  @ViewBuilder private var surface: some View {
+    if let fill {
+      Color.clear.agentContentSurface(fill)
+    } else {
+      Color.clear.agentContentSurface()
     }
   }
 }

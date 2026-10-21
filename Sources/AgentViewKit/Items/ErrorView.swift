@@ -14,7 +14,7 @@ import SwiftUI
 ///
 /// The card is a row of the transcript, or of the activity timeline. Both are
 /// content, so the card is on the content surface of the kit
-/// (``SwiftUI/View/agentContentSurface()``) and has no glass (D110 (b)).
+/// (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass (D110 (b)).
 public struct ErrorView: View {
   /// The accessibility identifier of the text of each card.
   public static let identifier = "error-acp"

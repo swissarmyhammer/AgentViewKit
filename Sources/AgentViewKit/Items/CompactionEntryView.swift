@@ -30,7 +30,7 @@ import SwiftUI
 /// stable ACP since schema alpha.8.
 ///
 /// The row is content of the transcript, so it is on the content surface of
-/// the kit (``SwiftUI/View/agentContentSurface()``) and has no glass
+/// the kit (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass
 /// (D110 (b)).
 public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of the title and the status of

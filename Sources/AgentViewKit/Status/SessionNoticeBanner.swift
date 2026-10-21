@@ -130,7 +130,7 @@ struct NoticeBanner: View {
 /// optional description, and a Dismiss button.
 ///
 /// The row is content, so it is on the content surface of the kit
-/// (``SwiftUI/View/agentContentSurface()``) and has no glass (D110 (b)).
+/// (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass (D110 (b)).
 /// Only its Dismiss button uses a glass button style.
 ///
 /// The text is one accessibility element with the label of the row, and the

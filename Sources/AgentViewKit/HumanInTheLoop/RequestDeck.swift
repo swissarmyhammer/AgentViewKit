@@ -513,13 +513,11 @@ private struct DeckCard: View {
   var body: some View {
     let identifier = RequestDeck.identifier(for: request.id.uuidString)
     let showsWhole = role.showsWhole
-    let shape = AgentSurface.shape(for: theme)
     cardContent
       .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
-      .background(.background, in: shape)
-      .overlay(shape.stroke(.separator))
-      .clipShape(shape)
+      .agentContentSurface(.background)
+      .clipShape(AgentSurface.shape(for: theme))
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
       .accessibilityHidden(!showsWhole)

@@ -20,12 +20,8 @@ struct EditorBlockFrame: ViewModifier {
 
   func body(content: Content) -> some View {
     content
-      .background(fill ?? editorTheme.editorBackground)
       .clipShape(AgentSurface.shape(radius: theme.radii.m))
-      .overlay(
-        AgentSurface.shape(radius: theme.radii.m)
-          .stroke(.separator)
-      )
+      .agentContentSurface(fill ?? editorTheme.editorBackground, radius: theme.radii.m)
   }
 }
 

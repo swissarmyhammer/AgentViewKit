@@ -60,11 +60,7 @@ public struct ArtifactView: View {
       }
     }
     .padding(theme.spacing.m)
-    .background(.background.secondary, in: AgentSurface.shape(radius: theme.radii.m))
-    .overlay(
-      AgentSurface.shape(radius: theme.radii.m)
-        .stroke(.separator)
-    )
+    .agentContentSurface(radius: theme.radii.m)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
   }

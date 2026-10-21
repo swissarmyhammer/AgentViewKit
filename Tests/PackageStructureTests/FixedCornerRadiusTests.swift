@@ -8,16 +8,18 @@ import Testing
 /// A shape inside a container must have concentric corners: its corner
 /// follows the corner of the container. `AgentSurface.shape(radius:)` gives
 /// such a shape, with the radius token as the smallest corner. A
-/// `RoundedRectangle(cornerRadius:)` or a `.rect(cornerRadius:)` shape has a
-/// fixed corner, so the scan finds each one. The scan reads each Swift file
-/// of the kit as text, one line at a time.
+/// `RoundedRectangle(cornerRadius:)`, an `UnevenRoundedRectangle(cornerRadius:)`
+/// or a `.rect(cornerRadius:)` shape has a fixed corner, so the scan finds
+/// each one. The scan reads each Swift file of the kit as text, one line at a
+/// time.
 @Suite struct FixedCornerRadiusTests {
-  /// The pattern that finds a fixed corner radius: a rounded rectangle or a
-  /// `.rect` shape that takes a corner radius.
+  /// The pattern that finds a fixed corner radius: a rounded rectangle, an
+  /// uneven rounded rectangle or a `.rect` shape that takes a corner radius.
   static var fixedCornerRadiusPattern: some RegexComponent {
     Regex {
       ChoiceOf {
         WordPattern.wholeWord("RoundedRectangle")
+        WordPattern.wholeWord("UnevenRoundedRectangle")
         ".rect"
       }
       "(cornerRadius:"
@@ -33,7 +35,7 @@ import Testing
     line.text.contains(fixedCornerRadiusPattern) ? ["\(line.file):\(line.number)"] : []
   }
 
-  @Test func theScanFindsARoundedRectangleAndARectWithACornerRadius() {
+  @Test func theScanFindsEachRoundedRectangleAndRectWithACornerRadius() {
     let source = """
       .background(.quaternary, in: RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
       .clipShape(.rect(cornerRadius: theme.radii.s))
@@ -45,7 +47,7 @@ import Testing
     let found = SourceLineScanner.matches(
       inSource: source, file: "A.swift", match: Self.fixedCornerRadiusUses(on:))
 
-    #expect(found == ["A.swift:1", "A.swift:2"])
+    #expect(found == ["A.swift:1", "A.swift:2", "A.swift:5"])
   }
 
   @Test func noKitViewGivesAFixedCornerRadius() throws {

@@ -6,7 +6,7 @@ import SwiftUI
 /// optional button with a symbol and a text.
 ///
 /// The bar shows in the thread with the transcript. It is content, so it is
-/// on the content surface of the kit (``SwiftUI/View/agentContentSurface()``)
+/// on the content surface of the kit (``SwiftUI/View/agentContentSurface(radius:)``)
 /// and has no glass (D110 (b)). Only its button uses a glass button style.
 ///
 /// ``StateBanner``, ``SessionStreamBanner`` and ``AgentConnectionBanner`` show

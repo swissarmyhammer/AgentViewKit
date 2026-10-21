@@ -12,7 +12,7 @@ import SwiftUI
 /// keeps no copy of them.
 ///
 /// The card is content in the transcript, so it is on the content surface
-/// of the kit (``SwiftUI/View/agentContentSurface()``) and has no glass
+/// of the kit (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass
 /// (D110 (b)). Only its action buttons use the glass button styles. The
 /// card has these parts:
 ///

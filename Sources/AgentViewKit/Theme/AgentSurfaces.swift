@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The shared shape of the two surfaces of the kit (D110 (e)).
 ///
-/// ``SwiftUI/View/agentContentSurface()`` and
+/// ``SwiftUI/View/agentContentSurface(radius:)`` and
 /// ``SwiftUI/View/agentFloatingGlass()`` use this shape. Thus each surface
 /// has the same corners, and one place changes them.
 enum AgentSurface {
@@ -45,13 +45,30 @@ enum AgentSurface {
 /// The surface of content: a standard opaque background with a separator
 /// stroke, and no glass (D110 (b)).
 struct AgentContentSurface: ViewModifier {
+  /// The fill of the surface.
+  let fill: AnyShapeStyle
+
+  /// The radius token of the corners, for example ``AgentTheme/Radii/m``.
+  /// When it is `nil`, the corners use the large radius of the theme.
+  let radius: CGFloat?
+
   @Environment(\.agentTheme) private var theme
 
   func body(content: Content) -> some View {
-    let shape = AgentSurface.shape(for: theme)
+    let shape = shape(in: theme)
     content
-      .background(.background.secondary, in: shape)
+      .background(fill, in: shape)
       .overlay(shape.stroke(.separator))
+  }
+
+  /// The shape of the surface: ``AgentSurface/shape(radius:)`` with
+  /// ``radius``, or ``AgentSurface/shape(for:)`` when ``radius`` is `nil`.
+  ///
+  /// - Parameter theme: The tokens that give the large radius.
+  /// - Returns: The shape.
+  func shape(in theme: AgentTheme) -> ConcentricRectangle {
+    guard let radius else { return AgentSurface.shape(for: theme) }
+    return AgentSurface.shape(radius: radius)
   }
 }
 
@@ -69,14 +86,36 @@ extension View {
   /// Puts this content on the content surface of the kit (D110 (b)).
   ///
   /// The surface is a standard opaque background (`.background.secondary`)
-  /// with a `.separator` stroke, in the shape of ``AgentSurface/shape(for:)``.
-  /// It has no glass. Use it for content: the transcript and its messages,
-  /// tool call cards, lists and blocks of code. Use
-  /// ``agentFloatingGlass()`` for a floating control.
+  /// with a `.separator` stroke, in the shape of ``AgentSurface/shape(for:)``,
+  /// or of ``AgentSurface/shape(radius:)`` when `radius` has a value. It has
+  /// no glass. Use it for content: the transcript and its messages, tool call
+  /// cards, lists and blocks of code. Use ``agentFloatingGlass()`` for a
+  /// floating control.
   ///
+  /// - Parameter radius: The radius token of the corners, for example
+  ///   ``AgentTheme/Radii/m``. When it is `nil`, the corners use the large
+  ///   radius of the theme.
   /// - Returns: The content on the surface.
-  func agentContentSurface() -> some View {
-    modifier(AgentContentSurface())
+  func agentContentSurface(radius: CGFloat? = nil) -> some View {
+    agentContentSurface(.background.secondary, radius: radius)
+  }
+
+  /// Puts this content on the content surface of the kit, with a fill that
+  /// is not the standard background (D110 (b)).
+  ///
+  /// Use it when the content has its own standard background, for example
+  /// the background of the editor theme for a block of code. The surface has
+  /// the `.separator` stroke and the shape of
+  /// ``agentContentSurface(radius:)``. It has no glass.
+  ///
+  /// - Parameters:
+  ///   - fill: The fill of the surface.
+  ///   - radius: The radius token of the corners, for example
+  ///     ``AgentTheme/Radii/m``. When it is `nil`, the corners use the large
+  ///     radius of the theme.
+  /// - Returns: The content on the surface.
+  func agentContentSurface(_ fill: some ShapeStyle, radius: CGFloat? = nil) -> some View {
+    modifier(AgentContentSurface(fill: AnyShapeStyle(fill), radius: radius))
   }
 
   /// Puts this floating control on the Liquid Glass of the kit (D110 (c)).
@@ -87,7 +126,7 @@ extension View {
   /// Use it only on a floating control, for example the composer bar or a
   /// floating action button. Use it only inside a `GlassEffectContainer`.
   /// Never put it on top of other glass. Never use it for content: use
-  /// ``agentContentSurface()`` for content.
+  /// ``agentContentSurface(radius:)`` for content.
   ///
   /// - Returns: The control on the glass.
   func agentFloatingGlass() -> some View {
