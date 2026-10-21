@@ -143,17 +143,13 @@ import Testing
   ///   - allowed: The files, relative to `base`, that the scan skips.
   /// - Returns: `<file>:<line>` for each line that uses a fixed color, in the
   ///   order of the file paths, then in line order.
-  /// - Throws: The error of `PackageFiles.swiftFileTexts(below:relativeTo:)`.
+  /// - Throws: The error of
+  ///   ``SourceLineScanner/codeMatches(inSwiftFilesBelow:relativeTo:skipping:match:)``.
   static func fixedColorUses(
     inSwiftFilesBelow directory: URL, relativeTo base: URL, allowing allowed: Set<String> = allowedFiles
   ) throws -> [String] {
-    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base)
-      .filter { !allowed.contains($0.path) }
-      .flatMap { file in
-        let code = SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(file.text.utf8))
-        return SourceLineScanner.matches(
-          inSource: String(decoding: code, as: UTF8.self), file: file.path, match: fixedColorUses(on:))
-      }
+    try SourceLineScanner.codeMatches(
+      inSwiftFilesBelow: directory, relativeTo: base, skipping: allowed, match: fixedColorUses(on:))
   }
 
   @Test func theScanFindsANamedColorAfterColorAndInAStyleModifier() {

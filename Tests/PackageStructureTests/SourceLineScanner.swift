@@ -38,6 +38,34 @@ enum SourceLineScanner {
     }
   }
 
+  /// Finds the matches in the code of each Swift file below a directory.
+  ///
+  /// The scan blanks the comments and the string literals of each file
+  /// before it reads the lines (``SwiftLiteralLexer``). Thus a match in a
+  /// comment or in a string literal does not count. The line numbers stay.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory to scan. The scan includes subdirectories.
+  ///   - base: The directory that the file name of each line is relative to.
+  ///   - skipped: The files, relative to `base`, that the scan does not read.
+  ///   - match: The function that finds the matches on one line.
+  /// - Returns: The matches, in the order of the file paths, then in line
+  ///   order.
+  /// - Throws: The error of `PackageFiles.swiftFileTexts(below:relativeTo:)`.
+  static func codeMatches<Match>(
+    inSwiftFilesBelow directory: URL,
+    relativeTo base: URL,
+    skipping skipped: Set<String> = [],
+    match: (SourceLine) -> [Match]
+  ) throws -> [Match] {
+    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base)
+      .filter { !skipped.contains($0.path) }
+      .flatMap { file in
+        let code = SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(file.text.utf8))
+        return matches(inSource: String(decoding: code, as: UTF8.self), file: file.path, match: match)
+      }
+  }
+
   /// Finds the matches in the text of one Swift file.
   ///
   /// - Parameters:

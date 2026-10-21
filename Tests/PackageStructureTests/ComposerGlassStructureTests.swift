@@ -5,10 +5,11 @@ import Testing
 /// Checks the glass calls in the files of the composer (D110 (c)).
 ///
 /// One file of the kit makes a `GlassEffectContainer`: the shared
-/// `FloatingGlassContainer`. That container makes no second container in a
-/// container, so a group of floating controls has one container. The thread
-/// view puts the scroll-to-bottom pill and the composer slot in one shared
-/// container, and the composer uses the shared container too.
+/// `FloatingGlassContainer` (``GlassPlacementTests``). That container makes
+/// no second container in a container, so a group of floating controls has
+/// one container. The thread view puts the scroll-to-bottom pill and the
+/// composer slot in one shared container, and the composer uses the shared
+/// container too.
 ///
 /// The composer puts the field, the menu of the editor and the accessory in
 /// that one container. The field and the menu are on the floating
@@ -32,12 +33,6 @@ import Testing
 
   /// The file of the thread view, which holds the floating controls.
   static let threadFile = KitSourceFiles.kitFile("Thread/AgentThreadView.swift")
-
-  /// The file of the shared container of the floating controls.
-  static let sharedContainerFile = KitSourceFiles.kitFile("Theme/FloatingGlassContainer.swift")
-
-  /// The text that makes a glass effect container.
-  static let containerCall = "GlassEffectContainer("
 
   /// The text that makes the shared container of the floating controls.
   static let sharedContainerCall = "FloatingGlassContainer("
@@ -69,20 +64,6 @@ import Testing
     }.count
   }
 
-  /// The files of the kit with a code line that holds `text`.
-  ///
-  /// - Parameter text: The text to find.
-  /// - Returns: The path of each file, relative to the package root, one
-  ///   time for each line.
-  /// - Throws: An error when a file cannot be read.
-  static func kitFiles(holding text: String) throws -> [String] {
-    try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root
-    ) { line in
-      isCode(line, holding: text) ? [line.file] : []
-    }
-  }
-
   /// Tells if `line` is a code line that holds `text`.
   ///
   /// - Parameters:
@@ -92,10 +73,6 @@ import Testing
   static func isCode(_ line: SourceLine, holding text: String) -> Bool {
     let isComment = line.text.trimmingCharacters(in: .whitespaces).hasPrefix("//")
     return !isComment && line.text.contains(text)
-  }
-
-  @Test func onlyTheSharedContainerMakesAGlassEffectContainer() throws {
-    #expect(try Self.kitFiles(holding: Self.containerCall) == [Self.sharedContainerFile])
   }
 
   @Test func theComposerUsesTheSharedContainerOneTime() throws {

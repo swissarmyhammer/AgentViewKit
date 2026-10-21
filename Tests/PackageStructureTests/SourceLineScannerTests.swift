@@ -42,6 +42,36 @@ import Testing
     #expect(files.sorted() == ["Violating/ImportsNothingForbidden.swift", "Violating/Nested/ImportsRuntimes.swift"])
   }
 
+  /// The fixture directory with the comments and the string literals of the
+  /// fixed color scan.
+  static var literalFixtures: URL {
+    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ThemeColors/Clean") }
+  }
+
+  @Test func codeMatchesSkipsTheCommentsAndTheStringLiterals() throws {
+    let found = try SourceLineScanner.codeMatches(inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures) { line in
+      line.text.contains("Color.") || line.text.contains("Color(") ? [line.number] : []
+    }
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func codeMatchesKeepsTheLineNumbersOfTheCode() throws {
+    let found = try SourceLineScanner.codeMatches(inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures) { line in
+      line.text.contains("editorTheme.selection") ? ["\(line.file):\(line.number)"] : []
+    }
+
+    #expect(found == ["ThemeColors.swift:20"])
+  }
+
+  @Test func codeMatchesSkipsTheSkippedFiles() throws {
+    let found = try SourceLineScanner.codeMatches(
+      inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures, skipping: ["ThemeColors.swift"]
+    ) { [$0.number] }
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
   @Test func matchesFailsOnADirectoryThatDoesNotExist() throws {
     let missing = try Self.fixtures.appending(path: "NoSuchDirectory")
 
