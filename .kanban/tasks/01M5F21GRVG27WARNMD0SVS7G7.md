@@ -48,6 +48,50 @@ comments:
     - note: two earlier full runs stopped with no CPU use in RecordedSessionsAgentTests (a session resume that never returned). No file of AVK-10 is part of that test. The suite RecordedSessionsAgentTests alone passed (7 tests), and the third full run passed. No code changed during the runs. The stop happened while the machine was under high load.
     - next: review
   timestamp: 2026-10-21T12:23:49.425083+00:00
+- actor: claude-code
+  id: 01m5f6t4cbgk1e0dyxwnabp5f8
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 2c9feab). 2 findings, 2 confirmed, 0 refuted. Sources/AgentViewKit/Attachments/AttachmentInspectorMode.swift:125, Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:178
+    - next: Do the 2 items in the "Review Findings (2026-10-21 07:24)" section. Then run the review again.
+  timestamp: 2026-10-21T12:26:08.651647+00:00
+- actor: claude-code
+  id: 01m5f6tj6v2fac3et50nxr3r9n
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 10 files
+    - test: green — swift test (third full run), 1487 passed, 2 known issues that were there before; two earlier runs hung in RecordedSessionsAgentTests (not related; it has its own card)
+    - commit: 2c9feab
+    - review: findings — Sources/AgentViewKit/Attachments/AttachmentInspectorMode.swift:125, Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:178
+  timestamp: 2026-10-21T12:26:22.811888+00:00
+- actor: claude-code
+  id: 01m5f752p0wbfks7t9vkwff578
+  text: |-
+    ### review findings fixed (2026-10-21 07:24 section)
+    - duplication (AttachmentInspectorMode.swift): the doc comment of `agentAttachmentInspector(_:)` has no code copy now. It names `InspectorWindow` in `Examples/ReadmeSnippets/Snippets/HostInspector.swift` as the example; the build compiles that snippet and the README shows it. The other doc comments of the change (AgentThreadView, attachmentInspector, AttachmentView, ImageView) had no code copy.
+    - reuse (AttachmentInspectorModeHostedTests.swift): new shared helper `TestImage.makePNGContent(uri:)` (and `TestImage.mediaType`) in Tests/AgentViewKitTests/Helpers/TestImage.swift. `WireContentBlockViewHostedTests.aPressOnAWireImageSelectsItsBytesInTheInspector` and the new image test both call it. The new image test uses `WireContentBlockViewHostedTests.imageURI` and `imageName`, not literals.
+    - Same cause in the whole new file: a `View.testHostInspector(selection:)` test modifier (the host `.inspector` + `.agentAttachmentInspector(.host(_:))`) and a `mountInHostMode(_:state:composer:)` helper. The chip host test, the image host test and `SplitViewHostWithThreadTabs` use them. The session open stays in each test because of its `defer` close. The image test now also has the host inspector, so its check is `inspectorItems.count == 1` (only the host inspector), not `isEmpty`. The unused `import FoundationModelsACP` is removed from the new test file.
+    - Tool note: `dump validators` for .swift wrote a rules file of 754K characters, too large to read in one time. The rules were applied from the skill list (document each item, name each constant, no copied blocks).
+  timestamp: 2026-10-21T12:32:07.360120+00:00
+- actor: claude-code
+  id: 01m5f755vx13k2gjham63txfsx
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Attachments/AttachmentInspectorMode.swift, Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift, Tests/AgentViewKitTests/Helpers/TestImage.swift, Tests/AgentViewKitTests/Content/WireContentBlockViewHostedTests.swift. Focused run: 38 tests in 4 suites passed. Full `swift test` (one run, no hang): 1487 tests in 187 suites passed, 2 known issues (existed before); PackageStructureTests 177 tests in 25 suites passed; only the mlx bundle warning (existed before). `Scripts/check-readme.sh` exit 0, "README gate passed". Both findings are `- [x]`.
+    - next: /review
+  timestamp: 2026-10-21T12:32:10.621457+00:00
+- actor: claude-code
+  id: 01m5f7b8wbwf8hqz2tkg8sa44p
+  text: |-
+    ### test — green
+    - evidence: swift test (full, one run, about 118 s with build): 1487 tests in 187 suites passed in 79.6 s, 0 failures, 0 skipped, 2 known issues (HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). They existed before.
+    - warnings: only the mlx-swift_Cmlx.bundle build warning that existed before. No new warning.
+    - ReadmeSnippetsTests passed. Scripts/check-readme.sh passed: "README gate passed: each snippet is in its file, and each snippet compiles."
+    - No suite named PackageStructureTests exists in the repo. The package-structure suites PackageFilesTests, KitSourceFilesTests and ReadmeCoverageTests ran and passed.
+    - RecordedSessionsAgentTests did not hang. It passed in 79.6 s.
+    - No code change was needed. Nothing was committed.
+    - next: review
+  timestamp: 2026-10-21T12:35:30.315243+00:00
 position_column: doing
 position_ordinal: '80'
 title: AVK-10 Let a host with its own inspector use AgentThreadView with no attachment inspector
@@ -67,3 +111,17 @@ Acceptance:
 - A hosted test: the default still shows the kit inspector, as before.
 - A hosted test (or the demo app) with a NavigationSplitView that has its own `.inspector` and two thread views (two tabs) does not stop with the NSGenericException.
 - No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-10
+
+## Review Findings (2026-10-21 07:24)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 4 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Attachments/AttachmentInspectorMode.swift:125` `duplication/duplication` — The doc comment example for agentAttachmentInspector copies the InspectorWindow body from Examples/ReadmeSnippets/Snippets/HostInspector.swift nearly word for word. The compiled snippet is the checked source. The copy can drift from it without any build failure. Keep the example in HostInspector.swift only. Point the doc comment at that snippet, or include the snippet through the readme compile tooling, so one copy is the source. Do not keep a second hand-written copy in the doc comment.
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:178` `reuse/reuse` — The new test aPressOnAnImageInTheHostModeSetsTheHostSelection repeats the setup of an existing image press test: it builds the PNG, the ImageContent, the scripted session and the press. This copy will drift from the original when the image setup changes. Move the PNG and ImageContent construction into a shared helper, for example in AttachmentInspectorHostedTests, and call it from both tests. Keep the host-mode binding and the assertions in this test.

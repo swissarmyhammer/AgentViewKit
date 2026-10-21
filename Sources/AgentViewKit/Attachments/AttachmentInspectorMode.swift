@@ -120,31 +120,11 @@ extension View {
   /// id of the thread view that the user pressed. The host shows the file,
   /// for example with ``AttachmentInspector``, whose actions Open, Reveal in
   /// Finder, Share, Save and Quick Look work in each mode. The host closes
-  /// its inspector with a write of `nil` to the binding:
+  /// its inspector with a write of `nil` to the binding.
   ///
-  /// ```swift
-  /// @State private var selection: AgentAttachmentSelection?
-  ///
-  /// var body: some View {
-  ///   NavigationSplitView {
-  ///     SessionList()
-  ///   } detail: {
-  ///     AgentThreadView(session: session, connection: connection)
-  ///   }
-  ///   .inspector(isPresented: isInspectorPresented) {
-  ///     if let selection {
-  ///       AttachmentInspector(selection.attachment)
-  ///     }
-  ///   }
-  ///   .agentAttachmentInspector(.host($selection))
-  /// }
-  ///
-  /// /// `true` while the host has a selection. A write of `false`, such as
-  /// /// the close of the inspector, removes the selection.
-  /// private var isInspectorPresented: Binding<Bool> {
-  ///   Binding(get: { selection != nil }, set: { if !$0 { selection = nil } })
-  /// }
-  /// ```
+  /// For an example window, see `InspectorWindow` in
+  /// `Examples/ReadmeSnippets/Snippets/HostInspector.swift`. The build
+  /// compiles that snippet, and the README shows it.
   ///
   /// - Parameter mode: The inspector mode.
   /// - Returns: A view whose thread views use `mode`.

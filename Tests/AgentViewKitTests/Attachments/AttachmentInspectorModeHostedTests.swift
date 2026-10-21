@@ -1,7 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
 import Foundation
-import FoundationModelsACP
 import SwiftUI
 import Testing
 
@@ -19,6 +18,24 @@ import Testing
 
   /// The tag of the thread tab that the host shows.
   var shownThread = 0
+}
+
+extension View {
+  /// Gives this view the inspector of a test host, and gives the host mode
+  /// with `selection` to each thread view in this view.
+  ///
+  /// The inspector shows a text with the identifier
+  /// ``SplitViewHostWithThreadTabs/hostInspectorIdentifier``.
+  ///
+  /// - Parameter selection: The attachment selection of the host.
+  /// - Returns: A view with the inspector of the host.
+  func testHostInspector(selection: Binding<AgentAttachmentSelection?>) -> some View {
+    inspector(isPresented: .constant(true)) {
+      Text("Host inspector")
+        .accessibilityIdentifier(SplitViewHostWithThreadTabs.hostInspectorIdentifier)
+    }
+    .agentAttachmentInspector(.host(selection))
+  }
 }
 
 /// A host layout of TestudoApp: a `NavigationSplitView` with its own
@@ -65,11 +82,7 @@ struct SplitViewHostWithThreadTabs: View {
         }
       }
     }
-    .inspector(isPresented: .constant(true)) {
-      Text("Host inspector")
-        .accessibilityIdentifier(Self.hostInspectorIdentifier)
-    }
-    .agentAttachmentInspector(.host($state.selection))
+    .testHostInspector(selection: $state.selection)
   }
 }
 
@@ -146,18 +159,8 @@ struct SplitViewHostWithThreadTabs: View {
     let state = HostAttachmentState()
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection) {
-        AttachmentView(attachment)
-      }
-      .inspector(isPresented: .constant(true)) {
-        Text("Host inspector")
-          .accessibilityIdentifier(SplitViewHostWithThreadTabs.hostInspectorIdentifier)
-      }
-      .agentAttachmentInspector(.host(Bindable(state).selection)),
-      size: Shared.hostSize)
+    let harness = Self.mountInHostMode(session, state: state) { AttachmentView(attachment) }
     defer { harness.close() }
-    harness.render()
     try #require(Shared.inspectorItems(in: harness).count == 1)
 
     try harness.press(identifier: AttachmentView.identifier(for: .chip))
@@ -172,34 +175,26 @@ struct SplitViewHostWithThreadTabs: View {
 
   /// A press on an image in a thread view in the host mode writes the file of
   /// the image and the session id of the thread to the binding of the host.
+  /// The window keeps only the inspector of the host.
   ///
   /// The image writes its file in a task, then writes the binding. The test
   /// waits for that write of the observable host state.
   @Test func aPressOnAnImageInTheHostModeSetsTheHostSelection() async throws {
     let state = HostAttachmentState()
-    let png = try TestImage.makePNGData()
-    let image = FoundationModelsACP.ImageContent(
-      data: png.base64EncodedString(), mimeType: MediaType(rawValue: "image/png"),
-      uri: "https://example.com/chart.png")
+    let (png, image) = try TestImage.makePNGContent(uri: WireContentBlockViewHostedTests.imageURI)
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection) {
-        ImageView(image: image)
-      }
-      .agentAttachmentInspector(.host(Bindable(state).selection)),
-      size: Shared.hostSize)
+    let harness = Self.mountInHostMode(session, state: state) { ImageView(image: image) }
     defer { harness.close() }
-    harness.render()
 
     try harness.press(identifier: ImageView.imageIdentifier)
     await ObservationWait.until { state.selection != nil }
 
     let selection = try #require(state.selection)
     #expect(selection.sessionId == session.model.sessionId)
-    #expect(selection.attachment.name == "chart.png")
+    #expect(selection.attachment.name == WireContentBlockViewHostedTests.imageName)
     #expect(try Data(contentsOf: selection.attachment.url) == png)
-    #expect(Shared.inspectorItems(in: harness).isEmpty)
+    #expect(Shared.inspectorItems(in: harness).count == 1)
   }
 
   /// A `NavigationSplitView` with its own inspector and two thread views in
@@ -260,6 +255,28 @@ struct SplitViewHostWithThreadTabs: View {
     harness.render()
     #expect(harness.element(identifier: Self.threadTag(0)) != nil)
     #expect(Shared.inspectorItems(in: harness).count == 1)
+  }
+
+  // MARK: - Helpers
+
+  /// Mounts the thread view of a scripted session in the host mode, in a host
+  /// that has its own inspector (``SwiftUI/View/testHostInspector(selection:)``),
+  /// and makes one render pass.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session that the thread view shows.
+  ///   - state: The state of the host, whose selection the thread view gets.
+  ///   - composer: The view in the composer slot of the thread view.
+  /// - Returns: The harness of the view. The caller closes it.
+  static func mountInHostMode<Composer: View>(
+    _ session: ScriptedSession, state: HostAttachmentState, @ViewBuilder composer: () -> Composer
+  ) -> HostedViewHarness<some View> {
+    let harness = HostedViewHarness(
+      AgentThreadView(session: session.model, connection: session.connection, composer: composer)
+        .testHostInspector(selection: Bindable(state).selection),
+      size: Shared.hostSize)
+    harness.render()
+    return harness
   }
 
   /// The accessibility identifier of the tag of a thread of the split view

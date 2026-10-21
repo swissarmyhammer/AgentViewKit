@@ -124,9 +124,7 @@ import Testing
   @Test func aPressOnAWireImageSelectsItsBytesInTheInspector() async throws {
     let selection = InspectorSelection()
     let selects = ReportRecorder<String>()
-    let png = try TestImage.makePNGData()
-    let image = FoundationModelsACP.ImageContent(
-      data: png.base64EncodedString(), mimeType: MediaType(rawValue: "image/png"), uri: Self.imageURI)
+    let (png, image) = try TestImage.makePNGContent(uri: Self.imageURI)
     let harness = HostedViewHarness(
       ContentBlockView(block: .image(image), id: Self.blockID)
         .environment(\.inspectorSelection, selection)
