@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorSwiftUI
 import SwiftUI
@@ -39,6 +39,12 @@ import Testing
     +let name = "new"
     """
 
+  /// A block with clear content that fills the render size. In a frame, only
+  /// the fill of the frame and its edge draw a color.
+  static var clearBlock: some View {
+    Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
   /// The pixels of `view` with ``DistinctRolesTheme`` as its EditorKit theme.
   ///
   /// - Parameter view: The view to render.
@@ -63,6 +69,22 @@ import Testing
     let block = CodeBlockView(code: "let x = 1", language: "swift")
       .editorTheme(DistinctRolesTheme())
     let pixels = try GlassRenderProbeHostedTests.cachedPixels(of: block, size: Self.size)
+    #expect(!pixels.contains(Role.editorBackground))
+  }
+
+  // D113: terminal output keeps the background of the terminal palette. The
+  // background is terminal data, and the ANSI colors need it for contrast. A
+  // code block has no fill. The next two tests hold this rule on the frames
+  // themselves, with clear content, so only the frame can draw a fill.
+
+  @Test func theTerminalFrameFillsTheBlockWithTheTerminalBackground() throws {
+    let pixels = try Self.pixels(of: Self.clearBlock.terminalBlockFrame())
+    #expect(pixels.contains(Role.terminalBackground))
+  }
+
+  @Test func theCodeBlockFrameFillsTheBlockWithNoThemeColor() throws {
+    let pixels = try Self.pixels(of: Self.clearBlock.editorBlockFrame())
+    #expect(!pixels.contains(Role.terminalBackground))
     #expect(!pixels.contains(Role.editorBackground))
   }
 

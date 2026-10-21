@@ -9,10 +9,39 @@ comments:
     - Terminal output keeps the TerminalPalette background. It is terminal data, the same as the editor background of a theme. The ANSI colors need it for contrast.
     - Thus this card removes no terminal background. Record the rule in a test or a doc comment, as the card says for this answer.
   timestamp: 2026-10-21T03:48:12.562341+00:00
+- actor: claude-code
+  id: 01m5ehybybwa1sff73j35pkwcc
+  text: |-
+    ### research
+    - The answer is choice B (comment of testudoapp-4c). The terminal frame keeps `palette[.background]`.
+    - `TerminalBlockFrame` in `Sources/AgentViewKit/Code/EditorBlockChrome.swift` applies the fill through `EditorBlockFrame(fill: palette[.background])`. `editorBlockFrame()` uses `EditorBlockFrame(fill: nil)`. Neither frame calls `agentContentSurface`; both use `agentContentEdge`.
+    - Users of the terminal frame: `Terminal/TerminalView.swift` and `Content/CommandOutputView.swift`.
+    - Tests that already expect the terminal background: `EditorThemeViewsTests.theCommandOutputFrameUsesTheTerminalBackgroundAndTheBarUsesTheEditorTheme` and `TerminalViewHostedTests.theFrameUsesTheTerminalBackgroundOfTheTheme`. `EditorThemeViewsTests.theCodeBlockFrameHasNoEditorBackground` and `CodeBlockViewSurfaceHostedTests` hold the code block with no fill.
+    - The allow list of AVK-8r (^zfz0b4v) does not exist yet. `Tests/PackageStructureTests/ContentFillTests.swift` is a new file of that card, and the card already lists `Code/EditorBlockChrome.swift` (terminal background) for choice B. Thus this card adds no allow list file; AVK-8r adds the entry with the reason when it makes the list.
+    - Plan: add a STE doc comment on `TerminalBlockFrame` that names D113 and the answer, and add frame-level tests in `EditorThemeViewsTests` that use `Self.pixels(of:)`.
+  timestamp: 2026-10-21T06:21:27.371901+00:00
+- actor: claude-code
+  id: 01m5ej4ffxaeq3fdtvbsb66300
+  text: |-
+    ### implement — changed
+    - Choice B is done. `TerminalBlockFrame` (Sources/AgentViewKit/Code/EditorBlockChrome.swift) has a STE doc comment. It names D113 and this answer: the terminal background is terminal data, not a custom fill, and the ANSI colors 0 to 15 need it for contrast. The frame code did not change. No frame calls `agentContentSurface`.
+    - Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift: new tests `theTerminalFrameFillsTheBlockWithTheTerminalBackground` and `theCodeBlockFrameFillsTheBlockWithNoThemeColor`. They put clear content in `terminalBlockFrame()` and `editorBlockFrame()` and use `Self.pixels(of:)`. The import is now `@testable import AgentViewKit` because the frames are internal.
+    - Mutation check: with the two frames swapped, both new tests failed with the expected expectation. After the restore, both pass.
+    - Allow list of AVK-8r: the list does not exist yet (`ContentFillTests.swift` is a new file of ^zfz0b4v). That card already names `Code/EditorBlockChrome.swift` (terminal background) for choice B, so ^zfz0b4v adds the entry with the reason "terminal data". This card did not change ^zfz0b4v.
+    - evidence: `swift test` (output in a scratch file): 1462 tests in 182 suites passed, 2 known issues (HostedLayoutExpectationsTests, ThemeHeightExpectationsTests), the mlx bundle warning only. These existed before.
+    - next: /review
+  timestamp: 2026-10-21T06:24:47.613683+00:00
+- actor: claude-code
+  id: 01m5ej90dta2bra5t5ag2gg1f2
+  text: |-
+    ### test - green
+    - evidence: swift test, 112 s wall time. Swift Testing: 1462 tests in 182 suites passed, 2 known issues (same as before). 0 failures, 0 skipped. XCTest: 0 tests, 0 failures. Warnings: only the known mlx bundle warning. PackageStructureTests ran and passed.
+    - next: review
+  timestamp: 2026-10-21T06:27:16.026469+00:00
 depends_on:
 - 01M5E8TFNDT9Q9WE6C2D6YW9PP
-position_column: todo
-position_ordinal: a480
+position_column: doing
+position_ordinal: '80'
 title: 'AVK-8aa Open question first, then do: does the terminal and command output frame keep the TerminalPalette background fill (EditorBlockChrome.swift:43)?'
 ---
 ## Why

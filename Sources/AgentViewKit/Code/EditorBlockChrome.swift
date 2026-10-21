@@ -35,6 +35,13 @@ struct EditorBlockFrame: ViewModifier {
 /// background fills the block, and the terminal foreground is the
 /// foreground style of the block. The color runs of the output use the same
 /// palette, so the text and the fill agree.
+///
+/// D113 removes the fills of content cards, but the terminal background stays
+/// (the answer to AVK-8aa). The terminal background is terminal data, the same
+/// as the editor background of a theme. It is not a custom fill. The palette
+/// sets the ANSI colors 0 to 15 for this background, so the output has good
+/// contrast only on it. Do not remove this fill. `EditorThemeViewsTests` holds
+/// this rule.
 struct TerminalBlockFrame: ViewModifier {
   @Environment(\.editorTheme) private var editorTheme
 
