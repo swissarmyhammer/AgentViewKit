@@ -1,6 +1,13 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5e95xbja12brmkype2e5rne
+  text: |-
+    ### decision (testudoapp-4c, style.md "How the steps apply") — this answers the minimap question
+    - A user tick is `.primary`. An agent tick is `.secondary`. Only the current item uses the accent.
+  timestamp: 2026-10-21T03:48:17.394885+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 position_column: todo

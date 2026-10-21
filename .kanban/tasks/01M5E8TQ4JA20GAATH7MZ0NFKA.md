@@ -1,6 +1,14 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5e95rmjcf6psbnjns2zr0z0
+  text: |-
+    ### decision (testudoapp-4c, style.md "How the steps apply") — this answers the open question
+    - Terminal output keeps the TerminalPalette background. It is terminal data, the same as the editor background of a theme. The ANSI colors need it for contrast.
+    - Thus this card removes no terminal background. Record the rule in a test or a doc comment, as the card says for this answer.
+  timestamp: 2026-10-21T03:48:12.562341+00:00
 depends_on:
 - 01M5E8TFNDT9Q9WE6C2D6YW9PP
 position_column: todo
