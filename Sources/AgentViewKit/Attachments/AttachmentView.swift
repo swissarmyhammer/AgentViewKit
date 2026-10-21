@@ -10,7 +10,10 @@ import UniformTypeIdentifiers
 /// ``renderer(for:)``.
 ///
 /// A tap on the view selects the attachment in the ``InspectorSelection`` of
-/// the environment. Then the inspector shows the file.
+/// the environment. Then the inspector shows the file. In an
+/// ``AgentThreadView`` in the host mode
+/// (``SwiftUI/View/agentAttachmentInspector(_:)``), the tap writes an
+/// ``AgentAttachmentSelection`` to the binding of the host.
 ///
 /// `Docs/decisions/attachment-types.md` records the default renderer of each
 /// type.
@@ -54,7 +57,7 @@ public struct AttachmentView: View {
   let attachment: Attachment
 
   @Environment(\.attachmentRegistry) private var registry
-  @Environment(\.inspectorSelection) private var selection
+  @Environment(\.attachmentSelect) private var selectForInspector
 
   /// Makes the view of an attached file.
   ///
@@ -103,9 +106,11 @@ public struct AttachmentView: View {
     }
   }
 
-  /// Selects the attachment in the inspector selection of the environment.
+  /// Selects the attachment for the inspector of the environment: the
+  /// inspector of the host in the host mode of a thread view, otherwise the
+  /// inspector selection.
   private func select() {
-    selection?.select(attachment)
+    selectForInspector(attachment)
   }
 }
 

@@ -42,7 +42,12 @@ extension View {
   ///
   /// The modifier gives `selection` to the environment of this view, so that
   /// a tap on an ``AttachmentView`` in this view opens the inspector.
-  /// ``AgentThreadView`` applies this modifier.
+  /// ``AgentThreadView`` applies this modifier in the
+  /// ``AttachmentInspectorMode/builtIn`` mode, the default. A window that has
+  /// its own inspector gives the ``AttachmentInspectorMode/host(_:)`` mode
+  /// with ``SwiftUI/View/agentAttachmentInspector(_:)``. Then the thread
+  /// views apply no inspector, and the window shows the selected file in its
+  /// own inspector.
   ///
   /// - Parameter selection: The selection to show.
   /// - Returns: A view with the inspector.

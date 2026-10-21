@@ -396,10 +396,24 @@ import UniformTypeIdentifiers
   static func inspectorItem<Content: View>(in harness: HostedViewHarness<Content>)
     -> NSSplitViewItem?
   {
+    inspectorItems(in: harness).first
+  }
+
+  /// Each split view item of an inspector in the window of `harness`, in
+  /// depth first order of the split views.
+  ///
+  /// Each `inspector(isPresented:content:)` in the window gives one item. A
+  /// test counts the items to learn which inspectors the window has.
+  ///
+  /// - Parameter harness: The harness that shows the views.
+  /// - Returns: The items. The list is empty when the window has no inspector.
+  static func inspectorItems<Content: View>(in harness: HostedViewHarness<Content>)
+    -> [NSSplitViewItem]
+  {
     views(under: harness.hostingView)
       .compactMap { ($0 as? NSSplitView)?.delegate as? NSSplitViewController }
       .flatMap(\.splitViewItems)
-      .first { $0.behavior == .inspector }
+      .filter { $0.behavior == .inspector }
   }
 
   /// `view` and each view under it, in depth first order.

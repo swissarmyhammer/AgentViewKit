@@ -7,7 +7,10 @@ import SwiftUI
 /// The view shows the image, scaled to fit. A tap on the image writes its
 /// bytes to a local file and selects that file in the
 /// ``InspectorSelection`` of the environment. Then the inspector shows the
-/// image. Bytes that are not an image show a placeholder label.
+/// image. In an ``AgentThreadView`` in the host mode
+/// (``SwiftUI/View/agentAttachmentInspector(_:)``), the tap writes an
+/// ``AgentAttachmentSelection`` of the file to the binding of the host. Bytes
+/// that are not an image show a placeholder label.
 ///
 /// The view shows an ACP `ImageContent` that a transcript entry holds. The
 /// view decodes the base64 data of the ACP value when it shows it. Data that
@@ -26,7 +29,7 @@ public struct ImageView: View {
   /// The ACP image to show, as the transcript entry holds it.
   let image: FoundationModelsACP.ImageContent
 
-  @Environment(\.inspectorSelection) private var selection
+  @Environment(\.attachmentSelect) private var selectForInspector
 
   /// The report that gets the file name of each image that a tap starts to
   /// write, or `nil`.
@@ -66,8 +69,10 @@ public struct ImageView: View {
     }
   }
 
-  /// Writes the image to a file and selects the file in the inspector
-  /// selection of the environment.
+  /// Writes the image to a file and selects the file for the inspector of
+  /// the environment: the inspector of the host in the host mode of a thread
+  /// view, otherwise the inspector selection. With no inspector, the view
+  /// writes no file.
   ///
   /// The view gives the file name to
   /// ``SwiftUI/EnvironmentValues/imageSelectReport`` in the same step, before
@@ -75,12 +80,12 @@ public struct ImageView: View {
   ///
   /// - Parameter data: The bytes of the image.
   private func select(data: Data) {
-    guard let selection else { return }
+    guard selectForInspector.hasInspector else { return }
     let name = name
     reportSelect?(name)
     Task {
       guard let url = await ContentBlockFile.write(data, named: name) else { return }
-      selection.select(Attachment(url: url))
+      selectForInspector(Attachment(url: url))
     }
   }
 }

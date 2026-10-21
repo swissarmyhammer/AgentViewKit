@@ -150,6 +150,8 @@ The tool call registry selects a view by the `name` of the `ToolCallEntry`, the 
 
 **Click to preview.** Tapping an attachment, artifact, or file output opens it in a trailing `.inspector` with a live `QLPreviewView` and the actions Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
 
+**The host can own the inspector (AVK-10).** A window that has its own `.inspector`, such as a `NavigationSplitView` with an inspector, applies `.agentAttachmentInspector(.host($selection))` one time at its root. Then each `AgentThreadView` in the window applies no `.inspector`, because two inspectors in one window make AppKit stop the app (NSGenericException, TestudoApp rule D40). A tap on an attachment writes an `AgentAttachmentSelection` to the binding: the file and the `sessionId` of the thread that the user pressed, so more than one thread view can share one binding. The host shows the file in its own inspector, for example with `AttachmentInspector`, whose actions work in each mode, and it closes the inspector with a write of `nil`. The default, `.builtIn`, keeps the trailing inspector of the kit.
+
 ### 3.7 Rules that are built in FoundationModelsACP
 
 | Rule | Detail |

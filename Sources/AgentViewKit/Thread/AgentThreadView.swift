@@ -77,13 +77,26 @@ import SwiftUI
 /// The view gives an ``ExpandedBlocksStore`` to its rows. When the
 /// environment has a store, the view uses that store.
 ///
-/// A tap on an attachment in a row shows the file in a trailing inspector.
-/// See ``SwiftUI/View/attachmentInspector(selection:)``. When the environment
-/// has an ``InspectorSelection``, the view uses that selection. The view
-/// always has this inspector, so do not put the view in a view that has its
-/// own `inspector(isPresented:content:)`, such as a `NavigationSplitView`
-/// with an inspector. Two inspectors make the minimum width of the column
-/// equal to the width of the window, and AppKit can then stop the app.
+/// A tap on an attachment in the view shows the file in an inspector. The
+/// ``SwiftUI/View/agentAttachmentInspector(_:)`` modifier selects the
+/// inspector:
+///
+/// - ``AttachmentInspectorMode/builtIn`` (the default): the view shows the
+///   file in its own trailing inspector. See
+///   ``SwiftUI/View/attachmentInspector(selection:)``. When the environment
+///   has an ``InspectorSelection``, the view uses that selection. Do not use
+///   this mode in a view that has its own `inspector(isPresented:content:)`,
+///   such as a `NavigationSplitView` with an inspector. Two inspectors make
+///   the minimum width of the column equal to the width of the window, and
+///   AppKit can then stop the app.
+/// - ``AttachmentInspectorMode/host(_:)``: the view applies no inspector. A
+///   tap writes an ``AgentAttachmentSelection`` with the file and the session
+///   id of this view to the binding of the host, and the host shows the file
+///   in its own inspector, for example with ``AttachmentInspector``. More
+///   than one thread view can share the binding.
+///
+/// Apply the modifier one time, at the root of the window. A change of the
+/// mode makes the content of the view again, with new view state.
 ///
 /// The view registers the agent commands of the session model
 /// (``AgentCommandVerb``) with the keys of ``AgentKeymap``. See
@@ -131,6 +144,7 @@ public struct AgentThreadView<Composer: View>: View {
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
+  @Environment(\.agentAttachmentInspector) private var inspectorMode
   @Environment(\.connectionModel) private var hostConnection
   @Environment(\.agentTheme) private var theme
 
@@ -196,8 +210,11 @@ public struct AgentThreadView<Composer: View>: View {
       .accessibilityReadingScope()
       .accessibilityFocusScope()
       .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
-      .attachmentInspector(
-        selection: Self.inspectorSelection(host: hostInspectorSelection, own: ownInspectorSelection))
+      .modifier(
+        ThreadAttachmentInspector(
+          mode: inspectorMode, sessionId: session.sessionId,
+          selection: Self.inspectorSelection(
+            host: hostInspectorSelection, own: ownInspectorSelection)))
   }
 
   /// The selection that the view gives to its inspector.

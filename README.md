@@ -357,6 +357,60 @@ struct ThemedHost<Content: View>: View {
 }
 ```
 
+### The attachment inspector
+
+A tap on an attachment or an image in `AgentThreadView` shows the file in an
+inspector. By default (`.builtIn`), the thread view shows the file in its own
+trailing `.inspector`. Do not use the default in a window that has its own
+inspector, such as a `NavigationSplitView` with an inspector: two inspectors in
+one window can make AppKit stop the app.
+
+Such a window applies `.agentAttachmentInspector(.host($selection))` one time
+at its root. Then the thread views apply no inspector. A tap writes an
+`AgentAttachmentSelection` to the binding: the file and the `sessionId` of the
+thread that the user pressed. Thus more than one thread view can share one
+binding. Show the file in your inspector, for example with
+`AttachmentInspector`, whose actions Open, Reveal in Finder, Share, Save and
+Quick Look work in each mode. A write of `nil` closes the inspector.
+
+```swift
+// readme:compile HostInspector
+import AgentViewKit
+import FoundationModelsACPClient
+import SwiftUI
+
+/// A window with a sidebar, a thread, and its own inspector.
+struct InspectorWindow: View {
+  let connection: ConnectionModel
+  let session: SessionModel
+
+  /// The file that the inspector of the window shows, or `nil`.
+  @State private var selection: AgentAttachmentSelection?
+
+  var body: some View {
+    NavigationSplitView {
+      Text("Threads")
+    } detail: {
+      AgentThreadView(session: session, connection: connection)
+    }
+    .inspector(isPresented: isInspectorPresented) {
+      if let selection {
+        AttachmentInspector(selection.attachment)
+      }
+    }
+    // One time at the root of the window: the thread views apply no
+    // inspector, and a tap writes the file and its session to `selection`.
+    .agentAttachmentInspector(.host($selection))
+  }
+
+  /// `true` while the window has a selection. The close of the inspector
+  /// writes `false`, and that removes the selection.
+  private var isInspectorPresented: Binding<Bool> {
+    Binding(get: { selection != nil }, set: { if !$0 { selection = nil } })
+  }
+}
+```
+
 ### Override modifiers
 
 `AgentThreadView(session:connection:)` switches over `TranscriptEntry` inside.
