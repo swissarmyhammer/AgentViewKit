@@ -13,6 +13,13 @@ comments:
   id: 01m5e93vzn25sham44sf6eedak
   text: 'Changed for D113 (testudoapp-4c). The checklist now names each D113 answer: no fill in content (`agentContentEdge`), header rows, `.regular` glass and no `materialLevel`, capsule shapes, morphs with `glassEffectID`, tint and accent, the thread bars, the xterm formula, and the Tinted and Clear looks as manual checks of AVK-8u. depends_on: removed AVK-8a1 ^w9y5tq6 (closed as replaced); added AVK-8v to AVK-8am.'
   timestamp: 2026-10-21T03:47:10.453278+00:00
+- actor: claude-code
+  id: 01m5eksfmq0aqhk53reerzbcvd
+  text: |-
+    ### note from ^6dvspvv (AVK-8ac)
+    - `Docs/decisions/visual-audit.md` has a row that gives `statusBarBackground` for the header row of a code block. That row is now out of date: the header row has no fill and a separator line is under it (D113 answer 4). Correct that row or add a note that D113 replaces it.
+    - `statusBarBackground` now has no user in `Sources/AgentViewKit`.
+  timestamp: 2026-10-21T06:53:44.471916+00:00
 depends_on:
 - 01M5DFADQHSHCRAQW0709TVAPV
 - 01M5DF7Y8PDWS7XF25WDBBYG9W

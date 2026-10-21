@@ -38,10 +38,27 @@ comments:
     - evidence: swift test, 112 s wall time. Swift Testing: 1462 tests in 182 suites passed, 2 known issues (same as before). 0 failures, 0 skipped. XCTest: 0 tests, 0 failures. Warnings: only the known mlx bundle warning. PackageStructureTests ran and passed.
     - next: review
   timestamp: 2026-10-21T06:27:16.026469+00:00
+- actor: claude-code
+  id: 01m5ejbe4bx02ard7zgx3t2nqe
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit d310268). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. The engine reviewed 2 files. The ignore rule (.reviewignore) removed 2 .kanban files from the scope.
+    - next: The task moved to done.
+  timestamp: 2026-10-21T06:28:35.595960+00:00
+- actor: claude-code
+  id: 01m5ejbx4j8x20qx48ng9kztfw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 2 files (D113 doc comment on TerminalBlockFrame; two frame tests)
+    - test: green — swift test, 1462 passed, 2 known issues that were there before
+    - commit: d310268
+    - review: clean — 0 findings
+    - The answer of the person (through testudoapp-4c) is in the decision comment on this card: the terminal keeps its TerminalPalette background (choice B). The unchecked boxes in the description are for choice A and choice B together; choice A is not done, because the answer is B. The allow-list entry goes with ^zfz0b4v.
+  timestamp: 2026-10-21T06:28:50.962825+00:00
 depends_on:
 - 01M5E8TFNDT9Q9WE6C2D6YW9PP
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9280
 title: 'AVK-8aa Open question first, then do: does the terminal and command output frame keep the TerminalPalette background fill (EditorBlockChrome.swift:43)?'
 ---
 ## Why
