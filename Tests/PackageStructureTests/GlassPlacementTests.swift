@@ -101,18 +101,26 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     }
   }
 
+  /// The pattern that finds a call of a function with a member as its
+  /// argument, such as `.foregroundStyle(.tint)`: the
+  /// ``callPattern(_:)`` of `call`, then the member, from
+  /// ``WordPattern/memberPattern(after:_:)``.
+  ///
+  /// - Parameters:
+  ///   - call: The name of the function.
+  ///   - member: The pattern of the name of the member.
+  /// - Returns: The pattern.
+  static func memberCallPattern(_ call: String, _ member: some RegexComponent<Substring>) -> Regex<Substring> {
+    WordPattern.memberPattern(after: callPattern(call), member)
+  }
+
   /// The pattern that finds a `buttonStyle` modifier with a style of
   /// `style`, such as `.buttonStyle(.glass)`.
   ///
   /// - Parameter style: The pattern of the name of the style.
-  /// - Returns: The pattern.
+  /// - Returns: The pattern, from ``memberCallPattern(_:_:)``.
   static func buttonStylePattern(_ style: some RegexComponent<Substring>) -> Regex<Substring> {
-    Regex {
-      callPattern("buttonStyle")
-      ZeroOrMore(.whitespace)
-      "."
-      style
-    }
+    memberCallPattern("buttonStyle", style)
   }
 }
 
@@ -141,12 +149,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// prominent glass button style. Thus no other control of the composer
   /// uses the tint as a foreground style.
   static var tintForegroundStylePattern: Regex<Substring> {
-    Regex {
-      GlassForm.callPattern("foregroundStyle")
-      ZeroOrMore(.whitespace)
-      "."
-      WordPattern.wholeWord("tint")
-    }
+    GlassForm.memberCallPattern("foregroundStyle", WordPattern.wholeWord("tint"))
   }
 
   /// The fixture directory of the scan tests.
@@ -239,6 +242,13 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
       relativeTo: PackageFiles.root)
 
     #expect(found.isEmpty, "Use .primary or .secondary. Only Send has a tint: \(found)")
+  }
+
+  @Test func memberCallPatternFindsTheMemberInTheArgumentOfTheCall() {
+    let pattern = GlassForm.memberCallPattern("foregroundStyle", WordPattern.wholeWord("tint"))
+
+    #expect("symbol.foregroundStyle (.tint)".contains(pattern))
+    #expect(!"symbol.myforegroundStyle(.tint)".contains(pattern))
   }
 
   @Test(arguments: violatingFixtureForms)

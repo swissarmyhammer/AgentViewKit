@@ -1,7 +1,24 @@
 import Testing
 
-/// The shared whole-word pattern of ``WordPattern``.
+/// The shared patterns of ``WordPattern``.
 @Suite struct WordPatternTests {
+  /// The pattern of the member `.tint` after the receiver `fill(`.
+  static var tintMemberPattern: Regex<Substring> {
+    WordPattern.memberPattern(after: "fill(", WordPattern.wholeWord("tint"))
+  }
+
+  @Test func memberPatternFindsTheMemberAfterTheReceiverAndTheDot() {
+    #expect("shape.fill(.tint)".contains(Self.tintMemberPattern))
+  }
+
+  @Test func memberPatternFindsTheMemberAfterWhitespaceBeforeTheDot() {
+    #expect("shape.fill( .tint)".contains(Self.tintMemberPattern))
+  }
+
+  @Test func memberPatternDoesNotFindAnotherMember() {
+    #expect(!"shape.fill(.tintColor)".contains(Self.tintMemberPattern))
+  }
+
   @Test func wholeWordFindsTheWordBetweenTwoBoundaries() {
     #expect("let view = PlainView()".contains(WordPattern.wholeWord("PlainView")))
   }

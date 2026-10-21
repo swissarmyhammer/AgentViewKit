@@ -60,15 +60,12 @@ struct GlassButtonShapeLine {
   /// The pattern that finds a capsule or a circle border shape, such as
   /// `.buttonBorderShape(.capsule)`.
   static var borderShapePattern: Regex<Substring> {
-    Regex {
-      GlassForm.callPattern("buttonBorderShape")
-      ZeroOrMore(.whitespace)
-      "."
+    GlassForm.memberCallPattern(
+      "buttonBorderShape",
       ChoiceOf {
         WordPattern.wholeWord("capsule")
         WordPattern.wholeWord("circle")
-      }
-    }
+      })
   }
 
   /// The pattern that finds a glass button style in a style helper, such as

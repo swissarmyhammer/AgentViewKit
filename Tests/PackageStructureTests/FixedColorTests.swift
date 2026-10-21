@@ -64,34 +64,38 @@ import Testing
   /// `Color`, or as the argument of a style modifier.
   static var namedColorPattern: some RegexComponent {
     Regex {
-      ChoiceOf {
-        "Color"
-        "foregroundStyle("
-        "tint("
-        "background("
-        "fill("
-        "stroke("
-      }
-      ZeroOrMore(.whitespace)
-      "."
-      ChoiceOf {
-        "red"
-        "orange"
-        "yellow"
-        "green"
-        "mint"
-        "teal"
-        "cyan"
-        "blue"
-        "indigo"
-        "purple"
-        "pink"
-        "brown"
-        "gray"
-        "black"
-        "white"
-      }
+      WordPattern.memberPattern(
+        after: ChoiceOf {
+          "Color"
+          "foregroundStyle("
+          "tint("
+          "background("
+          "fill("
+          "stroke("
+        },
+        namedColor)
       Anchor.wordBoundary
+    }
+  }
+
+  /// The pattern of the name of a named system color, such as `red`.
+  static var namedColor: some RegexComponent<Substring> {
+    ChoiceOf {
+      "red"
+      "orange"
+      "yellow"
+      "green"
+      "mint"
+      "teal"
+      "cyan"
+      "blue"
+      "indigo"
+      "purple"
+      "pink"
+      "brown"
+      "gray"
+      "black"
+      "white"
     }
   }
 
