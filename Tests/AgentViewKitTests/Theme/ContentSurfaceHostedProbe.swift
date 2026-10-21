@@ -3,9 +3,17 @@ import AgentViewKitTestSupport
 import SwiftUI
 import Testing
 
-/// The shared method of the tests that check that a view of the kit is on
-/// the content surface (``SwiftUI/View/agentContentSurface(radius:)``), and not on
-/// glass (D110 (b)).
+/// The shared method of the tests that check the surface of a view of the
+/// kit in content. The method has two checks:
+///
+/// - ``expectBackdropShowsOnlyInFront(of:backdrop:reducesTransparency:size:sourceLocation:)``
+///   checks that the view is on the content surface
+///   (``SwiftUI/View/agentContentSurface(radius:)``), and not on glass
+///   (D110 (b)).
+/// - ``expectBackdropShowsInsideTheEdge(of:reducesTransparency:size:sourceLocation:)``
+///   checks that the view has no fill, and that the separator stroke of the
+///   content edge (``SwiftUI/View/agentContentEdge(radius:)``) marks its edge
+///   (D113).
 ///
 /// A test shows the view over the backdrop of ``GlassRenderProbeTests`` in
 /// an off-screen window, and reads the pixels with ``RenderedPixels``. It
@@ -14,12 +22,36 @@ import Testing
 ///
 /// The method reads the cache of the window, and not an `ImageRenderer`
 /// render, because `ImageRenderer` does not draw a focusable view. The cache
-/// of a window shows no glass (``GlassRenderProbeHostedTests``). Thus a view
-/// on glass shows the backdrop, and only an opaque surface hides it.
+/// of a window shows no glass (``GlassRenderProbeHostedTests``), also with
+/// Reduce Transparency on. Thus a view on glass shows the backdrop, and only
+/// an opaque surface hides it. A view on glass also has no separator stroke,
+/// so the edge check finds no edge. `GlassPlacementTests` reads the source,
+/// and keeps the glass in the files that can use it.
 enum ContentSurfaceHostedProbe {
   /// The two values of Reduce Transparency that each test shows the view
   /// with. It is `nonisolated` because the arguments of a test use it.
   nonisolated static let reduceTransparencyValues = [false, true]
+
+  /// The distance from the leading edge of the window to the point that the
+  /// edge check reads on the separator stroke, in points.
+  ///
+  /// The view fills the width of the window, so its edge is at the leading
+  /// edge of the window. The stroke is one point wide and is centered on the
+  /// edge, so it covers the first half point. The point is in the first pixel
+  /// at a scale of one and at a scale of two.
+  static let strokeOffset: CGFloat = 0.25
+
+  /// The distance from the leading edge of the window to the point that the
+  /// edge check reads inside the view, in points.
+  ///
+  /// The point is one point inside the separator stroke, so the stroke does
+  /// not touch its pixel. The padding of the view is wider, so no content of
+  /// the view is at the point.
+  static let insideOffset: CGFloat = 1.5
+
+  /// The distance between two rows that the edge check reads, in points. It
+  /// is one pixel at a scale of two.
+  static let rowStep: CGFloat = 0.5
 
   /// The pixels of `view` with the backdrop, in light mode, with only
   /// Reduce Transparency changed.
@@ -64,6 +96,56 @@ enum ContentSurfaceHostedProbe {
     let backdropShows = rendered.contains(GlassRenderProbeTests.backdrop)
     #expect(backdropShows == (placement == .inFront), "\(placement)", sourceLocation: sourceLocation)
   }
+
+  /// Checks that `view` has no fill, and that a separator stroke marks its
+  /// leading edge (D113).
+  ///
+  /// The backdrop fills the frame of `view`, behind it. The check reads the
+  /// rows of the window. It expects one row at least where the point on the
+  /// edge does not show the backdrop, and the point inside the edge shows
+  /// it. Only a stroke on the edge of a view with no fill gives such a row:
+  ///
+  /// - A fill hides the backdrop at the point inside the edge.
+  /// - With no stroke, the backdrop shows at the point on the edge.
+  /// - Above and below the view, the window shows no backdrop at either
+  ///   point.
+  ///
+  /// - Parameters:
+  ///   - view: The view with the content edge. It must fill the width of the
+  ///     window.
+  ///   - reducesTransparency: Whether Reduce Transparency is on.
+  ///   - windowSize: The size of the content of the window.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: An error when AppKit gives no pixels.
+  static func expectBackdropShowsInsideTheEdge(
+    of view: some View, reducesTransparency: Bool, size windowSize: CGSize,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let rendered = try pixels(
+      of: view, backdrop: .behindToTheEdge, reducesTransparency: reducesTransparency,
+      size: windowSize)
+    let rows = stride(from: 0, to: windowSize.height, by: rowStep)
+    let edgeShows = rows.contains { row in
+      rendered.showsTheEdge(atRow: row)
+    }
+    #expect(edgeShows, "No row shows the edge with the backdrop inside it", sourceLocation: sourceLocation)
+  }
+}
+
+extension RenderedPixels {
+  /// Whether the row at `row` shows a separator stroke on the leading edge
+  /// of a view with no fill, over the backdrop of ``GlassRenderProbeTests``.
+  ///
+  /// - Parameter row: The distance of the row from the top of the window, in
+  ///   points.
+  /// - Returns: `true` when the point on the edge does not show the backdrop,
+  ///   and the point inside the edge shows it.
+  fileprivate func showsTheEdge(atRow row: CGFloat) -> Bool {
+    let backdrop = GlassRenderProbeTests.backdrop
+    let onTheEdge = CGPoint(x: ContentSurfaceHostedProbe.strokeOffset, y: row)
+    let insideTheEdge = CGPoint(x: ContentSurfaceHostedProbe.insideOffset, y: row)
+    return !contains(backdrop, at: onTheEdge) && contains(backdrop, at: insideTheEdge)
+  }
 }
 
 /// Where ``SurfaceWithBackdrop`` puts its backdrop.
@@ -74,14 +156,19 @@ enum BackdropPlacement {
   /// The backdrop is in front of the view. The window always shows its
   /// color.
   case inFront
+  /// The backdrop is behind the view and fills its full frame, with no
+  /// inset. A view with no fill shows it, and a stroke on the edge of the
+  /// view covers it.
+  case behindToTheEdge
 }
 
 /// A view with the backdrop of ``GlassRenderProbeTests`` in its frame.
 ///
-/// The backdrop is inset by the large radius of the theme from each edge of
-/// the view. Thus it is not in the corners, where the rounded shape of the
-/// surface does not cover the frame. The backdrop is only at points that the
-/// surface covers.
+/// Behind and in front of the view, the backdrop is inset by the large
+/// radius of the theme from each edge of the view. Thus it is not in the
+/// corners, where the rounded shape of the surface does not cover the frame.
+/// The backdrop is only at points that the surface covers. For
+/// ``BackdropPlacement/behindToTheEdge``, the backdrop has no inset.
 struct SurfaceWithBackdrop<Content: View>: View {
   /// The view on the surface.
   let content: Content
@@ -97,6 +184,8 @@ struct SurfaceWithBackdrop<Content: View>: View {
       content.background { backdrop }
     case .inFront:
       content.overlay { backdrop }
+    case .behindToTheEdge:
+      content.background { GlassRenderProbeTests.backdrop }
     }
   }
 

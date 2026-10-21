@@ -5,12 +5,14 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// Checks that the banner of a notice in ``SessionNoticeBanner`` is on the
-/// content surface of the kit, and not on glass (D110 (b)).
+/// Checks that the banner of a notice in ``SessionNoticeBanner`` has no fill
+/// and no glass, and that the separator stroke of the content edge marks its
+/// edge (D113).
 ///
-/// The tests use the method of ``ContentSurfaceHostedProbe``. They show one
-/// ``NoticeBanner``, because ``SessionNoticeBanner`` puts a margin with no
-/// surface around its banners.
+/// The tests use the edge check of ``ContentSurfaceHostedProbe``. They show
+/// one ``NoticeBanner``, because ``SessionNoticeBanner`` puts a margin around
+/// its banners, and the edge check needs a banner that fills the width of
+/// the window.
 @Suite(.serialized, .hostedSerially) @MainActor struct SessionNoticeBannerSurfaceHostedTests {
   /// The size of the window. The banner fills the width and is shorter than
   /// the height.
@@ -35,14 +37,8 @@ import Testing
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsWhenItIsInFrontOfTheBanner(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
-      of: Self.banner(), backdrop: .inFront, reducesTransparency: reducesTransparency, size: Self.size)
-  }
-
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
-  func noPixelOfTheBackdropShowsInsideTheBanner(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
-      of: Self.banner(), backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
+  func theBackdropShowsInsideTheEdgeOfTheBanner(reducesTransparency: Bool) throws {
+    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+      of: Self.banner(), reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

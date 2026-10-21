@@ -5,11 +5,11 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// Checks that the card of ``PermissionView`` is on the content surface of
-/// the kit, and not on glass (D110 (b)).
+/// Checks that the card of ``PermissionView`` has no fill and no glass, and
+/// that the separator stroke of the content edge marks its edge (D113).
 ///
-/// The tests use the method of ``ContentSurfaceHostedProbe``. The card is
-/// `focusable()`, so the method reads the cache of a window.
+/// The tests use the edge check of ``ContentSurfaceHostedProbe``. The card
+/// is `focusable()`, so the method reads the cache of a window.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewSurfaceHostedTests {
   /// The size of the window. The card fills the width and is shorter than
   /// the height.
@@ -41,14 +41,8 @@ import Testing
   }
 
   @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsWhenItIsInFrontOfTheCard(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
-      of: Self.card(), backdrop: .inFront, reducesTransparency: reducesTransparency, size: Self.size)
-  }
-
-  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
-  func noPixelOfTheBackdropShowsInsideTheCard(reducesTransparency: Bool) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
-      of: Self.card(), backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
+  func theBackdropShowsInsideTheEdgeOfTheCard(reducesTransparency: Bool) throws {
+    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+      of: Self.card(), reducesTransparency: reducesTransparency, size: Self.size)
   }
 }

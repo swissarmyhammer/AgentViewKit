@@ -5,9 +5,10 @@ import SwiftUI
 /// The bar of one status message: a symbol, a title, an explanation, and one
 /// optional button with a symbol and a text.
 ///
-/// The bar shows in the thread with the transcript. It is content, so it is
-/// on the content surface of the kit (``SwiftUI/View/agentContentSurface(radius:)``)
-/// and has no glass (D110 (b)). Only its button uses a glass button style.
+/// The bar shows in the thread with the transcript. It is content, so it has
+/// no fill and no glass. A separator stroke marks its edge
+/// (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its button uses a
+/// glass button style.
 ///
 /// ``StateBanner``, ``SessionStreamBanner`` and ``AgentConnectionBanner`` show
 /// their messages in this bar. The text of the bar has the
@@ -85,7 +86,7 @@ struct StatusBar: View {
       }
     }
     .padding(theme.spacing.m)
-    .agentContentSurface()
+    .agentContentEdge()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(message.title)
   }

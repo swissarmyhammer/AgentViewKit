@@ -129,9 +129,9 @@ struct NoticeBanner: View {
 /// One row of a notice: the symbol and the tint of a severity, a title, an
 /// optional description, and a Dismiss button.
 ///
-/// The row is content, so it is on the content surface of the kit
-/// (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass (D110 (b)).
-/// Only its Dismiss button uses a glass button style.
+/// The row is content, so it has no fill and no glass. A separator stroke
+/// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its
+/// Dismiss button uses a glass button style.
 ///
 /// The text is one accessibility element with the label of the row, and the
 /// Dismiss button is its sibling. ``NoticeBanner`` and the notice of a request
@@ -196,7 +196,7 @@ struct NoticeRow: View {
         .accessibilityIdentifier(dismissIdentifier)
     }
     .padding(theme.spacing.m)
-    .agentContentSurface()
+    .agentContentEdge()
   }
 }
 

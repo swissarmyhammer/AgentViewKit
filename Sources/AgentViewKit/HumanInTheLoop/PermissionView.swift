@@ -11,10 +11,10 @@ import SwiftUI
 /// each value from that request and from the session model in its body, and
 /// keeps no copy of them.
 ///
-/// The card is content in the transcript, so it is on the content surface
-/// of the kit (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass
-/// (D110 (b)). Only its action buttons use the glass button styles. The
-/// card has these parts:
+/// The card is content in the transcript, so it has no fill and no glass. A
+/// separator stroke marks its edge (``SwiftUI/View/agentContentEdge(radius:)``,
+/// D113). Only its action buttons use the glass button styles. The card has
+/// these parts:
 ///
 /// - The title of the request, and its description when it has one.
 /// - The subject. For a tool call, the card shows the title and the kind of
@@ -170,7 +170,7 @@ public struct PermissionView: View {
     }
     .padding(theme.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .agentContentSurface()
+    .agentContentEdge()
     .focusable()
     .focusEffectDisabled()
     .focused($isFocused)
