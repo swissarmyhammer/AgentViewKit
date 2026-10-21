@@ -137,6 +137,43 @@ comments:
     - evidence: plan.md (§5: 13 changed list items; §6: the GlassAccessibilityTests sentence). 3 of 3 findings of "Review Findings (2026-10-21 16:24)" checked. No source or test file changed. `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'`: 23 tests in 2 suites passed, 3 tests in 1 suite passed; only the known mlx bundle build warning.
     - next: /review. Not committed. Card stays in doing.
   timestamp: 2026-10-21T21:33:49.009810+00:00
+- actor: claude-code
+  id: 01m5g6ch516c4qdh4x0ysjsd5a
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 5eb23f9). The engine gave 0 findings, because no validator matches `plan.md`. A factual check of each sentence that the commit changes or adds, against `Tests/`, `Sources/`, git history and the cards, gave 2 findings: plan.md:243 (the sentence "A fill with no shape matches no form" is false: `themeColorBackground` and the theme color name forms find a fill with no shape), plan.md:245 (the sentence "`ComposerGlassStructureTests` counts the code lines of three files" is false: the test counts the code lines of six files).
+    - All the other changed sentences agree with the sources.
+    - next: correct the 2 sentences in plan.md, commit, then run `/review ^m7qddwe HEAD~1..HEAD` again.
+  timestamp: 2026-10-21T21:37:57.409293+00:00
+- actor: claude-code
+  id: 01m5g6d22mvb8vvrc5fvwzdm96
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: changed — plan.md §5 14 list items and §6 1 sentence state only what each test checks
+    - test: green — docs tests 26 passed
+    - commit: 5eb23f9
+    - review: findings — plan.md:243 (a fill with no shape), plan.md:245 (ComposerGlassStructureTests counts 6 files)
+  timestamp: 2026-10-21T21:38:14.740988+00:00
+- actor: claude-code
+  id: 01m5g6gfjqd060m5gnv6v9b78c
+  text: |-
+    ### fact check of the review findings (2026-10-21 16:34)
+    I copied each fact from the test source, not from memory.
+    - plan.md "No fill in content": removed "A fill with no shape matches no form". Now: the `.background(editorTheme.<color>` form (`themeColorBackground`, pattern `background` call, `editorTheme`, `.`) finds a fill with no shape, such as `.background(editorTheme.selection)`. The `statusBarBackground`, `tabBarBackground` and `gutterBackground` forms use `WordPattern.wholeWord(rawValue)`, so they find the name as a whole word in the code, with or without a shape. A `.background(` fill with a shape style that is not a theme color and no shape, such as `.background(.selection)`, matches no form (look-alike lines of `ContentFillTests`). The example `EditorKitPromptEditor.swift:449` text agrees.
+    - plan.md "Glass only on floating controls": `ComposerGlassStructureTests` now "counts code lines in 6 files". This item names its counts in 3 files (`PromptInputView.swift`, `AgentThreadView.swift`, `EditorKitPromptEditor.swift`: `sharedContainerUsers`, `forbiddenGlass`, `floatingGlassViewCount`). The "Morphs" item names the other 3 (`ScrollToBottomPill.swift`, `SuggestionsView.swift`: `glassIDUses`; `FloatingGlassContainer.swift`: `theSharedContainerHasOneNamespace`).
+    - plan.md "Morphs": the ComposerGlassStructureTests sentence now names the file and the modifier of each of the 4 ids (`agentFloatingGlass(id:` in `PromptInputView.swift` for `composerField` and `editorMenu`; `agentGlassID(` in `ScrollToBottomPill.swift` for `scrollPill` and in `SuggestionsView.swift` for `suggestion`).
+    ### other sentences of §5 with a count or "only", "no", "each" (checked again against the tests)
+    - ContentFillTests: 7 forms, the scan paths (kit, `Sources/DemoSupport`, `Examples/AgentViewKitDemo`), only two forms with an allow list, the reasons of each permitted fill. Agree.
+    - GlassPlacementTests: 7 `GlassForm` cases; `glassEffectID` permitted only in `Theme/AgentSurfaces.swift`; `AgentGlassID` is the only `glassEffectID(` call in `Sources`. Agree.
+    - ThemeInjectionTests: `accentFiles` has the 4 files. HiddenTestWindowTests: 5 `WindowFocusCall` cases. FixedCornerRadiusTests: 3 forms. HostedSnapshotTests: 10 tests. GlassSnapshotTests: 4 tests. Agree.
+  timestamp: 2026-10-21T21:40:06.871658+00:00
+- actor: claude-code
+  id: 01m5g6gkygntthyz5r13smz7r9
+  text: |-
+    ### implement — changed
+    - evidence: plan.md §5 (3 sentences changed: "No fill in content" fill-with-no-shape sentence, "Glass only on floating controls" ComposerGlassStructureTests file count, "Morphs" id files). 2 of 2 findings of "Review Findings (2026-10-21 16:34)" checked. No source or test file changed. `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'`: 23 tests in 2 suites passed, 3 tests in 1 suite passed; only the known mlx bundle build warning.
+    - next: /review. Not committed. Card stays in doing.
+  timestamp: 2026-10-21T21:40:11.344585+00:00
 depends_on:
 - 01M5DFADQHSHCRAQW0709TVAPV
 - 01M5DF7Y8PDWS7XF25WDBBYG9W
@@ -249,3 +286,18 @@ Rewrite the glass paragraph of §5 in STE. Name these rules and cite D110, D111,
 - [x] `plan.md:243` `factcheck/test-claim` — "`ContentFillTests` (AVK-8r) forbids each custom fill behind content in the kit, the demo support and the demo. It permits a fill only in the files of its allow list" says more than the test does. The test finds only the seven forms of `ContentFillForm` (`Tests/PackageStructureTests/ContentFillTests.swift:14-43`): `agentContentSurface`, the status bar, tab bar and gutter colors of a theme, `.background(<style>, in: <shape>)`, a card shape then `.fill(`, and `.background(editorTheme.<color>`. A fill with no shape, such as `.background(.quaternary)`, matches no form. The test itself says that the `.background(.selection)` fill of `Input/EditorKitPromptEditor.swift` matches no form (`ContentFillTests.swift:72-73`). This fill is at `Sources/AgentViewKit/Input/EditorKitPromptEditor.swift:449`, and the file is not in an allow list. Say that the test finds these seven forms, and that it permits each form only in the files of the allow list of that form.
 - [x] `plan.md:246` `factcheck/card-id` — "(`AgentSurface`: AVK-8b added the shared shape, and AVK-8m gave it the `.concentric` corner style)" does not agree with git history. AVK-8b (commit 5378713, ^c5mvvt4) added `AgentSurface.shape(for:)`, and this shape was already `ConcentricRectangle(corners: .concentric(minimum: .fixed(theme.radii.l)), isUniform: true)`. AVK-8m (commit 84e3cc4, ^vyn7qq9) changed the shape to `AgentSurface.shape(radius:)`, with a radius token as the smallest corner, and used it in place of each fixed `RoundedRectangle` radius. Say that AVK-8b added the shared shape with the `.concentric` corner style, and that AVK-8m made the shape take a radius token and used it for each rounded shape of the kit.
 - [x] `plan.md:256` `factcheck/test-claim` — "`HiddenTestWindowTests` forbids each call that shows a window or makes the application active in the test sources and the test-support sources" says more than the test does. The test finds only the five calls of `WindowFocusCall` (`Tests/PackageStructureTests/HiddenTestWindowTests.swift:8-25`): `makeKeyAndOrderFront(`, `orderFront(`, `orderFrontRegardless(`, `activate(` on `NSApp`, `NSApplication.shared` or `NSRunningApplication.current`, and `setActivationPolicy(.regular)`. It scans `Tests`, `Sources/AgentViewKitTestSupport` and `Examples/ReadmeSnippets` (`HiddenTestWindowTests.swift:71`). Say that the test forbids these five calls in these three directories.
+
+## Review Findings (2026-10-21 16:34)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 0 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `plan.md` — no validator matches this file
+
+> No validator matches Markdown. Thus a factual check of each sentence that commit 5eb23f9 changes or adds in `plan.md` §5 and §6 adds these items. The sources are `Tests/`, `Sources/`, git history, the kanban cards and `TestudoApp/features/`. Each statement must agree with these sources.
+
+- [x] `plan.md:243` `factcheck/test-claim` — "A fill with no shape matches no form" is false. Two forms of `ContentFillForm` find a fill with no shape: `themeColorBackground` finds `.background(editorTheme.<color>`, for example the sample `.background(editorTheme.selection)` (`Tests/PackageStructureTests/ContentFillTests.swift:41-43`, `:172-181`, `:230`), and the `statusBarBackground`, `tabBarBackground` and `gutterBackground` forms find the name of the theme color in each fill. Only a `.background(` fill with a style that is not a theme color and with no shape matches no form, for example `.background(.selection)` (`ContentFillTests.swift:234-236`, the look-alike lines). Say that a `.background(` fill with a shape style and no shape, such as `.background(.selection)`, matches no form.
+- [x] `plan.md:245` `factcheck/test-claim` — "`ComposerGlassStructureTests` (AVK-8i) counts the code lines of three files" is false. The test counts the code lines of six files: `PromptInputView.swift`, `AgentThreadView.swift` and `EditorKitPromptEditor.swift` (`Tests/PackageStructureTests/ComposerGlassStructureTests.swift:52-66`), and also `ScrollToBottomPill.swift` and `SuggestionsView.swift` (the glass ids, `:72-77`) and `FloatingGlassContainer.swift` (the one `@Namespace`, `:149-151`). The "Morphs" item gives the checks of the last three files. Say that, in this item, the test counts the code lines of these three files, or give the correct number of files.
