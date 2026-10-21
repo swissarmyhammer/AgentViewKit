@@ -94,14 +94,30 @@ comments:
     - evidence: 6 files. New: Tests/PackageStructureTests/CodeForm.swift. Changed: Tests/PackageStructureTests/ThemeInjectionTests.swift, ContentFillTests.swift, SystemStructureTests.swift, GlassPlacementTests.swift, HiddenTestWindowTests.swift. All 5 review findings are marked `- [x]`. Full suite with run-watched.sh (reuse-full): test-exit=0; 214 tests in 29 suites passed (424 test cases, the same as the baseline); 1571 tests in 197 suites passed with 3 known issues (there before this change); on-screen test-process windows 0. Build: no compiler warning (only the SwiftPM "missing creator" line of the MLX bundle, which was there before). swiftlint no_magic_numbers on Tests/PackageStructureTests: no finding. Mutation check on ThemeInjectionTests and SystemStructureTests: 4 of 4 mutations failed at the test of the suite, then removed.
     - next: review
   timestamp: 2026-10-21T19:48:39.218813+00:00
+- actor: claude-code
+  id: 01m5g07d1x8azh16k4wr2k6mzh
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 5662c28). 0 findings, 0 confirmed, 0 refuted. 6 files reviewed. All 5 items of the earlier review are checked.
+    - next: The task is in done. No more work is necessary.
+  timestamp: 2026-10-21T19:50:17.917480+00:00
+- actor: claude-code
+  id: 01m5g07r84893p48fkfj4y1zvx
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — CodeForm.swift shared checks for 5 structure suites; accent uses as a list with reasons; mutation check 4/4
+    - test: green — run-watched.sh, 214 PackageStructureTests (424 cases, same as before) and 1571 AgentViewKitTests passed (3 known issues); on-screen test windows 0
+    - commit: 5662c28
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T19:50:29.380521+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5E8VGGTR59NGWNVHSDKM4QT
 - 01M5E8WVTY0ANTQVTGYXA3R4Z2
 - 01M5E8X2DC7CT94TQJG2G7W4MZ
 - 01M5E8XAAZ7ZAT3RKSG102C8KK
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffffa880
 title: 'AVK-8t Structure test: no .tint modifier, no .foregroundStyle(.tint), no Glass.tint, the accent only on a link, the selection or the current item, and the kit sets no theme of its own (D111 step 7, D112 (d), D113 answers 5, 6 and 8)'
 ---
 ## Why

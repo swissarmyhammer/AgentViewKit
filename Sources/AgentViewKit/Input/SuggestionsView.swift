@@ -50,19 +50,40 @@ public struct SuggestionsView: View {
       ScrollView(.horizontal) {
         HStack(spacing: theme.spacing.s) {
           ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
-            Button(suggestion, systemImage: Self.chipSymbol) {
-              text.wrappedValue = AttributedString(suggestion)
-            }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.capsule)
-            .agentGlassID(.suggestion(index))
-            .help(String(localized: "Use this prompt", bundle: .module))
-            .accessibilityIdentifier(Self.chipIdentifier(at: index))
+            SuggestionChip(suggestion: suggestion, index: index, text: text)
           }
         }
       }
       .scrollIndicators(.hidden)
     }
+  }
+}
+
+/// One chip of a ``SuggestionsView``: a Liquid Glass button that sets the
+/// composer text to its suggestion.
+///
+/// The chip is a view of its own, so that a test can render its glass:
+/// `ImageRenderer` draws nothing in the horizontal scroll view of
+/// ``SuggestionsView``.
+struct SuggestionChip: View {
+  /// The suggested prompt of the chip.
+  let suggestion: String
+
+  /// The position of the chip in the list of suggestions.
+  let index: Int
+
+  /// The composer text that a tap on the chip sets.
+  let text: Binding<AttributedString>
+
+  var body: some View {
+    Button(suggestion, systemImage: SuggestionsView.chipSymbol) {
+      text.wrappedValue = AttributedString(suggestion)
+    }
+    .buttonStyle(.glass)
+    .buttonBorderShape(.capsule)
+    .agentGlassID(.suggestion(index))
+    .help(String(localized: "Use this prompt", bundle: .module))
+    .accessibilityIdentifier(SuggestionsView.chipIdentifier(at: index))
   }
 }
 
