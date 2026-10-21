@@ -51,8 +51,24 @@ comments:
     - warnings: only the mlx bundle build warning that existed before. No new warning.
     - next: review
   timestamp: 2026-10-21T08:34:57.580514+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5esnf7brzjp655k6213exbw
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 03356c0). 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed). 3 files reviewed. 2 .kanban files not reviewed because of .reviewignore.
+    - next: The task moved to done.
+  timestamp: 2026-10-21T08:36:24.427221+00:00
+- actor: claude-code
+  id: 01m5esnq31p83c3wd9t5rxryf0
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 test files (compare inside the glass edge only; mutation checks done)
+    - test: green — swift test, 1471 passed, 2 known issues that were there before; 3 full runs in the implement step also passed
+    - commit: 03356c0
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T08:36:32.481871+00:00
+position_column: done
+position_ordinal: ffff9580
 title: Make the Reduce Transparency glass test compare the inside of the glass only
 ---
 Source: ^ffhv52w (the unstable glass test fix).
