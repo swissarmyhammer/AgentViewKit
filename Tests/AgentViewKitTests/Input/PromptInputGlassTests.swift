@@ -37,11 +37,8 @@ import Testing
   }
 
   @Test func theFieldOfTheComposerFollowsReduceTransparency() throws {
-    let composer = Self.composerOverBackdrop
-    let on = try GlassRenderProbeTests.pixels(
-      of: composer, with: .reduceTransparency, on: true, size: Self.size)
-    let off = try GlassRenderProbeTests.pixels(
-      of: composer, with: .reduceTransparency, on: false, size: Self.size)
-    #expect(!on.isClose(to: off, at: [Self.fieldPoint]))
+    try GlassRenderProbeTests.expectDifferentPixels(
+      of: Self.composerOverBackdrop, with: .reduceTransparency, at: [Self.fieldPoint],
+      size: Self.size)
   }
 }

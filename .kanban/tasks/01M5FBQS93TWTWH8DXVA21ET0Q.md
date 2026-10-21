@@ -50,6 +50,40 @@ comments:
     - No code change was necessary. No commit was made.
     - next: review
   timestamp: 2026-10-21T14:20:14.625086+00:00
+- actor: claude-code
+  id: 01m5fddy7kd5xkncg31wj7zzsz
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (7f5da21): 1 finding, 1 confirmed, 0 refuted. Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift:39 (duplication/duplication).
+    - next: Extract one shared helper for the Reduce Transparency on/off pixel check and call it from theFieldOfTheComposerFollowsReduceTransparency. Then run the review again.
+  timestamp: 2026-10-21T14:21:49.171360+00:00
+- actor: claude-code
+  id: 01m5fdeaeszg00b6rfs0jj4x9j
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 7 files (the three claims checked; real reasons in the comments; the composer glass test renders the full composer)
+    - test: green — swift test, 1488 passed, 2 known issues that were there before; 3 full runs in the implement step also passed
+    - commit: 7f5da21
+    - review: findings — Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift:39
+  timestamp: 2026-10-21T14:22:01.689365+00:00
+- actor: claude-code
+  id: 01m5fdryrgnj9pxye6nyt8reec
+  text: |-
+    ### implement — changed
+    - finding `duplication/duplication` (PromptInputGlassTests.swift:39): new helper `GlassRenderProbeTests.expectDifferentPixels(of:with:at:size:sourceLocation:)` renders the view with the setting on and off (`pixels(of:with:on:size:)`) and expects `!on.isClose(to: off, at: points)`. `theFieldOfTheComposerFollowsReduceTransparency` now calls it. The copies in AgentSurfacesTests.swift are not changed (a separate card covers them).
+    - evidence: 2 files — Tests/AgentViewKitTests/Theme/GlassRenderProbeTests.swift, Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift. `swift test --filter 'PromptInputGlassTests|GlassRenderProbeTests'`: 7 tests in 3 suites passed. Mutation: `.agentFloatingGlass(id: .composerField)` removed from `PromptFieldSurface` -> the test failed with 1 issue, and the report points to the caller line (PromptInputGlassTests.swift:40) through `sourceLocation`. Source put back (`git diff -- Sources` empty). Full `swift test`: exit 0, 1488 tests in 187 suites passed with the 2 known issues from before, 177 tests in 25 suites passed, ReadmeSnippetsTests 1 passed, XCTest 0 tests; only warning is the mlx-swift_Cmlx.bundle build note from before.
+    - next: /review
+  timestamp: 2026-10-21T14:27:50.160888+00:00
+- actor: claude-code
+  id: 01m5fdzekwxt8vcrv6g7x5h8xa
+  text: |-
+    ### test — green
+    - evidence: swift test (one run, exit 0, 171 s). The main test run: 1488 tests in 187 suites passed in 114.7 s with 2 known issues. Also passed: the package structure suites (PackageFilesTests, ImportBoundaryTests, PreviewCoverageTests, SourceLineScannerTests, ReadmeSnippetTests) and ReadmeSnippetsTests (1 test).
+    - warnings: only the known mlx bundle build warning. No new warning. No failure. No skipped test. No hang.
+    - known issues (existed before): aWrappedTextWithAFixedVerticalSizeFails, aViewThatIgnoresTheThemeFails.
+    - code change: none.
+    - next: review
+  timestamp: 2026-10-21T14:31:23.004208+00:00
 position_column: doing
 position_ordinal: '80'
 title: Check the test comments that came from the old ImageRenderer cgImage defect
@@ -70,3 +104,12 @@ Acceptance:
 - Each claim has a result on this card.
 - 3 full `swift test` runs one after the other pass.
 - No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-8
+
+## Review Findings (2026-10-21 09:20)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 7 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift:39` `duplication/duplication` — The new test theFieldOfTheComposerFollowsReduceTransparency repeats the same logic as existing tests. It renders a view with Reduce Transparency on and off, then checks that the pixels differ at one point. The copies can drift out of sync. Extract one shared helper, for example in GlassRenderProbeTests, that takes a view and a point and asserts that the on and off renders differ there. Call it from this test. Report the existing copies in AgentSurfacesTests.swift as a separate task. Do not edit them in this change.

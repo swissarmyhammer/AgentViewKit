@@ -52,6 +52,30 @@ import Testing
     try #require(RenderedPixels(rendering: pinned(view, with: setting, on: isOn), size: renderSize))
   }
 
+  /// Expects that `setting` changes the pixels of `view` at `points`.
+  ///
+  /// The function renders `view` one time with `setting` on and one time with
+  /// it off (``pixels(of:with:on:size:)``). Then it expects that the two
+  /// renders do not show the same colors at `points`.
+  ///
+  /// - Parameters:
+  ///   - view: The view to render.
+  ///   - setting: The setting to change.
+  ///   - points: The points to compare, in points from the top leading
+  ///     corner of the view. Keep them far from the edge of a rounded glass
+  ///     (``RenderedPixels/isClose(to:at:tolerance:)``).
+  ///   - renderSize: The size to render at.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: An error when the renderer gives no pixels.
+  static func expectDifferentPixels(
+    of view: some View, with setting: GlassProbeSetting, at points: [CGPoint],
+    size renderSize: CGSize = size, sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let on = try pixels(of: view, with: setting, on: true, size: renderSize)
+    let off = try pixels(of: view, with: setting, on: false, size: renderSize)
+    #expect(!on.isClose(to: off, at: points), sourceLocation: sourceLocation)
+  }
+
   /// `view` in light mode, with only `setting` changed.
   ///
   /// - Parameters:
