@@ -58,6 +58,8 @@ public enum HostedViewHarnessError: Error, Equatable {
   case incrementFailed(identifier: String)
   /// The harness has no key code for the key.
   case unsupportedKey(String)
+  /// No view of the window is under the point, in window coordinates.
+  case noView(at: CGPoint)
 }
 
 /// The fixed values of ``HostedViewHarness``.
@@ -103,7 +105,10 @@ private enum HarnessConstants {
 /// and use its accessibility elements.
 ///
 /// The harness puts the view in an `NSHostingView`, which is the content view
-/// of an `NSWindow` that is not on a screen. A `swift test` process needs no
+/// of a borderless `NSWindow` that is not on a screen. The harness never
+/// orders the window in, and the test process has the `.prohibited`
+/// activation policy. Thus a test shows no window and does not take the focus
+/// from the user (AVK-12). A `swift test` process needs no
 /// application bundle for this. The test calls ``render()`` after a change on
 /// the main actor, or ``render(when:)`` after a change that comes from
 /// asynchronous work, so that SwiftUI updates the view. The test calls
@@ -112,7 +117,8 @@ private enum HarnessConstants {
 ///
 /// The test rule:
 /// - A test does not wait on a clock. It has no sleep, no poll, no time
-///   limit and no run of the run loop for a time.
+///   limit and no run of the run loop for a time. The one run loop pass of
+///   the harness is the pass before a key event, which does not wait.
 /// - A change on the main actor: call ``render()``, then read the tree.
 /// - A change that comes from asynchronous work: wait for its event with
 ///   ``render(when:)`` or ``ObservationWait/until(_:)``, then check the
@@ -138,18 +144,22 @@ public final class HostedViewHarness<Content: View> {
   ///   - content: The view to mount.
   ///   - size: The size of the content.
   public init(_ content: Content, size: CGSize = HostedViewHarness.defaultSize) {
-    Self.enableAccessibilityTree()
+    Self.prepareApplication()
     let frame = NSRect(origin: .zero, size: size)
     hostingView = NSHostingView(rootView: content)
     hostingView.frame = frame
+    // A borderless window keeps its off-screen origin. AppKit moves a titled
+    // window onto a screen. The harness never orders the window in, so the
+    // window never shows and never takes the focus (AVK-12).
     window = KeyableWindow(
-      contentRect: frame, styleMask: [.titled], backing: .buffered, defer: false)
+      contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
     // ARC owns the window. The default value would release it a second time.
     window.isReleasedWhenClosed = false
+    window.colorSpace = .sRGB
     window.contentView = hostingView
     window.setFrameOrigin(HarnessConstants.offScreenOrigin)
-    window.makeKeyAndOrderFront(nil)
     hostingView.layoutSubtreeIfNeeded()
+    selectFirstKeyView()
   }
 
   /// Mounts the view that `content` builds.
@@ -201,9 +211,8 @@ public final class HostedViewHarness<Content: View> {
     render()
   }
 
-  /// Removes the window from the screen list and closes it.
+  /// Closes the window.
   public func close() {
-    window.orderOut(nil)
     window.close()
   }
 
@@ -430,6 +439,33 @@ public final class HostedViewHarness<Content: View> {
     render()
   }
 
+  // MARK: - Mouse
+
+  /// Sends a mouse-down and a mouse-up event at `point` to the view under
+  /// the point, then makes a ``render()`` pass.
+  ///
+  /// The window is never on the screen, so `NSWindow.sendEvent(_:)` drops a
+  /// mouse event (AVK-12). The harness finds the view under the point with
+  /// a hit test, as the window does, and sends each event straight to that
+  /// view.
+  ///
+  /// - Parameter point: The point in the coordinates of the window.
+  /// - Throws: ``HostedViewHarnessError/noView(at:)`` when no view of the
+  ///   hosting view is under `point`.
+  public func click(at point: NSPoint) throws {
+    let location = hostingView.superview?.convert(point, from: nil) ?? point
+    guard let target = hostingView.hitTest(location) else {
+      throw HostedViewHarnessError.noView(at: point)
+    }
+    if let down = mouseEvent(.leftMouseDown, at: point) {
+      target.mouseDown(with: down)
+    }
+    if let up = mouseEvent(.leftMouseUp, at: point) {
+      target.mouseUp(with: up)
+    }
+    render()
+  }
+
   // MARK: - Private
 
   /// The application attribute that an assistive client sets to ask for the
@@ -445,18 +481,32 @@ public final class HostedViewHarness<Content: View> {
     NSSelectorFromString("accessibilitySetValue:forAttribute:")
   }
 
-  /// Makes SwiftUI build its accessibility tree in this process.
+  /// Keeps the test process out of the focus, and makes SwiftUI build its
+  /// accessibility tree in this process.
+  ///
+  /// The `.prohibited` activation policy stops the process from becoming the
+  /// active application, so a test does not take the focus from the user.
+  /// The harness sets the policy before it makes the first window (AVK-12).
   ///
   /// SwiftUI builds the tree only after an assistive client connects. Before
   /// that, `NSHostingView.accessibilityChildren()` is empty. The harness sets
   /// the `AXEnhancedUserInterface` attribute on the application, as an
   /// assistive client does. Then SwiftUI builds the tree for each hosting
   /// view. The call needs no accessibility permission.
-  private static func enableAccessibilityTree() {
+  private static func prepareApplication() {
     let application = NSApplication.shared
-    application.setActivationPolicy(.accessory)
+    application.setActivationPolicy(.prohibited)
     _ = application.perform(
       setAttributeSelector, with: NSNumber(value: true), with: enhancedUserInterfaceAttribute)
+  }
+
+  /// Gives the first key view of the hosting view the keyboard focus.
+  ///
+  /// A key window gives its first key view the keyboard focus. This window
+  /// never becomes the key window, so the harness does the same step. Then a
+  /// focusable view, such as a request card, gets Esc (AVK-12).
+  private func selectFirstKeyView() {
+    window.selectKeyView(following: hostingView)
   }
 
   /// The live accessibility elements under the hosting view, in depth first
@@ -727,11 +777,25 @@ public final class HostedViewHarness<Content: View> {
   ///   - keyCode: The virtual key code.
   ///   - modifiers: The modifier flags.
   private func postKey(characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags) {
+    settleFocus()
     for type in [NSEvent.EventType.keyDown, .keyUp] {
       if let event = keyEvent(type, characters: characters, keyCode: keyCode, modifiers: modifiers) {
         window.sendEvent(event)
       }
     }
+  }
+
+  /// Lets SwiftUI apply a pending focus change, with one pass of the main
+  /// run loop that does not wait.
+  ///
+  /// SwiftUI applies a focus request, for example an `@FocusState` value that
+  /// `onAppear` sets, in a later turn of the run loop. Before that turn, an
+  /// `onKeyPress` handler does not get a key event. The pass handles only the
+  /// sources that are ready now, and it returns at once, because its limit
+  /// date is in the past. It has no clock and does not wait. This function is
+  /// the one run loop pass of the harness (AVK-12).
+  private func settleFocus() {
+    RunLoop.main.run(mode: .default, before: .distantPast)
   }
 
   /// Makes a key event for the window.
@@ -756,6 +820,26 @@ public final class HostedViewHarness<Content: View> {
       charactersIgnoringModifiers: characters,
       isARepeat: false,
       keyCode: keyCode
+    )
+  }
+
+  /// Makes a mouse event of one click for the window.
+  ///
+  /// - Parameters:
+  ///   - type: The type of the event, mouse-down or mouse-up.
+  ///   - point: The point in the coordinates of the window.
+  /// - Returns: The event, or `nil` when AppKit cannot make it.
+  private func mouseEvent(_ type: NSEvent.EventType, at point: NSPoint) -> NSEvent? {
+    NSEvent.mouseEvent(
+      with: type,
+      location: point,
+      modifierFlags: [],
+      timestamp: ProcessInfo.processInfo.systemUptime,
+      windowNumber: window.windowNumber,
+      context: nil,
+      eventNumber: 0,
+      clickCount: 1,
+      pressure: 1
     )
   }
 
@@ -793,8 +877,8 @@ public final class HostedViewHarness<Content: View> {
   }
 }
 
-/// A window that can be the key window with a title bar or not, so that
-/// SwiftUI gives the focus to the hosted view.
+/// A window that can be the key window with no title bar, so that SwiftUI
+/// gives the focus to the hosted view.
 private final class KeyableWindow: NSWindow {
   override var canBecomeKey: Bool { true }
   override var canBecomeMain: Bool { true }

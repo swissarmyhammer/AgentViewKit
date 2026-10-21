@@ -31,6 +31,49 @@ struct KeyRecordingView: View {
   }
 }
 
+/// A focusable view that records Esc, as a request card does.
+struct ExitRecordingView: View {
+  /// The log that gets the Esc presses.
+  let log: HostedEventLog
+
+  var body: some View {
+    Text("card")
+      .focusable()
+      .focusEffectDisabled()
+      .onExitCommand { log.events.append("exit") }
+  }
+}
+
+/// An AppKit view that records each mouse-down and mouse-up event.
+final class MouseRecordingNSView: NSView {
+  /// The log that gets the events.
+  var log: HostedEventLog?
+
+  override func mouseDown(with event: NSEvent) {
+    log?.events.append("down")
+  }
+
+  override func mouseUp(with event: NSEvent) {
+    log?.events.append("up")
+  }
+}
+
+/// A SwiftUI view that shows a ``MouseRecordingNSView``.
+struct MouseRecordingView: NSViewRepresentable {
+  /// The log that gets the mouse events.
+  let log: HostedEventLog
+
+  func makeNSView(context: Context) -> MouseRecordingNSView {
+    let view = MouseRecordingNSView()
+    view.log = log
+    return view
+  }
+
+  func updateNSView(_ view: MouseRecordingNSView, context: Context) {
+    view.log = log
+  }
+}
+
 /// A view that shows two linked accessibility elements.
 struct LinkedLabelsView: View {
   @Namespace private var namespace
@@ -201,6 +244,57 @@ struct SizedBoxesView: View {
     try harness.sendKey(.escape)
 
     #expect(log.events == ["cmd+k", "\u{1B}"])
+  }
+
+  /// The harness shows no window and takes no focus, also after a key goes
+  /// to a SwiftUI focus target (AVK-12).
+  @Test func aMountedViewThatGetsAKeyShowsNoWindowAndTakesNoFocus() throws {
+    let log = HostedEventLog()
+    let harness = HostedViewHarness(KeyRecordingView(log: log))
+    defer { harness.close() }
+    harness.render()
+
+    try harness.sendKey(.escape)
+
+    #expect(NSApp.windows.allSatisfy { !$0.isVisible })
+    #expect(NSApp.windows.allSatisfy { !$0.isKeyWindow })
+    #expect(!NSApp.isActive)
+  }
+
+  /// A key window gives its first key view the keyboard focus. The harness
+  /// window is never the key window, so the harness does this step.
+  @Test func theFirstFocusableViewGetsTheKeyboardFocusSoEscapeReachesIt() throws {
+    let log = HostedEventLog()
+    let harness = HostedViewHarness(ExitRecordingView(log: log))
+    defer { harness.close() }
+    harness.render()
+
+    try harness.sendKey(.escape)
+
+    #expect(log.events == ["exit"])
+  }
+
+  @Test func clickSendsTheMouseEventsToTheViewUnderThePoint() throws {
+    let log = HostedEventLog()
+    let harness = HostedViewHarness(MouseRecordingView(log: log))
+    defer { harness.close() }
+    harness.render()
+    let bounds = harness.hostingView.bounds
+
+    try harness.click(at: harness.hostingView.convert(NSPoint(x: bounds.midX, y: bounds.midY), to: nil))
+
+    #expect(log.events == ["down", "up"])
+  }
+
+  @Test func clickThrowsWhenNoViewIsUnderThePoint() {
+    let harness = HostedViewHarness(Text("hi"))
+    defer { harness.close() }
+    harness.render()
+    let outside = NSPoint(x: -HostedViewHarness<Text>.defaultSize.width, y: 0)
+
+    #expect(throws: HostedViewHarnessError.noView(at: outside)) {
+      try harness.click(at: outside)
+    }
   }
 
   @Test func typeSendsEachCharacter() {

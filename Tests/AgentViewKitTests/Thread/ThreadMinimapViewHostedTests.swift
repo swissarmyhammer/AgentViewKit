@@ -70,35 +70,6 @@
       }
     }
 
-    /// Sends a mouse-down and a mouse-up event at `point` to the window of
-    /// `harness`, then makes one ``HostedViewHarness/render()`` pass.
-    ///
-    /// The window gives each event to the scrub surface of the rail at once,
-    /// so the jump of the click is done when the events are sent.
-    ///
-    /// - Parameters:
-    ///   - point: The point in the coordinates of the window.
-    ///   - harness: The harness that gets the click.
-    static func click<Content: View>(at point: NSPoint, in harness: HostedViewHarness<Content>) {
-      for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-        let event = NSEvent.mouseEvent(
-          with: type,
-          location: point,
-          modifierFlags: [],
-          timestamp: ProcessInfo.processInfo.systemUptime,
-          windowNumber: harness.window.windowNumber,
-          context: nil,
-          eventNumber: 0,
-          clickCount: 1,
-          pressure: 1
-        )
-        if let event {
-          harness.window.sendEvent(event)
-        }
-      }
-      harness.render()
-    }
-
     /// Sends `count` tool calls of the session from the agent, in progress,
     /// and waits for the event that the model holds `total` entries.
     ///
@@ -280,7 +251,9 @@
       let bounds = harness.hostingView.bounds
       let top = harness.hostingView.isFlipped ? bounds.minY + Self.railInset : bounds.maxY - Self.railInset
       let point = NSPoint(x: bounds.maxX - Self.railInset, y: top)
-      Self.click(at: harness.hostingView.convert(point, to: nil), in: harness)
+      // The harness sends the click straight to the scrub surface of the
+      // rail, so the jump of the click is done when the call returns.
+      try harness.click(at: harness.hostingView.convert(point, to: nil))
       harness.hostingView.layoutSubtreeIfNeeded()
 
       #expect(ConversationViewHostedTests.showsRow(firstKey, in: harness))
