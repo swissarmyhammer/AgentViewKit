@@ -21,11 +21,27 @@ comments:
     - warnings: a rebuild of the 5 changed files with swift build --build-tests gave only the known mlx bundle warning (missing creator for mutated node). No new warning.
     - next: review.
   timestamp: 2026-10-21T05:45:44.846776+00:00
+- actor: claude-code
+  id: 01m5efzgsh6x0y49xvqcb3rhz5
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 20404fa). 0 findings, 0 confirmed, 0 refuted. 5 files reviewed. 2 .kanban files were not reviewed because of .reviewignore.
+    - next: The task is in done. No work remains.
+  timestamp: 2026-10-21T05:47:07.953368+00:00
+- actor: claude-code
+  id: 01m5efzwm1pq4jqtjbh2p6fy4g
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files
+    - test: green — swift test, 1450 passed, 2 known issues that were there before; 173 structure tests passed
+    - commit: 20404fa
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T05:47:20.065698+00:00
 depends_on:
 - 01M5E8S3KAQ7EV2C2K13Y1K31Q
 - 01M5E8SRKB36TVJNFAE2F1ARB7
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9080
 title: 'AVK-8x Transcript entries and artifacts: change ErrorView, CompactionEntryView and ArtifactView to agentContentEdge (D113 answer 1)'
 ---
 ## Why

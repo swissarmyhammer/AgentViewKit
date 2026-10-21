@@ -6,6 +6,15 @@ comments:
   id: 01m5e93z9erd5q64r35b3h3zsp
   text: 'Changed for D113 (testudoapp-4c), answers 1, 3, 6 and 7. Added the Tinted look and the Clear look checks (seven settings now), the check that no content card or header row has a fill, the bar scroll check and the morph check. This card stays LAST. depends_on: removed AVK-8a1 ^w9y5tq6 (closed as replaced); added AVK-8v to AVK-8am. Items for the person that other cards name: the request card in the bottom bar with no fill (AVK-8y ^br70yr3), the chips that AVK-8r allows, the dictation symbol with no tint (AVK-8ai ^xa3r4z2), the terminal background (AVK-8aa ^mz0nfka).'
   timestamp: 2026-10-21T03:47:13.838899+00:00
+- actor: claude-code
+  id: 01m5egk1acg1wqp8y74r8kkvct
+  text: |-
+    ### request for the screenshot check (from AVK-8y ^br70yr3)
+    Please look at the RequestDeck card in the screenshots, in the bottom bar and in content.
+    - The card has no fill now (D113). In the bottom bar (the composer slot of `AgentThreadView`), the whole deck is on `.regular` floating glass, in the same `GlassEffectContainer` as the composer (testudoapp-4c). Check that the text of the card stays readable over the scrolled list, with the scroll edge effect of the bar. Do not add a fill. If more is necessary, the answer is a `GroupBox` (D113).
+    - The cards behind the front card show only the top edge of their stroke now. Check that the stack still reads as a stack.
+    - The action buttons of the cards keep the `.glass` and `.glassProminent` styles. In the bottom bar they are on the deck glass, in the same container. Please decide if this is glass on glass, and if the buttons need a different style in the bar.
+  timestamp: 2026-10-21T05:57:47.468717+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5DFBW8F3WMN4JFY7M7QDDWE
