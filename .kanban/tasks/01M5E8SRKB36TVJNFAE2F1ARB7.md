@@ -31,10 +31,26 @@ comments:
     - Failures: 0. Skipped tests: 0. I changed no file.
     - next: review
   timestamp: 2026-10-21T05:13:56.780227+00:00
+- actor: claude-code
+  id: 01m5ee58x37pj54yhh9jcwabc6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 2ffc81f). 0 findings, 0 confirmed, 0 refuted. 9 files reviewed. 2 files in .kanban/ are not reviewed because of .reviewignore.
+    - next: The task is in done. No more work is necessary.
+  timestamp: 2026-10-21T05:15:19.331472+00:00
+- actor: claude-code
+  id: 01m5ee5tvvgfrj928vd17ry16b
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 9 files
+    - test: green — swift test, 1447 passed, 2 known issues that were there before; 173 structure tests passed
+    - commit: 2ffc81f
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T05:15:37.723662+00:00
 depends_on:
 - 01M5E8S3KAQ7EV2C2K13Y1K31Q
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8d80
 title: 'AVK-8w Request cards and notices: change PermissionView, AgentAuthView, SessionNoticeBanner and StatusBar from the filled content surface to agentContentEdge (D113 answer 1)'
 ---
 ## Why
