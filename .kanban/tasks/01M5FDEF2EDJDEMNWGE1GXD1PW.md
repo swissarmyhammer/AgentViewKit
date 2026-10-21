@@ -73,8 +73,24 @@ comments:
     - suites: ReadmeSnippetsTests, ReadmeSnippetTests, ReadmeCoverageTests, PackageFilesTests, ThreadTopBarStructureTests, ThreadBottomBarStructureTests and ComposerGlassStructureTests ran and passed. No test was skipped. No hang.
     - next: review.
   timestamp: 2026-10-21T14:54:08.459812+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5ffcbkvknzcas3fhbcpsyyc
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit c9ea9dd). 0 findings, 0 confirmed, 0 refuted. 7 checks attempted, 0 failed. The 2 .kanban/ files are excluded by .reviewignore. The prior finding at Tests/AgentViewKitTests/Theme/GlassRenderProbeTests.swift:78 is checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-21T14:55:54.491431+00:00
+- actor: claude-code
+  id: 01m5ffcn7a9syhk3ts4hb74xk8
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 2 files (points are required; one shared interiorPoints function)
+    - test: green — swift test, 1488 passed, 2 known issues that were there before
+    - commit: c9ea9dd
+    - review: clean — 0 findings, the prior finding is checked
+  timestamp: 2026-10-21T14:56:04.330181+00:00
+position_column: done
+position_ordinal: ffffa180
 title: Use the shared Reduce Transparency check in AgentSurfacesTests
 ---
 Source: the review of ^a21et0q (commit 7f5da21), finding at Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift:39 (`duplication/duplication`). The finding asks to report the existing copies in AgentSurfacesTests.swift as a separate task.
