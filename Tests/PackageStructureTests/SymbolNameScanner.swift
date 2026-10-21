@@ -351,21 +351,53 @@ enum SwiftLiteralLexer {
   /// - Parameter bytes: The source bytes.
   /// - Returns: The bytes with the comments blanked.
   static func blankingComments(in bytes: [UInt8]) -> [UInt8] {
+    blanking(in: bytes, includingLiterals: false)
+  }
+
+  /// Changes each byte of each comment and of each string literal to a
+  /// space. A line break in a comment or in a literal stays, so the line
+  /// numbers stay. The interpolation of a literal is part of the literal.
+  ///
+  /// - Parameter bytes: The source bytes.
+  /// - Returns: The bytes with the comments and the string literals blanked.
+  static func blankingCommentsAndLiterals(in bytes: [UInt8]) -> [UInt8] {
+    blanking(in: bytes, includingLiterals: true)
+  }
+
+  /// Changes each byte of each comment, and of each string literal when
+  /// `includingLiterals` is `true`, to a space. A line break stays.
+  ///
+  /// - Parameters:
+  ///   - bytes: The source bytes.
+  ///   - includingLiterals: `true` to blank the string literals too.
+  /// - Returns: The bytes with the comments, and as an option the string
+  ///   literals, blanked.
+  private static func blanking(in bytes: [UInt8], includingLiterals: Bool) -> [UInt8] {
     var result = bytes
     var index = 0
     while index < bytes.count {
       if let literal = literal(in: bytes, at: index) {
+        if includingLiterals { blank(literal.start..<literal.end, of: &result) }
         index = literal.end
       } else if let end = commentEnd(in: bytes, at: index) {
-        for position in index..<end where result[position] != newline {
-          result[position] = space
-        }
+        blank(index..<end, of: &result)
         index = end
       } else {
         index += 1
       }
     }
     return result
+  }
+
+  /// Changes each byte in a range to a space. A line break stays.
+  ///
+  /// - Parameters:
+  ///   - range: The offsets of the bytes to change.
+  ///   - bytes: The source bytes.
+  private static func blank(_ range: Range<Int>, of bytes: inout [UInt8]) {
+    for position in range where bytes[position] != newline {
+      bytes[position] = space
+    }
   }
 
   /// The end of the comment that starts at an offset.
