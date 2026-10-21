@@ -27,6 +27,13 @@ import Testing
   /// The center of the trailing half of ``halves`` at ``size``, in points.
   static let trailingPoint = CGPoint(x: 30, y: 10)
 
+  /// The leading half of ``halves`` at ``size``, in points.
+  static let leadingHalf = CGRect(x: 0, y: 0, width: size.width / 2, height: size.height)
+
+  /// The size of one pixel of a render, in points: a render has two pixels
+  /// for each point.
+  static let onePixel = CGSize(width: 0.5, height: 0.5)
+
   @Test func thePixelsContainTheColorThatTheViewDraws() throws {
     let pixels = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
     #expect(pixels.contains(Self.drawn))
@@ -104,6 +111,27 @@ import Testing
     let second = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
     let outside = CGPoint(x: Self.size.width, y: Self.size.height)
     #expect(!first.isClose(to: second, at: [outside]))
+  }
+
+  @Test func twoRendersAreCloseInARegionWhereTheyHaveTheSameColor() throws {
+    let halves = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
+    let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    #expect(halves.isClose(to: drawn, within: Path(Self.leadingHalf)))
+  }
+
+  @Test func twoRendersAreNotCloseInARegionWhereOnePixelHasADifferentColor() throws {
+    let halves = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
+    let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let trailingPixel = CGRect(origin: Self.trailingPoint, size: Self.onePixel)
+    let region = Path(Self.leadingHalf).union(Path(trailingPixel))
+    #expect(!halves.isClose(to: drawn, within: region))
+  }
+
+  @Test func twoRendersAreNotCloseInARegionWithNoPixel() throws {
+    let first = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let second = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let outside = CGRect(origin: CGPoint(x: Self.size.width, y: Self.size.height), size: Self.size)
+    #expect(!first.isClose(to: second, within: Path(outside)))
   }
 
   @Test func aRenderDrawsTheLiquidGlassOfTheView() throws {

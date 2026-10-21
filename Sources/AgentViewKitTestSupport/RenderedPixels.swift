@@ -33,6 +33,10 @@ public struct RenderedPixels: Equatable {
   /// The pixels at the scale of a Retina screen, two pixels for each point.
   private static let renderScale: CGFloat = 2
 
+  /// The distance from the top leading corner of a pixel to its center, in
+  /// pixels.
+  private static let pixelCenter: CGFloat = 0.5
+
   /// The default largest difference of one color component, from 0 to 1,
   /// between a pixel and the color that a test looks for.
   public static let defaultTolerance = 0.02
@@ -191,11 +195,66 @@ public struct RenderedPixels: Equatable {
   public func isClose(
     to other: RenderedPixels, at points: [CGPoint], tolerance: Double = defaultTolerance
   ) -> Bool {
+    let offsets = points.map(offset(of:))
+    guard offsets.allSatisfy({ $0 != nil }) else { return false }
+    return isClose(to: other, atOffsets: offsets.compactMap { $0 }, tolerance: tolerance)
+  }
+
+  /// Whether these pixels and `other` show the same colors in `region`.
+  ///
+  /// Use this method to compare each pixel that is far from the edge of a
+  /// rounded glass, for the reason that ``isClose(to:at:tolerance:)`` gives.
+  /// The method reads each pixel whose center is in `region`.
+  ///
+  /// The images show the same colors when they have the same size, and each
+  /// byte of each pixel in `region` is in `tolerance` of the byte of `other`.
+  ///
+  /// - Parameters:
+  ///   - other: The pixels to compare with.
+  ///   - region: The region to read, in points from the top leading corner
+  ///     of the view.
+  ///   - tolerance: The largest difference of one component, from 0 to 1.
+  /// - Returns: `true` when the images show the same colors in `region`.
+  ///   `false` when the center of no pixel is in `region`.
+  public func isClose(
+    to other: RenderedPixels, within region: Path, tolerance: Double = defaultTolerance
+  ) -> Bool {
+    let offsets = offsets(within: region)
+    guard !offsets.isEmpty else { return false }
+    return isClose(to: other, atOffsets: offsets, tolerance: tolerance)
+  }
+
+  /// Whether these pixels and `other` have the same size, and the same
+  /// colors at `offsets`.
+  ///
+  /// - Parameters:
+  ///   - other: The pixels to compare with.
+  ///   - offsets: The offsets in ``bytes`` of the pixels to compare.
+  ///   - tolerance: The largest difference of one component, from 0 to 1.
+  /// - Returns: `true` when each byte of each pixel is in `tolerance` of the
+  ///   byte of `other`.
+  private func isClose(to other: RenderedPixels, atOffsets offsets: [Int], tolerance: Double)
+    -> Bool
+  {
     guard width == other.width, height == other.height, scale == other.scale else { return false }
-    return points.allSatisfy { point in
-      guard let offset = offset(of: point) else { return false }
-      let target = other.components(atOffset: offset)
-      return pixel(atOffset: offset, matches: target, tolerance: tolerance)
+    return offsets.allSatisfy { offset in
+      pixel(atOffset: offset, matches: other.components(atOffset: offset), tolerance: tolerance)
+    }
+  }
+
+  /// The offsets in ``bytes`` of the pixels whose center is in `region`.
+  ///
+  /// - Parameter region: A region in points from the top leading corner of
+  ///   the view.
+  /// - Returns: The offsets, from the top row to the bottom row.
+  private func offsets(within region: Path) -> [Int] {
+    (0..<height).flatMap { row in
+      (0..<width).compactMap { column -> Int? in
+        let center = CGPoint(
+          x: (CGFloat(column) + Self.pixelCenter) / scale,
+          y: (CGFloat(row) + Self.pixelCenter) / scale)
+        return region.contains(center) ? (row * width + column) * Self.bytesPerPixel : nil
+      }
     }
   }
 
