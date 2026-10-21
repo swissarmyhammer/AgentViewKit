@@ -138,13 +138,19 @@ import Testing
 
   /// The floating glass is always `.regular` glass. The system applies the
   /// Clear look, so no material level of the theme changes the glass (D113).
+  ///
+  /// The test compares the two renders only at ``insidePoints``, which are
+  /// far from the edge of the glass. The rim of a rounded glass changes after
+  /// its first renders in the process, at a render that is not the same in
+  /// each run (``RenderedPixels/isClose(to:at:tolerance:)``). A `.clear`
+  /// glass shows different colors at each of these points.
   @Test(arguments: AgentTheme.MaterialLevel.allCases)
   func theFloatingGlassIsTheSameForEachMaterialLevel(level: AgentTheme.MaterialLevel) throws {
     var theme = AgentTheme.default
     theme.materialLevel = level
     let glass = try Self.pixels(of: Self.floatingGlass(in: theme))
     let regular = try Self.pixels(of: Self.floatingGlass())
-    #expect(glass == regular)
+    #expect(glass.isClose(to: regular, at: Self.insidePoints))
   }
 
   @Test func theShapeHasConcentricCornersWithTheLargeRadiusAsTheMinimum() {

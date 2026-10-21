@@ -87,6 +87,25 @@ import Testing
     #expect(!pixels.contains(Self.drawn, at: outside))
   }
 
+  @Test func twoRendersAreCloseAtAPointWhereTheyHaveTheSameColor() throws {
+    let halves = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
+    let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    #expect(halves.isClose(to: drawn, at: [Self.leadingPoint]))
+  }
+
+  @Test func twoRendersAreNotCloseAtAPointWhereTheyHaveDifferentColors() throws {
+    let halves = try #require(RenderedPixels(rendering: Self.halves, size: Self.size))
+    let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    #expect(!halves.isClose(to: drawn, at: [Self.leadingPoint, Self.trailingPoint]))
+  }
+
+  @Test func twoRendersAreNotCloseAtAPointOutsideTheRender() throws {
+    let first = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let second = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let outside = CGPoint(x: Self.size.width, y: Self.size.height)
+    #expect(!first.isClose(to: second, at: [outside]))
+  }
+
   @Test func aRenderDrawsTheLiquidGlassOfTheView() throws {
     let glass = ZStack {
       Self.drawn

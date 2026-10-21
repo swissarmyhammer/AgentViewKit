@@ -1,8 +1,60 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: b180
+comments:
+- actor: claude-code
+  id: 01m5enxgj713ps9zsbx0rkkyw4
+  text: |-
+    Research done. Root cause found with temporary probe tests (removed after use).
+
+    Facts:
+    - The two renders of the test are of the same view and run in one synchronous main-actor call. No other test runs between them.
+    - In one process, ImageRenderer draws the kit floating glass (rounded `ConcentricRectangle`) differently in its first renders and in its later renders. The change occurs one time. After it, each render has equal bytes.
+    - The change is not at a fixed render. In 4 fresh processes, it came after render 2, after render 2 and 3 (two steps), after render 2, and after render 3. Thus it comes from work that the system does in the background (for example a cache or a shader that gets ready). The test cannot see an event for it.
+    - Other renders of the same shape in other tests (any size, any radius) count. Thus the full suite moves the change to a different point in each run. When the change falls between the two renders of `theFloatingGlassIsTheSameForEachMaterialLevel`, the test fails. It can also fail for `.regular` and `.thin`.
+    - The change is on the rim: a difference of more than 2 levels is only within 4 px (2 pt) of the edge (largest difference 31 of 255). Farther in, the largest difference is 1 level.
+    - Not the cause: Reduce Transparency, contrast, appearance, the activation policy, `AXEnhancedUserInterface`, windows, `NSScreen`, the first `NSHostingView`. The first probes seemed to show them, but the change only followed the render count.
+    - `.clear` glass and `.regular` glass in the kit shape differ by 72 to 76 levels at each distance from the edge (center: (255,125,175) against (255,51,106)).
+
+    What does not work:
+    - A fixed number of warm-up renders before each render: the number of renders before the change is not the same in each run.
+    - Wait until two renders are equal: that is a poll. Forbidden.
+
+    Plan: compare the two renders only at points far from the rim (`insidePoints`), with the default tolerance. Add `RenderedPixels.isClose(to:at:tolerance:)` with its own tests.
+  timestamp: 2026-10-21T07:30:53.639756+00:00
+- actor: claude-code
+  id: 01m5eppr97mk8yxsx5dgym6j43
+  text: |-
+    Implementation landed (not committed).
+
+    Changes:
+    - `Sources/AgentViewKitTestSupport/RenderedPixels.swift`: new `isClose(to:at:tolerance:)`. It compares two renders only at the given points, with the tolerance. It is `false` when the sizes are different or a point is not in the view. The DocC gives the root cause: the rim of a rounded glass changes after its first renders in the process, at a render that is not the same in each run, and only within 2 pt of the edge. A new private helper `components(atOffset:)` is shared with `pixel(atOffset:matches:tolerance:)`.
+    - `Tests/AgentViewKitTests/TestSupport/RenderedPixelsTests.swift`: 3 new tests for the method (same color at a point is close; a different color at one point is not close; a point outside the render is not close). RED seen: with a stub that gave `false`, the first test failed.
+    - `Tests/AgentViewKitTests/Theme/AgentSurfacesTests.swift`: `theFloatingGlassIsTheSameForEachMaterialLevel` now uses `glass.isClose(to: regular, at: Self.insidePoints)`. The inside points are 20 pt from each edge of the glass. The doc comment tells why.
+
+    Checks:
+    - Alone: `swift test --filter AgentSurfacesTests/theFloatingGlassIsTheSameForEachMaterialLevel` passed.
+    - Mutation: `AgentFloatingGlass` changed for one run to `glassEffect(theme.materialLevel == .clear ? .clear : .regular, ...)`. The `.clear` case failed at AgentSurfacesTests.swift:153. The code is back to `.regular` (no diff in AgentSurfaces.swift).
+    - 5 full `swift test` runs one after the other: each exit 0, 1466 tests in 182 suites passed with the 2 known issues, 174 tests in 23 suites passed in the other target. The test passed with 3 cases in each run. The only warning is the known mlx bundle build warning.
+
+    Discovery for a later card (not changed here): `theFloatingGlassFollowsReduceTransparency` expects `on != off` with full `!=`. The same rim change can make two renders different, so that test can pass when the setting has no effect.
+  timestamp: 2026-10-21T07:44:40.743906+00:00
+- actor: claude-code
+  id: 01m5eppwd73qyhpfvhx985vwsz
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Sources/AgentViewKitTestSupport/RenderedPixels.swift, Tests/AgentViewKitTests/TestSupport/RenderedPixelsTests.swift, Tests/AgentViewKitTests/Theme/AgentSurfacesTests.swift. Root cause: the rim of a rounded glass changes one time after its first renders in the process, at a render count that is not the same in each run (background work); the change is only within 2 pt of the edge. Fix: compare the two renders only at points far from the edge. 5 full `swift test` runs one after the other: all exit 0, 1466 passed with 2 known issues each. Alone: passed. Mutation (`.clear` glass for `.clear` level): failed, then reverted.
+    - next: /review
+  timestamp: 2026-10-21T07:44:44.967999+00:00
+- actor: claude-code
+  id: 01m5epw3h73x82tg5y3smahz5j
+  text: |-
+    ### test — green
+    - evidence: swift test (exit 0, 107 s). PackageStructureTests: 174 tests in 23 suites passed. AgentViewKitTests: 1466 tests in 182 suites passed, 2 known issues (same as before). 0 failures, 0 skipped. The only warning is the old mlx bundle build warning (missing creator for mutated node). Output: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/47eecec9-7dd0-49dd-b5a7-064ae713842b/scratchpad/test1.log
+    - next: review
+  timestamp: 2026-10-21T07:47:36.103206+00:00
+position_column: doing
+position_ordinal: '80'
 title: Fix the unstable test AgentSurfacesTests.theFloatingGlassIsTheSameForEachMaterialLevel(.clear)
 ---
 Source: ^6dvspvv (AVK-8ac) implement step. The test came from ^sdkm4qt (AVK-8ad, commit ea259e1).

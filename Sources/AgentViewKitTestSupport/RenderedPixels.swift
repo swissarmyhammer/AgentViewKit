@@ -165,6 +165,40 @@ public struct RenderedPixels: Equatable {
     }
   }
 
+  /// Whether these pixels and `other` show the same colors at `points`.
+  ///
+  /// In one process, `ImageRenderer` draws the edge of a rounded glass
+  /// differently in its first renders and in its later renders. The change
+  /// comes from work that the system does in the background, so the number
+  /// of renders before the change is not the same in each run. A test cannot
+  /// wait for the change: it gives no event. The change is only near the
+  /// edge: within 2 points of the edge, a byte can change by 31 levels.
+  /// Farther in, a byte changes by one level or less. Thus, to find that a
+  /// setting does not change a glass, use this method with points that are
+  /// far from each edge, and not ``isClose(to:tolerance:)``.
+  ///
+  /// The images show the same colors when they have the same size, and each
+  /// byte of the pixel at each point is in `tolerance` of the byte of
+  /// `other`.
+  ///
+  /// - Parameters:
+  ///   - other: The pixels to compare with.
+  ///   - points: The points to read, in points from the top leading corner
+  ///     of the view.
+  ///   - tolerance: The largest difference of one component, from 0 to 1.
+  /// - Returns: `true` when the images show the same colors at each point.
+  ///   `false` when a point is not in the view.
+  public func isClose(
+    to other: RenderedPixels, at points: [CGPoint], tolerance: Double = defaultTolerance
+  ) -> Bool {
+    guard width == other.width, height == other.height, scale == other.scale else { return false }
+    return points.allSatisfy { point in
+      guard let offset = offset(of: point) else { return false }
+      let target = other.components(atOffset: offset)
+      return pixel(atOffset: offset, matches: target, tolerance: tolerance)
+    }
+  }
+
   /// The offset in ``bytes`` of the pixel at `point`.
   ///
   /// - Parameter point: A point from the top leading corner of the view.
@@ -184,8 +218,17 @@ public struct RenderedPixels: Equatable {
   ///   - tolerance: The largest difference of one component, from 0 to 1.
   /// - Returns: `true` when each component is in `tolerance` of `target`.
   private func pixel(atOffset offset: Int, matches target: [Double], tolerance: Double) -> Bool {
-    let pixel = (0..<Self.bytesPerPixel).map { Self.component(bytes[offset + $0]) }
-    return zip(pixel, target).allSatisfy { Self.isWithin($0, $1, tolerance: tolerance) }
+    zip(components(atOffset: offset), target).allSatisfy {
+      Self.isWithin($0, $1, tolerance: tolerance)
+    }
+  }
+
+  /// The components of the pixel at `offset` in ``bytes``.
+  ///
+  /// - Parameter offset: The offset of the first byte of the pixel.
+  /// - Returns: Red, green, blue and alpha, from 0 to 1.
+  private func components(atOffset offset: Int) -> [Double] {
+    (0..<Self.bytesPerPixel).map { Self.component(bytes[offset + $0]) }
   }
 
   /// The value of the color component in `byte`, from 0 to 1.
