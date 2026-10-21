@@ -73,8 +73,24 @@ comments:
     - evidence: new Sources/AgentViewKit/Commands/AgentCommandDispatch.swift, Tests/AgentViewKitTests/Commands/AgentCommandDispatchTests.swift (3 tests); changed Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift, Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Tests/AgentViewKitTests/Commands/AgentAttachmentCommandsTests.swift, Tests/AgentViewKitTests/Attachments/AttachmentCommandsHostedTests.swift. Full suite with run-watched.sh (avk11-fix1): build-exit=0, test-exit=0, 1571 tests in 197 suites passed (3 known issues of the harness self-tests, not new), 190 PackageStructureTests passed, 0 compiler warnings (the build log has only the SwiftPM note "missing creator for mutated node" for the mlx-swift_Cmlx bundle, which is not from this code), 0 on-screen test-process windows. All 6 findings checked.
     - next: /review
   timestamp: 2026-10-21T18:52:36.762061+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m5fx0hrhh6wbjac9nabgt32c
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit fdc4964). 0 findings, 0 confirmed, 0 refuted. 6 files reviewed. All 6 items of the earlier section (2026-10-21 13:41) are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-21T18:54:07.633741+00:00
+- actor: claude-code
+  id: 01m5fx0v5y2v92dcj23exnrkg6
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — AgentCommandDispatch shared helper; verb order from allCases; shared test helpers; 6 findings checked
+    - test: green — run-watched.sh avk11-fix1, 1571 passed (3 known issues), 190 PackageStructureTests passed, 0 warnings; on-screen test windows 0
+    - commit: fdc4964
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T18:54:17.278322+00:00
+position_column: done
+position_ordinal: ffffa680
 title: AVK-11 Make the attachment actions EditorKit commands in the scope of the attachment (D108)
 ---
 Source: testudoapp-4c, after AVK-10 (^0svs7g7). Rules D108 and D109: each UI action is an EditorKit command that the palette can run.

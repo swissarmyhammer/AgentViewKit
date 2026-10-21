@@ -15,6 +15,17 @@ comments:
     - The cards behind the front card show only the top edge of their stroke now. Check that the stack still reads as a stack.
     - The action buttons of the cards keep the `.glass` and `.glassProminent` styles. In the bottom bar they are on the deck glass, in the same container. Please decide if this is glass on glass, and if the buttons need a different style in the bar.
   timestamp: 2026-10-21T05:57:47.468717+00:00
+- actor: claude-code
+  id: 01m5fxnbaxgghdrs9czmhqmvd8
+  text: |-
+    ### request from AVK-8r (^zfz0b4v)
+    The guard `ContentFillTests` permits these small chips and marks with a fill. D113 does not name chips. Please look at each one in the screenshots, and say if each fill stays:
+    - `Items/ToolCallView.swift`: the tool call badge, `.background(.quaternary, in: Capsule())`.
+    - `Attachments/AttachmentChip.swift`: the attachment chip, `.background(.quaternary, in: AgentSurface.shape(radius: theme.radii.m))`. Note: this chip is not a capsule.
+    - `Sessions/PendingRequestCountBadge.swift`: the pending-request badge, `.background(.quaternary, in: Capsule())`.
+    - `Citations/InlineCitation.swift`: the citation chip (a link), `Capsule().fill(editorTheme.accent.opacity(...))`.
+    If a fill must go, remove it and remove its file from the allow list in `Tests/PackageStructureTests/ContentFillTests.swift`. The test `eachAllowedFileUsesItsForm` fails when an allowed file has no fill.
+  timestamp: 2026-10-21T19:05:29.181886+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5DFBW8F3WMN4JFY7M7QDDWE

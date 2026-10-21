@@ -1,5 +1,6 @@
 import Foundation
 import PackageFileSupport
+import RegexBuilder
 import Testing
 
 /// The shared line scan of ``SourceLineScanner``.
@@ -69,6 +70,44 @@ import Testing
       inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures, skipping: ["ThemeColors.swift"]
     ) { [$0.number] }
 
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func matchStartLinesGivesTheLineWhereEachMatchStarts() {
+    let pattern = Regex {
+      "start"
+      OneOrMore(.whitespace)
+      "end"
+    }
+
+    let lines = SourceLineScanner.matchStartLines(of: pattern, in: "first\nstart\n  end\nstart end")
+
+    #expect(lines == [2, 4])
+  }
+
+  @Test func codeMatchStartsSkipsTheCommentsAndTheStringLiterals() throws {
+    let found = try SourceLineScanner.codeMatchStarts(
+      of: Regex { "NSColor" }, inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures)
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func codeMatchStartsNamesTheFileAndTheLineOfEachMatch() throws {
+    let found = try SourceLineScanner.codeMatchStarts(
+      of: Regex { "editorTheme.selection" }, inSwiftFilesBelow: Self.literalFixtures,
+      relativeTo: Self.literalFixtures)
+
+    #expect(found == ["ThemeColors.swift:20"])
+  }
+
+  @Test func codeMatchStartsSkipsTheSkippedFiles() throws {
+    let unskipped = try SourceLineScanner.codeMatchStarts(
+      of: Regex { "editorTheme" }, inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures)
+    let found = try SourceLineScanner.codeMatchStarts(
+      of: Regex { "editorTheme" }, inSwiftFilesBelow: Self.literalFixtures, relativeTo: Self.literalFixtures,
+      skipping: ["ThemeColors.swift"])
+
+    #expect(!unskipped.isEmpty)
     #expect(found.isEmpty, "\(found)")
   }
 

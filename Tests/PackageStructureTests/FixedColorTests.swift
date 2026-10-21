@@ -11,6 +11,10 @@ import Testing
 /// such as `.red`, `Color(red:green:blue:)` or an `NSColor`, does not follow
 /// the theme. The scan reads each Swift file as text. It blanks the comments
 /// and the string literals, then reads the file one line at a time.
+///
+/// A second scan finds the system background colors of AppKit (D111 step 1)
+/// in the kit, the demo support and the demo (``SystemStructureTests/scanPaths``).
+/// ``ContentFillTests`` holds the custom fills behind content.
 @Suite struct FixedColorTests {
   /// The pattern that finds a fixed color: a named color, a color from fixed
   /// values, a platform color, or the `foregroundColor` modifier.
@@ -98,6 +102,79 @@ import Testing
       "white"
     }
   }
+
+  /// The pattern that finds a system background color (D111 step 1): the
+  /// names `windowBackgroundColor`, `controlBackgroundColor`,
+  /// `textBackgroundColor` and `underPageBackgroundColor` as whole words, or a
+  /// color from a platform color, `Color(nsColor:` or `Color(.`.
+  ///
+  /// A system background is an opaque fill. It does not let the content and
+  /// the glass behind it show, and it does not follow the theme.
+  static var systemBackgroundPattern: Regex<Substring> {
+    Regex {
+      ChoiceOf {
+        WordPattern.wholeWord("windowBackgroundColor")
+        WordPattern.wholeWord("controlBackgroundColor")
+        WordPattern.wholeWord("textBackgroundColor")
+        WordPattern.wholeWord("underPageBackgroundColor")
+        platformColorConversionPattern
+      }
+    }
+  }
+
+  /// The pattern that finds a SwiftUI color from a platform color:
+  /// `Color(nsColor:` or `Color(.`.
+  static var platformColorConversionPattern: Regex<Substring> {
+    Regex {
+      WordPattern.wholeWord("Color")
+      "("
+      ZeroOrMore(.whitespace)
+      ChoiceOf {
+        Regex {
+          "nsColor"
+          ZeroOrMore(.whitespace)
+          ":"
+        }
+        "."
+      }
+    }
+  }
+
+  /// A sample line of each system background form, with only that form on
+  /// the line.
+  static let systemBackgroundSamples = [
+    "let window = windowBackgroundColor",
+    "let control = controlBackgroundColor",
+    "let text = textBackgroundColor",
+    "let page = underPageBackgroundColor",
+    ".background(Color(nsColor: panelColor))",
+    ".background(Color( .quaternarySystemFill))",
+  ]
+
+  /// Lines that look like a system background form, but use none.
+  static let systemBackgroundLookAlikes = [
+    "let windowBackgroundColorName = name",
+    ".background(editorTheme.background)",
+    ".foregroundStyle(Color.primary)",
+    ".background(ThemeColor(.accent))",
+    ".background(Color(white: Channel.half))",
+  ]
+
+  /// Each line of the violating fixtures that uses a system background form,
+  /// as `<file>:<line>` relative to ``fixtures``.
+  ///
+  /// `SystemBackgrounds.swift` uses one form on each line. The `NSColor.`
+  /// line of ``violatingFixtureFile`` also makes a color with
+  /// `Color(nsColor:`.
+  static let systemBackgroundFixtureUses = [
+    "Violating/FixedColors.swift:13",
+    "Violating/SystemBackgrounds.swift:12",
+    "Violating/SystemBackgrounds.swift:13",
+    "Violating/SystemBackgrounds.swift:14",
+    "Violating/SystemBackgrounds.swift:15",
+    "Violating/SystemBackgrounds.swift:16",
+    "Violating/SystemBackgrounds.swift:17",
+  ]
 
   /// Finds the lines of a source that use a fixed color.
   ///
@@ -214,5 +291,49 @@ import Testing
     }
 
     #expect(found.isEmpty, "Use a color of the EditorKit theme: \(found)")
+  }
+
+  @Test(arguments: systemBackgroundSamples)
+  func theSystemBackgroundPatternFindsTheForm(line: String) {
+    #expect(line.contains(Self.systemBackgroundPattern))
+  }
+
+  @Test(arguments: systemBackgroundLookAlikes)
+  func theSystemBackgroundPatternDoesNotFindALookAlikeLine(line: String) {
+    #expect(!line.contains(Self.systemBackgroundPattern))
+  }
+
+  @Test func theSystemBackgroundScanReportsEachFormOfTheViolatingFixture() throws {
+    let found = try GlassPlacementTests.uses(
+      of: Self.systemBackgroundPattern, inSwiftFilesBelow: Self.fixtures.appending(path: "Violating"),
+      relativeTo: Self.fixtures)
+
+    #expect(found == Self.systemBackgroundFixtureUses)
+  }
+
+  @Test func theSystemBackgroundScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture() throws {
+    let found = try GlassPlacementTests.uses(
+      of: Self.systemBackgroundPattern, inSwiftFilesBelow: Self.fixtures.appending(path: "Clean"),
+      relativeTo: Self.fixtures)
+
+    #expect(found.isEmpty, "\(found)")
+  }
+
+  /// A scan root that moved would give no files, and the scan would pass with
+  /// no files. Thus each root must hold Swift files.
+  @Test(arguments: SystemStructureTests.scanPaths)
+  func eachSystemBackgroundScanRootHoldsSwiftFiles(path: String) throws {
+    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(path))
+
+    #expect(!files.isEmpty, "\(path)")
+  }
+
+  @Test(arguments: SystemStructureTests.scanPaths)
+  func noViewUsesASystemBackground(path: String) throws {
+    let found = try GlassPlacementTests.uses(
+      of: Self.systemBackgroundPattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+      allowing: Self.allowedFiles)
+
+    #expect(found.isEmpty, "Remove the hard-coded background (D111 step 1): \(found)")
   }
 }
