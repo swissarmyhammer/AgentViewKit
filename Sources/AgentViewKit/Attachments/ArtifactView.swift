@@ -5,8 +5,10 @@ import UniformTypeIdentifiers
 /// (plan.md §3.6, §9 F).
 ///
 /// An artifact with a URL shows its file in an ``AttachmentView`` and the
-/// file actions of the inspector. An artifact with inline text only shows the
-/// text by its type, and has no file actions, because it has no file.
+/// file actions of the inspector. The panel is then the scope of its file
+/// (`agentAttachment:<id>`, AVK-11), and each action button runs the command
+/// of that scope. An artifact with inline text only shows the text by its
+/// type, and has no file actions, because it has no file.
 ///
 /// The panel is content, so it has no fill and no glass. A separator stroke
 /// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113).
@@ -66,6 +68,7 @@ public struct ArtifactView: View {
     .agentContentEdge(radius: theme.radii.m)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
+    .agentAttachmentScope(attachment)
   }
 
   /// The attachment of an artifact file.

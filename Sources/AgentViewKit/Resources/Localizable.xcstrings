@@ -2231,6 +2231,26 @@
         }
       }
     },
+    "The attachment is not a local file." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The attachment is not a local file."
+          }
+        }
+      }
+    },
+    "The attachment is not shown." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The attachment is not shown."
+          }
+        }
+      }
+    },
     "The audio cannot play" : {
       "localizations" : {
         "en" : {
@@ -2267,6 +2287,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The connection to the agent failed"
+          }
+        }
+      }
+    },
+    "The file does not exist." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file does not exist."
           }
         }
       }

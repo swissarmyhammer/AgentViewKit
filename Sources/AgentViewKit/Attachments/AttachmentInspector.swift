@@ -95,6 +95,13 @@ private struct AttachmentInspectorModifier: ViewModifier {
 ///
 /// The view shows the file name, a live QuickLook preview, and the actions
 /// Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
+///
+/// The view is the scope of its attachment (`agentAttachment:<id>`, AVK-11).
+/// Each action button runs the ``AgentAttachmentVerb`` command of that scope,
+/// so the buttons, the context menu and the command palette run the same
+/// commands. This is true in the built-in inspector of an ``AgentThreadView``
+/// and in the inspector of a host
+/// (``AttachmentInspectorMode/host(_:)``).
 public struct AttachmentInspector: View {
   /// The start of the accessibility identifier of each action.
   public static let identifierPrefix = "inspector"
@@ -131,6 +138,7 @@ public struct AttachmentInspector: View {
       AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
     }
     .padding(theme.spacing.m)
+    .agentAttachmentScope(attachment)
   }
 }
 

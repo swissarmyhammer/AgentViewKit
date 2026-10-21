@@ -27,6 +27,12 @@ nonisolated extension MenuPath {
 /// ``toolCall``. The kind text is the contract, so the other kit does not
 /// link this kit.
 ///
+/// Each attachment chip, image, artifact file and attachment inspector adds
+/// `agentAttachment:<id>` (AVK-11). The id is the ``AttachmentID`` of the
+/// file. The scope registers the ``AgentAttachmentVerb`` commands at its own
+/// path, so the attachment verbs work also in an inspector of the host,
+/// outside each thread scope.
+///
 /// Each scope gives its live object as the subject of its segment, and a
 /// command reads it with `@FromTarget`:
 ///
@@ -36,6 +42,7 @@ nonisolated extension MenuPath {
 /// | ``message`` | the `TranscriptEntry` of the message |
 /// | ``request`` | the `PendingPermissionRequest` |
 /// | ``toolCall`` | the `ToolCallEntry` |
+/// | ``attachment`` | the ``Attachment`` |
 ///
 /// ```swift
 /// @FromTarget(kind: AgentScopeKind.message) var entry: TranscriptEntry?
@@ -53,8 +60,15 @@ public nonisolated enum AgentScopeKind {
   /// The kind of the scope of a tool call card.
   public static let toolCall = "agentToolCall"
 
+  /// The kind of the scope of an attachment: a chip, an image, an artifact
+  /// file or the attachment inspector.
+  public static let attachment = "agentAttachment"
+
   /// The kinds of the item scopes in a thread.
-  static let items: Set<String> = [message, request, toolCall]
+  ///
+  /// An attachment is an item, so the context menu of an attachment in a
+  /// message shows the attachment verbs and not the verbs of the message.
+  static let items: Set<String> = [message, request, toolCall, attachment]
 
   /// The segment of the scope of a message row.
   ///
@@ -84,11 +98,20 @@ public nonisolated enum AgentScopeKind {
     FocusSegment(kind: toolCall, id: id.rawValue)
   }
 
+  /// The segment of the scope of an attachment.
+  ///
+  /// - Parameter id: The identifier of the attachment.
+  /// - Returns: The segment `agentAttachment:<id>`.
+  static func attachment(_ id: AttachmentID) -> FocusSegment {
+    FocusSegment(kind: attachment, id: id.rawValue)
+  }
+
   /// The last item segment of `path`, or `nil` when the path has no item
   /// segment.
   ///
   /// - Parameter path: The invocation path of a command.
-  /// - Returns: The segment of the message, the request or the tool call.
+  /// - Returns: The segment of the message, the request, the tool call or the
+  ///   attachment.
   static func item(in path: FocusPath) -> FocusSegment? {
     path.segments.last { items.contains($0.kind) }
   }

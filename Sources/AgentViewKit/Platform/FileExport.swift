@@ -3,8 +3,8 @@ import SwiftUI
 
 /// Writes the result of a file exporter to the log.
 ///
-/// ``AttachmentActions`` and ``MessageActions`` save files through
-/// `fileExporter`, and both record a failed save in the same way.
+/// The Save command of an attachment scope and ``MessageActions`` save files
+/// through `fileExporter`, and both record a failed save in the same way.
 enum FileExportLog {
   /// Writes an error entry when the save failed. A save that succeeded
   /// writes nothing.

@@ -1,5 +1,6 @@
 import AppKit
 import FoundationModelsACP
+import OSLog
 import SwiftUI
 
 /// The default view of an image block (plan.md §9 A2, §9 F).
@@ -11,6 +12,10 @@ import SwiftUI
 /// (``SwiftUI/View/agentAttachmentInspector(_:)``), the tap writes an
 /// ``AgentAttachmentSelection`` of the file to the binding of the host. Bytes
 /// that are not an image show a placeholder label.
+///
+/// The image is the scope of its file (`agentAttachment:<id>`, AVK-11). The
+/// view writes the file when it shows, so the ``AgentAttachmentVerb``
+/// commands of its context menu and of the command palette can run on it.
 ///
 /// The view shows an ACP `ImageContent` that a transcript entry holds. The
 /// view decodes the base64 data of the ACP value when it shows it. Data that
@@ -25,6 +30,9 @@ public struct ImageView: View {
 
   /// The file name stem of an image with no file name in its URI.
   private static let fileStem = "image"
+
+  /// The log of a block file that the view cannot write.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "ImageView")
 
   /// The ACP image to show, as the transcript entry holds it.
   let image: FoundationModelsACP.ImageContent
@@ -55,6 +63,7 @@ public struct ImageView: View {
 
   public var body: some View {
     if let data, let nsImage = NSImage(data: data) {
+      let file = file(of: data)
       Image(nsImage: nsImage)
         .resizable()
         .scaledToFit()
@@ -62,10 +71,39 @@ public struct ImageView: View {
         .accessibilityLabel(name)
         .modifier(SelectOnTap { select(data: data) })
         .accessibilityIdentifier(Self.imageIdentifier)
+        .agentAttachmentScope(file)
+        .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
       Label(name, systemImage: SharedSymbol.imageFailure)
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(Self.placeholderIdentifier)
+    }
+  }
+
+  /// The attachment of the block file of the image: the file that
+  /// ``ContentBlockFile/write(_:named:)`` writes for these bytes.
+  ///
+  /// - Parameter data: The bytes of the image.
+  /// - Returns: The attachment, also before the file exists.
+  private func file(of data: Data) -> Attachment {
+    let url = ContentBlockFile.url(of: data, named: name)
+    return Attachment(
+      id: AttachmentID(url.absoluteString), url: url,
+      type: ContentBlockFile.type(mimeType: image.mimeType.rawValue, fallback: .image), name: name,
+      size: data.count)
+  }
+
+  /// Writes the block file of the image, so that the attachment commands of
+  /// the image can run on it. A second write of the same bytes writes
+  /// nothing.
+  ///
+  /// - Parameters:
+  ///   - data: The bytes of the image.
+  ///   - name: The file name.
+  private static func writeFile(of data: Data, named name: String) async {
+    let url = await ContentBlockFile.write(data, named: name)
+    if url == nil {
+      logger.error("The image \(name, privacy: .private) has no file for its commands.")
     }
   }
 

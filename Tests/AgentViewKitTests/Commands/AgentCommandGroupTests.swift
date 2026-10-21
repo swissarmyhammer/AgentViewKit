@@ -21,6 +21,9 @@ import Testing
       .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
     ],
     .clipboard: [.copyMessage, .copyThread],
+    // The attachment verbs are of their own type; see
+    // AgentAttachmentCommandsTests.
+    .attachment: [],
   ]
 
   /// The id of a message item in the context menu tests.
@@ -71,7 +74,9 @@ import Testing
 
   @Test func eachGroupIdHasThePrefixOfTheKit() {
     #expect(
-      AgentCommandGroup.allCases.map(\.id) == ["agent.compose", "agent.control", "agent.navigate", "agent.clipboard"])
+      AgentCommandGroup.allCases.map(\.id) == [
+        "agent.compose", "agent.control", "agent.navigate", "agent.clipboard", "agent.attachment",
+      ])
   }
 
   // MARK: - Registration

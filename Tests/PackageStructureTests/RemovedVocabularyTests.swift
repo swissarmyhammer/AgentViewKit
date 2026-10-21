@@ -334,6 +334,9 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "ExpandedBlocksStore", "Entry",
     // The selected attachment of the inspector.
     "InspectorSelection",
+    // The open save panel and the open Quick Look panel of one attachment
+    // scope (AVK-11).
+    "AttachmentPresenter",
     // The scroll position of the conversation.
     "ScrollAnchorManager",
   ]

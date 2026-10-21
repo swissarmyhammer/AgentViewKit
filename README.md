@@ -371,7 +371,9 @@ at its root. Then the thread views apply no inspector. A tap writes an
 thread that the user pressed. Thus more than one thread view can share one
 binding. Show the file in your inspector, for example with
 `AttachmentInspector`, whose actions Open, Reveal in Finder, Share, Save and
-Quick Look work in each mode. A write of `nil` closes the inspector.
+Quick Look work in each mode. Each action is an EditorKit command of the scope
+of the attachment, so the context menu and the command palette run it too. A
+write of `nil` closes the inspector.
 
 ```swift
 // readme:compile HostInspector
@@ -489,7 +491,7 @@ two lists equal.
 **Infrastructure**
 
 - `StreamingMarkdownBalancer`, `ScrollAnchorManager`, `ExpandedBlocksStore`: the balancer of open Markdown, the scroll anchors, and the expanded state of the blocks.
-- `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`). The verbs are in four groups (`AgentCommandGroup`: `agent.compose`, `agent.control`, `agent.navigate`, `agent.clipboard`). A host turns off a group with `.agentCommandGroups(off:)`, and then its verbs are not in the menus, the context menus or the palette, and their keys do nothing.
+- `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`). Each attachment chip, image, artifact file and attachment inspector is a scope (`agentAttachment:<id>`) with the attachment verbs Open, Reveal in Finder, Share, Save and Quick Look (`AgentAttachmentVerb`); the buttons of the inspector, the context menu and the palette run the same commands. The verbs are in five groups (`AgentCommandGroup`: `agent.compose`, `agent.control`, `agent.navigate`, `agent.clipboard`, `agent.attachment`). A host turns off a group with `.agentCommandGroups(off:)`, and then its verbs are not in the menus, the context menus or the palette, and their keys do nothing.
 - `GrammarBundle`: the TextMate grammars of the languages that agents write most.
 
 **Input**

@@ -6,6 +6,11 @@ import SwiftUI
 ///
 /// ``AttachmentView`` shows the chip for a type that has no other default
 /// view, and for a file that a preview cannot load.
+///
+/// The chip is the scope of its attachment (`agentAttachment:<id>`, AVK-11),
+/// also in the composer: its context menu and the command palette show the
+/// ``AgentAttachmentVerb`` commands for the file. In an ``AttachmentView``,
+/// the chip uses the scope of the view.
 public struct AttachmentChip: View {
   /// The side of the type icon, in points.
   private static let iconSide: CGFloat = 28
@@ -50,6 +55,7 @@ public struct AttachmentChip: View {
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
     .background(.quaternary, in: AgentSurface.shape(radius: theme.radii.m))
+    .agentAttachmentScope(attachment)
   }
 }
 

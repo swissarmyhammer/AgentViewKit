@@ -121,6 +121,43 @@ extension View {
 ///
 /// The mount of a scope and the headless tests use the same calls.
 enum AgentCommandRegistration {
+  /// One definition of a scope and the group of its verb.
+  struct GroupedDefinition {
+    /// The group of the verb of the definition.
+    let group: AgentCommandGroup
+    /// The EditorKit definition of the verb.
+    let definition: CommandDefinition
+  }
+
+  /// Registers the scope node and the definitions at `path`.
+  ///
+  /// The call writes only the `.host` part of the node, with no
+  /// contribution. It does not register a definition of a group in
+  /// `groupsOff`. It unregisters that definition, so
+  /// `CommandRegistry.unregister` also removes each key of it. Thus a group
+  /// that a later call turns off goes away, and a group that a later call
+  /// turns on comes back. The thread scope and each attachment scope use this
+  /// call.
+  ///
+  /// - Parameters:
+  ///   - definitions: The definitions of the scope, each with its group.
+  ///   - path: The path of the scope.
+  ///   - registry: The registry to register into.
+  ///   - groupsOff: The groups whose definitions the call does not register.
+  static func register(
+    _ definitions: [GroupedDefinition], at path: FocusPath, into registry: inout CommandRegistry,
+    groupsOff: Set<AgentCommandGroup>
+  ) {
+    registry.tree = registry.tree.merging(nil, by: .host, at: path)
+    for entry in definitions {
+      if groupsOff.contains(entry.group) {
+        registry.unregister(entry.definition.id, at: path)
+      } else {
+        registry.register(entry.definition, at: path)
+      }
+    }
+  }
+
   /// Registers the scope node, the commands, and the keys of `target` at
   /// `path`.
   ///
@@ -144,14 +181,10 @@ enum AgentCommandRegistration {
     _ target: AgentCommandTarget, at path: FocusPath, into registry: inout CommandRegistry,
     groupsOff: Set<AgentCommandGroup> = []
   ) {
-    registry.tree = registry.tree.merging(nil, by: .host, at: path)
-    for verb in AgentCommandVerb.allCases {
-      if groupsOff.contains(verb.group) {
-        registry.unregister(verb.id, at: path)
-      } else {
-        registry.register(AgentCommand.definition(of: verb, for: target), at: path)
-      }
+    let definitions = AgentCommandVerb.allCases.map { verb in
+      GroupedDefinition(group: verb.group, definition: AgentCommand.definition(of: verb, for: target))
     }
+    register(definitions, at: path, into: &registry, groupsOff: groupsOff)
     AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 

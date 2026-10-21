@@ -15,6 +15,10 @@ import UniformTypeIdentifiers
 /// (``SwiftUI/View/agentAttachmentInspector(_:)``), the tap writes an
 /// ``AgentAttachmentSelection`` to the binding of the host.
 ///
+/// The view is the scope of its attachment (`agentAttachment:<id>`, AVK-11):
+/// its context menu and the command palette show the ``AgentAttachmentVerb``
+/// commands for the file.
+///
 /// `Docs/decisions/attachment-types.md` records the default renderer of each
 /// type.
 public struct AttachmentView: View {
@@ -94,6 +98,11 @@ public struct AttachmentView: View {
   }
 
   public var body: some View {
+    renderedFile.agentAttachmentScope(attachment)
+  }
+
+  /// The registered view of the file, or its default renderer.
+  @ViewBuilder private var renderedFile: some View {
     if let registered = registry.resolve(type: attachment.type) {
       registered(attachment.url)
         .modifier(SelectOnTap(action: select))

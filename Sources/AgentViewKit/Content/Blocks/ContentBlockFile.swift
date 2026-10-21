@@ -43,6 +43,21 @@ nonisolated enum ContentBlockFile {
     return "\(stem).\(pathExtension)"
   }
 
+  /// The URL of the block file of `data`, whether the file exists or not.
+  ///
+  /// ``write(_:named:)`` writes the bytes to this URL. The same bytes and the
+  /// same name always give the same URL.
+  ///
+  /// - Parameters:
+  ///   - data: The bytes of the block.
+  ///   - name: The file name.
+  /// - Returns: The URL in the folder of the SHA-256 digest of `data`.
+  static func url(of data: Data, named name: String) -> URL {
+    let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    return directory.appending(path: digest, directoryHint: .isDirectory)
+      .appending(path: name, directoryHint: .notDirectory)
+  }
+
   /// Writes bytes to a block file, or finds the file of an earlier write.
   ///
   /// The write occurs off the main actor.
@@ -53,9 +68,8 @@ nonisolated enum ContentBlockFile {
   /// - Returns: The URL of the file, or `nil` when the write fails.
   @concurrent
   static func write(_ data: Data, named name: String) async -> URL? {
-    let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    let folder = directory.appending(path: digest, directoryHint: .isDirectory)
-    let file = folder.appending(path: name, directoryHint: .notDirectory)
+    let file = url(of: data, named: name)
+    let folder = file.deletingLastPathComponent()
     let manager = FileManager.default
     if manager.fileExists(atPath: file.path(percentEncoded: false)) {
       return file

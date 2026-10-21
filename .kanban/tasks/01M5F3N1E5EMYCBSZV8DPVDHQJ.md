@@ -1,8 +1,47 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: b480
+comments:
+- actor: claude-code
+  id: 01m5fv4rkwtqb0yyrvkfdxb8p1
+  text: |-
+    Research (implement step).
+    - The thread verbs (AgentCommandVerb) are registered at the thread path by AgentCommandScope, and the item scopes (message, request, tool call) give only a subject (AgentItemScope). The host-mode inspector is outside each thread scope. Thus the attachment commands must be registered by the attachment scope itself, at its own path, with its own CommandSystem when no ambient system exists (the same rule as AgentCommandScope).
+    - Plan: a separate public enum AgentAttachmentVerb (ids agent.openAttachment, agent.revealAttachment, agent.shareAttachment, agent.saveAttachment, agent.quickLookAttachment) in a new group AgentCommandGroup.attachment (id agent.attachment). A new scope kind AgentScopeKind.attachment = "agentAttachment", with the Attachment as the subject. The scope is in AgentScopeKind.items, so the context menu of an attachment shows only the attachment verbs.
+    - The scope reuses AgentItemScope (focus target, jump target, context menu, commandScope, navVisible) and adds a mount that registers the five definitions at its path, and removes them at teardown.
+    - An internal protocol AttachmentFileService runs the verb. The default is a presenter of the scope: NSWorkspace for Open and Reveal, NSSharingServicePicker at the mount view for Share, fileExporter for Save and quickLookPreview for Quick Look. A test gives a recording double through the environment.
+    - AttachmentActions buttons dispatch through the registry of the scope. A button is disabled when the verb cannot run for the attachment, and hidden when the host turns off the group.
+    - ImageView writes its file at appear (ContentBlockFile gives the same URL for the same bytes), so its scope has a file subject.
+    - Existing tests count 13 thread verbs and 4 groups; the group tests change for the new group.
+  timestamp: 2026-10-21T18:21:28.572660+00:00
+- actor: claude-code
+  id: 01m5fw6jr5g5s2r7seehb869nf
+  text: |-
+    Implementation landed (not committed).
+    - New public `AgentAttachmentVerb` (agent.openAttachment, agent.revealAttachment, agent.shareAttachment, agent.saveAttachment, agent.quickLookAttachment): title (the catalog keys Open, Reveal in Finder, Share, Save, Quick Look), icon (SharedSymbol), File menu group `agentAttachment`, context menu group 0, group `AgentCommandGroup.attachment` (id agent.attachment, `attachmentVerbs`). A separate enum keeps the thread verbs (13) and their target unchanged.
+    - `AgentScopeKind.attachment = "agentAttachment"`, in `items`, so the context menu of an attachment in a message shows only the five verbs.
+    - `AgentAttachmentScope` (Commands/AgentAttachmentScope.swift): adds the segment with the Attachment as subject through `agentItemScope` (focus target, jump label, context menu, navVisible), uses the ambient CommandSystem or its own, and a mount registers the five definitions at its own path. The mount holds the path in `CommandSystem.mountHolders`, so an older view does not remove the commands of a newer view at the same path. A scope inside a scope of the same attachment makes no second scope.
+    - Applied on AttachmentView, AttachmentChip (also the composer chips), ImageView, AttachmentInspector and ArtifactView. ImageView now writes its block file when it shows (`ContentBlockFile.url(of:named:)` gives the same URL for the same bytes), so its commands have a file.
+    - `AgentAttachmentCommand` reads the attachment with `@FromTarget(kind: agentAttachment)`. Availability: a file URL must point to a file that exists; Reveal, Save and Quick Look need a file URL.
+    - Internal `AttachmentFileService` runs the verb; default `AttachmentPresenter` per scope (NSWorkspace; NSSharingServicePicker at the mount view; fileExporter; quickLookPreview). Tests give `RecordingAttachmentFileService` through `\.attachmentFileService`.
+    - `AttachmentActions` buttons dispatch through the target of the scope; disabled when the verb cannot run; hidden when the group is off. The ShareLink and the button-only file exporter and Quick Look are gone.
+    - Shared `AgentCommandRegistration.register(_ definitions:at:into:groupsOff:)` now serves the thread scope and the attachment scope (no copied loop).
+    - PackageStructureTests: `AttachmentPresenter` added to the allowlist of the observable classes (view state only: the open save panel and Quick Look panel).
+    - The hosted tests were written after the code; a mutation run without the inspector scope made 3 of them fail (both inspector-mode button tests and the inspector scope test), then the scope was restored.
+  timestamp: 2026-10-21T18:39:56.677828+00:00
+- actor: claude-code
+  id: 01m5fw6qckegs361qe2xy3214s
+  text: |-
+    ### implement — changed
+    - evidence: new Sources/AgentViewKit/Commands/AgentAttachmentCommands.swift, Sources/AgentViewKit/Commands/AgentAttachmentScope.swift, Sources/AgentViewKit/Platform/AttachmentFileService.swift, Tests/AgentViewKitTests/Commands/AgentAttachmentCommandsTests.swift (17 tests), Tests/AgentViewKitTests/Attachments/AttachmentCommandsHostedTests.swift (9 tests), Tests/AgentViewKitTests/Helpers/RecordingAttachmentFileService.swift; changed AgentCommandGroup.swift, AgentCommandPlacement.swift, AgentCommandScope.swift, AttachmentActions.swift, AttachmentChip.swift, AttachmentInspector.swift, AttachmentView.swift, ArtifactView.swift, ImageView.swift, ContentBlockFile.swift, FileExport.swift, Localizable.xcstrings, README.md, AgentCommandGroupTests.swift, RemovedVocabularyTests.swift. Full suite with run-watched.sh (avk11-full2): test-exit=0, 1568 tests in 196 suites passed (3 known issues of the harness self-tests, not new), 190 PackageStructureTests passed, 0 compiler warnings, 0 on-screen test-process windows. Snapshot tests passed, so no PNG changed.
+    - next: /review
+  timestamp: 2026-10-21T18:40:01.427393+00:00
+- actor: claude-code
+  id: 01m5fw6yn1m0qe2jpz52xe9vc6
+  text: 'Correction to the step record: AgentAttachmentCommandsTests has 15 tests, not 17 (the filtered run gave 21 tests = 15 + the 6 tests of AgentCommandGroupTests).'
+  timestamp: 2026-10-21T18:40:08.865485+00:00
+position_column: doing
+position_ordinal: '8180'
 title: AVK-11 Make the attachment actions EditorKit commands in the scope of the attachment (D108)
 ---
 Source: testudoapp-4c, after AVK-10 (^0svs7g7). Rules D108 and D109: each UI action is an EditorKit command that the palette can run.

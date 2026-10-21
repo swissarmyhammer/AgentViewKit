@@ -1,41 +1,23 @@
-import AppKit
 import OSLog
-import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
 /// The file actions of the inspector and of an artifact (plan.md §3.6):
 /// Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
+///
+/// Each button runs the ``AgentAttachmentVerb`` command of the nearest
+/// attachment scope (``SwiftUI/View/agentAttachmentScope(_:)``, AVK-11). Thus
+/// a button, the context menu of the attachment and the command palette run
+/// the same command. A button is disabled when its verb cannot run on the
+/// attachment. With the group ``AgentCommandGroup/attachment`` off, the view
+/// shows no button.
 struct AttachmentActions: View {
-  /// One file action.
-  enum Action: String, CaseIterable {
-    /// Opens the file in its default application.
-    case open
-    /// Shows the file in the Finder.
-    case reveal
-    /// Shares the file.
-    case share
-    /// Saves a copy of the file.
-    case save
-    /// Shows the file in a Quick Look panel.
-    case quickLook = "quicklook"
-
-    /// The accessibility identifier of the action, such as
-    /// `inspector-open`.
-    ///
-    /// - Parameter prefix: The start of the identifier.
-    /// - Returns: The identifier.
-    func identifier(prefix: String) -> String {
-      "\(prefix)-\(rawValue)"
-    }
-  }
-
   /// The accessibility identifiers of each action, in display order.
   ///
   /// - Parameter prefix: The start of each identifier.
   /// - Returns: The identifiers.
   static func identifiers(prefix: String) -> [String] {
-    Action.allCases.map { $0.identifier(prefix: prefix) }
+    AgentAttachmentVerb.allCases.map { $0.identifier(prefix: prefix) }
   }
 
   /// The file of the actions.
@@ -44,58 +26,57 @@ struct AttachmentActions: View {
   /// The start of the accessibility identifier of each action.
   let identifierPrefix: String
 
-  @State private var isExporting = false
-  @State private var quickLookURL: URL?
+  @Environment(\.agentAttachmentTarget) private var target
+  @Environment(\.agentCommandGroupsOff) private var groupsOff
 
   private let logger = Logger(subsystem: "AgentViewKit", category: "AttachmentActions")
 
   var body: some View {
-    HStack {
-      Button(
-        String(localized: "Open", bundle: .module), systemImage: SharedSymbol.open,
-        action: didTapOpen
-      )
-        .accessibilityIdentifier(Action.open.identifier(prefix: identifierPrefix))
-      Button(
-        String(localized: "Reveal in Finder", bundle: .module), systemImage: SharedSymbol.folder,
-        action: didTapReveal
-      )
-        .accessibilityIdentifier(Action.reveal.identifier(prefix: identifierPrefix))
-      ShareLink(item: attachment.url) {
-        Label(String(localized: "Share", bundle: .module), systemImage: SharedSymbol.share)
+    if !groupsOff.contains(.attachment) {
+      HStack {
+        ForEach(AgentAttachmentVerb.allCases, id: \.self) { verb in
+          Button(verb.title, systemImage: verb.icon) { didTap(verb) }
+            .help(verb.title)
+            .disabled(!verb.availability(for: attachment).isAvailable)
+            .accessibilityIdentifier(verb.identifier(prefix: identifierPrefix))
+        }
       }
-      .accessibilityIdentifier(Action.share.identifier(prefix: identifierPrefix))
-      Button(String(localized: "Save", bundle: .module), systemImage: SharedSymbol.save) {
-        isExporting = true
-      }
-        .accessibilityIdentifier(Action.save.identifier(prefix: identifierPrefix))
-      Button(String(localized: "Quick Look", bundle: .module), systemImage: SharedSymbol.quickLook)
-      { quickLookURL = attachment.url }
-        .accessibilityIdentifier(Action.quickLook.identifier(prefix: identifierPrefix))
-    }
-    .labelStyle(.iconOnly)
-    .buttonStyle(.borderless)
-    .fileExporter(
-      isPresented: $isExporting,
-      document: AttachmentDocument(url: attachment.url),
-      contentType: attachment.type,
-      defaultFilename: attachment.name,
-      onCompletion: { FileExportLog.record($0, of: attachment.name, to: logger) }
-    )
-    .quickLookPreview($quickLookURL)
-  }
-
-  /// Opens the file in its default application.
-  private func didTapOpen() {
-    guard NSWorkspace.shared.open(attachment.url) else {
-      logger.error("The workspace did not open \(attachment.url, privacy: .private).")
-      return
+      .labelStyle(.iconOnly)
+      .buttonStyle(.borderless)
     }
   }
 
-  /// Shows the file in the Finder.
-  private func didTapReveal() {
-    NSWorkspace.shared.activateFileViewerSelecting([attachment.url])
+  /// Runs the command of `verb` in the scope of the attachment, and writes a
+  /// log entry when no command ran.
+  ///
+  /// - Parameter verb: The verb of the button.
+  private func didTap(_ verb: AgentAttachmentVerb) {
+    let ran = target?.perform(verb) ?? false
+    if !ran {
+      logger.error("The command \(verb.id.rawValue) did not run for \(attachment.url, privacy: .private).")
+    }
+  }
+}
+
+nonisolated extension AgentAttachmentVerb {
+  /// The accessibility identifier of the button of the verb, such as
+  /// `inspector-open`.
+  ///
+  /// - Parameter prefix: The start of the identifier.
+  /// - Returns: The identifier.
+  func identifier(prefix: String) -> String {
+    "\(prefix)-\(identifierSuffix)"
+  }
+
+  /// The end of the accessibility identifier of the button of the verb.
+  private var identifierSuffix: String {
+    switch self {
+    case .openAttachment: "open"
+    case .revealAttachment: "reveal"
+    case .shareAttachment: "share"
+    case .saveAttachment: "save"
+    case .quickLookAttachment: "quicklook"
+    }
   }
 }
 
