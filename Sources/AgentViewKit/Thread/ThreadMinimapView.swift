@@ -215,11 +215,13 @@ public struct ThreadMinimapView: View {
   /// - Returns: The rail view.
   private func rail(entries: [TranscriptEntry]) -> some View {
     let keys = entries.map(\.rowKey)
-    let ticks = entries.map { Tick(tint: tint(of: $0), mark: Self.tickMark(of: $0)) }
+    let ticks = entries.map { Tick(tint: Self.tint(of: $0, in: editorTheme), mark: Self.tickMark(of: $0)) }
     let band = visibleRange(in: keys)
     let current = band?.lowerBound ?? 0
     return ZStack {
       Canvas { context, size in
+        // D113 answer 5 permits the accent here: the band marks the current
+        // item, the rows in view.
         Self.draw(ticks: ticks, band: band, bandColor: editorTheme.accent, in: &context, size: size)
       }
       .accessibilityHidden(true)
@@ -431,15 +433,21 @@ public struct ThreadMinimapView: View {
   /// The color of a tool call reads `ToolCallEntry.status`, so a status
   /// change draws the rail again.
   ///
-  /// - Parameter entry: The transcript entry.
+  /// No tick uses the accent of the theme. In content, the accent marks only
+  /// a link, the selection or the current item (D113 answer 5), and on the
+  /// rail only the band of the rows in view is the current item. Thus a user
+  /// message tick is `.primary` and an agent message tick is `.secondary`.
+  ///
+  /// - Parameters:
+  ///   - entry: The transcript entry.
+  ///   - theme: The EditorKit theme.
   /// - Returns: The color.
-  private func tint(of entry: TranscriptEntry) -> Color {
+  static func tint(of entry: TranscriptEntry, in theme: any EditorTheme.Theme) -> Color {
     return switch entry {
-    case .userMessage: editorTheme.accent
-    case .agentMessage: Color.primary
-    case .thought, .terminal, .plan: Color.secondary
-    case .toolCall(let toolCall): editorTheme.statusColor(for: toolCall.shownStatus)
-    case .error: editorTheme.severityError
+    case .userMessage: Color.primary
+    case .agentMessage, .thought, .terminal, .plan: Color.secondary
+    case .toolCall(let toolCall): theme.statusColor(for: toolCall.shownStatus)
+    case .error: theme.severityError
     case .unknown, .compaction:
       Color.secondary.opacity(Self.quietTickOpacity)
     }

@@ -142,6 +142,8 @@ private struct SourceRow: View {
       }
     }
     .padding(theme.spacing.xs)
+    // D113 answer 5 permits the accent here: the highlight marks the current
+    // source.
     .background(
       AgentSurface.shape(radius: theme.radii.s)
         .fill(isHighlighted ? AnyShapeStyle(editorTheme.accent.opacity(Self.highlightOpacity)) : AnyShapeStyle(.clear))

@@ -157,6 +157,8 @@ public struct ElicitationLayout: View {
       }
       .padding(.horizontal, theme.spacing.s)
       .padding(.vertical, theme.spacing.xs)
+      // D113 answer 5 permits the accent here: the fill marks the selected
+      // tab, the selection.
       .background(
         Capsule().fill(isSelected ? editorTheme.accent.opacity(Self.selectedTabOpacity) : .clear)
       )

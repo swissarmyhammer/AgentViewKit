@@ -250,6 +250,8 @@ struct InlineCitationPill: View {
     let metrics = InlineCitationMetrics(index: index, textFontSize: textFontSize)
     Text(verbatim: String(index))
       .font(.system(size: metrics.digitFontSize, weight: .semibold).monospacedDigit())
+      // D113 answer 5 permits the accent here and in the capsule fill: the
+      // pill is a link, a button that selects its source.
       .foregroundStyle(editorTheme.accent)
       .lineLimit(1)
       .fixedSize()
