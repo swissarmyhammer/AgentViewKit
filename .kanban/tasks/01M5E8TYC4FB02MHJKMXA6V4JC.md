@@ -1,6 +1,14 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5edyr1t4w5gqj05x3x58q0e
+  text: |-
+    ### note from ^2f1arb7 (AVK-8w)
+    - The shared test probe `ContentSurfaceHostedProbe` keeps its name for now, because `TranscriptEntrySurfaceHostedTests` (AVK-8x) still uses the old opaque check.
+    - When this card removes `agentContentSurface`, also remove the old opaque check `expectBackdropShowsOnlyInFront` and `BackdropPlacement.behind` if nothing uses them, and rename the probe to `ContentEdgeHostedProbe`.
+  timestamp: 2026-10-21T05:11:45.466551+00:00
 depends_on:
 - 01M5E8SRKB36TVJNFAE2F1ARB7
 - 01M5E8SYCWE9FM05FFS1T18BMX
