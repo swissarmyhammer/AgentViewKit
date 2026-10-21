@@ -111,6 +111,52 @@ comments:
     - code changes: none. No test was changed.
     - next: review.
   timestamp: 2026-10-21T08:03:51.680208+00:00
+- actor: claude-code
+  id: 01m5eqxbyejyjc8t2ptytczxes
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (57bce59): 1 finding (1 confirmed, 0 refuted) — Sources/AgentViewKitTestSupport/RenderedPixels.swift:253 `reuse/reuse`. The 2 prior items are checked.
+    - next: implement the open item in the "Review Findings (2026-10-21 03:04)" section. The task stays in review.
+  timestamp: 2026-10-21T08:05:46.062522+00:00
+- actor: claude-code
+  id: 01m5eqz7dbksd56yh5h3gf6c78
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 3 files (a clear-glass "different" check, a renamed inside-edge test, a region check)
+    - test: green — swift test, 1471 passed, 2 known issues that were there before; 3 full runs in the implement step also passed
+    - commit: 57bce59
+    - review: findings — Sources/AgentViewKitTestSupport/RenderedPixels.swift:253 (new finding; the two prior findings are checked)
+  timestamp: 2026-10-21T08:06:46.955788+00:00
+- actor: claude-code
+  id: 01m5era9bw6xz1zevyfpns1ejy
+  text: |-
+    Review finding `reuse/reuse` (RenderedPixels.swift) corrected (not committed).
+
+    Changes in `Sources/AgentViewKitTestSupport/RenderedPixels.swift`:
+    - `offsets(within:)` calculates only the center point of each pixel. It calls `offset(of: center)` and keeps the offset when `region.contains(center)` is true. It does not calculate `(row * width + column) * bytesPerPixel` itself now.
+    - `offset(of:)` is now the only place that changes a point into a pixel. Its DocC says this.
+    - The same cause in the rest of the file: `isClose(to:tolerance:)` had its own copy of the size and scale check. It now calls the shared `isClose(to:atOffsets:tolerance:)` with each pixel offset. A new private `pixelOffsets` (the stride of each pixel offset) is shared by `contains(_:tolerance:)` and `isClose(to:tolerance:)`. The behavior is the same: each byte is compared with the same tolerance.
+
+    Checks:
+    - Filter `RenderedPixelsTests|AgentSurfacesTests`: 35 tests in 3 suites passed.
+    - 2 full `swift test` runs one after the other: each exit 0; AgentViewKitTests 1471 tests in 182 suites passed with the 2 known issues; PackageStructureTests 174 tests in 23 suites passed; the only warning is the known mlx bundle build warning. Logs: scratchpad full1.log and full2.log.
+  timestamp: 2026-10-21T08:12:49.404976+00:00
+- actor: claude-code
+  id: 01m5erabbdwkbsrgt1987d0ywm
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Sources/AgentViewKitTestSupport/RenderedPixels.swift. 1 of 1 open review finding checked. Filter run: 35 tests passed. 2 full `swift test` runs: each exit 0, 1471 passed with 2 known issues, 174 passed in PackageStructureTests.
+    - next: /review
+  timestamp: 2026-10-21T08:12:51.437354+00:00
+- actor: claude-code
+  id: 01m5erezyb3ww427k7zsm651va
+  text: |-
+    ### test — green
+    - evidence: swift test (full suite), exit 0, 108 s. AgentViewKitTests: 1471 tests in 182 suites passed, 0 failures, 2 known issues (HostedLayoutExpectationsTests and ThemeHeightExpectationsTests, same as before). PackageStructureTests ran and passed: 174 tests in 23 suites. XCTest run: 0 tests, 0 failures.
+    - warnings: only the known mlx-swift_Cmlx.bundle build warning. No new warning. 0 skipped.
+    - code changes: none. No test was changed. Output: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/47eecec9-7dd0-49dd-b5a7-064ae713842b/scratchpad/test1.log
+    - next: review
+  timestamp: 2026-10-21T08:15:23.595429+00:00
 position_column: doing
 position_ordinal: '80'
 title: Fix the unstable test AgentSurfacesTests.theFloatingGlassIsTheSameForEachMaterialLevel(.clear)
@@ -139,3 +185,12 @@ Acceptance:
 
 - [x] `Tests/AgentViewKitTests/Theme/AgentSurfacesTests.swift:153` `completeness/inverse-operation-coverage` — The test checks only the 'same' direction. It asserts that each material level matches the regular glass at the inside points. Nothing shows that these points can detect a different glass. The doc comment at lines 142-146 says a `.clear` glass shows different colors at these points, but no test asserts it. If the points could not tell glasses apart, this test would pass for any glass. Add one assertion in the same suite that a `.clear` glass is NOT close to the regular glass at `Self.insidePoints`. This proves the points can detect a glass change. Keep the existing assertion as the 'same' direction.
 - [x] `Tests/AgentViewKitTests/Theme/AgentSurfacesTests.swift:153` `test-integrity/no-test-cheating` — The material-level test now compares the two glass renders only at `Self.insidePoints`, not across the whole image. The earlier whole-image comparison is replaced, so a material level that changes the glass near the edge would no longer fail the test. The loosened check is disclosed in the comment at lines 141-146, but the comparison is still weaker than the test name, 'the floating glass is the same for each material level', states. Keep the point check, but add a separate assertion that the edge-independent region matches over the whole image with a justified tolerance, or document in the test name that only the interior is compared. If the narrowing is accepted, record it in the kanban task so the reduced coverage is tracked.
+
+## Review Findings (2026-10-21 03:04)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKitTestSupport/RenderedPixels.swift:253` `reuse/reuse` — `offsets(within:)` rebuilds the point-to-pixel mapping by hand: it converts a pixel index to a point (`(column + pixelCenter) / scale`) and then reads `region.contains` on that point. The file already has `offset(of:)` (line 265), which maps a point in points to a byte offset using `Int((point.x * scale).rounded(.down))`. The two conversions share one rule, so a later change to how points map to pixels would have to be made in two places. Compute only the center point, then call `offset(of: center)` and keep the offset when `region.contains(center)` is true. This removes the duplicate scale arithmetic and keeps one point-to-pixel rule. Keep `pixelCenter` as the only added constant.

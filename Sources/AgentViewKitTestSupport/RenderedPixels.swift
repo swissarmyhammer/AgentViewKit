@@ -123,7 +123,7 @@ public struct RenderedPixels: Equatable {
   /// - Returns: `true` when at least one pixel has the color.
   public func contains(_ color: Color, tolerance: Double = defaultTolerance) -> Bool {
     guard let target = Self.components(of: color) else { return false }
-    return stride(from: 0, to: bytes.count, by: Self.bytesPerPixel).contains { offset in
+    return pixelOffsets.contains { offset in
       pixel(atOffset: offset, matches: target, tolerance: tolerance)
     }
   }
@@ -163,10 +163,7 @@ public struct RenderedPixels: Equatable {
   ///   - tolerance: The largest difference of one component, from 0 to 1.
   /// - Returns: `true` when the images show the same.
   public func isClose(to other: RenderedPixels, tolerance: Double = defaultTolerance) -> Bool {
-    guard width == other.width, height == other.height, scale == other.scale else { return false }
-    return zip(bytes, other.bytes).allSatisfy {
-      Self.isWithin(Self.component($0), Self.component($1), tolerance: tolerance)
-    }
+    isClose(to: other, atOffsets: Array(pixelOffsets), tolerance: tolerance)
   }
 
   /// Whether these pixels and `other` show the same colors at `points`.
@@ -253,12 +250,20 @@ public struct RenderedPixels: Equatable {
         let center = CGPoint(
           x: (CGFloat(column) + Self.pixelCenter) / scale,
           y: (CGFloat(row) + Self.pixelCenter) / scale)
-        return region.contains(center) ? (row * width + column) * Self.bytesPerPixel : nil
+        return region.contains(center) ? offset(of: center) : nil
       }
     }
   }
 
+  /// The offset in ``bytes`` of each pixel, from the first pixel of the top
+  /// row to the last pixel of the bottom row.
+  private var pixelOffsets: StrideTo<Int> {
+    stride(from: 0, to: bytes.count, by: Self.bytesPerPixel)
+  }
+
   /// The offset in ``bytes`` of the pixel at `point`.
+  ///
+  /// This method is the only place that changes a point into a pixel.
   ///
   /// - Parameter point: A point from the top leading corner of the view.
   /// - Returns: The offset, or `nil` when `point` is not in the view.
