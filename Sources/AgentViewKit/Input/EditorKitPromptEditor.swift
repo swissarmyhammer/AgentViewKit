@@ -23,7 +23,9 @@ import SwiftUI
 /// inserts a newline. Esc calls ``PromptEditorContext/onCancel`` while the
 /// user can cancel the work of the session.
 ///
-/// Two completion sources feed a completion list above the editor:
+/// Two completion sources feed a completion list. ``PromptInputView`` shows
+/// the list above its field, on its own glass, because the editor is in the
+/// field glass (D110 (c)):
 ///
 /// - ``SlashCommandSource`` lists ``PromptEditorContext/commands`` after a `/`
 ///   at the start of a line.
@@ -39,6 +41,9 @@ import SwiftUI
 public struct EditorKitPromptEditor: View {
   /// The accessibility identifier of the editor.
   public static let identifier = "editorkit-prompt-editor"
+
+  /// The accessibility identifier of the completion list.
+  public static let completionListIdentifier = "prompt-completion-list"
 
   /// The accessibility identifier of each row of the completion list.
   public static let completionRowIdentifier = "prompt-completion-row"
@@ -66,7 +71,7 @@ public struct EditorKitPromptEditor: View {
   @Environment(\.agentTheme) private var theme
 
   /// The model and the completion engine of the editor.
-  @State private var session = PromptEditorSession()
+  @State private var session: PromptEditorSession
 
   /// The paths of the accepted file references, relative to the file root.
   @State private var references: Set<String> = []
@@ -75,7 +80,18 @@ public struct EditorKitPromptEditor: View {
   ///
   /// - Parameter context: The values that the composer gives.
   public init(context: PromptEditorContext) {
+    self.init(context: context, session: PromptEditorSession())
+  }
+
+  /// Makes the editor over a session that the caller holds, for example a
+  /// test that reads the model of the session.
+  ///
+  /// - Parameters:
+  ///   - context: The values that the composer gives.
+  ///   - session: The model and the completion engine of the editor.
+  init(context: PromptEditorContext, session: PromptEditorSession) {
     self.context = context
+    _session = State(initialValue: session)
   }
 
   public var body: some View {
@@ -98,14 +114,10 @@ public struct EditorKitPromptEditor: View {
     .fixedSize(horizontal: false, vertical: true)
     .accessibilityLabel(context.placeholder)
     .accessibilityIdentifier(Self.identifier)
-    .overlay(alignment: .topLeading) {
-      if completion.isOpen, !completion.listedItems.isEmpty {
-        completionList(completion, model: model)
-          .alignmentGuide(.top) { $0[.bottom] }
-      } else if Self.showsNoCommandsNote(completion, commands: context.commands) {
-        noCommandsNote
-          .alignmentGuide(.top) { $0[.bottom] }
-      }
+    // The editor is in the field glass of the composer. So the composer
+    // shows the menu on its own glass above the field (D110 (c)).
+    .anchorPreference(key: PromptEditorMenuKey.self, value: .bounds) { anchor in
+      menu(completion, model: model).map { PromptEditorMenu(anchor: anchor, content: $0) }
     }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
       // SwiftUI can report a pushed text after the model took newer input,
@@ -117,12 +129,29 @@ public struct EditorKitPromptEditor: View {
 
   // MARK: - Completion list
 
+  /// The menu that the composer shows above the field: the completion list,
+  /// the "no commands" note, or nothing.
+  ///
+  /// The menu has no glass. The composer puts it on its glass.
+  ///
+  /// - Parameters:
+  ///   - completion: The completion session of the editor.
+  ///   - model: The model of the editor.
+  /// - Returns: The menu, or `nil` when the editor shows no menu.
+  private func menu(_ completion: CompletionSessionState, model: EditorModel) -> AnyView? {
+    if completion.isOpen, !completion.listedItems.isEmpty {
+      return AnyView(completionList(completion, model: model))
+    }
+    guard Self.showsNoCommandsNote(completion, commands: context.commands) else { return nil }
+    return AnyView(noCommandsNote)
+  }
+
   /// The list of the open completion session.
   ///
   /// - Parameters:
   ///   - completion: The open session.
   ///   - model: The model of the editor.
-  /// - Returns: The list, in a glass panel.
+  /// - Returns: The list, with no glass.
   private func completionList(_ completion: CompletionSessionState, model: EditorModel) -> some View {
     CompletionSuggestionsList(
       items: completion.listedItems, selectedIndex: completion.listedSelectedIndex, id: \.label,
@@ -132,11 +161,12 @@ public struct EditorKitPromptEditor: View {
     .frame(width: Self.completionListWidth)
     .frame(maxHeight: Self.completionListMaximumHeight)
     .fixedSize(horizontal: false, vertical: true)
-    .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.m))
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier(Self.completionListIdentifier)
   }
 
   /// The empty command menu: a short note that the agent reported no
-  /// command.
+  /// command. The note has no glass.
   private var noCommandsNote: some View {
     Text(Self.noCommandsNote)
       .font(.caption)
@@ -144,7 +174,6 @@ public struct EditorKitPromptEditor: View {
       .padding(.horizontal, theme.spacing.s)
       .padding(.vertical, theme.spacing.xs)
       .frame(width: Self.completionListWidth, alignment: .leading)
-      .glassEffect(theme.materialLevel.glass, in: .rect(cornerRadius: theme.radii.m))
       .accessibilityIdentifier(Self.noCommandsIdentifier)
   }
 

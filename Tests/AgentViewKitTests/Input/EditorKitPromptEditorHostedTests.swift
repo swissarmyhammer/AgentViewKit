@@ -192,13 +192,13 @@ struct EditorKitPromptInputHost: View {
   // The completion tests below call the completion engine that the editor
   // composes (`PromptEditorSession.engine(commands:root:)`), and await its
   // query directly. In the hosted editor, the query waits for the debounce of
-  // EditorKit on a clock, off the main actor, and no model value that a test
-  // can observe holds the rows. The hosted completion-row tests can come back
-  // when EditorKit ^c3ya9ed gives an injectable debounce clock. Until then,
-  // these tests do not cover the draw of the rows, or the path that gives a
-  // Return press to the open list before the submit. The hosted check that
-  // needs no debounce wait is
+  // EditorKit on a clock, off the main actor, and no model value that these
+  // tests observe holds the rows. EditorKit ^c3ya9ed can give an injectable
+  // debounce clock. The hosted check that needs no debounce wait is
   // `SlashCommandSessionModelTests.afterAnEmptyCommandsUpdateASlashShowsTheNoCommandsNote`.
+  // `ComposerEditorMenuHostedTests` holds the session of the editor, and waits
+  // on its model for the rows. Those tests cover the draw of the list, and the
+  // path that gives Down and Return to the open list before the submit.
 
   /// The engine of the editor lists the commands that the agent reported for
   /// a slash, filters them by the text after the slash, and an accept

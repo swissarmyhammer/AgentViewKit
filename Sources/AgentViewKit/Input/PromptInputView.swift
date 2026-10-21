@@ -7,8 +7,11 @@ import SwiftUI
 /// (D110 (c)). The field holds the attachment chips and the editor, and it is
 /// on the floating glass of the kit (``SwiftUI/View/agentFloatingGlass()``).
 /// The accessory row is below the field and not on that glass, so its glass
-/// buttons are not glass on glass. The composer adds no glass morph, so also
-/// while Reduce Motion is on no glass shape morphs (plan.md §6).
+/// buttons are not glass on glass. A menu of the editor, for example the
+/// completion list of ``EditorKitPromptEditor``, shows above the field on its
+/// own floating glass, in the same container. The composer adds no glass
+/// morph, so also while Reduce Motion is on no glass shape morphs (plan.md
+/// §6).
 ///
 /// The editor and the accessory are slots. The short initializer uses
 /// ``StockPromptEditor`` and ``DefaultPromptAccessory``:
@@ -175,9 +178,10 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
       onCancel: Self.cancelsOnEscape(in: session) ? cancelCommand : nil,
       commands: session?.availableCommands)
-    // The field and the accessory are siblings in one container. Only the
-    // field is on glass, so the glass buttons of the accessory are not glass
-    // on glass, and the container blends their shapes (D110 (c)).
+    // The field, the menu of the editor and the accessory are siblings in one
+    // container. Only the field and the menu are on glass, so the glass
+    // buttons of the accessory are not glass on glass, and the container
+    // blends their shapes (D110 (c)).
     GlassEffectContainer(spacing: theme.spacing.s) {
       VStack(alignment: .leading, spacing: theme.spacing.s) {
         field(context)
@@ -213,6 +217,13 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
         }
     }
     .modifier(PromptFieldSurface())
+    // The menu of the editor is after the field surface, so it is a sibling
+    // glass of the field glass in the container, not glass on glass.
+    .overlayPreferenceValue(PromptEditorMenuKey.self, alignment: .topLeading) { menu in
+      if let menu {
+        PromptEditorMenuLayer(menu: menu)
+      }
+    }
   }
 
   /// Submits the text through ``AgentCommandVerb/send`` of the command scope,
@@ -338,7 +349,8 @@ extension PromptInputView where Accessory == DefaultPromptAccessory {
 /// The surface pads the field with the medium spacing of the theme, and puts
 /// it on the floating glass of the kit (``SwiftUI/View/agentFloatingGlass()``).
 /// The accessory row of the composer is not on this surface. Thus the glass
-/// buttons of the accessory are not glass on glass.
+/// buttons of the accessory are not glass on glass. The menu of the editor
+/// (``PromptEditorMenu``) is not on this surface either.
 ///
 /// The surface is one accessibility container with ``identifier``, so that a
 /// hosted test can read its frame. The chips and the editor stay separate
@@ -355,6 +367,58 @@ struct PromptFieldSurface: ViewModifier {
       .agentFloatingGlass()
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier(Self.identifier)
+  }
+}
+
+/// A menu that the editor of ``PromptInputView`` shows above the field, for
+/// example the completion list of ``EditorKitPromptEditor``.
+///
+/// The editor is in the field glass. So the editor gives the menu with no
+/// glass, and the composer puts it on its own glass (D110 (c)).
+struct PromptEditorMenu {
+  /// The bounds of the editor that gives the menu.
+  let anchor: Anchor<CGRect>
+
+  /// The content of the menu, with no glass.
+  let content: AnyView
+}
+
+/// The preference that carries the menu of the editor to ``PromptInputView``.
+struct PromptEditorMenuKey: PreferenceKey {
+  static var defaultValue: PromptEditorMenu? { nil }
+
+  /// Keeps the first menu, so that one editor gives the menu.
+  ///
+  /// - Parameters:
+  ///   - value: The menu so far.
+  ///   - nextValue: The menu of the next view.
+  static func reduce(value: inout PromptEditorMenu?, nextValue: () -> PromptEditorMenu?) {
+    value = value ?? nextValue()
+  }
+}
+
+/// The layer that shows a ``PromptEditorMenu`` above the field of
+/// ``PromptInputView``, on the floating glass of the kit.
+///
+/// The layer fills the field. The leading edge of the menu is at the leading
+/// edge of the editor. The bottom edge of the menu is the small spacing of the
+/// theme above the top edge of the field.
+struct PromptEditorMenuLayer: View {
+  /// The menu to show.
+  let menu: PromptEditorMenu
+
+  @Environment(\.agentTheme) private var theme
+
+  var body: some View {
+    GeometryReader { proxy in
+      menu.content
+        .agentFloatingGlass()
+        .padding(.leading, proxy[menu.anchor].minX)
+        .padding(.bottom, theme.spacing.s)
+        // A frame with no height at the top of the field. The menu is at its
+        // bottom, so the menu goes up from the top of the field.
+        .frame(width: proxy.size.width, height: 0, alignment: .bottomLeading)
+    }
   }
 }
 
