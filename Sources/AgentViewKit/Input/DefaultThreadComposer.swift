@@ -16,7 +16,12 @@ public struct DefaultThreadComposer: View {
   public init() {}
 
   public var body: some View {
-    PromptInputView(text: $draft) {}
+    PromptInputView(text: text) {}
+  }
+
+  /// The binding that reads and writes the text of the prompt.
+  private var text: Binding<AttributedString> {
+    Binding(get: { draft }, set: { draft = $0 })
   }
 }
 

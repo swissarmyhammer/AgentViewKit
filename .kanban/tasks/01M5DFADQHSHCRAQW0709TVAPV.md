@@ -50,6 +50,47 @@ comments:
     - evidence: swift test - 1435 tests in 176 suites passed, 0 failed, 0 skipped, 2 known issues (old). PackageStructureTests: 146 tests in 20 suites passed. ReadmeSnippetsTests: 1 test passed. One warning only: the old mlx bundle build warning.
     - next: review
   timestamp: 2026-10-21T00:55:21.378294+00:00
+- actor: claude-code
+  id: 01m5dzdxy14b702phmxz1jqpwn
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (5b6336c). 1 finding: Sources/AgentViewKit/Input/DefaultThreadComposer.swift:13 code-hygiene/dead-code-swift — var.instance `draft` is unused.
+    - next: Correct the finding in the "Review Findings (2026-10-20 19:55)" section. The task stays in review.
+  timestamp: 2026-10-21T00:57:54.369139+00:00
+- actor: claude-code
+  id: 01m5dzefv8v7fnmr68q6t0kf4q
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 22 files
+    - test: green — swift test, 1435 passed, 2 known issues that were there before; 146 structure tests and 1 README snippet test passed
+    - commit: 5b6336c
+    - review: findings — Sources/AgentViewKit/Input/DefaultThreadComposer.swift:13
+  timestamp: 2026-10-21T00:58:12.712688+00:00
+- actor: claude-code
+  id: 01m5e1kg8d1s5qharvncp9htxc
+  text: |-
+    ### finding fix — dead-code-swift `draft`
+    - Cause: `draft` was used only through its projected value (`$draft`). Periphery 3.8.0 records the `$draft` use as a use of the projection, not of `draft`, so it reported `draft` as unused. `PromptInputView.ownAttachments` uses the same kind of state with a plain `Binding(get:set:)`, and periphery does not report it.
+    - Change: `DefaultThreadComposer` now gives `PromptInputView` a private computed `text` binding that reads and writes `draft` directly (`Binding(get: { draft }, set: { draft = $0 })`). The composer still keeps its own text. The public API does not change. No other `$` projection is in the file.
+    - RED: `periphery scan --skip-build --index-store-path .build/out --retain-public --retain-objc-accessible --retain-swift-ui-previews --retain-codable-properties --relative-results --report-exclude "Tests/**"` after `swift build --build-tests` reported `DefaultThreadComposer.swift:13:22: warning: Unused property 'draft'`. GREEN: the same scan reports nothing for the file.
+    - What did not work: the first `swift test` run in the sah shell, piped to `rg | head`, gave no result for 30 minutes and the shell tool stopped. A second run with the output in a file ended normally in 138 s. Run the full suite with the output to a file.
+  timestamp: 2026-10-21T01:35:54.125110+00:00
+- actor: claude-code
+  id: 01m5e1kj4e39mh2zqhzc3nayfq
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Sources/AgentViewKit/Input/DefaultThreadComposer.swift. `swift test`: 1435 tests in 176 suites passed with 2 known issues (old); 146 tests in 20 suites passed; 1 test in 1 suite passed. One warning only: the old mlx bundle warning. Periphery reports nothing for the file.
+    - next: /review
+  timestamp: 2026-10-21T01:35:56.046849+00:00
+- actor: claude-code
+  id: 01m5e1vapkhmhhfastbry7z3pc
+  text: |-
+    ### test - green
+    - evidence: swift test (output in scratchpad full.log), 220 s. XCTest: 0 tests, 0 failures. Swift Testing: 1435 tests in 176 suites passed, 2 known issues (existed before). 1 test in 1 suite (ReadmeSnippetsTests) passed. 146 tests in 20 suites passed.
+    - warnings: only the mlx bundle build warning (existed before). No new warning. No skipped test. No hang.
+    - changes: none to files.
+    - next: review
+  timestamp: 2026-10-21T01:40:10.579653+00:00
 depends_on:
 - 01M5DF9SKZ4BRGBD6BFG5XY664
 position_column: doing
@@ -86,3 +127,16 @@ Decision (testudoapp-4c, see the comment): method 1, with `PromptInputView` as t
 - With a composer in the slot, a hosted test scrolls up by a command (not by a timed gesture), waits for the pill to show, and finds the pill and `prompt-submit` in the same container: both are children of one element with a known identifier.
 - With no composer, the pill shows as today, and all tests in `Tests/AgentViewKitTests/Thread/` pass.
 - Tests use Swift Testing. No clock, sleep, poll, retry, timeLimit or XCUITest. Each wait waits for a certain event. #avk-8
+
+## Review Findings (2026-10-20 19:55)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 18 file(s) reviewed, 4 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Input/DefaultThreadComposer.swift:13` `code-hygiene/dead-code-swift` — var.instance `draft` is unused.
