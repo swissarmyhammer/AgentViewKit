@@ -41,8 +41,24 @@ comments:
     - known issues: aWrappedTextWithAFixedVerticalSizeFails and aViewThatIgnoresTheThemeFails (as before).
     - next: review. No source file was changed by this step.
   timestamp: 2026-10-21T13:22:35.294127+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5fa3wr7bnfrm8jbzs4jqba1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (601e966). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 1 file reviewed: ThreadFloatingControlsHostedTests.swift. 2 .kanban files not reviewed (.reviewignore).
+    - next: none. The task moves to done.
+  timestamp: 2026-10-21T13:23:54.247818+00:00
+- actor: claude-code
+  id: 01m5fa499jyk2q93kb6xfyba1r
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 1 file (the thread pill test waits only for the bottom scroll target; the root cause was that test, not RecordedSessionsAgentTests)
+    - test: green — swift test, 1487 passed, 2 known issues that were there before; 5 full runs in the implement step, no hang
+    - commit: 601e966
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T13:24:07.090403+00:00
+position_column: done
+position_ordinal: ffff9e80
 title: Fix the hang in RecordedSessionsAgentTests.theAgentWritesItsProjectRegistryIntoTheConfigurationDirectoryOfTheStage
 ---
 Source: the test step of AVK-10 (^0svs7g7).
