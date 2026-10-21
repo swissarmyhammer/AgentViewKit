@@ -48,6 +48,51 @@ comments:
     - evidence: 2 files in the AgentViewKit repo — plan.md (§5, §6 Reduce Motion sentence), Docs/decisions/visual-audit.md (two stale color rows replaced by a D113 note). No source or test file changed. TestudoApp not changed (git status clean). Docs tests: `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'` — 23 tests in 2 suites passed, and 3 tests in 1 suite passed.
     - next: /review. Not committed.
   timestamp: 2026-10-21T21:10:41.740467+00:00
+- actor: claude-code
+  id: 01m5g55fjmj1m8yza7ggy7g4sh
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (f7dac58): engine 0 findings (no validator matches Markdown). Factual check: 9 findings — plan.md:242, plan.md:246 (2), plan.md:248, plan.md:249, plan.md:251, plan.md:253, plan.md:255, plan.md:256. visual-audit.md: the D113 paragraph agrees with the code.
+    - next: correct each item in the "Review Findings (2026-10-21 16:11)" section of plan.md, then review again.
+  timestamp: 2026-10-21T21:16:37.844849+00:00
+- actor: claude-code
+  id: 01m5g564ndghmf80f17b4nz64q
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — plan.md §5 and §6, Docs/decisions/visual-audit.md
+    - test: green — DecisionRecordTests, AgentThemeGoldenTests, ReadmeCoverageTests: 26 passed (docs only, no code change)
+    - commit: f7dac58
+    - review: findings — plan.md:242, :246 (2), :248, :249, :251, :253, :255, :256 (factual check)
+  timestamp: 2026-10-21T21:16:59.437374+00:00
+- actor: claude-code
+  id: 01m5g5jjh6vs4rhv7c2nkmey4w
+  text: |-
+    ### fact check of the review findings (2026-10-21 16:11)
+    Fixed the 9 items in plan.md §5. Sources that I read for each item:
+    - Sidebar (two places): D116 (a) and style.md rule 1. §5 now says that the system decides the look; on macOS 27 the sidebar has a system gray and the toolbar controls are glass groups. Note: the "Two layers" table of style.md still lists the sidebar under "Liquid Glass". Rule 1 and D116 are newer, so §5 follows them.
+    - Card ids, from `git log --diff-filter=A`: AgentSurface came from ^c5mvvt4 (AVK-8b), `.concentric` from ^vyn7qq9 (AVK-8m, also FixedCornerRadiusTests). GlassButtonShapeTests is ^ekr44gz (AVK-8af). AVK-8ai moved to the tint sentence. The accent rule is enforced by ThemeInjectionTests (^78jx8yr, AVK-8t): `accentFiles` permits the accent in 4 files and holds each to its number of uses.
+    - Cadence: the "one time for each release" text comes from TestudoApp `features/packages/agentviewkit.md` "Decisions for the plan (2026-10-20)" item 2. That item also says that the tests use a kit environment value to select the Tinted look. D113 answer 6 replaced that method with the manual check of AVK-8u. Thus §5 now gives the cadence of the AVK-8u card ("LAST") and of style.md (part of the acceptance of each Liquid Glass card).
+    - Theme injection: the demo injects `.editorTheme(.system)` at the window root (AgentViewKitDemoApp.swift) and the Gallery tab injects the look theme in its subtree (`galleryLook(_:)`, GalleryLook.swift). ThemeInjectionTests scans only the kit for the theme forms.
+
+    ### other false statements of the same kind (full check of the f7dac58 text)
+    - "No fill in content" said that request cards have no glass. In a bar, the deck is on the floating glass. Now: "no glass of their own", with a pointer to the deck rule.
+    - ContentFillTests "gives the reason of each permitted chip fill": the allow list also permits the selection fill of DiffView and ElicitationLayout, the current source of SourcesView and the terminal background. §5 now names these.
+    - "Button styles first": in content, a `.standard` action (Cancel, Decline of an elicitation card) keeps the style of its environment (`RequestDeckPlace.style(of:)`). Added.
+    - GlassPlacementTests "checks that each request card gets its button styles from the place of the deck": the test checks only that 6 files call `requestActionStyle(`. Now says that.
+    - Tint: "gets the tint from the `.glassProminent` style" is false in a bar, where the primary action uses `.borderedProminent`. Fixed.
+    - SystemStructureTests: added that it checks one `.inspector(` call in AttachmentInspector.swift.
+    - HiddenTestWindowTests "holds this rule": now says what it forbids (calls that show a window or make the application active, in the test and test-support sources).
+    - Snapshots "do not replace the screenshot check": now gives the source reason (hosted images show no glass; GlassSnapshotTests images can differ from the system glass).
+    - visual-audit.md D113 paragraph: checked, it agrees (no `editorBackground` or `statusBarBackground` use in Sources or Examples).
+    - Open, not changed (code vs style guide, not a plan.md error): style.md rule 4 says that a bar with no glass surface keeps `.glass` on its buttons, but the kit gives the state banner and the login prompt in the bottom bar the bordered styles (RequestActionStyle.swift cites "Bars of a view"). A person can decide if this needs a card.
+  timestamp: 2026-10-21T21:23:46.854462+00:00
+- actor: claude-code
+  id: 01m5g5jnbgj4pye3cym42esxns
+  text: |-
+    ### implement — changed
+    - evidence: plan.md §5 (10 changed lines: Two layers, No fill in content, Variant and shape, Button styles first, Morphs, Tint and accent, System chrome, Themes, Accessibility, Snapshots). visual-audit.md checked, no change needed. No source or test file changed. 9 of 9 review findings checked. Docs tests: `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'` — 23 tests in 2 suites passed, 3 tests in 1 suite passed; only the known mlx bundle build warning.
+    - next: /review. Not committed. Card stays in doing.
+  timestamp: 2026-10-21T21:23:49.744371+00:00
 depends_on:
 - 01M5DFADQHSHCRAQW0709TVAPV
 - 01M5DF7Y8PDWS7XF25WDBBYG9W
@@ -121,3 +166,26 @@ Rewrite the glass paragraph of §5 in STE. Name these rules and cite D110, D111,
 - §5 has a link to `TestudoApp/features/style.md` and names D113.
 - The text is ASD-STE100 Simplified Technical English.
 - No source or test file changes in this card. #avk-8
+
+## Review Findings (2026-10-21 16:11)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 0 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/visual-audit.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+> No validator matches Markdown. Thus a factual check of the added lines of `plan.md` against `Sources/`, `Tests/` and the cards adds these items. Each statement must agree with the code and with the card that it names.
+
+- [x] `plan.md:242` `factcheck/style-guide` — "The navigation and control layer is Liquid Glass: the sidebar, ..." does not agree with D116. `TestudoApp/features/style.md` rule 1 and D116 (a) say: "On macOS 27, the sidebar has a system gray, as in Notes, Safari and News." Do not call the sidebar glass. Say that the system decides the look of the sidebar (a system gray on macOS 27, D116).
+- [x] `plan.md:246` `factcheck/card-id` — "(`AgentSurface`, AVK-8af)" names the wrong card. AVK-8af (`.kanban/tasks/01M5E8W08CXBJD9CHP8EKR44GZ.md`) only adds `.buttonBorderShape(.capsule)` to the suggestion chips and adds `GlassButtonShapeTests`. It records the `ConcentricRectangle` of the field and the menu as a correct fact that was there before. `AgentSurface` came from AVK-8b, and the `.concentric` corner style came from AVK-8m (`.kanban/tasks/01M5DFAW7AV9PV85QA3VYN7QQ9.md`, code at `Sources/AgentViewKit/Theme/AgentSurfaces.swift:41-43`). Name AVK-8b and AVK-8m for this sentence.
+- [x] `plan.md:246` `factcheck/test-claim` — "`GlassButtonShapeTests` checks the border shape of each glass button of the small floating controls" says more than the test does. The test does not check each button. It checks a count in each file of `Input/` and `ScrollToBottomPill.swift`: the number of `.capsule` or `.circle` border shapes is at least the number of glass button styles, and a `self.buttonStyle(` helper counts as one style (`Tests/PackageStructureTests/GlassButtonShapeTests.swift:50-65`, `lacksShapes(_:)`). Say that the test checks the count in each file.
+- [x] `plan.md:248` `factcheck/test-claim` — "`GlassPlacementTests` checks that only `AgentGlassID` applies `glassEffectID(_:in:)`" says more than the test does. The test permits `glassEffectID(` in one file, `Theme/AgentSurfaces.swift` (`Tests/PackageStructureTests/GlassPlacementTests.swift:70`, `allowedFiles` of `.glassEffectID`). It does not check one type. Say that the test permits `glassEffectID(_:in:)` only in `Theme/AgentSurfaces.swift`, the file of `AgentGlassID`.
+- [x] `plan.md:249` `factcheck/card-id` — "the theme accent marks only a link, the selection or the current item (AVK-8ai, AVK-8aj, AVK-8ak)" names a wrong card. AVK-8ai (`.kanban/tasks/01M5E8WVTY0ANTQVTGYXA3R4Z2.md`) removes `.foregroundStyle(.tint)` from `SpeechInputButton` (D113 answer 5, the tint). It is not about the theme accent. Move AVK-8ai to the sentence "No view uses a `.tint(_:)` modifier or `.foregroundStyle(.tint)`", and keep AVK-8aj and AVK-8ak for the accent sentence.
+- [x] `plan.md:251` `factcheck/style-guide` — "Toolbars, the sidebar, the inspector, sheets, popovers and menus are system glass" does not agree with D116 (`TestudoApp/features/style.md` rule 1): on macOS 27 the sidebar has a system gray. Remove the sidebar from the list of system glass, or say that the system decides the look of each of these views.
+- [x] `plan.md:253` `factcheck/test-claim` — "The host injects the theme once, at the root of each window, with `.editorTheme(_:)`" does not agree with the demo host. The demo also injects a second theme in a subtree: `.editorTheme(look.theme.theme)` at `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift:121`. `ThemeInjectionTests` scans only the kit for an injection (`Tests/PackageStructureTests/ThemeInjectionTests.swift:59`). Make the statement agree with the demo, or say that the rule is for the kit and name the gallery subtree as the permitted exception.
+- [x] `plan.md:255` `factcheck/card-claim` — "A person checks them in the screenshots of AVK-8u, one time for each release" has no source. The AVK-8u card (`.kanban/tasks/01M5E8BE1VW9QK2YTDF8Q34YT8.md`) says "Do this card LAST, after all the other AVK-8 cards", and `TestudoApp/features/style.md` says "The screenshot step is part of the acceptance of each Liquid Glass card". Neither file says "release". Use the cadence that the sources give.
+- [x] `plan.md:256` `factcheck/test-claim` — "`HostedSnapshotTests` (AVK-13) records an image of each real view" says more than the test does. The suite records 10 views only (`Tests/AgentViewKitTests/Snapshots/HostedSnapshotTests.swift:41-116`): the thread, the idle composer, the running composer, the permission card, the deck in a bar, the session notice, the status banner, the code block, the terminal output and the elicitation form. Name these views, or say "an image of 10 real views".
