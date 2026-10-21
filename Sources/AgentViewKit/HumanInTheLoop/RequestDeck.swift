@@ -93,13 +93,37 @@ import SwiftUI
 /// model, in withdrawal order. The text is "<title> was withdrawn: <reason>",
 /// or "<title> was withdrawn." when the agent gave no reason. The title is
 /// the permission title or the elicitation message. A notice has the
-/// information symbol, the information tint of the EditorKit theme, glass,
-/// and a Dismiss button that calls `dismissWithdrawn(_:)` of the model. The
-/// text has the identifier `request-deck-withdrawn-<id>`
+/// information symbol, the information tint of the EditorKit theme, the
+/// content edge, and a Dismiss button that calls `dismissWithdrawn(_:)` of
+/// the model. The text has the identifier `request-deck-withdrawn-<id>`
 /// (``identifier(forWithdrawn:)``) and the button has the identifier
 /// `request-deck-withdrawn-dismiss-<id>`, where `<id>` is the id that the
 /// request had while it was pending. A notice stays until the user presses
 /// Dismiss: a new request does not remove it.
+///
+/// The surface of the deck comes from its place (TestudoApp
+/// `features/style.md`, "How the steps apply"). The deck reads
+/// ``SwiftUI/EnvironmentValues/floatingGlassContainerCount``:
+///
+/// - In a bar of floating controls, for example the composer slot of
+///   ``AgentThreadView``, a request is user input. The whole deck is on the
+///   `.regular` floating glass of the kit, in the `GlassEffectContainer` of
+///   the bar (``SwiftUI/View/agentFloatingGlass()``). The cards and the
+///   notices in it have no glass of their own.
+/// - In content, the deck has no glass and no fill.
+///
+/// The place also gives the button styles of the actions in the cards and in
+/// the notices (``RequestDeckPlace/style(of:)``, TestudoApp
+/// `features/style.md`, "Buttons on glass"). In the bar, a glass button on the
+/// glass of the deck is glass on glass. Thus the one primary action of a card,
+/// for example Allow once, uses the `.borderedProminent` style, and each other
+/// action uses the `.bordered` style. In content, the actions keep the
+/// `.glassProminent` and `.glass` styles.
+///
+/// In both places, each card has no fill, and the separator stroke of the
+/// content edge marks it (``SwiftUI/View/agentContentEdge(radius:)``, D113).
+/// The front card does not hide the cards behind it. Thus a card behind the
+/// front card shows only the top edge of its stroke, and not its content.
 ///
 /// ``layout(requests:front:)`` gives the front card, the edges, "+N",
 /// "k of N" and the state of Previous and Next.
@@ -335,6 +359,7 @@ private struct DeckCards: View {
     let withdrawn = source.withdrawn
     let layout = source.layout(of: requests)
     let waitingIDs = Set(awaiting.map(\.id))
+    let edgeStep = theme.spacing.s
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       ForEach(withdrawn) { notice in
         WithdrawnNoticeRow(notice: notice) { source.dismissWithdrawn(notice.id) }
@@ -345,19 +370,20 @@ private struct DeckCards: View {
       // With no card, the stack is not in the deck, so a deck with only
       // notices has no space below the notices.
       if !cards.isEmpty {
-        DeckStackLayout(edgeStep: theme.spacing.s, edgeInset: theme.spacing.m, waitingSpacing: theme.spacing.s) {
+        DeckStackLayout(edgeStep: edgeStep, edgeInset: theme.spacing.m, waitingSpacing: theme.spacing.s) {
           // One `ForEach` for the pending and the waiting cards, so that an
           // accepted card keeps its identity and its browser session.
           ForEach(cards) { request in
             DeckCard(
               source: source, request: request,
               role: waitingIDs.contains(request.id) ? .waiting : layout.role(of: request.id),
-              keyboardFocus: $keyboardFocus)
+              edgeStep: edgeStep, keyboardFocus: $keyboardFocus)
           }
         }
       }
     }
     .padding(cards.isEmpty && withdrawn.isEmpty ? 0 : theme.spacing.m)
+    .modifier(DeckSurface())
     .contentContainer(identifier: RequestDeck.identifier)
     .animation(reduceMotion ? nil : .default, value: layout.front)
     .announcing(
@@ -384,6 +410,46 @@ private struct DeckCards: View {
     moveFocus(to: move.identifier)
     if let id = move.keyboardFocus {
       keyboardFocus = id
+    }
+  }
+}
+
+/// The place of a ``RequestDeck``, which gives the surface of the deck
+/// (TestudoApp `features/style.md`, "How the steps apply") and the button
+/// styles of the actions in it (``style(of:)``).
+enum RequestDeckPlace: Equatable {
+  /// In a bar of floating controls, for example the composer slot of
+  /// ``AgentThreadView``. A request in the bar is user input, so the deck is
+  /// in the control layer: it is on the floating glass of the kit, in the
+  /// `GlassEffectContainer` of the bar.
+  case bar
+
+  /// In content. The deck has no glass and no fill.
+  case content
+
+  /// The place of a deck below a number of glass containers of floating
+  /// controls.
+  ///
+  /// - Parameter floatingGlassContainerCount: The
+  ///   ``SwiftUI/EnvironmentValues/floatingGlassContainerCount`` of the deck.
+  init(floatingGlassContainerCount: Int) {
+    self = floatingGlassContainerCount > 0 ? .bar : .content
+  }
+}
+
+/// The surface of a ``RequestDeck`` in its place (``RequestDeckPlace``).
+///
+/// In the bar, the whole deck is on the floating glass of the kit
+/// (``SwiftUI/View/agentFloatingGlass()``), and the cards and the notices in
+/// it have no glass of their own. In content, the deck has no surface: each
+/// card has only the content edge (``SwiftUI/View/agentContentEdge(radius:)``).
+private struct DeckSurface: ViewModifier {
+  @Environment(\.floatingGlassContainerCount) private var containerCount
+
+  func body(content: Content) -> some View {
+    switch RequestDeckPlace(floatingGlassContainerCount: containerCount) {
+    case .bar: content.agentFloatingGlass()
+    case .content: content
     }
   }
 }
@@ -504,20 +570,26 @@ private struct DeckCard: View {
   /// The place of the card in the deck.
   let role: DeckCardRole
 
+  /// The height of the top edge of one card behind the front card, which
+  /// ``DeckStackLayout`` uses.
+  let edgeStep: CGFloat
+
   /// The keyboard focus of the deck: the card gets the keyboard focus when
   /// it holds the id of the request.
   let keyboardFocus: FocusState<PendingRequest.ID?>.Binding
 
-  @Environment(\.agentTheme) private var theme
-
   var body: some View {
     let identifier = RequestDeck.identifier(for: request.id.uuidString)
     let showsWhole = role.showsWhole
+    // The card has no fill (D113), so the front card does not hide the cards
+    // behind it. An edge card thus hides its content, and the band shows only
+    // the top edge of its stroke above the front card.
     cardContent
       .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
-      .agentContentSurface(.background)
-      .clipShape(AgentSurface.shape(for: theme))
+      .opacity(showsWhole ? 1 : 0)
+      .agentContentEdge()
+      .mask { DeckCardBand(role: role, edgeStep: edgeStep) }
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
       .accessibilityHidden(!showsWhole)
@@ -555,6 +627,36 @@ private struct DeckCard: View {
     case .edge(let depth): -Double(depth)
     case .hidden: hiddenZIndex
     }
+  }
+}
+
+/// The part of a ``RequestDeck`` card that shows: the mask of the card.
+///
+/// An edge card shows only its top band, above the front card: the depth of
+/// the card times the edge step. Each other card shows its whole frame. The
+/// band goes out of the frame by ``strokeOutset`` on each side, so that the
+/// mask does not cut the half of the separator stroke that is out of the
+/// frame. The bottom of the band of an edge card does not go out, so that no
+/// part of the edge card shows on the front card.
+nonisolated struct DeckCardBand: Shape {
+  /// The distance that the band goes out of the frame of the card. It is more
+  /// than the half width of the separator stroke of
+  /// ``SwiftUI/View/agentContentEdge(radius:)``, which is one point wide.
+  static let strokeOutset: CGFloat = 1
+
+  /// The place of the card in the deck.
+  let role: DeckCardRole
+
+  /// The height of the top edge of one card behind the front card.
+  let edgeStep: CGFloat
+
+  func path(in rect: CGRect) -> Path {
+    let outset = Self.strokeOutset
+    var band = rect.insetBy(dx: -outset, dy: -outset)
+    if case .edge(let depth) = role {
+      band.size.height = CGFloat(depth) * edgeStep + outset
+    }
+    return Path(band)
   }
 }
 

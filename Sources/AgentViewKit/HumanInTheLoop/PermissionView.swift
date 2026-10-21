@@ -13,8 +13,12 @@ import SwiftUI
 ///
 /// The card is content in the transcript, so it has no fill and no glass. A
 /// separator stroke marks its edge (``SwiftUI/View/agentContentEdge(radius:)``,
-/// D113). Only its action buttons use the glass button styles. The card has
-/// these parts:
+/// D113). Only its action buttons have a button style of their own, which
+/// comes from the place of the card (``RequestDeckPlace/style(of:)``). In
+/// content, they use the glass button styles. In a ``RequestDeck`` in a bar
+/// of floating controls, the card is on the glass of the deck, so they use the
+/// bordered button styles: a glass button on glass is glass on glass. The
+/// card has these parts:
 ///
 /// - The title of the request, and its description when it has one.
 /// - The subject. For a tool call, the card shows the title and the kind of
@@ -321,11 +325,11 @@ public struct PermissionView: View {
     let button = Button(option.name, systemImage: Self.optionSymbol(for: option.kind)) { didPress(option: option) }
       .accessibilityIdentifier(Self.optionIdentifier(for: option.optionId))
     if option.kind == .allowOnce {
-      button.buttonStyle(.glassProminent)
+      button.requestActionStyle(.primary)
     } else if PermissionPresentation.isSecondary(kind: option.kind) {
-      button.buttonStyle(.glass).foregroundStyle(.secondary)
+      button.requestActionStyle(.secondary).foregroundStyle(.secondary)
     } else {
-      button.buttonStyle(.glass)
+      button.requestActionStyle(.secondary)
     }
   }
 
@@ -344,7 +348,7 @@ public struct PermissionView: View {
       Button(String(localized: "Send", bundle: .module), systemImage: Self.commentSubmitSymbol) {
         sendReject(option: option)
       }
-        .buttonStyle(.glass)
+        .requestActionStyle(.secondary)
         .accessibilityIdentifier(Self.commentSubmitIdentifier)
     }
   }
@@ -364,7 +368,7 @@ public struct PermissionView: View {
       ) {
         switchToAuto(allow: allow, modeOption: modeOption)
       }
-      .buttonStyle(.glass)
+      .requestActionStyle(.secondary)
       .accessibilityIdentifier(Self.switchToAutoIdentifier)
     }
   }

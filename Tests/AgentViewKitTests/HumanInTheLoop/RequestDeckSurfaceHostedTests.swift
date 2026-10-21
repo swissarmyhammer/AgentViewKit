@@ -1,0 +1,66 @@
+@testable import AgentViewKit
+import AgentViewKitTestSupport
+import FoundationModelsACPClient
+import SwiftUI
+import Testing
+
+/// Checks the surface of a ``RequestDeck`` in a window: the deck has no fill
+/// in content and in the bar, and a card in the composer slot of
+/// ``AgentThreadView`` is in the floating controls of the thread (TestudoApp
+/// `features/style.md`, "How the steps apply").
+///
+/// The pixel tests read the cache of a window, because the cards are
+/// `focusable()` (``ContentSurfaceHostedProbe``). The cache shows no glass,
+/// so the backdrop shows behind a deck with no fill, also on glass.
+@Suite(.serialized, .hostedSerially) @MainActor struct RequestDeckSurfaceHostedTests {
+  /// The size of the window. The deck fills the width.
+  static let size = RequestDeckSurfaceTests.size
+
+  /// The deck of ``RequestDeckSurfaceTests/session`` in content.
+  ///
+  /// The deck pads its cards with the medium spacing of the theme. The
+  /// negative padding at the leading and trailing edges puts the edge of the
+  /// card on the edge of the window, as the edge check needs.
+  static var deckInContent: some View {
+    RequestDeck(session: RequestDeckSurfaceTests.session)
+      .padding(.horizontal, -AgentTheme.default.spacing.m)
+  }
+
+  /// The deck of ``RequestDeckSurfaceTests/session`` in a
+  /// ``FloatingGlassContainer``, as in the composer slot of
+  /// ``AgentThreadView``.
+  static var deckInBar: some View {
+    FloatingGlassContainer(spacing: AgentTheme.default.spacing.s) {
+      RequestDeck(session: RequestDeckSurfaceTests.session)
+    }
+  }
+
+  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  func inContentTheBackdropShowsInsideTheEdgeOfTheCard(reducesTransparency: Bool) throws {
+    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+      of: Self.deckInContent, reducesTransparency: reducesTransparency, size: Self.size)
+  }
+
+  @Test(arguments: ContentSurfaceHostedProbe.reduceTransparencyValues)
+  func inTheBarTheBackdropShowsBehindTheCard(reducesTransparency: Bool) throws {
+    let rendered = try ContentSurfaceHostedProbe.pixels(
+      of: Self.deckInBar, backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
+
+    #expect(rendered.contains(GlassRenderProbeTests.backdrop))
+  }
+
+  @Test func aCardInTheComposerSlotIsInTheFloatingControlsOfTheThread() throws {
+    let session = RequestDeckSurfaceTests.session
+    let request = try #require(session.pendingRequests.first)
+    let harness = HostedViewHarness(size: Self.size) {
+      AgentThreadView(session: session) {
+        RequestDeck(session: session)
+      }
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let identifiers = harness.elements(under: AgentThreadLayout.floatingControlsIdentifier).compactMap(\.identifier)
+    #expect(identifiers.contains(RequestDeck.identifier(for: request.id.uuidString)))
+  }
+}

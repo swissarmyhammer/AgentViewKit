@@ -411,9 +411,14 @@ public struct ElicitationFooterContext {
 
 /// The default footer of an elicitation form (plan.md §13.1).
 ///
-/// The footer shows Cancel, Decline, and Submit. Submit has the
-/// `.glassProminent` style, and it is disabled until each field passes
-/// validation. Return presses Submit.
+/// The footer shows Cancel, Decline, and Submit. Submit is the primary action,
+/// and it is disabled until each field passes validation. Return presses
+/// Submit. The place of the card gives the button styles
+/// (``RequestDeckPlace/style(of:)``): in content, Submit has the
+/// `.glassProminent` style. In a ``RequestDeck`` in a bar of floating
+/// controls, the card is on the glass of the deck, so Submit has the
+/// `.borderedProminent` style, and Cancel and Decline have the `.bordered`
+/// style.
 public struct ElicitationFooter: View {
   /// The context of the footer.
   let context: ElicitationFooterContext
@@ -434,15 +439,17 @@ public struct ElicitationFooter: View {
         String(localized: "Cancel", bundle: .module), systemImage: ElicitationView.cancelSymbol,
         role: .cancel
       ) { context.cancel() }
+        .requestActionStyle(.standard)
         .accessibilityIdentifier(ElicitationView.cancelIdentifier)
       Button(
         String(localized: "Decline", bundle: .module), systemImage: ElicitationView.declineSymbol
       ) { context.decline() }
+        .requestActionStyle(.standard)
         .accessibilityIdentifier(ElicitationView.declineIdentifier)
       Button(
         String(localized: "Submit", bundle: .module), systemImage: ElicitationView.submitSymbol
       ) { context.submit() }
-        .buttonStyle(.glassProminent)
+        .requestActionStyle(.primary)
         .keyboardShortcut(.defaultAction)
         .disabled(!context.canSubmit)
         .accessibilityIdentifier(ElicitationView.submitIdentifier)

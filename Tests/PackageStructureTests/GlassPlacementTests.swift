@@ -14,7 +14,8 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   case glassEffect
 
   /// The floating glass modifier of the kit, `agentFloatingGlass()`. The
-  /// field and the menu of the composer use it.
+  /// field and the menu of the composer use it, and the request deck uses it
+  /// in a bar of floating controls.
   case floatingGlass
 
   /// A `GlassEffectContainer`. Only the shared container of the floating
@@ -53,7 +54,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   var allowedFiles: Set<String> {
     switch self {
     case .glassEffect: [GlassForm.surfacesFile]
-    case .floatingGlass: [GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile]
+    case .floatingGlass: [GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile]
     case .glassEffectContainer: [GlassForm.sharedContainerFile]
     case .floatingGlassContainer:
       [GlassForm.sharedContainerFile, ComposerGlassStructureTests.composerFile, ComposerGlassStructureTests.threadFile]
@@ -67,21 +68,37 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The file of the shared container of the floating controls.
   static let sharedContainerFile = KitSourceFiles.kitFile("Theme/FloatingGlassContainer.swift")
 
+  /// The file of the request deck. In a bar of floating controls, the deck is
+  /// user input, and it is on the floating glass of the kit.
+  static let requestDeckFile = KitSourceFiles.kitFile("HumanInTheLoop/RequestDeck.swift")
+
   /// The file of the accessory of the composer, which holds the Send button.
   static let sendButtonFile = KitSourceFiles.kitFile("Input/DefaultPromptAccessory.swift")
 
+  /// The file of the button style of the actions of the request cards and the
+  /// notices. It selects the style from the place of the request deck: glass
+  /// in content, and bordered on the glass of the deck in a bar.
+  static let requestActionStyleFile = KitSourceFiles.kitFile("HumanInTheLoop/RequestActionStyle.swift")
+
+  /// The files of the request cards and the notices. Their action buttons
+  /// take the button style of ``requestActionStyleFile``, and have no glass
+  /// button style of their own.
+  static let requestCardFiles: Set<String> = [
+    KitSourceFiles.kitFile("HumanInTheLoop/PermissionView.swift"),
+    KitSourceFiles.kitFile("Elicitation/ElicitationView.swift"),
+    KitSourceFiles.kitFile("Elicitation/ElicitationURLConsentView.swift"),
+    KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
+  ]
+
   /// The files that can use a glass button style: the floating controls, and
-  /// the action buttons of the request cards and the notices.
+  /// the button style of the actions of the request cards and the notices.
   static let glassButtonFiles: Set<String> = [
     sendButtonFile,
     KitSourceFiles.kitFile("Input/SuggestionsView.swift"),
     KitSourceFiles.kitFile("Input/SpeechInputButton.swift"),
     KitSourceFiles.kitFile("Thread/ScrollToBottomPill.swift"),
-    KitSourceFiles.kitFile("HumanInTheLoop/PermissionView.swift"),
-    KitSourceFiles.kitFile("Elicitation/ElicitationView.swift"),
-    KitSourceFiles.kitFile("Elicitation/ElicitationURLConsentView.swift"),
+    requestActionStyleFile,
     KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
-    KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
     KitSourceFiles.kitFile("Status/StatusBar.swift"),
   ]
 
@@ -225,6 +242,15 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
       allowing: form.allowedFiles)
 
     #expect(found.isEmpty, "\(form) shows outside its allowed files: \(found)")
+  }
+
+  @Test func eachRequestCardTakesTheButtonStylesOfItsActionsFromThePlaceOfTheDeck() throws {
+    let found = try Self.uses(
+      of: GlassForm.callPattern("requestActionStyle"), inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
+      relativeTo: PackageFiles.root)
+    let files = Set(found.compactMap { $0.split(separator: ":").first.map(String.init) })
+
+    #expect(GlassForm.requestCardFiles.isSubset(of: files), "\(GlassForm.requestCardFiles.subtracting(files))")
   }
 
   @Test func theInputUsesTheProminentGlassButtonStyleOneTimeForTheSendButton() throws {

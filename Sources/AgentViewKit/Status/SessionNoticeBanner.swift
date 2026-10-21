@@ -131,7 +131,10 @@ struct NoticeBanner: View {
 ///
 /// The row is content, so it has no fill and no glass. A separator stroke
 /// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its
-/// Dismiss button uses a glass button style.
+/// Dismiss button has a button style of its own, which comes from the place
+/// of the row (``RequestDeckPlace/style(of:)``): the `.glass` style in
+/// content, and the `.bordered` style on the glass of a ``RequestDeck`` in a
+/// bar of floating controls.
 ///
 /// The text is one accessibility element with the label of the row, and the
 /// Dismiss button is its sibling. ``NoticeBanner`` and the notice of a request
@@ -192,7 +195,7 @@ struct NoticeRow: View {
         action: dismiss
       )
         .labelStyle(.iconOnly)
-        .buttonStyle(.glass)
+        .requestActionStyle(.secondary)
         .accessibilityIdentifier(dismissIdentifier)
     }
     .padding(theme.spacing.m)

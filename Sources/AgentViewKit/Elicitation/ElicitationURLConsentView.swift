@@ -46,6 +46,13 @@ import SwiftUI
 /// call for an elicitation that already resolved changes nothing in the
 /// model.
 ///
+/// Open in Browser and Retry are the primary actions. The place of the card
+/// gives the button styles (``RequestDeckPlace/style(of:)``): in content, the
+/// primary action has the `.glassProminent` style. In a ``RequestDeck`` in a
+/// bar of floating controls, the card is on the glass of the deck, so the
+/// primary action has the `.borderedProminent` style, and Cancel and Decline
+/// have the `.bordered` style.
+///
 /// The card reads the waiting state from the owner, so a new card for an
 /// accepted request shows the waiting state. The browser session runs in the
 /// state of the view, and the card stops it when it goes away. Give each
@@ -234,12 +241,13 @@ public struct ElicitationURLConsentView: View {
           String(localized: "Decline", bundle: .module), systemImage: Self.declineSymbol,
           action: decline
         )
+          .requestActionStyle(.standard)
           .accessibilityIdentifier(Self.declineIdentifier)
         Button(
           String(localized: "Open in Browser", bundle: .module), systemImage: Self.openSymbol,
           action: open
         )
-          .buttonStyle(.glassProminent)
+          .requestActionStyle(.primary)
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
@@ -248,7 +256,7 @@ public struct ElicitationURLConsentView: View {
           String(localized: "Retry", bundle: .module), systemImage: Self.retrySymbol,
           action: openBrowser
         )
-          .buttonStyle(.glassProminent)
+          .requestActionStyle(.primary)
         .accessibilityLabel(
           String(
             localized: "Open \(ElicitationHeader.agentServer) in the browser again", bundle: .module
@@ -269,6 +277,7 @@ public struct ElicitationURLConsentView: View {
       String(localized: "Cancel", bundle: .module), systemImage: Self.cancelSymbol, role: .cancel,
       action: action
     )
+      .requestActionStyle(.standard)
       .accessibilityIdentifier(Self.cancelIdentifier)
   }
 
