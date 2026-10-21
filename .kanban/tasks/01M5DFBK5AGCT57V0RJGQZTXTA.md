@@ -47,6 +47,39 @@ comments:
     - evidence: 3 files — Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift (new, 16 cases + 1 helper test), Sources/AgentViewKit/Input/SuggestionsView.swift (`SuggestionChip` view), Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift (deleted, replaced). Mutation check: Reduce Transparency mutation made 8 of 8 Reduce Transparency cases fail; Increase Contrast mutation made 8 of 8 Increase Contrast cases fail. Full suite with the window monitor, 2 valid runs (gqztxta-2, gqztxta-3): build-exit=0, 1572 tests in 197 suites passed, 3 known issues from before, 0 on-screen test windows. Only warning: the mlx bundle build warning from before. No PNG changed.
     - next: /review
   timestamp: 2026-10-21T20:19:43.240817+00:00
+- actor: claude-code
+  id: 01m5g21e0m15ve3gp5rd5zw7hq
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (2079c81). 9 findings: Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:138, :141, :167, :174, :175, :199, :245, :251, :257.
+    - next: Correct the 9 open findings in the Review Findings section. Then run the review again.
+  timestamp: 2026-10-21T20:21:59.444572+00:00
+- actor: claude-code
+  id: 01m5g21weny4e7bkqwzjfp3162
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — GlassAccessibilityTests (16 cases), SuggestionChip, PromptInputGlassTests deleted; mutation 8/8 RT and 8/8 IC fail
+    - test: green — run-watched.sh gqztxta-2 and gqztxta-3, 1572 passed (3 known issues); on-screen test windows 0
+    - commit: 2079c81
+    - review: findings — Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:138, :141, :167, :174, :175, :199, :245, :251, :257
+  timestamp: 2026-10-21T20:22:14.229592+00:00
+- actor: claude-code
+  id: 01m5g2qqv9h5dvccs55ff2zp2m
+  text: |-
+    ### findings correction notes (Review Findings 2026-10-21 15:20)
+    - Magic numbers: each size is now 2 named `CGFloat` constants (`renderWidth`, `buttonRowHeight`, `composerHeight`; `EditorMenuProbe.width`, `height`, `menuWidth`, `menuHeight`), and each `CGSize` uses them. The glass counts are `accessoryGlassCountWhileRunning` (3), `accessoryGlassCountWhileIdle` (2) and `requestActionGlassCount` (2). The middle row is `CGRect(origin: .zero, size:).midY`, so no `/ 2` stays. The shared helpers have no constant with the same meaning for these values: `RenderedPixels.renderScale` is already used, and `RenderedPixels.pixelCenter` is private and is in pixels. `swiftlint lint --only-rule no_magic_numbers` on the file: 0 violations (before: 12).
+    - Reuse: `GlassView.overBackdrop(_:)` is now the thin call `OverBackdrop(inset: 0) { view }`. The same cause was also in `EditorMenuProbe` (its own `ZStack(alignment: .bottom)` with the backdrop). It now uses `OverBackdrop(inset: 0)` too, with `.frame(maxHeight: .infinity, alignment: .bottom)` on the field container, so the layout is the same. The backdrop layout is now only in `OverBackdrop` for this file.
+    - Mutation check after the change: (1) `.environment(\._accessibilityReduceTransparency, false)` on the `GlassEffectContainer` of `FloatingGlassContainer`: the Reduce Transparency cases of composerField, editorMenu and requestDeckInBar failed; all Increase Contrast cases passed. (2) `.environment(\._colorSchemeContrast, .standard)` on the `ScrollToBottomPill` button: the scrollPill Increase Contrast case failed. 4 issues in all, as expected. The mutations are removed (`git status` shows only the test file and the card).
+    - Intermittent failure, not related to this change: full run gqztxta-4 had 1 failure in `HostedViewHarnessTests.aMountedViewThatGetsAKeyShowsNoWindowAndTakesNoFocus` (`NSApp.windows.allSatisfy { !$0.isKeyWindow }`). Run gqztxta-5 with no code change passed. GlassAccessibilityTests passed in both runs. New task ^y2wzhsz records it.
+    - Error in my process: one build command had its output piped to `rg`. The instructions forbid this. All later commands did not do it.
+  timestamp: 2026-10-21T20:34:10.409110+00:00
+- actor: claude-code
+  id: 01m5g2qv7e1gznsqe16w1x6cwv
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift. 9 of 9 findings corrected. swiftlint no_magic_numbers: 0. Focused run gqztxta-f1: 16 cases + 1 helper test passed. Mutation run gqztxta-mut: Reduce Transparency mutation made the 3 container cases fail, Increase Contrast mutation made the scrollPill case fail; mutations removed. Full runs with the window monitor, build-exit=0 before each: gqztxta-4 = 1572 tests, 1 failure in HostedViewHarnessTests (intermittent, not related, task ^y2wzhsz), 3 known issues; gqztxta-5 = 1572 tests in 197 suites passed, 3 known issues. On-screen test windows: 0 in both runs. Only build warning: the mlx bundle warning from before.
+    - next: /review
+  timestamp: 2026-10-21T20:34:13.870373+00:00
 depends_on:
 - 01M5DF7Y8PDWS7XF25WDBBYG9W
 - 01M5DF9SKZ4BRGBD6BFG5XY664
@@ -85,3 +118,35 @@ D110 (f) and `style.md` rule 9: each custom glass view is tested with the access
 - Each glass view above has one test for each of the two settings: 5 views x 2 settings = 10 cases, or the count that ^dbbyg9w records with a reason. (Result: 8 views x 2 settings = 16 cases. The search of the kit found 2 more glass views: the request deck in the bar and the request actions in content. The accessory row has 2 cases, idle and running, so that Send is checked with `.glassProminent` and with `.glass`.)
 - All cases pass. A run of the suite two times gives the same result.
 - Tests use Swift Testing. No clock, sleep, poll, retry, timeLimit or XCUITest. Each wait waits for a certain event. #avk-8
+
+## Review Findings (2026-10-21 15:20)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Tests/AgentViewKitTests/Input/PromptInputGlassTests.swift, so its declarations are unread
+
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:138` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:141` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:167` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:174` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:175` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:199` `reuse/reuse` — `GlassView.overBackdrop(_:)` rebuilds a `ZStack` of `GlassRenderProbeTests.backdrop` with a view on top. The same backdrop wrapper already exists as `OverBackdrop(inset:)` (used by `glassOverBackdrop` in AgentSurfacesTests) and as `GlassOverBackdrop` in GlassRenderProbeTests. Two copies of the backdrop layout can drift apart, so one render could sit on a different backdrop than the other tests. Replace the body of `overBackdrop` with the shared `OverBackdrop(inset: 0) { view }` fixture, or with `GlassRenderProbeTests`' backdrop wrapper, so that the backdrop layout is defined in one place. Keep `overBackdrop` as a thin call if the call sites in `content` should stay as they are.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:245` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:251` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift:257` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

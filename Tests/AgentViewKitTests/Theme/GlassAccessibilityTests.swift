@@ -134,11 +134,33 @@ nonisolated enum GlassView: CaseIterable, Sendable {
   /// `.glassProminent` and the `.glass` style (``RequestDeckPlace/style(of:)``).
   case requestActionsInContent
 
+  /// The width of the render of a row of glass buttons and of the composer,
+  /// in points.
+  static let renderWidth: CGFloat = 320
+
+  /// The height of the render of a row of glass buttons, in points.
+  static let buttonRowHeight: CGFloat = 80
+
+  /// The height of the render of the composer, in points.
+  static let composerHeight: CGFloat = 200
+
   /// The size of the render of a row of glass buttons, in points.
-  static let buttonRowSize = CGSize(width: 320, height: 80)
+  static let buttonRowSize = CGSize(width: renderWidth, height: buttonRowHeight)
 
   /// The size of the render of the composer, in points.
-  static let composerSize = CGSize(width: 320, height: 200)
+  static let composerSize = CGSize(width: renderWidth, height: composerHeight)
+
+  /// The number of glasses of the accessory row while the agent runs: the
+  /// dictation button, Send and Stop.
+  static let accessoryGlassCountWhileRunning = 3
+
+  /// The number of glasses of the accessory row while the agent does not
+  /// run: the dictation button and Send.
+  static let accessoryGlassCountWhileIdle = 2
+
+  /// The number of glasses of ``requestActions``: the primary and the
+  /// secondary action.
+  static let requestActionGlassCount = 2
 
   /// The number of new items that the scroll-to-bottom pill shows.
   static let newItemCount = 3
@@ -164,15 +186,16 @@ nonisolated enum GlassView: CaseIterable, Sendable {
     case .editorMenu: EditorMenuProbe.menuRow
     case .composerField, .requestDeckInBar, .accessoryWhileIdle, .accessoryWhileRunning, .suggestionChip,
       .scrollPill, .requestActionsInContent:
-      size.height / 2
+      CGRect(origin: .zero, size: size).midY
     }
   }
 
   /// The number of glasses on ``row``.
   var glassCount: Int {
     switch self {
-    case .accessoryWhileRunning: 3
-    case .accessoryWhileIdle, .requestActionsInContent: 2
+    case .accessoryWhileRunning: Self.accessoryGlassCountWhileRunning
+    case .accessoryWhileIdle: Self.accessoryGlassCountWhileIdle
+    case .requestActionsInContent: Self.requestActionGlassCount
     case .composerField, .editorMenu, .suggestionChip, .scrollPill, .requestDeckInBar: 1
     }
   }
@@ -192,15 +215,12 @@ nonisolated enum GlassView: CaseIterable, Sendable {
     }
   }
 
-  /// `view` over the backdrop.
+  /// `view` over the backdrop, with no inset (``OverBackdrop``).
   ///
   /// - Parameter view: The glass view.
   /// - Returns: The view over the backdrop.
   @MainActor static func overBackdrop(_ view: some View) -> some View {
-    ZStack {
-      GlassRenderProbeTests.backdrop
-      view
-    }
+    OverBackdrop(inset: 0) { view }
   }
 
   /// The default accessory row of the composer of `session`, with a
@@ -237,29 +257,44 @@ nonisolated enum GlassView: CaseIterable, Sendable {
 /// The menu layer of the composer (``PromptEditorMenuLayer``) above a clear
 /// stand-in of the field, at the bottom of the render, over the backdrop.
 ///
+/// The probe uses the shared backdrop (``OverBackdrop``) with no inset, and
+/// puts the stand-in at the bottom edge of the render.
+///
 /// The stand-in gives its bounds as the anchor of the menu, as the editor of
 /// the composer does. The menu has clear content, so that its glass shows
 /// the backdrop.
 struct EditorMenuProbe: View {
+  /// The width of the render, in points.
+  static let width: CGFloat = 240
+
+  /// The height of the render, in points.
+  static let height: CGFloat = 160
+
   /// The size of the render, in points.
-  static let size = CGSize(width: 240, height: 160)
+  static let size = CGSize(width: width, height: height)
 
   /// The height of the stand-in of the field, in points.
   static let fieldHeight: CGFloat = 60
 
+  /// The width of the content of the menu, in points.
+  static let menuWidth: CGFloat = 160
+
+  /// The height of the content of the menu, in points.
+  static let menuHeight: CGFloat = 40
+
   /// The size of the content of the menu, in points.
-  static let menuSize = CGSize(width: 160, height: 40)
+  static let menuSize = CGSize(width: menuWidth, height: menuHeight)
 
   /// The middle row of the menu, in points from the top of the render. The
   /// bottom edge of the menu is the small spacing of the theme above the
   /// top edge of the field.
   static var menuRow: CGFloat {
-    size.height - fieldHeight - AgentTheme.default.spacing.s - menuSize.height / 2
+    let menuBottom = size.height - fieldHeight - AgentTheme.default.spacing.s
+    return menuBottom - CGRect(origin: .zero, size: menuSize).midY
   }
 
   var body: some View {
-    ZStack(alignment: .bottom) {
-      GlassRenderProbeTests.backdrop
+    OverBackdrop(inset: 0) {
       FloatingGlassContainer(spacing: AgentTheme.default.spacing.s) {
         Color.clear
           .frame(height: Self.fieldHeight)
@@ -272,6 +307,7 @@ struct EditorMenuProbe: View {
             }
           }
       }
+      .frame(maxHeight: .infinity, alignment: .bottom)
     }
   }
 
