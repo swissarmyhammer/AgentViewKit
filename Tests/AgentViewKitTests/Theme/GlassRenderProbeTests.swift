@@ -22,6 +22,37 @@ import Testing
   /// The size that the tests render at.
   static let size = CGSize(width: 40, height: 40)
 
+  /// The distance from each edge of the render to the points near the
+  /// corners in ``interiorPoints``. It is much more than the width of the
+  /// rim of the glass, so the rim is not at these points.
+  static let interiorInset: CGFloat = 10
+
+  /// The points inside the glass of ``GlassOverBackdrop`` at ``size`` that
+  /// the tests compare (``interiorPoints(of:inset:)``). The glass fills the
+  /// render, so the rim of the glass is on the edge of the render, far from
+  /// these points.
+  static var interiorPoints: [CGPoint] {
+    interiorPoints(of: size, inset: interiorInset)
+  }
+
+  /// The center of a square render, and one point near each corner, `inset`
+  /// in from each edge of the render.
+  ///
+  /// - Parameters:
+  ///   - renderSize: The size of the square render.
+  ///   - inset: The distance from each edge of the render to the points near
+  ///     the corners.
+  /// - Returns: The center first, then the points near the corners.
+  static func interiorPoints(of renderSize: CGSize, inset: CGFloat) -> [CGPoint] {
+    let far = renderSize.width - inset
+    let center = renderSize.width / 2
+    return [
+      CGPoint(x: center, y: center),
+      CGPoint(x: inset, y: inset), CGPoint(x: far, y: inset),
+      CGPoint(x: inset, y: far), CGPoint(x: far, y: far),
+    ]
+  }
+
   /// The color under the glass. No other part of the probe draws it. It is
   /// `nonisolated` because the arguments of a test use it.
   nonisolated static let backdrop = Color(red: 0.9, green: 0.1, blue: 0.3)
@@ -56,27 +87,27 @@ import Testing
   ///
   /// The function renders `view` one time with `setting` on and one time with
   /// it off (``pixels(of:with:on:size:)``). Then it expects that the two
-  /// renders do not show the same colors at `points`, or at each pixel when
-  /// `points` is `nil`.
+  /// renders do not show the same colors at `points`. The function does not
+  /// compare each pixel: the rim of a glass changes after its first renders
+  /// in the process, so a difference at the rim does not show that the
+  /// setting changes the glass.
   ///
   /// - Parameters:
   ///   - view: The view to render.
   ///   - setting: The setting to change.
   ///   - points: The points to compare, in points from the top leading
-  ///     corner of the view, or `nil` to compare each pixel. Keep the points
-  ///     far from the edge of a rounded glass
+  ///     corner of the view. Keep the points far from the edge of a glass
   ///     (``RenderedPixels/isClose(to:at:tolerance:)``).
   ///   - renderSize: The size to render at.
   ///   - sourceLocation: The location of the caller, for the failure report.
   /// - Throws: An error when the renderer gives no pixels.
   static func expectDifferentPixels(
-    of view: some View, with setting: GlassProbeSetting, at points: [CGPoint]? = nil,
+    of view: some View, with setting: GlassProbeSetting, at points: [CGPoint],
     size renderSize: CGSize = size, sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     let on = try pixels(of: view, with: setting, on: true, size: renderSize)
     let off = try pixels(of: view, with: setting, on: false, size: renderSize)
-    let isSame = points.map { on.isClose(to: off, at: $0) } ?? on.isClose(to: off)
-    #expect(!isSame, sourceLocation: sourceLocation)
+    #expect(!on.isClose(to: off, at: points), sourceLocation: sourceLocation)
   }
 
   /// `view` in light mode, with only `setting` changed.
@@ -101,7 +132,8 @@ import Testing
 
   @Test(arguments: GlassProbeSetting.allCases)
   func theGlassFollowsTheSetting(_ setting: GlassProbeSetting) throws {
-    try Self.expectDifferentPixels(of: GlassOverBackdrop(glass: .regular), with: setting)
+    try Self.expectDifferentPixels(
+      of: GlassOverBackdrop(glass: .regular), with: setting, at: Self.interiorPoints)
   }
 
   @Test(arguments: GlassProbeSetting.allCases)

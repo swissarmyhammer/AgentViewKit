@@ -34,14 +34,8 @@ import Testing
   /// the surface. The corner curve and the separator stroke are not at these
   /// points.
   static var insidePoints: [CGPoint] {
-    let near = surfaceInset + AgentTheme.default.radii.l
-    let far = size.width - near
-    let center = size.width / 2
-    return [
-      CGPoint(x: center, y: center),
-      CGPoint(x: near, y: near), CGPoint(x: far, y: near),
-      CGPoint(x: near, y: far), CGPoint(x: far, y: far),
-    ]
+    GlassRenderProbeTests.interiorPoints(
+      of: size, inset: surfaceInset + AgentTheme.default.radii.l)
   }
 
   /// Each radius token of ``AgentTheme/default``: the small, the medium and
