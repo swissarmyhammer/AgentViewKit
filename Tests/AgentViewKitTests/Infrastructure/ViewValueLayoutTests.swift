@@ -17,7 +17,7 @@ import Testing
   // MARK: - AgentTheme
 
   @Test func theThemeHasNoPaddingByte() {
-    StoredLayout<AgentTheme>(\.spacing, \.radii, \.materialLevel, \.symbolWeight, \.density)
+    StoredLayout<AgentTheme>(\.spacing, \.radii, \.symbolWeight, \.density)
       .expectNoPaddingByte()
   }
 

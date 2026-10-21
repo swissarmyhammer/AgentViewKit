@@ -11,10 +11,11 @@ the same values. Change the table, the JSON file, and `AgentTheme.default`
 together.
 
 Keep the header and the form of the rows. Put the token and the default value
-in backticks. Write a point value as a number, and a weight, a material
-level, or a density as its SwiftUI case name. The table has no color token
-and no font token. The colors and the fonts come from the EditorKit theme
-(see "Colors and the code font").
+in backticks. Write a point value as a number, and a weight or a density as
+its SwiftUI case name. The table has no color token, no font token, and no
+glass token. The colors and the fonts come from the EditorKit theme (see
+"Colors and the code font"). The glass is always `.regular` (see "The
+removed material level").
 
 ## Tokens
 
@@ -27,9 +28,19 @@ and no font token. The colors and the fonts come from the EditorKit theme
 | `radii.s` | `6` | system shapes, not in the bundle | `--cds-radius--xs` 6 px (comfortable) |
 | `radii.m` | `8` | system shapes, not in the bundle | `--cds-radius` 8 px (comfortable) |
 | `radii.l` | `10` | system shapes, not in the bundle | `--cds-radius--lg` 10 px (comfortable) |
-| `materialLevel` | `regular` | not in the bundle | no glass |
 | `symbolWeight` | `regular` | not in the bundle | `--cds-font-weight-regular` 400 |
 | `density` | `balanced` | no density setting | `data-density="comfortable"` |
+
+### The removed material level
+
+D113 answer 3 removes the `materialLevel` token and the `MaterialLevel` enum
+from `AgentTheme`. The table had the row `materialLevel`, with the default
+`regular`. The floating glass of the kit (`agentFloatingGlass()`) is always
+`.regular` glass. The Clear look and the Tinted look are system settings,
+and the system applies them to `.regular` glass. Thus a theme does not
+select the glass variant. This is a breaking change of the public API of
+`AgentTheme`: the property `materialLevel`, the init parameter
+`materialLevel:`, and the type `AgentTheme.MaterialLevel` are removed.
 
 ## Colors and the code font
 
@@ -47,7 +58,7 @@ dark mode, increased contrast, and the accent color of the user.
 also import a Zed, VS Code, or tmTheme file.
 
 `AgentTheme` holds only the layout tokens that the EditorKit theme does not
-have: spacing, radii, material level, symbol weight, and density.
+have: spacing, radii, symbol weight, and density.
 
 Before this decision, `AgentTheme` had the tokens `accent`, `codeFont`, and
 `statusColors`. These tokens are removed. EditorKit 95ef6c4 added the

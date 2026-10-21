@@ -326,7 +326,9 @@ follows the system appearance and the accent color of the user. EditorKit can
 also import a Zed, VS Code, or tmTheme file.
 
 `.agentTheme(_:)` sets only the layout tokens of the kit: spacing, radii,
-material, symbol weight, and density.
+symbol weight, and density. The floating glass is always `.regular`. The
+Clear and Tinted looks are system settings, so a theme does not select the
+glass.
 
 To import the theme modules, add the EditorKit products `EditorSwiftUI` and
 `EditorTheme` to the host target.

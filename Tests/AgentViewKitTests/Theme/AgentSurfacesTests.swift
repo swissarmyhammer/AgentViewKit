@@ -119,19 +119,18 @@ import Testing
 
   /// The floating glass of the kit over the backdrop, with no backdrop
   /// around it, in a `GlassEffectContainer`.
-  ///
-  /// - Parameter theme: The tokens that the glass gets from the environment.
-  /// - Returns: The view to render.
-  static func floatingGlass(in theme: AgentTheme = .default) -> some View {
+  static var floatingGlass: some View {
     glassOverBackdrop { Color.clear.agentFloatingGlass() }
-      .agentTheme(theme)
   }
 
-  /// A `.clear` glass in the shape of the floating glass, over the backdrop
-  /// in the same layout as ``floatingGlass(in:)``.
-  static var clearGlass: some View {
+  /// A glass of `variant` in the shape of the floating glass, over the
+  /// backdrop in the same layout as ``floatingGlass``.
+  ///
+  /// - Parameter variant: The glass, for example `.regular` or `.clear`.
+  /// - Returns: The view to render.
+  static func glass(_ variant: Glass) -> some View {
     glassOverBackdrop {
-      Color.clear.glassEffect(.clear, in: AgentSurface.shape(for: .default))
+      Color.clear.glassEffect(variant, in: AgentSurface.shape(for: .default))
     }
   }
 
@@ -184,14 +183,15 @@ import Testing
   /// renders can be different when Reduce Transparency has no effect on the
   /// glass.
   @Test func theFloatingGlassFollowsReduceTransparency() throws {
-    let glass = Self.floatingGlass()
+    let glass = Self.floatingGlass
     let on = try Self.pixels(of: glass, reducesTransparency: true)
     let off = try Self.pixels(of: glass, reducesTransparency: false)
     #expect(!on.isClose(to: off, at: Self.insidePoints))
   }
 
   /// The floating glass is always `.regular` glass. The system applies the
-  /// Clear look, so no material level of the theme changes the glass (D113).
+  /// Clear look and the Tinted look, so no token of the theme selects the
+  /// glass variant (D113 answer 3).
   ///
   /// The test compares the two renders only at ``insidePoints``, which are
   /// far from the edge of the glass. The rim of a rounded glass changes after
@@ -199,52 +199,42 @@ import Testing
   /// each run (``RenderedPixels/isClose(to:at:tolerance:)``).
   /// ``aClearGlassIsDifferentFromTheFloatingGlassInsideTheEdge()`` shows that
   /// these points find a different glass.
-  @Test(arguments: AgentTheme.MaterialLevel.allCases)
-  func theFloatingGlassIsTheSameInsideTheEdgeForEachMaterialLevel(
-    level: AgentTheme.MaterialLevel
-  ) throws {
-    let (glass, regular) = try Self.floatingGlassPixels(for: level)
-    #expect(glass.isClose(to: regular, at: Self.insidePoints))
+  @Test func theFloatingGlassIsTheRegularGlassInsideTheEdge() throws {
+    let (floating, regular) = try Self.floatingAndRegularGlassPixels()
+    #expect(floating.isClose(to: regular, at: Self.insidePoints))
   }
 
-  /// The same check as
-  /// ``theFloatingGlassIsTheSameInsideTheEdgeForEachMaterialLevel(level:)``
+  /// The same check as ``theFloatingGlassIsTheRegularGlassInsideTheEdge()``
   /// at each pixel of ``insideTheRim``, not only at ``insidePoints``. The
   /// pixels in ``rimWidth`` of the edge are not compared, because the rim
   /// changes after the first renders in the process.
-  @Test(arguments: AgentTheme.MaterialLevel.allCases)
-  func eachPixelOfTheFloatingGlassInsideTheRimIsTheSameForEachMaterialLevel(
-    level: AgentTheme.MaterialLevel
-  ) throws {
-    let (glass, regular) = try Self.floatingGlassPixels(for: level)
+  @Test func eachPixelOfTheFloatingGlassInsideTheRimIsTheRegularGlass() throws {
+    let (floating, regular) = try Self.floatingAndRegularGlassPixels()
     #expect(
-      glass.isClose(to: regular, within: Self.insideTheRim, tolerance: Self.insideTheRimTolerance))
+      floating.isClose(to: regular, within: Self.insideTheRim, tolerance: Self.insideTheRimTolerance))
   }
 
-  /// The two comparisons of the material-level tests find a glass that is
-  /// not the floating glass: a `.clear` glass in the same shape.
+  /// The two comparisons of the regular-glass tests find a glass that is not
+  /// the floating glass: a `.clear` glass in the same shape.
   @Test func aClearGlassIsDifferentFromTheFloatingGlassInsideTheEdge() throws {
-    let clear = try Self.pixels(of: Self.clearGlass)
-    let regular = try Self.pixels(of: Self.floatingGlass())
-    #expect(!clear.isClose(to: regular, at: Self.insidePoints))
+    let clear = try Self.pixels(of: Self.glass(.clear))
+    let floating = try Self.pixels(of: Self.floatingGlass)
+    #expect(!clear.isClose(to: floating, at: Self.insidePoints))
     #expect(
-      !clear.isClose(to: regular, within: Self.insideTheRim, tolerance: Self.insideTheRimTolerance))
+      !clear.isClose(to: floating, within: Self.insideTheRim, tolerance: Self.insideTheRimTolerance))
   }
 
-  /// The pixels of the floating glass with the material level `level`, and
-  /// the pixels of the floating glass of ``AgentTheme/default``.
+  /// The pixels of the floating glass, and the pixels of a `.regular` glass
+  /// in the same shape.
   ///
-  /// - Parameter level: The material level of the theme of the first render.
   /// - Returns: The two renders, in that order.
   /// - Throws: An error when the renderer gives no pixels.
-  static func floatingGlassPixels(for level: AgentTheme.MaterialLevel) throws
-    -> (glass: RenderedPixels, regular: RenderedPixels)
+  static func floatingAndRegularGlassPixels() throws
+    -> (floating: RenderedPixels, regular: RenderedPixels)
   {
-    var theme = AgentTheme.default
-    theme.materialLevel = level
-    let glass = try pixels(of: floatingGlass(in: theme))
-    let regular = try pixels(of: floatingGlass())
-    return (glass, regular)
+    let floating = try pixels(of: floatingGlass)
+    let regular = try pixels(of: glass(.regular))
+    return (floating, regular)
   }
 
   @Test func theShapeHasConcentricCornersWithTheLargeRadiusAsTheMinimum() {

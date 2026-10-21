@@ -11,7 +11,12 @@ import SwiftUI
 /// (`proseFont`) come from it. A host sets it with `.editorTheme(_:)`, and
 /// EditorKit gives `SystemTheme` when no host sets one. This type keeps only
 /// the layout tokens that the EditorKit theme does not have: the spacing, the
-/// radii, the material level, the symbol weight, and the density.
+/// radii, the symbol weight, and the density.
+///
+/// The type has no glass token. The floating glass is always `.regular`
+/// (``SwiftUI/View/agentFloatingGlass()``, D113 answer 3). The Clear look and
+/// the Tinted look are system settings, so a theme does not select the glass
+/// variant.
 ///
 /// `Docs/decisions/visual-audit.md` (research R12) records the values of
 /// ``default``, and `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
@@ -24,8 +29,8 @@ import SwiftUI
 /// Swift puts each stored property, in the order of declaration, at the next
 /// offset that is a multiple of its alignment. Thus the type has no padding
 /// byte only when each property starts where the property before it ends.
-/// `symbolWeight` is the last property with alignment 8, and `materialLevel`
-/// and `density` (alignment 1) come after it. A property with alignment 8 and
+/// `symbolWeight` is the last property with alignment 8, and `density`
+/// (alignment 1) comes after it. A property with alignment 8 and
 /// a size that is not a multiple of 8 (for example `CGFloat?`, size 9) must
 /// come after all the other properties with alignment 8. When you add a
 /// stored property, also add it to
@@ -80,16 +85,6 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
     }
   }
 
-  /// The strength of the Liquid Glass material on the chrome (plan.md §5).
-  public enum MaterialLevel: String, Equatable, Sendable, Codable, CaseIterable {
-    /// The standard glass.
-    case regular
-    /// A glass that shows more of the content below it.
-    case thin
-    /// A clear glass.
-    case clear
-  }
-
   /// How much detail and space each row shows.
   ///
   /// The cases have the order from the least space to the most space.
@@ -108,8 +103,6 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   public var radii: Radii
   /// The weight of the SF Symbols.
   public var symbolWeight: Font.Weight
-  /// The strength of the glass material on the chrome.
-  public var materialLevel: MaterialLevel
   /// How much detail and space each row shows.
   public var density: Density
 
@@ -118,19 +111,16 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
   /// - Parameters:
   ///   - spacing: The spacing steps.
   ///   - radii: The corner radii.
-  ///   - materialLevel: The strength of the glass material.
   ///   - symbolWeight: The weight of the SF Symbols.
   ///   - density: How much detail and space each row shows.
   public init(
     spacing: Spacing,
     radii: Radii,
-    materialLevel: MaterialLevel,
     symbolWeight: Font.Weight,
     density: Density
   ) {
     self.spacing = spacing
     self.radii = radii
-    self.materialLevel = materialLevel
     self.symbolWeight = symbolWeight
     self.density = density
   }
@@ -149,7 +139,6 @@ nonisolated public struct AgentTheme: Equatable, Sendable {
       m: DefaultValues.radiusMedium,
       l: DefaultValues.radiusLarge
     ),
-    materialLevel: .regular,
     symbolWeight: .regular,
     density: .balanced
   )

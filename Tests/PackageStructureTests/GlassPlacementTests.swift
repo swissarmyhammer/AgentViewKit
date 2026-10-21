@@ -169,6 +169,44 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     GlassForm.memberCallPattern("foregroundStyle", WordPattern.wholeWord("tint"))
   }
 
+  /// The pattern that finds a `.glassEffect` call that names the `.regular`
+  /// glass, such as `.glassEffect(.regular, in: shape)`.
+  ///
+  /// The floating glass is always `.regular` (D113 answer 3). The Clear look
+  /// and the Tinted look are system settings, and the system applies them to
+  /// `.regular` glass. Thus no theme token selects the glass variant.
+  static var regularGlassEffectPattern: Regex<Substring> {
+    GlassForm.memberCallPattern("glassEffect", WordPattern.wholeWord("regular"))
+  }
+
+  /// The fixture file with a glass of each variant, relative to ``fixtures``.
+  static let variantFixtureFile = "Violating/Variant/GlassVariants.swift"
+
+  /// The lines of ``variantFixtureFile`` with a glass that does not name the
+  /// `.regular` glass: a `.clear` glass, and a glass with no variant.
+  static let variantFixtureLines = [11, 12]
+
+  /// Finds the lines below a directory with a `.glassEffect` call that does
+  /// not name the `.regular` glass on the same line. A use in a comment or in
+  /// a string literal does not count.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory to scan. The scan includes subdirectories.
+  ///   - base: The directory that the file name of each line is relative to.
+  /// - Returns: `<file>:<line>` for each line, in the order of the file paths,
+  ///   then in line order.
+  /// - Throws: The error of
+  ///   ``SourceLineScanner/codeMatches(inSwiftFilesBelow:relativeTo:skipping:match:)``.
+  static func glassEffectsThatAreNotRegular(
+    inSwiftFilesBelow directory: URL, relativeTo base: URL
+  ) throws -> [String] {
+    try SourceLineScanner.codeMatches(inSwiftFilesBelow: directory, relativeTo: base) { line in
+      let isNotRegular =
+        line.text.contains(GlassForm.glassEffect.pattern) && !line.text.contains(regularGlassEffectPattern)
+      return isNotRegular ? ["\(line.file):\(line.number)"] : []
+    }
+  }
+
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
     get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/GlassPlacement") }
@@ -268,6 +306,24 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
       relativeTo: PackageFiles.root)
 
     #expect(found.isEmpty, "Use .primary or .secondary. Only Send has a tint: \(found)")
+  }
+
+  /// The kit makes a glass only with an explicit `.regular` variant, so no
+  /// theme value selects the variant of the floating glass (D113 answer 3).
+  @Test func eachGlassEffectOfTheKitNamesTheRegularGlass() throws {
+    let kit = try PackageFiles.file(KitSourceFiles.kitPath)
+    let effects = try Self.uses(of: GlassForm.glassEffect.pattern, inSwiftFilesBelow: kit, relativeTo: PackageFiles.root)
+    let found = try Self.glassEffectsThatAreNotRegular(inSwiftFilesBelow: kit, relativeTo: PackageFiles.root)
+
+    #expect(!effects.isEmpty)
+    #expect(found.isEmpty, "Use .glassEffect(.regular, in:). A theme does not select the glass variant: \(found)")
+  }
+
+  @Test func theVariantScanReportsEachGlassThatIsNotRegularInTheFixture() throws {
+    let found = try Self.glassEffectsThatAreNotRegular(
+      inSwiftFilesBelow: Self.fixtures.appending(path: "Violating/Variant"), relativeTo: Self.fixtures)
+
+    #expect(found == Self.variantFixtureLines.map { "\(Self.variantFixtureFile):\($0)" })
   }
 
   @Test func memberCallPatternFindsTheMemberInTheArgumentOfTheCall() {

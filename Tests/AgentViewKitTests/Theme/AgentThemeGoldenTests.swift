@@ -65,7 +65,6 @@ import Testing
     "radii.s": point { $0.radii.s },
     "radii.m": point { $0.radii.m },
     "radii.l": point { $0.radii.l },
-    "materialLevel": name { $0.materialLevel.rawValue },
     "symbolWeight": { theme, cell in theme.symbolWeight == (try ThemeTokenNames.weight(named: cell)) },
     "density": name { $0.density.rawValue },
   ]

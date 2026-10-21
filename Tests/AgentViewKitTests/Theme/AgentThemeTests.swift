@@ -58,7 +58,6 @@ private struct ThemeProbeView: View {
 
     #expect(theme.spacing == tokens.spacing)
     #expect(theme.radii == tokens.radii)
-    #expect(theme.materialLevel == tokens.materialLevel)
     #expect(theme.symbolWeight == (try ThemeTokenNames.weight(named: tokens.symbolWeight)))
     #expect(theme.density == tokens.density)
   }
@@ -135,7 +134,6 @@ private struct ThemeProbeView: View {
 private struct DefaultTokens: Decodable {
   let spacing: AgentTheme.Spacing
   let radii: AgentTheme.Radii
-  let materialLevel: AgentTheme.MaterialLevel
   let symbolWeight: String
   let density: AgentTheme.Density
 
