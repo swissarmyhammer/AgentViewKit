@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// The shared shape of the two surfaces of the kit (D110 (e)).
+/// The shared shape of the two surfaces and the content edge of the kit
+/// (D110 (e)).
 ///
-/// ``SwiftUI/View/agentContentSurface(radius:)`` and
+/// ``SwiftUI/View/agentContentSurface(radius:)``,
+/// ``SwiftUI/View/agentContentEdge(radius:)`` (D113) and
 /// ``SwiftUI/View/agentFloatingGlass()`` use this shape. Thus each surface
 /// has the same corners, and one place changes them.
 enum AgentSurface {
@@ -54,14 +56,42 @@ struct AgentContentSurface: ViewModifier {
 
   @Environment(\.agentTheme) private var theme
 
+  /// The edge of the surface: the `.separator` stroke in the shape of the
+  /// surface.
+  private var edge: AgentContentEdge { AgentContentEdge(radius: radius) }
+
   func body(content: Content) -> some View {
-    let shape = shape(in: theme)
     content
-      .background(fill, in: shape)
-      .overlay(shape.stroke(.separator))
+      .background(fill, in: shape(in: theme))
+      .modifier(edge)
   }
 
-  /// The shape of the surface: ``AgentSurface/shape(radius:)`` with
+  /// The shape of the surface: the shape of ``AgentContentEdge`` with the
+  /// same ``radius``.
+  ///
+  /// - Parameter theme: The tokens that give the large radius.
+  /// - Returns: The shape.
+  func shape(in theme: AgentTheme) -> ConcentricRectangle {
+    edge.shape(in: theme)
+  }
+}
+
+/// The edge of content: a thin `.separator` stroke in the shape of
+/// ``AgentSurface``, with no fill (D113, TestudoApp `features/style.md`).
+///
+/// A card or a panel in content has no fill. Only this stroke marks its edge.
+struct AgentContentEdge: ViewModifier {
+  /// The radius token of the corners, for example ``AgentTheme/Radii/m``.
+  /// When it is `nil`, the corners use the large radius of the theme.
+  let radius: CGFloat?
+
+  @Environment(\.agentTheme) private var theme
+
+  func body(content: Content) -> some View {
+    content.overlay(shape(in: theme).stroke(.separator))
+  }
+
+  /// The shape of the edge: ``AgentSurface/shape(radius:)`` with
   /// ``radius``, or ``AgentSurface/shape(for:)`` when ``radius`` is `nil`.
   ///
   /// - Parameter theme: The tokens that give the large radius.
@@ -116,6 +146,26 @@ extension View {
   /// - Returns: The content on the surface.
   func agentContentSurface(_ fill: some ShapeStyle, radius: CGFloat? = nil) -> some View {
     modifier(AgentContentSurface(fill: AnyShapeStyle(fill), radius: radius))
+  }
+
+  /// Marks the edge of this content with a thin `.separator` stroke, and
+  /// gives it no fill (D113).
+  ///
+  /// TestudoApp `features/style.md` ("How the steps apply") gives the rule: a
+  /// card or a panel in content has no fill. A `.separator` stroke in a
+  /// `ConcentricRectangle` marks its edge. The stroke has the shape of
+  /// ``AgentSurface/shape(for:)``, or of ``AgentSurface/shape(radius:)`` when
+  /// `radius` has a value. The content behind the card shows through it.
+  ///
+  /// If a group needs more than this edge, use a system container: a
+  /// `GroupBox`, or a `Form` with the grouped style. Never add a custom fill.
+  ///
+  /// - Parameter radius: The radius token of the corners, for example
+  ///   ``AgentTheme/Radii/m``. When it is `nil`, the corners use the large
+  ///   radius of the theme.
+  /// - Returns: The content with the edge.
+  func agentContentEdge(radius: CGFloat? = nil) -> some View {
+    modifier(AgentContentEdge(radius: radius))
   }
 
   /// Puts this floating control on the Liquid Glass of the kit (D110 (c)).

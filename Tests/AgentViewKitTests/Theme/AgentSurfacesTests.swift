@@ -5,7 +5,8 @@ import Testing
 
 /// Checks the two shared surfaces of D110: ``SwiftUI/View/agentContentSurface(radius:)``
 /// for content, and ``SwiftUI/View/agentFloatingGlass()`` for a floating
-/// control.
+/// control. Also checks the edge of content with no fill of D113:
+/// ``SwiftUI/View/agentContentEdge(radius:)``.
 ///
 /// The render tests use the method of ^dbbyg9w (``GlassRenderProbeTests``):
 /// each test renders a view two times, one time with a setting off and one
@@ -45,6 +46,28 @@ import Testing
       CGPoint(x: center, y: center),
       CGPoint(x: near, y: near), CGPoint(x: far, y: near),
       CGPoint(x: near, y: far), CGPoint(x: far, y: far),
+    ]
+  }
+
+  /// Each radius token of ``AgentTheme/default``: the small, the medium and
+  /// the large radius.
+  nonisolated static let radiusTokens = smallerRadii + [AgentTheme.default.radii.l]
+
+  /// The center of the render.
+  static var centerPoint: CGPoint {
+    CGPoint(x: size.width / 2, y: size.height / 2)
+  }
+
+  /// The points on the edge of the surface that the render tests read: the
+  /// middle of each side. The separator stroke is on the edge, so it covers
+  /// these points. The corner curve is not at these points.
+  static var edgePoints: [CGPoint] {
+    let near = surfaceInset
+    let far = size.width - surfaceInset
+    let center = size.width / 2
+    return [
+      CGPoint(x: center, y: near), CGPoint(x: center, y: far),
+      CGPoint(x: near, y: center), CGPoint(x: far, y: center),
     ]
   }
 
@@ -160,6 +183,41 @@ import Testing
       of: ContentSurfaceOverBackdrop(hasSurface: true, fill: Self.surfaceFill))
     for point in Self.insidePoints {
       #expect(pixels.contains(Self.surfaceFill, at: point))
+    }
+  }
+
+  @Test func theContentEdgeShowsTheBackdropAtItsCenter() throws {
+    let pixels = try Self.pixels(of: ContentEdgeOverBackdrop())
+    #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.centerPoint))
+  }
+
+  @Test func theContentEdgeDrawsAStrokeOnItsEdge() throws {
+    let pixels = try Self.pixels(of: ContentEdgeOverBackdrop())
+    let strokedPoints = Self.edgePoints.filter { !pixels.contains(GlassRenderProbeTests.backdrop, at: $0) }
+    #expect(!strokedPoints.isEmpty)
+  }
+
+  @Test(arguments: radiusTokens)
+  func theContentEdgeOfARadiusUsesTheShapeOfThatRadius(radius: CGFloat) {
+    let path = AgentContentEdge(radius: radius).shape(in: .default).path(in: Self.pathRect)
+    #expect(path == AgentSurface.shape(radius: radius).path(in: Self.pathRect))
+  }
+
+  @Test func theContentEdgeWithNoRadiusUsesTheLargeRadiusOfTheTheme() {
+    var theme = AgentTheme.default
+    theme.radii.l = Self.otherLargeRadius
+    let path = AgentContentEdge(radius: nil).shape(in: theme).path(in: Self.pathRect)
+    #expect(path == AgentSurface.shape(for: theme).path(in: Self.pathRect))
+  }
+}
+
+/// A content edge inside the backdrop of ``GlassRenderProbeTests``, with
+/// ``AgentSurfacesTests/surfaceInset`` of backdrop around it.
+struct ContentEdgeOverBackdrop: View {
+  var body: some View {
+    ZStack {
+      GlassRenderProbeTests.backdrop
+      Color.clear.agentContentEdge().padding(AgentSurfacesTests.surfaceInset)
     }
   }
 }
