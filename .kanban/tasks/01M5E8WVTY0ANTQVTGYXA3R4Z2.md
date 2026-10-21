@@ -121,10 +121,26 @@ comments:
     - warnings: only the old mlx bundle build warning (missing creator for mutated node). No new warning.
     - next: review
   timestamp: 2026-10-21T04:46:09.507282+00:00
+- actor: claude-code
+  id: 01m5ecjezbx6rqn95r2jkx1r5b
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (459cde3). 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). 3 files reviewed. All prior review items are checked.
+    - next: The task is in done.
+  timestamp: 2026-10-21T04:47:34.379938+00:00
+- actor: claude-code
+  id: 01m5eck4bz916pgenc5d4hcjsk
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — 3 files (memberPattern starts with a word boundary; negative tests)
+    - test: green — swift test, 1448 passed, 2 known issues that were there before; 173 structure tests passed
+    - commit: 459cde3
+    - review: clean — 0 findings, the two prior findings are checked
+  timestamp: 2026-10-21T04:47:56.287898+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8b80
 title: 'AVK-8ai SpeechInputButton: remove .foregroundStyle(.tint) on the recording symbol (SpeechInputButton.swift:85) and use .primary (D113 answer 5)'
 ---
 ## Why
