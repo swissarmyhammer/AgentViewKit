@@ -114,6 +114,25 @@
       return if let list, let row { !list.intersection(row).isEmpty } else { false }
     }
 
+    /// Whether all of the row of the entry with `key` is in the visible part
+    /// of the list.
+    ///
+    /// The check compares the accessibility frames of the row and the list,
+    /// as ``showsRow(_:in:)`` does. The accessibility frame of the list is
+    /// the part of the list above a bottom bar, such as the floating
+    /// controls of an ``AgentThreadView``. Thus a row under the bar, or a row
+    /// that is cut at the edge of the list, is not fully visible.
+    ///
+    /// - Parameters:
+    ///   - key: The row key of the entry.
+    ///   - harness: The harness that shows the conversation.
+    /// - Returns: `true` when the list frame contains the row frame.
+    static func showsWholeRow<Content: View>(_ key: String, in harness: HostedViewHarness<Content>) -> Bool {
+      let list = harness.frame(identifier: ConversationLayout.listIdentifier)
+      let row = harness.frame(identifier: ItemRow.identifier(for: key))
+      return if let list, let row { list.contains(row) } else { false }
+    }
+
     /// Opens a scripted session whose transcript has `count` agent messages.
     ///
     /// When a send fails, the helper closes the session before it throws.

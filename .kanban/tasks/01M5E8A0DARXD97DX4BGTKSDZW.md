@@ -31,12 +31,28 @@ comments:
     - evidence: new `Tests/PackageStructureTests/SystemStructureTests.swift`; new fixtures `Tests/PackageStructureTests/Fixtures/SystemStructure/Violating/CustomBackgrounds.swift`, `Clean/SystemStructureInText.swift`, `Bars/FilledBars.swift`; changed `Tests/PackageStructureTests/ThreadBottomBarStructureTests.swift` (`floatingControlsStart`). Full suite with the window monitor (`run-watched.sh gtksdzw`): test-exit=0, 1544 Swift Testing tests in 194 suites passed (3 known issues, which are tests that expect a failure on purpose), 190 PackageStructureTests tests in 27 suites passed, on-screen test-process windows: 0. Build: build-exit=0; one SwiftPM build-system line `warning: missing creator for mutated node` for the mlx-swift_Cmlx bundle, from the dependency build, not from a source file. Mutation check: 5 issues as expected, then removed.
     - next: /review
   timestamp: 2026-10-21T17:53:23.932563+00:00
+- actor: claude-code
+  id: 01m5fsn984xhnxzhffvrb5ckjt
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 8b833da). 0 findings, 0 confirmed, 5 refuted. 5 files reviewed. The 4 `.kanban/` files were not reviewed (ignore rule). The description has no earlier Review Findings section.
+    - next: The task moved to done. No more work is necessary for the code. The body of the commit message has statements that are not correct (see the report of the review step). The commit did not change.
+  timestamp: 2026-10-21T17:55:32.740297+00:00
+- actor: claude-code
+  id: 01m5fsp9t4x0zejm0n6x236268
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — SystemStructureTests.swift and 3 fixtures; ThreadBottomBarStructureTests floatingControlsStart; mutation check 5 issues
+    - test: green — run-watched.sh gtksdzw, 1544 passed (3 known issues), 190 PackageStructureTests passed; on-screen test windows 0
+    - commit: 28c5366 (8b833da with a corrected message body; the tree is the same)
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T17:56:06.084604+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5E8XMJXF8XABYA7P3ZGM5SF
 - 01M5E8XTQS654VRMEBB5A6B05B
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffffa480
 title: 'AVK-8s Structure test: system structure with no custom background on bars, sidebar and inspector, the thread list under its top and bottom bars, and no backgroundExtensionEffect (D111 steps 2 and 6, D113 answer 7)'
 ---
 ## Why

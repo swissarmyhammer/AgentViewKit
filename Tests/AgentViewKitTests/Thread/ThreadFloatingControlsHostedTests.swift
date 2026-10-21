@@ -183,10 +183,31 @@
       #expect(!identifiers.contains(DefaultPromptAccessory.submitIdentifier))
     }
 
+    /// Records each scroll target that `anchors` sends, and holds it: the
+    /// list of the thread does not get the target.
+    ///
+    /// Call this helper after the first layout of the thread: the
+    /// conversation sets ``ScrollAnchorManager/onScroll`` when it appears.
+    /// The test then gives a held target to the returned closure, so that a
+    /// ``HostedViewHarness/render()`` pass of the test, and not an update of
+    /// SwiftUI that can come first, applies the scroll.
+    ///
+    /// - Parameter anchors: The manager of the scroll position of the thread.
+    /// - Returns: The recorder of the held targets, and the scroll closure
+    ///   that the conversation set.
+    static func holdScrollTargets(
+      of anchors: ScrollAnchorManager
+    ) -> (targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void) {
+      let targets = ReportRecorder<ScrollAnchorTarget>()
+      let viewScroll = anchors.onScroll
+      anchors.onScroll = { target in targets.report(target) }
+      return (targets, viewScroll)
+    }
+
     /// A press on the pill of the thread pins the manager, the pill goes
-    /// away, and the manager sends the scroll to the bottom. The pin and the
-    /// pill stay so after the list moves. The test gives no visibility report
-    /// after the press.
+    /// away, the manager sends the scroll to the bottom, and all of the last
+    /// row is in view above the floating controls. The test gives no
+    /// visibility report after the press.
     ///
     /// The press makes a render pass. In that pass, the pill goes away, and
     /// the geometry change of the list sends the old rows in view to the
@@ -197,21 +218,17 @@
     /// The manager sends the scroll on the next main-actor tick after the
     /// press. The press always requests that scroll, and no jump cancels it,
     /// so the test waits for the event that the recorder gets the bottom
-    /// target. Then one ``HostedViewHarness/render()`` pass moves the list,
-    /// and the test checks the pin and the pill again.
+    /// target. The test holds the target (``holdScrollTargets(of:)``), and
+    /// then gives it to the list and makes one ``HostedViewHarness/render()``
+    /// pass. Thus the scroll and the layout of the last rows are always in
+    /// the same pass. The test reads the frames of the last row and of the
+    /// list after that pass, and it does not wait for a report of the list.
     ///
-    /// The test does not wait for the report of the last row, and it does not
-    /// check the rows in view. Only a layout pass of the list writes that
-    /// report, and in the off-screen harness window no pass is certain to
-    /// come. A wait for it stayed suspended for ever, while the test held
-    /// `HostedTestLock` and stopped each other hosted test
-    /// (``ConversationViewHostedTests/reportRows(at:of:to:)``). Also, in this
-    /// window the rows in view after the scroll are not always the same: a
-    /// scroll in a render pass of the test can stop the list two rows above
-    /// the last row, and a scroll in an update of SwiftUI goes to the last
-    /// row. Gap: ``ConversationViewHostedTests/aPressOnThePillScrollsTheListToTheLastRow()``
-    /// checks that the list of a conversation moves to the last row.
-    @Test func aPressOnThePillOfTheThreadRequestsTheScrollToTheBottom() async throws {
+    /// The floating controls are a bottom bar over the list. A scroll to the
+    /// last row by its identifier, in the pass that lays out the rows, stopped
+    /// with the last row under the bar, and the list reported the row two rows
+    /// above it as its last row (^92k32m0).
+    @Test func aPressOnThePillOfTheThreadShowsAllOfTheLastRow() async throws {
       let session = try await Self.openLongSession()
       defer { session.close() }
       let lastKey = try #require(session.model.transcript.last?.rowKey)
@@ -222,16 +239,18 @@
       }
       defer { harness.close() }
       try Self.scrollUpByCommand(session, anchors: anchors, system: system, harness: harness)
-      try #require(anchors.visibleIDs.last != lastKey)
-      let targets = ConversationViewHostedTests.recordScrollTargets(of: anchors)
+      try #require(!ConversationViewHostedTests.showsRow(lastKey, in: harness))
+      let (targets, viewScroll) = Self.holdScrollTargets(of: anchors)
 
       try harness.press(identifier: ScrollToBottomPill.identifier)
       try #require(anchors.isPinnedToBottom)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
       await ObservationWait.until { targets.values.last == .bottom }
+      viewScroll(.bottom)
       harness.render()
 
+      #expect(ConversationViewHostedTests.showsWholeRow(lastKey, in: harness))
       #expect(anchors.isPinnedToBottom)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }

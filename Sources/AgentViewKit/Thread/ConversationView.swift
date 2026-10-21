@@ -356,12 +356,20 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// Applies a scroll target of the manager to the list.
   ///
+  /// The list goes to the bottom edge of its content, and not to the
+  /// identifier of the last row. The end of the content honors the bottom
+  /// inset of a bar over the list, such as the floating controls of an
+  /// ``AgentThreadView``. A scroll to the last row by its identifier places
+  /// the row from the estimated heights of the lazy stack. When the rows get
+  /// their real heights in the same layout pass, that scroll can stop with
+  /// the last rows under the bar.
+  ///
   /// - Parameter target: The target.
   private func scroll(to target: ScrollAnchorTarget) {
     switch target {
     case .bottom:
-      guard let lastID = lastRowKey else { return }
-      position.scrollTo(id: lastID, anchor: .bottom)
+      guard lastRowKey != nil else { return }
+      position.scrollTo(edge: .bottom)
     case .item(let id):
       if let itemPosition = session.transcript.position(ofRowKey: id) {
         let needed = ConversationLayout.pageCount(
