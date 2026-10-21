@@ -217,6 +217,22 @@ public final class HostedViewHarness<Content: View> {
     liveElements().map { Self.snapshot(of: $0, includingLinks: true) }
   }
 
+  /// A copy of each accessibility element under the hosting view, in depth
+  /// first order of the navigation order of each element: the order that
+  /// VoiceOver reads. The hosting view itself is not in the list.
+  ///
+  /// The navigation order can differ from the order of
+  /// ``accessibilityElements()``. For example, SwiftUI puts a top bar after
+  /// its content in the children of an element, but VoiceOver reads the bar
+  /// first. A test of the reading order uses this function.
+  ///
+  /// - Returns: The flattened list of element copies.
+  public func accessibilityElementsInNavigationOrder() -> [AccessibilityElementSnapshot] {
+    Self.descendants(of: hostingView, reading: Self.navigationChildren(of:)).map {
+      Self.snapshot(of: $0, includingLinks: true)
+    }
+  }
+
   /// A copy of the first accessibility element with `identifier`.
   ///
   /// - Parameter identifier: The accessibility identifier to find.
@@ -454,12 +470,17 @@ public final class HostedViewHarness<Content: View> {
   /// The live accessibility elements under `root`, in depth first order.
   /// `root` itself is not in the list.
   ///
-  /// - Parameter root: The element whose subtree the function reads.
+  /// - Parameters:
+  ///   - root: The element whose subtree the function reads.
+  ///   - read: The read of the children of an element, in the order of the
+  ///     walk. The default read gives the `accessibilityChildren` order.
   /// - Returns: The flattened list of live elements.
-  private static func descendants(of root: NSObject) -> [NSObject] {
+  private static func descendants(
+    of root: NSObject, reading read: @MainActor (NSObject) -> [NSObject] = children(of:)
+  ) -> [NSObject] {
     var result: [NSObject] = []
-    for child in children(of: root) {
-      collect(child, depth: 0, into: &result)
+    for child in read(root) {
+      collect(child, depth: 0, reading: read, into: &result)
     }
     return result
   }
@@ -477,12 +498,17 @@ public final class HostedViewHarness<Content: View> {
   /// - Parameters:
   ///   - element: The element to add.
   ///   - depth: The depth of `element` under the hosting view.
+  ///   - read: The read of the children of an element, in the order of the
+  ///     walk.
   ///   - result: The list to add to.
-  private static func collect(_ element: NSObject, depth: Int, into result: inout [NSObject]) {
+  private static func collect(
+    _ element: NSObject, depth: Int, reading read: @MainActor (NSObject) -> [NSObject],
+    into result: inout [NSObject]
+  ) {
     guard depth < HarnessConstants.maximumDepth else { return }
     result.append(element)
-    for child in children(of: element) {
-      collect(child, depth: depth + 1, into: &result)
+    for child in read(element) {
+      collect(child, depth: depth + 1, reading: read, into: &result)
     }
   }
 
@@ -504,6 +530,34 @@ public final class HostedViewHarness<Content: View> {
       (element as AnyObject).accessibilityChildren?() ?? nil
       ?? legacyAttribute(NSAccessibility.Attribute.children.rawValue, of: element) as? [Any]
     return (children ?? []).compactMap { $0 as? NSObject }
+  }
+
+  /// The selector of the getter of the children in navigation order.
+  ///
+  /// The typed Swift form of this getter traps when an element is not an
+  /// `NSAccessibilityElementProtocol` value, so the harness sends the
+  /// selector.
+  private static var navigationOrderSelector: Selector {
+    NSSelectorFromString("accessibilityChildrenInNavigationOrder")
+  }
+
+  /// The accessibility children of `element` in navigation order: the order
+  /// that VoiceOver reads them in.
+  ///
+  /// SwiftUI gives this order from the places of the views. For example, a
+  /// top bar (`.safeAreaBar(edge: .top)`) comes after its content in
+  /// ``children(of:)``, but before it in navigation order.
+  ///
+  /// - Parameter element: The parent element.
+  /// - Returns: The children in navigation order, or ``children(of:)`` when
+  ///   the element gives no navigation order.
+  private static func navigationChildren(of element: NSObject) -> [NSObject] {
+    guard element.responds(to: navigationOrderSelector),
+      let ordered = element.perform(navigationOrderSelector)?.takeUnretainedValue() as? [Any]
+    else {
+      return children(of: element)
+    }
+    return ordered.compactMap { $0 as? NSObject }
   }
 
   /// The selector of the attribute getter of the informal accessibility

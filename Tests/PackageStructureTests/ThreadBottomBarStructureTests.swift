@@ -2,9 +2,9 @@ import Foundation
 import PackageFileSupport
 import Testing
 
-/// A view that must show only in the bottom bar of a file, and the start of
-/// the block that is that bar.
-struct BottomBarView: CustomTestStringConvertible, Sendable {
+/// A view that must show only in one bar of a file, and the start of the
+/// block that is that bar.
+struct BarView: CustomTestStringConvertible, Sendable {
   /// The file that shows the view, relative to the package root.
   let file: String
 
@@ -12,7 +12,7 @@ struct BottomBarView: CustomTestStringConvertible, Sendable {
   let view: String
 
   /// The code text before the opening brace of the bar block, such as
-  /// `var floatingControls`.
+  /// `var floatingControls` or `.safeAreaBar(edge: .top)`.
   let barStart: String
 
   var testDescription: String { "\(file) \(view)" }
@@ -32,11 +32,11 @@ struct BottomBarView: CustomTestStringConvertible, Sendable {
 @Suite struct ThreadBottomBarStructureTests {
   /// Each view that shows only in the bottom bar of its file.
   static let bottomBarViews = [
-    BottomBarView(
+    BarView(
       file: ComposerGlassStructureTests.threadFile, view: "StateBanner", barStart: "var floatingControls"),
-    BottomBarView(
+    BarView(
       file: ComposerGlassStructureTests.threadFile, view: "AgentLoginPrompt", barStart: "var floatingControls"),
-    BottomBarView(
+    BarView(
       file: KitSourceFiles.kitFile("Thread/ConversationView.swift"), view: "StateBanner",
       barStart: ".safeAreaBar(edge: .bottom)"),
   ]
@@ -65,15 +65,26 @@ struct BottomBarView: CustomTestStringConvertible, Sendable {
     return PreviewCoverageTests.balancedBody(in: code, from: open)
   }
 
-  @Test(arguments: bottomBarViews)
-  func eachViewNextToTheBottomBarIsOnlyInThatBar(_ place: BottomBarView) throws {
+  /// Expects that the file of `place` calls its view one time, and only in
+  /// the bar of `place`.
+  ///
+  /// - Parameter place: The view and its bar.
+  /// - Throws: An error when the file cannot be read, or an issue when the
+  ///   file has no bar block.
+  static func expectOnlyInItsBar(_ place: BarView) throws {
     let code = try Self.code(of: place.file)
     let bar = try #require(Self.block(after: place.barStart, in: code))
     let call = GlassForm.callPattern(place.view)
 
     let usesInBar = bar.matches(of: call).count
 
-    #expect(usesInBar == 1, "\(place.view) is not in the bottom bar of \(place.file)")
-    #expect(code.matches(of: call).count == usesInBar, "\(place.view) is outside the bottom bar of \(place.file)")
+    #expect(usesInBar == 1, "\(place.view) is not in the bar \(place.barStart) of \(place.file)")
+    #expect(
+      code.matches(of: call).count == usesInBar, "\(place.view) is outside the bar \(place.barStart) of \(place.file)")
+  }
+
+  @Test(arguments: bottomBarViews)
+  func eachViewNextToTheBottomBarIsOnlyInThatBar(_ place: BarView) throws {
+    try Self.expectOnlyInItsBar(place)
   }
 }

@@ -9,12 +9,18 @@ import SwiftUI
 /// `TranscriptEntry.id`, and each item view reads its own entry object, so a
 /// streamed chunk draws only the row of its entry.
 ///
-/// Above the conversation, a ``SessionNoticeBanner`` shows one banner for
-/// each notice of the session model, and a ``SessionStreamBanner`` shows the
-/// stream state: the replay marker, the partial-history note, the
-/// missed-updates banner with its Reload button, and the closed state. In the
-/// bottom bar, a ``StateBanner`` shows the agent state. Each banner view, and
-/// not this view, reads its part of the model.
+/// In the top bar of the view (`.safeAreaBar(edge: .top)`), a
+/// ``SessionNoticeBanner`` shows one banner for each notice of the session
+/// model, and a ``SessionStreamBanner`` shows the stream state: the replay
+/// marker, the partial-history note, the missed-updates banner with its
+/// Reload button, and the closed state. In the bottom bar, a ``StateBanner``
+/// shows the agent state. Each banner view, and not this view, reads its part
+/// of the model.
+///
+/// The conversation scrolls under the top bar, and thus under the toolbar of
+/// the window, with the scroll edge effect (D113 answer 7). The top bar has
+/// no background and no glass. VoiceOver reads the top bar, the
+/// conversation, and then the bottom bar.
 ///
 /// The bottom bar of the view (`.safeAreaBar(edge: .bottom)`) holds the
 /// floating controls of the thread. The conversation scrolls under the bar
@@ -52,10 +58,11 @@ import SwiftUI
 /// ``RequestDeck`` documentation shows the full example.
 ///
 /// When the host gives the connection model, an ``AgentInfoHeader`` names the
-/// agent from its `initialize` answer, an ``AgentConnectionBanner`` shows the
-/// connection state, and an ``AgentAuthView`` shows in the bottom bar while
-/// `ConnectionModel.authState` asks for a sign-in, for example after an
-/// answer with the code `-32000` (authentication required).
+/// agent from its `initialize` answer and an ``AgentConnectionBanner`` shows
+/// the connection state, at the top of the top bar, and an
+/// ``AgentAuthView`` shows in the bottom bar while `ConnectionModel.authState`
+/// asks for a sign-in, for example after an answer with the code `-32000`
+/// (authentication required).
 ///
 /// The host gives no actions. Each view in the thread calls the methods of
 /// the session model or of the connection model directly. The two host hooks
@@ -206,21 +213,34 @@ public struct AgentThreadView<Composer: View>: View {
     host ?? own
   }
 
-  /// The conversation of the session model, with the parts that read the
-  /// model, and the floating controls below it.
+  /// The conversation of the session model, with the header and the banners
+  /// at the top in the top bar, and the floating controls in the bottom bar.
+  ///
+  /// The list scrolls under the two bars, and thus under the toolbar of the
+  /// window, with the scroll edge effect (TestudoApp `features/style.md`,
+  /// "Scroll under the bars", D113 answer 7). The default soft effect is
+  /// correct for a transcript. The top bar has no background: the header and
+  /// the banners are content with no glass (D112 (e)). From the top, the bar
+  /// shows the header and the connection banner when the host gave the
+  /// connection model, the notice banner and the stream banner. VoiceOver
+  /// reads the top bar, the list and then the bottom bar.
   private var content: some View {
     VStack(spacing: 0) {
-      if let connection {
-        AgentInfoHeader(connection: connection)
-        AgentConnectionBanner(connection: connection)
-      }
-      SessionNoticeBanner(session: session)
-      SessionStreamBanner(session: session, connection: connection)
       ConversationView(session: session, anchors: anchors)
         // The state banner and the pill are in the floating controls, in the
         // bottom bar with the composer.
         .environment(\.conversationShowsPill, false)
         .environment(\.conversationShowsStateBanner, false)
+    }
+    .safeAreaBar(edge: .top) {
+      VStack(spacing: 0) {
+        if let connection {
+          AgentInfoHeader(connection: connection)
+          AgentConnectionBanner(connection: connection)
+        }
+        SessionNoticeBanner(session: session)
+        SessionStreamBanner(session: session, connection: connection)
+      }
     }
     .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
