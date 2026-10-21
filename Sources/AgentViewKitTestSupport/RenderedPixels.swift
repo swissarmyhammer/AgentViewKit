@@ -66,6 +66,18 @@ public struct RenderedPixels: Equatable {
 
   /// Renders `view` at `size` points.
   ///
+  /// When the content of a render draws nothing, such as `Color.clear`,
+  /// `ImageRenderer` does not draw a new image: its `cgImage` contains the
+  /// pixels of an earlier render of the process. Thus the content is in
+  /// front of an empty `Canvas`. The canvas draws no pixel, but with it the
+  /// content is never empty, so the renderer draws each render into a clear
+  /// image. Without the canvas, the pixels of a clear view would change with
+  /// the order of the tests (`RenderedPixelsTests`).
+  ///
+  /// Do not replace `cgImage` with `render(rasterizationScale:renderer:)`
+  /// into a `CGContext` that this type clears. That render does not draw the
+  /// accessibility settings of Liquid Glass (`GlassRenderProbeTests`).
+  ///
   /// - Parameters:
   ///   - view: The view to render.
   ///   - size: The size of the view, in points.
@@ -74,7 +86,9 @@ public struct RenderedPixels: Equatable {
   @MainActor
   public init?(rendering view: some View, size: CGSize) {
     _ = Self.glassRenderingHost
-    let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height))
+    let content = view.frame(width: size.width, height: size.height)
+      .background(Canvas { _, _ in })
+    let renderer = ImageRenderer(content: content)
     renderer.scale = Self.renderScale
     guard let image = renderer.cgImage else { return nil }
     self.init(image: image, scale: Self.renderScale)

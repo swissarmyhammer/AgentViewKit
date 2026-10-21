@@ -50,6 +50,14 @@ import Testing
     #expect(first == second)
   }
 
+  @Test func aClearViewAfterADrawnViewHasNoColorOfTheDrawnView() throws {
+    // `ImageRenderer` gives the pixels of an earlier render when the content
+    // draws nothing. Thus the drawn view comes first, at the same size.
+    _ = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
+    let clear = try #require(RenderedPixels(rendering: Color.clear, size: Self.size))
+    #expect(!clear.contains(Self.drawn))
+  }
+
   @Test func rendersOfTwoColorsHaveDifferentPixels() throws {
     let drawn = try #require(RenderedPixels(rendering: Self.drawn, size: Self.size))
     let notDrawn = try #require(RenderedPixels(rendering: Self.notDrawn, size: Self.size))

@@ -61,20 +61,16 @@ import Testing
   /// draws nothing has no pixel of any role, so the test would pass for the
   /// wrong cause.
   ///
-  /// The function renders the clear view before `view`, and the order is
-  /// necessary. When the first render of the test process is
-  /// ``AgentInfoHeader`` or ``PendingRequestCountBadge``, `ImageRenderer`
-  /// draws nothing for these two views in that render and in each later
-  /// render. When the first render is the clear view, each later render of
-  /// these views draws.
+  /// The function renders `view` first, so a test that calls it can be the
+  /// first render of the test process.
   ///
   /// - Parameter view: The view to render.
   /// - Returns: The pixels.
   /// - Throws: An error when the renderer gives no pixels, or when the pixels
   ///   are the same as the pixels of a clear view.
   static func drawnPixels(of view: some View) throws -> RenderedPixels {
-    let blank = try pixels(of: Color.clear)
-    return try requireDrawn(pixels(of: view.environment(\.colorScheme, .light)), blank: blank)
+    let drawn = try pixels(of: view.environment(\.colorScheme, .light))
+    return try requireDrawn(drawn, blank: pixels(of: Color.clear))
   }
 
   /// The same as ``drawnPixels(of:)``, but the pixels come from the cache of
