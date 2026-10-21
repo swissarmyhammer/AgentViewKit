@@ -89,11 +89,27 @@ comments:
     - code: no change made in this step.
     - next: review.
   timestamp: 2026-10-21T02:11:34.705013+00:00
+- actor: claude-code
+  id: 01m5e3qx1z1t5v1yyv535h8qm0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (142cd54). 0 findings, 0 confirmed, 1 refuted. 13 files reviewed. The 2 prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-10-21T02:13:15.455740+00:00
+- actor: claude-code
+  id: 01m5e3re2rvnevgyqdgmmxjpyx
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 13 files (shared content surface with a radius and a fill; the scan also finds UnevenRoundedRectangle)
+    - test: green — swift test, 1440 passed, 2 known issues that were there before; 148 structure tests passed
+    - commit: 142cd54
+    - review: clean — 0 findings, the two prior findings are checked
+  timestamp: 2026-10-21T02:13:32.888415+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
 - 01M5D07S5WH2JTTWW8B56Y8Q6A
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8580
 title: AVK-8m Use concentric corners in place of fixed RoundedRectangle radii
 ---
 ## Why
