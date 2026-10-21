@@ -170,6 +170,10 @@ import Testing
     #expect(found == ["A.swift:1", "A.swift:2"])
   }
 
+  @Test func theNamedColorPatternDoesNotFindAStyleModifierInsideALongerName() {
+    #expect(!"outfill(.red)".contains(Self.namedColorPattern))
+  }
+
   @Test(arguments: violatingFixtureForms)
   func theScanReportsTheFormInTheViolatingFixture(form: String, line: Int) throws {
     let found = try Self.fixedColorUses(inSwiftFilesBelow: Self.fixtures.appending(path: "Violating"), relativeTo: Self.fixtures)

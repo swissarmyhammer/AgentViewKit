@@ -79,6 +79,48 @@ comments:
     - warnings: only the mlx bundle build warning (existed before). No new warning.
     - next: review
   timestamp: 2026-10-21T04:36:33.147594+00:00
+- actor: claude-code
+  id: 01m5ec1p8xfc0zcajs7k7a37d7
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (b69ea42). 1 finding, 1 confirmed, 0 refuted. Tests/PackageStructureTests/FixedColorTests.swift:68 `completeness/invariant-propagation`.
+    - next: Do the open item in the "Review Findings (2026-10-20 23:37)" section. The task stays in review.
+  timestamp: 2026-10-21T04:38:24.797522+00:00
+- actor: claude-code
+  id: 01m5ec250sfc053eqjp0v3qjyf
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 5 files (shared memberPattern and memberCallPattern helpers)
+    - test: green — swift test, 1448 passed, 2 known issues that were there before; 171 structure tests passed
+    - commit: b69ea42
+    - review: findings — Tests/PackageStructureTests/FixedColorTests.swift:68 (new finding; the prior finding is checked)
+  timestamp: 2026-10-21T04:38:39.897377+00:00
+- actor: claude-code
+  id: 01m5ecbac01wqnm3p3dwwy7qcw
+  text: |-
+    Fix of the review finding `completeness/invariant-propagation` (FixedColorTests.swift, namedColorPattern):
+    - The fix is in the shared helper `WordPattern.memberPattern(after:_:)` (`Tests/PackageStructureTests/WordPattern.swift`). The pattern now starts with `Anchor.wordBoundary` before the receiver, with `.wordBoundaryKind(.simple)`, the same simple boundary as `WordPattern.wholeWord(_:)`. Thus each user gets the same rule, and a receiver does not match inside a longer name. The doc comment tells that the receiver must start with a word character.
+    - Users of the helper: `FixedColorTests.namedColorPattern` (receivers `Color`, `foregroundStyle(`, `tint(`, `background(`, `fill(`, `stroke(`; each starts with a word character) and `GlassForm.memberCallPattern(_:_:)` (receiver `callPattern(call)`, which starts with `wholeWord`; the new boundary is the same boundary, so its match does not change). Users of `memberCallPattern`: `GlassForm.buttonStylePattern(_:)`, `GlassPlacementTests.tintForegroundStylePattern`, `GlassButtonShapeTests.borderShapePattern`.
+    - New negative tests: `WordPatternTests.memberPatternDoesNotFindTheReceiverInsideALongerWord` (`shape.outfill(.tint)`) and `FixedColorTests.theNamedColorPatternDoesNotFindAStyleModifierInsideALongerName` (`outfill(.red)`).
+    - TDD: RED: the two new tests failed (the pattern found `outfill(.tint)` and `outfill(.red)`). GREEN: the two tests passed after the change.
+    - The fixtures and the live scans (FixedColorTests, GlassPlacementTests, GlassButtonShapeTests) still pass in the full run.
+    - The finding checkbox is now `- [x]`.
+  timestamp: 2026-10-21T04:43:40.288785+00:00
+- actor: claude-code
+  id: 01m5ecbcysa4mzcj1crs6gyy36
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Tests/PackageStructureTests/WordPattern.swift, Tests/PackageStructureTests/WordPatternTests.swift, Tests/PackageStructureTests/FixedColorTests.swift. `swift test` (one full run, exit 0): 173 tests in 23 suites (PackageStructureTests) passed; 1448 tests in 176 suites passed with 2 known issues that existed before (HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); 1 test in 1 suite passed. Only warning is the mlx bundle warning that existed before.
+    - next: /review
+  timestamp: 2026-10-21T04:43:42.937974+00:00
+- actor: claude-code
+  id: 01m5ecfw33eq6asvjmq3w63hx8
+  text: |-
+    ### test - green
+    - evidence: swift test, 110 s. PackageStructureTests run: 173 tests in 23 suites passed (FixedColorTests, WordPatternTests, RemovedVocabularyTests and others). Full run: 1448 tests in 176 suites passed in 73.4 s, 2 known issues. 0 failures, 0 skipped.
+    - warnings: only the old mlx bundle build warning (missing creator for mutated node). No new warning.
+    - next: review
+  timestamp: 2026-10-21T04:46:09.507282+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 position_column: doing
@@ -114,3 +156,12 @@ D113 answer 5 and `style.md` "Tint": "Only the primary action of an area has a t
 > - `.kanban/ (from .reviewignore)` — 2 file(s)
 
 - [x] `Tests/PackageStructureTests/GlassPlacementTests.swift:145` `reuse/reuse` — The new tintForegroundStylePattern repeats the shape of buttonStylePattern: a call pattern, optional whitespace, a dot, then a member. It is a near-match that was not generalized. Each new modifier check adds another copy of this shape. Extract a shared helper, such as memberCallPattern(_ call: String, _ member: some RegexComponent<Substring>), that builds callPattern(call) + whitespace + "." + member. Define buttonStylePattern and tintForegroundStylePattern on top of it. Keep the call and member names as parameters.
+
+## Review Findings (2026-10-20 23:37)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/PackageStructureTests/FixedColorTests.swift:68` `completeness/invariant-propagation` — The shared memberPattern has no leading word boundary, so the receiver names in namedColorPattern ("tint(", "fill(", "stroke(", "background(", "foregroundStyle(", "Color") match inside longer identifiers. For example, "outfill(.red)" matches. The shared WordPattern comment says the word boundaries of the scans must not differ, and memberCallPattern gets whole-word matching through callPattern. This receiver list does not, so the two scans now treat the same token differently. Add a leading Anchor.wordBoundary to the namedColorPattern receivers, or wrap them with WordPattern.wholeWord. Add one negative assertion, such as "outfill(.red)", that namedColorPattern must not match.

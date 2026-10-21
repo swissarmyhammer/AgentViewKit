@@ -19,6 +19,10 @@ import Testing
     #expect(!"shape.fill(.tintColor)".contains(Self.tintMemberPattern))
   }
 
+  @Test func memberPatternDoesNotFindTheReceiverInsideALongerWord() {
+    #expect(!"shape.outfill(.tint)".contains(Self.tintMemberPattern))
+  }
+
   @Test func wholeWordFindsTheWordBetweenTwoBoundaries() {
     #expect("let view = PlainView()".contains(WordPattern.wholeWord("PlainView")))
   }

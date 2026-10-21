@@ -8,25 +8,34 @@ import RegexBuilder
 /// serves each scan that finds a member after a receiver, for example
 /// ``FixedColorTests`` and ``GlassForm/memberCallPattern(_:_:)``.
 enum WordPattern {
-  /// The pattern that finds a member after a receiver: the receiver, then
-  /// optional whitespace, then `.`, then the member. For the receiver
-  /// `buttonStyle(` and the member `glass`, it finds `buttonStyle(.glass`.
+  /// The pattern that finds a member after a receiver: a word boundary, the
+  /// receiver, then optional whitespace, then `.`, then the member. For the
+  /// receiver `buttonStyle(` and the member `glass`, it finds
+  /// `buttonStyle(.glass`.
+  ///
+  /// The word boundary before the receiver is the same simple boundary as in
+  /// ``wholeWord(_:)``. Thus the receiver does not match inside a longer
+  /// name: for the receiver `fill(`, it does not find `outfill(.tint`. The
+  /// receiver must start with a word character.
   ///
   /// A `Regex` is not `Sendable`, so each call makes the value again.
   ///
   /// - Parameters:
-  ///   - receiver: The pattern of the receiver.
+  ///   - receiver: The pattern of the receiver. It starts with a word
+  ///     character.
   ///   - member: The pattern of the name of the member.
   /// - Returns: The pattern.
   static func memberPattern(
     after receiver: some RegexComponent<Substring>, _ member: some RegexComponent<Substring>
   ) -> Regex<Substring> {
     Regex {
+      Anchor.wordBoundary
       receiver
       ZeroOrMore(.whitespace)
       "."
       member
     }
+    .wordBoundaryKind(.simple)
   }
 
   /// The pattern that matches a word only as a whole word.
