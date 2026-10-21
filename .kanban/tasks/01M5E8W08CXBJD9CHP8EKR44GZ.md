@@ -21,10 +21,26 @@ comments:
     - warnings: only the mlx bundle build warning that existed before. No new warning.
     - next: review
   timestamp: 2026-10-21T04:17:26.520393+00:00
+- actor: claude-code
+  id: 01m5eaygb0b1sh39r9c68w6672
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c339985). 4 files reviewed. 0 findings, 0 confirmed, 0 refuted. 7 validator runs attempted, 0 failed, 0 skipped. The 2 files in `.kanban/` were not reviewed (ignore rule).
+    - next: The task moved to done.
+  timestamp: 2026-10-21T04:19:11.840404+00:00
+- actor: claude-code
+  id: 01m5eayzg2zn3669axt3k33t6z
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 4 files
+    - test: green — swift test, 1448 passed, 2 known issues that were there before; 166 structure tests passed
+    - commit: c339985
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T04:19:27.362954+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8a80
 title: 'AVK-8af Small floating controls use .capsule: give the suggestion chips .buttonBorderShape(.capsule) (SuggestionsView.swift:52) and hold the shapes with a test (D113 answer 3)'
 ---
 ## Why
