@@ -53,14 +53,19 @@ struct TerminalBlockFrame: ViewModifier {
   }
 }
 
-/// The background of the header row of a block that holds an EditorKit
-/// editor: the status bar background of the EditorKit theme in the
-/// environment.
-struct EditorBlockBar: ViewModifier {
-  @Environment(\.editorTheme) private var editorTheme
-
+/// The header row of a block that holds an EditorKit editor: the title row
+/// of ``CodeBlockView``, ``TerminalView`` and ``CommandOutputView``.
+///
+/// The header row is content, not a bar (D113). It has no fill, so the fill
+/// of the block shows behind it: no fill for a code block, and the terminal
+/// background for terminal output. A system `Divider` under the row draws
+/// the separator line that marks it. `EditorThemeViewsTests` holds this rule.
+struct EditorBlockHeader: ViewModifier {
   func body(content: Content) -> some View {
-    content.background(editorTheme.statusBarBackground)
+    VStack(alignment: .leading, spacing: 0) {
+      content
+      Divider()
+    }
   }
 }
 
@@ -82,10 +87,14 @@ extension View {
     modifier(TerminalBlockFrame())
   }
 
-  /// Fills this header row with the bar background of the EditorKit theme.
+  /// Makes this row the header row of a block that holds an EditorKit
+  /// editor.
   ///
-  /// - Returns: The row with the bar background.
-  func editorBlockBar() -> some View {
-    modifier(EditorBlockBar())
+  /// The header row is content, not a bar (D113). It has no fill. A
+  /// separator line under it marks it.
+  ///
+  /// - Returns: The row with the separator line under it.
+  func editorBlockHeader() -> some View {
+    modifier(EditorBlockHeader())
   }
 }

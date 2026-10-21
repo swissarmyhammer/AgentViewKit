@@ -74,7 +74,6 @@ public struct CodeBlockView: View {
     let model = suppliedModel ?? ownModel.model(text: code)
     VStack(alignment: .leading, spacing: 0) {
       header
-      Divider()
       editor(model: model)
     }
     .editorBlockFrame()
@@ -110,7 +109,7 @@ public struct CodeBlockView: View {
     }
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
-    .editorBlockBar()
+    .editorBlockHeader()
   }
 
   /// The read-only editor that shows `model`.

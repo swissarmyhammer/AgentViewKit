@@ -131,7 +131,7 @@
         ])
     }
 
-    @Test func theFrameUsesTheTerminalBackgroundOfTheTheme() async throws {
+    @Test func theFrameUsesTheTerminalBackgroundAndTheHeaderHasNoFill() async throws {
       let (session, terminal) = try await Self.openTerminal(Self.outputField("ok"))
       defer { session.close() }
 
@@ -142,6 +142,7 @@
 
       #expect(pixels.contains(DistinctRolesTheme.Role.terminalBackground))
       #expect(!pixels.contains(DistinctRolesTheme.Role.editorBackground))
+      #expect(!pixels.contains(DistinctRolesTheme.Role.statusBarBackground))
     }
 
     @Test func invalidUTF8OutputShowsReplacementCharacters() async throws {

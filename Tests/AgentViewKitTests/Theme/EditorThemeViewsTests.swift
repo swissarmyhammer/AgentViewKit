@@ -5,7 +5,7 @@ import SwiftUI
 import Testing
 
 /// Checks that the kit views draw the colors of the EditorKit theme in the
-/// environment: the frame and the bar of an editor block, the status of a
+/// environment: the frame and the header of an editor block, the status of a
 /// command, the diff counts, and the accent.
 ///
 /// Each test gives a view ``DistinctRolesTheme`` with `.editorTheme(_:)`, and
@@ -54,10 +54,46 @@ import Testing
     try #require(RenderedPixels(rendering: view.editorTheme(DistinctRolesTheme()), size: size))
   }
 
-  @Test func theCodeBlockBarUsesTheEditorTheme() throws {
+  /// Whether a line that hides the backdrop of ``GlassRenderProbeTests`` is
+  /// between two rows that show it, in the column at `x`.
+  ///
+  /// - Parameters:
+  ///   - pixels: The pixels of a view over the backdrop.
+  ///   - x: The distance of the column from the leading edge, in points.
+  /// - Returns: `true` when a row that does not show the backdrop is below a
+  ///   row that shows it and above a different row that shows it.
+  static func showsALineInTheBackdrop(_ pixels: RenderedPixels, atColumn x: CGFloat) -> Bool {
+    let rows = stride(from: 0, to: size.height, by: ContentSurfaceHostedProbe.rowStep)
+    let shows = rows.map { pixels.contains(GlassRenderProbeTests.backdrop, at: CGPoint(x: x, y: $0)) }
+    guard let first = shows.firstIndex(of: true), let last = shows.lastIndex(of: true) else {
+      return false
+    }
+    return shows[first...last].contains(false)
+  }
+
+  // D113: the header row of a code block, a terminal or a command output is
+  // content, not a bar. It has no fill, and a separator line under it marks
+  // it.
+
+  @Test func theCodeBlockHeaderHasNoStatusBarBackground() throws {
     let pixels = try Self.pixels(of: CodeBlockView(code: "let x = 1", language: "swift"))
-    #expect(pixels.contains(Role.statusBarBackground))
+    #expect(!pixels.contains(Role.statusBarBackground))
     #expect(!pixels.contains(Role.terminalBackground))
+  }
+
+  @Test func aSeparatorLineIsUnderTheHeaderRow() throws {
+    // A clear header row is above clear content, and the backdrop fills the
+    // frame behind both. With no fill on the header, the backdrop shows in
+    // the rows of the header and of the content. Only a line under the
+    // header hides the backdrop between them. Clear content keeps the
+    // EditorKit editor out of the check, because the cache of a window
+    // shows the text area of the editor as an opaque color.
+    let block = VStack(spacing: 0) {
+      Self.clearBlock.editorBlockHeader()
+      Self.clearBlock
+    }
+    let pixels = try Self.pixels(of: SurfaceWithBackdrop(content: block, placement: .behindToTheEdge))
+    #expect(Self.showsALineInTheBackdrop(pixels, atColumn: Self.size.width / 2))
   }
 
   @Test(.hostedSerially) func theCodeBlockFrameHasNoEditorBackground() throws {
@@ -96,12 +132,12 @@ import Testing
     #expect(!pixels.contains(Role.succeeded))
   }
 
-  @Test func theCommandOutputFrameUsesTheTerminalBackgroundAndTheBarUsesTheEditorTheme() throws {
+  @Test func theCommandOutputFrameUsesTheTerminalBackgroundAndTheHeaderHasNoFill() throws {
     let pixels = try Self.pixels(
       of: CommandOutputView(command: "ls", output: "a", exitCode: Self.successExitCode))
     #expect(pixels.contains(Role.terminalBackground))
     #expect(!pixels.contains(Role.editorBackground))
-    #expect(pixels.contains(Role.statusBarBackground))
+    #expect(!pixels.contains(Role.statusBarBackground))
   }
 
   @Test func aCommandThatCompletedShowsTheSucceededRole() throws {

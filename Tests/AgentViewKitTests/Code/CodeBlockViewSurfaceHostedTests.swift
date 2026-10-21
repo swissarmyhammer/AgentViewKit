@@ -9,8 +9,8 @@ import Testing
 /// The tests use the edge check of ``ContentSurfaceHostedProbe``. The check
 /// reads the cache of the window, which draws the EditorKit editor. The
 /// editor draws no background of its own, so the backdrop shows inside the
-/// edge in the rows of the code. The header row keeps the bar background
-/// until AVK-8ac (^6dvspvv).
+/// edge in the rows of the code and of the header. The header row has no
+/// fill (D113). `EditorThemeViewsTests` checks the separator line under it.
 @Suite(.serialized, .hostedSerially) @MainActor struct CodeBlockViewSurfaceHostedTests {
   /// The size of the window. The block fills the width and is shorter than
   /// the height.

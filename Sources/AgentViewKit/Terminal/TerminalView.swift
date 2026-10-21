@@ -163,7 +163,6 @@ public struct TerminalView: View {
     let model = suppliedModel ?? ownModel.model(text: rows.text)
     VStack(alignment: .leading, spacing: 0) {
       header
-      Divider()
       if rows.isCapped {
         capRow(rows)
         Divider()
@@ -217,7 +216,7 @@ public struct TerminalView: View {
     }
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
-    .editorBlockBar()
+    .editorBlockHeader()
   }
 
   /// The row that tells how many rows show, with the Show All button.
