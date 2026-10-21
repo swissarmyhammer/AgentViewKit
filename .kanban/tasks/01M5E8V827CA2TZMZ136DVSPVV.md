@@ -43,10 +43,26 @@ comments:
     - No code change was made.
     - next: review
   timestamp: 2026-10-21T06:58:25.527951+00:00
+- actor: claude-code
+  id: 01m5em4qdgqk94j6x6cmpd8rbe
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 6b17070). 0 findings, 0 confirmed, 0 refuted. 7 files reviewed. 2 files in .kanban/ are not reviewed (.reviewignore).
+    - next: none. The task moved to done.
+  timestamp: 2026-10-21T06:59:52.880438+00:00
+- actor: claude-code
+  id: 01m5em4yk54c4smn18p3h89mbk
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 7 files
+    - test: green — swift test two times, 1463 passed each time, 2 known issues that were there before
+    - commit: 6b17070
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T07:00:00.229416+00:00
 depends_on:
 - 01M5E8TFNDT9Q9WE6C2D6YW9PP
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9380
 title: 'AVK-8ac Header rows of code blocks, terminal and command output: remove the statusBarBackground fill (EditorBlockChrome.swift:54) and put a .separator line under the header (D113 answer 4)'
 ---
 ## Why
