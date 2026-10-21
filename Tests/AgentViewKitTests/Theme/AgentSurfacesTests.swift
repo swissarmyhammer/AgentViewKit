@@ -166,10 +166,8 @@ import Testing
   /// renders can be different when Reduce Transparency has no effect on the
   /// glass.
   @Test func theFloatingGlassFollowsReduceTransparency() throws {
-    let glass = Self.floatingGlass
-    let on = try Self.pixels(of: glass, reducesTransparency: true)
-    let off = try Self.pixels(of: glass, reducesTransparency: false)
-    #expect(!on.isClose(to: off, at: Self.insidePoints))
+    try GlassRenderProbeTests.expectDifferentPixels(
+      of: Self.floatingGlass, with: .reduceTransparency, at: Self.insidePoints, size: Self.size)
   }
 
   /// The floating glass is always `.regular` glass. The system applies the

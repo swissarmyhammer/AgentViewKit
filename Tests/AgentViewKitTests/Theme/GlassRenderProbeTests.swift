@@ -56,24 +56,27 @@ import Testing
   ///
   /// The function renders `view` one time with `setting` on and one time with
   /// it off (``pixels(of:with:on:size:)``). Then it expects that the two
-  /// renders do not show the same colors at `points`.
+  /// renders do not show the same colors at `points`, or at each pixel when
+  /// `points` is `nil`.
   ///
   /// - Parameters:
   ///   - view: The view to render.
   ///   - setting: The setting to change.
   ///   - points: The points to compare, in points from the top leading
-  ///     corner of the view. Keep them far from the edge of a rounded glass
+  ///     corner of the view, or `nil` to compare each pixel. Keep the points
+  ///     far from the edge of a rounded glass
   ///     (``RenderedPixels/isClose(to:at:tolerance:)``).
   ///   - renderSize: The size to render at.
   ///   - sourceLocation: The location of the caller, for the failure report.
   /// - Throws: An error when the renderer gives no pixels.
   static func expectDifferentPixels(
-    of view: some View, with setting: GlassProbeSetting, at points: [CGPoint],
+    of view: some View, with setting: GlassProbeSetting, at points: [CGPoint]? = nil,
     size renderSize: CGSize = size, sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     let on = try pixels(of: view, with: setting, on: true, size: renderSize)
     let off = try pixels(of: view, with: setting, on: false, size: renderSize)
-    #expect(!on.isClose(to: off, at: points), sourceLocation: sourceLocation)
+    let isSame = points.map { on.isClose(to: off, at: $0) } ?? on.isClose(to: off)
+    #expect(!isSame, sourceLocation: sourceLocation)
   }
 
   /// `view` in light mode, with only `setting` changed.
@@ -98,10 +101,7 @@ import Testing
 
   @Test(arguments: GlassProbeSetting.allCases)
   func theGlassFollowsTheSetting(_ setting: GlassProbeSetting) throws {
-    let glass = GlassOverBackdrop(glass: .regular)
-    let on = try Self.pixels(of: glass, with: setting, on: true)
-    let off = try Self.pixels(of: glass, with: setting, on: false)
-    #expect(on != off)
+    try Self.expectDifferentPixels(of: GlassOverBackdrop(glass: .regular), with: setting)
   }
 
   @Test(arguments: GlassProbeSetting.allCases)
