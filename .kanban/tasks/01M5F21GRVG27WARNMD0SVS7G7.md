@@ -130,8 +130,24 @@ comments:
     - no code changed.
     - next: review
   timestamp: 2026-10-21T12:43:28.731286+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5f7vwqn4y9g1v21pa7b4zqe
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0254e4f). 0 findings, 0 confirmed, 0 refuted. 2 files reviewed. All prior review findings are checked.
+    - next: The task moved to done.
+  timestamp: 2026-10-21T12:44:34.933225+00:00
+- actor: claude-code
+  id: 01m5f7w7ftx3s4kgsagcq3bpbk
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — 2 files (one mount helper in the inspector tests)
+    - test: green — swift test, 1487 passed, 2 known issues that were there before; no hang
+    - commit: 0254e4f
+    - review: clean — 0 findings, the three prior findings are checked
+  timestamp: 2026-10-21T12:44:45.946139+00:00
+position_column: done
+position_ordinal: ffff9d80
 title: AVK-10 Let a host with its own inspector use AgentThreadView with no attachment inspector
 ---
 Source: testudoapp-4c, TestudoApp card ^xt3ght2 (blocker). Rule D40 (the app has its own `.inspector`).
