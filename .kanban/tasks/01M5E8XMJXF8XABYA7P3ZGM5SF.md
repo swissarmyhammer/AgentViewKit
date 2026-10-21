@@ -41,11 +41,27 @@ comments:
     - No code change was necessary. No commit.
     - next: review
   timestamp: 2026-10-21T10:42:42.674002+00:00
+- actor: claude-code
+  id: 01m5f11crb8a8n2tfgxwnkefmz
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 1cf8a78). 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed). 13 files reviewed. Not reviewed: 2 .kanban files (ignore rule), README.md and plan.md (no validator).
+    - next: The task is in done. No more work.
+  timestamp: 2026-10-21T10:45:15.147918+00:00
+- actor: claude-code
+  id: 01m5f1212xwg68p8m7c2hznzg0
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 15 files
+    - test: green — swift test, 1479 passed, 2 known issues that were there before; structure tests, README snippet test and check-readme.sh passed
+    - commit: 1cf8a78
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T10:45:35.965491+00:00
 depends_on:
 - 01M5E8WMM146Y611ZQDZM1HM5Q
 - 01M5E8X2DC7CT94TQJG2G7W4MZ
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9b80
 title: 'AVK-8al Thread bottom bar: put StateBanner and AgentLoginPrompt in the bottom .safeAreaBar with the composer, so the list scrolls under them (D113 answer 7)'
 ---
 ## Why
