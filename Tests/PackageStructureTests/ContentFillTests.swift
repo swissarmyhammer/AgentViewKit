@@ -181,6 +181,19 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
   }
 }
 
+/// The data of ``ContentFillTests`` for the shared form checks.
+extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
+  static var sampleLines: [(form: ContentFillForm, line: String)] { ContentFillTests.sampleForms }
+
+  static var lookAlikeLines: [String] { ContentFillTests.lookAlikeLines }
+
+  static var fixtures: URL {
+    get throws { try ContentFillTests.fixtures }
+  }
+
+  static var scan: CodeScan { .text }
+}
+
 /// Holds the content of the kit, the demo support and the demo free of
 /// custom fills (D111 step 1, D113 answers 1 and 4).
 ///
@@ -259,38 +272,12 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
     form.allowedFiles.keys.sorted().map { (form: form, file: $0) }
   }
 
-  /// The forms whose pattern finds a match in a line.
-  ///
-  /// - Parameter line: The line of code.
-  /// - Returns: The forms, in the order of ``ContentFillForm/allCases``.
-  static func forms(in line: String) -> [ContentFillForm] {
-    ContentFillForm.allCases.filter { line.contains($0.pattern) }
-  }
-
-  /// Finds the start of each use of a form in a fixture directory.
-  ///
-  /// - Parameters:
-  ///   - form: The form to find.
-  ///   - directory: The fixture directory, relative to ``fixtures``.
-  /// - Returns: `<file>:<line>` for each use, with the file relative to
-  ///   ``fixtures``.
-  /// - Throws: The error of
-  ///   ``SourceLineScanner/codeMatchStarts(of:inSwiftFilesBelow:relativeTo:skipping:)``.
-  static func fixtureUses(of form: ContentFillForm, in directory: String) throws -> [String] {
-    try SourceLineScanner.codeMatchStarts(
-      of: form.pattern, inSwiftFilesBelow: fixtures.appending(path: directory), relativeTo: fixtures)
-  }
-
   @Test func eachPatternFindsOnlyItsOwnForm() {
-    for sample in Self.sampleForms {
-      #expect(Self.forms(in: sample.line) == [sample.form], "\(sample.line)")
-    }
+    ContentFillForm.expectEachSampleFindsOnlyItsOwnForm()
   }
 
   @Test func noPatternFindsALookAlikeLine() {
-    for line in Self.lookAlikeLines {
-      #expect(Self.forms(in: line).isEmpty, "\(line)")
-    }
+    ContentFillForm.expectNoFormFindsALookAlikeLine()
   }
 
   @Test func theBackgroundInShapePatternFindsACallOnMoreThanOneLine() {
@@ -300,7 +287,7 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
         in: AgentSurface.shape(radius: theme.radii.s))
       """
 
-    #expect(Self.forms(in: call) == [.backgroundInShape])
+    #expect(ContentFillForm.forms(in: call) == [.backgroundInShape])
   }
 
   @Test(arguments: SystemStructureTests.scanPaths, ContentFillForm.allCases)
@@ -314,16 +301,14 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
 
   @Test(arguments: violatingFixtureForms)
   func theScanReportsTheFormInTheViolatingFixture(form: ContentFillForm, lines: [Int]) throws {
-    let found = try Self.fixtureUses(of: form, in: "Violating")
+    let found = try ContentFillForm.fixtureUses(of: form, in: "Violating")
 
     #expect(found == lines.map { "\(Self.violatingFixtureFile):\($0)" })
   }
 
   @Test(arguments: ContentFillForm.allCases)
   func theScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture(form: ContentFillForm) throws {
-    let found = try Self.fixtureUses(of: form, in: "Clean")
-
-    #expect(found.isEmpty, "\(found)")
+    try form.expectNoUseInTheCleanFixture()
   }
 
   /// An allowed file that no longer has its fill must leave the allow list,

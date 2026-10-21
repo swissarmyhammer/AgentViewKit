@@ -37,6 +37,63 @@ comments:
     - evidence: 5 files. New: Tests/PackageStructureTests/ThemeInjectionTests.swift, Tests/PackageStructureTests/Fixtures/ThemeInjection/Violating/TintAndTheme.swift, Tests/PackageStructureTests/Fixtures/ThemeInjection/Clean/ThemeInText.swift. Changed: Tests/PackageStructureTests/FixedColorTests.swift (comment for D113 answer 8), Tests/PackageStructureTests/GlassPlacementTests.swift (removed the Input-only `.foregroundStyle(.tint)` check, which the new rule now covers). The full suite ran with run-watched.sh: test-exit=0, 214 tests in 29 suites passed, 1571 tests in 197 suites passed with 3 known issues (these known issues were there before this change), and 0 on-screen test windows. The mutation check made each of the 7 forms and the accent count fail. No PNG changed.
     - next: review
   timestamp: 2026-10-21T19:33:49.995271+00:00
+- actor: claude-code
+  id: 01m5fzeze4g4r7ff008t6n1ktv
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 747dad3). 5 findings (5 confirmed, 4 refuted). Tests/PackageStructureTests/ThemeInjectionTests.swift:84, :475, :493, :499, :548.
+    - next: Do each item in the "Review Findings (2026-10-21 14:35)" section. Then do the review again.
+  timestamp: 2026-10-21T19:36:57.540090+00:00
+- actor: claude-code
+  id: 01m5fzfh87c9dwytmtc1mexkq4
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ThemeInjectionTests (7 forms), fixtures; GlassPlacementTests input tint test removed; mutation check failed each form
+    - test: green — run-watched.sh, 214 PackageStructureTests and 1571 AgentViewKitTests passed (3 known issues); on-screen test windows 0
+    - commit: 747dad3
+    - review: findings — Tests/PackageStructureTests/ThemeInjectionTests.swift:84, :475, :493, :499, :548
+  timestamp: 2026-10-21T19:37:15.783936+00:00
+- actor: claude-code
+  id: 01m5fzppecax7nafegpcv6zbf5
+  text: |-
+    Research for the review findings (2026-10-21):
+    - Magic numbers: `swiftlint lint --config <only no_magic_numbers, allowed_numbers [0, 1, -1, 100]>` on `Tests/PackageStructureTests/*.swift` reports only `ThemeInjectionTests.swift:84` (the `2` uses of InlineCitation). The cause is the count literal in the accent allow list. Fix: each allowed file holds a list of its permitted uses, each with its reason. The count is the length of the list, so the file has no count literal.
+    - The form suites with the copied helpers, all from this batch (2026-10-20 and 2026-10-21):
+      - ThemeInjectionTests, ContentFillTests, SystemStructureTests: `forms(in:)`, `eachPatternFindsOnlyItsOwnForm`, `noPatternFindsALookAlikeLine`, the clean-fixture test. ThemeInjectionTests and ContentFillTests also have the same `fixtureUses(of:in:)`.
+      - HiddenTestWindowTests: `calls(in:)`, `eachPatternFindsOnlyItsOwnCall` and `noPatternFindsALookAlikeLine` (samples and look-alike lines, no fixtures).
+      - GlassPlacementTests: the clean-fixture test for each `GlassForm` (no samples, no look-alike lines).
+      - FixedColorTests is not a form suite: it has no form type. Its system background checks use one pattern and already are parameterized tests that call the shared scanner `GlassPlacementTests.uses`. It stays as it is.
+    - The scan differs: ThemeInjection and ContentFill read each file as one text (`SourceLineScanner.codeMatchStarts`). SystemStructure and GlassPlacement read one line at a time (`GlassPlacementTests.uses`). The shared helper keeps the scan of each form type, so each fixture test still tests the scan of its suite.
+    - Baseline before the change: `run-watched.sh reuse-baseline --filter PackageStructureTests`: 214 tests in 29 suites passed, 424 test cases, 0 on-screen test windows.
+  timestamp: 2026-10-21T19:41:10.476785+00:00
+- actor: claude-code
+  id: 01m5g047gav4cq40xxkxpye849
+  text: |-
+    Implementation of the review findings:
+    - Magic numbers: `ThemeInjectionForm.accentFiles` is now `[String: [String]]`. Each allowed file holds its permitted uses, each with its reason (InlineCitation: the text and the capsule fill of a citation pill). `allowedFormFiles` gives `uses: $0.value.count`, so `eachAllowedFileHasItsNumberOfUses` checks the same numbers (2, 1, 1, 1). The swiftlint `no_magic_numbers` run on `Tests/PackageStructureTests/*.swift` now reports nothing.
+    - New shared file `Tests/PackageStructureTests/CodeForm.swift`:
+      - `CodeForm` (CaseIterable, Equatable, `pattern`) with `forms(in:)`.
+      - `SampledCodeForm` (`sampleLines`, `lookAlikeLines`) with `expectEachSampleFindsOnlyItsOwnForm(sourceLocation:)` and `expectNoFormFindsALookAlikeLine(sourceLocation:)`.
+      - `FixtureCodeForm` (`fixtures`, `scan`) with `fixtureUses(of:in:)` and `expectNoUseInTheCleanFixture(sourceLocation:)`.
+      - `CodeScan` (`.lines` = `GlassPlacementTests.uses`, `.text` = `SourceLineScanner.codeMatchStarts`), so each suite keeps the scan that its production test uses.
+      - `CodeFormFixtures.clean` = "Clean".
+    - The suites now use it, each with a conformance extension that points to its own data (form enum, samples, look-alike lines, fixtures stay in the suite file):
+      - ThemeInjectionTests and ContentFillTests: removed `forms(in:)` and `fixtureUses(of:in:)`. Scan `.text`.
+      - SystemStructureTests: removed `forms(in:)`. The violating and clean fixture tests use the shared `fixtureUses`. Scan `.lines`.
+      - HiddenTestWindowTests: removed `calls(in:)`. The tuple label of `sampleCalls` is now `form`. Samples and look-alike lines only.
+      - GlassPlacementTests: the clean fixture test of each `GlassForm` uses the shared helper. Scan `.lines`. The prominent clean test uses `CodeFormFixtures.clean`.
+    - Each test name stays. The `sourceLocation` parameter makes a failure point at the test of the suite.
+    - FixedColorTests stays as it is: it has no form type. Its system background checks use one pattern and already are parameterized tests.
+    - Mutation check (`run-watched.sh reuse-mutation`, ThemeInjectionTests and SystemStructureTests): I added a code line `.tint(.red)` to `Fixtures/ThemeInjection/Clean/ThemeInText.swift`, `Rectangle().fill(.thickMaterial)` to `Fixtures/SystemStructure/Clean/SystemStructureInText.swift`, `.foregroundStyle(.tint)` to `ThemeInjectionTests.lookAlikeLines` and the sample `(.thinMaterial, ".background(.thickMaterial)")` to `SystemStructureTests.sampleForms`. Result: test-exit=1 with 4 issues, each at the test of its suite: clean fixture `form → tintModifier` (ThemeInjectionTests.swift:541), clean fixture `form → thickMaterial` (SystemStructureTests.swift:274), `noPatternFindsALookAlikeLine` (ThemeInjectionTests.swift:494) and `eachPatternFindsOnlyItsOwnForm` (SystemStructureTests.swift:247). I then removed the 4 changes; `git diff` shows no fixture change.
+    - Count: before 214 tests in 29 suites and 424 test cases; after 214 tests in 29 suites and 424 test cases. No check was removed and no data changed, so the counts are the same.
+  timestamp: 2026-10-21T19:48:33.930377+00:00
+- actor: claude-code
+  id: 01m5g04cnjmg14pf5cx3y4773n
+  text: |-
+    ### implement — changed
+    - evidence: 6 files. New: Tests/PackageStructureTests/CodeForm.swift. Changed: Tests/PackageStructureTests/ThemeInjectionTests.swift, ContentFillTests.swift, SystemStructureTests.swift, GlassPlacementTests.swift, HiddenTestWindowTests.swift. All 5 review findings are marked `- [x]`. Full suite with run-watched.sh (reuse-full): test-exit=0; 214 tests in 29 suites passed (424 test cases, the same as the baseline); 1571 tests in 197 suites passed with 3 known issues (there before this change); on-screen test-process windows 0. Build: no compiler warning (only the SwiftPM "missing creator" line of the MLX bundle, which was there before). swiftlint no_magic_numbers on Tests/PackageStructureTests: no finding. Mutation check on ThemeInjectionTests and SystemStructureTests: 4 of 4 mutations failed at the test of the suite, then removed.
+    - next: review
+  timestamp: 2026-10-21T19:48:39.218813+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5E8VGGTR59NGWNVHSDKM4QT
@@ -85,3 +142,16 @@ Facts from a search on 2026-10-20:
 - `ThemeInjectionTests` passes on the current sources.
 - The fixture test reports each bad form with its file and line, and nothing in the clean file.
 - Tests use Swift Testing. No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-8
+
+## Review Findings (2026-10-21 14:35)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/PackageStructureTests/ThemeInjectionTests.swift:84` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/PackageStructureTests/ThemeInjectionTests.swift:475` `reuse/reuse` — `forms(in:)` is a near-copy of the same helper in the other form suites. It applies each form pattern to a line in the same way. Move the line-matching helper into the shared generic helper, parameterized by the form type and its `pattern` property.
+- [x] `Tests/PackageStructureTests/ThemeInjectionTests.swift:493` `reuse/reuse` — `eachPatternFindsOnlyItsOwnForm` repeats the same test body that already exists in two other suites. The copy will drift from the originals when one is fixed. Move the shared form-scan checks into one generic helper in a shared test file. Each suite then passes its own form enum, sample lines, and patterns to it.
+- [x] `Tests/PackageStructureTests/ThemeInjectionTests.swift:499` `reuse/reuse` — `noPatternFindsALookAlikeLine` repeats a test that already exists in two other suites, so the same check is maintained in three places. Use the same shared generic helper as `eachPatternFindsOnlyItsOwnForm`. Keep only the per-suite look-alike lines as data.
+- [x] `Tests/PackageStructureTests/ThemeInjectionTests.swift:548` `reuse/reuse` — `theScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture` repeats the clean-fixture check of the other suites. Use the shared generic helper for the clean-fixture check, with the form enum and the clean directory as parameters.

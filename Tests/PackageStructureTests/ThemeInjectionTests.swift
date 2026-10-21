@@ -61,31 +61,35 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   }
 
   /// The files that can use the form, relative to the package root, each with
-  /// the reason and the number of the uses in the file.
+  /// the permitted uses in the file. Each use is the reason for one match of
+  /// the form in the file.
   ///
   /// Only ``themeAccent`` has allowed files: the permitted uses of the accent
   /// of AVK-8ak (D113 answer 5). Each other list is empty. The Tinted look is
   /// a system setting, so no glass has a tint (D113 answer 6).
   ///
   /// The list holds files, not lines, so a change to a line does not break
-  /// it. The number of the uses holds each file to its permitted uses: a new
+  /// it. The permitted uses hold each file to its number of matches: a new
   /// use of the accent in an allowed file changes the number.
-  var allowedFiles: [String: (reason: String, uses: Int)] {
+  var allowedFiles: [String: [String]] {
     self == .themeAccent ? Self.accentFiles : [:]
   }
 
   /// The files that can read the theme accent, relative to the package root,
-  /// each with the reason and the number of the uses in the file.
+  /// each with the permitted uses in the file.
   ///
   /// The minimap draws the accent only in the band of the rows in view. Its
   /// ticks, which mark the user and the agent rows, do not use the accent.
-  static let accentFiles: [String: (reason: String, uses: Int)] = [
-    KitSourceFiles.kitFile("Citations/InlineCitation.swift"):
-      ("The text and the capsule fill of a citation pill: a link.", 2),
-    KitSourceFiles.kitFile("Citations/SourcesView.swift"): ("The highlight of the current source: the current item.", 1),
-    KitSourceFiles.kitFile("Elicitation/ElicitationLayout.swift"): ("The fill of the selected tab: the selection.", 1),
-    KitSourceFiles.kitFile("Thread/ThreadMinimapView.swift"):
-      ("The band of the rows in view: the current item. The ticks do not use the accent.", 1),
+  static let accentFiles: [String: [String]] = [
+    KitSourceFiles.kitFile("Citations/InlineCitation.swift"): [
+      "The text of a citation pill: a link.",
+      "The capsule fill of a citation pill: a link.",
+    ],
+    KitSourceFiles.kitFile("Citations/SourcesView.swift"): ["The highlight of the current source: the current item."],
+    KitSourceFiles.kitFile("Elicitation/ElicitationLayout.swift"): ["The fill of the selected tab: the selection."],
+    KitSourceFiles.kitFile("Thread/ThreadMinimapView.swift"): [
+      "The band of the rows in view: the current item. The ticks do not use the accent."
+    ],
   ]
 
   /// The pattern that finds the form in the code of a file. A match can
@@ -351,14 +355,27 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   }
 }
 
+/// The data of ``ThemeInjectionTests`` for the shared form checks.
+extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
+  static var sampleLines: [(form: ThemeInjectionForm, line: String)] { ThemeInjectionTests.sampleForms }
+
+  static var lookAlikeLines: [String] { ThemeInjectionTests.lookAlikeLines }
+
+  static var fixtures: URL {
+    get throws { try ThemeInjectionTests.fixtures }
+  }
+
+  static var scan: CodeScan { .text }
+}
+
 /// Holds the tint, the theme accent and the theme of the kit (D111 step 7,
 /// D112 (d), D113 answers 5, 6 and 8).
 ///
 /// The scan reads the code of each Swift file: it blanks the comments and the
 /// string literals, then reads each file as one text, so a call can continue
 /// on the next lines. Each ``ThemeInjectionForm`` can show only in its
-/// allowed files. Only the theme accent has allowed files, each with the
-/// reason and the number of its uses.
+/// allowed files. Only the theme accent has allowed files, each with its
+/// permitted uses and the reason of each use.
 ///
 /// D113 answer 8 permits the computed terminal colors: the colors 0 to 15
 /// come from `TerminalPalette`, and the xterm formula gives the colors 16 to
@@ -463,43 +480,17 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
     (.themeType, [28]),
   ]
 
-  /// Each allowed file of each form, with its number of uses.
+  /// Each allowed file of each form, with its number of permitted uses.
   static let allowedFormFiles = ThemeInjectionForm.allCases.flatMap { form in
-    form.allowedFiles.sorted { $0.key < $1.key }.map { (form: form, file: $0.key, uses: $0.value.uses) }
-  }
-
-  /// The forms whose pattern finds a match in a line.
-  ///
-  /// - Parameter line: The line of code.
-  /// - Returns: The forms, in the order of ``ThemeInjectionForm/allCases``.
-  static func forms(in line: String) -> [ThemeInjectionForm] {
-    ThemeInjectionForm.allCases.filter { line.contains($0.pattern) }
-  }
-
-  /// Finds the start of each use of a form in a fixture directory.
-  ///
-  /// - Parameters:
-  ///   - form: The form to find.
-  ///   - directory: The fixture directory, relative to ``fixtures``.
-  /// - Returns: `<file>:<line>` for each use, with the file relative to
-  ///   ``fixtures``.
-  /// - Throws: The error of
-  ///   ``SourceLineScanner/codeMatchStarts(of:inSwiftFilesBelow:relativeTo:skipping:)``.
-  static func fixtureUses(of form: ThemeInjectionForm, in directory: String) throws -> [String] {
-    try SourceLineScanner.codeMatchStarts(
-      of: form.pattern, inSwiftFilesBelow: fixtures.appending(path: directory), relativeTo: fixtures)
+    form.allowedFiles.sorted { $0.key < $1.key }.map { (form: form, file: $0.key, uses: $0.value.count) }
   }
 
   @Test func eachPatternFindsOnlyItsOwnForm() {
-    for sample in Self.sampleForms {
-      #expect(Self.forms(in: sample.line) == [sample.form], "\(sample.line)")
-    }
+    ThemeInjectionForm.expectEachSampleFindsOnlyItsOwnForm()
   }
 
   @Test func noPatternFindsALookAlikeLine() {
-    for line in Self.lookAlikeLines {
-      #expect(Self.forms(in: line).isEmpty, "\(line)")
-    }
+    ThemeInjectionForm.expectNoFormFindsALookAlikeLine()
   }
 
   @Test func theTintModifierPatternFindsAModifierOnTheNextLine() {
@@ -509,7 +500,7 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
           .blue)
       """
 
-    #expect(Self.forms(in: call) == [.tintModifier])
+    #expect(ThemeInjectionForm.forms(in: call) == [.tintModifier])
   }
 
   @Test func theTintPatternsDoNotFindALabelOnTheNextLine() {
@@ -518,7 +509,7 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
         for: severity)
       """
 
-    #expect(Self.forms(in: call).isEmpty)
+    #expect(ThemeInjectionForm.forms(in: call).isEmpty)
   }
 
   @Test(arguments: ThemeInjectionForm.allCases)
@@ -539,16 +530,14 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
 
   @Test(arguments: violatingFixtureForms)
   func theScanReportsTheFormInTheViolatingFixture(form: ThemeInjectionForm, lines: [Int]) throws {
-    let found = try Self.fixtureUses(of: form, in: "Violating")
+    let found = try ThemeInjectionForm.fixtureUses(of: form, in: "Violating")
 
     #expect(found == lines.map { "\(Self.violatingFixtureFile):\($0)" })
   }
 
   @Test(arguments: ThemeInjectionForm.allCases)
   func theScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture(form: ThemeInjectionForm) throws {
-    let found = try Self.fixtureUses(of: form, in: "Clean")
-
-    #expect(found.isEmpty, "\(found)")
+    try form.expectNoUseInTheCleanFixture()
   }
 
   /// Each allowed file has its permitted uses and no more. A use that leaves

@@ -167,6 +167,15 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   }
 }
 
+/// The data of ``GlassPlacementTests`` for the shared form checks.
+extension GlassForm: FixtureCodeForm {
+  static var fixtures: URL {
+    get throws { try GlassPlacementTests.fixtures }
+  }
+
+  static var scan: CodeScan { .lines }
+}
+
 /// Holds the glass of the kit on the floating controls and on the action
 /// buttons of the request cards and the notices (D110 (b), (c)).
 ///
@@ -361,13 +370,11 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
 
   @Test(arguments: GlassForm.allCases)
   func theScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture(form: GlassForm) throws {
-    let found = try Self.fixtureUses(of: form.pattern, in: "Clean")
-
-    #expect(found.isEmpty, "\(found)")
+    try form.expectNoUseInTheCleanFixture()
   }
 
   @Test func theProminentScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture() throws {
-    let found = try Self.fixtureUses(of: Self.prominentButtonStylePattern, in: "Clean")
+    let found = try Self.fixtureUses(of: Self.prominentButtonStylePattern, in: CodeFormFixtures.clean)
 
     #expect(found.isEmpty, "\(found)")
   }

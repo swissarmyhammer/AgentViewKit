@@ -106,6 +106,19 @@ enum SystemStructureForm: String, CaseIterable, CustomTestStringConvertible, Sen
   }
 }
 
+/// The data of ``SystemStructureTests`` for the shared form checks.
+extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
+  static var sampleLines: [(form: SystemStructureForm, line: String)] { SystemStructureTests.sampleForms }
+
+  static var lookAlikeLines: [String] { SystemStructureTests.lookAlikeLines }
+
+  static var fixtures: URL {
+    get throws { try SystemStructureTests.fixtures }
+  }
+
+  static var scan: CodeScan { .lines }
+}
+
 /// Holds the kit on the system structure (D111 steps 2 and 6, D113 answer 7).
 ///
 /// - The kit, the demo support and the demo put no custom background and no
@@ -200,14 +213,6 @@ enum SystemStructureForm: String, CaseIterable, CustomTestStringConvertible, Sen
     (.backgroundExtensionEffect, 22),
   ]
 
-  /// The forms whose pattern finds a match in a line.
-  ///
-  /// - Parameter line: The line of code.
-  /// - Returns: The forms, in the order of ``SystemStructureForm/allCases``.
-  static func forms(in line: String) -> [SystemStructureForm] {
-    SystemStructureForm.allCases.filter { line.contains($0.pattern) }
-  }
-
   /// The pattern that finds a bar of a view at one edge, such as
   /// `.safeAreaBar(edge: .top)`.
   ///
@@ -238,15 +243,11 @@ enum SystemStructureForm: String, CaseIterable, CustomTestStringConvertible, Sen
   }
 
   @Test func eachPatternFindsOnlyItsOwnForm() {
-    for sample in Self.sampleForms {
-      #expect(Self.forms(in: sample.line) == [sample.form], "\(sample.line)")
-    }
+    SystemStructureForm.expectEachSampleFindsOnlyItsOwnForm()
   }
 
   @Test func noPatternFindsALookAlikeLine() {
-    for line in Self.lookAlikeLines {
-      #expect(Self.forms(in: line).isEmpty, "\(line)")
-    }
+    SystemStructureForm.expectNoFormFindsALookAlikeLine()
   }
 
   @Test(arguments: SystemStructureForm.allCases)
@@ -262,18 +263,14 @@ enum SystemStructureForm: String, CaseIterable, CustomTestStringConvertible, Sen
 
   @Test(arguments: violatingFixtureForms)
   func theScanReportsTheFormInTheViolatingFixture(form: SystemStructureForm, line: Int) throws {
-    let found = try GlassPlacementTests.uses(
-      of: form.pattern, inSwiftFilesBelow: Self.fixtures.appending(path: "Violating"), relativeTo: Self.fixtures)
+    let found = try SystemStructureForm.fixtureUses(of: form, in: "Violating")
 
     #expect(found == ["\(Self.violatingFixtureFile):\(line)"])
   }
 
   @Test(arguments: SystemStructureForm.allCases)
   func theScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture(form: SystemStructureForm) throws {
-    let found = try GlassPlacementTests.uses(
-      of: form.pattern, inSwiftFilesBelow: Self.fixtures.appending(path: "Clean"), relativeTo: Self.fixtures)
-
-    #expect(found.isEmpty, "\(found)")
+    try form.expectNoUseInTheCleanFixture()
   }
 
   @Test func eachAllowedFileIsInThePackage() throws {

@@ -49,6 +49,13 @@ enum WindowFocusCall: String, CaseIterable, CustomTestStringConvertible, Sendabl
   }
 }
 
+/// The data of ``HiddenTestWindowTests`` for the shared form checks.
+extension WindowFocusCall: SampledCodeForm {
+  static var sampleLines: [(form: WindowFocusCall, line: String)] { HiddenTestWindowTests.sampleCalls }
+
+  static var lookAlikeLines: [String] { HiddenTestWindowTests.lookAlikeLines }
+}
+
 /// Holds each window of the tests off the screen, and the test process out of
 /// the focus (AVK-12).
 ///
@@ -69,7 +76,7 @@ enum WindowFocusCall: String, CaseIterable, CustomTestStringConvertible, Sendabl
   static let allowedFiles: [String: String] = [:]
 
   /// A sample line of each call.
-  static let sampleCalls: [(call: WindowFocusCall, line: String)] = [
+  static let sampleCalls: [(form: WindowFocusCall, line: String)] = [
     (.makeKeyAndOrderFront, "window.makeKeyAndOrderFront(nil)"),
     (.orderFront, "window.orderFront(nil)"),
     (.orderFrontRegardless, "panel.orderFrontRegardless()"),
@@ -87,24 +94,12 @@ enum WindowFocusCall: String, CaseIterable, CustomTestStringConvertible, Sendabl
     "application.setActivationPolicy(.prohibited)",
   ]
 
-  /// The calls whose pattern finds a match in a line.
-  ///
-  /// - Parameter line: The line of code.
-  /// - Returns: The calls, in the order of ``WindowFocusCall/allCases``.
-  static func calls(in line: String) -> [WindowFocusCall] {
-    WindowFocusCall.allCases.filter { line.contains($0.pattern) }
-  }
-
   @Test func eachPatternFindsOnlyItsOwnCall() {
-    for sample in Self.sampleCalls {
-      #expect(Self.calls(in: sample.line) == [sample.call], "\(sample.line)")
-    }
+    WindowFocusCall.expectEachSampleFindsOnlyItsOwnForm()
   }
 
   @Test func noPatternFindsALookAlikeLine() {
-    for line in Self.lookAlikeLines {
-      #expect(Self.calls(in: line).isEmpty, "\(line)")
-    }
+    WindowFocusCall.expectNoFormFindsALookAlikeLine()
   }
 
   @Test(arguments: WindowFocusCall.allCases)
