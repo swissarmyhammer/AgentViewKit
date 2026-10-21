@@ -77,7 +77,8 @@ struct AgentContentEdge: ViewModifier {
 /// theme does not select the glass variant.
 ///
 /// A glass with an ``id`` puts the id in the glass namespace of its
-/// ``FloatingGlassContainer``, so that it morphs (D113 answer 2).
+/// ``FloatingGlassContainer``, so that it morphs (D113 answer 2). The id goes
+/// through ``AgentGlassID``.
 struct AgentFloatingGlass: ViewModifier {
   /// The identity of the glass in the glass namespace of the container, or
   /// `nil` for a glass that does not morph.
@@ -85,14 +86,35 @@ struct AgentFloatingGlass: ViewModifier {
 
   @Environment(\.agentTheme) private var theme
 
+  func body(content: Content) -> some View {
+    content
+      .glassEffect(.regular, in: AgentSurface.shape(for: theme))
+      .modifier(AgentGlassID(id: id))
+  }
+}
+
+/// The identity of the glass in a view, in the glass namespace of its
+/// ``FloatingGlassContainer`` (D113 answer 2).
+///
+/// The modifier applies `glassEffectID(_:in:)` to the view. The id applies to
+/// each Liquid Glass effect in the view: the glass of
+/// ``AgentFloatingGlass``, or the glass of a `.glass` button style. This is
+/// the only place of the kit that applies `glassEffectID(_:in:)`.
+///
+/// Out of a container, there is no namespace, and the modifier does not
+/// change the view. With no ``id``, the modifier does not change the view.
+struct AgentGlassID: ViewModifier {
+  /// The identity of the glass in the glass namespace of the container, or
+  /// `nil` for a glass that does not morph.
+  let id: FloatingGlassID?
+
   @Environment(\.floatingGlassNamespace) private var namespace
 
   func body(content: Content) -> some View {
-    let glass = content.glassEffect(.regular, in: AgentSurface.shape(for: theme))
     if let id, let namespace {
-      glass.glassEffectID(id, in: namespace)
+      content.glassEffectID(id, in: namespace)
     } else {
-      glass
+      content
     }
   }
 }
@@ -162,5 +184,29 @@ extension View {
   /// - Returns: The control on the glass.
   func agentFloatingGlass(id: FloatingGlassID) -> some View {
     modifier(AgentFloatingGlass(id: id))
+  }
+
+  /// Puts the glass of this view in the glass namespace of its container,
+  /// with an id (D113 answer 2).
+  ///
+  /// Use it on a glass button, a button with the `.glass` button style, that
+  /// shows or hides next to another glass of the same container. For
+  /// example, the scroll-to-bottom pill shows and hides above the composer.
+  /// The id applies to the glass of the button style. The modifier makes no
+  /// glass of its own.
+  ///
+  /// The modifier applies `glassEffectID(_:in:)` with `id`, in the namespace
+  /// of the ``FloatingGlassContainer`` above the view
+  /// (``SwiftUI/EnvironmentValues/floatingGlassNamespace``). Out of a
+  /// container, there is no namespace, and the view has no id. For the
+  /// floating glass of the kit, use ``agentFloatingGlass(id:)``.
+  ///
+  /// Reduce Motion: the modifier adds no animation, the same as
+  /// ``agentFloatingGlass(id:)``.
+  ///
+  /// - Parameter id: The identity of the glass in the namespace.
+  /// - Returns: The view with its glass in the namespace.
+  func agentGlassID(_ id: FloatingGlassID) -> some View {
+    modifier(AgentGlassID(id: id))
   }
 }

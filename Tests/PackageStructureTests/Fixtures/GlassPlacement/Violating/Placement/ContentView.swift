@@ -12,6 +12,7 @@ struct ContentView: View {
       FloatingGlassContainer(spacing: Spacing.small) { Text("shared") }
       Button("Open") {}.buttonStyle(.glass)
       Text("morph").glassEffectID(Spacing.small, in: namespace)
+      Button("Pill") {}.agentGlassID(.scrollPill)
     }
   }
 

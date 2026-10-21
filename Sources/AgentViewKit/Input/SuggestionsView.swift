@@ -10,6 +10,10 @@ import SwiftUI
 /// ``DefaultPromptAccessory`` shows this view with the prompts of
 /// ``SwiftUI/EnvironmentValues/promptSuggestions``, in the empty state and
 /// while the agent does not run.
+///
+/// The glass of each chip has the id ``FloatingGlassID/suggestion(_:)`` with
+/// the position of the chip (``SwiftUI/View/agentGlassID(_:)``). Thus the
+/// chips morph when they show or hide next to the composer (D113 answer 2).
 public struct SuggestionsView: View {
   /// The start of the accessibility identifier of each chip.
   public static let chipIdentifierPrefix = "prompt-suggestion-"
@@ -51,6 +55,7 @@ public struct SuggestionsView: View {
             }
             .buttonStyle(.glass)
             .buttonBorderShape(.capsule)
+            .agentGlassID(.suggestion(index))
             .help(String(localized: "Use this prompt", bundle: .module))
             .accessibilityIdentifier(Self.chipIdentifier(at: index))
           }

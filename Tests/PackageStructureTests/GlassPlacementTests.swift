@@ -15,8 +15,14 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   case glassEffect
 
   /// A `.glassEffectID(` call, which lets a glass morph (D113 answer 2). Only
-  /// `agentFloatingGlass(id:)` makes one.
+  /// the glass id modifier of the kit, in the surfaces file, makes one.
   case glassEffectID
+
+  /// The glass id modifier of the kit, `agentGlassID(_:)`. It puts a glass in
+  /// the glass namespace of its container (D113 answer 2). The
+  /// scroll-to-bottom pill and the suggestion chips use it on their glass
+  /// buttons.
+  case glassID
 
   /// The floating glass modifier of the kit, `agentFloatingGlass()` or
   /// `agentFloatingGlass(id:)`. The field and the menu of the composer use it
@@ -45,6 +51,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     switch self {
     case .glassEffect: GlassForm.callPattern("glassEffect")
     case .glassEffectID: GlassForm.callPattern("glassEffectID")
+    case .glassID: GlassForm.callPattern("agentGlassID")
     case .floatingGlass: GlassForm.callPattern("agentFloatingGlass")
     case .glassEffectContainer: WordPattern.wholeWord("GlassEffectContainer")
     case .floatingGlassContainer: WordPattern.wholeWord("FloatingGlassContainer")
@@ -61,6 +68,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   var allowedFiles: Set<String> {
     switch self {
     case .glassEffect, .glassEffectID: [GlassForm.surfacesFile]
+    case .glassID: [GlassForm.surfacesFile, GlassForm.scrollPillFile, GlassForm.suggestionsFile]
     case .floatingGlass: [GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile]
     case .glassEffectContainer: [GlassForm.sharedContainerFile]
     case .floatingGlassContainer:
@@ -82,6 +90,14 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The file of the accessory of the composer, which holds the Send button.
   static let sendButtonFile = KitSourceFiles.kitFile("Input/DefaultPromptAccessory.swift")
 
+  /// The file of the scroll-to-bottom pill, a glass button that shows and
+  /// hides next to the composer.
+  static let scrollPillFile = KitSourceFiles.kitFile("Thread/ScrollToBottomPill.swift")
+
+  /// The file of the suggestion chips, glass buttons that hide while the agent
+  /// runs.
+  static let suggestionsFile = KitSourceFiles.kitFile("Input/SuggestionsView.swift")
+
   /// The file of the button style of the actions of the request cards and the
   /// notices. It selects the style from the place of the request deck: glass
   /// in content, and bordered on the glass of the deck in a bar.
@@ -101,9 +117,9 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// the button style of the actions of the request cards and the notices.
   static let glassButtonFiles: Set<String> = [
     sendButtonFile,
-    KitSourceFiles.kitFile("Input/SuggestionsView.swift"),
+    suggestionsFile,
     KitSourceFiles.kitFile("Input/SpeechInputButton.swift"),
-    KitSourceFiles.kitFile("Thread/ScrollToBottomPill.swift"),
+    scrollPillFile,
     requestActionStyleFile,
     KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
     KitSourceFiles.kitFile("Status/StatusBar.swift"),
@@ -231,6 +247,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     (.floatingGlassContainer, 12),
     (.glassButtonStyle, 13),
     (.glassEffectID, 14),
+    (.glassID, 15),
   ]
 
   /// The fixture file with two prominent glass button styles, relative to

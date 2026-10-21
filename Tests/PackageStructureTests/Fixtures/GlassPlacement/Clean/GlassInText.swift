@@ -1,7 +1,7 @@
 // A fixture for GlassPlacementTests. The package build excludes this file.
-// .glassEffect(, .glassEffectID(, .agentFloatingGlass(), GlassEffectContainer
-// and FloatingGlassContainer are in this comment, so the scan must not report
-// them.
+// .glassEffect(, .glassEffectID(, .agentGlassID(, .agentFloatingGlass(),
+// GlassEffectContainer and FloatingGlassContainer are in this comment, so the
+// scan must not report them.
 import SwiftUI
 
 /* .buttonStyle(.glass) and .buttonStyle(.glassProminent) are in a block

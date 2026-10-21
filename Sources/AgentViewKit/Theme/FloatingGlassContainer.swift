@@ -13,9 +13,10 @@ import SwiftUI
 /// The container also gives one glass namespace to its content
 /// (``SwiftUI/EnvironmentValues/floatingGlassNamespace``). A glass with a
 /// ``FloatingGlassID`` puts its id in this namespace
-/// (``SwiftUI/View/agentFloatingGlass(id:)``). Thus a glass that shows or hides
-/// next to another glass of the group morphs, and does not jump (D113
-/// answer 2). A container in a container keeps the namespace of the outer
+/// (``SwiftUI/View/agentFloatingGlass(id:)`` for the floating glass of the kit,
+/// ``SwiftUI/View/agentGlassID(_:)`` for a glass button). Thus a glass that
+/// shows or hides next to another glass of the group morphs, and does not jump
+/// (D113 answer 2). A container in a container keeps the namespace of the outer
 /// container, so that each glass of the group has its id in one namespace.
 ///
 /// This is the only view of the kit that makes a `GlassEffectContainer`.
@@ -69,6 +70,17 @@ nonisolated enum FloatingGlassID: Hashable, Sendable {
   /// The menu of the editor, which shows and hides above the field of the
   /// composer (``PromptEditorMenuLayer``).
   case editorMenu
+
+  /// The scroll-to-bottom pill, which shows and hides above the composer
+  /// (``ScrollToBottomPill``).
+  case scrollPill
+
+  /// The suggestion chip at a position in the list. The chips hide while the
+  /// agent runs (``SuggestionsView``).
+  ///
+  /// Two suggestions can have the same text, so the id holds the position of
+  /// the chip.
+  case suggestion(Int)
 }
 
 extension EnvironmentValues {

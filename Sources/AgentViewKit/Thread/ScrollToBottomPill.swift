@@ -6,6 +6,10 @@ import SwiftUI
 /// bottom. The title tells the number of items that arrived after the user
 /// scrolled up, for example "1 new". With no new item, the title is
 /// "Scroll to Bottom".
+///
+/// The pill shows and hides above the composer, in the glass container of
+/// the floating controls. Its glass has the id ``FloatingGlassID/scrollPill``
+/// (``SwiftUI/View/agentGlassID(_:)``), so the change morphs (D113 answer 2).
 public struct ScrollToBottomPill: View {
   /// The accessibility identifier of the pill.
   public static let identifier = "scroll-to-bottom-pill"
@@ -50,6 +54,7 @@ public struct ScrollToBottomPill: View {
     }
     .buttonStyle(.glass)
     .buttonBorderShape(.capsule)
+    .agentGlassID(.scrollPill)
     .accessibilityIdentifier(Self.identifier)
   }
 }

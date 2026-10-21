@@ -22,6 +22,11 @@ import Testing
 /// morphs (D113 answer 2). The composer adds no animation of its own, so no
 /// morph runs while Reduce Motion is on (plan.md §6).
 ///
+/// The scroll-to-bottom pill and the suggestion chips are glass buttons that
+/// show and hide next to the composer, in the same container. Each file gives
+/// its glass a `FloatingGlassID` one time, through `agentGlassID(_:)`. That
+/// one modifier applies each `.glassEffectID` of a glass button.
+///
 /// The EditorKit editor is in the field glass. So its file writes no glass:
 /// glass in it is glass on glass.
 ///
@@ -46,6 +51,14 @@ import Testing
   /// menu of the editor.
   static let composerGlassIDs = ["composerField", "editorMenu"]
 
+  /// Each glass button that shows or hides next to the composer, as the file
+  /// that holds it and the name of its `FloatingGlassID` case: the
+  /// scroll-to-bottom pill, and the suggestion chips (D113 answer 2).
+  static let glassButtonIDs = [
+    (file: GlassForm.scrollPillFile, id: "scrollPill"),
+    (file: GlassForm.suggestionsFile, id: "suggestion"),
+  ]
+
   /// The pattern that finds a namespace property wrapper, `@Namespace`.
   static var namespacePattern: Regex<Substring> {
     Regex {
@@ -66,6 +79,15 @@ import Testing
       "id:"
     }
     return WordPattern.memberPattern(after: receiver, WordPattern.wholeWord(id))
+  }
+
+  /// The pattern that finds the glass id modifier of the kit with a glass id,
+  /// such as `.agentGlassID(.scrollPill)` or `.agentGlassID(.suggestion(index))`.
+  ///
+  /// - Parameter id: The name of the `FloatingGlassID` case.
+  /// - Returns: The pattern, from ``WordPattern/memberPattern(after:_:)``.
+  static func glassIDPattern(id: String) -> Regex<Substring> {
+    WordPattern.memberPattern(after: GlassForm.glassID.pattern, WordPattern.wholeWord(id))
   }
 
   /// The number of the code lines of `file` that use `pattern`. A use in a
@@ -106,6 +128,19 @@ import Testing
   @Test(arguments: composerGlassIDs)
   func theComposerGivesTheGlassIDOneTime(id: String) throws {
     #expect(try Self.codeLineCount(of: Self.floatingGlassPattern(id: id)) == 1)
+  }
+
+  @Test(arguments: glassButtonIDs)
+  func eachGlassButtonNextToTheComposerGivesItsGlassIDOneTime(file: String, id: String) throws {
+    #expect(try Self.codeLineCount(of: Self.glassIDPattern(id: id), in: file) == 1)
+  }
+
+  @Test func theGlassIDPatternFindsTheIDInTheArgumentOfTheModifier() {
+    let pattern = Self.glassIDPattern(id: "suggestion")
+
+    #expect("chip.agentGlassID( .suggestion(index))".contains(pattern))
+    #expect(!"chip.agentGlassID(.suggestions)".contains(pattern))
+    #expect(!"chip.agentFloatingGlass(id: .suggestion(index))".contains(pattern))
   }
 
   @Test func theComposerWritesNoDirectGlassEffect() throws {
