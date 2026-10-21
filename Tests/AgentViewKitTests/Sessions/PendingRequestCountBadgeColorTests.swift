@@ -15,11 +15,9 @@ import Testing
   @Test func theBadgeDrawsNoPixelOfTheAccent() throws {
     let session = SessionModel.previewSample
     try #require(!session.pendingRequests.isEmpty)
-    let blank = try EditorThemeViewsTests.pixels(of: Color.clear)
 
-    let pixels = try EditorThemeViewsTests.pixels(of: PendingRequestCountBadge(session: session))
+    let pixels = try EditorThemeViewsTests.drawnPixels(of: PendingRequestCountBadge(session: session))
 
-    try #require(!pixels.isClose(to: blank))
     #expect(!pixels.contains(DistinctRolesTheme.Role.accent))
   }
 }

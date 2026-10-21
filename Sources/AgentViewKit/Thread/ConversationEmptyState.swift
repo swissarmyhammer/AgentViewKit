@@ -124,6 +124,10 @@ public struct ConversationEmptyState: View {
 /// The title and the SF Symbol of a ``ConversationEmptyState``.
 ///
 /// With no title and no symbol, the header shows nothing.
+///
+/// The symbol has the `.secondary` style. It does not use the accent of the
+/// EditorKit theme: in content, the accent marks only a link, the selection
+/// or the current item (D113 answer 5).
 private struct ConversationEmptyHeader: View {
   /// The title, or `nil` for no title.
   let title: String?
@@ -139,7 +143,7 @@ private struct ConversationEmptyHeader: View {
       HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
         if let systemImage {
           Image(systemName: systemImage)
-            .foregroundStyle(editorTheme.accent)
+            .foregroundStyle(.secondary)
             .fontWeight(theme.symbolWeight)
             .accessibilityHidden(true)
         }

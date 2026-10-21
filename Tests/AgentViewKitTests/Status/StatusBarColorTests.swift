@@ -5,7 +5,11 @@ import Testing
 @testable import AgentViewKit
 
 /// Checks that the symbol of a status bar shows a failure with the error color
-/// of the EditorKit theme, and each other message with the accent.
+/// of the EditorKit theme, and each other message with the `.secondary` style.
+///
+/// The error color is a status color of the theme (D112). The symbol of a
+/// message that is not a failure is not a link, the selection or the current
+/// item, so it does not use the accent of the theme (D113 answer 5).
 ///
 /// The tests give ``DistinctRolesTheme``, which has a different color for each
 /// role, so each color names its role.
@@ -51,9 +55,9 @@ import Testing
     }
   }
 
-  @Test func aBarThatIsNotAFailureTintsItsSymbolWithTheAccent() throws {
+  @Test func aBarThatIsNotAFailureShowsItsSymbolWithTheSecondaryStyle() throws {
     for message in try Self.otherMessages() {
-      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Role.accent, "\(message.identifier)")
+      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Color.secondary, "\(message.identifier)")
     }
   }
 }

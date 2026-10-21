@@ -1,5 +1,3 @@
-import EditorSwiftUI
-import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -15,6 +13,10 @@ import SwiftUI
 /// - The version line is the `version` of the agent info.
 ///
 /// Before `initialize` succeeds, the header shows nothing.
+///
+/// The symbol has the `.secondary` style. It does not use the accent of the
+/// EditorKit theme: in content, the accent marks only a link, the selection
+/// or the current item (D113 answer 5).
 ///
 /// The name text has the accessibility identifier ``nameIdentifier``, and the
 /// version text has ``versionIdentifier``.
@@ -35,7 +37,6 @@ public struct AgentInfoHeader: View {
   let connection: ConnectionModel
 
   @Environment(\.agentTheme) private var theme
-  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the header of the agent of a connection model.
   ///
@@ -48,7 +49,7 @@ public struct AgentInfoHeader: View {
     if let info = connection.initializeResponse?.info {
       HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
         Image(systemName: Self.symbol)
-          .foregroundStyle(editorTheme.accent)
+          .foregroundStyle(.secondary)
           .fontWeight(theme.symbolWeight)
           .accessibilityHidden(true)
         Text(info.title ?? info.name)

@@ -16,8 +16,10 @@ import SwiftUI
 /// of the bar is the title.
 ///
 /// The symbol of a failure message (``StateBanner/Message/isFailure``) has the
-/// error color of the EditorKit theme. The symbol of each other message has
-/// the accent color of the theme.
+/// error color of the EditorKit theme, a status color of the theme (D112).
+/// The symbol of each other message has the `.secondary` style. It does not
+/// use the accent of the theme: in content, the accent marks only a link, the
+/// selection or the current item (D113 answer 5).
 ///
 /// The symbol of a message of work that goes on
 /// (``StateBanner/Message/isOngoing``), such as the running banner and the
@@ -52,15 +54,15 @@ struct StatusBar: View {
   @Environment(\.agentTheme) private var theme
   @Environment(\.editorTheme) private var editorTheme
 
-  /// The color of the symbol of `message`, from the EditorKit theme.
+  /// The color of the symbol of `message`.
   ///
   /// - Parameters:
   ///   - message: The message of the bar.
   ///   - theme: The EditorKit theme.
-  /// - Returns: `severityError` for a failure message, and `accent` for each
-  ///   other message.
+  /// - Returns: `severityError` of `theme` for a failure message, and
+  ///   `Color.secondary` for each other message.
   static func symbolColor(for message: StateBanner.Message, in theme: any EditorTheme.Theme) -> Color {
-    message.isFailure ? theme.severityError : theme.accent
+    message.isFailure ? theme.severityError : Color.secondary
   }
 
   var body: some View {

@@ -54,6 +54,65 @@ import Testing
     try #require(RenderedPixels(rendering: view.editorTheme(DistinctRolesTheme()), size: size))
   }
 
+  /// The pixels of `view` in light mode with ``DistinctRolesTheme`` as its
+  /// EditorKit theme, after a check that the view draws something.
+  ///
+  /// A test that finds no pixel of a role must use this function. A view that
+  /// draws nothing has no pixel of any role, so the test would pass for the
+  /// wrong cause.
+  ///
+  /// The function renders the clear view before `view`, and the order is
+  /// necessary. When the first render of the test process is
+  /// ``AgentInfoHeader`` or ``PendingRequestCountBadge``, `ImageRenderer`
+  /// draws nothing for these two views in that render and in each later
+  /// render. When the first render is the clear view, each later render of
+  /// these views draws.
+  ///
+  /// - Parameter view: The view to render.
+  /// - Returns: The pixels.
+  /// - Throws: An error when the renderer gives no pixels, or when the pixels
+  ///   are the same as the pixels of a clear view.
+  static func drawnPixels(of view: some View) throws -> RenderedPixels {
+    let blank = try pixels(of: Color.clear)
+    return try requireDrawn(pixels(of: view.environment(\.colorScheme, .light)), blank: blank)
+  }
+
+  /// The same as ``drawnPixels(of:)``, but the pixels come from the cache of
+  /// a window. Use this function for a view that `ImageRenderer` does not
+  /// draw, for example a view in a `ScrollView`. A test that calls it must
+  /// have the `.hostedSerially` trait.
+  ///
+  /// - Parameter view: The view to show in the window.
+  /// - Returns: The pixels.
+  /// - Throws: An error when AppKit gives no pixels, or when the pixels are
+  ///   the same as the pixels of a clear view.
+  static func drawnCachedPixels(of view: some View) throws -> RenderedPixels {
+    let blank = try cachedPixels(of: Color.clear)
+    return try requireDrawn(cachedPixels(of: view.environment(\.colorScheme, .light)), blank: blank)
+  }
+
+  /// The pixels that AppKit caches for `view` in a window, with
+  /// ``DistinctRolesTheme`` as its EditorKit theme.
+  ///
+  /// - Parameter view: The view to show in the window.
+  /// - Returns: The pixels.
+  /// - Throws: An error when AppKit gives no pixels.
+  static func cachedPixels(of view: some View) throws -> RenderedPixels {
+    try GlassRenderProbeHostedTests.cachedPixels(of: view.editorTheme(DistinctRolesTheme()), size: size)
+  }
+
+  /// Checks that a view draws something.
+  ///
+  /// - Parameters:
+  ///   - drawn: The pixels of the view.
+  ///   - blank: The pixels of a clear view, from the same renderer.
+  /// - Returns: `drawn`.
+  /// - Throws: An error when `drawn` is the same as `blank`.
+  static func requireDrawn(_ drawn: RenderedPixels, blank: RenderedPixels) throws -> RenderedPixels {
+    try #require(!drawn.isClose(to: blank))
+    return drawn
+  }
+
   /// Whether a line that hides the backdrop of ``GlassRenderProbeTests`` is
   /// between two rows that show it, in the column at `x`.
   ///
