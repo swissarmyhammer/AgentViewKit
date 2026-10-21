@@ -36,8 +36,24 @@ comments:
     - evidence: root cause = `NSCampoLightweightUIHostWindow`, a private AppKit window that a timer of `NSTextInputContext` (`_performDwellingCheck` / `_performHoveringDwellingCheck`) makes for the Writing Tools affordance of a focused text view. Its class overrides `isKeyWindow` (true) while it is not visible, has size 0x0, and `NSApp.keyWindow == nil`, `NSApp.isActive == false`. Init stacks in winwatch/y2-diag3.log. Files: Sources/AgentViewKitTestSupport/HostedViewHarness.swift (new `processHasFocus`), Tests/AgentViewKitTests/TestSupport/HostedViewHarnessTests.swift (new `KeyStatusReportingWindow`, new test `aWindowThatOnlyReportsTheKeyStatusTakesNoFocus`, focus check changed). RED: the new test failed with the old check; GREEN: it passed. Full suite 3 times with `run-watched.sh` (y2-full1, y2-full2, y2-full3): build-exit=0, test-exit=0 each, 1573 tests in 197 suites + 214 + 1 passed, 3 known issues (the same as before), 0 on-screen test-process windows in each run.
     - next: /review
   timestamp: 2026-10-21T21:02:28.552703+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m5g4ehyn1tzf3jrd69dr1709
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 2acfcd8). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. The engine reviewed 2 files. The .reviewignore rule excluded 4 .kanban files.
+    - next: none. The task is in done.
+  timestamp: 2026-10-21T21:04:06.613450+00:00
+- actor: claude-code
+  id: 01m5g4ewk6314awke06vn3dfsy
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — root cause: private AppKit NSCampoLightweightUIHostWindow reports isKeyWindow while hidden; new HostedViewHarness.processHasFocus; new test aWindowThatOnlyReportsTheKeyStatusTakesNoFocus
+    - test: green — 3 watched full runs, 1573 + 214 + 1 passed (3 known issues); on-screen test windows 0
+    - commit: 2acfcd8
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T21:04:17.510519+00:00
+position_column: done
+position_ordinal: ffffaa80
 title: Find why aMountedViewThatGetsAKeyShowsNoWindowAndTakesNoFocus fails in some full runs
 ---
 ## Why

@@ -78,13 +78,24 @@ table below gives the EditorKit role that replaces each one.
 | error notice, error message, validation error | `severityError` | system red |
 | code font, in SwiftUI text and in the EditorKit editor | `editorFont` | system monospaced font, body text style |
 | prose font | `proseFont` | system font, body text style |
-| frame of a code block | `editorBackground` | `NSColor.textBackgroundColor` |
 | code text | `editorForeground` | `NSColor.textColor` |
 | frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | the editor background, the editor foreground, and Apple system colors |
 | selected text | `selection` | `NSColor.selectedTextBackgroundColor` |
-| header bar of a code block, terminal, or command output | `statusBarBackground` | `NSColor.windowBackgroundColor` |
 | diff bands | `diffAddedBackground`, `diffRemovedBackground` | system green and system red at opacity 0.18 (`DiffTintDefaults.bandOpacity`) |
 | +N / −N counts of a diff | `diffAddedText`, `diffRemovedText` | system green and system red at full opacity |
+
+The kit does not draw the roles `editorBackground` and `statusBarBackground`
+(D113 answers 1 and 4, TestudoApp `features/style.md` "How the steps
+apply"). A code block has no fill. The header row of a code block, a
+terminal, or command output is content, not a bar: it has no fill, and a
+separator line is under it. Before D113, the table had the row "frame of a
+code block" with `editorBackground`, and the row "header bar of a code block,
+terminal, or command output" with `statusBarBackground`. D113 replaces these
+two rows. `EditorThemeViewsTests` checks the pixels, and `ContentFillTests`
+forbids the `statusBarBackground` role and a theme color as a background.
+Open item ^m231ph5: the EditorKit text view of a code block still draws the
+system text background, because EditorKit keeps the AppKit default
+`drawsBackground = true`. A change in EditorKit is necessary.
 
 The other roles that the EditorKit views read are `gutterBackground`,
 `tabBarBackground`, `tokenTint`, `diffChangedBackground`, and

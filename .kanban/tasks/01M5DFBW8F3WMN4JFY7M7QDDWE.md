@@ -20,6 +20,34 @@ comments:
     - `Docs/decisions/visual-audit.md` has a row that gives `statusBarBackground` for the header row of a code block. That row is now out of date: the header row has no fill and a separator line is under it (D113 answer 4). Correct that row or add a note that D113 replaces it.
     - `statusBarBackground` now has no user in `Sources/AgentViewKit`.
   timestamp: 2026-10-21T06:53:44.471916+00:00
+- actor: claude-code
+  id: 01m5g4kx6a8ztmp8zf1hmqtxmk
+  text: |-
+    ### research
+    - plan.md and Docs/decisions/visual-audit.md are both in the AgentViewKit repo. No TestudoApp edit is necessary.
+    - The token paragraph of §5 already has no `materialLevel` (AVK-8ae). visual-audit.md already has "The removed material level".
+    - visual-audit.md "Colors and the code font" table has two rows that the code no longer does: "frame of a code block | `editorBackground`" and "header bar ... | `statusBarBackground`". `EditorThemeViewsTests` (`theCodeBlockFrameHasNoEditorBackground`, `theCodeBlockHeaderHasNoStatusBarBackground`) and `ContentFillTests` (forms `statusBarBackground`, `themeColorBackground`) forbid them.
+    - The §5 glass paragraph names facts that the code does not do: "the picker" is not glass (`PermissionModePicker` is a plain control in the accessory row), the "tool tray" morph does not exist, and no source uses `appearsActive`.
+    - Request card buttons: `RequestDeckPlace.style(of:)` gives `.glassProminent`/`.glass` in content, and `.borderedProminent`/`.bordered` on the deck glass in a bar ("Buttons on glass" in style.md). The card text says only "can use the glass button styles"; §5 names both places.
+    - Docs tests that read plan.md or visual-audit.md: `DecisionRecordTests` (plan.md names no removed part) and `AgentThemeGoldenTests` (token table of visual-audit.md).
+  timestamp: 2026-10-21T21:07:01.962162+00:00
+- actor: claude-code
+  id: 01m5g4th0n1xmy068t6hay73hz
+  text: |-
+    ### implementation notes
+    - plan.md §5: the glass paragraph is now a link to `../TestudoApp/features/style.md` and `research-liquid-glass.md`, a list of 16 rules (each with its AVK card and its guard test), and an "Open items" list (^m231ph5, ^8q34yt8). The token paragraph says "No token selects the glass" and keeps the R12 sentence. "Match Xcode's restraint" now says tint is only for the primary action. §6 Reduce Motion got one sentence for the method of AVK-8ag and one for `GlassAccessibilityTests` (AVK-8p).
+    - Removed from §5 because the code does not do them: "the picker" as glass, the tool tray morph, `appearsActive`, and "macOS 27 adds no new glass API" (not a code fact).
+    - Card mapping corrected from the done cards: `GlassPlacementTests` is AVK-8n (not AVK-8o). AVK-8o extended `FixedColorTests`. `ComposerGlassStructureTests` is AVK-8i. The card item "request card buttons can use the glass button styles" is only true in content: in a bar they are `.bordered` / `.borderedProminent` (AVK-8y, style.md "Buttons on glass"). §5 says both.
+    - visual-audit.md: removed the rows "frame of a code block | `editorBackground`" and "header bar ... | `statusBarBackground`", and added a paragraph that says D113 replaces them, names the guards, and names ^m231ph5. The `materialLevel` section already agreed (AVK-8ae).
+    - TestudoApp: no file changed.
+  timestamp: 2026-10-21T21:10:38.869407+00:00
+- actor: claude-code
+  id: 01m5g4tktcghfjgf4nfkyxsann
+  text: |-
+    ### implement — changed
+    - evidence: 2 files in the AgentViewKit repo — plan.md (§5, §6 Reduce Motion sentence), Docs/decisions/visual-audit.md (two stale color rows replaced by a D113 note). No source or test file changed. TestudoApp not changed (git status clean). Docs tests: `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'` — 23 tests in 2 suites passed, and 3 tests in 1 suite passed.
+    - next: /review. Not committed.
+  timestamp: 2026-10-21T21:10:41.740467+00:00
 depends_on:
 - 01M5DFADQHSHCRAQW0709TVAPV
 - 01M5DF7Y8PDWS7XF25WDBBYG9W
@@ -46,8 +74,8 @@ depends_on:
 - 01M5E8XAAZ7ZAT3RKSG102C8KK
 - 01M5E8XMJXF8XABYA7P3ZGM5SF
 - 01M5E8XTQS654VRMEBB5A6B05B
-position_column: todo
-position_ordinal: '9880'
+position_column: doing
+position_ordinal: '8180'
 title: AVK-8q Change plan.md §5 to name the Liquid Glass rules of D110, the procedure of D111, the themes of D112 and the answers of D113
 ---
 ## Why
@@ -68,24 +96,24 @@ D113 (testudoapp-4c) answers the open questions of the plan update comment on ^b
 
 Rewrite the glass paragraph of §5 in STE. Name these rules and cite D110, D111, D112, D113, `TestudoApp/features/style.md` and `TestudoApp/features/research-liquid-glass.md`:
 
-- [ ] **The style guide.** Say that `TestudoApp/features/style.md` is the one style guide, and that §5 gives only how the kit does each rule.
-- [ ] **Two layers.** Navigation and control (glass) and content (no glass), with the list of each layer from `style.md`.
-- [ ] **No fill in content (D113 answer 1).** The transcript, the messages, the tool call cards, the request cards, the notices, the state banners, the code blocks and the artifacts have no fill and no glass. `agentContentEdge(radius:)` draws a `.separator` stroke in a `ConcentricRectangle` (AVK-8v). `agentContentSurface` is removed (AVK-8ab). If a group needs more, the kit uses a system container (`GroupBox`, or a grouped `Form`), never a custom fill. Name the answer of AVK-8aa for the terminal background.
-- [ ] **Header rows (D113 answer 4).** The header row of a code block, the terminal and command output is content, not a bar. It has no fill; a `.separator` line marks it (AVK-8ac).
-- [ ] **Glass only on floating controls.** The composer field, its accessory cluster, the suggestions, the editor menu and the scroll-to-bottom pill use `agentFloatingGlass` or the glass button styles, in one `GlassEffectContainer` (`FloatingGlassContainer`, AVK-8l). Never glass on glass.
-- [ ] **Variant and shape (D113 answer 3).** Floating glass is always `.regular`. The Clear and Tinted looks are system settings that the system applies; no theme value selects the variant, and `AgentTheme` has no `materialLevel` (AVK-8ad, AVK-8ae). Small floating controls (the pill, the chips) are `.capsule`; icon-only buttons are `.circle`; the composer field and the editor menu are a `ConcentricRectangle` (AVK-8af).
-- [ ] **Button styles first.** `.glass` and `.glassProminent` before custom glass. One prominent action at a time: Send when the agent is idle, Stop while the agent runs. The action buttons of a request card can use the glass button styles.
-- [ ] **Morphs (D113 answer 2).** Remove the old tool tray sentence. Say: when one glass element shows or hides next to another in the same container (the pill and the composer field, the editor menu and the field, the suggestion chips), each has a `glassEffectID` in the one `@Namespace` of `FloatingGlassContainer` (AVK-8ag, AVK-8ah). Name the Reduce Motion method of AVK-8ag.
-- [ ] **Tint and accent (D113 answers 5 and 6).** `.tint` only on the primary action. No `.foregroundStyle(.tint)` on other controls. No `Glass.tint(_:)`. In content, the theme accent marks only a link, the selection or the current item (AVK-8ai, AVK-8aj, AVK-8ak, AVK-8t).
-- [ ] **Scroll under the bars (D113 answer 7).** The thread list scrolls under the top bar (header and banners) and under the bottom bar (state banner, sign-in prompt, pill, composer), with the scroll edge effect (AVK-8al, AVK-8am).
-- [ ] **System chrome.** Toolbars, the sidebar, the inspector, sheets, popovers and menus are system glass. The kit adds no background to them (AVK-8s).
-- [ ] **Themes (D112).** One theme system: the `Theme` of EditorTheme. The default is `SystemTheme`. The host injects the theme once at the root of each window with `.editorTheme(_:)`. The kit sets no theme and has no color constants of its own. A theme colors only the content layer. No view draws an opaque theme fill behind a bar, and no view uses the status bar or tab bar color of a theme.
-- [ ] **Computed palettes (D113 answer 8).** The terminal colors 0 to 15 come from `TerminalPalette`; 16 to 255 come from the xterm formula. A standard formula is not a color constant of the kit.
-- [ ] **Images under the sidebar.** The kit has no image under the sidebar, so it uses no `.backgroundExtensionEffect()` (D111 step 6, AVK-8s).
-- [ ] **Accessibility.** Each glass view has a test with Reduce Transparency and Increase Contrast (AVK-8p). The Tinted look and the Clear look are system settings that no test can turn on deterministically: a person checks them in the screenshots of AVK-8u, one time for each release.
-- [ ] **The screenshot check.** Name the manual check of D111 step 8 (AVK-8u): a person compares screenshots of the demo app with Finder and System Settings in light mode, dark mode, Reduce Transparency, Increase Contrast, the Tinted look and the Clear look.
-- [ ] **Guards.** Name `GlassPlacementTests`, `ComposerGlassStructureTests`, `FixedColorTests` and `ContentFillTests` (AVK-8o, AVK-8r), `SystemStructureTests` (AVK-8s) and `ThemeInjectionTests` (AVK-8t).
-- [ ] In the token paragraph, remove `materialLevel` (AVK-8ae) and say that no token selects the glass.
+- [x] **The style guide.** Say that `TestudoApp/features/style.md` is the one style guide, and that §5 gives only how the kit does each rule.
+- [x] **Two layers.** Navigation and control (glass) and content (no glass), with the list of each layer from `style.md`.
+- [x] **No fill in content (D113 answer 1).** The transcript, the messages, the tool call cards, the request cards, the notices, the state banners, the code blocks and the artifacts have no fill and no glass. `agentContentEdge(radius:)` draws a `.separator` stroke in a `ConcentricRectangle` (AVK-8v). `agentContentSurface` is removed (AVK-8ab). If a group needs more, the kit uses a system container (`GroupBox`, or a grouped `Form`), never a custom fill. Name the answer of AVK-8aa for the terminal background.
+- [x] **Header rows (D113 answer 4).** The header row of a code block, the terminal and command output is content, not a bar. It has no fill; a `.separator` line marks it (AVK-8ac).
+- [x] **Glass only on floating controls.** The composer field, its accessory cluster, the suggestions, the editor menu and the scroll-to-bottom pill use `agentFloatingGlass` or the glass button styles, in one `GlassEffectContainer` (`FloatingGlassContainer`, AVK-8l). Never glass on glass.
+- [x] **Variant and shape (D113 answer 3).** Floating glass is always `.regular`. The Clear and Tinted looks are system settings that the system applies; no theme value selects the variant, and `AgentTheme` has no `materialLevel` (AVK-8ad, AVK-8ae). Small floating controls (the pill, the chips) are `.capsule`; icon-only buttons are `.circle`; the composer field and the editor menu are a `ConcentricRectangle` (AVK-8af).
+- [x] **Button styles first.** `.glass` and `.glassProminent` before custom glass. One prominent action at a time: Send when the agent is idle, Stop while the agent runs. The action buttons of a request card can use the glass button styles.
+- [x] **Morphs (D113 answer 2).** Remove the old tool tray sentence. Say: when one glass element shows or hides next to another in the same container (the pill and the composer field, the editor menu and the field, the suggestion chips), each has a `glassEffectID` in the one `@Namespace` of `FloatingGlassContainer` (AVK-8ag, AVK-8ah). Name the Reduce Motion method of AVK-8ag.
+- [x] **Tint and accent (D113 answers 5 and 6).** `.tint` only on the primary action. No `.foregroundStyle(.tint)` on other controls. No `Glass.tint(_:)`. In content, the theme accent marks only a link, the selection or the current item (AVK-8ai, AVK-8aj, AVK-8ak, AVK-8t).
+- [x] **Scroll under the bars (D113 answer 7).** The thread list scrolls under the top bar (header and banners) and under the bottom bar (state banner, sign-in prompt, pill, composer), with the scroll edge effect (AVK-8al, AVK-8am).
+- [x] **System chrome.** Toolbars, the sidebar, the inspector, sheets, popovers and menus are system glass. The kit adds no background to them (AVK-8s).
+- [x] **Themes (D112).** One theme system: the `Theme` of EditorTheme. The default is `SystemTheme`. The host injects the theme once at the root of each window with `.editorTheme(_:)`. The kit sets no theme and has no color constants of its own. A theme colors only the content layer. No view draws an opaque theme fill behind a bar, and no view uses the status bar or tab bar color of a theme.
+- [x] **Computed palettes (D113 answer 8).** The terminal colors 0 to 15 come from `TerminalPalette`; 16 to 255 come from the xterm formula. A standard formula is not a color constant of the kit.
+- [x] **Images under the sidebar.** The kit has no image under the sidebar, so it uses no `.backgroundExtensionEffect()` (D111 step 6, AVK-8s).
+- [x] **Accessibility.** Each glass view has a test with Reduce Transparency and Increase Contrast (AVK-8p). The Tinted look and the Clear look are system settings that no test can turn on deterministically: a person checks them in the screenshots of AVK-8u, one time for each release.
+- [x] **The screenshot check.** Name the manual check of D111 step 8 (AVK-8u): a person compares screenshots of the demo app with Finder and System Settings in light mode, dark mode, Reduce Transparency, Increase Contrast, the Tinted look and the Clear look.
+- [x] **Guards.** Name `GlassPlacementTests`, `ComposerGlassStructureTests`, `FixedColorTests` and `ContentFillTests` (AVK-8o, AVK-8r), `SystemStructureTests` (AVK-8s) and `ThemeInjectionTests` (AVK-8t).
+- [x] In the token paragraph, remove `materialLevel` (AVK-8ae) and say that no token selects the glass.
 
 ## Acceptance
 
