@@ -42,10 +42,26 @@ comments:
     - changes: No file changed by this step.
     - next: review
   timestamp: 2026-10-21T09:41:36.361888+00:00
+- actor: claude-code
+  id: 01m5exg4hr6nejtbb3cd4g4tge
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (fa26af5). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. Not reviewed: 2 .kanban files (ignore rule), Docs/decisions/accessibility.md (no validator matches).
+    - next: The task is in done.
+  timestamp: 2026-10-21T09:43:23.960824+00:00
+- actor: claude-code
+  id: 01m5exgf1mt0qe51kqh8pr78v1
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 9 files
+    - test: green — swift test, 1475 passed, 2 known issues that were there before; 179 structure tests passed
+    - commit: fa26af5
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T09:43:34.708376+00:00
 depends_on:
 - 01M5E8VGGTR59NGWNVHSDKM4QT
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9880
 title: 'AVK-8ag Glass morph, part 1: a @Namespace in FloatingGlassContainer, agentFloatingGlass(id:), and glassEffectID on the composer field and the editor menu; replace theComposerAddsNoGlassMorph (D113 answer 2)'
 ---
 ## Why
