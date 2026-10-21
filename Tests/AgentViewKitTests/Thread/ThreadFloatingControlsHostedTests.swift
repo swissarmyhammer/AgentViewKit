@@ -183,9 +183,12 @@
     /// The manager sends the scroll on the next main-actor tick after the
     /// press. The press always requests that scroll, and no jump cancels it,
     /// so the test waits for the event that the recorder gets the bottom
-    /// target. The test does not check the pin state right after the press:
-    /// the pill goes away, the list gets taller, and the geometry change can
-    /// send the old rows in view to the manager again
+    /// target. The press makes a render pass. In that pass, the pill goes
+    /// away, the list gets taller, and the geometry change can send the old
+    /// rows in view to the manager again. Thus the test does not check the
+    /// pin state right after the press. It gives the report of the rows at
+    /// the bottom, as the list does after the scroll, before it checks the
+    /// pin state and that the pill is gone
     /// (``ConversationViewHostedTests/aPressOnThePillSetsTheNewEntryCountToZero()``).
     @Test func aPressOnThePillOfTheThreadScrollsTheListToTheBottom() async throws {
       let session = try await Self.openLongSession()
@@ -201,6 +204,7 @@
 
       try harness.press(identifier: ScrollToBottomPill.identifier)
       await ObservationWait.until { targets.values.last == .bottom }
+      ConversationViewHostedTests.reportRows(at: .bottom, of: session.model, to: anchors)
       harness.render()
 
       #expect(anchors.isPinnedToBottom)
