@@ -30,6 +30,47 @@ comments:
     - warnings: only the mlx bundle warning (known before this work). No new warning.
     - next: review
   timestamp: 2026-10-21T08:54:15.212211+00:00
+- actor: claude-code
+  id: 01m5etszp7byfzpj1q7dq9agpw
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (14d77a3). 1 finding (1 confirmed, 0 refuted): Sources/AgentViewKit/Thread/ConversationEmptyState.swift:146 duplication/duplication.
+    - next: Extract one shared symbol view for AgentInfoHeader and ConversationEmptyHeader. Then do the review again.
+  timestamp: 2026-10-21T08:56:20.935770+00:00
+- actor: claude-code
+  id: 01m5etttj92wpnhjvyy8z61gyt
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 8 files
+    - test: green — swift test, 1473 passed, 2 known issues that were there before; 174 structure tests passed
+    - commit: 14d77a3
+    - review: findings — Sources/AgentViewKit/Thread/ConversationEmptyState.swift:146
+  timestamp: 2026-10-21T08:56:48.457815+00:00
+- actor: claude-code
+  id: 01m5ev3qy0k7yhcykbqyf9xhtn
+  text: |-
+    Fix of the duplication finding (ConversationEmptyState.swift:146).
+
+    - New internal view `DecorativeSymbolImage` (Sources/AgentViewKit/Items/DecorativeSymbolImage.swift), next to `StatusSymbolImage`. It takes the symbol name and applies `.foregroundStyle(.secondary)`, `.fontWeight(theme.symbolWeight)` and `.accessibilityHidden(true)`. The two old copies had no font and no size of their own (the symbol took the font of the HStack), so the view has no font parameter. The look of each view stays the same.
+    - AgentInfoHeader.body and ConversationEmptyHeader.body call `DecorativeSymbolImage(name:)`. Both inline copies are deleted. Both views keep `agentTheme` for the spacing. The doc comments of both views now point to `DecorativeSymbolImage`.
+    - Search of the kit: only these two files had the full set (secondary style, symbol weight, hidden trait) on one symbol. `EntryTimingView` has the weight and the hidden trait, but it is a time line, not a header, and it takes `.secondary` from its HStack together with its text. It is thus not a copy of the decorative header symbol, and it stays as it is.
+    - Guard test: `SharedSymbolTreatmentTests.eachDecorativeHeaderSymbolDrawsWithTheSharedDecorativeSymbolImage` (PackageStructureTests) finds each `Image(systemName:` in `decorativeSymbolFiles` (AgentInfoHeader.swift, ConversationEmptyState.swift). RED: it found AgentInfoHeader.swift:51 and ConversationEmptyState.swift:145. GREEN after the change.
+  timestamp: 2026-10-21T09:01:40.672725+00:00
+- actor: claude-code
+  id: 01m5ev3tn5fkftdy0v2httpxep
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Items/DecorativeSymbolImage.swift (new), Sources/AgentViewKit/Connections/AgentInfoHeader.swift, Sources/AgentViewKit/Thread/ConversationEmptyState.swift, Tests/PackageStructureTests/SharedSymbolTreatmentTests.swift. `swift test`: 1473 tests in 184 suites passed with the 2 known issues (AgentInfoHeaderColorTests and ConversationEmptyStateColorHostedTests passed); 175 tests in 23 suites passed (174 before, plus the new guard test); 1 test in 1 suite passed. Only the mlx bundle warning, which existed before.
+    - next: /review
+  timestamp: 2026-10-21T09:01:43.461897+00:00
+- actor: claude-code
+  id: 01m5ev9r876wr21s9x6m0dmaxw
+  text: |-
+    ### test — green
+    - evidence: swift test, 109 s wall time. 1473 tests in 184 suites passed, 0 failed, 0 skipped. 2 known issues (these existed before). PackageStructureTests ran and passed (SharedSymbolTreatmentTests, ManifestTests, PackageFilesTests, SymbolRenderingModeTests passed).
+    - warnings: a forced rebuild of the 4 changed files (swift build --build-tests) gave only the known mlx bundle warning. No new warning.
+    - next: review.
+  timestamp: 2026-10-21T09:04:57.607800+00:00
 depends_on:
 - 01M5E8SRKB36TVJNFAE2F1ARB7
 position_column: doing
@@ -58,3 +99,12 @@ D113 answer 5 and `style.md` "Tint": "In content, the theme accent marks only a 
 - A unit test: `StateBanner.symbolColor(for:in:)` (or its new name) gives `theme.severityError` for a failure message and `Color.secondary` for each other message, with `DistinctRolesTheme`.
 - A render test of `AgentInfoHeader` and of `ConversationEmptyState` with `DistinctRolesTheme` finds no pixel of the accent role (`RenderedPixels`, light mode).
 - Tests use Swift Testing. No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-8
+
+## Review Findings (2026-10-21 03:54)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Thread/ConversationEmptyState.swift:146` `duplication/duplication` — The symbol image of ConversationEmptyHeader is a near-copy of the symbol image of AgentInfoHeader. This change added the same `.foregroundStyle(.secondary)` modifier to both copies. The two copies can drift apart, and a later style change must be made in two places. Extract one shared symbol view that takes the symbol name and applies the secondary style, the symbol weight and the hidden accessibility trait. Call it from AgentInfoHeader.body and from ConversationEmptyHeader.body, and delete both inline copies.

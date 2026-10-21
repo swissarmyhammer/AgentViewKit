@@ -9,6 +9,9 @@ import Testing
 /// the color of a status symbol are in one view, `StatusSymbolImage`. A change
 /// to the effect, to the Reduce Motion rule or to the symbol treatment is thus
 /// made one time, and each status symbol in ``statusSymbolFiles`` shows it.
+/// The secondary style, the symbol weight and the hidden accessibility trait
+/// of a decorative header symbol are in one view, `DecorativeSymbolImage`, and
+/// each symbol in ``decorativeSymbolFiles`` shows them.
 ///
 /// The scan reads each Swift file as text, one line at a time.
 @Suite struct SharedSymbolTreatmentTests {
@@ -33,6 +36,14 @@ import Testing
     KitSourceFiles.kitFile("Items/ErrorView.swift"),
     KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
     KitSourceFiles.kitFile("Activity/ActivityTimeline.swift"),
+  ]
+
+  /// The files of the decorative header symbols that draw with
+  /// `DecorativeSymbolImage`: the symbol of the agent header and the symbol of
+  /// the conversation empty state.
+  static let decorativeSymbolFiles = [
+    KitSourceFiles.kitFile("Connections/AgentInfoHeader.swift"),
+    KitSourceFiles.kitFile("Thread/ConversationEmptyState.swift"),
   ]
 
   /// Finds the lines that write one of some texts.
@@ -82,5 +93,15 @@ import Testing
     }
 
     #expect(found.isEmpty, "Use StatusSymbolImage in: \(found)")
+  }
+
+  @Test func eachDecorativeHeaderSymbolDrawsWithTheSharedDecorativeSymbolImage() throws {
+    let found = try Self.decorativeSymbolFiles.flatMap { file in
+      SourceLineScanner.matches(inSource: try PackageFiles.text(of: file), file: file) { line in
+        Self.uses(of: [KitSourceFiles.symbolImageCall], on: line)
+      }
+    }
+
+    #expect(found.isEmpty, "Use DecorativeSymbolImage in: \(found)")
   }
 }

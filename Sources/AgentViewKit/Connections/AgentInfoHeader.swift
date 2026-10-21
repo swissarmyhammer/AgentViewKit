@@ -14,9 +14,8 @@ import SwiftUI
 ///
 /// Before `initialize` succeeds, the header shows nothing.
 ///
-/// The symbol has the `.secondary` style. It does not use the accent of the
-/// EditorKit theme: in content, the accent marks only a link, the selection
-/// or the current item (D113 answer 5).
+/// The symbol is a ``DecorativeSymbolImage``: it has the `.secondary` style,
+/// not the accent of the EditorKit theme (D113 answer 5).
 ///
 /// The name text has the accessibility identifier ``nameIdentifier``, and the
 /// version text has ``versionIdentifier``.
@@ -48,10 +47,7 @@ public struct AgentInfoHeader: View {
   public var body: some View {
     if let info = connection.initializeResponse?.info {
       HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
-        Image(systemName: Self.symbol)
-          .foregroundStyle(.secondary)
-          .fontWeight(theme.symbolWeight)
-          .accessibilityHidden(true)
+        DecorativeSymbolImage(name: Self.symbol)
         Text(info.title ?? info.name)
           .font(.headline)
           .accessibilityAddTraits(.isHeader)
