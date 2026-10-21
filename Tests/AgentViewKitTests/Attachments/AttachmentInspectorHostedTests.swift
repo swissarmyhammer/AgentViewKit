@@ -339,9 +339,33 @@ import UniformTypeIdentifiers
   static func mountThreadView(of session: ScriptedSession, selection: InspectorSelection)
     -> HostedViewHarness<some View>
   {
+    mountThreadView(of: session) {
+      DefaultThreadComposer()
+    } modifier: {
+      $0.environment(\.inspectorSelection, selection)
+    }
+  }
+
+  /// Mounts the thread view of a scripted session with `composer` in its
+  /// composer slot, applies `modifier` to the thread view, and makes one
+  /// render pass.
+  ///
+  /// Each test that mounts a thread view uses this function, so that the
+  /// mount and the render pass have one source.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session that the thread view shows.
+  ///   - composer: The view in the composer slot of the thread view.
+  ///   - modifier: The function that gives the view to mount from the thread
+  ///     view, for example a host with its own inspector.
+  /// - Returns: The harness of the view. The caller closes it.
+  static func mountThreadView<Composer: View, Mounted: View>(
+    of session: ScriptedSession, @ViewBuilder composer: () -> Composer,
+    @ViewBuilder modifier: (AgentThreadView<Composer>) -> Mounted
+  ) -> HostedViewHarness<Mounted> {
     let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection)
-        .environment(\.inspectorSelection, selection),
+      modifier(
+        AgentThreadView(session: session.model, connection: session.connection, composer: composer)),
       size: hostSize)
     harness.render()
     return harness

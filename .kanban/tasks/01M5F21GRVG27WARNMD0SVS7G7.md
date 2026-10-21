@@ -92,6 +92,44 @@ comments:
     - No code change was needed. Nothing was committed.
     - next: review
   timestamp: 2026-10-21T12:35:30.315243+00:00
+- actor: claude-code
+  id: 01m5f7ejd3zp7s2h79bzyam4na
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 997441e). 1 finding (1 confirmed, 0 refuted): Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:271. The 2 prior findings are checked.
+    - next: Do the open item in the "Review Findings (2026-10-21 07:36)" section. Then run the review again.
+  timestamp: 2026-10-21T12:37:18.371006+00:00
+- actor: claude-code
+  id: 01m5f7exn2rmpr1tk2jp300nen
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 4 files (the doc comment points to the snippet; shared image and host-mode test helpers)
+    - test: green — swift test, 1487 passed, 2 known issues that were there before; no hang
+    - commit: 997441e
+    - review: findings — Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:271 (new finding; the two prior findings are checked)
+  timestamp: 2026-10-21T12:37:29.890330+00:00
+- actor: claude-code
+  id: 01m5f7n7wat4fetxk0s30q71ar
+  text: Finding (07:36, reuse/reuse, mountInHostMode) is fixed. AttachmentInspectorHostedTests now has one generic helper `mountThreadView(of:composer:modifier:)` that mounts the thread view with the composer, applies the modifier closure, and makes one render pass. The old `mountThreadView(of:selection:)` calls it with `DefaultThreadComposer()` and the `\.inspectorSelection` environment, so its callers have the same behavior. `mountInHostMode` calls the generic helper with the composer and `testHostInspector(selection:)`. The test `aThreadViewWithTheDefaultModeShowsTheKitInspectorAfterAPress` had its own copy of the mount steps (added by this card); it now calls the generic helper with an identity modifier. Other thread view mounts in the test target come from before this card, so they stay as they are.
+  timestamp: 2026-10-21T12:40:56.970434+00:00
+- actor: claude-code
+  id: 01m5f7na0m715jfrr7tryffecc
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift, Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift. Full `swift test`: 1487 tests in 187 suites passed, 2 known issues (expected), 0 failures. RecordedSessionsAgentTests did not hang.
+    - next: /review
+  timestamp: 2026-10-21T12:40:59.156347+00:00
+- actor: claude-code
+  id: 01m5f7sw2v24xdhyhqfk0jjh6e
+  text: |-
+    ### test — green
+    - evidence: swift test (115 s wall, 76.5 s test run) — Swift Testing: 1487 tests in 187 suites passed, 0 failed, 0 skipped, 2 known issues (HostedLayoutExpectationsTests, ThemeHeightExpectationsTests; both existed before). XCTest: 0 tests, 0 failures.
+    - package structure suites passed: PackageFilesTests, KitSourceFilesTests, ResolvedPinsTests, ImportBoundaryTests, ManifestTests, ThreadTopBarStructureTests, ThreadBottomBarStructureTests, ComposerGlassStructureTests, and others. ReadmeSnippetsTests and ReadmeSnippetTests passed.
+    - warnings: only the known mlx bundle build warning (missing creator for mutated node). No new warning.
+    - RecordedSessionsAgentTests did not hang (passed in 76.5 s).
+    - no code changed.
+    - next: review
+  timestamp: 2026-10-21T12:43:28.731286+00:00
 position_column: doing
 position_ordinal: '80'
 title: AVK-10 Let a host with its own inspector use AgentThreadView with no attachment inspector
@@ -125,3 +163,12 @@ Acceptance:
 
 - [x] `Sources/AgentViewKit/Attachments/AttachmentInspectorMode.swift:125` `duplication/duplication` — The doc comment example for agentAttachmentInspector copies the InspectorWindow body from Examples/ReadmeSnippets/Snippets/HostInspector.swift nearly word for word. The compiled snippet is the checked source. The copy can drift from it without any build failure. Keep the example in HostInspector.swift only. Point the doc comment at that snippet, or include the snippet through the readme compile tooling, so one copy is the source. Do not keep a second hand-written copy in the doc comment.
 - [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:178` `reuse/reuse` — The new test aPressOnAnImageInTheHostModeSetsTheHostSelection repeats the setup of an existing image press test: it builds the PNG, the ImageContent, the scripted session and the press. This copy will drift from the original when the image setup changes. Move the PNG and ImageContent construction into a shared helper, for example in AttachmentInspectorHostedTests, and call it from both tests. Keep the host-mode binding and the assertions in this test.
+
+## Review Findings (2026-10-21 07:36)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorModeHostedTests.swift:271` `reuse/reuse` — The new helper mountInHostMode repeats the mount and render steps of the existing helper mountThreadView. It differs only by the host inspector modifier and the composer slot. A second copy of the harness setup can drift from the first. Extend mountThreadView instead. Add an optional parameter to mountThreadView for the composer and a modifier closure, or move the shared mount and render steps into one helper. Then mountInHostMode calls that helper with the host modifier and the composer.

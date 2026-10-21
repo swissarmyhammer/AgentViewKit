@@ -126,13 +126,12 @@ struct SplitViewHostWithThreadTabs: View {
     let attachment = try Shared.attachment(named: "blob.bin", in: directory)
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection) {
-        AttachmentView(attachment)
-      },
-      size: Shared.hostSize)
+    let harness = Shared.mountThreadView(of: session) {
+      AttachmentView(attachment)
+    } modifier: {
+      $0
+    }
     defer { harness.close() }
-    harness.render()
     try #require(Shared.inspectorItem(in: harness)?.isCollapsed == true)
 
     try Shared.withoutAnimation {
@@ -271,12 +270,9 @@ struct SplitViewHostWithThreadTabs: View {
   static func mountInHostMode<Composer: View>(
     _ session: ScriptedSession, state: HostAttachmentState, @ViewBuilder composer: () -> Composer
   ) -> HostedViewHarness<some View> {
-    let harness = HostedViewHarness(
-      AgentThreadView(session: session.model, connection: session.connection, composer: composer)
-        .testHostInspector(selection: Bindable(state).selection),
-      size: Shared.hostSize)
-    harness.render()
-    return harness
+    Shared.mountThreadView(of: session, composer: composer) {
+      $0.testHostInspector(selection: Bindable(state).selection)
+    }
   }
 
   /// The accessibility identifier of the tag of a thread of the split view
