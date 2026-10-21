@@ -49,14 +49,30 @@ comments:
     - search: no hit for agentContentSurface or AgentContentSurface in Sources, Tests, Examples.
     - next: review
   timestamp: 2026-10-21T09:52:37.803604+00:00
+- actor: claude-code
+  id: 01m5ey3j98smfahbcyvxh98bjv
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c5e437b). 17 files reviewed. 0 findings, 0 confirmed, 0 refuted. Five code-hygiene tool rules did not read Tests/AgentViewKitTests/Theme/ContentSurfaceHostedProbe.swift, because the commit removed that file (rename of the probe).
+    - next: none. The task moved to done.
+  timestamp: 2026-10-21T09:54:00.616770+00:00
+- actor: claude-code
+  id: 01m5ey3wzj3zn54a8z0tk3h3tq
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 17 files (agentContentSurface removed; the probe renamed to ContentEdgeHostedProbe)
+    - test: green — swift test, 1473 passed, 2 known issues that were there before; 179 structure tests passed
+    - commit: c5e437b
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T09:54:11.570634+00:00
 depends_on:
 - 01M5E8SRKB36TVJNFAE2F1ARB7
 - 01M5E8SYCWE9FM05FFS1T18BMX
 - 01M5E8T69B91ATX31Q3BR70YR3
 - 01M5E8TFNDT9Q9WE6C2D6YW9PP
 - 01M5E8TQ4JA20GAATH7MZ0NFKA
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9980
 title: AVK-8ab Remove agentContentSurface and AgentContentSurface after all callers moved to agentContentEdge (D113 answer 1)
 ---
 ## Why
