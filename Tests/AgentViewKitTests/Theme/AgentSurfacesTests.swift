@@ -86,29 +86,41 @@ import Testing
       of: view, with: .reduceTransparency, on: reducesTransparency, size: size)
   }
 
+  /// A content surface with its standard fill over the backdrop.
+  static var contentSurface: some View {
+    OverBackdrop { Color.clear.agentContentSurface() }
+  }
+
+  /// A content edge over the backdrop.
+  static var contentEdge: some View {
+    OverBackdrop { Color.clear.agentContentEdge() }
+  }
+
   @Test func theBackdropShowsAtEachPointWhenTheViewHasNoSurface() throws {
-    let pixels = try Self.pixels(of: ContentSurfaceOverBackdrop(hasSurface: false))
+    let pixels = try Self.pixels(of: OverBackdrop { Color.clear })
     for point in Self.insidePoints {
       #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: point))
     }
   }
 
   @Test func theContentSurfaceHidesTheBackdropAtEachPointInsideIt() throws {
-    let pixels = try Self.pixels(of: ContentSurfaceOverBackdrop(hasSurface: true))
+    let pixels = try Self.pixels(of: Self.contentSurface)
     for point in Self.insidePoints {
       #expect(!pixels.contains(GlassRenderProbeTests.backdrop, at: point))
     }
   }
 
   @Test func theContentSurfaceHasNoGlassThatFollowsReduceTransparency() throws {
-    let surface = ContentSurfaceOverBackdrop(hasSurface: true)
+    let surface = Self.contentSurface
     let on = try Self.pixels(of: surface, reducesTransparency: true)
     let off = try Self.pixels(of: surface, reducesTransparency: false)
     #expect(on.isClose(to: off))
   }
 
   @Test func theFloatingGlassFollowsReduceTransparency() throws {
-    let glass = FloatingGlassOverBackdrop()
+    let glass = OverBackdrop(inset: 0) {
+      GlassEffectContainer { Color.clear.agentFloatingGlass() }
+    }
     let on = try Self.pixels(of: glass, reducesTransparency: true)
     let off = try Self.pixels(of: glass, reducesTransparency: false)
     #expect(on != off)
@@ -160,107 +172,91 @@ import Testing
     #expect(path != largePath)
   }
 
-  @Test(arguments: smallerRadii)
-  func theContentSurfaceOfARadiusUsesTheShapeOfThatRadius(radius: CGFloat) {
-    let surface = AgentContentSurface(fill: AnyShapeStyle(.background.secondary), radius: radius)
-    let path = surface.shape(in: .default).path(in: Self.pathRect)
-    let expected = AgentSurface.shape(radius: radius).path(in: Self.pathRect)
-    let largePath = AgentSurface.shape(for: .default).path(in: Self.pathRect)
-    #expect(path == expected)
-    #expect(path != largePath)
+  /// The content surface and the content edge use one expected path: the
+  /// path of ``AgentSurface/shape(radius:)`` with the same radius.
+  @Test(arguments: ContentShapeModifier.allCases, radiusTokens)
+  func theContentModifierOfARadiusUsesTheShapeOfThatRadius(
+    modifier: ContentShapeModifier, radius: CGFloat
+  ) {
+    let path = modifier.shape(radius: radius, in: .default).path(in: Self.pathRect)
+    #expect(path == AgentSurface.shape(radius: radius).path(in: Self.pathRect))
   }
 
-  @Test func theContentSurfaceWithNoRadiusUsesTheLargeRadiusOfTheTheme() {
+  /// The content surface and the content edge use one expected path: the
+  /// path of ``AgentSurface/shape(for:)`` of a theme with a different large
+  /// radius.
+  @Test(arguments: ContentShapeModifier.allCases)
+  func theContentModifierWithNoRadiusUsesTheLargeRadiusOfTheTheme(
+    modifier: ContentShapeModifier
+  ) {
     var theme = AgentTheme.default
     theme.radii.l = Self.otherLargeRadius
-    let surface = AgentContentSurface(fill: AnyShapeStyle(.background.secondary), radius: nil)
-    let path = surface.shape(in: theme).path(in: Self.pathRect)
+    let path = modifier.shape(radius: nil, in: theme).path(in: Self.pathRect)
     #expect(path == AgentSurface.shape(for: theme).path(in: Self.pathRect))
   }
 
   @Test func theContentSurfaceShowsItsFillAtEachPointInsideIt() throws {
     let pixels = try Self.pixels(
-      of: ContentSurfaceOverBackdrop(hasSurface: true, fill: Self.surfaceFill))
+      of: OverBackdrop { Color.clear.agentContentSurface(Self.surfaceFill) })
     for point in Self.insidePoints {
       #expect(pixels.contains(Self.surfaceFill, at: point))
     }
   }
 
   @Test func theContentEdgeShowsTheBackdropAtItsCenter() throws {
-    let pixels = try Self.pixels(of: ContentEdgeOverBackdrop())
+    let pixels = try Self.pixels(of: Self.contentEdge)
     #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.centerPoint))
   }
 
   @Test func theContentEdgeDrawsAStrokeOnItsEdge() throws {
-    let pixels = try Self.pixels(of: ContentEdgeOverBackdrop())
+    let pixels = try Self.pixels(of: Self.contentEdge)
     let strokedPoints = Self.edgePoints.filter { !pixels.contains(GlassRenderProbeTests.backdrop, at: $0) }
     #expect(!strokedPoints.isEmpty)
   }
-
-  @Test(arguments: radiusTokens)
-  func theContentEdgeOfARadiusUsesTheShapeOfThatRadius(radius: CGFloat) {
-    let path = AgentContentEdge(radius: radius).shape(in: .default).path(in: Self.pathRect)
-    #expect(path == AgentSurface.shape(radius: radius).path(in: Self.pathRect))
-  }
-
-  @Test func theContentEdgeWithNoRadiusUsesTheLargeRadiusOfTheTheme() {
-    var theme = AgentTheme.default
-    theme.radii.l = Self.otherLargeRadius
-    let path = AgentContentEdge(radius: nil).shape(in: theme).path(in: Self.pathRect)
-    #expect(path == AgentSurface.shape(for: theme).path(in: Self.pathRect))
-  }
 }
 
-/// A content edge inside the backdrop of ``GlassRenderProbeTests``, with
-/// ``AgentSurfacesTests/surfaceInset`` of backdrop around it.
-struct ContentEdgeOverBackdrop: View {
-  var body: some View {
-    ZStack {
-      GlassRenderProbeTests.backdrop
-      Color.clear.agentContentEdge().padding(AgentSurfacesTests.surfaceInset)
+/// The content modifiers that have a shape: the content surface and the
+/// content edge. The shape tests use each one, so that one test gives the
+/// expected path for both.
+enum ContentShapeModifier: CaseIterable, Sendable {
+  /// ``AgentContentSurface``, with the standard fill.
+  case surface
+
+  /// ``AgentContentEdge``.
+  case edge
+
+  /// The shape that the modifier gives.
+  ///
+  /// - Parameters:
+  ///   - radius: The radius token of the corners, or `nil` for the large
+  ///     radius of `theme`.
+  ///   - theme: The tokens that give the large radius.
+  /// - Returns: The shape.
+  @MainActor func shape(radius: CGFloat?, in theme: AgentTheme) -> ConcentricRectangle {
+    switch self {
+    case .surface:
+      AgentContentSurface(fill: AnyShapeStyle(.background.secondary), radius: radius)
+        .shape(in: theme)
+    case .edge:
+      AgentContentEdge(radius: radius).shape(in: theme)
     }
   }
 }
 
-/// A content surface inside the backdrop of ``GlassRenderProbeTests``, with
-/// ``AgentSurfacesTests/surfaceInset`` of backdrop around it.
-struct ContentSurfaceOverBackdrop: View {
-  /// Whether the view has the surface. When it is `false`, the view shows
-  /// only the backdrop.
-  let hasSurface: Bool
+/// A view over the backdrop of ``GlassRenderProbeTests``, with `inset` of
+/// backdrop around it.
+struct OverBackdrop<Surface: View>: View {
+  /// The space between the edge of the render and the edge of ``surface``.
+  var inset: CGFloat = AgentSurfacesTests.surfaceInset
 
-  /// The fill of the surface. When it is `nil`, the surface uses its
-  /// standard fill.
-  var fill: Color?
+  /// The view over the backdrop, for example a clear view with a content
+  /// surface or a content edge.
+  @ViewBuilder let surface: Surface
 
   var body: some View {
     ZStack {
       GlassRenderProbeTests.backdrop
-      if hasSurface {
-        surface.padding(AgentSurfacesTests.surfaceInset)
-      }
-    }
-  }
-
-  /// The surface, with ``fill`` when the view has one.
-  @ViewBuilder private var surface: some View {
-    if let fill {
-      Color.clear.agentContentSurface(fill)
-    } else {
-      Color.clear.agentContentSurface()
-    }
-  }
-}
-
-/// A floating glass that fills the view, over the backdrop of
-/// ``GlassRenderProbeTests``, in a `GlassEffectContainer`.
-struct FloatingGlassOverBackdrop: View {
-  var body: some View {
-    ZStack {
-      GlassRenderProbeTests.backdrop
-      GlassEffectContainer {
-        Color.clear.agentFloatingGlass()
-      }
+      surface.padding(inset)
     }
   }
 }
