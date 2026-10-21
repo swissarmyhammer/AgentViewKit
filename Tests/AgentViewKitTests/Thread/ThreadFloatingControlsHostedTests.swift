@@ -184,8 +184,9 @@
     }
 
     /// A press on the pill of the thread pins the manager, the pill goes
-    /// away, the manager sends the scroll to the bottom, and the list moves
-    /// to the last row. The test gives no visibility report after the press.
+    /// away, and the manager sends the scroll to the bottom. The pin and the
+    /// pill stay so after the list moves. The test gives no visibility report
+    /// after the press.
     ///
     /// The press makes a render pass. In that pass, the pill goes away, and
     /// the geometry change of the list sends the old rows in view to the
@@ -196,12 +197,21 @@
     /// The manager sends the scroll on the next main-actor tick after the
     /// press. The press always requests that scroll, and no jump cancels it,
     /// so the test waits for the event that the recorder gets the bottom
-    /// target. Then the list moves to the last row over some layout passes,
-    /// and it reports the rows at the bottom. The list is the only source of
-    /// the rows in view after the press, so the test waits for the event
-    /// that the last row in view is the last entry. Then one render pass
-    /// shows the result.
-    @Test func aPressOnThePillOfTheThreadScrollsTheListToTheBottom() async throws {
+    /// target. Then one ``HostedViewHarness/render()`` pass moves the list,
+    /// and the test checks the pin and the pill again.
+    ///
+    /// The test does not wait for the report of the last row, and it does not
+    /// check the rows in view. Only a layout pass of the list writes that
+    /// report, and in the off-screen harness window no pass is certain to
+    /// come. A wait for it stayed suspended for ever, while the test held
+    /// `HostedTestLock` and stopped each other hosted test
+    /// (``ConversationViewHostedTests/reportRows(at:of:to:)``). Also, in this
+    /// window the rows in view after the scroll are not always the same: a
+    /// scroll in a render pass of the test can stop the list two rows above
+    /// the last row, and a scroll in an update of SwiftUI goes to the last
+    /// row. Gap: ``ConversationViewHostedTests/aPressOnThePillScrollsTheListToTheLastRow()``
+    /// checks that the list of a conversation moves to the last row.
+    @Test func aPressOnThePillOfTheThreadRequestsTheScrollToTheBottom() async throws {
       let session = try await Self.openLongSession()
       defer { session.close() }
       let lastKey = try #require(session.model.transcript.last?.rowKey)
@@ -220,9 +230,8 @@
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
       await ObservationWait.until { targets.values.last == .bottom }
-      await harness.render { anchors.visibleIDs.last == lastKey }
+      harness.render()
 
-      #expect(ConversationViewHostedTests.showsRow(lastKey, in: harness))
       #expect(anchors.isPinnedToBottom)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
