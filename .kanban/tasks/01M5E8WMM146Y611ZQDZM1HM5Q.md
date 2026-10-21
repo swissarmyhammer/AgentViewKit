@@ -77,11 +77,27 @@ comments:
     - evidence: One warning only: the mlx bundle build warning (same as before). No new warning.
     - next: review
   timestamp: 2026-10-21T10:21:58.071185+00:00
+- actor: claude-code
+  id: 01m5ezryc71312xpv890j0cr8h
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (beee738). 0 findings, 0 confirmed, 0 refuted. 7 attempts, 0 failed. The two prior items of the 2026-10-21 05:08 section are checked.
+    - next: The task is in done.
+  timestamp: 2026-10-21T10:23:09.703568+00:00
+- actor: claude-code
+  id: 01m5ezs9zjzrq491ydq1pq5cs3
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (one glass id pattern; parameterized composer glass tests)
+    - test: green — swift test, 1473 passed, 2 known issues that were there before
+    - commit: beee738
+    - review: clean — 0 findings, the two prior findings are checked
+  timestamp: 2026-10-21T10:23:21.586085+00:00
 depends_on:
 - 01M5E8WCXKPRJWZ9XMPSPYDP18
 - 01M5E8W08CXBJD9CHP8EKR44GZ
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff9a80
 title: 'AVK-8ah Glass morph, part 2: glassEffectID on the scroll-to-bottom pill and the suggestion chips (D113 answer 2)'
 ---
 ## Why
