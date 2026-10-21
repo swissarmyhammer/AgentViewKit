@@ -170,8 +170,9 @@ let package = Package(
       ]
         + acpProducts + editorKitTestSupportProducts,
       // AgentThemeTests reads the token file from disk as data, so the build
-      // excludes it.
-      exclude: ["Theme/DefaultTokens.json"],
+      // excludes it. The snapshot tests read their reference PNG images from
+      // disk too (AVK-13), so the build excludes that folder.
+      exclude: ["Theme/DefaultTokens.json", "Snapshots/__Snapshots__"],
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links only PackageFileSupport,

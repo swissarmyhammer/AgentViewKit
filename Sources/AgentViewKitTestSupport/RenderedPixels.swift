@@ -22,16 +22,20 @@ import SwiftUI
 /// there (`GlassRenderProbeTests`).
 public struct RenderedPixels: Equatable {
   /// The bytes of one pixel: red, green, blue and alpha, one byte each.
-  private static let bytesPerPixel = 4
+  static let bytesPerPixel = 4
 
   /// The bits of one color component.
-  private static let bitsPerComponent = 8
+  static let bitsPerComponent = 8
 
   /// The largest value of one color component in a byte.
-  private static let componentMaximum = 255.0
+  static let componentMaximum = 255.0
 
   /// The pixels at the scale of a Retina screen, two pixels for each point.
-  private static let renderScale: CGFloat = 2
+  ///
+  /// ``init(rendering:size:)`` renders at this scale. A snapshot image
+  /// caches a window at this scale too, so that the image has the same size
+  /// on each computer (AVK-13).
+  public static let renderScale: CGFloat = 2
 
   /// The distance from the top leading corner of a pixel to its center, in
   /// pixels.
@@ -40,6 +44,18 @@ public struct RenderedPixels: Equatable {
   /// The default largest difference of one color component, from 0 to 1,
   /// between a pixel and the color that a test looks for.
   public static let defaultTolerance = 0.02
+
+  /// The largest share of the pixels of an `ImageRenderer` render of a glass
+  /// view that can change between two runs, from 0 to 1.
+  ///
+  /// The rim of a rounded glass changes after the first renders of the
+  /// process (``isClose(to:at:tolerance:)``). In the glass snapshot images of
+  /// AVK-13, the change was at most 109 pixels of 409,600 (0.027 percent),
+  /// all on the rims, and a byte changed by up to 39 levels. This share is
+  /// about four times the largest share that was measured. A change of the
+  /// look of a glass, such as Reduce Transparency, changes thousands of
+  /// pixels, so a snapshot test still finds it.
+  public static let glassRimShare = 0.001
 
   /// A hosting view that the type makes one time, before its first render.
   ///
@@ -52,17 +68,17 @@ public struct RenderedPixels: Equatable {
   /// The pixel bytes, ``bytesPerPixel`` for each pixel. The color components
   /// have the alpha multiplied in, so only an opaque pixel keeps the full
   /// components of its color.
-  private let bytes: [UInt8]
+  let bytes: [UInt8]
 
   /// The number of pixels in one row. The first row of ``bytes`` is the top
   /// row of the image.
-  private let width: Int
+  let width: Int
 
   /// The number of rows of pixels.
-  private let height: Int
+  let height: Int
 
   /// The number of pixels for each point.
-  private let scale: CGFloat
+  let scale: CGFloat
 
   /// Renders `view` at `size` points.
   ///
@@ -105,10 +121,31 @@ public struct RenderedPixels: Equatable {
   ///   the pixels cannot be read.
   @MainActor
   public init?(cachingDisplayOf view: NSView) {
-    guard let cache = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
-    view.cacheDisplay(in: view.bounds, to: cache)
-    guard let image = cache.cgImage, view.bounds.width > 0 else { return nil }
+    guard let cache = view.bitmapImageRepForCachingDisplay(in: view.bounds),
+      let image = Self.cachedImage(of: view, in: cache), view.bounds.width > 0
+    else { return nil }
     self.init(image: image, scale: CGFloat(image.width) / view.bounds.width)
+  }
+
+  /// Reads the pixels that AppKit caches for `view` and its subviews, at
+  /// `scale` pixels for each point.
+  ///
+  /// The window of a ``HostedViewHarness`` is not on a screen, so its scale
+  /// is the scale of the main screen of the computer. A snapshot image uses
+  /// this initializer, so that the image has the same size on each computer
+  /// (AVK-13).
+  ///
+  /// - Parameters:
+  ///   - view: The view to read.
+  ///   - scale: The number of pixels for each point.
+  /// - Returns: `nil` when the view has no area, AppKit gives no cache, or
+  ///   the pixels cannot be read.
+  @MainActor
+  public init?(cachingDisplayOf view: NSView, scale: CGFloat) {
+    guard let cache = Self.bitmap(size: view.bounds.size, scale: scale),
+      let image = Self.cachedImage(of: view, in: cache)
+    else { return nil }
+    self.init(image: image, scale: scale)
   }
 
   /// Reads the pixels of `image`.
@@ -117,12 +154,58 @@ public struct RenderedPixels: Equatable {
   ///   - image: The image to read.
   ///   - scale: The number of pixels in `image` for each point.
   /// - Returns: `nil` when the pixels cannot be read.
-  private init?(image: CGImage, scale: CGFloat) {
+  init?(image: CGImage, scale: CGFloat) {
     guard let bytes = Self.bytes(of: image) else { return nil }
+    self.init(bytes: bytes, width: image.width, height: image.height, scale: scale)
+  }
+
+  /// Holds pixel bytes that are in the layout of ``bytes``.
+  ///
+  /// - Parameters:
+  ///   - bytes: The bytes, ``bytesPerPixel`` for each pixel, from the top row.
+  ///   - width: The number of pixels in one row.
+  ///   - height: The number of rows.
+  ///   - scale: The number of pixels for each point.
+  init(bytes: [UInt8], width: Int, height: Int, scale: CGFloat) {
     self.bytes = bytes
-    self.width = image.width
-    self.height = image.height
+    self.width = width
+    self.height = height
     self.scale = scale
+  }
+
+  /// Draws `view` and its subviews into `cache`.
+  ///
+  /// - Parameters:
+  ///   - view: The view to draw.
+  ///   - cache: The bitmap to draw into. Its size is the size of the bounds
+  ///     of `view`, in points.
+  /// - Returns: The image of the bitmap, or `nil` when AppKit gives none.
+  @MainActor
+  private static func cachedImage(of view: NSView, in cache: NSBitmapImageRep) -> CGImage? {
+    view.cacheDisplay(in: view.bounds, to: cache)
+    return cache.cgImage
+  }
+
+  /// An empty sRGB bitmap with an alpha channel, `size` points large, with
+  /// `scale` pixels for each point.
+  ///
+  /// - Parameters:
+  ///   - size: The size of the bitmap, in points.
+  ///   - scale: The number of pixels for each point.
+  /// - Returns: The bitmap, or `nil` when it has no pixel or AppKit cannot
+  ///   make it.
+  private static func bitmap(size: CGSize, scale: CGFloat) -> NSBitmapImageRep? {
+    let pixelsWide = Int((size.width * scale).rounded())
+    let pixelsHigh = Int((size.height * scale).rounded())
+    guard pixelsWide > 0, pixelsHigh > 0,
+      let bitmap = NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh,
+        bitsPerSample: bitsPerComponent, samplesPerPixel: bytesPerPixel, hasAlpha: true,
+        isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+      )?.retagging(with: .sRGB)
+    else { return nil }
+    bitmap.size = size
+    return bitmap
   }
 
   /// Whether a pixel has the color `color`.
@@ -177,7 +260,54 @@ public struct RenderedPixels: Equatable {
   ///   - tolerance: The largest difference of one component, from 0 to 1.
   /// - Returns: `true` when the images show the same.
   public func isClose(to other: RenderedPixels, tolerance: Double = defaultTolerance) -> Bool {
-    isClose(to: other, atOffsets: Array(pixelOffsets), tolerance: tolerance)
+    changedPixelCount(comparedWith: other, tolerance: tolerance) == 0
+  }
+
+  /// The number of pixels that are not close to the pixels of `other`.
+  ///
+  /// A pixel changed when one of its bytes is not in `tolerance` of the byte
+  /// of `other`, as in ``isClose(to:tolerance:)``.
+  ///
+  /// - Parameters:
+  ///   - other: The pixels to compare with.
+  ///   - tolerance: The largest difference of one component, from 0 to 1.
+  /// - Returns: The number of changed pixels, or `nil` when the images do
+  ///   not have the same size and scale.
+  public func changedPixelCount(comparedWith other: RenderedPixels, tolerance: Double = defaultTolerance)
+    -> Int?
+  {
+    guard width == other.width, height == other.height, scale == other.scale else { return nil }
+    let levels = tolerance * Self.componentMaximum
+    return bytes.withUnsafeBufferPointer { mine in
+      other.bytes.withUnsafeBufferPointer { theirs in
+        stride(from: 0, to: mine.count, by: Self.bytesPerPixel).count { offset in
+          (offset..<offset + Self.bytesPerPixel).contains { Double(abs(Int(mine[$0]) - Int(theirs[$0]))) > levels }
+        }
+      }
+    }
+  }
+
+  /// The number of pixels of the image.
+  var pixelCount: Int {
+    width * height
+  }
+
+  /// Whether each byte of the pixel at `offset` is in `levels` of the byte
+  /// of the pixel at `offset` of `other`.
+  ///
+  /// The test is the test of ``isClose(to:tolerance:)`` for one pixel, with
+  /// the tolerance in levels of a byte, and it makes no array.
+  ///
+  /// - Parameters:
+  ///   - offset: The offset in ``bytes`` of the first byte of the pixel.
+  ///   - other: The pixels to compare with. They have the size of these
+  ///     pixels.
+  ///   - levels: The largest difference of one byte.
+  /// - Returns: `true` when each byte is close.
+  func pixel(atOffset offset: Int, isCloseTo other: RenderedPixels, levels: Double) -> Bool {
+    (offset..<offset + Self.bytesPerPixel).allSatisfy { index in
+      Double(abs(Int(bytes[index]) - Int(other.bytes[index]))) <= levels
+    }
   }
 
   /// Whether these pixels and `other` show the same colors at `points`.
@@ -273,7 +403,7 @@ public struct RenderedPixels: Equatable {
 
   /// The offset in ``bytes`` of each pixel, from the first pixel of the top
   /// row to the last pixel of the bottom row.
-  private var pixelOffsets: StrideTo<Int> {
+  var pixelOffsets: StrideTo<Int> {
     stride(from: 0, to: bytes.count, by: Self.bytesPerPixel)
   }
 
@@ -283,7 +413,7 @@ public struct RenderedPixels: Equatable {
   ///
   /// - Parameter point: A point from the top leading corner of the view.
   /// - Returns: The offset, or `nil` when `point` is not in the view.
-  private func offset(of point: CGPoint) -> Int? {
+  func offset(of point: CGPoint) -> Int? {
     let column = Int((point.x * scale).rounded(.down))
     let row = Int((point.y * scale).rounded(.down))
     guard (0..<width).contains(column), (0..<height).contains(row) else { return nil }
@@ -297,7 +427,7 @@ public struct RenderedPixels: Equatable {
   ///   - target: Red, green, blue and alpha, from 0 to 1.
   ///   - tolerance: The largest difference of one component, from 0 to 1.
   /// - Returns: `true` when each component is in `tolerance` of `target`.
-  private func pixel(atOffset offset: Int, matches target: [Double], tolerance: Double) -> Bool {
+  func pixel(atOffset offset: Int, matches target: [Double], tolerance: Double) -> Bool {
     zip(components(atOffset: offset), target).allSatisfy {
       Self.isWithin($0, $1, tolerance: tolerance)
     }
@@ -307,7 +437,7 @@ public struct RenderedPixels: Equatable {
   ///
   /// - Parameter offset: The offset of the first byte of the pixel.
   /// - Returns: Red, green, blue and alpha, from 0 to 1.
-  private func components(atOffset offset: Int) -> [Double] {
+  func components(atOffset offset: Int) -> [Double] {
     (0..<Self.bytesPerPixel).map { Self.component(bytes[offset + $0]) }
   }
 

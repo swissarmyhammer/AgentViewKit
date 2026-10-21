@@ -600,6 +600,37 @@ the result with an expectation. A hosted test holds `HostedTestLock`, and a
 wait has no time limit, so each hosted wait must be for an event that is
 certain to come.
 
+### Snapshot images
+
+The snapshot tests make PNG images of the real views of the kit, with fixed
+data and fixed dates, at two pixels for each point, in sRGB. Each view has
+four images: light, dark, Reduce Transparency and Increase Contrast. The
+reference images are in `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
+
+- `HostedSnapshotTests/`: each view in a hidden window
+  (`ViewSnapshot.hostedPixels`). These images show the AppKit views, such as
+  the list of the thread and the EditorKit editor. The cache of a window shows
+  no glass.
+- `GlassSnapshotTests/`: the glass parts in isolation, over text
+  (`ViewSnapshot.renderedPixels`, with `ImageRenderer`). These images show a
+  glass look. It can be different from the Liquid Glass that the system
+  draws in a window.
+
+When the look of a view changes, its test fails, and it writes
+`<name>.actual.png` and `<name>.diff.png` to `.build/snapshots/<suite>/`.
+The difference image shows each pixel that changed in magenta. The test also
+attaches the two images.
+
+To record the reference images again, run the tests in the record mode, and
+then look at each image before the commit:
+
+```bash
+AVK_SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
+```
+
+In the record mode, each snapshot test records an issue, so that a run with
+the variable never passes.
+
 ### The README gate
 
 `Scripts/extract-readme-snippets.sh` writes each `// readme:compile` block of
