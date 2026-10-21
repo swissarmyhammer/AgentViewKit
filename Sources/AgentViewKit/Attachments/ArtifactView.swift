@@ -60,10 +60,10 @@ public struct ArtifactView: View {
       }
     }
     .padding(theme.spacing.m)
-    .background(.background.secondary, in: RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
+    .background(.background.secondary, in: AgentSurface.shape(radius: theme.radii.m))
     .overlay(
-      RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous)
-        .strokeBorder(.separator)
+      AgentSurface.shape(radius: theme.radii.m)
+        .stroke(.separator)
     )
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)

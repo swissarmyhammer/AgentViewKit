@@ -21,6 +21,11 @@ import Testing
   /// ``AgentTheme/default``.
   static let otherLargeRadius: CGFloat = 24
 
+  /// The radii of ``AgentTheme/default`` that are smaller than its large
+  /// radius: the small and the medium radius. The views of the kit use these
+  /// radii with ``AgentSurface/shape(radius:)``.
+  nonisolated static let smallerRadii = [AgentTheme.default.radii.s, AgentTheme.default.radii.m]
+
   /// The rectangle that the shape tests make a path in.
   static let pathRect = CGRect(x: 0, y: 0, width: 100, height: 60)
 
@@ -107,6 +112,25 @@ import Testing
     let expected = RoundedRectangle(cornerRadius: Self.otherLargeRadius, style: .continuous)
     #expect(path == expected.path(in: Self.pathRect))
     #expect(path != defaultPath)
+  }
+
+  @Test(arguments: smallerRadii)
+  func theShapeOfARadiusHasConcentricCornersWithThatRadiusAsTheMinimum(radius: CGFloat) {
+    let shape = AgentSurface.shape(radius: radius)
+    let concentric = ConcentricRectangle(
+      corners: .concentric(minimum: .fixed(radius)), isUniform: true)
+    let fixed = ConcentricRectangle(corners: .fixed(radius), isUniform: true)
+    #expect(shape.animatableData == concentric.animatableData)
+    #expect(shape.animatableData != fixed.animatableData)
+  }
+
+  @Test(arguments: smallerRadii)
+  func theShapeOfARadiusWithNoContainerUsesThatRadius(radius: CGFloat) {
+    let path = AgentSurface.shape(radius: radius).path(in: Self.pathRect)
+    let largePath = AgentSurface.shape(for: .default).path(in: Self.pathRect)
+    let expected = RoundedRectangle(cornerRadius: radius, style: .continuous)
+    #expect(path == expected.path(in: Self.pathRect))
+    #expect(path != largePath)
   }
 }
 

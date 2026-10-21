@@ -18,7 +18,27 @@ enum AgentSurface {
   /// - Parameter theme: The tokens that give the large radius.
   /// - Returns: The shape.
   static func shape(for theme: AgentTheme) -> ConcentricRectangle {
-    ConcentricRectangle(corners: .concentric(minimum: .fixed(theme.radii.l)), isUniform: true)
+    shape(radius: theme.radii.l)
+  }
+
+  /// A shape with concentric corners and a radius token as the smallest
+  /// corner (D110 (e)).
+  ///
+  /// Use it for each rounded shape of the kit in place of a
+  /// `RoundedRectangle` with a fixed corner radius. A concentric corner
+  /// follows the corner of the container shape that holds the shape. When no
+  /// container gives a corner, the corner uses `radius`. The corner is never
+  /// smaller than `radius`. The four corners are uniform.
+  ///
+  /// The shape is not an `InsettableShape`, so it has no `strokeBorder`. Draw
+  /// its border with `stroke`.
+  ///
+  /// - Parameter radius: The radius token, for example
+  ///   ``AgentTheme/Radii/s``. It is the smallest corner and the corner when
+  ///   no container gives one.
+  /// - Returns: The shape.
+  static func shape(radius: CGFloat) -> ConcentricRectangle {
+    ConcentricRectangle(corners: .concentric(minimum: .fixed(radius)), isUniform: true)
   }
 }
 

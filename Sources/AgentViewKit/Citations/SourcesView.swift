@@ -143,7 +143,7 @@ private struct SourceRow: View {
     }
     .padding(theme.spacing.xs)
     .background(
-      RoundedRectangle(cornerRadius: theme.radii.s)
+      AgentSurface.shape(radius: theme.radii.s)
         .fill(isHighlighted ? AnyShapeStyle(editorTheme.accent.opacity(Self.highlightOpacity)) : AnyShapeStyle(.clear))
     )
     .background(ScrollIntoView(request: scrollRequest))

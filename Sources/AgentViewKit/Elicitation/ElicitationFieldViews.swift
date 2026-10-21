@@ -225,8 +225,8 @@ public struct ElicitationTextField: View {
       input(model: model)
         .padding(theme.spacing.xs)
         .overlay(
-          RoundedRectangle(cornerRadius: theme.radii.s, style: .continuous)
-            .strokeBorder(.separator)
+          AgentSurface.shape(radius: theme.radii.s)
+            .stroke(.separator)
         )
         .accessibilityElement(children: .contain)
         .accessibilityLabel(context.schema.title)

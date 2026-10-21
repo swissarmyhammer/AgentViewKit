@@ -49,7 +49,7 @@ public struct AttachmentChip: View {
     }
     .padding(.horizontal, theme.spacing.m)
     .padding(.vertical, theme.spacing.xs)
-    .background(.quaternary, in: RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
+    .background(.quaternary, in: AgentSurface.shape(radius: theme.radii.m))
   }
 }
 

@@ -21,10 +21,10 @@ struct EditorBlockFrame: ViewModifier {
   func body(content: Content) -> some View {
     content
       .background(fill ?? editorTheme.editorBackground)
-      .clipShape(RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous))
+      .clipShape(AgentSurface.shape(radius: theme.radii.m))
       .overlay(
-        RoundedRectangle(cornerRadius: theme.radii.m, style: .continuous)
-          .strokeBorder(.separator)
+        AgentSurface.shape(radius: theme.radii.m)
+          .stroke(.separator)
       )
   }
 }

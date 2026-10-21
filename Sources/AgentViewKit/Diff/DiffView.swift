@@ -259,7 +259,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       .padding(.vertical, theme.spacing.xs)
       .background(
         isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-        in: RoundedRectangle(cornerRadius: theme.radii.s))
+        in: AgentSurface.shape(radius: theme.radii.s))
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
