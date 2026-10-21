@@ -17,6 +17,23 @@ struct FloatingContainerProbe: View {
   }
 }
 
+/// A text that shows the glass namespace of the floating controls above it
+/// (``SwiftUI/EnvironmentValues/floatingGlassNamespace``).
+struct FloatingNamespaceProbe: View {
+  /// The text of the probe when no container gives a namespace.
+  static let noNamespace = "none"
+
+  /// The accessibility identifier of the probe.
+  let identifier: String
+
+  @Environment(\.floatingGlassNamespace) private var namespace
+
+  var body: some View {
+    Text(namespace.map { String(describing: $0) } ?? Self.noNamespace)
+      .accessibilityIdentifier(identifier)
+  }
+}
+
 /// Tests for the one glass container of a group of floating controls
 /// (D110 (c)).
 ///
@@ -24,6 +41,10 @@ struct FloatingContainerProbe: View {
 /// the tests read the environment value that counts the containers that a
 /// ``FloatingGlassContainer`` made above a view. A container in a container
 /// makes no second container, so the count stays one.
+///
+/// The tests also read the glass namespace of the container (D113 answer 2).
+/// A container in a container keeps the namespace of the outer container, so
+/// that each glass of the group has its glass id in the same namespace.
 @Suite(.serialized, .hostedSerially) @MainActor struct FloatingGlassContainerHostedTests {
   /// The spacing of the containers of the tests.
   static let spacing: CGFloat = 8
@@ -68,5 +89,50 @@ struct FloatingContainerProbe: View {
     harness.render()
 
     #expect(Self.containerCount(in: harness) == 1)
+  }
+
+  /// The accessibility identifier of the namespace probe in the outer
+  /// container.
+  static let outerProbe = "outer-namespace-probe"
+
+  /// The accessibility identifier of the namespace probe in the inner
+  /// container.
+  static let innerProbe = "inner-namespace-probe"
+
+  /// The text of the namespace probe with `identifier` in `harness`.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the probe.
+  ///   - harness: The harness that shows the probe.
+  /// - Returns: The text, or `nil` when the probe is not in the tree.
+  static func namespace(of identifier: String, in harness: HostedViewHarness<some View>) -> String? {
+    harness.element(identifier: identifier)?.label
+  }
+
+  @Test func aViewOutOfAContainerHasNoGlassNamespace() {
+    let harness = HostedViewHarness(FloatingNamespaceProbe(identifier: Self.outerProbe))
+    defer { harness.close() }
+    harness.render()
+
+    #expect(Self.namespace(of: Self.outerProbe, in: harness) == FloatingNamespaceProbe.noNamespace)
+  }
+
+  @Test func aContainerInAContainerKeepsTheGlassNamespaceOfTheOuterContainer() throws {
+    let harness = HostedViewHarness {
+      FloatingGlassContainer(spacing: Self.spacing) {
+        VStack {
+          FloatingNamespaceProbe(identifier: Self.outerProbe)
+          FloatingGlassContainer(spacing: Self.spacing) {
+            FloatingNamespaceProbe(identifier: Self.innerProbe)
+          }
+        }
+      }
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let outer = try #require(Self.namespace(of: Self.outerProbe, in: harness))
+    #expect(outer != FloatingNamespaceProbe.noNamespace)
+    #expect(Self.namespace(of: Self.innerProbe, in: harness) == outer)
   }
 }

@@ -108,11 +108,25 @@ struct AgentContentEdge: ViewModifier {
 /// The glass is always `.regular`. The Clear look and the Tinted look are
 /// system settings, and the system applies them to `.regular` glass. Thus a
 /// theme does not select the glass variant.
+///
+/// A glass with an ``id`` puts the id in the glass namespace of its
+/// ``FloatingGlassContainer``, so that it morphs (D113 answer 2).
 struct AgentFloatingGlass: ViewModifier {
+  /// The identity of the glass in the glass namespace of the container, or
+  /// `nil` for a glass that does not morph.
+  let id: FloatingGlassID?
+
   @Environment(\.agentTheme) private var theme
 
+  @Environment(\.floatingGlassNamespace) private var namespace
+
   func body(content: Content) -> some View {
-    content.glassEffect(.regular, in: AgentSurface.shape(for: theme))
+    let glass = content.glassEffect(.regular, in: AgentSurface.shape(for: theme))
+    if let id, let namespace {
+      glass.glassEffectID(id, in: namespace)
+    } else {
+      glass
+    }
   }
 }
 
@@ -185,8 +199,36 @@ extension View {
   /// Never put it on top of other glass. Never use it for content: use
   /// ``agentContentSurface(radius:)`` for content.
   ///
+  /// This glass has no id, so it does not morph. Use
+  /// ``agentFloatingGlass(id:)`` for a glass that shows or hides next to
+  /// another glass of the same container.
+  ///
   /// - Returns: The control on the glass.
   func agentFloatingGlass() -> some View {
-    modifier(AgentFloatingGlass())
+    modifier(AgentFloatingGlass(id: nil))
+  }
+
+  /// Puts this floating control on the Liquid Glass of the kit, with an id
+  /// in the glass namespace of its container (D113 answer 2).
+  ///
+  /// The glass is the glass of ``agentFloatingGlass()``. Then the modifier
+  /// applies `glassEffectID(_:in:)` with `id`, in the namespace of the
+  /// ``FloatingGlassContainer`` above the control
+  /// (``SwiftUI/EnvironmentValues/floatingGlassNamespace``). Out of a
+  /// container, there is no namespace, and the glass has no id.
+  ///
+  /// When one glass shows or hides next to another glass of the same
+  /// container, give both an id. Then the change morphs, and does not jump.
+  ///
+  /// Reduce Motion: the modifier adds no animation. The morph runs only in the
+  /// animation of the state change that shows or hides the glass. The kit
+  /// shows and hides its glass with no `withAnimation`, so no morph runs. A
+  /// host that animates the change reads `accessibilityReduceMotion`, and
+  /// gives `nil` as the animation while Reduce Motion is on (plan.md §6).
+  ///
+  /// - Parameter id: The identity of the glass in the namespace.
+  /// - Returns: The control on the glass.
+  func agentFloatingGlass(id: FloatingGlassID) -> some View {
+    modifier(AgentFloatingGlass(id: id))
   }
 }

@@ -10,12 +10,18 @@ import Testing
 /// request cards and the notices. Content uses no glass, and no glass is on
 /// glass.
 enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
-  /// A direct `.glassEffect(` call. Only `agentFloatingGlass()` makes one.
+  /// A direct `.glassEffect(` call. Only the floating glass modifier of the
+  /// kit makes one.
   case glassEffect
 
-  /// The floating glass modifier of the kit, `agentFloatingGlass()`. The
-  /// field and the menu of the composer use it, and the request deck uses it
-  /// in a bar of floating controls.
+  /// A `.glassEffectID(` call, which lets a glass morph (D113 answer 2). Only
+  /// `agentFloatingGlass(id:)` makes one.
+  case glassEffectID
+
+  /// The floating glass modifier of the kit, `agentFloatingGlass()` or
+  /// `agentFloatingGlass(id:)`. The field and the menu of the composer use it
+  /// with a glass id, and the request deck uses it in a bar of floating
+  /// controls.
   case floatingGlass
 
   /// A `GlassEffectContainer`. Only the shared container of the floating
@@ -38,6 +44,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   var pattern: Regex<Substring> {
     switch self {
     case .glassEffect: GlassForm.callPattern("glassEffect")
+    case .glassEffectID: GlassForm.callPattern("glassEffectID")
     case .floatingGlass: GlassForm.callPattern("agentFloatingGlass")
     case .glassEffectContainer: WordPattern.wholeWord("GlassEffectContainer")
     case .floatingGlassContainer: WordPattern.wholeWord("FloatingGlassContainer")
@@ -53,7 +60,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The files that can use the form, relative to the package root.
   var allowedFiles: Set<String> {
     switch self {
-    case .glassEffect: [GlassForm.surfacesFile]
+    case .glassEffect, .glassEffectID: [GlassForm.surfacesFile]
     case .floatingGlass: [GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile]
     case .glassEffectContainer: [GlassForm.sharedContainerFile]
     case .floatingGlassContainer:
@@ -223,6 +230,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     (.glassEffectContainer, 11),
     (.floatingGlassContainer, 12),
     (.glassButtonStyle, 13),
+    (.glassEffectID, 14),
   ]
 
   /// The fixture file with two prominent glass button styles, relative to

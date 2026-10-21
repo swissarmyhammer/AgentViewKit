@@ -11,8 +11,11 @@ struct ContentView: View {
       GlassEffectContainer { Text("container") }
       FloatingGlassContainer(spacing: Spacing.small) { Text("shared") }
       Button("Open") {}.buttonStyle(.glass)
+      Text("morph").glassEffectID(Spacing.small, in: namespace)
     }
   }
+
+  @Namespace private var namespace
 }
 
 /// The spacing of the stack in this fixture.

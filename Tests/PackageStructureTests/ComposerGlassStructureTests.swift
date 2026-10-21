@@ -1,5 +1,6 @@
 import Foundation
 import PackageFileSupport
+import RegexBuilder
 import Testing
 
 /// Checks the glass calls in the files of the composer (D110 (c)).
@@ -13,17 +14,20 @@ import Testing
 ///
 /// The composer puts the field, the menu of the editor and the accessory in
 /// that one container. The field and the menu are on the floating
-/// glass of the kit, through `agentFloatingGlass()`. The menu is a sibling of
-/// the field glass, not in it. The composer file writes no direct
-/// `.glassEffect` call, so that one modifier gives each glass. The file also
-/// writes no `glassEffectID`, so the composer adds no glass morph, also while
-/// Reduce Motion is on (plan.md §6).
+/// glass of the kit, through `agentFloatingGlass(id:)`. The menu is a sibling
+/// of the field glass, not in it. The composer file writes no direct
+/// `.glassEffect` call, so that one modifier gives each glass. The menu shows
+/// and hides next to the field glass. Thus the field and the menu each have a
+/// `FloatingGlassID` in the one namespace of the container, and the change
+/// morphs (D113 answer 2). The composer adds no animation of its own, so no
+/// morph runs while Reduce Motion is on (plan.md §6).
 ///
 /// The EditorKit editor is in the field glass. So its file writes no glass:
 /// glass in it is glass on glass.
 ///
-/// The scan reads each file as text, one line at a time. A comment line does
-/// not count.
+/// The scan blanks the comments and the string literals of each file, then
+/// reads it one line at a time
+/// (``SourceLineScanner/codeMatches(inSwiftFilesBelow:relativeTo:skipping:match:)``).
 @Suite struct ComposerGlassStructureTests {
   /// The file of the composer.
   static let composerFile = KitSourceFiles.kitFile("Input/PromptInputView.swift")
@@ -34,77 +38,97 @@ import Testing
   /// The file of the thread view, which holds the floating controls.
   static let threadFile = KitSourceFiles.kitFile("Thread/AgentThreadView.swift")
 
-  /// The text that makes the shared container of the floating controls.
-  static let sharedContainerCall = "FloatingGlassContainer("
-
-  /// The text of the floating glass modifier of the kit.
-  static let floatingGlassCall = ".agentFloatingGlass()"
-
-  /// The text of a direct glass effect call.
-  static let glassEffectCall = ".glassEffect("
-
-  /// The text of a glass effect identity, which makes a glass morph.
-  static let glassEffectIdentityCall = ".glassEffectID("
-
   /// The number of the views of the composer on the floating glass: the
   /// field and the menu of the editor.
   static let floatingGlassViewCount = 2
 
-  /// The number of the code lines of `file` that hold `text`.
-  ///
-  /// - Parameters:
-  ///   - text: The text to find.
-  ///   - file: The file to read.
-  /// - Returns: The number of lines that hold `text` and are not comments.
-  /// - Throws: An error when the file cannot be read.
-  static func codeLineCount(holding text: String, in file: String = composerFile) throws -> Int {
-    let source = try PackageFiles.text(of: file)
-    return SourceLineScanner.matches(inSource: source, file: file) { line in
-      isCode(line, holding: text) ? [line.number] : []
-    }.count
+  /// The `FloatingGlassID` cases that the composer gives: the field and the
+  /// menu of the editor.
+  static let composerGlassIDs = ["composerField", "editorMenu"]
+
+  /// The pattern that finds a namespace property wrapper, `@Namespace`.
+  static var namespacePattern: Regex<Substring> {
+    Regex {
+      "@"
+      WordPattern.wholeWord("Namespace")
+    }
   }
 
-  /// Tells if `line` is a code line that holds `text`.
+  /// The pattern that finds the floating glass of the kit with a glass id,
+  /// such as `.agentFloatingGlass(id: .composerField)`.
+  ///
+  /// - Parameter id: The name of the `FloatingGlassID` case.
+  /// - Returns: The pattern, from ``WordPattern/memberPattern(after:_:)``.
+  static func floatingGlassPattern(id: String) -> Regex<Substring> {
+    let receiver = Regex {
+      GlassForm.floatingGlass.pattern
+      ZeroOrMore(.whitespace)
+      "id:"
+    }
+    return WordPattern.memberPattern(after: receiver, WordPattern.wholeWord(id))
+  }
+
+  /// The number of the code lines of `file` that use `pattern`. A use in a
+  /// comment or in a string literal does not count.
+  ///
+  /// The scan reads the directory of `file`, and keeps only the lines of
+  /// `file`.
   ///
   /// - Parameters:
-  ///   - line: The line of a Swift file.
-  ///   - text: The text to find.
-  /// - Returns: `true` when the line holds `text` and is not a comment.
-  static func isCode(_ line: SourceLine, holding text: String) -> Bool {
-    let isComment = line.text.trimmingCharacters(in: .whitespaces).hasPrefix("//")
-    return !isComment && line.text.contains(text)
+  ///   - pattern: The pattern to find.
+  ///   - file: The file to read, relative to the package root.
+  /// - Returns: The number of the code lines that use `pattern`.
+  /// - Throws: The error of
+  ///   ``GlassPlacementTests/uses(of:inSwiftFilesBelow:relativeTo:allowing:)``.
+  static func codeLineCount(of pattern: Regex<Substring>, in file: String = composerFile) throws -> Int {
+    let directory = try PackageFiles.file(file).deletingLastPathComponent()
+    let found = try GlassPlacementTests.uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+    return found.filter { $0.hasPrefix("\(file):") }.count
   }
 
   @Test func theComposerUsesTheSharedContainerOneTime() throws {
-    #expect(try Self.codeLineCount(holding: Self.sharedContainerCall) == 1)
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlassContainer.pattern) == 1)
   }
 
   @Test func theThreadViewPutsItsFloatingControlsInTheSharedContainer() throws {
-    #expect(try Self.codeLineCount(holding: Self.sharedContainerCall, in: Self.threadFile) == 1)
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlassContainer.pattern, in: Self.threadFile) == 1)
   }
 
   @Test func theThreadViewWritesNoGlassOfItsOwn() throws {
-    #expect(try Self.codeLineCount(holding: Self.glassEffectCall, in: Self.threadFile) == 0)
-    #expect(try Self.codeLineCount(holding: Self.floatingGlassCall, in: Self.threadFile) == 0)
+    #expect(try Self.codeLineCount(of: GlassForm.glassEffect.pattern, in: Self.threadFile) == 0)
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlass.pattern, in: Self.threadFile) == 0)
   }
 
   @Test func theComposerPutsTheFloatingGlassOfTheKitOnTheFieldAndTheMenu() throws {
-    #expect(try Self.codeLineCount(holding: Self.floatingGlassCall) == Self.floatingGlassViewCount)
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlass.pattern) == Self.floatingGlassViewCount)
+  }
+
+  @Test(arguments: composerGlassIDs)
+  func theComposerGivesTheGlassIDOneTime(id: String) throws {
+    #expect(try Self.codeLineCount(of: Self.floatingGlassPattern(id: id)) == 1)
   }
 
   @Test func theComposerWritesNoDirectGlassEffect() throws {
-    #expect(try Self.codeLineCount(holding: Self.glassEffectCall) == 0)
+    #expect(try Self.codeLineCount(of: GlassForm.glassEffect.pattern) == 0)
   }
 
-  @Test func theComposerAddsNoGlassMorph() throws {
-    #expect(try Self.codeLineCount(holding: Self.glassEffectIdentityCall) == 0)
+  @Test func theSharedContainerHasOneNamespace() throws {
+    #expect(try Self.codeLineCount(of: Self.namespacePattern, in: GlassForm.sharedContainerFile) == 1)
+  }
+
+  @Test func theFloatingGlassPatternFindsTheIDInTheArgumentOfTheModifier() {
+    let pattern = Self.floatingGlassPattern(id: "editorMenu")
+
+    #expect("menu.agentFloatingGlass( id: .editorMenu)".contains(pattern))
+    #expect(!"menu.agentFloatingGlass(id: .editorMenuBar)".contains(pattern))
+    #expect(!"menu.agentFloatingGlass()".contains(pattern))
   }
 
   @Test func theEditorWritesNoGlassEffect() throws {
-    #expect(try Self.codeLineCount(holding: Self.glassEffectCall, in: Self.editorFile) == 0)
+    #expect(try Self.codeLineCount(of: GlassForm.glassEffect.pattern, in: Self.editorFile) == 0)
   }
 
   @Test func theEditorWritesNoFloatingGlass() throws {
-    #expect(try Self.codeLineCount(holding: Self.floatingGlassCall, in: Self.editorFile) == 0)
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlass.pattern, in: Self.editorFile) == 0)
   }
 }

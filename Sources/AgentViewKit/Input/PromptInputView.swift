@@ -8,13 +8,15 @@ import SwiftUI
 /// makes no container of its own: it is in the one container of the floating
 /// controls of the thread, with the scroll-to-bottom pill. The field holds
 /// the attachment chips and the editor, and it is on the floating glass of
-/// the kit (``SwiftUI/View/agentFloatingGlass()``).
+/// the kit (``SwiftUI/View/agentFloatingGlass(id:)``).
 /// The accessory row is below the field and not on that glass, so its glass
 /// buttons are not glass on glass. A menu of the editor, for example the
 /// completion list of ``EditorKitPromptEditor``, shows above the field on its
-/// own floating glass, in the same container. The composer adds no glass
-/// morph, so also while Reduce Motion is on no glass shape morphs (plan.md
-/// §6).
+/// own floating glass, in the same container. The field glass and the menu
+/// glass each have a ``FloatingGlassID`` in the glass namespace of the
+/// container, so the menu morphs when it shows and hides (D113 answer 2). The
+/// composer adds no animation of its own, so while Reduce Motion is on no
+/// glass shape morphs (plan.md §6).
 ///
 /// The editor and the accessory are slots. The short initializer uses
 /// ``StockPromptEditor`` and ``DefaultPromptAccessory``:
@@ -354,10 +356,13 @@ extension PromptInputView where Accessory == DefaultPromptAccessory {
 /// the editor (D110 (c)).
 ///
 /// The surface pads the field with the medium spacing of the theme, and puts
-/// it on the floating glass of the kit (``SwiftUI/View/agentFloatingGlass()``).
-/// The accessory row of the composer is not on this surface. Thus the glass
-/// buttons of the accessory are not glass on glass. The menu of the editor
-/// (``PromptEditorMenu``) is not on this surface either.
+/// it on the floating glass of the kit, with the id
+/// ``FloatingGlassID/composerField``
+/// (``SwiftUI/View/agentFloatingGlass(id:)``). The accessory row of the
+/// composer is not on this surface. Thus the glass buttons of the accessory
+/// are not glass on glass. The menu of the editor (``PromptEditorMenu``) is
+/// not on this surface either. The menu shows and hides next to the field
+/// glass, so the field glass has an id, and the change morphs (D113 answer 2).
 ///
 /// The surface is one accessibility container with ``identifier``, so that a
 /// hosted test can read its frame. The chips and the editor stay separate
@@ -371,7 +376,7 @@ struct PromptFieldSurface: ViewModifier {
   func body(content: Content) -> some View {
     content
       .padding(theme.spacing.m)
-      .agentFloatingGlass()
+      .agentFloatingGlass(id: .composerField)
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier(Self.identifier)
   }
@@ -405,7 +410,12 @@ struct PromptEditorMenuKey: PreferenceKey {
 }
 
 /// The layer that shows a ``PromptEditorMenu`` above the field of
-/// ``PromptInputView``, on the floating glass of the kit.
+/// ``PromptInputView``, on the floating glass of the kit, with the id
+/// ``FloatingGlassID/editorMenu`` (``SwiftUI/View/agentFloatingGlass(id:)``).
+///
+/// The menu shows and hides next to the field glass in one container, so the
+/// change morphs (D113 answer 2). The layer adds no animation, so no morph
+/// runs while Reduce Motion is on.
 ///
 /// The layer fills the field. The leading edge of the menu is at the leading
 /// edge of the editor. The bottom edge of the menu is the small spacing of the
@@ -419,7 +429,7 @@ struct PromptEditorMenuLayer: View {
   var body: some View {
     GeometryReader { proxy in
       menu.content
-        .agentFloatingGlass()
+        .agentFloatingGlass(id: .editorMenu)
         .padding(.leading, proxy[menu.anchor].minX)
         .padding(.bottom, theme.spacing.s)
         // A frame with no height at the top of the field. The menu is at its

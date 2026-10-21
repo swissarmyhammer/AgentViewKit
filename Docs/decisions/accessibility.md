@@ -158,9 +158,13 @@ announcement.
   true. In a `DEBUG` build, its accessibility value is `animating` or
   `static`.
 - `ToolCallView` removes its symbol effects when Reduce Motion is on.
-- The kit has no glass morphing and no streaming text animation. A new view
-  with motion must read `accessibilityReduceMotion` and expose its state in
-  the same way as `ShimmerView`.
+- The kit has no streaming text animation. The field glass and the editor
+  menu glass of the composer have a `glassEffectID` (D113 answer 2), but the
+  kit adds no animation to the show and the hide of a glass. Thus a glass
+  morphs only in an animation that the host gives, and a host gives `nil` as
+  the animation while Reduce Motion is on. A new view with motion must read
+  `accessibilityReduceMotion` and expose its state in the same way as
+  `ShimmerView`.
 
 ## Labels
 
