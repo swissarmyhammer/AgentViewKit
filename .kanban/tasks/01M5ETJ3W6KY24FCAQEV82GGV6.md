@@ -40,8 +40,24 @@ comments:
     - the package structure suites and ReadmeSnippetsTests ran and passed.
     - next: review
   timestamp: 2026-10-21T13:54:52.041619+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m5fbzfaam4n142bn8fyb75an
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (7686a91). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 3 files reviewed. 2 .kanban files are not reviewed (.reviewignore).
+    - next: The task is in done. No more work is necessary.
+  timestamp: 2026-10-21T13:56:26.570303+00:00
+- actor: claude-code
+  id: 01m5fbztpr9cjtg1afm2s3mk2e
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files (each render starts from a clear image; the work-around in drawnPixels(of:) is removed)
+    - test: green — swift test, 1488 passed, 2 known issues that were there before; 3 full runs in the implement step also passed
+    - commit: 7686a91
+    - review: clean — 0 findings
+  timestamp: 2026-10-21T13:56:38.232636+00:00
+position_column: done
+position_ordinal: ffff9f80
 title: Find why ImageRenderer draws nothing when the first render of a process is AgentInfoHeader or PendingRequestCountBadge
 ---
 Source: ^2g7w4mz (AVK-8aj) implement step.
