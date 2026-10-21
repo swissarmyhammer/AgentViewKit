@@ -44,6 +44,37 @@ comments:
     - no new reference PNG recorded. No commit. Card stays in doing.
     - next: review
   timestamp: 2026-10-21T17:34:40.330380+00:00
+- actor: claude-code
+  id: 01m5frpnseegjwa1ff7zprmsnq
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 9578e76). 7 findings, rule `code-hygiene/magic-numbers-swift`: Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:37, :40, :43, :46, :49, :52, :55.
+    - next: Replace the magic numbers in SnapshotFixtures.swift with named constants. Remove this cause from all of the file, not only from these lines. Then run the review again.
+  timestamp: 2026-10-21T17:38:49.774762+00:00
+- actor: claude-code
+  id: 01m5frq345b1yymcn38gvgjy5x
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ViewSnapshot, SnapshotStore, SnapshotVariant, RenderedPixels+PNG, snapshot tests, 56 reference PNGs
+    - test: green — run-watched.sh full1, 1544 passed, 0 failed, 3 known issues; on-screen test windows 0
+    - commit: 9578e76
+    - review: findings — Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:37, :40, :43, :46, :49, :52, :55
+  timestamp: 2026-10-21T17:39:03.429820+00:00
+- actor: claude-code
+  id: 01m5fryr1j1a5ekkdr5vchakdt
+  text: |-
+    Implement (findings of rule `code-hygiene/magic-numbers-swift`):
+    - Cause: each image size used numeric literals as arguments of `CGSize(width:height:)`. swiftlint `no_magic_numbers` reports a literal in a call argument, but not a literal in a `static let`.
+    - Change in SnapshotFixtures.swift: two shared widths (`wideWidth` 480, `narrowWidth` 420) and one height for each image (`threadHeight`, `composerHeight`, `cardHeight`, `bannerHeight`, `codeBlockHeight`, `terminalHeight`, `elicitationHeight`), each a documented `static let ...: CGFloat`, as in the other test files. Each size now uses only these names. The values did not change. The only other literal in the file is `index: 0`, which the rule permits.
+    - The 56 reference PNGs did not change (git status shows no PNG change). No PNG was recorded.
+  timestamp: 2026-10-21T17:43:14.226386+00:00
+- actor: claude-code
+  id: 01m5fryvg2kw371k9f64g7t2s0
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift. 7 findings checked. run-watched.sh zrx-snap (--filter HostedSnapshotTests|GlassSnapshotTests): 14 tests in 2 suites passed, 0 failures. run-watched.sh zrx-full: 1544 tests in 194 suites passed + 180 tests in 26 suites + 1 test, 0 failures, 3 known issues (all on purpose, as before). On-screen test windows 0 in both runs; no frontmost app change. Build warnings: only the SwiftPM "missing creator for mutated node" message (mlx-swift_Cmlx.bundle), not from the changed file. No PNG changed. No commit.
+    - next: review
+  timestamp: 2026-10-21T17:43:17.762234+00:00
 depends_on:
 - 01M5FH4Z521FC705TKY8NT2787
 position_column: doing
@@ -68,3 +99,21 @@ Acceptance:
 - A test fails, and writes the actual and diff PNGs, when a view's look changes (show this with one mutation, then put it back).
 - 3 full `swift test` runs one after the other pass, with no window on the screen and no focus change.
 - No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-13
+
+## Review Findings (2026-10-21 12:35)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 12 file(s) reviewed, 61 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule: `.kanban/` (from .reviewignore).
+
+> 56 file(s) not reviewed — the PNG reference images under `Tests/AgentViewKitTests/Snapshots/__Snapshots__/` are not UTF-8 text, so there is nothing to review.
+
+> 1 file(s) not reviewed — no validator matched: `README.md`.
+
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:37` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:40` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:43` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:46` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:49` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:52` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift:55` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

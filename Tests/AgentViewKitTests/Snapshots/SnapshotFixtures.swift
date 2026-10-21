@@ -33,26 +33,55 @@ enum SnapshotFixtures {
     Then run the tests again.
     """
 
+  /// The width of the image of the thread, the composer and the elicitation
+  /// form, in points.
+  static let wideWidth: CGFloat = 480
+
+  /// The width of the image of a card, a banner, the code block and the
+  /// terminal output, in points.
+  static let narrowWidth: CGFloat = 420
+
+  /// The height of the image of the thread, in points.
+  static let threadHeight: CGFloat = 640
+
+  /// The height of the image of the composer, in points.
+  static let composerHeight: CGFloat = 140
+
+  /// The height of the image of a card or a banner, in points.
+  static let cardHeight: CGFloat = 220
+
+  /// The height of the image of a banner of one line, in points.
+  static let bannerHeight: CGFloat = 90
+
+  /// The height of the image of the code block, in points.
+  static let codeBlockHeight: CGFloat = 150
+
+  /// The height of the image of the terminal output, in points.
+  static let terminalHeight: CGFloat = 200
+
+  /// The height of the image of the elicitation form, in points.
+  static let elicitationHeight: CGFloat = 620
+
   /// The size of the image of the thread, in points.
-  static let threadSize = CGSize(width: 480, height: 640)
+  static let threadSize = CGSize(width: wideWidth, height: threadHeight)
 
   /// The size of the image of the composer, in points.
-  static let composerSize = CGSize(width: 480, height: 140)
+  static let composerSize = CGSize(width: wideWidth, height: composerHeight)
 
   /// The size of the image of a card or a banner, in points.
-  static let cardSize = CGSize(width: 420, height: 220)
+  static let cardSize = CGSize(width: narrowWidth, height: cardHeight)
 
   /// The size of the image of a banner of one line, in points.
-  static let bannerSize = CGSize(width: 420, height: 90)
+  static let bannerSize = CGSize(width: narrowWidth, height: bannerHeight)
 
   /// The size of the image of the code block, in points.
-  static let codeBlockSize = CGSize(width: 420, height: 150)
+  static let codeBlockSize = CGSize(width: narrowWidth, height: codeBlockHeight)
 
   /// The size of the image of the terminal output, in points.
-  static let terminalSize = CGSize(width: 420, height: 200)
+  static let terminalSize = CGSize(width: narrowWidth, height: terminalHeight)
 
   /// The size of the image of the elicitation form, in points.
-  static let elicitationSize = CGSize(width: 480, height: 620)
+  static let elicitationSize = CGSize(width: wideWidth, height: elicitationHeight)
 
   /// A session with a user message, an agent message with a code block, a
   /// tool call that completed, and a last agent message.
