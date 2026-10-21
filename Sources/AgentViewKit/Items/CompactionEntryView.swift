@@ -29,9 +29,9 @@ import SwiftUI
 /// each `compaction_summary_chunk` changes this row in place. Compaction is
 /// stable ACP since schema alpha.8.
 ///
-/// The row is content of the transcript, so it is on the content surface of
-/// the kit (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass
-/// (D110 (b)).
+/// The row is content of the transcript, so it has no fill and no glass. A
+/// separator stroke marks its edge
+/// (``SwiftUI/View/agentContentEdge(radius:)``, D113).
 public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of the title and the status of
   /// each row. The rest is the row key of the entry.
@@ -97,7 +97,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       summary(key: key)
     }
     .padding(theme.spacing.m)
-    .agentContentSurface()
+    .agentContentEdge()
   }
 
   /// The symbol, the title and the status of the row.

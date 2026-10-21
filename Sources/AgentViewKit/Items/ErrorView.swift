@@ -13,8 +13,8 @@ import SwiftUI
 /// of the body. The model keeps the errors: the kit keeps no error list.
 ///
 /// The card is a row of the transcript, or of the activity timeline. Both are
-/// content, so the card is on the content surface of the kit
-/// (``SwiftUI/View/agentContentSurface(radius:)``) and has no glass (D110 (b)).
+/// content, so the card has no fill and no glass. A separator stroke marks
+/// its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113).
 public struct ErrorView: View {
   /// The accessibility identifier of the text of each card.
   public static let identifier = "error-acp"
@@ -93,7 +93,7 @@ public struct ErrorView: View {
       }
     }
     .padding(theme.spacing.m)
-    .agentContentSurface()
+    .agentContentEdge()
   }
 }
 

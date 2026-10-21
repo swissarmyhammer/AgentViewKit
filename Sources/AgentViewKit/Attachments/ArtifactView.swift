@@ -7,6 +7,9 @@ import UniformTypeIdentifiers
 /// An artifact with a URL shows its file in an ``AttachmentView`` and the
 /// file actions of the inspector. An artifact with inline text only shows the
 /// text by its type, and has no file actions, because it has no file.
+///
+/// The panel is content, so it has no fill and no glass. A separator stroke
+/// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113).
 public struct ArtifactView: View {
   /// The accessibility identifier of the panel.
   public static let identifier = "artifact"
@@ -60,7 +63,7 @@ public struct ArtifactView: View {
       }
     }
     .padding(theme.spacing.m)
-    .agentContentSurface(radius: theme.radii.m)
+    .agentContentEdge(radius: theme.radii.m)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
   }

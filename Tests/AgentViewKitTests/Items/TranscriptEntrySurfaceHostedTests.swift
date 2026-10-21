@@ -13,12 +13,14 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
   case compaction
 }
 
-/// Checks that an ``ErrorView`` and a ``CompactionEntryView`` are on the
-/// content surface of the kit, and not on glass (D110 (b)). Each view is a
-/// row of the transcript, and the transcript is content.
+/// Checks that an ``ErrorView`` and a ``CompactionEntryView`` have no fill
+/// and no glass, and that the separator stroke of the content edge marks
+/// their edge (D113). Each view is a row of the transcript, and the
+/// transcript is content.
 ///
-/// The tests use the method of ``ContentSurfaceHostedProbe``. Each test shows
-/// each entry one time with Reduce Transparency off and one time with it on.
+/// The tests use the edge check of ``ContentSurfaceHostedProbe``. Each test
+/// shows each entry one time with Reduce Transparency off and one time with
+/// it on.
 @Suite(.serialized, .hostedSerially) @MainActor struct TranscriptEntrySurfaceHostedTests {
   /// The size of the window. Each entry fills the width and is shorter than
   /// the height.
@@ -57,20 +59,10 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
   }
 
   @Test(arguments: TranscriptEntrySurfaceKind.allCases, ContentSurfaceHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsWhenItIsInFrontOfTheEntry(
+  func theBackdropShowsInsideTheEdgeOfTheEntry(
     kind: TranscriptEntrySurfaceKind, reducesTransparency: Bool
   ) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
-      of: Self.entryView(of: kind), backdrop: .inFront, reducesTransparency: reducesTransparency,
-      size: Self.size)
-  }
-
-  @Test(arguments: TranscriptEntrySurfaceKind.allCases, ContentSurfaceHostedProbe.reduceTransparencyValues)
-  func noPixelOfTheBackdropShowsInsideTheEntry(
-    kind: TranscriptEntrySurfaceKind, reducesTransparency: Bool
-  ) throws {
-    try ContentSurfaceHostedProbe.expectBackdropShowsOnlyInFront(
-      of: Self.entryView(of: kind), backdrop: .behind, reducesTransparency: reducesTransparency,
-      size: Self.size)
+    try ContentSurfaceHostedProbe.expectBackdropShowsInsideTheEdge(
+      of: Self.entryView(of: kind), reducesTransparency: reducesTransparency, size: Self.size)
   }
 }
