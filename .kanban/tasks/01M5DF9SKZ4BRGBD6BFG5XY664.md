@@ -69,10 +69,26 @@ comments:
     - evidence: swift test — 1413 tests in 172 suites passed, 0 failed, 0 skipped, 2 known issues (existed before). Build warnings: only the known mlx bundle warning.
     - next: review
   timestamp: 2026-10-20T23:59:03.099343+00:00
+- actor: claude-code
+  id: 01m5dw4hrp4a1ys2ejjej75awx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (f975e19). 0 findings, 0 confirmed, 0 refuted. The prior finding is checked.
+    - next: The task is in done.
+  timestamp: 2026-10-21T00:00:21.270518+00:00
+- actor: claude-code
+  id: 01m5dw4z783xcn08ws75xsd93d
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 1 file (one tolerance comparison in RenderedPixels.swift)
+    - test: green — swift test, 1413 passed, 2 known issues that were there before
+    - commit: f975e19
+    - review: clean — 0 findings, the prior finding is checked
+  timestamp: 2026-10-21T00:00:35.048480+00:00
 depends_on:
 - 01M5DF892NSFBA3B087C5MVVT4
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffff8180
 title: 'AVK-8i Composer: put the field and the accessory cluster in one GlassEffectContainer, with no glass on glass'
 ---
 ## Why
