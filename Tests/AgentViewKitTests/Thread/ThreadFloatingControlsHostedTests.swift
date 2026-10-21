@@ -32,6 +32,11 @@
     ///
     /// When a send fails, the helper closes the session before it throws.
     ///
+    /// The helper waits for the event that the model holds the user message
+    /// before it sends the agent messages. ``ConversationViewHostedTests/sendMessages(_:to:)``
+    /// counts the entries that the model holds at its start, so without this
+    /// wait it can return before the model holds the last agent message.
+    ///
     /// - Returns: The session, after the model shows each message.
     /// - Throws: The error of the scripted session.
     static func openLongSession() async throws -> ScriptedSession {
@@ -40,6 +45,7 @@
         try await session.sendUpdate(
           SessionTranscriptViewHostedTests.chunk(
             "user_message_chunk", messageID: promptMessageID, text: message))
+        await ObservationWait.until { !session.model.transcript.isEmpty }
         try await ConversationViewHostedTests.sendMessages(
           ConversationViewHostedTests.scrollEntryCount, to: session)
       } catch {
@@ -177,22 +183,28 @@
       #expect(!identifiers.contains(DefaultPromptAccessory.submitIdentifier))
     }
 
-    /// A press on the pill of the thread pins the manager, the manager sends
-    /// the scroll to the bottom, and the pill goes away.
+    /// A press on the pill of the thread pins the manager, the pill goes
+    /// away, the manager sends the scroll to the bottom, and the list moves
+    /// to the last row. The test gives no visibility report after the press.
+    ///
+    /// The press makes a render pass. In that pass, the pill goes away, and
+    /// the geometry change of the list sends the old rows in view to the
+    /// manager again. The manager keeps the pin until the list reports the
+    /// rows at the bottom (``ScrollAnchorManager/pinToBottom()``), so the test
+    /// checks the pin and the pill right after the press.
     ///
     /// The manager sends the scroll on the next main-actor tick after the
     /// press. The press always requests that scroll, and no jump cancels it,
     /// so the test waits for the event that the recorder gets the bottom
-    /// target. The press makes a render pass. In that pass, the pill goes
-    /// away, the list gets taller, and the geometry change can send the old
-    /// rows in view to the manager again. Thus the test does not check the
-    /// pin state right after the press. It gives the report of the rows at
-    /// the bottom, as the list does after the scroll, before it checks the
-    /// pin state and that the pill is gone
-    /// (``ConversationViewHostedTests/aPressOnThePillSetsTheNewEntryCountToZero()``).
+    /// target. Then the list moves to the last row over some layout passes,
+    /// and it reports the rows at the bottom. The list is the only source of
+    /// the rows in view after the press, so the test waits for the event
+    /// that the last row in view is the last entry. Then one render pass
+    /// shows the result.
     @Test func aPressOnThePillOfTheThreadScrollsTheListToTheBottom() async throws {
       let session = try await Self.openLongSession()
       defer { session.close() }
+      let lastKey = try #require(session.model.transcript.last?.rowKey)
       let anchors = ScrollAnchorManager()
       let system = CommandSystem()
       let harness = Self.mount(session, anchors: anchors, system: system) {
@@ -200,13 +212,17 @@
       }
       defer { harness.close() }
       try Self.scrollUpByCommand(session, anchors: anchors, system: system, harness: harness)
+      try #require(anchors.visibleIDs.last != lastKey)
       let targets = ConversationViewHostedTests.recordScrollTargets(of: anchors)
 
       try harness.press(identifier: ScrollToBottomPill.identifier)
-      await ObservationWait.until { targets.values.last == .bottom }
-      ConversationViewHostedTests.reportRows(at: .bottom, of: session.model, to: anchors)
-      harness.render()
+      try #require(anchors.isPinnedToBottom)
+      try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
+      await ObservationWait.until { targets.values.last == .bottom }
+      await harness.render { anchors.visibleIDs.last == lastKey }
+
+      #expect(ConversationViewHostedTests.showsRow(lastKey, in: harness))
       #expect(anchors.isPinnedToBottom)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }

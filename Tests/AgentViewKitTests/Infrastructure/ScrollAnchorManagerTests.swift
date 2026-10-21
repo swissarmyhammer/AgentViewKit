@@ -159,6 +159,85 @@ import Testing
     #expect(recorder.values == [.bottom, .bottom])
   }
 
+  // MARK: - Pin after a press on the pill
+
+  /// Makes a manager whose list shows the first two of four items, and
+  /// presses the pill: the manager calls ``ScrollAnchorManager/pinToBottom()``.
+  ///
+  /// - Parameter recorder: The recorder that gets the scroll targets.
+  /// - Returns: The manager, after the press and before the next report.
+  private static func makePressedManager(recorder: ReportRecorder<ScrollAnchorTarget>) -> ScrollAnchorManager {
+    let manager = makeManager(recorder: recorder)
+    manager.noteAppended(ids: ["a", "b", "c", "d"])
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: distanceOutsideTolerance)
+    manager.pinToBottom()
+    return manager
+  }
+
+  @Test func aReportOfTheOldRowsAfterAPressOnThePillKeepsThePin() {
+    let manager = Self.makePressedManager(recorder: ReportRecorder())
+
+    // The press removes the pill, and the geometry change of the list sends
+    // the old rows again, before the list moves to the bottom.
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.isPinnedToBottom)
+    #expect(manager.visibleIDs == ["a", "b"])
+  }
+
+  @Test func anAppendBeforeTheReportOfTheBottomRowsScrollsAndDoesNotCount() async {
+    let recorder = ReportRecorder<ScrollAnchorTarget>()
+    let manager = Self.makePressedManager(recorder: recorder)
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+    await Self.runScheduledTasks()
+
+    manager.noteAppended(ids: ["e"])
+    await Self.runScheduledTasks()
+
+    #expect(manager.newItemsSinceUnpinned == 0)
+    // The scroll of the first append and of the press is one scroll, and the
+    // new append sends one more.
+    #expect(recorder.values == [.bottom, .bottom])
+  }
+
+  @Test func theReportOfTheBottomRowsEndsTheWaitAfterAPressOnThePill() {
+    let manager = Self.makePressedManager(recorder: ReportRecorder())
+    manager.noteVisible(ids: ["c", "d"], distanceFromBottom: Self.distanceInsideTolerance)
+
+    // The user scrolls up.
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(!manager.isPinnedToBottom)
+  }
+
+  @Test func theLastRowOutsideTheToleranceDoesNotEndTheWaitAfterAPressOnThePill() {
+    let manager = Self.makePressedManager(recorder: ReportRecorder())
+
+    manager.noteVisible(ids: ["c", "d"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.isPinnedToBottom)
+  }
+
+  @Test func aJumpEndsTheWaitAfterAPressOnThePill() {
+    let manager = Self.makePressedManager(recorder: ReportRecorder())
+
+    manager.noteJump(to: "a")
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(!manager.isPinnedToBottom)
+  }
+
+  @Test func pinToBottomWhilePinnedDoesNotKeepThePin() {
+    let manager = Self.makeManager(recorder: ReportRecorder())
+    manager.noteAppended(ids: ["a", "b", "c", "d"])
+    manager.noteVisible(ids: ["c", "d"])
+
+    manager.pinToBottom()
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(!manager.isPinnedToBottom)
+  }
+
   @Test func aNewLastItemWhileUnpinnedDoesNotCount() async {
     let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)

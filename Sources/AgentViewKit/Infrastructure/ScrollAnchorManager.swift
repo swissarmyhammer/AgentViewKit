@@ -73,6 +73,14 @@ public final class ScrollAnchorManager {
   /// when the manager does not wait for the rows of a jump.
   @ObservationIgnored private var jumpItemID: String?
 
+  /// `true` after ``pinToBottom()`` pinned an unpinned list, until the list
+  /// reports rows at the bottom or the user jumps to an item.
+  ///
+  /// While this value is `true`, a report of rows that are not at the bottom
+  /// does not unpin the list. Such a report comes from a layout pass before
+  /// the list moved to the bottom, for example after the pill goes away.
+  @ObservationIgnored private var waitsForBottomReport = false
+
   /// The task that sends the requested scroll to the bottom, or `nil` when no
   /// scroll is requested.
   @ObservationIgnored private var pendingScroll: Task<Void, Never>?
@@ -113,6 +121,12 @@ public final class ScrollAnchorManager {
   /// replaces ``visibleIDs`` again. A report equal to ``visibleIDs``, such as
   /// the report of a scroll geometry change, changes only the pin state.
   ///
+  /// After ``pinToBottom()`` pins an unpinned list, a report that is not at
+  /// the bottom does not unpin the list, until the first report at the
+  /// bottom or the next ``noteJump(to:)``. The press on the pill changes the
+  /// layout of the list before the list moves, and the list can then report
+  /// its old rows again.
+  ///
   /// - Parameters:
   ///   - ids: The identifiers of the items in view, from
   ///     `onScrollTargetVisibilityChange`.
@@ -127,7 +141,10 @@ public final class ScrollAnchorManager {
     if isNewReport {
       jumpItemID = nil
     }
-    setPinned(isAtBottom)
+    if isAtBottom {
+      waitsForBottomReport = false
+    }
+    setPinned(isAtBottom || waitsForBottomReport)
   }
 
   /// Records items that the list appended.
@@ -186,7 +203,14 @@ public final class ScrollAnchorManager {
   /// The call sets ``isPinnedToBottom`` to `true`, sets
   /// ``newItemsSinceUnpinned`` to zero, and clears the kept anchor. Then it
   /// calls ``requestScrollToBottom()``.
+  ///
+  /// When the list was unpinned, the manager keeps the pin until the list
+  /// reports rows at the bottom (see ``noteVisible(ids:distanceFromBottom:)``).
+  /// Thus the pill does not come back while the list moves. When the list was
+  /// pinned, the call starts no wait: a list at the bottom can send no new
+  /// report, and the pin must not stay after the user scrolls up.
   public func pinToBottom() {
+    waitsForBottomReport = !isPinnedToBottom
     anchorID = nil
     setPinned(true)
     requestScrollToBottom()
@@ -216,11 +240,16 @@ public final class ScrollAnchorManager {
   /// Thus a ``saveAnchor()`` right after the jump, such as for a Load
   /// Earlier press, keeps the item as the anchor.
   ///
+  /// The jump ends the wait for the rows at the bottom that
+  /// ``pinToBottom()`` can start, so that the reports of the jump can unpin
+  /// the list.
+  ///
   /// - Parameter id: The identifier of the item that the user picked.
   public func noteJump(to id: String) {
     anchorID = id
     visibleIDs = [id]
     jumpItemID = id
+    waitsForBottomReport = false
     pendingScroll?.cancel()
     pendingScroll = nil
   }

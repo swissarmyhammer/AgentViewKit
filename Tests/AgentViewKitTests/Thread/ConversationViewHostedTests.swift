@@ -463,26 +463,20 @@
     }
 
     /// The reaction of the view to a press on the pill: the count of new
-    /// entries of the manager goes to zero. Then the reaction of the view to
-    /// a given report of the rows at the bottom: the manager is pinned, and
-    /// the pill goes away.
+    /// entries of the manager goes to zero, the manager is pinned, and the
+    /// pill goes away. The test gives no visibility report after the press.
     ///
-    /// The test checks the count before it gives a report, because a report
-    /// of the bottom rows also pins the manager and sets the count to zero.
-    /// Only the press can set the count to zero before that report. The test
-    /// does not check the pin state right after the press: a geometry change
-    /// of the list can send the old rows in view to the manager again, and
-    /// that unpins it until the list reports its new rows.
+    /// The press makes a render pass. In that pass, the geometry change of
+    /// the list can send the old rows in view to the manager again. The
+    /// manager keeps the pin until the list reports the rows at the bottom
+    /// (``ScrollAnchorManager/pinToBottom()``), so the test checks the count,
+    /// the pin and the pill right after the press.
     ///
-    /// The test does not check that the list scrolls to the new entry: in
-    /// the off-screen harness window, the scroll to the bottom that the press
-    /// requests does not move the list in the render pass of the press and
-    /// one more layout pass. ``aPressOnThePillScrollsTheListToTheLastRow()``
-    /// waits for that scroll. The test does not check the rows in view that
-    /// the manager keeps: the given report writes them.
+    /// The test does not check that the list scrolls to the new entry.
+    /// ``aPressOnThePillScrollsTheListToTheLastRow()`` waits for that scroll.
     ///
-    /// Gap: the test gives the visibility reports to the manager itself
-    /// (``reportRows(at:of:to:)``).
+    /// Gap: before the press, the test gives the visibility reports to the
+    /// manager itself (``reportRows(at:of:to:)``).
     /// ``aScrollUpMakesTheListReportItsRowsAndShowThePill()`` checks that the
     /// list sends them.
     @Test func aPressOnThePillSetsTheNewEntryCountToZero() async throws {
@@ -492,16 +486,12 @@
       try Self.scrollToTop(session: session.model, anchors: anchors, harness: harness)
       _ = try await Self.insertMessage(into: session)
       Self.layOutTheManagerChange(in: harness)
-      #expect(anchors.newItemsSinceUnpinned == 1)
-      #expect(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
+      try #require(anchors.newItemsSinceUnpinned == 1)
+      try #require(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
 
       try harness.press(identifier: ScrollToBottomPill.identifier)
 
       #expect(anchors.newItemsSinceUnpinned == 0)
-
-      Self.reportRows(at: .bottom, of: session.model, to: anchors)
-      harness.hostingView.layoutSubtreeIfNeeded()
-
       #expect(anchors.isPinnedToBottom)
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
