@@ -73,8 +73,24 @@ comments:
     - evidence: `swift package update` (EditorKit main e72f75f, descendant of 98ad0c8). First `swift test`: pin test `theGeneratedDemoProjectPinsTheRootACPRevisions` failed because the pre-existing generated demo project had stale pins vs the updated root Package.resolved. Regenerated with `Scripts/test-examples.sh` (demo gate: `testASendOfHelloShowsTheReplyOfTheAgent` fails, known ^bc6fapz, not fixed; `testTheSettingsSheetShowsTheAgentAuthenticationAndNoAgentConnection` failed once with a click fallback at the screen edge, then passed when run alone with xcodebuild -only-testing, so it is a UI click flake, no code change). Final full `swift test`: exit 0, 219 tests/29 suites (PackageStructure) and 1592 tests/199 suites passed, 0 failures, 0 skipped, 3 declared known issues (withKnownIssue negative tests); only warning is the SwiftPM mlx-swift "missing creator" dependency notice.
     - next: review. No source changes made in this step; nothing committed.
   timestamp: 2026-10-22T17:37:00.352230+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jb44ntjv32by6se42yb8c8
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (973aaab) — 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed; 4 files reviewed, 12 .kanban files excluded by .reviewignore. Five code-hygiene Swift rules declined only the deleted file Sources/AgentViewKit/Commands/AgentItemFocusTarget.swift (no file to read).
+    - next: none — task moved to done
+  timestamp: 2026-10-22T17:39:14.234818+00:00
+- actor: claude-code
+  id: 01m5jb4h0scjkvc6dka5g1w3j2
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — AgentItemFocusTarget.swift deleted; AgentItemScope uses `.scopeFocusRing(cornerRadius: theme.radii.l)`; new AgentItemFocusRingHostedTests (15 cases; the radius and focus-effect cases were red first); AgentCommandScopeHostedTests gains isFocusEffectEnabled:
+    - test: green — after swift package update (EditorKit e72f75f): swift test 1592 + 219 passed, 0 failed, 0 skipped. Demo UI gate: the known ^bc6fapz failure, plus testTheSettingsSheetShowsTheAgentAuthenticationAndNoAgentConnection failed once and passed alone (likely a flake)
+    - commit: 973aaab (local, not pushed)
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T17:39:26.873420+00:00
+position_column: done
+position_ordinal: ffffb280
 title: Decide whether AgentItemFocusTarget is still needed after EditorKit c64ca1b
 ---
 Found while working ^brhhdf4. EditorKit c64ca1b ("a landed jump focuses the targeted scope") makes the scope beacon take first responder when a scope has no focusable content of its own, and skips focusables owned by nested scopes. AgentViewKit's `AgentItemFocusTarget` (Sources/AgentViewKit/Commands/AgentItemFocusTarget.swift) exists because `GeometryRegistry.requestFocus(at:)` used to give first responder to the focusable view at the scope center, and a message row has none. 

@@ -34,8 +34,32 @@ comments:
   id: 01m5j8p8dg1c55d5j8wb8xrg5w
   text: 'UNBLOCKED: EditorKit main 83731ed (^1se9rnw), additive. `.commandContextMenu(system, unavailable: .hide)`. The enum is `ContextMenuUnavailablePolicy`, with `.disable` (the default) and `.hide`. With `.hide`, unavailable rows are dropped, and so are sections or separators left empty or doubled. `contextMenuMirror(at:mode:unavailable:)` and iOS `UIContextMenuMirror(system:path:mode:unavailable:)` take the same option. It works with `.targetable(false)`: commands still resolve at the nearest targetable ancestor. To do: in AgentItemScope (around line 47), use `.commandContextMenu(system, unavailable: .hide)`; the card''s acceptance tests use `contextMenuMirror(at:unavailable: .hide)`.'
   timestamp: 2026-10-22T16:56:42.160417+00:00
-position_column: todo
-position_ordinal: '9980'
+- actor: claude-code
+  id: 01m5jbgehtdar9g11rzcewqv19
+  text: |-
+    Research and implementation notes:
+    - EditorKit pin: Package.swift pins EditorKit at `branch: "main"`, and Package.resolved is not tracked in git. The resolved checkout .build/checkouts/EditorKit is e72f75f. `git merge-base --is-ancestor 83731ed HEAD` there exits 0, so the option is present. No manifest edit is needed for the pin.
+    - Shared policy: added `ContextMenuUnavailablePolicy.agentItem` (= `.hide`) in Commands/AgentItemScope.swift. AgentItemScope calls `.commandContextMenu(system, unavailable: .agentItem)`, and the test calls `contextMenuMirror(at:unavailable: .agentItem)`, so the test reads the same policy as the view. `AgentItemScope` is generic, so a static stored property there is not possible. That is why the constant is an extension on the EditorKit enum.
+    - Test: AgentCommandPlacementTests.theContextMenuOfAMessageHidesTheJumpsThatTheViewMenuDisables. With no scroll anchors, Next Prompt and Previous Prompt are not available at a message path. The test checks that the context menu leaves out both, and that `menuMirror(at:)` shows both in the View menu with isEnabled == false. No clock, sleep, poll, retry, timeLimit or XCUITest.
+    - TDD: RED 1 was a compile error (no `.agentItem`). RED 2 set `.agentItem = .disable`: 2 issues, `!contextIDs.contains(verb.id)` failed for both jumps, and the main-menu assertion passed. GREEN came with `.hide`.
+    - The existing theContextMenuOfAMessageShowsCopyMessageAndTheJumps test still passes. It uses the default `.disable` policy on the registry directly.
+  timestamp: 2026-10-22T17:45:57.562289+00:00
+- actor: claude-code
+  id: 01m5jbghp1yf39e16tmypmberc
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Sources/AgentViewKit/Commands/AgentItemScope.swift, Tests/AgentViewKitTests/Commands/AgentCommandPlacementTests.swift. `swift test --filter AgentCommandPlacementTests`: 11/11 passed. Full `swift test`: 1593 tests in 199 suites passed (3 known issues: the intentional withKnownIssue tests in SnapshotStoreTests, HostedLayoutExpectationsTests and ThemeHeightExpectationsTests), plus 219 tests in 29 suites and 1 test in 1 suite, all passed. The one build warning, "missing creator for mutated node" on the mlx-swift_Cmlx bundle, comes from the SwiftPM build and not from this change.
+    - next: /review ^sq1j7ce
+  timestamp: 2026-10-22T17:46:00.769773+00:00
+- actor: claude-code
+  id: 01m5jbpf00zhhn3pmzw9t5c0e4
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1593 tests in 199 suites passed, 0 failed, 0 skipped; no project warnings (only the known mlx-swift "missing creator" dependency notice). The 3 "known issues" are existing withKnownIssue negative-path tests (e.g. SnapshotStoreTests, HostedLayoutExpectationsTests) that pass by design.
+    - next: review/commit
+  timestamp: 2026-10-22T17:49:14.624835+00:00
+position_column: doing
+position_ordinal: '8380'
 title: AVK-9 Hide the commands that are not available in the item context menus
 ---
 Source: testudoapp-4c, TestudoApp card ^tt5k0r6. Rules D41, D109 and D44.

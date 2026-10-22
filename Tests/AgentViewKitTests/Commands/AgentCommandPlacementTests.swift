@@ -106,6 +106,27 @@ import Testing
     #expect(ids == [AgentCommandVerb.copyMessage, .jumpToNext, .jumpToPrevious].map(\.id))
   }
 
+  /// A command that is not available for the item does not show in the
+  /// context menu of the item, and the main menu still shows it, disabled
+  /// (AVK-9). The context menu reads the policy that ``AgentItemScope``
+  /// passes to `.commandContextMenu`. With no scroll anchors, Next Prompt and
+  /// Previous Prompt are not available.
+  @Test func theContextMenuOfAMessageHidesTheJumpsThatTheViewMenuDisables() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let userKeys = try await AgentCommandsTests.sendTurns(to: session)
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let path = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[0]))
+
+    let contextIDs = fixture.system.registry.contextMenuMirror(at: path, unavailable: .agentItem).map(\.id)
+    let viewItems = fixture.system.registry.menuMirror(at: path).first { $0.path == .view }?.items ?? []
+
+    for verb in [AgentCommandVerb.jumpToNext, .jumpToPrevious] {
+      #expect(!contextIDs.contains(verb.id), "\(verb)")
+      #expect(viewItems.first { $0.id == verb.id }?.isEnabled == false, "\(verb)")
+    }
+  }
+
   @Test func theContextMenuOfARequestCardShowsApproveAndReject() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }

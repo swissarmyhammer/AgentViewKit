@@ -13,7 +13,8 @@ import SwiftUI
 /// ``AgentCommandVerb/itemKind`` is the kind of the item, and the commands
 /// that a host registers for the item. A command of the context menu runs at
 /// the path of the item, and reads the item with `@FromTarget`, so it acts on
-/// that item.
+/// that item. A command that is not available at the item does not show in
+/// the context menu (``ContextMenuUnavailablePolicy/agentItem``).
 ///
 /// The item scope is a target of the EditorKit navigation and jump (AVK-7d),
 /// as each EditorKit command scope is. The scope has the area of the item, so
@@ -48,7 +49,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   func body(content: Content) -> some View {
     if let system {
       content
-        .commandContextMenu(system)
+        .commandContextMenu(system, unavailable: .agentItem)
         .commandScope(segment: segment, subject: subject)
         .targetable(isTargetable)
         .scopeFocusRing(cornerRadius: theme.radii.l)
@@ -72,6 +73,14 @@ extension View {
   func agentItemScope(_ segment: FocusSegment, subject: some Sendable, isTargetable: Bool = true) -> some View {
     modifier(AgentItemScope(segment: segment, subject: subject, isTargetable: isTargetable))
   }
+}
+
+extension ContextMenuUnavailablePolicy {
+  /// The policy of the context menu of an item of a thread
+  /// (``AgentItemScope``): a command that is not available at the item does
+  /// not show in the context menu (AVK-9). The main menu still shows that
+  /// command, disabled.
+  static let agentItem: ContextMenuUnavailablePolicy = .hide
 }
 
 extension AgentCommandTarget {
