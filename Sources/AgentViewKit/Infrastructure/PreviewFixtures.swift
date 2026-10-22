@@ -182,6 +182,159 @@ enum PreviewFixtures {
       id: AttachmentID(url.absoluteString), url: url, type: type, name: url.lastPathComponent, size: size)
   }
 
+  /// Each agent state that the state banner shows: an agent that runs, an
+  /// agent that waits for the user, each idle stop reason of the ACP
+  /// standard, and a state that the kit does not know.
+  static let agentStates: [StateUpdate] = [
+    .running(RunningStateUpdate()),
+    .requiresAction(RequiresActionStateUpdate()),
+    .idle(IdleStateUpdate()),
+    .idle(IdleStateUpdate(stopReason: .endTurn)),
+    .idle(IdleStateUpdate(stopReason: .cancelled)),
+    .idle(IdleStateUpdate(stopReason: .maxTokens)),
+    .idle(IdleStateUpdate(stopReason: .maxTurnRequests)),
+    .idle(IdleStateUpdate(stopReason: .refusal)),
+    .idle(IdleStateUpdate(stopReason: .error)),
+    .unknown("paused", .object([:])),
+  ]
+
+  /// The message of the status bar for each of ``agentStates``, in order.
+  ///
+  /// The messages show each look of the bar: the symbol of a failure in the
+  /// error color, the symbol of work that goes on with its live effect, and
+  /// each other symbol in the secondary style.
+  static var statusMessages: [StateBanner.Message] {
+    agentStates.map(StateBanner.message(for:))
+  }
+
+  /// The message of the status bar for an idle state with the stop reason
+  /// `error`: the failure that the Show Error button of the state banner
+  /// goes with.
+  static var failedTurnStatusMessage: StateBanner.Message {
+    StateBanner.message(for: .idle(IdleStateUpdate(stopReason: .error)))
+  }
+
+  /// A status message whose title and explanation are longer than the
+  /// texts of each of ``statusMessages``, so that the bar wraps them.
+  static let longStatusMessage = StateBanner.Message(
+    title: "The agent stopped because the package registry refused the credentials of the build service",
+    explanation: """
+      The agent reported this failure: the registry at packages.example.com answered 401 Unauthorized \
+      for each of the three packages that the build needs. Sign in to the registry again, then send the \
+      request again.
+      """,
+    symbolName: SharedSymbol.error,
+    identifier: "preview-status-long")
+
+  /// The width of a narrow column, in points. A status bar or a sign-in card
+  /// in this column wraps its long texts, such as ``longStatusMessage`` and
+  /// the name of ``longNameAuthMethod``.
+  static let narrowWidth: CGFloat = 360
+
+  /// The accessibility identifier of the button of ``statusAction(isEnabled:)``.
+  static let statusActionIdentifier = "preview-status-action"
+
+  /// Makes the button of a status bar: the Show Error button of the state
+  /// banner. A press does nothing.
+  ///
+  /// - Parameter isEnabled: Whether the button takes a press.
+  /// - Returns: The button.
+  static func statusAction(isEnabled: Bool) -> StatusBar.Action {
+    StatusBar.Action(
+      title: "Show Error", systemImage: StateBanner.showErrorSymbol, identifier: statusActionIdentifier,
+      isEnabled: isEnabled, perform: {})
+  }
+
+  /// The name of the agent of ``authConnection(methods:agentName:openSessions:)``.
+  static let agentName = "preview-agent"
+
+  /// A name of an agent that is longer than ``agentName``.
+  static let longAgentName = "Northwind Traders Engineering Assistant for the Continuous Integration Service"
+
+  /// The version of the agent of ``authConnection(methods:agentName:openSessions:)``.
+  static let agentVersion = "1.0.0"
+
+  /// A sign-in method that the agent runs through `auth/login`.
+  static let agentAuthMethod = AuthMethod.agent(
+    AuthMethodAgent(
+      methodId: AuthMethodId(rawValue: "github"), name: "GitHub",
+      description: "Sign in with your GitHub account."))
+
+  /// A sign-in method that the client runs as a separate process in a
+  /// terminal.
+  static let terminalAuthMethod = AuthMethod.terminal(
+    AuthMethodTerminal(
+      methodId: AuthMethodId(rawValue: "terminal"), name: "Terminal", args: ["--login"],
+      description: "Sign in with the agent program in a terminal."))
+
+  /// A sign-in method of the agent whose name is longer than the names of
+  /// ``agentAuthMethod`` and ``terminalAuthMethod``.
+  static let longNameAuthMethod = AuthMethod.agent(
+    AuthMethodAgent(
+      methodId: AuthMethodId(rawValue: "enterprise-sso"),
+      name: "Northwind Traders single sign-on for the engineering organization",
+      description: "Sign in with the account of your organization."))
+
+  /// Makes a connection whose agent requires a sign-in.
+  ///
+  /// The connection has the `initialize` answer of an agent that lists
+  /// `methods`, and its auth state asks for a sign-in with them.
+  ///
+  /// - Parameters:
+  ///   - methods: The auth methods of the agent.
+  ///   - agentName: The name of the agent in its `initialize` answer.
+  ///   - openSessions: The models of the open sessions of the connection.
+  /// - Returns: The preview connection model.
+  static func authConnection(
+    methods: [AuthMethod], agentName: String = Self.agentName, openSessions: [SessionModel] = []
+  ) -> ConnectionModel {
+    .preview(
+      openSessions: openSessions,
+      authState: .required(methods),
+      initializeResponse: InitializeResponse(
+        info: Implementation(name: agentName, version: agentVersion),
+        protocolVersion: ACPClient.supportedProtocolVersion, authMethods: methods))
+  }
+
+  /// The exit status of a terminal sign-in that succeeded.
+  nonisolated static let successfulExitStatus: Int32 = 0
+
+  /// A terminal auth runner that starts no process. Each run ends at once
+  /// with ``successfulExitStatus``, so that a preview shows the Run button
+  /// of a terminal method and runs no agent program.
+  nonisolated struct TerminalAuthRunnerStub: TerminalAuthRunner {
+    /// Ends the run at once, and starts no process.
+    ///
+    /// - Parameters:
+    ///   - arguments: The arguments to append to the agent command. The stub
+    ///     does not read them.
+    ///   - environment: The variables of the run. The stub does not read
+    ///     them.
+    /// - Returns: ``PreviewFixtures/successfulExitStatus``.
+    func runTerminalAuth(arguments: [String], environment: [String: String]) async throws -> Int32? {
+      PreviewFixtures.successfulExitStatus
+    }
+  }
+
+  /// The terminal auth runner of the previews.
+  static let terminalAuthRunner = TerminalAuthRunnerStub()
+
+  /// The number of turns of ``scrolledSession``.
+  static let scrolledTurnCount = 12
+
+  /// A new preview session with a transcript that is longer than a window,
+  /// so that the list scrolls under the bars of a thread. Each turn is a
+  /// user message and an agent message.
+  static var scrolledSession: SessionModel {
+    .preview(
+      transcript: (1...scrolledTurnCount).flatMap { turn -> [PreviewTranscriptItem] in
+        [
+          .user("What does step \(turn) of the build do?"),
+          .agent("Step \(turn) compiles one module of the package and links it into the test bundle."),
+        ]
+      })
+  }
+
   /// Makes the context of one field of a form whose answers are in one
   /// dictionary.
   ///

@@ -49,3 +49,40 @@ struct AgentLoginPrompt: View {
     }
   }
 }
+
+#Preview("Sign-in with an agent method") {
+  AgentLoginPrompt(
+    session: .preview(), connection: PreviewFixtures.authConnection(methods: [PreviewFixtures.agentAuthMethod])
+  )
+  .padding()
+}
+
+#Preview("Sign-in with a terminal method") {
+  AgentLoginPrompt(
+    session: .preview(), connection: PreviewFixtures.authConnection(methods: [PreviewFixtures.terminalAuthMethod])
+  )
+  // The runner starts no process, so the Run button runs no agent program.
+  .terminalAuthRunner(PreviewFixtures.terminalAuthRunner)
+  .padding()
+}
+
+#Preview("Sign-in with a long agent name") {
+  AgentLoginPrompt(
+    session: .preview(),
+    connection: PreviewFixtures.authConnection(
+      methods: [PreviewFixtures.longNameAuthMethod], agentName: PreviewFixtures.longAgentName)
+  )
+  .frame(width: PreviewFixtures.narrowWidth)
+  .padding()
+}
+
+#Preview("Sign-in in the bottom bar of a thread over scrolled content") {
+  let session = PreviewFixtures.scrolledSession
+  // The thread view shows an AgentLoginPrompt in its bottom bar, and the long
+  // transcript scrolls under the glass buttons of the prompt.
+  AgentThreadView(
+    session: session,
+    connection: PreviewFixtures.authConnection(
+      methods: [PreviewFixtures.agentAuthMethod, PreviewFixtures.terminalAuthMethod], openSessions: [session]))
+    .terminalAuthRunner(PreviewFixtures.terminalAuthRunner)
+}

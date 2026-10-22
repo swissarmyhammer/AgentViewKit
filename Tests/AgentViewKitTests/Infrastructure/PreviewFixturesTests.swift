@@ -124,4 +124,97 @@ import Testing
     #expect(answers == [field.name: .string(Self.thoughtText)])
     #expect(context.value.wrappedValue == .string(Self.thoughtText))
   }
+
+  @Test func theStatusMessagesShowEachLookOfTheBarWithTheirOwnIdentifiers() {
+    let messages = PreviewFixtures.statusMessages
+
+    #expect(messages.count == PreviewFixtures.agentStates.count)
+    #expect(Set(messages.map(\.identifier)).count == messages.count)
+    #expect(messages.contains { $0.isFailure })
+    #expect(messages.contains { $0.isOngoing })
+    #expect(messages.contains { !$0.isFailure && !$0.isOngoing })
+  }
+
+  @Test func theLongStatusMessageIsLongerThanEachStatusMessage() {
+    let long = PreviewFixtures.longStatusMessage
+
+    #expect(PreviewFixtures.statusMessages.allSatisfy { long.title.count > $0.title.count })
+    #expect(PreviewFixtures.statusMessages.allSatisfy { long.explanation.count > $0.explanation.count })
+  }
+
+  @Test func theFailedTurnStatusMessageIsTheFailureOfAnIdleStateWithAnError() {
+    let message = PreviewFixtures.failedTurnStatusMessage
+
+    #expect(message.isFailure)
+    #expect(message.identifier == StateBanner.failedTurnIdentifier)
+  }
+
+  @Test func theStatusActionTakesAPressOnlyWhenItIsEnabled() {
+    #expect(PreviewFixtures.statusAction(isEnabled: true).isEnabled)
+    #expect(!PreviewFixtures.statusAction(isEnabled: false).isEnabled)
+  }
+
+  @Test func theAuthConnectionAsksForASignInWithItsMethods() {
+    let methods = [PreviewFixtures.agentAuthMethod, PreviewFixtures.terminalAuthMethod]
+
+    let connection = PreviewFixtures.authConnection(methods: methods)
+
+    #expect(connection.authState == .required(methods))
+    #expect(connection.authMethods == methods)
+    #expect(connection.canLogin)
+  }
+
+  @Test func theAuthConnectionHoldsItsOpenSession() {
+    let session = SessionModel.preview()
+
+    let connection = PreviewFixtures.authConnection(methods: [PreviewFixtures.agentAuthMethod], openSessions: [session])
+
+    #expect(connection.openSessions.map(\.sessionId) == [session.sessionId])
+  }
+
+  @Test func theAuthConnectionNamesItsAgent() {
+    let connection = PreviewFixtures.authConnection(
+      methods: [PreviewFixtures.longNameAuthMethod], agentName: PreviewFixtures.longAgentName)
+
+    #expect(connection.initializeResponse?.info.name == PreviewFixtures.longAgentName)
+  }
+
+  @Test func theLongNamesAreLongerThanTheOtherNames() throws {
+    let longName = try #require(Self.name(of: PreviewFixtures.longNameAuthMethod))
+    let otherMethods = [PreviewFixtures.agentAuthMethod, PreviewFixtures.terminalAuthMethod]
+    let otherNames = otherMethods.compactMap(Self.name(of:))
+
+    #expect(otherNames.count == otherMethods.count)
+    #expect(otherNames.allSatisfy { longName.count > $0.count })
+    #expect(PreviewFixtures.longAgentName.count > PreviewFixtures.agentName.count)
+  }
+
+  @Test func theTerminalAuthRunnerReportsASuccessfulRun() async throws {
+    let status = try await PreviewFixtures.terminalAuthRunner.runTerminalAuth(arguments: [], environment: [:])
+
+    #expect(status == PreviewFixtures.successfulExitStatus)
+  }
+
+  @Test func theScrolledSessionHoldsAMessagePairForEachTurn() {
+    let transcript = PreviewFixtures.scrolledSession.transcript
+
+    #expect(transcript.count == PreviewFixtures.scrolledTurnCount * Self.messagesPerTurn)
+  }
+
+  /// The messages of one turn of the scrolled session: a user message and an
+  /// agent message.
+  static let messagesPerTurn = 2
+
+  /// The name of an auth method.
+  ///
+  /// - Parameter method: The auth method.
+  /// - Returns: The name of an `agent` or a `terminal` method, or `nil` for a
+  ///   method of a type that the kit does not know.
+  static func name(of method: AuthMethod) -> String? {
+    switch method {
+    case .agent(let agent): agent.name
+    case .terminal(let terminal): terminal.name
+    case .unknown: nil
+    }
+  }
 }

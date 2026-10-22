@@ -99,3 +99,30 @@ struct StatusBar: View {
     .accessibilityLabel(message.title)
   }
 }
+
+#Preview("Each agent state") {
+  VStack(alignment: .leading) {
+    ForEach(PreviewFixtures.statusMessages, id: \.identifier) { message in
+      StatusBar(message: message, action: nil)
+    }
+  }
+  .padding()
+}
+
+#Preview("Long status text") {
+  StatusBar(message: PreviewFixtures.longStatusMessage, action: PreviewFixtures.statusAction(isEnabled: true))
+    .frame(width: PreviewFixtures.narrowWidth)
+    .padding()
+}
+
+#Preview("Bar with its buttons") {
+  // The button has the `.glass` style in content and in a bar with no glass,
+  // so the previews declare no place.
+  VStack(alignment: .leading) {
+    ForEach([true, false], id: \.self) { isEnabled in
+      StatusBar(
+        message: PreviewFixtures.failedTurnStatusMessage, action: PreviewFixtures.statusAction(isEnabled: isEnabled))
+    }
+  }
+  .padding()
+}
