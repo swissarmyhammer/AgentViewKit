@@ -67,8 +67,24 @@ comments:
     - evidence: 1 file — plan.md (§5 "Button styles first" and "Glass only on floating controls"); finding plan.md:247 marked [x]. `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'` exit 0: 23 tests in 2 suites passed, 3 tests in 1 suite passed, 0 failures. No change to Sources.
     - next: review
   timestamp: 2026-10-22T00:13:42.153469+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m5gfc5jey9mqnjpdm519brn1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (986f0b5): 0 findings, 0 confirmed, 0 refuted. The engine has no validator for plan.md. A manual check of the changed sentences in plan.md §5 against Sources/ found no false statement. The glass button styles outside the floating controls (composer, suggestion chips, dictation button, pill) come only from RequestDeckPlace.style(of:) through requestActionStyle(_:). The only bordered button style outside RequestDeckPlace.style(of:) is the Load Earlier button (Thread/ConversationView.swift). The prior finding is checked.
+    - next: none. The task moved to done. The style of the Load Earlier button is an open question for the user.
+  timestamp: 2026-10-22T00:15:02.734628+00:00
+- actor: claude-code
+  id: 01m5gfcjh49vtbcneaa34qqfbg
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — plan.md §5 "Button styles first" and "Glass only on floating controls" agree with the code
+    - test: green — docs tests 26 passed
+    - commit: 986f0b5
+    - review: clean — 0 findings
+  timestamp: 2026-10-22T00:15:16.004020+00:00
+position_column: done
+position_ordinal: ffffac80
 title: Give the buttons of the state banner and the login card in the bottom bar the glass styles (style.md rule 4)
 ---
 ## Problem
