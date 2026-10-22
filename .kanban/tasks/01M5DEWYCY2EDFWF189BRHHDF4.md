@@ -67,8 +67,24 @@ comments:
     - evidence: `swift test` in AgentViewKit, exit 0 — 1581 tests in 197 suites passed, 0 failed, 0 skipped. The 3 known issues are the withKnownIssue negative-path tests (theCheckOfAViewThatChangedRecordsAnIssue, aWrappedTextWithAFixedVerticalSizeFails, aViewThatIgnoresTheThemeFails). The only build warning is the known mlx-swift "missing creator" notice; no warnings from project code.
     - next: commit
   timestamp: 2026-10-22T13:04:09.868023+00:00
-position_column: doing
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m5hvh4s8bgrcw9rft5e91fd1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d7f7dab) — counts findings 0, confirmed 0, refuted 0; 1 file reviewed, 6 .kanban files excluded by .reviewignore
+    - next: task advanced to done
+  timestamp: 2026-10-22T13:06:43.112659+00:00
+- actor: claude-code
+  id: 01m5hvhjz0v5dfk4r0cf06xsx7
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — AgentNavigationHostedTests.swift now in transcript order with WindowSpace.rect(of:); EditorKit resolved to 44d8a28 (Package.resolved is gitignored); orderedByMinY compensation removed
+    - test: green — swift test 1581 passed, 0 failed, 0 skipped
+    - commit: d7f7dab (local, not pushed)
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T13:06:57.632870+00:00
+position_column: done
+position_ordinal: ffffae80
 title: 'EditorKit: nav.up and nav.down are inverted on macOS'
 ---
 Found in AVK-7d (^56y8q6a). This is a defect in EditorKit. AgentViewKit cannot fix it.

@@ -1,14 +1,61 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: a380
+comments:
+- actor: claude-code
+  id: 01m5hxyp3dxv9wwch41nqnv3vr
+  text: |-
+    Research (EditorKit resolved at 44d8a28, which contains c64ca1b):
+
+    - `nav.*` lands through `GeometryRegistry.requestFocus(at:)` (EditorCommandsUI/NavIntegration.swift), and a jump `.focus` commit lands through the same call (JumpMode.swift). After c64ca1b, `GeometryProbeView.requestFocus(yieldingTo:)` picks the scope's own focusable content holding the beacon center (skipping views a nested scope wraps), then a focusable of exactly the scope's frame, and otherwise makes the beacon itself first responder (`holdsScopeFocus`, `acceptsFirstResponder`/`canBecomeKeyView` true only while it holds it).
+    - EditorKit draws no focus ring for a scope: no `focusRingMaskBounds`/`drawFocusRingMask` override in GeometryProbeView, and the Board example drops CardFocusHost and uses `.focusable()` + `.focusEffectDisabled()`.
+
+    Experiment (temporary hosted test, one item of each kind in the outer-scoped thread + deck; nav = `system.geometry.requestFocus(at:)`, jump = `JumpModeController.activate(layer: thread)` + `commit(item)`; first responder measured after one render):
+
+    WITH `.background(AgentItemFocusTarget())` (current code):
+    - message / toolCall / request, nav and jump: responder `AgentItemFocusView`, rect == item rect, `canBecomeKeyView=false`, `focusRingMaskBounds` == item bounds (464x40, 464x18, 456x76) -> system focus ring around the item.
+
+    WITHOUT it (the line removed in AgentItemScope):
+    - message / toolCall / request, nav and jump: responder `GeometryProbeView` (the EditorKit beacon), rect == item rect (8,253,464,40 / 8,322,464,18 / 12,392,456,76), `canBecomeKeyView=true`, `focusRingMaskBounds=(0,0,0,0)` -> focus lands on every item kind, but NO focus ring is drawn.
+    - All 7 AgentNavigationHostedTests (5 existing + 2 new parameterized nav/jump tests over the 3 kinds) passed in both configurations, because they check the responder geometry only.
+
+    Other discoveries:
+    - A test that reads `@FocusedValue(\.commandPath)` cannot work in AVK's `HostedViewHarness`: the harness window is never key (AVK-12 rule, `processHasFocus` must stay false), so SwiftUI publishes no focused value. My first attempt waited on it with `render(when:)` and hung for 600 s (killed). Do not try that again; use the geometric `focusedItem(among:in:window:)` check.
+    - EditorKit documents (GeometryProbeView.canBecomeKeyView, measured on macOS 27) that SwiftUI publishes the focused path of an AppKit first responder only when it is a key view. `AgentItemFocusView.canBecomeKeyView` is `false`, so with the workaround the item path is likely NOT the published focused path, while the beacon (key view while it holds focus) publishes it. Not verifiable in the AVK harness for the reason above.
+
+    Decision per the user's rule (relayed 2026-10-22): EditorKit does not cover the focus-ring case, so nothing in AVK changed. All experimental edits were reverted (`git diff -- Sources Tests` is empty).
+  timestamp: 2026-10-22T13:49:03.981116+00:00
+- actor: claude-code
+  id: 01m5hxyw2rdp1rgsf9shjnq28n
+  text: |-
+    ### implement — stuck
+    - evidence: no files changed (git diff -- Sources Tests empty). Without AgentItemFocusTarget, nav (`requestFocus(at:)`) and jump land on the EditorKit beacon (GeometryProbeView) for message row, tool call card and request card (rect == item rect, all 7 AgentNavigationHostedTests green), but the beacon's focusRingMaskBounds is (0,0,0,0): the focused item loses the system focus ring that AgentItemFocusView draws today (mask == item bounds).
+    - next: EditorKit gap. The beacon must draw the focus ring over its scope area while it holds the scope's focus (or EditorKit must offer a modifier for it). After that lands, re-run this card: remove AgentItemFocusTarget.swift and the `.background(AgentItemFocusTarget())` line in AgentItemScope, and add the nav and jump hosted tests over the three item kinds described in the research comment.
+  timestamp: 2026-10-22T13:49:10.104541+00:00
+- actor: claude-code
+  id: 01m5hxzhfcpe5jf2zqwq22r1t2
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — 0 files changed. Without AgentItemFocusTarget, EditorKit's beacon (GeometryProbeView) takes nav and jump focus on message, toolCall and request items (rect == item rect, 7/7 nav tests green in an experiment that was reverted). But the beacon's focusRingMaskBounds = (0,0,0,0), so the focused item loses its system focus ring. EditorKit gap: while the beacon holds a scope's focus, it must draw the focus ring over the scope area, or EditorKit offers a modifier for it. Sent to editorkit-28.
+    - test, commit, review: not run
+    - next: when EditorKit draws the ring, run this card again: remove AgentItemFocusTarget/AgentItemFocusView and add nav and jump tests over the three item kinds.
+  timestamp: 2026-10-22T13:49:32.012408+00:00
+- actor: claude-code
+  id: 01m5hy0ee1qqtcw9fdcxkw2m9m
+  text: 'The blocker is tracked in EditorKit as ^1sztdky (01M5HY04GX4TEHSEFEC1SZTDKY), per editorkit-28. Not built yet; it''s queued after ^azp1kd1, which makes every beacon content-sized. Plan: while the beacon holds its scope''s focus, it draws the system focus ring over the scope area. A modifier sets a rounded shape, and the name comes with the SHA. `.focusEffectDisabled()` or a kit switch turns the ring off. There''s no ring when a content text view holds the focus. After the bump, set the item corner shape through that modifier, delete AgentItemFocusTarget, and test nav and jump focus plus the ring on the three item kinds.'
+  timestamp: 2026-10-22T13:50:01.665848+00:00
+position_column: doing
+position_ordinal: '8380'
 title: Decide whether AgentItemFocusTarget is still needed after EditorKit c64ca1b
 ---
 Found while working ^brhhdf4. EditorKit c64ca1b ("a landed jump focuses the targeted scope") makes the scope beacon take first responder when a scope has no focusable content of its own, and skips focusables owned by nested scopes. AgentViewKit's `AgentItemFocusTarget` (Sources/AgentViewKit/Commands/AgentItemFocusTarget.swift) exists because `GeometryRegistry.requestFocus(at:)` used to give first responder to the focusable view at the scope center, and a message row has none. 
 
-- [ ] Check whether EditorKit's beacon now covers both `nav.*` moves (`requestFocus(at:)`) and jumps for message rows, tool call cards and request cards.
+- [x] Check whether EditorKit's beacon now covers both `nav.*` moves (`requestFocus(at:)`) and jumps for message rows, tool call cards and request cards.
 - [ ] If it does, remove `AgentItemFocusTarget`/`AgentItemFocusView` and the `.background(AgentItemFocusTarget())` in `AgentItemScope`, keeping `AgentNavigationHostedTests` green (the focus ring behavior must still be correct).
 - [ ] If it does not, record why on this card and close it.
+
+## Blocker (EditorKit gap)
+
+EditorKit 44d8a28 covers the focus landing for all three item kinds, but not the focus ring. With `AgentItemFocusTarget` removed, the first responder after a `nav.*` focus request or a jump is EditorKit's `GeometryProbeView`, and its `focusRingMaskBounds` is `(0, 0, 0, 0)`, so a focused message row, tool call card or request card shows no focus ring. `AgentItemFocusView` draws the system ring over the whole item today. The fix belongs in EditorKit (the beacon, which already has the item's area through `.navVisible()`, draws the focus ring while it holds its scope's focus, or EditorKit offers a modifier for it). Per the user's rule, AVK keeps no extra responder view and does not paper over this; nothing in AVK changed. See the comments for the measurements.
 
 #avk-7
