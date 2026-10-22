@@ -108,6 +108,21 @@ comments:
   id: 01m5j0cbhvap87kkm1vdamgjye
   text: 'Frames from testudoapp-2c: agent-info-header y 84–100 (16 pt). No notice, stream or connection banners. The 278 top inset in the 5-item dump is the bottom-anchoring of a short transcript (free space), not the bars. So the inset dump didn''t test scroll-under. The original evidence (rows at y 388 under the AVK bar drew no pixels) came from the OLD Testudo layout, where the tab header was stacked above the chat. I asked for an overflow probe on the new layout: row frames, plus pixel samples under and just below agent-info-header. That decides the card: rows drawn there = not a bug, close it; a blank row frame = a real reproduction.'
   timestamp: 2026-10-22T14:31:29.083311+00:00
+- actor: claude-code
+  id: 01m5j8p5wtqyxxr91re9xdz410
+  text: |-
+    REPRODUCED by testudoapp-2c on an overflowing transcript (AVK 20d1de5 + EditorKit 4acf6b0; Testudo's new layout with the tab header in safeAreaBar and chat from y 52). 14 prompts, 2.3 screens, scrolled to the bottom; Light and Dark through the app appearance only.
+    - Frames (window, y from top): toolbar 0–52; tabHeader 52–76; agent-info-header y 84–100; conversation-list AX y 108–619.
+    - Top rows (AX): user message y -51..6; agent intro 18..58; tool call 70..86; plan row 98..214. All start above the list top (108).
+    - Pixels at (700,60), (700,70), (900,92), (700,110) and (700,130): none hits row content. Light: window background everywhere. Dark: y 53..107 is a uniform fill of 58 (the window below is 50), with a 1 px line of 64 at y 108. Row content is CLIPPED at y 108; only the first ~3 pt of the plan title (108..111) shows.
+    - Reading: this looks like an opaque bar background plus a hairline, i.e. the HARD scroll edge effect style, or a background on the bar, not soft scroll-under. Earlier probe: the default edge-effect style differs by context, and `.scrollEdgeEffectStyle(.soft, for: .vertical)` changes it. Check that first, along with any background or hairline on the top bar container.
+    - Artifacts (readable): /Users/wballard/github/swissarmyhammer/TestudoApp/.build/app/probe/crop-Light.png, crop-Dark.png (x 381–1020, y 52–140 at 2x), window-Light.png, window-Dark.png, report-Light.txt, report-Dark.txt.
+    - Test idea: the offscreen render can't draw the edge effect, but a hosted test can assert the list's configured edge-effect style and that the top-bar container has no opaque background. A person decides whether that replaces the pixel acceptance. The card is ready for iteration 3.
+  timestamp: 2026-10-22T16:56:39.578348+00:00
+- actor: claude-code
+  id: 01m5j8pn2fxxqg2g5vg15nft3p
+  text: 'From testudoapp-2c: Testudo''s Sources contain no `scrollEdgeEffectStyle`, `toolbarBackground` or `containerBackground`. So if the edge is hard, it comes from AgentViewKit or from a system default for that bar.'
+  timestamp: 2026-10-22T16:56:55.119500+00:00
 position_column: doing
 position_ordinal: '8180'
 title: AVK-8 The transcript draws under the thread top bar, with the scroll edge effect

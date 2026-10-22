@@ -79,8 +79,24 @@ comments:
     - note: XCUITest prints a runtime notice "This method should not be called on the main thread" inside its own UI-interruption handler for the settings-sheet test; the class is already @MainActor, and the notice comes from the XCTest framework, not project code.
     - next: review, then commit.
   timestamp: 2026-10-22T15:02:11.732725+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5j2aeev8zanvznzy5b54ab2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (4569599) — 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed, 0 skipped; 3 files reviewed, 6 .kanban/ files excluded by .reviewignore. No prior Review Findings sections.
+    - next: task moved to done
+  timestamp: 2026-10-22T15:05:23.675424+00:00
+- actor: claude-code
+  id: 01m5j2arhn9x9e5mqr3cjc1fkt
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 3 files (AgentItemScope.swift, RequestDeck.swift, AgentNavigationHostedTests.swift); EditorKit resolved 91f8352; red first: the edge card was in the nav snapshot
+    - test: green — swift test 1588 passed, 0 failed, 0 skipped; demo builds; the demo UI gate's only failure is the known ^bc6fapz
+    - commit: 4569599 (local, not pushed)
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T15:05:34.005780+00:00
+position_column: done
+position_ordinal: ffffb080
 title: 'Request deck: a card that does not show whole is still a nav target'
 ---
 Found in AVK-7d (^56y8q6a).

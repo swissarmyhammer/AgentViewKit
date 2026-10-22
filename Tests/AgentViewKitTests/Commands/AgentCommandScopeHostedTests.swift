@@ -66,12 +66,15 @@ import Testing
   ///     that a view starts, or `nil`.
   ///   - submitReport: The report that gets each submit outcome of the
   ///     composer, or `nil`.
+  ///   - isFocusEffectEnabled: `false` to apply `.focusEffectDisabled()`
+  ///     above the views, as a host does to turn off each focus ring.
   /// - Returns: The harness.
   static func mount(
     session: ScriptedSession, system: CommandSystem, outerScope: Bool,
     composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard(),
     requestStartReport: ObservationReport<String>? = nil,
-    submitReport: ObservationReport<PromptSubmitOutcome>? = nil
+    submitReport: ObservationReport<PromptSubmitOutcome>? = nil,
+    isFocusEffectEnabled: Bool = true
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: windowSize) {
       scoped(
@@ -86,6 +89,7 @@ import Testing
         .accessibilityFocusScope(),
         in: outerScope ? session.model : nil
       )
+      .focusEffectDisabled(!isFocusEffectEnabled)
       .environment(\.sessionModel, session.model)
       .environment(\.pasteboard, pasteboard)
       .environment(\.requestStartReport, requestStartReport)

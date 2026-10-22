@@ -30,6 +30,10 @@ comments:
   id: 01m5hkyvp61k3ng0maxfbykwqc
   text: 'Blocker tracked in EditorKit as ^1se9rnw (01M5HK4EQWPG2MW99NV1SE9RNW), per editorkit-28. Planned: an option on `.commandContextMenu` and `contextMenuMirror(at:)`, either "disable" (default, today''s behaviour) or "hide". With hide, unavailable rows are dropped, and so are empty or doubled separators. The parameter name comes with the SHA. Not landed yet.'
   timestamp: 2026-10-22T10:54:23.942125+00:00
+- actor: claude-code
+  id: 01m5j8p8dg1c55d5j8wb8xrg5w
+  text: 'UNBLOCKED: EditorKit main 83731ed (^1se9rnw), additive. `.commandContextMenu(system, unavailable: .hide)`. The enum is `ContextMenuUnavailablePolicy`, with `.disable` (the default) and `.hide`. With `.hide`, unavailable rows are dropped, and so are sections or separators left empty or doubled. `contextMenuMirror(at:mode:unavailable:)` and iOS `UIContextMenuMirror(system:path:mode:unavailable:)` take the same option. It works with `.targetable(false)`: commands still resolve at the nearest targetable ancestor. To do: in AgentItemScope (around line 47), use `.commandContextMenu(system, unavailable: .hide)`; the card''s acceptance tests use `contextMenuMirror(at:unavailable: .hide)`.'
+  timestamp: 2026-10-22T16:56:42.160417+00:00
 position_column: todo
 position_ordinal: '9980'
 title: AVK-9 Hide the commands that are not available in the item context menus

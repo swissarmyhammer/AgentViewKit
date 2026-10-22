@@ -18,8 +18,12 @@ import SwiftUI
 /// The item scope is a target of the EditorKit navigation and jump (AVK-7d),
 /// as each EditorKit command scope is. The scope has the area of the item, so
 /// the `nav.*` commands of the host move between the items, and a jump label
-/// shows on the item. An ``AgentItemFocusTarget`` behind the item takes the
-/// focus that a move or a jump puts on the item. When `isTargetable` is
+/// shows on the item. The item has no focusable view of its own, so the
+/// EditorKit beacon of the scope takes the focus that a move or a jump puts
+/// on the item, and draws the system focus ring over the item.
+/// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of a card of
+/// the kit (``AgentSurface/shape(for:)``). A `.focusEffectDisabled()` above
+/// the item turns the ring off. When `isTargetable` is
 /// `false`, for example on a deck card that does not show whole,
 /// `.targetable(false)` removes the item from the jump labels and from the
 /// navigation snapshot, so no jump and no move lands on it. The modifier
@@ -39,14 +43,15 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   let isTargetable: Bool
 
   @Environment(\.agentCommandSystem) private var system
+  @Environment(\.agentTheme) private var theme
 
   func body(content: Content) -> some View {
     if let system {
       content
-        .background(AgentItemFocusTarget())
         .commandContextMenu(system)
         .commandScope(segment: segment, subject: subject)
         .targetable(isTargetable)
+        .scopeFocusRing(cornerRadius: theme.radii.l)
     } else {
       content
     }
