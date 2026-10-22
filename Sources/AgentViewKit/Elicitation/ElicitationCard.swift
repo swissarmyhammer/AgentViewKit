@@ -57,3 +57,81 @@ struct ElicitationCard: View {
     }
   }
 }
+
+// MARK: - Previews
+
+/// One pending elicitation of the previews, in its card in one place.
+///
+/// The preview session holds the elicitation and records the answer of the
+/// card, so a press in the canvas reaches no agent and no network.
+private struct ElicitationCardSample: View {
+  /// The place of the card (``RequestDeckPlace``).
+  enum Place {
+    /// Alone in content: the actions keep the glass styles.
+    case content
+
+    /// In the request deck in the bottom bar of a thread, over a transcript
+    /// that scrolls under the bar: the deck is on glass.
+    case bottomBar
+
+    /// The transcript of the session of the sample.
+    var transcript: [PreviewTranscriptItem] {
+      switch self {
+      case .content: []
+      case .bottomBar: PreviewFixtures.scrolledTranscript
+      }
+    }
+  }
+
+  /// The place of the card.
+  let place: Place
+
+  /// The preview session that holds the elicitation.
+  @State private var session: SessionModel
+
+  /// Makes the sample of one elicitation.
+  ///
+  /// - Parameters:
+  ///   - request: The pending elicitation.
+  ///   - place: The place of the card.
+  init(_ request: CreateElicitationRequest, in place: Place = .content) {
+    self.place = place
+    _session = State(
+      initialValue: PreviewFixtures.elicitationCardSession(asking: request, transcript: place.transcript))
+  }
+
+  var body: some View {
+    switch place {
+    case .content:
+      if let request = session.pendingElicitations.first {
+        ElicitationCard(request: request, owner: session)
+          .padding()
+      }
+    case .bottomBar:
+      AgentThreadView(session: session) {
+        RequestDeck(session: session)
+        DefaultThreadComposer()
+      }
+    }
+  }
+}
+
+#Preview("Form with a field of each kind") {
+  ElicitationCardSample(PreviewFixtures.eachKindFormElicitation)
+}
+
+#Preview("Form with a field that is not valid") {
+  ElicitationCardSample(PreviewFixtures.invalidFieldElicitation)
+}
+
+#Preview("In content, before the user types: the required field shows its error") {
+  ElicitationCardSample(PreviewFixtures.formElicitation)
+}
+
+#Preview("URL consent request") {
+  ElicitationCardSample(PreviewFixtures.urlElicitation)
+}
+
+#Preview("In the request deck in the bottom bar of a thread") {
+  ElicitationCardSample(PreviewFixtures.formElicitation, in: .bottomBar)
+}

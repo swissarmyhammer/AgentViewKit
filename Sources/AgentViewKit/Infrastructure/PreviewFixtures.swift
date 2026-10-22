@@ -121,24 +121,170 @@ enum PreviewFixtures {
   /// The scope of each sample elicitation: the default preview session.
   static let elicitationScope = ElicitationSessionScope(sessionId: SessionModel.previewSessionId)
 
+  /// The agent path and the source of the "who asks" line of an elicitation
+  /// card: the sub-agent that asks, and the tool inside it.
+  struct WhoAsks {
+    /// The names of the agents between the root agent and the agent that
+    /// asks, outermost first.
+    let agentPath: [String]
+
+    /// The tool that asks inside the agent.
+    let source: String
+
+    /// Short names: one sub-agent and a short tool name.
+    static let short = WhoAsks(agentPath: ["planner"], source: "createPackage")
+
+    /// Names that are longer than a narrow column: ``longAgentName`` and a
+    /// long tool name, so that the line truncates in the middle.
+    static let long = WhoAsks(
+      agentPath: [longAgentName], source: "createPackageWithTheRegistryCredentialsOfTheContinuousIntegrationService")
+
+    /// The `_meta` of an elicitation that this agent path and this source
+    /// ask.
+    var meta: JSONValue {
+      .object(["agentPath": .array(agentPath.map(JSONValue.string)), "source": .string(source)])
+    }
+  }
+
+  /// The `Name` property of the sample forms: a text of at least one
+  /// character.
+  private static let nameProperty: [String: JSONValue] = [
+    "type": .string("string"), "title": .string("Name"), "minLength": .number(1),
+  ]
+
+  /// The `Retries` property of the sample forms: an integer from zero to
+  /// ``ElicitationFields/maximumRetries``.
+  private static let retriesProperty: [String: JSONValue] = [
+    "type": .string("integer"), "title": .string("Retries"), "minimum": .number(0),
+    "maximum": .number(ElicitationFields.maximumRetries),
+  ]
+
+  /// The properties of ``formElicitation``: a text, an integer and a Boolean.
+  private static let packageProperties: [String: JSONValue] = [
+    "name": .object(nameProperty),
+    "retries": .object(retriesProperty),
+    "verbose": .object(["type": .string("boolean"), "title": .string("Verbose output")]),
+  ]
+
+  /// Makes a form-mode elicitation of the default preview session that
+  /// ``WhoAsks/short`` asks, so that the card shows the "who asks" line.
+  ///
+  /// - Parameters:
+  ///   - message: The message of the request.
+  ///   - properties: The property schemas of the form, by property name.
+  ///   - required: The names of the properties that need an answer.
+  /// - Returns: The request.
+  private static func formRequest(
+    message: String, properties: [String: JSONValue], required: [String]
+  ) -> CreateElicitationRequest {
+    CreateElicitationRequest(
+      message: message,
+      mode: .form(
+        ElicitationFormMode(
+          requestedSchema: ElicitationSchema(properties: .object(properties), required: required),
+          scope: .session(elicitationScope))),
+      meta: WhoAsks.short.meta)
+  }
+
   /// A form-mode elicitation with three fields. A sub-agent asks it through a
   /// tool, so the card shows the "who asks" line.
-  static let formElicitation = CreateElicitationRequest(
-    message: "Give the details of the new package.",
-    mode: .form(
-      ElicitationFormMode(
-        requestedSchema: ElicitationSchema(
-          properties: .object([
-            "name": .object(["type": .string("string"), "title": .string("Name"), "minLength": .number(1)]),
-            "retries": .object([
-              "type": .string("integer"), "title": .string("Retries"), "minimum": .number(0),
-              "maximum": .number(ElicitationFields.maximumRetries),
-            ]),
-            "verbose": .object(["type": .string("boolean"), "title": .string("Verbose output")]),
-          ]),
-          required: ["name"]),
-        scope: .session(elicitationScope))),
-    meta: .object(["agentPath": .array([.string("planner")]), "source": .string("createPackage")]))
+  static let formElicitation = formRequest(
+    message: "Give the details of the new package.", properties: packageProperties, required: ["name"])
+
+  /// A form-mode elicitation with one field of each kind of
+  /// ``ElicitationFields``: a text, an integer, a Boolean, a date, a single
+  /// choice and a multiple choice.
+  static let eachKindFormElicitation = formRequest(
+    message: "Plan the release of the new package.",
+    properties: merged(
+      packageProperties,
+      with: [
+        ElicitationFields.date.name: .object([
+          "type": .string("string"), "title": .string(ElicitationFields.date.title), "format": .string("date"),
+        ]),
+        ElicitationFields.singleChoice.name: .object([
+          "type": .string("string"), "title": .string(ElicitationFields.singleChoice.title),
+          "oneOf": choiceList(ElicitationFields.platformChoices),
+        ]),
+        ElicitationFields.multiChoice.name: .object([
+          "type": .string("array"), "title": .string(ElicitationFields.multiChoice.title), "minItems": .number(1),
+          "items": .object(["anyOf": choiceList(ElicitationFields.checkChoices)]),
+        ]),
+      ]),
+    required: ["name", ElicitationFields.singleChoice.name])
+
+  /// Makes the JSON list of the titled choices of a property.
+  ///
+  /// - Parameter choices: The choices, in order.
+  /// - Returns: A list of `{const, title}` objects.
+  private static func choiceList(_ choices: [ElicitationFieldSchema.Choice]) -> JSONValue {
+    .array(choices.map { .object(["const": .string($0.const), "title": .string($0.title)]) })
+  }
+
+  /// Adds members to the members of a JSON object.
+  ///
+  /// - Parameters:
+  ///   - members: The members of the object.
+  ///   - added: The members to add. An added member replaces a member of
+  ///     `members` with the same name.
+  /// - Returns: The members of both, by name.
+  private static func merged(_ members: [String: JSONValue], with added: [String: JSONValue]) -> [String: JSONValue] {
+    members.merging(added) { _, addedValue in addedValue }
+  }
+
+  /// The default name of ``invalidFieldElicitation``, which passes each
+  /// constraint of its field.
+  static let validPackageName = "swift-parser"
+
+  /// The default number of retries of ``invalidFieldElicitation``: more than
+  /// ``ElicitationFields/maximumRetries``.
+  static let retriesAboveMaximum: Double = 9
+
+  /// A form-mode elicitation whose `Retries` default is above its maximum, so
+  /// that the card shows a field that is not valid before the user types.
+  /// The required `Name` field has a valid default.
+  static let invalidFieldElicitation = formRequest(
+    message: "Check the details of the new package.",
+    properties: [
+      "name": .object(merged(nameProperty, with: ["default": .string(validPackageName)])),
+      "retries": .object(merged(retriesProperty, with: ["default": .number(retriesAboveMaximum)])),
+    ],
+    required: ["name"])
+
+  /// Makes a new preview session with one pending elicitation, for the card
+  /// of the elicitation. The session records the answer of the card and
+  /// sends nothing.
+  ///
+  /// - Parameters:
+  ///   - request: The pending elicitation.
+  ///   - transcript: The transcript items of the session, in order.
+  /// - Returns: The preview session.
+  static func elicitationCardSession(
+    asking request: CreateElicitationRequest, transcript: [PreviewTranscriptItem] = []
+  ) -> SessionModel {
+    .preview(transcript: transcript, pendingElicitations: [request])
+  }
+
+  /// The reason that the agent gave for each withdrawn request of the
+  /// previews.
+  static let withdrawalReason = "The agent read the details from the package manifest."
+
+  /// A title of a request that is longer than the message of
+  /// ``formElicitation``, so that the notice of its withdrawal wraps.
+  static let longWithdrawnTitle = """
+    Give the name, the version, the platforms, the products and the dependencies of each package \
+    that the continuous integration service of Northwind Traders builds for the release
+    """
+
+  /// The notice of the withdrawal of ``formElicitation``, with
+  /// ``withdrawalReason``.
+  static let withdrawnNotice = WithdrawnNotice(
+    id: UUID(), text: RequestDeck.withdrawnText(title: formElicitation.message, reason: withdrawalReason))
+
+  /// The notice of the withdrawal of a request with ``longWithdrawnTitle``,
+  /// with ``withdrawalReason``.
+  static let longTitleWithdrawnNotice = WithdrawnNotice(
+    id: UUID(), text: RequestDeck.withdrawnText(title: longWithdrawnTitle, reason: withdrawalReason))
 
   /// A URL-mode elicitation that asks the user to sign in in the browser.
   static let urlElicitation = CreateElicitationRequest(
@@ -338,17 +484,19 @@ enum PreviewFixtures {
   /// The number of turns of ``scrolledSession``.
   static let scrolledTurnCount = 12
 
-  /// A new preview session with a transcript that is longer than a window,
-  /// so that the list scrolls under the bars of a thread. Each turn is a
+  /// A transcript that is longer than a window, so that the list scrolls
+  /// under the bars of a thread. Each of the ``scrolledTurnCount`` turns is a
   /// user message and an agent message.
+  static let scrolledTranscript = (1...scrolledTurnCount).flatMap { turn -> [PreviewTranscriptItem] in
+    [
+      .user("What does step \(turn) of the build do?"),
+      .agent("Step \(turn) compiles one module of the package and links it into the test bundle."),
+    ]
+  }
+
+  /// A new preview session with ``scrolledTranscript``.
   static var scrolledSession: SessionModel {
-    .preview(
-      transcript: (1...scrolledTurnCount).flatMap { turn -> [PreviewTranscriptItem] in
-        [
-          .user("What does step \(turn) of the build do?"),
-          .agent("Step \(turn) compiles one module of the package and links it into the test bundle."),
-        ]
-      })
+    .preview(transcript: scrolledTranscript)
   }
 
   /// A Markdown text with each kind of formatting that a response shows:
@@ -1187,26 +1335,28 @@ enum PreviewFixtures {
       name: "due", title: "Due date", description: "The last day for the release.", required: false,
       kind: .date(dateTime: false), defaultValue: nil)
 
+    /// The choices of the ``singleChoice`` field.
+    static let platformChoices = [
+      ElicitationFieldSchema.Choice(const: "macos", title: "macOS"),
+      ElicitationFieldSchema.Choice(const: "ios", title: "iOS"),
+    ]
+
+    /// The choices of the ``multiChoice`` field.
+    static let checkChoices = [
+      ElicitationFieldSchema.Choice(const: "lint", title: "Lint"),
+      ElicitationFieldSchema.Choice(const: "test", title: "Test"),
+      ElicitationFieldSchema.Choice(const: "docs", title: "Docs"),
+    ]
+
     /// A field with one choice from a list.
     static let singleChoice = ElicitationFieldSchema(
       name: "platform", title: "Platform", description: nil, required: true,
-      kind: .singleChoice([
-        ElicitationFieldSchema.Choice(const: "macos", title: "macOS"),
-        ElicitationFieldSchema.Choice(const: "ios", title: "iOS"),
-      ]),
-      defaultValue: nil)
+      kind: .singleChoice(platformChoices), defaultValue: nil)
 
     /// A field with a set of choices from a list.
     static let multiChoice = ElicitationFieldSchema(
       name: "checks", title: "Checks", description: "The checks to run before the release.",
-      required: false,
-      kind: .multiChoice(
-        [
-          ElicitationFieldSchema.Choice(const: "lint", title: "Lint"),
-          ElicitationFieldSchema.Choice(const: "test", title: "Test"),
-          ElicitationFieldSchema.Choice(const: "docs", title: "Docs"),
-        ], minItems: 1, maxItems: nil),
-      defaultValue: nil)
+      required: false, kind: .multiChoice(checkChoices, minItems: 1, maxItems: nil), defaultValue: nil)
 
     /// Each field of the form, in form order.
     static let all = [text, number, boolean, date, singleChoice, multiChoice]

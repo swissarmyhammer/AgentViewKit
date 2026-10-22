@@ -116,6 +116,94 @@ import Testing
     #expect(pending.targetHost == PreviewFixtures.elicitationURLHost)
   }
 
+  @Test func theFormElicitationNamesTheShortWhoAsks() throws {
+    let pending = try #require(PreviewFixtures.elicitationSession.pendingElicitations.first)
+
+    #expect(pending.agentPath == PreviewFixtures.WhoAsks.short.agentPath)
+    #expect(pending.source == PreviewFixtures.WhoAsks.short.source)
+  }
+
+  @Test func theEachKindFormElicitationGivesOneFieldOfEachKind() throws {
+    let kinds = try Self.fields(of: PreviewFixtures.eachKindFormElicitation).map { Self.caseName(of: $0.kind) }
+
+    #expect(kinds.count == PreviewFixtures.ElicitationFields.all.count)
+    #expect(Set(kinds) == Set(PreviewFixtures.ElicitationFields.all.map { Self.caseName(of: $0.kind) }))
+  }
+
+  @Test func theInvalidFieldElicitationHasOneFieldWhoseDefaultFailsAConstraint() throws {
+    let fields = try Self.fields(of: PreviewFixtures.invalidFieldElicitation)
+
+    let failing = fields.filter { !ElicitationValidator.validate($0.defaultValue, against: $0).isSatisfied }
+
+    #expect(fields.count > failing.count)
+    #expect(failing.count == 1)
+    #expect(failing.allSatisfy { $0.defaultValue != nil })
+  }
+
+  @Test func theElicitationCardSessionHoldsItsRequestAndItsTranscript() {
+    let session = PreviewFixtures.elicitationCardSession(
+      asking: PreviewFixtures.urlElicitation, transcript: PreviewFixtures.scrolledTranscript)
+
+    #expect(session.pendingElicitations.map(\.request) == [PreviewFixtures.urlElicitation])
+    #expect(session.transcript.count == PreviewFixtures.scrolledTranscript.count)
+  }
+
+  @Test func theElicitationCardSessionHasNoTranscriptByDefault() {
+    let session = PreviewFixtures.elicitationCardSession(asking: PreviewFixtures.formElicitation)
+
+    #expect(session.pendingElicitations.map(\.request) == [PreviewFixtures.formElicitation])
+    #expect(session.transcript.isEmpty)
+  }
+
+  @Test func theLongWhoAsksHasLongerNamesThanTheShortWhoAsks() {
+    let short = PreviewFixtures.WhoAsks.short
+    let long = PreviewFixtures.WhoAsks.long
+
+    #expect(long.agentPath.joined().count > short.agentPath.joined().count)
+    #expect(long.source.count > short.source.count)
+  }
+
+  @Test func eachWhoAsksGivesALine() {
+    let rootLabel = PreviewFixtures.agentName
+
+    #expect(
+      [PreviewFixtures.WhoAsks.short, PreviewFixtures.WhoAsks.long].allSatisfy {
+        ElicitationHeader.whoAsks(agentPath: $0.agentPath, source: $0.source, rootLabel: rootLabel) != nil
+      })
+  }
+
+  @Test func theWithdrawnNoticesTellTheirTitleAndTheReason() {
+    let notices = [
+      (PreviewFixtures.withdrawnNotice, PreviewFixtures.formElicitation.message),
+      (PreviewFixtures.longTitleWithdrawnNotice, PreviewFixtures.longWithdrawnTitle),
+    ]
+
+    #expect(
+      notices.allSatisfy { notice, title in
+        notice.text == RequestDeck.withdrawnText(title: title, reason: PreviewFixtures.withdrawalReason)
+      })
+    #expect(Set(notices.map(\.0.id)).count == notices.count)
+  }
+
+  @Test func theLongWithdrawnTitleIsLongerThanTheTitleOfTheWithdrawnNotice() {
+    #expect(PreviewFixtures.longWithdrawnTitle.count > PreviewFixtures.formElicitation.message.count)
+  }
+
+  @Test func theScrolledTranscriptHoldsAMessagePairForEachTurn() {
+    #expect(PreviewFixtures.scrolledTranscript.count == PreviewFixtures.scrolledTurnCount * Self.messagesPerTurn)
+  }
+
+  /// The fields of a form-mode elicitation, as the card shows them.
+  ///
+  /// - Parameter request: The form-mode elicitation.
+  /// - Returns: The fields of its requested schema, in form order.
+  /// - Throws: An issue when the preview session holds no pending
+  ///   elicitation.
+  static func fields(of request: CreateElicitationRequest) throws -> [ElicitationFieldSchema] {
+    let pending = try #require(PreviewFixtures.elicitationCardSession(asking: request).pendingElicitations.first)
+    return ElicitationFieldSchema.normalize(from: ElicitationView.requestedSchema(of: pending))
+  }
+
   @Test func theFieldContextReadsAndWritesTheAnswerOfItsOwnField() {
     var answers: [String: JSONValue] = [:]
     let binding = Binding(get: { answers }, set: { answers = $0 })

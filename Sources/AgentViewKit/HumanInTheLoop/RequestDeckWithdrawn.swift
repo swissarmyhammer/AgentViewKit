@@ -105,3 +105,26 @@ struct WithdrawnNoticeRow: View {
       dismissIdentifier: RequestDeck.dismissIdentifier(forWithdrawn: notice.id), dismiss: dismiss)
   }
 }
+
+// MARK: - Previews
+
+/// The row of one withdrawn request of the previews, in a narrow column, so
+/// that a long title wraps. The Dismiss button does nothing.
+private struct WithdrawnNoticeRowSample: View {
+  /// The notice of the row.
+  let notice: WithdrawnNotice
+
+  var body: some View {
+    WithdrawnNoticeRow(notice: notice, dismiss: {})
+      .frame(width: PreviewFixtures.narrowWidth)
+      .padding()
+  }
+}
+
+#Preview("One withdrawn request") {
+  WithdrawnNoticeRowSample(notice: PreviewFixtures.withdrawnNotice)
+}
+
+#Preview("Withdrawn request with a long title") {
+  WithdrawnNoticeRowSample(notice: PreviewFixtures.longTitleWithdrawnNotice)
+}

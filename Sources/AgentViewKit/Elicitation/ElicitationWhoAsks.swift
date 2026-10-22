@@ -127,3 +127,26 @@ extension EnvironmentValues {
   /// example the name of the agent.
   @Entry public var elicitationRootAgentLabel: String = String(localized: "root", bundle: .module)
 }
+
+// MARK: - Previews
+
+/// The "who asks" line of the previews, in a narrow column, so that a long
+/// line truncates in the middle.
+private struct ElicitationWhoAsksLineSample: View {
+  /// The agent path and the source of the line.
+  let whoAsks: PreviewFixtures.WhoAsks
+
+  var body: some View {
+    ElicitationWhoAsksLine(agentPath: whoAsks.agentPath, source: whoAsks.source)
+      .frame(width: PreviewFixtures.narrowWidth, alignment: .leading)
+      .padding()
+  }
+}
+
+#Preview("Short agent and tool names") {
+  ElicitationWhoAsksLineSample(whoAsks: .short)
+}
+
+#Preview("Long agent and tool names: the middle truncates") {
+  ElicitationWhoAsksLineSample(whoAsks: .long)
+}
