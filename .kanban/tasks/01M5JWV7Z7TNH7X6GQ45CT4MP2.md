@@ -44,8 +44,24 @@ comments:
     - evidence: swift package update; swift test — 1649 tests in 203 suites passed, 0 failures, 0 skipped, no project-code warnings (only the known SwiftPM mlx-swift "missing creator" notice). The 3 "known issues" are deliberate withKnownIssue negative tests of the checkers (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). Revisions: EditorKit ab874dd8bb9c2f48633eff1b112926c4353611e8, FoundationModelsRouter 3bd3cef1b378e7e70dcbfbd55b9da31c0b8bc3b0, FoundationModelsExtras 78d25320a1cfa458e05b880e613132d458f65ec9 (all branch main).
     - next: review/commit
   timestamp: 2026-10-22T23:14:32.614577+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jye5p1nr4s50d49a25xsqf
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (716c5d3) — 0 findings, 0 confirmed, 0 refuted; 7 validator passes attempted, 0 failed; 3 files reviewed, 2 .kanban files excluded by .reviewignore
+    - next: none; task moved to done
+  timestamp: 2026-10-22T23:16:45.889885+00:00
+- actor: claude-code
+  id: 01m5jyeh7yt96bwm9wdjneb39g
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — WindowUndoChecks.swift (new), AgentCommandScopeHostedTests.swift, AttachmentCommandsHostedTests.swift; no Sources change; the audit found nothing that assumes a root scope holds only AVK's commands
+    - test: green — after swift package update (EditorKit ab874dd, Router 3bd3cef, Extras 78d2532), swift test 1649 passed, 0 failed, 0 skipped
+    - commit: 716c5d3
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T23:16:57.726231+00:00
+position_column: done
+position_ordinal: ffffbb80
 title: 'Command scope tests break on EditorKit main 36e96b5: the root commandScope registers edit.undo and edit.redo'
 ---
 ## What
