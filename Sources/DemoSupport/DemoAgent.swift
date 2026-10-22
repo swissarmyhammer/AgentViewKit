@@ -146,7 +146,7 @@ public final class DemoAgent {
   /// set in code: the agent needs no configuration file for it. Its
   /// environment is ``RecordedSessionsStage/agentEnvironment``, also set in
   /// code: the configuration root of the agent is the configuration
-  /// directory of the stage, so the agent writes its project registry into
+  /// directory of the stage, so the agent writes its project store into
   /// the stage and not into the home directory. The
   /// working directory of each session list is the empty working directory
   /// of the stage. The agent restores a recorded session on `session/resume`.
@@ -203,7 +203,7 @@ public final class DemoAgent {
   /// variables from `environment`, so a configuration root in the
   /// environment, such as ``RecordedSessionsStage/agentEnvironment`` or the
   /// temporary root of a test, still moves the user layer and the project
-  /// registry out of the home directory.
+  /// store out of the home directory.
   ///
   /// - Parameter environment: The environment that the agent reads in place
   ///   of the process environment.

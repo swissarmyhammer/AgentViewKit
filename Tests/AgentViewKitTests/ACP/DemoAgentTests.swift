@@ -59,7 +59,7 @@ import Testing
 
   /// Opens a new session in the working directory of the agent, and resumes
   /// that session from the start. Each of the two requests makes the agent
-  /// register the working directory in its project registry. The test
+  /// register the working directory in its project store. The test
   /// fails when the agent does not resume the session that it opened.
   ///
   /// - Parameter agent: The agent.
@@ -76,15 +76,15 @@ import Testing
     #expect(resumed.sessionId == sessionId)
   }
 
-  @Test func anACPTabAgentOfATestLeavesTheProjectRegistryOfTheHomeDirectoryUnchanged() async throws {
-    let homeRegistry = RecordedSessionsAgentTests.FileSnapshot(of: RecordedSessionsAgentTests.homeProjectRegistry)
+  @Test func anACPTabAgentOfATestLeavesTheProjectStoreOfTheHomeDirectoryUnchanged() async throws {
+    let homeStore = RecordedSessionsAgentTests.FolderSnapshot(of: RecordedSessionsAgentTests.homeProjectStore)
     let started = try await Self.makeACPTabAgent()
 
     try await Self.openAndResumeASession(of: started.agent)
     await started.agent.stop()
     started.directory.remove()
 
-    #expect(RecordedSessionsAgentTests.FileSnapshot(of: RecordedSessionsAgentTests.homeProjectRegistry) == homeRegistry)
+    #expect(RecordedSessionsAgentTests.FolderSnapshot(of: RecordedSessionsAgentTests.homeProjectStore) == homeStore)
   }
 
   @Test func theHomeOfTheAgentIsTheDemoDotfolderInTheConfigurationRootOfTheEnvironment() throws {

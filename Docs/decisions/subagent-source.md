@@ -27,18 +27,19 @@ decision: `router`
   has no child-session case and no fork case. The spawn link is not on the
   live session event stream.
 - `RoutedModel.makeSession(...agentSpawn:...)` takes a
-  `SessionSidecar.AgentSpawn(parentSessionId:parentToolCallId:)`. The Router
-  writes it to the `session.json` sidecar of the child session. It also
-  writes it to the first `TranscriptEvent` of the child session, which has
-  the kind `session`.
+  `SessionRecord.AgentSpawn(parentSessionId:parentToolCallId:)`. The Router
+  writes it to the `SessionRecord` frontmatter of the `index.md` of the child
+  session folder. It also writes it to the first `TranscriptEvent` of the
+  child session, which has the kind `session`.
 - `TranscriptEvent.agentSpawn` is public. A live recorder sink gets the
   `session` event when the work of the first prompt of the child session
   starts. It does not get the event when the session is made.
 - `TranscriptEvent.parentId` is the fork link. It is `nil` for a spawned
   session. A fork has no `agentSpawn`. Thus the two kinds of child session
   stay different.
-- `SessionSidecar` has no public stored property. Read the spawn link from
-  `TranscriptEvent`, not from the sidecar.
+- `SessionRecord.agentSpawn` is public to read. A recorded session gives the
+  spawn link through `RouterSessionDirectory.recordedSessions(in:)`, and a
+  live recorder sink gives it through `TranscriptEvent`.
 - `agentSpawn.parentToolCallId` is the same id as the ACP `toolCallId` of the
   spawning tool call (`../FoundationModelsACPAgent/plan.md` §4.2).
 - The limit: no tool in the FoundationModelsACPAgent roster starts a

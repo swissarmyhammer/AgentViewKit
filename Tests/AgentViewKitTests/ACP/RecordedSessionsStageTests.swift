@@ -10,9 +10,6 @@ import Testing
 /// Each test makes its own recordings in a temporary directory. The recorded
 /// sessions of the demo app are replaced over time, so no test reads them.
 @Suite struct RecordedSessionsStageTests {
-  /// The name of the index file of a recording root.
-  static let indexFileName = "sessions.jsonl"
-
   /// The failure text of a start that finds no recordings in the app bundle.
   static let missingRecordingsText = "The app bundle has no RecordedSessions directory."
 
@@ -31,24 +28,19 @@ import Testing
   /// The session directory of the second recording.
   static let secondSession = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
 
-  /// The index line of the first recording, with its line end.
-  static let firstIndexLine = #"{"sessionId":"01ARZ3NDEKTSV4RRFFQ69G5FAV"}"# + "\n"
-
-  /// The index line of the second recording, with no line end.
-  static let secondIndexLine = #"{"sessionId":"01BX5ZZKBKACTAV9WEVGEMMVRZ"}"#
-
   /// The name of a file at the top of the recordings, such as a README.
   static let topFileName = "README.md"
 
-  /// The name of a file of a recording that is not the index and not a
-  /// session directory.
+  /// The name of a file of a recording that is not a session directory.
   static let attributesFileName = ".gitattributes"
 
-  /// The files of each session directory, by file name.
+  /// The files of each session directory, by file name, in the format of the
+  /// agent: the `index.md` with the record of the session as frontmatter,
+  /// and one transcript line with a date in milliseconds.
   static let sessionFiles = [
-    "session.json": #"{"configuration":{}}"#,
+    "index.md": "---\nupdatedAt: 2026-10-12T05:53:33.925Z\n---\n",
     "session-history.json": #"{"updates":[]}"#,
-    "transcript.jsonl": #"{"type":"session"}"# + "\n",
+    "transcript.jsonl": #"{"kind":"session","ts":"2026-10-12T05:53:33.925Z"}"# + "\n",
   ]
 
   /// The recordings of one test, in a temporary directory.
@@ -68,8 +60,6 @@ import Testing
     /// - Throws: The error of a write.
     init() throws {
       directory = try TemporaryDirectory()
-      try write(RecordedSessionsStageTests.firstIndexLine, to: "\(firstRecording)/\(indexFileName)")
-      try write(RecordedSessionsStageTests.secondIndexLine, to: "\(secondRecording)/\(indexFileName)")
       try write("** linguist-generated=true\n", to: "\(firstRecording)/\(attributesFileName)")
       try write("# Recordings\n", to: topFileName)
       for (recording, session) in [(firstRecording, firstSession), (secondRecording, secondSession)] {
@@ -148,14 +138,15 @@ import Testing
     }
   }
 
-  @Test func theStagedIndexHoldsTheLinesOfEachRecordingInNameOrder() throws {
+  @Test func theTranscriptLocationHoldsOnlyTheCopiesOfTheRecordings() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
-    let index = try Self.stagedData(at: Self.indexFileName, of: stage)
-    #expect(String(decoding: index, as: UTF8.self) == Self.firstIndexLine + Self.secondIndexLine + "\n")
+    let names = try FileManager.default.contentsOfDirectory(
+      atPath: stage.transcriptsDirectory.path(percentEncoded: false))
+    #expect(names.sorted() == [Self.attributesFileName, Self.firstSession, Self.secondSession].sorted())
   }
 
   @Test func theStageCopiesTheOtherFilesOfARecording() throws {

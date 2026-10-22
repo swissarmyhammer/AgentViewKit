@@ -49,8 +49,10 @@ not a dependency of the kit. Thus the table above does not list it.
   stub model or the in-memory demo agent, so no test loads a model.
 - Each test agent and the Gallery agent get an `XDG_CONFIG_HOME` in a
   temporary directory through the `environment:` dictionary of
-  `ComposedAgent.compose`. The agent then writes its project registry there,
-  and not into `~/.config/agentviewkit-demo/` of the home directory.
+  `ComposedAgent.compose`. The agent then writes its project store (Router
+  `ProjectStore`, one markdown file for each project in the `projects`
+  folder) there, and not into `~/.config/agentviewkit-demo/` of the home
+  directory.
 - The demo Xcode project gets the same package from
   `Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb`.
 - `Tests/PackageStructureTests/ImportBoundaryTests.swift` holds the kit target

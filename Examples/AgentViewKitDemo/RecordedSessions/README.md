@@ -17,9 +17,27 @@ is:
 | `django__django-14672` | `no-otel-1011` |
 | `stub-model-kinds` | stub model, see "The stub model sessions" |
 
-Each directory is one transcript location of the agent: `sessions.jsonl`,
-`.gitattributes`, and one directory for each session with `session.json`,
-`session-history.json`, and `transcript.jsonl`.
+Each directory is one transcript location of the agent: `.gitattributes`, and
+one directory for each session with `index.md`, `session-history.json`, and
+`transcript.jsonl`. This is the recording format of FoundationModelsRouter
+49627d2 and later:
+
+- The frontmatter of `index.md` is the Router `SessionRecord` of the session.
+  The agent lists a session from it with
+  `RouterSessionDirectory.recordedSessions(in:)`, and leaves out a session
+  whose `firstActivityAt` is not set.
+- Each line of `transcript.jsonl` is one Router `TranscriptEvent`, written
+  through the Extras `JSONLFile`.
+- Each date is ISO 8601 text in UTC with milliseconds, for example
+  `2026-10-12T05:53:33.925Z`. The Router reads no other form of a date.
+
+The sessions were recorded in the format before that, with `sessions.jsonl`,
+`session.json`, and dates in whole seconds or in seconds as a number. On
+2026-10-22 they were rewritten once to the new format, with the Router and
+Extras types. Each `firstActivityAt` is the time of the first `prompt` event
+of the transcript, and each `updatedAt` is the time of the last one. The
+stub model sessions record no `prompt` event, so both dates are the
+`updatedAt` of their old `sessions.jsonl` line, which has whole seconds.
 
 Do not edit these files. The sessions are replaced over time, and no test
 reads their content.
@@ -80,8 +98,9 @@ They are not in this directory.
    folder reference, so you do not make the project again.
 
 At each start, the Gallery tab copies all the directories into one
-transcript location in a temporary directory. It joins the lines of each
-`sessions.jsonl`. Then it runs FoundationModelsACPAgent in the process of
+transcript location in a temporary directory. Each session directory holds
+its own record, so the copy writes no file of its own. Then it runs
+FoundationModelsACPAgent in the process of
 the app, through the package, with that copy as its transcript location, so
 that a restore never changes the files in this directory. The tab starts no
 `acp-agent` program, writes no configuration file, and sets no
