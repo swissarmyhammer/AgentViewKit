@@ -211,7 +211,7 @@ private struct OpenURLButton: View {
       .environment(\.citationScrollReport, scrolls.report))
     defer { harness.close() }
     harness.render()
-    let scrollView = try #require(Self.firstScrollView(in: harness.hostingView))
+    let scrollView = try #require(harness.views(of: NSScrollView.self).first)
     #expect(scrollView.contentView.bounds.minY == 0)
 
     try harness.press(identifier: InlineCitation.identifier(index: 2))
@@ -260,19 +260,5 @@ private struct OpenURLButton: View {
     try harness.press(identifier: OpenURLButton.identifier)
 
     #expect(recorder.urls == [url])
-  }
-
-  // MARK: - Scroll
-
-  /// Finds the first scroll view under a view, depth first.
-  ///
-  /// - Parameter view: The view to search.
-  /// - Returns: The scroll view, or `nil`.
-  static func firstScrollView(in view: NSView) -> NSScrollView? {
-    if let scrollView = view as? NSScrollView { return scrollView }
-    for subview in view.subviews {
-      if let scrollView = firstScrollView(in: subview) { return scrollView }
-    }
-    return nil
   }
 }

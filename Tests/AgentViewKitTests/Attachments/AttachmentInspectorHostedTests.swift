@@ -434,18 +434,10 @@ import UniformTypeIdentifiers
   static func inspectorItems<Content: View>(in harness: HostedViewHarness<Content>)
     -> [NSSplitViewItem]
   {
-    views(under: harness.hostingView)
-      .compactMap { ($0 as? NSSplitView)?.delegate as? NSSplitViewController }
+    harness.views(of: NSSplitView.self)
+      .compactMap { $0.delegate as? NSSplitViewController }
       .flatMap(\.splitViewItems)
       .filter { $0.behavior == .inspector }
-  }
-
-  /// `view` and each view under it, in depth first order.
-  ///
-  /// - Parameter view: The view at the top.
-  /// - Returns: The views.
-  static func views(under view: NSView) -> [NSView] {
-    [view] + view.subviews.flatMap(views(under:))
   }
 
   /// Requires that the split view of `harness` shows the inspector item, and

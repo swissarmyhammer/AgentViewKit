@@ -14,7 +14,7 @@ extension HostedViewHarness {
   ///   each editable text field and text view.
   /// - Returns: The view, or `nil` when there is none.
   public func firstEditableTextView<Found: NSView>(of type: Found.Type = NSView.self) -> Found? {
-    Self.descendants(of: hostingView).lazy
+    hostingView.descendants.lazy
       .filter(Self.isEditableText)
       .compactMap { $0 as? Found }
       .first
@@ -32,7 +32,7 @@ extension HostedViewHarness {
   /// - Parameter identifier: The accessibility identifier to find.
   /// - Returns: Each view with `identifier`, or an empty array.
   public func views(withAccessibilityIdentifier identifier: String) -> [NSView] {
-    Self.descendants(of: hostingView).filter { $0.accessibilityIdentifier() == identifier }
+    hostingView.descendants.filter { $0.accessibilityIdentifier() == identifier }
   }
 
   /// Each `NSView` of `type` under the hosting view, in depth first order.
@@ -45,7 +45,7 @@ extension HostedViewHarness {
   /// - Parameter type: The class of the views to find.
   /// - Returns: Each view of `type`, or an empty array.
   public func views<Found: NSView>(of type: Found.Type) -> [Found] {
-    Self.descendants(of: hostingView).compactMap { $0 as? Found }
+    hostingView.descendants.compactMap { $0 as? Found }
   }
 
   /// The frame of `view` in screen points, the coordinate space of
@@ -69,15 +69,6 @@ extension HostedViewHarness {
     let isFocused = window.makeFirstResponder(view)
     render()
     return isFocused
-  }
-
-  /// Each view under `view`, in depth first order. The list does not have
-  /// `view`.
-  ///
-  /// - Parameter view: The root of the search.
-  /// - Returns: The flattened list of views.
-  private static func descendants(of view: NSView) -> [NSView] {
-    view.subviews.flatMap { [$0] + descendants(of: $0) }
   }
 
   /// Whether `view` is an editable text field or text view.

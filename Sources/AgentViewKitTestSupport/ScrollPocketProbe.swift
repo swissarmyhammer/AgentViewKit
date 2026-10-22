@@ -56,7 +56,7 @@ import AppKit
   ///
   /// - Parameter root: The view whose subtree the probe changes.
   public static func hidePockets(in root: NSView) {
-    for pocket in pockets(in: descendants(of: root)) {
+    for pocket in pockets(in: root.descendants) {
       pocket.isHidden = true
     }
   }
@@ -69,13 +69,5 @@ import AppKit
   static func pockets(in views: [NSView]) -> [NSView] {
     let pocketClass: AnyClass? = NSClassFromString(pocketClassName)
     return views.filter { view in pocketClass.map { view.isKind(of: $0) } ?? false }
-  }
-
-  /// Each view under `root`, in depth first order.
-  ///
-  /// - Parameter root: The root of the subtree.
-  /// - Returns: The subviews of `root` and their subviews, not `root`.
-  static func descendants(of root: NSView) -> [NSView] {
-    root.subviews.flatMap { [$0] + descendants(of: $0) }
   }
 }

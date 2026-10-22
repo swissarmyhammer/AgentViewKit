@@ -156,8 +156,51 @@ comments:
     - evidence: `swift test` — 1595 tests in 200 suites passed, 0 failed, 0 skipped; 3 known issues are the intentional withKnownIssue negative tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); only warning is the known mlx-swift "missing creator" notice. `Scripts/test-examples.sh` — 5 UI tests, 4 passed, 1 failed: ACPTabEndToEndTests.testASendOfHelloShowsTheReplyOfTheAgent (known, belongs to ^bc6fapz, not fixed). No other UI failures; the appintentsmetadataprocessor "Metadata extraction skipped" line is an Xcode tool notice, not project code.
     - next: review
   timestamp: 2026-10-22T18:14:49.231789+00:00
+- actor: claude-code
+  id: 01m5jdam5e004vq0d9ydnf7bgg
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (728255d) — 1 finding (1 confirmed, 0 refuted): Sources/AgentViewKitTestSupport/ScrollPocketProbe.swift:78 reuse/reuse
+    - next: implement the Review Findings (2026-10-22 13:15) item — extract the shared NSView descendants traversal and use it from ScrollPocketProbe and HostedViewHarness+TextViews
+  timestamp: 2026-10-22T18:17:43.854175+00:00
+- actor: claude-code
+  id: 01m5jdb2pc0b9jem8wdwak19qc
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: changed — `.scrollEdgeEffectStyle(.soft, for: .vertical)` on the conversation list; new ThreadScrollEdgeEffectHostedTests (red: style 0 at both edges, now green) through the ScrollPocketProbe helper (private AppKit state, isolated); ViewSnapshot hides the edge-effect views before capture (the references are unchanged)
+    - test: green — swift test 1595 passed, 0 failed, 0 skipped; demo UI gate 4/5, the only failure is the known ^bc6fapz
+    - commit: 728255d (local, not pushed)
+    - review: findings — Sources/AgentViewKitTestSupport/ScrollPocketProbe.swift:78 (reuse/reuse: descendants(of:) duplicates the HostedViewHarness+TextViews traversal)
+  timestamp: 2026-10-22T18:17:58.732298+00:00
+- actor: claude-code
+  id: 01m5jdpxzqkskzwfywbh2qz9v5
+  text: |-
+    Review finding (reuse/reuse, ScrollPocketProbe.swift:78) worked. Picked up from review, moved back to doing.
+    - NEW shared walk: `NSView.descendants` (public, `Sources/AgentViewKitTestSupport/NSView+Descendants.swift`): each view under the receiver, depth first, receiver excluded. Test first: `Tests/AgentViewKitTests/TestSupport/NSViewDescendantsTests.swift` (2 tests; RED was "value of type 'NSView' has no member 'descendants'", then green).
+    - Removed every hand-rolled NSView subview walk in the test support and the tests, and routed them through the shared walk:
+      - ScrollPocketProbe.descendants(of:) deleted; hidePockets uses `root.descendants`.
+      - HostedViewHarness+TextViews private descendants(of:) deleted; firstEditableTextView, views(withAccessibilityIdentifier:), views(of:) use `hostingView.descendants`.
+      - HarnessProgressIndicators: recursive progressIndicatorCount(in:) deleted; now `views(of: NSProgressIndicator.self).count`.
+      - SourcesViewHostedTests.firstScrollView(in:) deleted; the scroll test uses `harness.views(of: NSScrollView.self).first`.
+      - AttachmentInspectorHostedTests.views(under:) deleted; inspectorItems uses `harness.views(of: NSSplitView.self)`.
+    - Left alone on purpose: `HostedViewHarness.descendants(of:reading:)` walks the ACCESSIBILITY tree (NSObject accessibility children / navigation order), not NSView subviews, so it is a different tree and not this cause. `ScrollPocketProbe.styles(of:)` reads only the direct `scrollView.subviews` (one level, no walk). XCUIElement `descendants(matching:)` in the demo UI tests is XCTest API.
+  timestamp: 2026-10-22T18:24:27.127411+00:00
+- actor: claude-code
+  id: 01m5jdq2bxx4vtnwgvcvv4jbte
+  text: |-
+    ### implement — changed
+    - evidence: 7 files. NEW Sources/AgentViewKitTestSupport/NSView+Descendants.swift, Tests/AgentViewKitTests/TestSupport/NSViewDescendantsTests.swift. MODIFIED Sources/AgentViewKitTestSupport/ScrollPocketProbe.swift, Sources/AgentViewKitTestSupport/HostedViewHarness+TextViews.swift, Tests/AgentViewKitTests/Helpers/HarnessProgressIndicators.swift, Tests/AgentViewKitTests/Citations/SourcesViewHostedTests.swift, Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift. Affected suites (NSViewDescendants, HostedViewHarnessTextViews, HarnessProgressIndicator, SourcesViewHosted, AttachmentInspectorHosted, ThreadScrollEdgeEffectHosted, ViewSnapshot, HostedSnapshot) green. Full `swift test`: 1597 tests in 201 suites passed with 3 known issues (withKnownIssue tests); 219 tests in 29 suites in the other target passed. Only warning: the pre-existing mlx-swift "missing creator for mutated node". Review finding flipped to [x]. Not committed.
+    - next: /review
+  timestamp: 2026-10-22T18:24:31.613341+00:00
+- actor: claude-code
+  id: 01m5jdwhvaqvsn9rnpf2vnm6jt
+  text: |-
+    ### test — green
+    - evidence: swift test — 1597 tests in 201 suites passed, 0 failed, 0 skipped; 3 known issues are the intentional withKnownIssue detector-failure tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); no compiler warnings from project code; only the known mlx-swift "missing creator" dependency notice
+    - next: review
+  timestamp: 2026-10-22T18:27:31.306264+00:00
 position_column: doing
-position_ordinal: '8180'
+position_ordinal: '8380'
 title: AVK-8 The transcript draws under the thread top bar, with the scroll edge effect
 ---
 Reported by testudoapp-2c (2026-10-22), measured in Testudo on AgentViewKit 20d1de5. The host is a plain `AgentThreadView(session:connection:)` (TestudoApp `Sources/SAHKit/Chat/ChatAreaView.swift`).
@@ -175,3 +218,12 @@ Acceptance:
 - The test does not change system-wide settings and does not drive other apps in the default suite.
 - The existing top-bar tests stay green. `swift test` is green.
 - Related: ^1ye0jj6 (header glass) changes the same top bar. Do this card first. #avk-8 #testudo-request #bug
+
+## Review Findings (2026-10-22 13:15)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Sources/AgentViewKitTestSupport/ScrollPocketProbe.swift:78` `reuse/reuse` — The `descendants(of:)` function reimplements a nearly identical utility that already exists elsewhere. A shared depth-first view hierarchy traversal should be consolidated rather than duplicated across the codebase. Extract the common `descendants` traversal into a shared utility extension on NSView (e.g., `NSView.descendants`) in a common test-support location, then call it from both ScrollPocketProbe and HostedViewHarness+TextViews, eliminating the duplicate implementation.
