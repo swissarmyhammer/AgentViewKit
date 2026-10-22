@@ -180,6 +180,10 @@ import Testing
   /// proves it. An outer scope from the host would register the same
   /// commands, and then the test would not find a thread view that lost its
   /// own scope.
+  ///
+  /// The scope is the root of the window, so EditorKit also registers the
+  /// window undo commands there. The test counts the commands of the kit
+  /// apart from them.
   @Test func aMountedSessionThreadViewRegistersTheThirteenCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -189,15 +193,18 @@ import Testing
     try await Self.sendScopeMessage(to: session, rendering: harness)
 
     let path = Self.path(of: session.model)
-    let ids = Set(system.registry.definitions(at: path).map(\.id))
+    let ids = WindowUndoChecks.kitCommandIDs(at: path, in: system)
     #expect(ids.count == Self.verbCount)
+    try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
     #expect(system.registry.tree.nodes.contains { $0.path == path })
     #expect(system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: path))
     #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
   }
 
   /// The host turns off a group around a thread view with no outer scope, so
-  /// the scope that ``AgentThreadView`` applies itself reads the groups.
+  /// the scope that ``AgentThreadView`` applies itself reads the groups. The
+  /// groups do not reach the window undo commands that EditorKit registers
+  /// at the same root.
   @Test func aMountedThreadViewDoesNotRegisterTheVerbsOfAGroupThatTheHostTurnsOff() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -209,10 +216,12 @@ import Testing
     }
     defer { harness.close() }
     harness.render()
+    let path = Self.path(of: session.model)
 
-    let ids = Set(system.registry.definitions(at: Self.path(of: session.model)).map(\.id))
+    let ids = WindowUndoChecks.kitCommandIDs(at: path, in: system)
 
     #expect(ids == Set(AgentCommandVerb.allCases.filter { $0.group != .navigate }.map(\.id)))
+    try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
   }
 
   @Test func aSessionThreadViewInAScopeForItsSessionAddsItsPartsToThatScope() async throws {

@@ -159,21 +159,27 @@ struct HostInspectorWithAttachmentActions: View {
   /// Mounts `content` with a command system and one render pass, and gives
   /// the ids of the commands at the root path of the scope of `id`.
   ///
+  /// The scope is the root of the window, so EditorKit also registers the
+  /// window undo commands there. The call expects them registered and
+  /// unavailable, and leaves them out of the ids it gives.
+  ///
   /// - Parameters:
   ///   - content: The view to mount.
   ///   - id: The id of the attachment of the scope.
-  /// - Returns: The ids of the definitions at `agentAttachment:<id>`, and the
-  ///   ids of its context menu.
+  /// - Returns: The ids of the definitions of the kit at
+  ///   `agentAttachment:<id>`, and the ids of its context menu.
+  /// - Throws: The error of `#require` when the root has no undo stack.
   static func commandIDs(
     of content: some View, at id: AttachmentID
-  ) -> (definitions: Set<CommandID>, contextMenu: [CommandID]) {
+  ) throws -> (definitions: Set<CommandID>, contextMenu: [CommandID]) {
     let system = CommandSystem()
     let harness = HostedViewHarness(content.commandSystem(system), size: viewSize)
     defer { harness.close() }
     harness.render()
     let path = FocusPath.root(AgentScopeKind.attachment(id))
+    try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
     return (
-      Set(system.registry.definitions(at: path).map(\.id)),
+      WindowUndoChecks.kitCommandIDs(at: path, in: system),
       system.registry.contextMenuMirror(at: path).map(\.id)
     )
   }
@@ -183,7 +189,7 @@ struct HostInspectorWithAttachmentActions: View {
     defer { directory.remove() }
     let attachment = try Shared.attachment(named: "blob.bin", in: directory)
 
-    let ids = Self.commandIDs(of: AttachmentView(attachment), at: attachment.id)
+    let ids = try Self.commandIDs(of: AttachmentView(attachment), at: attachment.id)
 
     #expect(ids.definitions == Set(Commands.verbIDs))
     #expect(ids.contextMenu == Commands.verbIDs)
@@ -194,7 +200,7 @@ struct HostInspectorWithAttachmentActions: View {
     defer { directory.remove() }
     let attachment = try Shared.attachment(named: "blob.bin", in: directory)
 
-    let ids = Self.commandIDs(of: AttachmentChip(attachment), at: attachment.id)
+    let ids = try Self.commandIDs(of: AttachmentChip(attachment), at: attachment.id)
 
     #expect(ids.definitions == Set(Commands.verbIDs))
   }
@@ -204,7 +210,7 @@ struct HostInspectorWithAttachmentActions: View {
     defer { directory.remove() }
     let attachment = try Shared.attachment(named: "blob.bin", in: directory)
 
-    let ids = Self.commandIDs(of: AttachmentInspector(attachment), at: attachment.id)
+    let ids = try Self.commandIDs(of: AttachmentInspector(attachment), at: attachment.id)
 
     #expect(ids.definitions == Set(Commands.verbIDs))
   }
@@ -215,7 +221,7 @@ struct HostInspectorWithAttachmentActions: View {
     let (png, image) = try TestImage.makePNGContent(uri: WireContentBlockViewHostedTests.imageURI)
     let url = ContentBlockFile.url(of: png, named: WireContentBlockViewHostedTests.imageName)
 
-    let ids = Self.commandIDs(of: ImageView(image: image), at: AttachmentID(url.absoluteString))
+    let ids = try Self.commandIDs(of: ImageView(image: image), at: AttachmentID(url.absoluteString))
 
     #expect(ids.definitions == Set(Commands.verbIDs))
   }
@@ -239,7 +245,8 @@ struct HostInspectorWithAttachmentActions: View {
   }
 
   /// With the attachment group off, the inspector shows no button and its
-  /// scope registers no command.
+  /// scope registers no command of the kit. The scope is the root of the
+  /// window, so the window undo commands of EditorKit stay there.
   @Test func theAttachmentGroupOffRemovesTheButtonsAndTheCommands() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
@@ -252,7 +259,8 @@ struct HostInspectorWithAttachmentActions: View {
     harness.render()
 
     let path = FocusPath.root(AgentScopeKind.attachment(attachment.id))
-    #expect(system.registry.definitions(at: path).isEmpty)
+    #expect(WindowUndoChecks.kitCommandIDs(at: path, in: system).isEmpty)
+    try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
     for identifier in AttachmentInspector.actionIdentifiers {
       #expect(harness.element(identifier: identifier) == nil, "\(identifier)")
     }
