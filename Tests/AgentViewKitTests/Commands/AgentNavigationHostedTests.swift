@@ -48,26 +48,11 @@ import Testing
     return model.transcript.map { thread.appending(AgentScopeKind.message(rowKey: $0.rowKey)) }
   }
 
-  /// The paths of `items`, in the order of the minimum y of their window
-  /// rects.
-  ///
-  /// EditorKit moves `nav.down` to a larger minimum y, and `nav.up` to a
-  /// smaller one. Thus the first path is the start of a `nav.down` move. On
-  /// macOS this order is not the visual order: task ^brhhdf4 records the
-  /// EditorKit defect.
-  ///
-  /// - Parameters:
-  ///   - items: The item paths.
-  ///   - system: The command system of the window.
-  /// - Returns: The sorted paths.
-  /// - Throws: The error of `#require` when an item has no rect.
-  static func orderedByMinY(_ items: [FocusPath], in system: CommandSystem) throws -> [FocusPath] {
-    let rects = try items.map { try #require(system.geometry.rect(of: $0)) }
-    return zip(items, rects).sorted { $0.1.minY < $1.1.minY }.map(\.0)
-  }
-
   /// The item whose window rect holds the center of the first responder of
   /// the window.
+  ///
+  /// The center of the responder is in the window space of EditorKit (origin
+  /// at the top left, y grows down), the space of the item rects.
   ///
   /// - Parameters:
   ///   - items: The item paths.
@@ -75,12 +60,15 @@ import Testing
   ///   - window: The window.
   /// - Returns: The path, or `nil` when no item holds the first responder.
   static func focusedItem(among items: [FocusPath], in system: CommandSystem, window: NSWindow) -> FocusPath? {
-    guard let responder = window.firstResponder as? NSView else { return nil }
-    let frame = responder.convert(responder.bounds, to: nil)
+    guard let responder = window.firstResponder as? NSView,
+      let frame = WindowSpace.rect(of: responder)
+    else { return nil }
     let center = CGPoint(x: frame.midX, y: frame.midY)
     return items.first { system.geometry.rect(of: $0)?.contains(center) == true }
   }
 
+  /// The first message of the transcript is at the top of the thread, so
+  /// `nav.down` moves from it to the second message, and `nav.up` moves back.
   @Test func theNavChordsMoveTheFocusBetweenTwoMessageItems() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -90,15 +78,14 @@ import Testing
     let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
     registerNavCommands(controller: NavModeController(system: system), layer: thread, into: &system.registry)
-    let ordered = try Self.orderedByMinY(messages, in: system)
-    try #require(system.geometry.requestFocus(at: ordered[0]))
-    try #require(Self.focusedItem(among: messages, in: system, window: harness.window) == ordered[0])
+    try #require(system.geometry.requestFocus(at: messages[0]))
+    try #require(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[0])
 
-    try #require(system.registry.performKey(KeySequence(.downArrow), mode: .cua, at: ordered[0]))
-    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == ordered[1])
+    try #require(system.registry.performKey(KeySequence(.downArrow), mode: .cua, at: messages[0]))
+    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[1])
 
-    try #require(system.registry.performKey(KeySequence(.upArrow), mode: .cua, at: ordered[1]))
-    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == ordered[0])
+    try #require(system.registry.performKey(KeySequence(.upArrow), mode: .cua, at: messages[1]))
+    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[0])
   }
 
   @Test func theJumpOverlayListsTheItemsOfTheThreadAtTheirFrames() async throws {

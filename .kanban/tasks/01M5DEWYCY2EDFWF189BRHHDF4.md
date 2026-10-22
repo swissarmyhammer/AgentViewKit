@@ -42,8 +42,33 @@ comments:
   id: 01m5htht4mz77m8bwmc34sxzy6
   text: 'UNBLOCKED: EditorKit main 44d8a28 (fix 6f95e90, test cleanup 44d8a28), from EditorKit ^mty2bg8 per editorkit-28. Every macOS rect from EditorKit is now in one space, top-left of the window with y down, the same as SwiftUI `.global` (`WindowSpace.rect(of:)`). That covers probe rects, `GeometryRegistry.snapshot(layer:)`, jump anchors and `PaneSurfaceView.navFrame`. JumpOverlay subtracts its own `.global` origin. To do: bump EditorKit to 44d8a28 or later. That also brings c64ca1b, where a landed jump focuses the targeted scope and a text view of a nested scope no longer takes its parent''s jump focus. Switch `theNavChordsMoveTheFocusBetweenTwoMessageItems` to transcript order, and remove any flip or compensation in AgentViewKit (search for minY ordering, windowHeight, and isFlipped workarounds).'
   timestamp: 2026-10-22T12:49:36.404233+00:00
-position_column: todo
-position_ordinal: '8680'
+- actor: claude-code
+  id: 01m5hv71rjgddxqvt9tr668rtj
+  text: |-
+    Implementation notes:
+    - `swift package update EditorKit` resolved EditorKit main at 44d8a28 (was 348324f). Package.resolved is in .gitignore here, so the bump is local only; Package.swift tracks `branch: "main"`, so CI and other clones pick up 44d8a28 on their next resolve. No tracked file carries the pin.
+    - At 44d8a28, `.navVisible()` and `.jumpTarget(_:)` / `JumpTargetOverride.hidden` still exist (CommandScopeModifier.swift, JumpTargetModifier.swift); there is no `.targetable(...)` yet. `AgentItemScope` needs no migration.
+    - AgentNavigationHostedTests: removed `orderedByMinY` (the only compensation for the old bottom-left rects in AgentViewKit); `theNavChordsMoveTheFocusBetweenTwoMessageItems` now uses transcript order (messages[0] on top, nav.down -> messages[1], nav.up back). `focusedItem` had a hidden mismatch: it computed the responder center with `convert(bounds, to: nil)` (AppKit bottom-left) while the item rects are now in EditorKit's top-left window space; it now uses `WindowSpace.rect(of:)`, so both sides share one space.
+    - Other `minY`/`maxY`/`isFlipped` uses in AgentViewKit tests read the AgentViewKit harness's screen frames (AppKit, y up), not EditorKit geometry, so they are not compensation and stay.
+    - c64ca1b (a landed jump focuses the targeted scope) broke no AgentViewKit test. It may make `AgentItemFocusTarget` redundant; filed ^cwdb5zg to decide that (out of scope here).
+    - Full `swift test`: 1581 tests in 197 suites passed, 3 known issues (the deliberate withKnownIssue self-tests in HostedLayoutExpectationsTests, SnapshotStoreTests, ThemeHeightExpectationsTests).
+  timestamp: 2026-10-22T13:01:12.338940+00:00
+- actor: claude-code
+  id: 01m5hv740x0hrnkpzvmpn9esw2
+  text: |-
+    ### implement — changed
+    - evidence: 1 tracked file — Tests/AgentViewKitTests/Commands/AgentNavigationHostedTests.swift; EditorKit resolved to 44d8a28 (Package.resolved, gitignored); `swift test --filter AgentNavigationHostedTests` 5/5 pass; full `swift test` 1581 tests / 197 suites passed (3 deliberate known issues), exit 0.
+    - next: /review ^brhhdf4
+  timestamp: 2026-10-22T13:01:14.653731+00:00
+- actor: claude-code
+  id: 01m5hvcf4cmeq1jzk416jqbfpn
+  text: |-
+    ### test — green
+    - evidence: `swift test` in AgentViewKit, exit 0 — 1581 tests in 197 suites passed, 0 failed, 0 skipped. The 3 known issues are the withKnownIssue negative-path tests (theCheckOfAViewThatChangedRecordsAnIssue, aWrappedTextWithAFixedVerticalSizeFails, aViewThatIgnoresTheThemeFails). The only build warning is the known mlx-swift "missing creator" notice; no warnings from project code.
+    - next: commit
+  timestamp: 2026-10-22T13:04:09.868023+00:00
+position_column: doing
+position_ordinal: '8280'
 title: 'EditorKit: nav.up and nav.down are inverted on macOS'
 ---
 Found in AVK-7d (^56y8q6a). This is a defect in EditorKit. AgentViewKit cannot fix it.
