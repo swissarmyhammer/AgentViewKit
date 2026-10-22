@@ -43,23 +43,33 @@ import Testing
   /// The file of the thread view, which holds the floating controls.
   static let threadFile = KitSourceFiles.kitFile("Thread/AgentThreadView.swift")
 
-  /// The number of the views of the composer on the floating glass: the
-  /// field and the menu of the editor.
-  static let floatingGlassViewCount = 2
+  /// Each file that puts views on the floating glass of the kit, and the
+  /// number of those views: the field and the menu of the editor in the
+  /// composer, and the ``AgentInfoHeader`` in the top bar of the thread view
+  /// (``ThreadTopBarStructureTests``).
+  static let floatingGlassViews = [
+    (file: composerFile, count: 2),
+    (file: threadFile, count: 1),
+  ]
 
-  /// The files that put their floating controls in the shared container: the
-  /// composer and the thread view.
-  static let sharedContainerUsers = [composerFile, threadFile]
+  /// Each file that puts its floating controls in the shared container, and
+  /// the number of its containers. The composer has one. The thread view has
+  /// one for the header in its top bar, and one for the floating controls in
+  /// its bottom bar.
+  static let sharedContainerUsers = [
+    (file: composerFile, count: 1),
+    (file: threadFile, count: 2),
+  ]
 
   /// Each glass form that a file must not write, as the file and the form.
   ///
-  /// The thread view writes no glass of its own: its floating controls get
-  /// their glass from their own files. The composer writes no direct
+  /// The thread view writes no direct `.glassEffect` call: its header gets
+  /// the floating glass of the kit, and its floating controls get their
+  /// glass from their own files. The composer writes no direct
   /// `.glassEffect` call. The editor is in the field glass, so it writes no
   /// glass.
   static let forbiddenGlass = [
     (file: threadFile, form: GlassForm.glassEffect),
-    (file: threadFile, form: GlassForm.floatingGlass),
     (file: composerFile, form: GlassForm.glassEffect),
     (file: editorFile, form: GlassForm.glassEffect),
     (file: editorFile, form: GlassForm.floatingGlass),
@@ -111,15 +121,15 @@ import Testing
   /// - Returns: The number of the code lines that use `pattern`.
   /// - Throws: The error of
   ///   ``GlassPlacementTests/uses(of:inSwiftFilesBelow:relativeTo:allowing:)``.
-  static func codeLineCount(of pattern: Regex<Substring>, in file: String = composerFile) throws -> Int {
+  static func codeLineCount(of pattern: Regex<Substring>, in file: String) throws -> Int {
     let directory = try PackageFiles.file(file).deletingLastPathComponent()
     let found = try GlassPlacementTests.uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
     return found.filter { $0.hasPrefix("\(file):") }.count
   }
 
   @Test(arguments: sharedContainerUsers)
-  func eachFileOfTheFloatingControlsUsesTheSharedContainerOneTime(file: String) throws {
-    #expect(try Self.codeLineCount(of: GlassForm.floatingGlassContainer.pattern, in: file) == 1)
+  func eachFileOfTheFloatingControlsUsesTheSharedContainerItsNumberOfTimes(file: String, count: Int) throws {
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlassContainer.pattern, in: file) == count)
   }
 
   @Test(arguments: forbiddenGlass)
@@ -127,8 +137,9 @@ import Testing
     #expect(try Self.codeLineCount(of: form.pattern, in: file) == 0)
   }
 
-  @Test func theComposerPutsTheFloatingGlassOfTheKitOnTheFieldAndTheMenu() throws {
-    #expect(try Self.codeLineCount(of: GlassForm.floatingGlass.pattern) == Self.floatingGlassViewCount)
+  @Test(arguments: floatingGlassViews)
+  func eachFilePutsItsViewsOnTheFloatingGlassOfTheKit(file: String, count: Int) throws {
+    #expect(try Self.codeLineCount(of: GlassForm.floatingGlass.pattern, in: file) == count)
   }
 
   @Test(arguments: glassIDUses)

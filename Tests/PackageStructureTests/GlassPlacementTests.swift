@@ -26,8 +26,9 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
 
   /// The floating glass modifier of the kit, `agentFloatingGlass()` or
   /// `agentFloatingGlass(id:)`. The field and the menu of the composer use it
-  /// with a glass id, and the request deck uses it in a bar of floating
-  /// controls.
+  /// with a glass id, the request deck uses it in a bar of floating
+  /// controls, and the thread view uses it on the `AgentInfoHeader` in its
+  /// top bar, a floating surface (``ThreadTopBarStructureTests``).
   case floatingGlass
 
   /// A `GlassEffectContainer`. Only the shared container of the floating
@@ -35,8 +36,9 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   case glassEffectContainer
 
   /// The shared container of the floating controls, `FloatingGlassContainer`.
-  /// The composer and the thread view, which holds the scroll-to-bottom pill
-  /// and the composer slot, use it.
+  /// The composer and the thread view use it. The thread view has one for the
+  /// header in its top bar, and one for the scroll-to-bottom pill and the
+  /// composer slot in its bottom bar.
   case floatingGlassContainer
 
   /// The `.glass` or the `.glassProminent` button style. The floating
@@ -69,7 +71,11 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     switch self {
     case .glassEffect, .glassEffectID: [GlassForm.surfacesFile]
     case .glassID: [GlassForm.surfacesFile, GlassForm.scrollPillFile, GlassForm.suggestionsFile]
-    case .floatingGlass: [GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile]
+    case .floatingGlass:
+      [
+        GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile,
+        ComposerGlassStructureTests.threadFile,
+      ]
     case .glassEffectContainer: [GlassForm.sharedContainerFile]
     case .floatingGlassContainer:
       [GlassForm.sharedContainerFile, ComposerGlassStructureTests.composerFile, ComposerGlassStructureTests.threadFile]

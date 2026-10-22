@@ -148,8 +148,9 @@ extension View {
   /// Settings. No value of the theme changes the glass, and the glass has no
   /// tint (D113).
   ///
-  /// Use it only on a floating control, for example the composer bar or a
-  /// floating action button. Use it only inside a `GlassEffectContainer`.
+  /// Use it only on a floating control, for example the composer bar, a
+  /// floating action button, or the ``AgentInfoHeader`` in the top bar of an
+  /// ``AgentThreadView``. Use it only inside a `GlassEffectContainer`.
   /// Never put it on top of other glass. Never use it for content: use
   /// ``agentContentEdge(radius:)`` for content.
   ///

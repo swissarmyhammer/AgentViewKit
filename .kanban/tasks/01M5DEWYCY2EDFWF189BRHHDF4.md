@@ -38,6 +38,10 @@ comments:
   id: 01m5hky0dh46h1vw8btfdsazxh
   text: 'Blocker tracked in EditorKit as ^mty2bg8 (01M5HK40QKSVS63HY4QMTY2BG8), per editorkit-28. Planned fix: one top-left window space for both the nav snapshot rects and the jump anchors, with a hosted test of nav.down/nav.up. Not pushed yet. No workaround in AgentViewKit. editorkit-28 will send the commit SHA; then bump EditorKit and switch theNavChordsMoveTheFocusBetweenTwoMessageItems to transcript order.'
   timestamp: 2026-10-22T10:53:56.017157+00:00
+- actor: claude-code
+  id: 01m5htht4mz77m8bwmc34sxzy6
+  text: 'UNBLOCKED: EditorKit main 44d8a28 (fix 6f95e90, test cleanup 44d8a28), from EditorKit ^mty2bg8 per editorkit-28. Every macOS rect from EditorKit is now in one space, top-left of the window with y down, the same as SwiftUI `.global` (`WindowSpace.rect(of:)`). That covers probe rects, `GeometryRegistry.snapshot(layer:)`, jump anchors and `PaneSurfaceView.navFrame`. JumpOverlay subtracts its own `.global` origin. To do: bump EditorKit to 44d8a28 or later. That also brings c64ca1b, where a landed jump focuses the targeted scope and a text view of a nested scope no longer takes its parent''s jump focus. Switch `theNavChordsMoveTheFocusBetweenTwoMessageItems` to transcript order, and remove any flip or compensation in AgentViewKit (search for minY ordering, windowHeight, and isFlipped workarounds).'
+  timestamp: 2026-10-22T12:49:36.404233+00:00
 position_column: todo
 position_ordinal: '8680'
 title: 'EditorKit: nav.up and nav.down are inverted on macOS'

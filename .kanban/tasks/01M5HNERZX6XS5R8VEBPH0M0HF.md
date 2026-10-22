@@ -1,8 +1,66 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: a080
+comments:
+- actor: claude-code
+  id: 01m5ht0c15pek8pg69hab9zhqk
+  text: |-
+    Research (implement pass, scratch probe tests that are now deleted). The defect does NOT reproduce in-process.
+
+    Probe: thread with `.assistantMessageView { _ in Color(1,0,1).frame(height: 60) }` (30 rows plus a notice, connection header), pixels read with `RenderedPixels(cachingDisplayOf:)` and sampled at each y down one column.
+    - Borderless harness window (480x800). Pinned to the bottom: magenta rows from y 0 down through the top bar (bar 0-115, inset 115). After a jump to the first row: rows down to y 800 through the bottom bar (bar 552-800). The HostingScrollView frame is 0-800, contentInsets {115, 248}, and the HostingClipView frame is 0-800. Nothing clips at the inset edge.
+    - The same result with `.agentAttachmentInspector(.host(...))` (Testudo uses host mode), inside VStack under a 100 pt view, with an outer `.safeAreaBar(edge: .top)` (Testudo `tabHeaderBar`), with `.accessibilityElement(children: .contain).contentShape(Rectangle()).focusable(interactions: .edit)` (Testudo `focusableContent`), and in a 3-column NavigationSplitView with `.inspector`.
+    - A titled window (`.titled, .fullSizeContentView`) with a SwiftUI toolbar, NavigationSplitView, inspector and host mode. The window is never ordered in. Top inset 191 (toolbar plus bars). After a jump to the middle row, rows are drawn from y 0 under the toolbar and the bars, and down to y 800 under the bottom bar.
+
+    Scroll edge effect (private AppKit state; read only for diagnosis):
+    - The list's HostingScrollView has two NSScrollPocket subviews, top (edge 0) and bottom (edge 1), with the frames of the two bars.
+    - Default `.automatic` in the borderless harness: pocket `style` 0, and the `_UIScrollEdgeEffectLayerDelegate` effect layer has opacity 0, so no edge effect. `.scrollEdgeEffectStyle(.soft, for: .all)` gives style 1 and opacity 1 (a backdrop with a gradient mask). `.hard` gives style 2 and opacity 1 (a blur and colorMatrix backdrop with a separator).
+    - In the titled window with a toolbar, `.automatic` gives the top pocket opacity 1 (variableBlur backdrop) but the bottom pocket still opacity 0. So the bottom bar has no edge effect by default.
+
+    Why a rendered test cannot see the defect or the effect: `cacheDisplay` does not draw CABackdropLayer effects (the pixels under the bar are pure row color with soft, hard and automatic). CARenderer into a Metal texture draws the hard backdrop as a slight tint (255,8,255). It draws soft and automatic the same as no effect. Pocket effect subviews (PocketMask/PocketBlur/NSHardPocketView) stay hidden at zero size in an offscreen window, even after `orderFrontRegardless` (that was diagnosis only; the order-in is not in any test).
+  timestamp: 2026-10-22T12:40:04.901026+00:00
+- actor: claude-code
+  id: 01m5ht0psagq0zvraazjy02752
+  text: |-
+    BLOCKER. The acceptance needs "a hosted test fails before the fix and passes after", and the test must check a rendered result. I cannot write that test. In every in-process host I tried, the rows already draw under the top bar and the bottom bar (see the research comment). So a pixel or visible-rect test of "a row is drawn under the bar" passes on the current tree. The Testudo hard clip at the bottom edge of the bar (y 399) appears only in the on-screen composite. The difference that the probes do show is the scroll edge effect: with `.automatic`, the list's bottom pocket has no effect, and the top pocket has none in a window with no toolbar. Offscreen renders (cacheDisplay, CARenderer) do not draw that effect, so a rendered test cannot see it before or after a change.
+
+    What I did not do: no production change and no test change. Writing a fix (for example `.scrollEdgeEffectStyle(.soft, for: .vertical)` on the ConversationView list) without a test that fails first would break the card's order and the TDD rule. That fix is also a guess, because the on-screen cause is not confirmed.
+
+    A person must decide one of these:
+    1. Reproduce on screen, where the composite exists. That is a Testudo UI test (XCUIScreen screenshot of the chat band under the header), which is outside the AVK default suite. Or an AVK test that orders a window in, which conflicts with the AVK-12 harness rule.
+    2. Accept a hosted test that reads the edge-effect state of the list's scroll pockets (private AppKit NSScrollPocket `style`, and the effect-layer opacity) in place of pixels. It fails today for the bottom bar, and for the top bar with no toolbar. It would pass after `.scrollEdgeEffectStyle(.soft, for: .vertical)`. This replaces the card's "rendered result" acceptance, so it needs a person's approval.
+    3. Get a screenshot or a view dump from Testudo, to confirm what covers the rows above y 399 (for example a hard pocket, or a clip).
+
+    Demo UI test `testASendOfHelloShowsTheReplyOfTheAgent` ("no hit point" on the composer editor): this investigation does not explain it. The composer's TextEditorScrollView is in the bottom safe-area bar, outside the list's scroll view, so the list's bottom NSScrollPocket (a subview of the list's HostingScrollView, with its own hitTest:) does not contain it. I did not verify it further.
+  timestamp: 2026-10-22T12:40:15.914213+00:00
+- actor: claude-code
+  id: 01m5ht0sd0e8h8wm80vntbtred
+  text: |-
+    ### implement — stuck
+    - evidence: no files changed (scratch probe Tests/AgentViewKitTests/Thread/ZZProbeTests.swift written, run 9 times, deleted). The defect does not reproduce in-process: rows draw under both bars in the borderless harness and in an offscreen titled window with a toolbar (cacheDisplay pixel runs). The edge effect is not drawn offscreen, so no rendered test can fail before a fix.
+    - next: a person picks option 1, 2 or 3 from the blocker comment
+  timestamp: 2026-10-22T12:40:18.592077+00:00
+- actor: claude-code
+  id: 01m5ht1ghxnzc34gvnxz2vw2yw
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — no source change. A scratch pixel probe (9 runs, deleted) showed rows drawing under both bars in the borderless harness and in an offscreen titled window with a toolbar. The scroll edge effect is off by default (top bar with no toolbar; bottom bar always), and `.scrollEdgeEffectStyle(.soft)` turns it on. Offscreen rendering (cacheDisplay or CARenderer) doesn't draw that effect, so no rendered-result test can fail before a fix.
+    - test, commit, review: not run
+    - next: a person decides. (1) Reproduce on screen: a Testudo UI screenshot test, or an AVK test that shows a window, which breaks the harness rule. (2) Approve a hosted test of the edge-effect state through private AppKit state, in place of the rendered-result acceptance; the fix would then be `.scrollEdgeEffectStyle(.soft, for: .vertical)` on the conversation list. (3) Testudo sends a screenshot or view dump of what covers the rows above y 399.
+  timestamp: 2026-10-22T12:40:42.301793+00:00
+- actor: claude-code
+  id: 01m5ht33sdmy407v6zrsd9cdcq
+  text: |-
+    Evidence from testudoapp-2c (2026-10-22). This card is parked until their NSView/CALayer dump of the chat area arrives, after their own tab-header move into `.safeAreaBar(edge: .top)` lands.
+    - Testudo wrappers, outermost first. No clipped, clipShape, mask, drawingGroup or compositingGroup anywhere in Testudo Sources.
+      1. `NavigationSplitView(columnVisibility:)` with sidebar, content and detail columns, plus `.inspector(isPresented:)` and toolbar items (WindowAreasView.swift ~80–110).
+      2. The detail is `VStack(spacing: 0) { ItemHeader; Divider(); workArea(.large) }`.
+      3. ChatAreaView: `AgentThreadView(session:connection:).selectableChatItems()`, then `.frame(maxWidth: .infinity, maxHeight: .infinity)`, then `.focusableContent(identifier:)`. That last one is `.accessibilityElement(children: .contain)`, plus `.contentShape(Rectangle())`, `.onTapGesture` and `.accessibilityIdentifier`.
+    - The y 399 is the frame top of the `conversation-list` scroll view as XCUITest reports it, and pixels above it are empty. So in the real window the SCROLL VIEW ITSELF starts below the AVK top bar (367→399). This is not only a missing edge effect.
+    - Differences from the AVK harness to try: the detail column of a 3-column split (NSSplitViewItem) under a VStack parent, `.accessibilityElement(children: .contain)` on the container, and `selectableChatItems()` row wrappers.
+  timestamp: 2026-10-22T12:41:34.765358+00:00
+position_column: doing
+position_ordinal: '8180'
 title: AVK-8 The transcript draws under the thread top bar, with the scroll edge effect
 ---
 Reported by testudoapp-2c (2026-10-22), measured in Testudo on AgentViewKit 20d1de5. The host is a plain `AgentThreadView(session:connection:)` (TestudoApp `Sources/SAHKit/Chat/ChatAreaView.swift`).

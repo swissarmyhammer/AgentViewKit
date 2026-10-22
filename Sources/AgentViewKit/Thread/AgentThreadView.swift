@@ -19,8 +19,11 @@ import SwiftUI
 ///
 /// The conversation scrolls under the top bar, and thus under the toolbar of
 /// the window, with the scroll edge effect (D113 answer 7). The top bar has
-/// no background and no glass. VoiceOver reads the top bar, the
-/// conversation, and then the bottom bar.
+/// no background. The ``AgentInfoHeader`` in it floats on `.regular` glass,
+/// the same as the conversation header in Messages
+/// (``SwiftUI/View/agentFloatingGlass()``). The banners in it are content
+/// with no glass. VoiceOver reads the top bar, the conversation, and then
+/// the bottom bar.
 ///
 /// The bottom bar of the view (`.safeAreaBar(edge: .bottom)`) holds the
 /// floating controls of the thread. The conversation scrolls under the bar
@@ -237,8 +240,11 @@ public struct AgentThreadView<Composer: View>: View {
   /// The list scrolls under the two bars, and thus under the toolbar of the
   /// window, with the scroll edge effect (TestudoApp `features/style.md`,
   /// "Scroll under the bars", D113 answer 7). The default soft effect is
-  /// correct for a transcript. The top bar has no background: the header and
-  /// the banners are content with no glass (D112 (e)). From the top, the bar
+  /// correct for a transcript. The top bar has no background (D112 (e)). The
+  /// header is a floating surface: it is on the floating glass of the kit, in
+  /// its own glass container. The banners are content with no glass, out of
+  /// that container, so their buttons keep the button styles of content
+  /// (``RequestDeckPlace/style(of:)``). From the top, the bar
   /// shows the header and the connection banner when the host gave the
   /// connection model, the notice banner and the stream banner. VoiceOver
   /// reads the top bar, the list and then the bottom bar.
@@ -253,7 +259,15 @@ public struct AgentThreadView<Composer: View>: View {
     .safeAreaBar(edge: .top) {
       VStack(spacing: 0) {
         if let connection {
-          AgentInfoHeader(connection: connection)
+          // The header floats on glass in its own container. The banners are
+          // out of the container, so their buttons keep the place of content.
+          // The padding is in the container, so a header that shows nothing
+          // takes no space.
+          FloatingGlassContainer(spacing: theme.spacing.s) {
+            AgentInfoHeader(connection: connection).agentFloatingGlass()
+              .padding(.horizontal, theme.spacing.m)
+              .padding(.vertical, theme.spacing.s)
+          }
           AgentConnectionBanner(connection: connection)
         }
         SessionNoticeBanner(session: session)
