@@ -105,7 +105,8 @@ private enum HarnessConstants {
 /// and use its accessibility elements.
 ///
 /// The harness puts the view in an `NSHostingView`, which is the content view
-/// of a borderless `NSWindow` that is not on a screen. The harness never
+/// of an `NSWindow` that is not on a screen. The window is borderless by
+/// default, and a test can ask for a titled window. The harness never
 /// orders the window in, and the test process has the `.prohibited`
 /// activation policy. Thus a test shows no window and does not take the focus
 /// from the user (AVK-12). A `swift test` process needs no
@@ -140,19 +141,31 @@ public final class HostedViewHarness<Content: View> {
 
   /// Mounts `content` and lays it out.
   ///
+  /// A test that needs the title bar and the toolbar of a window, for
+  /// example a `NavigationSplitView` with toolbar items, gives a titled
+  /// `styleMask` with `.fullSizeContentView`. The content then fills the
+  /// window under the title bar, and the safe area of the hosting view holds
+  /// the height of the title bar and the toolbar.
+  ///
   /// - Parameters:
   ///   - content: The view to mount.
   ///   - size: The size of the content.
-  public init(_ content: Content, size: CGSize = HostedViewHarness.defaultSize) {
+  ///   - styleMask: The style of the window. The default is a borderless
+  ///     window.
+  public init(
+    _ content: Content, size: CGSize = HostedViewHarness.defaultSize,
+    styleMask: NSWindow.StyleMask = .borderless
+  ) {
     Self.prepareApplication()
     let frame = NSRect(origin: .zero, size: size)
     hostingView = NSHostingView(rootView: content)
     hostingView.frame = frame
-    // A borderless window keeps its off-screen origin. AppKit moves a titled
-    // window onto a screen. The harness never orders the window in, so the
-    // window never shows and never takes the focus (AVK-12).
+    // A borderless window keeps its off-screen origin. AppKit can move a
+    // titled window onto a screen. The harness never orders the window in,
+    // of any style, so the window never shows and never takes the focus
+    // (AVK-12).
     window = KeyableWindow(
-      contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+      contentRect: frame, styleMask: styleMask, backing: .buffered, defer: false)
     // ARC owns the window. The default value would release it a second time.
     window.isReleasedWhenClosed = false
     window.colorSpace = .sRGB

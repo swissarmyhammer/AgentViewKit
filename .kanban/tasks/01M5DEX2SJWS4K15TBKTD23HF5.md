@@ -44,6 +44,10 @@ comments:
     - `.jumpTarget(.hidden)` is REMOVED. Use `.targetable(false)`. `.jumpTarget(_:)` keeps only label, anchor and action customization.
     When you implement: bump EditorKit, migrate all the call sites, and add the hosted test that an edge card is not in `system.geometry.snapshot(layer:)`.
   timestamp: 2026-10-22T11:27:46.768401+00:00
+- actor: claude-code
+  id: 01m5j0qap0sw6dqxtytha0s9ey
+  text: 'UNBLOCKED: EditorKit main 91f8352 (^azp1kd1), a BREAKING change. Every .commandScope is a jump, nav and command target by default; its beacon has the content''s area. `.targetable(_ isTargetable: Bool)`: false removes the scope and its descendants from jump labels, the nav snapshot and focus by jump/nav/drill. Commands at its path resolve at the nearest targetable ancestor. Toggling keeps identity and @State, so DeckCard uses `.targetable(role.showsWhole)`. REMOVED: `.navVisible()` (delete the calls), `JumpTargetOverride.hidden` / `isHidden`, and the no-argument `.jumpTarget()`; use `.targetable(false)`. `.jumpTarget(_:)` keeps label, anchor, action and kind. Jump labels now anchor at the scope centre. To do: `swift package update EditorKit` to 91f8352 or later, migrate every call site, and add the hosted test that an edge card is not in `system.geometry.snapshot(layer:)`.'
+  timestamp: 2026-10-22T14:37:28.640845+00:00
 position_column: todo
 position_ordinal: '8780'
 title: 'Request deck: a card that does not show whole is still a nav target'

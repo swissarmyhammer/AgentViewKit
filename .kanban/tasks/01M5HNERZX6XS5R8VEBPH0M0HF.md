@@ -59,6 +59,55 @@ comments:
     - The y 399 is the frame top of the `conversation-list` scroll view as XCUITest reports it, and pixels above it are empty. So in the real window the SCROLL VIEW ITSELF starts below the AVK top bar (367→399). This is not only a missing edge effect.
     - Differences from the AVK harness to try: the detail column of a 3-column split (NSSplitViewItem) under a VStack parent, `.accessibilityElement(children: .contain)` on the container, and `selectableChatItems()` row wrappers.
   timestamp: 2026-10-22T12:41:34.765358+00:00
+- actor: claude-code
+  id: 01m5hzm2gw5m9gp5v7x006wh1r
+  text: |-
+    Live dump from testudoapp-2c (Testudo Debug, 1280×800, y from top, AVK 20d1de5, Testudo tab header now in `.safeAreaBar(edge: .top)`):
+    - AX frames: toolbar y 0–52; tabHeader x 381–1020, y 52–76; chatArea y 52–800; `conversation-list` y 278–619.
+    - The `conversation-list` view is a SwiftUI `HostingScrollView` that fills the whole column (x 381–1280, y 0–800). contentInsets: top 278, bottom 181 (composer y 619–800), right 260 (inspector). `automaticallyAdjustsContentInsets` = false.
+    - Every clipping ancestor (HostingScrollView, the _NSSplitViewItemViewWrappers, the NSSplitViews, NSThemeFrame) is full window height. There are no layer masks.
+    - Conclusion: NOTHING CLIPS. The edge is the scroll view's own TOP CONTENT INSET. 278 is far more than toolbar plus tab header (76) plus the AVK top bar, so a bar height is likely counted twice: a safe-area inset plus a `.safeAreaBar` inset, or nested safeAreaBars (Testudo's and AVK's). Rows pass under the bar only when scrolled.
+    New test path, with no pixels and no private state: in a hosted test, read the public `NSScrollView.contentInsets.top` of the conversation list and compare it with the measured heights of the bars above it. Include a host that adds its own outer `.safeAreaBar(edge: .top)`, as Testudo does, and the NavigationSplitView detail column with an inspector. The test fails today if the inset double-counts.
+  timestamp: 2026-10-22T14:18:13.404559+00:00
+- actor: claude-code
+  id: 01m5j062jkzcxgg9k8qatwm0nw
+  text: |-
+    Iteration 2: the public-inset test. ACCEPTANCE CHANGE (per the dispatcher's plan): the card's rendered-pixel acceptance is replaced by a check of the public `NSScrollView.contentInsets` of `conversation-list`. The top inset must equal the real height of what is above the list (title bar and toolbar from the hosting view's safe area, the host bars, and the AVK top bar). The bottom inset must equal the floating controls plus their outer padding. Each height comes from accessibility frames, not from the insets: the AVK bar runs from the AgentInfoHeader top minus spacing.s to the notice text bottom plus 2*spacing.m.
+
+    New: `Tests/AgentViewKitTests/Thread/ThreadBarInsetHostedTests.swift` (4 tests). `HostedViewHarness.init(_:size:styleMask:)` now takes an optional window style (default `.borderless`), so shape (c) can use a titled `.fullSizeContentView` window with a real toolbar. The window is never ordered in.
+
+    Measured (thread with a connection header and one notice; AVK top bar = 131 pt, floating controls bar = 248 pt):
+    - (a) plain AgentThreadView, borderless 480x800: top 131, expected 131. PASS. Bottom 247.92, expected 248.5 (accessibility frames round to 0.5). PASS.
+    - (b) outer `.safeAreaBar(edge: .top)` 24 pt host bar, default `.builtIn` inspector mode: top 131, expected 155. FAIL. The host bar is NOT counted, and the AVK header (y 8-40) is drawn under the host bar (y 0-24). The same happens with `.safeAreaInset`, a `.frame` in between, and inside a VStack.
+    - (b') the same host with `.agentAttachmentInspector(.host(...))`, as Testudo uses it: top 155, expected 155. PASS. The header moves to y 32-64.
+    - (c) titled 1280x800 window, 3-column NavigationSplitView, `.inspector`, toolbar item, detail = VStack(item header, Divider, thread + frame + accessibilityElement(children: .contain) + contentShape + outer 24 pt safeAreaBar), host mode: top 207 = toolbar 52 + host bar 24 + AVK bar 131. PASS. Right inset 270 (the inspector), as in Testudo.
+    - The probes also checked a titled window with no toolbar: top 163 = 32 + 131. With a toolbar: 183 = 52 + 131.
+
+    Conclusion: no host shape double-counts a bar. In every host-mode shape, which is how Testudo runs, the inset is exactly toolbar + host bars + AVK bar. The only failure is an UNDER-count, and only in `.builtIn` mode: the `.inspector` that ThreadAttachmentInspector applies drops the outer host bar from the thread's safe area. That is a different defect from the Testudo report, so I filed it as ^786dxt8 and did not fix it here.
+
+    For Testudo's 278: 278 - 52 - 24 = 202 pt for the AVK top bar. The probe bar (header plus one notice) is 131. 202 is what a header + notice + stream banner (replaying, partial history) or connection banner would give, which is real content and not a double count. To confirm, Testudo should dump the AX frames of `agent-info-header`, `session-notice-*`, `session-stream-*` and `agent-connection-*` in that window. If those frames end well above y 278, the extra inset is not from the bars that AVK draws, and the next AVK test should mount that exact banner set.
+  timestamp: 2026-10-22T14:28:03.283613+00:00
+- actor: claude-code
+  id: 01m5j066qqrw56d9ww30ge328s
+  text: |-
+    ### implement — stuck
+    - evidence: 2 files. NEW `Tests/AgentViewKitTests/Thread/ThreadBarInsetHostedTests.swift`. MODIFIED `Sources/AgentViewKitTestSupport/HostedViewHarness.swift` (`styleMask:` parameter on `init(_:size:)`, default `.borderless`). `swift test --filter ThreadBarInsetHostedTests`: 4 tests, 3 pass, 1 fails (`theTopInsetOfAThreadUnderAHostBarCountsTheHostBar`: top inset 131, expected 155). No production change.
+    - why stuck: the plan's step 2, "find what adds the extra inset", has nothing to fix. No host shape double-counts. The one red shape is an under-count in the `.builtIn` inspector mode, which is a different defect (filed as ^786dxt8). Testudo's host-mode shapes all measure correct insets offscreen.
+    - next: a person decides. (1) Fix ^786dxt8 under this card, or move the red test to that card. (2) Get Testudo's AX frames of the AVK header and banners to explain the 202 pt AVK bar.
+  timestamp: 2026-10-22T14:28:07.543870+00:00
+- actor: claude-code
+  id: 01m5j0759cb91161jcv6q8bt7r
+  text: |-
+    ### finish iteration 2 — stuck
+    - implement: stuck — no production change. New public-inset test, ThreadBarInsetHostedTests (contentInsets of `conversation-list` vs the measured bar heights): (a) plain 131=131; (b) host-mode inspector + outer 24 pt bar 155=155; (c) titled 3-column split + inspector + toolbar + outer tab bar 207=52+24+131. No shape double-counts. The one failure is an UNDER-count in built-in inspector mode with an outer bar (131 vs 155), a different defect, filed as ^786dxt8; the failing case moves to that card. HostedViewHarness gained an optional `styleMask:`.
+    - Testudo's 278 = 52 + 24 + 202 for the AVK top bar, against 131 in the test. That fits real banner content (stream, connection or notice banners), not a duplicate bar.
+    - test, commit, review: not run
+    - next: asked testudoapp-2c for the on-screen frames of `agent-info-header`, `session-notice-*`, `session-stream-*` and `agent-connection-*`. If they add up to 202, the inset is correct, and the card's complaint is rows in the inset at rest. That is standard scroll-under behaviour, and a person decides whether to close the card or change the design.
+  timestamp: 2026-10-22T14:28:38.828429+00:00
+- actor: claude-code
+  id: 01m5j0cbhvap87kkm1vdamgjye
+  text: 'Frames from testudoapp-2c: agent-info-header y 84–100 (16 pt). No notice, stream or connection banners. The 278 top inset in the 5-item dump is the bottom-anchoring of a short transcript (free space), not the bars. So the inset dump didn''t test scroll-under. The original evidence (rows at y 388 under the AVK bar drew no pixels) came from the OLD Testudo layout, where the tab header was stacked above the chat. I asked for an overflow probe on the new layout: row frames, plus pixel samples under and just below agent-info-header. That decides the card: rows drawn there = not a bug, close it; a blank row frame = a real reproduction.'
+  timestamp: 2026-10-22T14:31:29.083311+00:00
 position_column: doing
 position_ordinal: '8180'
 title: AVK-8 The transcript draws under the thread top bar, with the scroll edge effect
