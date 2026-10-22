@@ -35,6 +35,38 @@ comments:
     - evidence: 13 files — Sources/AgentViewKit/HumanInTheLoop/RequestActionStyle.swift, Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift, Sources/AgentViewKit/Status/StateBanner.swift, Sources/AgentViewKit/Connections/AgentLoginPrompt.swift, Sources/AgentViewKit/Status/StatusBar.swift, Sources/AgentViewKit/Connections/AgentAuthView.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Tests/AgentViewKitTests/HumanInTheLoop/RequestDeckSurfaceTests.swift, Tests/PackageStructureTests/GlassPlacementTests.swift, Tests/AgentViewKitTests/Snapshots/HostedSnapshotTests.swift, Tests/AgentViewKitTests/Snapshots/SnapshotFixtures.swift, plan.md, README.md; 4 new reference images Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-{light,dark,reduce-transparency,increase-contrast}.png; no changed reference image. `swift build --build-tests` exit 0. Full suite 2 times with run-watched.sh (run26a1, run26a2): test-exit=0, 1578 tests in 197 suites + 216 tests in 29 suites + 1 test, 3 known issues (existing tests that expect a failure), on-screen test-process windows: 0 both times. Mutation check: 8 checks failed with the bordered place back.
     - next: review
   timestamp: 2026-10-22T00:09:12.105673+00:00
+- actor: claude-code
+  id: 01m5gf6a6qk39g45yfdxn14t7n
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (1c0f275): engine 0 findings (7 attempted, 0 failed). Manual check of the changed sentences in plan.md and README.md: 1 finding — plan.md:247.
+    - next: Correct the sentence in plan.md:247 so that it agrees with the code (the Load Earlier button in ConversationView.swift:330 uses `.bordered` in content). Then run the review again.
+  timestamp: 2026-10-22T00:11:50.871514+00:00
+- actor: claude-code
+  id: 01m5gf6z507v0t78yfpxyypfd2
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — RequestDeckPlace.barWithoutGlass for StateBanner and AgentLoginPrompt; tests; 4 bottom-bar-buttons PNGs; mutation check 8 failures
+    - test: green — 2 watched full runs, 1578 + 216 + 1 passed (3 known issues); on-screen test windows 0
+    - commit: 1c0f275
+    - review: findings — plan.md:247 (the Load Earlier button in content uses .bordered)
+  timestamp: 2026-10-22T00:12:12.320902+00:00
+- actor: claude-code
+  id: 01m5gf9mnp2m4wkjfgm6f6f2wd
+  text: |-
+    Fix of the finding plan.md:247:
+    - `rg -n 'buttonStyle\(' Sources/` gives 2 files with a bordered style: `HumanInTheLoop/RequestActionStyle.swift` (`.bordered`, `.borderedProminent`, from `RequestDeckPlace.style(of:)`) and `Thread/ConversationView.swift` (Load Earlier, `.bordered`, in content). The other styles are `.borderless`, `.plain`, `.link`, `.glass` and `.glassProminent`.
+    - "Button styles first": the sentence is now "Of the buttons that get their style from `RequestDeckPlace.style(of:)`, only a button on the deck glass in a bar uses a bordered style. The one other bordered button of the kit is the Load Earlier button at the top of the transcript (`Thread/ConversationView.swift`). It uses `.bordered` in content." The Load Earlier button did not change. Its style is a separate question for the user.
+    - I checked the other sentences of §5 with "only" or "each" about button styles. One more sentence was false, in "Glass only on floating controls": "In content and in a bar with no glass surface, only the glass button styles of the action buttons of a request card, a notice, a status bar and the sign-in card are glass." The pill, the suggestion chips, the dictation button and Send/Stop are glass buttons in the bottom bar, which has no glass surface. The sentence is now: "Outside the floating controls (the composer, the suggestion chips, the dictation button and the pill), only `RequestDeckPlace.style(of:)` gives a glass button style. It gives `.glass` and `.glassProminent` to the action buttons ... in content and in a bar with no glass surface." This agrees with `GlassForm.glassButtonFiles` in GlassPlacementTests (DefaultPromptAccessory, SuggestionsView, SpeechInputButton, ScrollToBottomPill, RequestActionStyle).
+    - These sentences agree with the code: the `GlassButtonShapeTests` count (each file of `Input/` and the pill file), "Only the primary action has a tint" (prominent styles only in DefaultPromptAccessory and RequestActionStyle), the `GlassPlacementTests` checks (one `.buttonStyle(.glassProminent)` line in `Input/`, the 6 files that call `requestActionStyle(_:)`, only StateBanner.swift and AgentLoginPrompt.swift declare `.barWithoutGlass`).
+  timestamp: 2026-10-22T00:13:39.894766+00:00
+- actor: claude-code
+  id: 01m5gf9pw9xjdxzzga5zbnbkqp
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — plan.md (§5 "Button styles first" and "Glass only on floating controls"); finding plan.md:247 marked [x]. `swift test --filter 'DecisionRecordTests|AgentThemeGoldenTests|ReadmeCoverageTests'` exit 0: 23 tests in 2 suites passed, 3 tests in 1 suite passed, 0 failures. No change to Sources.
+    - next: review
+  timestamp: 2026-10-22T00:13:42.153469+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Give the buttons of the state banner and the login card in the bottom bar the glass styles (style.md rule 4)
@@ -64,3 +96,24 @@ The user decided (2026-10-21): change the code, not the rule. The user will exam
 - [x] A mutation check: put the bordered style back, and confirm that a test fails.
 - [x] Update plan.md §5, so that it agrees with the code.
 - [x] The full suite passes with the window monitor, with 0 on-screen test windows. #avk-8
+
+## Review Findings (2026-10-21 19:10)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 11 file(s) reviewed, 8 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 4 file(s) not reviewed — the file holds no text to review:
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+> Manual check of the changed sentences in `plan.md` and `README.md` against the code (no Markdown validator).
+
+- [x] `plan.md:247` `manual/docs-agree-with-code` — The new sentence "Only a button on a glass surface uses a bordered style." is false. The "Load Earlier" button of `ConversationView` (`Sources/AgentViewKit/Thread/ConversationView.swift:330`) uses `.buttonStyle(.bordered)`, and that button is in the content of the list, not on a glass surface. Make the sentence agree with the code: limit it to the buttons that get their style from `RequestDeckPlace.style(of:)`, or name the Load Earlier button as an exception.
