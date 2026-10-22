@@ -32,3 +32,46 @@ struct ThoughtEntryBlock: View {
     }
   }
 }
+
+// MARK: - Previews
+
+/// One thought of the previews, in a block that starts open or closed.
+private struct ThoughtEntryBlockSample: View {
+  /// The thought, or `nil` when the sample has no thought.
+  let entry: ThoughtEntry?
+
+  /// The store of the open state of the block. With no user decision, the
+  /// block is open or closed as the sample asks.
+  @State private var store: ExpandedBlocksStore
+
+  /// Makes the sample of a thought.
+  ///
+  /// - Parameters:
+  ///   - sample: The state of the thought.
+  ///   - isOpen: Whether the block starts open.
+  init(_ sample: PreviewFixtures.ThoughtSample, isOpen: Bool) {
+    entry = sample.entry
+    _store = State(initialValue: ExpandedBlocksStore(defaultExpanded: { _ in isOpen }))
+  }
+
+  var body: some View {
+    if let entry {
+      ThoughtEntryBlock(entry: entry)
+        .environment(\.expandedBlocksStore, store)
+        .frame(width: PreviewFixtures.narrowWidth)
+        .padding()
+    }
+  }
+}
+
+#Preview("Closed") {
+  ThoughtEntryBlockSample(.complete, isOpen: false)
+}
+
+#Preview("Open") {
+  ThoughtEntryBlockSample(.complete, isOpen: true)
+}
+
+#Preview("Open, while the thought streams") {
+  ThoughtEntryBlockSample(.streaming, isOpen: true)
+}

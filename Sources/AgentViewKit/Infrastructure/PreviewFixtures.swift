@@ -544,6 +544,190 @@ enum PreviewFixtures {
     .code(CommandOutputView.successExitCode), .code(failingExitCode), .signal(stopSignal),
   ]
 
+  // MARK: - Transcript items
+
+  /// The question of ``MessageSample/user``.
+  static let userQuestion = "Why does the release build fail on the build machine?"
+
+  /// The answer of ``MessageSample/agent``.
+  static let agentAnswer = "Parser.swift uses `URL`, but it does not import Foundation. I will add the import."
+
+  /// The chunks of ``MessageSample/streaming`` that the agent sent so far.
+  /// The last chunk stops in the middle of a word.
+  static let streamedAnswerChunks = [
+    "Parser.swift does not import ", "Foundation, so the release build cannot find ", "`URL`. I will add the imp",
+  ]
+
+  /// The error of the compiler that ``failureReport`` shows.
+  static let buildError = "Sources/Parser.swift:12:18: error: cannot find type 'URL' in scope"
+
+  /// The answer of ``MessageSample/failure``: a build that failed, with the
+  /// error of the compiler in a code block.
+  static let failureReport = """
+    The release build failed with this error:
+
+    ```
+    \(buildError)
+    ```
+
+    Parser.swift uses `URL`, but it does not import Foundation.
+    """
+
+  /// The answer of ``MessageSample/long``: each kind of formatting, then a
+  /// paragraph that is longer than a window is wide.
+  static let longAnswer = [formattedMarkdown, longParagraph].joined(separator: "\n\n")
+
+  /// The text of ``ThoughtSample/complete``.
+  static let completeThought = "The error names `URL`. Parser.swift uses the type but imports only Swift."
+
+  /// The chunks of ``ThoughtSample/streaming`` that the agent sent so far.
+  /// The last chunk stops in the middle of a word.
+  static let streamedThoughtChunks = ["The error names `URL`. ", "Parser.swift uses the type, but it imports ", "only Sw"]
+
+  /// The id of the message of the chunks of a sample that streams.
+  static let streamedMessageID = MessageId(rawValue: "preview-streamed")
+
+  /// Makes the items of one message that streams: one chunk update for each
+  /// chunk, each with ``streamedMessageID``, so the merge engine folds them
+  /// into one entry with a block for each chunk.
+  ///
+  /// - Parameters:
+  ///   - chunks: The text of each chunk, in order.
+  ///   - update: The session update of a chunk, such as
+  ///     `SessionUpdate.agentMessageChunk`.
+  /// - Returns: The transcript items.
+  private static func streamedItems(
+    _ chunks: [String], as update: (ContentChunk) -> SessionUpdate
+  ) -> [PreviewTranscriptItem] {
+    chunks.map { .update(update(ContentChunk(content: .text(TextContent(text: $0)), messageId: streamedMessageID))) }
+  }
+
+  /// A message of the transcript, in each state that the message previews
+  /// show.
+  enum MessageSample: CaseIterable {
+    /// A question of the user.
+    case user
+
+    /// An answer of the agent.
+    case agent
+
+    /// An answer of the agent that still streams: the chunks so far.
+    case streaming
+
+    /// An answer of the agent that reports a failed build.
+    case failure
+
+    /// An answer of the agent that is longer than a window.
+    case long
+
+    /// The transcript items of the message.
+    var transcript: [PreviewTranscriptItem] {
+      switch self {
+      case .user: [.user(userQuestion)]
+      case .agent: [.agent(agentAnswer)]
+      case .streaming: streamedItems(streamedAnswerChunks, as: SessionUpdate.agentMessageChunk)
+      case .failure: [.agent(failureReport)]
+      case .long: [.agent(longAnswer)]
+      }
+    }
+
+    /// A new preview session with ``transcript``.
+    var session: SessionModel {
+      .preview(transcript: transcript)
+    }
+
+    /// The message entry of a new ``session``, or `nil` when the session has
+    /// no user message and no agent message.
+    var entry: MessageEntry? {
+      let session = session
+      return firstEntry(in: session, as: UserMessageEntry.self).map(MessageEntry.user)
+        ?? firstEntry(in: session, as: AgentMessageEntry.self).map(MessageEntry.agent)
+    }
+  }
+
+  /// A thought of the agent, in each state that the reasoning previews show.
+  enum ThoughtSample: CaseIterable {
+    /// A thought that the agent ended.
+    case complete
+
+    /// A thought that still streams: the chunks so far.
+    case streaming
+
+    /// The transcript items of the thought.
+    var transcript: [PreviewTranscriptItem] {
+      switch self {
+      case .complete: [.thought(completeThought)]
+      case .streaming: streamedItems(streamedThoughtChunks, as: SessionUpdate.agentThoughtChunk)
+      }
+    }
+
+    /// A new preview session with ``transcript``.
+    var session: SessionModel {
+      .preview(transcript: transcript)
+    }
+
+    /// The thought entry of a new ``session``, or `nil` when the session has
+    /// no thought.
+    var entry: ThoughtEntry? {
+      firstEntry(in: session, as: ThoughtEntry.self)
+    }
+  }
+
+  /// The MIME type of the sound of ``contentOfEachKind``.
+  private static let waveMIMEType = "audio/wav"
+
+  /// The kind of the unknown block of ``contentOfEachKind``: a type that the
+  /// ACP revision of the kit does not know.
+  static let reviewSummaryKind = "review_summary"
+
+  /// The content of an entry with a block of each kind that the kit shows, in
+  /// the order of ``FoundationModelsACP/ContentBlock/Kind``: a text, an image,
+  /// a sound, a resource link, a text resource and a binary resource, and a
+  /// block of a kind that the kit does not know. The bytes of the image and of
+  /// the sound are in the blocks, so the blocks read no file.
+  static let contentOfEachKind: [FoundationModelsACP.ContentBlock] = [
+    .text(TextContent(text: citedResponse)),
+    .image(ImageContent(data: wideImageData.base64EncodedString(), mimeType: MediaType(rawValue: bitmapMIMEType))),
+    .audio(AudioContent(data: audioData.base64EncodedString(), mimeType: MediaType(rawValue: waveMIMEType))),
+    .resourceLink(ResourceLink(name: sourceFileAttachment.name, uri: sourceFileAttachment.url.absoluteString)),
+    .resource(textResource),
+    .resource(binaryResource),
+    .unknown(reviewSummaryKind, smallJSON),
+  ]
+
+  /// The number of findings of the review of ``smallJSON``.
+  static let reviewFindingCount = 2
+
+  /// A JSON object of one level with short values: the summary of a review.
+  static let smallJSON = JSONValue.object([
+    "title": .string("Review of Parser.swift"),
+    "status": .string("complete"),
+    "findingCount": .number(Double(reviewFindingCount)),
+  ])
+
+  /// The line of the finding of ``deepJSON``.
+  static let reviewFindingLine = 12
+
+  /// A JSON object of several levels: a review, with its files, their
+  /// findings, and the comment of each finding. The comment is
+  /// ``longParagraph``, a value that is longer than a window is wide.
+  static let deepJSON = JSONValue.object([
+    "review": .object([
+      "title": .string("Review of the release build"),
+      "files": .array([
+        .object([
+          "path": .string(sourceFileAttachment.url.absoluteString),
+          "findings": .array([
+            .object([
+              "line": .number(Double(reviewFindingLine)),
+              "comment": .string(longParagraph),
+            ])
+          ]),
+        ])
+      ]),
+    ])
+  ])
+
   // MARK: - Attachment previews
 
   /// The long side of ``wideImageAttachment``, in pixels: its width.

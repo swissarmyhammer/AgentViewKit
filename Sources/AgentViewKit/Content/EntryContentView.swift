@@ -75,3 +75,14 @@ struct EntryContentView: View {
     }
   }
 }
+
+#Preview("Each kind of content, one after the other") {
+  // The image and the sound hold their bytes, so the blocks read no file.
+  ScrollView {
+    VStack(alignment: .leading) {
+      EntryContentView(content: PreviewFixtures.contentOfEachKind, id: "preview-content")
+    }
+    .frame(width: PreviewFixtures.narrowWidth)
+    .padding()
+  }
+}

@@ -83,8 +83,24 @@ comments:
     - evidence: `swift build` of the whole package: Build complete, exit 0 (`package` access builds). `swift test` run twice back to back, both exit 0. Run 1: 1639 tests in 203 suites passed (91.974 s), 3 known issues. Run 2: 1639 tests in 203 suites passed (89.756 s), 3 known issues. 0 failures, 0 timeouts, 0 skipped. The only warning is the known SwiftPM mlx-swift "missing creator for mutated node" notice; no warnings from project code. The 3 known issues are the existing intentional expected-failure tests (SnapshotStoreTests theCheckOfAViewThatChangedRecordsAnIssue, HostedLayoutExpectationsTests aWrappedTextWithAFixedVerticalSizeFails, ThemeHeightExpectationsTests aViewThatIgnoresTheThemeFails). No code changed by this step; no commit.
     - next: review
   timestamp: 2026-10-22T21:08:52.758788+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jq84pqp3r4z0qy2n05801a
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e59ad28) — 0 findings, 0 confirmed, 0 refuted; 9 files reviewed, 6 .kanban files excluded by .reviewignore. All 10 prior findings checked and verified in the diff: AttachmentActionsPreview helper (AttachmentActions.swift), AttachmentPreviewSample helper (AttachmentPreview.swift), named image-side constants (PreviewFixtures.swift), PreviewFixtures.RecordingFileService removed in favor of the shared RecordingAttachmentFileService moved to Sources/AgentViewKit/Infrastructure, BitmapFile.gradient and RenderedPixels.offsets both on the package PixelGrid (with PixelGridTests).
+    - next: task moved to done.
+  timestamp: 2026-10-22T21:11:08.247277+00:00
+- actor: claude-code
+  id: 01m5jq8qv64dy4h0gdsvvbbrhn
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 10/10 findings fixed (preview helpers, named image sizes, one internal RecordingAttachmentFileService, `package` PixelGrid shared with RenderedPixels, PixelGridTests); stray `Preview` tag removed
+    - test: green — swift build OK; swift test run twice, 1639 passed each, 0 failed, 0 timeouts, 0 skipped
+    - commit: e59ad28 (local, not pushed)
+    - review: clean — 0 findings, 10/10 earlier findings verified fixed, task in done
+  timestamp: 2026-10-22T21:11:27.846915+00:00
+position_column: done
+position_ordinal: ffffb780
 title: 'AVK-14c Add #Preview blocks for AttachmentPreview, its parts, and AttachmentActions'
 ---
 ## Goal

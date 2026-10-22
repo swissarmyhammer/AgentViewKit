@@ -1,5 +1,6 @@
 import EditorSwiftUI
 import EditorTheme
+import FoundationModelsACP
 import SwiftUI
 
 /// A collapsible block with a title and a monospaced JSON text (plan.md §9 A2).
@@ -73,5 +74,47 @@ struct JSONDisclosure: View {
         .lineLimit(1)
     }
     .accessibilityIdentifier(identifier)
+  }
+}
+
+// MARK: - Previews
+
+/// A JSON value of the previews, in a block that starts open or closed.
+private struct JSONDisclosureSample: View {
+  /// The identifier of the record and the accessibility identifier of the
+  /// block.
+  private static let identifier = "preview-json"
+
+  /// The JSON value that the block shows.
+  let json: JSONValue
+
+  /// Whether the block starts open.
+  let isExpanded: Bool
+
+  var body: some View {
+    JSONDisclosure(
+      id: Self.identifier, title: PreviewFixtures.reviewSummaryKind, json: json.prettyPrinted,
+      identifier: Self.identifier, isExpanded: isExpanded
+    )
+    .frame(width: PreviewFixtures.narrowWidth)
+    .padding()
+  }
+}
+
+#Preview("Small JSON, closed") {
+  JSONDisclosureSample(json: PreviewFixtures.smallJSON, isExpanded: false)
+}
+
+#Preview("Small JSON, open") {
+  JSONDisclosureSample(json: PreviewFixtures.smallJSON, isExpanded: true)
+}
+
+#Preview("Deep JSON with long values, closed") {
+  JSONDisclosureSample(json: PreviewFixtures.deepJSON, isExpanded: false)
+}
+
+#Preview("Deep JSON with long values, open") {
+  ScrollView {
+    JSONDisclosureSample(json: PreviewFixtures.deepJSON, isExpanded: true)
   }
 }

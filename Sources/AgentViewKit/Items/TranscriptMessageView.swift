@@ -47,3 +47,41 @@ struct TranscriptMessageView: View {
     .agentItemScope(AgentScopeKind.message(rowKey: key), subject: entry.transcriptEntry)
   }
 }
+
+// MARK: - Previews
+
+/// One message of the previews, in a narrow column that wraps its text.
+private struct TranscriptMessageSample: View {
+  /// The state of the message.
+  let sample: PreviewFixtures.MessageSample
+
+  var body: some View {
+    if let entry = sample.entry {
+      TranscriptMessageView(entry: entry)
+        .frame(width: PreviewFixtures.narrowWidth)
+        .padding()
+    }
+  }
+}
+
+#Preview("A user message") {
+  TranscriptMessageSample(sample: .user)
+}
+
+#Preview("An agent message") {
+  TranscriptMessageSample(sample: .agent)
+}
+
+#Preview("An agent message that streams") {
+  TranscriptMessageSample(sample: .streaming)
+}
+
+#Preview("An agent message that reports an error") {
+  TranscriptMessageSample(sample: .failure)
+}
+
+#Preview("A very long agent message") {
+  ScrollView {
+    TranscriptMessageSample(sample: .long)
+  }
+}

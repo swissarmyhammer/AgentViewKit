@@ -122,3 +122,45 @@ struct MessageLayout<Content: View>: View {
     .background { Color.clear.accessibilityHidden(true) }
   }
 }
+
+// MARK: - Previews
+
+/// The layout of one message of the previews, with the content of its entry,
+/// in a narrow column that wraps its text.
+private struct MessageLayoutSample: View {
+  /// The state of the message.
+  let sample: PreviewFixtures.MessageSample
+
+  var body: some View {
+    if let entry = sample.entry {
+      let key = entry.id.rowKey
+      MessageLayout(id: key, role: entry.role) {
+        EntryContentView(content: entry.content, id: key)
+      }
+      .frame(width: PreviewFixtures.narrowWidth)
+      .padding()
+    }
+  }
+}
+
+#Preview("A user message") {
+  MessageLayoutSample(sample: .user)
+}
+
+#Preview("An agent message") {
+  MessageLayoutSample(sample: .agent)
+}
+
+#Preview("An agent message that streams") {
+  MessageLayoutSample(sample: .streaming)
+}
+
+#Preview("An agent message that reports an error") {
+  MessageLayoutSample(sample: .failure)
+}
+
+#Preview("A very long agent message") {
+  ScrollView {
+    MessageLayoutSample(sample: .long)
+  }
+}

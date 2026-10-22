@@ -422,6 +422,158 @@ import Testing
         == [.init(verb: .revealAttachment, attachment: attachment), .init(verb: .saveAttachment, attachment: attachment)])
   }
 
+  // MARK: - Transcript items
+
+  @Test func theUserMessageSampleIsAUserMessageWithTheQuestion() throws {
+    let entry = try #require(PreviewFixtures.MessageSample.user.entry)
+
+    #expect(entry.role == .user)
+    #expect(entry.content == [.text(TextContent(text: PreviewFixtures.userQuestion))])
+  }
+
+  @Test func theAgentMessageSampleIsAnAgentMessageWithTheAnswer() throws {
+    let entry = try #require(PreviewFixtures.MessageSample.agent.entry)
+
+    #expect(entry.role == .assistant)
+    #expect(entry.content == [.text(TextContent(text: PreviewFixtures.agentAnswer))])
+  }
+
+  @Test func theStreamingMessageSampleIsOneAgentMessageWithABlockForEachChunk() throws {
+    let entry = try #require(PreviewFixtures.MessageSample.streaming.entry)
+
+    #expect(entry.role == .assistant)
+    #expect(entry.content == PreviewFixtures.streamedAnswerChunks.map { .text(TextContent(text: $0)) })
+    #expect(PreviewFixtures.MessageSample.streaming.session.transcript.count == 1)
+  }
+
+  @Test func theFailureMessageSampleShowsTheBuildErrorInACodeBlock() throws {
+    let entry = try #require(PreviewFixtures.MessageSample.failure.entry)
+    let code = try Self.codeBlockText(of: Self.text(of: entry.content))
+
+    #expect(entry.role == .assistant)
+    #expect(code.contains(PreviewFixtures.buildError))
+  }
+
+  @Test func theLongMessageSampleIsLongerThanEachOtherMessageSample() throws {
+    let long = try Self.text(of: #require(PreviewFixtures.MessageSample.long.entry).content)
+    let others = PreviewFixtures.MessageSample.allCases.filter { $0 != .long }.compactMap(\.entry)
+
+    #expect(others.count == PreviewFixtures.MessageSample.allCases.count - 1)
+    #expect(others.allSatisfy { long.count > Self.text(of: $0.content).count })
+  }
+
+  @Test func theCompleteThoughtSampleIsAThoughtWithItsText() throws {
+    let entry = try #require(PreviewFixtures.ThoughtSample.complete.entry)
+
+    #expect(entry.content == [.text(TextContent(text: PreviewFixtures.completeThought))])
+  }
+
+  @Test func theStreamingThoughtSampleIsOneThoughtWithABlockForEachChunk() throws {
+    let entry = try #require(PreviewFixtures.ThoughtSample.streaming.entry)
+
+    #expect(entry.content == PreviewFixtures.streamedThoughtChunks.map { .text(TextContent(text: $0)) })
+    #expect(PreviewFixtures.ThoughtSample.streaming.session.transcript.count == 1)
+  }
+
+  @Test func theContentOfEachKindHoldsABlockOfEachKindForTheUser() {
+    let content = PreviewFixtures.contentOfEachKind
+
+    #expect(Set(content.map(\.kind)) == Set(FoundationModelsACP.ContentBlock.Kind.allCases))
+    #expect(content.allSatisfy { $0.isVisibleToUser })
+  }
+
+  @Test func theImageAndTheSoundOfTheContentHoldTheirBytes() throws {
+    let content = PreviewFixtures.contentOfEachKind
+    let image = try #require(content.lazy.compactMap(Self.imageData(of:)).first)
+    let sound = try #require(content.lazy.compactMap(Self.audioData(of:)).first)
+
+    #expect(NSImage(data: image) != nil)
+    #expect(String(decoding: sound.prefix(Self.riffTag.utf8.count), as: UTF8.self) == Self.riffTag)
+  }
+
+  @Test func theDeepJSONIsDeeperThanTheSmallJSONAndHoldsALongerValue() throws {
+    let small = PreviewFixtures.smallJSON
+    let deep = PreviewFixtures.deepJSON
+    let longestSmall = try #require(Self.strings(in: small).map(\.count).max())
+    let longestDeep = try #require(Self.strings(in: deep).map(\.count).max())
+
+    #expect(Self.depth(of: deep) > Self.depth(of: small))
+    #expect(longestDeep > longestSmall)
+  }
+
+  /// The tag at the start of a WAVE file.
+  static let riffTag = "RIFF"
+
+  /// The joined text of the text blocks of an entry.
+  ///
+  /// - Parameter content: The content blocks of the entry.
+  /// - Returns: The text of each text block, in order, with no separator.
+  static func text(of content: [FoundationModelsACP.ContentBlock]) -> String {
+    content.map { block in
+      if case .text(let text) = block { text.text } else { "" }
+    }
+    .joined()
+  }
+
+  /// The text of the code blocks of a Markdown text.
+  ///
+  /// - Parameter markdown: The Markdown text.
+  /// - Returns: The text of each run in a code block, in order.
+  /// - Throws: The error of a text that Foundation cannot parse.
+  static func codeBlockText(of markdown: String) throws -> String {
+    let parsed = try AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full))
+    return parsed.runs
+      .filter { run in
+        run.presentationIntent?.components.contains { component in
+          if case .codeBlock = component.kind { true } else { false }
+        } ?? false
+      }
+      .map { String(parsed[$0.range].characters) }
+      .joined()
+  }
+
+  /// The bytes of an image block.
+  ///
+  /// - Parameter block: A content block.
+  /// - Returns: The decoded bytes, or `nil` for a block of another kind.
+  static func imageData(of block: FoundationModelsACP.ContentBlock) -> Data? {
+    if case .image(let image) = block { Data(base64Encoded: image.data) } else { nil }
+  }
+
+  /// The bytes of a sound block.
+  ///
+  /// - Parameter block: A content block.
+  /// - Returns: The decoded bytes, or `nil` for a block of another kind.
+  static func audioData(of block: FoundationModelsACP.ContentBlock) -> Data? {
+    if case .audio(let audio) = block { Data(base64Encoded: audio.data) } else { nil }
+  }
+
+  /// The number of levels of objects and arrays of a JSON value.
+  ///
+  /// - Parameter value: The JSON value.
+  /// - Returns: 0 for a scalar, and one more than the deepest member for an
+  ///   object or an array.
+  static func depth(of value: JSONValue) -> Int {
+    switch value {
+    case .object(let members): 1 + (members.values.map(depth(of:)).max() ?? 0)
+    case .array(let items): 1 + (items.map(depth(of:)).max() ?? 0)
+    case .null, .bool, .number, .string: 0
+    }
+  }
+
+  /// The string values of a JSON value, at each level.
+  ///
+  /// - Parameter value: The JSON value.
+  /// - Returns: Each string value, in no set order.
+  static func strings(in value: JSONValue) -> [String] {
+    switch value {
+    case .string(let string): [string]
+    case .object(let members): members.values.flatMap(strings(in:))
+    case .array(let items): items.flatMap(strings(in:))
+    case .null, .bool, .number: []
+    }
+  }
+
   /// The scale of the display that the thumbnail tests give the loader.
   static let displayScale: CGFloat = 2
 
