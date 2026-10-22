@@ -1,0 +1,21 @@
+---
+assignees:
+- claude-code
+position_column: todo
+position_ordinal: a680
+title: AVK-8 Rows under the top bars draw nothing, even with the soft scroll edge effect (follow-up to ^ph0m0hf)
+---
+Follow-up to ^ph0m0hf (done: the list asks for `.scrollEdgeEffectStyle(.soft, for: .vertical)`, and the hairline is gone). On-screen probe by testudoapp-2c on AVK 4a9428f + EditorKit 7de8297: 14 prompts, 1280×800 window, window-relative points, Light and Dark. Artifacts: `/Users/wballard/github/swissarmyhammer/TestudoApp/.build/app/probe-avk4a9428f/` (window and crop PNGs, report txts; manifest.json maps the names).
+
+Observed:
+- Toolbar y 0–52. Testudo tab header y 52–76, an outer `.safeAreaBar(edge: .top)` around AgentThreadView. agent-info-header is now a glass capsule at x 393–1008, y 84–116. The `conversation-list` AX frame is y 124–619.
+- Rows are laid out above the list top (tool call y 70–86, assistant intro y 18–58, user −51–6), but nothing draws there. Pixels across x 395–800 at y 72 and 78: Light is a uniform 255 (5 distinct values), Dark is a uniform ~74. Text shows only from y ≥ 140. So there is no scroll-under, not even a visible soft fade.
+- Dark band: x 900, y 53–83 is a uniform 58 against a window background of 50, unchanged. The capsule y 84–116 reads 82–90; y 116–123 reads ~57.
+- The hairline is gone. Testudo sets no scroll-edge or bar-background modifier.
+
+Questions to settle:
+1. Is a fully faded region the system's soft edge effect over a tall bar stack (72 pt of bars: Testudo's tab bar plus the AVK header), or is the content clipped or covered? Check whether the effect's height follows the combined safe-area inset, and whether the region under the bars is covered by an opaque pocket view, i.e. the edge-effect container that `ScrollPocketProbe` finds. Look at the pocket views' frames and backgrounds in a Testudo-shaped host with an outer bar.
+2. What is the 58 band in Dark under the tab header: a material or pocket background from the outer `.safeAreaBar`, or ours?
+3. The target look ("scroll under the bars", D113 answer 7, TestudoApp features/style.md): rows visible under the bars with a soft fade near the bar edge, like Messages.
+
+The offscreen render can't draw the edge effect, so acceptance needs either public or private state checks on the pocket views (via ScrollPocketProbe), or a person's on-screen check. Decide before implementing. #avk-8 #bug #testudo-request

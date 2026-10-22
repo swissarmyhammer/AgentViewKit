@@ -1,3 +1,5 @@
+import AVFoundation
+import AppKit
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -165,13 +167,19 @@ enum PreviewFixtures {
   /// The size of the sample log file, in bytes.
   static let logFileSize = 18_432
 
+  /// A Swift source file of the sample project. No file is at its URL, and
+  /// ``attachmentPreviewLoader`` holds no text for it, so each preview of it
+  /// shows a file that is missing.
+  static let sourceFileAttachment = attachment(path: "Sources/Parser.swift", type: .swiftSource, size: sourceFileSize)
+
+  /// The build log of the sample project. No file is at its URL.
+  /// ``attachmentPreviewLoader`` holds ``buildLogText`` as its text.
+  static let logFileAttachment = attachment(path: "build.log", type: .log, size: logFileSize)
+
   /// The files that a user attached to a prompt: a source file and a log.
-  /// The files are not on disk, so a preview that reads a file shows its
-  /// failure state.
-  static let attachments = [
-    attachment(path: "Sources/Parser.swift", type: .swiftSource, size: sourceFileSize),
-    attachment(path: "build.log", type: .log, size: logFileSize),
-  ]
+  /// The files are not on disk, so a preview that reads a file from disk
+  /// shows its failure state.
+  static let attachments = [sourceFileAttachment, logFileAttachment]
 
   /// Makes the attachment of one file of the sample project.
   ///
@@ -179,11 +187,15 @@ enum PreviewFixtures {
   ///   - path: The path of the file below ``projectDirectory``.
   ///   - type: The uniform type of the file.
   ///   - size: The size of the file, in bytes.
-  /// - Returns: The attachment. Its name is the last part of `path`.
-  private static func attachment(path: String, type: UTType, size: Int) -> Attachment {
-    let url = projectDirectory.appending(path: path)
+  ///   - url: The location of the bytes of the file, or `nil` for the path of
+  ///     the file in the sample project.
+  /// - Returns: The attachment. Its name is the last part of `path`, and its
+  ///   identifier is the URL of the path in the sample project.
+  private static func attachment(path: String, type: UTType, size: Int, url: URL? = nil) -> Attachment {
+    let projectURL = projectDirectory.appending(path: path)
     return Attachment(
-      id: AttachmentID(url.absoluteString), url: url, type: type, name: url.lastPathComponent, size: size)
+      id: AttachmentID(projectURL.absoluteString), url: url ?? projectURL, type: type,
+      name: projectURL.lastPathComponent, size: size)
   }
 
   /// Each agent state that the state banner shows: an agent that runs, an
@@ -362,8 +374,11 @@ enum PreviewFixtures {
     | AgentViewKitTests | test | 148 |
 
     Read [the manifest reference](https://docs.swift.org/package-manager/PackageDescription/PackageDescription.html) \
-    and [the Swift Package Manager guide](https://www.swift.org/documentation/package-manager/).
+    and [the Swift Package Manager guide](\(packageManagerGuideURL)).
     """
+
+  /// The web address of the guide of the Swift Package Manager.
+  static let packageManagerGuideURL = "https://www.swift.org/documentation/package-manager/"
 
   /// A quote that cites its source, with a link to it. A text block shows no
   /// citation pill, so this is how its Markdown cites a source.
@@ -405,10 +420,14 @@ enum PreviewFixtures {
   /// The size of the contents of ``binaryResource``, in bytes.
   static let binaryResourceSize = 24_576
 
+  /// The path of the release archive of the sample project, below
+  /// ``projectDirectory``.
+  static let archivePath = "Archives/Release.zip"
+
   /// A resource with binary contents: an archive of the sample project. Its
   /// bytes are zeros.
   static let binaryResource = embeddedResource(
-    path: "Archives/Release.zip", mimeType: "application/zip", member: "blob",
+    path: archivePath, mimeType: "application/zip", member: "blob",
     value: Data(count: binaryResourceSize).base64EncodedString())
 
   /// A resource with text contents whose URI is longer than the URIs of
@@ -497,10 +516,19 @@ enum PreviewFixtures {
   /// the cap row shows.
   static var cappedOutputRows: CommandOutputView.VisibleRows {
     let rowLimit = CommandOutputView.defaultRowLimit
-    let output = (1...(rowLimit + hiddenOutputRowCount))
+    return CommandOutputView.VisibleRows(
+      output: buildOutput(lineCount: rowLimit + hiddenOutputRowCount), limit: rowLimit)
+  }
+
+  /// Makes the output of a build: one line for each module that the build
+  /// compiles.
+  ///
+  /// - Parameter lineCount: The number of lines.
+  /// - Returns: The lines, joined by line feeds.
+  static func buildOutput(lineCount: Int) -> String {
+    (1...lineCount)
       .map { row in "Compiling module \(row) of the package" }
       .joined(separator: "\n")
-    return CommandOutputView.VisibleRows(output: output, limit: rowLimit)
   }
 
   /// The exit code of a command that failed.
@@ -515,6 +543,440 @@ enum PreviewFixtures {
   static let exitSummaries: [TerminalView.ExitSummary] = [
     .code(CommandOutputView.successExitCode), .code(failingExitCode), .signal(stopSignal),
   ]
+
+  // MARK: - Attachment previews
+
+  /// The pixel size of ``wideImageAttachment``.
+  static let wideImageSize = CGSize(width: 480, height: 120)
+
+  /// The pixel size of ``tallImageAttachment``.
+  static let tallImageSize = CGSize(width: 120, height: 360)
+
+  /// The pixel size of ``smallImageAttachment``: smaller than each side of
+  /// the other two images.
+  static let smallImageSize = CGSize(width: 12, height: 12)
+
+  /// The bytes of ``wideImageAttachment``.
+  private static let wideImageData = BitmapFile.data(size: wideImageSize)
+
+  /// The bytes of ``tallImageAttachment``.
+  private static let tallImageData = BitmapFile.data(size: tallImageSize)
+
+  /// The bytes of ``smallImageAttachment``.
+  private static let smallImageData = BitmapFile.data(size: smallImageSize)
+
+  /// An image that is wider than it is tall: a banner of the sample project.
+  static let wideImageAttachment = imageAttachment(path: "Images/banner.bmp", data: wideImageData)
+
+  /// An image that is taller than it is wide: a sidebar of the sample project.
+  static let tallImageAttachment = imageAttachment(path: "Images/sidebar.bmp", data: tallImageData)
+
+  /// A very small image: an icon of the sample project.
+  static let smallImageAttachment = imageAttachment(path: "Images/icon.bmp", data: smallImageData)
+
+  /// The MIME type of the images of the previews.
+  private static let bitmapMIMEType = "image/bmp"
+
+  /// Makes the attachment of an image whose bytes are in a `data:` URL, so
+  /// that the image preview reads no file.
+  ///
+  /// - Parameters:
+  ///   - path: The path of the image below ``projectDirectory``.
+  ///   - data: The bytes of the image, a BMP file.
+  /// - Returns: The attachment. A `data:` URL of base64 bytes always parses;
+  ///   were it not to, the URL is the path in the sample project, where no
+  ///   file is.
+  private static func imageAttachment(path: String, data: Data) -> Attachment {
+    let dataURL = URL(string: "data:\(bitmapMIMEType);base64,\(data.base64EncodedString())")
+    return attachment(path: path, type: .bmp, size: data.count, url: dataURL)
+  }
+
+  /// The number of lines of ``longLogText``.
+  static let longLogLineCount = 400
+
+  /// The text of ``longLogFileAttachment``: a build log that is longer than
+  /// a window.
+  static let longLogText = buildOutput(lineCount: longLogLineCount)
+
+  /// The full build log of the sample project. ``attachmentPreviewLoader``
+  /// holds ``longLogText`` as its text.
+  static let longLogFileAttachment = attachment(
+    path: "Logs/full-build.log", type: .log, size: Data(longLogText.utf8).count)
+
+  /// The release archive of the sample project: a kind of file that has no
+  /// preview, so it shows as a chip.
+  static let archiveAttachment = attachment(path: archivePath, type: .zip, size: binaryResourceSize)
+
+  /// The scheme of the URL of each in-memory audio and movie file. No system
+  /// loader reads it, so AVFoundation asks ``MemoryMediaLoader`` for the
+  /// bytes.
+  static let memoryScheme = "avk-preview"
+
+  /// The length of ``audioAttachment``, in seconds.
+  static let audioDurationSeconds = 30
+
+  /// The bytes of ``audioAttachment``: a WAVE file of silence.
+  private static let audioData = WaveFile.data(seconds: audioDurationSeconds)
+
+  /// A recording of the sample project. Its bytes are in memory.
+  static let audioAttachment = mediaAttachment(path: "Recordings/standup.wav", type: .wav, data: audioData)
+
+  /// The bytes of ``videoAttachment``: an MPEG-4 movie of 2 seconds, 128 × 72
+  /// pixels, H.264, whose gradient changes in each frame. `AVAssetWriter`
+  /// made it. A base64 text that does not decode gives no bytes, and the
+  /// player then shows its failure.
+  private static let videoData = Data(base64Encoded: videoBase64, options: .ignoreUnknownCharacters) ?? Data()
+
+  /// A screen recording of the sample project. Its bytes are in memory.
+  static let videoAttachment = mediaAttachment(path: "Recordings/demo.mp4", type: .mpeg4Movie, data: videoData)
+
+  /// Makes the attachment of an audio or a movie file whose bytes are in
+  /// memory.
+  ///
+  /// - Parameters:
+  ///   - path: The path of the file below ``projectDirectory``.
+  ///   - type: The uniform type of the file.
+  ///   - data: The bytes of the file.
+  /// - Returns: The attachment. Its URL has the scheme ``memoryScheme``. The
+  ///   URL of a scheme and a path always parses; were it not to, the URL is
+  ///   the path in the sample project, where no file is.
+  private static func mediaAttachment(path: String, type: UTType, data: Data) -> Attachment {
+    attachment(path: path, type: type, size: data.count, url: URL(string: "\(memoryScheme):///\(path)"))
+  }
+
+  /// The bytes of each in-memory file of the attachment previews, by the URL
+  /// of its attachment.
+  private static let memoryFiles: [URL: Data] = [
+    wideImageAttachment.url: wideImageData,
+    tallImageAttachment.url: tallImageData,
+    smallImageAttachment.url: smallImageData,
+    logFileAttachment.url: Data(buildLogText.utf8),
+    longLogFileAttachment.url: Data(longLogText.utf8),
+  ]
+
+  /// The queue that ``mediaLoader`` answers on. It is not the main queue, so
+  /// a busy main actor does not hold up a load.
+  private static let mediaLoaderQueue = DispatchQueue(label: "AgentViewKit.PreviewFixtures.mediaLoader")
+
+  /// The loader of the in-memory audio and movie files.
+  private static let mediaLoader = MemoryMediaLoader(
+    files: [
+      audioAttachment.url: (audioAttachment.type, audioData),
+      videoAttachment.url: (videoAttachment.type, videoData),
+    ])
+
+  /// The loader of the attachment previews. It reads no file on disk: it
+  /// gives the text and the thumbnail of each in-memory file, and plays the
+  /// in-memory audio and movie files. A file that it does not hold fails.
+  static let attachmentPreviewLoader = AttachmentPreviewLoader(
+    text: { url in memoryFiles[url].map { String(decoding: $0, as: UTF8.self) } },
+    thumbnail: { url, _ in memoryFiles[url].flatMap(NSImage.init(data:)).map { .loaded($0) } ?? .failed },
+    player: { url in memoryPlayer(of: url) })
+
+  /// A loader whose loads end only when their task is cancelled, so that a
+  /// preview shows its load state. Its players play nothing.
+  static let pendingAttachmentPreviewLoader = AttachmentPreviewLoader(
+    text: { _ in
+      await waitForCancellation()
+      return nil
+    },
+    thumbnail: { _, _ in
+      await waitForCancellation()
+      return .failed
+    },
+    player: { _ in AVPlayer() })
+
+  /// The time between two checks of a pending load for the cancellation of
+  /// its task.
+  static let pendingLoadCheckInterval = Duration.seconds(1)
+
+  /// Waits until the current task is cancelled.
+  private static func waitForCancellation() async {
+    while !Task.isCancelled {
+      try? await Task.sleep(for: pendingLoadCheckInterval)
+    }
+  }
+
+  /// Makes a player of an in-memory audio or movie file.
+  ///
+  /// - Parameter url: The URL of the attachment, with the scheme
+  ///   ``memoryScheme``.
+  /// - Returns: The player. ``MemoryMediaLoader`` gives AVFoundation the
+  ///   bytes of the file.
+  private static func memoryPlayer(of url: URL) -> AVPlayer {
+    let asset = AVURLAsset(url: url)
+    asset.resourceLoader.setDelegate(mediaLoader, queue: mediaLoaderQueue)
+    return AVPlayer(playerItem: AVPlayerItem(asset: asset))
+  }
+
+  /// The resource bundle of the kit: a local file that exists wherever the
+  /// kit runs, so each file action can run on it. The previews write no file
+  /// for it.
+  static let localFileAttachment = Attachment(url: Bundle.module.bundleURL)
+
+  /// A web page: the guide of the Swift Package Manager. A web URL that does
+  /// not parse is the sample project directory, where no file is.
+  static let webAttachment = Attachment(url: URL(string: packageManagerGuideURL) ?? projectDirectory)
+
+  /// An attachment service that records each run and opens nothing: no
+  /// application, no Finder window and no panel.
+  final class RecordingFileService: AttachmentFileService {
+    /// One recorded run: the verb and the attachment.
+    struct Call: Equatable {
+      /// The verb of the run.
+      let verb: AgentAttachmentVerb
+      /// The attachment of the run.
+      let attachment: Attachment
+    }
+
+    /// Each run, in call order.
+    private(set) var calls: [Call] = []
+
+    /// Records the run, and opens nothing.
+    ///
+    /// - Parameters:
+    ///   - verb: The verb to run.
+    ///   - attachment: The attachment of the scope.
+    /// - Returns: `true`, always.
+    func run(_ verb: AgentAttachmentVerb, on attachment: Attachment) -> Bool {
+      calls.append(Call(verb: verb, attachment: attachment))
+      return true
+    }
+  }
+
+  /// The attachment service of the previews, so that a press on a file action
+  /// in the canvas opens nothing.
+  static let attachmentFileService = RecordingFileService()
+
+  /// Gives AVFoundation the bytes of the in-memory audio and movie files.
+  ///
+  /// AVFoundation cannot read a URL of ``memoryScheme``, so it asks this
+  /// delegate for the type, the length and the bytes of the file.
+  nonisolated final class MemoryMediaLoader: NSObject, AVAssetResourceLoaderDelegate, Sendable {
+    /// The type and the bytes of each file, by its URL.
+    private let files: [URL: (type: UTType, data: Data)]
+
+    /// Makes a loader of in-memory files.
+    ///
+    /// - Parameter files: The type and the bytes of each file, by its URL.
+    init(files: [URL: (type: UTType, data: Data)]) {
+      self.files = files
+    }
+
+    /// Answers a request for the bytes of a file.
+    ///
+    /// - Parameters:
+    ///   - resourceLoader: The resource loader of the asset.
+    ///   - loadingRequest: The request.
+    /// - Returns: `true` when the loader holds the file and answered the
+    ///   request. `false` for a file that it does not hold.
+    func resourceLoader(
+      _ resourceLoader: AVAssetResourceLoader,
+      shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest
+    ) -> Bool {
+      guard let url = loadingRequest.request.url, let file = files[url] else { return false }
+      if let information = loadingRequest.contentInformationRequest {
+        information.contentType = file.type.identifier
+        information.contentLength = Int64(file.data.count)
+        information.isByteRangeAccessSupported = true
+      }
+      if let dataRequest = loadingRequest.dataRequest {
+        dataRequest.respond(with: file.data.subdata(in: Self.range(of: dataRequest, count: file.data.count)))
+      }
+      loadingRequest.finishLoading()
+      return true
+    }
+
+    /// The bytes that a data request asks for.
+    ///
+    /// - Parameters:
+    ///   - request: The data request.
+    ///   - count: The length of the file, in bytes.
+    /// - Returns: The range of the bytes, inside the file.
+    private static func range(of request: AVAssetResourceLoadingDataRequest, count: Int) -> Range<Int> {
+      let start = min(Int(request.requestedOffset), count)
+      let end = request.requestsAllDataToEndOfResource ? count : min(count, start + request.requestedLength)
+      return start..<end
+    }
+  }
+
+  /// Bytes in little-endian order: the header of an in-memory file.
+  private struct LittleEndianBytes {
+    /// The bytes so far.
+    private(set) var data = Data()
+
+    /// Appends the ASCII bytes of a tag, such as `RIFF`.
+    ///
+    /// - Parameter tag: The tag.
+    mutating func append(_ tag: String) {
+      data.append(contentsOf: tag.utf8)
+    }
+
+    /// Appends an integer, least significant byte first.
+    ///
+    /// - Parameter value: The integer.
+    mutating func append(_ value: some FixedWidthInteger) {
+      withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) }
+    }
+  }
+
+  /// A WAVE file of silence: 8-bit mono PCM.
+  private enum WaveFile {
+    /// The samples in each second.
+    static let sampleRate: UInt32 = 8_000
+
+    /// The format code of PCM.
+    static let pcmFormat: UInt16 = 1
+
+    /// The number of channels.
+    static let channelCount: UInt16 = 1
+
+    /// The bits of each sample.
+    static let bitsPerSample: UInt16 = 8
+
+    /// The size of the `fmt ` chunk, in bytes.
+    static let formatChunkSize: UInt32 = 16
+
+    /// The bytes of the RIFF chunk after its size field and before the
+    /// samples.
+    static let headerSizeAfterRIFFSize: UInt32 = 36
+
+    /// The value of a sample of silence. The samples of 8-bit PCM are
+    /// unsigned, so silence is the middle value.
+    static let silence: UInt8 = 0x80
+
+    /// Makes the bytes of a WAVE file of silence.
+    ///
+    /// - Parameter seconds: The length of the sound.
+    /// - Returns: The bytes of the file.
+    static func data(seconds: Int) -> Data {
+      let sampleCount = UInt32(seconds) * sampleRate
+      let blockAlign = channelCount * bitsPerSample / UInt16(UInt8.bitWidth)
+      var bytes = LittleEndianBytes()
+      bytes.append("RIFF")
+      bytes.append(headerSizeAfterRIFFSize + sampleCount * UInt32(blockAlign))
+      bytes.append("WAVEfmt ")
+      bytes.append(formatChunkSize)
+      bytes.append(pcmFormat)
+      bytes.append(channelCount)
+      bytes.append(sampleRate)
+      bytes.append(sampleRate * UInt32(blockAlign))
+      bytes.append(blockAlign)
+      bytes.append(bitsPerSample)
+      bytes.append("data")
+      bytes.append(sampleCount * UInt32(blockAlign))
+      return bytes.data + Data(repeating: silence, count: Int(sampleCount) * Int(blockAlign))
+    }
+  }
+
+  /// A BMP file: a 32-bit image with no compression, whose rows run from the
+  /// top. Its pixels make a gradient: blue grows from left to right, and
+  /// green from top to bottom.
+  private enum BitmapFile {
+    /// The size of the file header, in bytes.
+    static let fileHeaderSize: UInt32 = 14
+
+    /// The size of the info header, in bytes.
+    static let infoHeaderSize: UInt32 = 40
+
+    /// The number of color planes.
+    static let planeCount: UInt16 = 1
+
+    /// The bits of each pixel: blue, green, red and alpha.
+    static let bitsPerPixel: UInt16 = 32
+
+    /// Makes the bytes of a BMP file.
+    ///
+    /// - Parameter size: The pixel size of the image.
+    /// - Returns: The bytes of the file.
+    static func data(size: CGSize) -> Data {
+      let width = Int(size.width)
+      let height = Int(size.height)
+      let pixels = gradient(width: width, height: height)
+      let headerSize = fileHeaderSize + infoHeaderSize
+      var bytes = LittleEndianBytes()
+      bytes.append("BM")
+      bytes.append(headerSize + UInt32(pixels.count))
+      bytes.append(UInt32.zero)
+      bytes.append(headerSize)
+      bytes.append(infoHeaderSize)
+      bytes.append(Int32(width))
+      // A negative height puts the first row at the top.
+      bytes.append(-Int32(height))
+      bytes.append(planeCount)
+      bytes.append(bitsPerPixel)
+      // No compression, then the size of the pixels.
+      bytes.append(UInt32.zero)
+      bytes.append(UInt32(pixels.count))
+      // No resolution, so the decoder uses its default, then no palette.
+      bytes.append(Int32.zero)
+      bytes.append(Int32.zero)
+      bytes.append(UInt32.zero)
+      bytes.append(UInt32.zero)
+      return bytes.data + pixels
+    }
+
+    /// Makes the pixels of the gradient, row by row from the top.
+    ///
+    /// - Parameters:
+    ///   - width: The number of pixels in a row.
+    ///   - height: The number of rows.
+    /// - Returns: The blue, green, red and alpha bytes of each pixel.
+    static func gradient(width: Int, height: Int) -> Data {
+      Data(
+        (0..<height).flatMap { row in
+          (0..<width).flatMap { column in
+            [level(column, of: width), level(row, of: height), UInt8.zero, UInt8.max]
+          }
+        })
+    }
+
+    /// The level of a color at one place of a gradient.
+    ///
+    /// - Parameters:
+    ///   - index: The place, from zero.
+    ///   - count: The number of places.
+    /// - Returns: Zero at the first place, and the largest level at the last.
+    static func level(_ index: Int, of count: Int) -> UInt8 {
+      UInt8(Int(UInt8.max) * index / max(count - 1, 1))
+    }
+  }
+
+  /// The base64 text of ``videoData``.
+  private static let videoBase64 = """
+    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
+    dGNvAAAAAAAAAAIAAAAsAAACww==
+    """
 
   /// Makes the context of one field of a form whose answers are in one
   /// dictionary.

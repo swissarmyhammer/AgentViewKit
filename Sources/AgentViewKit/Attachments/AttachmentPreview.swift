@@ -48,6 +48,36 @@ struct AttachmentPreview: View {
   }
 }
 
+// MARK: - Loader
+
+/// Reads the files that the parts of an ``AttachmentPreview`` show.
+///
+/// The default loader, ``files``, reads each file at its URL. A `#Preview`
+/// gives a loader that holds its files in memory, so that the canvas reads no
+/// file on disk.
+struct AttachmentPreviewLoader {
+  /// Reads the text of a text file. The result is `nil` when the file cannot
+  /// be read.
+  let text: @MainActor (URL) async -> String?
+
+  /// Makes the thumbnail of a document at the scale of a display.
+  let thumbnail: @MainActor (URL, CGFloat) async -> PreviewLoadState<NSImage>
+
+  /// Makes the player of an audio or a movie file.
+  let player: @MainActor (URL) -> AVPlayer
+
+  /// The loader that reads each file at its URL.
+  static let files = AttachmentPreviewLoader(
+    text: AttachmentTextLoader.text(of:), thumbnail: ThumbnailPreview.thumbnail(of:scale:),
+    player: AVPlayer.init(url:))
+}
+
+extension EnvironmentValues {
+  /// The loader that the parts of an ``AttachmentPreview`` read their files
+  /// through.
+  @Entry var attachmentPreviewLoader = AttachmentPreviewLoader.files
+}
+
 // MARK: - Load state
 
 /// The state of a value that a preview loads from its file.
@@ -130,6 +160,7 @@ private struct ThumbnailPreview: View {
 
   @State private var state: PreviewLoadState<NSImage> = .loading
   @Environment(\.displayScale) private var displayScale
+  @Environment(\.attachmentPreviewLoader) private var loader
 
   var body: some View {
     LoadStateView(attachment: attachment, state: state) { image in
@@ -140,18 +171,19 @@ private struct ThumbnailPreview: View {
         .accessibilityLabel(attachment.name)
     }
     .task(id: attachment.url) {
-      state = await Self.thumbnail(of: attachment.url, scale: displayScale)
+      state = await loader.thumbnail(attachment.url, displayScale)
     }
   }
 
-  /// Makes the thumbnail of a file.
+  /// Makes the QuickLook thumbnail of a file. ``AttachmentPreviewLoader/files``
+  /// uses it.
   ///
   /// - Parameters:
   ///   - url: The location of the file.
   ///   - scale: The scale of the display.
   /// - Returns: The thumbnail, or ``PreviewLoadState/failed`` when QuickLook
   ///   cannot make one.
-  private static func thumbnail(of url: URL, scale: CGFloat) async -> PreviewLoadState<NSImage> {
+  static func thumbnail(of url: URL, scale: CGFloat) async -> PreviewLoadState<NSImage> {
     let request = QLThumbnailGenerator.Request(
       fileAt: url, size: PreviewLayout.thumbnailSize, scale: scale,
       representationTypes: .thumbnail)
@@ -171,13 +203,14 @@ private struct TextFilePreview: View {
   let attachment: Attachment
 
   @State private var state: PreviewLoadState<String> = .loading
+  @Environment(\.attachmentPreviewLoader) private var loader
 
   var body: some View {
     LoadStateView(attachment: attachment, state: state) { text in
       AttachmentTextContent(text: text, type: attachment.type, filename: attachment.name)
     }
     .task(id: attachment.url) {
-      state = await AttachmentTextLoader.text(of: attachment.url).map { .loaded($0) } ?? .failed
+      state = await loader.text(attachment.url).map { .loaded($0) } ?? .failed
     }
   }
 }
@@ -257,15 +290,87 @@ struct MediaPlayerPreview: View {
   let height: CGFloat
 
   @State private var player: AVPlayer?
+  @Environment(\.attachmentPreviewLoader) private var loader
 
   var body: some View {
     VideoPlayer(player: player)
       .frame(height: height)
       .task(id: url) {
-        player = AVPlayer(url: url)
+        player = loader.player(url)
       }
       .onDisappear {
         player?.pause()
       }
   }
+}
+
+// The previews read no file on disk: the image is in a `data:` URL, and the
+// loader of the previews holds each other file in memory.
+
+#Preview("An image") {
+  AttachmentPreview(attachment: PreviewFixtures.wideImageAttachment, renderer: .image)
+    .padding()
+}
+
+#Preview("A text file") {
+  AttachmentPreview(attachment: PreviewFixtures.logFileAttachment, renderer: .text)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("A long text file") {
+  ScrollView {
+    AttachmentPreview(attachment: PreviewFixtures.longLogFileAttachment, renderer: .text)
+      .padding()
+  }
+  .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+}
+
+#Preview("An audio file") {
+  AttachmentPreview(attachment: PreviewFixtures.audioAttachment, renderer: .audio)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("A video file") {
+  AttachmentPreview(attachment: PreviewFixtures.videoAttachment, renderer: .movie)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("A kind of file with no preview") {
+  AttachmentPreview(attachment: PreviewFixtures.archiveAttachment, renderer: .chip)
+    .padding()
+}
+
+#Preview("A file that is missing") {
+  // The loader holds no text for the source file, so the load fails and the
+  // chip shows.
+  AttachmentPreview(attachment: PreviewFixtures.sourceFileAttachment, renderer: .code)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("A file that is still loading") {
+  AttachmentPreview(attachment: PreviewFixtures.logFileAttachment, renderer: .text)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.pendingAttachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("Thumbnail of a wide image") {
+  ThumbnailPreview(attachment: PreviewFixtures.wideImageAttachment)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("Thumbnail of a tall image") {
+  ThumbnailPreview(attachment: PreviewFixtures.tallImageAttachment)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
+}
+
+#Preview("Thumbnail of a very small image") {
+  ThumbnailPreview(attachment: PreviewFixtures.smallImageAttachment)
+    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
+    .padding()
 }

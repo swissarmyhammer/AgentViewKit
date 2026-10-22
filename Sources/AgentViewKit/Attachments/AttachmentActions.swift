@@ -104,3 +104,28 @@ nonisolated struct AttachmentDocument: ExportOnlyDocument {
     try FileWrapper(url: url, options: .immediate)
   }
 }
+
+// Each preview gives the recording service of the previews to the scope, so
+// that a press in the canvas opens no application, no Finder window and no
+// panel.
+
+#Preview("A local file: each action is available") {
+  AttachmentActions(attachment: PreviewFixtures.localFileAttachment, identifierPrefix: "preview-local")
+    .agentAttachmentScope(PreviewFixtures.localFileAttachment)
+    .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
+    .padding()
+}
+
+#Preview("A web page: only Open and Share are available") {
+  AttachmentActions(attachment: PreviewFixtures.webAttachment, identifierPrefix: "preview-web")
+    .agentAttachmentScope(PreviewFixtures.webAttachment)
+    .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
+    .padding()
+}
+
+#Preview("A missing file: no action is available") {
+  AttachmentActions(attachment: PreviewFixtures.sourceFileAttachment, identifierPrefix: "preview-missing")
+    .agentAttachmentScope(PreviewFixtures.sourceFileAttachment)
+    .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
+    .padding()
+}

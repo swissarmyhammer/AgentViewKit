@@ -21,8 +21,24 @@ comments:
     - evidence: `swift test` — 1620 tests in 201 suites passed, 0 failed, 0 skipped. The 3 "known issues" are the intentional withKnownIssue negative-path tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). The only warning is the known SwiftPM mlx-swift "missing creator" notice. After touching the changed Sources and the test file, `swift build --build-tests` recompiled them with zero project-code warnings.
     - next: review/commit
   timestamp: 2026-10-22T20:08:25.913979+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jktgszrzxbkrt9bp6e46n3
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ad959a5) — 0 findings, 0 confirmed, 0 refuted; 7 files attempted, 0 failed; 4 .kanban/ files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-22T20:11:16.159659+00:00
+- actor: claude-code
+  id: 01m5jktvebxct7ct1d40p0bkny
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 16 previews in TextBlockView, MarkdownProse, ResourceBlockView, DiffRendererSlot+EditorKit and OutputChrome; PreviewFixtures + 13 PreviewFixturesTests (red first)
+    - test: green — swift test 1620 passed, 0 failed, 0 skipped; changed files recompiled with 0 project warnings
+    - commit: ad959a5 (local, not pushed)
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T20:11:27.051216+00:00
+position_column: done
+position_ordinal: ffffb680
 title: 'AVK-14e Add #Preview blocks for the content block views and the command output rows'
 ---
 ## Goal
