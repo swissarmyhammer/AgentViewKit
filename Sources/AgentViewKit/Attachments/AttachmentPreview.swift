@@ -304,73 +304,99 @@ struct MediaPlayerPreview: View {
   }
 }
 
-// The previews read no file on disk: the image is in a `data:` URL, and the
-// loader of the previews holds each other file in memory.
+// MARK: - Previews
+
+/// One part of an attachment preview in the canvas, with padding.
+///
+/// The part reads its files through a loader of the previews, so that it
+/// reads no file on disk: the image is in a `data:` URL, and the loader holds
+/// each other file in memory.
+private struct AttachmentPreviewSample<Content: View>: View {
+  /// The loader that the part reads its files through.
+  let loader: AttachmentPreviewLoader
+
+  /// The part.
+  let content: Content
+
+  var body: some View {
+    content
+      .environment(\.attachmentPreviewLoader, loader)
+      .padding()
+  }
+}
+
+extension AttachmentPreviewSample where Content == AttachmentPreview {
+  /// Makes the sample of the preview of a file.
+  ///
+  /// - Parameters:
+  ///   - attachment: The file.
+  ///   - renderer: The renderer of the preview.
+  ///   - loader: The loader that the preview reads the file through. The
+  ///     default holds each file of the previews in memory.
+  init(
+    attachment: Attachment, renderer: AttachmentView.Renderer,
+    loader: AttachmentPreviewLoader = PreviewFixtures.attachmentPreviewLoader
+  ) {
+    self.init(loader: loader, content: AttachmentPreview(attachment: attachment, renderer: renderer))
+  }
+}
+
+extension AttachmentPreviewSample where Content == ThumbnailPreview {
+  /// Makes the sample of the thumbnail of a file.
+  ///
+  /// - Parameter attachment: The file. The loader of the previews holds it
+  ///   in memory.
+  init(thumbnailOf attachment: Attachment) {
+    self.init(loader: PreviewFixtures.attachmentPreviewLoader, content: ThumbnailPreview(attachment: attachment))
+  }
+}
 
 #Preview("An image") {
-  AttachmentPreview(attachment: PreviewFixtures.wideImageAttachment, renderer: .image)
-    .padding()
+  AttachmentPreviewSample(attachment: PreviewFixtures.wideImageAttachment, renderer: .image)
 }
 
 #Preview("A text file") {
-  AttachmentPreview(attachment: PreviewFixtures.logFileAttachment, renderer: .text)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(attachment: PreviewFixtures.logFileAttachment, renderer: .text)
 }
 
 #Preview("A long text file") {
   ScrollView {
-    AttachmentPreview(attachment: PreviewFixtures.longLogFileAttachment, renderer: .text)
-      .padding()
+    AttachmentPreviewSample(attachment: PreviewFixtures.longLogFileAttachment, renderer: .text)
   }
-  .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
 }
 
 #Preview("An audio file") {
-  AttachmentPreview(attachment: PreviewFixtures.audioAttachment, renderer: .audio)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(attachment: PreviewFixtures.audioAttachment, renderer: .audio)
 }
 
 #Preview("A video file") {
-  AttachmentPreview(attachment: PreviewFixtures.videoAttachment, renderer: .movie)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(attachment: PreviewFixtures.videoAttachment, renderer: .movie)
 }
 
 #Preview("A kind of file with no preview") {
-  AttachmentPreview(attachment: PreviewFixtures.archiveAttachment, renderer: .chip)
-    .padding()
+  AttachmentPreviewSample(attachment: PreviewFixtures.archiveAttachment, renderer: .chip)
 }
 
 #Preview("A file that is missing") {
   // The loader holds no text for the source file, so the load fails and the
   // chip shows.
-  AttachmentPreview(attachment: PreviewFixtures.sourceFileAttachment, renderer: .code)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(attachment: PreviewFixtures.sourceFileAttachment, renderer: .code)
 }
 
 #Preview("A file that is still loading") {
-  AttachmentPreview(attachment: PreviewFixtures.logFileAttachment, renderer: .text)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.pendingAttachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(
+    attachment: PreviewFixtures.logFileAttachment, renderer: .text,
+    loader: PreviewFixtures.pendingAttachmentPreviewLoader)
 }
 
 #Preview("Thumbnail of a wide image") {
-  ThumbnailPreview(attachment: PreviewFixtures.wideImageAttachment)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(thumbnailOf: PreviewFixtures.wideImageAttachment)
 }
 
 #Preview("Thumbnail of a tall image") {
-  ThumbnailPreview(attachment: PreviewFixtures.tallImageAttachment)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(thumbnailOf: PreviewFixtures.tallImageAttachment)
 }
 
 #Preview("Thumbnail of a very small image") {
-  ThumbnailPreview(attachment: PreviewFixtures.smallImageAttachment)
-    .environment(\.attachmentPreviewLoader, PreviewFixtures.attachmentPreviewLoader)
-    .padding()
+  AttachmentPreviewSample(thumbnailOf: PreviewFixtures.smallImageAttachment)
 }

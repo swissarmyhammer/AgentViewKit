@@ -1,3 +1,4 @@
+import AgentViewKit
 import AppKit
 import CoreGraphics
 import SwiftUI
@@ -389,15 +390,14 @@ public struct RenderedPixels: Equatable {
   ///
   /// - Parameter region: A region in points from the top leading corner of
   ///   the view.
-  /// - Returns: The offsets, from the top row to the bottom row.
+  /// - Returns: The offsets, in the order of ``PixelGrid``: from the top row
+  ///   to the bottom row.
   private func offsets(within region: Path) -> [Int] {
-    (0..<height).flatMap { row in
-      (0..<width).compactMap { column -> Int? in
-        let center = CGPoint(
-          x: (CGFloat(column) + Self.pixelCenter) / scale,
-          y: (CGFloat(row) + Self.pixelCenter) / scale)
-        return region.contains(center) ? offset(of: center) : nil
-      }
+    PixelGrid.positions(width: width, height: height).compactMap { position -> Int? in
+      let center = CGPoint(
+        x: (CGFloat(position.column) + Self.pixelCenter) / scale,
+        y: (CGFloat(position.row) + Self.pixelCenter) / scale)
+      return region.contains(center) ? offset(of: center) : nil
     }
   }
 

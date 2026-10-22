@@ -411,7 +411,7 @@ import Testing
   }
 
   @Test func theRecordingFileServiceRecordsEachRunAndReportsThatItRan() {
-    let service = PreviewFixtures.RecordingFileService()
+    let service = RecordingAttachmentFileService()
     let attachment = PreviewFixtures.localFileAttachment
 
     #expect(service.run(.revealAttachment, on: attachment))

@@ -546,15 +546,28 @@ enum PreviewFixtures {
 
   // MARK: - Attachment previews
 
+  /// The long side of ``wideImageAttachment``, in pixels: its width.
+  static let wideImageLongSide = 480
+
+  /// The short side of ``wideImageAttachment`` and of
+  /// ``tallImageAttachment``, in pixels.
+  static let imageShortSide = 120
+
+  /// The long side of ``tallImageAttachment``, in pixels: its height.
+  static let tallImageLongSide = 360
+
+  /// The side of the square ``smallImageAttachment``, in pixels: smaller than
+  /// each side of the other two images.
+  static let smallImageSide = 12
+
   /// The pixel size of ``wideImageAttachment``.
-  static let wideImageSize = CGSize(width: 480, height: 120)
+  static let wideImageSize = CGSize(width: wideImageLongSide, height: imageShortSide)
 
   /// The pixel size of ``tallImageAttachment``.
-  static let tallImageSize = CGSize(width: 120, height: 360)
+  static let tallImageSize = CGSize(width: imageShortSide, height: tallImageLongSide)
 
-  /// The pixel size of ``smallImageAttachment``: smaller than each side of
-  /// the other two images.
-  static let smallImageSize = CGSize(width: 12, height: 12)
+  /// The pixel size of ``smallImageAttachment``.
+  static let smallImageSize = CGSize(width: smallImageSide, height: smallImageSide)
 
   /// The bytes of ``wideImageAttachment``.
   private static let wideImageData = BitmapFile.data(size: wideImageSize)
@@ -718,35 +731,9 @@ enum PreviewFixtures {
   /// not parse is the sample project directory, where no file is.
   static let webAttachment = Attachment(url: URL(string: packageManagerGuideURL) ?? projectDirectory)
 
-  /// An attachment service that records each run and opens nothing: no
-  /// application, no Finder window and no panel.
-  final class RecordingFileService: AttachmentFileService {
-    /// One recorded run: the verb and the attachment.
-    struct Call: Equatable {
-      /// The verb of the run.
-      let verb: AgentAttachmentVerb
-      /// The attachment of the run.
-      let attachment: Attachment
-    }
-
-    /// Each run, in call order.
-    private(set) var calls: [Call] = []
-
-    /// Records the run, and opens nothing.
-    ///
-    /// - Parameters:
-    ///   - verb: The verb to run.
-    ///   - attachment: The attachment of the scope.
-    /// - Returns: `true`, always.
-    func run(_ verb: AgentAttachmentVerb, on attachment: Attachment) -> Bool {
-      calls.append(Call(verb: verb, attachment: attachment))
-      return true
-    }
-  }
-
   /// The attachment service of the previews, so that a press on a file action
   /// in the canvas opens nothing.
-  static let attachmentFileService = RecordingFileService()
+  static let attachmentFileService = RecordingAttachmentFileService()
 
   /// Gives AVFoundation the bytes of the in-memory audio and movie files.
   ///
@@ -916,7 +903,7 @@ enum PreviewFixtures {
       return bytes.data + pixels
     }
 
-    /// Makes the pixels of the gradient, row by row from the top.
+    /// Makes the pixels of the gradient, in the order of ``PixelGrid``.
     ///
     /// - Parameters:
     ///   - width: The number of pixels in a row.
@@ -924,10 +911,8 @@ enum PreviewFixtures {
     /// - Returns: The blue, green, red and alpha bytes of each pixel.
     static func gradient(width: Int, height: Int) -> Data {
       Data(
-        (0..<height).flatMap { row in
-          (0..<width).flatMap { column in
-            [level(column, of: width), level(row, of: height), UInt8.zero, UInt8.max]
-          }
+        PixelGrid.positions(width: width, height: height).flatMap { position in
+          [level(position.column, of: width), level(position.row, of: height), UInt8.zero, UInt8.max]
         })
     }
 

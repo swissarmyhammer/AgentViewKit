@@ -105,27 +105,35 @@ nonisolated struct AttachmentDocument: ExportOnlyDocument {
   }
 }
 
-// Each preview gives the recording service of the previews to the scope, so
-// that a press in the canvas opens no application, no Finder window and no
-// panel.
+/// The actions of one file of the previews, in the attachment scope of the
+/// file.
+///
+/// The scope runs each press through the recording service of the previews,
+/// so that a press in the canvas opens no application, no Finder window and
+/// no panel.
+private struct AttachmentActionsPreview: View {
+  /// The file of the actions.
+  let attachment: Attachment
+
+  /// The start of the accessibility identifier of each action.
+  let identifierPrefix: String
+
+  var body: some View {
+    AttachmentActions(attachment: attachment, identifierPrefix: identifierPrefix)
+      .agentAttachmentScope(attachment)
+      .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
+      .padding()
+  }
+}
 
 #Preview("A local file: each action is available") {
-  AttachmentActions(attachment: PreviewFixtures.localFileAttachment, identifierPrefix: "preview-local")
-    .agentAttachmentScope(PreviewFixtures.localFileAttachment)
-    .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
-    .padding()
+  AttachmentActionsPreview(attachment: PreviewFixtures.localFileAttachment, identifierPrefix: "preview-local")
 }
 
 #Preview("A web page: only Open and Share are available") {
-  AttachmentActions(attachment: PreviewFixtures.webAttachment, identifierPrefix: "preview-web")
-    .agentAttachmentScope(PreviewFixtures.webAttachment)
-    .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
-    .padding()
+  AttachmentActionsPreview(attachment: PreviewFixtures.webAttachment, identifierPrefix: "preview-web")
 }
 
 #Preview("A missing file: no action is available") {
-  AttachmentActions(attachment: PreviewFixtures.sourceFileAttachment, identifierPrefix: "preview-missing")
-    .agentAttachmentScope(PreviewFixtures.sourceFileAttachment)
-    .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
-    .padding()
+  AttachmentActionsPreview(attachment: PreviewFixtures.sourceFileAttachment, identifierPrefix: "preview-missing")
 }

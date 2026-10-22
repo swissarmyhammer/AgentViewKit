@@ -39,6 +39,50 @@ comments:
     - evidence: `swift test` run twice back to back, both exit 0. Run 1: 1636 tests in 202 suites passed (99.716 s), 3 known issues. Run 2: 1636 tests in 202 suites passed (97.270 s), 3 known issues. 0 failures, 0 timeouts, 0 skipped. The only compiler/SwiftPM warning is the known mlx-swift "missing creator" notice; no warnings from project code. The 3 known issues are the intentional expected-failure tests (SnapshotStoreTests theCheckOfAViewThatChangedRecordsAnIssue, HostedLayoutExpectationsTests aWrappedTextWithAFixedVerticalSizeFails, ThemeHeightExpectationsTests aViewThatIgnoresTheThemeFails); they were not changed by this task.
     - next: review
   timestamp: 2026-10-22T20:42:58.479197+00:00
+- actor: claude-code
+  id: 01m5jp1rs464p39zdxfvz75dns
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (219f8fa) — 10 findings — Sources/AgentViewKit/Attachments/AttachmentActions.swift:119, Sources/AgentViewKit/Attachments/AttachmentPreview.swift:335, Sources/AgentViewKit/Attachments/AttachmentPreview.swift:354, Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:550, :553, :557, :723, :727, :729, :925
+    - next: implement the 10 open items in the Review Findings (2026-10-22 15:43) section; task stays in review
+  timestamp: 2026-10-22T20:50:10.852206+00:00
+- actor: claude-code
+  id: 01m5jp2pcfr4295j8rqp45x2y8
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — AttachmentPreview.swift, AttachmentActions.swift, PreviewFixtures.swift, PreviewFixturesTests.swift, AttachmentPreviewLoaderHostedTests.swift (new); internal AttachmentPreviewLoader environment value
+    - test: green — swift test run twice, 1636 passed each, 0 failed, 0 timeouts, 0 skipped
+    - commit: 219f8fa (local, not pushed)
+    - review: findings — AttachmentActions.swift:119; AttachmentPreview.swift:335, :354; PreviewFixtures.swift:550, :553, :557, :723, :727, :729, :925
+  timestamp: 2026-10-22T20:50:41.167007+00:00
+- actor: claude-code
+  id: 01m5jp82bg4b5b08me4qx0s5bx
+  text: |-
+    Picked up the 10 findings of Review Findings (2026-10-22 15:43). Research:
+    - Magic numbers: `swiftlint lint` with `no_magic_numbers` (allowed 0, 1, -1, 100) over PreviewFixtures.swift reports only the three CGSize literals (wide, tall, small image sizes); a literal inside a call argument counts even in a `static let`. Fix: name each width and height.
+    - Assign-only `verb`/`attachment`: the dead-code-swift rule runs periphery with the test targets indexed (`--build-tests`, `--report-exclude` the tests), so a read in a test counts. The tests already read `calls.map(\.verb)` and `$0.attachment.url` (AttachmentCommandsHostedTests) — but on their own copy, RecordingAttachmentFileService. Moving the one implementation into AgentViewKit (internal, `@testable` reach) and deleting the test copy gives the Sources fields real readers, which answers both :723 and :727/:729.
+    - Reuse at :925: AgentViewKitTestSupport imports AgentViewKit without `@testable`, so it sees only public API, and the card forbids new public API. Swift `package` access (SwiftPM sets the package name; both targets are in this package) reaches TestSupport and no host of the kit, so no conflict: a `package` row-major pixel-position generator in AgentViewKit, used by BitmapFile.gradient and RenderedPixels.offsets(within:). No target in Sources uses `package` access yet; ARCHITECTURE.md says nothing on access levels, so it needs no update.
+    - #Preview names must stay literals, so each #Preview becomes one call to a file-private helper that holds the shared body.
+  timestamp: 2026-10-22T20:53:37.264055+00:00
+- actor: claude-code
+  id: 01m5jpsgv95dnaxmw8h0d79hzz
+  text: |-
+    ### implement — changed
+    - evidence: 10 of 10 findings of Review Findings (2026-10-22 15:43) fixed and checked. Files: Sources/AgentViewKit/Attachments/AttachmentActions.swift (three `#Preview` blocks call one private `AttachmentActionsPreview(attachment:identifierPrefix:)`), Sources/AgentViewKit/Attachments/AttachmentPreview.swift (all eleven `#Preview` blocks call one private `AttachmentPreviewSample` — `init(attachment:renderer:loader:)` and `init(thumbnailOf:)`), Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift (named image sides `wideImageLongSide`, `imageShortSide`, `tallImageLongSide`, `smallImageSide`; nested RecordingFileService removed; BitmapFile.gradient walks `PixelGrid`), Sources/AgentViewKit/Infrastructure/RecordingAttachmentFileService.swift (new: the one recording service, internal), Sources/AgentViewKit/Infrastructure/PixelGrid.swift (new: `package` row-major pixel positions), Sources/AgentViewKitTestSupport/RenderedPixels.swift (offsets(within:) walks `PixelGrid`), Tests/AgentViewKitTests/Helpers/RecordingAttachmentFileService.swift (deleted), Tests/AgentViewKitTests/Infrastructure/PreviewFixturesTests.swift, Tests/AgentViewKitTests/Infrastructure/PixelGridTests.swift (new, 3 tests).
+    - RED: the build of the tests failed (PixelGrid and RecordingAttachmentFileService missing). GREEN: 124 affected tests passed. `swiftlint` no_magic_numbers over the changed Sources files reports nothing. `periphery scan` (test targets indexed, tests excluded from the report, --retain-public/--retain-swift-ui-previews) reports nothing in the changed files; the tests read `Call.verb` and `Call.attachment`.
+    - `swift test` run twice: each run 1639 tests in 203 suites passed with 3 known issues (the existing expected-failure tests), 219 tests in 29 suites passed, 1 test passed; 0 failures; the only warning is the existing mlx-swift "missing creator" SwiftPM notice.
+    - Tags: the stray `Preview` tag came from the bare #-token in the copied finding text. The three finding texts now put that token in backticks (wording unchanged), and the task tags are `avk-14` only. The board tag object `Preview` (01M5JP1PPXARGVVY0SR7QZE70E) still exists, unused; not deleted.
+    - ^b9zrgw0: comment added pointing at this fix; its column left to its own loop.
+    - No public API added: `PixelGrid` is `package`, which no host of the kit sees. No commit.
+    - next: /review
+  timestamp: 2026-10-22T21:03:09.161053+00:00
+- actor: claude-code
+  id: 01m5jq40cpegzts3rdz7cy88ay
+  text: |-
+    ### test — green
+    - evidence: `swift build` of the whole package: Build complete, exit 0 (`package` access builds). `swift test` run twice back to back, both exit 0. Run 1: 1639 tests in 203 suites passed (91.974 s), 3 known issues. Run 2: 1639 tests in 203 suites passed (89.756 s), 3 known issues. 0 failures, 0 timeouts, 0 skipped. The only warning is the known SwiftPM mlx-swift "missing creator for mutated node" notice; no warnings from project code. The 3 known issues are the existing intentional expected-failure tests (SnapshotStoreTests theCheckOfAViewThatChangedRecordsAnIssue, HostedLayoutExpectationsTests aWrappedTextWithAFixedVerticalSizeFails, ThemeHeightExpectationsTests aViewThatIgnoresTheThemeFails). No code changed by this step; no commit.
+    - next: review
+  timestamp: 2026-10-22T21:08:52.758788+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'AVK-14c Add #Preview blocks for AttachmentPreview, its parts, and AttachmentActions'
@@ -62,3 +106,21 @@ Add `#Preview` blocks in the same file as each view. Use `Sources/AgentViewKit/I
 
 - No new public API. No backward compatibility code (ARCHITECTURE.md).
 - The package builds with 0 warnings. The full suite passes with the window monitor. #avk-14
+
+## Review Findings (2026-10-22 15:43)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Sources/AgentViewKit/Attachments/AttachmentActions.swift:119` `duplication/duplication` — Near-verbatim duplicate of the `#Preview` block at line 112. Differs only in attachment fixture and identifierPrefix string. These should be extracted into a parameterized helper or generated from a data structure to avoid drift. Extract a helper function taking (title, attachment, identifierPrefix) as parameters, or generate all three previews from an array of tuples.
+- [x] `Sources/AgentViewKit/Attachments/AttachmentPreview.swift:335` `duplication/duplication` — Near-verbatim duplicate of the `#Preview` block at line 329. Differs only in title, attachment fixture, and renderer parameter. Extract into a parameterized helper. Extract a helper function taking (title, attachment, renderer) as parameters.
+- [x] `Sources/AgentViewKit/Attachments/AttachmentPreview.swift:354` `duplication/duplication` — Near-verbatim duplicate of the `#Preview` block at line 315. Both preview the same attachment (logFileAttachment) with the same renderer (.text) and identical structure, differing only in title and the loader environment value. Extract a parameterized helper. Extract a helper function taking (title, loader) as parameters to avoid maintaining two nearly identical previews that show the same attachment in different loading states.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:550` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:553` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:557` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:723` `reuse/reuse` — RecordingFileService reimplements the identical logic of an existing test helper class, duplicating call-recording and return behavior that should be reused rather than recreated. Import and reuse RecordingAttachmentFileService from the test helpers, or if module boundaries prevent that, extract the common implementation to a shared location both can depend on rather than duplicating the logic.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:727` `code-hygiene/dead-code-swift` — var.instance `verb` is assignOnlyProperty.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:729` `code-hygiene/dead-code-swift` — var.instance `attachment` is assignOnlyProperty.
+- [x] `Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift:925` `reuse/reuse` — BitmapFile::gradient reimplements pixel-value generation logic that is 0.89-identical to existing RenderedPixels::offsets in test support, generating row-by-row gradient pixel data via the same nested iteration and level-mapping pattern. Either reuse RenderedPixels::offsets for the pixel generation, or generalize it to a shared utility that both test rendering and bitmap file generation can depend on, rather than duplicating the row-by-row iteration and level-calculation logic.
