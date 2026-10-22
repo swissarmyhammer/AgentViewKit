@@ -82,3 +82,19 @@ struct OutputExitLabel: View {
       .accessibilityIdentifier(identifier)
   }
 }
+
+#Preview("Output cut to its last rows") {
+  OutputCapRow(
+    rows: PreviewFixtures.cappedOutputRows, capIdentifier: CommandOutputView.capIdentifier,
+    showAllIdentifier: CommandOutputView.showAllIdentifier, showAll: {})
+}
+
+#Preview("Exit code 0, a failing exit code, and a stop by a signal") {
+  VStack(alignment: .leading) {
+    ForEach(PreviewFixtures.exitSummaries, id: \.label) { summary in
+      OutputExitLabel(
+        text: summary.label, symbolName: summary.symbolName, outcome: summary.outcome,
+        identifier: CommandOutputView.footerIdentifier)
+    }
+  }
+}

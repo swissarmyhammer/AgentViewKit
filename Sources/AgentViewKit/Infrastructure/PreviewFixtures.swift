@@ -91,13 +91,17 @@ enum PreviewFixtures {
   /// A response of one paragraph that cites two sources.
   static let citedResponse = "\(citedFirstSentence) \(citedSecondSentence)"
 
+  /// The URL of the first source of ``citations``, which ``citedQuote`` also
+  /// cites.
+  static let concurrencySourceURL = URL(filePath: "/Users/preview/docs/concurrency.html")
+
   /// The sources of ``citedResponse``, with a marker at the end of each
   /// sentence.
   static let citations = CitationPayload(
     sources: [
       CitationSource(
         id: "concurrency", title: "Swift Concurrency",
-        url: URL(filePath: "/Users/preview/docs/concurrency.html"),
+        url: concurrencySourceURL,
         snippet: "The compiler checks that the code has no data race."),
       CitationSource(
         id: "migration", title: "Migrate to Swift 6",
@@ -334,6 +338,183 @@ enum PreviewFixtures {
         ]
       })
   }
+
+  /// A Markdown text with each kind of formatting that a response shows:
+  /// headings, a list, a numbered list, a table, inline code, and links.
+  static let formattedMarkdown = """
+    # Parse the package manifest
+
+    ## What changed
+
+    The parser now reads `Package.swift` with `SwiftParser`, and it keeps the targets in the order of the file.
+
+    - Each target keeps its name and its path.
+    - A target with no path gets the path `Sources/<name>`.
+    - Each dependency of a target names a product.
+
+    1. Run `swift package describe --type json`.
+    2. Compare its targets with the targets of the parser.
+    3. Report each target that is different.
+
+    | Target | Kind | Files |
+    | --- | --- | --- |
+    | AgentViewKit | library | 212 |
+    | AgentViewKitTests | test | 148 |
+
+    Read [the manifest reference](https://docs.swift.org/package-manager/PackageDescription/PackageDescription.html) \
+    and [the Swift Package Manager guide](https://www.swift.org/documentation/package-manager/).
+    """
+
+  /// A quote that cites its source, with a link to it. A text block shows no
+  /// citation pill, so this is how its Markdown cites a source.
+  static let citedQuote = """
+    > \(citedFirstSentence)
+    >
+    > — [Swift Concurrency](\(concurrencySourceURL.absoluteString))
+    """
+
+  /// The number of sentences of ``longParagraph``.
+  static let longParagraphSentenceCount = 12
+
+  /// A paragraph that is longer than a window is wide, so that it wraps over
+  /// many lines.
+  static let longParagraph = (1...longParagraphSentenceCount)
+    .map { step in
+      "Step \(step) of the build compiles one module of the package, links it into the test bundle, "
+        + "and records how long the compiler took for each file of the module."
+    }
+    .joined(separator: " ")
+
+  /// The citation pills of ``citedResponse``: one at the end of each
+  /// sentence, from the markers of ``citations``.
+  static var citationPlacements: [CitationPlacement] {
+    citations.placementsByParagraph()[0] ?? []
+  }
+
+  /// The text of ``textResource``: the last lines of a build log.
+  static let buildLogText = """
+    Compiling AgentViewKit Parser.swift
+    Compiling AgentViewKit Lexer.swift
+    Build complete! (12.48s)
+    """
+
+  /// A resource with text contents: a build log of the sample project.
+  static let textResource = embeddedResource(
+    path: "build.log", mimeType: "text/plain", member: "text", value: buildLogText)
+
+  /// The size of the contents of ``binaryResource``, in bytes.
+  static let binaryResourceSize = 24_576
+
+  /// A resource with binary contents: an archive of the sample project. Its
+  /// bytes are zeros.
+  static let binaryResource = embeddedResource(
+    path: "Archives/Release.zip", mimeType: "application/zip", member: "blob",
+    value: Data(count: binaryResourceSize).base64EncodedString())
+
+  /// A resource with text contents whose URI is longer than the URIs of
+  /// ``textResource`` and ``binaryResource``.
+  static let longURIResource = embeddedResource(
+    path: "Packages/NorthwindTraders/ContinuousIntegration/BuildService/Configuration/"
+      + "RegistryCredentials/registry-credentials-for-the-package-registry-of-the-build-service.log",
+    mimeType: "text/plain", member: "text", value: buildLogText)
+
+  /// Makes an embedded resource of one file of the sample project.
+  ///
+  /// - Parameters:
+  ///   - path: The path of the file below ``projectDirectory``.
+  ///   - mimeType: The MIME type of the file.
+  ///   - member: The member of the contents: `text` or `blob`.
+  ///   - value: The text, or the base64 bytes of the blob.
+  /// - Returns: The resource, as the raw JSON of an ACP embedded resource.
+  private static func embeddedResource(
+    path: String, mimeType: String, member: String, value: String
+  ) -> FoundationModelsACP.EmbeddedResource {
+    FoundationModelsACP.EmbeddedResource(
+      resource: .object([
+        "uri": .string(projectDirectory.appending(path: path).absoluteString),
+        "mimeType": .string(mimeType),
+        member: .string(value),
+      ]))
+  }
+
+  /// A patch that changes one line of one file.
+  static let smallPatch = """
+    --- a/Sources/Parser.swift
+    +++ b/Sources/Parser.swift
+    @@ -1,3 +1,3 @@
+     struct Parser {
+    -  let source: String
+    +  let source: Substring
+     }
+    """
+
+  /// The number of steps that ``largePatch`` changes.
+  static let largePatchStepCount = 120
+
+  /// A patch that changes a line for each of ``largePatchStepCount`` steps,
+  /// so that the diff is longer than a window.
+  static var largePatch: String {
+    let opening = " struct BuildPlan {"
+    let closing = " }"
+    let changes = (1...largePatchStepCount).flatMap { step in
+      [
+        "-  let step\(step) = Step(index: \(step), isCached: false)",
+        "+  let step\(step) = Step(index: \(step), isCached: true)",
+      ]
+    }
+    let lineCount = largePatchStepCount + [opening, closing].count
+    let header = [
+      "--- a/Sources/BuildPlan.swift", "+++ b/Sources/BuildPlan.swift", "@@ -1,\(lineCount) +1,\(lineCount) @@",
+    ]
+    return (header + [opening] + changes + [closing]).joined(separator: "\n")
+  }
+
+  /// A patch that adds a new file, so that it only adds lines.
+  static let addedOnlyPatch = """
+    --- /dev/null
+    +++ b/Sources/Lexer.swift
+    @@ -0,0 +1,3 @@
+    +struct Lexer {
+    +  let source: String
+    +}
+    """
+
+  /// A patch that deletes a file, so that it only removes lines.
+  static let removedOnlyPatch = """
+    --- a/Sources/LegacyParser.swift
+    +++ /dev/null
+    @@ -1,3 +0,0 @@
+    -struct LegacyParser {
+    -  let source: String
+    -}
+    """
+
+  /// The number of rows of the output of ``cappedOutputRows`` that do not
+  /// show.
+  static let hiddenOutputRowCount = 48
+
+  /// The rows of an output that has more rows than the row limit, so that
+  /// the cap row shows.
+  static var cappedOutputRows: CommandOutputView.VisibleRows {
+    let rowLimit = CommandOutputView.defaultRowLimit
+    let output = (1...(rowLimit + hiddenOutputRowCount))
+      .map { row in "Compiling module \(row) of the package" }
+      .joined(separator: "\n")
+    return CommandOutputView.VisibleRows(output: output, limit: rowLimit)
+  }
+
+  /// The exit code of a command that failed.
+  static let failingExitCode = 1
+
+  /// The name of the signal that stopped a command.
+  static let stopSignal = "SIGTERM"
+
+  /// Each exit that the exit label shows: a command that succeeded, a
+  /// command that failed with an exit code, and a command that a signal
+  /// stopped.
+  static let exitSummaries: [TerminalView.ExitSummary] = [
+    .code(CommandOutputView.successExitCode), .code(failingExitCode), .signal(stopSignal),
+  ]
 
   /// Makes the context of one field of a form whose answers are in one
   /// dictionary.

@@ -32,8 +32,24 @@ comments:
     - evidence: `swift test` — 1607 tests in 201 suites passed, 0 failed, 0 skipped; 3 known issues are pre-existing intentional withKnownIssue harness-failure tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). `swift build --target AgentViewKit -c debug` (touched StatusBar, AgentLoginPrompt, PreviewFixtures) — Build complete, no project warnings; only the known mlx-swift "missing creator" notice.
     - next: review
   timestamp: 2026-10-22T19:48:42.622799+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jjqwnwhxpxv0rymhdfh3eq
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (5771ed6) — 0 findings, 0 confirmed, 1 refuted, 7 attempted; 4 files reviewed, 2 .kanban files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-22T19:52:21.436978+00:00
+- actor: claude-code
+  id: 01m5jjr8n2b2crx84214jhzevw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — StatusBar.swift (3 previews), AgentLoginPrompt.swift (4 previews), PreviewFixtures.swift, PreviewFixturesTests.swift (10 tests, red first)
+    - test: green — swift test 1607 passed, 0 failed, 0 skipped; debug build has no project warnings
+    - commit: 5771ed6 (local, not pushed)
+    - review: clean — 0 findings (1 refuted), task in done
+  timestamp: 2026-10-22T19:52:33.698421+00:00
+position_column: done
+position_ordinal: ffffb580
 title: 'AVK-14a Add #Preview blocks for StatusBar and AgentLoginPrompt'
 ---
 ## Goal

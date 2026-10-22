@@ -68,3 +68,27 @@ private struct SpokenMathText: ViewModifier {
     }
   }
 }
+
+#Preview("Headings, lists, a table, inline code and links") {
+  ScrollView {
+    MarkdownProse(text: PreviewFixtures.formattedMarkdown)
+      .padding()
+  }
+}
+
+#Preview("Citation pills") {
+  MarkdownProse(text: PreviewFixtures.citedResponse, citations: PreviewFixtures.citationPlacements)
+    .citationScope()
+    .padding()
+}
+
+#Preview("A quote that cites its source") {
+  MarkdownProse(text: PreviewFixtures.citedQuote)
+    .padding()
+}
+
+#Preview("A very long paragraph") {
+  MarkdownProse(text: PreviewFixtures.longParagraph)
+    .frame(width: PreviewFixtures.narrowWidth)
+    .padding()
+}

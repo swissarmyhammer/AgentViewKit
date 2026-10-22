@@ -115,3 +115,19 @@ struct EditorKitDiffRenderer: View {
     }
   }
 }
+
+#Preview("Small diff") {
+  EditorKitDiffRenderer(patch: PreviewFixtures.smallPatch, file: nil)
+}
+
+#Preview("Large diff") {
+  EditorKitDiffRenderer(patch: PreviewFixtures.largePatch, file: nil)
+}
+
+#Preview("Diff that only adds") {
+  EditorKitDiffRenderer(patch: PreviewFixtures.addedOnlyPatch, file: nil)
+}
+
+#Preview("Diff that only removes") {
+  EditorKitDiffRenderer(patch: PreviewFixtures.removedOnlyPatch, file: nil)
+}

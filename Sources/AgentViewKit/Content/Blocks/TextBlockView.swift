@@ -17,3 +17,23 @@ struct TextBlockView: View {
     ResponseView(id: id, markdown: text)
   }
 }
+
+#Preview("Headings, lists, a table, inline code and links") {
+  ScrollView {
+    TextBlockView(text: PreviewFixtures.formattedMarkdown, id: "preview-text-formatted")
+      .padding()
+  }
+}
+
+#Preview("A quote that cites its source") {
+  // A text block shows no citation pill, so its Markdown cites a source in
+  // the text.
+  TextBlockView(text: PreviewFixtures.citedQuote, id: "preview-text-citation")
+    .padding()
+}
+
+#Preview("A very long paragraph") {
+  TextBlockView(text: PreviewFixtures.longParagraph, id: "preview-text-long")
+    .frame(width: PreviewFixtures.narrowWidth)
+    .padding()
+}

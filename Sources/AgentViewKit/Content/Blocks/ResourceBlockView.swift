@@ -80,3 +80,19 @@ struct ResourceBlockView: View {
     ContentBlockFile.fileName(uri: uri, mimeType: mimeType, stem: fileStem)
   }
 }
+
+#Preview("Text resource") {
+  ResourceBlockView(resource: PreviewFixtures.textResource, id: "preview-resource-text")
+    .padding()
+}
+
+#Preview("Binary resource") {
+  ResourceBlockView(resource: PreviewFixtures.binaryResource, id: "preview-resource-binary")
+    .padding()
+}
+
+#Preview("Resource with a long URI") {
+  ResourceBlockView(resource: PreviewFixtures.longURIResource, id: "preview-resource-long-uri")
+    .frame(width: PreviewFixtures.narrowWidth)
+    .padding()
+}
