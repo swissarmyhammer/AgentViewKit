@@ -30,6 +30,12 @@ public enum ViewSnapshot {
   /// makes one more pass, and then reads the cache. The window never shows
   /// and never takes the focus (AVK-12).
   ///
+  /// Before it reads the cache, the function hides the scroll edge effect of
+  /// each scroll view in `view` (``ScrollPocketProbe/hidePockets(in:)``).
+  /// The cache of a window cannot draw the effect: the backdrop layer of a
+  /// soft edge effect, such as the one that the list of a thread asks for
+  /// (^ph0m0hf), leaves an empty image with only the gradient of the effect.
+  ///
   /// - Parameters:
   ///   - view: The real view to show.
   ///   - size: The size of the view, in points.
@@ -50,6 +56,7 @@ public enum ViewSnapshot {
     harness.render()
     try await settle()
     harness.render()
+    ScrollPocketProbe.hidePockets(in: harness.hostingView)
     return RenderedPixels(cachingDisplayOf: harness.hostingView, scale: RenderedPixels.renderScale)
   }
 

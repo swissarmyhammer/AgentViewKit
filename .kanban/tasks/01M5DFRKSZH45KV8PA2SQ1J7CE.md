@@ -58,8 +58,24 @@ comments:
     - evidence: `swift test` — 1593 tests in 199 suites passed, 0 failed, 0 skipped; no project warnings (only the known mlx-swift "missing creator" dependency notice). The 3 "known issues" are existing withKnownIssue negative-path tests (e.g. SnapshotStoreTests, HostedLayoutExpectationsTests) that pass by design.
     - next: review/commit
   timestamp: 2026-10-22T17:49:14.624835+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jbt0t2k5xf52er9wqrkywx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e99caba) — 0 findings, 0 confirmed, 0 refuted; 2 files reviewed, 4 .kanban/ files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-22T17:51:11.170297+00:00
+- actor: claude-code
+  id: 01m5jbtfakqr2vf5rwpgwsyanc
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — AgentItemScope.swift (ContextMenuUnavailablePolicy.agentItem = .hide) and AgentCommandPlacementTests.swift (new test; red first with .disable: 2 issues)
+    - test: green — swift test 1593 passed, 0 failed, 0 skipped (EditorKit e72f75f, which contains 83731ed)
+    - commit: e99caba (local, not pushed)
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T17:51:26.035995+00:00
+position_column: done
+position_ordinal: ffffb380
 title: AVK-9 Hide the commands that are not available in the item context menus
 ---
 Source: testudoapp-4c, TestudoApp card ^tt5k0r6. Rules D41, D109 and D44.

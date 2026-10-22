@@ -239,13 +239,14 @@ public struct AgentThreadView<Composer: View>: View {
   ///
   /// The list scrolls under the two bars, and thus under the toolbar of the
   /// window, with the scroll edge effect (TestudoApp `features/style.md`,
-  /// "Scroll under the bars", D113 answer 7). The default soft effect is
-  /// correct for a transcript. The top bar has no background (D112 (e)). The
-  /// header is a floating surface: it is on the floating glass of the kit, in
-  /// its own glass container. The banners are content with no glass, out of
-  /// that container, so their buttons keep the button styles of content
-  /// (``RequestDeckPlace/style(of:)``). From the top, the bar
-  /// shows the header and the connection banner when the host gave the
+  /// "Scroll under the bars", D113 answer 7). The ``ConversationView`` asks
+  /// for the soft effect at its top and bottom edges, so the rows show
+  /// through the bars in every window. The top bar has no background
+  /// (D112 (e)). The header is a floating surface: it is on the floating
+  /// glass of the kit, in its own glass container. The banners are content
+  /// with no glass, out of that container, so their buttons keep the button
+  /// styles of content (``RequestDeckPlace/style(of:)``). From the top, the
+  /// bar shows the header and the connection banner when the host gave the
   /// connection model, the notice banner and the stream banner. VoiceOver
   /// reads the top bar, the list and then the bottom bar.
   private var content: some View {

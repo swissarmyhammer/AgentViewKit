@@ -133,8 +133,10 @@ extension View {
 /// In the bottom bar of the view (`.safeAreaBar(edge: .bottom)`),
 /// ``StateBanner/init(session:onShowError:)`` shows the `agentState` of the
 /// model. The list scrolls under the bar (TestudoApp `features/style.md`,
-/// "Scroll under the bars"). The Show Error button of the banner scrolls to
-/// the last `ErrorEntry` of the transcript. In an ``AgentThreadView``, the
+/// "Scroll under the bars"). The list asks for the soft scroll edge effect at
+/// its top and bottom edges, so the rows under a bar show through it in every
+/// window. The Show Error button of the banner scrolls to the last
+/// `ErrorEntry` of the transcript. In an ``AgentThreadView``, the
 /// banner is in the floating controls of the thread, and the view shows no
 /// banner of its own.
 ///
@@ -258,6 +260,11 @@ public struct ConversationView<EmptyState: View>: View {
       Text(ConversationLayout.listValue(shown: shownCount, count: count))
     )
     .accessibilityIdentifier(ConversationLayout.listIdentifier)
+    // The rows under a bar show through a soft edge. With `.automatic`,
+    // AppKit picks the effect from the window. TestudoApp measured the hard
+    // effect in the detail column of its split view: an opaque band that
+    // hides the rows under its bars (^ph0m0hf).
+    .scrollEdgeEffectStyle(.soft, for: .vertical)
     .defaultScrollAnchor(.bottom, for: .initialOffset)
     .defaultScrollAnchor(.bottom, for: .alignment)
     .modifier(ConversationFollowAnchor(anchors: anchors))

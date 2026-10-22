@@ -123,6 +123,39 @@ comments:
   id: 01m5j8pn2fxxqg2g5vg15nft3p
   text: 'From testudoapp-2c: Testudo''s Sources contain no `scrollEdgeEffectStyle`, `toolbarBackground` or `containerBackground`. So if the edge is hard, it comes from AgentViewKit or from a system default for that bar.'
   timestamp: 2026-10-22T16:56:55.119500+00:00
+- actor: claude-code
+  id: 01m5jby5vewv5epkzp12n5hq9g
+  text: |-
+    Iteration 3 research.
+    - Testudo report-Dark.txt: column x 700 is a noisy fill of 56–59 from y 53 to y 107, with a 1 px 64 line at y 108 and the 50 window fill below. The pocket band starts at the tab-header top (52), not at the AVK bar, so it is one pocket of the list's scroll view over both bars (Testudo tab bar + AVK bar). Noise plus a separator is the shape of the HARD pocket (NSHardPocketView, blur + colorMatrix + separator; iteration 1).
+    - AVK search: no `.background`, `.clipped`, `scrollClipDisabled`, `scrollEdgeEffectStyle`, `scrollEdgeEffectHidden`, `containerBackground` or Divider on the AVK bars, on ConversationView or on its ScrollView. The only rendering choice AVK leaves open is the edge-effect style, which it leaves `.automatic`. The doc of `AgentThreadView.content` claims "The default soft effect is correct for a transcript", which is false: `.automatic` is resolved by AppKit per context (none in a borderless window, variable blur under a toolbar, hard in Testudo's split detail column).
+    - Public state: AppKit has `NSScrollEdgeEffectStyle` (macOS 26.1) but NSScrollView exposes no getter of the resolved style; SwiftUI exposes no reader either. Private: NSScrollPocket (subview of the list's NSScrollView) has `edge` (q: 0 top, 1 bottom) and `style` (q: 0 automatic, 1 soft, 2 hard), plus `addElement:ofStyle:`, `prefersSolidColorHardPocket`, `_showSeparatorsOnHardPocket`.
+    - Plan: hosted test reads the pocket `style` through ONE isolated helper (private state, documented as such) and expects SOFT on the top and bottom pocket, in the plain host and in the Testudo split-view shape. Fix: `.scrollEdgeEffectStyle(.soft, for: .vertical)` on the conversation list.
+  timestamp: 2026-10-22T17:53:27.406858+00:00
+- actor: claude-code
+  id: 01m5jcvd388dndxsdkw4emeh7r
+  text: |-
+    Iteration 3 implementation. ACCEPTANCE CHANGE (per the dispatcher's plan): the card's rendered-pixel acceptance is replaced by a hosted check of the scroll edge effect STYLE that the conversation list asks of AppKit at its top and bottom edges. An offscreen render cannot draw the effect, so no pixel test can see it. The check reads PRIVATE AppKit state (NSScrollPocket `edge`/`style`), isolated in one helper, `AgentViewKitTestSupport/ScrollPocketProbe`.
+    - RED: new `Tests/AgentViewKitTests/Thread/ThreadScrollEdgeEffectHostedTests.swift` (plain thread; Testudo split-view shape with toolbar, inspector and outer tab bar). Both failed with styles by edge `[0: 0, 1: 0]` (automatic), expected 1 (soft).
+    - GREEN: `.scrollEdgeEffectStyle(.soft, for: .vertical)` on the ScrollView of `ConversationView.list`. Both pass. Docs of ConversationView and AgentThreadView.content updated; the old claim "The default soft effect is correct for a transcript" was false and is gone.
+    - No AVK background, clip, hairline or Divider on the bars or the list: nothing else to remove.
+    - SURPRISE: with a soft pocket, `cacheDisplay` (snapshot path A) draws an EMPTY image except the gradient of the pocket. Cause: the soft pocket adds a full-size `SoftPocketBackgroundReplay` CABackdropLayer with a gradient mask; the hard pocket's layers stay zero-size offscreen, so they did not blank. `.scrollEdgeEffectHidden()` from outside the thread does NOT remove that layer. 8 HostedSnapshotTests cases (thread, bottom-bar-buttons x 4 variants) went red. Fix: `ViewSnapshot.hostedPixels` hides each NSScrollPocket before it reads the cache (`ScrollPocketProbe.hidePockets(in:)`); the images then match the existing references with no re-record.
+    - Not verified on screen (the rules forbid showing a window). Testudo should re-run its overflow probe: rows under agent-info-header should now show through a soft fade, with no 58-gray band and no 1 px line at the list top.
+  timestamp: 2026-10-22T18:09:25.096721+00:00
+- actor: claude-code
+  id: 01m5jcvh945m9bpd5cegf0qx9j
+  text: |-
+    ### implement — changed
+    - evidence: 5 files. MODIFIED Sources/AgentViewKit/Thread/ConversationView.swift (`.scrollEdgeEffectStyle(.soft, for: .vertical)` on the list, doc), Sources/AgentViewKit/Thread/AgentThreadView.swift (doc), Sources/AgentViewKitTestSupport/ViewSnapshot.swift (hide pockets before the cache read). NEW Sources/AgentViewKitTestSupport/ScrollPocketProbe.swift (the one private-AppKit helper), Tests/AgentViewKitTests/Thread/ThreadScrollEdgeEffectHostedTests.swift (2 tests, red before the fix with style 0, green after). Full `swift test`: 1595 tests in 200 suites passed with 3 known issues (withKnownIssue tests); 219 + 1 in the other targets passed. The only warning is SwiftPM's "missing creator for mutated node" for the mlx-swift_Cmlx bundle, which is there with or without this change.
+    - next: /review. Testudo confirms on screen with its overflow probe.
+  timestamp: 2026-10-22T18:09:29.380443+00:00
+- actor: claude-code
+  id: 01m5jd59mfazpgstk1amf4az7t
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1595 tests in 200 suites passed, 0 failed, 0 skipped; 3 known issues are the intentional withKnownIssue negative tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); only warning is the known mlx-swift "missing creator" notice. `Scripts/test-examples.sh` — 5 UI tests, 4 passed, 1 failed: ACPTabEndToEndTests.testASendOfHelloShowsTheReplyOfTheAgent (known, belongs to ^bc6fapz, not fixed). No other UI failures; the appintentsmetadataprocessor "Metadata extraction skipped" line is an Xcode tool notice, not project code.
+    - next: review
+  timestamp: 2026-10-22T18:14:49.231789+00:00
 position_column: doing
 position_ordinal: '8180'
 title: AVK-8 The transcript draws under the thread top bar, with the scroll edge effect
