@@ -24,8 +24,24 @@ comments:
     - evidence: touched the 5 changed Sources files and PreviewFixturesTests.swift, then `swift test` (exit 0): 1664 tests in 203 suites passed, 0 failed, 0 skipped. PreviewFixturesTests passed. The 3 known issues are intentional withKnownIssue negative tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). Compiler warnings: only the known SwiftPM mlx-swift "missing creator" notice; none from project code.
     - next: review/commit
   timestamp: 2026-10-22T23:47:39.070125+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5k0a61khx6pxzqjb5dj9rz8
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d5dc7c3) — 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed; 6 files reviewed, 2 .kanban files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-22T23:49:32.339502+00:00
+- actor: claude-code
+  id: 01m5k0agzmyag8hge8fnme39z7
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — preview sheets in ToolStatusImage, StatusSymbolImage, DecorativeSymbolImage; shared internal PreviewSymbolSheet; fixture lists + 5 PreviewFixturesTests (red first). Departures from the card: the state enums have `.unknown(String)`, so there's no `allCases`; explicit lists with coverage tests are used instead. The kit draws these icons at one size (the theme prose font), so the sheet shows that one size.
+    - test: green — swift test 1664 passed, 0 failed, 0 skipped
+    - commit: d5dc7c3
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-22T23:49:43.540819+00:00
+position_column: done
+position_ordinal: ffffbd80
 title: 'AVK-14f Add one #Preview sheet for the status icons'
 ---
 ## Goal
