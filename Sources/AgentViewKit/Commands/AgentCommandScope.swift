@@ -188,16 +188,22 @@ enum AgentCommandRegistration {
     AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 
-  /// Removes the scope node at `path`.
+  /// Removes the `.host` part of the scope node at `path`, which `register`
+  /// wrote.
   ///
-  /// With no node, the resolution walk does not get to the commands and the
-  /// keys of the path.
+  /// The `.scope` part and the layer flag that `.commandScope` wrote at the
+  /// same path stay. When no other owner stays, the node goes, and the
+  /// resolution walk does not get to the commands and the keys of the path.
+  ///
+  /// A mount calls this only while it holds the path in
+  /// `CommandSystem.mountHolders`, so the teardown of an older mount does not
+  /// remove the registration of a newer mount at the same path.
   ///
   /// - Parameters:
   ///   - path: The path of the scope.
-  ///   - registry: The registry to remove the node from.
+  ///   - registry: The registry to remove the part from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
-    registry.tree = ScopeTree(registry.tree.nodes.filter { $0.path != path })
+    registry.tree = registry.tree.removing(.host, at: path)
   }
 }
 
@@ -205,8 +211,18 @@ enum AgentCommandRegistration {
 /// live.
 ///
 /// SwiftUI calls `updateNSView` after each change to the values, so the
-/// target always has the current model and parts. The teardown
-/// removes the registration and the parts that this mount gave.
+/// target always has the current model and parts. The teardown removes the
+/// parts that this mount gave.
+///
+/// SwiftUI can make a newer mount at the same path before it dismantles this
+/// one, for example when it rebuilds a chat, and it can update this one
+/// between the two events. The mount uses `CommandSystem.mountHolders` with
+/// its coordinator as the holder, as the editor mount of EditorKit does. Each
+/// registration holds the path. An update does not register while a newer
+/// mount holds the path, and the teardown removes the registration only while
+/// this mount still holds the path. Thus the teardown of an older mount does
+/// not remove the registration of a newer mount, and the definitions at the
+/// path act on the target of the newer mount.
 struct AgentCommandMount: NSViewRepresentable {
   /// The values of a scope that the mount owns.
   struct Scope {
@@ -237,7 +253,8 @@ struct AgentCommandMount: NSViewRepresentable {
   /// The store of the expanded items to add, or `nil`.
   let expandedBlocks: ExpandedBlocksStore?
 
-  /// The values that the teardown needs.
+  /// The values that the teardown needs. The coordinator is also the holder
+  /// of the path of the owned scope in `CommandSystem.mountHolders`.
   final class Coordinator {
     /// The target of the mount.
     let target: AgentCommandTarget
@@ -260,18 +277,31 @@ struct AgentCommandMount: NSViewRepresentable {
     Coordinator(target: target)
   }
 
+  /// Writes the values to the target, and registers the owned scope. The
+  /// newest mount of a path always registers and holds the path.
   func makeNSView(context: Context) -> NSView {
     apply(to: context.coordinator)
+    register(heldBy: context.coordinator)
     return NSView(frame: .zero)
   }
 
+  /// Writes the values to the target, and registers the owned scope again
+  /// unless a newer mount holds its path.
   func updateNSView(_ nsView: NSView, context: Context) {
     apply(to: context.coordinator)
+    guard !isHeldByANewerMount(than: context.coordinator) else {
+      return
+    }
+    register(heldBy: context.coordinator)
   }
 
+  /// Removes the registration only while this mount still holds the path,
+  /// and the parts that this mount gave to its target.
   static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
     let target = coordinator.target
-    if let registration = coordinator.registration {
+    if let registration = coordinator.registration,
+      registration.system.mountHolders.release(at: registration.path, by: coordinator)
+    {
       AgentCommandRegistration.deregister(
         at: registration.path, from: &registration.system.registry)
     }
@@ -283,7 +313,36 @@ struct AgentCommandMount: NSViewRepresentable {
     }
   }
 
-  /// Writes the values to the target, and registers the owned scope.
+  /// Tells if a mount other than the one of `coordinator` holds the path of
+  /// the owned scope.
+  ///
+  /// - Parameter coordinator: The coordinator of this mount.
+  /// - Returns: `true` when a newer mount holds the path; `false` with no
+  ///   owned scope.
+  private func isHeldByANewerMount(than coordinator: Coordinator) -> Bool {
+    guard let scope else {
+      return false
+    }
+    return scope.system.mountHolders.isHeld(at: scope.path, byOtherThan: coordinator)
+  }
+
+  /// Registers the owned scope, and records `coordinator` as the holder of
+  /// its path. With no owned scope, the call does nothing.
+  ///
+  /// - Parameter coordinator: The coordinator of this mount, which records
+  ///   the registration for the teardown.
+  private func register(heldBy coordinator: Coordinator) {
+    guard let scope else {
+      return
+    }
+    AgentCommandRegistration.register(
+      target, at: scope.path, into: &scope.system.registry, groupsOff: scope.groupsOff)
+    scope.system.mountHolders.hold(at: scope.path, by: coordinator)
+    coordinator.registration = (scope.system, scope.path)
+  }
+
+  /// Writes the values to the target. The values touch only the target of
+  /// this mount.
   ///
   /// - Parameter coordinator: The coordinator that records the values for
   ///   the teardown.
@@ -294,9 +353,6 @@ struct AgentCommandMount: NSViewRepresentable {
       target.requestStartReport = scope.requestStartReport
       target.system = scope.system
       target.path = scope.path
-      AgentCommandRegistration.register(
-        target, at: scope.path, into: &scope.system.registry, groupsOff: scope.groupsOff)
-      coordinator.registration = (scope.system, scope.path)
     }
     if let anchors {
       target.anchors = anchors

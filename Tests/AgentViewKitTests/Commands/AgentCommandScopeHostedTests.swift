@@ -316,6 +316,35 @@ import Testing
     #expect(!system.registry.tree.nodes.contains { $0.path == path })
   }
 
+  /// SwiftUI makes the new thread view of a rebuilt chat, and registers its
+  /// path, before it dismantles the old thread view at the same path. The
+  /// teardown of the old view must keep the registration of the new view.
+  ///
+  /// The teardown of the old view clears the store of the expanded items of
+  /// the old target, so `toggleExpandAll` acts only through the target of
+  /// the new view.
+  @Test func theTeardownOfAnOldThreadViewKeepsTheCommandsOfANewThreadViewAtTheSamePath() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let model = ScopeRebuildModel()
+    let harness = HostedViewHarness(size: Self.windowSize) {
+      ScopeRebuildHost(model: model, session: session.model)
+        .commandSystem(system)
+    }
+    defer { harness.close() }
+    try await Self.sendScopeMessage(to: session, rendering: harness)
+    let path = Self.path(of: session.model)
+
+    model.generation += 1
+    harness.render()
+
+    #expect(system.registry.tree.nodes.contains { $0.path == path })
+    let eligible = Set(system.registry.eligible(path: path).map(\.id))
+    #expect(eligible.isSuperset(of: [AgentCommandVerb.send.id, AgentCommandVerb.focusComposer.id]))
+    #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
+  }
+
   // MARK: - Session model
 
   @Test func theCancelCommandOfASessionSendsSessionCancelWhileTheAgentRuns() async throws {
@@ -461,5 +490,27 @@ struct ScopeVisibilityHost: View {
     } else {
       Color.clear
     }
+  }
+}
+
+/// Tells ``ScopeRebuildHost`` when to rebuild its thread view.
+@Observable final class ScopeRebuildModel {
+  /// The identity of the thread view. A new value rebuilds the view.
+  var generation = 0
+}
+
+/// A host that rebuilds its thread view with a new identity for the same
+/// session each time its model gives a new generation, as Swap Chat and View
+/// rebuilds a chat.
+struct ScopeRebuildHost: View {
+  /// The model that gives the identity of the thread view.
+  let model: ScopeRebuildModel
+
+  /// The session model of the thread view.
+  let session: SessionModel
+
+  var body: some View {
+    AgentThreadView(session: session)
+      .id(model.generation)
   }
 }

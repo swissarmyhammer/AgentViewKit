@@ -1,6 +1,43 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5hkc5zmmc6d361dhfef7bnh
+  text: |-
+    Blocked: the EditorKit root fix is not on EditorKit origin/main.
+
+    Checked 2026-10-22 after `git fetch` in ../EditorKit (inspect only, no edits):
+    - EditorKit origin/main tip = 348324f ("chore(kanban): record the final ledger of ^c3ya9ed").
+    - AgentViewKit Package.resolved already pins EditorKit to 348324fd2dda570e3a15c1d939a4e70078d9d6d3 (branch main), the same revision. There is nothing newer to bump to.
+    - At 348324f, `GeometryProbeView.windowRect` (Sources/EditorCommandsUI/GeometryRegistry.swift) still returns `convert(bounds, to: nil)` with no flip, and `GeometryRegistry.snapshot(layer:focused:)` passes that rect to `SnapshotScope` unchanged. So the snapshot rects still use the AppKit bottom-left origin.
+    - `NavBoardHarness` (Tests/EditorCommandsUIHostedTests/NavIntegrationTests.swift) still builds the inversion in ("row 0 at the bottom", `y = row * navBoardCardHeight`).
+    - `git log origin/main --grep` for flip/inverted/top-left/nav.up/nav.down finds no fix commit.
+    - No EditorKit kanban card tracks this flip. The only match is the original FocusNavigator kernel card 01KTXQPHK7DHJA8M0KTHWE0TJB, which is done.
+
+    What unblocks this card: land the EditorKit fix (flip the snapshot rects to a top-left origin and correct `NavBoardHarness`) on EditorKit main. Then re-run this card: bump the AgentViewKit resolution and change `AgentNavigationHostedTests.theNavChordsMoveTheFocusBetweenTwoMessageItems` to use the transcript order for the `nav.down` move.
+
+    No AgentViewKit files changed. The task stays in its current column.
+  timestamp: 2026-10-22T10:44:11.892546+00:00
+- actor: claude-code
+  id: 01m5hkc7xs6khf1h7a9tg4x107
+  text: |-
+    ### implement — stuck
+    - evidence: EditorKit origin/main 348324f (= AgentViewKit's resolved revision) has no snapshot-rect flip. GeometryProbeView.windowRect is still `convert(bounds, to: nil)`, and NavBoardHarness still has "row 0 at the bottom". 0 files changed.
+    - next: land the EditorKit flip fix on EditorKit main (no EditorKit card tracks it yet), then re-run /implement on ^brhhdf4.
+  timestamp: 2026-10-22T10:44:13.881110+00:00
+- actor: claude-code
+  id: 01m5hksqwfxqhhxypagfkt4wgf
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — EditorKit origin/main 348324f (the revision AgentViewKit already resolves) has no snapshot-rect flip: GeometryProbeView.windowRect is still convert(bounds, to: nil), and NavBoardHarness still builds in "row 0 at the bottom". 0 source files changed.
+    - test, commit, review: not run
+    - next: land the EditorKit fix on EditorKit main (flip the snapshot rects to a top-left origin, correct NavBoardHarness), then /implement this card again.
+  timestamp: 2026-10-22T10:51:36.207883+00:00
+- actor: claude-code
+  id: 01m5hky0dh46h1vw8btfdsazxh
+  text: 'Blocker tracked in EditorKit as ^mty2bg8 (01M5HK40QKSVS63HY4QMTY2BG8), per editorkit-28. Planned fix: one top-left window space for both the nav snapshot rects and the jump anchors, with a hosted test of nav.down/nav.up. Not pushed yet. No workaround in AgentViewKit. editorkit-28 will send the commit SHA; then bump EditorKit and switch theNavChordsMoveTheFocusBetweenTwoMessageItems to transcript order.'
+  timestamp: 2026-10-22T10:53:56.017157+00:00
 position_column: todo
 position_ordinal: '8680'
 title: 'EditorKit: nav.up and nav.down are inverted on macOS'

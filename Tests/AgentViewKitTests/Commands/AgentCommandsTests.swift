@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import EditorCommands
 import EditorCommandsTestSupport
+import EditorCommandsUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -205,6 +206,56 @@ final class CallCounter {
     #expect(registry.tree.nodes.filter { $0.path == path }.count == 1)
 
     AgentCommandRegistration.deregister(at: path, from: &registry)
+    #expect(registry.tree.nodes.isEmpty)
+  }
+
+  /// Two mounts of one session register at the same path, the newer one
+  /// before the older one goes away. Each mount deregisters only when its
+  /// release of the path returns `true`, as ``AgentCommandMount`` does.
+  @Test func onlyTheLastHolderOfAPathDeregistersIt() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let path = FocusPath.root(AgentCommandTarget.segment(for: session.model))
+    var registry = CommandRegistry()
+    let holders = ScopeMountHolders()
+    let olderHolder = NSObject()
+    let newerHolder = NSObject()
+    let olderTarget = AgentCommandTarget()
+    olderTarget.session = session.model
+    let newerTarget = AgentCommandTarget()
+    newerTarget.session = session.model
+
+    AgentCommandRegistration.register(olderTarget, at: path, into: &registry)
+    holders.hold(at: path, by: olderHolder)
+    AgentCommandRegistration.register(newerTarget, at: path, into: &registry)
+    holders.hold(at: path, by: newerHolder)
+
+    #expect(!holders.release(at: path, by: olderHolder))
+    #expect(registry.tree.nodes.contains { $0.path == path })
+    #expect(registry.definitions(at: path).count == Self.verbCount)
+
+    try #require(holders.release(at: path, by: newerHolder))
+    AgentCommandRegistration.deregister(at: path, from: &registry)
+    #expect(!registry.tree.nodes.contains { $0.path == path })
+  }
+
+  /// The `.commandScope` of the thread writes the `.scope` part of the node.
+  /// The deregistration removes only the `.host` part that the registration
+  /// wrote, so the node stays while the `.scope` part stays.
+  @Test func theDeregistrationKeepsTheScopePartOfTheNode() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let target = AgentCommandTarget()
+    target.session = session.model
+    let path = FocusPath.root(AgentCommandTarget.segment(for: session.model))
+    var registry = CommandRegistry()
+    registry.tree = registry.tree.merging(nil, by: .scope, at: path)
+    AgentCommandRegistration.register(target, at: path, into: &registry)
+
+    AgentCommandRegistration.deregister(at: path, from: &registry)
+
+    #expect(registry.tree.nodes.contains { $0.path == path })
+    registry.tree = registry.tree.removing(.scope, at: path)
     #expect(registry.tree.nodes.isEmpty)
   }
 
