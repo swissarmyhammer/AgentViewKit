@@ -39,8 +39,24 @@ comments:
     - evidence: swift test (after touching the 4 changed Sources files and PreviewFixturesTests.swift) — 1659 tests in 203 suites passed, 0 failed, 0 skipped; 3 known issues are the intentional withKnownIssue negative-path tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). Only warning: the known SwiftPM mlx-swift "missing creator" notice; no project-code warnings.
     - next: review/commit
   timestamp: 2026-10-22T23:32:36.277599+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jzhptsffgzrrzb5qm38zr6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (831fcf8) — 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed; 5 files reviewed, 4 .kanban/ files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-22T23:36:10.329861+00:00
+- actor: claude-code
+  id: 01m5jzj16acrfjasa5b9ynb4dr
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — previews in ElicitationCard.swift (5), ElicitationWhoAsks.swift, RequestDeckWithdrawn.swift; PreviewFixtures + 11 PreviewFixturesTests (red first); follow-up ^r8bnszx (show field errors only after an edit or a submit)
+    - test: green — swift test 1659 passed, 0 failed, 0 skipped
+    - commit: 831fcf8
+    - review: clean — 0 findings (1 refuted), task in done
+  timestamp: 2026-10-22T23:36:20.938625+00:00
+position_column: done
+position_ordinal: ffffbc80
 title: 'AVK-14b Add #Preview blocks for ElicitationCard, ElicitationWhoAsksLine and WithdrawnNoticeRow'
 ---
 ## Goal
