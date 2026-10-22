@@ -25,3 +25,12 @@ struct DecorativeSymbolImage: View {
       .accessibilityHidden(true)
   }
 }
+
+// MARK: - Previews
+
+#Preview("Each decorative header symbol") {
+  PreviewSymbolSheet(title: "Header symbol", values: PreviewFixtures.headerSymbols, label: \.header) { symbol in
+    DecorativeSymbolImage(name: symbol.name)
+  }
+  .padding()
+}

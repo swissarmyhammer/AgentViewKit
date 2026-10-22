@@ -78,6 +78,56 @@ import Testing
     #expect(PreviewFixtures.usageSession.usage == PreviewFixtures.usage)
   }
 
+  @Test func theToolCallStatusesShowEachStatusSymbolWithItsOwnLabel() {
+    let statuses = PreviewFixtures.toolCallStatuses
+
+    #expect(
+      Set(statuses.map(ToolStatusSymbol.name(for:)))
+        == [
+          SharedSymbol.pending, SharedSymbol.inProgress, SharedSymbol.completed, SharedSymbol.error,
+          SharedSymbol.cancelled, SharedSymbol.warning, SharedSymbol.unknown,
+        ])
+    #expect(Set(statuses.map(ToolStatusSymbol.label(for:))).count == statuses.count)
+  }
+
+  @Test func thePlanEntryStatusesShowEachStatusSymbolWithItsOwnLabel() {
+    let statuses = PreviewFixtures.planEntryStatuses
+
+    #expect(
+      Set(statuses.map(TaskListView.statusSymbol))
+        == [
+          SharedSymbol.pending, SharedSymbol.inProgress, SharedSymbol.completed, SharedSymbol.cancelled,
+          SharedSymbol.unknown,
+        ])
+    #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
+  }
+
+  @Test func thePlanEntryPrioritiesShowEachPrioritySymbolWithItsOwnLabel() {
+    let priorities = PreviewFixtures.planEntryPriorities
+
+    #expect(
+      Set(priorities.map(TaskListView.prioritySymbol))
+        == [SharedSymbol.highPriority, SharedSymbol.mediumPriority, SharedSymbol.lowPriority, SharedSymbol.unknown])
+    #expect(Set(priorities.map(TaskListView.priorityLabel)).count == priorities.count)
+  }
+
+  @Test func theNoticeSeveritiesShowEachSeveritySymbolWithItsOwnLabel() {
+    let severities = PreviewFixtures.noticeSeverities
+
+    #expect(
+      Set(severities.map(NoticeBanner.symbolName(for:)))
+        == [SharedSymbol.information, SharedSymbol.warning, SharedSymbol.error, SharedSymbol.unknown])
+    #expect(Set(severities.map(NoticeBanner.severityLabel)).count == severities.count)
+  }
+
+  @Test func theHeaderSymbolsAreTheSymbolsOfTheAgentHeaderAndOfTheEmptyConversation() throws {
+    let symbols = PreviewFixtures.headerSymbols
+    let emptyConversationSymbol = try #require(ConversationEmptyContent.standard.systemImage)
+
+    #expect(symbols.map(\.name) == [AgentInfoHeader.symbol, emptyConversationSymbol])
+    #expect(Set(symbols.map(\.header)).count == symbols.count)
+  }
+
   @Test func theMCPSessionHasAnItemForEachServer() {
     let items = PreviewFixtures.mcpSession.mcpServers
 

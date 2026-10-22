@@ -407,6 +407,52 @@ enum PreviewFixtures {
       isEnabled: isEnabled, perform: {})
   }
 
+  /// A wire value that the kit does not know, as a later version of ACP can
+  /// send it for a status, a priority or a severity.
+  static let unknownWireValue = "deferred"
+
+  /// Each status of a tool call that ``ToolStatusImage`` shows: each status
+  /// of the ACP standard, the lost status
+  /// (``ToolStatusSymbol/lostWireValue``) and a status that the kit does not
+  /// know.
+  static let toolCallStatuses: [FoundationModelsACP.ToolCallStatus] = [
+    .pending, .inProgress, .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
+    .unknown(unknownWireValue),
+  ]
+
+  /// Each status of a plan entry: each status of the ACP standard and a
+  /// status that the kit does not know.
+  static let planEntryStatuses: [FoundationModelsACP.PlanEntryStatus] = [
+    .pending, .inProgress, .completed, .cancelled, .unknown(unknownWireValue),
+  ]
+
+  /// Each priority of a plan entry: each priority of the ACP standard and a
+  /// priority that the kit does not know.
+  static let planEntryPriorities: [FoundationModelsACP.PlanEntryPriority] = [
+    .high, .medium, .low, .unknown(unknownWireValue),
+  ]
+
+  /// Each severity of a session notice: each severity of the ACP standard
+  /// and a severity that the kit does not know.
+  static let noticeSeverities: [NoticeSeverity] = [.info, .warning, .error, .unknown(unknownWireValue)]
+
+  /// A decorative symbol of the kit, with the header that shows it.
+  struct HeaderSymbol: Hashable {
+    /// The name of the header that shows the symbol.
+    let header: String
+
+    /// The SF Symbol name.
+    let name: String
+  }
+
+  /// Each decorative symbol that ``DecorativeSymbolImage`` shows: the symbol
+  /// of ``AgentInfoHeader`` and the symbol of the standard
+  /// ``ConversationEmptyState``.
+  static let headerSymbols = [
+    HeaderSymbol(header: "Agent header", name: AgentInfoHeader.symbol),
+    HeaderSymbol(header: "Empty conversation", name: SharedSymbol.conversation),
+  ]
+
   /// The name of the agent of ``authConnection(methods:agentName:openSessions:)``.
   static let agentName = "preview-agent"
 

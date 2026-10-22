@@ -23,3 +23,14 @@ struct ToolStatusImage: View {
       color: editorTheme.statusColor(for: status))
   }
 }
+
+// MARK: - Previews
+
+#Preview("Each status of a tool call") {
+  PreviewSymbolSheet(
+    title: "Tool call status", values: PreviewFixtures.toolCallStatuses, label: ToolStatusSymbol.label(for:)
+  ) { status in
+    ToolStatusImage(status: status)
+  }
+  .padding()
+}
