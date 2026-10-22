@@ -414,15 +414,23 @@ private struct DeckCards: View {
   }
 }
 
-/// The place of a ``RequestDeck``, which gives the surface of the deck
-/// (TestudoApp `features/style.md`, "How the steps apply") and the button
-/// styles of the actions in it (``style(of:)``).
-enum RequestDeckPlace: Equatable {
+/// The place of a ``RequestDeck`` or of other action buttons, which gives the
+/// surface of the deck (TestudoApp `features/style.md`, "How the steps
+/// apply") and the button styles of the actions (``style(of:)``).
+nonisolated enum RequestDeckPlace: Equatable, Sendable {
   /// In a bar of floating controls, for example the composer slot of
   /// ``AgentThreadView``. A request in the bar is user input, so the deck is
   /// in the control layer: it is on the floating glass of the kit, in the
-  /// `GlassEffectContainer` of the bar.
+  /// `GlassEffectContainer` of the bar. Only the buttons on the glass of the
+  /// deck have this place.
   case bar
+
+  /// In a bar with no glass surface, for example the state banner and the
+  /// login prompt in the bottom bar of ``AgentThreadView``. The content
+  /// scrolls under the bar (TestudoApp `features/style.md`, rule 4). A view
+  /// declares this place for its buttons with
+  /// ``SwiftUI/View/requestActionPlace(_:)``. A deck never has this place.
+  case barWithoutGlass
 
   /// In content. The deck has no glass and no fill.
   case content
@@ -434,6 +442,19 @@ enum RequestDeckPlace: Equatable {
   ///   ``SwiftUI/EnvironmentValues/floatingGlassContainerCount`` of the deck.
   init(floatingGlassContainerCount: Int) {
     self = floatingGlassContainerCount > 0 ? .bar : .content
+  }
+
+  /// The place of action buttons: the place that a view above them declares,
+  /// or else the place from the glass containers above them.
+  ///
+  /// - Parameters:
+  ///   - declared: The ``SwiftUI/EnvironmentValues/requestActionPlace`` of
+  ///     the buttons, or `nil` when no view declares a place.
+  ///   - floatingGlassContainerCount: The
+  ///     ``SwiftUI/EnvironmentValues/floatingGlassContainerCount`` of the
+  ///     buttons.
+  init(declared: RequestDeckPlace?, floatingGlassContainerCount: Int) {
+    self = declared ?? RequestDeckPlace(floatingGlassContainerCount: floatingGlassContainerCount)
   }
 }
 
@@ -449,7 +470,7 @@ private struct DeckSurface: ViewModifier {
   func body(content: Content) -> some View {
     switch RequestDeckPlace(floatingGlassContainerCount: containerCount) {
     case .bar: content.agentFloatingGlass()
-    case .content: content
+    case .barWithoutGlass, .content: content
     }
   }
 }

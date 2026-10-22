@@ -57,9 +57,12 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// The card is content, so it has no fill and no glass. A separator stroke
 /// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its
 /// action buttons have a button style of their own, which comes from the
-/// place of the card (``RequestDeckPlace/style(of:)``): the `.glass` style in
-/// content, and the standard `.bordered` style in the bottom bar of a thread
-/// (TestudoApp `features/style.md`, "Bars of a view").
+/// place of the card (``RequestDeckPlace/style(of:)``): the `.glass` style.
+/// In the bottom bar of a thread, the card has no glass surface, and the
+/// content scrolls under it, so its buttons keep the glass style there too
+/// (TestudoApp `features/style.md`, rule 4). There, ``AgentLoginPrompt``
+/// declares the place of a bar with no glass for it
+/// (``RequestDeckPlace/barWithoutGlass``).
 ///
 /// The texts of the card do not use a fixed vertical size. A text with a
 /// fixed vertical size gives its full wrapped height as its minimum height,

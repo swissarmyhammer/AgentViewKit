@@ -35,6 +35,8 @@ struct AgentLoginPrompt: View {
     if requiresSignIn {
       AgentAuthView(connection: connection)
         .environment(\.sessionModel, session)
+        // The bottom bar has no glass surface around the prompt.
+        .requestActionPlace(.barWithoutGlass)
     }
   }
 

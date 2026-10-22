@@ -104,6 +104,29 @@ enum SnapshotFixtures {
     SessionModel.preview(transcript: [.update(.stateUpdate(.running(RunningStateUpdate())))])
   }
 
+  /// The number of the agent messages of ``failedTurnSession()``. Together
+  /// they are taller than ``threadSize``, so the transcript scrolls under the
+  /// bottom bar of the thread.
+  static let failedTurnMessageCount = 12
+
+  /// A session whose last turn failed: ``failedTurnMessageCount`` agent
+  /// messages, an idle state with the stop reason `error`, and an error entry
+  /// at the end of the transcript. In a thread, the state banner in the
+  /// bottom bar then shows its Show Error button.
+  ///
+  /// - Returns: The session model.
+  static func failedTurnSession() -> SessionModel {
+    let messages = (1...failedTurnMessageCount).map { number in
+      PreviewTranscriptItem.agent(
+        "Step \(number): the build of the package takes less time, because the module of the parser has no new "
+          + "dependency. The tests of the parser pass.")
+    }
+    let session = SessionModel.preview(
+      transcript: messages + [.update(.stateUpdate(.idle(IdleStateUpdate(stopReason: .error))))])
+    session.appendError(code: .internalError, message: "The tool did not start.", data: nil)
+    return session
+  }
+
   /// The default composer of the thread for `session`.
   ///
   /// The composer reads its session model from the environment, as in the

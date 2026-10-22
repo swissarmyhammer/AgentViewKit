@@ -49,6 +49,32 @@ import Testing
     }
   }
 
+  /// The state banner with its Show Error button and the login card with its
+  /// Sign In button, in the bottom bar of a thread over a transcript that
+  /// scrolls under the bar. The bar has no glass surface, so the buttons use
+  /// the glass styles and not the bordered styles (TestudoApp
+  /// `features/style.md`, rule 4). The cache of a window shows no glass, so a
+  /// glass button shows its label with no bezel, and a bordered button shows
+  /// its bezel.
+  ///
+  /// After the first render, the test moves the list to the first message, as
+  /// the Show Error button moves it to an item. The later messages are then
+  /// under the bar.
+  @Test(arguments: SnapshotVariant.allCases)
+  func theButtonsOfTheBottomBarOverTheTranscript(variant: SnapshotVariant) async throws {
+    let session = SnapshotFixtures.failedTurnSession()
+    let firstKey = try #require(session.transcript.first?.rowKey)
+    let anchors = ScrollAnchorManager()
+    let thread = AgentThreadView(
+      session: session, connection: AgentAuthViewSurfaceHostedTests.connection, anchors: anchors
+    ) { DefaultThreadComposer() }
+
+    try await Self.verify(thread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize, variant: variant) {
+      anchors.noteJump(to: firstKey)
+      anchors.onScroll(.item(firstKey))
+    }
+  }
+
   @Test(arguments: SnapshotVariant.allCases)
   func theIdleComposer(variant: SnapshotVariant) async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.idleSession)

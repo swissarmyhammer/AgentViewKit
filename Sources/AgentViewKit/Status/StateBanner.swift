@@ -192,6 +192,8 @@ public struct StateBanner: View {
           identifier: Self.showErrorIdentifier, isEnabled: true, perform: $0)
       }
     )
+    // The bar has no glass surface, and the content scrolls under it.
+    .requestActionPlace(.barWithoutGlass)
     .accessibilityIdentifier(Self.bannerIdentifier)
   }
 

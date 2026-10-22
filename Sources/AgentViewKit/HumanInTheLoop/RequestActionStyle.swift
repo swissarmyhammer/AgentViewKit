@@ -37,17 +37,20 @@ nonisolated enum RequestActionStyle: Equatable, Sendable {
 
 extension RequestDeckPlace {
   /// The button style of `action` in this place (TestudoApp
-  /// `features/style.md`, "Buttons on glass").
+  /// `features/style.md`, rule 4 and "Buttons on glass").
   ///
-  /// In the bar, the deck is on glass, and a glass button on it is glass on
-  /// glass. Thus the primary action uses the `.borderedProminent` style, and
-  /// each other action uses the `.bordered` style. A status bar and the login
-  /// card in the bottom bar of a thread have no glass, but a bar has standard
-  /// controls (TestudoApp `features/style.md`, "Bars of a view"). Thus their
-  /// buttons use the same bordered styles there. In content, the primary
-  /// action uses the `.glassProminent` style, a secondary action uses the
-  /// `.glass` style, and a standard action keeps the style of its
-  /// environment.
+  /// - In the bar, the button is on the glass of the request deck, and a
+  ///   glass button there is glass on glass. Thus the primary action uses the
+  ///   `.borderedProminent` style, and each other action uses the `.bordered`
+  ///   style. Only a button on a glass surface uses a bordered style.
+  /// - In a bar with no glass surface, for example the state banner and the
+  ///   login prompt in the bottom bar of a thread, the content scrolls under
+  ///   the buttons. Thus the primary action uses the `.glassProminent` style,
+  ///   and each other action, the standard action too, uses the `.glass`
+  ///   style.
+  /// - In content, the primary action uses the `.glassProminent` style, a
+  ///   secondary action uses the `.glass` style, and a standard action keeps
+  ///   the style of its environment.
   ///
   /// - Parameter action: The kind of the action.
   /// - Returns: The button style of the action.
@@ -55,24 +58,28 @@ extension RequestDeckPlace {
     switch (self, action) {
     case (.bar, .primary): .borderedProminent
     case (.bar, .secondary), (.bar, .standard): .bordered
-    case (.content, .primary): .glassProminent
-    case (.content, .secondary): .glass
+    case (.barWithoutGlass, .primary), (.content, .primary): .glassProminent
+    case (.barWithoutGlass, .secondary), (.barWithoutGlass, .standard), (.content, .secondary): .glass
     case (.content, .standard): .inherited
     }
   }
 }
 
-/// Gives a button the style of its ``RequestAction`` in the place of the
-/// deck, which the modifier reads from
-/// ``SwiftUI/EnvironmentValues/floatingGlassContainerCount``.
+/// Gives a button the style of its ``RequestAction`` in its place. The place
+/// is the ``SwiftUI/EnvironmentValues/requestActionPlace`` that a view above
+/// the button declares, or else the place from
+/// ``SwiftUI/EnvironmentValues/floatingGlassContainerCount``
+/// (``RequestDeckPlace/init(declared:floatingGlassContainerCount:)``).
 private struct RequestActionStyleModifier: ViewModifier {
   /// The kind of the action.
   let action: RequestAction
 
+  @Environment(\.requestActionPlace) private var declaredPlace
   @Environment(\.floatingGlassContainerCount) private var containerCount
 
   func body(content: Content) -> some View {
-    switch RequestDeckPlace(floatingGlassContainerCount: containerCount).style(of: action) {
+    let place = RequestDeckPlace(declared: declaredPlace, floatingGlassContainerCount: containerCount)
+    switch place.style(of: action) {
     case .glass: content.buttonStyle(.glass)
     case .glassProminent: content.buttonStyle(.glassProminent)
     case .bordered: content.buttonStyle(.bordered)
@@ -82,13 +89,35 @@ private struct RequestActionStyleModifier: ViewModifier {
   }
 }
 
+extension EnvironmentValues {
+  /// The place of the action buttons below this view, which a view declares
+  /// with ``SwiftUI/View/requestActionPlace(_:)``, or `nil` when no view above
+  /// declares a place. With `nil`, the place of the buttons comes from
+  /// ``floatingGlassContainerCount``.
+  @Entry var requestActionPlace: RequestDeckPlace? = nil
+}
+
 extension View {
-  /// Gives the button in this view the style of `action` in the place of the
-  /// request deck (``RequestDeckPlace/style(of:)``).
+  /// Gives the button in this view the style of `action` in its place
+  /// (``RequestDeckPlace/style(of:)``).
   ///
   /// - Parameter action: The kind of the action.
   /// - Returns: The view with the button style.
   func requestActionStyle(_ action: RequestAction) -> some View {
     modifier(RequestActionStyleModifier(action: action))
+  }
+
+  /// Declares the place of the action buttons in this view
+  /// (``SwiftUI/EnvironmentValues/requestActionPlace``).
+  ///
+  /// A view in a bar with no glass surface declares
+  /// ``RequestDeckPlace/barWithoutGlass``. It can be in the glass container
+  /// of the bar, but its buttons are not on glass, so they keep the glass
+  /// styles (TestudoApp `features/style.md`, rule 4).
+  ///
+  /// - Parameter place: The place of the buttons.
+  /// - Returns: The view with the place in its environment.
+  func requestActionPlace(_ place: RequestDeckPlace) -> some View {
+    environment(\.requestActionPlace, place)
   }
 }

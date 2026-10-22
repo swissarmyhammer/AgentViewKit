@@ -27,7 +27,8 @@ import SwiftUI
 /// (TestudoApp `features/style.md`, "Scroll under the bars"). From the top,
 /// the bar shows the state banner, the login prompt, the scroll-to-bottom
 /// pill and the composer slot. The banner and the login prompt are content
-/// with no glass. Their buttons have the bordered style of a bar. The
+/// with no glass. Their buttons keep the glass styles, because the content
+/// scrolls under them (TestudoApp `features/style.md`, rule 4). The
 /// composer slot is directly below its chat (D36). The default slot is a
 /// ``DefaultThreadComposer``: a ``PromptInputView`` that keeps its own text.
 /// Give a custom composer with ``init(session:connection:composer:)``, or
@@ -272,8 +273,11 @@ public struct AgentThreadView<Composer: View>: View {
   /// The list scrolls under the bar (TestudoApp `features/style.md`, "Scroll
   /// under the bars", D113 answer 7). The banner and the login prompt are
   /// content: they have no glass, and a container with no glass child draws
-  /// nothing. Their buttons take the bordered style of a bar from the place
-  /// mechanism of the kit (``RequestDeckPlace/style(of:)``). From the top,
+  /// nothing. Each of them declares the place of a bar with no glass
+  /// (``RequestDeckPlace/barWithoutGlass``), so their buttons keep the glass
+  /// styles (``RequestDeckPlace/style(of:)``, TestudoApp `features/style.md`,
+  /// rule 4). Only the buttons on the glass of a request deck in the
+  /// composer slot use the bordered styles. From the top,
   /// the order is the banner, the login prompt when the host gave the
   /// connection model, the pill, and the composer. VoiceOver reads them in
   /// this order. A composer in the slot that makes its own container, such

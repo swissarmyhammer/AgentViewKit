@@ -81,9 +81,41 @@ struct RequestDeckSurfaceTests {
     (.standard, .inherited),
   ]
 
+  /// Each action, and its button style in a bar with no glass surface, for
+  /// example the state banner and the login card in the bottom bar of a
+  /// thread. The content scrolls under the bar, so each action keeps a glass
+  /// style (TestudoApp `features/style.md`, rule 4).
+  ///
+  /// It is `nonisolated` because the arguments of a test use it.
+  nonisolated static let barWithoutGlassStyles: [(action: RequestAction, style: RequestActionStyle)] = [
+    (.primary, .glassProminent),
+    (.secondary, .glass),
+    (.standard, .glass),
+  ]
+
   @Test(arguments: barStyles)
   func inTheBarAnActionOfACardUsesABorderedStyle(action: RequestAction, style: RequestActionStyle) {
     #expect(RequestDeckPlace.bar.style(of: action) == style)
+  }
+
+  @Test(arguments: barWithoutGlassStyles)
+  func inABarWithNoGlassAnActionUsesAGlassStyle(action: RequestAction, style: RequestActionStyle) {
+    #expect(RequestDeckPlace.barWithoutGlass.style(of: action) == style)
+  }
+
+  @Test(arguments: [0, 1])
+  func aDeclaredPlaceIsThePlaceOfTheButtonsInAndOutOfAFloatingContainer(containerCount: Int) {
+    let place = RequestDeckPlace(declared: .barWithoutGlass, floatingGlassContainerCount: containerCount)
+
+    #expect(place == .barWithoutGlass)
+  }
+
+  @Test func withNoDeclaredPlaceTheButtonsInAFloatingContainerAreInTheBar() {
+    #expect(RequestDeckPlace(declared: nil, floatingGlassContainerCount: 1) == .bar)
+  }
+
+  @Test func withNoDeclaredPlaceTheButtonsOutOfAFloatingContainerAreInContent() {
+    #expect(RequestDeckPlace(declared: nil, floatingGlassContainerCount: 0) == .content)
   }
 
   @Test(arguments: contentStyles)

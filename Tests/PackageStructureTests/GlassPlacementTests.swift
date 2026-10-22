@@ -99,16 +99,16 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   static let suggestionsFile = KitSourceFiles.kitFile("Input/SuggestionsView.swift")
 
   /// The file of the button style of the actions of the request cards and the
-  /// notices. It selects the style from the place of the request deck: glass
-  /// in content, and bordered on the glass of the deck in a bar.
+  /// notices. It selects the style from the place of the buttons: glass in
+  /// content and in a bar with no glass surface, and bordered on the glass of
+  /// the deck in a bar.
   static let requestActionStyleFile = KitSourceFiles.kitFile("HumanInTheLoop/RequestActionStyle.swift")
 
   /// The files of the request cards, the notices, the status bars and the
   /// login card. Their action buttons take the button style of
   /// ``requestActionStyleFile``, and have no glass button style of their own.
-  /// In the bottom bar of a thread, a status bar and the login card have
-  /// standard bordered buttons (TestudoApp `features/style.md`, "Bars of a
-  /// view").
+  /// Only on the glass of the request deck in a bar do the buttons use the
+  /// bordered styles (TestudoApp `features/style.md`, "Buttons on glass").
   static let requestCardFiles: Set<String> = [
     KitSourceFiles.kitFile("HumanInTheLoop/PermissionView.swift"),
     KitSourceFiles.kitFile("Elicitation/ElicitationView.swift"),
@@ -117,6 +117,23 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     KitSourceFiles.statusBarFile,
     KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
   ]
+
+  /// The files of the views in a bar with no glass surface: the state banner
+  /// and the login prompt in the bottom bar of a thread. The content scrolls
+  /// under the bar, so each view declares the place of a bar with no glass,
+  /// and its buttons keep the glass styles (TestudoApp `features/style.md`,
+  /// rule 4). They are in the glass container of the bar, so with no
+  /// declaration they would get the bordered styles of the deck glass.
+  static let barWithoutGlassFiles: Set<String> = [
+    KitSourceFiles.kitFile("Status/StateBanner.swift"),
+    KitSourceFiles.kitFile("Connections/AgentLoginPrompt.swift"),
+  ]
+
+  /// The pattern that finds the declaration of the place of a bar with no
+  /// glass surface, `.requestActionPlace(.barWithoutGlass)`.
+  static var barWithoutGlassPlacePattern: Regex<Substring> {
+    memberCallPattern("requestActionPlace", WordPattern.wholeWord("barWithoutGlass"))
+  }
 
   /// The files that can use a glass button style: the floating controls, and
   /// the button style of the actions of the request cards and the notices.
@@ -319,6 +336,23 @@ extension GlassForm: FixtureCodeForm {
     let files = Set(found.compactMap { $0.split(separator: ":").first.map(String.init) })
 
     #expect(GlassForm.requestCardFiles.isSubset(of: files), "\(GlassForm.requestCardFiles.subtracting(files))")
+  }
+
+  @Test func eachViewInABarWithNoGlassDeclaresThePlaceOfABarWithNoGlassOneTime() throws {
+    let found = try CodeScan.lines.uses(
+      of: GlassForm.barWithoutGlassPlacePattern, inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
+      relativeTo: PackageFiles.root)
+    let files = found.compactMap { $0.split(separator: ":").first.map(String.init) }
+
+    #expect(files.sorted() == GlassForm.barWithoutGlassFiles.sorted(), "\(found)")
+  }
+
+  @Test func theBarWithoutGlassPatternFindsOnlyTheDeclarationOfThatPlace() {
+    let pattern = GlassForm.barWithoutGlassPlacePattern
+
+    #expect("StatusBar(message: m).requestActionPlace(.barWithoutGlass)".contains(pattern))
+    #expect(!"StatusBar(message: m).requestActionPlace(.bar)".contains(pattern))
+    #expect(!"case .barWithoutGlass: content".contains(pattern))
   }
 
   @Test func theInputUsesTheProminentGlassButtonStyleOneTimeForTheSendButton() throws {
