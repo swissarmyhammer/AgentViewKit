@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -25,6 +26,9 @@ import Testing
 
   /// The JSON-RPC id of the second permission request of the deck test.
   static let edgeRequestID = 101
+
+  /// The text that the state test types into the comment field of a card.
+  static let commentText = "Not this file"
 
   /// Sends a user message and an agent message from the agent, waits until
   /// the transcript holds both, and then renders `harness`.
@@ -88,7 +92,9 @@ import Testing
     #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[0])
   }
 
-  @Test func theJumpOverlayListsTheItemsOfTheThreadAtTheirFrames() async throws {
+  /// EditorKit stands the jump label of a scope at the centre of its frame,
+  /// as a rect of no size.
+  @Test func theJumpOverlayListsTheItemsOfTheThreadAtTheCentresOfTheirFrames() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
@@ -106,8 +112,9 @@ import Testing
     let anchors = Dictionary(uniqueKeysWithValues: chips.map { ($0.id, $0.anchor) })
     for item in items {
       let anchor = try #require(anchors[item])
-      #expect(!anchor.isEmpty)
-      #expect(anchor == system.geometry.rect(of: item))
+      let frame = try #require(system.geometry.rect(of: item))
+      #expect(!frame.isEmpty)
+      #expect(anchor == CGRect(origin: CGPoint(x: frame.midX, y: frame.midY), size: .zero))
     }
   }
 
@@ -133,24 +140,91 @@ import Testing
   @Test func onlyTheDeckCardThatShowsWholeIsAJumpTarget() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let model = session.model
     let system = CommandSystem()
-    // The deck is beside the thread view, so the outer scope puts the cards
-    // in the scope of the thread.
     let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
     defer { harness.close() }
-    try await session.sendInOrder([.permission(id: Self.frontRequestID), .permission(id: Self.edgeRequestID)])
-    harness.render()
-    let requests = model.pendingPermissions.map(\.id)
-    try #require(requests.count == 2)
-    let thread = AgentCommandScopeHostedTests.path(of: model)
+    let cards = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
     let jump = JumpModeController(system: system)
 
-    try #require(jump.activate(layer: thread))
+    try #require(jump.activate(layer: AgentCommandScopeHostedTests.path(of: session.model)))
 
     let targets = Set(try #require(jump.overlayState?.chips).map(\.id))
-    #expect(targets.contains(thread.appending(AgentScopeKind.request(requests[0]))))
-    #expect(!targets.contains(thread.appending(AgentScopeKind.request(requests[1]))))
+    #expect(targets.contains(cards.front))
+    #expect(!targets.contains(cards.edge))
+  }
+
+  /// The deck keeps the edge card mounted behind the front card, so a
+  /// `nav.*` move must not land on it: the edge card is not in the
+  /// navigation snapshot of the thread, and the front card is.
+  @Test func anEdgeDeckCardIsNotInTheNavigationSnapshotOfTheThread() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    defer { harness.close() }
+    let cards = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
+
+    let snapshot = system.geometry.snapshot(layer: AgentCommandScopeHostedTests.path(of: session.model))
+
+    let scopes = Set(snapshot.scopes.map(\.path))
+    #expect(scopes.contains(cards.front))
+    #expect(!scopes.contains(cards.edge))
+  }
+
+  /// A card that goes behind the front card and comes back keeps its state:
+  /// the text of its comment field. The targetable switch of the card
+  /// changes with its role, and does not change the identity of the card.
+  @Test func aDeckCardKeepsItsCommentTextWhenItGoesBehindAndComesBack() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: CommandSystem(), outerScope: true)
+    defer { harness.close() }
+    _ = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
+    let reject = PermissionOptionId(rawValue: AgentCommandsTests.rejectOptionID)
+    try harness.press(identifier: PermissionView.optionIdentifier(for: reject))
+    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
+    harness.type(Self.commentText)
+
+    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try #require(harness.element(identifier: PermissionView.commentIdentifier) == nil)
+    try harness.press(identifier: RequestDeck.previousIdentifier)
+
+    #expect(harness.element(identifier: PermissionView.commentIdentifier)?.value == Self.commentText)
+  }
+
+  /// The scope paths of the two cards of a deck of two permission requests.
+  struct DeckCards {
+    /// The path of the card that shows whole.
+    let front: FocusPath
+
+    /// The path of the card that shows only its top edge.
+    let edge: FocusPath
+  }
+
+  /// Sends two permission requests from the agent, waits until the session
+  /// model holds both, and then renders `harness`. The deck shows the first
+  /// request whole, and only the top edge of the second.
+  ///
+  /// The deck is beside the thread view, so the harness must have the outer
+  /// scope that puts the cards in the scope of the thread.
+  ///
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - harness: The harness that renders the view after the wait.
+  /// - Returns: The scope paths of the two cards.
+  /// - Throws: The error of the transport, or an issue when the model does
+  ///   not hold two permission requests.
+  static func sendDeckOfTwoPermissions(
+    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
+  ) async throws -> DeckCards {
+    try await session.sendInOrder([.permission(id: frontRequestID), .permission(id: edgeRequestID)])
+    harness.render()
+    let requests = session.model.pendingPermissions.map(\.id)
+    try #require(requests.count == 2)
+    let thread = AgentCommandScopeHostedTests.path(of: session.model)
+    return DeckCards(
+      front: thread.appending(AgentScopeKind.request(requests[0])),
+      edge: thread.appending(AgentScopeKind.request(requests[1])))
   }
 
   /// A message row, a tool call card and the front request card each give

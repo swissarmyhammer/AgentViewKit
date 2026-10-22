@@ -44,6 +44,10 @@ comments:
   id: 01m5hy0ee1qqtcw9fdcxkw2m9m
   text: 'The blocker is tracked in EditorKit as ^1sztdky (01M5HY04GX4TEHSEFEC1SZTDKY), per editorkit-28. Not built yet; it''s queued after ^azp1kd1, which makes every beacon content-sized. Plan: while the beacon holds its scope''s focus, it draws the system focus ring over the scope area. A modifier sets a rounded shape, and the name comes with the SHA. `.focusEffectDisabled()` or a kit switch turns the ring off. There''s no ring when a content text view holds the focus. After the bump, set the item corner shape through that modifier, delete AgentItemFocusTarget, and test nav and jump focus plus the ring on the three item kinds.'
   timestamp: 2026-10-22T13:50:01.665848+00:00
+- actor: claude-code
+  id: 01m5j1qpqywac8w6mx52kytjrz
+  text: 'UNBLOCKED: EditorKit main 98ad0c8 (^1sztdky). On macOS, while a scope''s beacon holds the scope''s focus (a landed jump or nav move, no focusable content of its own), it draws the system focus ring over the scope area. focusRingMaskBounds = scope bounds; the ring follows focus, shape and size changes and goes away when the focus leaves. `.scopeFocusRing(cornerRadius:)`, chained onto the scope like `.commandLayer()`, rounds the ring for that scope only. SwiftUI `.focusEffectDisabled()` turns it off (read from the environment). iOS draws no ring (documented). A focused text view inside the scope draws its own ring. To do: `swift package update EditorKit` to 98ad0c8 or later; delete AgentItemFocusTarget/AgentItemFocusView and the `.background(AgentItemFocusTarget())` in AgentItemScope; add `.scopeFocusRing(cornerRadius:)` with the card radius for message rows, tool call cards and request cards; test nav and jump focus landing plus a ring on all three kinds (focusRingMaskBounds == item bounds on the first responder).'
+  timestamp: 2026-10-22T14:55:09.566863+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Decide whether AgentItemFocusTarget is still needed after EditorKit c64ca1b
