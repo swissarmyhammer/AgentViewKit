@@ -199,8 +199,25 @@ comments:
     - evidence: swift test — 1597 tests in 201 suites passed, 0 failed, 0 skipped; 3 known issues are the intentional withKnownIssue detector-failure tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); no compiler warnings from project code; only the known mlx-swift "missing creator" dependency notice
     - next: review
   timestamp: 2026-10-22T18:27:31.306264+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5je1333ardcbj5g8z1srkej
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (f79df49): 0 findings, 0 confirmed, 0 refuted; 7 files reviewed. The one prior finding (ScrollPocketProbe.swift:78 reuse/reuse) is checked.
+    - next: task moved to done
+  timestamp: 2026-10-22T18:30:00.035712+00:00
+- actor: claude-code
+  id: 01m5je1etnb6b8ze417qn726r8
+  text: |-
+    ### finish iteration 4 — clean
+    - implement: changed — shared NSView.descendants (new, with tests); 5 duplicated traversals removed (finding checked)
+    - test: green — swift test 1597 passed, 0 failed, 0 skipped
+    - commit: f79df49 (local, not pushed)
+    - review: clean — 0 findings, task in done
+    - open: Testudo re-runs its on-screen overflow probe after the push (soft fade under agent-info-header, no band, no hairline at the list top).
+  timestamp: 2026-10-22T18:30:12.053268+00:00
+position_column: done
+position_ordinal: ffffb480
 title: AVK-8 The transcript draws under the thread top bar, with the scroll edge effect
 ---
 Reported by testudoapp-2c (2026-10-22), measured in Testudo on AgentViewKit 20d1de5. The host is a plain `AgentThreadView(session:connection:)` (TestudoApp `Sources/SAHKit/Chat/ChatAreaView.swift`).
