@@ -30,8 +30,24 @@ comments:
     - evidence: `swift test` (6 changed Sources files and PreviewFixturesTests.swift touched first) — 1649 tests in 203 suites passed, 0 failed, 0 skipped; PreviewFixturesTests suite passed; no warnings from project code (only the known mlx-swift "missing creator" notice). The 3 known issues are the intentional expected-failure tests (SnapshotStoreTests theCheckOfAViewThatChangedRecordsAnIssue, HostedLayoutExpectationsTests aWrappedTextWithAFixedVerticalSizeFails, ThemeHeightExpectationsTests aViewThatIgnoresTheThemeFails).
     - next: commit
   timestamp: 2026-10-22T22:21:27.765978+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5jvggwzww2fpk6e8ggbf2ab
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (4e68747) — 0 findings, 0 confirmed, 1 refuted; 7 files reviewed, 8 .kanban files excluded by .reviewignore
+    - next: none; task moved to done
+  timestamp: 2026-10-22T22:25:37.183512+00:00
+- actor: claude-code
+  id: 01m5jvgtkhpyam1945tv6xv4k2
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 18 previews in TranscriptMessageView, MessageItemView (MessageLayout), EntryContentView, ThoughtEntryBlock and JSONDisclosure; PreviewFixtures + 10 PreviewFixturesTests (red first)
+    - test: green — swift test 1649 passed, 0 failed, 0 skipped (retry; the first tester died on a network error before reporting)
+    - commit: 4e68747
+    - review: clean — 0 findings (1 refuted), task in done
+  timestamp: 2026-10-22T22:25:47.121269+00:00
+position_column: done
+position_ordinal: ffffb980
 title: 'AVK-14d Add #Preview blocks for the transcript item views'
 ---
 ## Goal
