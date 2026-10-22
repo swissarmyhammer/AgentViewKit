@@ -209,12 +209,12 @@ public final class DemoAgent {
   ///   of the process environment.
   /// - Returns: The home.
   /// - Throws: `DotfolderNameError` when ``agentDotfolderName`` is refused.
-  static func home(environment: [String: String]) throws -> AgentHome {
+  static func makeHome(environment: [String: String]) throws -> AgentHome {
     AgentHome.makeXDG(name: try DotfolderName(agentDotfolderName), environment: environment)
   }
 
   /// Composes FoundationModelsACPAgent with the dotfolder name and the
-  /// ``home(environment:)`` of the demo, starts it in this process through
+  /// ``makeHome(environment:)`` of the demo, starts it in this process through
   /// ``InProcessAgent``, and sends `initialize`.
   ///
   /// ``stop()`` waits until the agent closed each open session.
@@ -240,7 +240,7 @@ public final class DemoAgent {
     let composed = try await ComposedAgent.compose(
       name: try DotfolderName(agentDotfolderName),
       workingDirectory: URL(filePath: workingDirectory.rawValue),
-      home: try home(environment: environment),
+      home: try makeHome(environment: environment),
       environment: environment,
       modelSource: modelSource,
       transcriptLocation: transcriptLocation

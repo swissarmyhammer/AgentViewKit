@@ -93,7 +93,7 @@ import Testing
     let environment = [RecordedSessionsStageTests.configurationHomeKey: configurationRoot.path(percentEncoded: false)]
     let expectedSynced = configurationRoot.appending(path: DemoAgent.agentDotfolderName, directoryHint: .isDirectory)
 
-    let home = try DemoAgent.home(environment: environment)
+    let home = try DemoAgent.makeHome(environment: environment)
 
     #expect(home.synced.standardizedFileURL.path == expectedSynced.standardizedFileURL.path)
   }
