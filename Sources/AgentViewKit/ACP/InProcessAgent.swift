@@ -19,7 +19,8 @@ import FoundationModelsACPClient
 /// ```swift
 /// // 1. Compose the agent one time, before the connection opens.
 /// let composed = try await ComposedAgent.compose(
-///   name: try DotfolderName("my-host"), workingDirectory: projectDirectory)
+///   name: try DotfolderName("my-host"), workingDirectory: projectDirectory,
+///   home: .makeCustom(synced: syncedFolder, local: localFolder))
 /// // 2. Bind the agent to the agent side of the connection.
 /// let model = await InProcessAgent.makeConnection { connection in
 ///   composed.agent(boundTo: connection)

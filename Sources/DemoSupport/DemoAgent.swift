@@ -193,9 +193,29 @@ public final class DemoAgent {
     )
   }
 
-  /// Composes FoundationModelsACPAgent with the dotfolder name of the demo,
-  /// starts it in this process through ``InProcessAgent``, and sends
-  /// `initialize`.
+  /// The home of FoundationModelsACPAgent in the demo app: the XDG home of
+  /// ``agentDotfolderName`` (`AgentHome.makeXDG(name:environment:)`).
+  ///
+  /// The XDG home keeps the folders of the agent that the demo always used:
+  /// the user layer in `$XDG_CONFIG_HOME/agentviewkit-demo/`, the hook data
+  /// in `$XDG_DATA_HOME/agentviewkit-demo/hooks/`, and the shared skills
+  /// marketplace and model caches of the environment. The home reads these
+  /// variables from `environment`, so a configuration root in the
+  /// environment, such as ``RecordedSessionsStage/agentEnvironment`` or the
+  /// temporary root of a test, still moves the user layer and the project
+  /// registry out of the home directory.
+  ///
+  /// - Parameter environment: The environment that the agent reads in place
+  ///   of the process environment.
+  /// - Returns: The home.
+  /// - Throws: `DotfolderNameError` when ``agentDotfolderName`` is refused.
+  static func home(environment: [String: String]) throws -> AgentHome {
+    AgentHome.makeXDG(name: try DotfolderName(agentDotfolderName), environment: environment)
+  }
+
+  /// Composes FoundationModelsACPAgent with the dotfolder name and the
+  /// ``home(environment:)`` of the demo, starts it in this process through
+  /// ``InProcessAgent``, and sends `initialize`.
   ///
   /// ``stop()`` waits until the agent closed each open session.
   ///
@@ -220,6 +240,7 @@ public final class DemoAgent {
     let composed = try await ComposedAgent.compose(
       name: try DotfolderName(agentDotfolderName),
       workingDirectory: URL(filePath: workingDirectory.rawValue),
+      home: try home(environment: environment),
       environment: environment,
       modelSource: modelSource,
       transcriptLocation: transcriptLocation

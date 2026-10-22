@@ -87,6 +87,17 @@ import Testing
     #expect(RecordedSessionsAgentTests.FileSnapshot(of: RecordedSessionsAgentTests.homeProjectRegistry) == homeRegistry)
   }
 
+  @Test func theHomeOfTheAgentIsTheDemoDotfolderInTheConfigurationRootOfTheEnvironment() throws {
+    let configurationRoot = URL(filePath: Self.workingDirectory, directoryHint: .isDirectory)
+      .appending(path: Self.configurationDirectoryName, directoryHint: .isDirectory)
+    let environment = [RecordedSessionsStageTests.configurationHomeKey: configurationRoot.path(percentEncoded: false)]
+    let expectedSynced = configurationRoot.appending(path: DemoAgent.agentDotfolderName, directoryHint: .isDirectory)
+
+    let home = try DemoAgent.home(environment: environment)
+
+    #expect(home.synced.standardizedFileURL.path == expectedSynced.standardizedFileURL.path)
+  }
+
   /// The agents that the demo starts in this process. Each of them must pass
   /// the tests over this type.
   enum InProcessAgentFactory: CaseIterable {
