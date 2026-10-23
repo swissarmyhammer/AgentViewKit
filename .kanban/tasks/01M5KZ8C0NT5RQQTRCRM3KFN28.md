@@ -64,8 +64,24 @@ comments:
     - evidence: `swift test` run twice back to back on main (changed Sources files touched first, EditorKit at d1837c1, no package update). Run 1: 1683 Swift Testing tests in 206 suites passed, 4 known issues, 0 failures; 227 tests in 30 suites passed in the other target; exit 0. Run 2: identical counts (1683 tests, 206 suites, 4 known issues; 227 tests, 30 suites); exit 0. Zero skipped, zero compiler warnings from project code. The only warning-level log lines are runtime FoundationModelsCodeContext watcher notices from the dependency.
     - next: review
   timestamp: 2026-10-23T09:53:41.300893+00:00
-position_column: doing
-position_ordinal: '8580'
+- actor: claude-code
+  id: 01m5m31j078m196n8y02qkz5nj
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (abaf7ee) — 0 findings, 0 confirmed, 0 refuted; 7 files reviewed, 4 .kanban files excluded by .reviewignore; no prior Review Findings sections
+    - next: task moved to done
+  timestamp: 2026-10-23T09:56:29.831205+00:00
+- actor: claude-code
+  id: 01m5m31zkhxxxw483fwvnkzh2d
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — new AgentScopeMount over CommandSystem.mount/unmount; AgentCommandMount and AgentAttachmentMount migrated; deregister also unregisters the verbs; no `mountHolders` left; new tests red first (two windows for the thread and for an attachment, path move, deregister); found that a second window's attachment never got its own commands; fixed. EditorKit d1837c1.
+    - test: green — swift test run twice, 1683 + 227 passed each, 0 failed, 0 skipped
+    - commit: abaf7ee
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-23T09:56:43.761934+00:00
+position_column: done
+position_ordinal: ffffc380
 title: Migrate agent command and attachment mounts to EditorKit CommandSystem.mount/unmount (hand-back when a window closes)
 ---
 Requires EditorKit ^twfbzd4 on EditorKit origin/main. Check for `CommandSystem.mount(at:by:register:)` first; if it's missing, record that the card is waiting, and stop. Full migration notes are on EditorKit card ^twfbzd4 (from editorkit-28, 2026-10-23).
