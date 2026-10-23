@@ -467,7 +467,7 @@ Elicitation is how a server asks the user for input mid-tool-call. It reaches th
 | `enum` or titled `oneOf` | single-choice | radio group up to 5, menu above |
 | `array` with `items.enum` or `items.anyOf` plus `minItems`, `maxItems` | multi-choice | checkbox group |
 
-Each choice normalizes to a `(value, title)` pair. ACP v2 carries `enum`, `oneOf`, and `anyOf`. Legacy `enumNames` is accepted from MCP sources only. `default`s pre-populate. Validation gates Submit: required, lengths, pattern, bounds, item counts, format.
+Each choice normalizes to a `(value, title)` pair. ACP v2 carries `enum`, `oneOf`, and `anyOf`. Legacy `enumNames` is accepted from MCP sources only. `default`s pre-populate. Validation gates Submit: required, lengths, pattern, bounds, item counts, format. A new form shows no field error: a field shows its errors after the user changes it, or after a submit attempt with a form that is not complete, and VoiceOver announces the errors that appear.
 
 **Multiple questions render tabbed.** One chip per property with required and answered marks. The threshold is a configuration point on the layout slot.
 

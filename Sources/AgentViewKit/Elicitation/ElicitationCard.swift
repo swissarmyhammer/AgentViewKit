@@ -124,7 +124,7 @@ private struct ElicitationCardSample: View {
   ElicitationCardSample(PreviewFixtures.invalidFieldElicitation)
 }
 
-#Preview("In content, before the user types: the required field shows its error") {
+#Preview("In content, before the user types: the required field shows no error yet") {
   ElicitationCardSample(PreviewFixtures.formElicitation)
 }
 

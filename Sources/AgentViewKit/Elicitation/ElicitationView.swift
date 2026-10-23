@@ -11,7 +11,15 @@ import SwiftUI
 ///
 /// The view makes the fields from the ACP `requestedSchema` with
 /// ``ElicitationFieldSchema/normalize(from:)``. It keeps the answers, starts
-/// each field at its default, and validates on each change. The header slot
+/// each field at its default, and validates on each change. A field shows its
+/// errors only after the user changes its answer, or after a call of
+/// ``ElicitationFooterContext/submit`` while the form is not complete. Before
+/// that, its context has the validation state
+/// ``FieldValidationState/satisfied``, so a new form shows no error. When a
+/// change of an answer shows new errors, the view announces them at
+/// `.medium`. A submit attempt with a form that is not complete sends nothing,
+/// shows the errors of each field, and announces them at `.high`
+/// (`fieldErrorText(title:validation:)`). The header slot
 /// names the agent, the layout slot shows the fields, and the footer slot
 /// shows Submit, Decline, and Cancel. Submit is disabled until
 /// ``ElicitationValidator/isComplete(values:schemas:)`` is `true`. Esc
@@ -86,6 +94,14 @@ public struct ElicitationView: View {
   /// answer, or `nil` when there is no such failure. A change of
   /// ``values`` removes it.
   @State private var answerFailure: String?
+
+  /// The names of the fields whose answer the user changed. These fields
+  /// show their errors.
+  @State private var editedFields: Set<String> = []
+
+  /// Whether the user tried to submit the form while it was not complete.
+  /// After that, each field shows its errors.
+  @State private var submitAttempted = false
 
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
@@ -200,15 +216,71 @@ public struct ElicitationView: View {
   /// The context of one field, with a binding to its answer.
   ///
   /// - Parameter schema: The field.
-  /// - Returns: The context. Its validation state is the state of the
-  ///   current answer.
+  /// - Returns: The context. Its validation state is the state that the
+  ///   field shows (``shownValidation(of:)``). A write to its binding is an
+  ///   edit of the user (``edit(_:to:)``).
   private func fieldContext(_ schema: ElicitationFieldSchema) -> ElicitationFieldContext {
     let name = schema.name
     let binding = Binding<JSONValue?>(
       get: { values[name] },
-      set: { values[name] = $0 }
+      set: { edit(schema, to: $0) }
     )
-    return ElicitationFieldContext(schema: schema, value: binding)
+    return ElicitationFieldContext(schema: schema, value: binding, validation: shownValidation(of: schema))
+  }
+
+  /// The validation state that a field shows.
+  ///
+  /// - Parameter schema: The field.
+  /// - Returns: The state of the current answer when the user changed the
+  ///   field or tried to submit the form, else
+  ///   ``FieldValidationState/satisfied``.
+  private func shownValidation(of schema: ElicitationFieldSchema) -> FieldValidationState {
+    guard submitAttempted || editedFields.contains(schema.name) else { return .satisfied }
+    return ElicitationValidator.validate(values[schema.name], against: schema)
+  }
+
+  /// Keeps a new answer that the user gave to a field.
+  ///
+  /// A write of the current answer changes nothing. Another answer marks the
+  /// field as edited, so it shows its errors. When the field then shows
+  /// errors that it did not show before, the view announces them at
+  /// `.medium`.
+  ///
+  /// - Parameters:
+  ///   - schema: The field.
+  ///   - answer: The new answer, or `nil` for no answer.
+  private func edit(_ schema: ElicitationFieldSchema, to answer: JSONValue?) {
+    let name = schema.name
+    guard values[name] != answer else { return }
+    let shownBefore = shownValidation(of: schema)
+    values[name] = answer
+    editedFields.insert(name)
+    let shownAfter = ElicitationValidator.validate(answer, against: schema)
+    guard !shownAfter.isSatisfied, shownAfter != shownBefore else { return }
+    announcer.announce(Self.fieldErrorText(title: schema.title, validation: shownAfter), priority: .medium)
+  }
+
+  /// The text that announces the errors of one field.
+  ///
+  /// - Parameters:
+  ///   - title: The title of the field.
+  ///   - validation: The validation state of the answer of the field.
+  /// - Returns: "“<title>”: " and the messages of `validation`, separated by
+  ///   spaces.
+  static func fieldErrorText(title: String, validation: FieldValidationState) -> String {
+    let messages = validation.errors.joined(separator: " ")
+    return String(localized: "“\(title)”: \(messages)", bundle: .module)
+  }
+
+  /// Shows the errors of each field after a submit attempt with a form that
+  /// is not complete, and announces them at `.high` in the order of the form.
+  private func showErrorsOfIncompleteForm() {
+    submitAttempted = true
+    let texts = fields.compactMap { schema -> String? in
+      let validation = ElicitationValidator.validate(values[schema.name], against: schema)
+      return validation.isSatisfied ? nil : Self.fieldErrorText(title: schema.title, validation: validation)
+    }
+    announcer.announce(texts.joined(separator: " "), priority: .high)
   }
 
   /// The content of an accepted form.
@@ -255,6 +327,12 @@ public struct ElicitationView: View {
   /// Sends the answers when each field passes validation and the check
   /// before the send finds no failure.
   ///
+  /// When a field does not pass validation, the view sends nothing. It shows
+  /// the errors of each field and announces them
+  /// (``showErrorsOfIncompleteForm()``). The default footer disables Submit
+  /// in that state, so only a custom footer that keeps its Submit enabled
+  /// calls this function then.
+  ///
   /// The check before the send is `PendingElicitation.validationIssue(of:)`:
   /// the rules of the agent (FoundationModelsExtras) on the same content
   /// that the view sends. When it finds an issue, the view does not send.
@@ -267,7 +345,10 @@ public struct ElicitationView: View {
   /// view then sends, and the agent judges the answer. Thus a required
   /// property of such a type is not caught before the send.
   private func submit() {
-    guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
+    guard ElicitationValidator.isComplete(values: values, schemas: fields) else {
+      showErrorsOfIncompleteForm()
+      return
+    }
     let content = JSONValue.object(Self.answerContent(values: values))
     if let issue = request.validationIssue(of: content) {
       let text = Self.failureText(for: issue, requestedSchema: requestedSchema)
@@ -378,8 +459,9 @@ public struct ElicitationFooterContext {
   /// `true`.
   public let canSubmit: Bool
 
-  /// Accepts the elicitation with the answers. The call does nothing when
-  /// ``canSubmit`` is `false`. When the agent cannot accept the answers, the
+  /// Accepts the elicitation with the answers. When ``canSubmit`` is
+  /// `false`, the call sends nothing: each field shows its errors, and
+  /// VoiceOver announces them. When the agent cannot accept the answers, the
   /// call does not send them, and the form shows the failure.
   public let submit: @MainActor () -> Void
 

@@ -15,7 +15,12 @@ public struct ElicitationFieldContext {
   /// The current answer of the field. `nil` means that there is no answer.
   public let value: Binding<JSONValue?>
 
-  /// The validation state of the current answer.
+  /// The validation state that the field shows.
+  ///
+  /// ``ElicitationView`` gives ``FieldValidationState/satisfied`` until the
+  /// user changes the answer of the field or tries to submit the form, so a
+  /// new form shows no error. After that, it gives the state of the current
+  /// answer.
   public let validation: FieldValidationState
 
   /// Makes a context.

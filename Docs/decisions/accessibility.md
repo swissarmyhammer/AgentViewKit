@@ -42,7 +42,7 @@ that paragraph.
 
 ## Announcements
 
-The kit announces only at five boundaries. A streaming chunk gives no
+The kit announces only at seven boundaries. A streaming chunk gives no
 announcement.
 
 | Boundary | Text | Priority |
@@ -52,6 +52,8 @@ announcement.
 | A new pending request of the model of a `RequestDeck` | "Action required: <title>" | high |
 | A new record in `withdrawnRequests` of the model of a `RequestDeck` (the agent withdrew a pending request with `$/cancel_request`) | "<title> was withdrawn: <reason>", or "<title> was withdrawn." with no reason | medium |
 | The check before the send refuses an elicitation answer (`ElicitationView` does not send it) | "The agent cannot accept the answer for “<field title>”: <rule>", or "The agent cannot accept this answer: <rule>" when the issue has no field. The rule is the localized kit text of the issue kind, the same text as the field check for the same rule. | high |
+| A change of an elicitation answer makes the field show errors that it did not show before (`ElicitationView` shows the errors of a field only after the user changes it, or after a submit attempt) | "“<field title>”: <messages>" | medium |
+| A submit attempt with an elicitation form that is not complete (`ElicitationFooterContext.submit` while `canSubmit` is `false`; the default footer disables Submit, so only a custom footer reaches it) | "“<field title>”: <messages>" for each field that is not valid, in the order of the form | high |
 
 - A prompt is mail (ACPAgent 293be4b). The order on the wire is: the
   prompt response with the `messageId`, the `user_message` echo with that
