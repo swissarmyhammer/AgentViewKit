@@ -21,7 +21,9 @@ of each row, and compares the set with the direct dependencies of the kit.
 ## The ACP packages
 
 - FoundationModelsACPClient holds `ConnectionModel` and `SessionModel`. The
-  views bind to these models (`Docs/decisions/acp-client-kit.md`).
+  views bind to these models (`Docs/decisions/acp-client-kit.md`). It also
+  holds `InProcessAgent`, the helper that runs an agent in the process of the
+  host.
 - The kit also lists the `FoundationModelsACP` product, because
   `ClientSideConnection`, `InMemoryTransport` and the ACP v2 schema types are
   in that package.

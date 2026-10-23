@@ -49,6 +49,16 @@ comments:
     - gap: the card requirement "reverts on Esc" conflicts with the EditorKit contract (Esc commits; Revert Field is Control-Command-Z). See the BLOCKER comment.
     - next: a person decides the Esc rule; then /review.
   timestamp: 2026-10-23T20:48:12.445961+00:00
+- actor: claude-code
+  id: 01m5n8ca576q3xbr8v8p5qbf1b
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — 12 files; a true conflict: the card requires "reverts on Esc", and EditorKit 781f2fe makes Esc keep the text (Revert Field is Control-Command-Z). A person must decide.
+    - test: swift test 1714 passed (from the implement step; no separate test step ran)
+    - commit: 8c5fe68 (local checkpoint, the task is not done)
+    - review: not run
+    - next: a person decides the Esc question, then /finish ^8zmkh1a
+  timestamp: 2026-10-23T20:48:59.559762+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Replace one-line SwiftUI TextFields with EditorKit SingleLineField

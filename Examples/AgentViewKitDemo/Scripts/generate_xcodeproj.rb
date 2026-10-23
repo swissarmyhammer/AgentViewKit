@@ -13,8 +13,8 @@
 
 require_relative '../../Scripts/xcodeproj_generator'
 
-# The AgentViewKit product that the app links. `AgentViewKit` gives the session views and the
-# in-process helper `InProcessAgent`.
+# The AgentViewKit product that the app links. `AgentViewKit` gives the session views. The
+# in-process helper `InProcessAgent` is in FoundationModelsACPClient (`REMOTE_PACKAGES` below).
 PACKAGE_PRODUCTS = %w[AgentViewKit].freeze
 
 # The package target that compiles into the app: the in-memory agent, `DemoAgent` (which starts

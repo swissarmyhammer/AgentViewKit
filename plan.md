@@ -20,7 +20,7 @@ A FoundationModels agent or a Router agent reaches the kit as an ACP agent:
 LanguageModelSession / Router  ->  FoundationModelsACPAgent  ->  ACP  ->  ACP client  ->  AgentViewKit
 ```
 
-The agent runs in a subprocess (`AgentProcess` of FoundationModelsACPClient), or in the same process through `InProcessAgent` (§3.9).
+The agent runs in a subprocess (`AgentProcess` of FoundationModelsACPClient), or in the same process through `InProcessAgent` of FoundationModelsACPClient (§3.9).
 
 **The dependencies.** The direct dependencies are FoundationModelsACPClient, FoundationModelsACP, EditorKit, Textual and swiftui-math (`Docs/decisions/dependencies.md`). FoundationModels, FoundationModelsRouter and FoundationModelsExtras are not direct dependencies. The package has one library product and one library target, `AgentViewKit` (§11 decision 1).
 
@@ -190,7 +190,7 @@ Each item is built. Each view reads the model value in its body and keeps no cop
 
 ### 3.9 The agent in this process
 
-`InProcessAgent.makeConnection(serving:)` runs an ACP agent in the process of the app. It pairs an `InMemoryTransport`, serves the agent on one end with an `AgentSideConnection`, and connects a new `ConnectionModel` on the other end. The two sides speak the real ACP wire. The helper returns the connection model and keeps no state of its own. The kit does not import an agent: the app gives it, for example the `RoutedACPAgent` of FoundationModelsACPAgent.
+`InProcessAgent.makeConnection(serving:)` of FoundationModelsACPClient runs an ACP agent in the process of the app. The kit has no copy of this helper. It pairs an `InMemoryTransport`, serves the agent on one end with an `AgentSideConnection`, and connects a new `ConnectionModel` on the other end. The two sides speak the real ACP wire. The helper returns the connection model and keeps no state of its own. The kit does not import an agent: the app gives it, for example the `RoutedACPAgent` of FoundationModelsACPAgent.
 
 ## 4. Building blocks: reuse, do not reinvent
 
