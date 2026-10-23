@@ -69,8 +69,26 @@ comments:
     - evidence: `swift test` (after touching AgentThreadView.swift and ConversationView.swift; no `swift package update`) — 1683 tests in 206 suites passed, 0 failed, 0 skipped, 4 known issues (as expected). Build complete with no compiler warnings from project code; only the known SwiftPM mlx-swift "missing creator" notice. README suites ReadmeSnippetTests, ReadmeSnippetsTests, ReadmeCoverageTests, plus ThreadTopBarStructureTests, ThreadScrollEdgeEffectHostedTests, ThreadTopBarHostedTests and PackageFilesTests all passed. Runtime log lines from the FoundationModelsCodeContext watcher ("could not delete a removed file from the index") are dependency log output, not compiler warnings.
     - next: review/commit
   timestamp: 2026-10-23T10:04:30.477679+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5m3kzs9fw6accark6dvhctt
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (88c05eb) — counts: 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed); not reviewed: .kanban/ (from .reviewignore), README.md and plan.md (no validator matches)
+    - next: task moved to done
+  timestamp: 2026-10-23T10:06:33.769141+00:00
+- actor: claude-code
+  id: 01m5m3mfbcwxfkttqdhyf80kdh
+  text: |-
+    ### finish iteration 2 — clean
+    - decision: the user chose option A (2026-10-23): accept the system look
+    - implement: changed — docs and comments only: AgentThreadView, ConversationView, 3 test suite docs, plan.md, README.md
+    - test: green — swift test 1683 passed, 0 failed, 0 skipped; README suites passed
+    - commit: 88c05eb
+    - review: clean — 0 findings (README.md and plan.md have no validator), task in done
+    - open on the Testudo side: testudoapp-2c updates TestudoApp features/style.md to match
+  timestamp: 2026-10-23T10:06:49.708098+00:00
+position_column: done
+position_ordinal: ffffc480
 title: AVK-8 Rows under the top bars draw nothing, even with the soft scroll edge effect (follow-up to ^ph0m0hf)
 ---
 Follow-up to ^ph0m0hf (done: the list asks for `.scrollEdgeEffectStyle(.soft, for: .vertical)`, and the hairline is gone). On-screen probe by testudoapp-2c on AVK 4a9428f + EditorKit 7de8297: 14 prompts, 1280×800 window, window-relative points, Light and Dark. Artifacts: `/Users/wballard/github/swissarmyhammer/TestudoApp/.build/app/probe-avk4a9428f/` (window and crop PNGs, report txts; manifest.json maps the names).
