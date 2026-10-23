@@ -46,8 +46,26 @@ comments:
     - evidence: EditorKit resolved at 69d04fc (root and demo Package.resolved, both gitignored). `swift test`: 1741 tests / 214 suites passed (3 known issues are harness self-tests that predate this card), 227 tests / 30 suites passed, 1 README snippet test passed; 0 warnings from AVK code. Demo `xcodebuild … -scheme AgentViewKitDemo build`: BUILD SUCCEEDED. Files: Sources/AgentViewKit/Input/AgentOneLineField.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift (docs); Tests/AgentViewKitTests/{Helpers/SingleLineFieldChecks.swift, HumanInTheLoop/PermissionCommentFieldHostedTests.swift, Sessions/SessionListSearchFieldHostedTests.swift, Elicitation/ElicitationTextFieldEditingHostedTests.swift, Theme/DistinctRolesTheme.swift, Theme/EditorThemeViewsTests.swift, Terminal/TerminalViewHostedTests.swift}; Tests/PackageStructureTests/ContentFillTests.swift + 2 fixtures; 4 bottom-bar-buttons PNGs; plan.md, README.md, Docs/decisions/visual-audit.md.
     - next: /review. Not committed. The terminal fill decision is still open for the user.
   timestamp: 2026-10-23T21:58:17.744767+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5ncp51v491mzwas1vpgd7bp
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8b93038): 0 findings (14 attempted, 4 refuted, 0 confirmed); 13 files reviewed, 9 not reviewed (.kanban ignored, 4 PNG snapshots, 3 markdown files with no matching validator)
+    - next: task moved to done
+  timestamp: 2026-10-23T22:04:16.315084+00:00
+- actor: claude-code
+  id: 01m5ncpsapt2jrdj87an2avkk8
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — EditorKit 69d04fc; `.onEditorCommit` (`.submit` and `.submitNow`); Esc commits and never answers; Revert Field tests; placeholder is the hint; theme backgrounds dropped from tests; 4 bottom-bar-buttons snapshots re-recorded
+    - test: green — swift test, 1741 tests in 214 suites passed, 0 failed, 0 skipped, 0 warnings
+    - commit: 8b93038 (+ 2cd8725, a kanban chore)
+    - review: clean — 0 findings; task in done
+    - Open for the user: (1) ⌘Return also submits the comment and elicitation fields, as the old onSubmit did; (2) the terminal is clear by default now, so ANSI black has low contrast (asked via testudoapp-2c).
+    - Not pushed. Now unblocks pushing the local commits of ^8zmkh1a, ^66has33, ^2sg9taf and ^xqday3k.
+  timestamp: 2026-10-23T22:04:37.078455+00:00
+position_column: done
+position_ordinal: ffffcc80
 title: 'Adopt EditorKit main: onEditorCommit edit sessions (781f2fe, ^a54d840) and transparent-by-default (^0apj6a2)'
 ---
 BLOCKS PUSH. Reported by editorkit-28 (2026-10-23). AVK's `Package.swift` tracks EditorKit `branch: "main"`, and `Package.resolved` is gitignored, so any fresh resolve (CI, Testudo) builds AVK against EditorKit main. EditorKit main already breaks AVK. Our local pin at 8e4d27a only hides the break. Do this card before pushing the local commits of ^8zmkh1a, ^66has33 and ^2sg9taf.
