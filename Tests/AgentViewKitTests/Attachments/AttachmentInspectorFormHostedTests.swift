@@ -61,7 +61,7 @@ import Testing
   func theBackdropOfTheHostShowsInTheMarginOfTheForm(reducesTransparency: Bool) throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    let attachment = try AttachmentInspectorHostedTests.attachment(named: "blob.bin", in: directory)
+    let attachment = try Self.attachment(in: directory)
 
     let pixels = try ContentEdgeHostedProbe.pixels(
       of: AttachmentInspector(attachment), backdrop: .behindToTheEdge,
@@ -70,8 +70,11 @@ import Testing
     #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.marginPoint))
   }
 
-  /// Mounts the inspector of a file in `directory`, and makes one render
-  /// pass.
+  /// Mounts the inspector of a file in `directory` in a window of ``size``,
+  /// and makes one render pass.
+  ///
+  /// The mount and the render pass are those of
+  /// ``AttachmentInspectorHostedTests/mountInspectorContent(of:size:)``.
   ///
   /// - Parameter directory: The directory of the file.
   /// - Returns: The harness of the inspector. The caller closes it.
@@ -79,9 +82,17 @@ import Testing
   static func mountInspector(in directory: TemporaryDirectory) throws
     -> HostedViewHarness<AttachmentInspector>
   {
-    let attachment = try AttachmentInspectorHostedTests.attachment(named: "blob.bin", in: directory)
-    let harness = HostedViewHarness(AttachmentInspector(attachment), size: size)
-    harness.render()
-    return harness
+    try AttachmentInspectorHostedTests.mountInspectorContent(
+      of: InspectorSelection(attachment: attachment(in: directory)), size: size)
+  }
+
+  /// Writes the file of the inspector to `directory`, and makes its
+  /// attachment.
+  ///
+  /// - Parameter directory: The directory of the file.
+  /// - Returns: The attachment of the file.
+  /// - Throws: The error of the write of the file.
+  static func attachment(in directory: TemporaryDirectory) throws -> AgentViewKit.Attachment {
+    try AttachmentInspectorHostedTests.attachment(named: "blob.bin", in: directory)
   }
 }

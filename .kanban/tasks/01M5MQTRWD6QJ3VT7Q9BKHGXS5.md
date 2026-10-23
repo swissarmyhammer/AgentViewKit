@@ -40,6 +40,38 @@ comments:
     - evidence: 2 files — Sources/AgentViewKit/Attachments/AttachmentInspector.swift, Tests/AgentViewKitTests/Attachments/AttachmentInspectorFormHostedTests.swift (new). `swift test`: 1744 tests in 215 suites passed (3 known issues, all pre-existing `withKnownIssue` helper self-tests), plus 227 tests in 30 suites passed. The one warning is SwiftPM's "missing creator for mutated node … mlx-swift_Cmlx.bundle", which comes from the build system and appears on every build. `xcodebuild -scheme AgentViewKitDemo build`: BUILD SUCCEEDED. No UI run, so the UI-test lock was not taken. EditorKit is still at 69d04fc. No snapshot changed: no AttachmentInspector snapshot exists (follow-up ^v7n1ycx).
     - next: /review
   timestamp: 2026-10-23T22:17:25.529423+00:00
+- actor: claude-code
+  id: 01m5ndpfb5ke1fgr7hg2vcm0g9
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (cb5ae68): 1 finding (1 confirmed, 0 refuted) — Tests/AgentViewKitTests/Attachments/AttachmentInspectorFormHostedTests.swift:79 `reuse/reuse`
+    - next: implement the open item in the 2026-10-23 17:20 Review Findings section (reuse `AttachmentInspectorHostedTests.mountInspectorContent` via a `size:` parameter or a shared test helper), then re-review
+  timestamp: 2026-10-23T22:21:55.429551+00:00
+- actor: claude-code
+  id: 01m5ndq2sje1mnztbvnq56whwe
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — grouped Form, form background hidden, preview at a fixed 240 pt, `formIdentifier`; 2 files
+    - test: green — swift test, 1744 tests in 215 suites passed, 0 failed, 0 skipped
+    - commit: cb5ae68 (+ d61405d, a kanban chore)
+    - review: findings — Tests/AgentViewKitTests/Attachments/AttachmentInspectorFormHostedTests.swift:79 (reuse)
+  timestamp: 2026-10-23T22:22:15.346126+00:00
+- actor: claude-code
+  id: 01m5ndzcm6wd4zjfj8rqaepp2c
+  text: |-
+    Fixed the 2026-10-23 17:20 reuse finding (AttachmentInspectorFormHostedTests.swift:79).
+    - `AttachmentInspectorHostedTests.mountInspectorContent(of:)` became `mountInspectorContent(of:size:)`, with `size: CGSize = hostSize`. Its existing callers pass no size, so they keep the 900x600 window. The suite doc's DocC link now names `mountInspectorContent(of:size:)`.
+    - The new suite's `mountInspector(in:)` no longer builds its own harness. It calls `mountInspectorContent(of: InspectorSelection(attachment: …), size: size)`, and `InspectorSelection(attachment:)` already exists as a public init.
+    - A second copy in the new file: `AttachmentInspectorHostedTests.attachment(named: "blob.bin", in:)` appeared twice (in `mountInspector` and in the backdrop test). It now has one source, `AttachmentInspectorFormHostedTests.attachment(in:)`.
+    - I left the backdrop test on `ContentEdgeHostedProbe.pixels`, which is already the shared probe.
+  timestamp: 2026-10-23T22:26:47.558152+00:00
+- actor: claude-code
+  id: 01m5ndzfgeq9bx0bj5egsfx6vm
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift, Tests/AgentViewKitTests/Attachments/AttachmentInspectorFormHostedTests.swift. `swift test`: 1744 tests in 215 suites passed (3 known issues, all pre-existing), plus 227 tests in 30 suites passed. AttachmentInspectorHostedTests, AttachmentInspectorFormHostedTests and AttachmentInspectorModeHostedTests passed. The only warning is SwiftPM's pre-existing "missing creator for mutated node … mlx-swift_Cmlx.bundle". Not committed. The review finding is flipped to [x].
+    - next: /review
+  timestamp: 2026-10-23T22:26:50.510301+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'AttachmentInspector: system grouped Form layout (Xcode / Icon Composer inspector look)'
@@ -62,3 +94,12 @@ Today `AttachmentInspector` (Sources/AgentViewKit/Attachments/AttachmentInspecto
 - Full `swift test` green; the demo builds.
 
 When it's done, send testudoapp-2c the card id and the SHA. #avk-8 #testudo-request
+
+## Review Findings (2026-10-23 17:20)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Attachments/AttachmentInspectorFormHostedTests.swift:79` `reuse/reuse` — The new `mountInspector` reimplements the mount-and-render body of the existing `AttachmentInspectorHostedTests.mountInspectorContent`, which already mounts `AttachmentInspector` in a `HostedViewHarness` and calls `render()`. The only differences are the window size (`size` instead of `hostSize`) and how the attachment is obtained. A near-match like this should be extended, for example by giving the existing helper a size parameter, rather than copied. Reuse the existing helper. Either give `AttachmentInspectorHostedTests.mountInspectorContent` a `size:` parameter defaulting to `hostSize`, and call it from the new suite with `size: Self.size`, or move the shared mount into a common test helper. The attachment construction can stay in the new helper, since `attachment(named:in:)` already exists there.

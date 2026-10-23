@@ -38,7 +38,7 @@ import UniformTypeIdentifiers
 /// The state tests check the input to the split view: after a chip press, and
 /// after a host selection of a thread view, they check the selection
 /// synchronously, and they read the inspector content of the selection in its
-/// own harness (``mountInspectorContent(of:)``). Other state tests check the
+/// own harness (``mountInspectorContent(of:size:)``). Other state tests check the
 /// selection that ``AgentThreadView`` gives to its inspector.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorHostedTests {
   /// The size of a view that shows the attachment and the inspector.
@@ -397,14 +397,19 @@ import UniformTypeIdentifiers
   /// as the split view item of the inspector shows it, and makes one render
   /// pass.
   ///
-  /// - Parameter selection: The selection whose attachment the content shows.
+  /// Each test that mounts the inspector content on its own uses this
+  /// function, so that the mount and the render pass have one source.
+  ///
+  /// - Parameters:
+  ///   - selection: The selection whose attachment the content shows.
+  ///   - size: The size of the window. The default is ``hostSize``.
   /// - Returns: The harness of the content. The caller closes it.
   /// - Throws: An issue when the selection holds no attachment.
-  static func mountInspectorContent(of selection: InspectorSelection) throws
-    -> HostedViewHarness<AttachmentInspector>
+  static func mountInspectorContent(of selection: InspectorSelection, size: CGSize = hostSize)
+    throws -> HostedViewHarness<AttachmentInspector>
   {
     let attachment = try #require(selection.attachment)
-    let harness = HostedViewHarness(AttachmentInspector(attachment), size: hostSize)
+    let harness = HostedViewHarness(AttachmentInspector(attachment), size: size)
     harness.render()
     return harness
   }
