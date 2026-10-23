@@ -161,6 +161,27 @@ import Testing
     }
   }
 
+  /// The size of the image of the thread header, in points.
+  static let headerSize = CGSize(width: 480, height: 120)
+
+  /// The session title that the thread header shows in its image.
+  static let headerSessionTitle = "AgentViewKit"
+
+  /// The header of a thread with the "Agent › Session" breadcrumb, on the
+  /// floating glass of the kit in one ``FloatingGlassContainer``, as in the
+  /// top bar of ``AgentThreadView``.
+  static var threadHeader: some View {
+    FloatingGlassContainer(spacing: spacing) {
+      AgentInfoHeader(connection: AgentAuthViewSurfaceHostedTests.connection, sessionTitle: headerSessionTitle)
+        .agentFloatingGlass()
+    }
+  }
+
+  @Test(arguments: SnapshotVariant.allCases)
+  func theHeaderOfTheThread(variant: SnapshotVariant) throws {
+    try Self.verify(Self.threadHeader, named: "thread-header", size: Self.headerSize, variant: variant)
+  }
+
   @Test(arguments: SnapshotVariant.allCases)
   func theComposer(variant: SnapshotVariant) throws {
     try Self.verify(

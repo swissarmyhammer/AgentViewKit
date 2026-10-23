@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The decorative symbol before the title of a header.
+/// A decorative symbol of a header: the symbol before its title, or the
+/// chevron between two segments of its breadcrumb.
 ///
 /// The view shows the symbol with the `.secondary` style and the symbol
 /// weight of the kit theme, and hides it from accessibility, because the
-/// title next to it tells the same thing. The symbol does not use the accent
+/// text next to it tells the same thing. The symbol does not use the accent
 /// of the EditorKit theme: in content, the accent marks only a link, the
 /// selection or the current item (D113 answer 5).
 ///

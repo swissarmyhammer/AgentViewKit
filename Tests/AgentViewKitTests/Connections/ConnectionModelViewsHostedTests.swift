@@ -179,8 +179,9 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: AgentInfoHeader.nameIdentifier)?.label == "scripted-agent")
-    #expect(harness.element(identifier: AgentInfoHeader.versionIdentifier)?.label == "Version 1.0.0")
+    let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
+    #expect(header.label == "scripted-agent")
+    #expect(header.value == "Version 1.0.0")
   }
 
   @Test func theHeaderShowsTheTitleOfTheAgentWhenTheAgentGivesOne() async throws {
@@ -190,8 +191,9 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: AgentInfoHeader.nameIdentifier)?.label == "Scripted Agent")
-    #expect(harness.element(identifier: AgentInfoHeader.versionIdentifier)?.label == "Version 2.1.0")
+    let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
+    #expect(header.label == "Scripted Agent")
+    #expect(header.value == "Version 2.1.0")
   }
 
   @Test func theHeaderShowsNothingBeforeInitialize() {

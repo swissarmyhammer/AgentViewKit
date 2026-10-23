@@ -332,6 +332,42 @@ struct SizedBoxesView: View {
     }
   }
 
+  @Test func contextMenuReadsTheMenuOfTheViewUnderTheElement() throws {
+    let harness = HostedViewHarness {
+      Text("menu")
+        .contextMenu {
+          Button("Alpha") {}
+          Divider()
+          Button("Beta") {}
+        }
+        .accessibilityIdentifier("menu-text")
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let menu = try harness.contextMenu(identifier: "menu-text")
+
+    #expect(menu?.items.map(\.title) == ["Alpha", "", "Beta"])
+  }
+
+  @Test func contextMenuIsNilForAnElementWithNoMenu() throws {
+    let harness = HostedViewHarness(Text("plain").accessibilityIdentifier("plain-text"))
+    defer { harness.close() }
+    harness.render()
+
+    #expect(try harness.contextMenu(identifier: "plain-text") == nil)
+  }
+
+  @Test func contextMenuThrowsForAMissingIdentifier() {
+    let harness = HostedViewHarness(Text("none"))
+    defer { harness.close() }
+    harness.render()
+
+    #expect(throws: HostedViewHarnessError.noElement(identifier: "absent")) {
+      try harness.contextMenu(identifier: "absent")
+    }
+  }
+
   @Test func typeSendsEachCharacter() {
     let log = HostedEventLog()
     let harness = HostedViewHarness(KeyRecordingView(log: log))

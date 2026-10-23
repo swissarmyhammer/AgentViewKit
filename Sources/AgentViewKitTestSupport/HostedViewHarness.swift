@@ -499,6 +499,34 @@ public final class HostedViewHarness<Content: View> {
     render()
   }
 
+  /// The context menu that a right click at the center of the element with
+  /// `identifier` shows, or `nil` when the views there show none.
+  ///
+  /// The window is never on the screen, so the harness does not send the
+  /// click. It finds the view under the point with a hit test, as
+  /// ``click(at:)`` does, and asks that view and each view above it, up to
+  /// the hosting view, for its menu (`NSView.menu(for:)`). The hosting view
+  /// gives the menu of a SwiftUI `.contextMenu`, with one separator item for
+  /// each `Divider`. Call ``render()`` before this function.
+  ///
+  /// - Parameter identifier: The accessibility identifier of the element.
+  /// - Returns: The menu, or `nil` when no view under the point gives one.
+  /// - Throws: ``HostedViewHarnessError/noElement(identifier:)`` when no
+  ///   element has `identifier`, and ``HostedViewHarnessError/noView(at:)``
+  ///   when no view of the hosting view is under the center of the element.
+  public func contextMenu(identifier: String) throws -> NSMenu? {
+    guard let frame = frame(identifier: identifier) else {
+      throw HostedViewHarnessError.noElement(identifier: identifier)
+    }
+    let point = window.convertPoint(fromScreen: NSPoint(x: frame.midX, y: frame.midY))
+    let location = hostingView.superview?.convert(point, from: nil) ?? point
+    guard let target = hostingView.hitTest(location), let event = mouseEvent(.rightMouseDown, at: point) else {
+      throw HostedViewHarnessError.noView(at: point)
+    }
+    let views = sequence(first: target) { [hostingView] view in view === hostingView ? nil : view.superview }
+    return views.lazy.compactMap { $0.menu(for: event) }.first
+  }
+
   // MARK: - Private
 
   /// The application attribute that an assistive client sets to ask for the
@@ -859,7 +887,8 @@ public final class HostedViewHarness<Content: View> {
   /// Makes a mouse event of one click for the window.
   ///
   /// - Parameters:
-  ///   - type: The type of the event, mouse-down or mouse-up.
+  ///   - type: The type of the event: mouse-down, mouse-up, or the
+  ///     right mouse-down of a context menu.
   ///   - point: The point in the coordinates of the window.
   /// - Returns: The event, or `nil` when AppKit cannot make it.
   private func mouseEvent(_ type: NSEvent.EventType, at point: NSPoint) -> NSEvent? {

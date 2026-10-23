@@ -287,7 +287,9 @@ nonisolated enum SharedSymbol {
   /// The symbol of the button that scrolls to the bottom of the thread.
   static let scrollToBottom = "arrow.down"
 
-  /// The symbol of a row that expands.
+  /// The symbol of a row that expands, and the separator between two
+  /// segments of a path, such as the "Agent › Session" breadcrumb of
+  /// ``AgentInfoHeader``. Both point one step down into the item.
   static let disclosure = "chevron.right"
 
   /// The symbol of the menu of the session options.

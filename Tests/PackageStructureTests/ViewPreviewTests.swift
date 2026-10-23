@@ -137,6 +137,8 @@ extension ViewPreviewForm: SampledCodeForm, FixtureCodeForm {
       "MathSpanAccessibility draws nothing. It only gives an accessibility element to each math span of a text.",
     KitSourceFiles.kitFile("Citations/CitationProse.swift"):
       "InlineCitationAccessibility draws nothing. It only gives an accessibility element to each citation pill.",
+    KitSourceFiles.kitFile("Commands/HostPathContextMenu.swift"):
+      "HostPathContextMenuItems is the content of a system context menu. The menu draws the items, so it has no look of its own.",
   ]
 
   /// A sample line of each form, with only that form on the line.

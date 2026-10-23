@@ -1,3 +1,4 @@
+import EditorCommands
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -38,7 +39,8 @@ import SwiftUI
 /// `features/style.md`, rule 4). The composer slot is directly below its chat
 /// (D36). The default slot is a ``DefaultThreadComposer``: a
 /// ``PromptInputView`` that keeps its own text. Give a custom composer with
-/// ``init(session:connection:composer:)``, or `EmptyView()` for no composer.
+/// ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)``,
+/// or `EmptyView()` for no composer.
 /// The scroll-to-bottom pill (``ScrollToBottomPill``) floats over the list,
 /// above the bar, and takes no space in the bar. Thus the bottom inset of the
 /// list does not change when the pill shows or goes away (^66has33). The pill
@@ -138,6 +140,14 @@ public struct AgentThreadView<Composer: View>: View {
   /// The manager of the scroll position that a test gave, or `nil`.
   let hostAnchors: ScrollAnchorManager?
 
+  /// The title of the session that the header shows after the agent, or
+  /// `nil` for the agent alone.
+  let sessionTitle: String?
+
+  /// The path of the host scope whose context menu the header shows, or
+  /// `nil` for no context menu.
+  let headerContextMenuPath: FocusPath?
+
   /// The view in the composer slot, below the conversation.
   let composer: Composer
 
@@ -170,20 +180,27 @@ public struct AgentThreadView<Composer: View>: View {
   /// connection model of the thread view in its environment. Give
   /// `EmptyView()` for no composer.
   ///
-  /// See ``init(session:connection:)`` for the close of the session and the
-  /// Reload button.
+  /// See ``init(session:connection:sessionTitle:headerContextMenuPath:)`` for
+  /// the close of the session, the Reload button, the session title and the
+  /// context menu of the header.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
+  ///   - sessionTitle: The title of the session that the header shows after
+  ///     the agent, such as the title of a tab, or `nil` for the agent alone.
+  ///   - headerContextMenuPath: The path of a host scope whose context menu
+  ///     a right click on the header shows, or `nil` for no context menu.
   ///   - composer: The builder of the view in the composer slot, such as a
   ///     ``PromptInputView``.
   public init(
-    session: SessionModel, connection: ConnectionModel? = nil,
-    @ViewBuilder composer: () -> Composer
+    session: SessionModel, connection: ConnectionModel? = nil, sessionTitle: String? = nil,
+    headerContextMenuPath: FocusPath? = nil, @ViewBuilder composer: () -> Composer
   ) {
-    self.init(session: session, connection: connection, anchors: nil, composer: composer)
+    self.init(
+      session: session, connection: connection, anchors: nil, sessionTitle: sessionTitle,
+      headerContextMenuPath: headerContextMenuPath, composer: composer)
   }
 
   /// Makes the view of the transcript of a session model with a given
@@ -197,14 +214,21 @@ public struct AgentThreadView<Composer: View>: View {
   ///   - connection: The connection model that opened the session, or `nil`.
   ///   - anchors: The manager of the scroll position, or `nil` to let the
   ///     view make its own manager.
+  ///   - sessionTitle: The title of the session that the header shows, or
+  ///     `nil`.
+  ///   - headerContextMenuPath: The path of the host scope whose context
+  ///     menu the header shows, or `nil`.
   ///   - composer: The builder of the view in the composer slot.
   init(
     session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager?,
+    sessionTitle: String? = nil, headerContextMenuPath: FocusPath? = nil,
     @ViewBuilder composer: () -> Composer
   ) {
     self.session = session
     self.connection = connection
     self.hostAnchors = anchors
+    self.sessionTitle = sessionTitle
+    self.headerContextMenuPath = headerContextMenuPath
     self.composer = composer()
   }
 
@@ -275,7 +299,8 @@ public struct AgentThreadView<Composer: View>: View {
           // The padding is in the container, so a header that shows nothing
           // takes no space.
           FloatingGlassContainer(spacing: theme.spacing.s) {
-            AgentInfoHeader(connection: connection).agentFloatingGlass()
+            AgentInfoHeader(connection: connection, sessionTitle: sessionTitle).agentFloatingGlass()
+              .hostPathContextMenu(headerContextMenuPath)
               .padding(.horizontal, theme.spacing.m)
               .padding(.vertical, theme.spacing.s)
           }
