@@ -31,6 +31,22 @@ comments:
     - evidence: `swift test` after touching PreviewFixtures.swift and PreviewSymbolSheet.swift (AgentViewKit recompiled, no project warnings; only the known mlx-swift "missing creator" notice). XCTest: 0 tests, 0 failures. Swift Testing: 1 test in 1 suite passed; 227 tests in 30 suites passed (includes ViewPreviewTests suite); 1675 tests in 205 suites passed. 0 failures, 0 skipped. The 3 "known issues" are pre-existing withKnownIssue tests that assert deliberate failures (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests). theStatusSymbolNamesAreDifferentSystemSymbols passed.
     - next: review
   timestamp: 2026-10-23T00:41:46.442321+00:00
+- actor: claude-code
+  id: 01m5k3f8nbvadwgdm8sykyw6jx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (a7ff3b2) — 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed; 8 files reviewed, 4 .kanban/ files excluded by .reviewignore
+    - next: none — task moved to done
+  timestamp: 2026-10-23T00:44:44.587485+00:00
+- actor: claude-code
+  id: 01m5k3fjzf395qjqhqwn2hkfd7
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ViewPreviewTests + clean/violating fixtures; the allow list is the card's 4 files only; PreviewSymbolSheet got a #Preview (found by the scan) + statusSymbolNames fixture/test; mutation checks: removing ToolStatusImage's #Preview fails the test; listing a previewed file fails the exactness test
+    - test: green — swift test 1675 passed, 0 failed, 0 skipped; ViewPreviewTests passed
+    - commit: a7ff3b2
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-23T00:44:55.151318+00:00
 depends_on:
 - 01M5HXESH97KEWN99B5M1DSRZ2
 - 01M5HXEYDEHRNJMA657BBYFN3T
@@ -38,8 +54,8 @@ depends_on:
 - 01M5HXF83SCATJDWEPBW648FVD
 - 01M5HXFDTZHPHP89NQDRGQNVWG
 - 01M5HXFH8JWZX1DWXNKMZWHNBV
-position_column: doing
-position_ordinal: '8380'
+position_column: done
+position_ordinal: ffffc080
 title: 'AVK-14g Structure test: each view file has a #Preview, or an allow-list entry with a reason'
 ---
 ## Goal
