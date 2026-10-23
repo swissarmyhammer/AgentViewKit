@@ -40,6 +40,23 @@ comments:
     - evidence: `swift test` 1680 tests / 207 suites, 6 failing (identifier + focus blocker, see previous comment); `Scripts/test-examples.sh` BUILD SUCCEEDED, UI tests 4/5 fail "The composer has no editor." Removed public API: `StockPromptEditor` (struct, `init(context:)`, `identifier`); short init `PromptInputView.init(text:attachments:onSubmit:)` now constrained `Editor == EditorKitPromptEditor` (was `StockPromptEditor`); `EditorKitPromptEditor.identifier` value "editorkit-prompt-editor" -> "prompt-editor". Redo test for EditorKit passed at once. Nothing committed.
     - next: human decision on EditorKit API (identifier on the input text view; text view that fills its frame / probe pick) vs a kit-side view-tree workaround; Testudo constraints 2 and 3 are not met until then.
   timestamp: 2026-10-23T09:32:26.039741+00:00
+- actor: claude-code
+  id: 01m5m1q0rtv45mspwg1cjzf26d
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — the work is parked on local branch `wip/69g4a69-drop-stock-editor` (b72013a, NOT pushed; main is clean). It removes StockPromptEditor (type, init(context:), identifier); the short PromptInputView init → EditorKitPromptEditor; EditorKitPromptEditor.identifier → "prompt-editor"; DefaultThreadComposer() unchanged; fixes a lost external write (dictation echo); redo test passes at once; 16 snapshots re-recorded.
+    - 6 tests red, both EditorKit gaps: (1) `editorAccessibilityIdentifier` is internal and labels the outer view, so "prompt-editor" never reaches the text view (harness + XCUITest can't find it; demo UI 1/5); (2) a jump or nav onto the host scope around DefaultThreadComposer() focuses the scope, not the text view: EditorKit picks the focusable view under the scope centre, and the one-line text view (432×16) isn't there.
+    - test, commit, review: not run
+    - next: EditorKit gives a public identifier on the text view, and a focus pick that finds the editor in a host scope (per the user rule, jump support lives fully in EditorKit). Asked editorkit-28. Then check out the WIP branch onto main, bump EditorKit, and rerun.
+  timestamp: 2026-10-23T09:33:15.930883+00:00
+- actor: claude-code
+  id: 01m5m1rh88gp8pffbsw1v9dngk
+  text: |-
+    Blockers are tracked in EditorKit, queued after ^z3fws0w:
+    - ^kek5v80 (01M5M1QZ84SA1ESJ8P3KEK5V80): a public way to set the accessibility identifier on the TEXT VIEW inside EditorView and SingleLineField (macOS; the iOS path compiles). The API name comes with the SHA.
+    - ^qs0g2n (01M5M1R48CQVPCP3D5K8QS0G2N): a landed jump, nav or drill-in on a scope whose own content (excluding nested scopes) holds EXACTLY ONE focusable text view focuses that text view, wherever it sits. With zero or several, it behaves as today. No host modifier is needed.
+    When both SHAs arrive: check out `wip/69g4a69-drop-stock-editor` onto main, `swift package update EditorKit`, use the identifier API in EditorKitPromptEditor, and rerun the 6 red tests and the demo UI suite.
+  timestamp: 2026-10-23T09:34:05.576786+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'Drop StockPromptEditor: EditorKitPromptEditor is the only composer (no TextEditor<AttributedString>)'

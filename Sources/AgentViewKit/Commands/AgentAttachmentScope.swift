@@ -146,10 +146,13 @@ private struct AttachmentPresentation: ViewModifier {
 /// the place where the share picker of the ``AttachmentPresenter`` shows: it
 /// is in the background of the attachment, with its size.
 ///
-/// The mount holds its path in `CommandSystem.mountHolders`. SwiftUI can make
-/// a newer view at the same path before it removes the older view, so the
-/// older mount does not register again, and its teardown does not remove the
-/// commands of the newer mount.
+/// The coordinator is the ``AgentScopeMount`` that registers the commands at
+/// the path. SwiftUI can make a newer view at the same path before it removes
+/// the older view, and two windows that show one attachment have the same
+/// path. The newest mount registers, and the teardown of an older mount does
+/// not remove the commands of the newer mount. When the newer mount goes away
+/// first, the path goes back to the older mount on the next pass of the main
+/// run loop.
 struct AgentAttachmentMount: NSViewRepresentable {
   /// The values of the registration of a scope.
   struct Registration {
@@ -172,65 +175,41 @@ struct AgentAttachmentMount: NSViewRepresentable {
   /// The current registration of the scope.
   let registration: Registration
 
-  /// The system and the path that the mount registered at, for the teardown.
-  final class Coordinator {
-    /// The system and the path of the last registration, or `nil`.
-    var registered: (system: CommandSystem, path: FocusPath)?
-  }
-
-  func makeCoordinator() -> Coordinator {
-    Coordinator()
+  func makeCoordinator() -> AgentScopeMount {
+    AgentScopeMount(unregister: AgentAttachmentRegistration.deregister(at:from:))
   }
 
   func makeNSView(context: Context) -> NSView {
     let anchor = NSView(frame: .zero)
-    apply(anchor: anchor, coordinator: context.coordinator)
+    apply(anchor: anchor, scopeMount: context.coordinator)
     return anchor
   }
 
   func updateNSView(_ anchor: NSView, context: Context) {
-    apply(anchor: anchor, coordinator: context.coordinator)
+    apply(anchor: anchor, scopeMount: context.coordinator)
   }
 
-  static func dismantleNSView(_ anchor: NSView, coordinator: Coordinator) {
-    release(coordinator)
-  }
-
-  /// Removes the commands of the last registration of `coordinator`, when
-  /// no newer mount holds its path.
-  ///
-  /// - Parameter coordinator: The coordinator of the mount.
-  private static func release(_ coordinator: Coordinator) {
-    guard let registered = coordinator.registered else { return }
-    coordinator.registered = nil
-    guard registered.system.mountHolders.release(at: registered.path, by: coordinator) else { return }
-    AgentAttachmentRegistration.deregister(at: registered.path, from: &registered.system.registry)
+  static func dismantleNSView(_ anchor: NSView, coordinator: AgentScopeMount) {
+    coordinator.unmount()
   }
 
   /// Writes the values to the target and the presenter, and registers the
   /// commands at the current path.
   ///
-  /// A change of the path or of the system removes the registration at the
-  /// old place first.
+  /// A change of the path or of the system ends the registration at the old
+  /// place first.
   ///
   /// - Parameters:
   ///   - anchor: The view of the mount.
-  ///   - coordinator: The coordinator that records the registration.
-  private func apply(anchor: NSView, coordinator: Coordinator) {
+  ///   - scopeMount: The coordinator, which holds the path.
+  private func apply(anchor: NSView, scopeMount: AgentScopeMount) {
     presenter.anchor = anchor
     target.service = registration.service
     target.system = registration.system
     target.path = registration.path
-    if let registered = coordinator.registered,
-      registered.path != registration.path || registered.system !== registration.system
-    {
-      Self.release(coordinator)
+    scopeMount.mount(at: registration.path, in: registration.system) {
+      [target, path = registration.path, groupsOff = registration.groupsOff] registry in
+      AgentAttachmentRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)
     }
-    let system = registration.system
-    guard !system.mountHolders.isHeld(at: registration.path, byOtherThan: coordinator) else { return }
-    system.mountHolders.hold(at: registration.path, by: coordinator)
-    AgentAttachmentRegistration.register(
-      target, at: registration.path, into: &system.registry, groupsOff: registration.groupsOff)
-    coordinator.registered = (system, registration.path)
   }
 }

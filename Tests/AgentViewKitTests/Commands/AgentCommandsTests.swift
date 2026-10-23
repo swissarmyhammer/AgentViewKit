@@ -209,34 +209,56 @@ final class CallCounter {
     #expect(registry.tree.nodes.isEmpty)
   }
 
-  /// Two mounts of one session register at the same path, the newer one
-  /// before the older one goes away. Each mount deregisters only when its
-  /// release of the path returns `true`, as ``AgentCommandMount`` does.
-  @Test func onlyTheLastHolderOfAPathDeregistersIt() async throws {
+  /// Two mounts of one session register at the same path through
+  /// `CommandSystem.mount(at:by:register:)`, the newer one before the older
+  /// one goes away, as ``AgentCommandMount`` does with its
+  /// ``AgentScopeMount``. The unmount of the older mount keeps the commands
+  /// of the newer mount, and the unmount of the last mount removes them at
+  /// once.
+  @Test func onlyTheLastMountOfAPathRemovesItsCommands() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let path = FocusPath.root(AgentCommandTarget.segment(for: session.model))
-    var registry = CommandRegistry()
-    let holders = ScopeMountHolders()
-    let olderHolder = NSObject()
-    let newerHolder = NSObject()
+    let system = CommandSystem()
+    let older = AgentScopeMount(unregister: AgentCommandRegistration.deregister(at:from:))
+    let newer = AgentScopeMount(unregister: AgentCommandRegistration.deregister(at:from:))
     let olderTarget = AgentCommandTarget()
     olderTarget.session = session.model
     let newerTarget = AgentCommandTarget()
     newerTarget.session = session.model
 
-    AgentCommandRegistration.register(olderTarget, at: path, into: &registry)
-    holders.hold(at: path, by: olderHolder)
-    AgentCommandRegistration.register(newerTarget, at: path, into: &registry)
-    holders.hold(at: path, by: newerHolder)
+    older.mount(at: path, in: system) { AgentCommandRegistration.register(olderTarget, at: path, into: &$0) }
+    newer.mount(at: path, in: system) { AgentCommandRegistration.register(newerTarget, at: path, into: &$0) }
 
-    #expect(!holders.release(at: path, by: olderHolder))
-    #expect(registry.tree.nodes.contains { $0.path == path })
-    #expect(registry.definitions(at: path).count == Self.verbCount)
+    older.unmount()
+    #expect(system.registry.tree.nodes.contains { $0.path == path })
+    #expect(system.registry.definitions(at: path).count == Self.verbCount)
 
-    try #require(holders.release(at: path, by: newerHolder))
+    newer.unmount()
+    #expect(!system.registry.tree.nodes.contains { $0.path == path })
+    #expect(system.registry.definitions(at: path).isEmpty)
+  }
+
+  /// The deregistration of the last mount of a path removes each verb and
+  /// each key of the verbs, the secondary chords too. Thus no surface that
+  /// reads the whole registry still lists a command of the thread, and no
+  /// definition keeps the target of the mount alive.
+  @Test func theDeregistrationRemovesEachVerbAndItsKeys() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let target = AgentCommandTarget()
+    target.session = session.model
+    let path = FocusPath.root(AgentCommandTarget.segment(for: session.model))
+    var registry = CommandRegistry()
+    AgentCommandRegistration.register(target, at: path, into: &registry)
+
     AgentCommandRegistration.deregister(at: path, from: &registry)
-    #expect(!registry.tree.nodes.contains { $0.path == path })
+
+    #expect(registry.definitions(at: path).isEmpty)
+    let keymap = registry.keymapStack(for: .cua, at: path)
+    for entry in AgentKeymap.sortedChords {
+      #expect(keymap.bindings(for: entry.chord.asSequence).isEmpty, "\(entry.chord)")
+    }
   }
 
   /// The `.commandScope` of the thread writes the `.scope` part of the node.

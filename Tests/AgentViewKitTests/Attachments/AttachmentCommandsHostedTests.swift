@@ -244,6 +244,44 @@ struct HostInspectorWithAttachmentActions: View {
     #expect(attachmentPaths == [.root(AgentScopeKind.attachment(attachment.id))])
   }
 
+  /// Two windows show the scope of one attachment, so both register at the
+  /// same path, each with its own service. While both are open, a run goes to
+  /// the service of the newer window. When the newer window closes, the path
+  /// goes back to the older window on the next pass of the main run loop,
+  /// with no update of the older window, and a run goes to the service of the
+  /// older window.
+  ///
+  /// Each window shows the bare scope and no chip. The buttons of a chip
+  /// read the registry, so a change of the registry updates the chip and its
+  /// scope, and that update would register the older window again by itself.
+  @Test func closingTheNewerOfTwoWindowsAtOnePathHandsTheCommandsBackToTheOlderWindow() async throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let attachment = try Shared.attachment(named: "blob.bin", in: directory)
+    let system = CommandSystem()
+    let olderService = RecordingAttachmentFileService()
+    let newerService = RecordingAttachmentFileService()
+    let older = SwitchedWindow(
+      Color.clear.agentAttachmentScope(attachment).environment(\.attachmentFileService, olderService),
+      system: system, size: Self.viewSize)
+    defer { older.harness.close() }
+    let newer = SwitchedWindow(
+      Color.clear.agentAttachmentScope(attachment).environment(\.attachmentFileService, newerService),
+      system: system, size: Self.viewSize)
+    let path = FocusPath.root(AgentScopeKind.attachment(attachment.id))
+    let open = AgentAttachmentVerb.openAttachment
+    let call = RecordingAttachmentFileService.Call(verb: open, attachment: attachment)
+    try #require(system.registry.perform(open.id, at: path, clicked: path))
+    try #require(newerService.calls == [call])
+
+    await newer.close()
+
+    #expect(WindowUndoChecks.kitCommandIDs(at: path, in: system) == Set(Commands.verbIDs))
+    #expect(system.registry.perform(open.id, at: path, clicked: path))
+    #expect(olderService.calls == [call])
+    #expect(newerService.calls == [call])
+  }
+
   /// With the attachment group off, the inspector shows no button and its
   /// scope registers no command of the kit. The scope is the root of the
   /// window, so the window undo commands of EditorKit stay there.

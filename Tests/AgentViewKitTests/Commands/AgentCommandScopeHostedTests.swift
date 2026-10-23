@@ -358,6 +358,59 @@ import Testing
     #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
   }
 
+  /// Two windows show a thread view of one session, so both register at the
+  /// same path. When the newer window closes, the path goes back to the
+  /// older window on the next pass of the main run loop, with no update of
+  /// the older window.
+  ///
+  /// The teardown of the newer window clears the store of the expanded items
+  /// of its own target, so `toggleExpandAll` acts only through the target of
+  /// the older window.
+  @Test func closingTheNewerOfTwoWindowsAtOnePathHandsTheCommandsBackToTheOlderWindow() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let older = SwitchedWindow(AgentThreadView(session: session.model), system: system, size: Self.windowSize)
+    defer { older.harness.close() }
+    let newer = SwitchedWindow(AgentThreadView(session: session.model), system: system, size: Self.windowSize)
+    try await Self.sendScopeMessage(to: session, rendering: older.harness)
+    newer.harness.render()
+    let path = Self.path(of: session.model)
+
+    await newer.close()
+
+    #expect(WindowUndoChecks.kitCommandIDs(at: path, in: system).count == Self.verbCount)
+    let eligible = Set(system.registry.eligible(path: path).map(\.id))
+    #expect(eligible.isSuperset(of: [AgentCommandVerb.send.id, AgentCommandVerb.focusComposer.id]))
+    #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
+  }
+
+  /// The host moves a thread view under another outer scope, so the path of
+  /// its scope changes with no new mount. The mount leaves its old path
+  /// before it registers at the new one.
+  @Test func aThreadViewThatMovesToAnotherPathLeavesItsOldPath() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let model = ScopeMoveModel()
+    let harness = HostedViewHarness(size: Self.windowSize) {
+      ScopeMoveHost(model: model, session: session.model)
+        .commandSystem(system)
+    }
+    defer { harness.close() }
+    harness.render()
+    let thread = AgentCommandTarget.segment(for: session.model)
+    let oldPath = FocusPath.root(ScopeMoveModel.firstOuterSegment).appending(thread)
+    try #require(system.registry.definitions(at: oldPath).count == Self.verbCount)
+
+    model.outerSegment = ScopeMoveModel.secondOuterSegment
+    harness.render()
+
+    #expect(system.registry.definitions(at: oldPath).isEmpty)
+    let newPath = FocusPath.root(ScopeMoveModel.secondOuterSegment).appending(thread)
+    #expect(system.registry.definitions(at: newPath).count == Self.verbCount)
+  }
+
   // MARK: - Session model
 
   @Test func theCancelCommandOfASessionSendsSessionCancelWhileTheAgentRuns() async throws {
@@ -503,6 +556,34 @@ struct ScopeVisibilityHost: View {
     } else {
       Color.clear
     }
+  }
+}
+
+/// Tells ``ScopeMoveHost`` which outer scope holds its thread view.
+@Observable final class ScopeMoveModel {
+  /// The outer segment that the host starts with.
+  static let firstOuterSegment = FocusSegment(kind: "pane", id: "first")
+
+  /// The outer segment that the move test gives next.
+  static let secondOuterSegment = FocusSegment(kind: "pane", id: "second")
+
+  /// The segment of the outer scope of the thread view.
+  var outerSegment = firstOuterSegment
+}
+
+/// A host that shows one thread view under an outer scope whose segment its
+/// model gives. A new segment changes the path of the thread scope, and keeps
+/// the same views.
+struct ScopeMoveHost: View {
+  /// The model that gives the outer segment.
+  let model: ScopeMoveModel
+
+  /// The session model of the thread view.
+  let session: SessionModel
+
+  var body: some View {
+    AgentThreadView(session: session)
+      .commandScope(segment: model.outerSegment)
   }
 }
 

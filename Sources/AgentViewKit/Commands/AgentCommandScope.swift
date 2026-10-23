@@ -188,21 +188,29 @@ enum AgentCommandRegistration {
     AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 
-  /// Removes the `.host` part of the scope node at `path`, which `register`
-  /// wrote.
+  /// Removes each verb at `path`, and the `.host` part of the scope node,
+  /// which `register` wrote.
+  ///
+  /// `CommandRegistry.unregister` also removes each key of a verb, the
+  /// secondary chords of ``AgentKeymap`` too. Thus a surface that reads the
+  /// whole registry lists no command of a scope whose last mount went away,
+  /// and no definition keeps the target of that mount alive. The attachment
+  /// scopes remove their verbs the same way.
   ///
   /// The `.scope` part and the layer flag that `.commandScope` wrote at the
-  /// same path stay. When no other owner stays, the node goes, and the
-  /// resolution walk does not get to the commands and the keys of the path.
+  /// same path stay. When no other owner stays, the node goes.
   ///
-  /// A mount calls this only while it holds the path in
-  /// `CommandSystem.mountHolders`, so the teardown of an older mount does not
-  /// remove the registration of a newer mount at the same path.
+  /// EditorKit runs this only for the mount that holds the path, so the
+  /// teardown of an older mount does not remove the registration of a newer
+  /// mount at the same path (see ``AgentScopeMount``).
   ///
   /// - Parameters:
   ///   - path: The path of the scope.
-  ///   - registry: The registry to remove the part from.
+  ///   - registry: The registry to remove the verbs and the part from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
+    for verb in AgentCommandVerb.allCases {
+      registry.unregister(verb.id, at: path)
+    }
     registry.tree = registry.tree.removing(.host, at: path)
   }
 }
@@ -215,14 +223,13 @@ enum AgentCommandRegistration {
 /// parts that this mount gave.
 ///
 /// SwiftUI can make a newer mount at the same path before it dismantles this
-/// one, for example when it rebuilds a chat, and it can update this one
-/// between the two events. The mount uses `CommandSystem.mountHolders` with
-/// its coordinator as the holder, as the editor mount of EditorKit does. Each
-/// registration holds the path. An update does not register while a newer
-/// mount holds the path, and the teardown removes the registration only while
-/// this mount still holds the path. Thus the teardown of an older mount does
-/// not remove the registration of a newer mount, and the definitions at the
-/// path act on the target of the newer mount.
+/// one, for example when it rebuilds a chat, and two windows that show one
+/// session have the same path. The owned scope registers through the
+/// ``AgentScopeMount`` of the coordinator. The newest mount of a path
+/// registers, so the definitions at the path act on the target of the newer
+/// mount, and the teardown of an older mount does not remove them. When the
+/// newer mount goes away first, the path goes back to the older mount on the
+/// next pass of the main run loop.
 struct AgentCommandMount: NSViewRepresentable {
   /// The values of a scope that the mount owns.
   struct Scope {
@@ -253,13 +260,12 @@ struct AgentCommandMount: NSViewRepresentable {
   /// The store of the expanded items to add, or `nil`.
   let expandedBlocks: ExpandedBlocksStore?
 
-  /// The values that the teardown needs. The coordinator is also the holder
-  /// of the path of the owned scope in `CommandSystem.mountHolders`.
+  /// The values that the teardown needs.
   final class Coordinator {
     /// The target of the mount.
     let target: AgentCommandTarget
-    /// The system and the path of the owned scope, or `nil`.
-    var registration: (system: CommandSystem, path: FocusPath)?
+    /// The registration of the owned scope at its path.
+    let scopeMount = AgentScopeMount(unregister: AgentCommandRegistration.deregister(at:from:))
     /// The scroll anchors that the mount added.
     weak var anchors: ScrollAnchorManager?
     /// The store that the mount added.
@@ -278,33 +284,26 @@ struct AgentCommandMount: NSViewRepresentable {
   }
 
   /// Writes the values to the target, and registers the owned scope. The
-  /// newest mount of a path always registers and holds the path.
+  /// newest mount of a path registers.
   func makeNSView(context: Context) -> NSView {
     apply(to: context.coordinator)
     register(heldBy: context.coordinator)
     return NSView(frame: .zero)
   }
 
-  /// Writes the values to the target, and registers the owned scope again
-  /// unless a newer mount holds its path.
+  /// Writes the values to the target, and registers the owned scope again.
+  /// While a newer mount holds the path, the registration waits until the
+  /// path comes back to this mount.
   func updateNSView(_ nsView: NSView, context: Context) {
     apply(to: context.coordinator)
-    guard !isHeldByANewerMount(than: context.coordinator) else {
-      return
-    }
     register(heldBy: context.coordinator)
   }
 
-  /// Removes the registration only while this mount still holds the path,
-  /// and the parts that this mount gave to its target.
+  /// Ends the registration of the owned scope, and removes the parts that
+  /// this mount gave to its target.
   static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
     let target = coordinator.target
-    if let registration = coordinator.registration,
-      registration.system.mountHolders.release(at: registration.path, by: coordinator)
-    {
-      AgentCommandRegistration.deregister(
-        at: registration.path, from: &registration.system.registry)
-    }
+    coordinator.scopeMount.unmount()
     if let anchors = coordinator.anchors, target.anchors === anchors {
       target.anchors = nil
     }
@@ -313,32 +312,19 @@ struct AgentCommandMount: NSViewRepresentable {
     }
   }
 
-  /// Tells if a mount other than the one of `coordinator` holds the path of
-  /// the owned scope.
+  /// Registers the owned scope through the ``AgentScopeMount`` of
+  /// `coordinator`. With no owned scope, the call does nothing.
   ///
-  /// - Parameter coordinator: The coordinator of this mount.
-  /// - Returns: `true` when a newer mount holds the path; `false` with no
-  ///   owned scope.
-  private func isHeldByANewerMount(than coordinator: Coordinator) -> Bool {
-    guard let scope else {
-      return false
-    }
-    return scope.system.mountHolders.isHeld(at: scope.path, byOtherThan: coordinator)
-  }
-
-  /// Registers the owned scope, and records `coordinator` as the holder of
-  /// its path. With no owned scope, the call does nothing.
-  ///
-  /// - Parameter coordinator: The coordinator of this mount, which records
-  ///   the registration for the teardown.
+  /// - Parameter coordinator: The coordinator of this mount, whose scope
+  ///   mount holds the path.
   private func register(heldBy coordinator: Coordinator) {
     guard let scope else {
       return
     }
-    AgentCommandRegistration.register(
-      target, at: scope.path, into: &scope.system.registry, groupsOff: scope.groupsOff)
-    scope.system.mountHolders.hold(at: scope.path, by: coordinator)
-    coordinator.registration = (scope.system, scope.path)
+    coordinator.scopeMount.mount(at: scope.path, in: scope.system) {
+      [target, path = scope.path, groupsOff = scope.groupsOff] registry in
+      AgentCommandRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)
+    }
   }
 
   /// Writes the values to the target. The values touch only the target of
