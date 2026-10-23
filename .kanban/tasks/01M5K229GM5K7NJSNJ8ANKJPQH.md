@@ -32,8 +32,24 @@ comments:
     - evidence: `swift test` run twice back to back (changed Sources files touched first, so AgentViewKit recompiled). Run 1: 1679 tests in 206 suites passed, 0 failures, 0 skipped, 4 known issues. Run 2: 1679 tests in 206 suites passed, 0 failures, 0 skipped, 4 known issues. The 4 known issues are the same expected ones (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests, ComposerWindowUndoHostedTests). AttachmentFocusRingHostedTests passed. Only warning: the known SwiftPM mlx-swift "missing creator" notice; no project-code warnings.
     - next: review
   timestamp: 2026-10-23T07:58:07.864527+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5kwe3w7z5a51jmxrs5fya38
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ebf5b97): 0 findings, 0 confirmed, 0 refuted; 7 validator runs attempted, 0 failed; 4 files reviewed, 10 .kanban/ files excluded by .reviewignore
+    - next: none — task moved to done
+  timestamp: 2026-10-23T08:01:01.319606+00:00
+- actor: claude-code
+  id: 01m5kwee6we7qmvtpcp179bct9
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AttachmentChip reports its corners (AttachmentSurfaceCornersKey); AttachmentView picks its ring corners from what it shows; AgentSurfaceCorners is Equatable; new hosted test (red first: a square mask) and a shared focusScope helper
+    - test: green — the first attempt couldn't run (the sah server was down); the rerun ran swift test twice, 1679 passed each, 0 failed, 0 skipped, 4 known issues
+    - commit: ebf5b97
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-23T08:01:11.900787+00:00
+position_column: done
+position_ordinal: ffffc280
 title: Give an AttachmentView preview that falls back to the chip the chip's ring corners
 ---
 Found while working ^ars99rn. `AttachmentView` now passes `AttachmentChip.corners` (theme `radii.m`) to its attachment scope when its default renderer is the chip, and `.square` for a preview (image, pdf, text, code, audio, movie) or a registered view. A preview that cannot load its file (`LoadStateView` `.failed`) shows `AttachmentChip` in its place, but the scope is the outer `AttachmentView` scope (the inner chip makes no second scope, and `.scopeFocusRing` flows down the environment only), so the beacon ring of that fallback chip stays square while the chip draws rounded `radii.m` corners.
