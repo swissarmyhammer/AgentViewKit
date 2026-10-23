@@ -54,6 +54,35 @@ comments:
     - A rename of the session title while the view is mounted must update the header without a remount. `sessionTitle` is a plain init value, so it should; a review or test should confirm it.
     - When it's pushed, send testudoapp-2c the SHA. Testudo builds ^ww6a3d1 on top of it.
   timestamp: 2026-10-23T21:11:58.191836+00:00
+- actor: claude-code
+  id: 01m5n9zwv5s4hzs6g6gzyq75ve
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (69f9381) — 2 findings (2 confirmed, 0 refuted) — Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522 (duplication/duplication), Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522 (reuse/reuse)
+    - next: implement — extract the shared point-conversion + hit-test lookup used by click(at:) and contextMenu(identifier:) into one private helper; task stays in review
+  timestamp: 2026-10-23T21:17:09.861905+00:00
+- actor: claude-code
+  id: 01m5na0ewzyc64a5bsa7etkng7
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — Agent › Session breadcrumb (`sessionTitle:`), `headerContextMenuPath:`, HostPathContextMenu, `HostedViewHarness.contextMenu(identifier:)`, 4 new thread-header snapshots; 15 files
+    - test: green — swift test, 1733 tests in 214 suites passed, 0 failed, 0 skipped (3 known issues are tests that expect a failure)
+    - commit: 69f9381 (+ 830f487, a kanban chore)
+    - review: findings — Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522 (duplication), Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522 (reuse)
+  timestamp: 2026-10-23T21:17:28.351440+00:00
+- actor: claude-code
+  id: 01m5na7xdcsrs7km44h5ch8x6m
+  text: |-
+    Addressed both review findings (duplication/duplication and reuse/reuse at Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522).
+    - Moved the shared lookup into a new `private func hitTarget(at point: NSPoint) throws -> NSView` in HostedViewHarness. It converts the point into the coordinates of the hosting view's superview, runs `hostingView.hitTest`, and throws `HostedViewHarnessError.noView(at:)` when nothing is hit.
+    - `click(at:)` and `contextMenu(identifier:)` both call it now. Each still builds its own events (left down/up vs. right mouse-down). `contextMenu` still throws `noView(at:)` when AppKit cannot make the right mouse-down event, so its behavior has not changed.
+    - A search of the whole file, and of Sources and Tests, finds no other copy of the `superview?.convert(point, from: nil)` + `hitTest` lookup. Those two functions were the only copies.
+    - No new test was added, because this refactor does not change behavior. The existing HostedViewHarnessTests (click hit and miss, context menu present, absent, and no element) and ThreadHeaderContextMenuHostedTests cover both callers.
+
+    ### implement — changed
+    - evidence: 1 file — Sources/AgentViewKitTestSupport/HostedViewHarness.swift. `swift test`: 1733 tests in 214 suites passed (the same 3 known issues as before), PackageStructureTests 227/227, ReadmeSnippets 1/1. The only warning is the mlx-swift_Cmlx.bundle "missing creator" one from the SwiftPM build graph, which was already there. The demo app was not launched (UI-test lock). Nothing committed.
+    - next: /review
+  timestamp: 2026-10-23T21:21:32.588875+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'Thread header: Agent › Session breadcrumb, and a host context menu path on the header'
@@ -72,3 +101,22 @@ Requested by testudoapp-2c (2026-10-23). Testudo's user decided to remove Testud
 Not needed: when Testudo's large area shows the Tasks board there is no header at all (user decision).
 
 Tests: hosted tests for the breadcrumb layout (agent alone; agent › session; long titles truncate, with the session segment truncating first; Dark/Light snapshot), the single VoiceOver element and its label, the identifier, and the context menu at the host path (items from that path; unavailable items hidden; no path, no menu). Snapshots re-recorded where the header changes, listed by name. The full `swift test` must be green; the demo builds. #avk-8 #testudo-request
+
+## Review Findings (2026-10-23 16:14)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 14 file(s) reviewed, 7 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 4 file(s) not reviewed — the file holds no text to review:
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/GlassSnapshotTests/thread-header-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/GlassSnapshotTests/thread-header-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/GlassSnapshotTests/thread-header-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/GlassSnapshotTests/thread-header-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+
+> 1 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522` `duplication/duplication` — The new `contextMenu(identifier:)` repeats the point-to-view conversion that `click(at:)` already performs: it converts the point with `hostingView.superview?.convert(point, from: nil) ?? point` and then calls `hostingView.hitTest(location)`. Both copies must stay in step, so a fix to one (for example, a change to how the superview conversion is done) can silently miss the other. Extract a private helper such as `hitTarget(at point: NSPoint) -> NSView?` that performs the conversion and the hit test, then call it from both `click(at:)` and `contextMenu(identifier:)`. This is a small duplication, so the extraction is optional.
+- [x] `Sources/AgentViewKitTestSupport/HostedViewHarness.swift:522` `reuse/reuse` — `contextMenu(identifier:)` repeats the point conversion and hit-test preamble that `click(at:)` already performs, so the same hit-target logic now lives in two places. A fix to the hit test or the coordinate conversion would have to land twice. Extract the shared lookup, for example `private func hitTarget(at point: NSPoint) throws -> NSView`, and call it from both `click(at:)` and `contextMenu(identifier:)`. Keep the event construction separate, since the two functions send different event types.

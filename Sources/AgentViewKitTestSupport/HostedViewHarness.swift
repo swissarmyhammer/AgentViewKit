@@ -486,10 +486,7 @@ public final class HostedViewHarness<Content: View> {
   /// - Throws: ``HostedViewHarnessError/noView(at:)`` when no view of the
   ///   hosting view is under `point`.
   public func click(at point: NSPoint) throws {
-    let location = hostingView.superview?.convert(point, from: nil) ?? point
-    guard let target = hostingView.hitTest(location) else {
-      throw HostedViewHarnessError.noView(at: point)
-    }
+    let target = try hitTarget(at: point)
     if let down = mouseEvent(.leftMouseDown, at: point) {
       target.mouseDown(with: down)
     }
@@ -519,8 +516,8 @@ public final class HostedViewHarness<Content: View> {
       throw HostedViewHarnessError.noElement(identifier: identifier)
     }
     let point = window.convertPoint(fromScreen: NSPoint(x: frame.midX, y: frame.midY))
-    let location = hostingView.superview?.convert(point, from: nil) ?? point
-    guard let target = hostingView.hitTest(location), let event = mouseEvent(.rightMouseDown, at: point) else {
+    let target = try hitTarget(at: point)
+    guard let event = mouseEvent(.rightMouseDown, at: point) else {
       throw HostedViewHarnessError.noView(at: point)
     }
     let views = sequence(first: target) { [hostingView] view in view === hostingView ? nil : view.superview }
@@ -882,6 +879,21 @@ public final class HostedViewHarness<Content: View> {
       isARepeat: false,
       keyCode: keyCode
     )
+  }
+
+  /// The view of the hosting view under `point`, found with a hit test, as
+  /// the window finds the view that gets a mouse event.
+  ///
+  /// - Parameter point: The point in the coordinates of the window.
+  /// - Returns: The deepest view of the hosting view under `point`.
+  /// - Throws: ``HostedViewHarnessError/noView(at:)`` when no view of the
+  ///   hosting view is under `point`.
+  private func hitTarget(at point: NSPoint) throws -> NSView {
+    let location = hostingView.superview?.convert(point, from: nil) ?? point
+    guard let target = hostingView.hitTest(location) else {
+      throw HostedViewHarnessError.noView(at: point)
+    }
+    return target
   }
 
   /// Makes a mouse event of one click for the window.
