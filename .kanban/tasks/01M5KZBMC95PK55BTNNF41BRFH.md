@@ -110,10 +110,26 @@ comments:
     - evidence: swift test (full, one run) — 1697 tests in 208 suites passed, 0 failed, 0 skipped, 3 known issues (expected); no warnings from project or test code. Only the known SwiftPM mlx-swift "missing creator" notice appeared.
     - next: review/commit of the ComposerHarness windowWidth/windowHeight constants change.
   timestamp: 2026-10-23T12:10:24.862472+00:00
+- actor: claude-code
+  id: 01m5marzrszgy4xfmy4jt8j956
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (73c2e68) — 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed; 1 file reviewed (Tests/AgentViewKitTests/Helpers/ComposerHarness.swift), .kanban/ excluded by .reviewignore. All 3 prior findings checked; the magic-numbers-swift finding at ComposerHarness.swift:30 is fixed by the windowWidth/windowHeight constants.
+    - next: task moved to done
+  timestamp: 2026-10-23T12:11:37.625951+00:00
+- actor: claude-code
+  id: 01m5mashcsb7zec3fs9mw7fmkw
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — ComposerHarness names the window size as windowWidth and windowHeight; magic-number finding checked
+    - test: green — swift test 1697 passed, 0 failed, 0 skipped
+    - commit: 73c2e68
+    - review: clean — 0 findings, 3/3 earlier findings fixed, task in done
+  timestamp: 2026-10-23T12:11:55.673801+00:00
 depends_on:
 - 01M5KVZMEZNJ8SKF8E269G4A69
-position_column: doing
-position_ordinal: '8380'
+position_column: done
+position_ordinal: ffffc880
 title: The composer draft survives a remount of the thread view for the same session
 ---
 Reported by testudoapp-2c (Testudo card ^ad0cgnc, 2026-10-23); it reproduces on Testudo main, independent of AVK's recent changes.
