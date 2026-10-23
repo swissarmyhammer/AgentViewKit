@@ -46,8 +46,24 @@ comments:
     - evidence: touched the 10 changed Sources files, then `swift test` (one full run, exit 0): Swift Testing 1692 tests in 206 suites passed, 0 failures, 0 skipped, 4 known issues (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests, ComposerWindowUndoHostedTests). AgentViewKit recompiled; the only build warning is the known SwiftPM mlx-swift "missing creator" notice. No warnings from project code. No snapshots re-recorded, no package update.
     - next: commit
   timestamp: 2026-10-23T10:56:11.444352+00:00
-position_column: doing
-position_ordinal: '8580'
+- actor: claude-code
+  id: 01m5m6nhqv50rvdzzqmvprxzcg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (9448887); counts findings 0, confirmed 0, refuted 0, attempted 14, failed 0; 15 files reviewed, 42 not reviewed (6 .kanban/ files excluded by .reviewignore, 36 snapshot PNGs are binary)
+    - next: none; task moved to done
+  timestamp: 2026-10-23T10:59:50.651228+00:00
+- actor: claude-code
+  id: 01m5m6nwt3h7fcz3s7wvq51g0e
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — a separate scenario for each kind of content (dark-mode conversation, time-zone thought, search-rename diffs, tax.py code block, npm lint output, release task list, CartView review JSON, database-migration permission, checkout test-filter thread, git status terminal); PreviewFixtures + 9 inline previews; 5 new tests and 1 tightened; 36 snapshot PNGs re-recorded at the same sizes (hosted: thread, bottom-bar-buttons, code-block, permission-card, terminal; glass: composer-field-idle, composer-field-running, floating-controls, request-deck-bar)
+    - test: green — swift test 1692 passed, 0 failed, 0 skipped
+    - commit: 9448887
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-23T11:00:01.987487+00:00
+position_column: done
+position_ordinal: ffffc680
 title: 'Vary the preview and snapshot sample content: not the same "Parser.swift does not import Foundation" story everywhere'
 ---
 User review of the snapshot images (2026-10-23): "main problem is highly repeated Parser.swift does not import Foundation ... add import at top of file".
