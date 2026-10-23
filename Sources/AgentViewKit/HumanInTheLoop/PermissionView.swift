@@ -39,11 +39,15 @@ import SwiftUI
 ///   `allow_once` option.
 ///
 /// A press on an `allow` option calls `selectPermission(_:option:)` on the
-/// session model at once. A press on a `reject` option shows a comment field.
-/// The Send button of the field, or Return in the field, selects the option.
-/// The wire has no field for a comment, so a comment that is not empty then
-/// goes out as the next prompt (`Docs/decisions/permission-ux.md`). Esc calls
-/// `cancelPermission(_:)`.
+/// session model at once. A press on a `reject` option shows a comment field,
+/// a one-line EditorKit field. The Send button of the field, or Return in the
+/// field, selects the option. The wire has no field for a comment, so a
+/// comment that is not empty then goes out as the next prompt
+/// (`Docs/decisions/permission-ux.md`). Esc on the card calls
+/// `cancelPermission(_:)`. Esc in the comment field keeps the comment and
+/// moves the focus out of the field. The field has its own command scope in
+/// the scope of the card, so a focus that lands on the card does not go into
+/// the field.
 ///
 /// The "switch to auto" button selects the `allow_once` option, then sets the
 /// mode option to ``PermissionPresentation/autoModeValue``. This is the order
@@ -95,6 +99,11 @@ public struct PermissionView: View {
   /// The symbol of the "switch to auto" button, which changes the session
   /// mode.
   static let switchToAutoSymbol = SharedSymbol.switchMode
+
+  /// The placeholder and the accessibility label of the comment field.
+  static var commentPrompt: String {
+    String(localized: "Tell the agent what to do instead", bundle: .module)
+  }
 
   /// The symbol of the button of an option.
   ///
@@ -339,14 +348,11 @@ public struct PermissionView: View {
   /// - Returns: The row.
   private func commentRow(for option: FoundationModelsACP.PermissionOption) -> some View {
     HStack(spacing: theme.spacing.s) {
-      TextField(
-        String(localized: "Tell the agent what to do instead", bundle: .module), text: $comment
-      )
-        .textFieldStyle(.roundedBorder)
-        .onSubmit { sendReject(option: option) }
-        .accessibilityIdentifier(Self.commentIdentifier)
+      OneLineTextField(text: $comment, prompt: Self.commentPrompt, identifier: Self.commentIdentifier) { text in
+        sendReject(option: option, comment: text)
+      }
       Button(String(localized: "Send", bundle: .module), systemImage: Self.commentSubmitSymbol) {
-        sendReject(option: option)
+        sendReject(option: option, comment: comment)
       }
         .requestActionStyle(.secondary)
         .accessibilityIdentifier(Self.commentSubmitIdentifier)
@@ -388,8 +394,10 @@ public struct PermissionView: View {
 
   /// Selects the reject option with the text of the comment field.
   ///
-  /// - Parameter option: The reject option.
-  private func sendReject(option: FoundationModelsACP.PermissionOption) {
+  /// - Parameters:
+  ///   - option: The reject option.
+  ///   - comment: The text of the comment field.
+  private func sendReject(option: FoundationModelsACP.PermissionOption, comment: String) {
     let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
     answer(with: option, comment: text.isEmpty ? nil : text)
   }

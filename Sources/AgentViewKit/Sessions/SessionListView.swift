@@ -15,8 +15,8 @@ import SwiftUI
 /// session changes its item in the model, so the row changes with no other
 /// step. When `hasMoreSessions` is true, the last row is a "Load More" button
 /// that calls `loadMoreSessions()`. The Refresh button calls
-/// `refreshSessions(cwd:)` again. The search field filters the rows of the
-/// model, and sends no request.
+/// `refreshSessions(cwd:)` again. The search field, a one-line EditorKit
+/// field, filters the rows of the model, and sends no request.
 ///
 /// The view reads each capability flag of the model when it draws:
 ///
@@ -36,6 +36,9 @@ import SwiftUI
 public struct SessionListView: View {
   /// The accessibility identifier of the search field.
   public static let searchIdentifier = "session-list-search"
+
+  /// The placeholder and the accessibility label of the search field.
+  static var searchPrompt: String { String(localized: "Search", bundle: .module) }
 
   /// The accessibility identifier of the "Load More" row.
   public static let loadMoreIdentifier = "session-list-load-more"
@@ -163,9 +166,7 @@ public struct SessionListView: View {
   /// The search field, the Refresh button and the new session button.
   private var header: some View {
     HStack {
-      TextField(String(localized: "Search", bundle: .module), text: $query)
-        .textFieldStyle(.roundedBorder)
-        .accessibilityIdentifier(Self.searchIdentifier)
+      OneLineTextField(text: $query, prompt: Self.searchPrompt, identifier: Self.searchIdentifier)
       if connection.canListSessions {
         Button {
           start(Self.refreshIdentifier) { await refresh() }

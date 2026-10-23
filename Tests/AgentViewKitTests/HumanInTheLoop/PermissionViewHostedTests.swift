@@ -296,8 +296,8 @@ import Testing
     #expect(harness.element(identifier: PermissionView.commentIdentifier) != nil)
     #expect(session.model.pendingPermissions.count == 1)
 
-    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
-    harness.type(Self.comment)
+    let commentView = try OneLineFieldHarness.textView(identifier: PermissionView.commentIdentifier, in: harness)
+    try OneLineFieldHarness.type(Self.comment, into: commentView, in: harness)
     try harness.press(identifier: PermissionView.commentSubmitIdentifier)
     // The card reports its answer in the same step as it starts the answer
     // task, so a Send press that the card did not handle stops the test here.

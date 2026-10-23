@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -180,16 +181,67 @@ import Testing
     let harness = AgentCommandScopeHostedTests.mount(session: session, system: CommandSystem(), outerScope: true)
     defer { harness.close() }
     _ = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
-    let reject = PermissionOptionId(rawValue: AgentCommandsTests.rejectOptionID)
-    try harness.press(identifier: PermissionView.optionIdentifier(for: reject))
-    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
-    harness.type(Self.commentText)
+    try OneLineFieldHarness.type(Self.commentText, into: try Self.openComment(in: harness), in: harness)
 
     try harness.press(identifier: RequestDeck.nextIdentifier)
     try #require(harness.element(identifier: PermissionView.commentIdentifier) == nil)
     try harness.press(identifier: RequestDeck.previousIdentifier)
 
     #expect(harness.element(identifier: PermissionView.commentIdentifier)?.value == Self.commentText)
+  }
+
+  /// The comment field of a card has its own `editor:` scope inside the item
+  /// scope of the card. A focus that lands on the item scope focuses the
+  /// card, and not the field, also when the field had the focus (^cwdb5zg,
+  /// the nested-scope rule of EditorKit).
+  @Test(arguments: AgentItemFocusRingHostedTests.FocusLanding.allCases)
+  func aLandingOnACardWithACommentFieldFocusesTheCardAndNotTheField(
+    landing: AgentItemFocusRingHostedTests.FocusLanding
+  ) async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    defer { harness.close() }
+    let cards = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
+    let comment = try Self.openComment(in: harness)
+    try #require(harness.window.makeFirstResponder(comment))
+
+    try AgentItemFocusRingHostedTests.land(
+      on: cards.front, in: AgentCommandScopeHostedTests.path(of: session.model), system: system, by: landing)
+    harness.render()
+
+    #expect(harness.window.firstResponder !== comment)
+    #expect(Self.focusedItem(among: [cards.front], in: system, window: harness.window) == cards.front)
+  }
+
+  /// A focus that lands on the own scope of the comment field focuses the
+  /// field.
+  @Test func aLandingOnTheScopeOfTheCommentFieldFocusesTheField() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    defer { harness.close() }
+    let cards = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
+    let comment = try Self.openComment(in: harness)
+
+    try #require(system.geometry.requestFocus(at: cards.front.appending(.editor(id: PermissionView.commentIdentifier))))
+    harness.render()
+
+    #expect(harness.window.firstResponder === comment)
+  }
+
+  /// Presses the reject option of the front card, so that the card shows its
+  /// comment field.
+  ///
+  /// - Parameter harness: The harness that shows the deck.
+  /// - Returns: The text view of the comment field.
+  /// - Throws: An issue when the card shows no comment text view.
+  static func openComment(in harness: HostedViewHarness<some View>) throws -> NSTextView {
+    try harness.press(
+      identifier: PermissionView.optionIdentifier(for: PermissionOptionId(rawValue: AgentCommandsTests.rejectOptionID)))
+    return try OneLineFieldHarness.textView(identifier: PermissionView.commentIdentifier, in: harness)
   }
 
   /// The scope paths of the two cards of a deck of two permission requests.

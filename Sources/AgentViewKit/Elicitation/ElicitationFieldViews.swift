@@ -183,9 +183,7 @@ public struct ElicitationTextField: View {
   let suppliedModel: EditorModel?
 
   /// The model that the view keeps when the host gives no model.
-  @State private var ownModel = TextFieldModelSlot()
-
-  @Environment(\.agentTheme) private var theme
+  @State private var ownModel = OwnModelSlot.makeEditable()
 
   /// Makes a text field that keeps its own model.
   ///
@@ -223,11 +221,7 @@ public struct ElicitationTextField: View {
     let model = suppliedModel ?? ownModel.model(text: answer)
     ElicitationFieldChrome(context: context) {
       input(model: model)
-        .padding(theme.spacing.xs)
-        .overlay(
-          AgentSurface.shape(radius: theme.radii.s)
-            .stroke(.separator)
-        )
+        .textInputOutline()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(context.schema.title)
         .accessibilityIdentifier(context.controlIdentifier)
@@ -260,30 +254,6 @@ public struct ElicitationTextField: View {
       SingleLineField(model: model, id: context.identifier)
         .editorSizingMode(.intrinsic)
     }
-  }
-}
-
-/// The model that an ``ElicitationTextField`` keeps when the host gives no
-/// model.
-///
-/// The slot makes the model at the first read. A `@State` value that holds
-/// the model directly would make a new model each time SwiftUI makes the
-/// view value again.
-private final class TextFieldModelSlot {
-  /// The model, or `nil` before the first read.
-  private var model: EditorModel?
-
-  /// The model of the slot. The first read makes a model that holds `text`.
-  ///
-  /// - Parameter text: The text of a new model.
-  /// - Returns: The model.
-  func model(text: String) -> EditorModel {
-    if let model {
-      return model
-    }
-    let model = EditorModel(text)
-    self.model = model
-    return model
   }
 }
 
@@ -337,6 +307,9 @@ public struct ElicitationNumberField: View {
           in: (minimum ?? -.greatestFiniteMagnitude)...(maximum ?? .greatestFiniteMagnitude),
           step: Self.step
         ) {
+          // The input stays a SwiftUI `TextField`. The EditorKit
+          // `SingleLineField` has no formatted value: no parse, no format,
+          // and no revert of a text that is not a number (^8zmkh1a).
           TextField(context.schema.title, value: number, format: .number)
             .labelsHidden()
             .frame(maxWidth: Self.numberInputMaximumWidth)
