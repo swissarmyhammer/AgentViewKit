@@ -134,8 +134,25 @@ comments:
     - files: Sources/AgentViewKit/Code/OwnModelSlot.swift, Sources/AgentViewKit/Input/AgentOneLineField.swift, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, Sources/AgentViewKit/Sessions/SessionListView.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift, Tests/AgentViewKitTests/Code/OwnModelSlotTests.swift
     - next: /review
   timestamp: 2026-10-23T18:09:23.737986+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5mzg0hw0j65srn7bs4t159a
+  text: |-
+    ### review — clean
+    - evidence: review sha b275da0~1..b275da0 — 0 findings (7 attempted, 0 failed); 6 files reviewed, 2 .kanban files excluded by .reviewignore; both items in Review Findings (2026-10-23 12:58) checked
+    - next: task moved to done
+  timestamp: 2026-10-23T18:13:43.612089+00:00
+- actor: claude-code
+  id: 01m5mzgmx5n3mrmexfqe1nka4t
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — `OwnModelSlot(editable:)`; `EditorModelSlot` removed; new OwnModelSlotTests; 6 files
+    - test: green — swift test, 1718 tests in 212 suites passed, 0 failed, 0 skipped (3 known issues are tests that expect a failure)
+    - commit: b275da0 (+ 5d694c9, a kanban chore for ^8mv9xpj)
+    - review: clean — 0 findings; task in done
+    - Not pushed. Local commits edeccb9 and b275da0 need EditorKit 8e4d27a or later.
+  timestamp: 2026-10-23T18:14:04.453067+00:00
+position_column: done
+position_ordinal: ffffc980
 title: Replace one-line SwiftUI TextFields with EditorKit SingleLineField
 ---
 User decision (2026-10-23, relayed by editorkit-28): a one-line editor uses EditorKit's one-line mode, not a SwiftUI text field. `SingleLineField` (EditorSwiftUI): lineLimit 1, Return submits via onSubmit, Esc reverts, paste flattens newlines; it has full window-stack undo and redo (EK-6).
