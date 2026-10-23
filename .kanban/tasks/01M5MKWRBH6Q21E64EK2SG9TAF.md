@@ -83,8 +83,26 @@ comments:
     - evidence: 1 file — Sources/AgentViewKitTestSupport/HostedViewHarness.swift. `swift test`: 1733 tests in 214 suites passed (the same 3 known issues as before), PackageStructureTests 227/227, ReadmeSnippets 1/1. The only warning is the mlx-swift_Cmlx.bundle "missing creator" one from the SwiftPM build graph, which was already there. The demo app was not launched (UI-test lock). Nothing committed.
     - next: /review
   timestamp: 2026-10-23T21:21:32.588875+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5naetyvq3fr8hz4ztgfa110
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0d653e8) — 0 findings (attempted 7, confirmed 0, refuted 0, failed 0); both items of Review Findings (2026-10-23 16:14) checked
+    - next: task moved to done
+  timestamp: 2026-10-23T21:25:19.451321+00:00
+- actor: claude-code
+  id: 01m5naf6qrqf4qqqy63m4j85mn
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared private `hitTarget(at:)` in HostedViewHarness; 1 file
+    - test: green — swift test, 1733 tests in 214 suites passed, 0 failed, 0 skipped
+    - commit: 0d653e8 (+ ac604ae, a kanban chore)
+    - review: clean — 0 findings; task in done
+    - Not pushed. Local commits 69f9381 and 0d653e8 must wait for ^xqday3k, because EditorKit main breaks AVK on a fresh resolve. When pushed, send the SHA to testudoapp-2c.
+    - Open: no test yet checks that a rename of `sessionTitle` while the view is mounted updates the header. testudoapp-2c asked for it.
+  timestamp: 2026-10-23T21:25:31.512374+00:00
+position_column: done
+position_ordinal: ffffcb80
 title: 'Thread header: Agent › Session breadcrumb, and a host context menu path on the header'
 ---
 Requested by testudoapp-2c (2026-10-23). Testudo's user decided to remove Testudo's plain tab-header bar over the chat, so AVK's floating glass `AgentInfoHeader` (the thread top bar, ^1ye0jj6) becomes the ONE header. Testudo then removes `tabHeaderBar` and moves 14 UI-test uses off its `tabHeader` element. Tell testudoapp-2c the API BEFORE pushing, and send the SHA.

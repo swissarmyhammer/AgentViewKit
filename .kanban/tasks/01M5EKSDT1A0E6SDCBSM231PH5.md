@@ -53,6 +53,10 @@ comments:
     - The white fill of the code block's text area comes from EditorKit `EditorView` leaving `NSTextView.drawsBackground` on. testudoapp-2c has asked editorkit-28 to make it clear by default. When that EditorKit change lands: bump EditorKit, confirm the AVK snapshot tests pass (re-record only the code block and composer snapshots that change, and list them), and this card's cause is answered.
     - `TerminalBlockFrame` (EditorBlockChrome.swift:52) fills `terminalPalette[.background]` (AVK-8aa). Testudo is asking the user whether that stays or goes clear. Don't change it until the answer is relayed.
   timestamp: 2026-10-23T19:56:58.464205+00:00
+- actor: claude-code
+  id: 01m5nc9804wr65mm47vjdrwqd8
+  text: 'EditorKit ^0apj6a2 (EditorKit main at 69d04fc, code f8ff1bc) removes the white fill of the code block''s text area: EditorTextView now sets drawsBackground = false, and Theme.editorBackground is gone, so the EditorKit editors are transparent by default. AVK adopts it in ^xqday3k. The hosted pixel test this card asked for now exists: EditorThemeViewsTests.theTextAreaOfACodeBlockShowsTheContentBehindTheBlock puts a CodeBlockView over a backdrop in a window and reads the cached pixels at the trailing end of the text view. It passes at 69d04fc and fails at the old pin 8e4d27a (checked in a scratch export of HEAD), so it holds the fix. plan.md "Open items" and Docs/decisions/visual-audit.md now say the item is answered; this card still closes in its own review.'
+  timestamp: 2026-10-23T21:57:13.348792+00:00
 position_column: doing
 position_ordinal: '80'
 title: Examine the white fill of the EditorKit text area in a code block (D113 answer 1)
