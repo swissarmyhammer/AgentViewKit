@@ -33,9 +33,6 @@ struct ScopedDefaultComposerThreadHost: View {
   /// The accessibility role of an editable multiline text view.
   static let textAreaRole = NSAccessibility.Role.textArea.rawValue
 
-  /// The size of a window that shows a thread and its composer.
-  static let windowSize = CGSize(width: 480, height: 480)
-
   /// The element with the `prompt-editor` identifier is the text area of the
   /// EditorKit editor: the editable text view, the element that takes typing.
   ///
@@ -45,7 +42,7 @@ struct ScopedDefaultComposerThreadHost: View {
   @Test func theEditorThatTakesTypingCarriesThePromptEditorIdentifier() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = HostedViewHarness(size: Self.windowSize) {
+    let harness = HostedViewHarness(size: ComposerHarness.windowSize) {
       DefaultThreadComposer()
         .environment(\.sessionModel, session.model)
     }
@@ -71,21 +68,17 @@ struct ScopedDefaultComposerThreadHost: View {
   ) async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let system = CommandSystem()
-    let harness = HostedViewHarness(size: Self.windowSize) {
+    let thread = try ComposerHarness.mountThread(of: session.model) {
       ScopedDefaultComposerThreadHost(session: session)
         .environment(\.sessionModel, session.model)
-        .commandSystem(system)
     }
-    defer { harness.close() }
-    harness.render()
-    let thread = AgentCommandScopeHostedTests.path(of: session.model)
-    let composer = thread.appending(ScopedDefaultComposerThreadHost.composerSegment)
+    defer { thread.harness.close() }
+    let composer = thread.path.appending(ScopedDefaultComposerThreadHost.composerSegment)
 
-    try AgentItemFocusRingHostedTests.land(on: composer, in: thread, system: system, by: landing)
-    harness.render()
+    try AgentItemFocusRingHostedTests.land(on: composer, in: thread.path, system: thread.system, by: landing)
+    thread.harness.render()
 
-    let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
-    #expect(harness.window.firstResponder === editor)
+    let editor = try #require(thread.harness.firstEditableTextView(of: NSTextView.self))
+    #expect(thread.harness.window.firstResponder === editor)
   }
 }

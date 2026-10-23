@@ -98,9 +98,7 @@ import Testing
     let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
-    harness.type(Self.message)
-    try harness.requireTextViewShows(Self.message)
-    await ObservationWait.until { model.plainText == Self.message }
+    try await ComposerHarness.typePrompt(Self.message, in: harness) { model.plainText }
     try Self.pressReturn(in: harness)
     // The composer calls the host closure in the same step as it starts the
     // prompt task, so a key that sent nothing stops the test here.
@@ -122,9 +120,7 @@ import Testing
     let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
-    harness.type(Self.message)
-    try harness.requireTextViewShows(Self.message)
-    await ObservationWait.until { model.plainText == Self.message }
+    try await ComposerHarness.typePrompt(Self.message, in: harness) { model.plainText }
     try Self.pressReturn(modifiers: .shift, in: harness)
     try harness.requireTextViewShows(Self.message + "\n")
     await ObservationWait.until { model.plainText == Self.message + "\n" }
@@ -141,9 +137,7 @@ import Testing
     defer { harness.close() }
     try await Self.startRunning(session, in: harness)
 
-    harness.type(Self.message)
-    try harness.requireTextViewShows(Self.message)
-    await ObservationWait.until { model.plainText == Self.message }
+    try await ComposerHarness.typePrompt(Self.message, in: harness) { model.plainText }
     try Self.pressReturn(modifiers: .command, in: harness)
     try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }

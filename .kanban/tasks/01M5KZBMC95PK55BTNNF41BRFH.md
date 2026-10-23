@@ -40,6 +40,46 @@ comments:
     - isolation: each ComposerDraftHostedTests test opens its own ScriptedSession (own SessionModel identity, so its own weakly keyed draft), the suite is serialized and hosted serially, and Send clears the draft, so no draft leaks between tests. No flakiness seen; no code changed.
     - next: review / commit
   timestamp: 2026-10-23T11:48:01.439944+00:00
+- actor: claude-code
+  id: 01m5m9n8p9ha566h1pz8tq6na2
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (f8f3d44); 2 findings (2 confirmed, 0 refuted) — Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:66, Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:96
+    - next: implement — extract the shared mount and typeMessage helpers used by ComposerDraftHostedTests and ComposerWindowUndoHostedTests
+  timestamp: 2026-10-23T11:52:07.113367+00:00
+- actor: claude-code
+  id: 01m5m9nwjqm5wykm63hhxrzag4
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — new PromptDraftStore (one draft per SessionModel, weak keys); DefaultThreadComposer bound to it; caret at the end on restore; 4 ComposerDraftHostedTests; no public API change
+    - test: green — swift test run twice, 1697 passed each, 0 failed, 0 skipped
+    - commit: f8f3d44
+    - review: findings — Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:66 (mount copies ComposerWindowUndoHostedTests.mount), :96 (typeMessage copies ComposerWindowUndoHostedTests.typeMessage)
+  timestamp: 2026-10-23T11:52:27.479060+00:00
+- actor: claude-code
+  id: 01m5ma1adgty00hy36zvbp9gf4
+  text: |-
+    Review findings worked (not committed):
+    - New Tests/AgentViewKitTests/Helpers/ComposerHarness.swift: top-level `MountedThread<Content>` (moved out of ComposerWindowUndoHostedTests) and `@MainActor enum ComposerHarness` with `windowSize` (480x480), `mountThread(of: SessionModel, _ content:)` (new CommandSystem, `.commandSystem` + disabled animations around the view the closure builds, render, `#require` the window undo stack at `AgentCommandScopeHostedTests.path(of:)`), and `typePrompt(_:in:until:)` (focus the NSTextView, type, requireTextViewShows, `ObservationWait.until { typed() == prompt }`; the closure gives the value to wait for).
+    - ComposerWindowUndoHostedTests.mount/typeMessage and ComposerDraftHostedTests.mount/typeMessage are now one-line calls into the helper; both suites dropped their own windowSize.
+    - Other copies routed through the helpers: DefaultThreadComposerHostedTests (the focus-landing test mounts via `mountThread`, which now also disables animations and requires the undo stack; the identifier test uses `ComposerHarness.windowSize` and the suite's own constant is gone) and EditorKitPromptEditorHostedTests (3 type/require/wait copies -> `typePrompt`).
+    - Left as is: ComposerEditorMenuHostedTests.typeSlash and SlashCommandSessionModelTests wait with `harness.render { }` (a render pump), not `ObservationWait`, and type without a focus step, so they are a different procedure, not this copy.
+    - TDD note: this is a test-only refactor under green; no production code changed, so there is no RED step.
+  timestamp: 2026-10-23T11:58:42.096886+00:00
+- actor: claude-code
+  id: 01m5ma1damz0k5b4qq8s0bjbwz
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Tests/AgentViewKitTests/Helpers/ComposerHarness.swift (new), Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift, Tests/AgentViewKitTests/Input/ComposerWindowUndoHostedTests.swift, Tests/AgentViewKitTests/Input/DefaultThreadComposerHostedTests.swift, Tests/AgentViewKitTests/Input/EditorKitPromptEditorHostedTests.swift. Both findings checked. Filtered run (4 suites): 19 tests passed. Full `swift test`: 1 + 227 + 1697 tests passed (3 known issues, the pre-existing withKnownIssue self-tests), 0 failures; only the known mlx-swift SwiftPM "missing creator" notice.
+    - next: /review
+  timestamp: 2026-10-23T11:58:45.076148+00:00
+- actor: claude-code
+  id: 01m5ma9vpsjspztm05xkf39yga
+  text: |-
+    ### test — green
+    - evidence: `swift test` run twice back to back, both exit 0. Run 1: 1697 tests in 208 suites passed after 74.222 s with 3 known issues. Run 2: 1697 tests in 208 suites passed after 64.503 s with 3 known issues. 0 failures, 0 skipped. The only warning in both runs was the known SwiftPM mlx-swift "missing creator" notice. No project or test code warnings.
+    - next: review/commit. No code changed in this step.
+  timestamp: 2026-10-23T12:03:21.945917+00:00
 depends_on:
 - 01M5KVZMEZNJ8SKF8E269G4A69
 position_column: doing
@@ -64,3 +104,13 @@ Tests (hosted):
 - a different session's thread view doesn't show it;
 - after Send, a rebuild shows an empty composer.
 Full `swift test` green. Send testudoapp-2c the SHA: Testudo's `testComposerKeepsTheFocusAfterSwapChatAndView` will then expect the full pre-swap prompt. #avk-7 #bug #testudo-request
+
+## Review Findings (2026-10-23 06:48)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:66` `reuse/reuse` — The `mount` function duplicates test setup code that already exists in `ComposerWindowUndoHostedTests.mount` (0.98 similarity per clone-siblings probe). Both create a CommandSystem, HostedViewHarness with view+modifiers, render, get the undo stack, and return MountedThread using nearly identical logic. Rather than duplicate this pattern, the shared setup should be extracted into a parameterized helper that accepts the view closure as a parameter. Extract the common test-harness-mounting logic into a shared parameterized helper function that both test classes can call, passing their respective host views as a closure parameter. This eliminates code duplication and keeps the undo-system test setup in one place.
+- [x] `Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:96` `reuse/reuse` — The `typeMessage` function duplicates test helper code from `ComposerWindowUndoHostedTests.typeMessage` (0.93 similarity per clone-siblings probe). Both focus the text view, type a message, require it shows in the view, and wait for an observation—differing only in which draft property is polled (`draftText(of:)` vs another observer). Rather than duplicate this helper, the shared typing pattern should be extracted to a parameterized function that accepts the observation closure. Extract the common test-message-typing pattern into a shared parameterized helper that accepts an observation closure (e.g., for the draft or other state to wait on), eliminating duplication of the focus, type, and require-display logic across test classes.

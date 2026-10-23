@@ -52,9 +52,6 @@ struct ComposerDraftHost: View {
   /// The prompt that the tests type.
   static let message = "Hello"
 
-  /// The size of a window that shows a thread and its composer.
-  static let windowSize = CGSize(width: 480, height: 480)
-
   /// Shows the thread of `session` in a ``ComposerDraftHost`` under a command
   /// system, and renders it.
   ///
@@ -65,17 +62,10 @@ struct ComposerDraftHost: View {
   /// - Throws: An error when the window has no undo stack.
   static func mount(
     _ host: ComposerDraftHostModel, session: ScriptedSession
-  ) throws -> ComposerWindowUndoHostedTests.MountedThread<some View> {
-    let system = CommandSystem()
-    let harness = HostedViewHarness(size: windowSize) {
+  ) throws -> MountedThread<some View> {
+    try ComposerHarness.mountThread(of: session.model) {
       ComposerDraftHost(model: host)
-        .commandSystem(system)
-        .transaction { $0.disablesAnimations = true }
     }
-    harness.render()
-    let path = AgentCommandScopeHostedTests.path(of: session.model)
-    let stack = try #require(system.undo.stack(for: path))
-    return ComposerWindowUndoHostedTests.MountedThread(harness: harness, system: system, path: path, stack: stack)
   }
 
   /// The draft that the default composer keeps for `session`.
@@ -94,10 +84,7 @@ struct ComposerDraftHost: View {
   ///   - session: The scripted session of the thread.
   /// - Throws: An error when the editor cannot get the focus.
   static func typeMessage(in harness: HostedViewHarness<some View>, session: ScriptedSession) async throws {
-    try #require(harness.focusFirstEditableTextView(of: NSTextView.self))
-    harness.type(message)
-    try harness.requireTextViewShows(message)
-    await ObservationWait.until { draftText(of: session) == message }
+    try await ComposerHarness.typePrompt(message, in: harness) { draftText(of: session) }
   }
 
   /// Rebuilds the thread view under a new identity for the same session.

@@ -42,25 +42,6 @@ struct ComposerUndoThreadHost: View {
   /// actor, because a `@Test(arguments:)` list reads it.
   nonisolated static let message = "Hello"
 
-  /// The size of a window that shows a thread and its composer.
-  static let windowSize = CGSize(width: 480, height: 480)
-
-  /// The thread of a scripted session, its composer, and the window undo
-  /// stack.
-  struct MountedThread<Content: View> {
-    /// The harness that shows the thread.
-    let harness: HostedViewHarness<Content>
-
-    /// The command system of the window.
-    let system: CommandSystem
-
-    /// The root path of the window.
-    let path: FocusPath
-
-    /// The undo stack of the window.
-    let stack: WindowUndoStack
-  }
-
   /// Shows the thread of `session` with its composer, under a command
   /// system, and renders it.
   ///
@@ -72,17 +53,10 @@ struct ComposerUndoThreadHost: View {
   static func mount(
     _ session: ScriptedSession, composer: PromptInputHostedTestModel
   ) throws -> MountedThread<some View> {
-    let system = CommandSystem()
-    let harness = HostedViewHarness(size: windowSize) {
+    try ComposerHarness.mountThread(of: session.model) {
       ComposerUndoThreadHost(session: session, composer: composer)
         .environment(\.sessionModel, session.model)
-        .commandSystem(system)
-        .transaction { $0.disablesAnimations = true }
     }
-    harness.render()
-    let path = AgentCommandScopeHostedTests.path(of: session.model)
-    let stack = try #require(system.undo.stack(for: path))
-    return MountedThread(harness: harness, system: system, path: path, stack: stack)
   }
 
   /// Re-renders the composer with no edit: the agent starts to run, which
@@ -110,10 +84,7 @@ struct ComposerUndoThreadHost: View {
   ///   - composer: The text of the composer.
   /// - Throws: An error when the editor cannot get the focus.
   static func typeMessage(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) async throws {
-    try #require(thread.harness.focusFirstEditableTextView(of: NSTextView.self))
-    thread.harness.type(message)
-    try thread.harness.requireTextViewShows(message)
-    await ObservationWait.until { composer.plainText == message }
+    try await ComposerHarness.typePrompt(message, in: thread.harness) { composer.plainText }
   }
 
   /// Sends the prompt with a Return press, as the person does.
