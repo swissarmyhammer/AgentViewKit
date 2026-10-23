@@ -120,6 +120,14 @@ import Testing
     #expect(Set(severities.map(NoticeBanner.severityLabel)).count == severities.count)
   }
 
+  @Test func theStatusSymbolNamesAreDifferentSystemSymbols() {
+    let names = PreviewFixtures.statusSymbolNames
+
+    #expect(!names.isEmpty)
+    #expect(Set(names).count == names.count)
+    #expect(names.allSatisfy { NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil }, "\(names)")
+  }
+
   @Test func theHeaderSymbolsAreTheSymbolsOfTheAgentHeaderAndOfTheEmptyConversation() throws {
     let symbols = PreviewFixtures.headerSymbols
     let emptyConversationSymbol = try #require(ConversationEmptyContent.standard.systemImage)

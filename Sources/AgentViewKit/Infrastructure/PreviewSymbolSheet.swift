@@ -41,3 +41,12 @@ struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
     }
   }
 }
+
+// MARK: - Previews
+
+#Preview("The sheet of the status symbols") {
+  PreviewSymbolSheet(title: "Status symbol", values: PreviewFixtures.statusSymbolNames, label: \.self) { name in
+    DecorativeSymbolImage(name: name)
+  }
+  .padding()
+}

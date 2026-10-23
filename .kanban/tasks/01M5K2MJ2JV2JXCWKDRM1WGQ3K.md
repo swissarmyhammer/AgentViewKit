@@ -1,0 +1,25 @@
+---
+assignees:
+- claude-code
+position_column: todo
+position_ordinal: a980
+title: 'Composer undo on the window stack: no entry on mount or re-render; the clear after Send is one undoable entry'
+---
+Requested by testudoapp-2c (TestudoApp ^yahkhjn, the composer pushed empty undo entries). User decision (2026-10-22): clearing the composer after Send IS undoable, so ⌘Z restores the sent prompt. Do not wrap the clear to suppress undo.
+
+EditorKit EK-6 now gives each window one undo stack:
+- EK-6.3 ac4e366: the root `.commandScope` registers `edit.undo`/`edit.redo`. They're unavailable while the stack is empty.
+- EK-6.5 be05965: every EditorView's undo groups go to the window stack. `model.replaceAll(text)` with UNCHANGED text adds nothing; a real change is ONE entry ("Change").
+- EK-6.6 7e22d7a: system text views (TextEditor, NSTextView, field editor) feed the window stack. A group that changes no text is dead, never an entry. A programmatic clear (binding set to "") is ONE entry, and ⌘Z restores the text.
+- AppKit limits: ⇧⌘Z can't redo undone TextEditor typing, because TextEditor writes the binding back. Closing a composer drops its typing entries.
+
+Work:
+- `swift package update` EditorKit to 7e22d7a or later.
+- Hosted tests for BOTH composers: the default EditorKitPromptEditor, and StockPromptEditor (TextEditor over AttributedString):
+  1. Mounting the thread with the composer, then forcing a re-render with no edit (e.g. a state change that redraws the composer), leaves the window stack with `canUndo == false`. This is the ^yahkhjn regression.
+  2. Typing a prompt, then Send (the composer clears), leaves ONE entry for the clear. `edit.undo` restores the sent prompt text in the composer.
+  3. Typing alone creates entries (sanity), and `edit.undo` removes them.
+  For StockPromptEditor, write down the AppKit redo limit in a test comment or a `withKnownIssue`; don't fake a redo.
+- Use the existing WindowUndoChecks helper and EditorTestSupport's UndoActionLog/UndoActionGate where they fit.
+- If a test shows AVK itself adds an entry on mount or re-render (e.g. a draft restore through a changing replaceAll), fix that in AVK.
+- The full `swift test` must be green. #avk-7 #testudo-request

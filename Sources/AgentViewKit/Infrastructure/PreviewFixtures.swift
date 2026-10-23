@@ -438,6 +438,14 @@ enum PreviewFixtures {
   /// and a severity that the kit does not know.
   static let noticeSeverities: [NoticeSeverity] = [.info, .warning, .error, .unknown(unknownWireValue)]
 
+  /// The status symbols of the kit (``SharedSymbol``), for the preview of
+  /// ``PreviewSymbolSheet``. Each row of that sheet shows the symbol and its
+  /// name.
+  static let statusSymbolNames = [
+    SharedSymbol.pending, SharedSymbol.inProgress, SharedSymbol.completed, SharedSymbol.error,
+    SharedSymbol.cancelled, SharedSymbol.unknown, SharedSymbol.warning, SharedSymbol.information,
+  ]
+
   /// A decorative symbol of the kit, with the header that shows it.
   struct HeaderSymbol: Hashable {
     /// The name of the header that shows the symbol.
