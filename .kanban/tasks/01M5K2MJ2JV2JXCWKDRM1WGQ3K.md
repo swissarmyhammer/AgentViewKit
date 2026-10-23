@@ -39,8 +39,24 @@ comments:
     - evidence: swift test run twice back to back, both exit 0. Run 1: 1678 tests in 206 suites passed (67.5s), 4 known issues; 227 tests in 30 suites (XCTest-side/other runner) passed. Run 2: 1678 tests in 206 suites passed (72.1s), 4 known issues; 227 tests in 30 suites passed. 0 failures, 0 skipped. ComposerWindowUndoHostedTests passed with its 1 documented redo known issue (3 pre-existing + 1 new = 4). Only warning: the SwiftPM mlx-swift "missing creator for mutated node" notice; no project-code warnings after touching EditorKitPromptEditor.swift. EditorKit pinned at 7c043ade64e0e2dfef43e5d6f33645a0e77c4810 (no package update run).
     - next: review/commit
   timestamp: 2026-10-23T01:38:08.236677+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5k6p2xhwcm8ag6smvvyhb2v
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (43f1df7): 0 findings, 0 confirmed, 0 refuted (7 validator runs attempted, 0 failed); 2 files reviewed, 2 .kanban files excluded by .reviewignore
+    - next: task moved to done
+  timestamp: 2026-10-23T01:40:53.809642+00:00
+- actor: claude-code
+  id: 01m5k6pfwh22yfrsr5v2gdy2he
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — EditorKitPromptEditor: the model starts with the prompt (a draft mount adds no entry), and engine undo/redo pass to the binding (⌘Z after Send restores the prompt); new ComposerWindowUndoHostedTests for both composers; red first: the draft mount left an entry, and undoing the clear didn't restore the binding; StockPromptEditor's redo limit is a documented withKnownIssue
+    - test: green — swift test run twice, 1678 passed each, 0 failed, 0 skipped, 4 known issues (3 existing + the redo limit); EditorKit 7c043ad
+    - commit: 43f1df7
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-23T01:41:07.089268+00:00
+position_column: done
+position_ordinal: ffffc180
 title: 'Composer undo on the window stack: no entry on mount or re-render; the clear after Send is one undoable entry'
 ---
 Requested by testudoapp-2c (TestudoApp ^yahkhjn, the composer pushed empty undo entries). User decision (2026-10-22): clearing the composer after Send IS undoable, so ⌘Z restores the sent prompt. Do not wrap the clear to suppress undo.
