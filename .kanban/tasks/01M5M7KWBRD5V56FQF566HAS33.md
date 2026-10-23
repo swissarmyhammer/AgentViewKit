@@ -33,8 +33,24 @@ comments:
     - New tasks: ^tqvfq6z (use the client InProcessAgent), ^4yw9781 (kit layout loop with the pill when the bars are taller than the column).
     - next: /review
   timestamp: 2026-10-23T19:22:22.859333+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5n3mb2stjghcwv3e4cne02p
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (6a80b43). Counts: findings 0, confirmed 0, refuted 1, attempted 7, failed 0. The ignore rule (.reviewignore) excluded 6 .kanban files.
+    - next: The task moved to done.
+  timestamp: 2026-10-23T19:25:59.769739+00:00
+- actor: claude-code
+  id: 01m5n3mkxjfbdpht7e06hdsgfg
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 7 files
+    - test: green — swift test, 1698 passed, 0 failed, 0 skipped
+    - commit: 6a80b43
+    - review: clean — review sha HEAD~1..HEAD, 0 findings
+  timestamp: 2026-10-23T19:26:08.818376+00:00
+position_column: done
+position_ordinal: ffffc980
 title: 'Demo UI test: after a send of "hello" the reply row is not in the AX tree (testASendOfHelloShowsTheReplyOfTheAgent)'
 ---
 Found by the implement step of ^69g4a69 (2026-10-23), with EditorKit 37325a2 and the EditorKit composer (EditorKitPromptEditor with `.editorTextAccessibilityIdentifier("prompt-editor")`).

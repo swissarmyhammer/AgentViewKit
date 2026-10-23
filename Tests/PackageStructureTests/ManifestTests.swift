@@ -86,12 +86,13 @@ import Testing
     #expect(manifest.contains(#".product(name: "EditorDiff", package: "EditorKit")"#))
   }
 
-  /// The test support target links the kit, and the scripted agent of
-  /// `DemoSupport` with the ACP products, for its session helper. It links no
-  /// other target.
-  @Test func declaresTheTestSupportTargetOnTheKitAndTheScriptedAgent() {
+  /// The test support target links the kit, the scripted agent of
+  /// `DemoSupport` with the ACP products, for its session helper, and the
+  /// Objective-C window of `HostedWindowSupport`, for the hosted view
+  /// harness. It links no other target.
+  @Test func declaresTheTestSupportTargetOnTheKitTheScriptedAgentAndTheHostedWindow() {
     let target =
-      /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit",\s*"DemoSupport"\]\s*\+\s*acpProducts,/
+      /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit",\s*"DemoSupport",\s*"HostedWindowSupport"\]\s*\+\s*acpProducts,/
     #expect(manifest.contains(target))
   }
 
