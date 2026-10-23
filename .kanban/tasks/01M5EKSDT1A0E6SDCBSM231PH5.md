@@ -46,6 +46,13 @@ comments:
     - commit: none — no file changed
     - review: not run
   timestamp: 2026-10-21T18:16:14.010508+00:00
+- actor: claude-code
+  id: 01m5n5d27025y3kktf0t4d7kzx
+  text: |-
+    From testudoapp-2c (2026-10-23): new user rule. Every kit component draws a transparent background by default, and the host's single app background shows through. A background is opt-in decoration.
+    - The white fill of the code block's text area comes from EditorKit `EditorView` leaving `NSTextView.drawsBackground` on. testudoapp-2c has asked editorkit-28 to make it clear by default. When that EditorKit change lands: bump EditorKit, confirm the AVK snapshot tests pass (re-record only the code block and composer snapshots that change, and list them), and this card's cause is answered.
+    - `TerminalBlockFrame` (EditorBlockChrome.swift:52) fills `terminalPalette[.background]` (AVK-8aa). Testudo is asking the user whether that stays or goes clear. Don't change it until the answer is relayed.
+  timestamp: 2026-10-23T19:56:58.464205+00:00
 position_column: doing
 position_ordinal: '80'
 title: Examine the white fill of the EditorKit text area in a code block (D113 answer 1)
