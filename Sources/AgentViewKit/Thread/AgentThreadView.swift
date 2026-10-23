@@ -18,9 +18,13 @@ import SwiftUI
 /// of the model.
 ///
 /// The conversation scrolls under the top bar, and thus under the toolbar of
-/// the window, with the scroll edge effect (D113 answer 7). The top bar has
-/// no background. The ``AgentInfoHeader`` in it floats on `.regular` glass,
-/// the same as the conversation header in Messages
+/// the window, with the scroll edge effect (D113 answer 7). The rows under
+/// the top bar and the toolbar do not stay readable: AppKit sizes the one top
+/// edge effect of the list to the whole top inset, so the effect washes out
+/// the rows under the full stack of bars, and fades only near the top of the
+/// list. The user accepted this system look on 2026-10-23 (^22wbz12). The
+/// top bar has no background. The ``AgentInfoHeader`` in it floats on
+/// `.regular` glass, the same as the conversation header in Messages
 /// (``SwiftUI/View/agentFloatingGlass()``). The banners in it are content
 /// with no glass. VoiceOver reads the top bar, the conversation, and then
 /// the bottom bar.
@@ -240,8 +244,12 @@ public struct AgentThreadView<Composer: View>: View {
   /// The list scrolls under the two bars, and thus under the toolbar of the
   /// window, with the scroll edge effect (TestudoApp `features/style.md`,
   /// "Scroll under the bars", D113 answer 7). The ``ConversationView`` asks
-  /// for the soft effect at its top and bottom edges, so the rows show
-  /// through the bars in every window. The top bar has no background
+  /// for the soft effect at its top and bottom edges, so no window gives the
+  /// opaque hard band. At the top, AppKit makes the effect as tall as the
+  /// whole top inset: the toolbar, the bars of the host and this top bar. So
+  /// the rows under that stack are washed out, and the fade is gradual only
+  /// near the top of the list. The user accepted this system look on
+  /// 2026-10-23 (^22wbz12). The top bar has no background
   /// (D112 (e)). The header is a floating surface: it is on the floating
   /// glass of the kit, in its own glass container. The banners are content
   /// with no glass, out of that container, so their buttons keep the button

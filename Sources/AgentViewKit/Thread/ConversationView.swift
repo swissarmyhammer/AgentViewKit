@@ -134,8 +134,12 @@ extension View {
 /// ``StateBanner/init(session:onShowError:)`` shows the `agentState` of the
 /// model. The list scrolls under the bar (TestudoApp `features/style.md`,
 /// "Scroll under the bars"). The list asks for the soft scroll edge effect at
-/// its top and bottom edges, so the rows under a bar show through it in every
-/// window. The Show Error button of the banner scrolls to the last
+/// its top and bottom edges, so no window gives the opaque hard band. AppKit
+/// makes the effect of an edge as tall as the whole inset of that edge. At
+/// the top, the inset holds the toolbar and every bar above the list, so the
+/// rows under that stack are washed out, and the fade is gradual only near
+/// the top of the list. The user accepted this system look on 2026-10-23
+/// (^22wbz12). The Show Error button of the banner scrolls to the last
 /// `ErrorEntry` of the transcript. In an ``AgentThreadView``, the
 /// banner is in the floating controls of the thread, and the view shows no
 /// banner of its own.
@@ -260,10 +264,13 @@ public struct ConversationView<EmptyState: View>: View {
       Text(ConversationLayout.listValue(shown: shownCount, count: count))
     )
     .accessibilityIdentifier(ConversationLayout.listIdentifier)
-    // The rows under a bar show through a soft edge. With `.automatic`,
-    // AppKit picks the effect from the window. TestudoApp measured the hard
-    // effect in the detail column of its split view: an opaque band that
-    // hides the rows under its bars (^ph0m0hf).
+    // The soft edge, and never the hard one. With `.automatic`, AppKit picks
+    // the effect from the window. TestudoApp measured the hard effect in the
+    // detail column of its split view: an opaque band that hides the rows
+    // under its bars (^ph0m0hf). The soft effect is as tall as the whole top
+    // inset, so it still washes out the rows under a tall stack of bars and
+    // fades only near the top of the list. The user accepted that system
+    // look on 2026-10-23 (^22wbz12).
     .scrollEdgeEffectStyle(.soft, for: .vertical)
     .defaultScrollAnchor(.bottom, for: .initialOffset)
     .defaultScrollAnchor(.bottom, for: .alignment)

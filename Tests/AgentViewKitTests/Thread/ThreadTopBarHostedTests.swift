@@ -8,7 +8,10 @@
   /// Tests for the top bar of a thread: the header and the banners at the top
   /// are in the bar, and the list scrolls under the bar, and thus under the
   /// toolbar of the window (TestudoApp `features/style.md`, "Scroll under the
-  /// bars", D113 answer 7).
+  /// bars", D113 answer 7). The list lays its rows out under the bar, but the
+  /// system edge effect washes them out there, because AppKit makes the effect
+  /// as tall as the whole top inset (^22wbz12, accepted by the user on
+  /// 2026-10-23). These tests check the frames, not that a row shows.
   ///
   /// The frame tests use the method of ``ThreadBottomBarHostedTests``: they
   /// read the frame of the `NSScrollView` of the list and the accessibility

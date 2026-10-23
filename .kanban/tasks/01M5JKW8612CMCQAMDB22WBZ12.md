@@ -51,6 +51,24 @@ comments:
     - test, commit, review: not run
     - next: a PERSON chooses the target look. A: accept the system look and update style.md. B: AVK's top bar as an overlay plus `.contentMargins` (the pocket shrinks to the outer bars; rows show sharp under the capsule and the banners; changes D112 (e), D113 answer 7 and the bar-inset tests). C: hide the top edge effect. D: hard style at the top. E: Testudo shortens its bar stack (tab header into the toolbar).
   timestamp: 2026-10-23T01:50:38.837246+00:00
+- actor: claude-code
+  id: 01m5m34rwq7wfy2x1jrpshff4e
+  text: 'Picked up for option A (user decision 2026-10-23: accept the system look; docs and comments only). Research: the claims that rows show through or stay visible under the TOP bar are in AgentThreadView (type doc and the `content` doc: "so the rows show through the bars in every window"), ConversationView (type doc: "the rows under a bar show through it in every window", and the comment on `.scrollEdgeEffectStyle(.soft, for: .vertical)`), ThreadScrollEdgeEffectHostedTests (suite doc: "the rows under a bar show through the SOFT scroll edge effect"), plan.md (the "Scroll under the bars (D113 answer 7)" bullet, the screenshot check bullet, and the AgentThreadView entry of the view list), and README (the AgentThreadView entry). ThreadTopBarHostedTests and ThreadTopBarStructureTests say the list scrolls under the top bar "with the scroll edge effect" (layout-true, but silent on the wash-out). Docs/decisions has no text about the top bar or the edge effect (grep for top bar, toolbar, safeAreaBar, edge effect, scroll under: no hits), so it needs no change. ScrollPocketProbe and ViewSnapshot docs describe only the style read and the hidden pockets, which stay correct. Bottom-bar text is out of scope.'
+  timestamp: 2026-10-23T09:58:15.191874+00:00
+- actor: claude-code
+  id: 01m5m3arkyr5fbcphxaygzqpdw
+  text: |-
+    ### implement — changed
+    - evidence: option A (accepted 2026-10-23), docs and comments only, no behaviour change. 7 files: Sources/AgentViewKit/Thread/AgentThreadView.swift (type doc and the `content` doc), Sources/AgentViewKit/Thread/ConversationView.swift (type doc and the comment on `.scrollEdgeEffectStyle(.soft, for: .vertical)`), Tests/AgentViewKitTests/Thread/ThreadScrollEdgeEffectHostedTests.swift (suite doc only: "the rows under a bar show through" replaced, and it now says the tests check only the style), Tests/AgentViewKitTests/Thread/ThreadTopBarHostedTests.swift (suite doc only), Tests/PackageStructureTests/ThreadTopBarStructureTests.swift (suite doc only), plan.md ("Scroll under the bars (D113 answer 7)" bullet, screenshot-check bullet, AgentThreadView inventory entry), README.md (AgentThreadView entry). Each says that AppKit makes the one top edge effect of the list as tall as the whole top inset, so the rows under the whole bar stack wash out and the fade is gradual only near the list top, and that the user accepted this on 2026-10-23. No test names or test bodies changed. Docs/decisions has no text on the top bar or the edge effect, so it is unchanged. Bottom-bar wording is unchanged (out of scope). `swift test`: exit 0, 1683 tests in 206 suites passed, 4 known issues (the intentional withKnownIssue self-tests in SnapshotStoreTests, HostedLayoutExpectationsTests and others), XCTest 0 tests. The one build line "warning: missing creator for mutated node" is about the mlx-swift_Cmlx.bundle of a dependency, which SwiftPM prints. No source file of this repo caused it.
+    - next: /review. TestudoApp features/style.md belongs to testudoapp-2c (another repo) and still needs the same correction there.
+  timestamp: 2026-10-23T10:01:31.518127+00:00
+- actor: claude-code
+  id: 01m5m3g7cdp9vhr39mzhmeaazp
+  text: |-
+    ### test — green
+    - evidence: `swift test` (after touching AgentThreadView.swift and ConversationView.swift; no `swift package update`) — 1683 tests in 206 suites passed, 0 failed, 0 skipped, 4 known issues (as expected). Build complete with no compiler warnings from project code; only the known SwiftPM mlx-swift "missing creator" notice. README suites ReadmeSnippetTests, ReadmeSnippetsTests, ReadmeCoverageTests, plus ThreadTopBarStructureTests, ThreadScrollEdgeEffectHostedTests, ThreadTopBarHostedTests and PackageFilesTests all passed. Runtime log lines from the FoundationModelsCodeContext watcher ("could not delete a removed file from the index") are dependency log output, not compiler warnings.
+    - next: review/commit
+  timestamp: 2026-10-23T10:04:30.477679+00:00
 position_column: doing
 position_ordinal: '8380'
 title: AVK-8 Rows under the top bars draw nothing, even with the soft scroll edge effect (follow-up to ^ph0m0hf)

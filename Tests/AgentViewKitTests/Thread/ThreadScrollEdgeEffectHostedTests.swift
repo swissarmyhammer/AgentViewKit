@@ -9,12 +9,19 @@
   /// bars (^ph0m0hf).
   ///
   /// The list scrolls under the top bar and the bottom bar of the thread, and
-  /// the rows under a bar show through the SOFT scroll edge effect (TestudoApp
+  /// asks for the SOFT scroll edge effect at both edges (TestudoApp
   /// `features/style.md`, "Scroll under the bars", D113 answer 7). With the
   /// `.automatic` style, AppKit picks the effect from the context of the
   /// window. TestudoApp measured the HARD effect in its window: an opaque band
   /// over its tab bar and the top bar of the thread, with a separator line at
   /// the top edge of the list, and no row drawn under the bars.
+  ///
+  /// The soft style does not keep the rows under the top bars readable.
+  /// AppKit makes the one top effect of the list as tall as the whole top
+  /// inset (the toolbar, the bars of the host and the top bar of the thread),
+  /// so it washes out the rows under that stack and fades only near the top of
+  /// the list (^22wbz12). The user accepted this system look on 2026-10-23.
+  /// These tests check only the style, not that a row shows under a bar.
   ///
   /// An offscreen window does not draw the effect, so the tests read the
   /// style that the list asks of AppKit for each edge. Only private AppKit

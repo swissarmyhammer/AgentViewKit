@@ -5,8 +5,11 @@ import Testing
 /// answer 7), and that only the header is on glass.
 ///
 /// The list of a thread scrolls under its top bar, and thus under the
-/// toolbar of the window, with the scroll edge effect. In
-/// ``AgentThreadView``, the top bar is its `.safeAreaBar(edge: .top)` block.
+/// toolbar of the window, with the scroll edge effect. AppKit makes that
+/// effect as tall as the whole top inset, so it washes out the rows under the
+/// bars, and fades only near the top of the list (^22wbz12, accepted by the
+/// user on 2026-10-23). In ``AgentThreadView``, the top bar is its
+/// `.safeAreaBar(edge: .top)` block.
 /// The scan is the scan of ``ThreadBottomBarStructureTests``.
 ///
 /// The header is a floating surface, the same as the conversation header in
