@@ -26,8 +26,14 @@ struct MountedThread<Content: View> {
 /// The setup that the hosted composer suites share: a thread view in a window
 /// under a command system, and a prompt typed into the editor of its composer.
 @MainActor enum ComposerHarness {
+  /// The width of a window that shows a thread and its composer, in points.
+  static let windowWidth: CGFloat = 480
+
+  /// The height of a window that shows a thread and its composer, in points.
+  static let windowHeight: CGFloat = 480
+
   /// The size of a window that shows a thread and its composer.
-  static let windowSize = CGSize(width: 480, height: 480)
+  static let windowSize = CGSize(width: windowWidth, height: windowHeight)
 
   /// Shows the view that `content` builds under a new command system, with no
   /// animations, and renders it.

@@ -80,6 +80,36 @@ comments:
     - evidence: `swift test` run twice back to back, both exit 0. Run 1: 1697 tests in 208 suites passed after 74.222 s with 3 known issues. Run 2: 1697 tests in 208 suites passed after 64.503 s with 3 known issues. 0 failures, 0 skipped. The only warning in both runs was the known SwiftPM mlx-swift "missing creator" notice. No project or test code warnings.
     - next: review/commit. No code changed in this step.
   timestamp: 2026-10-23T12:03:21.945917+00:00
+- actor: claude-code
+  id: 01m5maczfbw9xgp3gsxe30cg05
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (35c8044) — 1 finding: Tests/AgentViewKitTests/Helpers/ComposerHarness.swift:30 (code-hygiene/magic-numbers-swift). Both earlier reuse/reuse findings are checked; their duplication is not reported again.
+    - next: implement — replace the magic numbers in ComposerHarness.swift with named constants, then re-review
+  timestamp: 2026-10-23T12:05:04.107683+00:00
+- actor: claude-code
+  id: 01m5mad9tk4bd6gjcbf195688h
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — ComposerHarness helper (mountThread, typePrompt, windowSize, MountedThread) shared by 4 composer suites; both reuse findings checked
+    - test: green — swift test run twice, 1697 passed each, 0 failed, 0 skipped
+    - commit: 35c8044
+    - review: findings — Tests/AgentViewKitTests/Helpers/ComposerHarness.swift:30 (code-hygiene/magic-numbers-swift)
+  timestamp: 2026-10-23T12:05:14.707565+00:00
+- actor: claude-code
+  id: 01m5majftv6ee5cq77rh8e96gn
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Helpers/ComposerHarness.swift. Finding `code-hygiene/magic-numbers-swift` checked: the file's only number literals were the 480x480 of `windowSize`; now `static let windowWidth: CGFloat = 480` and `static let windowHeight: CGFloat = 480` (documented, in points), and `windowSize = CGSize(width: windowWidth, height: windowHeight)`, the shape GalleryWindowReplica uses. No other literal remains in the file. Filtered run of the 4 composer suites: 19 tests in 4 suites passed. Full `swift test`: 1697 tests in 208 suites passed (3 known issues, the pre-existing withKnownIssue self-tests), 0 failures; only the known SwiftPM mlx-swift "missing creator" notice.
+    - next: /review
+  timestamp: 2026-10-23T12:08:04.699767+00:00
+- actor: claude-code
+  id: 01m5maprpy5yrkzz962x6kwg3f
+  text: |-
+    ### test — green
+    - evidence: swift test (full, one run) — 1697 tests in 208 suites passed, 0 failed, 0 skipped, 3 known issues (expected); no warnings from project or test code. Only the known SwiftPM mlx-swift "missing creator" notice appeared.
+    - next: review/commit of the ComposerHarness windowWidth/windowHeight constants change.
+  timestamp: 2026-10-23T12:10:24.862472+00:00
 depends_on:
 - 01M5KVZMEZNJ8SKF8E269G4A69
 position_column: doing
@@ -114,3 +144,12 @@ Full `swift test` green. Send testudoapp-2c the SHA: Testudo's `testComposerKeep
 
 - [x] `Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:66` `reuse/reuse` — The `mount` function duplicates test setup code that already exists in `ComposerWindowUndoHostedTests.mount` (0.98 similarity per clone-siblings probe). Both create a CommandSystem, HostedViewHarness with view+modifiers, render, get the undo stack, and return MountedThread using nearly identical logic. Rather than duplicate this pattern, the shared setup should be extracted into a parameterized helper that accepts the view closure as a parameter. Extract the common test-harness-mounting logic into a shared parameterized helper function that both test classes can call, passing their respective host views as a closure parameter. This eliminates code duplication and keeps the undo-system test setup in one place.
 - [x] `Tests/AgentViewKitTests/Input/ComposerDraftHostedTests.swift:96` `reuse/reuse` — The `typeMessage` function duplicates test helper code from `ComposerWindowUndoHostedTests.typeMessage` (0.93 similarity per clone-siblings probe). Both focus the text view, type a message, require it shows in the view, and wait for an observation—differing only in which draft property is polled (`draftText(of:)` vs another observer). Rather than duplicate this helper, the shared typing pattern should be extracted to a parameterized function that accepts the observation closure. Extract the common test-message-typing pattern into a shared parameterized helper that accepts an observation closure (e.g., for the draft or other state to wait on), eliminating duplication of the focus, type, and require-display logic across test classes.
+
+## Review Findings (2026-10-23 07:04)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Helpers/ComposerHarness.swift:30` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
