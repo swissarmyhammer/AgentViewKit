@@ -115,7 +115,8 @@ struct GalleryTabView: View, DemoStartingTab {
   var body: some View {
     GalleryColumns {
       sidebar
-        .navigationSplitViewColumnWidth(min: ACPTabView.sidebarMinimumWidth, ideal: ACPTabView.sidebarIdealWidth)
+        .navigationSplitViewColumnWidth(
+          min: DemoWindowLayout.sidebarMinimumWidth, ideal: DemoWindowLayout.sidebarIdealWidth)
     } detail: {
       detail
         .navigationTitle(Self.title)

@@ -25,5 +25,8 @@ struct AgentViewKitDemoApp: App {
         // host can give an imported Zed or VS Code theme here.
         .editorTheme(.system)
     }
+    // The ideal size of the first content is too small for the bars of the
+    // ACP tab (see DemoWindowLayout).
+    .defaultSize(DemoWindowLayout.defaultSize)
   }
 }

@@ -57,12 +57,6 @@ struct ACPTabView: View, DemoStartingTab {
   /// The accessibility identifier of the progress view of the start.
   static let startingIdentifier = "demo-acp-starting"
 
-  /// The minimum width of the sidebar column.
-  static let sidebarMinimumWidth: CGFloat = 200
-
-  /// The ideal width of the sidebar column.
-  static let sidebarIdealWidth: CGFloat = 240
-
   /// The title of the empty state of a new session.
   static let welcomeTitle = "Welcome to the AgentViewKit demo"
 
@@ -105,7 +99,8 @@ struct ACPTabView: View, DemoStartingTab {
   var body: some View {
     NavigationSplitView {
       sidebar
-        .navigationSplitViewColumnWidth(min: Self.sidebarMinimumWidth, ideal: Self.sidebarIdealWidth)
+        .navigationSplitViewColumnWidth(
+          min: DemoWindowLayout.sidebarMinimumWidth, ideal: DemoWindowLayout.sidebarIdealWidth)
     } detail: {
       detail
         .navigationTitle(options.agentName)
