@@ -72,8 +72,25 @@ comments:
     - evidence: 2 files — Tests/AgentViewKitTests/Attachments/AttachmentInspectorHostedTests.swift, Tests/AgentViewKitTests/Attachments/AttachmentInspectorFormHostedTests.swift. `swift test`: 1744 tests in 215 suites passed (3 known issues, all pre-existing), plus 227 tests in 30 suites passed. AttachmentInspectorHostedTests, AttachmentInspectorFormHostedTests and AttachmentInspectorModeHostedTests passed. The only warning is SwiftPM's pre-existing "missing creator for mutated node … mlx-swift_Cmlx.bundle". Not committed. The review finding is flipped to [x].
     - next: /review
   timestamp: 2026-10-23T22:26:50.510301+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5ne6qr1apfc3w3vdrzf3qk4
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (6209950) — 0 findings (7 attempted, 0 failed); prior 2026-10-23 17:20 item checked
+    - next: task moved to done; send testudoapp-2c the card id and SHA
+  timestamp: 2026-10-23T22:30:48.321001+00:00
+- actor: claude-code
+  id: 01m5ne78h33f1xa2pxysyvbkx7
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — `mountInspectorContent(of:size:)` shared, `attachment(in:)` helper; 2 test files
+    - test: green — swift test, 1744 tests in 215 suites passed, 0 failed, 0 skipped
+    - commit: 6209950 (+ 11d7c1e, a kanban chore)
+    - review: clean — 0 findings; task in done
+    - Not pushed. Code commits: cb5ae68, 6209950.
+  timestamp: 2026-10-23T22:31:05.507733+00:00
+position_column: done
+position_ordinal: ffffcd80
 title: 'AttachmentInspector: system grouped Form layout (Xcode / Icon Composer inspector look)'
 ---
 Requested by testudoapp-2c (2026-10-23) for Testudo card ^5pzcse2. The user said: "the inspector padding looks off to me, like inconsistent and too 'touching' the surrounding edge. the inspectors in xcode and icon composer look nice, use them for inspiration".

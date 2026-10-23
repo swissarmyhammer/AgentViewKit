@@ -10,6 +10,12 @@ comments:
   id: 01m5na05kph5yg9hw7gw39x797
   text: 'From editorkit-28 (2026-10-23): EditorKit ^wg1hac2 (font roles) is held on branch hold/font-roles and will be rebased onto main, so its SHA will differ from fd08d2e. API: `FontRole`, `uiFont` / `displayFont` / `codeFont`, `font(for:)`, `.editorFontRole(_:)`; `editorFont` and `proseFont` are REMOVED. Build this card against that branch (or its rebased SHA) and don''t wait for main. When the card is ready, ping editorkit-28 and testudoapp-2c. editorkit-28 pushes ^wg1hac2 first and sends the SHA, then AVK bumps its EditorKit resolution to that SHA, and the AVK commit goes up after it. This card comes after ^xqday3k.'
   timestamp: 2026-10-23T21:17:18.838458+00:00
+- actor: claude-code
+  id: 01m5netjp6dcqfh8g9qt8nht8t
+  text: |-
+    EditorKit hold/font-roles is rebased onto main d4d057c (2026-10-23), tip a47fa49bf3c6c2bff2ef56fb3f8109558dabd42b, all EditorKit gates green. API: FontRole {ui, display, code}; Theme.uiFont/displayFont/codeFont and font(for:); editorFont and proseFont REMOVED; `.editorFontRole(_:)`. EditorView defaults to .code; SingleLineField and SingleLineField(value:format:) default to .display, and in .display syntax highlighting is off unless the host uses `.editorSyntax`.
+    Build: clone ../EditorKit into the scratchpad at a47fa49 (`git clone ../EditorKit <scratch>/EditorKit-font-roles && git -C … checkout a47fa49`), then `swift package edit EditorKit --path <clone>`. Never touch ../EditorKit's working tree. Before committing, `swift package unedit EditorKit`. When green, ping editorkit-28 and testudoapp-2c; EditorKit pushes ^wg1hac2 first, then AVK resolves EditorKit to the pushed SHA, and only then is the AVK commit pushed. If EditorKit main moves, editorkit-28 re-sends a new SHA.
+  timestamp: 2026-10-23T22:41:38.502332+00:00
 position_column: todo
 position_ordinal: ae80
 title: 'Use the theme font roles: display for the composer, inputs and prose; code for code; ui for chrome'
