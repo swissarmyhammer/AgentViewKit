@@ -62,17 +62,32 @@ import Testing
     }
   }
 
+  /// Sends a key-down event of `key` straight to the text view of the editor,
+  /// as AppKit does after SwiftUI lets the press go.
+  ///
+  /// - Parameters:
+  ///   - key: The key to send.
+  ///   - modifiers: The modifier keys to hold.
+  ///   - harness: The harness that shows the editor.
+  /// - Throws: An error when the harness finds no editable text view.
+  static func press(
+    _ key: KeyEquivalent, modifiers: EventModifiers = [], in harness: HostedViewHarness<some View>
+  ) throws {
+    let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
+    try harness.sendKeyDown(key, modifiers: modifiers, to: editor)
+  }
+
   /// Sends a Return key-down event straight to the text view of the editor,
   /// as AppKit does after SwiftUI lets the press go.
   ///
   /// - Parameters:
   ///   - modifiers: The modifier keys to hold.
   ///   - harness: The harness that shows the editor.
+  /// - Throws: An error when the harness finds no editable text view.
   static func pressReturn(
     modifiers: EventModifiers = [], in harness: HostedViewHarness<some View>
   ) throws {
-    let editor = try #require(harness.firstEditableTextView(of: NSTextView.self))
-    try harness.sendKeyDown(.return, modifiers: modifiers, to: editor)
+    try press(.return, modifiers: modifiers, in: harness)
   }
 
   // MARK: - Mount

@@ -166,17 +166,6 @@ struct RoutedComposerThreadHost: View {
     await thread.harness.render { Set(labels).isSubset(of: listedLabels(of: editorSession)) }
   }
 
-  /// Sends `key` to the text view of the editor.
-  ///
-  /// - Parameters:
-  ///   - key: The key to send.
-  ///   - thread: The mounted thread.
-  /// - Throws: An error when the harness finds no text view.
-  static func press(_ key: KeyEquivalent, in thread: MountedThread<some View>) throws {
-    let editor = try #require(thread.harness.firstEditableTextView(of: NSTextView.self))
-    try thread.harness.sendKeyDown(key, to: editor)
-  }
-
   // MARK: - Rows
 
   @Test(arguments: ComposerRouteFixture.all)
@@ -257,7 +246,7 @@ struct RoutedComposerThreadHost: View {
     try await Self.type(fixture.sigil, in: thread, editorSession: editorSession)
     await Self.waitForRows(fixture.labels, of: editorSession, in: thread)
 
-    try Self.press(key.key, in: thread)
+    try EditorKitPromptEditorHostedTests.press(key.key, in: thread.harness)
 
     #expect(editorSession.model.text == fixture.firstAccepted)
     #expect(!ComposerEditorMenuHostedTests.completion(of: editorSession).isOpen)
@@ -275,10 +264,10 @@ struct RoutedComposerThreadHost: View {
     defer { thread.harness.close() }
     try await Self.type(fixture.sigil, in: thread, editorSession: editorSession)
     await Self.waitForRows(fixture.labels, of: editorSession, in: thread)
-    try Self.press(.tab, in: thread)
+    try EditorKitPromptEditorHostedTests.press(.tab, in: thread.harness)
     try #require(editorSession.model.text == fixture.firstAccepted)
 
-    try Self.press(.return, in: thread)
+    try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
 
     #expect(editorSession.model.text.isEmpty)
     await ObservationWait.until { !session.promptTexts.isEmpty }
@@ -298,7 +287,7 @@ struct RoutedComposerThreadHost: View {
     try await Self.type(fixture.sigil, in: thread, editorSession: editorSession)
     await Self.waitForRows(fixture.labels, of: editorSession, in: thread)
     let typing = try #require(thread.stack.undoTop)
-    try Self.press(key.key, in: thread)
+    try EditorKitPromptEditorHostedTests.press(key.key, in: thread.harness)
     try #require(editorSession.model.text == fixture.firstAccepted)
     let accept = try #require(thread.stack.undoTop)
     try #require(accept.id != typing.id)

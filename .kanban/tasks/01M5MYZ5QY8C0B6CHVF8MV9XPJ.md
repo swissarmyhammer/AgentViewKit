@@ -76,6 +76,38 @@ comments:
     - evidence: `swift test` → 1752 tests in 216 suites passed (3 known issues are the pre-existing `withKnownIssue` harness self-tests), PackageStructureTests 227 passed, 0 compiler warnings; `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo build` → BUILD SUCCEEDED (no UI run, so the UI-test lock was not taken). Files: Sources/AgentViewKit/Input/ComposerCompletions.swift (new), Sources/AgentViewKit/Input/PromptCaretProbe.swift (new), Sources/AgentViewKit/Input/EditorKitPromptEditor.swift, Sources/AgentViewKit/Input/PromptInputView.swift, Sources/AgentViewKit/Input/DefaultThreadComposer.swift, README.md, Tests/AgentViewKitTests/Input/ComposerCompletionRoutesHostedTests.swift (new), Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift, Tests/AgentViewKitTests/Input/SlashCommandSourceTests.swift, Tests/AgentViewKitTests/Input/EditorKitPromptEditorHostedTests.swift.
     - next: /review; relay the API comment to testudoapp-2c before any push; send the SHA after commit.
   timestamp: 2026-10-23T23:05:55.314820+00:00
+- actor: claude-code
+  id: 01m5nghgxpsj16jhd2sdmgwy4f
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (7feef0f) — 1 finding (1 confirmed, 0 refuted): Tests/AgentViewKitTests/Input/ComposerCompletionRoutesHostedTests.swift:175 `reuse/reuse`
+    - next: implement the open item in the 2026-10-23 18:09 Review Findings section; task stays in review
+  timestamp: 2026-10-23T23:11:38.934719+00:00
+- actor: claude-code
+  id: 01m5ngj3hbc1wewjyttn9r177d
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — `.composerCompletions(_:)`, PrefixCompletionSource in the prompt editor, caret popup (PromptCaretProbe), Return and Tab accept with one undo; 10 files
+    - test: green — swift test, 1752 tests in 216 suites passed, 0 failed, 0 skipped
+    - commit: 7feef0f (+ ffe40f2, a kanban chore)
+    - review: findings — Tests/AgentViewKitTests/Input/ComposerCompletionRoutesHostedTests.swift:175 (reuse)
+  timestamp: 2026-10-23T23:11:57.995720+00:00
+- actor: claude-code
+  id: 01m5ngv6z701x1rn422y7b1pw0
+  text: |-
+    Review finding fixed (reuse/reuse at ComposerCompletionRoutesHostedTests.swift press(_:in:)):
+    - Generalized the existing helper: `EditorKitPromptEditorHostedTests.press(_ key: KeyEquivalent, modifiers: EventModifiers = [], in harness: HostedViewHarness<some View>)`. `pressReturn(modifiers:in:)` now forwards to it with `.return`, so its 8 existing callers (EditorKitPromptEditorHostedTests x3, ComposerSessionModelHostedTests, PromptInputViewHostedTests, ComposerDraftHostedTests x2, ComposerWindowUndoHostedTests) keep their behaviour unchanged.
+    - Removed the `press(_:in:)` copy from ComposerCompletionRoutesHostedTests. The accept tests call `EditorKitPromptEditorHostedTests.press(key.key, in: thread.harness)` and `.press(.tab, …)`, and the Return-after-accept test calls `pressReturn(in: thread.harness)`.
+    - Checked the new file for other copies of harness/editor helpers: `type` forwards to `ComposerHarness.typePrompt`, `listedLabels` forwards to `ComposerEditorMenuHostedTests.completion(of:)`, `mount` forwards to `ComposerHarness.mountThread`, and `waitForRows` / `ComposerAcceptKey` have no existing counterpart. The caret test reads `firstRect(forCharacterRange:)` on its own, as an independent oracle; it does not call the production `PromptCaretLocator`, so the test does not just check the code against itself. No other copy was found.
+    - TDD: a test-only refactor with no behaviour change. The existing hosted suites are the guard, and every caller passed in the one full run.
+  timestamp: 2026-10-23T23:16:56.423996+00:00
+- actor: claude-code
+  id: 01m5ngv9twbfp3evhe8z0qh45n
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Tests/AgentViewKitTests/Input/EditorKitPromptEditorHostedTests.swift, Tests/AgentViewKitTests/Input/ComposerCompletionRoutesHostedTests.swift; `swift test` → 1752 tests in 216 suites passed (3 known issues are the pre-existing `withKnownIssue` harness self-tests), PackageStructureTests 227 passed, 0 compiler warnings (the only `warning:` line is SwiftPM's mlx-swift_Cmlx.bundle "missing creator for mutated node" build notice, from a dependency); finding 2026-10-23 18:09 flipped to [x]. Not committed.
+    - next: /review
+  timestamp: 2026-10-23T23:16:59.356617+00:00
 position_column: doing
 position_ordinal: '8380'
 title: DefaultThreadComposer takes EditorKit prefix-completion routes (one modifier or init parameter)
@@ -96,3 +128,15 @@ EditorKit API change to check when updating to 7944113: `CompletionTokenOpening`
 Tests (hosted): typing each sigil opens the popup with the route's items; Return accepts and Tab accepts; one undo takes the whole accepted completion out; no routes, no popup; the popup sits at the caret. Full `swift test` green; the demo builds.
 
 Queue: after ^8zmkh1a, ^2sg9taf, ^p6e0v5w, ^bkhgxs5. Send testudoapp-2c the SHA when it's done. #avk-8 #testudo-request #cross-repo
+
+## Review Findings (2026-10-23 18:09)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Input/ComposerCompletionRoutesHostedTests.swift:175` `reuse/reuse` — The new `press(_:in:)` helper re-implements the existing `pressReturn` helper in the sibling editor suite. Both find the first editable `NSTextView` and send a key down to it. The new copy only differs in taking any `KeyEquivalent` and a `MountedThread` instead of a harness. That is a near-match that should have been generalized, not a parallel copy that can drift. Generalize the existing helper to take the key, for example `static func press(_ key: KeyEquivalent, modifiers: EventModifiers = [], in harness: HostedViewHarness<some View>)`, and have `pressReturn` call it with `.return`. Then call it from the routes tests with `thread.harness`. Otherwise keep one helper for the editor key path and remove the copy.
