@@ -31,8 +31,24 @@ comments:
     - evidence: `swift test` (after touching the changed Sources files and Localizable.xcstrings): Build complete, 1671 tests in 204 suites passed, 0 failures, 0 skipped; ElicitationFieldErrorsHostedTests suite passed. No project-code warnings; the only warning is the known SwiftPM mlx-swift "missing creator" notice. No catalog warnings; the key "“%@”: %@" is translated in Localizable.xcstrings and used by ElicitationView.fieldErrorText. The 3 known issues are the intentional expected-failure tests (SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests), not skips. No snapshots re-recorded; no package update.
     - next: review
   timestamp: 2026-10-23T00:06:08.596825+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5k1dyf20t0f76fv90sapes1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (4349cd6): 0 findings, 0 confirmed, 0 refuted; 7 validator runs attempted, 0 failed; 6 files reviewed, 15 not reviewed (4 .kanban ignored, 8 PNG snapshots, 3 with no matching validator: Docs/decisions/accessibility.md, Sources/AgentViewKit/Resources/Localizable.xcstrings, plan.md)
+    - next: task moved to done
+  timestamp: 2026-10-23T00:09:04.226087+00:00
+- actor: claude-code
+  id: 01m5k1ebqh1wkp0wac3j3fhtzx
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ElicitationView, ElicitationFieldContext, ElicitationCard, PreviewFixtures, Announcer, Localizable.xcstrings ("“%@”: %@"), accessibility.md, plan.md; new ElicitationFieldErrorsHostedTests (7; 5 red first); 8 snapshots re-recorded (elicitation-form-*, request-deck-bar-*), not viewed by a person; follow-up ^trg0ce9 (an invalid default value disables Submit with no visible reason)
+    - test: green — swift test 1671 passed, 0 failed, 0 skipped
+    - commit: 4349cd6
+    - review: clean — 0 findings, task in done
+  timestamp: 2026-10-23T00:09:17.809034+00:00
+position_column: done
+position_ordinal: ffffbe80
 title: Show the required-field error of an elicitation form only after the user edits the field or presses Submit
 ---
 ## Problem
