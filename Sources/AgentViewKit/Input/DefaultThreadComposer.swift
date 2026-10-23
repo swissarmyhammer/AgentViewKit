@@ -25,11 +25,36 @@ public struct DefaultThreadComposer: View {
 
   @Environment(\.sessionModel) private var session
 
+  /// The model and the completion engine of the editor, or `nil` to let the
+  /// editor make its own.
+  private let editorSession: PromptEditorSession?
+
   /// Makes the default composer of a thread.
-  public init() {}
+  public init() {
+    editorSession = nil
+  }
+
+  /// Makes the default composer of a thread over an editor session that the
+  /// caller holds, for example a test that reads the model of the editor.
+  ///
+  /// - Parameter editorSession: The model and the completion engine of the
+  ///   editor.
+  init(editorSession: PromptEditorSession) {
+    self.editorSession = editorSession
+  }
 
   public var body: some View {
-    PromptInputView(text: text) {}
+    PromptInputView(text: text, onSubmit: {}, editor: editor(_:))
+  }
+
+  /// The EditorKit editor of the composer.
+  ///
+  /// - Parameter context: The values that the composer gives.
+  /// - Returns: The editor over the editor session of the caller, or over a
+  ///   session of its own.
+  private func editor(_ context: PromptEditorContext) -> EditorKitPromptEditor {
+    editorSession.map { EditorKitPromptEditor(context: context, session: $0) }
+      ?? EditorKitPromptEditor(context: context)
   }
 
   /// The binding that reads and writes the text of the prompt: the text of

@@ -392,6 +392,14 @@ struct PromptEditorMenu {
   /// The bounds of the editor that gives the menu.
   let anchor: Anchor<CGRect>
 
+  /// The horizontal offset of the caret from the leading edge of the editor,
+  /// in points. The menu starts there.
+  let caretOffset: CGFloat
+
+  /// The width of the content, in points, so that the layer keeps the menu
+  /// inside the field.
+  let width: CGFloat
+
   /// The content of the menu, with no glass.
   let content: AnyView
 }
@@ -418,20 +426,40 @@ struct PromptEditorMenuKey: PreferenceKey {
 /// change morphs (D113 answer 2). The layer adds no animation, so no morph
 /// runs while Reduce Motion is on.
 ///
-/// The layer fills the field. The leading edge of the menu is at the leading
-/// edge of the editor. The bottom edge of the menu is the small spacing of the
-/// theme above the top edge of the field.
+/// The layer fills the field. The leading edge of the menu is at the caret of
+/// the editor, and the menu stays inside the field: near the trailing edge it
+/// moves back so that its trailing edge is the trailing edge of the field. The
+/// bottom edge of the menu is the small spacing of the theme above the top
+/// edge of the field. The menu adds no fill of its own: its one surface is
+/// the floating glass.
 struct PromptEditorMenuLayer: View {
   /// The menu to show.
   let menu: PromptEditorMenu
 
   @Environment(\.agentTheme) private var theme
 
+  /// The leading edge of the menu in the field.
+  ///
+  /// - Parameters:
+  ///   - caret: The caret, from the leading edge of the field, in points.
+  ///   - width: The width of the menu, in points.
+  ///   - fieldWidth: The width of the field, in points.
+  /// - Returns: The caret, or the leading edge that puts the trailing edge of
+  ///   the menu at the trailing edge of the field, whichever is less, and no
+  ///   less than the leading edge of the field.
+  static func leading(caret: CGFloat, width: CGFloat, fieldWidth: CGFloat) -> CGFloat {
+    max(0, min(caret, fieldWidth - width))
+  }
+
   var body: some View {
     GeometryReader { proxy in
       menu.content
         .agentFloatingGlass(id: .editorMenu)
-        .padding(.leading, proxy[menu.anchor].minX)
+        .padding(
+          .leading,
+          Self.leading(
+            caret: proxy[menu.anchor].minX + menu.caretOffset, width: menu.width,
+            fieldWidth: proxy.size.width))
         .padding(.bottom, theme.spacing.s)
         // A frame with no height at the top of the field. The menu is at its
         // bottom, so the menu goes up from the top of the field.

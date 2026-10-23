@@ -498,7 +498,7 @@ two lists equal.
 
 **Input**
 
-- `PromptInputView`: the composer on EditorKit, with slash commands, `@file`, attachments, tool toggles, and the mic.
+- `PromptInputView`: the composer on EditorKit, with slash commands, `@file`, attachments, tool toggles, and the mic. Give the composer the prefix-completion routes of the host with one modifier, `.composerCompletions([PrefixCompletionRoute])` from EditorKit `EditorComplete`, on the thread view or on the composer: for example `@` to files, `^` to tasks, `#` to tags and `/` to commands. Typing a sigil lists the rows of its route in a popup at the caret, above the field. Return and Tab accept the selected row, as one entry of the window undo stack. A `/` route replaces the slash commands of the agent, and an `@` route replaces the `@file` references.
 - `ConfigOptionsView`: the picker of `configOptions`, grouped by category.
 - `SuggestionsView` and `SpeechInputButton`: the suggestion chips and the speech input.
 

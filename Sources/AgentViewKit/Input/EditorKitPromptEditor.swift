@@ -24,18 +24,23 @@ import SwiftUI
 /// inserts a newline. Esc calls ``PromptEditorContext/onCancel`` while the
 /// user can cancel the work of the session.
 ///
-/// Two completion sources feed a completion list. ``PromptInputView`` shows
+/// The completion sources feed a completion list. ``PromptInputView`` shows
 /// the list above its field, on its own glass, because the editor is in the
-/// field glass (D110 (c)):
+/// field glass (D110 (c)). The leading edge of the list is at the caret:
 ///
 /// - ``SlashCommandSource`` lists ``PromptEditorContext/commands`` after a `/`
 ///   at the start of a line.
 /// - ``FileReferenceSource`` lists the entries under the
 ///   ``SwiftUI/EnvironmentValues/promptFileRoot`` after an `@`. The source is
 ///   off when there is no root.
+/// - The prefix-completion routes of the host
+///   (``SwiftUI/View/composerCompletions(_:)``) list the rows of the route
+///   whose sigil opens the token at the caret. A `/` route replaces the
+///   ``SlashCommandSource``, and an `@` route replaces the
+///   ``FileReferenceSource``.
 ///
-/// While the list shows, the arrow keys move the selection, Return accepts
-/// the selected row, and Esc closes the list. An accepted file shows as a
+/// While the list shows, the arrow keys move the selection, Return and Tab
+/// accept the selected row, and Esc closes the list. An accepted file shows as a
 /// chip. The text of the prompt marks each chip with a `link` attribute that
 /// holds the file URL. ``PromptInputView`` sends each linked file as an
 /// attachment, which a source sends as a `resource_link` block.
@@ -73,10 +78,15 @@ public struct EditorKitPromptEditor: View {
   /// The width of the completion list, in points.
   static let completionListWidth: CGFloat = 280
 
+  /// The text that ends an accepted directory, so that the list goes on into
+  /// the directory.
+  static let directorySeparator = "/"
+
   /// The values that the composer gives.
   let context: PromptEditorContext
 
   @Environment(\.promptFileRoot) private var fileRoot
+  @Environment(\.composerCompletionRoutes) private var routes
   @Environment(\.agentTheme) private var theme
 
   /// The model and the completion engine of the editor.
@@ -129,10 +139,17 @@ public struct EditorKitPromptEditor: View {
     .editorTextAccessibilityLabel(context.placeholder)
     .frame(minHeight: Self.minimumHeight, maxHeight: Self.maximumHeight)
     .fixedSize(horizontal: false, vertical: true)
+    // The probe finds the caret of the text view, so that the menu starts at
+    // the caret.
+    .background(PromptCaretProbe(locator: session.caretLocator))
     // The editor is in the field glass of the composer. So the composer
     // shows the menu on its own glass above the field (D110 (c)).
     .anchorPreference(key: PromptEditorMenuKey.self, value: .bounds) { anchor in
-      menu(completion, model: model).map { PromptEditorMenu(anchor: anchor, content: $0) }
+      menu(completion, model: model).map { content in
+        PromptEditorMenu(
+          anchor: anchor, caretOffset: session.caretLocator.caretOffset() ?? 0,
+          width: Self.completionListWidth, content: content)
+      }
     }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
       // SwiftUI can report a pushed text after the model took newer input,
@@ -157,7 +174,7 @@ public struct EditorKitPromptEditor: View {
     if completion.isOpen, !completion.listedItems.isEmpty {
       return AnyView(completionList(completion, model: model))
     }
-    guard Self.showsNoCommandsNote(completion, commands: context.commands) else { return nil }
+    guard Self.showsNoCommandsNote(completion, commands: kitCommands) else { return nil }
     return AnyView(noCommandsNote)
   }
 
@@ -271,9 +288,9 @@ public struct EditorKitPromptEditor: View {
 
   /// Follows one committed transaction of the editor.
   ///
-  /// Typing in a trigger token asks for completions. Typing out of a trigger
-  /// token closes the list. An accepted file becomes a chip. Then the text of
-  /// the prompt gets the text of the editor.
+  /// Typing in a trigger token or in a route token asks for completions.
+  /// Typing out of those tokens closes the list. An accepted file becomes a
+  /// chip. Then the text of the prompt gets the text of the editor.
   ///
   /// - Parameters:
   ///   - transaction: The committed transaction.
@@ -289,12 +306,11 @@ public struct EditorKitPromptEditor: View {
     case .input, .delete:
       updateCompletion(in: model)
     case .completionAccept:
-      if let path = Self.acceptedFile(before: caretLine(in: model), root: fileRoot) {
+      if let path = Self.acceptedFile(before: caretLine(in: model), root: kitFileRoot) {
         references.insert(path)
         self.references = references
       }
-      // An accepted directory ends in `/`. List its entries.
-      updateCompletion(in: model)
+      didAccept(in: model)
     default:
       break
     }
@@ -312,17 +328,62 @@ public struct EditorKitPromptEditor: View {
     transaction.annotations.origin == .externalReload && !PromptEditorSession.isUndoOrRedo(transaction)
   }
 
-  /// Asks for completions when the caret is in a trigger token, and closes
-  /// the list otherwise.
+  /// Asks for completions when the caret is in a trigger token or in a route
+  /// token, and closes the list otherwise.
   ///
   /// - Parameter model: The model of the editor.
   private func updateCompletion(in model: EditorModel) {
     let editor = Self.editorContext(of: model)
-    if Self.isTrigger(caretLine(in: model), reportsCommands: context.commands != nil, hasRoot: fileRoot != nil) {
-      session.engine(commands: context.commands, root: fileRoot).request(trigger: .typed, in: editor)
-    } else if let dismiss = CompletionCommands.dismissTransaction(in: editor.state) {
-      model.dispatch(dismiss)
+    let caret = model.selection.primary.head
+    let isTrigger = Self.isTrigger(
+      caretLine(in: model), reportsCommands: kitCommands != nil, hasRoot: kitFileRoot != nil)
+    guard isTrigger || Self.isRouteToken(at: caret, in: editor, routes: routes) else {
+      dismissCompletion(in: model)
+      return
     }
+    session.engine(commands: kitCommands, root: kitFileRoot, routes: routes).request(trigger: .typed, in: editor)
+  }
+
+  /// Follows an accept of a row of the completion list.
+  ///
+  /// An accepted directory ends in `/`, so the list shows its entries. Any
+  /// other accept closes the list, so that the next Return sends the prompt.
+  /// A route row can leave the caret in its token, for example
+  /// `^a1b2c3d`, and a new request there would show the list again.
+  ///
+  /// - Parameter model: The model of the editor.
+  private func didAccept(in model: EditorModel) {
+    guard caretLine(in: model).hasSuffix(Self.directorySeparator) else {
+      dismissCompletion(in: model)
+      return
+    }
+    updateCompletion(in: model)
+  }
+
+  /// Closes the completion list when it is open.
+  ///
+  /// - Parameter model: The model of the editor.
+  private func dismissCompletion(in model: EditorModel) {
+    guard let dismiss = CompletionCommands.dismissTransaction(in: Self.editorContext(of: model).state) else {
+      return
+    }
+    model.dispatch(dismiss)
+  }
+
+  /// The slash commands of the ``SlashCommandSource`` of the kit.
+  ///
+  /// - Returns: `nil` when the agent did not report its commands, or when a
+  ///   route of the host takes the `/`.
+  private var kitCommands: [AvailableCommand]? {
+    PromptEditorSession.routes(routes, take: SlashCommandSource.trigger) ? nil : context.commands
+  }
+
+  /// The file root of the ``FileReferenceSource`` of the kit.
+  ///
+  /// - Returns: `nil` when there is no file root, or when a route of the
+  ///   host takes the `@`.
+  private var kitFileRoot: URL? {
+    PromptEditorSession.routes(routes, take: FileReferenceSource.trigger) ? nil : fileRoot
   }
 
   /// Accepts a row of the completion list.
@@ -378,6 +439,19 @@ public struct EditorKitPromptEditor: View {
     return hasRoot && run.hasPrefix(FileReferenceSource.trigger)
   }
 
+  /// Whether a route of the host opens the token at the caret.
+  ///
+  /// - Parameters:
+  ///   - caret: The caret.
+  ///   - editor: The editor context of the model.
+  ///   - routes: The prefix-completion routes of the host.
+  /// - Returns: `true` when the sigil of a route opens a token that runs to
+  ///   the caret, where the anchor of the route lets it stand.
+  static func isRouteToken(at caret: EditorPosition, in editor: EditorContext, routes: [PrefixCompletionRoute]) -> Bool {
+    let line = editor.line(containing: caret)
+    return routes.contains { CompletionTokenizer.openedToken(line: line, caret: caret, opening: $0.opening) != nil }
+  }
+
   /// The run of characters after the last white space of `line`.
   ///
   /// - Parameter line: The text to read.
@@ -418,7 +492,7 @@ public struct EditorKitPromptEditor: View {
   ///   - text: The text of the editor.
   ///   - references: The paths of the accepted file references.
   private func push(_ text: String, references: Set<String>) {
-    let attributed = Self.attributedText(text, references: references, root: fileRoot)
+    let attributed = Self.attributedText(text, references: references, root: kitFileRoot)
     if context.text.wrappedValue != attributed {
       session.didPush(attributed)
       context.text.wrappedValue = attributed
@@ -518,6 +592,19 @@ final class PromptEditorSession {
 
   /// The file root that the sources of the engine read.
   private var engineRoot: URL?
+
+  /// The sigils of the routes that the sources of the engine read.
+  private var engineSigils: [String] = []
+
+  /// The source of the prefix-completion routes of the host.
+  ///
+  /// The session keeps one source and gives it the newest routes before each
+  /// request, so a new list of routes takes effect at the next keystroke.
+  private let prefixes = PrefixCompletionSource(routes: [])
+
+  /// Finds the caret of the text view of the editor, so that the menu starts
+  /// at the caret.
+  let caretLocator = PromptCaretLocator()
 
   /// The closure that gets each committed transaction of the model.
   private var onCommit: ((EditorTransaction) -> Void)?
@@ -628,27 +715,63 @@ final class PromptEditorSession {
     text == pushedText
   }
 
-  /// The completion engine for `commands` and `root`. The session makes a new
-  /// engine when either value changes.
+  /// Whether a route of `routes` takes `sigil` from a completion source of
+  /// the kit.
+  ///
+  /// - Parameters:
+  ///   - routes: The prefix-completion routes of the host.
+  ///   - sigil: The trigger of a kit source, such as `/` or `@`.
+  /// - Returns: `true` when a route has `sigil` as its sigil.
+  static func routes(_ routes: [PrefixCompletionRoute], take sigil: String) -> Bool {
+    routes.contains { $0.sigil == sigil }
+  }
+
+  /// The completion engine for `commands`, `root` and `routes`. The session
+  /// makes a new engine when the commands, the root or the sigils of the
+  /// routes change. New providers of the same sigils need no new engine:
+  /// the prefix source reads its routes at each request.
   ///
   /// - Parameters:
   ///   - commands: The slash commands of the session, or `nil` when the agent
   ///     did not report its commands.
   ///   - root: The file root, or `nil`.
+  ///   - routes: The prefix-completion routes of the host.
   /// - Returns: The engine.
-  func engine(commands: [AvailableCommand]?, root: URL?) -> CompletionEngine {
-    if let storedEngine, engineCommands == commands, engineRoot == root {
+  func engine(commands: [AvailableCommand]?, root: URL?, routes: [PrefixCompletionRoute]) -> CompletionEngine {
+    prefixes.routes = routes
+    let sigils = prefixes.routes.map(\.sigil)
+    if let storedEngine, engineCommands == commands, engineRoot == root, engineSigils == sigils {
       return storedEngine
     }
-    var sources: [any EditorExtensions.CompletionSource] = [SlashCommandSource(commands: commands)]
-    if let root {
-      sources.append(FileReferenceSource(root: root))
-    }
-    let engine = CompletionEngine(sources: sources)
+    let engine = CompletionEngine(sources: sources(commands: commands, root: root))
     storedEngine = engine
     engineCommands = commands
     engineRoot = root
+    engineSigils = sigils
     return engine
+  }
+
+  /// The completion sources of the engine: the slash commands, unless a
+  /// route takes the `/`; the file references, when there is a root; and the
+  /// routes of the host, composed with EditorKit `Autocomplete`.
+  ///
+  /// - Parameters:
+  ///   - commands: The slash commands of the session, or `nil`.
+  ///   - root: The file root, or `nil`.
+  /// - Returns: The sources, in builder order.
+  private func sources(commands: [AvailableCommand]?, root: URL?) -> [any EditorExtensions.CompletionSource] {
+    let routes = prefixes.routes
+    var sources: [any EditorExtensions.CompletionSource] = []
+    if !Self.routes(routes, take: SlashCommandSource.trigger) {
+      sources.append(SlashCommandSource(commands: commands))
+    }
+    if let root {
+      sources.append(FileReferenceSource(root: root))
+    }
+    if !routes.isEmpty {
+      sources += editorExtensions { Autocomplete(sources: [.prefixed(self.prefixes)]) }.completionSources
+    }
+    return sources
   }
 }
 

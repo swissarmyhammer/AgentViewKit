@@ -181,7 +181,7 @@ import Testing
   // MARK: - Slash commands
   //
   // The completion tests below call the completion engine that the editor
-  // composes (`PromptEditorSession.engine(commands:root:)`), and await its
+  // composes (`PromptEditorSession.engine(commands:root:routes:)`), and await its
   // query directly. In the hosted editor, the query waits for the debounce of
   // EditorKit on a clock, off the main actor, and no model value that these
   // tests observe holds the rows. EditorKit ^c3ya9ed can give an injectable

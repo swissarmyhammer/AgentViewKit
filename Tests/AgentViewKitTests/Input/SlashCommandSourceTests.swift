@@ -54,7 +54,7 @@ import Testing
   ///   - root: The file root, or `nil`.
   /// - Returns: The fixture.
   static func editor(_ text: String, commands: [AvailableCommand]?, root: URL?) -> CompletionFixture {
-    CompletionFixture(text, engine: PromptEditorSession().engine(commands: commands, root: root))
+    CompletionFixture(text, engine: PromptEditorSession().engine(commands: commands, root: root, routes: []))
   }
 
   /// The text of the document.

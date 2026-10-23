@@ -299,7 +299,8 @@ struct EditorMenuProbe: View {
         Color.clear
           .frame(height: Self.fieldHeight)
           .anchorPreference(key: PromptEditorMenuKey.self, value: .bounds) { anchor in
-            PromptEditorMenu(anchor: anchor, content: AnyView(Self.menuContent))
+            PromptEditorMenu(
+              anchor: anchor, caretOffset: 0, width: Self.menuWidth, content: AnyView(Self.menuContent))
           }
           .overlayPreferenceValue(PromptEditorMenuKey.self, alignment: .topLeading) { menu in
             if let menu {
