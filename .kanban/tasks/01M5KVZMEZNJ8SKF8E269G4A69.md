@@ -1,8 +1,47 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: a880
+comments:
+- actor: claude-code
+  id: 01m5kwk1f9fjvzm805zhfp0z16
+  text: |-
+    Research (implement step):
+    - Public StockPromptEditor surface: `public struct StockPromptEditor`, `StockPromptEditor.identifier` ("prompt-editor"), `StockPromptEditor.init(context:)`, and the short init `extension PromptInputView where Editor == StockPromptEditor, Accessory == DefaultPromptAccessory { init(text:attachments:onSubmit:) }`. DefaultThreadComposer is built on that short init. No enum case or option selects the editor; the demo uses `PromptInputView(text:) {}` (short init); no demo setting picks an editor.
+    - EditorKitPromptEditor borrows `StockPromptEditor.minimumHeight/maximumHeight/returnAction`; they move into EditorKitPromptEditor.
+    - Focus target and `DeckFocusMove.promptEditor` use `StockPromptEditor.identifier`. Testudo constraint 3 wants `prompt-editor` kept, so `EditorKitPromptEditor.identifier` takes the value "prompt-editor" (was "editorkit-prompt-editor").
+    - Constraint 2 finding: bare `EditorView` (an NSViewRepresentable) applies NO `.commandScope`. Only `EditorContributor` adds `.commandScope(.editor(id))`. EditorKitPromptEditor uses bare EditorView, so a jump/focus that lands on the host's composer scope reaches the scope's own content. Test to be added.
+    - EditorKit's `editorAccessibilityIdentifier(_:)` (sets the id on the hosted NSView) is internal to EditorSwiftUI; the kit uses SwiftUI `.accessibilityIdentifier` on the representable, which the AX tree reads.
+    - `TextEditor(text: .constant(""))` in HostedViewHarnessTextViewsTests is TextEditor<String>, not AttributedString.
+  timestamp: 2026-10-23T08:03:42.697775+00:00
+- actor: claude-code
+  id: 01m5kyssmg62gdtsv27gwzaa71
+  text: |-
+    Implementation notes (implement step):
+    - StockPromptEditor.swift deleted; the short `PromptInputView(text:attachments:onSubmit:)` init is now `where Editor == EditorKitPromptEditor`; DefaultThreadComposer() unchanged in signature, now EditorKit-backed. `EditorKitPromptEditor.identifier` is now "prompt-editor" (was "editorkit-prompt-editor"); minimumHeight/maximumHeight/returnAction moved into EditorKitPromptEditor. Focus target + DeckFocusMove.promptEditor use EditorKitPromptEditor.identifier.
+    - ComposerWindowUndoHostedTests: ComposerUndoEditor enum, stock cases and withKnownIssue removed. New redo test `theWindowRedoGivesTheUndoneTypingBack` (edit.redo until !canRedo -> text view and model show "Hello"): PASSED AT ONCE on EditorKit's window stack (written first, ran before any production change).
+    - BLOCKER (Testudo constraints 2 and 3), measured with new DefaultThreadComposerHostedTests against the pinned EditorKit 7c043ad:
+      (3) The SwiftUI `.accessibilityIdentifier("prompt-editor")` on the EditorView representable reaches NO accessibility element: `harness.element(identifier: "prompt-editor")` is nil (also breaks ThreadFloatingControlsHostedTests.theDefaultComposerIsInTheFloatingControlsOfTheThread, PromptInputViewHostedTests.theDefaultComposerMountsTheEditorAndTheSubmitButton, EditorKitPromptEditorHostedTests.theEditorMountsInTheComposerSlot). EditorKit's own fix for this, `editorAccessibilityIdentifier(_:)`, is internal to EditorSwiftUI (also internal on EditorKit main bc599af), and it names the lane host view, not the EditorInputTextView. So an XCUITest `typeText` into "prompt-editor" has no element to find.
+      (2) EditorView adds NO `.commandScope` of its own (only EditorContributor does). Still, a nav move or a jump that lands on a host `.commandScope(segment:)` around DefaultThreadComposer() makes the scope's GeometryProbeView beacon the first responder, not the text view: the probe picks the focusable that holds the beacon CENTER (GeometryProbeView.contentResponder), and the EditorInputTextView is only one line tall (432x16) under `.editorSizingMode(.intrinsic)`, so the composer's center misses it. The stock TextEditor passed the same test (its text view filled the 36pt editor frame).
+      Both need an EditorKit change (public identifier API on the input text view; text view filling its frame or a probe pick that does not depend on the center), which this card cannot pull (no `swift package update`).
+  timestamp: 2026-10-23T08:42:21.200707+00:00
+- actor: claude-code
+  id: 01m5m1naepwvkf1e2ywdvstrvx
+  text: |-
+    BLOCKER confirmed end to end (not only in the harness):
+    - `Scripts/test-examples.sh`: build step `** BUILD SUCCEEDED **`; UI tests: 4 of 5 FAIL, every ACPTabEndToEndTests case at ACPTabEndToEndTests.swift:77 "The composer has no editor." (`app.element("prompt-editor")` never exists), so the stock ^bc6fapz hit-point failure is now superseded by a missing element; GalleryTabEndToEndTests passes. XCUITest cannot find "prompt-editor" on the EditorKit composer.
+    - `swift test`: 1680 tests in 207 suites, 6 failing tests (all the identifier/focus blocker): PromptInputViewHostedTests.theDefaultComposerMountsTheEditorAndTheSubmitButton, EditorKitPromptEditorHostedTests.theEditorMountsInTheComposerSlot, ThreadFloatingControlsHostedTests.theDefaultComposerIsInTheFloatingControlsOfTheThread, DefaultThreadComposerHostedTests.theEditorThatTakesTypingCarriesThePromptEditorIdentifier, DefaultThreadComposerHostedTests.aFocusOnTheHostScopeOfTheComposerGoesIntoTheTextOfTheEditor(.nav,.jump). Everything else green (HostedSnapshotTests re-recorded for the new editor: thread-*, bottom-bar-buttons-*, composer-idle-*, composer-running-*).
+    - Found and fixed on the way (in scope, the swap exposed it): EditorKitPromptEditor lost an external prompt write that came while the commit of the previous taken text was still in the commit stream (SpeechInputButtonHostedTests.theTranscriptGoesAfterTheTextOfTheComposer hung forever: text stuck at "Fix the"). didCommit now ignores the commit of a pulled text (origin .externalReload, not undo/redo).
+    Decision needed (human): (a) EditorKit change: public `editorAccessibilityIdentifier` that names the EditorInputTextView, plus a text view that fills its frame (or a GeometryProbeView pick that does not need the beacon center inside the one-line text view); then bump the EditorKit pin here; or (b) allow a kit-side workaround: a background NSViewRepresentable in EditorKitPromptEditor that walks the hosted view tree to the EditorInputTextView, sets its identifier, and (for focus) cannot be fixed kit-side without (a).
+  timestamp: 2026-10-23T09:32:20.310343+00:00
+- actor: claude-code
+  id: 01m5m1ng1qyccv7nc91ppq0qz1
+  text: |-
+    ### implement — stuck
+    - evidence: `swift test` 1680 tests / 207 suites, 6 failing (identifier + focus blocker, see previous comment); `Scripts/test-examples.sh` BUILD SUCCEEDED, UI tests 4/5 fail "The composer has no editor." Removed public API: `StockPromptEditor` (struct, `init(context:)`, `identifier`); short init `PromptInputView.init(text:attachments:onSubmit:)` now constrained `Editor == EditorKitPromptEditor` (was `StockPromptEditor`); `EditorKitPromptEditor.identifier` value "editorkit-prompt-editor" -> "prompt-editor". Redo test for EditorKit passed at once. Nothing committed.
+    - next: human decision on EditorKit API (identifier on the input text view; text view that fills its frame / probe pick) vs a kit-side view-tree workaround; Testudo constraints 2 and 3 are not met until then.
+  timestamp: 2026-10-23T09:32:26.039741+00:00
+position_column: doing
+position_ordinal: '8480'
 title: 'Drop StockPromptEditor: EditorKitPromptEditor is the only composer (no TextEditor<AttributedString>)'
 ---
 User decision (2026-10-23, relayed by editorkit-28): "we should never be using TextEditor<AttributedString> at all, if we need a one line editor, we need a one line mode of our editor kit editor."
@@ -15,3 +54,8 @@ Work:
 - If the public API names the stock editor (a public type or an enum case), remove it, and note the break for hosts. testudoapp-2c must know before the push.
 - Search Sources, Tests, Examples and the docs for `TextEditor` and remove every other `TextEditor<AttributedString>` use too.
 - Full `swift test` green; the demo builds. #avk-7
+
+## Constraints from Testudo (coordinator, 2026-10-23)
+- [ ] KEEP the public `DefaultThreadComposer()` initializer unchanged (Testudo passes it in AgentThreadView's `composer:` slot, inside its own `.commandScope(segment: composer)`), now backed by EditorKitPromptEditor. Do not remove or rename it.
+- [ ] Jump focus: the default composer has no command scope of its own today, so a jump that lands on the host's composer scope focuses the text view. Check whether EditorKitPromptEditor/EditorView adds its own `.commandScope`; if it does, a jump would land on that inner scope and not in the text. Add a hosted test: a host wraps `DefaultThreadComposer()` in `.commandScope(segment:)`, a jump or focus request lands on that scope, and first responder is the editor's text view. Report the finding.
+- [ ] Keep the `prompt-editor` accessibility identifier on the element that takes typing (the EditorKit text view), and keep `prompt-submit` on the Send button. XCUITest `typeText` into it must work. If the demo UI suite covers typing into the composer, confirm it still passes, apart from the known ^bc6fapz hit-point failure, and say so explicitly.
