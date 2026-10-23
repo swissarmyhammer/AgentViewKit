@@ -93,7 +93,7 @@ extension View {
 /// The corners name a radius token of the theme, or square corners for a
 /// surface that is not rounded, such as an image. A view that draws its
 /// surface from the same value keeps the surface and the ring in step.
-enum AgentSurfaceCorners: Sendable {
+enum AgentSurfaceCorners: Equatable, Sendable {
   /// Corners of the radius token at the key path, for example
   /// `\.m` for ``AgentTheme/Radii/m``.
   case rounded(KeyPath<AgentTheme.Radii, CGFloat> & Sendable)

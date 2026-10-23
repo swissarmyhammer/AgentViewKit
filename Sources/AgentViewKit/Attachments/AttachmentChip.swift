@@ -16,7 +16,9 @@ public struct AttachmentChip: View {
   private static let iconSide: CGFloat = 28
 
   /// The corners of the chip: the medium radius of the theme. The fill of
-  /// the chip and the focus ring of its scope both have them.
+  /// the chip and the focus ring of its scope both have them. The chip
+  /// reports them (``AttachmentSurfaceCornersKey``), so the scope of an
+  /// ``AttachmentView`` that shows the chip has them too.
   static let corners = AgentSurfaceCorners.rounded(\.m)
 
   /// The attached file.
@@ -60,6 +62,7 @@ public struct AttachmentChip: View {
     .padding(.vertical, theme.spacing.xs)
     .background(.quaternary, in: AgentSurface.shape(radius: Self.corners.radius(in: theme)))
     .agentAttachmentScope(attachment, focusRingCorners: Self.corners)
+    .preference(key: AttachmentSurfaceCornersKey.self, value: Self.corners)
   }
 }
 

@@ -1,8 +1,58 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: a680
+comments:
+- actor: claude-code
+  id: 01m5k76ascetnmjmfysnhkhn3h
+  text: |-
+    Research (implement pass). A scratch probe test, `Tests/AgentViewKitTests/Thread/ZZProbeTests.swift`, ran 3 times and is now deleted. It read the private pocket state of the list (NSScrollPocket `edge` and `style`, its layer tree, its CAFilter inputs, and the variable-blur mask image) in four hosts. The windows were offscreen and never ordered in.
+    - TESTUDO-EXACT host: titled 1280x800, toolbar, 3-column NavigationSplitView with an inspector. The detail column is the thread plus `.frame`, `.accessibilityElement(children: .contain)`, `.contentShape` and an outer 24 pt `.safeAreaBar(edge: .top)` tab bar, in host inspector mode. The AX frames match Testudo's: tab bar y 52–76, agent-info-header y 84–116. The probe session has one notice, so the AVK bar is 131 pt here (48 pt in Testudo).
+    - The list's HostingScrollView fills the column (y 0–800), with contentInsets.top 207 = toolbar 52 + tab bar 24 + AVK bar 131.
+    - The list has ONE top pocket: NSScrollPocket edge 0, style 1 (soft), frame x 345–1010, window y 0–207. Its HEIGHT 207 EQUALS contentInsets.top 207. Other hosts give the same result: plain thread + outer bar, borderless: pocket 155 = inset 155 (24 + 131). Split host with an item header above the thread: 155 = 155. The outer `.safeAreaBar` adds NO pocket of its own. Its content is a SwiftUI `AppKitPocketContainer.ContainerView` (24 pt) that registers with the list's pocket. The only other pockets in the window are the titlebar hard pockets (style 2, 52 pt) over the inspector column (x ≥ 1009.5). They are not over the list.
+    - What the soft pocket holds (the "ThinFilm" tree under `_UIScrollEdgeEffectLayerDelegate`). All three layers are full pocket size:
+      - ThinFilmContentBlurFill: a CABackdropLayer with variableBlur (inputRadius 2.5, normalizeEdges) driven by a 1x256 mask image, plus a saturation colorMatrix (1.197/-0.179/-0.018) and sdrNormalize. The mask is 255 (full) from the top through row ~180 of 256 (~70% of the pocket), then ramps down to 102 (40%) at the list edge. The image is stretched to the pocket, so the profile is PROPORTIONAL to the pocket height.
+      - ThinFilmBackgroundReplay: a CABackdropLayer that replays the window background, with gaussianBlur 16 and a colorMatrix, opacity 0.6 in Dark and 0.5 in Light, under a CAGradientLayer mask. AppKit fills that gradient only on screen: offscreen its colors are empty and it is hidden.
+      - Separator: a 0.5 pt layer at the bottom edge of the pocket (the list top), white 7% in Dark and black 10% in Light.
+      - The pocket has NO opaque fill and no material in the soft tree. The hard tree (NSHardPocketView, with a kCUIVariantContentBackgroundMaterial fill of 0.1176) is hidden at zero size. PocketBlur, PocketMask and LuminanceAdjustment are hidden at zero size offscreen, so their on-screen state cannot be read.
+    - AVK bar containers: the ContainerView of the top bar (131 pt) has no layer background and no sublayer background. In the bottom bar, the only background is the glass. The only drawn surface in the AVK top bar is the header capsule's glass.
+    - NSScrollPocket runtime: no property sets the height or the profile of the effect. The pocket frame comes from AppKit layout and equals the inset. The properties are edge, style, allowsSeparator, backdropGroupName, appearanceBias, prefersSolidColorHardPocket, _showSeparatorsOnHardPocket and captureColor, plus Swift ivars such as elementContainerModels.
+    - Overlay variant (option B below): ConversationView + `.contentMargins(.top, 48, for: .scrollContent)` + an overlay in place of a top safeAreaBar, under an outer 24 pt safeAreaBar. contentInsets.top is 72, and the top pocket is 24 pt, only the outer bar.
+    - Testudo pixels explained: the Dark 1 px line at y 124 (64) is the pocket Separator: 50 + 0.07 x 205 = 64.4. The Light line at y 124 (228) is the same layer: 255 x 0.9 = 229.5. So the hairline the card calls gone is still there, and it is the soft pocket's own separator. The Dark 58 band spans y 53–123, the full pocket region below the toolbar. The same 58 band and 64 line at the list top were in the ^ph0m0hf iteration-3 report, which was before AVK set `.soft`. ^ph0m0hf iteration 1 measured that `.automatic` in a titled window with a toolbar already gives this variableBlur thin-film effect. So the `.soft` change neither made nor removed the band. Offscreen I cannot split the 58 between the background replay's colorMatrix and the on-screen LuminanceAdjustment, but both are layers of the list's own top pocket.
+  timestamp: 2026-10-23T01:49:46.156569+00:00
+- actor: claude-code
+  id: 01m5k76vgwzpbky1d14a4q99cg
+  text: |-
+    Answers, and the BLOCKER: a person must choose the target look.
+    1. Is the region fully faded, clipped, or covered? It is the SYSTEM soft edge effect stretched over the FULL combined top inset. Nothing clips the content, and no AVK pocket or background covers it. AppKit sizes the list's one top NSScrollPocket to contentInsets.top: 207 = 207 in the Testudo shape, and 124 in Testudo itself (toolbar 52 + tab bar 24 + AVK bar 48). The effect profile is proportional to that height: the variable blur is at full strength over the top ~70% of the pocket, and it is still 40% at the list edge. The background replay is laid over the whole pocket. So in Testudo, the rows under the toolbar, the tab bar and most of the capsule are washed out by design, and the only soft ramp is in the last ~35 pt above y 124.
+    2. Where does the Dark 58 band come from? From the list's own top pocket (the thin-film background replay and luminance layers), which spans the outer tab bar and the AVK bar together. It is NOT a material or pocket of the outer `.safeAreaBar` (that bar has no pocket and no background), and it is NOT an AVK background (the AVK bar container has none). The 1 px line at y 124 is that pocket's Separator layer. The band and the line were there before ^ph0m0hf set `.soft`, because `.automatic` resolves to the same thin film in a toolbar window.
+    3. Is there an AVK-side cause? None that a fix can remove without changing the design. No AVK code paints there. The style is not the lever: `.soft` and `.automatic` give the same thin film here, and `.hard` is an opaque band. The pocket height is set by AppKit from the whole inset, and most of it is host chrome that AVK does not own: toolbar and tab bar, 76 of the 124 pt. No public or private property sets the height or profile of the effect.
+
+    Options for the target look ("rows visible under the bars, with a soft fade near the bar edge, like Messages"):
+    A. Accept the system behaviour. Close this card, and update features/style.md to say that in a tall bar stack the whole stack is faded. No code.
+    B. Take the AVK top bar out of the pocket. Draw the header and the banners as an overlay over the list, and reserve their measured height with `.contentMargins(.top, h, for: .scrollContent)`, so the pocket spans only the host chrome. The probe confirms it: the pocket is 24 pt, not 72. In Testudo the pocket would be 76 pt (toolbar + tab bar), and rows would show crisp around and under the glass capsule, with the fade only under the tab bar and the toolbar. Cost: the AVK bar loses the edge effect. The notice and stream banners have no glass, so rows would draw under their text (legibility). The ThreadBarInset and ThreadTopBar tests change, because the inset no longer holds the AVK bar. This changes D112 (e) and D113 answer 7, so a person must decide.
+    C. `.scrollEdgeEffectHidden(true, for: .top)` on the list. No fade and no separator: rows are crisp under the toolbar, the tab bar and the AVK bar. Bar text legibility is poor over content.
+    D. `.scrollEdgeEffectStyle(.hard, ...)` at the top: an opaque band plus a separator, explicitly "no scroll-under". This contradicts D113 answer 7.
+    E. Host-side: Testudo shortens the stack, for example with the tab header in the window toolbar. The profile is still proportional, but the stack is shorter.
+
+    Whatever is chosen, it can get a test that fails first, through ScrollPocketProbe: for B, add a reader of the pocket frame to the probe and expect the top pocket height to equal only the host chrome; for C or D, read the style. No code was changed in this pass.
+  timestamp: 2026-10-23T01:50:03.292542+00:00
+- actor: claude-code
+  id: 01m5k76zs5fn2fc79wmhbbqnfc
+  text: |-
+    ### implement — stuck
+    - evidence: no files changed. The scratch probe ZZProbeTests.swift was run 3 times and deleted, and `git status` shows only .kanban files. Measured: the list's top NSScrollPocket (soft, style 1) height equals contentInsets.top in every host: Testudo shape 207=207 (toolbar 52 + tab bar 24 + AVK bar 131), plain thread + outer bar 155=155, split thread with a header 155=155. The thin-film effect is proportional to the pocket: the variable-blur mask is full over ~70% and 40% at the list edge, and the background replay has opacity 0.6 in Dark and 0.5 in Light. The pocket has no opaque fill. The outer bar has no pocket or background, and the AVK bar container has no background. Testudo's Dark 64 line and Light 228 line at y 124 are the pocket's Separator layer (white 7%, black 10%). The 58 band predates `.soft`.
+    - next: a person picks option A–E in the previous comment. The cause is system behaviour: AppKit fades the whole combined bar region, and 76 of Testudo's 124 pt is host chrome.
+  timestamp: 2026-10-23T01:50:07.653438+00:00
+- actor: claude-code
+  id: 01m5k77y7ntw942zrt2jhhh8p4
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck — no files changed. The cause is system behaviour: the list's single top NSScrollPocket (soft) is exactly as tall as the full top inset (Testudo 124 = toolbar 52 + tab bar 24 + AVK bar 48; Testudo-shaped host 207 = 207). Full blur over the top ~70%, still 40% at the list edge, and a background replay at 0.6 (Dark) / 0.5 (Light) opacity. The Dark 58 band is that pocket, and the 1 px line at the list top is its own 0.5 pt separator. The outer safeAreaBar and the AVK bar add no background or pocket. No property sets the pocket's height or fade.
+    - test, commit, review: not run
+    - next: a PERSON chooses the target look. A: accept the system look and update style.md. B: AVK's top bar as an overlay plus `.contentMargins` (the pocket shrinks to the outer bars; rows show sharp under the capsule and the banners; changes D112 (e), D113 answer 7 and the bar-inset tests). C: hide the top edge effect. D: hard style at the top. E: Testudo shortens its bar stack (tab header into the toolbar).
+  timestamp: 2026-10-23T01:50:38.837246+00:00
+position_column: doing
+position_ordinal: '8380'
 title: AVK-8 Rows under the top bars draw nothing, even with the soft scroll edge effect (follow-up to ^ph0m0hf)
 ---
 Follow-up to ^ph0m0hf (done: the list asks for `.scrollEdgeEffectStyle(.soft, for: .vertical)`, and the hairline is gone). On-screen probe by testudoapp-2c on AVK 4a9428f + EditorKit 7de8297: 14 prompts, 1280×800 window, window-relative points, Light and Dark. Artifacts: `/Users/wballard/github/swissarmyhammer/TestudoApp/.build/app/probe-avk4a9428f/` (window and crop PNGs, report txts; manifest.json maps the names).

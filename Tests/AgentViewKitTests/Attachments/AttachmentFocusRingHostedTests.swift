@@ -52,6 +52,16 @@ import UniformTypeIdentifiers
     }
   }
 
+  /// The contents of an image file that does not decode.
+  static let undecodableImageText = "This is not an image."
+
+  /// The corners that the shown surface of an attachment view reports.
+  @MainActor @Observable final class ShownSurface {
+    /// The corners of the shown surface, or `nil` before a surface reports
+    /// them.
+    var corners: AgentSurfaceCorners?
+  }
+
   /// A view to mount, with the id of the attachment of its scope.
   struct MountedSurface {
     /// The view.
@@ -113,13 +123,28 @@ import UniformTypeIdentifiers
       mounted.content.commandSystem(system), size: AttachmentCommandsHostedTests.viewSize)
     defer { harness.close() }
     harness.render()
-    let scope = FocusPath.root(AgentScopeKind.attachment(mounted.id))
+    try inspect(try focusScope(of: mounted.id, in: harness, system: system))
+  }
+
+  /// Lands a `nav.*` move on the root scope of the attachment `id`, renders
+  /// one pass, and reads the first responder of the window.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the attachment of the scope.
+  ///   - harness: The harness that shows the scope.
+  ///   - system: The command system of the window.
+  /// - Returns: The first responder, with the area of the scope.
+  /// - Throws: An issue when the focus does not land.
+  static func focusScope(
+    of id: AttachmentID, in harness: HostedViewHarness<some View>, system: CommandSystem
+  ) throws -> Ring.FocusedItem {
+    let scope = FocusPath.root(AgentScopeKind.attachment(id))
 
     try #require(system.geometry.requestFocus(at: scope))
     harness.render()
 
     let responder = try #require(harness.window.firstResponder as? NSView)
-    try inspect(Ring.FocusedItem(responder: responder, itemRect: try #require(system.geometry.rect(of: scope))))
+    return Ring.FocusedItem(responder: responder, itemRect: try #require(system.geometry.rect(of: scope)))
   }
 
   /// The beacon of the scope holds the focus, and its ring is over the whole
@@ -138,6 +163,34 @@ import UniformTypeIdentifiers
     try Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
       try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: surface.cornerRadius)
     }
+  }
+
+  /// An image preview whose file does not decode shows the chip in its place,
+  /// so the focus ring of its scope has the corners of the chip: the medium
+  /// radius of the theme.
+  ///
+  /// The image loads asynchronously, so the test waits until the shown
+  /// surface reports its corners (``AttachmentSurfaceCornersKey``) before it
+  /// lands the focus.
+  @Test func theFocusRingOfAPreviewThatShowsTheChipHasTheCornersOfTheChip() async throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let url = try directory.file(
+      named: WireContentBlockViewHostedTests.imageName, contents: Data(Self.undecodableImageText.utf8))
+    let attachment = AgentViewKit.Attachment(url: url)
+    let shown = ShownSurface()
+    let system = CommandSystem()
+    let harness = HostedViewHarness(
+      AttachmentView(attachment)
+        .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shown.corners = $0 }
+        .commandSystem(system),
+      size: AttachmentCommandsHostedTests.viewSize)
+    defer { harness.close() }
+
+    await harness.render(when: { shown.corners != nil })
+    let focused = try Self.focusScope(of: attachment.id, in: harness, system: system)
+
+    try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: AgentTheme.default.radii.m)
   }
 
   /// The inspector has a focusable view of its own, so a `nav.*` move on its

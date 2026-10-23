@@ -97,22 +97,30 @@ public struct AttachmentView: View {
     AccessibilityIdentifier.make(prefix: identifierPrefix, value: renderer.rawValue)
   }
 
+  /// The corners that the shown surface of the default renderer reports
+  /// (``AttachmentSurfaceCornersKey``), or `nil` while no surface reports
+  /// them.
+  @State private var shownCorners: AgentSurfaceCorners?
+
   public var body: some View {
-    renderedFile.agentAttachmentScope(attachment, focusRingCorners: surfaceCorners)
+    renderedFile
+      .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shownCorners = $0 }
+      .agentAttachmentScope(attachment, focusRingCorners: surfaceCorners)
   }
 
   /// The corners of the view of the file, which the focus ring of the scope
-  /// follows: the corners of the chip when the default renderer is the
-  /// chip, and square corners for a preview, which has no rounded surface,
-  /// and for a registered view, whose surface the kit does not know.
+  /// follows: the corners that the shown surface of the default renderer
+  /// reports, and square corners for a surface that reports none, such as a
+  /// loaded preview, which has no rounded surface. A registered view keeps
+  /// square corners, because the kit does not know its surface.
   ///
-  /// A preview that cannot load its file shows the chip in its place, and
-  /// keeps the square corners of the preview.
+  /// The chip reports its corners. So the ring has the corners of the chip
+  /// both when the default renderer is the chip and when a preview that
+  /// cannot load its file shows the chip in its place. Only the value of the
+  /// corners changes, so the view keeps its identity and its state.
   private var surfaceCorners: AgentSurfaceCorners {
-    guard registry.resolve(type: attachment.type) == nil,
-      Self.renderer(for: attachment.type) == .chip
-    else { return .square }
-    return AttachmentChip.corners
+    guard registry.resolve(type: attachment.type) == nil else { return .square }
+    return shownCorners ?? .square
   }
 
   /// The registered view of the file, or its default renderer.
@@ -134,6 +142,24 @@ public struct AttachmentView: View {
   /// inspector selection.
   private func select() {
     selectForInspector(attachment)
+  }
+}
+
+/// The preference that carries the corners of the surface that an
+/// ``AttachmentView`` shows, such as the ``AttachmentChip`` that a preview
+/// shows when it cannot load its file.
+///
+/// The value is `nil` when no surface in the view reports its corners.
+struct AttachmentSurfaceCornersKey: PreferenceKey {
+  static var defaultValue: AgentSurfaceCorners? { nil }
+
+  /// Keeps the first corners that a surface reports.
+  ///
+  /// - Parameters:
+  ///   - value: The corners of the surfaces so far.
+  ///   - nextValue: The corners of the next surface.
+  static func reduce(value: inout AgentSurfaceCorners?, nextValue: () -> AgentSurfaceCorners?) {
+    value = value ?? nextValue()
   }
 }
 

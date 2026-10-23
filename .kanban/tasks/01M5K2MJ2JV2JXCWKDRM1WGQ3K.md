@@ -55,6 +55,10 @@ comments:
     - commit: 43f1df7
     - review: clean — 0 findings, task in done
   timestamp: 2026-10-23T01:41:07.089268+00:00
+- actor: claude-code
+  id: 01m5k6qar0hc88srgbtgkk9h4f
+  text: 'Follow-up from testudoapp-2c: the StockPromptEditor redo limit is NOT final. The user asked for redo back, and EditorKit card ^2x162ch is to make ⇧⌘Z redo undone TextEditor typing through the window stack. When it lands, the `withKnownIssue` in ComposerWindowUndoHostedTests reports that the known issue no longer occurs, so the suite goes red. Then turn it into a real redo assertion and remove the limit note. If EditorKit reports that AppKit truly blocks it, the note stays.'
+  timestamp: 2026-10-23T01:41:34.592979+00:00
 position_column: done
 position_ordinal: ffffc180
 title: 'Composer undo on the window stack: no entry on mount or re-render; the clear after Send is one undoable entry'
