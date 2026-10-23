@@ -159,11 +159,16 @@ public struct ElicitationView: View {
   /// Whether the default of a field is not empty and does not pass
   /// validation, for example a number above the maximum of the field.
   ///
+  /// The validation is ``ElicitationValidator/hasValidAnswer(value:against:)``.
+  /// That function is also `false` for an empty answer, so this function
+  /// first excludes an empty default: a required field with no default shows
+  /// no error on a new form.
+  ///
   /// - Parameter schema: The field.
   /// - Returns: `false` for a field with no default or with an empty default.
   static func hasInvalidDefault(_ schema: ElicitationFieldSchema) -> Bool {
     guard let value = schema.defaultValue, !ElicitationValidator.isEmpty(value) else { return false }
-    return !ElicitationValidator.validate(value, against: schema).isSatisfied
+    return !ElicitationValidator.hasValidAnswer(value: value, against: schema)
   }
 
   /// The fields that show their errors as soon as the form appears.

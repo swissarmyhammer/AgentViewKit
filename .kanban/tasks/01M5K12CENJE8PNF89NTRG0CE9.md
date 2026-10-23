@@ -27,6 +27,40 @@ comments:
     - evidence: `swift test` (after touching ElicitationCard.swift, ElicitationView.swift, PreviewFixtures.swift so AgentViewKit recompiled) — exit 0; Swift Testing: 1687 tests in 206 suites passed, 0 failures, 0 skipped, 4 known issues (the expected ones: SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests, ComposerWindowUndoHostedTests); XCTest: 0 tests, 0 failures. ElicitationFieldErrorsHostedTests suite passed, including the 4 new tests. Build warnings: only the known SwiftPM mlx-swift "missing creator" notice; no warnings from project code.
     - next: review/commit. Nothing committed. .DS_Store and wip/69g4a69-drop-stock-editor untouched.
   timestamp: 2026-10-23T10:28:06.937269+00:00
+- actor: claude-code
+  id: 01m5m51dmheae834sy9fe104tg
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (9da9db7) — 1 finding (1 confirmed, 0 refuted): Sources/AgentViewKit/Elicitation/ElicitationView.swift:164
+    - next: implement the open item in the Review Findings (2026-10-23 05:28) section; task stays in review
+  timestamp: 2026-10-23T10:31:22.513484+00:00
+- actor: claude-code
+  id: 01m5m51x4vg5ece7pacxk8ftaz
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ElicitationView (errorShowingFields seeded with invalid non-empty defaults; medium-priority announcement on appear), PreviewFixtures doc, ElicitationCard preview title, accessibility.md, 4 tests (3 red first)
+    - test: green — swift test 1687 passed, 0 failed, 0 skipped
+    - commit: 9da9db7
+    - review: findings — Sources/AgentViewKit/Elicitation/ElicitationView.swift:164 (reuse/reuse: hasInvalidDefault reimplements ElicitationValidator.hasValidAnswer)
+  timestamp: 2026-10-23T10:31:38.395616+00:00
+- actor: claude-code
+  id: 01m5m57qj18qcxpvsge4svd2q2
+  text: |-
+    ### implement — changed
+    - evidence: 1 source file — Sources/AgentViewKit/Elicitation/ElicitationView.swift. `hasInvalidDefault(_:)` now gets its validation from `!ElicitationValidator.hasValidAnswer(value:against:)` and no longer calls `validate(...).isSatisfied`. It keeps the `isEmpty` guard because an empty default must give `false`.
+    - NOT taken: the finding's literal one-liner `!hasValidAnswer(value: schema.defaultValue, against: schema)`. `hasValidAnswer` is `false` for an empty answer, so a required field with no default would show its error on a new form, which breaks ^r8bnszx (`aNewFormShowsNoErrorUnderARequiredEmptyField`, `aDefaultThatIsNotValidShowsNoErrorUnderARequiredEmptyField`). The doc comment now says why the guard stays.
+    - Checked the rest of the file for copied validation: `shownValidation`, `edit`, `errorText(of:)`, the footer `canSubmit`, `submit` and `answerContent` already call `ElicitationValidator` (`validate`, `isComplete`, `isEmpty`). None was copied.
+    - tests: `swift test --filter ElicitationFieldErrorsHostedTests` 11/11 passed. Full `swift test` exit 0: 1687 tests in 206 suites passed, 4 known issues (pre-existing withKnownIssue), XCTest 0 failures. The only warning is the pre-existing SwiftPM mlx-swift "missing creator" one. No new test was needed because behavior did not change.
+    - Finding flipped to [x]. Task left in doing. Nothing committed.
+    - next: /review
+  timestamp: 2026-10-23T10:34:49.281834+00:00
+- actor: claude-code
+  id: 01m5m5cdazrspavnjw7ceq5w8k
+  text: |-
+    ### test — green
+    - evidence: touched Sources/AgentViewKit/Elicitation/ElicitationView.swift, then `swift test` in /Users/wballard/github/swissarmyhammer/AgentViewKit: Test run with 1687 tests in 206 suites passed, 0 failures, 0 skipped, 4 known issues (as expected). Build recompiled AgentViewKit; no warnings from project code. Only the known SwiftPM mlx-swift "missing creator for mutated node" notice appeared. No `swift package update` run; nothing committed.
+    - next: review
+  timestamp: 2026-10-23T10:37:22.655426+00:00
 position_column: doing
 position_ordinal: '8580'
 title: Tell the user why Submit of an elicitation form is disabled when an untouched default is not valid
@@ -44,3 +78,15 @@ Decide with the design how the form explains a disabled Submit when an untouched
 ## Tests
 
 - A hosted test: a form whose default breaks a constraint tells the user why Submit is disabled, in the visible form and for VoiceOver. #avk-14
+
+## Review Findings (2026-10-23 05:28)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 7 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/accessibility.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Elicitation/ElicitationView.swift:164` `reuse/reuse` — hasInvalidDefault reimplements validation logic that already exists in ElicitationValidator.hasValidAnswer. The new function checks if a field's default is not empty and fails validation—the exact inverse of hasValidAnswer. Instead of duplicating the validation check, it should call the existing function and negate the result. Replace the reimplemented validation logic with: `static func hasInvalidDefault(_ schema: ElicitationFieldSchema) -> Bool { !ElicitationValidator.hasValidAnswer(value: schema.defaultValue, against: schema) }`.
