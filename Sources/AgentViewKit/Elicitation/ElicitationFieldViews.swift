@@ -183,7 +183,7 @@ public struct ElicitationTextField: View {
   let suppliedModel: EditorModel?
 
   /// The model that the view keeps when the host gives no model.
-  @State private var ownModel = EditorModelSlot()
+  @State private var ownModel = OwnModelSlot(editable: true)
 
   /// The action of Return in a one-line input: Submit of the nearest
   /// ``ElicitationView``, or `nil` outside a form.

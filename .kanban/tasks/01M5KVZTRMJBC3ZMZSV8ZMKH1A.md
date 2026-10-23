@@ -98,6 +98,42 @@ comments:
     - evidence: `swift test` 1715 tests in 211 suites passed, 0 failures, 3 known issues (the pre-existing intentional `withKnownIssue` checks: SnapshotStoreTests, HostedLayoutExpectationsTests, ThemeHeightExpectationsTests); PackageStructureTests 227 passed. Red→green: the 3 label tests (PermissionCommentFieldHostedTests, SessionListSearchFieldHostedTests, ElicitationTextFieldEditingHostedTests) plus 2 new (EditorKitPromptEditorHostedTests.theTextViewOfTheEditorCarriesThePlaceholderAsItsLabel, ElicitationFieldViewsHostedTests.theTextViewOfAMultiLineFieldCarriesTheTitleAsItsLabel). Demo `xcodebuild build` succeeded, 0 warnings. Files this pass: Sources/AgentViewKit/Input/AgentOneLineField.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift, Sources/AgentViewKit/Input/EditorKitPromptEditor.swift, Tests/AgentViewKitTests/Input/EditorKitPromptEditorHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationFieldViewsHostedTests.swift (+ gitignored Package.resolved files). Snapshots: none changed, none re-recorded. Not committed.
     - next: /review
   timestamp: 2026-10-23T17:55:36.055371+00:00
+- actor: claude-code
+  id: 01m5myvmmhba4669gz46vg2wyf
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (edeccb9) — 2 findings (2 confirmed, 3 refuted): Sources/AgentViewKit/Input/AgentOneLineField.swift:72 (reuse/reuse), Sources/AgentViewKit/Input/AgentOneLineField.swift:80 (duplication/duplication)
+    - note: both findings name the same cause (`EditorModelSlot` duplicates `OwnModelSlot`). The reuse finding says to generalize `OwnModelSlot` with an `editable` parameter. The duplication finding's last sentence says not to edit `OwnModelSlot` as part of this change if it does not fit. `OwnModelSlot` makes a read-only model, so the two directions disagree. If the implementer cannot satisfy both, record this as a blocker and mark the task stuck rather than picking one.
+    - next: implementer addresses both checklist items; task stays in review
+  timestamp: 2026-10-23T18:02:36.049895+00:00
+- actor: claude-code
+  id: 01m5mywe6rv8tywmv8a4df5k31
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — EditorKit 8e4d27a; `.editorTextAccessibilityLabel` in AgentOneLineField, ElicitationTextField (one-line and multi-line) and EditorKitPromptEditor; 5 files
+    - test: green — swift test, 1715 tests in 211 suites passed, 0 failed, 0 skipped (3 known issues are tests that expect a failure)
+    - commit: edeccb9
+    - review: findings — Sources/AgentViewKit/Input/AgentOneLineField.swift:72, Sources/AgentViewKit/Input/AgentOneLineField.swift:80
+    - The two findings don't conflict: finding 1 asks to add an editable mode to `OwnModelSlot`, and then finding 2's main ask (delete `EditorModelSlot`, use `OwnModelSlot`) fits.
+  timestamp: 2026-10-23T18:03:02.232152+00:00
+- actor: claude-code
+  id: 01m5myz3a45nv7y7f8z468e50m
+  text: |-
+    Implement pass 3 (review findings 12:58) research:
+    - `OwnModelSlot` (Code/OwnModelSlot.swift) and `EditorModelSlot` (Input/AgentOneLineField.swift) are the same class; the only difference is `EditorModel.makeReadOnly(text)` vs `EditorModel(text)`.
+    - `OwnModelSlot()` users: CodeBlockView, TerminalView, CommandOutputView (read-only, stay on the default). `EditorModelSlot()` users: PermissionView `comment`, SessionListView `search`, ElicitationTextField `ownModel`.
+    - No test covered either slot. AgentOneLineField.swift holds no other copy of the slot (the rest is the field view, `agentTextInputEdge()` and `AgentTextInputEdge`).
+    - `PromptEditorSession` (EditorKitPromptEditor.swift) also makes its model lazily but owns the completion engine, commit stream and pushed text, so it is not a copy; its doc line "as ``OwnModelSlot`` does" stays true.
+    - Plan: `OwnModelSlot(editable: Bool = false)`; new OwnModelSlotTests (red: no `init(editable:)`).
+  timestamp: 2026-10-23T18:04:29.380798+00:00
+- actor: claude-code
+  id: 01m5mz82rs5596c5se9anetbpq
+  text: |-
+    ### implement — changed
+    - evidence: findings 12:58 both fixed and checked. `OwnModelSlot` gets `init(editable: Bool = false)` and makes `isEditable ? EditorModel(text) : EditorModel.makeReadOnly(text)`; doc comments name the read-only users (CodeBlockView, CommandOutputView, TerminalView, unchanged) and the editable users. `EditorModelSlot` deleted from AgentOneLineField.swift (no other copy in that file); PermissionView `comment`, SessionListView `search`, ElicitationTextField `ownModel` → `OwnModelSlot(editable: true)`. EditorKitPromptEditor's "as ``OwnModelSlot`` does" stays true, unchanged. New Tests/AgentViewKitTests/Code/OwnModelSlotTests.swift (3 tests; red: `init(editable:)` missing → green). `swift test`: 1718 tests in 212 suites passed, 0 failures, 3 known issues (the intentional `withKnownIssue` checks). The only build warning is SwiftPM's "missing creator for mutated node" on the mlx-swift_Cmlx bundle, from the dependency build, not this code. Not committed.
+    - files: Sources/AgentViewKit/Code/OwnModelSlot.swift, Sources/AgentViewKit/Input/AgentOneLineField.swift, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, Sources/AgentViewKit/Sessions/SessionListView.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift, Tests/AgentViewKitTests/Code/OwnModelSlotTests.swift
+    - next: /review
+  timestamp: 2026-10-23T18:09:23.737986+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Replace one-line SwiftUI TextFields with EditorKit SingleLineField
@@ -121,3 +157,13 @@ Tests:
 - hosted tests that each replaced field edits, submits on Return, reverts on Esc and undoes on the window stack;
 - the existing elicitation and permission tests stay green, and the snapshots are re-recorded only where the look changes, listed by name.
 Full `swift test` green; the demo builds. #avk-7
+
+## Review Findings (2026-10-23 12:58)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 18 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 8 file(s)
+
+- [x] `Sources/AgentViewKit/Input/AgentOneLineField.swift:72` `reuse/reuse` — `EditorModelSlot` reimplements `OwnModelSlot`, an existing class with the same shape: a private optional `EditorModel` that is created on the first `model(text:)` read and then reused. The new class differs only in that it creates an editable `EditorModel(text)` where `OwnModelSlot` creates `EditorModel.makeReadOnly(text)`. That difference is a parameter, so the two copies will drift apart as the slot logic changes. Generalize `OwnModelSlot` so it takes the editability as a parameter, for example `init(editable: Bool = false)`, and makes the model with `editable ? EditorModel(text) : EditorModel.makeReadOnly(text)`. Then delete `EditorModelSlot` and have the `@State` properties in `PermissionView`, `SessionListView`, and `ElicitationTextField` use `OwnModelSlot(editable: true)`. If the read-only model is required by the existing callers, keep `OwnModelSlot`'s default and add only the parameter.
+- [x] `Sources/AgentViewKit/Input/AgentOneLineField.swift:80` `duplication/duplication` — The new `EditorModelSlot` duplicates the existing `OwnModelSlot`. Both hold a lazily made `EditorModel` for a view's `@State`, and both `model(text:)` methods make the model on the first read and return it afterward. Two copies of the same state-holding logic can drift apart, and a future fix would have to land in both. Delete `EditorModelSlot` and use the existing `OwnModelSlot` at the four call sites: `ElicitationFieldViews.swift:186`, `PermissionView.swift:140`, `SessionListView.swift:116`, and `AgentOneLineField.swift`. If `OwnModelSlot` does not fit, check its API first, and do not edit it as part of this change.

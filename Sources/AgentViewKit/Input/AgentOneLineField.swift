@@ -64,29 +64,6 @@ struct AgentTextInputEdge: ViewModifier {
   }
 }
 
-/// The model of a text input that a view keeps in its state.
-///
-/// The slot makes the model at the first read. A `@State` value that holds
-/// the model directly would make a new model each time SwiftUI makes the
-/// view value again.
-final class EditorModelSlot {
-  /// The model, or `nil` before the first read.
-  private var model: EditorModel?
-
-  /// The model of the slot. The first read makes a model that holds `text`.
-  ///
-  /// - Parameter text: The text of a new model.
-  /// - Returns: The model.
-  func model(text: String) -> EditorModel {
-    if let model {
-      return model
-    }
-    let model = EditorModel(text)
-    self.model = model
-    return model
-  }
-}
-
 #Preview("One-line field") {
   AgentOneLineField(model: EditorModel(""), identifier: "preview-field", placeholder: "Search")
     .padding()

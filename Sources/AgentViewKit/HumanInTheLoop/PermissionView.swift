@@ -137,7 +137,7 @@ public struct PermissionView: View {
   @State private var selectedReject: FoundationModelsACP.PermissionOption?
 
   /// The model of the text of the comment field.
-  @State private var comment = EditorModelSlot()
+  @State private var comment = OwnModelSlot(editable: true)
 
   /// Whether the card shows the related terminal.
   @State private var showsTerminal = false

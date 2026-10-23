@@ -113,7 +113,7 @@ public struct SessionListView: View {
   @Environment(\.editorTheme) private var editorTheme
 
   /// The model of the search text that filters the rows.
-  @State private var search = EditorModelSlot()
+  @State private var search = OwnModelSlot(editable: true)
 
   /// The error message of the last call of the view, or `nil`.
   @State private var failureMessage: String?
