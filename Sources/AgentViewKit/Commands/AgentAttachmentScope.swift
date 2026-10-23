@@ -30,6 +30,10 @@ struct AgentAttachmentScope: ViewModifier {
   /// The attachment of the scope.
   let attachment: Attachment
 
+  /// The corners of the surface of the attachment, which the focus ring of
+  /// the scope follows.
+  let focusRingCorners: AgentSurfaceCorners
+
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
   @Environment(\.agentAttachmentScopeSegment) private var enclosingSegment
@@ -59,7 +63,7 @@ struct AgentAttachmentScope: ViewModifier {
         .environment(\.agentAttachmentScopeSegment, segment)
         .background(AgentAttachmentMount(target: target, presenter: presenter, registration: registration))
         .modifier(AttachmentPresentation(presenter: presenter))
-        .agentItemScope(segment, subject: attachment)
+        .agentItemScope(segment, subject: attachment, focusRingCorners: focusRingCorners)
         .environment(\.agentCommandSystem, system)
         .commandSystem(system)
     }
@@ -70,13 +74,22 @@ extension View {
   /// Puts this view in the scope of `attachment`, with the attachment
   /// commands at the path of the scope.
   ///
-  /// - Parameter attachment: The attachment of the scope, or `nil` for no
-  ///   scope, for example an artifact with no file.
+  /// The focus ring of the scope follows the corners of the surface of the
+  /// view, which `focusRingCorners` names. A scope inside a scope for the
+  /// same attachment makes no scope, so the corners of the outer scope hold.
+  ///
+  /// - Parameters:
+  ///   - attachment: The attachment of the scope, or `nil` for no scope, for
+  ///     example an artifact with no file.
+  ///   - focusRingCorners: The corners of the surface of the view. The
+  ///     default is the corners of a card.
   /// - Returns: A view in the scope of the attachment, or this view.
   @ViewBuilder
-  func agentAttachmentScope(_ attachment: Attachment?) -> some View {
+  func agentAttachmentScope(
+    _ attachment: Attachment?, focusRingCorners: AgentSurfaceCorners = .card
+  ) -> some View {
     if let attachment {
-      modifier(AgentAttachmentScope(attachment: attachment))
+      modifier(AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners))
     } else {
       self
     }

@@ -22,8 +22,9 @@ import SwiftUI
 /// shows on the item. The item has no focusable view of its own, so the
 /// EditorKit beacon of the scope takes the focus that a move or a jump puts
 /// on the item, and draws the system focus ring over the item.
-/// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of a card of
-/// the kit (``AgentSurface/shape(for:)``). A `.focusEffectDisabled()` above
+/// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of the surface
+/// of the item (``AgentSurfaceCorners``): by default the corners of a card
+/// of the kit (``AgentSurface/shape(for:)``). A `.focusEffectDisabled()` above
 /// the item turns the ring off. When `isTargetable` is
 /// `false`, for example on a deck card that does not show whole,
 /// `.targetable(false)` removes the item from the jump labels and from the
@@ -43,6 +44,9 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   /// Tells if a jump or a `nav.*` move can land on the item.
   let isTargetable: Bool
 
+  /// The corners of the focus ring that the beacon of the scope draws.
+  let focusRingCorners: AgentSurfaceCorners
+
   @Environment(\.agentCommandSystem) private var system
   @Environment(\.agentTheme) private var theme
 
@@ -52,7 +56,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
         .commandContextMenu(system, unavailable: .agentItem)
         .commandScope(segment: segment, subject: subject)
         .targetable(isTargetable)
-        .scopeFocusRing(cornerRadius: theme.radii.l)
+        .scopeFocusRing(cornerRadius: focusRingCorners.radius(in: theme))
     } else {
       content
     }
@@ -69,9 +73,47 @@ extension View {
   ///     `@FromTarget(kind: segment.kind)`.
   ///   - isTargetable: `false` to keep each jump and each `nav.*` move off
   ///     the item, for example on a deck card that does not show whole.
+  ///   - focusRingCorners: The corners of the surface of the item, which the
+  ///     focus ring of the scope follows. The default is the corners of a
+  ///     card.
   /// - Returns: A view in the scope of the item.
-  func agentItemScope(_ segment: FocusSegment, subject: some Sendable, isTargetable: Bool = true) -> some View {
-    modifier(AgentItemScope(segment: segment, subject: subject, isTargetable: isTargetable))
+  func agentItemScope(
+    _ segment: FocusSegment, subject: some Sendable, isTargetable: Bool = true,
+    focusRingCorners: AgentSurfaceCorners = .card
+  ) -> some View {
+    modifier(
+      AgentItemScope(
+        segment: segment, subject: subject, isTargetable: isTargetable, focusRingCorners: focusRingCorners))
+  }
+}
+
+/// The corners of the surface of an item, which the focus ring of its scope
+/// (``AgentItemScope``) follows.
+///
+/// The corners name a radius token of the theme, or square corners for a
+/// surface that is not rounded, such as an image. A view that draws its
+/// surface from the same value keeps the surface and the ring in step.
+enum AgentSurfaceCorners: Sendable {
+  /// Corners of the radius token at the key path, for example
+  /// `\.m` for ``AgentTheme/Radii/m``.
+  case rounded(KeyPath<AgentTheme.Radii, CGFloat> & Sendable)
+
+  /// Square corners: the surface and its ring are rectangles.
+  case square
+
+  /// The corners of a card of the kit: the large radius of the theme
+  /// (``AgentSurface/shape(for:)``).
+  static let card = AgentSurfaceCorners.rounded(\.l)
+
+  /// The corner radius in `theme`.
+  ///
+  /// - Parameter theme: The tokens that give the radius.
+  /// - Returns: The radius of the token, or zero for square corners.
+  func radius(in theme: AgentTheme) -> CGFloat {
+    switch self {
+    case .rounded(let token): theme.radii[keyPath: token]
+    case .square: .zero
+    }
   }
 }
 

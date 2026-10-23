@@ -98,7 +98,21 @@ public struct AttachmentView: View {
   }
 
   public var body: some View {
-    renderedFile.agentAttachmentScope(attachment)
+    renderedFile.agentAttachmentScope(attachment, focusRingCorners: surfaceCorners)
+  }
+
+  /// The corners of the view of the file, which the focus ring of the scope
+  /// follows: the corners of the chip when the default renderer is the
+  /// chip, and square corners for a preview, which has no rounded surface,
+  /// and for a registered view, whose surface the kit does not know.
+  ///
+  /// A preview that cannot load its file shows the chip in its place, and
+  /// keeps the square corners of the preview.
+  private var surfaceCorners: AgentSurfaceCorners {
+    guard registry.resolve(type: attachment.type) == nil,
+      Self.renderer(for: attachment.type) == .chip
+    else { return .square }
+    return AttachmentChip.corners
   }
 
   /// The registered view of the file, or its default renderer.

@@ -30,6 +30,10 @@ public struct ArtifactView: View {
     AttachmentActions.identifiers(prefix: identifierPrefix)
   }
 
+  /// The corners of the panel: the medium radius of the theme. The edge of
+  /// the panel and the focus ring of its scope both have them.
+  static let corners = AgentSurfaceCorners.rounded(\.m)
+
   /// The artifact to show.
   let artifact: ArtifactPayload
 
@@ -65,10 +69,10 @@ public struct ArtifactView: View {
       }
     }
     .padding(theme.spacing.m)
-    .agentContentEdge(radius: theme.radii.m)
+    .agentContentEdge(radius: Self.corners.radius(in: theme))
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
-    .agentAttachmentScope(attachment)
+    .agentAttachmentScope(attachment, focusRingCorners: Self.corners)
   }
 
   /// The attachment of an artifact file.

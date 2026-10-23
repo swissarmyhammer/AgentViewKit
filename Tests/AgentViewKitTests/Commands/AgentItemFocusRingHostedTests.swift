@@ -152,6 +152,27 @@ import Testing
     return Data(bytes: bytes, count: bitmap.bytesPerRow * bitmap.pixelsHigh)
   }
 
+  /// Expects the focus ring mask of `responder` to be the rounded rectangle
+  /// of `cornerRadius` over the bounds of `responder`.
+  ///
+  /// - Parameters:
+  ///   - responder: The view that holds the focus.
+  ///   - cornerRadius: The radius of the corners of the expected ring.
+  /// - Throws: An issue when AppKit makes no bitmap.
+  static func expectFocusRingMask(of responder: NSView, cornerRadius: CGFloat) throws {
+    let bounds = responder.bounds
+    let ring = RoundedRectangle(cornerRadius: cornerRadius).path(in: bounds).cgPath
+    let expected = try pixels(of: bounds) {
+      let context = NSGraphicsContext.current?.cgContext
+      context?.addPath(ring)
+      context?.fillPath()
+    }
+
+    let mask = try pixels(of: bounds) { responder.drawFocusRingMask() }
+
+    #expect(mask == expected)
+  }
+
   /// The focus ring of the focused item is over the whole item.
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemCoversTheItem(kind: ItemKind, landing: FocusLanding) async throws {
@@ -166,17 +187,7 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      let bounds = focused.responder.bounds
-      let card = RoundedRectangle(cornerRadius: AgentTheme.default.radii.l).path(in: bounds).cgPath
-      let expected = try Self.pixels(of: bounds) {
-        let context = NSGraphicsContext.current?.cgContext
-        context?.addPath(card)
-        context?.fillPath()
-      }
-
-      let mask = try Self.pixels(of: bounds) { focused.responder.drawFocusRingMask() }
-
-      #expect(mask == expected)
+      try Self.expectFocusRingMask(of: focused.responder, cornerRadius: AgentTheme.default.radii.l)
     }
   }
 

@@ -16,6 +16,8 @@ import SwiftUI
 /// The image is the scope of its file (`agentAttachment:<id>`, AVK-11). The
 /// view writes the file when it shows, so the ``AgentAttachmentVerb``
 /// commands of its context menu and of the command palette can run on it.
+/// The image has square corners, so the focus ring of the scope is a
+/// rectangle.
 ///
 /// The view shows an ACP `ImageContent` that a transcript entry holds. The
 /// view decodes the base64 data of the ACP value when it shows it. Data that
@@ -71,7 +73,7 @@ public struct ImageView: View {
         .accessibilityLabel(name)
         .modifier(SelectOnTap { select(data: data) })
         .accessibilityIdentifier(Self.imageIdentifier)
-        .agentAttachmentScope(file)
+        .agentAttachmentScope(file, focusRingCorners: .square)
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
       Label(name, systemImage: SharedSymbol.imageFailure)
