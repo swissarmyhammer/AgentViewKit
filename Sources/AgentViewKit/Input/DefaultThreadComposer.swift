@@ -9,9 +9,19 @@ import SwiftUI
 /// gives the composer its session model and its connection model. To keep
 /// the text in the host, or to use another editor, give a
 /// ``PromptInputView`` to ``AgentThreadView/init(session:connection:composer:)``.
+///
+/// The unsent text is the draft of the session model, which the kit keeps
+/// out of the view (^f41brfh). So a thread view that the host rebuilds for
+/// the same session, for example when it moves the view to another column,
+/// shows the draft again, and a thread view of another session shows the
+/// draft of that session. Each change of the text sets the draft, and Send
+/// clears it. With no session model in the environment, the composer keeps
+/// the text in its own state.
 public struct DefaultThreadComposer: View {
-  /// The text of the prompt.
-  @State private var draft = AttributedString()
+  /// The draft while the environment has no session model.
+  @State private var ownDraft = PromptDraft()
+
+  @Environment(\.sessionModel) private var session
 
   /// Makes the default composer of a thread.
   public init() {}
@@ -20,9 +30,12 @@ public struct DefaultThreadComposer: View {
     PromptInputView(text: text) {}
   }
 
-  /// The binding that reads and writes the text of the prompt.
+  /// The binding that reads and writes the text of the prompt: the text of
+  /// the draft of the session model, or of the own draft with no session
+  /// model.
   private var text: Binding<AttributedString> {
-    Binding(get: { draft }, set: { draft = $0 })
+    let draft = session.map(PromptDraftStore.shared.draft(for:)) ?? ownDraft
+    return Binding(get: { draft.text }, set: { draft.text = $0 })
   }
 }
 

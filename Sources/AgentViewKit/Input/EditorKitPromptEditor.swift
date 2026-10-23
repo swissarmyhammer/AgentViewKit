@@ -543,6 +543,10 @@ final class PromptEditorSession {
   /// The model of the editor. The first read makes the model with `text`;
   /// a later read gives the same model and ignores `text`.
   ///
+  /// The caret of a new model is at the end of `text`, so that the person
+  /// types on after a restored draft (^f41brfh). The move changes only the
+  /// selection, so it is no edit and leaves no undo entry (^m1wgq3k).
+  ///
   /// The model registers the completion session field, so that the
   /// completion effects apply. The commit closure gets each transaction that
   /// the model commits, and each undo and redo of the engine: the window
@@ -559,6 +563,7 @@ final class PromptEditorSession {
     let engine = EditorEngine(text(), fields: [.field(CompletionSessionField.self)])
     let model = EditorModel(engine: engine)
     storedModel = model
+    Self.moveCaretToEnd(of: model)
     // The model registers its own dispatch observer first, so its text is
     // the new text when this observer runs.
     engine.addDispatchObserver { [weak self] transaction, _, _ in
@@ -572,6 +577,15 @@ final class PromptEditorSession {
       }
     }
     return model
+  }
+
+  /// Puts the caret of `model` at the end of its text with a transaction
+  /// that changes only the selection.
+  ///
+  /// - Parameter model: The model of the editor.
+  private static func moveCaretToEnd(of model: EditorModel) {
+    let end = EditorKitPromptEditor.editorContext(of: model).documentEnd
+    model.dispatch(EditorTransaction(changes: .identity(length: model.text.utf8.count), selection: .cursor(end)))
   }
 
   /// Whether a transaction is an undo or a redo of the engine.

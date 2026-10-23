@@ -339,6 +339,9 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     "AttachmentPresenter",
     // The scroll position of the conversation.
     "ScrollAnchorManager",
+    // The unsent text of the composer of one session, which outlives a
+    // rebuild of the thread view (^f41brfh).
+    "PromptDraft",
   ]
 
   /// The pattern that finds the declaration of an `@Observable` class and
