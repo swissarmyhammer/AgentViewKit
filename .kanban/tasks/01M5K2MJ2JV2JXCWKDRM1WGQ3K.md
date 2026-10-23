@@ -1,8 +1,46 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: a980
+comments:
+- actor: claude-code
+  id: 01m5k3pqmk4pp4v8ps1ymm6hh6
+  text: |-
+    Picked up. Research notes:
+    - `swift package update EditorKit` resolved main at 34233ed (contains 7e22d7a EK-6.6 and be05965 EK-6.5). Package.resolved is gitignored in AVK, so the bump leaves no diff.
+    - EditorTestSupport (UndoActionLog/UndoActionGate) is a TARGET in EditorKit, not a product; AVK cannot link it. Only EditorCommandsTestSupport is a product. The composer tests read the real window stack, so they need no fake entries anyway.
+    - Window stack: root `.commandScope` of AgentThreadView (agent command scope at `.root(AgentCommandTarget.segment(for:))`) owns it; read with `system.undo.stack(for: path)`; `edit.undo` = `system.registry.perform(.undo, at: path)`.
+    - StockPromptEditor = SwiftUI TextEditor -> SystemUndoSource (follows window NSUndoManager; entries only when a top-level group CLOSES, groups-by-event close at the end of a run-loop event). EditorKitPromptEditor = EditorView -> EditorUndoSource; its `pull` calls `model.replaceAll(plain)` only when the text differs (onChange initial:true), so a non-empty draft at mount is a candidate AVK-made entry.
+    - AVK harness: off-screen window, `.prohibited` policy, key events through `window.sendEvent`; the only run-loop pass is the zero-wait one before each key event.
+  timestamp: 2026-10-23T00:48:49.299280+00:00
+- actor: claude-code
+  id: 01m5k67pckc6zbg8cz8wqv7q8r
+  text: |-
+    Implementation landed (EditorKit at 7c043ad after the coordinator's second update; first update gave 34233ed).
+    - New suite Tests/AgentViewKitTests/Input/ComposerWindowUndoHostedTests.swift, parameterized over EditorKitPromptEditor and StockPromptEditor inside AgentThreadView under a CommandSystem: (1) mount (empty and with a draft) + re-render (agent goes running, binding re-applied) -> WindowUndoChecks.expectUnavailableOnAnEmptyStack; (2) typing -> canUndo, edit.undo until !canUndo -> text empty; (3) Send clears -> the clear is a new top entry, one edit.undo restores the prompt in the text view AND the binding, and the typing entry is top again (count measured as the change across Send, so it holds with ^nmt6pdy coalescing).
+    - RED first: EditorKitPromptEditor + draft left an entry on mount (AVK `pull` -> `replaceAll(draft)` from onChange(initial:)); EditorKitPromptEditor Send-undo restored the text view but never the binding (undo/redo of the window stack runs on the engine, which does not feed EditorModel.transactions). An earlier version of the test hung on an ObservationWait for that binding; the tests now assert the binding directly after waitUntilIdle.
+    - Passed at once (EditorKit EK-6.5/6.6 already gives it): every StockPromptEditor case, and EditorKitPromptEditor with an empty mount and typing undo.
+    - Fix in AVK (Sources/AgentViewKit/Input/EditorKitPromptEditor.swift): PromptEditorSession.model(startingWith:) seeds the engine with the prompt text at first read (no replaceAll edit), and an engine dispatch observer forwards undo/redo transactions to the commit closure so the binding follows.
+    - Stock redo limit recorded as `withKnownIssue` (TextEditor writes its binding back after undo, clearing the AppKit redo list); no redo faked.
+    - Harness limits: ⌘Z cannot go through NSApplication in the hosted harness, so tests run `edit.undo` via system.registry.perform(.undo, at:). Typing/Return use the harness key events to the off-screen window.
+    - EditorTestSupport (UndoActionLog/UndoActionGate) is not an EditorKit product, so it cannot be linked; not needed since the tests read the real stack.
+    - Full swift test: 1678 tests in 206 suites passed, 4 known issues (3 pre-existing + the stock redo limit).
+  timestamp: 2026-10-23T01:33:02.227231+00:00
+- actor: claude-code
+  id: 01m5k67rnpn9kzevn9fchg2y4y
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Input/EditorKitPromptEditor.swift, Tests/AgentViewKitTests/Input/ComposerWindowUndoHostedTests.swift (new); EditorKit 7c043ad; red first: EditorKitPromptEditor draft-mount entry + EditorKitPromptEditor clear-undo not reaching the binding; full swift test 1678 tests / 206 suites passed, 4 known issues
+    - next: review
+  timestamp: 2026-10-23T01:33:04.566670+00:00
+- actor: claude-code
+  id: 01m5k6h17cvj8f93a8yv5zek4h
+  text: |-
+    ### test — green
+    - evidence: swift test run twice back to back, both exit 0. Run 1: 1678 tests in 206 suites passed (67.5s), 4 known issues; 227 tests in 30 suites (XCTest-side/other runner) passed. Run 2: 1678 tests in 206 suites passed (72.1s), 4 known issues; 227 tests in 30 suites passed. 0 failures, 0 skipped. ComposerWindowUndoHostedTests passed with its 1 documented redo known issue (3 pre-existing + 1 new = 4). Only warning: the SwiftPM mlx-swift "missing creator for mutated node" notice; no project-code warnings after touching EditorKitPromptEditor.swift. EditorKit pinned at 7c043ade64e0e2dfef43e5d6f33645a0e77c4810 (no package update run).
+    - next: review/commit
+  timestamp: 2026-10-23T01:38:08.236677+00:00
+position_column: doing
+position_ordinal: '8380'
 title: 'Composer undo on the window stack: no entry on mount or re-render; the clear after Send is one undoable entry'
 ---
 Requested by testudoapp-2c (TestudoApp ^yahkhjn, the composer pushed empty undo entries). User decision (2026-10-22): clearing the composer after Send IS undoable, so ⌘Z restores the sent prompt. Do not wrap the clear to suppress undo.

@@ -95,7 +95,11 @@ public struct EditorKitPromptEditor: View {
   }
 
   public var body: some View {
-    let model = session.model
+    // The model starts with the text of the prompt, for example a restored
+    // draft. A first text that the editor took through `replaceAll` would be
+    // an edit, and thus an undo entry of the window that the person never
+    // made (^m1wgq3k).
+    let model = session.model(startingWith: String(context.text.wrappedValue.characters))
     let completion = model.state.value(CompletionSessionField.self)
     // The session calls the newest view value, so that each commit reads the
     // newest context and file root.
@@ -490,14 +494,36 @@ final class PromptEditorSession {
     commitTask?.cancel()
   }
 
-  /// The model of the editor. The model registers the completion session
-  /// field, so that the completion effects apply.
+  /// The model of the editor, or a new empty model before the first read.
   var model: EditorModel {
+    model(startingWith: "")
+  }
+
+  /// The model of the editor. The first read makes the model with `text`;
+  /// a later read gives the same model and ignores `text`.
+  ///
+  /// The model registers the completion session field, so that the
+  /// completion effects apply. The commit closure gets each transaction that
+  /// the model commits, and each undo and redo of the engine: the window
+  /// undo stack runs those on the engine, so they do not reach the
+  /// `transactions` stream of the model.
+  ///
+  /// - Parameter text: The first text of a new model. The session reads it
+  ///   only when it makes the model.
+  /// - Returns: The model.
+  func model(startingWith text: @autoclosure () -> String) -> EditorModel {
     if let storedModel {
       return storedModel
     }
-    let model = EditorModel(engine: EditorEngine("", fields: [.field(CompletionSessionField.self)]))
+    let engine = EditorEngine(text(), fields: [.field(CompletionSessionField.self)])
+    let model = EditorModel(engine: engine)
     storedModel = model
+    // The model registers its own dispatch observer first, so its text is
+    // the new text when this observer runs.
+    engine.addDispatchObserver { [weak self] transaction, _, _ in
+      guard Self.isUndoOrRedo(transaction) else { return }
+      self?.onCommit?(transaction)
+    }
     let transactions = model.transactions
     commitTask = Task { [weak self] in
       for await transaction in transactions {
@@ -505,6 +531,14 @@ final class PromptEditorSession {
       }
     }
     return model
+  }
+
+  /// Whether a transaction is an undo or a redo of the engine.
+  ///
+  /// - Parameter transaction: The dispatched transaction.
+  /// - Returns: `true` when the transaction undoes or redoes an undo group.
+  static func isUndoOrRedo(_ transaction: EditorTransaction) -> Bool {
+    transaction.annotations.isUndo != nil || transaction.annotations.isRedo != nil
   }
 
   /// Sets the commit closure of the newest view value.
