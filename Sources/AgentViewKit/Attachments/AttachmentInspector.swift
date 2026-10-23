@@ -156,6 +156,13 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// The view shows the file name, a live QuickLook preview, and the actions
 /// Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
 ///
+/// The view is a grouped form, as the inspectors of Xcode and Icon Composer
+/// are (^bkhgxs5): one section holds the name and the actions, and one more
+/// section holds the preview. The form has the system margins and row insets,
+/// and no padding of its own, so the preview has the same leading and
+/// trailing inset as the other rows. The form hides its own background, so
+/// the background of the host shows around the rows.
+///
 /// The view is the scope of its attachment (`agentAttachment:<id>`, AVK-11).
 /// Each action button runs the ``AgentAttachmentVerb`` command of that scope,
 /// so the buttons, the context menu and the command palette run the same
@@ -169,15 +176,21 @@ public struct AttachmentInspector: View {
   /// The accessibility identifier of the file name.
   public static let nameIdentifier = "inspector-name"
 
+  /// The accessibility identifier of the grouped form that holds the name,
+  /// the preview and the actions.
+  public static let formIdentifier = "inspector-form"
+
   /// The accessibility identifiers of the actions, in display order.
   public static var actionIdentifiers: [String] {
     AttachmentActions.identifiers(prefix: identifierPrefix)
   }
 
+  /// The height of the preview row, in points. A row of a scrolling form
+  /// has no height to fill, so the preview has a fixed height.
+  static let previewHeight: CGFloat = 240
+
   /// The file to show.
   let attachment: Attachment
-
-  @Environment(\.agentTheme) private var theme
 
   /// Makes the inspector content for a file.
   ///
@@ -187,17 +200,26 @@ public struct AttachmentInspector: View {
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.m) {
-      Text(attachment.name)
-        .font(.headline)
-        .lineLimit(1)
-        .truncationMode(.middle)
-        .accessibilityIdentifier(Self.nameIdentifier)
-      QuickLookPreview(url: attachment.url)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-      AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
+    Form {
+      Section {
+        Text(attachment.name)
+          .font(.headline)
+          .lineLimit(1)
+          .truncationMode(.middle)
+          .accessibilityIdentifier(Self.nameIdentifier)
+        AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
+      }
+      Section {
+        QuickLookPreview(url: attachment.url)
+          .frame(maxWidth: .infinity)
+          .frame(height: Self.previewHeight)
+      }
     }
-    .padding(theme.spacing.m)
+    .formStyle(.grouped)
+    // A grouped form draws an opaque background of its own. A kit view is
+    // transparent, so the background of the host shows around the rows.
+    .scrollContentBackground(.hidden)
+    .accessibilityIdentifier(Self.formIdentifier)
     .agentAttachmentScope(attachment)
   }
 }
