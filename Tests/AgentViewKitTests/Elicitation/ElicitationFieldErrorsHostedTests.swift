@@ -6,15 +6,24 @@ import Testing
 /// Hosted tests of when ``ElicitationView`` shows and announces the errors of
 /// its fields.
 ///
-/// A field shows its errors only after the user changes its answer, or after
-/// a submit attempt with a form that is not complete. Each error that
+/// A field whose default is not empty and not valid shows its errors at once.
+/// Another field shows its errors only after the user changes its answer, or
+/// after a submit attempt with a form that is not complete. Each error that
 /// appears is announced.
 @Suite(.serialized, .hostedSerially) @MainActor struct ElicitationFieldErrorsHostedTests {
   /// The JSON text of a property schema of a one-line text field.
   static let nameProperty = #"{"type": "string", "title": "Name", "maxLength": 40}"#
 
+  /// The JSON text of a property schema of a number field whose default is
+  /// above its maximum.
+  static let invalidCountProperty =
+    #"{"type": "integer", "title": "Count", "minimum": 1, "maximum": 9, "default": 12}"#
+
   /// The message of a required field with no answer.
   static let requiredMessage = "This field is necessary."
+
+  /// The message of a number above the maximum of ``invalidCountProperty``.
+  static let aboveMaximumMessage = "The value must be 9 or less."
 
   /// The accessibility identifier of the button of the custom footer, which
   /// calls the submit function of the footer context in each state.
@@ -108,6 +117,47 @@ import Testing
     defer { mounted.close() }
 
     #expect(Self.errors(of: "name", in: mounted.harness) == nil)
+    #expect(announcer.announcements.isEmpty)
+  }
+
+  @Test func aDefaultThatIsNotValidShowsItsErrorOnFirstShow() async throws {
+    let params = ElicitationViewHostedTests.makeFormParams(properties: ["count": Self.invalidCountProperty])
+    let mounted = try await Self.mount(params, announcer: RecordingAnnouncer())
+    defer { mounted.close() }
+
+    #expect(Self.errors(of: "count", in: mounted.harness)?.label?.contains(Self.aboveMaximumMessage) == true)
+  }
+
+  @Test func theErrorOfADefaultThatIsNotValidIsAnnouncedOnFirstShow() async throws {
+    let announcer = RecordingAnnouncer()
+    let params = ElicitationViewHostedTests.makeFormParams(properties: ["count": Self.invalidCountProperty])
+    let mounted = try await Self.mount(params, announcer: announcer)
+    defer { mounted.close() }
+
+    #expect(
+      announcer.announcements == [
+        RecordingAnnouncer.Announcement(message: "“Count”: \(Self.aboveMaximumMessage)", priority: .medium)
+      ])
+  }
+
+  @Test func aDefaultThatIsNotValidShowsNoErrorUnderARequiredEmptyField() async throws {
+    let params = ElicitationViewHostedTests.makeFormParams(
+      properties: ["name": Self.nameProperty, "count": Self.invalidCountProperty], required: ["name"])
+    let mounted = try await Self.mountWithAttemptFooter(params, announcer: RecordingAnnouncer())
+    defer { mounted.close() }
+    try #require(Self.errors(of: "count", in: mounted.harness) != nil)
+
+    #expect(Self.errors(of: "name", in: mounted.harness) == nil)
+  }
+
+  @Test func aValidDefaultShowsNoErrorOnFirstShow() async throws {
+    let announcer = RecordingAnnouncer()
+    let params = ElicitationViewHostedTests.makeFormParams(
+      properties: ["count": ElicitationViewHostedTests.countProperty])
+    let mounted = try await Self.mount(params, announcer: announcer)
+    defer { mounted.close() }
+
+    #expect(Self.errors(of: "count", in: mounted.harness) == nil)
     #expect(announcer.announcements.isEmpty)
   }
 

@@ -242,8 +242,8 @@ enum PreviewFixtures {
 
   /// A form-mode elicitation whose `Retries` default is above its maximum, so
   /// that a field is not valid before the user types. The card keeps Submit
-  /// disabled, and shows the error of the field only after the user changes
-  /// the field or tries to submit. The required `Name` field has a valid
+  /// disabled, and shows the error of the field as soon as it appears, so the
+  /// user sees why Submit is disabled. The required `Name` field has a valid
   /// default.
   static let invalidFieldElicitation = formRequest(
     message: "Check the details of the new package.",

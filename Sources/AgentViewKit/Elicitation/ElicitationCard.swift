@@ -120,7 +120,7 @@ private struct ElicitationCardSample: View {
   ElicitationCardSample(PreviewFixtures.eachKindFormElicitation)
 }
 
-#Preview("Form with a field that is not valid") {
+#Preview("Form with a default that is not valid: its error shows at once") {
   ElicitationCardSample(PreviewFixtures.invalidFieldElicitation)
 }
 

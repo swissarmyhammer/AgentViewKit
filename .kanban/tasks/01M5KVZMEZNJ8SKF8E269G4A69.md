@@ -57,6 +57,10 @@ comments:
     - ^qs0g2n (01M5M1R48CQVPCP3D5K8QS0G2N): a landed jump, nav or drill-in on a scope whose own content (excluding nested scopes) holds EXACTLY ONE focusable text view focuses that text view, wherever it sits. With zero or several, it behaves as today. No host modifier is needed.
     When both SHAs arrive: check out `wip/69g4a69-drop-stock-editor` onto main, `swift package update EditorKit`, use the identifier API in EditorKitPromptEditor, and rerun the 6 red tests and the demo UI suite.
   timestamp: 2026-10-23T09:34:05.576786+00:00
+- actor: claude-code
+  id: 01m5m4bcz64p3dt3byb1497y6v
+  text: 'Blocker 1 of 2 LANDED: EditorKit d4c767f (^kek5v80, feature 6d4a822). `.editorTextAccessibilityIdentifier(_ identifier: String)` on EditorSlotComposing (EditorView, SingleLineField, EditorContributor) lands the id on the NSTextView only. In EditorKitPromptEditor, add `.editorTextAccessibilityIdentifier(Self.identifier)` before `.frame(...)` and REMOVE the SwiftUI `.accessibilityIdentifier(Self.identifier)` there, so XCUITest doesn''t match two. iOS gap: EditorKit ^t9a7jgs. Still waiting on blocker 2, ^qs0g2n (focus on the only text view of a scope).'
+  timestamp: 2026-10-23T10:19:20.934545+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'Drop StockPromptEditor: EditorKitPromptEditor is the only composer (no TextEditor<AttributedString>)'

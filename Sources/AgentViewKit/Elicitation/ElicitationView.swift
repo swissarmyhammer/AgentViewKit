@@ -11,15 +11,18 @@ import SwiftUI
 ///
 /// The view makes the fields from the ACP `requestedSchema` with
 /// ``ElicitationFieldSchema/normalize(from:)``. It keeps the answers, starts
-/// each field at its default, and validates on each change. A field shows its
-/// errors only after the user changes its answer, or after a call of
-/// ``ElicitationFooterContext/submit`` while the form is not complete. Before
-/// that, its context has the validation state
-/// ``FieldValidationState/satisfied``, so a new form shows no error. When a
-/// change of an answer shows new errors, the view announces them at
-/// `.medium`. A submit attempt with a form that is not complete sends nothing,
-/// shows the errors of each field, and announces them at `.high`
-/// (`fieldErrorText(title:validation:)`). The header slot
+/// each field at its default, and validates on each change. A field whose
+/// default is not empty and not valid, for example a number above its
+/// maximum, shows its errors as soon as the form appears, and the view
+/// announces them at `.medium`, so the user learns why Submit is disabled.
+/// Another field shows its errors only after the user changes its answer, or
+/// after a call of ``ElicitationFooterContext/submit`` while the form is not
+/// complete. Before that, its context has the validation state
+/// ``FieldValidationState/satisfied``, so a required field with no default
+/// shows no error on a new form. When a change of an answer shows new errors,
+/// the view announces them at `.medium`. A submit attempt with a form that is
+/// not complete sends nothing, shows the errors of each field, and announces
+/// them at `.high` (`fieldErrorText(title:validation:)`). The header slot
 /// names the agent, the layout slot shows the fields, and the footer slot
 /// shows Submit, Decline, and Cancel. Submit is disabled until
 /// ``ElicitationValidator/isComplete(values:schemas:)`` is `true`. Esc
@@ -95,9 +98,11 @@ public struct ElicitationView: View {
   /// ``values`` removes it.
   @State private var answerFailure: String?
 
-  /// The names of the fields whose answer the user changed. These fields
-  /// show their errors.
-  @State private var editedFields: Set<String> = []
+  /// The names of the fields that show their errors before a submit attempt:
+  /// each field whose default is not empty and not valid
+  /// (``fieldsWithInvalidDefault(_:)``), and each field whose answer the user
+  /// changed.
+  @State private var errorShowingFields: Set<String>
 
   /// Whether the user tried to submit the form while it was not complete.
   /// After that, each field shows its errors.
@@ -124,6 +129,7 @@ public struct ElicitationView: View {
     let fields = ElicitationFieldSchema.normalize(from: requestedSchema)
     self.fields = fields
     _values = State(initialValue: Self.defaultValues(of: fields))
+    _errorShowingFields = State(initialValue: Self.fieldsWithInvalidDefault(fields))
   }
 
   /// The JSON form of the ACP `requestedSchema` of a pending elicitation.
@@ -150,6 +156,26 @@ public struct ElicitationView: View {
     return values
   }
 
+  /// Whether the default of a field is not empty and does not pass
+  /// validation, for example a number above the maximum of the field.
+  ///
+  /// - Parameter schema: The field.
+  /// - Returns: `false` for a field with no default or with an empty default.
+  static func hasInvalidDefault(_ schema: ElicitationFieldSchema) -> Bool {
+    guard let value = schema.defaultValue, !ElicitationValidator.isEmpty(value) else { return false }
+    return !ElicitationValidator.validate(value, against: schema).isSatisfied
+  }
+
+  /// The fields that show their errors as soon as the form appears.
+  ///
+  /// - Parameter fields: The fields of the form.
+  /// - Returns: The name of each field whose default is not empty and not
+  ///   valid (``hasInvalidDefault(_:)``). A required field with no default
+  ///   is not in the set.
+  static func fieldsWithInvalidDefault(_ fields: [ElicitationFieldSchema]) -> Set<String> {
+    Set(fields.filter(hasInvalidDefault).map(\.name))
+  }
+
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       ElicitationHeaderSlot(request: request)
@@ -166,6 +192,7 @@ public struct ElicitationView: View {
     .accessibilityIdentifier(Self.formIdentifier)
     .accessibilityFocusTarget(Self.formIdentifier)
     .onChange(of: values) { answerFailure = nil }
+    .onAppear(perform: announceInvalidDefaults)
   }
 
   // MARK: Slots
@@ -231,20 +258,20 @@ public struct ElicitationView: View {
   /// The validation state that a field shows.
   ///
   /// - Parameter schema: The field.
-  /// - Returns: The state of the current answer when the user changed the
-  ///   field or tried to submit the form, else
+  /// - Returns: The state of the current answer when the default of the
+  ///   field is not empty and not valid, when the user changed the field, or
+  ///   when the user tried to submit the form, else
   ///   ``FieldValidationState/satisfied``.
   private func shownValidation(of schema: ElicitationFieldSchema) -> FieldValidationState {
-    guard submitAttempted || editedFields.contains(schema.name) else { return .satisfied }
+    guard submitAttempted || errorShowingFields.contains(schema.name) else { return .satisfied }
     return ElicitationValidator.validate(values[schema.name], against: schema)
   }
 
   /// Keeps a new answer that the user gave to a field.
   ///
-  /// A write of the current answer changes nothing. Another answer marks the
-  /// field as edited, so it shows its errors. When the field then shows
-  /// errors that it did not show before, the view announces them at
-  /// `.medium`.
+  /// A write of the current answer changes nothing. Another answer makes the
+  /// field show its errors. When the field then shows errors that it did not
+  /// show before, the view announces them at `.medium`.
   ///
   /// - Parameters:
   ///   - schema: The field.
@@ -254,7 +281,7 @@ public struct ElicitationView: View {
     guard values[name] != answer else { return }
     let shownBefore = shownValidation(of: schema)
     values[name] = answer
-    editedFields.insert(name)
+    errorShowingFields.insert(name)
     let shownAfter = ElicitationValidator.validate(answer, against: schema)
     guard !shownAfter.isSatisfied, shownAfter != shownBefore else { return }
     announcer.announce(Self.fieldErrorText(title: schema.title, validation: shownAfter), priority: .medium)
@@ -276,11 +303,31 @@ public struct ElicitationView: View {
   /// is not complete, and announces them at `.high` in the order of the form.
   private func showErrorsOfIncompleteForm() {
     submitAttempted = true
-    let texts = fields.compactMap { schema -> String? in
+    announcer.announce(errorText(of: fields), priority: .high)
+  }
+
+  /// Announces at `.medium` the errors of each field whose default is not
+  /// empty and not valid, in the order of the form, when the form appears.
+  /// These fields show their errors at once, so the user learns why Submit
+  /// is disabled. A form with no such field announces nothing.
+  private func announceInvalidDefaults() {
+    let text = errorText(of: fields.filter(Self.hasInvalidDefault))
+    guard !text.isEmpty else { return }
+    announcer.announce(text, priority: .medium)
+  }
+
+  /// The text that announces the errors of some fields.
+  ///
+  /// - Parameter schemas: The fields, in the order of the form.
+  /// - Returns: The ``fieldErrorText(title:validation:)`` of the current
+  ///   answer of each field that does not pass validation, separated by
+  ///   spaces, or an empty text when each field passes.
+  private func errorText(of schemas: [ElicitationFieldSchema]) -> String {
+    let texts = schemas.compactMap { schema -> String? in
       let validation = ElicitationValidator.validate(values[schema.name], against: schema)
       return validation.isSatisfied ? nil : Self.fieldErrorText(title: schema.title, validation: validation)
     }
-    announcer.announce(texts.joined(separator: " "), priority: .high)
+    return texts.joined(separator: " ")
   }
 
   /// The content of an accepted form.
