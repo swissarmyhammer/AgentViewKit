@@ -40,8 +40,26 @@ comments:
     - evidence: `swift test` EXIT=0 (1720 tests in 212 suites with 3 known issues, plus 227 tests in 30 suites; no warnings beyond the SwiftPM "missing creator for mutated node" build note). Each `Scripts/test-examples.sh` run under the shared lock (lgate1–3, 20:37–20:43Z) passed with 5/5 UI tests; testASendOfHelloShowsTheReplyOfTheAgent passed 3 runs in a row (14.4 s, 15.3 s, 14.8 s). Files: Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/ThreadFloatingControlsHostedTests.swift, 4 HostedSnapshotTests bottom-bar-buttons PNGs, README.md, plan.md
     - next: /review
   timestamp: 2026-10-23T20:43:54.307259+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5n8c408qxz0jmvydtm8nckg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (7e941e7): 0 findings (confirmed 0, refuted 0, attempted 7, failed 0); no prior Review Findings sections
+    - next: task moved to done
+  timestamp: 2026-10-23T20:48:53.256939+00:00
+- actor: claude-code
+  id: 01m5n8ck641wvn4kpbjp5jybfz
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — the thread stays pinned during a streamed turn (id scroll to an end marker); the scroll-to-bottom pill is an overlay, so the bottom inset doesn't change; 2 new hosted tests (red, then green); 4 bottom-bar-buttons snapshots re-recorded; test-examples.sh 3/3 under the shared lock
+    - test: green — swift test, 1720 tests in 212 suites passed, 0 failed, 0 skipped (3 known issues are tests that expect a failure)
+    - commit: 7e941e7 (+ c376552, a kanban chore)
+    - review: clean — 0 findings; task in done
+    - Open for a person: look at the 4 re-recorded `bottom-bar-buttons-*.png` snapshots. No agent could view them.
+    - Not pushed.
+  timestamp: 2026-10-23T20:49:08.804553+00:00
+position_column: done
+position_ordinal: ffffca80
 title: 'Demo UI test: after a send of "hello" the reply row is not in the AX tree (testASendOfHelloShowsTheReplyOfTheAgent)'
 ---
 Found by the implement step of ^69g4a69 (2026-10-23), with EditorKit 37325a2 and the EditorKit composer (EditorKitPromptEditor with `.editorTextAccessibilityIdentifier("prompt-editor")`).
