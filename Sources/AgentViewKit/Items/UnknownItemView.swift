@@ -86,8 +86,8 @@ public struct UnknownItemView: View {
 
 #Preview("Unknown item") {
   UnknownItemView(
-    kind: "review_summary",
-    raw: .object(["sessionUpdate": .string("review_summary"), "findings": .array([.string("Parser.swift")])]),
+    kind: PreviewFixtures.reviewSummaryKind,
+    raw: PreviewFixtures.reviewSummaryUpdate,
     id: "preview-unknown",
     isExpanded: true)
 }

@@ -95,5 +95,5 @@ public struct ArtifactView: View {
   ArtifactView(
     artifact: ArtifactPayload(
       id: "release-notes", title: "Release notes", type: UTType.plainText.identifier,
-      inlineText: "The parser now imports Foundation, and each test passes."))
+      inlineText: "Version 2.4.0 adds a dark theme, and each invoice now shows the currency of the customer."))
 }

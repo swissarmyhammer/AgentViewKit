@@ -374,14 +374,5 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
 }
 
 #Preview("Diff") {
-  DiffView(
-    patch: """
-      --- a/Sources/Parser.swift
-      +++ b/Sources/Parser.swift
-      @@ -1,3 +1,4 @@
-      +import Foundation
-       struct Parser {
-         let source: String
-       }
-      """)
+  DiffView(patch: PreviewFixtures.smallPatch)
 }

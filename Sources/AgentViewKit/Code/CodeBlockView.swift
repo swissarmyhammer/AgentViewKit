@@ -165,6 +165,6 @@ public struct CodeBlockView: View {
 
 #Preview("Code block") {
   CodeBlockView(
-    code: "import Foundation\n\nstruct Parser {\n  let source: String\n}\n", language: "swift",
-    filename: "Parser.swift")
+    code: PreviewFixtures.codeSample, language: PreviewFixtures.codeSampleLanguage,
+    filename: PreviewFixtures.codeSampleFilename)
 }

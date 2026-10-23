@@ -262,7 +262,7 @@ struct InlineCitationPill: View {
 
 #Preview("Inline citation") {
   HStack {
-    Text(verbatim: "The parser needs Foundation")
+    Text(verbatim: PreviewFixtures.citedFirstSentence)
     InlineCitation(index: 1)
   }
 }

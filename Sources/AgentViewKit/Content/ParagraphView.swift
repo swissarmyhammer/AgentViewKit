@@ -124,5 +124,5 @@ public struct ParagraphView: View, Equatable {
 #Preview("Paragraph") {
   ParagraphView(
     messageID: "preview-message",
-    paragraph: ParagraphSplitter.Paragraph(index: 0, text: "The parser needs **Foundation** for `URL`."))
+    paragraph: ParagraphSplitter.Paragraph(index: 0, text: PreviewFixtures.agentAnswer))
 }

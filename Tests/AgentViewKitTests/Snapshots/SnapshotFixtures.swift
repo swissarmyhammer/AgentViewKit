@@ -12,26 +12,27 @@ import Testing
 /// clock that never moves and the wall clock `SessionModel.previewDate`, so
 /// each image shows the same times on each run.
 enum SnapshotFixtures {
-  /// The Swift code of the code block in the thread and of the code block
-  /// image.
-  static let swiftCode = """
-    import Foundation
+  /// The shell command of the code block in the thread: a test run of one
+  /// module.
+  static let shellCode = "swift test --filter CheckoutTests"
 
-    let url = URL(filePath: "/Users/preview/project")
-    print(url.lastPathComponent)
-    """
-
-  /// The fenced code block of ``swiftCode`` in Markdown.
-  static let swiftFence = "```swift\n\(swiftCode)\n```"
+  /// The fenced code block of ``shellCode`` in Markdown.
+  static let shellFence = "```shell\n\(shellCode)\n```"
 
   /// The text of the agent message with the code block.
   static let agentMessage = """
-    `Parser.swift` does not import **Foundation**. Add the import:
+    Give `swift test` a **filter** with the name of the test target:
 
-    \(swiftFence)
+    \(shellFence)
 
-    Then run the tests again.
+    The filter matches the name of each test class of the module.
     """
+
+  /// The command of the terminal image: the short status of a working tree.
+  static let terminalCommand = "git status --short"
+
+  /// The output of ``terminalCommand``: a changed file and a new file.
+  static let terminalOutput = " M README.md\n?? Docs/setup.md"
 
   /// The width of the image of the thread, the composer and the elicitation
   /// form, in points.
@@ -87,10 +88,10 @@ enum SnapshotFixtures {
   /// tool call that completed, and a last agent message.
   static var threadSession: SessionModel {
     SessionModel.preview(transcript: [
-      .user("Why does the build fail?"),
+      .user("How do I run only the tests of the checkout module?"),
       .agent(agentMessage),
-      .toolCall(title: "Run swift test", kind: .execute, status: .completed),
-      .agent("The tests pass now."),
+      .toolCall(title: "Run \(shellCode)", kind: .execute, status: .completed),
+      .agent("The 18 tests of the checkout module pass."),
     ])
   }
 
@@ -118,8 +119,8 @@ enum SnapshotFixtures {
   static func failedTurnSession() -> SessionModel {
     let messages = (1...failedTurnMessageCount).map { number in
       PreviewTranscriptItem.agent(
-        "Step \(number): the build of the package takes less time, because the module of the parser has no new "
-          + "dependency. The tests of the parser pass.")
+        "Step \(number): the import reads the next rows of the customer file, and skips each row that has no "
+          + "email address. The count of the skipped rows goes to the log.")
     }
     let session = SessionModel.preview(
       transcript: messages + [.update(.stateUpdate(.idle(IdleStateUpdate(stopReason: .error))))])
@@ -154,12 +155,12 @@ enum SnapshotFixtures {
   ///   block, or the cache has no model for it.
   static func codeBlockModel(in cache: CodeBlockModelCache, session: SessionModel) throws -> EditorModel {
     let entry = try #require(session.transcript.first(where: isCodeMessage))
-    let paragraph = try #require(ParagraphSplitter.paragraphs(agentMessage).first { $0.text.contains(swiftFence) })
+    let paragraph = try #require(ParagraphSplitter.paragraphs(agentMessage).first { $0.text.contains(shellFence) })
     let id = CodeBlockID(
       messageID: EntryContentView.blockID(entryID: entry.id.rowKey, index: 0),
       paragraphID: ParagraphView.key(for: paragraph.id))
     try #require(cache.contains(id))
-    return cache.model(for: id, code: swiftCode)
+    return cache.model(for: id, code: shellCode)
   }
 
   /// Whether `entry` is the agent message with the code block.
@@ -169,7 +170,7 @@ enum SnapshotFixtures {
   private static func isCodeMessage(_ entry: TranscriptEntry) -> Bool {
     let blocks = (entry.object as? AgentMessageEntry)?.content ?? []
     return blocks.contains { block in
-      if case .text(let text) = block { return text.text.contains(swiftFence) }
+      if case .text(let text) = block { return text.text.contains(shellFence) }
       return false
     }
   }

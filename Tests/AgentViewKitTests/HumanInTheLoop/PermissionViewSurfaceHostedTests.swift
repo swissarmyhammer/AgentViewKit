@@ -26,7 +26,7 @@ import Testing
           PermissionOption(kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
         ],
         sessionId: SessionModel.previewSessionId,
-        title: "Run swift test?"
+        title: "Run the database migration?"
       )
     ])
   }

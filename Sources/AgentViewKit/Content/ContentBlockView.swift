@@ -117,8 +117,8 @@ nonisolated extension FoundationModelsACP.ContentBlock {
     ContentBlockView(
       block: .resourceLink(
         ResourceLink(
-          name: "Parser.swift",
-          uri: PreviewFixtures.projectDirectory.appending(path: "Sources/Parser.swift").absoluteString)),
+          name: PreviewFixtures.sourceFileAttachment.name,
+          uri: PreviewFixtures.sourceFileAttachment.url.absoluteString)),
       id: "preview-link")
   }
 }

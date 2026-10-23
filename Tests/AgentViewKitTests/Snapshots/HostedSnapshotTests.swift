@@ -119,8 +119,9 @@ import Testing
 
   @Test(arguments: SnapshotVariant.allCases)
   func theCodeBlock(variant: SnapshotVariant) async throws {
-    let model = EditorModel(SnapshotFixtures.swiftCode)
-    let block = CodeBlockView(code: SnapshotFixtures.swiftCode, language: "swift", model: model)
+    let model = EditorModel(PreviewFixtures.codeSample)
+    let block = CodeBlockView(
+      code: PreviewFixtures.codeSample, language: PreviewFixtures.codeSampleLanguage, model: model)
 
     try await Self.verify(block, named: "code-block", size: SnapshotFixtures.codeBlockSize, variant: variant) {
       await SnapshotFixtures.waitForSyntax(of: model)
@@ -131,7 +132,9 @@ import Testing
   func theTerminalOutput(variant: SnapshotVariant) async throws {
     let entry = try #require(
       PreviewFixtures.entry(
-        .terminal(command: "swift test", output: "Build complete!\nAll tests passed.", exitCode: 0),
+        .terminal(
+          command: SnapshotFixtures.terminalCommand, output: SnapshotFixtures.terminalOutput,
+          exitCode: CommandOutputView.successExitCode),
         as: TerminalEntry.self))
 
     try await Self.verify(

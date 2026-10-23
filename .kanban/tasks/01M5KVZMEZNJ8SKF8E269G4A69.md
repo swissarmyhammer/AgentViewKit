@@ -61,6 +61,13 @@ comments:
   id: 01m5m4bcz64p3dt3byb1497y6v
   text: 'Blocker 1 of 2 LANDED: EditorKit d4c767f (^kek5v80, feature 6d4a822). `.editorTextAccessibilityIdentifier(_ identifier: String)` on EditorSlotComposing (EditorView, SingleLineField, EditorContributor) lands the id on the NSTextView only. In EditorKitPromptEditor, add `.editorTextAccessibilityIdentifier(Self.identifier)` before `.frame(...)` and REMOVE the SwiftUI `.accessibilityIdentifier(Self.identifier)` there, so XCUITest doesn''t match two. iOS gap: EditorKit ^t9a7jgs. Still waiting on blocker 2, ^qs0g2n (focus on the only text view of a scope).'
   timestamp: 2026-10-23T10:19:20.934545+00:00
+- actor: claude-code
+  id: 01m5m60vgmcrk5t7hectgzxtzs
+  text: |-
+    UNBLOCKED: EditorKit f913e78 (^8qs0g2n, which editorkit-28 earlier mistyped as ^qs0g2n; feature commit 4a92ce0) together with d4c767f (`.editorTextAccessibilityIdentifier`, ^kek5v80). A landed jump, nav or drill-in on a scope focuses its ONE EditorKit text view tagged with the scope's path (`\.commandScopePath`), even when it's off-centre. The rules are centre point, then exact-frame stand-in, then the single tagged text view; with none or several, the beacon keeps focus and draws the ring.
+    - The composer EditorView must NOT have its own `.commandScope` between it and the host's composer scope. Then it's tagged with the composer scope's path and gets the focus, and the host's focused path is the composer path.
+    To do: `git checkout wip/69g4a69-drop-stock-editor -- .` onto main (or cherry-pick b72013a and drop its .kanban changes, since main's .kanban is newer); `swift package update EditorKit` to f913e78 or later; in EditorKitPromptEditor, add `.editorTextAccessibilityIdentifier(Self.identifier)` before `.frame(...)` and remove the SwiftUI `.accessibilityIdentifier(Self.identifier)`; rerun the 6 red tests and the demo UI suite.
+  timestamp: 2026-10-23T10:48:32.532072+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'Drop StockPromptEditor: EditorKitPromptEditor is the only composer (no TextEditor<AttributedString>)'

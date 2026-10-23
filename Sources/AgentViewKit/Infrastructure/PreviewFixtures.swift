@@ -318,7 +318,8 @@ enum PreviewFixtures {
   /// A Swift source file of the sample project. No file is at its URL, and
   /// ``attachmentPreviewLoader`` holds no text for it, so each preview of it
   /// shows a file that is missing.
-  static let sourceFileAttachment = attachment(path: "Sources/Parser.swift", type: .swiftSource, size: sourceFileSize)
+  static let sourceFileAttachment = attachment(
+    path: "Sources/Checkout/CartView.swift", type: .swiftSource, size: sourceFileSize)
 
   /// The build log of the sample project. No file is at its URL.
   /// ``attachmentPreviewLoader`` holds ``buildLogText`` as its text.
@@ -612,8 +613,8 @@ enum PreviewFixtures {
 
   /// The text of ``textResource``: the last lines of a build log.
   static let buildLogText = """
-    Compiling AgentViewKit Parser.swift
-    Compiling AgentViewKit Lexer.swift
+    Compiling Checkout CartView.swift
+    Compiling Checkout PriceFormatter.swift
     Build complete! (12.48s)
     """
 
@@ -660,14 +661,15 @@ enum PreviewFixtures {
       ]))
   }
 
-  /// A patch that changes one line of one file.
+  /// A patch that changes one line of one file: it renames the search
+  /// function of a search index.
   static let smallPatch = """
-    --- a/Sources/Parser.swift
-    +++ b/Sources/Parser.swift
+    --- a/Sources/Search/SearchIndex.swift
+    +++ b/Sources/Search/SearchIndex.swift
     @@ -1,3 +1,3 @@
-     struct Parser {
-    -  let source: String
-    +  let source: Substring
+     struct SearchIndex {
+    -  func find(_ query: String) -> [Document] { documents.filter { $0.title.contains(query) } }
+    +  func matches(for query: String) -> [Document] { documents.filter { $0.title.contains(query) } }
      }
     """
 
@@ -692,23 +694,25 @@ enum PreviewFixtures {
     return (header + [opening] + changes + [closing]).joined(separator: "\n")
   }
 
-  /// A patch that adds a new file, so that it only adds lines.
+  /// A patch that adds a new file, so that it only adds lines: a test of the
+  /// function that ``smallPatch`` renames.
   static let addedOnlyPatch = """
     --- /dev/null
-    +++ b/Sources/Lexer.swift
+    +++ b/Tests/SearchTests/SearchIndexTests.swift
     @@ -0,0 +1,3 @@
-    +struct Lexer {
-    +  let source: String
+    +@Test func aQueryMatchesEachTitleThatContainsIt() {
+    +  #expect(SearchIndex.sample.matches(for: "tax").count == 2)
     +}
     """
 
-  /// A patch that deletes a file, so that it only removes lines.
+  /// A patch that deletes a file, so that it only removes lines: the old
+  /// search that ``smallPatch`` makes unused.
   static let removedOnlyPatch = """
-    --- a/Sources/LegacyParser.swift
+    --- a/Sources/Search/LegacySearch.swift
     +++ /dev/null
     @@ -1,3 +0,0 @@
-    -struct LegacyParser {
-    -  let source: String
+    -enum LegacySearch {
+    -  static func find(_ query: String, in titles: [String]) -> [String] { titles.filter { $0.contains(query) } }
     -}
     """
 
@@ -748,45 +752,93 @@ enum PreviewFixtures {
     .code(CommandOutputView.successExitCode), .code(failingExitCode), .signal(stopSignal),
   ]
 
+  /// The command of ``lintOutput``: the lint check of a web project. It
+  /// ends with ``failingExitCode``.
+  static let lintCommand = "npm run lint"
+
+  /// The output of ``lintCommand``: one problem in one file, and the count of
+  /// the problems. It is shorter than the row limit of the output view.
+  static let lintOutput = """
+    src/components/SearchBox.tsx
+      14:7  error  'query' is assigned a value but never used  no-unused-vars
+
+    ✖ 1 problem (1 error, 0 warnings)
+    """
+
+  /// The language of ``codeSample``: a language of the grammar bundle.
+  static let codeSampleLanguage = "python"
+
+  /// The name of the file of ``codeSample``. Its extension also names
+  /// ``codeSampleLanguage``.
+  static let codeSampleFilename = "tax.py"
+
+  /// A short Python function that adds the tax to the sum of some prices,
+  /// and a call of it.
+  static let codeSample = """
+    def total_with_tax(prices, rate=0.08):
+        return round(sum(prices) * (1 + rate), 2)
+
+    print(total_with_tax([9.99, 4.50]))
+    """
+
+  /// The plan of a release: a step that is done, a step in progress and a
+  /// step to do, from the highest priority to the lowest.
+  static let releasePlan = [
+    PlanEntry(content: "Set the version number to 2.4.0", priority: .high, status: .completed),
+    PlanEntry(content: "Write the release notes", priority: .medium, status: .inProgress),
+    PlanEntry(content: "Tag the release and push the tag", priority: .low, status: .pending),
+  ]
+
   // MARK: - Transcript items
 
   /// The question of ``MessageSample/user``.
-  static let userQuestion = "Why does the release build fail on the build machine?"
+  static let userQuestion = "Can you add a dark mode setting to the preferences window?"
 
-  /// The answer of ``MessageSample/agent``.
-  static let agentAnswer = "Parser.swift uses `URL`, but it does not import Foundation. I will add the import."
+  /// The answer of ``MessageSample/agent``: a plan for the feature of
+  /// ``userQuestion``, with inline code.
+  static let agentAnswer = """
+    I will add a **Theme** picker to the General tab of the preferences, and save the choice in `UserDefaults`.
+    """
 
   /// The chunks of ``MessageSample/streaming`` that the agent sent so far.
   /// The last chunk stops in the middle of a word.
   static let streamedAnswerChunks = [
-    "Parser.swift does not import ", "Foundation, so the release build cannot find ", "`URL`. I will add the imp",
+    "I will add a Theme picker ", "to the General tab, and save ", "the choice in the user def",
   ]
 
   /// The error of the compiler that ``failureReport`` shows.
-  static let buildError = "Sources/Parser.swift:12:18: error: cannot find type 'URL' in scope"
+  static let buildError =
+    "Sources/Preferences/ThemePicker.swift:27:9: error: missing argument for parameter 'store' in call"
 
   /// The answer of ``MessageSample/failure``: a build that failed, with the
   /// error of the compiler in a code block.
   static let failureReport = """
-    The release build failed with this error:
+    The debug build failed with this error:
 
     ```
     \(buildError)
     ```
 
-    Parser.swift uses `URL`, but it does not import Foundation.
+    `ThemePicker` now needs a store for the choice, and the preview of the window does not give one.
     """
 
   /// The answer of ``MessageSample/long``: each kind of formatting, then a
   /// paragraph that is longer than a window is wide.
   static let longAnswer = [formattedMarkdown, longParagraph].joined(separator: "\n\n")
 
-  /// The text of ``ThoughtSample/complete``.
-  static let completeThought = "The error names `URL`. Parser.swift uses the type but imports only Swift."
+  /// The text of ``ThoughtSample/complete``: a thought about a test that
+  /// fails only at some hours.
+  static let completeThought = """
+    The invoice date test fails only after 17:00. It formats the date in UTC, but the expected text uses the local \
+    time zone.
+    """
 
   /// The chunks of ``ThoughtSample/streaming`` that the agent sent so far.
   /// The last chunk stops in the middle of a word.
-  static let streamedThoughtChunks = ["The error names `URL`. ", "Parser.swift uses the type, but it imports ", "only Sw"]
+  static let streamedThoughtChunks = [
+    "The invoice date test fails ", "only after 17:00. It formats the date in UTC, ",
+    "but the expected text uses the lo",
+  ]
 
   /// The id of the message of the chunks of a sample that streams.
   static let streamedMessageID = MessageId(rawValue: "preview-streamed")
@@ -902,12 +954,22 @@ enum PreviewFixtures {
   /// The number of findings of the review of ``smallJSON``.
   static let reviewFindingCount = 2
 
-  /// A JSON object of one level with short values: the summary of a review.
-  static let smallJSON = JSONValue.object([
-    "title": .string("Review of Parser.swift"),
+  /// The members of ``smallJSON``: the summary of a review of
+  /// ``sourceFileAttachment``.
+  private static let reviewSummaryMembers: [String: JSONValue] = [
+    "title": .string("Review of \(sourceFileAttachment.name)"),
     "status": .string("complete"),
     "findingCount": .number(Double(reviewFindingCount)),
-  ])
+  ]
+
+  /// A JSON object of one level with short values: the summary of a review.
+  static let smallJSON = JSONValue.object(reviewSummaryMembers)
+
+  /// A session update of ``reviewSummaryKind``, a kind that the ACP revision
+  /// of the kit does not know: the members of ``smallJSON``, and the
+  /// `sessionUpdate` member that names the kind.
+  static let reviewSummaryUpdate = JSONValue.object(
+    merged(reviewSummaryMembers, with: ["sessionUpdate": .string(reviewSummaryKind)]))
 
   /// The line of the finding of ``deepJSON``.
   static let reviewFindingLine = 12
@@ -917,7 +979,7 @@ enum PreviewFixtures {
   /// ``longParagraph``, a value that is longer than a window is wide.
   static let deepJSON = JSONValue.object([
     "review": .object([
-      "title": .string("Review of the release build"),
+      "title": .string("Review of the checkout"),
       "files": .array([
         .object([
           "path": .string(sourceFileAttachment.url.absoluteString),

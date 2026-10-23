@@ -403,11 +403,11 @@ import Testing
     #expect(otherURIs.allSatisfy { longURI.count > $0.count })
   }
 
-  @Test func theSmallPatchAddsAndRemovesLines() throws {
+  @Test func theSmallPatchChangesOneLine() throws {
     let counts = try Self.changedLineCounts(of: PreviewFixtures.smallPatch)
 
-    #expect(counts.added > 0)
-    #expect(counts.removed > 0)
+    #expect(counts.added == 1)
+    #expect(counts.removed == 1)
   }
 
   @Test func theLargePatchChangesMoreLinesThanTheSmallPatch() throws {
@@ -430,6 +430,30 @@ import Testing
 
     #expect(counts.added == 0)
     #expect(counts.removed > 0)
+  }
+
+  @Test func theLintOutputShowsEachRowUnderTheRowLimit() {
+    let rows = CommandOutputView.VisibleRows(
+      output: PreviewFixtures.lintOutput, limit: CommandOutputView.defaultRowLimit)
+
+    #expect(!rows.isCapped)
+    #expect(rows.visibleCount > 1)
+    #expect(!PreviewFixtures.lintCommand.isEmpty)
+  }
+
+  @Test func theCodeSampleIsInABundledLanguageThatTheExtensionOfItsFileAlsoNames() throws {
+    let language = try #require(GrammarBundle.languageID(forFenceTag: PreviewFixtures.codeSampleLanguage))
+    let fileExtension = URL(filePath: PreviewFixtures.codeSampleFilename).pathExtension
+
+    #expect(GrammarBundle.languageID(forFenceTag: fileExtension) == language)
+    #expect(!PreviewFixtures.codeSample.isEmpty)
+  }
+
+  @Test func theReleasePlanHasAnEntryThatIsDoneOneInProgressAndOneToDo() {
+    let plan = PreviewFixtures.releasePlan
+
+    #expect(plan.map(\.status) == [.completed, .inProgress, .pending])
+    #expect(Set(plan.map(\.content)).count == plan.count)
   }
 
   @Test func theCappedOutputRowsShowTheRowLimitAndHideTheRest() {
@@ -584,6 +608,10 @@ import Testing
     #expect(entry.content == [.text(TextContent(text: PreviewFixtures.agentAnswer))])
   }
 
+  @Test func theAgentAnswerHoldsInlineCode() throws {
+    #expect(try Self.markdownFeatures(of: PreviewFixtures.agentAnswer).contains("code"))
+  }
+
   @Test func theStreamingMessageSampleIsOneAgentMessageWithABlockForEachChunk() throws {
     let entry = try #require(PreviewFixtures.MessageSample.streaming.entry)
 
@@ -645,6 +673,26 @@ import Testing
 
     #expect(Self.depth(of: deep) > Self.depth(of: small))
     #expect(longestDeep > longestSmall)
+  }
+
+  @Test func theReviewSummaryUpdateIsTheSmallJSONAsAnUpdateOfTheReviewSummaryKind() throws {
+    let update = try #require(Self.members(of: PreviewFixtures.reviewSummaryUpdate))
+    let summary = try #require(Self.members(of: PreviewFixtures.smallJSON))
+
+    #expect(update[Self.sessionUpdateKey] == .string(PreviewFixtures.reviewSummaryKind))
+    #expect(update.filter { $0.key != Self.sessionUpdateKey } == summary)
+  }
+
+  /// The member of a session update that names its kind.
+  static let sessionUpdateKey = "sessionUpdate"
+
+  /// The members of a JSON object.
+  ///
+  /// - Parameter value: The JSON value.
+  /// - Returns: The members by name, or `nil` for a value that is not an
+  ///   object.
+  static func members(of value: JSONValue) -> [String: JSONValue]? {
+    if case .object(let members) = value { members } else { nil }
   }
 
   /// The tag at the start of a WAVE file.

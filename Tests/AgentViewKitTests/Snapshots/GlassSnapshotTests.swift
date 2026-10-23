@@ -72,11 +72,11 @@ import Testing
 
   /// The Markdown text under the glass: two plain paragraphs of a transcript.
   static let backdropMarkdown: LocalizedStringKey = """
-    `Parser.swift` does not import **Foundation**, so the type `URL` is not in scope. \
-    Add the import at the top of the file, and then run the tests again.
+    The migration copies the invoices of each month to the new `invoices_v2` table. \
+    The total of **each month** stays the same, so the old table can go.
 
-    The tests pass now. The build of the package takes less time, because the \
-    module of the parser has no new dependency.
+    The next step adds an index on the date of each invoice, so that the report \
+    of one month reads fewer rows.
     """
 
   /// The number of copies of ``backdropMarkdown`` under the glass. The
