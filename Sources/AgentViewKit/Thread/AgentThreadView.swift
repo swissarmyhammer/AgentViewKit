@@ -32,16 +32,18 @@ import SwiftUI
 /// The bottom bar of the view (`.safeAreaBar(edge: .bottom)`) holds the
 /// floating controls of the thread. The conversation scrolls under the bar
 /// (TestudoApp `features/style.md`, "Scroll under the bars"). From the top,
-/// the bar shows the state banner, the login prompt, the scroll-to-bottom
-/// pill and the composer slot. The banner and the login prompt are content
-/// with no glass. Their buttons keep the glass styles, because the content
-/// scrolls under them (TestudoApp `features/style.md`, rule 4). The
-/// composer slot is directly below its chat (D36). The default slot is a
-/// ``DefaultThreadComposer``: a ``PromptInputView`` that keeps its own text.
-/// Give a custom composer with ``init(session:connection:composer:)``, or
-/// `EmptyView()` for no composer. The scroll-to-bottom pill
-/// (``ScrollToBottomPill``) shows above the composer, and the pill and the
-/// slot are in one `GlassEffectContainer`, with no glass on glass (D110 (c)).
+/// the bar shows the state banner, the login prompt and the composer slot.
+/// The banner and the login prompt are content with no glass. Their buttons
+/// keep the glass styles, because the content scrolls under them (TestudoApp
+/// `features/style.md`, rule 4). The composer slot is directly below its chat
+/// (D36). The default slot is a ``DefaultThreadComposer``: a
+/// ``PromptInputView`` that keeps its own text. Give a custom composer with
+/// ``init(session:connection:composer:)``, or `EmptyView()` for no composer.
+/// The scroll-to-bottom pill (``ScrollToBottomPill``) floats over the list,
+/// above the bar, and takes no space in the bar. Thus the bottom inset of the
+/// list does not change when the pill shows or goes away (^66has33). The pill
+/// and the slot are in one `GlassEffectContainer`, with no glass on glass
+/// (D110 (c)).
 /// The thread view gives its session model and its connection model to the
 /// slot (``SwiftUI/EnvironmentValues/sessionModel``,
 /// ``SwiftUI/EnvironmentValues/connectionModel``), and the slot is in the
@@ -301,25 +303,39 @@ public struct AgentThreadView<Composer: View>: View {
   /// styles (``RequestDeckPlace/style(of:)``, TestudoApp `features/style.md`,
   /// rule 4). Only the buttons on the glass of a request deck in the
   /// composer slot use the bordered styles. From the top,
-  /// the order is the banner, the login prompt when the host gave the
-  /// connection model, the pill, and the composer. VoiceOver reads them in
-  /// this order. A composer in the slot that makes its own container, such
+  /// the order is the pill, the banner, the login prompt when the host gave
+  /// the connection model, and the composer. VoiceOver reads them in this
+  /// order. The pill is an overlay that floats one small spacing above the
+  /// stack, over the list. It is not in the layout of the stack, so the height
+  /// of the bar, and thus the bottom inset of the list, does not depend on the
+  /// pin state. A pill in the stack made each pin change move the inset, and
+  /// each move of the inset made the list report a layout with no row in view
+  /// and unpin again: a loop that held the main actor (^66has33). A composer
+  /// in the slot that makes its own container, such
   /// as ``PromptInputView``, uses this container. The controls are one
   /// accessibility container with
   /// ``AgentThreadLayout/floatingControlsIdentifier``.
   private var floatingControls: some View {
-    FloatingGlassContainer(spacing: theme.spacing.s) {
-      VStack(spacing: theme.spacing.s) {
+    // The alignment guide of the pill runs in a `Sendable` closure, so it
+    // reads this copy and not the main-actor `theme`.
+    let spacing = theme.spacing.s
+    return FloatingGlassContainer(spacing: spacing) {
+      VStack(spacing: spacing) {
         // The banner reads `agentState` in its own body, so a change of the
         // state evaluates only the banner.
         StateBanner(session: session) { showItem($0.rowKey) }
         if let connection {
           AgentLoginPrompt(session: session, connection: connection)
         }
-        ConversationPill(anchors: anchors)
         composer
           .environment(\.sessionModel, session)
           .environment(\.connectionModel, connection ?? hostConnection)
+      }
+      // The pill floats above the controls and takes no space in their
+      // layout, so its show and its hide keep the bottom inset of the list.
+      .overlay(alignment: .top) {
+        ConversationPill(anchors: anchors)
+          .alignmentGuide(.top) { $0[.bottom] + spacing }
       }
     }
     .padding(theme.spacing.m)

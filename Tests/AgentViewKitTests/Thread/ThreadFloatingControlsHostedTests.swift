@@ -27,6 +27,18 @@
     /// The text of the user message and of the composer.
     static let message = "Hello"
 
+    /// The message id of the reply of the agent in the turn test.
+    static let replyMessageID = "floating-reply-1"
+
+    /// The text of the reply of the agent in the turn test.
+    static let reply = "You said: Hello"
+
+    /// The height of the space above the composer in the slot of the turn
+    /// test, in points. With it, the bottom bar is about as tall as the bar of
+    /// the demo app with its sign-in card, and the part of the list in view is
+    /// shorter than the bottom inset.
+    static let tallSlotSpace: CGFloat = 180
+
     /// Opens a scripted session whose transcript has one user message and
     /// then ``ConversationViewHostedTests/scrollEntryCount`` agent messages.
     ///
@@ -150,6 +162,115 @@
       let identifiers = Self.floatingControlIdentifiers(in: harness)
       #expect(identifiers.contains(ScrollToBottomPill.identifier))
       #expect(identifiers.contains(DefaultPromptAccessory.submitIdentifier))
+    }
+
+    /// The pill floats over the list, so its show does not change the bottom
+    /// inset of the list (^66has33).
+    ///
+    /// The floating controls are the bottom bar of the list, and their height
+    /// is the bottom inset. A pill in the layout of the controls made the inset
+    /// depend on the pin state. Each change of the inset made the list report
+    /// a layout with no row in view, and that report unpinned the manager. The
+    /// pill then showed and changed the inset again, and the list pinned the
+    /// manager again: the pin state, the pill and the inset went around in a
+    /// loop. In the demo app the loop held the main actor, and the reply of the
+    /// agent did not get to the list.
+    @Test func theShowOfThePillKeepsTheBottomInsetOfTheList() async throws {
+      let session = try await Self.openLongSession()
+      defer { session.close() }
+      let anchors = ScrollAnchorManager()
+      let system = CommandSystem()
+      let harness = Self.mount(session, anchors: anchors, system: system) {
+        PromptInputHost(model: PromptInputHostedTestModel())
+      }
+      defer { harness.close() }
+      let pinnedInset = try ThreadBarInsetHostedTests.listScrollView(in: harness).contentInsets.bottom
+
+      try Self.scrollUpByCommand(session, anchors: anchors, system: system, harness: harness)
+      try #require(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
+
+      let unpinnedInset = try ThreadBarInsetHostedTests.listScrollView(in: harness).contentInsets.bottom
+      #expect(
+        abs(unpinnedInset - pinnedInset) <= ThreadBarInsetHostedTests.insetTolerance,
+        "bottom inset \(unpinnedInset) with the pill, \(pinnedInset) without it")
+    }
+
+    /// Gives the list the scroll to the bottom that the manager sent after an
+    /// append, and lays out the result.
+    ///
+    /// The helper waits for the event that the recorder holds `count`
+    /// targets, or that the manager was unpinned (`unpinned`): a manager that
+    /// was unpinned at the append sends no scroll for it, and the test then
+    /// reads the unpin. A pinned manager always sends the scroll of an append.
+    ///
+    /// - Parameters:
+    ///   - count: The number of targets that the recorder holds after the
+    ///     scroll.
+    ///   - held: The recorder and the scroll closure of
+    ///     ``holdScrollTargets(of:)``.
+    ///   - unpinned: The flag that a change of the pin state sets.
+    ///   - anchors: The manager of the scroll position of the thread.
+    ///   - harness: The harness that shows the thread.
+    static func applyHeldScroll(
+      count: Int, of held: (targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void),
+      unpinned: ChangeFlag, anchors: ScrollAnchorManager, harness: HostedViewHarness<some View>
+    ) async {
+      await ObservationWait.until {
+        unpinned.value || held.targets.values.count == count || !anchors.isPinnedToBottom
+      }
+      if let target = held.targets.values.last {
+        held.viewScroll(target)
+      }
+      harness.render()
+    }
+
+    /// A streamed turn never unpins the thread: from the echo of the prompt
+    /// to the end of the turn, the list follows the bottom, and the pill does
+    /// not show (^66has33).
+    ///
+    /// The list scrolled to the bottom with an edge scroll of its scroll
+    /// position. The position then kept the edge, and SwiftUI applied the edge
+    /// again in later layout passes from the frame of the scroll target
+    /// layout: past the end of the content by the bottom inset of the bar. The
+    /// list reported no row in view for that layout, and the report unpinned
+    /// the manager. In the demo app the lazy stack then kept no row, and the
+    /// reply of the agent was not in the accessibility tree.
+    ///
+    /// The test holds each scroll of the manager
+    /// (``holdScrollTargets(of:)``) and gives it to the list in a render pass
+    /// of the test, so each step lays out the same passes. The slot has a
+    /// space above the composer (``tallSlotSpace``), so the bottom inset is
+    /// taller than the part of the list in view, as in the demo app.
+    @Test func aStreamedTurnKeepsTheThreadPinnedToTheBottom() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let model = session.model
+      let anchors = ScrollAnchorManager()
+      let harness = Self.mount(session, anchors: anchors, system: CommandSystem()) {
+        Color.clear.frame(height: Self.tallSlotSpace)
+        PromptInputHost(model: PromptInputHostedTestModel())
+      }
+      defer { harness.close() }
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("user_message_chunk", messageID: Self.promptMessageID, text: Self.message))
+      await harness.render(when: { model.transcript.count == 1 })
+      let held = Self.holdScrollTargets(of: anchors)
+      let firstUnpin = ChangeFlag.observing { _ = anchors.isPinnedToBottom }
+      await Self.applyHeldScroll(count: 1, of: held, unpinned: firstUnpin, anchors: anchors, harness: harness)
+      try #require(anchors.isPinnedToBottom)
+      let unpinned = ChangeFlag.observing { _ = anchors.isPinnedToBottom }
+
+      try await session.sendUpdate(SessionStateBannersHostedTests.stateUpdate(#""state": "running""#))
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk("agent_message_chunk", messageID: Self.replyMessageID, text: Self.reply))
+      await harness.render(when: { model.transcript.count == 2 })
+      await Self.applyHeldScroll(count: 2, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+      try await session.sendUpdate(SessionEntryRowsHostedTests.planUpdate(firstStatus: "completed"))
+      await harness.render(when: { model.transcript.count == 3 })
+      await Self.applyHeldScroll(count: 3, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+
+      #expect(!unpinned.value, "the thread unpinned during the turn")
+      #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
 
     @Test func theConversationOfTheThreadDrawsNoSecondPill() async throws {
