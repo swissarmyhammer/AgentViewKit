@@ -98,8 +98,25 @@ comments:
       - EditorKit stayed at the resolved 37325a2. Nothing was committed.
     - next: review
   timestamp: 2026-10-23T11:22:28.388416+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5m8bztb684rczyv7j24f4w1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (969dfe3): 0 findings, 0 confirmed, 1 refuted; 21 attempted, 0 failed. Five code-hygiene Swift tool rules declined the deleted file Sources/AgentViewKit/Input/StockPromptEditor.swift (no file to read).
+    - next: moved to done
+  timestamp: 2026-10-23T11:29:34.539362+00:00
+- actor: claude-code
+  id: 01m5m8cfs12fxe1d4mw33jt4p7
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — b72013a cherry-picked onto main without its .kanban and stale PNGs; EditorKit 37325a2 (f913e78 + d4c767f); `.editorTextAccessibilityIdentifier("prompt-editor")` replaces the SwiftUI id; the 6 previously red tests are green (one assertion fixed: AppKit reports every NSTextView as disabled to accessibility); 16 snapshots re-recorded at the same sizes. Removed public API: the StockPromptEditor type, init(context:) and identifier; the short PromptInputView init now has Editor == EditorKitPromptEditor; EditorKitPromptEditor.identifier = "prompt-editor". DefaultThreadComposer() is unchanged.
+    - test: green — swift test run twice, 1693 passed each, 0 failed, 0 skipped, 3 known issues (the stock redo known issue is gone)
+    - commit: 969dfe3
+    - review: clean — 0 findings, task in done
+    - open: the demo UI testASendOfHelloShowsTheReplyOfTheAgent now gets past the composer, then fails with "The transcript shows no reply." (the agent replied; the row isn't in the AX tree), tracked in ^66has33.
+  timestamp: 2026-10-23T11:29:50.881987+00:00
+position_column: done
+position_ordinal: ffffc780
 title: 'Drop StockPromptEditor: EditorKitPromptEditor is the only composer (no TextEditor<AttributedString>)'
 ---
 User decision (2026-10-23, relayed by editorkit-28): "we should never be using TextEditor<AttributedString> at all, if we need a one line editor, we need a one line mode of our editor kit editor."
