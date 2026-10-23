@@ -300,7 +300,7 @@ public struct PromptEditorContext {           // what the kit hands whatever edi
     public let commands: [AvailableCommand]?   // SessionModel.availableCommands, for the slash completion source
 }
 
-extension PromptInputView where Editor == StockPromptEditor, Accessory == DefaultPromptAccessory {
+extension PromptInputView where Editor == EditorKitPromptEditor, Accessory == DefaultPromptAccessory {
     public init(text: Binding<AttributedString>, onSubmit: @escaping () -> Void) { /* defaults */ }
 }
 extension PromptInputView where Accessory == DefaultPromptAccessory {

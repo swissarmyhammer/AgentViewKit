@@ -1,0 +1,22 @@
+---
+assignees:
+- claude-code
+position_column: todo
+position_ordinal: ac80
+title: 'Demo UI test: after a send of "hello" the reply row is not in the AX tree (testASendOfHelloShowsTheReplyOfTheAgent)'
+---
+Found by the implement step of ^69g4a69 (2026-10-23), with EditorKit 37325a2 and the EditorKit composer (EditorKitPromptEditor with `.editorTextAccessibilityIdentifier("prompt-editor")`).
+
+`Scripts/test-examples.sh`: `ACPTabEndToEndTests.testASendOfHelloShowsTheReplyOfTheAgent` now gets past the composer: XCUI finds "prompt-editor" (a TextView), clicks it, types "hello", and clicks "prompt-submit". It then fails at ACPTabEndToEndTests.swift:100, "The transcript shows no reply.": `item-row-agent-message-demo-reply-1` never exists within 20 s.
+
+The failure-time AX snapshot in `.build/examples/AgentViewKitDemo/AgentViewKitDemo-test.xcresult` shows the send worked:
+- `state-banner`: "The response is complete"; `context-usage`: 1%.
+- `conversation-list` ScrollView: value "3 of 3 items", frame height 96.6 pt in a 900x619 window, with no row children exposed (one 0x0 `Other`).
+- `scroll-to-bottom-pill` shows, so the list is not pinned to the bottom.
+- Above the composer, the floating controls hold the end-turn banner (60 pt) and the `agent-auth` panel (139.5 pt), which leave the list little room.
+- "prompt-editor" TextView {580x16}, Keyboard Focused, Disabled; Send Disabled (empty after the send). XCUI still logs "Falling back to element center point" for both clicks. That is the ^bc6fapz hit-point symptom, but it no longer fails the test.
+- Measured in a hosted probe: AppKit reports `isAccessibilityEnabled() == false` for every NSTextView, even an editable one (plain NSTextView, SwiftUI TextEditor, and EditorKit EditorInputTextView all report false). So the "Disabled" on the editor is AppKit's default and not a kit bug.
+
+To do: find why the reply row is not in the AX tree. Candidates are a list that isn't pinned after the send (the pill shows) and lazy rows outside a 96 pt viewport. Fix it in the kit, or make the demo layout leave the list room, without weakening the UI test.
+
+Acceptance: `Scripts/test-examples.sh` passes, with this test green on 3 runs in a row; `swift test` green. #bug #avk-8

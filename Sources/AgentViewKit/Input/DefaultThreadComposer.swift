@@ -3,11 +3,12 @@ import SwiftUI
 
 /// The default view of the composer slot of ``AgentThreadView``.
 ///
-/// The view is a ``PromptInputView`` with the stock editor and the default
-/// accessory row. It keeps the text of the prompt itself, so the host gives
-/// nothing. The thread view gives the composer its session model and its
-/// connection model. To keep the text in the host, or to use another editor,
-/// give a ``PromptInputView`` to ``AgentThreadView/init(session:connection:composer:)``.
+/// The view is a ``PromptInputView`` with the EditorKit editor
+/// (``EditorKitPromptEditor``) and the default accessory row. It keeps the
+/// text of the prompt itself, so the host gives nothing. The thread view
+/// gives the composer its session model and its connection model. To keep
+/// the text in the host, or to use another editor, give a
+/// ``PromptInputView`` to ``AgentThreadView/init(session:connection:composer:)``.
 public struct DefaultThreadComposer: View {
   /// The text of the prompt.
   @State private var draft = AttributedString()

@@ -11,7 +11,7 @@ nonisolated enum DeckFocusMove: Equatable, Sendable {
   case nextFront(PendingRequest.ID)
 
   /// The last pending request left `pendingRequests`. The VoiceOver focus
-  /// goes back to the prompt editor (``StockPromptEditor/identifier``). A
+  /// goes back to the prompt editor (``EditorKitPromptEditor/identifier``). A
   /// waiting card can stay in the deck: it asks for no input and is not a
   /// pending request.
   case promptEditor
@@ -25,7 +25,7 @@ nonisolated enum DeckFocusMove: Equatable, Sendable {
   @MainActor var identifier: String {
     switch self {
     case .nextFront(let id), .broughtToFront(let id): RequestDeck.identifier(for: id.uuidString)
-    case .promptEditor: StockPromptEditor.identifier
+    case .promptEditor: EditorKitPromptEditor.identifier
     }
   }
 

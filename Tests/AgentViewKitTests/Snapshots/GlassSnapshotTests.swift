@@ -109,7 +109,7 @@ import Testing
   /// The field of the composer: the placeholder text of the composer in the
   /// place of the editor, on the field surface of ``PromptInputView``.
   static var field: some View {
-    Text(PromptInputView<StockPromptEditor, DefaultPromptAccessory>.placeholder)
+    Text(PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.placeholder)
       .foregroundStyle(.secondary)
       .frame(maxWidth: .infinity, alignment: .leading)
       .modifier(PromptFieldSurface())

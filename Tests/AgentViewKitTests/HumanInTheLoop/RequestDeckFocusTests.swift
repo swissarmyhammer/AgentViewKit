@@ -85,7 +85,7 @@ struct RequestDeckFocusTests {
 
     #expect(DeckFocusMove.nextFront(id).identifier == card)
     #expect(DeckFocusMove.broughtToFront(id).identifier == card)
-    #expect(DeckFocusMove.promptEditor.identifier == StockPromptEditor.identifier)
+    #expect(DeckFocusMove.promptEditor.identifier == EditorKitPromptEditor.identifier)
   }
 
   @Test func onlyAFrontThatTheUserChoseTakesTheKeyboardFocus() {

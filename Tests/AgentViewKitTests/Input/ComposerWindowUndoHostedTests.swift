@@ -6,27 +6,7 @@ import EditorCommandsUI
 import SwiftUI
 import Testing
 
-/// The editor that a hosted thread puts in its composer slot. It is not
-/// isolated to the main actor, because `@Test(arguments:)` lists read it.
-nonisolated enum ComposerUndoEditor: CaseIterable, CustomTestStringConvertible {
-  /// ``EditorKitPromptEditor``: an EditorKit `EditorView`, which joins the
-  /// window undo stack through the editor source of EditorKit.
-  case editorKit
-
-  /// ``StockPromptEditor``: a SwiftUI `TextEditor`, which joins the window
-  /// undo stack through the window `NSUndoManager`.
-  case stock
-
-  var testDescription: String {
-    switch self {
-    case .editorKit: "EditorKitPromptEditor"
-    case .stock: "StockPromptEditor"
-    }
-  }
-}
-
-/// A thread view of a scripted session with a composer of one editor in its
-/// composer slot.
+/// A thread view of a scripted session with a composer in its composer slot.
 ///
 /// The thread view applies the agent command scope of the session at the root
 /// of the window, so EditorKit gives the window its undo stack there.
@@ -37,23 +17,16 @@ struct ComposerUndoThreadHost: View {
   /// The text of the composer.
   let composer: PromptInputHostedTestModel
 
-  /// The editor of the composer.
-  let editor: ComposerUndoEditor
-
   var body: some View {
     AgentThreadView(session: session.model, connection: session.connection) {
-      switch editor {
-      case .editorKit:
-        EditorKitPromptInputHost(model: composer, fileRoot: nil)
-      case .stock:
-        PromptInputHost(model: composer)
-      }
+      PromptInputHost(model: composer)
     }
   }
 }
 
-/// Tests for the undo of the composer on the window undo stack of EditorKit
-/// (EK-6), for both editors (^m1wgq3k, from TestudoApp ^yahkhjn).
+/// Tests for the undo and the redo of the composer, an
+/// ``EditorKitPromptEditor``, on the window undo stack of EditorKit (EK-6)
+/// (^m1wgq3k, from TestudoApp ^yahkhjn).
 ///
 /// The window has one undo stack. A mount or a re-render of the composer is
 /// not something the person did, so it leaves no entry. The clear of the
@@ -61,16 +34,9 @@ struct ComposerUndoThreadHost: View {
 /// back (the decision of the user, 2026-10-22).
 ///
 /// The tests type with key events that the harness sends to its off-screen
-/// window. The harness cannot send a ⌘Z through `NSApplication`, so the
-/// tests run `edit.undo` through the command registry of the window: the
-/// command that ⌘Z resolves to.
-///
-/// AppKit limit of ``StockPromptEditor``: ⇧⌘Z cannot redo undone
-/// `TextEditor` typing. After an undo, the `TextEditor` writes its binding
-/// back into its text view; that opens a new undo group, which clears the
-/// redo list of the window undo manager. AppKit's own Edit menu loses the
-/// redo the same way. ``expectRedo(in:editor:)`` records the limit as a known
-/// issue, and fakes no redo.
+/// window. The harness cannot send a ⌘Z or a ⇧⌘Z through `NSApplication`, so
+/// the tests run `edit.undo` and `edit.redo` through the command registry of
+/// the window: the commands that ⌘Z and ⇧⌘Z resolve to.
 @Suite(.serialized, .hostedSerially) @MainActor struct ComposerWindowUndoHostedTests {
   /// The prompt that the tests type and send. It is not isolated to the main
   /// actor, because a `@Test(arguments:)` list reads it.
@@ -95,21 +61,20 @@ struct ComposerUndoThreadHost: View {
     let stack: WindowUndoStack
   }
 
-  /// Shows the thread of `session` with a composer of `editor`, under a
-  /// command system, and renders it.
+  /// Shows the thread of `session` with its composer, under a command
+  /// system, and renders it.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - composer: The text of the composer.
-  ///   - editor: The editor of the composer.
   /// - Returns: The mounted thread.
   /// - Throws: An error when the window has no undo stack.
   static func mount(
-    _ session: ScriptedSession, composer: PromptInputHostedTestModel, editor: ComposerUndoEditor
+    _ session: ScriptedSession, composer: PromptInputHostedTestModel
   ) throws -> MountedThread<some View> {
     let system = CommandSystem()
     let harness = HostedViewHarness(size: windowSize) {
-      ComposerUndoThreadHost(session: session, composer: composer, editor: editor)
+      ComposerUndoThreadHost(session: session, composer: composer)
         .environment(\.sessionModel, session.model)
         .commandSystem(system)
         .transaction { $0.disablesAnimations = true }
@@ -154,21 +119,14 @@ struct ComposerUndoThreadHost: View {
   /// Sends the prompt with a Return press, as the person does.
   ///
   /// ``EditorKitPromptEditor`` takes Return in its text view, so the press
-  /// goes straight to it. ``StockPromptEditor`` takes Return in a SwiftUI key
-  /// press handler, so the press goes through the window.
+  /// goes straight to it.
   ///
   /// - Parameters:
   ///   - thread: The mounted thread.
-  ///   - editor: The editor of the composer.
   ///   - composer: The text of the composer.
   /// - Throws: An error when the press sends nothing.
-  static func send(
-    in thread: MountedThread<some View>, editor: ComposerUndoEditor, composer: PromptInputHostedTestModel
-  ) throws {
-    switch editor {
-    case .editorKit: try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    case .stock: try thread.harness.sendKey(.return)
-    }
+  static func send(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) throws {
+    try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
     // The composer clears its text in the same step as the press, so a press
     // that sent nothing stops the test here.
     try #require(composer.submitCount == 1)
@@ -176,37 +134,46 @@ struct ComposerUndoThreadHost: View {
     thread.harness.render()
   }
 
-  /// Runs `edit.undo` of the window and waits until the stack ran its work.
+  /// Runs `command` of the window and waits until the stack ran its work.
   ///
-  /// - Parameter thread: The mounted thread.
-  /// - Throws: An error when `edit.undo` is not available.
-  static func undo(in thread: MountedThread<some View>) async throws {
-    try #require(thread.system.registry.perform(.undo, at: thread.path))
+  /// - Parameters:
+  ///   - command: `edit.undo` or `edit.redo`.
+  ///   - thread: The mounted thread.
+  /// - Throws: An error when `command` is not available.
+  static func perform(_ command: CommandID, in thread: MountedThread<some View>) async throws {
+    try #require(thread.system.registry.perform(command, at: thread.path))
     await thread.stack.waitUntilIdle()
     thread.harness.render()
   }
 
-  /// Expects that the stack can redo the typing that `edit.undo` took out.
+  /// Runs `command` of the window while the stack holds an entry for it,
+  /// one time for each character of ``message`` at most.
   ///
-  /// ``EditorKitPromptEditor`` keeps its redo. ``StockPromptEditor`` loses
-  /// it to an AppKit limit: after an undo the `TextEditor` writes its binding
-  /// back into its text view, which opens a new undo group and clears the
-  /// redo list of the window undo manager, so ⇧⌘Z has nothing to redo. The
-  /// known issue records that limit. It does not fake a redo, and it reports
-  /// when AppKit starts to keep the redo.
+  /// - Parameters:
+  ///   - command: `edit.undo` or `edit.redo`.
+  ///   - thread: The mounted thread.
+  ///   - canPerform: Whether the stack holds an entry for `command`.
+  /// - Throws: An error when `command` is not available.
+  static func performWhileAvailable(
+    _ command: CommandID, in thread: MountedThread<some View>, canPerform: () -> Bool
+  ) async throws {
+    for _ in message where canPerform() {
+      try await perform(command, in: thread)
+    }
+  }
+
+  /// Types ``message``, and then runs `edit.undo` until the stack has nothing
+  /// left to undo.
   ///
   /// - Parameters:
   ///   - thread: The mounted thread.
-  ///   - editor: The editor of the composer.
-  static func expectRedo(in thread: MountedThread<some View>, editor: ComposerUndoEditor) {
-    switch editor {
-    case .editorKit:
-      #expect(thread.stack.canRedo)
-    case .stock:
-      withKnownIssue("A TextEditor writes its binding back after an undo, which clears the AppKit redo list") {
-        #expect(thread.stack.canRedo)
-      }
-    }
+  ///   - composer: The text of the composer.
+  /// - Throws: An error when the editor cannot get the focus or the typing
+  ///   leaves nothing to undo.
+  static func typeAndUndoAll(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) async throws {
+    try await typeMessage(in: thread, composer: composer)
+    try #require(thread.stack.canUndo)
+    try await performWhileAvailable(.undo, in: thread) { thread.stack.canUndo }
   }
 
   // MARK: - Mount and re-render
@@ -214,12 +181,12 @@ struct ComposerUndoThreadHost: View {
   /// The ^yahkhjn regression: a composer that mounts with an empty text or
   /// with a draft, and then re-renders with no edit, leaves the window stack
   /// with nothing to undo, so `edit.undo` and `edit.redo` stay unavailable.
-  @Test(arguments: ComposerUndoEditor.allCases, ["", message])
-  func aMountedAndReRenderedComposerLeavesNothingToUndo(editor: ComposerUndoEditor, draft: String) async throws {
+  @Test(arguments: ["", message])
+  func aMountedAndReRenderedComposerLeavesNothingToUndo(draft: String) async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let composer = PromptInputHostedTestModel(text: draft)
-    let thread = try Self.mount(session, composer: composer, editor: editor)
+    let thread = try Self.mount(session, composer: composer)
     defer { thread.harness.close() }
     try thread.harness.requireTextViewShows(draft)
 
@@ -232,25 +199,42 @@ struct ComposerUndoThreadHost: View {
   // MARK: - Typing
 
   /// Typing in the composer is undoable on the window stack, and `edit.undo`
-  /// takes the typing back out until the stack has nothing left to undo.
-  @Test(arguments: ComposerUndoEditor.allCases)
-  func typingIsUndoneByTheWindowUndo(editor: ComposerUndoEditor) async throws {
+  /// takes the typing back out until the stack has nothing left to undo. The
+  /// stack then can redo the typing.
+  @Test func typingIsUndoneByTheWindowUndo() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let composer = PromptInputHostedTestModel()
-    let thread = try Self.mount(session, composer: composer, editor: editor)
+    let thread = try Self.mount(session, composer: composer)
     defer { thread.harness.close() }
-    try await Self.typeMessage(in: thread, composer: composer)
-    try #require(thread.stack.canUndo)
 
-    for _ in Self.message where thread.stack.canUndo {
-      try await Self.undo(in: thread)
-    }
+    try await Self.typeAndUndoAll(in: thread, composer: composer)
 
     try thread.harness.requireTextViewShows("")
     #expect(composer.plainText.isEmpty)
     #expect(!thread.stack.canUndo)
-    Self.expectRedo(in: thread, editor: editor)
+    #expect(thread.stack.canRedo)
+  }
+
+  /// `edit.redo` of the window, the command that ⇧⌘Z resolves to, puts the
+  /// typing that `edit.undo` took out back into the composer, until the stack
+  /// has nothing left to redo.
+  @Test func theWindowRedoGivesTheUndoneTypingBack() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let composer = PromptInputHostedTestModel()
+    let thread = try Self.mount(session, composer: composer)
+    defer { thread.harness.close() }
+    try await Self.typeAndUndoAll(in: thread, composer: composer)
+    try thread.harness.requireTextViewShows("")
+    try #require(composer.plainText.isEmpty)
+
+    try await Self.performWhileAvailable(.redo, in: thread) { thread.stack.canRedo }
+
+    try thread.harness.requireTextViewShows(Self.message)
+    #expect(composer.plainText == Self.message)
+    #expect(!thread.stack.canRedo)
+    #expect(thread.stack.canUndo)
   }
 
   // MARK: - Send
@@ -258,22 +242,21 @@ struct ComposerUndoThreadHost: View {
   /// The clear after Send is ONE entry on top of the typing: one `edit.undo`
   /// gives the whole sent prompt back to the composer, and the typing entry
   /// is the top of the stack again.
-  @Test(arguments: ComposerUndoEditor.allCases)
-  func theClearAfterSendIsOneEntryThatGivesThePromptBack(editor: ComposerUndoEditor) async throws {
+  @Test func theClearAfterSendIsOneEntryThatGivesThePromptBack() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let composer = PromptInputHostedTestModel()
-    let thread = try Self.mount(session, composer: composer, editor: editor)
+    let thread = try Self.mount(session, composer: composer)
     defer { thread.harness.close() }
     try await Self.typeMessage(in: thread, composer: composer)
     let typing = try #require(thread.stack.undoTop)
-    try Self.send(in: thread, editor: editor, composer: composer)
+    try Self.send(in: thread, composer: composer)
     await ObservationWait.until { !session.promptTexts.isEmpty }
     try thread.harness.requireTextViewShows("")
     let clear = try #require(thread.stack.undoTop)
     try #require(clear.id != typing.id)
 
-    try await Self.undo(in: thread)
+    try await Self.perform(.undo, in: thread)
 
     try thread.harness.requireTextViewShows(Self.message)
     #expect(composer.plainText == Self.message)

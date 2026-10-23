@@ -110,7 +110,7 @@ import Testing
 
     await model.cancelPermission(permission.id)
     harness.render()
-    #expect(reporter.moves == [RequestDeck.identifier(for: permission.id.uuidString), StockPromptEditor.identifier])
+    #expect(reporter.moves == [RequestDeck.identifier(for: permission.id.uuidString), EditorKitPromptEditor.identifier])
   }
 
   /// The accept of the only pending request keeps its card in the deck as a
@@ -131,11 +131,11 @@ import Testing
     try #require(mounted.session.model.pendingRequests.isEmpty)
     try #require(mounted.session.model.awaitingURLCompletions.count == 1)
     harness.render()
-    try #require(reporter.moves.last == StockPromptEditor.identifier)
+    try #require(reporter.moves.last == EditorKitPromptEditor.identifier)
     try #require(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
     await harness.render { mounted.browser.sessions.contains(where: \.isWaiting) }
 
-    #expect(reporter.moves == [StockPromptEditor.identifier])
+    #expect(reporter.moves == [EditorKitPromptEditor.identifier])
     #expect(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
   }
 

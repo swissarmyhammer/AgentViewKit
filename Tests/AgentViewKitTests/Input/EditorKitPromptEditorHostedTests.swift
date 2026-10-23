@@ -6,22 +6,6 @@ import FoundationModelsACP
 import SwiftUI
 import Testing
 
-/// A host view that shows a composer with the EditorKit editor.
-struct EditorKitPromptInputHost: View {
-  /// The model that holds the text.
-  @Bindable var model: PromptInputHostedTestModel
-
-  /// The file root of the editor, or `nil`.
-  let fileRoot: URL?
-
-  var body: some View {
-    PromptInputView(
-      text: $model.text, onSubmit: { model.submitCount += 1 }, editor: EditorKitPromptEditor.init
-    )
-    .promptFileRoot(fileRoot)
-  }
-}
-
 @Suite(.serialized, .hostedSerially) @MainActor struct EditorKitPromptEditorHostedTests {
   /// The text that the tests type.
   static let message = "Hello"
@@ -54,7 +38,7 @@ struct EditorKitPromptInputHost: View {
     requestStartReport: ObservationReport<String>? = nil
   ) throws -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: composerSize) {
-      EditorKitPromptInputHost(model: model, fileRoot: fileRoot)
+      PromptInputHost(model: model, fileRoot: fileRoot)
         .environment(\.sessionModel, session.model)
         .environment(\.requestStartReport, requestStartReport)
     }
@@ -100,7 +84,7 @@ struct EditorKitPromptInputHost: View {
     let harness = try Self.mount(model, session: session)
     defer { harness.close() }
 
-    #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
+    #expect(harness.element(identifier: EditorKitPromptEditor.identifier) != nil)
     #expect(harness.firstEditableTextView() != nil)
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
   }
@@ -245,7 +229,7 @@ struct EditorKitPromptInputHost: View {
     #expect(String(text.characters) == "@notes.txt ")
     #expect(text.runs.compactMap(\.link) == [file])
 
-    let urls = PromptInputView<StockPromptEditor, DefaultPromptAccessory>.attachmentURLs([], in: text)
+    let urls = PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.attachmentURLs([], in: text)
     let blocks = PromptContent.makeBlocks(for: UserInput(text: fixture.text, attachments: urls), accepting: nil)
     #expect(blocks.map(PromptCapabilitiesTests.wireType(of:)) == ["text", "resource_link"])
     let link: String? = if case .resourceLink(let link) = blocks.last { link.uri } else { nil }

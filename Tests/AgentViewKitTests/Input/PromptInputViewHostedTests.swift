@@ -6,7 +6,8 @@ import Foundation
 import SwiftUI
 import Testing
 
-/// A host view that owns the text of a stock composer.
+/// A host view that owns the text of a composer with the default editor,
+/// ``EditorKitPromptEditor``.
 ///
 /// The view reads the text from ``PromptInputHostedTestModel``, so that a test
 /// can read the text after the composer changes it.
@@ -14,10 +15,14 @@ struct PromptInputHost: View {
   /// The model that holds the text.
   @Bindable var model: PromptInputHostedTestModel
 
+  /// The file root of the editor, or `nil` for no `@file` completion.
+  var fileRoot: URL?
+
   var body: some View {
     PromptInputView(text: $model.text) {
       model.submitCount += 1
     }
+    .promptFileRoot(fileRoot)
   }
 }
 
@@ -95,7 +100,7 @@ struct PromptInputHost: View {
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: StockPromptEditor.identifier) != nil)
+    #expect(harness.element(identifier: EditorKitPromptEditor.identifier) != nil)
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == true)
     #expect(harness.element(identifier: DefaultPromptAccessory.stopIdentifier) == nil)
   }
@@ -162,7 +167,7 @@ struct PromptInputHost: View {
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: StockPromptEditor.identifier) == nil)
+    #expect(harness.element(identifier: EditorKitPromptEditor.identifier) == nil)
     #expect(harness.element(identifier: "custom-editor")?.label == "plan")
     try harness.press(identifier: "custom-editor")
     // The composer takes the text in the same step as it starts the prompt
@@ -177,50 +182,6 @@ struct PromptInputHost: View {
 
   // MARK: - Keys
 
-  @Test func returnSendsTheTextAndClearsTheEditor() async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let model = PromptInputHostedTestModel()
-    let harness = Self.mount(session, model: model)
-    defer { harness.close() }
-    harness.render()
-
-    try #require(harness.focusFirstEditableTextView())
-    harness.type(Self.message)
-    try #require(model.plainText == Self.message)
-    try harness.sendKey(.return)
-    // The composer calls the host closure in the same step as it starts the
-    // prompt task, so a key that sent nothing stops the test here.
-    try #require(model.submitCount == 1)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
-
-    #expect(session.promptTexts == [Self.message])
-    #expect(model.plainText.isEmpty)
-    #expect(model.submitCount == 1)
-  }
-
-  @Test func shiftReturnInsertsANewlineAndDoesNotSend() async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let model = PromptInputHostedTestModel()
-    let recorder = ReportRecorder<PromptSubmitOutcome>()
-    let harness = Self.mount(session, model: model, recorder: recorder)
-    defer { harness.close() }
-    harness.render()
-
-    try #require(harness.focusFirstEditableTextView())
-    harness.type(Self.message)
-    try harness.sendKey(.return, modifiers: .shift)
-    // The editor reports the outcome in the same step as the key.
-    try #require(!recorder.values.isEmpty)
-    harness.render()
-
-    #expect(recorder.values == [.newline])
-    #expect(session.promptTexts.isEmpty)
-    #expect(model.plainText == Self.message + "\n")
-    #expect(model.submitCount == 0)
-  }
-
   @Test func returnWithBlankTextSendsNothing() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -231,7 +192,7 @@ struct PromptInputHost: View {
     harness.render()
 
     try #require(harness.focusFirstEditableTextView())
-    try harness.sendKey(.return)
+    try EditorKitPromptEditorHostedTests.pressReturn(in: harness)
     try #require(!recorder.values.isEmpty)
     harness.render()
 

@@ -439,7 +439,7 @@ extension ReportRecorder<TurnAnnouncementStep> {
     await session.model.cancelPermission(id)
     await harness.render { model.pendingPermissions.isEmpty }
 
-    #expect(reporter.moves == [StockPromptEditor.identifier])
+    #expect(reporter.moves == [EditorKitPromptEditor.identifier])
   }
 
   @Test func theThreadAndTheDeckMoveTheFocusOfTheMoverOfTheHost() async throws {
@@ -463,7 +463,7 @@ extension ReportRecorder<TurnAnnouncementStep> {
     await session.model.cancelPermission(id)
     await harness.render { model.pendingPermissions.isEmpty }
 
-    #expect(mover.lastMove?.identifier == StockPromptEditor.identifier)
+    #expect(mover.lastMove?.identifier == EditorKitPromptEditor.identifier)
   }
 
   // MARK: - Reduce Motion

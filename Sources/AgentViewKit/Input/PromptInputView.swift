@@ -19,7 +19,7 @@ import SwiftUI
 /// glass shape morphs (plan.md §6).
 ///
 /// The editor and the accessory are slots. The short initializer uses
-/// ``StockPromptEditor`` and ``DefaultPromptAccessory``:
+/// ``EditorKitPromptEditor`` and ``DefaultPromptAccessory``:
 ///
 /// ```swift
 /// PromptInputView(text: $draft) { scrollToBottom() }
@@ -217,7 +217,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       editor(context)
         // A resolved request moves the VoiceOver focus back to the editor
         // (`RequestDeck`).
-        .accessibilityFocusTarget(StockPromptEditor.identifier)
+        .accessibilityFocusTarget(EditorKitPromptEditor.identifier)
         .background {
           if let commandTarget {
             ComposerCommandProbe(
@@ -307,8 +307,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   }
 }
 
-extension PromptInputView where Editor == StockPromptEditor, Accessory == DefaultPromptAccessory {
-  /// Makes a composer with the stock editor and the default accessory row.
+extension PromptInputView where Editor == EditorKitPromptEditor, Accessory == DefaultPromptAccessory {
+  /// Makes a composer with the EditorKit editor (``EditorKitPromptEditor``)
+  /// and the default accessory row.
   ///
   /// - Parameters:
   ///   - text: The text of the prompt.
@@ -322,7 +323,7 @@ extension PromptInputView where Editor == StockPromptEditor, Accessory == Defaul
   ) {
     self.init(
       text: text, attachments: attachments, onSubmit: onSubmit,
-      editor: { StockPromptEditor(context: $0) },
+      editor: { EditorKitPromptEditor(context: $0) },
       accessory: { DefaultPromptAccessory() })
   }
 }

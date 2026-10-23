@@ -3,9 +3,9 @@ import SwiftUI
 
 /// The values that ``PromptInputView`` gives to its editor (plan.md §7).
 ///
-/// The stock editor and each custom editor get the same context. An editor
-/// shows ``text``, shows ``placeholder`` while the text is empty, and calls
-/// ``onSubmit`` when the user submits the prompt. Command-Return calls
+/// ``EditorKitPromptEditor`` and each custom editor get the same context. An
+/// editor shows ``text``, shows ``placeholder`` while the text is empty, and
+/// calls ``onSubmit`` when the user submits the prompt. Command-Return calls
 /// ``onSendNow``, and Esc calls ``onCancel``. A completion source reads
 /// ``commands``.
 public struct PromptEditorContext {
@@ -151,7 +151,7 @@ enum PromptSubmitOutcome: Equatable {
 
 extension EnvironmentValues {
   /// The ``ObservationReport`` that gets each ``PromptSubmitOutcome`` of the
-  /// nearest ``PromptInputView`` and its ``StockPromptEditor``, or `nil`.
+  /// nearest ``PromptInputView`` and its ``EditorKitPromptEditor``, or `nil`.
   ///
   /// The composer calls the report in the same step as the submit decision.
   @Entry var promptSubmitReport: ObservationReport<PromptSubmitOutcome>? = nil

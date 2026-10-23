@@ -53,7 +53,7 @@ import Testing
     session: ScriptedSession, draft: PromptInputHostedTestModel
   ) throws -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: size) {
-      EditorKitPromptInputHost(model: draft, fileRoot: nil)
+      PromptInputHost(model: draft)
         .environment(\.sessionModel, session.model)
     }
     harness.render()

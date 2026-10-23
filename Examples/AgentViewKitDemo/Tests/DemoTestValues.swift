@@ -5,7 +5,8 @@ import XCTest
 /// The identifiers are the identifiers of the kit views. This test bundle
 /// does not link the kit, so it writes them as text.
 enum DemoTestValues {
-  /// The identifier of the stock prompt editor.
+  /// The identifier of the text area of the prompt editor
+  /// (`EditorKitPromptEditor.identifier`).
   static let promptEditor = "prompt-editor"
 
   /// The identifier of the submit button of the composer.

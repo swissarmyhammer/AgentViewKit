@@ -68,6 +68,36 @@ comments:
     - The composer EditorView must NOT have its own `.commandScope` between it and the host's composer scope. Then it's tagged with the composer scope's path and gets the focus, and the host's focused path is the composer path.
     To do: `git checkout wip/69g4a69-drop-stock-editor -- .` onto main (or cherry-pick b72013a and drop its .kanban changes, since main's .kanban is newer); `swift package update EditorKit` to f913e78 or later; in EditorKitPromptEditor, add `.editorTextAccessibilityIdentifier(Self.identifier)` before `.frame(...)` and remove the SwiftUI `.accessibilityIdentifier(Self.identifier)`; rerun the 6 red tests and the demo UI suite.
   timestamp: 2026-10-23T10:48:32.532072+00:00
+- actor: claude-code
+  id: 01m5m7mb6pmr96en0jxcxjhtjg
+  text: |-
+    Resumed after UNBLOCKED (implement step):
+    - `git cherry-pick --no-commit b72013a` onto main 84bafd4. Conflicts: the .kanban files (4: this card .md/.jsonl, ^m3kfn28 .md/.jsonl), resolved with `git checkout HEAD -- .kanban`, and 8 HostedSnapshotTests PNGs (thread-*, bottom-bar-buttons-*). All 16 b72013a PNGs were restored to HEAD (the composer-* ones merged cleanly but were stale too). No source conflicts. No reference to StockPromptEditor or `editorkit-prompt-editor` is left in main's newer work (^9ryhj6b PreviewFixtures, ^trg0ce9/^r8bnszx elicitation, ^m3kfn28 mounts, ^ankjpqh). The only `TextEditor` uses left are TextEditor<String> in the HostedViewHarness text-view tests and doc comments.
+    - `swift package update EditorKit` gives 37325a2 (main; f913e78 and d4c767f are ancestors). Package.resolved is git-ignored; the demo generator copies it, so the demo built with 37325a2 too.
+    - RED with the new EditorKit and no code change: 4 identifier tests failed, and `aFocusOnTheHostScopeOfTheComposerGoesIntoTheTextOfTheEditor` (.nav and .jump) already PASSED. f913e78 alone fixes focus: no `.commandScope` sits in Sources/AgentViewKit/Input between the EditorView and the host scope.
+    - GREEN: EditorKitPromptEditor now has `.editorTextAccessibilityIdentifier(Self.identifier)` before `.frame(...)`, and the SwiftUI `.accessibilityIdentifier(Self.identifier)` is gone.
+    - Test fix: `theEditorThatTakesTypingCarriesThePromptEditorIdentifier` asserted `editor.isEnabled`, which never passed. A hosted probe shows AppKit returns `isAccessibilityEnabled() == false` for EVERY NSTextView, even an editable one: a plain NSTextView, a SwiftUI TextEditor and EditorKit's EditorInputTextView all return false. That explains the "Disabled" that ^bc6fapz saw. The test now checks that the editable NSTextView carries "prompt-editor", and that it is the only view with that identifier.
+    - Demo UI (`Scripts/test-examples.sh`): BUILD SUCCEEDED, and XCUI finds the composer again. testASendOfHello is still red, but no longer on a hit point: click, typeText("hello") and the Send click all succeed. It fails on "The transcript shows no reply." The failure snapshot shows the agent answered: the banner says "The response is complete", the list reads 3 of 3 items, and the list is 96.6 pt tall with the scroll-to-bottom pill showing. New card ^66has33 tracks it.
+  timestamp: 2026-10-23T11:16:39.766505+00:00
+- actor: claude-code
+  id: 01m5m7n37td66bszmbradz58gs
+  text: |-
+    ### implement — changed
+    - evidence: EditorKit 37325a2 (contains f913e78, d4c767f). Cherry-pick conflicts resolved: 4 .kanban files (kept main's) and 8 PNGs (all 16 b72013a PNGs dropped, then re-recorded). Red→green: 4 identifier tests red→green after `.editorTextAccessibilityIdentifier`; the 2 focus cases (.nav/.jump) were already green on f913e78. One assertion fixed: `isEnabled` → the editable NSTextView carries "prompt-editor" (AppKit reports every NSTextView as AX-disabled). `swift test`: 1693 tests / 207 suites passed (3 known issues are pre-existing helper self-tests) + XCTest 227 passed. Demo: BUILD SUCCEEDED; UI 4/5 pass; testASendOfHello fails on "The transcript shows no reply." (NOT on a hit point), tracked in ^66has33. Snapshots re-recorded: 16 HostedSnapshotTests PNGs (thread-*, bottom-bar-buttons-*, composer-idle-*, composer-running-* × light/dark/increase-contrast/reduce-transparency). Same dimensions; sizes 10.3–233.6 KB, within 1.6 KB of HEAD. Nothing committed.
+    - next: /review. Testudo constraint 3 stays unchecked until ^66has33 lands.
+  timestamp: 2026-10-23T11:17:04.378934+00:00
+- actor: claude-code
+  id: 01m5m7yzn4kg55f8a8w7ndk9ve
+  text: |-
+    ### test — green
+    - evidence: `swift test` run twice back to back, with the five changed Sources files touched first so they recompiled (RequestDeckFocus, DefaultThreadComposer, EditorKitPromptEditor, PromptEditorContext, PromptInputView).
+      - Run 1: Swift Testing 1693 tests in 207 suites passed, 3 known issues; a 227-test run and a 1-test run also passed. 0 failures, 0 skipped. XCTest ran 0 tests in each of its three bundles.
+      - Run 2: Swift Testing 1693 tests in 207 suites passed, 3 known issues; the 227-test and 1-test runs passed again. 0 failures, 0 skipped.
+      - Known issues (expected failures, identical in both runs): SnapshotStoreTests.theCheckOfAViewThatChangedRecordsAnIssue (line 191); HostedLayoutExpectationsTests.aWrappedTextWithAFixedVerticalSizeFails (line 23); ThemeHeightExpectationsTests.aViewThatIgnoresTheThemeFails (line 35).
+      - Warnings: only the SwiftPM mlx-swift "missing creator for mutated node" notice. No project-code warnings.
+      - EditorKit stayed at the resolved 37325a2. Nothing was committed.
+    - next: review
+  timestamp: 2026-10-23T11:22:28.388416+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'Drop StockPromptEditor: EditorKitPromptEditor is the only composer (no TextEditor<AttributedString>)'
@@ -84,6 +114,6 @@ Work:
 - Full `swift test` green; the demo builds. #avk-7
 
 ## Constraints from Testudo (coordinator, 2026-10-23)
-- [ ] KEEP the public `DefaultThreadComposer()` initializer unchanged (Testudo passes it in AgentThreadView's `composer:` slot, inside its own `.commandScope(segment: composer)`), now backed by EditorKitPromptEditor. Do not remove or rename it.
-- [ ] Jump focus: the default composer has no command scope of its own today, so a jump that lands on the host's composer scope focuses the text view. Check whether EditorKitPromptEditor/EditorView adds its own `.commandScope`; if it does, a jump would land on that inner scope and not in the text. Add a hosted test: a host wraps `DefaultThreadComposer()` in `.commandScope(segment:)`, a jump or focus request lands on that scope, and first responder is the editor's text view. Report the finding.
-- [ ] Keep the `prompt-editor` accessibility identifier on the element that takes typing (the EditorKit text view), and keep `prompt-submit` on the Send button. XCUITest `typeText` into it must work. If the demo UI suite covers typing into the composer, confirm it still passes, apart from the known ^bc6fapz hit-point failure, and say so explicitly.
+- [x] KEEP the public `DefaultThreadComposer()` initializer unchanged (Testudo passes it in AgentThreadView's `composer:` slot, inside its own `.commandScope(segment: composer)`), now backed by EditorKitPromptEditor. Do not remove or rename it.
+- [x] Jump focus: the default composer has no command scope of its own today, so a jump that lands on the host's composer scope focuses the text view. Check whether EditorKitPromptEditor/EditorView adds its own `.commandScope`; if it does, a jump would land on that inner scope and not in the text. Add a hosted test: a host wraps `DefaultThreadComposer()` in `.commandScope(segment:)`, a jump or focus request lands on that scope, and first responder is the editor's text view. Report the finding.
+- [ ] Keep the `prompt-editor` accessibility identifier on the element that takes typing (the EditorKit text view), and keep `prompt-submit` on the Send button. XCUITest `typeText` into it must work. If the demo UI suite covers typing into the composer, confirm it still passes, apart from the known ^bc6fapz hit-point failure, and say so explicitly. (2026-10-23: identifier, Send and typeText all work; testASendOfHello now fails later, on the reply row, not on a hit point. Tracked in ^66has33.)

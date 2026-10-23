@@ -130,7 +130,7 @@
 
       let identifiers = Self.floatingControlIdentifiers(in: harness)
       #expect(identifiers.contains(DefaultPromptAccessory.submitIdentifier))
-      #expect(identifiers.contains(StockPromptEditor.identifier))
+      #expect(identifiers.contains(EditorKitPromptEditor.identifier))
     }
 
     @Test func aScrollUpByCommandShowsThePillInTheContainerOfTheComposer() async throws {

@@ -83,7 +83,7 @@ import Testing
       ])
     // The front request left, so the focus goes to the prompt editor, as
     // before. The notice takes no focus.
-    #expect(reporter.moves == [StockPromptEditor.identifier])
+    #expect(reporter.moves == [EditorKitPromptEditor.identifier])
   }
 
   @Test func dismissRemovesTheNoticeAndGivesNoAnnouncementAndNoFocusMove() async throws {

@@ -507,7 +507,7 @@ import Testing
     await session.model.cancelPermission(id)
     harness.render()
 
-    #expect(reporter.moves == [StockPromptEditor.identifier])
+    #expect(reporter.moves == [EditorKitPromptEditor.identifier])
     #expect(harness.element(identifier: cardIdentifier) == nil)
   }
 

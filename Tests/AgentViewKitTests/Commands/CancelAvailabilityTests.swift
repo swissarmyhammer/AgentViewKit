@@ -55,7 +55,7 @@ import Testing
   /// - Parameter session: The session model of the composer.
   /// - Returns: `true` when the composer gives an Esc action to its editor.
   static func escapeCancels(in session: SessionModel?) -> Bool {
-    PromptInputView<StockPromptEditor, DefaultPromptAccessory>.cancelsOnEscape(in: session)
+    PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.cancelsOnEscape(in: session)
   }
 
   /// Tells if the Esc key of the command scope resolves to the cancel

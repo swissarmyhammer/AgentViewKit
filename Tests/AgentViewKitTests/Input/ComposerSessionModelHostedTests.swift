@@ -466,14 +466,15 @@
     /// Submits the text of the composer with the Return key of the editor.
     ///
     /// The submit goes through the editor, not through the submit button, so
-    /// that a test can check the Return key path. The key action of the
-    /// harness renders the composer.
+    /// that a test can check the Return key path. ``EditorKitPromptEditor``
+    /// takes Return in its text view, so the press goes straight to it. The
+    /// key action of the harness renders the composer.
     ///
     /// - Parameter harness: The harness that shows the composer.
-    /// - Throws: An error when the window cannot get the key event.
+    /// - Throws: An error when the text view cannot get the key event.
     static func submitWithReturn<Content: View>(in harness: HostedViewHarness<Content>) throws {
       try #require(harness.focusFirstEditableTextView())
-      try harness.sendKey(.return)
+      try EditorKitPromptEditorHostedTests.pressReturn(in: harness)
     }
 
     /// The text of the first prompt block of each `session/prompt` frame, in

@@ -7,12 +7,13 @@ import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
-/// The EditorKit editor of ``PromptInputView`` (plan.md §4.1, §9 D).
+/// The editor of ``PromptInputView`` (plan.md §4.1, §9 D).
 ///
-/// A host puts the editor in the `editor:` slot:
+/// The short initializer of ``PromptInputView`` uses this editor. Set the
+/// file root of the `@file` completion on the composer:
 ///
 /// ```swift
-/// PromptInputView(text: $draft, onSubmit: {}, editor: EditorKitPromptEditor.init)
+/// PromptInputView(text: $draft) {}
 ///   .promptFileRoot(projectURL)
 /// ```
 ///
@@ -39,8 +40,16 @@ import SwiftUI
 /// holds the file URL. ``PromptInputView`` sends each linked file as an
 /// attachment, which a source sends as a `resource_link` block.
 public struct EditorKitPromptEditor: View {
-  /// The accessibility identifier of the editor.
-  public static let identifier = "editorkit-prompt-editor"
+  /// The accessibility identifier of the editor: the text area that takes
+  /// typing. It is also the name of the focus target of the editor slot of
+  /// ``PromptInputView``.
+  public static let identifier = "prompt-editor"
+
+  /// The smallest height of the editor, in points.
+  static let minimumHeight: CGFloat = 36
+
+  /// The largest height of the editor, in points. Longer text scrolls.
+  static let maximumHeight: CGFloat = 200
 
   /// The accessibility identifier of the completion list.
   public static let completionListIdentifier = "prompt-completion-list"
@@ -114,10 +123,12 @@ public struct EditorKitPromptEditor: View {
     .editorInlineDecorations([
       EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references))
     ])
-    .frame(minHeight: StockPromptEditor.minimumHeight, maxHeight: StockPromptEditor.maximumHeight)
+    // The identifier goes on the text view that takes typing, so that a UI
+    // test finds one element to type into.
+    .editorTextAccessibilityIdentifier(Self.identifier)
+    .frame(minHeight: Self.minimumHeight, maxHeight: Self.maximumHeight)
     .fixedSize(horizontal: false, vertical: true)
     .accessibilityLabel(context.placeholder)
-    .accessibilityIdentifier(Self.identifier)
     // The editor is in the field glass of the composer. So the composer
     // shows the menu on its own glass above the field (D110 (c)).
     .anchorPreference(key: PromptEditorMenuKey.self, value: .bounds) { anchor in
@@ -206,8 +217,7 @@ public struct EditorKitPromptEditor: View {
   /// - Returns: `false` for Shift-Return, so that the editor inserts a
   ///   newline. `true` otherwise.
   private func submit(model: EditorModel, modifiers: ReturnKeyModifiers) -> Bool {
-    guard let action = StockPromptEditor.returnAction(for: Self.eventModifiers(of: modifiers), in: context)
-    else {
+    guard let action = Self.returnAction(for: Self.eventModifiers(of: modifiers), in: context) else {
       return false
     }
     push(model.text, references: references)
@@ -227,6 +237,21 @@ public struct EditorKitPromptEditor: View {
     guard let cancel = context.onCancel else { return false }
     cancel()
     return true
+  }
+
+  /// The closure that a Return press calls.
+  ///
+  /// - Parameters:
+  ///   - modifiers: The modifier keys of the press.
+  ///   - context: The values that the composer gives.
+  /// - Returns: `nil` when the press holds Shift, so that the editor inserts a
+  ///   newline. ``PromptEditorContext/onSendNow`` when the press holds
+  ///   Command. ``PromptEditorContext/onSubmit`` otherwise.
+  static func returnAction(
+    for modifiers: EventModifiers, in context: PromptEditorContext
+  ) -> PromptEditorContext.Submit? {
+    if modifiers.contains(.shift) { return nil }
+    return modifiers.contains(.command) ? context.onSendNow : context.onSubmit
   }
 
   /// The SwiftUI modifiers of the modifier keys of a Return press.
@@ -254,6 +279,11 @@ public struct EditorKitPromptEditor: View {
   ///   - transaction: The committed transaction.
   ///   - model: The model of the editor.
   private func didCommit(_ transaction: EditorTransaction, in model: EditorModel) {
+    // The commit stream delivers a commit later than its dispatch. By then the
+    // text of the prompt can be newer than the text that the editor took from
+    // it, for example the next transcript of a dictation. So the commit of a
+    // taken text gives nothing back to the prompt.
+    guard !Self.isPull(transaction) else { return }
     var references = references
     switch transaction.annotations.userEvent {
     case .input, .delete:
@@ -269,6 +299,17 @@ public struct EditorKitPromptEditor: View {
       break
     }
     push(model.text, references: references)
+  }
+
+  /// Whether a transaction is the change of a text that the editor took from
+  /// the prompt (`pull(_:into:)`).
+  ///
+  /// - Parameter transaction: The committed transaction.
+  /// - Returns: `true` for an external reload that is no undo and no redo:
+  ///   an undo or a redo of a taken text is a change of the person, which the
+  ///   prompt gets.
+  static func isPull(_ transaction: EditorTransaction) -> Bool {
+    transaction.annotations.origin == .externalReload && !PromptEditorSession.isUndoOrRedo(transaction)
   }
 
   /// Asks for completions when the caret is in a trigger token, and closes
