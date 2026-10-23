@@ -202,16 +202,19 @@ public struct ElicitationView: View {
 
   // MARK: Slots
 
-  /// The layout override, or the default layout.
-  @ViewBuilder
+  /// The layout override, or the default layout. Return in a one-line text
+  /// field of the layout runs ``submitOnReturn()``.
   private var layout: some View {
     let context = ElicitationLayoutContext(
       fields: fields.map(fieldContext), tabThreshold: tabThreshold)
-    if let layoutOverride {
-      layoutOverride(context)
-    } else {
-      ElicitationLayout(context: context)
+    return Group {
+      if let layoutOverride {
+        layoutOverride(context)
+      } else {
+        ElicitationLayout(context: context)
+      }
     }
+    .environment(\.elicitationReturnAction, ElicitationReturnAction(run: submitOnReturn))
   }
 
   /// The text that tells why the agent cannot accept the answer, when the
@@ -409,6 +412,15 @@ public struct ElicitationView: View {
       return
     }
     owner.acceptElicitation(request.id, content: content)
+  }
+
+  /// Presses Submit for Return in a one-line text field: sends the answers
+  /// with ``submit()`` when the form is complete, as the enabled Submit
+  /// button does. While the form is not complete, Submit is disabled, and
+  /// Return does nothing.
+  private func submitOnReturn() {
+    guard ElicitationValidator.isComplete(values: values, schemas: fields) else { return }
+    submit()
   }
 }
 
@@ -612,6 +624,30 @@ extension EnvironmentValues {
   /// The override of the footer of an elicitation form, or `nil` for
   /// ``ElicitationFooter``.
   @Entry public var elicitationFooterOverride: ElicitationFooterRenderer? = nil
+
+  /// The action that Return in a one-line text field of the nearest
+  /// ``ElicitationView`` runs, or `nil` outside a form.
+  ///
+  /// The form gives the action of Submit, so Return presses Submit as the
+  /// footer says. Like Submit, the action does nothing while the form is
+  /// not complete.
+  @Entry var elicitationReturnAction: ElicitationReturnAction? = nil
+}
+
+/// The action that Return in a one-line text field of an ``ElicitationView``
+/// runs (``SwiftUI/EnvironmentValues/elicitationReturnAction``).
+///
+/// The function is in a struct, not in the environment value itself: an
+/// environment value that holds a closure can invalidate its dependents on
+/// each update.
+struct ElicitationReturnAction {
+  /// The function that Return runs.
+  let run: @MainActor () -> Void
+
+  /// Runs the function.
+  func callAsFunction() {
+    run()
+  }
 }
 
 extension View {

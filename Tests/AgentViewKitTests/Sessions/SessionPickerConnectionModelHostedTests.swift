@@ -301,8 +301,7 @@ import Testing
     let harness = await Self.mountPicker(session)
     defer { harness.close() }
 
-    #expect(harness.focusFirstEditableTextView(of: NSTextField.self))
-    harness.type("docs")
+    try SingleLineFieldChecks.type("docs", intoFieldWith: SessionListView.searchIdentifier, in: harness)
 
     #expect(Self.rowIdentifiers(in: harness) == [Self.row(Self.closedSessionID)])
     #expect(session.connection.sessions.count == 2)

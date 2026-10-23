@@ -118,17 +118,18 @@ struct ComposerUndoThreadHost: View {
   }
 
   /// Runs `command` of the window while the stack holds an entry for it,
-  /// one time for each character of ``message`` at most.
+  /// one time for each character of `typed` at most.
   ///
   /// - Parameters:
   ///   - command: `edit.undo` or `edit.redo`.
   ///   - thread: The mounted thread.
+  ///   - typed: The text that the test typed. The default is ``message``.
   ///   - canPerform: Whether the stack holds an entry for `command`.
   /// - Throws: An error when `command` is not available.
   static func performWhileAvailable(
-    _ command: CommandID, in thread: MountedThread<some View>, canPerform: () -> Bool
+    _ command: CommandID, in thread: MountedThread<some View>, typed: String = message, canPerform: () -> Bool
   ) async throws {
-    for _ in message where canPerform() {
+    for _ in typed where canPerform() {
       try await perform(command, in: thread)
     }
   }

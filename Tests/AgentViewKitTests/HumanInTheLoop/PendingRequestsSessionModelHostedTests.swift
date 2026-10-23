@@ -214,8 +214,7 @@
       await harness.render { !model.pendingPermissions.isEmpty }
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
       try harness.press(identifier: PermissionView.optionIdentifier(for: Self.rejectOptionID))
-      try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
-      harness.type(Self.comment)
+      try SingleLineFieldChecks.type(Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
       let answeredBeforePrompt = Self.flagAnswerBeforePrompt(withText: Self.comment, in: model)
       try harness.press(identifier: PermissionView.commentSubmitIdentifier)
       // The card reports its answer in the same step as it starts the answer

@@ -183,9 +183,11 @@ public struct ElicitationTextField: View {
   let suppliedModel: EditorModel?
 
   /// The model that the view keeps when the host gives no model.
-  @State private var ownModel = TextFieldModelSlot()
+  @State private var ownModel = EditorModelSlot()
 
-  @Environment(\.agentTheme) private var theme
+  /// The action of Return in a one-line input: Submit of the nearest
+  /// ``ElicitationView``, or `nil` outside a form.
+  @Environment(\.elicitationReturnAction) private var returnAction
 
   /// Makes a text field that keeps its own model.
   ///
@@ -223,14 +225,7 @@ public struct ElicitationTextField: View {
     let model = suppliedModel ?? ownModel.model(text: answer)
     ElicitationFieldChrome(context: context) {
       input(model: model)
-        .padding(theme.spacing.xs)
-        .overlay(
-          AgentSurface.shape(radius: theme.radii.s)
-            .stroke(.separator)
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(context.schema.title)
-        .accessibilityIdentifier(context.controlIdentifier)
+        .agentTextInputEdge()
     }
     .onChange(of: answer, initial: true) {
       if model.text != answer {
@@ -245,7 +240,10 @@ public struct ElicitationTextField: View {
     }
   }
 
-  /// The EditorKit input for `model`.
+  /// The EditorKit input for `model`. The text view of the input carries
+  /// the control identifier of the field, and the title of the field as its
+  /// accessibility label. Return in a one-line input runs ``returnAction``:
+  /// in an ``ElicitationView``, it presses Submit.
   ///
   /// - Parameter model: The model to edit.
   /// - Returns: A one-line field or a multi-line editor.
@@ -255,35 +253,15 @@ public struct ElicitationTextField: View {
       EditorView(model: model)
         .editorSizingMode(.intrinsic)
         .editorWrapMode(.viewportWidth)
+        .editorTextAccessibilityIdentifier(context.controlIdentifier)
+        .editorTextAccessibilityLabel(context.schema.title)
         .frame(minHeight: Self.multiLineMinimumHeight)
     } else {
-      SingleLineField(model: model, id: context.identifier)
+      SingleLineField(model: model, id: context.identifier) { _ in returnAction?() }
         .editorSizingMode(.intrinsic)
+        .editorTextAccessibilityIdentifier(context.controlIdentifier)
+        .editorTextAccessibilityLabel(context.schema.title)
     }
-  }
-}
-
-/// The model that an ``ElicitationTextField`` keeps when the host gives no
-/// model.
-///
-/// The slot makes the model at the first read. A `@State` value that holds
-/// the model directly would make a new model each time SwiftUI makes the
-/// view value again.
-private final class TextFieldModelSlot {
-  /// The model, or `nil` before the first read.
-  private var model: EditorModel?
-
-  /// The model of the slot. The first read makes a model that holds `text`.
-  ///
-  /// - Parameter text: The text of a new model.
-  /// - Returns: The model.
-  func model(text: String) -> EditorModel {
-    if let model {
-      return model
-    }
-    let model = EditorModel(text)
-    self.model = model
-    return model
   }
 }
 
@@ -294,6 +272,11 @@ private final class TextFieldModelSlot {
 /// The view shows a slider when the field has a minimum and a maximum.
 /// Otherwise it shows a stepper with a number input. An integer field moves
 /// in steps of one and writes whole numbers.
+///
+/// The number input is a SwiftUI `TextField` with a number format, not an
+/// EditorKit one-line field: the EditorKit field edits text, and has no
+/// number format that parses the typed text, shows a changed number, and
+/// keeps the last valid number for text that is not a number (^8zmkh1a).
 public struct ElicitationNumberField: View {
   /// The step of the stepper.
   public static let step: Double = 1

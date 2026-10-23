@@ -89,6 +89,19 @@ import Testing
     #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier) != nil)
   }
 
+  /// The text view that takes typing carries the placeholder of the composer
+  /// as its accessibility label, so VoiceOver names the element that has the
+  /// focus.
+  @Test func theTextViewOfTheEditorCarriesThePlaceholderAsItsLabel() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = try Self.mount(PromptInputHostedTestModel(), session: session)
+    defer { harness.close() }
+
+    let placeholder = PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.placeholder
+    #expect(harness.element(identifier: EditorKitPromptEditor.identifier)?.label == placeholder)
+  }
+
   // MARK: - Keys
 
   @Test func returnSendsTheTextAndClearsTheEditor() async throws {

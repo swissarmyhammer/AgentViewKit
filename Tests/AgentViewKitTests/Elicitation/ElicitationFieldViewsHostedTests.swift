@@ -123,6 +123,16 @@ struct HostedTextField: View {
     #expect(harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "bio")) != nil)
   }
 
+  /// The text view of a multi-line field carries the title of the field as
+  /// its accessibility label, as the text view of a one-line field does.
+  @Test func theTextViewOfAMultiLineFieldCarriesTheTitleAsItsLabel() {
+    let schema = Self.field("bio", .text(minLength: nil, maxLength: nil, pattern: nil, format: nil))
+    let harness = Self.mount(schema, box: AnswerBox())
+    defer { harness.close() }
+
+    #expect(harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "bio"))?.label == schema.title)
+  }
+
   @Test func onlyALongOrUnboundedTextIsMultiLine() {
     func kind(_ maxLength: Int?) -> ElicitationFieldSchema.Kind {
       .text(minLength: nil, maxLength: maxLength, pattern: nil, format: nil)

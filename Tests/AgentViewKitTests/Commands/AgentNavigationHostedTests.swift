@@ -182,8 +182,7 @@ import Testing
     _ = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
     let reject = PermissionOptionId(rawValue: AgentCommandsTests.rejectOptionID)
     try harness.press(identifier: PermissionView.optionIdentifier(for: reject))
-    try #require(harness.focusFirstEditableTextView(of: NSTextField.self))
-    harness.type(Self.commentText)
+    try SingleLineFieldChecks.type(Self.commentText, intoFieldWith: PermissionView.commentIdentifier, in: harness)
 
     try harness.press(identifier: RequestDeck.nextIdentifier)
     try #require(harness.element(identifier: PermissionView.commentIdentifier) == nil)

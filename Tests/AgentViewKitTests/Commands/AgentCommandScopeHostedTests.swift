@@ -66,6 +66,8 @@ import Testing
   ///     that a view starts, or `nil`.
   ///   - submitReport: The report that gets each submit outcome of the
   ///     composer, or `nil`.
+  ///   - answerReport: The report that gets each answer of a permission
+  ///     card of the deck, or `nil`.
   ///   - isFocusEffectEnabled: `false` to apply `.focusEffectDisabled()`
   ///     above the views, as a host does to turn off each focus ring.
   /// - Returns: The harness.
@@ -74,6 +76,7 @@ import Testing
     composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard(),
     requestStartReport: ObservationReport<String>? = nil,
     submitReport: ObservationReport<PromptSubmitOutcome>? = nil,
+    answerReport: ObservationReport<PermissionAnswer>? = nil,
     isFocusEffectEnabled: Bool = true
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: windowSize) {
@@ -94,6 +97,7 @@ import Testing
       .environment(\.pasteboard, pasteboard)
       .environment(\.requestStartReport, requestStartReport)
       .environment(\.promptSubmitReport, submitReport)
+      .environment(\.permissionAnswerReport, answerReport)
       .commandSystem(system)
       .transaction { $0.disablesAnimations = true }
     }

@@ -1,3 +1,4 @@
+import EditorCore
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -34,7 +35,7 @@ import SwiftUI
 /// row goes away when the model removes the item. When a call fails, the view
 /// shows the error of the call, and the list keeps the values of the model.
 public struct SessionListView: View {
-  /// The accessibility identifier of the search field.
+  /// The accessibility identifier of the text view of the search field.
   public static let searchIdentifier = "session-list-search"
 
   /// The accessibility identifier of the "Load More" row.
@@ -111,8 +112,8 @@ public struct SessionListView: View {
   /// The EditorKit theme that gives the error color of the failure message.
   @Environment(\.editorTheme) private var editorTheme
 
-  /// The search text that filters the rows.
-  @State private var query = ""
+  /// The model of the search text that filters the rows.
+  @State private var search = EditorModelSlot()
 
   /// The error message of the last call of the view, or `nil`.
   @State private var failureMessage: String?
@@ -161,11 +162,14 @@ public struct SessionListView: View {
   }
 
   /// The search field, the Refresh button and the new session button.
+  ///
+  /// The search field is a kit one-line field (``AgentOneLineField``). The
+  /// search sends no request, so Return in the field submits nothing.
   private var header: some View {
     HStack {
-      TextField(String(localized: "Search", bundle: .module), text: $query)
-        .textFieldStyle(.roundedBorder)
-        .accessibilityIdentifier(Self.searchIdentifier)
+      AgentOneLineField(
+        model: searchModel, identifier: Self.searchIdentifier,
+        placeholder: String(localized: "Search", bundle: .module))
       if connection.canListSessions {
         Button {
           start(Self.refreshIdentifier) { await refresh() }
@@ -217,7 +221,7 @@ public struct SessionListView: View {
   /// The rows and the "Load More" row.
   private var list: some View {
     List {
-      ForEach(Self.sessions(in: connection.sessions, matching: query), id: \.sessionId) { info in
+      ForEach(Self.sessions(in: connection.sessions, matching: searchModel.text), id: \.sessionId) { info in
         row(for: info)
       }
       if connection.hasMoreSessions {
@@ -381,6 +385,11 @@ public struct SessionListView: View {
     }
     failureMessage = message
     reportCall?(message)
+  }
+
+  /// The model of the search text. The first read makes an empty model.
+  private var searchModel: EditorModel {
+    search.model(text: "")
   }
 
   /// The open model of a session that is not ``currentSession``.

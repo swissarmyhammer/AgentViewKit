@@ -123,12 +123,12 @@ public struct EditorKitPromptEditor: View {
     .editorInlineDecorations([
       EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references))
     ])
-    // The identifier goes on the text view that takes typing, so that a UI
-    // test finds one element to type into.
+    // The identifier and the label go on the text view that takes typing, so
+    // that a UI test finds one element to type into, and VoiceOver names it.
     .editorTextAccessibilityIdentifier(Self.identifier)
+    .editorTextAccessibilityLabel(context.placeholder)
     .frame(minHeight: Self.minimumHeight, maxHeight: Self.maximumHeight)
     .fixedSize(horizontal: false, vertical: true)
-    .accessibilityLabel(context.placeholder)
     // The editor is in the field glass of the composer. So the composer
     // shows the menu on its own glass above the field (D110 (c)).
     .anchorPreference(key: PromptEditorMenuKey.self, value: .bounds) { anchor in

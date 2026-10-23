@@ -1,3 +1,4 @@
+import EditorCore
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -70,7 +71,7 @@ public struct PermissionView: View {
   public static let subjectIdentifier = "permission-subject"
   /// The start of the accessibility identifier of each option button.
   public static let optionIdentifierPrefix = "permission-option-"
-  /// The accessibility identifier of the comment field.
+  /// The accessibility identifier of the text view of the comment field.
   public static let commentIdentifier = "permission-comment"
   /// The accessibility identifier of the Send button of the comment field.
   public static let commentSubmitIdentifier = "permission-comment-submit"
@@ -92,6 +93,11 @@ public struct PermissionView: View {
   /// The symbol of the Send button of the comment field. The comment goes
   /// out as the next prompt, so the button shows the symbol of a send.
   static let commentSubmitSymbol = SharedSymbol.send
+  /// The text that the empty comment field shows, and the accessibility
+  /// label of the field, from the String Catalog of the kit.
+  static var commentPlaceholder: String {
+    String(localized: "Tell the agent what to do instead", bundle: .module)
+  }
   /// The symbol of the "switch to auto" button, which changes the session
   /// mode.
   static let switchToAutoSymbol = SharedSymbol.switchMode
@@ -130,8 +136,8 @@ public struct PermissionView: View {
   /// value, the card shows the comment field.
   @State private var selectedReject: FoundationModelsACP.PermissionOption?
 
-  /// The text of the comment field.
-  @State private var comment = ""
+  /// The model of the text of the comment field.
+  @State private var comment = EditorModelSlot()
 
   /// Whether the card shows the related terminal.
   @State private var showsTerminal = false
@@ -335,16 +341,18 @@ public struct PermissionView: View {
 
   /// The comment field of a reject option, and its Send button.
   ///
+  /// The field is a kit one-line field (``AgentOneLineField``). Return in
+  /// the field selects the option, as the Send button does.
+  ///
   /// - Parameter option: The reject option that the user selected.
   /// - Returns: The row.
   private func commentRow(for option: FoundationModelsACP.PermissionOption) -> some View {
     HStack(spacing: theme.spacing.s) {
-      TextField(
-        String(localized: "Tell the agent what to do instead", bundle: .module), text: $comment
-      )
-        .textFieldStyle(.roundedBorder)
-        .onSubmit { sendReject(option: option) }
-        .accessibilityIdentifier(Self.commentIdentifier)
+      AgentOneLineField(
+        model: commentModel, identifier: Self.commentIdentifier, placeholder: Self.commentPlaceholder
+      ) { _ in
+        sendReject(option: option)
+      }
       Button(String(localized: "Send", bundle: .module), systemImage: Self.commentSubmitSymbol) {
         sendReject(option: option)
       }
@@ -390,7 +398,7 @@ public struct PermissionView: View {
   ///
   /// - Parameter option: The reject option.
   private func sendReject(option: FoundationModelsACP.PermissionOption) {
-    let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+    let text = commentModel.text.trimmingCharacters(in: .whitespacesAndNewlines)
     answer(with: option, comment: text.isEmpty ? nil : text)
   }
 
@@ -422,6 +430,12 @@ public struct PermissionView: View {
     session.startSelectPermission(request.id, option: allow.optionId, reporting: reportRequestStart)
     session.startSetConfigOption(
       modeOption.configId, to: PermissionPresentation.autoModeValue, reporting: reportRequestStart)
+  }
+
+  /// The model of the text of the comment field. The first read makes an
+  /// empty model.
+  private var commentModel: EditorModel {
+    comment.model(text: "")
   }
 
   /// Whether the session model still holds the request. An answer after the
