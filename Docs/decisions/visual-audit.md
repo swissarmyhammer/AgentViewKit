@@ -79,28 +79,32 @@ table below gives the EditorKit role that replaces each one.
 | code font, in SwiftUI text and in the EditorKit editor | `editorFont` | system monospaced font, body text style |
 | prose font | `proseFont` | system font, body text style |
 | code text | `editorForeground` | `NSColor.textColor` |
-| frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | the editor background, the editor foreground, and Apple system colors |
+| frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | a clear background (EditorKit ^0apj6a2), the editor foreground, and Apple system colors |
 | selected text | `selection` | `NSColor.selectedTextBackgroundColor` |
 | diff bands | `diffAddedBackground`, `diffRemovedBackground` | system green and system red at opacity 0.18 (`DiffTintDefaults.bandOpacity`) |
 | +N / −N counts of a diff | `diffAddedText`, `diffRemovedText` | system green and system red at full opacity |
 
-The kit does not draw the roles `editorBackground` and `statusBarBackground`
-(D113 answers 1 and 4, TestudoApp `features/style.md` "How the steps
-apply"). A code block has no fill. The header row of a code block, a
-terminal, or command output is content, not a bar: it has no fill, and a
-separator line is under it. Before D113, the table had the row "frame of a
-code block" with `editorBackground`, and the row "header bar of a code block,
-terminal, or command output" with `statusBarBackground`. D113 replaces these
-two rows. `EditorThemeViewsTests` checks the pixels, and `ContentFillTests`
-forbids the `statusBarBackground` role and a theme color as a background.
-Open item ^m231ph5: the EditorKit text view of a code block still draws the
-system text background, because EditorKit keeps the AppKit default
-`drawsBackground = true`. A change in EditorKit is necessary.
+The kit does not draw the role `statusBarBackground` (D113 answers 1 and 4,
+TestudoApp `features/style.md` "How the steps apply"). A code block has no
+fill. The header row of a code block, a terminal, or command output is
+content, not a bar: it has no fill, and a separator line is under it. Before
+D113, the table had the row "frame of a code block" with `editorBackground`,
+and the row "header bar of a code block, terminal, or command output" with
+`statusBarBackground`. D113 replaces these two rows. `EditorThemeViewsTests`
+checks the pixels, and `ContentFillTests` forbids the `statusBarBackground`
+role and a theme color as a background.
 
-The other roles that the EditorKit views read are `gutterBackground`,
-`tabBarBackground`, `tokenTint`, `diffChangedBackground`, and
-`diffHeaderBackground`. With `SystemTheme`, the code gets the syntax colors of
-Xcode. The kit does not set the syntax colors to one color.
+EditorKit ^0apj6a2 (EditorKit main at 69d04fc) makes its views transparent by
+default and removes the roles `editorBackground` and `gutterBackground`. The
+EditorKit text view of a code block draws no background, which answers
+^m231ph5 (the white fill behind the text of a code block). The default
+terminal palette has a clear background too, so terminal output shows no fill
+with a theme that sets no terminal background, such as `SystemTheme`.
+
+The other roles that the EditorKit views read are `tabBarBackground`,
+`tokenTint`, `diffChangedBackground`, and `diffHeaderBackground` (clear by
+default). With `SystemTheme`, the code gets the syntax colors of Xcode. The
+kit does not set the syntax colors to one color.
 
 The kit maps each status to a role with the helpers in an extension of the
 EditorKit `Theme` protocol: `statusColor(for:)` and `tint(for:)`. See

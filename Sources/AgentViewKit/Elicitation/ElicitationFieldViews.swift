@@ -185,8 +185,8 @@ public struct ElicitationTextField: View {
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot(editable: true)
 
-  /// The action of Return in a one-line input: Submit of the nearest
-  /// ``ElicitationView``, or `nil` outside a form.
+  /// The action of Return and Command-Return in a one-line input: Submit of
+  /// the nearest ``ElicitationView``, or `nil` outside a form.
   @Environment(\.elicitationReturnAction) private var returnAction
 
   /// Makes a text field that keeps its own model.
@@ -242,8 +242,8 @@ public struct ElicitationTextField: View {
 
   /// The EditorKit input for `model`. The text view of the input carries
   /// the control identifier of the field, and the title of the field as its
-  /// accessibility label. Return in a one-line input runs ``returnAction``:
-  /// in an ``ElicitationView``, it presses Submit.
+  /// accessibility label. Return and Command-Return in a one-line input run
+  /// ``returnAction``: in an ``ElicitationView``, they press Submit.
   ///
   /// - Parameter model: The model to edit.
   /// - Returns: A one-line field or a multi-line editor.
@@ -257,11 +257,23 @@ public struct ElicitationTextField: View {
         .editorTextAccessibilityLabel(context.schema.title)
         .frame(minHeight: Self.multiLineMinimumHeight)
     } else {
-      SingleLineField(model: model, id: context.identifier) { _ in returnAction?() }
+      SingleLineField(model: model, id: context.identifier)
+        .onEditorCommit { commit in didCommit(commit) }
         .editorSizingMode(.intrinsic)
         .editorTextAccessibilityIdentifier(context.controlIdentifier)
         .editorTextAccessibilityLabel(context.schema.title)
     }
+  }
+
+  /// Runs ``returnAction`` when `commit` submits the one-line input
+  /// (`EditorCommitReason.submitsField`): Return and Command-Return press
+  /// Submit. Esc and a focus loss end the edit, keep the answer, and press
+  /// no action of the form.
+  ///
+  /// - Parameter commit: One end of an edit of the one-line input.
+  private func didCommit(_ commit: EditorCommit) {
+    guard commit.reason.submitsField else { return }
+    returnAction?()
   }
 }
 

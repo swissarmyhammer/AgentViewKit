@@ -12,9 +12,13 @@ import Testing
 /// command scope, so the window has its undo stack.
 ///
 /// The field carries the control identifier of the field on its text view.
-/// Typing writes the answer, Return presses Submit as the footer says,
-/// Esc takes back the typing since the field got the focus and leaves the
-/// request open, and `edit.undo` of the window takes the typing out.
+/// Typing writes the answer, and Return or Command-Return presses Submit as
+/// the footer says. Esc and a focus loss end the edit, keep the answer and
+/// leave the request open (EditorKit commits the edit with `.leave` or
+/// `.focusLoss`). Revert Field (⌃⌘Z) takes back the typing since the field
+/// got the focus, and `edit.undo` of the window takes the typing out. The
+/// field reads the title of the field as its label, and has no placeholder,
+/// so it has no hint.
 @Suite(.serialized, .hostedSerially) @MainActor struct ElicitationTextFieldEditingHostedTests {
   /// The answer that the tests type into the `name` field.
   static let name = "Ada"
@@ -54,6 +58,17 @@ import Testing
     #expect(mounted.form.harness.element(identifier: Self.control)?.label == "Name")
   }
 
+  /// The field sets no placeholder, so EditorKit gives its text view no
+  /// accessibility hint.
+  @Test func theFieldWithNoPlaceholderHasNoHint() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.form.close() }
+
+    let hint = try SingleLineFieldChecks.hint(ofFieldWith: Self.control, in: mounted.form.harness)
+
+    #expect(hint == nil)
+  }
+
   @Test func typingInTheFieldWritesTheAnswerAndEnablesSubmit() async throws {
     let mounted = try await Self.mount()
     defer { mounted.form.close() }
@@ -66,26 +81,55 @@ import Testing
     #expect(harness.element(identifier: ElicitationView.submitIdentifier)?.isEnabled == true)
   }
 
-  @Test func returnInTheFieldSubmitsTheForm() async throws {
+  @Test(arguments: SingleLineFieldChecks.submitModifiers)
+  func returnInTheFieldSubmitsTheForm(modifiers: SwiftUI.EventModifiers) async throws {
     let mounted = try await Self.mount()
     defer { mounted.form.close() }
     try SingleLineFieldChecks.type(Self.name, intoFieldWith: Self.control, in: mounted.form.harness)
 
-    try mounted.form.harness.sendKey(.return)
+    try mounted.form.harness.sendKey(.return, modifiers: modifiers)
 
     let accepted = try JSONValue(json: #"{"action": "accept", "content": {"name": "\#(Self.name)"}}"#)
     #expect(try await mounted.form.result() == accepted)
   }
 
-  @Test func escapeInTheFieldTakesBackTheTypingAndKeepsTheRequest() async throws {
+  /// Esc commits the edit with `.leave` and keeps the answer. The field
+  /// takes Esc, so it presses no action of the form.
+  @Test func escapeInTheFieldKeepsTheAnswerAndTheRequest() async throws {
     let mounted = try await Self.mount()
     defer { mounted.form.close() }
-    let textView = try SingleLineFieldChecks.type(Self.name, intoFieldWith: Self.control, in: mounted.form.harness)
-    try #require(textView.string == Self.name)
 
-    try mounted.form.harness.sendKey(.escape)
+    let textView = try SingleLineFieldChecks.type(
+      Self.name, intoFieldWith: Self.control, in: mounted.form.harness, thenPress: .escape)
 
-    #expect(textView.string.isEmpty)
+    #expect(textView.string == Self.name)
+    #expect(mounted.form.harness.element(identifier: ElicitationView.submitIdentifier)?.isEnabled == true)
+    #expect(mounted.form.session.model.pendingElicitations.count == 1)
+  }
+
+  /// A focus loss commits the edit with `.focusLoss`. It presses no action
+  /// of the form.
+  @Test func aFocusLossOfTheFieldKeepsTheAnswerAndTheRequest() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.form.close() }
+
+    let textView = try SingleLineFieldChecks.typeAndLeaveByFocusLoss(
+      Self.name, intoFieldWith: Self.control, in: mounted.form.harness)
+
+    #expect(textView.string == Self.name)
+    #expect(mounted.form.session.model.pendingElicitations.count == 1)
+  }
+
+  /// Revert Field (⌃⌘Z) takes back the typing since the field got the
+  /// focus, keeps the focus in the field, and leaves the request open.
+  @Test func revertFieldInTheFieldTakesBackTheTypingAndKeepsTheRequest() async throws {
+    let mounted = try await Self.mount()
+    defer { mounted.form.close() }
+
+    let textView = try SingleLineFieldChecks.typeAndRevertField(
+      Self.name, intoFieldWith: Self.control, in: mounted.window)
+
+    SingleLineFieldChecks.expectRevertFieldEmptied(textView, harness: mounted.form.harness)
     #expect(mounted.form.harness.element(identifier: ElicitationView.submitIdentifier)?.isEnabled == false)
     #expect(mounted.form.session.model.pendingElicitations.count == 1)
   }

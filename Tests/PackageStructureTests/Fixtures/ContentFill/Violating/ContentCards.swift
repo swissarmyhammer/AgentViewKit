@@ -15,7 +15,6 @@ struct ContentCards: View {
       Text("surface type").modifier(AgentContentSurface())
       Text("status").background(editorTheme.statusBarBackground)
       Divider().overlay(editorTheme.tabBarBackground)
-      Text("gutter").foregroundStyle(editorTheme.gutterBackground)
       Text("theme").background(editorTheme.selection.opacity(Opacity.card))
       Text("header")
         .background(

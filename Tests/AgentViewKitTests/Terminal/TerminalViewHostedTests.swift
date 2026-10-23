@@ -141,7 +141,6 @@
           size: Self.renderSize))
 
       #expect(pixels.contains(DistinctRolesTheme.Role.terminalBackground))
-      #expect(!pixels.contains(DistinctRolesTheme.Role.editorBackground))
       #expect(!pixels.contains(DistinctRolesTheme.Role.statusBarBackground))
     }
 

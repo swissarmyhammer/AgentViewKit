@@ -321,8 +321,9 @@ does not put the entries in groups by prompt.
 
 The kit has one theme: the EditorKit `Theme`. Set it with `.editorTheme(_:)`.
 Every color of the kit views comes from this theme. This includes the accent,
-the status colors, the diff colors, the editor background, the terminal
-palette, and the bars. The code font and the prose font also come from this
+the status colors, the diff colors, the terminal palette, and the bars. The
+EditorKit views draw no background of their own, so the content behind them
+shows through. The code font and the prose font also come from this
 theme. When you set no theme, EditorKit gives `SystemTheme`. `SystemTheme`
 follows the system appearance and the accent color of the user. EditorKit can
 also import a Zed, VS Code, or tmTheme file.

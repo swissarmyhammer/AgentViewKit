@@ -24,10 +24,6 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
   /// not draw this color (`style.md` "Bar colors of a theme").
   case tabBarBackground
 
-  /// The gutter color of a theme. The gutter is content: it uses the editor
-  /// background, not a fill of its own (`style.md` "Bar colors of a theme").
-  case gutterBackground
-
   /// A `.background(` call with a style in a shape:
   /// `.background(<style>, in: <shape>)`. The call can continue on the next
   /// lines.
@@ -75,7 +71,7 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
     switch self {
     case .backgroundInShape: Self.backgroundInShapeFiles
     case .shapeFill: Self.shapeFillFiles
-    case .agentContentSurface, .statusBarBackground, .tabBarBackground, .gutterBackground, .themeColorBackground:
+    case .agentContentSurface, .statusBarBackground, .tabBarBackground, .themeColorBackground:
       [:]
     }
   }
@@ -90,7 +86,7 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
           WordPattern.wholeWord("AgentContentSurface")
         }
       }
-    case .statusBarBackground, .tabBarBackground, .gutterBackground: WordPattern.wholeWord(rawValue)
+    case .statusBarBackground, .tabBarBackground: WordPattern.wholeWord(rawValue)
     case .backgroundInShape: Self.backgroundInShapePattern
     case .shapeFill: Self.shapeFillPattern
     case .themeColorBackground: Self.themeColorBackgroundPattern
@@ -218,7 +214,6 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
     (.agentContentSurface, "content.modifier(AgentContentSurface())"),
     (.statusBarBackground, "let fill = theme.statusBarBackground"),
     (.tabBarBackground, "let fill = theme.tabBarBackground"),
-    (.gutterBackground, "let fill = theme.gutterBackground"),
     (.backgroundInShape, ".background(.background.secondary, in: ConcentricRectangle(corners: .concentric))"),
     (.backgroundInShape, ".background(isOn ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear), in: shape)"),
     (.backgroundInShape, ".background(.quaternary, in: .capsule)"),
@@ -261,10 +256,9 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
     (.agentContentSurface, [14, 15]),
     (.statusBarBackground, [16]),
     (.tabBarBackground, [17]),
-    (.gutterBackground, [18]),
-    (.backgroundInShape, [11, 21]),
-    (.shapeFill, [12, 13, 25]),
-    (.themeColorBackground, [16, 19]),
+    (.backgroundInShape, [11, 20]),
+    (.shapeFill, [12, 13, 24]),
+    (.themeColorBackground, [16, 18]),
   ]
 
   /// Each form, and each of its allowed files.

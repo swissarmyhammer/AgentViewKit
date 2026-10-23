@@ -51,15 +51,10 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
     static let warning = Color(red: 1, green: Level.half, blue: 0)
     /// The error severity.
     static let error = Color(red: 1, green: 0, blue: 1)
-    /// The editor background.
-    static let editorBackground = Color(red: Level.nineTenths, green: 1, blue: Level.nineTenths)
     /// The editor foreground.
     static let editorForeground = Color(red: Level.tenth, green: Level.tenth, blue: Level.fifth)
     /// The selection.
     static let selection = Color(red: Level.sevenTenths, green: Level.fourFifths, blue: 1)
-    /// The gutter background.
-    static let gutterBackground = Color(
-      red: Level.fourFifths, green: Level.fourFifths, blue: Level.sevenTenths)
     /// The status bar background.
     static let statusBarBackground = Color(red: 0, green: Level.half, blue: Level.half)
     /// The tab bar background.
@@ -108,10 +103,8 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
     }
   }
 
-  var editorBackground: Color { Role.editorBackground }
   var editorForeground: Color { Role.editorForeground }
   var selection: Color { Role.selection }
-  var gutterBackground: Color { Role.gutterBackground }
   var statusBarBackground: Color { Role.statusBarBackground }
   var tabBarBackground: Color { Role.tabBarBackground }
   var diffAddedBackground: Color { Role.added.opacity(Role.bandOpacity) }

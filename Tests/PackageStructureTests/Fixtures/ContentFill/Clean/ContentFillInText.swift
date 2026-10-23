@@ -1,7 +1,6 @@
 // A fixture for ContentFillTests. The package build excludes this file.
-// .agentContentSurface(), AgentContentSurface, statusBarBackground,
-// tabBarBackground and gutterBackground are in this comment, so the scan
-// must not report them.
+// .agentContentSurface(), AgentContentSurface, statusBarBackground and
+// tabBarBackground are in this comment, so the scan must not report them.
 import SwiftUI
 
 /* .background(.quaternary, in: Capsule()), RoundedRectangle(cornerRadius: radius).fill(.quaternary)

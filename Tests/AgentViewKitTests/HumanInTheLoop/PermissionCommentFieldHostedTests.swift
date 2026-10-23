@@ -12,11 +12,14 @@ import Testing
 /// EditorKit field (`SingleLineField`) in a card of the ``RequestDeck``.
 ///
 /// The field carries ``PermissionView/commentIdentifier`` on its text view.
-/// Typing edits the comment, Return sends the reject option with the
-/// comment, Esc takes back the typing since the field got the focus, and
-/// `edit.undo` of the window takes the typing out. The field has its own
-/// `editor:` scope inside the scope of the card, so a jump that lands on the
-/// card focuses the card and not the field.
+/// Typing edits the comment, and Return or Command-Return sends the reject
+/// option with the comment. Esc and a focus loss end the edit, keep the
+/// comment and answer nothing (EditorKit commits the edit with `.leave` or
+/// `.focusLoss`). Revert Field (⌃⌘Z) takes back the typing since the field
+/// got the focus, and `edit.undo` of the window takes the typing out. The
+/// field reads its placeholder as its label and as its hint. The field has
+/// its own `editor:` scope inside the scope of the card, so a jump that lands
+/// on the card focuses the card and not the field.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionCommentFieldHostedTests {
   /// The JSON-RPC id of the permission request of the tests.
   static let requestID = 100
@@ -24,8 +27,8 @@ import Testing
   /// The comment that the tests type.
   static let comment = "Use the test file."
 
-  /// The text that the empty comment field shows, and the label of the
-  /// field.
+  /// The text that the empty comment field shows, the label of the field,
+  /// and the hint of the empty field.
   static let placeholder = "Tell the agent what to do instead"
 
   /// The thread and the deck of a scripted session in a window with an undo
@@ -83,6 +86,19 @@ import Testing
     #expect(open.window.harness.element(identifier: PermissionView.commentIdentifier)?.label == Self.placeholder)
   }
 
+  /// EditorKit gives the empty field its placeholder as the accessibility
+  /// hint (`.editorPlaceholder(_:)`).
+  @Test func theEmptyCommentFieldReadsItsPlaceholderAsItsHint() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let open = try await Self.openComment(in: session)
+    defer { open.window.harness.close() }
+
+    let hint = try SingleLineFieldChecks.hint(ofFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
+
+    #expect(hint == Self.placeholder)
+  }
+
   @Test func typingInTheCommentFieldEditsTheComment() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -95,7 +111,8 @@ import Testing
     #expect(Self.commentValue(in: open.window.harness) == Self.comment)
   }
 
-  @Test func returnInTheCommentFieldSendsTheRejectOptionWithTheComment() async throws {
+  @Test(arguments: SingleLineFieldChecks.submitModifiers)
+  func returnInTheCommentFieldSendsTheRejectOptionWithTheComment(modifiers: SwiftUI.EventModifiers) async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
@@ -104,7 +121,7 @@ import Testing
     try SingleLineFieldChecks.type(
       Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
 
-    try open.window.harness.sendKey(.return)
+    try open.window.harness.sendKey(.return, modifiers: modifiers)
     // The card reports its answer in the same step as it starts the answer
     // task, so a Return that the field did not submit stops the test here.
     let reject = PermissionOptionId(rawValue: AgentCommandsTests.rejectOptionID)
@@ -116,20 +133,55 @@ import Testing
     #expect(session.promptTexts == [Self.comment])
   }
 
-  @Test func escapeInTheCommentFieldTakesBackTheTypingAndKeepsTheRequest() async throws {
+  /// Esc commits the edit with `.leave` and keeps the comment. The field
+  /// takes Esc, so it never answers or dismisses the permission request.
+  @Test func escapeInTheCommentFieldKeepsTheCommentAndTheRequest() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let open = try await Self.openComment(in: session)
+    var answers: [PermissionAnswer] = []
+    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
+
     let textView = try SingleLineFieldChecks.type(
+      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness, thenPress: .escape)
+
+    #expect(textView.string == Self.comment)
+    #expect(Self.commentValue(in: open.window.harness) == Self.comment)
+    #expect(answers.isEmpty)
+    #expect(session.model.pendingPermissions.map(\.id) == [open.request])
+  }
+
+  /// A focus loss commits the edit with `.focusLoss`. It answers nothing.
+  @Test func aFocusLossOfTheCommentFieldKeepsTheCommentAndTheRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    var answers: [PermissionAnswer] = []
+    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    defer { open.window.harness.close() }
+
+    let textView = try SingleLineFieldChecks.typeAndLeaveByFocusLoss(
       Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
-    try #require(textView.string == Self.comment)
 
-    try open.window.harness.sendKey(.escape)
+    #expect(textView.string == Self.comment)
+    #expect(answers.isEmpty)
+    #expect(session.model.pendingPermissions.map(\.id) == [open.request])
+  }
 
-    #expect(textView.string.isEmpty)
-    #expect(open.window.harness.element(identifier: PermissionView.commentIdentifier) != nil)
+  /// Revert Field (⌃⌘Z) takes back the typing since the field got the
+  /// focus, keeps the focus in the field, and answers nothing.
+  @Test func revertFieldInTheCommentFieldTakesBackTheTypingAndKeepsTheRequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    var answers: [PermissionAnswer] = []
+    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    defer { open.window.harness.close() }
+
+    let textView = try SingleLineFieldChecks.typeAndRevertField(
+      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window)
+
+    SingleLineFieldChecks.expectRevertFieldEmptied(textView, harness: open.window.harness)
     #expect((Self.commentValue(in: open.window.harness) ?? "").isEmpty)
+    #expect(answers.isEmpty)
     #expect(session.model.pendingPermissions.map(\.id) == [open.request])
   }
 

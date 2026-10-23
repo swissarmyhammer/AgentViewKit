@@ -41,7 +41,8 @@ import SwiftUI
 ///
 /// A press on an `allow` option calls `selectPermission(_:option:)` on the
 /// session model at once. A press on a `reject` option shows a comment field.
-/// The Send button of the field, or Return in the field, selects the option.
+/// The Send button of the field, or Return or Command-Return in the field,
+/// selects the option.
 /// The wire has no field for a comment, so a comment that is not empty then
 /// goes out as the next prompt (`Docs/decisions/permission-ux.md`). Esc calls
 /// `cancelPermission(_:)`.
@@ -93,8 +94,9 @@ public struct PermissionView: View {
   /// The symbol of the Send button of the comment field. The comment goes
   /// out as the next prompt, so the button shows the symbol of a send.
   static let commentSubmitSymbol = SharedSymbol.send
-  /// The text that the empty comment field shows, and the accessibility
-  /// label of the field, from the String Catalog of the kit.
+  /// The text that the empty comment field shows, the accessibility label of
+  /// the field, and its accessibility hint while it is empty, from the String
+  /// Catalog of the kit.
   static var commentPlaceholder: String {
     String(localized: "Tell the agent what to do instead", bundle: .module)
   }
@@ -341,8 +343,10 @@ public struct PermissionView: View {
 
   /// The comment field of a reject option, and its Send button.
   ///
-  /// The field is a kit one-line field (``AgentOneLineField``). Return in
-  /// the field selects the option, as the Send button does.
+  /// The field is a kit one-line field (``AgentOneLineField``). Return and
+  /// Command-Return in the field select the option, as the Send button does.
+  /// Esc and a focus loss end the edit, keep the comment, and select
+  /// nothing, so Esc in the field never answers the request.
   ///
   /// - Parameter option: The reject option that the user selected.
   /// - Returns: The row.

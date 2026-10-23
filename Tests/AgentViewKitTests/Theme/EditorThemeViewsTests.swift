@@ -28,6 +28,11 @@ import Testing
   /// opaque pixels.
   static let citationFontSize: CGFloat = 48
 
+  /// The distance from the trailing edge of the text area of a code block to
+  /// the point that a test reads, in points: past the end of a short line of
+  /// code, and inside the text area.
+  static let textAreaProbeInset: CGFloat = 8
+
   /// A patch with one added line and one removed line.
   static let patch = """
     diff --git a/Sources/App.swift b/Sources/App.swift
@@ -141,8 +146,8 @@ import Testing
     // frame behind both. With no fill on the header, the backdrop shows in
     // the rows of the header and of the content. Only a line under the
     // header hides the backdrop between them. Clear content keeps the
-    // EditorKit editor out of the check, because the cache of a window
-    // shows the text area of the editor as an opaque color.
+    // EditorKit editor and its text out of the check, so only the header
+    // row and its line can hide the backdrop.
     let block = VStack(spacing: 0) {
       Self.clearBlock.editorBlockHeader()
       Self.clearBlock
@@ -151,16 +156,25 @@ import Testing
     #expect(Self.showsALineInTheBackdrop(pixels, atColumn: Self.size.width / 2))
   }
 
-  @Test(.hostedSerially) func theCodeBlockFrameHasNoEditorBackground() throws {
-    // A code block has no fill (D113). `ImageRenderer` does not draw the
-    // EditorKit editor, and the editor covers the frame below the header.
-    // Thus this test reads the cache of a window, which draws the editor. The
-    // editor draws no background of its own, so the editor background shows
-    // only when the frame fills the block.
+  @Test(.hostedSerially) func theTextAreaOfACodeBlockShowsTheContentBehindTheBlock() throws {
+    // A code block has no fill (D113), and EditorKit draws no background
+    // behind its text (^0apj6a2, ^m231ph5). `ImageRenderer` does not draw the
+    // EditorKit editor, so this test reads the cache of a window. The
+    // backdrop fills the frame of the block, so it shows in the text area
+    // only when no view fills the text area.
     let block = CodeBlockView(code: "let x = 1", language: "swift")
       .editorTheme(DistinctRolesTheme())
-    let pixels = try GlassRenderProbeHostedTests.cachedPixels(of: block, size: Self.size)
-    #expect(!pixels.contains(Role.editorBackground))
+    let harness = HostedViewHarness(SurfaceWithBackdrop(content: block, placement: .behindToTheEdge), size: Self.size)
+    defer { harness.close() }
+    let textView = try #require(harness.views(of: NSTextView.self).first)
+    let pixels = try #require(RenderedPixels(cachingDisplayOf: harness.hostingView))
+    // The pixels start at the top row, so the frame must count from the top.
+    try #require(harness.hostingView.isFlipped)
+
+    let textArea = harness.hostingView.convert(textView.bounds, from: textView)
+    let pastTheCode = CGPoint(x: textArea.maxX - Self.textAreaProbeInset, y: textArea.midY)
+
+    #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: pastTheCode))
   }
 
   // D113: terminal output keeps the background of the terminal palette. The
@@ -176,13 +190,11 @@ import Testing
   @Test func theCodeBlockFrameFillsTheBlockWithNoThemeColor() throws {
     let pixels = try Self.pixels(of: Self.clearBlock.editorBlockFrame())
     #expect(!pixels.contains(Role.terminalBackground))
-    #expect(!pixels.contains(Role.editorBackground))
   }
 
   @Test func withNoThemeTheCommandOutputDrawsNoRoleColor() throws {
     let view = CommandOutputView(command: "ls", output: "a", exitCode: Self.successExitCode)
     let pixels = try #require(RenderedPixels(rendering: view, size: Self.size))
-    #expect(!pixels.contains(Role.editorBackground))
     #expect(!pixels.contains(Role.statusBarBackground))
     #expect(!pixels.contains(Role.succeeded))
   }
@@ -191,7 +203,6 @@ import Testing
     let pixels = try Self.pixels(
       of: CommandOutputView(command: "ls", output: "a", exitCode: Self.successExitCode))
     #expect(pixels.contains(Role.terminalBackground))
-    #expect(!pixels.contains(Role.editorBackground))
     #expect(!pixels.contains(Role.statusBarBackground))
   }
 
