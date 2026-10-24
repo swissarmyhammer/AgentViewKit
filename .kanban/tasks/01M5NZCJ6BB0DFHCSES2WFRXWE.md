@@ -28,8 +28,24 @@ comments:
     - evidence: swift test: 1801 tests in 220 suites passed, 7 known issues. xcodebuild AgentViewKitDemo build: BUILD SUCCEEDED, zero warnings from repo sources (only the Xcode tool line "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"). Scripts/test-examples.sh AgentViewKitDemo: TEST SUCCEEDED, 10 UI tests, 0 failures, including the 3 WindowFrameEndToEndTests. The WIP references no window-size constants from DemoWindowLayout, so no change was needed. The xcodeproj was regenerated with generate_xcodeproj.rb.
     - next: review / commit
   timestamp: 2026-10-24T10:24:10.276303+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5pq3yqmm78t8zn6g6w5dtzr
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (9979b38) — 0 findings (confirmed 0, refuted 1, attempted 7, failed 0, skipped 0); 3 files reviewed, 0 not reviewed
+    - next: none — task moved to done
+  timestamp: 2026-10-24T10:25:48.788498+00:00
+- actor: claude-code
+  id: 01m5pq4d3x56qbm422h763v8aj
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — WindowFrameEndToEndTests.swift (new), DemoTestValues.swift, MainMenuEndToEndTests.swift; first two subtasks covered by 3f186b0
+    - test: green — swift test 1801/220 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock (after merge d56b4de)
+    - commit: f6cb334 (chore kanban), 9979b38 (code, HEAD)
+    - review: clean — 0 findings on HEAD~1..HEAD; task in done
+  timestamp: 2026-10-24T10:26:03.517685+00:00
+position_column: done
+position_ordinal: ffffd780
 title: 'AgentViewKitDemo: the window opens taller than a 1440-pt display, so the request deck and the composer sit off-screen'
 ---
 Found while doing ^hzez035. On a 2560x1440 display the demo window opened at 900x1558 pt (XCUITest frame `{{830, 30}, {900, 1558}}`), even with a saved frame of 900x1320, and the Zoom button kept the height at 1558. The bottom of the window, where the thread's floating controls hold the `RequestDeck` and the composer, is then below the screen: XCUITest reports `permission-card` and `prompt-editor` as not hittable, and a click there lands nowhere.
