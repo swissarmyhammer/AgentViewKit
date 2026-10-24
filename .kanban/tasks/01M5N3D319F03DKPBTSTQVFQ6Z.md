@@ -22,8 +22,24 @@ comments:
     - evidence: 3 files removed (Sources/AgentViewKit/ACP/InProcessAgent.swift, Sources/DemoSupport/AgentConnectionBox.swift, Tests/AgentViewKitTests/ACP/InProcessAgentTests.swift); 6 files edited (README.md, plan.md, Docs/decisions/dependencies.md, Sources/DemoSupport/InMemoryDemoACPAgent.swift, Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb). `swift package update` (all at main, client 64c181d). `swift build --build-tests`: Build complete. `swift test`: 1 + 227 + 1710 tests passed (3 known issues that the tests expect). Demo: generate_xcodeproj.rb, then `xcodebuild -scheme AgentViewKitDemo build`: BUILD SUCCEEDED. The only build warning is the SwiftPM "missing creator for mutated node" of the mlx-swift_Cmlx bundle, which is not in the kit code.
     - next: /review
   timestamp: 2026-10-23T20:57:54.114142+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5n930hjhwy58vxmcp9k5wwx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (3c21612); counts: findings 0, confirmed 0, refuted 0, attempted 8, failed 0. No prior Review Findings sections. The engine could not read the Swift files that this change deleted (InProcessAgent.swift, AgentConnectionBox.swift, InProcessAgentTests.swift). This is correct, because the files do not exist. No validator matched README.md, plan.md and Docs/decisions/dependencies.md.
+    - next: none. The task moved to done.
+  timestamp: 2026-10-23T21:01:23.378609+00:00
+- actor: claude-code
+  id: 01m5n93bnfn4enz280566zn33h
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files removed, 5 files edited
+    - test: green — swift test, 1710 passed, 0 failed, 0 skipped
+    - commit: 3c21612
+    - review: clean — review sha HEAD~1..HEAD, 0 findings
+  timestamp: 2026-10-23T21:01:34.767409+00:00
+position_column: done
+position_ordinal: ffffcb80
 title: Use the InProcessAgent of FoundationModelsACPClient and remove the kit copy
 ---
 Found by the implement step of ^66has33 (2026-10-23).
