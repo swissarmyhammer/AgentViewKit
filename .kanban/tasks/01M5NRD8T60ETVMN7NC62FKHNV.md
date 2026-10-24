@@ -51,8 +51,25 @@ comments:
     - evidence: swift test — 1798 tests in 220 suites passed, 7 known issues (expected), 0 failures; xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo build — BUILD SUCCEEDED, 0 warnings from repo sources; Scripts/test-examples.sh AgentViewKitDemo — 7 UI tests, 0 failures, gate passed (under the shared UI-test lock)
     - next: review/commit. Nothing committed; no draft files left.
   timestamp: 2026-10-24T09:47:53.472936+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5pn0x3cpzr7g2nf1g2w3783
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (93ae8f4) — 0 findings, 0 confirmed, 0 refuted; 7 validator passes attempted, 0 failed; 5 files reviewed; comparison.md not reviewed (no validator matches this file)
+    - next: none — moved to done
+  timestamp: 2026-10-24T09:49:11.660595+00:00
+- actor: claude-code
+  id: 01m5pn1bq4v1n91a7zxy655prs
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files (AgentKeymap.swift, 4 Commands tests, comparison.md)
+    - test: green — swift test 1798/220 (7 known issues), demo build 0 repo warnings, test-examples.sh 7/7 under lock
+    - commit: b4b4295 (chore kanban), 93ae8f4 (code, HEAD)
+    - review: clean — 0 findings on HEAD~1..HEAD; task in done
+    - open outside repo: TestudoApp must switch AgentKeymap.commandPeriod/commandReturn to StandardChords.stop/submitNow (testudoapp-2c told)
+  timestamp: 2026-10-24T09:49:26.628259+00:00
+position_column: done
+position_ordinal: ffffd680
 title: 'AgentKeymap: move the agent keys to the D137 kit key rule (StandardChords)'
 ---
 Found while doing ^5nyqhzc. TestudoApp D137 (features/decisions.md) and EditorKit `StandardChords` (3bc9d3e) say each kit command uses Control-Command, and name the keys: Copy Thread ⌃⌘C, Jump to Previous/Next ⌃⌘↑/⌃⌘↓, previous/next Request ⌃⌘[/⌃⌘]. EditorKit's header says "`AgentKeymap` (AgentViewKit) and `BoardKeymap` (KanbanViewKit) use these constants and have no chord text of their own."
