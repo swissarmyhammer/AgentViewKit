@@ -143,6 +143,19 @@ import Testing
 
     #expect(!light.isClose(to: dark))
   }
+
+  /// An AppKit view of a type that the call hides draws nothing: the image
+  /// is the image of the background alone.
+  @Test func theHostedImageShowsNoViewOfAHiddenType() async throws {
+    let size = SnapshotVariantTests.size
+    let hidden = try #require(
+      await ViewSnapshot.hostedPixels(
+        of: AppearanceReader(), size: size, variant: .light, hiding: [AppearanceFillView.self]))
+    let backgroundPixels = try #require(await ViewSnapshot.hostedPixels(of: Color.clear, size: size, variant: .light))
+
+    #expect(!hidden.contains(SnapshotVariantTests.off))
+    #expect(hidden.isClose(to: backgroundPixels))
+  }
 }
 
 /// A view that draws ``SnapshotVariantTests/on`` when its setting is on in

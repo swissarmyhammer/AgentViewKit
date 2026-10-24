@@ -6,12 +6,12 @@ import SwiftUI
 ///
 /// The type has two render paths:
 ///
-/// - ``hostedPixels(of:size:variant:settle:)`` (path A) mounts the real view
-///   in the off-screen window of ``HostedViewHarness`` and reads the cache of
-///   the window. Use it for each view, except a glass part. It draws the
-///   AppKit views, such as a `ScrollView`, a `List`, a `TextEditor` and the
-///   EditorKit editor, and the views with `accessibilityFocused(_:)`. The
-///   cache of a window shows no glass (`GlassRenderProbeTests`).
+/// - ``hostedPixels(of:size:variant:hiding:settle:)`` (path A) mounts the
+///   real view in the off-screen window of ``HostedViewHarness`` and reads
+///   the cache of the window. Use it for each view, except a glass part. It
+///   draws the AppKit views, such as a `ScrollView`, a `List`, a `TextEditor`
+///   and the EditorKit editor, and the views with `accessibilityFocused(_:)`.
+///   The cache of a window shows no glass (`GlassRenderProbeTests`).
 /// - ``renderedPixels(of:size:variant:)`` (path B) renders the view with
 ///   `ImageRenderer`. Use it for a glass part in isolation, such as the
 ///   field of the composer, the request deck in the bar, or the floating
@@ -36,10 +36,19 @@ public enum ViewSnapshot {
   /// soft edge effect, such as the one that the list of a thread asks for
   /// (^ph0m0hf), leaves an empty image with only the gradient of the effect.
   ///
+  /// The function also hides each AppKit view in `view` whose class is one of
+  /// `hiddenTypes`, or a subclass of one. Give the class of a view that draws
+  /// different pixels on each run, such as the `QLPreviewView` of the
+  /// `AttachmentInspector` of the kit: QuickLook draws its preview out of
+  /// process, at a time that no event of the view tells. The image then
+  /// shows the place of the view, with the views behind it.
+  ///
   /// - Parameters:
   ///   - view: The real view to show.
   ///   - size: The size of the view, in points.
   ///   - variant: The settings of the image.
+  ///   - hiddenTypes: The classes of the AppKit views that the image does not
+  ///     show. The default hides no view.
   ///   - settle: The work that waits for a certain event before the image,
   ///     for example the end of the syntax parse of a code block
   ///     (`SyntaxCoordinator.ensureParsed(upTo:)`). Do not wait for a time.
@@ -48,7 +57,7 @@ public enum ViewSnapshot {
   @MainActor
   public static func hostedPixels(
     of view: some View, size: CGSize, variant: SnapshotVariant,
-    settle: @MainActor () async throws -> Void = {}
+    hiding hiddenTypes: [NSView.Type] = [], settle: @MainActor () async throws -> Void = {}
   ) async rethrows -> RenderedPixels? {
     let harness = HostedViewHarness(variant.pinned(view), size: size)
     defer { harness.close() }
@@ -57,7 +66,21 @@ public enum ViewSnapshot {
     try await settle()
     harness.render()
     ScrollPocketProbe.hidePockets(in: harness.hostingView)
+    hideViews(of: hiddenTypes, in: harness.hostingView)
     return RenderedPixels(cachingDisplayOf: harness.hostingView, scale: RenderedPixels.renderScale)
+  }
+
+  /// Hides each view under `root` whose class is one of `types`, or a
+  /// subclass of one.
+  ///
+  /// - Parameters:
+  ///   - types: The classes of the views to hide.
+  ///   - root: The view whose subtree the function changes.
+  @MainActor
+  private static func hideViews(of types: [NSView.Type], in root: NSView) {
+    for subview in root.descendants where types.contains(where: subview.isKind(of:)) {
+      subview.isHidden = true
+    }
   }
 
   /// Renders `view` with `ImageRenderer` (path B).

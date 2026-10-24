@@ -84,6 +84,24 @@ enum SnapshotFixtures {
   /// The size of the image of the elicitation form, in points.
   static let elicitationSize = CGSize(width: wideWidth, height: elicitationHeight)
 
+  /// The width of the image of the attachment inspector, in points: about
+  /// the width of an inspector column.
+  static let inspectorWidth: CGFloat = 320
+
+  /// The height of the image of the attachment inspector, in points. The
+  /// grouped form of the inspector fits in it with no scroll.
+  static let inspectorHeight: CGFloat = 440
+
+  /// The size of the image of the attachment inspector, in points.
+  static let inspectorSize = CGSize(width: inspectorWidth, height: inspectorHeight)
+
+  /// The name of the file that the attachment inspector shows.
+  static let inspectorFileName = "answer.swift"
+
+  /// The variants of a view that only the color scheme changes: light and
+  /// dark. It is `nonisolated` because the arguments of a test use it.
+  nonisolated static let colorSchemeVariants: [SnapshotVariant] = [.light, .dark]
+
   /// A session with a user message, an agent message with a code block, a
   /// tool call that completed, and a last agent message.
   static var threadSession: SessionModel {

@@ -83,26 +83,32 @@ import Testing
   /// copies fill each image, so that the text goes under the glass part.
   static let backdropCopies = 4
 
-  /// `part` at the bottom of the image, over text that fills the image, as
-  /// the bottom bar of a thread is over the transcript.
+  /// The text that fills an image behind a part: ``backdropCopies`` copies
+  /// of ``backdropMarkdown`` from the top of the image, as a transcript.
   ///
   /// The text is a SwiftUI `Text`, and not a ``ResponseView``:
   /// `ImageRenderer` draws nothing for a ``ResponseView``.
+  static var backdrop: some View {
+    let margin = AgentTheme.default.spacing.m
+    return VStack(alignment: .leading, spacing: margin) {
+      ForEach(0..<backdropCopies, id: \.self) { _ in
+        Text(backdropMarkdown)
+      }
+    }
+    .padding(margin)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .clipped()
+  }
+
+  /// `part` at the bottom of the image, over text that fills the image
+  /// (``backdrop``), as the bottom bar of a thread is over the transcript.
   ///
   /// - Parameter part: The glass part.
   /// - Returns: The part over the text.
   static func overText(_ part: some View) -> some View {
-    let margin = AgentTheme.default.spacing.m
-    return ZStack(alignment: .bottom) {
-      VStack(alignment: .leading, spacing: margin) {
-        ForEach(0..<backdropCopies, id: \.self) { _ in
-          Text(backdropMarkdown)
-        }
-      }
-      .padding(margin)
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-      .clipped()
-      part.padding(margin)
+    ZStack(alignment: .bottom) {
+      backdrop
+      part.padding(AgentTheme.default.spacing.m)
     }
   }
 

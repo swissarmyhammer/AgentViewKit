@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import EditorSwiftUI
 import FoundationModelsACPClient
+import Quartz
 import SwiftUI
 import Testing
 
@@ -26,14 +27,18 @@ import Testing
   ///   - name: The name of the view in the image name, such as `thread`.
   ///   - size: The size of the image, in points.
   ///   - variant: The settings of the image.
+  ///   - hiddenTypes: The classes of the AppKit views that the image does not
+  ///     show (``ViewSnapshot/hostedPixels(of:size:variant:hiding:settle:)``).
   ///   - settle: The wait for a certain event before the image.
   ///   - sourceLocation: The location of the caller, for the issue.
   /// - Throws: The error of `settle`, or of ``SnapshotStore``.
   static func verify(
     _ view: some View, named name: String, size: CGSize, variant: SnapshotVariant,
-    settle: @MainActor () async throws -> Void = {}, sourceLocation: SourceLocation = #_sourceLocation
+    hiding hiddenTypes: [NSView.Type] = [], settle: @MainActor () async throws -> Void = {},
+    sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
-    let pixels = try await ViewSnapshot.hostedPixels(of: view, size: size, variant: variant, settle: settle)
+    let pixels = try await ViewSnapshot.hostedPixels(
+      of: view, size: size, variant: variant, hiding: hiddenTypes, settle: settle)
     try SnapshotStore(suite: "HostedSnapshotTests")
       .verify(pixels, named: variant.name(of: name), sourceLocation: sourceLocation)
   }
@@ -149,5 +154,32 @@ import Testing
     try await Self.verify(
       ElicitationView(request: request, owner: session), named: "elicitation-form",
       size: SnapshotFixtures.elicitationSize, variant: variant)
+  }
+
+  /// The attachment inspector of a file on disk, over the text backdrop of
+  /// ``GlassSnapshotTests/backdrop``. The grouped form of the inspector hides
+  /// its own background (^bkhgxs5), so the text shows in the margins of the
+  /// form and between its sections.
+  ///
+  /// The image hides the live `QLPreviewView` of the preview row. QuickLook
+  /// draws the preview out of process, and no event tells when it is drawn:
+  /// a read soon after the mount shows no preview, and a read about one
+  /// second later shows the text of the file. Thus the preview row shows its
+  /// place at the fixed height of the preview, with the backdrop through the
+  /// row, on each run.
+  @Test(arguments: SnapshotFixtures.colorSchemeVariants)
+  func theAttachmentInspector(variant: SnapshotVariant) async throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let attachment = try AttachmentInspectorHostedTests.attachment(
+      named: SnapshotFixtures.inspectorFileName, in: directory)
+    let inspector = ZStack {
+      GlassSnapshotTests.backdrop
+      AttachmentInspector(attachment)
+    }
+
+    try await Self.verify(
+      inspector, named: "attachment-inspector", size: SnapshotFixtures.inspectorSize, variant: variant,
+      hiding: [QLPreviewView.self])
   }
 }
