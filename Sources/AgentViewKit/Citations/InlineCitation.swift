@@ -177,10 +177,12 @@ extension View {
 
 // MARK: - Pill
 
-/// The sizes of a citation pill for one font size.
+/// The font and the sizes of a citation pill for one font size.
 ///
 /// ``InlineCitationPill`` and the Textual attachment of a pill use the same
-/// sizes, so that the pill fits the space that the text layout gives it.
+/// font and sizes, so that the pill fits the space that the text layout gives
+/// it. The digits are chrome, so they draw in the `ui` face of the theme, and
+/// the sizes come from that face.
 nonisolated struct InlineCitationMetrics: Equatable, Sendable {
   /// The size of the pill digits, as a part of the text font size.
   static let fontScale: CGFloat = 0.75
@@ -193,14 +195,15 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
   static let verticalPaddingScale: CGFloat = 0.1
 
   /// The weight of the digits.
-  static let weight = NSFont.Weight.semibold
+  static let weight = Font.Weight.semibold
 
   /// The count of sides that get each padding: left and right, or top and
   /// bottom.
   static let paddedSides: CGFloat = 2
 
-  /// The size of the digits, in points.
-  let digitFontSize: CGFloat
+  /// The font of the digits: the face of the pill at the digit size, at
+  /// ``weight``, with digits of one width.
+  let digitFont: Font
 
   /// The size of the pill, in points.
   let size: CGSize
@@ -210,20 +213,27 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
   /// baseline.
   let baselineOffset: CGFloat
 
-  /// Makes the sizes of the pill of a source.
+  /// Makes the font and the sizes of the pill of a source.
   ///
   /// - Parameters:
   ///   - index: The one-based number of the source.
   ///   - textFontSize: The size of the text around the pill, in points.
-  init(index: Int, textFontSize: CGFloat) {
+  ///   - face: The face of the digits: the `ui` face of the theme. The metrics
+  ///     set its size.
+  init(index: Int, textFontSize: CGFloat, face: FontFace) {
     let digitFontSize = textFontSize * Self.fontScale
-    let font = NSFont.monospacedDigitSystemFont(ofSize: digitFontSize, weight: Self.weight)
+    var digitFace = face
+    digitFace.size = digitFontSize
+    let digitFont = digitFace.font().weight(Self.weight).monospacedDigit()
+    // The face has a fixed size, so the font resolves to the same size in
+    // each context, and the default context stands for the one of the text.
+    let font = digitFont.resolve(in: EnvironmentValues().fontResolutionContext).ctFont as NSFont
     let digitsWidth = (String(index) as NSString).size(withAttributes: [.font: font]).width
     let verticalPadding = digitFontSize * Self.verticalPaddingScale
     let horizontalPadding = digitFontSize * Self.horizontalPaddingScale
     let height = (font.ascender - font.descender + verticalPadding * Self.paddedSides).rounded(.up)
     let width = (digitsWidth + horizontalPadding * Self.paddedSides).rounded(.up)
-    self.digitFontSize = digitFontSize
+    self.digitFont = digitFont
     self.size = CGSize(width: max(width, height), height: height)
     self.baselineOffset = font.descender - verticalPadding
   }
@@ -250,13 +260,10 @@ struct InlineCitationPill: View {
 
   var body: some View {
     let textFontSize = (font ?? .body).resolve(in: fontResolutionContext).pointSize
-    let metrics = InlineCitationMetrics(index: index, textFontSize: textFontSize)
-    // The number is chrome, so it draws in the `ui` face of the theme, at the
-    // fixed size of the metrics.
-    var digitFace = editorTheme.face(for: .ui)
-    digitFace.size = metrics.digitFontSize
+    let metrics = InlineCitationMetrics(
+      index: index, textFontSize: textFontSize, face: editorTheme.face(for: .ui))
     return Text(verbatim: String(index))
-      .font(digitFace.font().weight(.semibold).monospacedDigit())
+      .font(metrics.digitFont)
       .lineLimit(1)
       .fixedSize()
       .frame(width: metrics.size.width, height: metrics.size.height)

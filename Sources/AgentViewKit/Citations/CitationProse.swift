@@ -1,3 +1,4 @@
+import EditorTheme
 import SwiftUI
 import Textual
 
@@ -128,12 +129,17 @@ struct CitationMarkdownParser<Base: MarkupParser>: MarkupParser {
   /// The parser of the Markdown text.
   let base: Base
 
+  /// The face of the pill digits: the `ui` face of the theme. Textual sizes
+  /// an attachment outside the SwiftUI environment, so each pill carries the
+  /// face that sizes it.
+  let digitFace: FontFace
+
   func attributedString(for input: String) throws -> AttributedString {
     let parsed = try base.attributedString(for: input)
     guard input.contains(CitationMarkers.start) else { return parsed }
 
     return CitationMarkers.textMarker.replacingMarkers(in: parsed) { number, run in
-      run.isCodeBlock ? AttributedString() : Self.pill(number: number, attributes: run.attributes)
+      run.isCodeBlock ? AttributedString() : pill(number: number, attributes: run.attributes)
     }
   }
 
@@ -143,9 +149,10 @@ struct CitationMarkdownParser<Base: MarkupParser>: MarkupParser {
   ///   - number: The one-based number of the source.
   ///   - attributes: The attributes of the run that holds the marker.
   /// - Returns: One attachment character with the pill and the link.
-  private static func pill(number: Int, attributes: AttributeContainer) -> AttributedString {
+  private func pill(number: Int, attributes: AttributeContainer) -> AttributedString {
     var attributes = attributes
-    attributes.textual.attachment = AnyAttachment(InlineCitationAttachment(number: number))
+    attributes.textual.attachment = AnyAttachment(
+      InlineCitationAttachment(number: number, digitFace: digitFace))
     attributes.link = InlineCitation.url(index: number)
     return AttributedString(MathMarkdownParser.attachmentCharacter, attributes: attributes)
   }
@@ -159,6 +166,9 @@ struct CitationMarkdownParser<Base: MarkupParser>: MarkupParser {
 nonisolated struct InlineCitationAttachment: Textual.Attachment {
   /// The one-based number of the source.
   let number: Int
+
+  /// The face of the digits: the `ui` face of the theme of the text.
+  let digitFace: FontFace
 
   /// The text of the pill in a copy: `[<number>]`.
   var description: String { "[\(number)]" }
@@ -183,7 +193,8 @@ nonisolated struct InlineCitationAttachment: Textual.Attachment {
   /// - Parameter environment: The text environment of the run.
   /// - Returns: The sizes.
   private func metrics(in environment: TextEnvironmentValues) -> InlineCitationMetrics {
-    InlineCitationMetrics(index: number, textFontSize: FontScaled(CGFloat(1)).resolve(in: environment))
+    InlineCitationMetrics(
+      index: number, textFontSize: FontScaled(CGFloat(1)).resolve(in: environment), face: digitFace)
   }
 }
 

@@ -1,3 +1,4 @@
+import EditorTheme
 import Foundation
 import SwiftUI
 import Testing
@@ -99,9 +100,13 @@ import Textual
 
   // MARK: - Parser
 
+  /// The citation parser over the math parser, with the pill digits in the
+  /// system face.
+  static let parser = CitationMarkdownParser(base: MathMarkdownParser(), digitFace: .system)
+
   @Test func theParserMakesEachMarkerAPillWithTheCitationLink() throws {
     let input = "Claim" + CitationMarkers.marker(number: 2) + " **bold**"
-    let output = try CitationMarkdownParser(base: MathMarkdownParser()).attributedString(for: input)
+    let output = try Self.parser.attributedString(for: input)
 
     #expect(String(output.characters) == "Claim" + MathMarkdownParser.attachmentCharacter + " bold")
     let pills = output.runs.filter { $0.textual.attachment != nil }
@@ -112,7 +117,7 @@ import Textual
 
   @Test func theParserDropsAMarkerInACodeBlock() throws {
     let input = "    code" + CitationMarkers.marker(number: 1)
-    let output = try CitationMarkdownParser(base: MathMarkdownParser()).attributedString(for: input)
+    let output = try Self.parser.attributedString(for: input)
 
     #expect(!String(output.characters).contains(MathMarkdownParser.attachmentCharacter))
     #expect(!String(output.characters).contains(CitationMarkers.start))
@@ -120,9 +125,21 @@ import Textual
 
   @Test func theParserKeepsATextWithNoMarker() throws {
     let base = MathMarkdownParser()
-    let parser = CitationMarkdownParser(base: base)
+    let parser = CitationMarkdownParser(base: base, digitFace: .system)
 
     #expect(try parser.attributedString(for: "Some *text*") == base.attributedString(for: "Some *text*"))
+  }
+
+  // MARK: - Metrics
+
+  @Test func thePillTakesItsWidthFromTheDigitsOfTheUIFace() {
+    let index = 1000
+    let textFontSize: CGFloat = 13
+    let system = InlineCitationMetrics(index: index, textFontSize: textFontSize, face: .system)
+    let family = InlineCitationMetrics(
+      index: index, textFontSize: textFontSize, face: FontFace(family: UIFamilyTheme.family))
+
+    #expect(family.size.width != system.size.width)
   }
 
   // MARK: - URL
