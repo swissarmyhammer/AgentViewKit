@@ -60,11 +60,7 @@ import Testing
   /// - Returns: The event.
   static func cKeyEvent(modifiers: NSEvent.ModifierFlags) throws -> NSEvent {
     let characters = modifiers.contains(.shift) ? "C" : "c"
-    return try #require(
-      NSEvent.keyEvent(
-        with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
-        windowNumber: 0, context: nil, characters: characters,
-        charactersIgnoringModifiers: characters, isARepeat: false, keyCode: cKeyCode))
+    return try #require(NSEvent.makeKeyEvent(characters: characters, keyCode: cKeyCode, modifiers: modifiers))
   }
 
   /// Shows a thread with one user message, and gives the focus to the row of

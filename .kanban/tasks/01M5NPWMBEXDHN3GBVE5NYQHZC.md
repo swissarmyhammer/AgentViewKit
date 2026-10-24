@@ -39,6 +39,44 @@ comments:
     - evidence: 5 files — Sources/AgentViewKit/Commands/AgentCommandPlacement.swift, Sources/AgentViewKit/Commands/AgentKeymap.swift, Tests/AgentViewKitTests/Commands/AgentMainMenuHostedTests.swift (new), Tests/AgentViewKitTests/Commands/AgentCommandPlacementTests.swift, Tests/AgentViewKitTests/Commands/AgentCommandsTests.swift. `swift test`: 1779 tests / 217 suites passed. Demo xcodebuild build succeeded.
     - next: /review. Not committed; task left in doing. Key equivalent ⌃⇧⌘C to relay to Testudo.
   timestamp: 2026-10-24T01:29:53.225916+00:00
+- actor: claude-code
+  id: 01m5nrqskxhys803vhe72017eb
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (4ad1a22) — 1 finding (1 confirmed, 1 refuted) — Tests/AgentViewKitTests/Commands/AgentMainMenuHostedTests.swift:61
+    - next: implement the open Review Findings item (generalize AgentKeymapKeyEventTests.commandShiftEvent or share one parameterized key-event helper), then re-review
+  timestamp: 2026-10-24T01:34:53.053995+00:00
+- actor: claude-code
+  id: 01m5nrrha9q4kepxkcnwrqgp0p
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — Copy Message in Edit with ⌃⇧⌘C, shown disabled with no message; Approve and Reject in Session; AgentMainMenuHostedTests; 5 files
+    - test: green — swift test, 1779 tests in 217 suites passed, 0 failed, 0 skipped
+    - commit: 4ad1a22 (+ 8b78a57, a kanban chore)
+    - review: findings — Tests/AgentViewKitTests/Commands/AgentMainMenuHostedTests.swift:61 (reuse)
+  timestamp: 2026-10-24T01:35:17.321260+00:00
+- actor: claude-code
+  id: 01m5ns3xftw34m532tqq8650nf
+  text: |-
+    Review finding (reuse, AgentMainMenuHostedTests.swift:61) fixed (not committed).
+
+    I took the second option the finding gives: one parameterized helper in shared test support, `NSEvent.makeKeyEvent(_:characters:charactersIgnoringModifiers:keyCode:modifiers:timestamp:windowNumber:)` in Sources/AgentViewKitTestSupport/NSEvent+KeyEvent.swift. The defaults are key-down, `charactersIgnoringModifiers = characters`, timestamp 0 and window 0. Why test support and not a `modifiers` parameter on `commandShiftEvent`: the repo sweep found a third copy of the `NSEvent.keyEvent(with:...)` construction in HostedViewHarness's private `keyEvent` (test support). Test support cannot call a helper that lives in the test target, so only a test-support helper can serve all three.
+
+    Changes:
+    - `AgentKeymapKeyEventTests.commandShiftEvent` now forwards to `makeKeyEvent` with `[.command, .shift]` fixed. Its callers and behaviour are the same. I added `import AgentViewKitTestSupport`.
+    - `AgentMainMenuHostedTests.cKeyEvent` now does the C/c choice plus one `#require(NSEvent.makeKeyEvent(...))` call.
+    - `HostedViewHarness.keyEvent` (private) forwards to `makeKeyEvent` with systemUptime and `window.windowNumber`.
+    - After the change, `rg 'keyEvent\('` over every .swift file finds the AppKit `keyEvent(with:)` call only in NSEvent+KeyEvent.swift.
+
+    TDD: I added Tests/AgentViewKitTests/TestSupport/NSEventKeyEventTests.swift with 3 tests (defaults; an explicit charactersIgnoringModifiers; an explicit type, window and timestamp). RED was a compile failure, "type 'NSEvent' has no member 'makeKeyEvent'". GREEN: the filter NSEventKeyEventTests|AgentKeymapKeyEventTests|AgentMainMenuHostedTests ran 10 tests in 3 suites, all passed.
+  timestamp: 2026-10-24T01:41:30.234125+00:00
+- actor: claude-code
+  id: 01m5ns411wtrvzaez5v9acjnf0
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Sources/AgentViewKitTestSupport/NSEvent+KeyEvent.swift (new), Sources/AgentViewKitTestSupport/HostedViewHarness.swift, Tests/AgentViewKitTests/Commands/AgentKeymapKeyEventTests.swift, Tests/AgentViewKitTests/Commands/AgentMainMenuHostedTests.swift, Tests/AgentViewKitTests/TestSupport/NSEventKeyEventTests.swift (new). The full `swift test` run (EditorKit 3bc9d3e) passed 1782 tests in 218 suites with 7 known issues; those are the known issues that were there before this change. The only warning is the pre-existing SwiftPM mlx-swift_Cmlx.bundle "missing creator" warning. The review finding is now `- [x]`.
+    - next: /review. Not committed; the task stays in doing.
+  timestamp: 2026-10-24T01:41:33.884254+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'Copy Message: a main-menu placement in the Edit menu, next to Copy (D41)'
@@ -55,3 +93,12 @@ Today `.copyMessage` has no main-menu placement, so `AgentCommandVerb.menu` is n
 - [x] Check every other AgentCommandVerb for the same gap (D41: all three surfaces). List any other verb without a menu placement, and fix it the same way or file it.
 
 When it's done, send testudoapp-2c the SHA (their ^jqpbx0h depends on it). Full `swift test` green. #avk-8 #testudo-request
+
+## Review Findings (2026-10-23 20:33)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Commands/AgentMainMenuHostedTests.swift:61` `reuse/reuse` — `cKeyEvent(modifiers:)` rebuilds the same `NSEvent.keyEvent(with:.keyDown ...)` call that `AgentKeymapKeyEventTests.commandShiftEvent` already builds. It differs only in the fixed modifiers, the characters and the key code, so the second copy duplicates the event-construction boilerplate and can drift from the first. The `commandShiftEvent` helper fixes its modifiers at `[.command, .shift]`, so it cannot be called as-is for the `.command`-only and Control-Shift-Command cases this file needs. Generalize the existing helper instead of adding a parallel one. Give `AgentKeymapKeyEventTests.commandShiftEvent` a `modifiers` parameter with a default of `[.command, .shift]`, or move one parameterized helper into a shared test-support location. Then `cKeyEvent` becomes a one-line call, or is removed in favor of the shared helper with `characters` set to `"C"` or `"c"`.

@@ -1,5 +1,6 @@
 import AppKit
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import EditorCommands
 import EditorCommandsUI
 import Testing
@@ -27,10 +28,9 @@ import Testing
     characters: String, ignoringModifiers: String, keyCode: UInt16
   ) throws -> NSEvent {
     try #require(
-      NSEvent.keyEvent(
-        with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0,
-        windowNumber: 0, context: nil, characters: characters,
-        charactersIgnoringModifiers: ignoringModifiers, isARepeat: false, keyCode: keyCode))
+      NSEvent.makeKeyEvent(
+        characters: characters, charactersIgnoringModifiers: ignoringModifiers, keyCode: keyCode,
+        modifiers: [.command, .shift]))
   }
 
   @Test func commandShiftLeftBracketSpellsThePreviousRequestChord() throws {

@@ -867,18 +867,9 @@ public final class HostedViewHarness<Content: View> {
   private func keyEvent(
     _ type: NSEvent.EventType, characters: String, keyCode: UInt16, modifiers: NSEvent.ModifierFlags
   ) -> NSEvent? {
-    NSEvent.keyEvent(
-      with: type,
-      location: .zero,
-      modifierFlags: modifiers,
-      timestamp: ProcessInfo.processInfo.systemUptime,
-      windowNumber: window.windowNumber,
-      context: nil,
-      characters: characters,
-      charactersIgnoringModifiers: characters,
-      isARepeat: false,
-      keyCode: keyCode
-    )
+    NSEvent.makeKeyEvent(
+      type, characters: characters, keyCode: keyCode, modifiers: modifiers,
+      timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber)
   }
 
   /// The view of the hosting view under `point`, found with a hit test, as
