@@ -38,8 +38,24 @@ comments:
     - evidence: swift test — 1787 tests in 218 suites passed, 7 known issues (expected), 0 failures; xcodeproj regenerated and xcodebuild AgentViewKitDemo BUILD SUCCEEDED, 0 warnings from repo sources (only the Xcode tool's appintentsmetadataprocessor notice); Scripts/test-examples.sh AgentViewKitDemo — 10 UI tests, 0 failures, example gate passed under the UI-test lock, 0 skipped
     - next: review/commit; no files changed by this step
   timestamp: 2026-10-24T18:45:23.973921+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5qkswg9cz5ws00zcrpm18d0
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 9c76afb, batched mode, not INCOMPLETE) — counts findings 0, confirmed 0, refuted 1, attempted 7, failed 0, skipped 0; 14 files reviewed; 4 snapshot PNGs (not UTF-8) and plan.md (no validator) not reviewed; no prior Review Findings sections on the task
+    - next: none — task moved to done
+  timestamp: 2026-10-24T18:47:07.529954+00:00
+- actor: claude-code
+  id: 01m5qktbsne4gy47s78c92qknd
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 21 files; Send and Stop use .glass; request actions use .bordered on deck glass and .glass elsewhere; a structure test forbids glassProminent/borderedProminent; 4 composer-field-running PNGs re-recorded (pixel-compared, not eyeballed; the user should look at them)
+    - test: green — swift test 1787/218 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: 54d41d2 (chore kanban), 9c76afb (code, HEAD)
+    - review: clean — 0 findings; task in done. Local only.
+  timestamp: 2026-10-24T18:47:23.189341+00:00
+position_column: done
+position_ordinal: ffffda80
 title: Use plain glass and bordered styles for Send, Stop, Submit and the request actions (accent only for selection and focus)
 ---
 User decision (2026-10-24, relayed by kanbanviewkit-84), shared style rule 2, strict: the accent is only for the selection and the focus. A prominent button style gives the accent tint, so the kit uses no prominent button style.
