@@ -635,7 +635,7 @@ struct PromptCompletionRow: View {
     }
     .padding(.horizontal, editorStyle.spacing.s)
     .padding(.vertical, editorStyle.spacing.xs)
-    .selectionSurface(isSelected, radius: Self.selectionRadius)
+    .selectableSurface(isSelected, radius: Self.selectionRadius)
     .padding(.horizontal, Self.selectionHorizontalInset)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(item.label)

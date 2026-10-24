@@ -161,9 +161,8 @@ public struct ElicitationLayout: View {
       }
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .selectionSurface(isSelected, radius: Self.tabRadius)
+      .selectableSurface(isSelected, radius: Self.tabRadius)
       .inlineEdge(radius: editorStyle.radii[Self.tabRadius])
-      .contentShape([.interaction, .focusEffect], EditorSurface.shape(radius: editorStyle.radii[Self.tabRadius]))
     }
     .buttonStyle(.plain)
     .accessibilityElement(children: .ignore)

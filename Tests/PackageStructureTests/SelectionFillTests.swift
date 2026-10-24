@@ -169,6 +169,36 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
       "A selection draws through .selectionSurface (card ^dn1m56r). \(form) is in: \(found)")
   }
 
+  /// The one file that applies the shared selection surface of EditorKit:
+  /// the kit modifier `.selectableSurface`, which pairs the surface with the
+  /// hit and focus shape of the same corners.
+  static let selectableSurfaceFile = KitSourceFiles.kitFile("Theme/SelectableSurface.swift")
+
+  /// The pattern that finds a call of the shared selection surface of
+  /// EditorKit, in either of its forms.
+  static var selectionSurfaceCall: Regex<Substring> { GlassForm.callPattern("selectionSurface") }
+
+  @Test(arguments: SystemStructureTests.scanPaths)
+  func onlyTheSharedSelectableSurfaceAppliesTheSelectionSurface(path: String) throws {
+    let found = try SourceLineScanner.codeMatchStarts(
+      of: Self.selectionSurfaceCall, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+      skipping: [Self.selectableSurfaceFile])
+
+    #expect(
+      found.isEmpty,
+      "A selected item uses .selectableSurface, so its hit and focus shape keep the corners of its surface: \(found)")
+  }
+
+  @Test func theSharedSelectableSurfaceAppliesTheSelectionSurface() throws {
+    let found = try SourceLineScanner.codeMatchStarts(
+      of: Self.selectionSurfaceCall, inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
+      relativeTo: PackageFiles.root)
+
+    #expect(
+      found.contains { $0.hasPrefix("\(Self.selectableSurfaceFile):") },
+      "\(Self.selectableSurfaceFile) applies .selectionSurface: \(found)")
+  }
+
   @Test(arguments: violatingFixtureForms)
   func theScanReportsTheFormInTheViolatingFixture(form: SelectionFillForm, lines: [Int]) throws {
     let found = try SelectionFillForm.fixtureUses(of: form, in: "Violating")

@@ -175,12 +175,10 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
 /// text of the view stays `.primary`.
 ///
 /// The surface has the corners of the view, the same corners that the focus
-/// ring of its attachment scope follows (``AgentSurfaceCorners``). The
-/// surface reads them as a corner radius
-/// (`.selectionSurface(_:cornerRadius:)`), as the ring does
-/// (`.scopeFocusRing(cornerRadius:)`): the corners of an ``AttachmentView``
-/// change when its preview shows the chip, and only the value of the radius
-/// changes, so the view keeps its identity and its state.
+/// ring of its attachment scope follows (``AgentSurfaceCorners``), and a tap
+/// lands in the same shape (``SelectableSurface``). The corners of an
+/// ``AttachmentView`` change when its preview shows the chip, and only the
+/// value of the radius changes, so the view keeps its identity and its state.
 ///
 /// ``AttachmentView``, ``ImageView`` and the location chips of a tool call
 /// use this modifier.
@@ -195,12 +193,10 @@ struct InspectorSelectable: ViewModifier {
   let action: () -> Void
 
   @Environment(\.attachmentSelect) private var selectForInspector
-  @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
     content
-      .selectionSurface(selectForInspector.isSelected(file), cornerRadius: corners.radius(in: editorStyle))
-      .contentShape(.rect)
+      .selectableSurface(selectForInspector.isSelected(file), corners: corners)
       .onTapGesture(perform: action)
       .accessibilityAction(.default, action)
       .help(String(localized: "Show in the inspector", bundle: .module))

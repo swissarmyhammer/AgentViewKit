@@ -263,9 +263,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       .monospacedDigit()
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .selectionSurface(isSelected, radius: Self.fileRowRadius)
-      .contentShape(
-        [.interaction, .focusEffect], EditorSurface.shape(radius: editorStyle.radii[Self.fileRowRadius]))
+      .selectableSurface(isSelected, radius: Self.fileRowRadius)
     }
     .buttonStyle(.plain)
     .help(file.path)
