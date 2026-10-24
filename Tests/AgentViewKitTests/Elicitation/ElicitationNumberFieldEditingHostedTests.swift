@@ -71,9 +71,10 @@ import Testing
   func returnWritesTheTypedNumberAndSubmitsTheForm(modifiers: SwiftUI.EventModifiers) async throws {
     let mounted = try await ElicitationTextFieldEditingHostedTests.mount(Self.requiredCountParams)
     defer { mounted.form.close() }
-    try SingleLineFieldChecks.replaceText(with: Self.typedCount, inFieldWith: Self.control, in: mounted.form.harness)
 
-    try mounted.form.harness.sendKey(.return, modifiers: modifiers)
+    try SingleLineFieldChecks.type(
+      Self.typedCount, intoFieldWith: Self.control, in: mounted.form.harness, replacingAllText: true,
+      thenPress: .return, modifiers: modifiers)
 
     #expect(try await mounted.form.result() == Self.accepted(count: Self.typedCount))
   }
@@ -82,16 +83,7 @@ import Testing
   /// input shows that number again.
   @Test(arguments: ["4x", "x"])
   func textThatIsNotANumberKeepsTheLastNumberAndShowsItAgain(text: String) async throws {
-    let mounted = try await ElicitationTextFieldEditingHostedTests.mount(Self.countWithDefaultParams)
-    defer { mounted.form.close() }
-    let textView = try SingleLineFieldChecks.replaceText(
-      with: text, inFieldWith: Self.control, in: mounted.form.harness)
-
-    try mounted.form.harness.sendKey(.escape)
-
-    #expect(textView.string == Self.defaultCount)
-    try mounted.form.harness.press(identifier: ElicitationView.submitIdentifier)
-    #expect(try await mounted.form.result() == Self.accepted(count: Self.defaultCount))
+    try await Self.expectEscapeCommit(of: text, writesAndShows: Self.defaultCount)
   }
 
   /// An `integer` field reads its text with an integer format: Foundation's
@@ -99,16 +91,7 @@ import Testing
   /// and shows that whole number. A number format would read 2.5, and the
   /// whole-number write of the field would round it to 3.
   @Test func aFractionInAnIntegerFieldCommitsItsWholePart() async throws {
-    let mounted = try await ElicitationTextFieldEditingHostedTests.mount(Self.countWithDefaultParams)
-    defer { mounted.form.close() }
-    let textView = try SingleLineFieldChecks.replaceText(
-      with: "2.5", inFieldWith: Self.control, in: mounted.form.harness)
-
-    try mounted.form.harness.sendKey(.escape)
-
-    #expect(textView.string == "2")
-    try mounted.form.harness.press(identifier: ElicitationView.submitIdentifier)
-    #expect(try await mounted.form.result() == Self.accepted(count: "2"))
+    try await Self.expectEscapeCommit(of: "2.5", writesAndShows: "2")
   }
 
   /// `edit.undo` of the window, the command of ⌘Z, takes the typing out of
@@ -117,13 +100,38 @@ import Testing
   @Test func theWindowUndoTakesTheTypingOutOfTheInput() async throws {
     let mounted = try await ElicitationTextFieldEditingHostedTests.mount(Self.requiredCountParams)
     defer { mounted.form.close() }
-    let textView = try SingleLineFieldChecks.replaceText(
-      with: Self.typedCount, inFieldWith: Self.control, in: mounted.form.harness)
-    try #require(mounted.window.stack.canUndo)
 
-    try await ComposerWindowUndoHostedTests.perform(.undo, in: mounted.window)
+    let textView = try await SingleLineFieldChecks.typeAndUndoAll(
+      Self.typedCount, intoFieldWith: Self.control, in: mounted.window, replacingAllText: true)
 
     #expect(textView.string == Self.noAnswerText)
     #expect(!mounted.window.stack.canUndo)
+  }
+
+  /// Types `text` in place of the default of a form with the one optional
+  /// field `count` (``countWithDefaultParams``), commits it with Esc, and
+  /// expects that the input shows `number`, and that Submit then sends
+  /// `number` as the answer.
+  ///
+  /// - Parameters:
+  ///   - text: The text to type in place of the default.
+  ///   - number: The number that the commit keeps, as the input shows it and
+  ///     as the JSON text of the answer.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: The error of the transport, or an issue when the field cannot
+  ///   take the typing or the Esc.
+  static func expectEscapeCommit(
+    of text: String, writesAndShows number: String, sourceLocation: SourceLocation = #_sourceLocation
+  ) async throws {
+    let mounted = try await ElicitationTextFieldEditingHostedTests.mount(Self.countWithDefaultParams)
+    defer { mounted.form.close() }
+
+    let textView = try SingleLineFieldChecks.type(
+      text, intoFieldWith: Self.control, in: mounted.form.harness, replacingAllText: true,
+      thenPress: .escape, sourceLocation: sourceLocation)
+
+    #expect(textView.string == number, sourceLocation: sourceLocation)
+    try mounted.form.harness.press(identifier: ElicitationView.submitIdentifier)
+    #expect(try await mounted.form.result() == Self.accepted(count: number), sourceLocation: sourceLocation)
   }
 }

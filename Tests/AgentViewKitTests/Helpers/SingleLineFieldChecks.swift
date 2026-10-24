@@ -75,52 +75,39 @@ import Testing
   /// Makes the text view that carries `identifier` the first responder of
   /// the window, renders one pass, and types `text` into it.
   ///
-  /// - Parameters:
-  ///   - text: The text to type.
-  ///   - identifier: The accessibility identifier of the field.
-  ///   - harness: The harness that shows the field.
-  ///   - sourceLocation: The location of the caller, for the failure report.
-  /// - Returns: The text view.
-  /// - Throws: An issue when no text view carries `identifier`, or when it
-  ///   cannot take the focus.
-  @discardableResult
-  static func type(
-    _ text: String, intoFieldWith identifier: String, in harness: HostedViewHarness<some View>,
-    sourceLocation: SourceLocation = #_sourceLocation
-  ) throws -> NSTextView {
-    let textView = try textView(identifier: identifier, in: harness, sourceLocation: sourceLocation)
-    try #require(harness.window.makeFirstResponder(textView), sourceLocation: sourceLocation)
-    harness.render()
-    harness.type(text)
-    return textView
-  }
-
-  /// Makes the text view that carries `identifier` the first responder of
-  /// the window, selects all of its text, and types `text` in place of it:
-  /// the way to type into a field that shows a value, such as a number
-  /// field.
+  /// With `replacingAllText`, the text view first selects all of its text and
+  /// renders one more pass, so the typing takes the place of that text, and
+  /// the text view must then show exactly `text`: the way to type into a
+  /// field that shows a value, such as a number field.
   ///
   /// - Parameters:
   ///   - text: The text to type.
   ///   - identifier: The accessibility identifier of the field.
   ///   - harness: The harness that shows the field.
+  ///   - replacingAllText: Whether the typing takes the place of all the text
+  ///     of the field. The default is `false`: the typing goes in at the
+  ///     insertion point.
   ///   - sourceLocation: The location of the caller, for the failure report.
   /// - Returns: The text view.
   /// - Throws: An issue when no text view carries `identifier`, when it
-  ///   cannot take the focus, or when the typing does not take the place of
-  ///   the text.
+  ///   cannot take the focus, or, with `replacingAllText`, when the typing
+  ///   does not take the place of the text.
   @discardableResult
-  static func replaceText(
-    with text: String, inFieldWith identifier: String, in harness: HostedViewHarness<some View>,
-    sourceLocation: SourceLocation = #_sourceLocation
+  static func type(
+    _ text: String, intoFieldWith identifier: String, in harness: HostedViewHarness<some View>,
+    replacingAllText: Bool = false, sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> NSTextView {
     let textView = try textView(identifier: identifier, in: harness, sourceLocation: sourceLocation)
     try #require(harness.window.makeFirstResponder(textView), sourceLocation: sourceLocation)
     harness.render()
-    textView.selectAll(nil)
-    harness.render()
+    if replacingAllText {
+      textView.selectAll(nil)
+      harness.render()
+    }
     harness.type(text)
-    try #require(textView.string == text, sourceLocation: sourceLocation)
+    if replacingAllText {
+      try #require(textView.string == text, sourceLocation: sourceLocation)
+    }
     return textView
   }
 
@@ -131,6 +118,9 @@ import Testing
   ///   - text: The text to type.
   ///   - identifier: The accessibility identifier of the field.
   ///   - harness: The harness that shows the field.
+  ///   - replacingAllText: Whether the typing takes the place of all the text
+  ///     of the field, as in ``type(_:intoFieldWith:in:replacingAllText:sourceLocation:)``.
+  ///     The default is `false`.
   ///   - key: The key to press after the typing.
   ///   - modifiers: The modifier keys of the press. The default is none.
   ///   - sourceLocation: The location of the caller, for the failure report.
@@ -141,10 +131,12 @@ import Testing
   @discardableResult
   static func type(
     _ text: String, intoFieldWith identifier: String, in harness: HostedViewHarness<some View>,
-    thenPress key: KeyEquivalent, modifiers: SwiftUI.EventModifiers = [],
+    replacingAllText: Bool = false, thenPress key: KeyEquivalent, modifiers: SwiftUI.EventModifiers = [],
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> NSTextView {
-    let textView = try type(text, intoFieldWith: identifier, in: harness, sourceLocation: sourceLocation)
+    let textView = try type(
+      text, intoFieldWith: identifier, in: harness, replacingAllText: replacingAllText,
+      sourceLocation: sourceLocation)
     try #require(textView.string == text, sourceLocation: sourceLocation)
     try harness.sendKey(key, modifiers: modifiers)
     return textView
@@ -267,6 +259,9 @@ import Testing
   ///   - text: The text to type.
   ///   - identifier: The accessibility identifier of the field.
   ///   - window: The mounted window.
+  ///   - replacingAllText: Whether the typing takes the place of all the text
+  ///     of the field, as in ``type(_:intoFieldWith:in:replacingAllText:sourceLocation:)``.
+  ///     The default is `false`.
   ///   - sourceLocation: The location of the caller, for the failure report.
   /// - Returns: The text view.
   /// - Throws: An issue when the field cannot take the focus, or when the
@@ -274,9 +269,11 @@ import Testing
   @discardableResult
   static func typeAndUndoAll(
     _ text: String, intoFieldWith identifier: String, in window: MountedThread<some View>,
-    sourceLocation: SourceLocation = #_sourceLocation
+    replacingAllText: Bool = false, sourceLocation: SourceLocation = #_sourceLocation
   ) async throws -> NSTextView {
-    let textView = try type(text, intoFieldWith: identifier, in: window.harness, sourceLocation: sourceLocation)
+    let textView = try type(
+      text, intoFieldWith: identifier, in: window.harness, replacingAllText: replacingAllText,
+      sourceLocation: sourceLocation)
     try #require(textView.string == text, sourceLocation: sourceLocation)
     try #require(window.stack.canUndo, sourceLocation: sourceLocation)
     try await ComposerWindowUndoHostedTests.performWhileAvailable(.undo, in: window, typed: text) {

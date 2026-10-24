@@ -215,9 +215,9 @@ import Testing
     defer { mounted.close() }
     let harness = mounted.harness
 
-    try SingleLineFieldChecks.replaceText(
-      with: "12", inFieldWith: ElicitationNumberFieldEditingHostedTests.control, in: harness)
-    try harness.sendKey(.escape)
+    try SingleLineFieldChecks.type(
+      "12", intoFieldWith: ElicitationNumberFieldEditingHostedTests.control, in: harness, replacingAllText: true,
+      thenPress: .escape)
 
     #expect(Self.errors(of: "count", in: harness)?.label?.contains(Self.aboveMaximumMessage) == true)
   }

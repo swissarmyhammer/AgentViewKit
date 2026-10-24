@@ -31,6 +31,40 @@ comments:
     - evidence: 9 files — Sources/AgentViewKit/Input/AgentOneLineField.swift, Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift, Sources/AgentViewKit/Elicitation/ElicitationView.swift (docs), Tests/AgentViewKitTests/Elicitation/ElicitationNumberFieldEditingHostedTests.swift (new), Tests/AgentViewKitTests/Elicitation/ElicitationFieldViewsHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationFieldErrorsHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationTextFieldEditingHostedTests.swift, Tests/AgentViewKitTests/Helpers/SingleLineFieldChecks.swift, Tests/AgentViewKitTests/Theme/FontRoleHostedTests.swift. RED seen for every new test; `swift test` 1796 tests / 220 suites passed (7 known issues, all intentional withKnownIssue meta-tests); demo `xcodebuild -onlyUsePackageVersionsFromResolvedFile build` BUILD SUCCEEDED; `rg "\bTextField\(" Sources/AgentViewKit` finds nothing; no snapshot re-recorded (none changed).
     - next: /review
   timestamp: 2026-10-24T02:19:41.096294+00:00
+- actor: claude-code
+  id: 01m5nvjdd7t540jyb5152cnbeg
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (238c8a7) — 1 finding (1 confirmed, 1 refuted): Tests/AgentViewKitTests/Helpers/SingleLineFieldChecks.swift:113 `reuse/reuse`
+    - next: implement the finding (fold `replaceText` into `type` with a `replacingAllText` flag, or make `replaceText` a thin wrapper), then re-review
+  timestamp: 2026-10-24T02:24:22.439395+00:00
+- actor: claude-code
+  id: 01m5nvjtwhntfs2qz1m7akw4q0
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — number field on SingleLineField(value:format:) through AgentOneLineField(value:format:); no TextField( left in Sources; 9 files
+    - test: green — swift test, 1796 tests in 220 suites passed, 0 failed, 0 skipped
+    - commit: 238c8a7 (+ 0172ff0, a kanban chore)
+    - review: findings — Tests/AgentViewKitTests/Helpers/SingleLineFieldChecks.swift:113 (reuse)
+    - Open decision for the user: "2.5" in an integer field saves as 2 rather than being rejected (Foundation's integer format).
+  timestamp: 2026-10-24T02:24:36.241003+00:00
+- actor: claude-code
+  id: 01m5nvw08zm00k4dt7ytz3htbv
+  text: |-
+    Review finding SingleLineFieldChecks.swift:113 (reuse) fixed:
+    - `SingleLineFieldChecks.type(_:intoFieldWith:in:replacingAllText:sourceLocation:)` gained `replacingAllText: Bool = false`. When true it runs `selectAll(nil)` and one render before typing, then requires `textView.string == text`. `replaceText` is deleted.
+    - The same cause showed up in other places: callers ran `replaceText` and then `sendKey(.escape/.return)` by hand, which repeats the existing `type(...thenPress:modifiers:)`, and the number undo test repeated `typeAndUndoAll`. Both helpers now take `replacingAllText` and pass it through. Callers: ElicitationNumberFieldEditingHostedTests (Return submit, undo) and ElicitationFieldErrorsHostedTests.aCommittedNumberAboveTheMaximumShowsItsError.
+    - The two Esc-commit tests in ElicitationNumberFieldEditingHostedTests (not-a-number keeps the default; 2.5 → 2) had the same mount/type/Esc/expect/submit/expect body. They now share `expectEscapeCommit(of:writesAndShows:)`.
+    - The undo test now uses `typeAndUndoAll`. Its loop is bounded by `typed.count` ("5" → at most one undo), so it still undoes exactly once and checks "0" and `!canUndo`, as before.
+    - Existing callers of `type` (default false) see no change.
+  timestamp: 2026-10-24T02:29:36.671068+00:00
+- actor: claude-code
+  id: 01m5nvw3enp2j0dy6hcfj40fc3
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Tests/AgentViewKitTests/Helpers/SingleLineFieldChecks.swift, Tests/AgentViewKitTests/Elicitation/ElicitationNumberFieldEditingHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationFieldErrorsHostedTests.swift. `swift test` (EditorKit 3bc9d3e): 1796 tests in 220 suites passed, 7 known issues (the intentional withKnownIssue meta-tests). The only build warning is the existing SwiftPM `missing creator for mutated node ... mlx-swift_Cmlx.bundle`. Finding flipped to [x]. Not committed.
+    - next: /review
+  timestamp: 2026-10-24T02:29:39.925284+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'Elicitation number field: SingleLineField(value:format:) instead of TextField(value:format:)'
@@ -52,3 +86,12 @@ Follow-up to ^8zmkh1a, which kept `ElicitationNumberField` (Sources/AgentViewKit
 - [x] Re-record only the elicitation snapshots that change, and list them. None change: the snapshot fixture's only number field (`Retries`, minimum 0 and a maximum) takes the slider path; all four `theElicitationForm` variants compare equal.
 
 Acceptance: no SwiftUI `TextField(` is left in Sources/AgentViewKit; the full `swift test` is green; the demo builds. #avk-7
+
+## Review Findings (2026-10-23 21:22)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Helpers/SingleLineFieldChecks.swift:113` `reuse/reuse` — `replaceText(with:inFieldWith:in:sourceLocation:)` repeats the focus, render, and typing steps of the existing `type(_:intoFieldWith:in:sourceLocation:)`. The only differences are the added `textView.selectAll(nil)` and the post-typing assertion. A near-match that is not extended leaves two copies of the same focus-and-type sequence, which will drift when one is fixed. Give the existing `type` a parameter such as `replacingAllText: Bool = false`. When it is true, call `textView.selectAll(nil)` and render before typing, and check the string afterwards. Then delete `replaceText` and update its callers to pass the flag, or keep `replaceText` as a thin wrapper that calls `type` with that flag.
