@@ -130,6 +130,44 @@ comments:
     - evidence: `swift test` — 1792 tests in 218 suites passed, 7 known issues (expected); xcodeproj regenerated, `xcodebuild ... AgentViewKitDemo build` — BUILD SUCCEEDED, 0 warnings from repo sources (only the Xcode tool notice "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"); `Scripts/test-examples.sh AgentViewKitDemo` — 10 UI tests, 0 failures, "The example gate passed."
     - next: review/commit (nothing committed by this step)
   timestamp: 2026-10-24T17:48:02.020280+00:00
+- actor: claude-code
+  id: 01m5qgtjt0ccerg0ampvqx71k2
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (420298c), batched mode, complete: 28 of 28 engine tasks attempted, 0 failed; counts findings 2, confirmed 2, refuted 3; 16 files reviewed, `Localizable.xcstrings` not reviewed (no validator). Findings: Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift:526, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift:478. All 25 items of the 2026-10-24 11:17 section are `- [x]`; the 12 exemptions are valid under the written rule (each cited test code is present in 32e6856~1 and no hunk of 32e6856 refactors it).
+    - next: fix the two `reuse/reuse` findings in the 2026-10-24 12:49 section (both are on test helpers that 420298c added, so the exemption rule does not cover them); task stays in review.
+  timestamp: 2026-10-24T17:55:04.640622+00:00
+- actor: claude-code
+  id: 01m5qgv68ya1exechp9cg02bjj
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 25/25 checked (13 fixed, 12 exempt under the existing-tests rule; the reviewer confirmed all 12 are valid)
+    - test: green — swift test 1792/218 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: 9f3dc07 (chore kanban), 420298c (code, HEAD)
+    - review: findings — batched sha completed (28/28). AgentAuthViewHostedTests.swift:526 (reuse), ElicitationURLConsentViewHostedTests.swift:478 (reuse)
+  timestamp: 2026-10-24T17:55:24.574841+00:00
+- actor: claude-code
+  id: 01m5qh8rdesjmey9yk1k9qnmvd
+  text: |-
+    Worked the 2 items of the 2026-10-24 12:49 Review Findings (pulled back to doing first).
+    - AgentAuthViewHostedTests: `RemovableAuthCard` is now `HostedAuthCard(session:runner:reconnect:presence:)`, the one view with the environment chain and the no-animation transaction. `harness(_:runner:reconnect:presence:)` builds it; the min-height test uses it too. The removable-card cancel test passes with the transaction on, so no switch for it was needed.
+    - ElicitationURLConsentViewHostedTests: one `press(_:in:requiring:until:)` helper (press, run the `#require` closure, `harness.render(when:)`). Open callers (`open`, `openInDeck`, both new helpers) and the Retry and deck Cancel presses with the same shape use it. The `requiring` closure defaults to `{}`, so a single trailing closure binds to `until` (forward-scan matching). Not changed: the Esc tests (`sendKey`, not a press) and the agent-complete deck test (no press).
+    - Note: `harness.render(when:)` is `ObservationWait.until` plus `render()`, so moving the deck Cancel wait in front of its render pass does not change what the test sees. `.cancel` reaches the fake browser from the task cancel at the press, not from the card removal.
+  timestamp: 2026-10-24T18:02:49.134635+00:00
+- actor: claude-code
+  id: 01m5qh8v58r9he918wd7a0ehjp
+  text: |-
+    ### implement — changed
+    - evidence: `swift test --filter 'AgentAuthViewHostedTests|ElicitationURLConsentViewHostedTests'`: 47 tests in 2 suites passed. Then `swift test`: 1792 tests in 218 suites passed with 7 known issues, 0 failures. The only warning is the known mlx-swift_Cmlx.bundle build-system note. Files: Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift. Both 12:49 findings are `- [x]` with Done notes (27/27 findings checked). Not committed.
+    - next: /review (task left in doing).
+  timestamp: 2026-10-24T18:02:51.944500+00:00
+- actor: claude-code
+  id: 01m5qhdrx69k440wr3fvr2x2jy
+  text: |-
+    ### test — green
+    - evidence: swift test — 1792 tests in 218 suites passed, 0 failed, 7 known issues (expected); no compiler warnings from repo sources (only a build-system note about the mlx-swift_Cmlx.bundle dependency)
+    - next: none; demo and UI runs skipped because only package tests changed
+  timestamp: 2026-10-24T18:05:33.478994+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Use the EditorStyle target of EditorKit for radius, tokens, concentric shape and floating glass (after EditorKit ^4js4t70)
@@ -178,3 +216,13 @@ Acceptance:
 - [x] `Tests/PackageStructureTests/ManifestTests.swift:194` `reuse/reuse` — `ResolvedFile`, with its nested `Pin` and `State` types, duplicates the `Package.resolved` model that `MathEngineDecisionTests` already defines as `ResolvedPins`, `Pin` and `State`. Two copies of the same Decodable shape will drift apart. Define one `ResolvedFile` model in `PackageFileSupport`, public and Decodable with `pins`, `identity` and `state` (`version`, `branch`, `revision`), and use it from both test targets. Delete the copy in `MathEngineDecisionTests`. — **Exempt:** same rule. `ResolvedFile` and its nested types were in the file before 32e6856, and the card's only hunks are at lines 49 and 80.
 - [x] `Tests/PackageStructureTests/RemovedVocabularyTests.swift:381` `reuse/reuse` — `use(of:matching:on:)` is a near-match of `uses(of:on:matching:)` at line 398, which runs the same contains-check and builds the same `RemovedSymbolUse`, once per symbol. The single-initializer case was written as a parallel copy instead of reusing or generalizing the list version, so the two can drift apart. Generalize `uses(of:on:matching:)` to take precompiled patterns, or have `use(of:matching:on:)` delegate to it with a single-element list. Keep one place that builds `RemovedSymbolUse` from a line. — **Exempt:** the review skill's written rule drops findings that ask you to refactor tests that already existed before this card. `use(of:matching:on:)` and `uses(of:on:matching:)` were both in the file before 32e6856. The card's only hunk starts at line 510 (the style-copy list and the symbol-table test).
 - [x] `Tests/PackageStructureTests/RemovedVocabularyTests.swift:549` `reuse/reuse` — `theSymbolTableDeclaresNoStatusOrPrioritySymbol` rebuilds the file scan inline, which `uses(of:inFile:)` (line 464) already does for a path. The test passes a custom pattern maker, so the existing helper was not extended to accept one. Add a `matching makePattern:` parameter to `uses(of:inFile:)`, defaulting to `WordPattern.wholeWord` as `uses(of:on:matching:)` does, and call it here. — **Done:** `uses(of:inFile:matching:)` takes `makePattern` (default `WordPattern.wholeWord`) and passes it on to `uses(of:on:matching:)`. The test calls it with `symbolConstantDeclaration(named:)`.
+
+## Review Findings (2026-10-24 12:49)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 1 not reviewed.
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift:526` `reuse/reuse` — The new test builds its host with a bare `HostedViewHarness(size: Self.cardSize) { RemovableAuthCard(...) }` instead of extending the existing `harness(_:runner:reconnect:)` helper. `RemovableAuthCard.body` (added at lines 224-231) re-declares the same `AgentAuthView` environment chain that `harness` already sets up (`sessionModel`, `terminalAuthRunner`, `agentReconnect`). The two copies have already diverged: `harness` also applies `.transaction { $0.disablesAnimations = true }` and `RemovableAuthCard` does not. Make `RemovableAuthCard` the single host builder: have `harness` accept an optional `CardPresence` (or wrap its content in a `presence`-gated view), so both paths share one environment chain. If the transaction modifier must stay off for the removable card, pass that as a parameter. Do not leave two copies that differ silently. — **Done (whole file):** `RemovableAuthCard` became `HostedAuthCard(session:runner:reconnect:presence:)`, the one view that sets the environment chain (`sessionModel`, `terminalAuthRunner`, `agentReconnect`) and the no-animation transaction. A `nil` presence shows the card always. `harness(_:runner:reconnect:presence:)` returns `HostedViewHarness<HostedAuthCard>`, and `theCardCancelsTheCallThatRunsWhenItGoesAway` calls it with its `CardPresence`. The removable card passes with the transaction applied, so no parameter turns it off. The min-height test also shows `HostedAuthCard(session:)` now, so the file no longer has a third, partial copy of the chain.
+- [x] `Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift:478` `reuse/reuse` — `openAndWaitForTheFailureOfTheBrowser` and `openAndWaitForTheEndOfTheSession` (added at lines 465 and 478) each repeat the press-Open, `#require`, wait, render sequence that the existing `open(_:)` helper (line 235) already performs. Each new helper is a near-copy of `open` with a different wait predicate, and `open` is not generalized to take one. Three copies of the same press-and-wait shape will drift apart. Extract one helper that takes the `#require` check and the wait predicate as parameters, or a `pressOpen(_:until:)` that performs the press and the wait, and let `open(_:)` and the two new helpers call it. Keep each case's predicate at its call site so the test reads the same. The `WaitingReconnect` / `ReconnectRecorder` pair in AgentAuthViewHostedTests.swift is not flagged: `WaitingReconnect` suspends until cancel, which `ReconnectRecorder` cannot do, so the contract does not fit. — **Done (whole file):** one helper, `press(_:in:requiring:until:)`, presses the button, runs the `#require` checks given in `requiring`, then waits with `harness.render(when:)`. `open(_:)`, `openInDeck(_:)`, `openAndWaitForTheEndOfTheSession(_:)` and `openAndWaitForTheFailureOfTheBrowser(_:)` call it with `ElicitationURLConsentView.openIdentifier`. The same press, require and wait shape for Retry (`retryOpensTheBrowserAgainWithNoSecondAnswer`, `retryClearsTheFailureOfTheBrowser`) and for the deck Cancel (`cancelWhileWaitingRemovesTheCardStopsTheBrowserAndSendsNoSecondAnswer`) calls it too. Each check and each predicate stays at its call site.
