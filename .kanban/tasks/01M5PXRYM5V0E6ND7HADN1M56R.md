@@ -8,6 +8,24 @@ comments:
     ### dependency (2026-10-24)
     EditorKit filed the shared selection surface as card 01M5PXSJHPTMDTANGXTFN4SP6B. It adds `.selectionSurface(_:radius:)`, the tokens `selectionOpacity` (0.20) and `inactiveSelectionOpacity` (0.08), the `appearsActive` grey fallback and the `.isSelected` trait, and moves the palette and completion rows onto it. It is additive and goes straight to EK main with no hold branch. It is queued behind EK ^b84akwb. Start this card only once that card's commit is on EK main, and record the SHA.
   timestamp: 2026-10-24T12:22:42.432939+00:00
+- actor: claude-code
+  id: 01m5q4wn5508y5fnqj8jpenhmh
+  text: |-
+    ### dependency landed (2026-10-24)
+    EditorKit 01M5PXSJHPTMDTANGXTFN4SP6B (^fn4sp6b) is on EK main fd2ce62; the feature commit is ed23895. This card can start.
+
+    API:
+    - `.selectionSurface(_ isSelected: Bool, radius: EditorStyle.Radius)` in EditorStyle.
+    - `EditorStyle.selectionOpacity` (0.20) and `EditorStyle.inactiveSelectionOpacity` (0.08) are static lets.
+    - A `.tint` fill in the surface shape behind the content; `.primary` at 0.08 when `\.appearsActive` is false.
+    - Text stays primary, the modifier adds `.isSelected`, and the focus ring is unchanged.
+
+    EK adopted it in palette rows (the white-text swap is gone), completion rows, workspace tabs and outline rows.
+
+    Breaking: `rowCornerRadius` was removed from the palette and completion ResolvedModel, and so was `DefaultCommandPaletteStyle.rowCornerRadius(in:)`. Check whether AVK uses either.
+
+    Test tip: hosted test windows are not key, so set `\.appearsActive` to true to see the accent fill.
+  timestamp: 2026-10-24T14:26:29.669411+00:00
 position_column: todo
 position_ordinal: a380
 title: Draw every selection through the shared EditorStyle selection surface (translucent accent, one code path)

@@ -44,6 +44,24 @@ comments:
     - evidence: `swift test` green — 1781 tests in 218 suites passed with 7 known issues; PackageStructureTests 233 tests in 31 suites passed; no warnings. RED first: the new FixedCornerRadiusTests (literal radius, own ConcentricRectangle), RemovedVocabularyTests (style copies, SharedSymbol status constants) and ManifestTests (EditorStyle product) failed before the change and pass after. 107 paths changed (106 files in diff + new Sources/AgentViewKit/Theme/FloatingGlassID.swift); 0 snapshot PNGs changed or re-recorded. Built against EditorKit clone 39c0801 (contains 2a3db5e). Not committed; demo xcodebuild and UI tests not run (gate after EditorKit push).
     - next: /review. Demo build gate after EditorKit pushes (generate_xcodeproj.rb now links EditorStyle).
   timestamp: 2026-10-24T12:04:53.345672+00:00
+- actor: claude-code
+  id: 01m5pyry08v3844y11q19ykb6z
+  text: |-
+    ### test — stuck
+    - evidence: (1) `swift package unedit EditorKit` removed Packages/ (clone at 39c0801 had no changes). EditorKit origin/main is NOT 39c0801: it is c39c0a4 (39c0801 is an ancestor; 4 commits on top: 77538b6, 4bb7999, 9c33b56, c39c0a4). The old pin was 3bc9d3e, which lacks EditorStyle, so I ran `swift package update EditorKit`; Package.resolved (untracked) now pins EditorKit c39c0a49a4b544a24e43975d79753f417914ed09, not 39c0a... the 39c0801 asked for. (2) `swift test` — exit 0, 1781 tests in 218 suites passed, 7 known issues, 0 warnings from repo sources (only the mlx-swift_Cmlx.bundle build-system note). (3) generate_xcodeproj.rb regenerated; `xcodebuild ... build` BUILD SUCCEEDED, 0 warnings from repo sources (only the appintentsmetadataprocessor toolchain note). (4) `Scripts/test-examples.sh AgentViewKitDemo` — 9 of 10 UI tests pass; FAILS ACPTabEndToEndTests.testASendOfHelloShowsTheReplyOfTheAgent: "Element TextView ... identifier: 'prompt-editor' is not hittable" (ACPTabEndToEndTests.swift click on the editor).
+    - not caused by this change: the identical failure occurs on a clean worktree of HEAD 6493d6f (no uncommitted changes) against the same EditorKit c39c0a4. The last green demo gate was at 04:47 local, before EditorKit ab092aa (font faces) landed.
+    - diagnosis: app.debugDescription before the click shows the whole app tree Disabled and a Dialog {830,-216,280x168} whose child is Button 'siri' (label 'Siri Waveform Orb'); that child is an AX element of pid 16834 = CampoRemoteService (system in-app Siri remote UI); the app log shows `com.apple.WritingTools isEnhancedSiriAvailable value changed: true` at launch. The prompt-editor text view reports enabled=false, hittable=false even after `app.activate()`. So the macOS Writing Tools / Siri overlay disables the text views while the test runs. Buttons and rows still click, which is why the other 9 tests pass.
+    - blocker (a person decides): fix needs either a system setting (turn off Enhanced Siri / Writing Tools on the test machine) or a product decision to set `writingToolsBehavior = .none` on the EditorKit text views (EditorKit has no such setting today; not changed here). Also decide whether to accept EditorKit c39c0a4 instead of 39c0801.
+    - next: person decides; then rerun `Scripts/test-examples.sh AgentViewKitDemo` under the lock. No files left: the temporary diagnostic in ACPTabEndToEndTests.swift was removed (no diff on Examples/AgentViewKitDemo/Tests); scratch worktrees removed. Nothing committed.
+  timestamp: 2026-10-24T12:39:36.200358+00:00
+- actor: claude-code
+  id: 01m5q4wx46fx715py0r5kyc998
+  text: |-
+    ### test — green
+    - evidence: swift test — 1784 tests in 218 suites + 233 XCTest-run tests passed, 0 failures, 7 known issues (expected). xcodebuild AgentViewKitDemo build — BUILD SUCCEEDED, 0 warnings from repo sources. Scripts/test-examples.sh AgentViewKitDemo — PASS, 10 UI tests, 0 failures (ACPTabEndToEndTests.testASendOfHelloShowsTheReplyOfTheAgent now passes).
+    - test-environment fix: the demo UI test failure was environmental (window opened on a display arranged above the main display, negative global coordinates, XCTest hit test fails). Added a demo-only launch switch `--primary-screen` (DemoLaunchOptions.primaryScreenArgument / opensOnPrimaryScreen, DemoWindowLayout.primaryScreenFrame(visibleFrame:), Examples/AgentViewKitDemo/AgentViewKitDemoFeature/PrimaryScreenPlacement.swift, applied in DemoRootView). XCUIApplication.launch(arguments:) in Examples/AgentViewKitDemo/Tests/DemoTestValues.swift always passes it. No test weakened or skipped; no Sources/AgentViewKit code changed. Unit tests added in Tests/AgentViewKitTests/ACP/DemoLaunchOptionsTests.swift.
+    - next: review / commit (nothing committed by this step).
+  timestamp: 2026-10-24T14:26:37.830810+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Use the EditorStyle target of EditorKit for radius, tokens, concentric shape and floating glass (after EditorKit ^4js4t70)
