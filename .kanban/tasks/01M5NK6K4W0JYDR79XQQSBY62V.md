@@ -51,8 +51,25 @@ comments:
     - evidence: swift test (against the EditorKit edit, hold/font-faces 39c0801) — 1802 tests in 220 suites passed, 0 failed, 7 known issues (expected); 229-test and 1-test runs in the same output also passed. Zero warnings from repo sources; the only warning line is a build-system note from the mlx-swift_Cmlx.bundle dependency ("missing creator for mutated node"). Demo xcodebuild and UI tests not run, per instruction.
     - next: review; no files changed, nothing committed.
   timestamp: 2026-10-24T10:53:55.425792+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5prvtm07tffs78ygr9jgm76
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (6493d6f) — 0 findings, 0 confirmed, 1 refuted; 41 files reviewed, 2 not reviewed (no validator matched: Docs/decisions/dynamic-type.md, README.md)
+    - next: none — task moved to done
+  timestamp: 2026-10-24T10:56:19.584272+00:00
+- actor: claude-code
+  id: 01m5prw9t03b0qsgf9ewpv5wsm
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 48 files (60 text-style sites + InlineCitation onto the ui face, test themes to faces, FontRoleTests forbids bare text styles and .system(size:), UIFamilyTheme hosted test, docs); built via swift package edit against EK hold/font-faces 39c0801
+    - test: green — swift test 1802/220 (7 known issues); demo gate deferred until EK pushes
+    - commit: 29d7c9d (chore kanban), 6493d6f (code, HEAD) — local only, must not push before EK main has ^aqqd6sb
+    - review: clean — 0 findings on HEAD~1..HEAD; task in done
+    - next: EK pushes → swift package unedit, bump EK pin, full gate (swift test, demo build, test-examples.sh), then push AVK
+  timestamp: 2026-10-24T10:56:35.136582+00:00
+position_column: done
+position_ordinal: ffffd880
 title: Chrome text styles (.caption, .headline, .callout) do not follow a custom uiFont
 ---
 Found while doing ^p6e0v5w. The kit draws its smaller and larger chrome text in SwiftUI text styles (`.font(.caption)`, `.headline`, `.callout`, about 60 sites in Sources/AgentViewKit), as the EditorKit chrome does (palette, completion popup, tag chips). With the default themes this is the ui role, because `ThemeRoleDefaults.uiFont` is the system font. But a theme that sets `uiFont` to another family (a Zed `ui_font_family`, for example) changes only the body-size chrome that reads `editorTheme.uiFont`; a caption or a headline stays in the system font. A SwiftUI `Font` cannot be re-styled to another text style, so AVK cannot derive "uiFont at caption" by itself.
