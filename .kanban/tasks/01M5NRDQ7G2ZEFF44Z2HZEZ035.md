@@ -75,8 +75,24 @@ comments:
     - evidence: swift test — 1797 tests in 220 suites passed, 7 known issues (expected); xcodebuild -scheme AgentViewKitDemo build — BUILD SUCCEEDED, zero warnings from repo sources (only Xcode appintentsmetadataprocessor notice); Scripts/test-examples.sh AgentViewKitDemo — TEST SUCCEEDED, 0 failures, 0 skipped, run under the shared UI-test lock; no new files left behind by the run.
     - next: review/commit
   timestamp: 2026-10-24T09:26:08.881029+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5pksagsdhs0vyqawfz5eq51
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (3f186b0): 0 findings, 0 confirmed, 0 refuted; 8 files reviewed, 0 failed, 0 skipped
+    - next: none — task moved to done
+  timestamp: 2026-10-24T09:27:34.681796+00:00
+- actor: claude-code
+  id: 01m5pkst7s9trz43pwh3dcxe7v
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — demo menu mirror (6 files), then after red test: RequestDeck min-height fix, demo default window 1100x800 fit to screen, MainMenu test click target
+    - test: red (ACP send test: prompt-editor not hittable, window 1558 pt) → green after fix — swift test 1797/220, demo build 0 repo warnings, test-examples.sh all pass under lock
+    - commit: 3640c94 (chore kanban), 3f186b0 (code, HEAD)
+    - review: clean — 0 findings on HEAD~1..HEAD; task in done
+  timestamp: 2026-10-24T09:27:50.777274+00:00
+position_column: done
+position_ordinal: ffffd580
 title: 'AgentViewKitDemo: mirror the agent commands into the main menu bar (EditorMenuCommands)'
 ---
 Found while doing ^5nyqhzc. The demo app installs no `.commands { EditorMenuCommands(...) }` and no `NSMenuMirror` (no `.commands`, `CommandMenu`, `CommandGroup` or `CommandSystem(` in Examples/AgentViewKitDemo). So the demo's menu bar shows none of the agent verbs: not the Session menu, not the View rows, and not the new Edit-menu Copy Message (⌃⇧⌘C). The kit side is done and covered by AgentMainMenuHostedTests (NSMenuMirror); the demo host never wires it.
