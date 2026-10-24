@@ -2,16 +2,23 @@ import EditorCommands
 
 /// The default keys of the agent commands (plan.md §4.1, §11 decision 14).
 ///
-/// | Key | Verb |
-/// | --- | --- |
-/// | Command-Return | ``AgentCommandVerb/send`` |
-/// | Command-Period, Escape | ``AgentCommandVerb/cancel`` |
-/// | Command-Shift-C | ``AgentCommandVerb/copyThread`` |
-/// | Control-Shift-Command-C | ``AgentCommandVerb/copyMessage`` |
-/// | Option-Up Arrow | ``AgentCommandVerb/jumpToPrevious`` |
-/// | Option-Down Arrow | ``AgentCommandVerb/jumpToNext`` |
-/// | Command-Shift-[ | ``AgentCommandVerb/previousRequest`` |
-/// | Command-Shift-] | ``AgentCommandVerb/nextRequest`` |
+/// | Key | `StandardChords` | Verb |
+/// | --- | --- | --- |
+/// | Command-Return | `submitNow` | ``AgentCommandVerb/send`` |
+/// | Command-Period, Escape | `stop`, `leave` | ``AgentCommandVerb/cancel`` |
+/// | Control-Command-C | `copyItemAsText` | ``AgentCommandVerb/copyThread`` |
+/// | Control-Shift-Command-C | | ``AgentCommandVerb/copyMessage`` |
+/// | Control-Command-Up Arrow | `previousItem` | ``AgentCommandVerb/jumpToPrevious`` |
+/// | Control-Command-Down Arrow | `nextItem` | ``AgentCommandVerb/jumpToNext`` |
+/// | Control-Command-[ | `previousWaiting` | ``AgentCommandVerb/previousRequest`` |
+/// | Control-Command-] | `nextWaiting` | ``AgentCommandVerb/nextRequest`` |
+///
+/// The keys follow the one key table of EditorKit, AgentViewKit and
+/// KanbanViewKit (D137): a Mac key keeps its Mac meaning, and each kit command
+/// uses Control-Command, which no editor keymap binds. Each key but Copy
+/// Message is a `StandardChords` constant, so this type holds no chord text
+/// of its own for it. The shared table names no chord for Copy Message, so
+/// ``controlShiftCommandC`` is the one chord of this type.
 ///
 /// The definition of each command carries the first key of its verb in
 /// `keys[.cua]`, so a menu shows that key. When an ``AgentCommandScope``
@@ -24,49 +31,24 @@ import EditorCommands
 /// The keys use the EditorKit chord spelling, with the modifier glyphs in the
 /// order `⌃⌥⇧⌘`. A key that the focused view uses first, such as Return in
 /// the composer, does not get to the scope.
-///
-/// The EditorKit translator spells a key event from its
-/// `charactersIgnoringModifiers`. On a US keyboard, Shift changes `[` to `{`
-/// and `]` to `}`, thus Command-Shift-[ is the chord `⇧⌘{` and
-/// Command-Shift-] is the chord `⇧⌘}`.
 public nonisolated enum AgentKeymap {
-  /// The Command-Return chord.
-  public static let commandReturn = KeyChord("⌘" + KeyChord.return.rawValue)
-
-  /// The Command-Period chord, the Mac key for stop.
-  public static let commandPeriod: KeyChord = "⌘."
-
-  /// The Command-Shift-C chord.
-  public static let commandShiftC: KeyChord = "⇧⌘C"
-
   /// The Control-Shift-Command-C chord: Control-Command, the modifiers of a
-  /// kit command, with Shift on the C of Copy. Command-C stays the Copy of
-  /// the system Edit menu and of the text views.
+  /// kit command, with Shift on the C of Copy. Control-Command-C is Copy
+  /// Thread (`StandardChords.copyItemAsText`), and Command-C stays the Copy
+  /// of the system Edit menu and of the text views.
   public static let controlShiftCommandC: KeyChord = "⌃⇧⌘C"
-
-  /// The Option-Up Arrow chord.
-  public static let optionUp = KeyChord("⌥" + KeyChord.upArrow.rawValue)
-
-  /// The Option-Down Arrow chord.
-  public static let optionDown = KeyChord("⌥" + KeyChord.downArrow.rawValue)
-
-  /// The Command-Shift-[ chord. Shift changes `[` to `{`.
-  public static let commandShiftLeftBracket: KeyChord = "⇧⌘{"
-
-  /// The Command-Shift-] chord. Shift changes `]` to `}`.
-  public static let commandShiftRightBracket: KeyChord = "⇧⌘}"
 
   /// The default chords of each verb that has keys. The first chord is the
   /// chord that a menu shows.
   public static let defaultChords: [AgentCommandVerb: [KeyChord]] = [
-    .send: [commandReturn],
-    .cancel: [commandPeriod, .escape],
-    .copyThread: [commandShiftC],
+    .send: [StandardChords.submitNow],
+    .cancel: [StandardChords.stop, StandardChords.leave],
+    .copyThread: [StandardChords.copyItemAsText],
     .copyMessage: [controlShiftCommandC],
-    .jumpToPrevious: [optionUp],
-    .jumpToNext: [optionDown],
-    .previousRequest: [commandShiftLeftBracket],
-    .nextRequest: [commandShiftRightBracket],
+    .jumpToPrevious: [StandardChords.previousItem],
+    .jumpToNext: [StandardChords.nextItem],
+    .previousRequest: [StandardChords.previousWaiting],
+    .nextRequest: [StandardChords.nextWaiting],
   ]
 
   /// The default keymap: each chord of ``defaultChords`` bound to the

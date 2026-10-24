@@ -186,7 +186,7 @@ final class CallCounter {
     let focus = fixture.system.registry.definition(
       for: AgentCommandVerb.focusComposer.id, at: fixture.path)
 
-    #expect(send?.keys[.cua] == AgentKeymap.commandReturn)
+    #expect(send?.keys[.cua] == StandardChords.submitNow)
     #expect(focus?.keys.isEmpty == true)
   }
 
@@ -401,8 +401,8 @@ final class CallCounter {
 
   @Test func theDefaultKeymapBindsTheNineChords() {
     let expected: [(String, AgentCommandVerb)] = [
-      ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⇧⌘C", .copyThread), ("⌃⇧⌘C", .copyMessage),
-      ("⌥↑", .jumpToPrevious), ("⌥↓", .jumpToNext), ("⇧⌘{", .previousRequest), ("⇧⌘}", .nextRequest),
+      ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⌃⌘C", .copyThread), ("⌃⇧⌘C", .copyMessage),
+      ("⌃⌘↑", .jumpToPrevious), ("⌃⌘↓", .jumpToNext), ("⌃⌘[", .previousRequest), ("⌃⌘]", .nextRequest),
     ]
 
     #expect(AgentKeymap.sortedChords.count == expected.count)
@@ -411,6 +411,35 @@ final class CallCounter {
         .map(\.action)
       #expect(actions == [.command(verb.id)], "\(chord)")
     }
+  }
+
+  /// Each verb with a key in the shared EditorKit table has the chord of that
+  /// table (D137), so the agent keys and the board keys never disagree.
+  @Test func theKitChordsAreTheStandardChords() {
+    let expected: [AgentCommandVerb: [KeyChord]] = [
+      .send: [StandardChords.submitNow],
+      .cancel: [StandardChords.stop, StandardChords.leave],
+      .copyThread: [StandardChords.copyItemAsText],
+      .jumpToPrevious: [StandardChords.previousItem],
+      .jumpToNext: [StandardChords.nextItem],
+      .previousRequest: [StandardChords.previousWaiting],
+      .nextRequest: [StandardChords.nextWaiting],
+    ]
+
+    for (verb, chords) in expected {
+      #expect(AgentKeymap.defaultChords[verb] == chords, "\(verb)")
+    }
+  }
+
+  /// Copy Message is the one agent key that the shared table does not name.
+  /// It is a kit command, so it holds Control and Command, and it takes no
+  /// chord of the shared table.
+  @Test func copyMessageIsAKitChordThatTheSharedTableDoesNotUse() throws {
+    let chord = try #require(AgentKeymap.defaultChords[.copyMessage]?.first)
+    let shared = Set(StandardChords.macKeys + StandardChords.kitCommands)
+
+    #expect(chord.rawValue.hasPrefix("⌃⇧⌘"))
+    #expect(!shared.contains(chord))
   }
 
   // MARK: - Permission

@@ -111,7 +111,7 @@ import Testing
     let fixture = Self.makeFixture()
     fixture.model.apply(.stateUpdate(.running(RunningStateUpdate())))
     var registry = CommandRegistry()
-    let chords = [AgentKeymap.commandPeriod, KeyChord.escape]
+    let chords = [StandardChords.stop, KeyChord.escape]
     AgentCommandRegistration.register(fixture.target, at: fixture.path, into: &registry)
     for chord in chords {
       try #require(

@@ -742,8 +742,9 @@ binding rule: no copy of model data.
 ### 5.6 Keyboard shortcuts
 
 - **Pattern:** Each new verb is an `AgentCommandVerb` with a chord in
-  `AgentKeymap`. Views show the chord in the help tag
-  (`.help("Copy  ⇧⌘C")`).
+  `AgentKeymap`, read from the EditorKit `StandardChords` table (D137:
+  each kit command uses Control-Command). Views show the chord in the help
+  tag (`.help("Copy  ⌃⌘C")`).
 - **Where:** new verbs: read aloud, open changed files, toggle reasoning,
   approve with comment, open the model picker, next and previous session.
 - **Why:** `plan.md` decision 14: the kit verbs are EditorKit commands.

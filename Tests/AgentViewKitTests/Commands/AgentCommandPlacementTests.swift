@@ -92,11 +92,11 @@ import Testing
     defer { session.close() }
     let fixture = AgentCommandsTests.makeFixture(session: session.model)
     let cancel = try #require(fixture.system.registry.definition(for: AgentCommandVerb.cancel.id, at: fixture.path))
-    #expect(cancel.keys[.cua] == AgentKeymap.commandPeriod)
+    #expect(cancel.keys[.cua] == StandardChords.stop)
 
     try await AgentCommandsTests.sendState(ScriptedSession.runningState, to: session)
 
-    for chord in [AgentKeymap.commandPeriod, KeyChord.escape] {
+    for chord in [StandardChords.stop, KeyChord.escape] {
       #expect(
         fixture.system.registry.resolveKey(chord.asSequence, mode: .cua, at: fixture.path)
           == .command(AgentCommandVerb.cancel.id, scope: fixture.path), "\(chord)")
@@ -114,7 +114,7 @@ import Testing
     AgentCommandRegistration.register(target, at: path, into: &registry)
     AgentCommandRegistration.register(target, at: path, into: &registry)
 
-    for chord in [AgentKeymap.commandPeriod, KeyChord.escape] {
+    for chord in [StandardChords.stop, KeyChord.escape] {
       let actions = registry.keymapStack(for: .cua, at: path).bindings(for: chord.asSequence).map(\.action)
       #expect(actions == [.command(AgentCommandVerb.cancel.id)], "\(chord)")
     }
