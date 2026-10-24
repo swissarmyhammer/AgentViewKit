@@ -4,9 +4,9 @@ import SwiftUI
 /// The default view of a sound block (plan.md §9 A2, §9 F).
 ///
 /// AVKit plays a file, so the view first writes the bytes of the sound to a
-/// local file. Then it shows an AVKit player with the controls only. While
-/// the write runs, the view shows a spinner. When the write fails, the view
-/// shows a label.
+/// local file through a ``BlockFileWriteView``. Then it shows an AVKit player
+/// with the controls only. While the write runs, the view shows a spinner.
+/// When the write fails, the view shows a label.
 ///
 /// The view plays an ACP `AudioContent` that a transcript entry holds. The
 /// view decodes the base64 data of the ACP value before the write. Data that
@@ -21,9 +21,6 @@ public struct AudioPlayerView: View {
   /// The ACP sound to play, as the transcript entry holds it.
   let audio: FoundationModelsACP.AudioContent
 
-  /// The state of the file write.
-  @State private var file: PreviewLoadState<URL> = .loading
-
   @Environment(\.audioFileReport) private var reportFile
 
   /// Makes the view of an ACP sound of a transcript entry.
@@ -34,33 +31,29 @@ public struct AudioPlayerView: View {
   }
 
   public var body: some View {
-    content
-      .task(id: audio) { await writeFile() }
-  }
-
-  /// Writes the bytes of the sound to a local file, and records the state of
-  /// the write. Data that is not base64 gives the failed state.
-  private func writeFile() async {
-    show(.loading)
-    guard let data = Data(base64Encoded: audio.data) else {
-      show(.failed)
-      return
+    BlockFileWriteView(id: audio, name: fileName, report: reportFile, bytes: decodedBytes) { file in
+      content(of: file)
     }
-    let name = ContentBlockFile.fileName(uri: nil, mimeType: audio.mimeType.rawValue, stem: Self.fileStem)
-    show(await ContentBlockFile.write(data, named: name).map { .loaded($0) } ?? .failed)
   }
 
-  /// Sets the state of the file write, and reports it through
-  /// ``SwiftUI/EnvironmentValues/audioFileReport``.
+  /// The file name of the sound: ``fileStem`` with the extension of its MIME
+  /// type.
+  private var fileName: String {
+    ContentBlockFile.fileName(uri: nil, mimeType: audio.mimeType.rawValue, stem: Self.fileStem)
+  }
+
+  /// The byte source of the sound: its base64 data, decoded.
   ///
-  /// - Parameter state: The new state of the file write.
-  private func show(_ state: PreviewLoadState<URL>) {
-    file = state
-    reportFile?(state)
+  /// - Returns: The bytes, or `nil` for data that is not base64, which gives
+  ///   the failed state.
+  private func decodedBytes() -> Data? {
+    Data(base64Encoded: audio.data)
   }
 
   /// The spinner, the player, or the failure label.
-  @ViewBuilder private var content: some View {
+  ///
+  /// - Parameter file: The state of the file write.
+  @ViewBuilder private func content(of file: PreviewLoadState<URL>) -> some View {
     switch file {
     case .loading:
       ProgressView()

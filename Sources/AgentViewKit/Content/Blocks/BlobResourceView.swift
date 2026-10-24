@@ -4,8 +4,9 @@ import SwiftUI
 /// (plan.md §9 A2, §9 F).
 ///
 /// An ``AttachmentView`` reads its file, so the view first writes the bytes
-/// to their block file (``ContentBlockFile``). While the write runs, the view
-/// shows a spinner. Then it shows the file in an ``AttachmentView``, as a
+/// to their block file (``ContentBlockFile``) through a
+/// ``BlockFileWriteView``. While the write runs, the view shows a spinner.
+/// Then it shows the file in an ``AttachmentView``, as a
 /// message attachment shows: the default renderer of the type, a press that
 /// selects the file in the inspector of the environment, and the
 /// ``AgentAttachmentVerb`` commands in the context menu. When the write fails,
@@ -17,18 +18,25 @@ struct BlobResourceView: View {
   /// The attachment of the block file of ``data``.
   let file: Attachment
 
-  /// The state of the file write.
-  @State private var write: PreviewLoadState<URL> = .loading
-
   @Environment(\.resourceFileReport) private var reportWrite
 
   var body: some View {
-    content
-      .task(id: file.url) { await writeFile() }
+    BlockFileWriteView(id: file.url, name: file.name, report: reportWrite, bytes: resourceBytes) { write in
+      content(of: write)
+    }
+  }
+
+  /// The byte source of the resource: its bytes, as the block holds them.
+  ///
+  /// - Returns: ``data``.
+  private func resourceBytes() -> Data? {
+    data
   }
 
   /// The spinner, the attachment view of the file, or the chip.
-  @ViewBuilder private var content: some View {
+  ///
+  /// - Parameter write: The state of the file write.
+  @ViewBuilder private func content(of write: PreviewLoadState<URL>) -> some View {
     switch write {
     case .loading:
       ProgressView()
@@ -38,21 +46,6 @@ struct BlobResourceView: View {
     case .failed:
       AttachmentChip(file)
     }
-  }
-
-  /// Writes the bytes to the block file, and records the state of the write.
-  private func writeFile() async {
-    show(.loading)
-    show(await ContentBlockFile.write(data, named: file.name).map { .loaded($0) } ?? .failed)
-  }
-
-  /// Sets the state of the file write, and reports it through
-  /// ``SwiftUI/EnvironmentValues/resourceFileReport``.
-  ///
-  /// - Parameter state: The new state of the file write.
-  private func show(_ state: PreviewLoadState<URL>) {
-    write = state
-    reportWrite?(state)
   }
 }
 
