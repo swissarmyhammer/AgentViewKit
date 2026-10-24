@@ -56,9 +56,7 @@ import AppKit
   ///
   /// - Parameter root: The view whose subtree the probe changes.
   public static func hidePockets(in root: NSView) {
-    for pocket in pockets(in: root.descendants) {
-      pocket.isHidden = true
-    }
+    root.hideDescendants(of: pocketClasses)
   }
 
   /// The pockets in `views`.
@@ -67,7 +65,16 @@ import AppKit
   /// - Returns: Each view in `views` of the pocket class, or an empty array
   ///   when AppKit has no such class.
   static func pockets(in views: [NSView]) -> [NSView] {
-    let pocketClass: AnyClass? = NSClassFromString(pocketClassName)
-    return views.filter { view in pocketClass.map { view.isKind(of: $0) } ?? false }
+    let classes = pocketClasses
+    return views.filter { $0.isKind(ofAny: classes) }
+  }
+
+  /// The private AppKit class of a pocket, as a list for
+  /// ``NSView/isKind(ofAny:)``.
+  ///
+  /// The list is empty when AppKit has no class named ``pocketClassName``,
+  /// so that no view matches.
+  static var pocketClasses: [AnyClass] {
+    NSClassFromString(pocketClassName).map { [$0] } ?? []
   }
 }

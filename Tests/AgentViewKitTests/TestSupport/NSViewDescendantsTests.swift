@@ -1,4 +1,4 @@
-import AgentViewKitTestSupport
+@testable import AgentViewKitTestSupport
 import AppKit
 import Testing
 
@@ -21,5 +21,41 @@ import Testing
 
   @Test func aViewWithNoSubviewHasNoDescendant() {
     #expect(NSView().descendants.isEmpty)
+  }
+
+  @Test func aViewIsOfAnyClassThatItIsOrThatItSubclasses() {
+    let button = NSButton()
+
+    #expect(button.isKind(ofAny: [NSTextField.self, NSButton.self]))
+    #expect(button.isKind(ofAny: [NSControl.self]))
+    #expect(!button.isKind(ofAny: [NSTextField.self]))
+    #expect(!button.isKind(ofAny: []))
+  }
+
+  @Test func hidingDescendantsOfAClassHidesThatClassAndItsSubclassesOnly() {
+    let root = NSView()
+    let control = NSControl()
+    let nestedButton = NSButton()
+    let plain = NSView()
+    root.addSubview(control)
+    control.addSubview(nestedButton)
+    root.addSubview(plain)
+
+    root.hideDescendants(of: [NSControl.self])
+
+    #expect(control.isHidden)
+    #expect(nestedButton.isHidden)
+    #expect(!plain.isHidden)
+    #expect(!root.isHidden)
+  }
+
+  @Test func hidingDescendantsOfNoClassHidesNoView() {
+    let root = NSView()
+    let child = NSButton()
+    root.addSubview(child)
+
+    root.hideDescendants(of: [])
+
+    #expect(!child.isHidden)
   }
 }

@@ -66,21 +66,8 @@ public enum ViewSnapshot {
     try await settle()
     harness.render()
     ScrollPocketProbe.hidePockets(in: harness.hostingView)
-    hideViews(of: hiddenTypes, in: harness.hostingView)
+    harness.hostingView.hideDescendants(of: hiddenTypes)
     return RenderedPixels(cachingDisplayOf: harness.hostingView, scale: RenderedPixels.renderScale)
-  }
-
-  /// Hides each view under `root` whose class is one of `types`, or a
-  /// subclass of one.
-  ///
-  /// - Parameters:
-  ///   - types: The classes of the views to hide.
-  ///   - root: The view whose subtree the function changes.
-  @MainActor
-  private static func hideViews(of types: [NSView.Type], in root: NSView) {
-    for subview in root.descendants where types.contains(where: subview.isKind(of:)) {
-      subview.isHidden = true
-    }
   }
 
   /// Renders `view` with `ImageRenderer` (path B).
