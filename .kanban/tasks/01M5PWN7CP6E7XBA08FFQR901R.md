@@ -82,8 +82,24 @@ comments:
     - evidence: `swift test` — 1803 tests in 220 suites passed, 7 known issues (expected), 0 failures; xcodeproj regenerated with Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb, then `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo -skipMacroValidation -skipPackagePluginValidation -onlyUsePackageVersionsFromResolvedFile build` — BUILD SUCCEEDED, 0 repo warnings (only tool notices: appintentsmetadataprocessor "no AppIntents.framework dependency", SwiftPM "missing creator for mutated node" for the mlx-swift_Cmlx bundle). UI tests skipped as instructed (no demo behaviour changed).
     - next: review
   timestamp: 2026-10-24T20:03:41.088359+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5qr90d2pxhfptj1sq5j0tr2
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (75c54e1), batched mode, complete: 4 files reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 2, attempted 7, failed 0, skipped 0. Prior finding (2026-10-24 14:46) BlobResourceView.swift:44 reuse/reuse is checked.
+    - next: task moved to done; send testudoapp-2c the card id and the SHA after the user pushes.
+  timestamp: 2026-10-24T20:05:17.346533+00:00
+- actor: claude-code
+  id: 01m5qr9evwes0z3vwga7hw148j
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — a shared BlockFileWriteView is used by AudioPlayerView and BlobResourceView, with new hosted tests
+    - test: green — swift test 1803/220 (7 known issues), demo build 0 repo warnings
+    - commit: 990a38c (chore kanban), 75c54e1 (code, HEAD)
+    - review: clean — 0 findings, prior item checked; task in done. Local only; send testudoapp-2c the SHA after the push.
+  timestamp: 2026-10-24T20:05:32.156575+00:00
+position_column: done
+position_ordinal: ffffdc80
 title: 'Tool-call and message files select into the host inspector (resource blobs, file: resource links, locations)'
 ---
 Requested by testudoapp-2c on 2026-10-24 (Testudo ^5wq4zfq waits on this).
