@@ -65,8 +65,25 @@ comments:
     - evidence: 3 files — Tests/AgentViewKitTests/Helpers/SingleLineFieldChecks.swift, Tests/AgentViewKitTests/Elicitation/ElicitationNumberFieldEditingHostedTests.swift, Tests/AgentViewKitTests/Elicitation/ElicitationFieldErrorsHostedTests.swift. `swift test` (EditorKit 3bc9d3e): 1796 tests in 220 suites passed, 7 known issues (the intentional withKnownIssue meta-tests). The only build warning is the existing SwiftPM `missing creator for mutated node ... mlx-swift_Cmlx.bundle`. Finding flipped to [x]. Not committed.
     - next: /review
   timestamp: 2026-10-24T02:29:39.925284+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5nw36242tcb6n30qc47yg2m
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8b701fd) — 0 findings (attempted 7, failed 0, skipped 0); 3 files reviewed, 2 .kanban/ files excluded by .reviewignore; prior `## Review Findings (2026-10-23 21:22)` item is checked
+    - next: none — task moved to done
+  timestamp: 2026-10-24T02:33:31.972511+00:00
+- actor: claude-code
+  id: 01m5nw3ppztf711fkbfj0c0ptz
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — `type(...replacingAllText:)` replaces replaceText; shared expectEscapeCommit; 3 test files
+    - test: green — swift test, 1796 tests in 220 suites passed, 0 failed, 0 skipped
+    - commit: 8b701fd
+    - review: clean — 0 findings; task in done
+    - Not pushed. Code commits: 238c8a7, 8b701fd. Open for the user: "2.5" in an integer field saves as 2.
+  timestamp: 2026-10-24T02:33:49.023306+00:00
+position_column: done
+position_ordinal: ffffd480
 title: 'Elicitation number field: SingleLineField(value:format:) instead of TextField(value:format:)'
 ---
 Follow-up to ^8zmkh1a, which kept `ElicitationNumberField` (Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift) on SwiftUI `TextField(value:format: .number)` inside a Stepper, because SingleLineField had no number form. The user's rule: "if we need a one line editor, we need a one line mode of our editor kit editor". EditorKit ^99zb1dt landed on main at d4d057c (code 954b559, 138a38e).

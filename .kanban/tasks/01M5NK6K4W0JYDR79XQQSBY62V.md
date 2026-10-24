@@ -1,6 +1,16 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5nw5qzea5te72az1yemd3xd
+  text: |-
+    BLOCKED on EditorKit ^aqqd6sb (filed by editorkit-28, 2026-10-23); breaking change. Shape:
+    - `FontFace` (family: String?, design: Font.Design, size: CGFloat?) with `font(_ style: Font.TextStyle = .body) -> Font`: no family gives `.system(style, design:)`; a family gives `.custom(family, size:, relativeTo: style)`; statics `.system` and `.monospaced`.
+    - Theme requirements become `uiFace` / `displayFace` / `codeFace`; extension `face(for:)` and `font(for: role, style: = .body)`; `uiFont` / `displayFont` / `codeFont` are derived only (the face at .body).
+    AVK work when it lands: Theme conformers (DistinctRolesTheme, EnlargedRoleTheme, maybe AgentTheme) set faces; route the ~60 `.caption`/`.headline`/`.callout` sites to `theme.font(for: .ui, style: …)`; extend FontRoleTests to forbid a bare system text style in a view.
+    Asked editorkit-28 to land it via a hold branch: AVK adapts against the SHA, then EditorKit pushes, so a fresh resolve never breaks.
+  timestamp: 2026-10-24T02:34:55.854965+00:00
 position_column: todo
 position_ordinal: b480
 title: Chrome text styles (.caption, .headline, .callout) do not follow a custom uiFont

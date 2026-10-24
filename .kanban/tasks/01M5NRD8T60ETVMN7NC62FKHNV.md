@@ -1,6 +1,18 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5pjkvsjxh51jcp9hzqwqraq
+  text: |-
+    ### user decision (relayed by testudoapp-2c, 2026-10-24)
+    YES to moving AgentKeymap onto D137 / EditorKit StandardChords:
+    - Copy Thread: ⌃⌘C (was ⇧⌘C)
+    - Next/Previous Prompt: ⌃⌘↓ / ⌃⌘↑ (was ⌥↓ / ⌥↑)
+    - Next/Previous Request: ⌃⌘] / ⌃⌘[ (was ⇧⌘} / ⇧⌘{)
+    - Copy Message stays ⌃⇧⌘C
+    No deprecation aliases for the old chords (no-shims rule). Testudo UI tests press none of the old chords (MenuTests reads "Next Prompt" by title only), so Testudo needs no change.
+  timestamp: 2026-10-24T09:07:07.186406+00:00
 position_column: todo
 position_ordinal: b580
 title: 'AgentKeymap: move the agent keys to the D137 kit key rule (StandardChords)'
