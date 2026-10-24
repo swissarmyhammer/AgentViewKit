@@ -164,8 +164,24 @@ comments:
     - evidence: `swift test` — 1828 tests in 225 suites passed, 7 known issues (expected), 0 failures. xcodeproj regenerated; `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo ... build` — BUILD SUCCEEDED, 0 repo warnings (only the Xcode tool note "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"). `Scripts/test-examples.sh AgentViewKitDemo` under the UI-test lock — 10 UI tests, 0 failures, PASS AgentViewKitDemo; no demo process left running, no new files in git status.
     - next: review
   timestamp: 2026-10-24T23:26:16.796472+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5r3vweted174156z6nqmfm5
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e34c08a), batched mode — 6 files reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 0, attempted 7, failed 0, skipped 0. Both prior 2026-10-24 18:09 findings are checked (- [x]).
+    - next: none — task moved to done.
+  timestamp: 2026-10-24T23:27:50.234398+00:00
+- actor: claude-code
+  id: 01m5r3wptbpjngn6aj47zhsfte
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — shared .selectableSurface (fill and hit shape from one radius) used at every selection site; a guard test allows .selectionSurface( only in SelectableSurface.swift
+    - test: green — swift test 1828/225 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: c2562e5 (chore kanban), e34c08a (code, HEAD)
+    - review: clean — 0 findings, prior items checked; task in done. Local only. Open user question: should ArtifactView draw its fill on the panel?
+  timestamp: 2026-10-24T23:28:17.227175+00:00
+position_column: done
+position_ordinal: ffffe080
 title: Draw every selection through the shared EditorStyle selection surface (translucent accent, one code path)
 ---
 The user's rule (2026-10-24): one set of code for selection, smart about transparency, so the selection effects are consistent everywhere.
