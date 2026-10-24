@@ -13,6 +13,12 @@
 //   palette of the EditorKit theme (`Theme.terminalPalette`). The kit keeps
 //   no palette of its own. The 256-color cube, the gray ramp and direct
 //   color are not in the terminal palette, so the parser computes them.
+// - When the palette sets no terminal background, the parser paints the
+//   four ANSI grays (black, bright black, white and bright white) with
+//   label-relative system colors instead, so that they contrast with the
+//   window that shows through the block (^4rck1pf). The text colors and the
+//   fills of the grays differ. `TerminalPalette+Contrast.swift` holds the
+//   mapping and its reasons.
 // - The parser removes all other escape sequences and gives no text for them:
 //   CSI sequences (cursor movement, clear), OSC, DCS, SOS, PM, APC, the
 //   two-byte escapes, and the C1 forms of CSI and OSC.
@@ -66,7 +72,9 @@ public nonisolated enum ANSIText {
   ///     replacement characters.
   ///   - palette: The terminal palette of the EditorKit theme
   ///     (`Theme.terminalPalette`). The 16 ANSI colors and the default
-  ///     foreground come from it.
+  ///     foreground come from it. When it sets no terminal background, the
+  ///     four ANSI grays come from `TerminalPalette.textColors` and
+  ///     `TerminalPalette.fillColors` instead.
   /// - Returns: The text with the SGR styles as attributes, and with no
   ///   escape sequences. Each run has a SwiftUI `foregroundColor`: its SGR
   ///   color, or the palette foreground when no SGR color applies. A run
@@ -90,7 +98,9 @@ public nonisolated enum ANSIText {
   /// - Returns: The text with the SGR styles as attributes, and with no
   ///   escape sequences, as ``attributed(from:palette:)-(Data,_)`` gives it.
   public static func attributed(from text: String, palette: TerminalPalette) -> AttributedString {
-    var parser = Parser(scalars: Array(text.unicodeScalars), palette: palette)
+    var parser = Parser(
+      scalars: Array(text.unicodeScalars), textColors: palette.textColors,
+      fillColors: palette.fillColors)
     parser.run()
     return parser.output.attributedString(defaultForeground: palette[.foreground])
   }
@@ -319,8 +329,12 @@ nonisolated extension ANSIText {
   struct Parser {
     /// The decoded scalars.
     let scalars: [Unicode.Scalar]
-    /// The terminal palette that gives the ANSI colors.
-    let palette: TerminalPalette
+    /// The terminal palette that gives the ANSI colors of the SGR text
+    /// colors (`TerminalPalette.textColors`).
+    let textColors: TerminalPalette
+    /// The terminal palette that gives the ANSI colors of the SGR background
+    /// colors (`TerminalPalette.fillColors`).
+    let fillColors: TerminalPalette
     /// The index of the next scalar to read.
     var position = 0
     /// The current style.
@@ -330,9 +344,10 @@ nonisolated extension ANSIText {
     /// The parsed runs.
     var output = Output()
 
-    init(scalars: [Unicode.Scalar], palette: TerminalPalette) {
+    init(scalars: [Unicode.Scalar], textColors: TerminalPalette, fillColors: TerminalPalette) {
       self.scalars = scalars
-      self.palette = palette
+      self.textColors = textColors
+      self.fillColors = fillColors
     }
 
     /// The next scalar, or `nil` at the end.
@@ -461,35 +476,41 @@ nonisolated extension ANSIText {
         case SGR.normalIntensity:
           style.isBold = false
         case SGR.foreground:
-          style.foreground = ansiColor(code, in: SGR.foreground)
+          style.foreground = ansiColor(code, in: SGR.foreground, from: textColors)
         case SGR.brightForeground:
-          style.foreground = ansiColor(code, in: SGR.brightForeground, offset: SGR.brightOffset)
+          style.foreground = ansiColor(
+            code, in: SGR.brightForeground, offset: SGR.brightOffset, from: textColors)
         case SGR.defaultForeground:
           style.foreground = nil
         case SGR.background:
-          style.background = ansiColor(code, in: SGR.background)
+          style.background = ansiColor(code, in: SGR.background, from: fillColors)
         case SGR.brightBackground:
-          style.background = ansiColor(code, in: SGR.brightBackground, offset: SGR.brightOffset)
+          style.background = ansiColor(
+            code, in: SGR.brightBackground, offset: SGR.brightOffset, from: fillColors)
         case SGR.defaultBackground:
           style.background = nil
         case SGR.extendedForeground:
-          if let color = extendedColor(codes, at: &index) { style.foreground = color }
+          if let color = extendedColor(codes, at: &index, in: textColors) { style.foreground = color }
         case SGR.extendedBackground:
-          if let color = extendedColor(codes, at: &index) { style.background = color }
+          if let color = extendedColor(codes, at: &index, in: fillColors) { style.background = color }
         default:
           continue
         }
       }
     }
 
-    /// The ANSI color of an SGR color code, from the terminal palette.
+    /// The ANSI color of an SGR color code, from a terminal palette.
     ///
     /// - Parameters:
     ///   - code: The SGR code, in `range`.
     ///   - range: The codes of the eight colors of the code.
     ///   - offset: The ANSI color number of the first color of `range`.
+    ///   - palette: ``textColors`` for a text color, or ``fillColors`` for a
+    ///     background color.
     /// - Returns: The color.
-    func ansiColor(_ code: Int, in range: ClosedRange<Int>, offset: Int = 0) -> Color? {
+    func ansiColor(
+      _ code: Int, in range: ClosedRange<Int>, offset: Int = 0, from palette: TerminalPalette
+    ) -> Color? {
       palette.ansiColor(code - range.lowerBound + offset)
     }
 
@@ -499,9 +520,11 @@ nonisolated extension ANSIText {
     ///   - codes: The SGR codes.
     ///   - index: The index of the mode after the `38` or `48` code. The
     ///     function moves it past the values that it reads.
+    ///   - palette: The palette of the 16 ANSI colors: ``textColors`` for a
+    ///     `38` code, or ``fillColors`` for a `48` code.
     /// - Returns: The color, or `nil` when the values are missing or not
     ///   valid.
-    func extendedColor(_ codes: [Int], at index: inout Int) -> Color? {
+    func extendedColor(_ codes: [Int], at index: inout Int, in palette: TerminalPalette) -> Color? {
       guard index < codes.endIndex else { return nil }
       let mode = codes[index]
       index += 1

@@ -32,16 +32,22 @@ struct EditorBlockFrame: ViewModifier {
 ///
 /// The frame is an ``EditorBlockFrame`` with the colors of the terminal
 /// palette of the EditorKit theme (`Theme.terminalPalette`): the terminal
-/// background fills the block, and the terminal foreground is the
-/// foreground style of the block. The color runs of the output use the same
-/// palette, so the text and the fill agree.
+/// background of a theme that sets one fills the block, and the terminal
+/// foreground is the foreground style of the block. The color runs of the
+/// output use the same palette, so the text and the fill agree.
 ///
-/// D113 removes the fills of content cards, but the terminal background stays
-/// (the answer to AVK-8aa). The terminal background is terminal data, the same
-/// as the editor background of a theme. It is not a custom fill. The palette
-/// sets the ANSI colors 0 to 15 for this background, so the output has good
-/// contrast only on it. Do not remove this fill. `EditorThemeViewsTests` holds
-/// this rule.
+/// D113 removes the fills of content cards, but the terminal background of a
+/// theme stays (the answer to AVK-8aa). The terminal background is terminal
+/// data, the same as the editor background of a theme. It is not a custom
+/// fill. The palette sets the ANSI colors 0 to 15 for this background, so the
+/// output has good contrast only on it. Do not remove this fill.
+///
+/// A theme that sets no terminal background, such as the default
+/// `SystemTheme`, gives a block with no fill: kit views are clear by default
+/// (^4rck1pf). The content behind the block shows through it, and
+/// ``ANSIText`` remaps the ANSI grays so that they contrast with it
+/// (`TerminalPalette+Contrast.swift`). `EditorThemeViewsTests` and
+/// `TerminalContrastHostedTests` hold these rules.
 struct TerminalBlockFrame: ViewModifier {
   @Environment(\.editorTheme) private var editorTheme
 
@@ -49,7 +55,7 @@ struct TerminalBlockFrame: ViewModifier {
     let palette = editorTheme.terminalPalette
     content
       .foregroundStyle(palette[.foreground])
-      .modifier(EditorBlockFrame(fill: palette[.background]))
+      .modifier(EditorBlockFrame(fill: palette.hasBackground ? palette[.background] : nil))
   }
 }
 

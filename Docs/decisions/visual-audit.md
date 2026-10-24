@@ -85,7 +85,7 @@ below gives the EditorKit role that replaces each one.
 | display font: the prose of a message, the composer, the text fields | `displayFont` | system font, body text style |
 | UI font: headers, labels, rows, the completion list, times | `uiFont` | system font, body text style |
 | code text | `editorForeground` | `NSColor.textColor` |
-| frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | a clear background (EditorKit ^0apj6a2), the editor foreground, and Apple system colors |
+| frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | a clear background (EditorKit ^0apj6a2), the editor foreground, and Apple system colors; with a clear background the kit paints the four ANSI grays with label-relative colors (^4rck1pf, `TerminalPalette+Contrast.swift`) |
 | selected text | `selection` | `NSColor.selectedTextBackgroundColor` |
 | diff bands | `diffAddedBackground`, `diffRemovedBackground` | system green and system red at opacity 0.18 (`DiffTintDefaults.bandOpacity`) |
 | +N / −N counts of a diff | `diffAddedText`, `diffRemovedText` | system green and system red at full opacity |
