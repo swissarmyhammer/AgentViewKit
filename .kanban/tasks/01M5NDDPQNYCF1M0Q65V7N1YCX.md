@@ -72,8 +72,25 @@ comments:
     - evidence: 4 files — Sources/AgentViewKitTestSupport/NSView+Descendants.swift, Sources/AgentViewKitTestSupport/ScrollPocketProbe.swift, Sources/AgentViewKitTestSupport/ViewSnapshot.swift, Tests/AgentViewKitTests/TestSupport/NSViewDescendantsTests.swift; `swift test` (EditorKit 3bc9d3e) green: 229 tests in 31 suites + 1771 tests in 216 suites passed (7 known issues = existing withKnownIssue meta-tests), 0 failed; only warning is the existing mlx-swift_Cmlx.bundle SwiftPM note; no file under __Snapshots__ changed (git status)
     - next: /review
   timestamp: 2026-10-24T01:11:41.638117+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5nqmnq6rtnda6twkndcwqgn
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (66cae1e) — 0 findings (confirmed 0, refuted 0; 7 attempted, 0 failed); 4 files reviewed, 2 .kanban files excluded by .reviewignore; prior `## Review Findings (2026-10-23 20:04)` item checked
+    - next: none — task moved to done
+  timestamp: 2026-10-24T01:15:42.182679+00:00
+- actor: claude-code
+  id: 01m5nqn0s1bycgr78g4tc7fvs8
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — one shared `NSView.hideDescendants(of:)` / `isKind(ofAny:)` helper; 4 files
+    - test: green — swift test, 1771 tests in 216 suites passed, 0 failed, 0 skipped; no snapshot changed
+    - commit: 66cae1e
+    - review: clean — 0 findings; task in done
+    - Not pushed. Code commits: 0294f92, 66cae1e. Open for a person: look at attachment-inspector-{light,dark}.png.
+  timestamp: 2026-10-24T01:15:53.505713+00:00
+position_column: done
+position_ordinal: ffffd180
 title: 'Snapshots: add AttachmentInspector images in Dark and Light'
 ---
 Found while working ^bkhgxs5. That card asks to "re-record the AttachmentInspector snapshots in Dark and Light", but `Tests/AgentViewKitTests/Snapshots/__Snapshots__` has no AttachmentInspector images: `GlassSnapshotTests` and `HostedSnapshotTests` cover the thread, composer, bars, cards, code block, terminal and elicitation form only. ^bkhgxs5 kept to "re-record only the ones that change", so it recorded none.
