@@ -9,6 +9,12 @@
 #   2. builds the app with `xcodebuild -scheme <AppName> build`,
 #   3. runs the UI tests of the scheme with `xcodebuild -scheme <AppName> test`.
 #
+# The UI tests bring the app to the front, so step 3 holds the shared swissarmyhammer
+# UI test lock (`Scripts/ui-test-lock.sh`), as the UI test runs of Testudo and EditorKit
+# do. While another run holds it, the script waits and names the holder. Steps 1 and 2
+# launch no app, so they run outside the lock. The script releases the lock when step 3
+# ends, and at exit, SIGINT or SIGTERM.
+#
 # The UI tests drive the app through XCUIApplication. The process that runs this script must
 # have the Accessibility and the Automation permissions, and a user session must be logged in.
 #
@@ -54,6 +60,13 @@ readonly LIMIT_STATUS=124
 
 # The exit status of the script when it gets SIGINT, SIGTERM or SIGHUP during a step.
 readonly INTERRUPTED_STATUS=130
+
+# The exit status of the script when it gets SIGTERM while it holds the UI test lock and
+# runs no step. The lock code exits with INTERRUPTED_STATUS on SIGINT.
+readonly TERMINATED_STATUS=143
+
+# shellcheck source=Scripts/ui-test-lock.sh
+. "$REPO_ROOT/Scripts/ui-test-lock.sh"
 
 # The time limit of the command of the self-test, in seconds.
 readonly SELF_TEST_LIMIT=1
@@ -251,9 +264,31 @@ run_example() {
         -resultBundlePath "$results/$app_name-build.xcresult" build || return 1
 
     echo "==> $app_name: UI tests"
+    run_ui_tests "$app_name" "$project" "$results" "$derived_data"
+}
+
+# Runs the UI tests of one example while it holds the shared UI test lock. The lock
+# waits while another run holds it.
+#
+# `run_with_limit` puts its own INT and TERM traps in place of the traps of the lock, and
+# then clears them. Its traps exit the script, and the EXIT trap of the lock then releases
+# the lock. So the function releases the lock itself, as soon as the step ends.
+#
+# Arguments: the name of the example, its project, its results directory, then its
+# DerivedData directory.
+# Returns: non-zero when the lock cannot be taken, else the status of the step.
+run_ui_tests() {
+    local app_name="$1"
+    local project="$2"
+    local results="$3"
+    local derived_data="$4"
+    local status=0
+    acquire_ui_test_lock "$UI_TEST_LOCK" "$UI_TEST_LOCK_POLL_SECONDS" || return 1
     run_xcodebuild "$TEST_TIMEOUT" "$derived_data" -project "$project" -scheme "$app_name" \
         -destination 'platform=macOS' \
-        -resultBundlePath "$results/$app_name-test.xcresult" test || return 1
+        -resultBundlePath "$results/$app_name-test.xcresult" test || status=$?
+    release_ui_test_lock "$UI_TEST_LOCK"
+    return "$status"
 }
 
 # Starts a `sleep` process outside the process group of the script, as launchd starts an app.

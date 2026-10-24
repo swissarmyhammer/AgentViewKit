@@ -585,7 +585,11 @@ The demo UI tests are in
 them with `Scripts/test-examples.sh`. The script makes the Xcode project,
 builds the app, and runs the UI tests. It needs Xcode, the `xcodeproj` gem,
 and macOS UI Automation Mode. Without automation mode, the test runner waits
-and gives no output.
+and gives no output. The UI test step holds the UI test lock that the
+swissarmyhammer repositories share
+(`~/Library/Caches/swissarmyhammer/ui-tests.lock`), so a UI test run of
+Testudo or EditorKit and this one never bring an app to the front at the same
+time. While another run holds the lock, the script waits and names the holder.
 
 ## Tests and gates
 

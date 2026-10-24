@@ -1,5 +1,3 @@
-import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the time limit of `Scripts/test-examples.sh` to its whole job: at the
@@ -23,35 +21,8 @@ import Testing
   /// The line that the self-test writes when each check passes.
   static let passLine = "PASS self-test"
 
-  /// The output and the exit status of one run of the script.
-  struct ScriptRun {
-    /// The standard output and the standard error, in one text.
-    let output: String
-
-    /// The exit status of the script.
-    let status: Int32
-  }
-
-  /// Runs the gate script with `bash`, from the package root.
-  ///
-  /// - Parameter arguments: The arguments of the script.
-  /// - Returns: The output and the exit status of the run.
-  static func runScript(arguments: [String]) throws -> ScriptRun {
-    let process = Process()
-    process.executableURL = URL(filePath: "/bin/bash")
-    process.arguments = [try PackageFiles.file(scriptPath).path(percentEncoded: false)] + arguments
-    process.currentDirectoryURL = PackageFiles.root
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = pipe
-    try process.run()
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    process.waitUntilExit()
-    return ScriptRun(output: String(decoding: data, as: UTF8.self), status: process.terminationStatus)
-  }
-
   @Test func theTimeLimitStopsTheCommandTheAppUnderTestAndTheTestRunner() throws {
-    let run = try Self.runScript(arguments: ["--self-test"])
+    let run = try ScriptRun.run(Self.scriptPath, arguments: ["--self-test"])
 
     #expect(run.status == 0, "\(run.output)")
     #expect(run.output.contains(Self.passLine), "\(run.output)")
