@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
+import HostedWindowSupport
 import SwiftUI
 import Testing
 
@@ -460,6 +461,22 @@ struct SizedBoxesView: View {
 
     #expect(harness.element(identifier: "enabled")?.isEnabled == true)
     #expect(harness.element(identifier: "disabled")?.isEnabled == false)
+  }
+
+  @Test func aViewWithNoExceptionLeavesNoDisplayCycleExceptionReason() {
+    let harness = HostedViewHarness { Text("text") }
+    defer { harness.close() }
+    harness.render()
+
+    #expect(harness.displayCycleExceptionReason == nil)
+  }
+
+  /// The window of the harness catches the exception of a display cycle loop
+  /// in AppKit methods that are not public (^4yw9781). A release of AppKit
+  /// that removes them makes a loop stop the test process again, so this
+  /// test fails first.
+  @Test func appKitHasTheMethodsThatTheWindowCatchesTheLoopExceptionIn() {
+    #expect(ExceptionCatchingWindow.appKitHasTheMarkMethods)
   }
 }
 

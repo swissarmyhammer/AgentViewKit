@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import HostedWindowSupport
 import SwiftUI
 
 /// A value copy of one accessibility element.
@@ -242,6 +243,19 @@ public final class HostedViewHarness<Content: View> {
   public var processHasFocus: Bool {
     let application = NSApplication.shared
     return application.isActive || application.keyWindow != nil || window.isKeyWindow
+  }
+
+  /// The reason of the exception of a display cycle loop that the window
+  /// caught, or `nil` when the window caught no exception.
+  ///
+  /// AppKit stops a loop of the display cycle with an `NSGenericException`,
+  /// for example "more Update Constraints in Window passes than there are
+  /// views in the window". The exception comes from a run loop observer, also
+  /// while a test waits. The window of the harness catches it and ends the
+  /// loop (``ExceptionCatchingWindow``), so that the test process does not
+  /// stop. A test of the loop expects `nil`.
+  public var displayCycleExceptionReason: String? {
+    (window as? ExceptionCatchingWindow)?.caughtExceptionReason
   }
 
   /// Closes the window.
@@ -944,7 +958,11 @@ public final class HostedViewHarness<Content: View> {
 
 /// A window that can be the key window with no title bar, so that SwiftUI
 /// gives the focus to the hosted view.
-private final class KeyableWindow: NSWindow {
+///
+/// The window catches the exception of a display cycle loop
+/// (``ExceptionCatchingWindow``), so that a test of the loop fails and does
+/// not stop the test process.
+private final class KeyableWindow: ExceptionCatchingWindow {
   override var canBecomeKey: Bool { true }
   override var canBecomeMain: Bool { true }
 }

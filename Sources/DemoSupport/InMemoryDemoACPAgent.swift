@@ -7,8 +7,8 @@ import OSLog
 ///
 /// ``InMemoryDemoAgent`` writes the script of the demo agent as raw wire
 /// frames. This type serves the same script through an
-/// `AgentSideConnection`, so that a host can run the demo agent with
-/// ``AgentViewKit/InProcessAgent``:
+/// `AgentSideConnection`, so that a host can run the demo agent with the
+/// `InProcessAgent` of FoundationModelsACPClient:
 ///
 /// ```swift
 /// let model = await InProcessAgent.makeConnection { connection in

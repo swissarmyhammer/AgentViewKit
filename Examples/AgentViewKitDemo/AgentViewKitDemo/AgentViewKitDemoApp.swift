@@ -16,14 +16,6 @@ struct AgentViewKitDemoApp: App {
   /// and View menus, and the Session menu of the agent commands.
   private static let menuPaths: [MenuPath] = [.file, .edit, .view, .session]
 
-  /// The width of a new window, in points, when the screen is wide enough.
-  /// It is more than the minimum widths of the sidebar and the detail of each
-  /// tab.
-  private static let preferredWindowWidth: CGFloat = 1100
-
-  /// The height of a new window, in points, when the screen is tall enough.
-  private static let preferredWindowHeight: CGFloat = 800
-
   /// The launch options of this process.
   private let options = DemoLaunchOptions()
 
@@ -47,10 +39,10 @@ struct AgentViewKitDemoApp: App {
         .commandSystem(commands)
     }
     // With no placement, a new window takes the ideal size of its content,
-    // which can be taller than the screen. A new window takes the preferred
-    // size, and a zoomed window the visible part of the screen, so that the
-    // composer and the request deck at the bottom of the window stay on the
-    // screen.
+    // which can be too short for the bars of the ACP tab or taller than the
+    // screen. A new window takes the default size of DemoWindowLayout, and a
+    // zoomed window the visible part of the screen, so that the composer and
+    // the request deck at the bottom of the window stay on the screen.
     .defaultWindowPlacement { _, context in
       WindowPlacement(size: Self.newWindowSize(in: context.defaultDisplay.visibleRect))
     }
@@ -60,15 +52,15 @@ struct AgentViewKitDemoApp: App {
     }
   }
 
-  /// The size of a new window: the preferred size, no larger than the
-  /// visible part of the screen that the window opens on.
+  /// The size of a new window: the default size of ``DemoWindowLayout``, no
+  /// larger than the visible part of the screen that the window opens on.
   ///
   /// - Parameter visibleRect: The visible rectangle of the screen, without
   ///   the menu bar and the Dock.
   /// - Returns: The size of the window.
   private static func newWindowSize(in visibleRect: CGRect) -> CGSize {
     CGSize(
-      width: min(preferredWindowWidth, visibleRect.width),
-      height: min(preferredWindowHeight, visibleRect.height))
+      width: min(DemoWindowLayout.defaultWidth, visibleRect.width),
+      height: min(DemoWindowLayout.defaultHeight, visibleRect.height))
   }
 }

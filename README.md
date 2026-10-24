@@ -22,7 +22,7 @@ starts: [an ACP agent](#an-acp-agent) program, or
 The direct dependencies are:
 
 - FoundationModelsACPClient: the observable models `ConnectionModel` and
-  `SessionModel`.
+  `SessionModel`, and the in-process helper `InProcessAgent`.
 - FoundationModelsACP: the ACP v2 schema types, `ClientSideConnection` and
   `InMemoryTransport`.
 - EditorKit: code blocks, diffs, the composer editor, the commands, and the
@@ -146,14 +146,15 @@ tests use an in-memory agent that speaks version 2.
 
 ### An agent in this process
 
-`InProcessAgent.makeConnection(serving:)` runs an ACP agent in the process of
-the app. It pairs an `InMemoryTransport`, serves the agent on one end with an
-`AgentSideConnection`, and connects a new `ConnectionModel` on the other end.
-The two sides speak the real ACP wire. The helper returns the connection
-model and keeps no state of its own. The kit does not import an agent: the
-app gives it. With FoundationModelsACPAgent, the app composes the agent with
-the public `ComposedAgent`, binds it with `ComposedAgent.agent(boundTo:)`, and
-calls `ComposedAgent.waitForConnectionTeardown()` after the connection closes.
+`InProcessAgent.makeConnection(serving:)` of FoundationModelsACPClient runs an
+ACP agent in the process of the app. It pairs an `InMemoryTransport`, serves
+the agent on one end with an `AgentSideConnection`, and connects a new
+`ConnectionModel` on the other end. The two sides speak the real ACP wire.
+The helper returns the connection model and keeps no state of its own. The kit
+does not import an agent: the app gives it. With FoundationModelsACPAgent, the
+app composes the agent with the public `ComposedAgent`, binds it with
+`ComposedAgent.agent(boundTo:)`, and calls
+`ComposedAgent.waitForConnectionTeardown()` after the connection closes.
 To stop the agent, call `ConnectionModel.disconnect()`: the model stops the read
 of its end of the pair, the pair then ends the input of the agent side, and the
 agent stops. When the agent closes its connection first,

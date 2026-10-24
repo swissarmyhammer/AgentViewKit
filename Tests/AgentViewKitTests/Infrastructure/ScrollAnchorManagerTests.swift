@@ -84,6 +84,28 @@ import Testing
     #expect(manager.isPinnedToBottom)
   }
 
+  /// A list whose bars are taller than its viewport can report no row. Then
+  /// the report must not unpin the list: the scroll-to-bottom pill would
+  /// change the height of the bars, and the layout would loop (^4yw9781).
+  @Test func anEmptyReportOfAListWithItemsKeepsThePin() {
+    let manager = ScrollAnchorManager()
+    manager.noteAppended(ids: ["a", "b"])
+
+    manager.noteVisible(ids: [], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.isPinnedToBottom)
+  }
+
+  @Test func anEmptyReportOfAListWithItemsKeepsTheVisibleIds() {
+    let manager = ScrollAnchorManager()
+    manager.noteAppended(ids: ["a", "b"])
+    manager.noteVisible(ids: ["a", "b"])
+
+    manager.noteVisible(ids: [])
+
+    #expect(manager.visibleIDs == ["a", "b"])
+  }
+
   @Test func visibleIdsEqualTheIdsInOrder() {
     let manager = ScrollAnchorManager()
     manager.noteAppended(ids: ["a", "b", "c"])
@@ -296,7 +318,7 @@ import Testing
     let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a"])
-    manager.noteVisible(ids: [])
+    manager.noteVisible(ids: ["a"], distanceFromBottom: Self.distanceOutsideTolerance)
     await Self.runScheduledTasks()
 
     manager.noteAppended(ids: [])

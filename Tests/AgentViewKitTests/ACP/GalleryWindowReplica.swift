@@ -22,12 +22,6 @@ struct GalleryWindowReplica: View {
   /// The size of the window of the Gallery tab in the failed CI run.
   static let windowSize = CGSize(width: windowWidth, height: windowHeight)
 
-  /// The minimum width of the sidebar of the demo app.
-  static let sidebarMinimumWidth: CGFloat = 200
-
-  /// The ideal width of the sidebar of the demo app.
-  static let sidebarIdealWidth: CGFloat = 240
-
   /// The open session.
   let session: SessionModel
 
@@ -37,7 +31,8 @@ struct GalleryWindowReplica: View {
   var body: some View {
     GalleryColumns {
       Text(verbatim: "Sessions")
-        .navigationSplitViewColumnWidth(min: Self.sidebarMinimumWidth, ideal: Self.sidebarIdealWidth)
+        .navigationSplitViewColumnWidth(
+          min: DemoWindowLayout.sidebarMinimumWidth, ideal: DemoWindowLayout.sidebarIdealWidth)
     } detail: {
       detail
     } lookControls: {

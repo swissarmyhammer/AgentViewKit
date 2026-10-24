@@ -215,6 +215,33 @@ import Testing
     try open.window.harness.requireKeyboardFocusOutsideText()
   }
 
+  /// A focus that lands on the card while the comment field has the focus
+  /// moves the focus out of the field and onto the card, by each way that a
+  /// focus lands (^cwdb5zg, the nested-scope rule of EditorKit).
+  ///
+  /// - Parameter landing: The way that the focus lands on the card.
+  @Test(arguments: AgentItemFocusRingHostedTests.FocusLanding.allCases)
+  func aLandingOnTheCardWhileTheCommentFieldHasTheFocusFocusesTheCard(
+    landing: AgentItemFocusRingHostedTests.FocusLanding
+  ) async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let open = try await Self.openComment(in: session)
+    defer { open.window.harness.close() }
+    let textView = try SingleLineFieldChecks.textView(
+      identifier: PermissionView.commentIdentifier, in: open.window.harness)
+    try #require(open.window.harness.window.makeFirstResponder(textView))
+
+    try AgentItemFocusRingHostedTests.land(
+      on: open.card, in: open.window.path, system: open.window.system, by: landing)
+    open.window.harness.render()
+
+    try open.window.harness.requireKeyboardFocusOutsideText()
+    #expect(
+      AgentNavigationHostedTests.focusedItem(
+        among: [open.card], in: open.window.system, window: open.window.harness.window) == open.card)
+  }
+
   /// A jump that lands on the own scope of the comment field focuses the
   /// text view of the field.
   @Test func aJumpOnTheScopeOfTheCommentFieldFocusesItsTextView() async throws {

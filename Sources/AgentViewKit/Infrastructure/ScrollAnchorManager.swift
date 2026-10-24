@@ -127,12 +127,20 @@ public final class ScrollAnchorManager {
   /// layout of the list before the list moves, and the list can then report
   /// its old rows again.
   ///
+  /// A report with no identifier, for a list that has items, changes
+  /// nothing. The list sends such a report when its bars are taller than its
+  /// viewport, and the bottom scroll puts the rows under the top bar. An
+  /// unpin would then show the scroll-to-bottom pill, the pill would change
+  /// the height of the bars, the rows would come back in view, and the
+  /// layout of the thread would not end (^4yw9781).
+  ///
   /// - Parameters:
   ///   - ids: The identifiers of the items in view, from
   ///     `onScrollTargetVisibilityChange`.
   ///   - distanceFromBottom: The distance, in points, from the bottom edge of
   ///     the last visible item to the bottom edge of the viewport.
   public func noteVisible(ids: [String], distanceFromBottom: CGFloat = 0) {
+    guard !ids.isEmpty || lastItemID == nil else { return }
     let isAtBottom = isAtBottom(visibleIDs: ids, distanceFromBottom: distanceFromBottom)
     let isNewReport = ids != visibleIDs
     if acceptsReport(of: ids) || isAtBottom {
