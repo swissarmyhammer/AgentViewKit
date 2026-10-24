@@ -39,8 +39,24 @@ comments:
     - evidence: `swift test` run twice, both 1813 tests in 223 suites passed with 7 known issues (no flakiness seen in the OCR tests across the 2 runs); xcodeproj regenerated, `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo ... build` BUILD SUCCEEDED, 0 repo warnings (only the toolchain line "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"); `Scripts/test-examples.sh AgentViewKitDemo` PASS, 10 UI tests, 0 failures, under the shared UI-test lock. No source edits, no new files, nothing committed.
     - next: review
   timestamp: 2026-10-24T21:38:39.234536+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5qxqwj9dnw3j4xggycgf7j2
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (c19a344), batched, complete — counts: findings 0, confirmed 0, refuted 1, attempted 7, failed 0, skipped 0. Not reviewed: 4 snapshot PNGs (not UTF-8 text) and plan.md (no validator matches).
+    - next: task moved to done; send testudoapp-2c the SHA after the user pushes.
+  timestamp: 2026-10-24T21:40:47.817723+00:00
+- actor: claude-code
+  id: 01m5qxrh9a6q0sxt68k7h7etdt
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 13 files. The bottom bar was the fixture (rows scrolled under it); the fixture now shows the thread at rest. Top-bar kit bug: a jump landed under the header; fixed with a second scroll after layout. A new SnapshotText OCR check reads every snapshot. 4 PNGs re-recorded.
+    - test: green — swift test x2 1813/223 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: 118d351 (chore kanban), c19a344 (code, HEAD)
+    - review: clean — 0 findings; task in done. Local only; send testudoapp-2c the SHA after the push.
+  timestamp: 2026-10-24T21:41:09.034481+00:00
+position_column: done
+position_ordinal: ffffdd80
 title: Bar banners (failure, sign-in) draw over transcript text in the bottom-bar-buttons snapshots
 ---
 Reported by testudoapp-2c on 2026-10-24 (the user found it). The snapshots `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-{light,dark,increase-contrast,reduce-transparency}.png` come from test `HostedSnapshotTests`, `verify(thread, named: "bottom-bar-buttons", …)`. They were last recorded in f5374f0 (^p6e0v5w).
