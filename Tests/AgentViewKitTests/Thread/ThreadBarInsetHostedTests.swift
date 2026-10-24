@@ -1,3 +1,4 @@
+import EditorStyle
 #if DEBUG
   @testable import AgentViewKit
   import AgentViewKitTestSupport
@@ -92,7 +93,7 @@
     /// - Returns: The height, in points.
     /// - Throws: An issue when the header or the notice is not there.
     static func topBarHeight(in harness: HostedViewHarness<some View>, session: ScriptedSession) throws -> CGFloat {
-      let spacing = AgentTheme.default.spacing
+      let spacing = EditorStyle.default.spacing
       let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
       let notice = try #require(harness.frame(identifier: ThreadTopBarHostedTests.noticeIdentifier(of: session)))
       // The y axis of the screen goes up.
@@ -121,7 +122,7 @@
     static func expectTheHeaderBelowTheHostBars(in harness: HostedViewHarness<some View>) throws {
       let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
       // The y axis of the screen goes up.
-      let topBarTop = header.maxY + AgentTheme.default.spacing.s
+      let topBarTop = header.maxY + EditorStyle.default.spacing.s
       let hostBottom = hostBarsBottom(in: harness)
 
       #expect(abs(topBarTop - hostBottom) <= insetTolerance, "top bar top \(topBarTop), host bars bottom \(hostBottom)")
@@ -140,7 +141,7 @@
       let list = harness.screenFrame(of: scrollView)
       let controls = try #require(harness.frame(identifier: AgentThreadLayout.floatingControlsIdentifier))
       let barsAbove = try list.maxY - hostBarsBottom(in: harness) + topBarHeight(in: harness, session: session)
-      let barBelow = controls.maxY + AgentTheme.default.spacing.m - list.minY
+      let barBelow = controls.maxY + EditorStyle.default.spacing.m - list.minY
       let insets = scrollView.contentInsets
 
       #expect(abs(insets.top - barsAbove) <= insetTolerance, "top inset \(insets.top), bars above \(barsAbove)")

@@ -1,4 +1,5 @@
 import EditorCore
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -113,7 +114,7 @@ struct ElicitationFieldChrome<Control: View>: View {
   /// The control of the field.
   let control: Control
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the chrome.
@@ -128,8 +129,8 @@ struct ElicitationFieldChrome<Control: View>: View {
 
   var body: some View {
     let schema = context.schema
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
-      HStack(spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+      HStack(spacing: editorStyle.spacing.xs) {
         Text(schema.title)
           .font(editorTheme.font(for: .ui, style: .headline))
         if schema.required {
@@ -308,7 +309,7 @@ public struct ElicitationNumberField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// The model of the text of the number input.
   @State private var inputModel = OwnModelSlot(editable: true)
@@ -336,14 +337,14 @@ public struct ElicitationNumberField: View {
     if case .number(let integer, let minimum, let maximum) = context.schema.kind {
       let number = numberBinding(integer: integer, minimum: minimum)
       if let minimum, let maximum, minimum < maximum {
-        HStack(spacing: theme.spacing.s) {
+        HStack(spacing: editorStyle.spacing.s) {
           slider(number, range: minimum...maximum, integer: integer)
             .accessibilityIdentifier(context.controlIdentifier)
           Text(number.wrappedValue, format: .number)
             .monospacedDigit()
         }
       } else {
-        HStack(spacing: theme.spacing.xs) {
+        HStack(spacing: editorStyle.spacing.xs) {
           numberInput(number, integer: integer)
             .frame(maxWidth: Self.numberInputMaximumWidth)
           Stepper(
@@ -527,7 +528,7 @@ public struct ElicitationDateField: View {
 
   @Environment(\.calendar) private var calendar
   @Environment(\.timeZone) private var timeZone
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes a date field.
   ///
@@ -553,7 +554,7 @@ public struct ElicitationDateField: View {
     let value = context.value
     let coding = ElicitationDateCoding(calendar: localCalendar, dateTime: dateTime)
     if let text = value.wrappedValue?.stringValue, let date = coding.date(from: text) {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         DatePicker(
           context.schema.title,
           selection: Binding(
@@ -672,7 +673,7 @@ public struct ElicitationSingleChoiceField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes a single-choice field.
   ///
@@ -704,7 +705,7 @@ public struct ElicitationSingleChoiceField: View {
   /// - Returns: The group.
   private func radioGroup(_ choices: [ElicitationFieldSchema.Choice]) -> some View {
     let name = context.schema.name
-    return VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ForEach(choices, id: \.const) { choice in
         let isSelected = selection == choice.const
         Button {
@@ -763,7 +764,7 @@ public struct ElicitationMultiChoiceField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes a multi-choice field.
   ///
@@ -810,7 +811,7 @@ public struct ElicitationMultiChoiceField: View {
     let selected = Set(selected)
     let isAtLimit = Self.isAtLimit(selectedCount: selected.count, maxItems: maxItems)
     let name = context.schema.name
-    return VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ForEach(choices, id: \.const) { choice in
         let isOn = selected.contains(choice.const)
         Toggle(

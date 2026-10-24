@@ -3,6 +3,7 @@
   import AgentViewKitTestSupport
   import EditorCommands
   import EditorCommandsUI
+  import EditorStyle
   import FoundationModelsACPClient
   import SwiftUI
   import Testing
@@ -386,21 +387,32 @@
       defer { harness.close() }
       harness.render()
 
-      #expect(FloatingGlassContainerHostedTests.containerCount(in: harness) == 1)
+      let editorNamespace = try #require(FloatingNamespaceProbe.namespace(of: ProbeComposer.probeIdentifier, in: harness))
+      #expect(editorNamespace != FloatingNamespaceProbe.noNamespace)
     }
 
+    /// The accessibility identifier of the namespace probe in the composer
+    /// slot, next to the composer and out of its own glass container.
+    static let slotProbeIdentifier = "slot-namespace-probe"
+
+    /// A container in a container makes no second container and keeps the
+    /// namespace of the outer container, so the editor of the composer has
+    /// the namespace of the floating controls of the thread.
     @Test func theComposerInTheThreadMakesNoSecondContainer() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(size: Self.windowSize) {
         AgentThreadView(session: session.model) {
+          FloatingNamespaceProbe(identifier: Self.slotProbeIdentifier)
           ProbeComposer()
         }
       }
       defer { harness.close() }
       harness.render()
 
-      #expect(FloatingGlassContainerHostedTests.containerCount(in: harness) == 1)
+      let slotNamespace = try #require(FloatingNamespaceProbe.namespace(of: Self.slotProbeIdentifier, in: harness))
+      #expect(slotNamespace != FloatingNamespaceProbe.noNamespace)
+      #expect(FloatingNamespaceProbe.namespace(of: ProbeComposer.probeIdentifier, in: harness) == slotNamespace)
     }
 
     @Test func aComposerInTheSlotSendsToTheSessionOfTheThread() async throws {
@@ -425,14 +437,48 @@
     }
   }
 
-  /// A composer whose editor is a ``FloatingContainerProbe``, so that a test
-  /// reads the number of glass containers above the editor.
+  /// A composer whose editor is a ``FloatingNamespaceProbe``, so that a test
+  /// reads the glass namespace of the container above the editor.
   struct ProbeComposer: View {
+    /// The accessibility identifier of the namespace probe in the editor.
+    static let probeIdentifier = "editor-namespace-probe"
+
     /// The text of the composer.
     @State private var text = AttributedString()
 
     var body: some View {
-      PromptInputView(text: $text, onSubmit: {}, editor: { _ in FloatingContainerProbe() })
+      PromptInputView(
+        text: $text, onSubmit: {}, editor: { _ in FloatingNamespaceProbe(identifier: Self.probeIdentifier) })
+    }
+  }
+
+  /// A text that shows the glass namespace of the `FloatingGlassContainer`
+  /// above it (`\.floatingGlassNamespace`), or ``noNamespace`` out of a
+  /// container. The SDK gives no accessibility element for a
+  /// `GlassEffectContainer`, so the tests read the namespace that the
+  /// container gives to its content.
+  struct FloatingNamespaceProbe: View {
+    /// The text of the probe when no container gives a namespace.
+    static let noNamespace = "none"
+
+    /// The accessibility identifier of the probe.
+    let identifier: String
+
+    @Environment(\.floatingGlassNamespace) private var namespace
+
+    var body: some View {
+      Text(namespace.map { String(describing: $0) } ?? Self.noNamespace)
+        .accessibilityIdentifier(identifier)
+    }
+
+    /// The text of the namespace probe with `identifier` in `harness`.
+    ///
+    /// - Parameters:
+    ///   - identifier: The accessibility identifier of the probe.
+    ///   - harness: The harness that shows the probe.
+    /// - Returns: The text, or `nil` when the probe is not in the tree.
+    static func namespace(of identifier: String, in harness: HostedViewHarness<some View>) -> String? {
+      harness.element(identifier: identifier)?.label
     }
   }
 #endif

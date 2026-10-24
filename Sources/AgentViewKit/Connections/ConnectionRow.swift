@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -21,7 +22,7 @@ public struct ConnectionRow: View {
   /// The server to show, from `SessionModel.mcpServers`.
   let server: MCPServerItem
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes a row.
@@ -49,8 +50,8 @@ public struct ConnectionRow: View {
   }
 
   public var body: some View {
-    HStack(spacing: theme.spacing.s) {
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    HStack(spacing: editorStyle.spacing.s) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(server.name)
           .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
@@ -61,10 +62,10 @@ public struct ConnectionRow: View {
             .accessibilityIdentifier(Self.transportIdentifier(for: server.name))
         }
       }
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       ConnectionStatusChip(status: server.status)
     }
-    .padding(.vertical, theme.rowPadding)
+    .padding(.vertical, editorStyle.rowPadding)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(server.name)
     .accessibilityIdentifier(Self.identifier(for: server.name))

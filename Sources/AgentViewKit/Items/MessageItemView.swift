@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -100,10 +101,10 @@ struct MessageLayout<Content: View>: View {
   /// The content below the header.
   @ViewBuilder let content: Content
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       MessageHeader(role: role)
       content
     }

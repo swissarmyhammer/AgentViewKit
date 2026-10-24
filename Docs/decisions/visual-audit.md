@@ -3,12 +3,14 @@
 Status: decided. Source: plan.md §5 and §14 R12.
 
 This file records the measured metrics of the Xcode 27 Coding Intelligence
-assistant and of Claude Desktop, and the default values of `AgentTheme` that
-come from them. `Tests/AgentViewKitTests/Theme/AgentThemeGoldenTests.swift`
-parses the token table below. It compares each row with the same token of
-`AgentTheme.default`. `Tests/AgentViewKitTests/Theme/DefaultTokens.json` holds
-the same values. Change the table, the JSON file, and `AgentTheme.default`
-together.
+assistant and of Claude Desktop, and the default values of the layout tokens
+that come from them. The kit reads its layout tokens from the shared style of
+the EditorKit `EditorStyle` target (`\.editorStyle`), and EditorKit took these
+values for `EditorStyle.default` (^7dn35sm, KanbanViewKit plan.md decision 18).
+Before that card, the kit held them in its own `AgentTheme`.
+`Tests/AgentViewKitTests/Theme/StyleTokenGoldenTests.swift` parses the token
+table below. It compares each row with the same token of `EditorStyle.default`.
+When EditorKit changes a default, change the table in the same change.
 
 Keep the header and the form of the rows. Put the token and the default value
 in backticks. Write a point value as a number, and a weight or a density as
@@ -35,7 +37,7 @@ removed material level").
 
 D113 answer 3 removes the `materialLevel` token and the `MaterialLevel` enum
 from `AgentTheme`. The table had the row `materialLevel`, with the default
-`regular`. The floating glass of the kit (`agentFloatingGlass()`) is always
+`regular`. The floating glass of the kit (now `floatingGlass()` of EditorStyle) is always
 `.regular` glass. The Clear look and the Tinted look are system settings,
 and the system applies them to `.regular` glass. Thus a theme does not
 select the glass variant. This is a breaking change of the public API of
@@ -59,8 +61,11 @@ dark mode, increased contrast, and the accent color of the user.
 `DefaultTheme.light` and `DefaultTheme.dark` are fixed presets. EditorKit can
 also import a Zed, VS Code, or tmTheme file.
 
-`AgentTheme` holds only the layout tokens that the EditorKit theme does not
-have: spacing, radii, symbol weight, and density.
+The shared style of the EditorKit `EditorStyle` target holds the layout
+tokens: spacing, the corner radius scale, symbol weight, and density. The
+theme gives the style (`Theme.style`), and `.editorTheme(_:)` writes it into
+`\.editorStyle`. Before ^7dn35sm, the kit held these tokens in its own
+`AgentTheme`.
 
 Before this decision, `AgentTheme` had the tokens `accent`, `codeFont`, and
 `statusColors`. These tokens are removed. EditorKit 95ef6c4 added the
@@ -164,7 +169,7 @@ accent. These values are from AppKit on macOS 27:
 
 ### Metrics that have no token
 
-- Row padding: `AgentTheme.rowPadding` gives `spacing.s` (8 pt) for the
+- Row padding: `EditorStyle.rowPadding` gives `spacing.s` (8 pt) for the
   `balanced` density. This agrees with the comfortable `--cds-pad-sm` (8 px).
   The `compact` density gives `spacing.xs` (4 pt), the default-density
   `--cds-pad-xs`.

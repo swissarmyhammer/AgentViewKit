@@ -1,4 +1,5 @@
 import EditorCommands
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -26,7 +27,7 @@ import SwiftUI
 /// list. The user accepted this system look on 2026-10-23 (^22wbz12). The
 /// top bar has no background. The ``AgentInfoHeader`` in it floats on
 /// `.regular` glass, the same as the conversation header in Messages
-/// (``SwiftUI/View/agentFloatingGlass()``). The banners in it are content
+/// (`.floatingGlass()`). The banners in it are content
 /// with no glass. VoiceOver reads the top bar, the conversation, and then
 /// the bottom bar.
 ///
@@ -166,7 +167,7 @@ public struct AgentThreadView<Composer: View>: View {
   @Environment(\.inspectorSelection) private var hostInspectorSelection
   @Environment(\.agentAttachmentInspector) private var inspectorMode
   @Environment(\.connectionModel) private var hostConnection
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// The report that gets the close decision of the view when it goes away,
   /// or `nil`.
@@ -298,11 +299,11 @@ public struct AgentThreadView<Composer: View>: View {
           // out of the container, so their buttons keep the place of content.
           // The padding is in the container, so a header that shows nothing
           // takes no space.
-          FloatingGlassContainer(spacing: theme.spacing.s) {
-            AgentInfoHeader(connection: connection, sessionTitle: sessionTitle).agentFloatingGlass()
+          FloatingGlassContainer(spacing: editorStyle.spacing.s) {
+            AgentInfoHeader(connection: connection, sessionTitle: sessionTitle).floatingGlass()
               .hostPathContextMenu(headerContextMenuPath)
-              .padding(.horizontal, theme.spacing.m)
-              .padding(.vertical, theme.spacing.s)
+              .padding(.horizontal, editorStyle.spacing.m)
+              .padding(.vertical, editorStyle.spacing.s)
           }
           AgentConnectionBanner(connection: connection)
         }
@@ -343,7 +344,7 @@ public struct AgentThreadView<Composer: View>: View {
   private var floatingControls: some View {
     // The alignment guide of the pill runs in a `Sendable` closure, so it
     // reads this copy and not the main-actor `theme`.
-    let spacing = theme.spacing.s
+    let spacing = editorStyle.spacing.s
     return FloatingGlassContainer(spacing: spacing) {
       VStack(spacing: spacing) {
         // The banner reads `agentState` in its own body, so a change of the
@@ -363,7 +364,7 @@ public struct AgentThreadView<Composer: View>: View {
           .alignmentGuide(.top) { $0[.bottom] + spacing }
       }
     }
-    .padding(theme.spacing.m)
+    .padding(editorStyle.spacing.m)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(AgentThreadLayout.floatingControlsIdentifier)
   }

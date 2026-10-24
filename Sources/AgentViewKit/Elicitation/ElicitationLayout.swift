@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -79,7 +80,7 @@ public struct ElicitationLayout: View {
   public nonisolated static let defaultTabThreshold = 1
 
   /// The symbol of a tab with an answer.
-  static let answeredSymbol = SharedSymbol.completed
+  static let answeredSymbol = ItemStatus.completed.systemImage
   /// The symbol of a tab with no answer.
   static let notAnsweredSymbol = SharedSymbol.notChosen
   /// The opacity of the background of the selected tab.
@@ -92,7 +93,7 @@ public struct ElicitationLayout: View {
   /// field.
   @State private var selection: String?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the default layout.
@@ -106,7 +107,7 @@ public struct ElicitationLayout: View {
     if context.usesTabs {
       tabbed
     } else {
-      VStack(alignment: .leading, spacing: theme.spacing.m) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
         ForEach(context.fields, id: \.schema.name) { field in
           ElicitationFieldView(context: field)
         }
@@ -118,9 +119,9 @@ public struct ElicitationLayout: View {
   private var tabbed: some View {
     let selected =
       context.fields.first { $0.schema.name == selection } ?? context.fields.first
-    return VStack(alignment: .leading, spacing: theme.spacing.m) {
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       ScrollView(.horizontal) {
-        HStack(spacing: theme.spacing.xs) {
+        HStack(spacing: editorStyle.spacing.xs) {
           ForEach(context.fields, id: \.schema.name) { field in
             tab(field, isSelected: field.schema.name == selected?.schema.name)
           }
@@ -146,7 +147,7 @@ public struct ElicitationLayout: View {
     return Button {
       selection = schema.name
     } label: {
-      HStack(spacing: theme.spacing.xs) {
+      HStack(spacing: editorStyle.spacing.xs) {
         Image(systemName: answered ? Self.answeredSymbol : Self.notAnsweredSymbol)
           .foregroundStyle(answered ? editorTheme.statusSucceeded : .secondary)
         Text(schema.title)
@@ -155,8 +156,8 @@ public struct ElicitationLayout: View {
             .foregroundStyle(editorTheme.severityError)
         }
       }
-      .padding(.horizontal, theme.spacing.s)
-      .padding(.vertical, theme.spacing.xs)
+      .padding(.horizontal, editorStyle.spacing.s)
+      .padding(.vertical, editorStyle.spacing.xs)
       // D113 answer 5 permits the accent here: the fill marks the selected
       // tab, the selection.
       .background(

@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -58,7 +59,7 @@ public struct SessionStreamBanner: View {
   /// button.
   let connection: ConnectionModel?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// The report that gets the method of the resume that Reload starts, or
   /// `nil`.
@@ -87,12 +88,12 @@ public struct SessionStreamBanner: View {
   public var body: some View {
     let bars = shownBars
     if !bars.isEmpty {
-      VStack(spacing: theme.spacing.s) {
+      VStack(spacing: editorStyle.spacing.s) {
         ForEach(bars, id: \.message.identifier) { bar in
           StatusBar(message: bar.message, action: bar.action)
         }
       }
-      .padding(theme.spacing.m)
+      .padding(editorStyle.spacing.m)
     }
   }
 

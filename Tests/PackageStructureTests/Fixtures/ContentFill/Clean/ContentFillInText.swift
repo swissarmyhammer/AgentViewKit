@@ -1,6 +1,8 @@
 // A fixture for ContentFillTests. The package build excludes this file.
-// .agentContentSurface(), AgentContentSurface, statusBarBackground and
-// tabBarBackground are in this comment, so the scan must not report them.
+// .agentContentSurface(), AgentContentSurface, statusBarBackground,
+// tabBarBackground, .inlineFill(.tint), SurfaceFill(.tint, radius: radius) and
+// .surfaceBackground(.tint, radius: radius) are in this comment, so the scan
+// must not report them.
 import SwiftUI
 
 /* .background(.quaternary, in: Capsule()), RoundedRectangle(cornerRadius: radius).fill(.quaternary)
@@ -15,7 +17,7 @@ struct ContentFillInText: View {
   var body: some View {
     VStack {
       Text(".background(.background.secondary, in: ConcentricRectangle())")
-      Text(#"Capsule().fill(.tint) and .agentContentSurface()"#)
+      Text(#"Capsule().fill(.tint), .agentContentSurface() and .inlineFill(.tint)"#)
       Text("""
         .background(editorTheme.statusBarBackground) is in a multi-line literal.
         """)

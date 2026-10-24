@@ -129,8 +129,6 @@ extension ViewPreviewForm: SampledCodeForm, FixtureCodeForm {
   /// package root, each with the reason. Each view of these files has no look
   /// of its own, so a preview cannot show it.
   static let filesWithNoPreview = [
-    KitSourceFiles.kitFile("Theme/FloatingGlassContainer.swift"):
-      "FloatingGlassContainer is a container. It has no look of its own. Its content gives the look.",
     KitSourceFiles.kitFile("Accessibility/ThreadAccessibility.swift"):
       "SessionAnnouncementObserver draws nothing. It only sends the announcements of a session to VoiceOver.",
     KitSourceFiles.kitFile("Content/MathMarkdownParser.swift"):

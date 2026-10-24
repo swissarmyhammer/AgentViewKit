@@ -271,10 +271,10 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 
 | Capability | AgentViewKit | Vercel AI Elements | assistant-ui | CopilotKit |
 |---|---|---|---|---|
-| Theme tokens | ✓ `AgentTheme`, `.agentTheme(_:)` (`Theme/`) | ✓ shadcn CSS variables | ✓ shadcn / Tailwind (core theming page ?) | ✓ shadcn oklch tokens on `[data-copilotkit]` |
-| One theme for code and chrome | ✓ `AgentTheme+EditorKit.swift` | partial: Shiki theme apart | ? | ✗ |
+| Theme tokens | ✓ `EditorStyle` of EditorKit (`\.editorStyle`, `.editorStyle(_:)`) | ✓ shadcn CSS variables | ✓ shadcn / Tailwind (core theming page ?) | ✓ shadcn oklch tokens on `[data-copilotkit]` |
+| One theme for code and chrome | ✓ the EditorKit `Theme` (`\.editorTheme`) | partial: Shiki theme apart | ? | ✗ |
 | Dark mode | ✓ system appearance | ✓ `data-theme` | ✓ | ✓ `.dark` |
-| Material / glass | ✓ `agentFloatingGlass()`, always `.regular` (`Theme/AgentSurfaces.swift`) | ✗ | ✗ | ✗ |
+| Material / glass | ✓ `floatingGlass()` of EditorKit `EditorStyle`, always `.regular` | ✗ | ✗ | ✗ |
 | Screen reader labels | ✓ `ThreadAccessibility` | partial: `label` props | ? | partial: labels |
 | Boundary announcements | ✓ `VoiceOverAnnouncer` (`Platform/Announcer.swift`) | ✗ | ? | ? |
 | Focus to new request card | ✓ `AccessibilityFocusMover` | ✗ | ? | ? |

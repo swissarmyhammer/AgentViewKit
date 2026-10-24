@@ -181,8 +181,8 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
   static let lookAlikeLines = [
     #"rows.map(\.bar)"#,
     "case (.bar, .primary): .borderedProminent",
-    "self = floatingGlassContainerCount > 0 ? .bar : .content",
-    "case .bar: content.agentFloatingGlass()",
+    "self = isInFloatingGlassContainer ? .bar : .content",
+    "case .bar: content.floatingGlass()",
     "let height = toolbar.bar",
     ".background(.quaternary, in: .capsule)",
     ".toolbar { Button(\"Run\") {} }",

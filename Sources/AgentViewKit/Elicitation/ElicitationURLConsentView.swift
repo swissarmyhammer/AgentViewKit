@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -146,7 +147,7 @@ public struct ElicitationURLConsentView: View {
   @State private var fallbackPresenter = AuthorizationPresenter()
 
   @Environment(\.authorizationPresenter) private var presenter
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// The report that gets each start and each stop of the browser task, or
@@ -169,7 +170,7 @@ public struct ElicitationURLConsentView: View {
   // MARK: Body
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.m) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       ElicitationHeaderSlot(request: request)
       if let url = request.url {
         urlSection(url)
@@ -179,7 +180,7 @@ public struct ElicitationURLConsentView: View {
       }
       footer
     }
-    .padding(theme.spacing.m)
+    .padding(editorStyle.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
     .focusable()
     .focusEffectDisabled()
@@ -195,7 +196,7 @@ public struct ElicitationURLConsentView: View {
   /// - Parameter url: The URL of the request.
   /// - Returns: The section.
   private func urlSection(_ url: URL) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Text(URLDisplay.highlighted(url))
         .font(editorTheme.codeFont)
         .textSelection(.enabled)
@@ -213,7 +214,7 @@ public struct ElicitationURLConsentView: View {
 
   /// The waiting state.
   private var waiting: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       ProgressView()
         .controlSize(.small)
       Text(waitingMessage)
@@ -232,7 +233,7 @@ public struct ElicitationURLConsentView: View {
 
   /// The buttons of the current step.
   private var footer: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Spacer()
       switch phase {
       case .idle:

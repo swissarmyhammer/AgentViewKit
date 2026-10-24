@@ -1,4 +1,5 @@
 import AppKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -40,7 +41,7 @@ public struct SourcesView: View {
   @State private var isExpanded: Bool
 
   @Environment(\.citationSelection) private var selection
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the footer of a citation payload.
@@ -73,7 +74,7 @@ public struct SourcesView: View {
   public var body: some View {
     let highlighted = selection?.index
     DisclosureGroup(isExpanded: $isExpanded) {
-      VStack(alignment: .leading, spacing: theme.spacing.s) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
         ForEach(Array(payload.sources.enumerated()), id: \.offset) { position, source in
           let index = position + 1
           SourceRow(
@@ -83,7 +84,7 @@ public struct SourcesView: View {
           )
         }
       }
-      .padding(.top, theme.spacing.xs)
+      .padding(.top, editorStyle.spacing.xs)
     } label: {
       Label {
         Text("Sources (\(payload.sources.count))", bundle: .module)
@@ -119,12 +120,12 @@ private struct SourceRow: View {
   /// has no highlight. A new value scrolls the row into view.
   let scrollRequest: Int?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     let isHighlighted = scrollRequest != nil
-    HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
+    HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       InlineCitationPill(index: index)
         .accessibilityElement()
         .accessibilityAddTraits(.isStaticText)
@@ -132,7 +133,7 @@ private struct SourceRow: View {
         .accessibilityValue(isHighlighted ? Text(SourcesView.highlightedValue) : Text(verbatim: ""))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
         .accessibilityIdentifier(SourcesView.numberIdentifier(index: index))
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         LinkView(link: link)
         if !source.snippet.isEmpty {
           Text(source.snippet)
@@ -142,11 +143,11 @@ private struct SourceRow: View {
         }
       }
     }
-    .padding(theme.spacing.xs)
+    .padding(editorStyle.spacing.xs)
     // D113 answer 5 permits the accent here: the highlight marks the current
     // source.
     .background(
-      AgentSurface.shape(radius: theme.radii.s)
+      EditorSurface.shape(radius: editorStyle.radii.s)
         .fill(isHighlighted ? AnyShapeStyle(editorTheme.accent.opacity(Self.highlightOpacity)) : AnyShapeStyle(.clear))
     )
     .background(ScrollIntoView(request: scrollRequest))

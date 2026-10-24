@@ -38,6 +38,13 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
   /// `.background(editorTheme.<color>`.
   case themeColorBackground
 
+  /// A fill of the EditorKit `EditorStyle` target: the fill that a host opts
+  /// into, `.inlineFill(_:)`, and the filled surfaces `SurfaceFill` and
+  /// `.surfaceBackground(_:radius:)`. A kit view draws no fill by default,
+  /// and `.inlineEdge(radius:)` paints a fill only below a host that sets
+  /// one, so no kit view sets it.
+  case editorStyleFill
+
   var testDescription: String { rawValue }
 
   /// The files that can use ``backgroundInShape``, relative to the package
@@ -71,7 +78,7 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
     switch self {
     case .backgroundInShape: Self.backgroundInShapeFiles
     case .shapeFill: Self.shapeFillFiles
-    case .agentContentSurface, .statusBarBackground, .tabBarBackground, .themeColorBackground:
+    case .agentContentSurface, .statusBarBackground, .tabBarBackground, .themeColorBackground, .editorStyleFill:
       [:]
     }
   }
@@ -90,15 +97,34 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
     case .backgroundInShape: Self.backgroundInShapePattern
     case .shapeFill: Self.shapeFillPattern
     case .themeColorBackground: Self.themeColorBackgroundPattern
+    case .editorStyleFill: Self.editorStyleFillPattern
     }
   }
 
-  /// The pattern that finds a card shape: `AgentSurface.shape`,
+  /// The pattern that finds a fill of EditorStyle: a call of
+  /// `inlineFill`, `SurfaceFill` or `surfaceBackground`.
+  static var editorStyleFillPattern: Regex<Substring> {
+    Regex {
+      ChoiceOf {
+        GlassForm.callPattern("inlineFill")
+        GlassForm.callPattern("SurfaceFill")
+        GlassForm.callPattern("surfaceBackground")
+      }
+    }
+  }
+
+  /// The pattern that finds a card shape: the surface shape of EditorStyle
+  /// (`EditorSurface.shape` or `EditorSurface.fallbackShape`),
   /// `ConcentricRectangle`, `RoundedRectangle`, `Rectangle` or `Capsule`.
   static var cardShapes: Regex<Substring> {
     Regex {
       ChoiceOf {
-        WordPattern.memberPattern(after: WordPattern.wholeWord("AgentSurface"), WordPattern.wholeWord("shape"))
+        WordPattern.memberPattern(
+          after: WordPattern.wholeWord("EditorSurface"),
+          ChoiceOf {
+            WordPattern.wholeWord("shape")
+            WordPattern.wholeWord("fallbackShape")
+          })
         WordPattern.wholeWord("ConcentricRectangle")
         WordPattern.wholeWord("RoundedRectangle")
         WordPattern.wholeWord("Rectangle")
@@ -219,10 +245,14 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
     (.backgroundInShape, ".background(.quaternary, in: .capsule)"),
     (.shapeFill, "RoundedRectangle(cornerRadius: radius).fill(.quaternary)"),
     (.shapeFill, ".background(Capsule().fill(.tint))"),
-    (.shapeFill, "AgentSurface.shape(radius: theme.radii.m) .fill(.quaternary)"),
+    (.shapeFill, "EditorSurface.shape(radius: editorStyle.radii.m) .fill(.quaternary)"),
+    (.shapeFill, "EditorSurface.fallbackShape(radius: editorStyle.radii.m).fill(.quaternary)"),
     (.shapeFill, "ConcentricRectangle(corners: .concentric(minimum: .fixed(radius))).fill(.quaternary)"),
     (.shapeFill, "Rectangle().fill(.background.secondary)"),
     (.themeColorBackground, ".background(editorTheme.selection)"),
+    (.editorStyleFill, "Text(\"badge\").inlineFill(.quaternary)"),
+    (.editorStyleFill, "SurfaceFill(.tint, radius: editorStyle.radii.s)"),
+    (.editorStyleFill, ".surfaceBackground(.regularMaterial, radius: editorStyle.radii.l)"),
   ]
 
   /// Lines that look like a form, but put no fill behind content.
@@ -239,7 +269,8 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
     "bounds.fill()",
     "Circle().fill(editorTheme.statusRunning)",
     ".foregroundStyle(editorTheme.accent)",
-    ".agentContentEdge(radius: theme.radii.m)",
+    ".inlineEdge(radius: editorStyle.radii.m)",
+    "@Environment(\\.inlineFill) private var hostFill",
     "let height = theme.statusBarBackgroundHeight",
   ]
 
@@ -259,6 +290,7 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
     (.backgroundInShape, [11, 20]),
     (.shapeFill, [12, 13, 24]),
     (.themeColorBackground, [16, 18]),
+    (.editorStyleFill, [26, 27, 28]),
   ]
 
   /// Each form, and each of its allowed files.
@@ -278,7 +310,7 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
     let call = """
       .background(
         isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-        in: AgentSurface.shape(radius: theme.radii.s))
+        in: EditorSurface.shape(radius: editorStyle.radii.s))
       """
 
     #expect(ContentFillForm.forms(in: call) == [.backgroundInShape])

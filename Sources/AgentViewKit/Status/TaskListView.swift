@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -36,7 +37,7 @@ public struct TaskListView: View {
   /// The plan entry to show.
   let entry: PlanTranscriptEntry
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the task list of one plan entry of a `SessionModel`, for the row
@@ -102,11 +103,11 @@ public struct TaskListView: View {
   /// - Returns: The symbol name.
   static func statusSymbol(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
     switch status {
-    case .pending: SharedSymbol.pending
-    case .inProgress: SharedSymbol.inProgress
-    case .completed: SharedSymbol.completed
-    case .cancelled: SharedSymbol.cancelled
-    case .unknown: SharedSymbol.unknown
+    case .pending: ItemStatus.pending.systemImage
+    case .inProgress: ItemStatus.inProgress.systemImage
+    case .completed: ItemStatus.completed.systemImage
+    case .cancelled: ItemStatus.cancelled.systemImage
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 
@@ -118,10 +119,10 @@ public struct TaskListView: View {
   ///   unknown value.
   static func prioritySymbol(_ priority: FoundationModelsACP.PlanEntryPriority) -> String {
     switch priority {
-    case .high: SharedSymbol.highPriority
-    case .medium: SharedSymbol.mediumPriority
-    case .low: SharedSymbol.lowPriority
-    case .unknown: SharedSymbol.unknown
+    case .high: ItemPriority.high.systemImage
+    case .medium: ItemPriority.medium.systemImage
+    case .low: ItemPriority.low.systemImage
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 
@@ -167,7 +168,7 @@ public struct TaskListView: View {
   /// `planId` changes this view in place.
   public var body: some View {
     let key = entry.id.rowKey
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       if let unknown = entry.unknownContent {
         JSONDisclosure(
           id: key,
@@ -193,25 +194,25 @@ private struct PlanEntryRow: View {
   /// The ACP entry to show.
   let entry: FoundationModelsACP.PlanEntry
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       statusSymbol
-        .frame(width: theme.spacing.l)
+        .frame(width: editorStyle.spacing.l)
         .help(TaskListView.statusLabel(entry.status))
       Text(entry.content)
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       StatusSymbolImage(
         name: TaskListView.prioritySymbol(entry.priority),
         color: editorTheme.tint(for: entry.priority)
       )
       .help(TaskListView.priorityLabel(entry.priority))
     }
-    .padding(.vertical, theme.rowPadding)
+    .padding(.vertical, editorStyle.rowPadding)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(TaskListView.entryLabel(entry))
     .accessibilityAddTraits(.isStaticText)

@@ -27,4 +27,22 @@ public enum DemoWindowLayout {
 
   /// The ideal width of the sidebar column of each tab, in points.
   public static let sidebarIdealWidth: CGFloat = 240
+
+  /// The frame of a window on the primary screen, in AppKit global
+  /// coordinates (origin at the bottom-left corner of the primary screen, y
+  /// up). The window has the default size, no larger than the visible frame,
+  /// and stands at the top-left corner of the visible frame.
+  ///
+  /// The demo app uses this frame for `--primary-screen`
+  /// (``DemoLaunchOptions/primaryScreenArgument``).
+  ///
+  /// - Parameter visibleFrame: The visible frame of the primary screen,
+  ///   without the menu bar and the Dock, in AppKit global coordinates.
+  /// - Returns: The frame of the window.
+  public static func primaryScreenFrame(visibleFrame: CGRect) -> CGRect {
+    let size = CGSize(
+      width: min(defaultWidth, visibleFrame.width), height: min(defaultHeight, visibleFrame.height))
+    return CGRect(
+      origin: CGPoint(x: visibleFrame.minX, y: visibleFrame.maxY - size.height), size: size)
+  }
 }

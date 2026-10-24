@@ -1,6 +1,7 @@
 import EditorComplete
 import EditorCore
 import EditorExtensions
+import EditorStyle
 import EditorSwiftUI
 import EditorText
 import EditorTheme
@@ -87,7 +88,7 @@ public struct EditorKitPromptEditor: View {
 
   @Environment(\.promptFileRoot) private var fileRoot
   @Environment(\.composerCompletionRoutes) private var routes
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// The model and the completion engine of the editor.
@@ -207,8 +208,8 @@ public struct EditorKitPromptEditor: View {
     Text(Self.noCommandsNote)
       .font(editorTheme.font(for: .ui, style: .caption))
       .foregroundStyle(.secondary)
-      .padding(.horizontal, theme.spacing.s)
-      .padding(.vertical, theme.spacing.xs)
+      .padding(.horizontal, editorStyle.spacing.s)
+      .padding(.vertical, editorStyle.spacing.xs)
       .frame(width: Self.completionListWidth, alignment: .leading)
       .accessibilityIdentifier(Self.noCommandsIdentifier)
   }
@@ -551,15 +552,15 @@ struct PromptCompletionRow: View {
   /// Whether the row is the selected row.
   let isSelected: Bool
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Text(item.label)
         .font(editorTheme.uiFont)
         .lineLimit(1)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       if let detail = item.detail {
         Text(detail)
           .font(editorTheme.font(for: .ui, style: .caption))
@@ -567,8 +568,8 @@ struct PromptCompletionRow: View {
           .lineLimit(1)
       }
     }
-    .padding(.horizontal, theme.spacing.s)
-    .padding(.vertical, theme.spacing.xs)
+    .padding(.horizontal, editorStyle.spacing.s)
+    .padding(.vertical, editorStyle.spacing.xs)
     .background(isSelected ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
     .accessibilityElement(children: .combine)
     .accessibilityLabel(item.label)

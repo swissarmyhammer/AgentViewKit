@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -53,7 +54,7 @@ public struct ActivityTimeline: View {
   /// The row keys of the expanded rows.
   @State private var expandedRows: Set<String> = []
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the timeline of the transcript of a session model.
   ///
@@ -95,7 +96,7 @@ public struct ActivityTimeline: View {
         .accessibilityIdentifier(Self.emptyStateIdentifier)
       } else {
         ScrollView {
-          VStack(alignment: .leading, spacing: theme.spacing.xs) {
+          VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
             ForEach(entries) { entry in
               let key = entry.id.rowKey
               ActivityEntryRow(
@@ -105,7 +106,7 @@ public struct ActivityTimeline: View {
               )
             }
           }
-          .padding(theme.rowPadding)
+          .padding(editorStyle.rowPadding)
         }
       }
     }
@@ -203,20 +204,20 @@ private struct ActivityEntryRow: View {
   /// The function that expands or collapses the row.
   let onToggle: () -> Void
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     let key = entry.id.rowKey
     let appearance = appearance
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Button(action: onToggle) {
-        HStack(spacing: theme.spacing.s) {
+        HStack(spacing: editorStyle.spacing.s) {
           StatusSymbolImage(name: appearance.symbolName, color: appearance.tint)
           Text(appearance.title)
             .lineLimit(1)
             .truncationMode(.middle)
-          Spacer(minLength: theme.spacing.s)
+          Spacer(minLength: editorStyle.spacing.s)
           if let status = appearance.status {
             ToolStatusImage(status: status)
           }

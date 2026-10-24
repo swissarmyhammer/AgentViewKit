@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -225,7 +226,7 @@ nonisolated enum GlassView: CaseIterable, Sendable {
 
   /// The default accessory row of the composer of `session`, with a
   /// dictation button and an enabled Send, over the backdrop. The row has
-  /// the medium spacing of the theme on each side, so that Send is not at
+  /// the medium spacing of the style on each side, so that Send is not at
   /// the edge of the render.
   ///
   /// - Parameter session: The session of the composer.
@@ -233,7 +234,7 @@ nonisolated enum GlassView: CaseIterable, Sendable {
   @MainActor static func accessory(for session: SessionModel) -> some View {
     overBackdrop(
       DefaultPromptAccessory()
-        .padding(.horizontal, AgentTheme.default.spacing.m)
+        .padding(.horizontal, EditorStyle.default.spacing.m)
         .environment(\.sessionModel, session)
         .environment(\.promptText, .constant(AttributedString()))
         .environment(\.speechTranscriber, FakeSpeechTranscriber())
@@ -247,7 +248,7 @@ nonisolated enum GlassView: CaseIterable, Sendable {
 
   /// A primary and a secondary action of a request card, out of a bar.
   @MainActor static var requestActions: some View {
-    HStack(spacing: AgentTheme.default.spacing.s) {
+    HStack(spacing: EditorStyle.default.spacing.s) {
       Button("Allow once") {}.requestActionStyle(.primary)
       Button("Deny") {}.requestActionStyle(.secondary)
     }
@@ -286,16 +287,16 @@ struct EditorMenuProbe: View {
   static let menuSize = CGSize(width: menuWidth, height: menuHeight)
 
   /// The middle row of the menu, in points from the top of the render. The
-  /// bottom edge of the menu is the small spacing of the theme above the
+  /// bottom edge of the menu is the small spacing of the style above the
   /// top edge of the field.
   static var menuRow: CGFloat {
-    let menuBottom = size.height - fieldHeight - AgentTheme.default.spacing.s
+    let menuBottom = size.height - fieldHeight - EditorStyle.default.spacing.s
     return menuBottom - CGRect(origin: .zero, size: menuSize).midY
   }
 
   var body: some View {
     OverBackdrop(inset: 0) {
-      FloatingGlassContainer(spacing: AgentTheme.default.spacing.s) {
+      FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) {
         Color.clear
           .frame(height: Self.fieldHeight)
           .anchorPreference(key: PromptEditorMenuKey.self, value: .bounds) { anchor in

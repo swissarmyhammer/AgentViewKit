@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Changes the token names of the theme files into SwiftUI values.
+/// Changes the token names of the token table into SwiftUI values.
 ///
-/// `DefaultTokens.json` and the token table in
-/// `Docs/decisions/visual-audit.md` name each weight. The theme tests use
-/// this lookup for the two files.
+/// The token table in `Docs/decisions/visual-audit.md` names each weight.
+/// ``StyleTokenGoldenTests`` uses this lookup for the table.
 enum ThemeTokenNames {
   /// The errors that the name lookup gives.
   enum LookupError: Error, Equatable {

@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -78,7 +79,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
 
   @Environment(\.diffRenderer) private var renderer
   @Environment(\.diffActions) private var environmentActions
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes a diff view.
@@ -188,7 +189,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     case .modified: SharedSymbol.modifiedFile
     case .renamed: SharedSymbol.renamedFile
     case .copied: SharedSymbol.copiedFile
-    case .unknown: SharedSymbol.unknown
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 
@@ -198,13 +199,13 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     let file = files.first { $0.path == selectedPath } ?? files.first
     let actions = ownActions ?? environmentActions
     return ViewThatFits(in: .horizontal) {
-      HStack(alignment: .top, spacing: theme.spacing.m) {
+      HStack(alignment: .top, spacing: editorStyle.spacing.m) {
         fileList(selected: file)
           .frame(width: Self.fileListWidth)
         detail(file: file, actions: actions)
           .frame(minWidth: Self.rendererMinWidth, alignment: .leading)
       }
-      VStack(alignment: .leading, spacing: theme.spacing.m) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
         fileList(selected: file)
         detail(file: file, actions: actions)
       }
@@ -220,7 +221,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// - Parameter selected: The file that the renderer shows.
   /// - Returns: The list view.
   private func fileList(selected: DiffSummary.FileSummary?) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ForEach(files) { file in
         fileRow(file, isSelected: file.path == selected?.path)
       }
@@ -237,15 +238,15 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     Button {
       selectedPath = file.path
     } label: {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         Image(systemName: Self.symbolName(for: file.operation))
           .symbolRenderingMode(.hierarchical)
-          .fontWeight(theme.symbolWeight)
+          .fontWeight(editorStyle.symbolWeight)
           .foregroundStyle(.secondary)
         Text(URL(fileURLWithPath: file.path).lastPathComponent)
           .lineLimit(1)
           .truncationMode(.middle)
-        Spacer(minLength: theme.spacing.s)
+        Spacer(minLength: editorStyle.spacing.s)
         if patch != nil {
           Text(verbatim: "+\(file.added)")
             .foregroundStyle(editorTheme.diffAddedText)
@@ -255,11 +256,11 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       }
       .font(editorTheme.font(for: .ui, style: .caption))
       .monospacedDigit()
-      .padding(.horizontal, theme.spacing.s)
-      .padding(.vertical, theme.spacing.xs)
+      .padding(.horizontal, editorStyle.spacing.s)
+      .padding(.vertical, editorStyle.spacing.xs)
       .background(
         isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-        in: AgentSurface.shape(radius: theme.radii.s))
+        in: EditorSurface.shape(radius: editorStyle.radii.s))
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
@@ -278,7 +279,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   ///   - actions: The host functions of the actions.
   /// - Returns: The detail view.
   private func detail(file: DiffSummary.FileSummary?, actions: DiffActions) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       if let patch {
         rendered(patch: patch, file: file)
         if let file {
@@ -346,13 +347,13 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     _ hunk: DiffSummary.Hunk, index: Int, file: DiffSummary.FileSummary, actions: DiffActions
   ) -> some View {
     if actions.onAccept != nil || actions.onReject != nil {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         Text(verbatim: hunk.header)
           .font(editorTheme.codeFont)
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.tail)
-        Spacer(minLength: theme.spacing.s)
+        Spacer(minLength: editorStyle.spacing.s)
         if let onAccept = actions.onAccept {
           Button(String(localized: "Accept", bundle: .module), systemImage: Self.acceptSymbol) {
             onAccept(file.path, index)

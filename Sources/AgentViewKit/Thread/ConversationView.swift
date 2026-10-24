@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -178,7 +179,7 @@ public struct ConversationView<EmptyState: View>: View {
   @State private var isNearBottom = true
 
   @Environment(\.conversationPageSize) private var pageSize
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Whether the list shows its own scroll-to-bottom pill
   /// (``SwiftUI/EnvironmentValues/conversationShowsPill``).
@@ -230,7 +231,7 @@ public struct ConversationView<EmptyState: View>: View {
       // state evaluates only the banner and not the list.
       if showsStateBanner {
         StateBanner(session: session) { showItem($0.rowKey) }
-          .padding(theme.spacing.m)
+          .padding(editorStyle.spacing.m)
       }
     }
     .environment(\.sessionModel, session)
@@ -253,16 +254,16 @@ public struct ConversationView<EmptyState: View>: View {
     let anchors = anchors
     return ScrollView {
       VStack(spacing: 0) {
-        VStack(alignment: .leading, spacing: theme.spacing.m) {
+        VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
           if shownCount < count {
             loadEarlierRow
           }
-          LazyVStack(alignment: .leading, spacing: theme.spacing.m) {
+          LazyVStack(alignment: .leading, spacing: editorStyle.spacing.m) {
             rows(shownCount: shownCount)
           }
           .scrollTargetLayout()
         }
-        .padding(theme.rowPadding)
+        .padding(editorStyle.rowPadding)
         // The target of a scroll to the bottom near the end of the content
         // (`scrollToBottom()`).
         Color.clear
@@ -302,7 +303,7 @@ public struct ConversationView<EmptyState: View>: View {
       // thread, with the composer.
       if showsPill {
         ConversationPill(anchors: anchors)
-          .padding(theme.spacing.m)
+          .padding(editorStyle.spacing.m)
       }
     }
     .onAppear {
@@ -350,7 +351,7 @@ public struct ConversationView<EmptyState: View>: View {
         String(localized: "Load Earlier", bundle: .module),
         systemImage: ConversationLayout.loadEarlierSymbolName
       )
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
     }
     .buttonStyle(.bordered)
     .frame(maxWidth: .infinity)

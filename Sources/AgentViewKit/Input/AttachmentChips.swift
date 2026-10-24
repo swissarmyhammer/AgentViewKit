@@ -1,5 +1,6 @@
 import AppKit
 import CoreTransferable
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -45,7 +46,7 @@ public struct AttachmentChips: View {
   /// The attachments, in the order to show.
   @Binding var attachments: [Attachment]
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.connectionModel) private var connection
 
@@ -171,9 +172,9 @@ public struct AttachmentChips: View {
     // `initialize` answer or a second connection changes the marks at once.
     let capabilities = connection?.promptCapabilities
     ScrollView(.horizontal) {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         ForEach(attachments) { attachment in
-          HStack(spacing: theme.spacing.xs) {
+          HStack(spacing: editorStyle.spacing.xs) {
             AttachmentChip(attachment)
               .accessibilityElement(children: .combine)
               .accessibilityIdentifier(Self.chipIdentifier(for: attachment.id))

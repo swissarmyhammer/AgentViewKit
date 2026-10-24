@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -25,7 +26,7 @@ struct JSONDisclosure: View {
   @State private var ownStore: ExpandedBlocksStore
 
   @Environment(\.expandedBlocksStore) private var environmentStore
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the block.
@@ -67,7 +68,7 @@ struct JSONDisclosure: View {
         .font(editorTheme.codeFont)
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, theme.spacing.xs)
+        .padding(.top, editorStyle.spacing.xs)
     } label: {
       Text(title)
         .font(editorTheme.uiFont)

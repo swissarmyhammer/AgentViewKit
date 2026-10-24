@@ -23,6 +23,16 @@ enum DemoTestValues {
   /// in-memory agent on the ACP tab.
   static let galleryLaunchArguments = [inMemoryAgentArgument, "--tab", "gallery"]
 
+  /// The launch argument that opens the window on the primary screen, the
+  /// one whose frame origin is (0, 0)
+  /// (`DemoLaunchOptions.primaryScreenArgument`).
+  ///
+  /// This is a test-environment switch. The demo window opens on the screen
+  /// that the user is working on, and XCTest's hit test fails for a window
+  /// on a screen that lies above or left of the primary screen, where the
+  /// global coordinates are negative.
+  static let primaryScreenArgument = "--primary-screen"
+
   /// The identifier of the row of the scripted permission session in the
   /// session list of the Gallery tab.
   static let permissionSessionRow = "session-row-gallery-permission"
@@ -53,11 +63,12 @@ enum DemoTestValues {
 }
 
 extension XCUIApplication {
-  /// Starts the app with `DemoTestValues.appKitArguments` and then `arguments`.
+  /// Starts the app with `DemoTestValues.appKitArguments`, then
+  /// `DemoTestValues.primaryScreenArgument`, and then `arguments`.
   ///
   /// - Parameter arguments: The launch arguments of the test.
   func launch(arguments: [String]) {
-    launchArguments = DemoTestValues.appKitArguments + arguments
+    launchArguments = DemoTestValues.appKitArguments + [DemoTestValues.primaryScreenArgument] + arguments
     launch()
   }
 

@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -41,10 +42,10 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     identifier(for: id) + sendStateSuffix
   }
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       TranscriptMessageView(entry: .user(entry))
       SendStateLabel(state: entry.sendState)
         .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
@@ -60,7 +61,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     /// The send state to show.
     let state: SendState
 
-    @Environment(\.agentTheme) private var theme
+    @Environment(\.editorStyle) private var editorStyle
     @Environment(\.editorTheme) private var editorTheme
 
     /// The text of a send state.
@@ -81,8 +82,8 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     /// - Returns: The pending, the completed, or the error symbol.
     static func symbol(of state: SendState) -> String {
       switch state {
-      case .pending: SharedSymbol.pending
-      case .sent: SharedSymbol.completed
+      case .pending: ItemStatus.pending.systemImage
+      case .sent: ItemStatus.completed.systemImage
       case .failed: SharedSymbol.error
       }
     }
@@ -90,7 +91,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     var body: some View {
       Label(Self.title(of: state), systemImage: Self.symbol(of: state))
         .font(editorTheme.font(for: .ui, style: .caption))
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .foregroundStyle(editorTheme.statusColor(for: state))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.title(of: state))

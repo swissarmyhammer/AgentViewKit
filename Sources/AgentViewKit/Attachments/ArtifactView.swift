@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -13,7 +14,7 @@ import UniformTypeIdentifiers
 /// type, and has no file actions, because it has no file.
 ///
 /// The panel is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113).
+/// marks its edge (`.inlineEdge(radius:)`, D113).
 public struct ArtifactView: View {
   /// The accessibility identifier of the panel.
   public static let identifier = "artifact"
@@ -32,14 +33,14 @@ public struct ArtifactView: View {
     AttachmentActions.identifiers(prefix: identifierPrefix)
   }
 
-  /// The corners of the panel: the medium radius of the theme. The edge of
-  /// the panel and the focus ring of its scope both have them.
-  static let corners = AgentSurfaceCorners.rounded(\.m)
+  /// The corners of the panel: the medium radius of `\.editorStyle`. The
+  /// edge of the panel and the focus ring of its scope both have them.
+  static let corners = AgentSurfaceCorners.rounded(.medium)
 
   /// The artifact to show.
   let artifact: ArtifactPayload
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the panel of an artifact.
@@ -51,13 +52,13 @@ public struct ArtifactView: View {
 
   public var body: some View {
     let attachment = Self.attachment(of: artifact)
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
-      HStack(spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         Label(artifact.title, systemImage: SharedSymbol.artifact)
           .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
           .accessibilityIdentifier(Self.titleIdentifier)
-        Spacer(minLength: theme.spacing.s)
+        Spacer(minLength: editorStyle.spacing.s)
         if let attachment {
           AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
         }
@@ -71,8 +72,8 @@ public struct ArtifactView: View {
           .accessibilityIdentifier(Self.inlineTextIdentifier)
       }
     }
-    .padding(theme.spacing.m)
-    .agentContentEdge(radius: Self.corners.radius(in: theme))
+    .padding(editorStyle.spacing.m)
+    .inlineEdge(radius: Self.corners.radius(in: editorStyle))
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
     .agentAttachmentScope(attachment, focusRingCorners: Self.corners)

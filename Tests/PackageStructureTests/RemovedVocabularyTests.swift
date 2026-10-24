@@ -507,6 +507,52 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     try Self.expectNoUse(of: Self.removedSessionModelSymbols)
   }
 
+  /// The kit copies of the shared style of the EditorKit `EditorStyle`
+  /// target: the layout tokens and their environment value, the concentric
+  /// surface shape, the content edge, the floating glass modifiers, and the
+  /// count of the floating glass containers. Each view reads `\.editorStyle`,
+  /// `EditorSurface`, `.inlineEdge(radius:)`, `FloatingGlassContainer`,
+  /// `.floatingGlass(id:)` and `.floatingGlassID(_:)` in their place.
+  static let removedStyleCopySymbols = [
+    "AgentTheme", "agentTheme", "AgentSurface", "AgentContentEdge", "agentContentEdge",
+    "AgentFloatingGlass", "agentFloatingGlass", "AgentGlassID", "agentGlassID",
+    "floatingGlassContainerCount",
+  ]
+
+  @Test func noFileUsesTheRemovedStyleCopies() throws {
+    try Self.expectNoUse(of: Self.removedStyleCopySymbols)
+  }
+
+  /// The constants of the symbol table that named a status or a priority.
+  /// The views read the symbol of `ItemStatus` and `ItemPriority` of the
+  /// EditorKit `EditorStyle` target in their place.
+  static let removedItemSymbolConstants = [
+    "pending", "inProgress", "completed", "cancelled", "unknown", "highPriority", "mediumPriority",
+    "lowPriority",
+  ]
+
+  /// The pattern that finds the declaration of a constant of the symbol
+  /// table, such as `static let pending =`.
+  ///
+  /// - Parameter name: The name of the constant.
+  /// - Returns: The pattern.
+  static func symbolConstantDeclaration(named name: String) -> Regex<Substring> {
+    Regex {
+      "static let"
+      OneOrMore(.whitespace)
+      WordPattern.wholeWord(name)
+    }
+  }
+
+  @Test func theSymbolTableDeclaresNoStatusOrPrioritySymbol() throws {
+    let path = SymbolNameTests.sharedSymbolFile
+    let found = SourceLineScanner.matches(inSource: try PackageFiles.text(of: path), file: path) { line in
+      Self.uses(of: Self.removedItemSymbolConstants, on: line, matching: Self.symbolConstantDeclaration(named:))
+    }
+
+    #expect(found.isEmpty, "Read ItemStatus or ItemPriority of EditorStyle: \(found)")
+  }
+
   @Test func theRemovedInputPatternFindsTheInputOfEachTypeAfterNestedParentheses() {
     let pattern = Self.removedInputUse(of: ["First", "Second"], input: "gone")
 

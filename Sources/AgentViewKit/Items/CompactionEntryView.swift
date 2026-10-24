@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -31,7 +32,7 @@ import SwiftUI
 ///
 /// The row is content of the transcript, so it has no fill and no glass. A
 /// separator stroke marks its edge
-/// (``SwiftUI/View/agentContentEdge(radius:)``, D113).
+/// (`.inlineEdge(radius:)`, D113).
 public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of the title and the status of
   /// each row. The rest is the row key of the entry.
@@ -50,7 +51,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// The compaction entry to show.
   let entry: CompactionEntry
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the row of a compaction entry of a `SessionModel`.
@@ -85,7 +86,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
 
   public var body: some View {
     let key = entry.id.rowKey
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       header(key: key)
       if let error = entry.error {
         Text(error)
@@ -96,8 +97,8 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       }
       summary(key: key)
     }
-    .padding(theme.spacing.m)
-    .agentContentEdge()
+    .padding(editorStyle.spacing.m)
+    .inlineEdge(radius: editorStyle.radii.l)
   }
 
   /// The symbol, the title and the status of the row.
@@ -107,10 +108,10 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   private func header(key: String) -> some View {
     let status = entry.status
     let statusText = Self.statusLabel(for: status)
-    return HStack(spacing: theme.spacing.m) {
+    return HStack(spacing: editorStyle.spacing.m) {
       StatusSymbolImage(name: Self.symbolName, color: editorTheme.statusColor(for: status))
         .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(Self.title)
           .font(editorTheme.font(for: .ui, style: .headline))
         Text(statusText)

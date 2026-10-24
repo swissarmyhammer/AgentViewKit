@@ -19,10 +19,13 @@ struct ContentCards: View {
       Text("header")
         .background(
           .quaternary,
-          in: AgentSurface.shape(radius: Radius.card))
+          in: EditorSurface.shape(radius: Radius.card))
       Text("chip").background(
         Capsule()
           .fill(.tint))
+      Text("host fill").inlineFill(.quaternary)
+      SurfaceFill(.quaternary, radius: Radius.card)
+      Text("surface").surfaceBackground(.quaternary, radius: Radius.card)
     }
   }
 }

@@ -1,5 +1,6 @@
 import AVFoundation
 import AppKit
+import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -443,8 +444,8 @@ enum PreviewFixtures {
   /// ``PreviewSymbolSheet``. Each row of that sheet shows the symbol and its
   /// name.
   static let statusSymbolNames = [
-    SharedSymbol.pending, SharedSymbol.inProgress, SharedSymbol.completed, SharedSymbol.error,
-    SharedSymbol.cancelled, SharedSymbol.unknown, SharedSymbol.warning, SharedSymbol.information,
+    ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, SharedSymbol.error,
+    ItemStatus.cancelled.systemImage, ItemStatus.unknown.systemImage, SharedSymbol.warning, SharedSymbol.information,
   ]
 
   /// A decorative symbol of the kit, with the header that shows it.

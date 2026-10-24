@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -48,7 +49,7 @@ public struct AgentInfoHeader: View {
   /// `nil` for the agent alone.
   let sessionTitle: String?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the header of the agent of a connection model.
   ///
@@ -65,8 +66,8 @@ public struct AgentInfoHeader: View {
     if let info = connection.initializeResponse?.info {
       let agent = info.title ?? info.name
       AgentBreadcrumb(agent: agent, version: info.version, sessionTitle: sessionTitle)
-        .padding(.horizontal, theme.spacing.m)
-        .padding(.vertical, theme.spacing.s)
+        .padding(.horizontal, editorStyle.spacing.m)
+        .padding(.vertical, editorStyle.spacing.s)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.label(agent: agent, sessionTitle: sessionTitle))
         .accessibilityValue(AgentBreadcrumb.versionLine(of: info.version))
@@ -114,11 +115,11 @@ struct AgentBreadcrumb: View {
   /// The title of the session, or `nil` for the agent alone.
   let sessionTitle: String?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
+    HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       agentSegment
         .layoutPriority(Self.agentPriority)
       if let sessionTitle {
@@ -130,7 +131,7 @@ struct AgentBreadcrumb: View {
           .lineLimit(1)
           .accessibilityIdentifier(Self.sessionIdentifier)
       }
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
     }
   }
 
@@ -145,7 +146,7 @@ struct AgentBreadcrumb: View {
   /// The first segment: the symbol, the name and the version line of the
   /// agent. The name keeps its place before the version line.
   private var agentSegment: some View {
-    HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
+    HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       DecorativeSymbolImage(name: AgentInfoHeader.symbol)
       Text(agent)
         .font(editorTheme.font(for: .ui, style: .headline))

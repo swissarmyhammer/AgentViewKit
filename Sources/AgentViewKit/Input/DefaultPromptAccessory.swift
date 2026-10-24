@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -45,7 +46,7 @@ public struct DefaultPromptAccessory: View {
   @Environment(\.sessionModel) private var session
   @Environment(\.promptSubmitAction) private var submit
   @Environment(\.promptSuggestions) private var suggestions
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// The report that gets the method of the cancel that the Stop button
   /// starts, or `nil`.
@@ -107,17 +108,17 @@ public struct DefaultPromptAccessory: View {
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       if !isRunning {
         SuggestionsView(suggestions: suggestions)
       }
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         if let session {
           PermissionModePicker(session: session)
             .labelsHidden()
             .fixedSize()
         }
-        Spacer(minLength: theme.spacing.s)
+        Spacer(minLength: editorStyle.spacing.s)
         SpeechInputButton()
         if canCancel {
           stopButton
@@ -134,7 +135,7 @@ public struct DefaultPromptAccessory: View {
     } label: {
       Label(String(localized: "Send", bundle: .module), systemImage: SharedSymbol.send)
         .labelStyle(.iconOnly)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
     }
     .actionStyle(Self.style(of: .send, for: session))
     .buttonBorderShape(.circle)
@@ -150,7 +151,7 @@ public struct DefaultPromptAccessory: View {
     } label: {
       Label(String(localized: "Stop", bundle: .module), systemImage: SharedSymbol.stop)
         .labelStyle(.iconOnly)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
     }
     .actionStyle(Self.style(of: .stop, for: session))
     .buttonBorderShape(.circle)

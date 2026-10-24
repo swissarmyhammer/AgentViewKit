@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -25,7 +26,7 @@ public struct ContextUsageView: View {
   /// The text that shows beside the ring.
   let style: UsageRingView.TextStyle
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// The caption of the token counts of the ring.
@@ -53,7 +54,7 @@ public struct ContextUsageView: View {
 
   public var body: some View {
     if let usage = session.usage {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         UsageRingView(
           numerator: usage.used, denominator: usage.size, caption: Self.tokensCaption, style: style)
         .accessibilityLabel(String(localized: "Context used", bundle: .module))

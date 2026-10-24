@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -111,7 +112,7 @@ public struct ElicitationView: View {
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
   @Environment(\.elicitationTabThreshold) private var tabThreshold
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.announcer) private var announcer
 
@@ -182,13 +183,13 @@ public struct ElicitationView: View {
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.m) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       ElicitationHeaderSlot(request: request)
       layout
       failure
       footer
     }
-    .padding(theme.spacing.m)
+    .padding(editorStyle.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
     .focusable()
     .focusEffectDisabled()
@@ -458,7 +459,7 @@ public struct ElicitationHeader: View {
   /// The pending elicitation of the card.
   let request: PendingElicitation
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the default header.
@@ -477,7 +478,7 @@ public struct ElicitationHeader: View {
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Label(Self.title(server: Self.agentServer), systemImage: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
       ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
@@ -571,7 +572,7 @@ public struct ElicitationFooter: View {
   /// The context of the footer.
   let context: ElicitationFooterContext
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the default footer.
   ///
@@ -581,7 +582,7 @@ public struct ElicitationFooter: View {
   }
 
   public var body: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Spacer()
       Button(
         String(localized: "Cancel", bundle: .module), systemImage: ElicitationView.cancelSymbol,

@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorText
 import EditorTheme
@@ -39,7 +40,7 @@ public struct CodeBlockView: View {
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot()
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.pasteboard) private var pasteboard
 
@@ -94,13 +95,13 @@ public struct CodeBlockView: View {
 
   /// The row with the title and the Copy button.
   private var header: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Text(filename ?? language ?? Self.plainTextName)
         .font(editorTheme.font(for: .ui, style: .caption))
         .foregroundStyle(.secondary)
         .lineLimit(1)
         .truncationMode(.middle)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       Button(String(localized: "Copy code", bundle: .module), systemImage: SharedSymbol.copy) {
         pasteboard.copyText(code)
       }
@@ -109,8 +110,8 @@ public struct CodeBlockView: View {
       .help(String(localized: "Copy code", bundle: .module))
       .accessibilityIdentifier(Self.copyIdentifier)
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
+    .padding(.horizontal, editorStyle.spacing.m)
+    .padding(.vertical, editorStyle.spacing.xs)
     .editorBlockHeader()
   }
 

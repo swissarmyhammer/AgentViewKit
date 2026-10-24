@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import Foundation
 import FoundationModelsACPClient
 import SwiftUI
@@ -151,7 +152,7 @@ import Testing
     let text = try #require(harness.frame(identifier: RequestDeck.identifier(forWithdrawn: record.id)))
     let dismiss = try #require(harness.frame(identifier: RequestDeck.dismissIdentifier(forWithdrawn: record.id)))
 
-    let insets = 2 * AgentTheme.default.spacing.m
+    let insets = 2 * EditorStyle.default.spacing.m
     #expect(deck.maxY - text.maxY == insets)
     #expect(min(text.minY, dismiss.minY) - deck.minY == insets)
   }

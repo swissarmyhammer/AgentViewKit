@@ -1,4 +1,5 @@
 import EditorCore
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -13,7 +14,7 @@ import SwiftUI
 /// keeps no copy of them.
 ///
 /// The card is content in the transcript, so it has no fill and no glass. A
-/// separator stroke marks its edge (``SwiftUI/View/agentContentEdge(radius:)``,
+/// separator stroke marks its edge (`.inlineEdge(radius:)`,
 /// D113). Only its action buttons have a button style of their own, which
 /// comes from the place of the card (``RequestDeckPlace/style(of:)``). In
 /// content, they use the glass button styles. In a ``RequestDeck`` in a bar
@@ -116,7 +117,7 @@ public struct PermissionView: View {
     case .allowAlways: SharedSymbol.acceptAlways
     case .rejectOnce: SharedSymbol.reject
     case .rejectAlways: SharedSymbol.rejectAlways
-    case .unknown: SharedSymbol.unknown
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 
@@ -147,7 +148,7 @@ public struct PermissionView: View {
   /// Whether the card has the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.permissionAnswerReport) private var reportAnswer
 
@@ -169,7 +170,7 @@ public struct PermissionView: View {
 
   public var body: some View {
     let options = PermissionPresentation.order(of: request.request.options)
-    VStack(alignment: .leading, spacing: theme.spacing.m) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       header
       if let subject = request.request.subject {
         subjectView(for: subject)
@@ -180,9 +181,9 @@ public struct PermissionView: View {
       }
       switchToAutoButton(for: options)
     }
-    .padding(theme.spacing.m)
+    .padding(editorStyle.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .agentContentEdge()
+    .inlineEdge(radius: editorStyle.radii.l)
     .focusable()
     .focusEffectDisabled()
     .focused($isFocused)
@@ -196,10 +197,10 @@ public struct PermissionView: View {
 
   /// The title and the description.
   private var header: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Label(request.request.title, systemImage: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(request.request.title)
         .accessibilityAddTraits(.isHeader)
@@ -241,7 +242,7 @@ public struct PermissionView: View {
   @ViewBuilder
   private func toolCallSummary(id: ToolCallId) -> some View {
     if let entry = session.transcript.entry(withID: .wire(.toolCall(id)))?.toolCall {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         Label(entry.title ?? id.rawValue, systemImage: Self.toolCallSymbol)
         if let kind = entry.kind {
             Text(kind.wireValue)
@@ -262,8 +263,8 @@ public struct PermissionView: View {
   /// - Returns: The summary, with the terminal link when the session model
   ///   has the `TerminalEntry` of the command.
   private func commandSummary(of command: CommandPermissionSubject) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Label(command.command, systemImage: Self.commandSymbol)
           .textSelection(.enabled)
         Label(command.cwd.rawValue, systemImage: Self.directorySymbol)
@@ -288,7 +289,7 @@ public struct PermissionView: View {
   /// - Parameter entry: The related terminal entry of the session model.
   /// - Returns: The link and, while it is open, the ``TerminalView``.
   private func terminalLink(to entry: TerminalEntry) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       Button(terminalLinkTitle, systemImage: Self.terminalLinkSymbol) {
         showsTerminal.toggle()
       }
@@ -317,7 +318,7 @@ public struct PermissionView: View {
   /// - Parameter options: The ACP options in display order.
   /// - Returns: The row of buttons.
   private func optionButtons(for options: [FoundationModelsACP.PermissionOption]) -> some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       ForEach(options, id: \.optionId) { option in
         optionButton(for: option)
       }
@@ -351,7 +352,7 @@ public struct PermissionView: View {
   /// - Parameter option: The reject option that the user selected.
   /// - Returns: The row.
   private func commentRow(for option: FoundationModelsACP.PermissionOption) -> some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       AgentOneLineField(
         model: commentModel, identifier: Self.commentIdentifier, placeholder: Self.commentPlaceholder
       ) { _ in

@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -82,17 +83,17 @@ struct GalleryLook: Equatable {
   var increasedContrast = false
 
   /// The density of the rows of the kit views.
-  var density = AgentTheme.default.density
+  var density = EditorStyle.default.density
 
   /// The text size of the kit views.
   var textSize = DynamicTypeSize.large
 
-  /// The layout tokens of the kit views: the default tokens with
+  /// The shared style of the kit views: the style of ``theme`` with
   /// ``density``.
-  var agentTheme: AgentTheme {
-    var tokens = AgentTheme.default
-    tokens.density = density
-    return tokens
+  var style: EditorStyle {
+    var style = theme.theme.style
+    style.density = density
+    return style
   }
 }
 
@@ -118,8 +119,10 @@ private struct GalleryLookModifier: ViewModifier {
 
   func body(content: Content) -> some View {
     content
+      // The style is closer to the content than the theme, so it replaces
+      // the style that the theme gives.
+      .editorStyle(look.style)
       .editorTheme(look.theme.theme)
-      .agentTheme(look.agentTheme)
       .dynamicTypeSize(look.textSize)
       .environment(\._colorSchemeContrast, look.increasedContrast ? .increased : systemContrast)
       .preferredColorScheme(look.appearance.colorScheme)
@@ -145,7 +148,7 @@ struct GalleryLookControls: View {
       }
       Toggle("Increased Contrast", isOn: $look.increasedContrast)
       Picker("Density", selection: $look.density) {
-        ForEach(AgentTheme.Density.allCases, id: \.self) { density in
+        ForEach(EditorStyle.Density.allCases, id: \.self) { density in
           Text(density.rawValue.capitalized).tag(density)
         }
       }

@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -6,7 +7,7 @@ import SwiftUI
 /// EditorKit theme.
 ///
 /// The view shows the symbol with the hierarchical rendering mode of the
-/// status views and the symbol weight of the kit theme. Each caller keeps its
+/// status views and the symbol weight of the shared style. Each caller keeps its
 /// own map from its state to the symbol name and to the color.
 /// ``ToolStatusImage``, the plan entry of ``TaskListView``, `StatusBar`, the
 /// header of ``CompactionEntryView``, the card of ``ErrorView``, the banner of
@@ -15,20 +16,20 @@ import SwiftUI
 /// reaches each of them. A caller adds its own symbol effects to
 /// the view.
 struct StatusSymbolImage: View {
-  /// The SF Symbol name. Read it from ``SharedSymbol`` or from the symbol map
-  /// of the caller.
+  /// The SF Symbol name. Read it from ``SharedSymbol``, from `ItemStatus` or
+  /// `ItemPriority` of EditorStyle, or from the symbol map of the caller.
   let name: String
 
   /// The color of the symbol: a color of the EditorKit theme, or
   /// `Color.secondary` for a row with no state color.
   let color: Color
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
     Image(systemName: name)
       .symbolRenderingMode(.hierarchical)
-      .fontWeight(theme.symbolWeight)
+      .fontWeight(editorStyle.symbolWeight)
       .foregroundStyle(color)
   }
 }
@@ -41,11 +42,11 @@ struct StatusSymbolImage: View {
 /// (``SessionNoticeBanner``). Each state shows its symbol in its color of the
 /// EditorKit theme.
 private struct StatusSymbolSheets: View {
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.l) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.l) {
       PreviewSymbolSheet(
         title: "Plan entry status", values: PreviewFixtures.planEntryStatuses, label: TaskListView.statusLabel
       ) { status in

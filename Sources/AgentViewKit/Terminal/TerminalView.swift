@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -98,9 +99,9 @@ public struct TerminalView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .code: outcome?.symbolName ?? SharedSymbol.unknown
+      case .code: outcome?.symbolName ?? ItemStatus.unknown.systemImage
       case .signal: SharedSymbol.signal
-      case .unknown: SharedSymbol.unknown
+      case .unknown: ItemStatus.unknown.systemImage
       }
     }
   }
@@ -117,7 +118,7 @@ public struct TerminalView: View {
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot()
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
@@ -192,7 +193,7 @@ public struct TerminalView: View {
 
   /// The row with the command and the working directory.
   private var header: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Image(systemName: SharedSymbol.terminal)
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
@@ -202,7 +203,7 @@ public struct TerminalView: View {
         .lineLimit(1)
         .truncationMode(.middle)
         .accessibilityIdentifier(Self.commandIdentifier)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       if let cwd = entry.cwd?.rawValue {
         Text(cwd)
           .font(editorTheme.font(for: .ui, style: .caption))
@@ -214,8 +215,8 @@ public struct TerminalView: View {
           .accessibilityIdentifier(Self.cwdIdentifier)
       }
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
+    .padding(.horizontal, editorStyle.spacing.m)
+    .padding(.vertical, editorStyle.spacing.xs)
     .editorBlockHeader()
   }
 
@@ -240,7 +241,7 @@ public struct TerminalView: View {
         text: summary.label, symbolName: summary.symbolName, outcome: summary.outcome,
         identifier: Self.footerIdentifier)
     } else {
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         ProgressView()
           .controlSize(.mini)
           .accessibilityLabel(String(localized: "Running", bundle: .module))
@@ -250,8 +251,8 @@ public struct TerminalView: View {
           .foregroundStyle(.secondary)
           .accessibilityHidden(true)
       }
-      .padding(.horizontal, theme.spacing.m)
-      .padding(.vertical, theme.spacing.xs)
+      .padding(.horizontal, editorStyle.spacing.m)
+      .padding(.vertical, editorStyle.spacing.xs)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
   }

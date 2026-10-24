@@ -1,4 +1,5 @@
 import AppKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -17,16 +18,16 @@ public struct AttachmentChip: View {
   /// The side of the type icon, in points.
   private static let iconSide: CGFloat = 28
 
-  /// The corners of the chip: the medium radius of the theme. The fill of
+  /// The corners of the chip: the medium radius of `\.editorStyle`. The fill of
   /// the chip and the focus ring of its scope both have them. The chip
   /// reports them (``AttachmentSurfaceCornersKey``), so the scope of an
   /// ``AttachmentView`` that shows the chip has them too.
-  static let corners = AgentSurfaceCorners.rounded(\.m)
+  static let corners = AgentSurfaceCorners.rounded(.medium)
 
   /// The attached file.
   let attachment: Attachment
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the chip of a file.
@@ -45,7 +46,7 @@ public struct AttachmentChip: View {
   }
 
   public var body: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Image(nsImage: NSWorkspace.shared.icon(for: attachment.type))
         .resizable()
         .frame(width: Self.iconSide, height: Self.iconSide)
@@ -61,9 +62,9 @@ public struct AttachmentChip: View {
         }
       }
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
-    .background(.quaternary, in: AgentSurface.shape(radius: Self.corners.radius(in: theme)))
+    .padding(.horizontal, editorStyle.spacing.m)
+    .padding(.vertical, editorStyle.spacing.xs)
+    .background(.quaternary, in: EditorSurface.shape(radius: Self.corners.radius(in: editorStyle)))
     .agentAttachmentScope(attachment, focusRingCorners: Self.corners)
     .preference(key: AttachmentSurfaceCornersKey.self, value: Self.corners)
   }

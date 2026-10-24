@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -25,7 +26,7 @@ import SwiftUI
 /// UI font (`uiFont`, the `ui` font role) of the EditorKit theme of the
 /// environment (`\.editorTheme`), its text uses the
 /// secondary level of the foreground, and its spacing and symbol weight come
-/// from the ``AgentTheme``. The system formatters write the time and the
+/// from the shared style (`\.editorStyle`). The system formatters write the time and the
 /// duration in the locale of the environment.
 ///
 /// The view is one accessibility element. Its label tells the start and the
@@ -56,7 +57,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// The transcript entry whose time the view shows.
   let entry: TranscriptEntry
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.locale) private var locale
 
@@ -177,9 +178,9 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   ///   - duration: The duration of the entry, in seconds, or `nil`.
   /// - Returns: The line, as one accessibility element.
   private func line(startedAt: Date, duration: TimeInterval?) -> some View {
-    HStack(spacing: theme.spacing.xs) {
+    HStack(spacing: editorStyle.spacing.xs) {
       Image(systemName: Self.symbolName)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .accessibilityHidden(true)
       Text(Self.startText(for: startedAt, locale: locale))
       if let shown = Self.shownDuration(duration) {
@@ -253,10 +254,10 @@ struct EntryTimingDecorator: ViewModifier {
   /// Whether the decorator shows the time.
   let isShown: Bool
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       content
       if isShown {
         EntryTimingView(entry: entry)

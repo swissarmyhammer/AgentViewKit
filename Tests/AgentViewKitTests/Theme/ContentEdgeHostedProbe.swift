@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import SwiftUI
 import Testing
 
@@ -7,7 +8,7 @@ import Testing
 /// in content.
 /// ``expectBackdropShowsInsideTheEdge(of:reducesTransparency:size:sourceLocation:)``
 /// checks that the view has no fill, and that the separator stroke of the
-/// content edge (``SwiftUI/View/agentContentEdge(radius:)``) marks its edge
+/// content edge (`.inlineEdge(radius:)`) marks its edge
 /// (D113).
 ///
 /// A test shows the view over the backdrop of ``GlassRenderProbeTests`` in
@@ -139,7 +140,7 @@ enum BackdropPlacement {
 /// A view with the backdrop of ``GlassRenderProbeTests`` in its frame.
 ///
 /// For ``BackdropPlacement/behind``, the backdrop is inset by the large
-/// radius of the theme from each edge of the view. Thus it is not in the
+/// radius of the style from each edge of the view. Thus it is not in the
 /// corners, where the rounded shape of the view does not cover the frame.
 /// The backdrop is only at points that the view covers. For
 /// ``BackdropPlacement/behindToTheEdge``, the backdrop has no inset.
@@ -150,7 +151,7 @@ struct SurfaceWithBackdrop<Content: View>: View {
   /// Where the backdrop is.
   let placement: BackdropPlacement
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
     switch placement {
@@ -161,8 +162,8 @@ struct SurfaceWithBackdrop<Content: View>: View {
     }
   }
 
-  /// The backdrop, inset by the large radius of the theme.
+  /// The backdrop, inset by the large radius of the style.
   private var backdrop: some View {
-    GlassRenderProbeTests.backdrop.padding(theme.radii.l)
+    GlassRenderProbeTests.backdrop.padding(editorStyle.radii.l)
   }
 }

@@ -34,6 +34,12 @@ public enum DemoACPAgent: Equatable, Sendable {
 /// - `--tab <name>`: the tab that the window opens on, by the raw value of
 ///   ``DemoTab``. The default is the ACP tab. An unknown name keeps the
 ///   default.
+/// - `--primary-screen`: the window opens on the primary screen, the one
+///   whose frame origin is (0, 0), in place of the screen that the user is
+///   working on (``DemoWindowLayout/primaryScreenFrame(visibleFrame:)``).
+///   This is a test-environment switch. XCTest's hit test fails for a window
+///   on a screen that lies above or left of the primary screen, where the
+///   global coordinates are negative. The UI tests use this argument.
 ///
 /// The demo app starts no agent program. Each tab runs its agent in the app
 /// process through ``DemoAgent/makeInProcess(options:environment:)`` or
@@ -45,6 +51,9 @@ public struct DemoLaunchOptions: Equatable, Sendable {
 
   /// The argument that names the tab that the window opens on.
   public static let tabArgument = "--tab"
+
+  /// The argument that opens the window on the primary screen.
+  public static let primaryScreenArgument = "--primary-screen"
 
   /// The display name of FoundationModelsACPAgent: the name that the agent
   /// gives in its `initialize` answer.
@@ -59,6 +68,10 @@ public struct DemoLaunchOptions: Equatable, Sendable {
   /// The tab that the window opens on.
   public var initialTab = DemoTab.acp
 
+  /// Whether the window opens on the primary screen, in place of the screen
+  /// that the user is working on.
+  public var opensOnPrimaryScreen = false
+
   /// Reads the options from the arguments of a process.
   ///
   /// An argument that the demo does not know is ignored, because the system
@@ -72,6 +85,8 @@ public struct DemoLaunchOptions: Equatable, Sendable {
       switch argument {
       case InMemoryDemoAgent.launchArgument:
         acpAgent = .inMemory
+      case Self.primaryScreenArgument:
+        opensOnPrimaryScreen = true
       case Self.cwdArgument:
         if let value = remaining.popFirst() { cwd = value }
       case Self.tabArgument:

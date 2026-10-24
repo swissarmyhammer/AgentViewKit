@@ -8,37 +8,23 @@ import Foundation
 /// written in this file only. The package test `SymbolNameTests` makes sure
 /// that no other source file of the kit writes a symbol name, and that this
 /// file writes each name one time.
+///
+/// The symbols of the status of work and of a priority are not in this
+/// table. They come from `ItemStatus` and `ItemPriority` of the EditorKit
+/// `EditorStyle` target, so that the kits show the same symbol for the same
+/// state: `ItemStatus.pending` for work that did not start, `.inProgress`
+/// for work that runs, `.completed` for work that is complete, `.cancelled`
+/// for work that the user cancelled, `.unknown` for a value that the kit does
+/// not know, and `ItemPriority.low`, `.medium` and `.high` for the priority
+/// of a plan entry.
 nonisolated enum SharedSymbol {
   // MARK: - Status
-
-  /// The symbol of work that did not start: a pending tool call, plan entry
-  /// or message.
-  static let pending = "hourglass"
-
-  /// The symbol of work that runs: a running tool call, plan entry or agent,
-  /// and an MCP server that connects.
-  static let inProgress = "ellipsis.circle.fill"
-
-  /// The symbol of work that is complete: a completed tool call or plan
-  /// entry, an idle state that ends the work of a prompt, a sent message, a
-  /// command that succeeded, an answered field and a connected MCP server.
-  static let completed = "checkmark.circle.fill"
 
   /// The symbol of an error: a failed tool call, an idle state with the stop
   /// reason `error`, a failed message, command or connection, a failed MCP
   /// server, an error notice, an error card and a patch that the kit cannot
   /// read.
   static let error = "xmark.octagon.fill"
-
-  /// The symbol of work that the user cancelled: a cancelled tool call or
-  /// plan entry, and an idle state with the stop reason `cancelled`.
-  static let cancelled = "stop.circle.fill"
-
-  /// The symbol of a value that the kit does not know: a status, a kind, a
-  /// state, a stop reason, a severity, a priority, a file operation, an exit,
-  /// the kind of a permission option or the status of an MCP server that the
-  /// agent did not report.
-  static let unknown = "questionmark.circle.fill"
 
   /// The symbol of a warning: a warning notice, a lost tool result, missing
   /// updates, an attachment that the agent does not accept and a link that
@@ -316,15 +302,6 @@ nonisolated enum SharedSymbol {
 
   /// The symbol of a file location of a tool call.
   static let document = "document"
-
-  /// The symbol of a plan entry with a high priority: three marks.
-  static let highPriority = "exclamationmark.3"
-
-  /// The symbol of a plan entry with a medium priority: two marks.
-  static let mediumPriority = "exclamationmark.2"
-
-  /// The symbol of a plan entry with a low priority: one mark.
-  static let lowPriority = "exclamationmark"
 
   /// The symbol of a compaction of the context.
   static let compaction = "arrow.down.right.and.arrow.up.left"

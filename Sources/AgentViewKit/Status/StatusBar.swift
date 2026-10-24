@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -7,7 +8,7 @@ import SwiftUI
 ///
 /// The bar shows in the thread with the transcript. It is content, so it has
 /// no fill and no glass. A separator stroke marks its edge
-/// (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its button has a
+/// (`.inlineEdge(radius:)`, D113). Only its button has a
 /// button style of its own, which comes from the place of the bar
 /// (``RequestDeckPlace/style(of:)``): the `.glass` style. A bar has no glass
 /// surface, and the content scrolls under it, so its button keeps the glass
@@ -57,7 +58,7 @@ struct StatusBar: View {
   /// The button of the bar, or `nil` for no button.
   let action: Action?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// The color of the symbol of `message`.
@@ -72,11 +73,11 @@ struct StatusBar: View {
   }
 
   var body: some View {
-    HStack(spacing: theme.spacing.m) {
+    HStack(spacing: editorStyle.spacing.m) {
       StatusSymbolImage(name: message.symbolName, color: Self.symbolColor(for: message, in: editorTheme))
         .liveSymbolEffect(isActive: message.isOngoing)
         .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(message.title)
           .font(editorTheme.font(for: .ui, style: .headline))
         Text(message.explanation)
@@ -85,7 +86,7 @@ struct StatusBar: View {
       }
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier(message.identifier)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       if let action {
         Button(action.title, systemImage: action.systemImage, action: action.perform)
           .requestActionStyle(.secondary)
@@ -93,8 +94,8 @@ struct StatusBar: View {
           .accessibilityIdentifier(action.identifier)
       }
     }
-    .padding(theme.spacing.m)
-    .agentContentEdge()
+    .padding(editorStyle.spacing.m)
+    .inlineEdge(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(message.title)
   }

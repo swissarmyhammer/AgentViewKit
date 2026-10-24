@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// A glass button that moves the conversation to its last item (plan.md §8).
@@ -9,7 +10,7 @@ import SwiftUI
 ///
 /// The pill shows and hides above the composer, in the glass container of
 /// the floating controls. Its glass has the id ``FloatingGlassID/scrollPill``
-/// (``SwiftUI/View/agentGlassID(_:)``), so the change morphs (D113 answer 2).
+/// (`.floatingGlassID(_:)`), so the change morphs (D113 answer 2).
 public struct ScrollToBottomPill: View {
   /// The accessibility identifier of the pill.
   public static let identifier = "scroll-to-bottom-pill"
@@ -23,7 +24,7 @@ public struct ScrollToBottomPill: View {
   /// The closure that the pill calls on a tap.
   let action: () -> Void
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes a pill.
   ///
@@ -50,11 +51,11 @@ public struct ScrollToBottomPill: View {
   public var body: some View {
     Button(action: action) {
       Label(Self.title(newItemCount: newItemCount), systemImage: Self.symbolName)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
     }
     .buttonStyle(.glass)
     .buttonBorderShape(.capsule)
-    .agentGlassID(.scrollPill)
+    .floatingGlassID(FloatingGlassID.scrollPill)
     .accessibilityIdentifier(Self.identifier)
   }
 }

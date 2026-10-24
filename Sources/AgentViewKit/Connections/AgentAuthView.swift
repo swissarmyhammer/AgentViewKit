@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -55,7 +56,7 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// asks for a sign-in.
 ///
 /// The card is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its
+/// marks its edge (`.inlineEdge(radius:)`, D113). Only its
 /// action buttons have a button style of their own, which comes from the
 /// place of the card (``RequestDeckPlace/style(of:)``): the `.glass` style.
 /// In the bottom bar of a thread, the card has no glass surface, and the
@@ -155,7 +156,7 @@ public struct AgentAuthView: View {
 
   @Environment(\.terminalAuthRunner) private var runner
   @Environment(\.agentReconnect) private var reconnect
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the card.
@@ -252,7 +253,7 @@ public struct AgentAuthView: View {
   // MARK: Body
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.m) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       Label(String(localized: "Sign in to the agent", bundle: .module), systemImage: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
         .accessibilityAddTraits(.isHeader)
@@ -272,9 +273,9 @@ public struct AgentAuthView: View {
         signOutRow
       }
     }
-    .padding(theme.spacing.m)
+    .padding(editorStyle.spacing.m)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .agentContentEdge()
+    .inlineEdge(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(String(localized: "Sign in to the agent", bundle: .module))
     .accessibilityIdentifier(Self.identifier)
@@ -285,8 +286,8 @@ public struct AgentAuthView: View {
   /// - Parameter row: The method to show.
   /// - Returns: The row.
   private func rowView(_ row: Row) -> some View {
-    HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(row.name)
           .font(editorTheme.uiFont.weight(.medium))
         if let description = row.description {
@@ -295,7 +296,7 @@ public struct AgentAuthView: View {
             .foregroundStyle(.secondary)
         }
       }
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       methodButton(row)
     }
     .accessibilityElement(children: .contain)
@@ -343,7 +344,7 @@ public struct AgentAuthView: View {
   /// - Parameter failure: The failure of the last auth operation.
   /// - Returns: The two texts.
   private func failureView(_ failure: AuthFailure) -> some View {
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Text(Self.title(of: failure.operation))
         .font(editorTheme.font(for: .ui, style: .callout).weight(.semibold))
         .accessibilityIdentifier(Self.failureTitleIdentifier)
@@ -357,7 +358,7 @@ public struct AgentAuthView: View {
   /// The text that tells the user to connect to the agent again, and the
   /// Reconnect button when the environment has a closure.
   private var reconnectView: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       Text(String(localized: "Reconnect to the agent to finish the sign-in", bundle: .module))
         .font(editorTheme.font(for: .ui, style: .callout))
         .accessibilityIdentifier(Self.reconnectMessageIdentifier)
@@ -376,7 +377,7 @@ public struct AgentAuthView: View {
 
   /// The row with the Sign Out button.
   private var signOutRow: some View {
-    VStack(alignment: .trailing, spacing: theme.spacing.s) {
+    VStack(alignment: .trailing, spacing: editorStyle.spacing.s) {
       Divider()
       actionButton(
         String(localized: "Sign Out", bundle: .module), systemImage: Self.signOutSymbol,

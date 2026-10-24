@@ -1,6 +1,0 @@
-{
-  "spacing": { "xs": 4, "s": 8, "m": 12, "l": 16 },
-  "radii": { "s": 6, "m": 8, "l": 10 },
-  "symbolWeight": "regular",
-  "density": "balanced"
-}

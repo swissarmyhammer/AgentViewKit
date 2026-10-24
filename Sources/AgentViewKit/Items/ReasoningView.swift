@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -150,13 +151,13 @@ struct ReasoningBlock<Content: View>: View {
   @State private var ownStore = ExpandedBlocksStore()
 
   @Environment(\.expandedBlocksStore) private var environmentStore
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
     let store = environmentStore ?? ownStore
     let expanded = isExpanded(in: store)
     let duration = policyEntry.timing.duration
-    VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       header(store: store, expanded: expanded, duration: duration)
       if expanded {
         content()
@@ -190,12 +191,12 @@ struct ReasoningBlock<Content: View>: View {
   /// - Returns: The header view.
   private func header(store: ExpandedBlocksStore, expanded: Bool, duration: TimeInterval?) -> some View {
     let toggle = { store.toggle(entry: policyEntry) }
-    return HStack(spacing: theme.spacing.s) {
+    return HStack(spacing: editorStyle.spacing.s) {
       title(duration: duration)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       Button(action: toggle) {
         Image(systemName: SharedSymbol.disclosure)
-          .fontWeight(theme.symbolWeight)
+          .fontWeight(editorStyle.symbolWeight)
           .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
       }
       .buttonStyle(.borderless)

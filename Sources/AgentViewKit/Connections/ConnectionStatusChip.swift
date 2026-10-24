@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -18,7 +19,7 @@ public struct ConnectionStatusChip: View {
   /// The status to show.
   let status: MCPServerStatus
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes a chip.
@@ -48,9 +49,9 @@ public struct ConnectionStatusChip: View {
   ///   disconnected for a closed server.
   static func symbolName(for status: MCPServerStatus) -> String {
     switch status {
-    case .notReported: SharedSymbol.unknown
-    case .connecting: SharedSymbol.inProgress
-    case .connected: SharedSymbol.completed
+    case .notReported: ItemStatus.unknown.systemImage
+    case .connecting: ItemStatus.inProgress.systemImage
+    case .connected: ItemStatus.completed.systemImage
     case .failed: SharedSymbol.error
     case .closed: SharedSymbol.disconnected
     }
@@ -59,10 +60,10 @@ public struct ConnectionStatusChip: View {
   public var body: some View {
     let label = Self.label(for: status)
     let reason = Self.reason(of: status)
-    HStack(spacing: theme.spacing.xs) {
+    HStack(spacing: editorStyle.spacing.xs) {
       Image(systemName: Self.symbolName(for: status))
         .font(editorTheme.font(for: .ui, style: .caption))
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .foregroundStyle(color(for: status))
       Text(label)
         .font(editorTheme.font(for: .ui, style: .caption))

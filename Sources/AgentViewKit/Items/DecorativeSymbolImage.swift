@@ -1,10 +1,11 @@
+import EditorStyle
 import SwiftUI
 
 /// A decorative symbol of a header: the symbol before its title, or the
 /// chevron between two segments of its breadcrumb.
 ///
 /// The view shows the symbol with the `.secondary` style and the symbol
-/// weight of the kit theme, and hides it from accessibility, because the
+/// weight of the shared style, and hides it from accessibility, because the
 /// text next to it tells the same thing. The symbol does not use the accent
 /// of the EditorKit theme: in content, the accent marks only a link, the
 /// selection or the current item (D113 answer 5).
@@ -17,12 +18,12 @@ struct DecorativeSymbolImage: View {
   /// The SF Symbol name. Read it from ``SharedSymbol`` or from the host.
   let name: String
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
     Image(systemName: name)
       .foregroundStyle(.secondary)
-      .fontWeight(theme.symbolWeight)
+      .fontWeight(editorStyle.symbolWeight)
       .accessibilityHidden(true)
   }
 }

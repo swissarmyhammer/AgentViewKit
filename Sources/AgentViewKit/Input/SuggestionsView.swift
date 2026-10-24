@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// A horizontal row of suggested prompts in Liquid Glass chips (plan.md §9 D).
@@ -12,7 +13,7 @@ import SwiftUI
 /// while the agent does not run.
 ///
 /// The glass of each chip has the id ``FloatingGlassID/suggestion(_:)`` with
-/// the position of the chip (``SwiftUI/View/agentGlassID(_:)``). Thus the
+/// the position of the chip (`.floatingGlassID(_:)`). Thus the
 /// chips morph when they show or hide next to the composer (D113 answer 2).
 public struct SuggestionsView: View {
   /// The start of the accessibility identifier of each chip.
@@ -25,7 +26,7 @@ public struct SuggestionsView: View {
   let suggestions: [String]
 
   @Environment(\.promptText) private var text
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the row.
   ///
@@ -48,7 +49,7 @@ public struct SuggestionsView: View {
   public var body: some View {
     if let text, !suggestions.isEmpty {
       ScrollView(.horizontal) {
-        HStack(spacing: theme.spacing.s) {
+        HStack(spacing: editorStyle.spacing.s) {
           ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
             SuggestionChip(suggestion: suggestion, index: index, text: text)
           }
@@ -81,7 +82,7 @@ struct SuggestionChip: View {
     }
     .buttonStyle(.glass)
     .buttonBorderShape(.capsule)
-    .agentGlassID(.suggestion(index))
+    .floatingGlassID(FloatingGlassID.suggestion(index))
     .help(String(localized: "Use this prompt", bundle: .module))
     .accessibilityIdentifier(SuggestionsView.chipIdentifier(at: index))
   }

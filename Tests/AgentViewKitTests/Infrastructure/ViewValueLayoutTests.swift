@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -14,19 +15,21 @@ import Testing
 /// Each test lists each stored field of a type. See ``StoredLayout`` for why
 /// the check proves that the type has no padding byte.
 @Suite @MainActor struct ViewValueLayoutTests {
-  // MARK: - AgentTheme
+  // MARK: - EditorStyle
 
-  @Test func theThemeHasNoPaddingByte() {
-    StoredLayout<AgentTheme>(\.spacing, \.radii, \.symbolWeight, \.density)
+  /// ``ToolCallBody`` holds the shared style of the EditorKit `EditorStyle`
+  /// target as a value, so the style must have no padding byte either.
+  @Test func theStyleHasNoPaddingByte() {
+    StoredLayout<EditorStyle>(\.spacing, \.radii, \.symbolWeight, \.density)
       .expectNoPaddingByte()
   }
 
   @Test func theSpacingStepsHaveNoPaddingByte() {
-    StoredLayout<AgentTheme.Spacing>(\.xs, \.s, \.m, \.l).expectNoPaddingByte()
+    StoredLayout<EditorStyle.Spacing>(\.xs, \.s, \.m, \.l).expectNoPaddingByte()
   }
 
   @Test func theCornerRadiiHaveNoPaddingByte() {
-    StoredLayout<AgentTheme.Radii>(\.s, \.m, \.l).expectNoPaddingByte()
+    StoredLayout<EditorStyle.Radii>(\.s, \.m, \.l, \.window).expectNoPaddingByte()
   }
 
   /// `Font.Weight` is a SwiftUI type, so the test cannot name its stored
@@ -42,7 +45,7 @@ import Testing
 
   /// `renderer` is the one stored field of a function type.
   @Test func theToolCallBodyHasNoPaddingByte() {
-    StoredLayout<ToolCallBody>(\.entry, \.renderer, \.registrationID, \.theme)
+    StoredLayout<ToolCallBody>(\.entry, \.renderer, \.registrationID, \.editorStyle)
       .expectNoPaddingByte(functionFieldCount: 1)
   }
 

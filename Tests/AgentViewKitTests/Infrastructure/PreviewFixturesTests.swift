@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import EditorDiff
+import EditorStyle
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -84,8 +85,8 @@ import Testing
     #expect(
       Set(statuses.map(ToolStatusSymbol.name(for:)))
         == [
-          SharedSymbol.pending, SharedSymbol.inProgress, SharedSymbol.completed, SharedSymbol.error,
-          SharedSymbol.cancelled, SharedSymbol.warning, SharedSymbol.unknown,
+          ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, SharedSymbol.error,
+          ItemStatus.cancelled.systemImage, SharedSymbol.warning, ItemStatus.unknown.systemImage,
         ])
     #expect(Set(statuses.map(ToolStatusSymbol.label(for:))).count == statuses.count)
   }
@@ -96,8 +97,8 @@ import Testing
     #expect(
       Set(statuses.map(TaskListView.statusSymbol))
         == [
-          SharedSymbol.pending, SharedSymbol.inProgress, SharedSymbol.completed, SharedSymbol.cancelled,
-          SharedSymbol.unknown,
+          ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, ItemStatus.cancelled.systemImage,
+          ItemStatus.unknown.systemImage,
         ])
     #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
   }
@@ -107,7 +108,7 @@ import Testing
 
     #expect(
       Set(priorities.map(TaskListView.prioritySymbol))
-        == [SharedSymbol.highPriority, SharedSymbol.mediumPriority, SharedSymbol.lowPriority, SharedSymbol.unknown])
+        == [ItemPriority.high.systemImage, ItemPriority.medium.systemImage, ItemPriority.low.systemImage, ItemStatus.unknown.systemImage])
     #expect(Set(priorities.map(TaskListView.priorityLabel)).count == priorities.count)
   }
 
@@ -116,7 +117,7 @@ import Testing
 
     #expect(
       Set(severities.map(NoticeBanner.symbolName(for:)))
-        == [SharedSymbol.information, SharedSymbol.warning, SharedSymbol.error, SharedSymbol.unknown])
+        == [SharedSymbol.information, SharedSymbol.warning, SharedSymbol.error, ItemStatus.unknown.systemImage])
     #expect(Set(severities.map(NoticeBanner.severityLabel)).count == severities.count)
   }
 

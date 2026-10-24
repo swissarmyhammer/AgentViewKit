@@ -2,6 +2,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorStyle
 import Foundation
 import SwiftUI
 import Testing
@@ -15,7 +16,7 @@ import UniformTypeIdentifiers
 /// The views of ``Surface`` have no focusable view at the center of their
 /// scope, so EditorKit gives the focus to the beacon of the scope, and the
 /// beacon draws the system focus ring over the view. The ring has the
-/// corners of the surface of the view: the medium radius of the theme for a
+/// corners of the surface of the view: the medium radius of the style for a
 /// chip and an artifact panel, and square corners for an image. The
 /// inspector has a focusable view of its own, which takes the focus and
 /// draws its own ring.
@@ -43,10 +44,10 @@ import UniformTypeIdentifiers
     /// An ``ImageView`` of an image block.
     case image
 
-    /// The radius of the corners of the surface in the default theme.
+    /// The radius of the corners of the surface in the default style.
     var cornerRadius: CGFloat {
       switch self {
-      case .chip, .attachmentChip, .artifact: AgentTheme.default.radii.m
+      case .chip, .attachmentChip, .artifact: EditorStyle.default.radii.m
       case .attachmentImage, .image: .zero
       }
     }
@@ -167,7 +168,7 @@ import UniformTypeIdentifiers
 
   /// An image preview whose file does not decode shows the chip in its place,
   /// so the focus ring of its scope has the corners of the chip: the medium
-  /// radius of the theme.
+  /// radius of the style.
   ///
   /// The image loads asynchronously, so the test waits until the shown
   /// surface reports its corners (``AttachmentSurfaceCornersKey``) before it
@@ -190,7 +191,7 @@ import UniformTypeIdentifiers
     await harness.render(when: { shown.corners != nil })
     let focused = try Self.focusScope(of: attachment.id, in: harness, system: system)
 
-    try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: AgentTheme.default.radii.m)
+    try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: EditorStyle.default.radii.m)
   }
 
   /// The inspector has a focusable view of its own, so a `nav.*` move on its

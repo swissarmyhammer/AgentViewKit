@@ -4,7 +4,8 @@ import SwiftUI
 /// the recorded sessions.
 ///
 /// The app opens on the tab of the `--tab` launch argument, or on the ACP
-/// tab.
+/// tab. With `--primary-screen` the window moves to the primary screen
+/// (``View/placedOnThePrimaryScreen(_:)``).
 struct DemoRootView: View {
   /// The launch options of the app.
   let options: DemoLaunchOptions
@@ -29,5 +30,6 @@ struct DemoRootView: View {
         GalleryTabView()
       }
     }
+    .placedOnThePrimaryScreen(options.opensOnPrimaryScreen)
   }
 }

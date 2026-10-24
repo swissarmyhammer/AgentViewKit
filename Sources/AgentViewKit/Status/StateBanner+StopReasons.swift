@@ -1,3 +1,4 @@
+import EditorStyle
 import Foundation
 
 extension StateBanner {
@@ -78,7 +79,7 @@ extension StateBanner {
         title: String(localized: "The response stopped for an unknown reason", bundle: .module),
         explanation: String(
           localized: "The agent sent the stop reason \(wireValue).", bundle: .module),
-        symbolName: SharedSymbol.unknown,
+        symbolName: ItemStatus.unknown.systemImage,
         identifier: unknownStopReasonIdentifier)
   }
 }

@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -78,7 +79,7 @@ public struct CommandOutputView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .success: SharedSymbol.completed
+      case .success: ItemStatus.completed.systemImage
       case .failure: SharedSymbol.error
       }
     }
@@ -141,7 +142,7 @@ public struct CommandOutputView: View {
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot()
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.pasteboard) private var pasteboard
 
@@ -209,13 +210,13 @@ public struct CommandOutputView: View {
 
   /// The row with the command and the Copy button.
   private var header: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Text(command ?? String(localized: "Output", bundle: .module))
         .font(editorTheme.codeFont)
         .foregroundStyle(command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       Button(Self.copyTitle, systemImage: SharedSymbol.copy) {
         pasteboard.copyText(output)
       }
@@ -224,8 +225,8 @@ public struct CommandOutputView: View {
       .help(Self.copyTitle)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
+    .padding(.horizontal, editorStyle.spacing.m)
+    .padding(.vertical, editorStyle.spacing.xs)
     .editorBlockHeader()
   }
 

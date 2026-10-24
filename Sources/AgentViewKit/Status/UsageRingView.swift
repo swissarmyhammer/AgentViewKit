@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -47,7 +48,7 @@ public struct UsageRingView: View {
   /// The text that shows beside the ring.
   let style: TextStyle
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view.
@@ -138,7 +139,7 @@ public struct UsageRingView: View {
     let detail = Self.detailText(numerator: numerator, denominator: denominator, caption: caption)
     let shown = style == .short ? percent : detail
     let other = style == .short ? detail : percent
-    HStack(spacing: theme.spacing.xs) {
+    HStack(spacing: editorStyle.spacing.xs) {
       ring
       Text(shown)
         .monospacedDigit()
@@ -163,7 +164,7 @@ public struct UsageRingView: View {
     )
     .symbolVariableValueMode(.draw)
     .foregroundStyle(ringColor(for: filled))
-    .fontWeight(theme.symbolWeight)
+    .fontWeight(editorStyle.symbolWeight)
   }
 
   /// The color of the ring: the failed status role of the EditorKit theme when

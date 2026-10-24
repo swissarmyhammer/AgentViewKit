@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -20,11 +21,11 @@ struct OutputCapRow: View {
   /// The action of the Show All button.
   let showAll: () -> Void
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Text(
         String(
           localized: "Showing the last \(rows.visibleCount) of \(rows.totalCount) lines",
@@ -33,7 +34,7 @@ struct OutputCapRow: View {
         .font(editorTheme.font(for: .ui, style: .caption))
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(capIdentifier)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       Button(
         String(localized: "Show all \(rows.totalCount) lines", bundle: .module),
         systemImage: Self.showAllSymbol, action: showAll
@@ -42,8 +43,8 @@ struct OutputCapRow: View {
         .font(editorTheme.font(for: .ui, style: .caption))
         .accessibilityIdentifier(showAllIdentifier)
     }
-    .padding(.horizontal, theme.spacing.m)
-    .padding(.vertical, theme.spacing.xs)
+    .padding(.horizontal, editorStyle.spacing.m)
+    .padding(.vertical, editorStyle.spacing.xs)
   }
 }
 
@@ -63,16 +64,16 @@ struct OutputExitLabel: View {
   /// The accessibility identifier of the label.
   let identifier: String
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     Label(text, systemImage: symbolName)
       .font(editorTheme.font(for: .ui, style: .caption))
-      .fontWeight(theme.symbolWeight)
+      .fontWeight(editorStyle.symbolWeight)
       .foregroundStyle(outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary)
-      .padding(.horizontal, theme.spacing.m)
-      .padding(.vertical, theme.spacing.xs)
+      .padding(.horizontal, editorStyle.spacing.m)
+      .padding(.vertical, editorStyle.spacing.xs)
       .frame(maxWidth: .infinity, alignment: .leading)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(text)

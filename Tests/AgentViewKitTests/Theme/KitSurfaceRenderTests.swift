@@ -1,33 +1,23 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import SwiftUI
 import Testing
 
-/// Checks the shared surface of a floating control of D110,
-/// ``SwiftUI/View/agentFloatingGlass()``, and the edge of content with no
-/// fill of D113, ``SwiftUI/View/agentContentEdge(radius:)``.
+/// Checks the two surfaces that the kit takes from the EditorKit
+/// `EditorStyle` target, as the kit renders them: the floating glass of a
+/// floating control (D110, `.floatingGlass()`), and the edge of content with
+/// no fill (D113, `.inlineEdge(radius:)` with no `.inlineFill(_:)`).
 ///
 /// The render tests use the method of ^dbbyg9w (``GlassRenderProbeTests``):
 /// each test renders a view two times, one time with a setting off and one
 /// time with the setting on, and compares the pixels.
-@Suite @MainActor struct AgentSurfacesTests {
+@Suite @MainActor struct KitSurfaceRenderTests {
   /// The size that the tests render at.
   static let size = CGSize(width: 80, height: 80)
 
   /// The space between the edge of the render and the edge of the surface.
   static let surfaceInset: CGFloat = 10
-
-  /// A large radius that is different from the large radius of
-  /// ``AgentTheme/default``.
-  static let otherLargeRadius: CGFloat = 24
-
-  /// The radii of ``AgentTheme/default`` that are smaller than its large
-  /// radius: the small and the medium radius. The views of the kit use these
-  /// radii with ``AgentSurface/shape(radius:)``.
-  nonisolated static let smallerRadii = [AgentTheme.default.radii.s, AgentTheme.default.radii.m]
-
-  /// The rectangle that the shape tests make a path in.
-  static let pathRect = CGRect(x: 0, y: 0, width: 100, height: 60)
 
   /// The points inside the surface that the render tests read: the center,
   /// and one point near each corner, one large radius in from each edge of
@@ -35,12 +25,8 @@ import Testing
   /// points.
   static var insidePoints: [CGPoint] {
     GlassRenderProbeTests.interiorPoints(
-      of: size, inset: surfaceInset + AgentTheme.default.radii.l)
+      of: size, inset: surfaceInset + EditorStyle.default.radii.l)
   }
-
-  /// Each radius token of ``AgentTheme/default``: the small, the medium and
-  /// the large radius.
-  nonisolated static let radiusTokens = smallerRadii + [AgentTheme.default.radii.l]
 
   /// The center of the render.
   static var centerPoint: CGPoint {
@@ -75,9 +61,10 @@ import Testing
       of: view, with: .reduceTransparency, on: reducesTransparency, size: size)
   }
 
-  /// A content edge over the backdrop.
+  /// A content edge of a card over the backdrop: the large radius of the
+  /// default style, with no fill.
   static var contentEdge: some View {
-    OverBackdrop { Color.clear.agentContentEdge() }
+    OverBackdrop { Color.clear.inlineEdge(radius: EditorStyle.default.radii.l) }
   }
 
   @Test func theBackdropShowsAtEachPointWhenTheViewHasNoSurface() throws {
@@ -97,7 +84,7 @@ import Testing
   /// The floating glass of the kit over the backdrop, with no backdrop
   /// around it, in a `GlassEffectContainer`.
   static var floatingGlass: some View {
-    glassOverBackdrop { Color.clear.agentFloatingGlass() }
+    glassOverBackdrop { Color.clear.floatingGlass() }
   }
 
   /// A glass of `variant` in the shape of the floating glass, over the
@@ -107,7 +94,7 @@ import Testing
   /// - Returns: The view to render.
   static func glass(_ variant: Glass) -> some View {
     glassOverBackdrop {
-      Color.clear.glassEffect(variant, in: AgentSurface.shape(for: .default))
+      Color.clear.glassEffect(variant, in: EditorSurface.shape(radius: EditorStyle.default.radii.l))
     }
   }
 
@@ -132,9 +119,8 @@ import Testing
   /// Its corners have the radius of the glass, so each point of a corner is
   /// at least ``rimWidth`` from the corner of the glass.
   static var insideTheRim: Path {
-    Path(
-      roundedRect: CGRect(origin: .zero, size: size).insetBy(dx: rimWidth, dy: rimWidth),
-      cornerRadius: AgentTheme.default.radii.l, style: .continuous)
+    EditorSurface.fallbackShape(radius: EditorStyle.default.radii.l)
+      .path(in: CGRect(origin: .zero, size: size).insetBy(dx: rimWidth, dy: rimWidth))
   }
 
   /// The largest change of one byte between two renders of one glass, in
@@ -165,7 +151,7 @@ import Testing
   }
 
   /// The floating glass is always `.regular` glass. The system applies the
-  /// Clear look and the Tinted look, so no token of the theme selects the
+  /// Clear look and the Tinted look, so no token of the style selects the
   /// glass variant (D113 answer 3).
   ///
   /// The test compares the two renders only at ``insidePoints``, which are
@@ -212,69 +198,6 @@ import Testing
     return (floating, regular)
   }
 
-  @Test func theShapeHasConcentricCornersWithTheLargeRadiusAsTheMinimum() {
-    let theme = AgentTheme.default
-    let shape = AgentSurface.shape(for: theme)
-    let concentric = ConcentricRectangle(
-      corners: .concentric(minimum: .fixed(theme.radii.l)), isUniform: true)
-    let fixed = ConcentricRectangle(corners: .fixed(theme.radii.l), isUniform: true)
-    #expect(shape.animatableData == concentric.animatableData)
-    #expect(shape.animatableData != fixed.animatableData)
-  }
-
-  @Test func theShapeWithNoContainerUsesTheLargeRadiusOfTheTheme() {
-    let theme = AgentTheme.default
-    let path = AgentSurface.shape(for: theme).path(in: Self.pathRect)
-    let expected = RoundedRectangle(cornerRadius: theme.radii.l, style: .continuous)
-    #expect(path == expected.path(in: Self.pathRect))
-  }
-
-  @Test func aThemeWithADifferentLargeRadiusGivesADifferentFallbackRadius() {
-    var theme = AgentTheme.default
-    theme.radii.l = Self.otherLargeRadius
-    let path = AgentSurface.shape(for: theme).path(in: Self.pathRect)
-    let defaultPath = AgentSurface.shape(for: .default).path(in: Self.pathRect)
-    let expected = RoundedRectangle(cornerRadius: Self.otherLargeRadius, style: .continuous)
-    #expect(path == expected.path(in: Self.pathRect))
-    #expect(path != defaultPath)
-  }
-
-  @Test(arguments: smallerRadii)
-  func theShapeOfARadiusHasConcentricCornersWithThatRadiusAsTheMinimum(radius: CGFloat) {
-    let shape = AgentSurface.shape(radius: radius)
-    let concentric = ConcentricRectangle(
-      corners: .concentric(minimum: .fixed(radius)), isUniform: true)
-    let fixed = ConcentricRectangle(corners: .fixed(radius), isUniform: true)
-    #expect(shape.animatableData == concentric.animatableData)
-    #expect(shape.animatableData != fixed.animatableData)
-  }
-
-  @Test(arguments: smallerRadii)
-  func theShapeOfARadiusWithNoContainerUsesThatRadius(radius: CGFloat) {
-    let path = AgentSurface.shape(radius: radius).path(in: Self.pathRect)
-    let largePath = AgentSurface.shape(for: .default).path(in: Self.pathRect)
-    let expected = RoundedRectangle(cornerRadius: radius, style: .continuous)
-    #expect(path == expected.path(in: Self.pathRect))
-    #expect(path != largePath)
-  }
-
-  /// The expected path is the path of ``AgentSurface/shape(radius:)`` with
-  /// the same radius.
-  @Test(arguments: radiusTokens)
-  func theContentEdgeOfARadiusUsesTheShapeOfThatRadius(radius: CGFloat) {
-    let path = AgentContentEdge(radius: radius).shape(in: .default).path(in: Self.pathRect)
-    #expect(path == AgentSurface.shape(radius: radius).path(in: Self.pathRect))
-  }
-
-  /// The expected path is the path of ``AgentSurface/shape(for:)`` of a theme
-  /// with a different large radius.
-  @Test func theContentEdgeWithNoRadiusUsesTheLargeRadiusOfTheTheme() {
-    var theme = AgentTheme.default
-    theme.radii.l = Self.otherLargeRadius
-    let path = AgentContentEdge(radius: nil).shape(in: theme).path(in: Self.pathRect)
-    #expect(path == AgentSurface.shape(for: theme).path(in: Self.pathRect))
-  }
-
   @Test func theContentEdgeShowsTheBackdropAtItsCenter() throws {
     let pixels = try Self.pixels(of: Self.contentEdge)
     #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.centerPoint))
@@ -291,7 +214,7 @@ import Testing
 /// backdrop around it.
 struct OverBackdrop<Surface: View>: View {
   /// The space between the edge of the render and the edge of ``surface``.
-  var inset: CGFloat = AgentSurfacesTests.surfaceInset
+  var inset: CGFloat = KitSurfaceRenderTests.surfaceInset
 
   /// The view over the backdrop, for example a clear view with a content
   /// edge or a floating glass.

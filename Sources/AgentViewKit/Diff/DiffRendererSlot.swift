@@ -91,7 +91,7 @@ extension EnvironmentValues {
   ///
   /// When the value is `nil`, ``DiffView`` uses the EditorKit diff view
   /// (plan.md §4.1, decision 12). That view shows the selected file in the
-  /// ``diffLayout``, with the EditorKit theme of the ``agentTheme``. A host
+  /// ``diffLayout``, with the EditorKit theme of the environment. A host
   /// replaces it with ``SwiftUI/View/diffRenderer(_:)``.
   @Entry public var diffRenderer: DiffRenderer? = nil
 

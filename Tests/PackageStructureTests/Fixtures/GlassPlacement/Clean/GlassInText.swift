@@ -1,5 +1,5 @@
 // A fixture for GlassPlacementTests. The package build excludes this file.
-// .glassEffect(, .glassEffectID(, .agentGlassID(, .agentFloatingGlass(),
+// .glassEffect(, .glassEffectID(, .floatingGlassID(, .floatingGlass(),
 // GlassEffectContainer and FloatingGlassContainer are in this comment, so the
 // scan must not report them.
 import SwiftUI
@@ -10,7 +10,7 @@ struct GlassInText: View {
   var body: some View {
     VStack {
       Text(".glassEffect(.regular)")
-      Text(#".agentFloatingGlass()"#)
+      Text(#".floatingGlass()"#)
       Text("""
         GlassEffectContainer and FloatingGlassContainer( are in a multi-line literal.
         """)

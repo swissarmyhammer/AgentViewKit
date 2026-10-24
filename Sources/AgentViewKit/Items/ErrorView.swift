@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -14,7 +15,7 @@ import SwiftUI
 ///
 /// The card is a row of the transcript, or of the activity timeline. Both are
 /// content, so the card has no fill and no glass. A separator stroke marks
-/// its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113).
+/// its edge (`.inlineEdge(radius:)`, D113).
 public struct ErrorView: View {
   /// The accessibility identifier of the text of each card.
   public static let identifier = "error-acp"
@@ -37,7 +38,7 @@ public struct ErrorView: View {
   /// The error entry to show.
   let entry: ErrorEntry
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the card of an error entry of a `SessionModel`.
@@ -63,11 +64,11 @@ public struct ErrorView: View {
 
   public var body: some View {
     let content = Self.content(code: entry.code.wireValue, message: entry.message)
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
-      HStack(alignment: .top, spacing: theme.spacing.m) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+      HStack(alignment: .top, spacing: editorStyle.spacing.m) {
         StatusSymbolImage(name: content.symbolName, color: editorTheme.severityError)
           .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: theme.spacing.xs) {
+        VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
           Text(content.title)
             .font(editorTheme.font(for: .ui, style: .headline))
           Text(content.detail)
@@ -82,7 +83,7 @@ public struct ErrorView: View {
           String(localized: "\(content.title), \(content.detail)", bundle: .module)
         )
         .accessibilityIdentifier(Self.identifier)
-        Spacer(minLength: theme.spacing.s)
+        Spacer(minLength: editorStyle.spacing.s)
       }
       if let data = entry.data?.prettyPrinted {
         Text(data)
@@ -92,8 +93,8 @@ public struct ErrorView: View {
           .accessibilityIdentifier(Self.dataIdentifier)
       }
     }
-    .padding(theme.spacing.m)
-    .agentContentEdge()
+    .padding(editorStyle.spacing.m)
+    .inlineEdge(radius: editorStyle.radii.l)
   }
 }
 

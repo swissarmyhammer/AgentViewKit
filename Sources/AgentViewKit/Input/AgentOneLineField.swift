@@ -1,4 +1,5 @@
 import EditorCore
+import EditorStyle
 import EditorSwiftUI
 import SwiftUI
 
@@ -142,7 +143,7 @@ extension EditorCommitReason {
 
 extension View {
   /// Puts this text input in the edge of a kit text input: a small inset
-  /// and the content edge with the small corners of the theme.
+  /// and the content edge with the small corners of `\.editorStyle`.
   ///
   /// - Returns: The input in its edge.
   func agentTextInputEdge() -> some View {
@@ -150,15 +151,16 @@ extension View {
   }
 }
 
-/// The edge of a kit text input: the extra-small spacing of the theme as
-/// an inset, and ``AgentContentEdge`` with ``AgentTheme/Radii/s``.
+/// The edge of a kit text input: the extra-small spacing of `\.editorStyle`
+/// as an inset, and `.inlineEdge(radius:)` with the small radius of the
+/// scale.
 struct AgentTextInputEdge: ViewModifier {
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
     content
-      .padding(theme.spacing.xs)
-      .agentContentEdge(radius: theme.radii.s)
+      .padding(editorStyle.spacing.xs)
+      .inlineEdge(radius: editorStyle.radii.s)
   }
 }
 

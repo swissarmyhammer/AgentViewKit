@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -28,7 +29,7 @@ import Testing
 /// SwiftUI content of the kit in the place of the AppKit and focus parts:
 /// the field surface of the composer (``PromptFieldSurface``), the floating
 /// glass of the deck in the bar, and the scroll-to-bottom pill with the
-/// field in one ``FloatingGlassContainer``.
+/// field in one `FloatingGlassContainer`.
 ///
 /// Clear glass over the plain window background shows almost no pixels. In
 /// a thread, the transcript scrolls under the bottom bar. Thus each glass
@@ -47,8 +48,8 @@ import Testing
   /// The number of new items that the scroll-to-bottom pill shows.
   static let newItemCount = 3
 
-  /// The spacing of the theme between two floating controls.
-  static var spacing: CGFloat { AgentTheme.default.spacing.s }
+  /// The spacing of the style between two floating controls.
+  static var spacing: CGFloat { EditorStyle.default.spacing.s }
 
   /// Renders `view` in `variant` and compares the image with its reference
   /// image.
@@ -89,7 +90,7 @@ import Testing
   /// The text is a SwiftUI `Text`, and not a ``ResponseView``:
   /// `ImageRenderer` draws nothing for a ``ResponseView``.
   static var backdrop: some View {
-    let margin = AgentTheme.default.spacing.m
+    let margin = EditorStyle.default.spacing.m
     return VStack(alignment: .leading, spacing: margin) {
       ForEach(0..<backdropCopies, id: \.self) { _ in
         Text(backdropMarkdown)
@@ -108,7 +109,7 @@ import Testing
   static func overText(_ part: some View) -> some View {
     ZStack(alignment: .bottom) {
       backdrop
-      part.padding(AgentTheme.default.spacing.m)
+      part.padding(EditorStyle.default.spacing.m)
     }
   }
 
@@ -123,7 +124,7 @@ import Testing
 
   /// The glass parts of the composer of `session`: the field above the
   /// accessory row (``DefaultPromptAccessory``), in one
-  /// ``FloatingGlassContainer``, as ``PromptInputView`` shows them. The row
+  /// `FloatingGlassContainer`, as ``PromptInputView`` shows them. The row
   /// shows the Stop button while the agent of `session` runs.
   ///
   /// - Parameter session: The session of the composer.
@@ -150,13 +151,13 @@ import Testing
     return FloatingGlassContainer(spacing: spacing) {
       ElicitationHeader(request: request)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AgentTheme.default.spacing.m)
-        .agentFloatingGlass()
+        .padding(EditorStyle.default.spacing.m)
+        .floatingGlass()
     }
   }
 
   /// The floating controls of a thread: the scroll-to-bottom pill and the
-  /// composer in one ``FloatingGlassContainer``, as in the bottom bar of
+  /// composer in one `FloatingGlassContainer`, as in the bottom bar of
   /// ``AgentThreadView`` (D110 (c)).
   static var floatingControls: some View {
     FloatingGlassContainer(spacing: spacing) {
@@ -174,12 +175,12 @@ import Testing
   static let headerSessionTitle = "AgentViewKit"
 
   /// The header of a thread with the "Agent › Session" breadcrumb, on the
-  /// floating glass of the kit in one ``FloatingGlassContainer``, as in the
+  /// floating glass of the kit in one `FloatingGlassContainer`, as in the
   /// top bar of ``AgentThreadView``.
   static var threadHeader: some View {
     FloatingGlassContainer(spacing: spacing) {
       AgentInfoHeader(connection: AgentAuthViewSurfaceHostedTests.connection, sessionTitle: headerSessionTitle)
-        .agentFloatingGlass()
+        .floatingGlass()
     }
   }
 

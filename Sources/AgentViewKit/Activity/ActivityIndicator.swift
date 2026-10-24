@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -68,7 +69,7 @@ public struct ActivityIndicator: View {
   /// The model that gives the state of the indicator.
   let source: Source
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes an indicator.
   ///
@@ -111,7 +112,7 @@ public struct ActivityIndicator: View {
     case .thinking:
       ShimmerView(text: Self.thinkingText)
     case .runningTool(let name):
-      HStack(spacing: theme.spacing.s) {
+      HStack(spacing: editorStyle.spacing.s) {
         ProgressView()
           .controlSize(.small)
         Text(name)

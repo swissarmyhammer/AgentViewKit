@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import EditorCommands
 import EditorCommandsUI
+import EditorStyle
 import Foundation
 import FoundationModelsACPClient
 import SwiftUI
@@ -129,7 +130,7 @@ import Testing
     // The cards behind the front card are not in the accessibility tree, so
     // the test measures the space that their top edges take: two more edges
     // take two more steps.
-    let edgeStep = AgentTheme.default.spacing.s
+    let edgeStep = EditorStyle.default.spacing.s
     #expect(try Self.edgeSpace(above: front, in: harness) - oneEdgeSpace == 2 * edgeStep)
     #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 1 of 6, 2 more")
     #expect(harness.element(identifier: RequestDeck.moreIdentifier) == nil)

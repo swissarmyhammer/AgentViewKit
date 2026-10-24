@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -19,19 +20,19 @@ import Testing
 
   /// The deck of ``RequestDeckSurfaceTests/session`` in content.
   ///
-  /// The deck pads its cards with the medium spacing of the theme. The
+  /// The deck pads its cards with the medium spacing of the style. The
   /// negative padding at the leading and trailing edges puts the edge of the
   /// card on the edge of the window, as the edge check needs.
   static var deckInContent: some View {
     RequestDeck(session: RequestDeckSurfaceTests.session)
-      .padding(.horizontal, -AgentTheme.default.spacing.m)
+      .padding(.horizontal, -EditorStyle.default.spacing.m)
   }
 
   /// The deck of ``RequestDeckSurfaceTests/session`` in a
-  /// ``FloatingGlassContainer``, as in the composer slot of
+  /// `FloatingGlassContainer`, as in the composer slot of
   /// ``AgentThreadView``.
   static var deckInBar: some View {
-    FloatingGlassContainer(spacing: AgentTheme.default.spacing.s) {
+    FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) {
       RequestDeck(session: RequestDeckSurfaceTests.session)
     }
   }

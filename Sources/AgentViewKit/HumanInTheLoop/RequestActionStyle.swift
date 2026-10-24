@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// An action button of a request card, the Dismiss button of a notice in a
@@ -67,18 +68,20 @@ extension RequestDeckPlace {
 
 /// Gives a button the style of its ``RequestAction`` in its place. The place
 /// is the ``SwiftUI/EnvironmentValues/requestActionPlace`` that a view above
-/// the button declares, or else the place from
-/// ``SwiftUI/EnvironmentValues/floatingGlassContainerCount``
-/// (``RequestDeckPlace/init(declared:floatingGlassContainerCount:)``).
+/// the button declares, or else the place from the glass namespace of the
+/// `FloatingGlassContainer` above the button (`\.floatingGlassNamespace`,
+/// ``RequestDeckPlace/init(declared:isInFloatingGlassContainer:)``).
 private struct RequestActionStyleModifier: ViewModifier {
   /// The kind of the action.
   let action: RequestAction
 
   @Environment(\.requestActionPlace) private var declaredPlace
-  @Environment(\.floatingGlassContainerCount) private var containerCount
+  /// The glass namespace of the `FloatingGlassContainer` above the button,
+  /// or `nil` out of a container.
+  @Environment(\.floatingGlassNamespace) private var glassNamespace
 
   func body(content: Content) -> some View {
-    let place = RequestDeckPlace(declared: declaredPlace, floatingGlassContainerCount: containerCount)
+    let place = RequestDeckPlace(declared: declaredPlace, isInFloatingGlassContainer: glassNamespace != nil)
     switch place.style(of: action) {
     case .glass: content.buttonStyle(.glass)
     case .glassProminent: content.buttonStyle(.glassProminent)
@@ -93,7 +96,8 @@ extension EnvironmentValues {
   /// The place of the action buttons below this view, which a view declares
   /// with ``SwiftUI/View/requestActionPlace(_:)``, or `nil` when no view above
   /// declares a place. With `nil`, the place of the buttons comes from
-  /// ``floatingGlassContainerCount``.
+  /// ``floatingGlassNamespace``: whether a `FloatingGlassContainer` is above
+  /// them.
   @Entry var requestActionPlace: RequestDeckPlace? = nil
 }
 

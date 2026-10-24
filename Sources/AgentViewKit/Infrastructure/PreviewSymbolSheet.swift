@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -22,14 +23,14 @@ struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
   /// The function that makes the icon of a state.
   @ViewBuilder let icon: (Value) -> Icon
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       Text(title)
         .font(editorTheme.font(for: .ui, style: .headline))
-      Grid(alignment: .leading, horizontalSpacing: theme.spacing.m, verticalSpacing: theme.spacing.s) {
+      Grid(alignment: .leading, horizontalSpacing: editorStyle.spacing.m, verticalSpacing: editorStyle.spacing.s) {
         ForEach(values, id: \.self) { value in
           GridRow {
             icon(value)

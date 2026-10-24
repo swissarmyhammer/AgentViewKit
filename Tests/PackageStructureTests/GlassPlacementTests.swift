@@ -9,36 +9,41 @@ import Testing
 /// Glass is only on the floating controls and on the action buttons of the
 /// request cards and the notices. Content uses no glass, and no glass is on
 /// glass.
+///
+/// The floating glass, its glass id and its container come from the EditorKit
+/// `EditorStyle` target, so the kit makes no `.glassEffect(`, no
+/// `.glassEffectID(` and no `GlassEffectContainer` of its own.
 enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
-  /// A direct `.glassEffect(` call. Only the floating glass modifier of the
-  /// kit makes one.
+  /// A direct `.glassEffect(` call. No file of the kit makes one: the
+  /// floating glass of EditorStyle makes the glass.
   case glassEffect
 
-  /// A `.glassEffectID(` call, which lets a glass morph (D113 answer 2). Only
-  /// the glass id modifier of the kit, in the surfaces file, makes one.
+  /// A `.glassEffectID(` call, which lets a glass morph (D113 answer 2). No
+  /// file of the kit makes one: the glass id modifiers of EditorStyle make
+  /// it.
   case glassEffectID
 
-  /// The glass id modifier of the kit, `agentGlassID(_:)`. It puts a glass in
-  /// the glass namespace of its container (D113 answer 2). The
+  /// The glass id modifier of EditorStyle, `floatingGlassID(_:)`. It puts a
+  /// glass in the glass namespace of its container (D113 answer 2). The
   /// scroll-to-bottom pill and the suggestion chips use it on their glass
   /// buttons.
   case glassID
 
-  /// The floating glass modifier of the kit, `agentFloatingGlass()` or
-  /// `agentFloatingGlass(id:)`. The field and the menu of the composer use it
+  /// The floating glass modifier of EditorStyle, `floatingGlass()` or
+  /// `floatingGlass(id:)`. The field and the menu of the composer use it
   /// with a glass id, the request deck uses it in a bar of floating
   /// controls, and the thread view uses it on the `AgentInfoHeader` in its
   /// top bar, a floating surface (``ThreadTopBarStructureTests``).
   case floatingGlass
 
-  /// A `GlassEffectContainer`. Only the shared container of the floating
-  /// controls makes one.
+  /// A `GlassEffectContainer`. No file of the kit makes one: the
+  /// `FloatingGlassContainer` of EditorStyle makes it.
   case glassEffectContainer
 
-  /// The shared container of the floating controls, `FloatingGlassContainer`.
-  /// The composer and the thread view use it. The thread view has one for the
-  /// header in its top bar, and one for the scroll-to-bottom pill and the
-  /// composer slot in its bottom bar.
+  /// The shared container of the floating controls of EditorStyle,
+  /// `FloatingGlassContainer`. The composer and the thread view use it. The
+  /// thread view has one for the header in its top bar, and one for the
+  /// scroll-to-bottom pill and the composer slot in its bottom bar.
   case floatingGlassContainer
 
   /// The `.glass` or the `.glassProminent` button style. The floating
@@ -53,8 +58,8 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     switch self {
     case .glassEffect: GlassForm.callPattern("glassEffect")
     case .glassEffectID: GlassForm.callPattern("glassEffectID")
-    case .glassID: GlassForm.callPattern("agentGlassID")
-    case .floatingGlass: GlassForm.callPattern("agentFloatingGlass")
+    case .glassID: GlassForm.callPattern("floatingGlassID")
+    case .floatingGlass: GlassForm.callPattern("floatingGlass")
     case .glassEffectContainer: WordPattern.wholeWord("GlassEffectContainer")
     case .floatingGlassContainer: WordPattern.wholeWord("FloatingGlassContainer")
     case .glassButtonStyle:
@@ -69,25 +74,14 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The files that can use the form, relative to the package root.
   var allowedFiles: Set<String> {
     switch self {
-    case .glassEffect, .glassEffectID: [GlassForm.surfacesFile]
-    case .glassID: [GlassForm.surfacesFile, GlassForm.scrollPillFile, GlassForm.suggestionsFile]
+    case .glassEffect, .glassEffectID, .glassEffectContainer: []
+    case .glassID: [GlassForm.scrollPillFile, GlassForm.suggestionsFile]
     case .floatingGlass:
-      [
-        GlassForm.surfacesFile, ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile,
-        ComposerGlassStructureTests.threadFile,
-      ]
-    case .glassEffectContainer: [GlassForm.sharedContainerFile]
-    case .floatingGlassContainer:
-      [GlassForm.sharedContainerFile, ComposerGlassStructureTests.composerFile, ComposerGlassStructureTests.threadFile]
+      [ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile, ComposerGlassStructureTests.threadFile]
+    case .floatingGlassContainer: [ComposerGlassStructureTests.composerFile, ComposerGlassStructureTests.threadFile]
     case .glassButtonStyle: GlassForm.glassButtonFiles
     }
   }
-
-  /// The file of the surfaces of the kit, which holds `agentFloatingGlass()`.
-  static let surfacesFile = KitSourceFiles.kitFile("Theme/AgentSurfaces.swift")
-
-  /// The file of the shared container of the floating controls.
-  static let sharedContainerFile = KitSourceFiles.kitFile("Theme/FloatingGlassContainer.swift")
 
   /// The file of the request deck. In a bar of floating controls, the deck is
   /// user input, and it is on the floating glass of the kit.
@@ -220,44 +214,6 @@ extension GlassForm: FixtureCodeForm {
     GlassForm.buttonStylePattern(WordPattern.wholeWord(GlassForm.prominentStyle))
   }
 
-  /// The pattern that finds a `.glassEffect` call that names the `.regular`
-  /// glass, such as `.glassEffect(.regular, in: shape)`.
-  ///
-  /// The floating glass is always `.regular` (D113 answer 3). The Clear look
-  /// and the Tinted look are system settings, and the system applies them to
-  /// `.regular` glass. Thus no theme token selects the glass variant.
-  static var regularGlassEffectPattern: Regex<Substring> {
-    GlassForm.memberCallPattern("glassEffect", WordPattern.wholeWord("regular"))
-  }
-
-  /// The fixture file with a glass of each variant, relative to ``fixtures``.
-  static let variantFixtureFile = "Violating/Variant/GlassVariants.swift"
-
-  /// The lines of ``variantFixtureFile`` with a glass that does not name the
-  /// `.regular` glass: a `.clear` glass, and a glass with no variant.
-  static let variantFixtureLines = [11, 12]
-
-  /// Finds the lines below a directory with a `.glassEffect` call that does
-  /// not name the `.regular` glass on the same line. A use in a comment or in
-  /// a string literal does not count.
-  ///
-  /// - Parameters:
-  ///   - directory: The directory to scan. The scan includes subdirectories.
-  ///   - base: The directory that the file name of each line is relative to.
-  /// - Returns: `<file>:<line>` for each line, in the order of the file paths,
-  ///   then in line order.
-  /// - Throws: The error of
-  ///   ``SourceLineScanner/codeMatches(inSwiftFilesBelow:relativeTo:skipping:match:)``.
-  static func glassEffectsThatAreNotRegular(
-    inSwiftFilesBelow directory: URL, relativeTo base: URL
-  ) throws -> [String] {
-    try SourceLineScanner.codeMatches(inSwiftFilesBelow: directory, relativeTo: base) { line in
-      let isNotRegular =
-        line.text.contains(GlassForm.glassEffect.pattern) && !line.text.contains(regularGlassEffectPattern)
-      return isNotRegular ? ["\(line.file):\(line.number)"] : []
-    }
-  }
-
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
     get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/GlassPlacement") }
@@ -370,24 +326,6 @@ extension GlassForm: FixtureCodeForm {
     #expect(found.allSatisfy { $0.hasPrefix("\(GlassForm.sendButtonFile):") }, "\(found)")
   }
 
-  /// The kit makes a glass only with an explicit `.regular` variant, so no
-  /// theme value selects the variant of the floating glass (D113 answer 3).
-  @Test func eachGlassEffectOfTheKitNamesTheRegularGlass() throws {
-    let kit = try PackageFiles.file(KitSourceFiles.kitPath)
-    let effects = try Self.uses(of: GlassForm.glassEffect.pattern, inSwiftFilesBelow: kit, relativeTo: PackageFiles.root)
-    let found = try Self.glassEffectsThatAreNotRegular(inSwiftFilesBelow: kit, relativeTo: PackageFiles.root)
-
-    #expect(!effects.isEmpty)
-    #expect(found.isEmpty, "Use .glassEffect(.regular, in:). A theme does not select the glass variant: \(found)")
-  }
-
-  @Test func theVariantScanReportsEachGlassThatIsNotRegularInTheFixture() throws {
-    let found = try Self.glassEffectsThatAreNotRegular(
-      inSwiftFilesBelow: Self.fixtures.appending(path: "Violating/Variant"), relativeTo: Self.fixtures)
-
-    #expect(found == Self.variantFixtureLines.map { "\(Self.variantFixtureFile):\($0)" })
-  }
-
   @Test func memberCallPatternFindsTheMemberInTheArgumentOfTheCall() {
     let pattern = GlassForm.memberCallPattern("foregroundStyle", WordPattern.wholeWord("tint"))
 
@@ -424,6 +362,11 @@ extension GlassForm: FixtureCodeForm {
     let found = try Self.fixtureUses(of: form.pattern, in: "Violating/Placement", allowing: [Self.violatingFixtureFile])
 
     #expect(found.isEmpty, "\(found)")
+  }
+
+  @Test func theFloatingGlassPatternDoesNotFindTheGlassIDModifier() {
+    #expect("menu.floatingGlass(id: FloatingGlassID.editorMenu)".contains(GlassForm.floatingGlass.pattern))
+    #expect(!"pill.floatingGlassID(FloatingGlassID.scrollPill)".contains(GlassForm.floatingGlass.pattern))
   }
 
   @Test(arguments: allowedFiles)

@@ -7,12 +7,12 @@ struct ContentView: View {
   var body: some View {
     VStack {
       Text("effect").glassEffect(.regular, in: .capsule)
-      Text("floating").agentFloatingGlass()
+      Text("floating").floatingGlass()
       GlassEffectContainer { Text("container") }
       FloatingGlassContainer(spacing: Spacing.small) { Text("shared") }
       Button("Open") {}.buttonStyle(.glass)
       Text("morph").glassEffectID(Spacing.small, in: namespace)
-      Button("Pill") {}.agentGlassID(.scrollPill)
+      Button("Pill") {}.floatingGlassID(FloatingGlassID.scrollPill)
     }
   }
 

@@ -46,6 +46,7 @@ import Testing
     "EditorDecorations",
     "EditorExtensions",
     "EditorDiff",
+    "EditorStyle",
   ]
 
   /// The Textual row of `Docs/decisions/dependencies.md`.
@@ -76,7 +77,7 @@ import Testing
     #expect(products.isSuperset(of: expected), "\(products)")
   }
 
-  @Test func usesTheElevenEditorKitProducts() {
+  @Test func usesTheTwelveEditorKitProducts() {
     let names = manifest.matches(of: /\.product\(\s*name:\s*"(?<name>[^"]+)",\s*package:\s*"EditorKit"\s*\)/)
       .map { String($0.output.name) }
     #expect(Set(names) == Self.editorKitProducts)

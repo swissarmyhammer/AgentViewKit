@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -32,7 +33,7 @@ public struct SessionNoticeBanner: View {
   /// The session model whose notices the view shows.
   let session: SessionModel
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the banners of the notices of a session model.
   ///
@@ -61,12 +62,12 @@ public struct SessionNoticeBanner: View {
   public var body: some View {
     let notices = session.notices
     if !notices.isEmpty {
-      VStack(spacing: theme.spacing.s) {
+      VStack(spacing: editorStyle.spacing.s) {
         ForEach(notices) { notice in
           NoticeBanner(notice: notice) { session.dismissNotice(notice.id) }
         }
       }
-      .padding(theme.spacing.m)
+      .padding(editorStyle.spacing.m)
     }
   }
 }
@@ -103,7 +104,7 @@ struct NoticeBanner: View {
     case .info: SharedSymbol.information
     case .warning: SharedSymbol.warning
     case .error: SharedSymbol.error
-    case .unknown: SharedSymbol.unknown
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 
@@ -130,7 +131,7 @@ struct NoticeBanner: View {
 /// optional description, and a Dismiss button.
 ///
 /// The row is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (``SwiftUI/View/agentContentEdge(radius:)``, D113). Only its
+/// marks its edge (`.inlineEdge(radius:)`, D113). Only its
 /// Dismiss button has a button style of its own, which comes from the place
 /// of the row (``RequestDeckPlace/style(of:)``): the `.glass` style in
 /// content, and the `.bordered` style on the glass of a ``RequestDeck`` in a
@@ -164,18 +165,18 @@ struct NoticeRow: View {
   /// The closure that the Dismiss button calls.
   let dismiss: () -> Void
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    HStack(alignment: .top, spacing: theme.spacing.m) {
+    HStack(alignment: .top, spacing: editorStyle.spacing.m) {
       StatusSymbolImage(
         name: NoticeBanner.symbolName(for: severity),
         color: editorTheme.tint(for: severity)
       )
         .help(NoticeBanner.severityLabel(severity))
         .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: theme.spacing.xs) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(title)
           .font(editorTheme.font(for: .ui, style: .headline))
         if let description {
@@ -189,7 +190,7 @@ struct NoticeRow: View {
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(label)
       .accessibilityIdentifier(identifier)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       Button(
         String(localized: "Dismiss", bundle: .module), systemImage: Self.dismissSymbol,
         action: dismiss
@@ -198,8 +199,8 @@ struct NoticeRow: View {
         .requestActionStyle(.secondary)
         .accessibilityIdentifier(dismissIdentifier)
     }
-    .padding(theme.spacing.m)
-    .agentContentEdge()
+    .padding(editorStyle.spacing.m)
+    .inlineEdge(radius: editorStyle.radii.l)
   }
 }
 

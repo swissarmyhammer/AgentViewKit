@@ -1,5 +1,6 @@
 import EditorCommands
 import EditorCommandsUI
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -24,7 +25,7 @@ import SwiftUI
 /// on the item, and draws the system focus ring over the item.
 /// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of the surface
 /// of the item (``AgentSurfaceCorners``): by default the corners of a card
-/// of the kit (``AgentSurface/shape(for:)``). A `.focusEffectDisabled()` above
+/// of the kit (``AgentSurfaceCorners/card``). A `.focusEffectDisabled()` above
 /// the item turns the ring off. When `isTargetable` is
 /// `false`, for example on a deck card that does not show whole,
 /// `.targetable(false)` removes the item from the jump labels and from the
@@ -48,7 +49,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   let focusRingCorners: AgentSurfaceCorners
 
   @Environment(\.agentCommandSystem) private var system
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
     if let system {
@@ -56,7 +57,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
         .commandContextMenu(system, unavailable: .agentItem)
         .commandScope(segment: segment, subject: subject)
         .targetable(isTargetable)
-        .scopeFocusRing(cornerRadius: focusRingCorners.radius(in: theme))
+        .scopeFocusRing(cornerRadius: focusRingCorners.radius(in: editorStyle))
     } else {
       content
     }
@@ -90,28 +91,29 @@ extension View {
 /// The corners of the surface of an item, which the focus ring of its scope
 /// (``AgentItemScope``) follows.
 ///
-/// The corners name a radius token of the theme, or square corners for a
-/// surface that is not rounded, such as an image. A view that draws its
-/// surface from the same value keeps the surface and the ring in step.
+/// The corners name a step of the radius scale of `\.editorStyle`, or square
+/// corners for a surface that is not rounded, such as an image. A view that
+/// draws its surface from the same value keeps the surface and the ring in
+/// step.
 enum AgentSurfaceCorners: Equatable, Sendable {
-  /// Corners of the radius token at the key path, for example
-  /// `\.m` for ``AgentTheme/Radii/m``.
-  case rounded(KeyPath<AgentTheme.Radii, CGFloat> & Sendable)
+  /// Corners of a step of the radius scale, for example `.medium` for
+  /// `EditorStyle.Radii.m`.
+  case rounded(EditorStyle.Radius)
 
   /// Square corners: the surface and its ring are rectangles.
   case square
 
-  /// The corners of a card of the kit: the large radius of the theme
-  /// (``AgentSurface/shape(for:)``).
-  static let card = AgentSurfaceCorners.rounded(\.l)
+  /// The corners of a card of the kit: the large radius of the scale, the
+  /// least corner of `.inlineEdge(radius:)` on a card.
+  static let card = AgentSurfaceCorners.rounded(.large)
 
-  /// The corner radius in `theme`.
+  /// The corner radius in `style`.
   ///
-  /// - Parameter theme: The tokens that give the radius.
-  /// - Returns: The radius of the token, or zero for square corners.
-  func radius(in theme: AgentTheme) -> CGFloat {
+  /// - Parameter style: The shared style that gives the radius scale.
+  /// - Returns: The radius of the step, or zero for square corners.
+  func radius(in style: EditorStyle) -> CGFloat {
     switch self {
-    case .rounded(let token): theme.radii[keyPath: token]
+    case .rounded(let step): style.radii[step]
     case .square: .zero
     }
   }

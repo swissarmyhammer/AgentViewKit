@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
@@ -44,8 +45,8 @@ import SwiftUI
 /// request. The deck shows no card for an elicitation mode that the kit does
 /// not know. Each card sends the answer of the user to the reply methods of
 /// the model that holds the request. To change the cards, use the field
-/// overrides of the elicitation views and the
-/// ``SwiftUI/EnvironmentValues/agentTheme``.
+/// overrides of the elicitation views and the shared style
+/// (`\.editorStyle`).
 ///
 /// An elicitation card shows who asks, in the "who asks" line of
 /// ``ElicitationHeader`` (identifier ``ElicitationView/whoAsksIdentifier``),
@@ -104,13 +105,15 @@ import SwiftUI
 /// Dismiss: a new request does not remove it.
 ///
 /// The surface of the deck comes from its place (TestudoApp
-/// `features/style.md`, "How the steps apply"). The deck reads
-/// ``SwiftUI/EnvironmentValues/floatingGlassContainerCount``:
+/// `features/style.md`, "How the steps apply"). The deck reads whether a
+/// `FloatingGlassContainer` is above it: the container gives its glass
+/// namespace (`\.floatingGlassNamespace`), and out of a container the
+/// namespace is `nil`:
 ///
 /// - In a bar of floating controls, for example the composer slot of
 ///   ``AgentThreadView``, a request is user input. The whole deck is on the
 ///   `.regular` floating glass of the kit, in the `GlassEffectContainer` of
-///   the bar (``SwiftUI/View/agentFloatingGlass()``). The cards and the
+///   the bar (`.floatingGlass()`). The cards and the
 ///   notices in it have no glass of their own.
 /// - In content, the deck has no glass and no fill.
 ///
@@ -123,7 +126,7 @@ import SwiftUI
 /// `.glassProminent` and `.glass` styles.
 ///
 /// In both places, each card has no fill, and the separator stroke of the
-/// content edge marks it (``SwiftUI/View/agentContentEdge(radius:)``, D113).
+/// content edge marks it (`.inlineEdge(radius:)`, D113).
 /// The front card does not hide the cards behind it. Thus a card behind the
 /// front card shows only the top edge of its stroke, and not its content.
 ///
@@ -343,7 +346,7 @@ private struct DeckCards: View {
   /// The model to read.
   let source: DeckSource
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.announcer) private var announcer
 
@@ -361,8 +364,8 @@ private struct DeckCards: View {
     let withdrawn = source.withdrawn
     let layout = source.layout(of: requests)
     let waitingIDs = Set(awaiting.map(\.id))
-    let edgeStep = theme.spacing.s
-    VStack(alignment: .leading, spacing: theme.spacing.s) {
+    let edgeStep = editorStyle.spacing.s
+    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       ForEach(withdrawn) { notice in
         WithdrawnNoticeRow(notice: notice) { source.dismissWithdrawn(notice.id) }
       }
@@ -372,7 +375,7 @@ private struct DeckCards: View {
       // With no card, the stack is not in the deck, so a deck with only
       // notices has no space below the notices.
       if !cards.isEmpty {
-        DeckStackLayout(edgeStep: edgeStep, edgeInset: theme.spacing.m, waitingSpacing: theme.spacing.s) {
+        DeckStackLayout(edgeStep: edgeStep, edgeInset: editorStyle.spacing.m, waitingSpacing: editorStyle.spacing.s) {
           // One `ForEach` for the pending and the waiting cards, so that an
           // accepted card keeps its identity and its browser session.
           ForEach(cards) { request in
@@ -384,7 +387,7 @@ private struct DeckCards: View {
         }
       }
     }
-    .padding(cards.isEmpty && withdrawn.isEmpty ? 0 : theme.spacing.m)
+    .padding(cards.isEmpty && withdrawn.isEmpty ? 0 : editorStyle.spacing.m)
     .modifier(DeckSurface())
     .contentContainer(identifier: RequestDeck.identifier)
     .animation(reduceMotion ? nil : .default, value: layout.front)
@@ -437,13 +440,14 @@ nonisolated enum RequestDeckPlace: Equatable, Sendable {
   /// In content. The deck has no glass and no fill.
   case content
 
-  /// The place of a deck below a number of glass containers of floating
+  /// The place of a deck in or out of a glass container of floating
   /// controls.
   ///
-  /// - Parameter floatingGlassContainerCount: The
-  ///   ``SwiftUI/EnvironmentValues/floatingGlassContainerCount`` of the deck.
-  init(floatingGlassContainerCount: Int) {
-    self = floatingGlassContainerCount > 0 ? .bar : .content
+  /// - Parameter isInFloatingGlassContainer: Whether a
+  ///   `FloatingGlassContainer` is above the deck: its
+  ///   `\.floatingGlassNamespace` is not `nil`.
+  init(isInFloatingGlassContainer: Bool) {
+    self = isInFloatingGlassContainer ? .bar : .content
   }
 
   /// The place of action buttons: the place that a view above them declares,
@@ -452,26 +456,27 @@ nonisolated enum RequestDeckPlace: Equatable, Sendable {
   /// - Parameters:
   ///   - declared: The ``SwiftUI/EnvironmentValues/requestActionPlace`` of
   ///     the buttons, or `nil` when no view declares a place.
-  ///   - floatingGlassContainerCount: The
-  ///     ``SwiftUI/EnvironmentValues/floatingGlassContainerCount`` of the
-  ///     buttons.
-  init(declared: RequestDeckPlace?, floatingGlassContainerCount: Int) {
-    self = declared ?? RequestDeckPlace(floatingGlassContainerCount: floatingGlassContainerCount)
+  ///   - isInFloatingGlassContainer: Whether a `FloatingGlassContainer` is
+  ///     above the buttons.
+  init(declared: RequestDeckPlace?, isInFloatingGlassContainer: Bool) {
+    self = declared ?? RequestDeckPlace(isInFloatingGlassContainer: isInFloatingGlassContainer)
   }
 }
 
 /// The surface of a ``RequestDeck`` in its place (``RequestDeckPlace``).
 ///
 /// In the bar, the whole deck is on the floating glass of the kit
-/// (``SwiftUI/View/agentFloatingGlass()``), and the cards and the notices in
+/// (`.floatingGlass()`), and the cards and the notices in
 /// it have no glass of their own. In content, the deck has no surface: each
-/// card has only the content edge (``SwiftUI/View/agentContentEdge(radius:)``).
+/// card has only the content edge (`.inlineEdge(radius:)`).
 private struct DeckSurface: ViewModifier {
-  @Environment(\.floatingGlassContainerCount) private var containerCount
+  /// The glass namespace of the `FloatingGlassContainer` above the deck, or
+  /// `nil` out of a container.
+  @Environment(\.floatingGlassNamespace) private var glassNamespace
 
   func body(content: Content) -> some View {
-    switch RequestDeckPlace(floatingGlassContainerCount: containerCount) {
-    case .bar: content.agentFloatingGlass()
+    switch RequestDeckPlace(isInFloatingGlassContainer: glassNamespace != nil) {
+    case .bar: content.floatingGlass()
     case .barWithoutGlass, .content: content
     }
   }
@@ -501,11 +506,11 @@ private struct DeckHeader: View {
   /// The number of the waiting cards, which are not in "k of N".
   let waitingCount: Int
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       if layout.showsHeader {
         position
       }
@@ -602,6 +607,9 @@ private struct DeckCard: View {
   /// it holds the id of the request.
   let keyboardFocus: FocusState<PendingRequest.ID?>.Binding
 
+  /// The shared style that gives the radius of the edge of the card.
+  @Environment(\.editorStyle) private var editorStyle
+
   var body: some View {
     let identifier = RequestDeck.identifier(for: request.id.uuidString)
     let showsWhole = role.showsWhole
@@ -612,7 +620,7 @@ private struct DeckCard: View {
       .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
       .opacity(showsWhole ? 1 : 0)
-      .agentContentEdge()
+      .inlineEdge(radius: editorStyle.radii.l)
       .mask { DeckCardBand(role: role, edgeStep: edgeStep) }
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
@@ -665,7 +673,7 @@ private struct DeckCard: View {
 nonisolated struct DeckCardBand: Shape {
   /// The distance that the band goes out of the frame of the card. It is more
   /// than the half width of the separator stroke of
-  /// ``SwiftUI/View/agentContentEdge(radius:)``, which is one point wide.
+  /// `.inlineEdge(radius:)`, which is one point wide.
   static let strokeOutset: CGFloat = 1
 
   /// The place of the card in the deck.

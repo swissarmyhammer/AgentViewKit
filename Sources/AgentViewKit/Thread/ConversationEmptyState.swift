@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -84,7 +85,7 @@ public struct ConversationEmptyState: View {
   let content: ConversationEmptyContent?
 
   @Environment(\.conversationEmptyContent) private var environmentContent
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the empty state that shows the content of
   /// ``SwiftUI/View/conversationEmptyState(title:systemImage:markdown:)``,
@@ -109,11 +110,11 @@ public struct ConversationEmptyState: View {
   public var body: some View {
     let shown = content ?? environmentContent ?? .standard
     ScrollView {
-      VStack(alignment: .leading, spacing: theme.spacing.m) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
         ConversationEmptyHeader(title: shown.title, systemImage: shown.systemImage)
         ResponseView(id: ConversationLayout.emptyStateIdentifier, markdown: shown.markdown)
       }
-      .padding(theme.spacing.l)
+      .padding(editorStyle.spacing.l)
     }
     .defaultScrollAnchor(.center, for: .alignment)
     .scrollBounceBehavior(.basedOnSize)
@@ -134,12 +135,12 @@ private struct ConversationEmptyHeader: View {
   /// The name of the SF Symbol, or `nil` for no symbol.
   let systemImage: String?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     if title != nil || systemImage != nil {
-      HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
+      HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
         if let systemImage {
           DecorativeSymbolImage(name: systemImage)
         }

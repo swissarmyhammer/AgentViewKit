@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -5,25 +6,27 @@ import SwiftUI
 /// The frame of a block that holds an EditorKit editor: ``CodeBlockView``,
 /// ``TerminalView`` and ``CommandOutputView``.
 ///
-/// The frame clips the block to the shape of ``AgentSurface`` with the medium
-/// radius of the kit theme, and marks its edge with the separator stroke of
-/// ``SwiftUI/View/agentContentEdge(radius:)``. A code block has no fill
-/// (D113): the content behind the block shows through it. Only the fill that
-/// a block gives, for example the terminal background, fills the block. The
-/// frame sets no EditorKit theme, so the editor in the block uses the theme
-/// of the environment.
+/// The frame clips the block to the surface shape of EditorKit
+/// (`EditorSurface.shape(radius:)`) with the medium radius of `\.editorStyle`,
+/// and marks its edge with the separator stroke of `.inlineEdge(radius:)`. A
+/// code block has no fill (D113): the content behind the block shows through
+/// it. Only the fill that a block gives, for example the terminal background,
+/// or the fill that a host opts into with `.inlineFill(_:)`, fills the block.
+/// The frame sets no EditorKit theme, so the editor in the block uses the
+/// theme of the environment.
 struct EditorBlockFrame: ViewModifier {
   /// The fill of the block, or `nil` for a block with no fill.
   let fill: Color?
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
-    let shape = AgentSurface.shape(radius: theme.radii.m)
+    let radius = editorStyle.radii.m
+    let shape = EditorSurface.shape(radius: radius)
     content
       .clipShape(shape)
       .background(fill ?? .clear, in: shape)
-      .agentContentEdge(radius: theme.radii.m)
+      .inlineEdge(radius: radius)
   }
 }
 

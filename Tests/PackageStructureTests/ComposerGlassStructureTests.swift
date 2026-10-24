@@ -5,16 +5,16 @@ import Testing
 
 /// Checks the glass calls in the files of the composer (D110 (c)).
 ///
-/// One file of the kit makes a `GlassEffectContainer`: the shared
-/// `FloatingGlassContainer` (``GlassPlacementTests``). That container makes
-/// no second container in a container, so a group of floating controls has
-/// one container. The thread view puts the scroll-to-bottom pill and the
-/// composer slot in one shared container, and the composer uses the shared
-/// container too.
+/// No file of the kit makes a `GlassEffectContainer`: the shared
+/// `FloatingGlassContainer` of the EditorKit `EditorStyle` target makes it
+/// (``GlassPlacementTests``). That container makes no second container in a
+/// container, so a group of floating controls has one container. The thread
+/// view puts the scroll-to-bottom pill and the composer slot in one shared
+/// container, and the composer uses the shared container too.
 ///
 /// The composer puts the field, the menu of the editor and the accessory in
 /// that one container. The field and the menu are on the floating
-/// glass of the kit, through `agentFloatingGlass(id:)`. The menu is a sibling
+/// glass of EditorStyle, through `floatingGlass(id:)`. The menu is a sibling
 /// of the field glass, not in it. The composer file writes no direct
 /// `.glassEffect` call, so that one modifier gives each glass. The menu shows
 /// and hides next to the field glass. Thus the field and the menu each have a
@@ -24,8 +24,10 @@ import Testing
 ///
 /// The scroll-to-bottom pill and the suggestion chips are glass buttons that
 /// show and hide next to the composer, in the same container. Each file gives
-/// its glass a `FloatingGlassID` one time, through `agentGlassID(_:)`. That
-/// one modifier applies each `.glassEffectID` of a glass button.
+/// its glass a `FloatingGlassID` one time, through `floatingGlassID(_:)`.
+/// That one modifier of EditorStyle applies each `.glassEffectID` of a glass
+/// button. The id of EditorStyle is any `Hashable` value, so each call names
+/// the id type of the kit, such as `FloatingGlassID.scrollPill`.
 ///
 /// The EditorKit editor is in the field glass. So its file writes no glass:
 /// glass in it is glass on glass.
@@ -92,22 +94,17 @@ import Testing
     GlassIDPatternSample(
       modifier: .floatingGlass,
       id: "editorMenu",
-      use: "menu.agentFloatingGlass( id: .editorMenu)",
-      nonUses: ["menu.agentFloatingGlass(id: .editorMenuBar)", "menu.agentFloatingGlass()"]),
+      use: "menu.floatingGlass( id: FloatingGlassID.editorMenu)",
+      nonUses: ["menu.floatingGlass(id: FloatingGlassID.editorMenuBar)", "menu.floatingGlass()"]),
     GlassIDPatternSample(
       modifier: .glassID,
       id: "suggestion",
-      use: "chip.agentGlassID( .suggestion(index))",
-      nonUses: ["chip.agentGlassID(.suggestions)", "chip.agentFloatingGlass(id: .suggestion(index))"]),
+      use: "chip.floatingGlassID( FloatingGlassID.suggestion(index))",
+      nonUses: [
+        "chip.floatingGlassID(FloatingGlassID.suggestions)",
+        "chip.floatingGlass(id: FloatingGlassID.suggestion(index))",
+      ]),
   ]
-
-  /// The pattern that finds a namespace property wrapper, `@Namespace`.
-  static var namespacePattern: Regex<Substring> {
-    Regex {
-      "@"
-      WordPattern.wholeWord("Namespace")
-    }
-  }
 
   /// The number of the code lines of `file` that use `pattern`. A use in a
   /// comment or in a string literal does not count.
@@ -156,30 +153,39 @@ import Testing
       #expect(!nonUse.contains(pattern), "\(nonUse)")
     }
   }
-
-  @Test func theSharedContainerHasOneNamespace() throws {
-    #expect(try Self.codeLineCount(of: Self.namespacePattern, in: GlassForm.sharedContainerFile) == 1)
-  }
 }
 
-/// A modifier of the kit that gives a glass a `FloatingGlassID` (D113
+/// A modifier of EditorStyle that gives a glass a `FloatingGlassID` (D113
 /// answer 2).
 enum GlassIDModifier: String, CustomTestStringConvertible, Sendable {
-  /// The floating glass of the kit with a glass id, such as
-  /// `.agentFloatingGlass(id: .composerField)`.
+  /// The floating glass of EditorStyle with a glass id, such as
+  /// `.floatingGlass(id: FloatingGlassID.composerField)`.
   case floatingGlass
 
-  /// The glass id modifier of the kit, such as `.agentGlassID(.scrollPill)`
-  /// or `.agentGlassID(.suggestion(index))`.
+  /// The glass id modifier of EditorStyle, such as
+  /// `.floatingGlassID(FloatingGlassID.scrollPill)` or
+  /// `.floatingGlassID(FloatingGlassID.suggestion(index))`.
   case glassID
 
   var testDescription: String { rawValue }
 
-  /// The pattern that comes before the id: the call of the modifier, and for
-  /// the floating glass, the `id:` label too.
+  /// The pattern that comes before the id: the call of the modifier, for the
+  /// floating glass the `id:` label too, and the id type of the kit,
+  /// `FloatingGlassID`. The modifiers take any `Hashable` id, so an implicit
+  /// member does not compile, and each call names the type.
   ///
   /// A `Regex` is not `Sendable`, so each call makes the value again.
   var receiver: Regex<Substring> {
+    Regex {
+      call
+      ZeroOrMore(.whitespace)
+      WordPattern.wholeWord("FloatingGlassID")
+    }
+  }
+
+  /// The call of the modifier, and for the floating glass, the `id:` label
+  /// too.
+  private var call: Regex<Substring> {
     switch self {
     case .floatingGlass:
       Regex {

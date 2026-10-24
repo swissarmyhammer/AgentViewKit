@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import CoreGraphics
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -37,14 +38,14 @@ struct RequestDeckSurfaceTests {
 
   /// The deck of ``session`` over the backdrop of ``GlassRenderProbeTests``.
   ///
-  /// - Parameter inBar: Whether the deck is in a ``FloatingGlassContainer``,
+  /// - Parameter inBar: Whether the deck is in a `FloatingGlassContainer`,
   ///   as in the composer slot of ``AgentThreadView``.
   /// - Returns: The view.
   static func deck(inBar: Bool) -> some View {
     ZStack {
       GlassRenderProbeTests.backdrop
       if inBar {
-        FloatingGlassContainer(spacing: AgentTheme.default.spacing.s) { RequestDeck(session: session) }
+        FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) { RequestDeck(session: session) }
       } else {
         RequestDeck(session: session)
       }
@@ -52,11 +53,11 @@ struct RequestDeckSurfaceTests {
   }
 
   @Test func outOfAFloatingContainerTheDeckIsInContent() {
-    #expect(RequestDeckPlace(floatingGlassContainerCount: 0) == .content)
+    #expect(RequestDeckPlace(isInFloatingGlassContainer: false) == .content)
   }
 
   @Test func inAFloatingContainerTheDeckIsInTheBar() {
-    #expect(RequestDeckPlace(floatingGlassContainerCount: 1) == .bar)
+    #expect(RequestDeckPlace(isInFloatingGlassContainer: true) == .bar)
   }
 
   /// Each action of a request card, and its button style in the bar. A glass
@@ -103,19 +104,19 @@ struct RequestDeckSurfaceTests {
     #expect(RequestDeckPlace.barWithoutGlass.style(of: action) == style)
   }
 
-  @Test(arguments: [0, 1])
-  func aDeclaredPlaceIsThePlaceOfTheButtonsInAndOutOfAFloatingContainer(containerCount: Int) {
-    let place = RequestDeckPlace(declared: .barWithoutGlass, floatingGlassContainerCount: containerCount)
+  @Test(arguments: [false, true])
+  func aDeclaredPlaceIsThePlaceOfTheButtonsInAndOutOfAFloatingContainer(isInContainer: Bool) {
+    let place = RequestDeckPlace(declared: .barWithoutGlass, isInFloatingGlassContainer: isInContainer)
 
     #expect(place == .barWithoutGlass)
   }
 
   @Test func withNoDeclaredPlaceTheButtonsInAFloatingContainerAreInTheBar() {
-    #expect(RequestDeckPlace(declared: nil, floatingGlassContainerCount: 1) == .bar)
+    #expect(RequestDeckPlace(declared: nil, isInFloatingGlassContainer: true) == .bar)
   }
 
   @Test func withNoDeclaredPlaceTheButtonsOutOfAFloatingContainerAreInContent() {
-    #expect(RequestDeckPlace(declared: nil, floatingGlassContainerCount: 0) == .content)
+    #expect(RequestDeckPlace(declared: nil, isInFloatingGlassContainer: false) == .content)
   }
 
   @Test(arguments: contentStyles)

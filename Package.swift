@@ -45,6 +45,11 @@ let editorKitProducts: [Target.Dependency] = [
   // The unified diff parser under the default diff renderer (plan.md §4.1,
   // decision 12). The view of the renderer is in `EditorSwiftUI`.
   .product(name: "EditorDiff", package: "EditorKit"),
+  // The shared style of the kits: the radius scale and the layout tokens
+  // (`\.editorStyle`), the concentric surface shape, the inline edge, the
+  // floating glass and the status and priority symbols (KanbanViewKit
+  // plan.md §5.1, decision 18).
+  .product(name: "EditorStyle", package: "EditorKit"),
 ]
 
 /// The ACP products: the wire types and the client connection. The kit
@@ -63,10 +68,12 @@ let demoAgentProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPAgent", package: "FoundationModelsACPAgent")
 ]
 
-/// The EditorKit products that a host imports to set the theme of the kit (README "The theme").
+/// The EditorKit products that a host imports to set the theme and the style of the kit (README
+/// "The theme").
 let readmeEditorKitProducts: [Target.Dependency] = [
   .product(name: "EditorSwiftUI", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
+  .product(name: "EditorStyle", package: "EditorKit"),
 ]
 
 /// The EditorKit test support product that the model and view tests link.
@@ -178,10 +185,9 @@ let package = Package(
         "HostedWindowSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,
-      // AgentThemeTests reads the token file from disk as data, so the build
-      // excludes it. The snapshot tests read their reference PNG images from
-      // disk too (AVK-13), so the build excludes that folder.
-      exclude: ["Theme/DefaultTokens.json", "Snapshots/__Snapshots__"],
+      // The snapshot tests read their reference PNG images from disk
+      // (AVK-13), so the build excludes that folder.
+      exclude: ["Snapshots/__Snapshots__"],
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links only PackageFileSupport,

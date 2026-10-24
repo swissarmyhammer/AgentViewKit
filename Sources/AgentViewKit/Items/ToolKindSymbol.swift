@@ -1,3 +1,4 @@
+import EditorStyle
 import Foundation
 import FoundationModelsACP
 
@@ -22,7 +23,7 @@ public nonisolated enum ToolKindSymbol {
     case .fetch: SharedSymbol.web
     case .switchMode: SharedSymbol.switchMode
     case .other: SharedSymbol.tool
-    case .unknown: SharedSymbol.unknown
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 }
@@ -46,13 +47,13 @@ public nonisolated enum ToolStatusSymbol {
   /// - Returns: The SF Symbol name.
   public static func name(for status: FoundationModelsACP.ToolCallStatus) -> String {
     switch status {
-    case .pending: SharedSymbol.pending
-    case .inProgress: SharedSymbol.inProgress
-    case .completed: SharedSymbol.completed
+    case .pending: ItemStatus.pending.systemImage
+    case .inProgress: ItemStatus.inProgress.systemImage
+    case .completed: ItemStatus.completed.systemImage
     case .failed: SharedSymbol.error
-    case .cancelled: SharedSymbol.cancelled
+    case .cancelled: ItemStatus.cancelled.systemImage
     case .unknown(Self.lostWireValue): SharedSymbol.warning
-    case .unknown: SharedSymbol.unknown
+    case .unknown: ItemStatus.unknown.systemImage
     }
   }
 

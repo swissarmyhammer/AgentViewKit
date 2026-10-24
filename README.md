@@ -315,8 +315,8 @@ entry has no time, so its row shows none. A thought shows "Thought for N
 seconds" from the `duration` of the thought entry. The system formatters write
 the times in the locale of the environment, and VoiceOver reads the time after
 the entry. The font comes from the EditorKit theme, and the spacing comes from
-the `AgentTheme`. There is no time for the work of a prompt: the client model
-does not put the entries in groups by prompt.
+the EditorKit `EditorStyle`. There is no time for the work of a prompt: the
+client model does not put the entries in groups by prompt.
 
 ### The theme
 
@@ -333,17 +333,25 @@ theme, EditorKit gives `SystemTheme`. `SystemTheme` follows the system
 appearance and the accent color of the user. EditorKit can also import a Zed,
 VS Code, or tmTheme file.
 
-`.agentTheme(_:)` sets only the layout tokens of the kit: spacing, radii,
-symbol weight, and density. The floating glass is always `.regular`. The
-Clear and Tinted looks are system settings, so a theme does not select the
-glass.
+The layout tokens of the kit come from the shared style of EditorKit,
+`EditorStyle`: the spacing, the corner radius scale, the symbol weight, and the
+density. Each rounded shape of the kit takes its radius from that scale. The
+theme gives a style (`Theme.style`), and `.editorTheme(_:)` sets it. A
+`.editorStyle(_:)` closer to the content sets a different style. The floating
+glass is always `.regular`. The Clear and Tinted looks are system settings, so
+a theme does not select the glass.
 
-To import the theme modules, add the EditorKit products `EditorSwiftUI` and
-`EditorTheme` to the host target.
+The cards of the kit draw no fill: a thin separator stroke
+(`.inlineEdge(radius:)` of `EditorStyle`) marks the edge of a card. A host that
+wants a fill behind the cards sets it with `.inlineFill(_:)`.
+
+To import the theme modules, add the EditorKit products `EditorSwiftUI`,
+`EditorTheme`, and `EditorStyle` to the host target.
 
 ```swift
 // readme:compile HostTheme
 import AgentViewKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -355,11 +363,13 @@ struct ThemedHost<Content: View>: View {
 
   var body: some View {
     content
+      // The layout tokens of the kit: spacing, radii, symbol weight, density.
+      // The theme gives a style too. This one is closer to the content, so it
+      // wins.
+      .editorStyle(.default)
       // Every color and each font of the kit views come from this
       // EditorKit theme. `.system` follows the system appearance.
       .editorTheme(.system)
-      // The layout tokens of the kit: spacing, radii, density.
-      .agentTheme(.default)
   }
 }
 ```

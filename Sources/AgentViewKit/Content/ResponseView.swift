@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 import Textual
 
@@ -37,7 +38,7 @@ public struct ResponseView: View {
   let citations: CitationPayload?
 
   @Environment(\.codeBlockModelCache) private var environmentCache
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// The cache that the view uses when the environment has no cache.
   @State private var ownCache = CodeBlockModelCache()
@@ -68,7 +69,7 @@ public struct ResponseView: View {
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: theme.spacing.m) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       ParagraphList(
         messageID: id,
         paragraphs: ParagraphSplitter.paragraphs(markdown),

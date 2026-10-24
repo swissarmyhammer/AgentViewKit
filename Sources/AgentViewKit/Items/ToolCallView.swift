@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -154,7 +155,7 @@ public struct ToolCallView: View {
 
   @Environment(\.expandedBlocksStore) private var environmentStore
   @Environment(\.toolCallRegistry) private var toolCallRegistry
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the tool call view of a tool call entry of a session transcript
   /// (plan.md §3.8).
@@ -265,7 +266,7 @@ public struct ToolCallView: View {
 
   /// The symbol of the "Waiting for <host>" status of a call whose URL
   /// elicitation waits for the end of the flow in the browser.
-  static let urlWaitingSymbol = SharedSymbol.pending
+  static let urlWaitingSymbol = ItemStatus.pending.systemImage
 
   // MARK: - Text
 
@@ -333,11 +334,11 @@ public struct ToolCallView: View {
     let id = entry.id.rowKey
     let store = environmentStore ?? ownStore
     let expanded = store.isExpanded(entry: .toolCall(entry))
-    return VStack(alignment: .leading, spacing: theme.spacing.xs) {
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ToolCallHeader(entry: entry, store: store, expanded: expanded)
       ToolCallWaitingStatus(entry: entry)
       if expanded {
-        ToolCallBody(entry: entry, registration: toolCallRegistry.registration(named: entry.name), theme: theme)
+        ToolCallBody(entry: entry, registration: toolCallRegistry.registration(named: entry.name), editorStyle: editorStyle)
           .equatable()
           .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
@@ -385,7 +386,7 @@ private struct ToolCallHeader: View {
   let expanded: Bool
 
   @Environment(\.toolCallConnectionState) private var connectionState
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
@@ -393,7 +394,7 @@ private struct ToolCallHeader: View {
     #if DEBUG
       BodyEvaluationCounter.note(ToolCallView.rowCounterKey(for: id))
     #endif
-    return HStack(spacing: theme.spacing.s) {
+    return HStack(spacing: editorStyle.spacing.s) {
       Button {
         store.toggle(entry: .toolCall(entry))
       } label: {
@@ -413,20 +414,20 @@ private struct ToolCallHeader: View {
 
   /// The symbols and the text inside the row button.
   private var rowContent: some View {
-    HStack(spacing: theme.spacing.s) {
+    HStack(spacing: editorStyle.spacing.s) {
       Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
         .symbolRenderingMode(.hierarchical)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .foregroundStyle(.secondary)
       Text(ToolCallView.displayTitle(entry.shownTitle))
         .font(editorTheme.uiFont)
         .lineLimit(1)
         .truncationMode(.middle)
-      Spacer(minLength: theme.spacing.s)
+      Spacer(minLength: editorStyle.spacing.s)
       statusGlyph
       Image(systemName: SharedSymbol.disclosure)
         .symbolRenderingMode(.hierarchical)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .foregroundStyle(.secondary)
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
     }
@@ -455,7 +456,7 @@ private struct ToolCallHeader: View {
 /// the registered view in place of the default body.
 ///
 /// The view has no environment property. ``ToolCallView`` reads the registry
-/// and the theme, and gives them to the view as values. SwiftUI can evaluate
+/// and the style, and gives them to the view as values. SwiftUI can evaluate
 /// the body of a view that reads the environment again after a change of the
 /// parent, with no Equatable check. A view with no environment property evaluates
 /// again only when `==` gives `false`. Apply `.equatable()` to the view.
@@ -472,7 +473,7 @@ private struct ToolCallHeader: View {
 /// Swift puts each stored property, in the order of declaration, at the next
 /// offset that is a multiple of its alignment. Thus the type has no padding
 /// byte only when each property starts where the property before it ends.
-/// `theme` has alignment 8 and a size (66) that is not a multiple of 8, so it
+/// `editorStyle` has alignment 8 and a size (73) that is not a multiple of 8, so it
 /// must be the last property with alignment 8. `registrationID` (alignment 1)
 /// comes after it. When you add a stored property, also add it to
 /// `ViewValueLayoutTests.theToolCallBodyHasNoPaddingByte`. That test fails
@@ -485,8 +486,8 @@ struct ToolCallBody: View, Equatable {
   /// default body.
   let renderer: ToolCallRegistry.Renderer?
 
-  /// The theme of the kit.
-  let theme: AgentTheme
+  /// The shared style of the kit.
+  let editorStyle: EditorStyle
 
   /// The identity of the registration of ``renderer``, or `nil` for the
   /// default body.
@@ -498,15 +499,15 @@ struct ToolCallBody: View, Equatable {
   ///   - entry: The tool call entry to show.
   ///   - registration: The registration of the tool name of the entry, or
   ///     `nil` for the default body.
-  ///   - theme: The theme of the kit.
-  init(entry: ToolCallEntry, registration: ToolCallRegistry.Registration?, theme: AgentTheme) {
+  ///   - editorStyle: The shared style of the kit.
+  init(entry: ToolCallEntry, registration: ToolCallRegistry.Registration?, editorStyle: EditorStyle) {
     self.entry = entry
     self.renderer = registration?.renderer
     self.registrationID = registration?.id
-    self.theme = theme
+    self.editorStyle = editorStyle
   }
 
-  /// Tells whether two bodies show the same entry object in the same theme,
+  /// Tells whether two bodies show the same entry object in the same style,
   /// with the same registration of the tool name.
   ///
   /// A function value has no equality, so the check compares the identity of
@@ -519,7 +520,7 @@ struct ToolCallBody: View, Equatable {
   /// - Returns: `true` when the two bodies show the same.
   static func == (lhs: ToolCallBody, rhs: ToolCallBody) -> Bool {
     lhs.entry === rhs.entry
-      && lhs.theme == rhs.theme
+      && lhs.editorStyle == rhs.editorStyle
       && lhs.registrationID == rhs.registrationID
   }
 
@@ -535,7 +536,7 @@ struct ToolCallBody: View, Equatable {
         defaultBody(id: id)
       }
     }
-    .padding(.leading, theme.spacing.l)
+    .padding(.leading, editorStyle.spacing.l)
   }
 
   /// The default body: the locations, the raw input, each part of the
@@ -547,7 +548,7 @@ struct ToolCallBody: View, Equatable {
     let parts = entry.parts
     let locations = entry.locations
     let showsCommandOutput = entry.shownKind == .execute && !parts.contains(where: \.isTerminal)
-    return VStack(alignment: .leading, spacing: theme.spacing.s) {
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       if !locations.isEmpty {
         LocationChips(locations: locations)
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
@@ -723,11 +724,11 @@ private struct LocationChips: View {
   /// The ACP locations to show.
   let locations: [FoundationModelsACP.ToolCallLocation]
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    ChipFlowLayout(spacing: theme.spacing.xs) {
+    ChipFlowLayout(spacing: editorStyle.spacing.xs) {
       ForEach(Array(locations.enumerated()), id: \.offset) { _, location in
         chip(location)
       }
@@ -747,8 +748,8 @@ private struct LocationChips: View {
       .font(editorTheme.font(for: .ui, style: .caption))
       .lineLimit(1)
       .truncationMode(.middle)
-      .padding(.horizontal, theme.spacing.s)
-      .padding(.vertical, theme.spacing.xs)
+      .padding(.horizontal, editorStyle.spacing.s)
+      .padding(.vertical, editorStyle.spacing.xs)
       .background(.quaternary, in: Capsule())
       .help(fullText)
       .accessibilityElement(children: .ignore)

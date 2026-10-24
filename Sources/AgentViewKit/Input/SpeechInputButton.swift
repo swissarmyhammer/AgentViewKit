@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 import os
 
@@ -28,7 +29,7 @@ public struct SpeechInputButton: View {
 
   @Environment(\.speechTranscriber) private var transcriber
   @Environment(\.promptText) private var text
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   @State private var phase = Phase.idle
   @State private var level: Double = .zero
@@ -82,14 +83,14 @@ public struct SpeechInputButton: View {
     switch phase {
     case .recording:
       Image(systemName: SharedSymbol.listening, variableValue: level)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
         .foregroundStyle(.primary)
     case .idle:
       Image(systemName: SharedSymbol.microphone)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
     case .denied:
       Image(systemName: SharedSymbol.microphoneUnavailable)
-        .fontWeight(theme.symbolWeight)
+        .fontWeight(editorStyle.symbolWeight)
     }
   }
 

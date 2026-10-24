@@ -13,7 +13,7 @@ import Testing
 /// The scan is the scan of ``ThreadBottomBarStructureTests``.
 ///
 /// The header is a floating surface, the same as the conversation header in
-/// Messages: it is on the floating glass of the kit, `agentFloatingGlass()`.
+/// Messages: it is on the floating glass of EditorStyle, `floatingGlass()`.
 /// The connection banner, the notice banner and the stream banner are
 /// content, with no glass of their own. The scan reads the bar one line at a
 /// time, so the header and its glass are on one code line.

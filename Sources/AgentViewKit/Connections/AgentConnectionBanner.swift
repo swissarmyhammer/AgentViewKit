@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -28,7 +29,7 @@ public struct AgentConnectionBanner: View {
   /// The connection model whose state the banner shows.
   let connection: ConnectionModel
 
-  @Environment(\.agentTheme) private var theme
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the banner of the connection state of a connection model.
   ///
@@ -40,7 +41,7 @@ public struct AgentConnectionBanner: View {
   public var body: some View {
     if let message = Self.makeMessage(for: connection.state) {
       StatusBar(message: message, action: nil)
-        .padding(theme.spacing.m)
+        .padding(editorStyle.spacing.m)
     }
   }
 

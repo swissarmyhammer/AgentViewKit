@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -5,7 +6,7 @@ import SwiftUI
 /// A bar that tells the user the state of the agent (plan.md §3.8 "Agent
 /// state and stop reasons", §9 A). The bar is a ``StatusBar``, so it has no
 /// fill, and the content edge of the kit marks its edge
-/// (``SwiftUI/View/agentContentEdge(radius:)``).
+/// (`.inlineEdge(radius:)`).
 ///
 /// ``init(session:onShowError:)`` binds the bar to a `SessionModel`. The
 /// body reads `SessionModel.agentState` directly, and the bar shows one
@@ -69,7 +70,7 @@ public struct StateBanner: View {
 
     /// The symbols of the messages of work that goes on: an agent that runs,
     /// and a history that the agent sends again.
-    static let ongoingSymbols: Set<String> = [SharedSymbol.inProgress, SharedSymbol.replaying]
+    static let ongoingSymbols: Set<String> = [ItemStatus.inProgress.systemImage, SharedSymbol.replaying]
 
     /// Whether the message tells of work that goes on, such as an agent that
     /// runs or a replay of the history.
@@ -117,7 +118,7 @@ public struct StateBanner: View {
       Message(
         title: String(localized: "The agent reported an unknown state", bundle: .module),
         explanation: String(localized: "The agent sent the state \(wireValue).", bundle: .module),
-        symbolName: SharedSymbol.unknown,
+        symbolName: ItemStatus.unknown.systemImage,
         identifier: "state-banner-state-unknown")
     }
   }
@@ -220,14 +221,14 @@ extension StateBanner {
   private static let runningMessage = Message(
     title: String(localized: "The agent is working", bundle: .module),
     explanation: String(localized: "Wait for the result, or stop the work.", bundle: .module),
-    symbolName: SharedSymbol.inProgress,
+    symbolName: ItemStatus.inProgress.systemImage,
     identifier: "state-banner-running")
 
   /// The text for an idle agent that gave no stop reason.
   private static let readyMessage = Message(
     title: String(localized: "The agent is ready", bundle: .module),
     explanation: String(localized: "Send a message to the agent.", bundle: .module),
-    symbolName: SharedSymbol.completed,
+    symbolName: ItemStatus.completed.systemImage,
     identifier: "state-banner-ready")
 
   /// The text for an idle state with the stop reason `end_turn`.
@@ -235,7 +236,7 @@ extension StateBanner {
     title: String(localized: "The response is complete", bundle: .module),
     explanation: String(
       localized: "The agent finished the response. Send a message to continue.", bundle: .module),
-    symbolName: SharedSymbol.completed,
+    symbolName: ItemStatus.completed.systemImage,
     identifier: "state-banner-end-turn")
 
   /// The text for an idle state with the stop reason `cancelled`.
@@ -243,7 +244,7 @@ extension StateBanner {
     title: String(localized: "The response was cancelled", bundle: .module),
     explanation: String(
       localized: "The agent stopped the work because of the cancel request.", bundle: .module),
-    symbolName: SharedSymbol.cancelled,
+    symbolName: ItemStatus.cancelled.systemImage,
     identifier: "state-banner-cancelled")
 
   /// The text for an agent that waits for the user: the `.requiresAction`

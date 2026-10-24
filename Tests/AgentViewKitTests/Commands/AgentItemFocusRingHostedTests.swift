@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorStyle
 import SwiftUI
 import Testing
 
@@ -183,11 +184,11 @@ import Testing
   }
 
   /// The focus ring of the focused item has the corners of a card of the
-  /// kit: the large radius of the theme.
+  /// kit: the large radius of the style.
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      try Self.expectFocusRingMask(of: focused.responder, cornerRadius: AgentTheme.default.radii.l)
+      try Self.expectFocusRingMask(of: focused.responder, cornerRadius: EditorStyle.default.radii.l)
     }
   }
 
