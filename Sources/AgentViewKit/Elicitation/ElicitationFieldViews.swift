@@ -866,11 +866,11 @@ public struct ElicitationMultiChoiceField: View {
   @Previewable @State var answers: [String: JSONValue] = [:]
   let fields = PreviewFixtures.ElicitationFields.self
   Form {
-    ElicitationTextField(context: PreviewFixtures.fieldContext(fields.text, answers: $answers))
-    ElicitationNumberField(context: PreviewFixtures.fieldContext(fields.number, answers: $answers))
-    ElicitationToggleField(context: PreviewFixtures.fieldContext(fields.boolean, answers: $answers))
-    ElicitationDateField(context: PreviewFixtures.fieldContext(fields.date, answers: $answers))
-    ElicitationSingleChoiceField(context: PreviewFixtures.fieldContext(fields.singleChoice, answers: $answers))
-    ElicitationMultiChoiceField(context: PreviewFixtures.fieldContext(fields.multiChoice, answers: $answers))
+    ElicitationTextField(context: PreviewFixtures.fieldContext(fields.packageName, answers: $answers))
+    ElicitationNumberField(context: PreviewFixtures.fieldContext(fields.retries, answers: $answers))
+    ElicitationToggleField(context: PreviewFixtures.fieldContext(fields.verboseOutput, answers: $answers))
+    ElicitationDateField(context: PreviewFixtures.fieldContext(fields.dueDate, answers: $answers))
+    ElicitationSingleChoiceField(context: PreviewFixtures.fieldContext(fields.platform, answers: $answers))
+    ElicitationMultiChoiceField(context: PreviewFixtures.fieldContext(fields.checks, answers: $answers))
   }
 }

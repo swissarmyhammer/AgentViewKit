@@ -128,6 +128,20 @@ enum SourceLineScanner {
       }
   }
 
+  /// Finds a use of a pattern on one line, as `<file>:<line>`.
+  ///
+  /// Each line scan that reports the lines that hold a pattern calls this
+  /// function from its match function, so that one place states the match
+  /// and the form of a use.
+  ///
+  /// - Parameters:
+  ///   - pattern: The pattern to find.
+  ///   - line: The line.
+  /// - Returns: `<file>:<line>` when the line holds `pattern`, or no result.
+  static func uses(of pattern: some RegexComponent, on line: SourceLine) -> [String] {
+    line.text.contains(pattern) ? ["\(line.file):\(line.number)"] : []
+  }
+
   /// Finds the matches in the text of one Swift file.
   ///
   /// - Parameters:

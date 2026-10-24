@@ -40,8 +40,8 @@ public struct AttachmentChips: View {
   /// The file name, without the extension, of a dropped or pasted image.
   static let imageFileStem = "Image"
 
-  /// The log of the row.
-  private static let logger = Logger(subsystem: "AgentViewKit", category: "AttachmentChips")
+  /// The log of the row and of its drop and paste destination.
+  fileprivate static let logger = Logger(subsystem: "AgentViewKit", category: "AttachmentChips")
 
   /// The attachments, in the order to show.
   @Binding var attachments: [Attachment]
@@ -58,10 +58,12 @@ public struct AttachmentChips: View {
     _attachments = attachments
   }
 
-  /// The errors of ``writeImage(_:in:)``.
+  /// The errors of ``writeImage(_:in:)`` and of the load of a pasted image.
   public enum ImageError: Error, Equatable {
     /// The data is not in an image format that ImageIO can read.
     case unknownFormat
+    /// The load of a pasted image gave neither data nor an error.
+    case noImageData
   }
 
   /// The accessibility identifier of the chip of an attachment.
@@ -275,24 +277,50 @@ private struct AttachmentDropDestination: ViewModifier {
 
   /// Adds the images of pasted items.
   ///
+  /// A pasted item whose image does not load adds nothing. The paste logs
+  /// the error of the load, as a drop logs an image that it cannot attach,
+  /// and goes on with the other items.
+  ///
   /// - Parameter providers: The providers of the pasted items.
   private func paste(_ providers: [NSItemProvider]) async {
     for provider in providers {
-      guard let data = await Self.imageData(of: provider) else { continue }
-      AttachmentChips.add([.image(data)], to: &attachments)
+      do {
+        let data = try await AttachmentChips.imageData(of: provider)
+        AttachmentChips.add([.image(data)], to: &attachments)
+      } catch {
+        AttachmentChips.logger.error("The composer cannot load a pasted image: \(error.localizedDescription)")
+      }
     }
   }
+}
 
+extension AttachmentChips {
   /// Loads the image data of a pasted item.
   ///
   /// - Parameter provider: The provider of the item.
-  /// - Returns: The encoded image, or `nil` when the item has no image.
-  private static func imageData(of provider: NSItemProvider) async -> Data? {
-    await withCheckedContinuation { continuation in
-      _ = provider.loadDataRepresentation(for: .image) { data, _ in
-        continuation.resume(returning: data)
+  /// - Returns: The encoded image.
+  /// - Throws: The error of the load, or ``ImageError/noImageData`` when the
+  ///   load gives neither data nor an error.
+  static func imageData(of provider: NSItemProvider) async throws -> Data {
+    try await withCheckedThrowingContinuation { continuation in
+      _ = provider.loadDataRepresentation(for: .image) { data, error in
+        continuation.resume(with: Result { try loadedImage(data, error: error) })
       }
     }
+  }
+
+  /// The image data of a finished load.
+  ///
+  /// - Parameters:
+  ///   - data: The data of the load, or `nil`.
+  ///   - error: The error of the load, or `nil`.
+  /// - Returns: `data`.
+  /// - Throws: `error`, or ``ImageError/noImageData`` when the load gives
+  ///   neither data nor an error.
+  nonisolated private static func loadedImage(_ data: Data?, error: (any Error)?) throws -> Data {
+    if let error { throw error }
+    guard let data else { throw ImageError.noImageData }
+    return data
   }
 }
 

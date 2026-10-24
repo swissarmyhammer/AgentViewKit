@@ -6,6 +6,7 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
+import Synchronization
 import Testing
 
 /// The auth card over a `ConnectionModel` (plan.md §3.3).
@@ -143,6 +144,90 @@ import Testing
     /// Records one call.
     func reconnect() async {
       callCount += 1
+    }
+  }
+
+  /// A host Reconnect closure that waits until its task is cancelled.
+  ///
+  /// The class is `@Observable`, so that a test can wait for the start of a
+  /// call with an observation wait and no clock. The cancel handler records
+  /// the cancel in the same step as the cancel, so a test reads it with no
+  /// wait.
+  @MainActor @Observable final class WaitingReconnect {
+    /// Whether a call waits for its cancel now.
+    private(set) var isWaiting = false
+
+    /// Whether the task of a call was cancelled.
+    nonisolated var wasCancelled: Bool {
+      cancelled.withLock { $0 }
+    }
+
+    /// The flag that the cancel handler sets, on the thread of the cancel.
+    @ObservationIgnored nonisolated private let cancelled = Mutex(false)
+
+    /// The continuation of the call that waits.
+    @ObservationIgnored private var waiting: CheckedContinuation<Void, Never>?
+
+    /// Waits until the task of the call is cancelled.
+    func reconnect() async {
+      await withTaskCancellationHandler {
+        await withCheckedContinuation { continuation in
+          waitForCancel(continuation)
+        }
+      } onCancel: {
+        self.cancelled.withLock { $0 = true }
+        Task { @MainActor in self.endWait() }
+      }
+    }
+
+    /// Keeps the continuation of a call, or resumes it at once when the task
+    /// was cancelled before the call waited.
+    ///
+    /// - Parameter continuation: The continuation of the call.
+    private func waitForCancel(_ continuation: CheckedContinuation<Void, Never>) {
+      guard !wasCancelled else {
+        continuation.resume()
+        return
+      }
+      waiting = continuation
+      isWaiting = true
+    }
+
+    /// Ends the call that waits.
+    private func endWait() {
+      isWaiting = false
+      waiting?.resume()
+      waiting = nil
+    }
+  }
+
+  /// Whether the host shows the auth card.
+  @MainActor @Observable final class CardPresence {
+    /// Whether the card is in the view tree.
+    var isShown = true
+  }
+
+  /// The auth card of a connection while ``CardPresence/isShown`` is `true`.
+  struct RemovableAuthCard: View {
+    /// The presence of the card.
+    let presence: CardPresence
+
+    /// The scripted session of the card.
+    let session: ScriptedSession
+
+    /// The runner of the host.
+    let runner: any TerminalAuthRunner
+
+    /// The Reconnect closure of the host.
+    let reconnect: AgentReconnect
+
+    var body: some View {
+      if presence.isShown {
+        AgentAuthView(connection: session.connection)
+          .environment(\.sessionModel, session.model)
+          .terminalAuthRunner(runner)
+          .agentReconnect(reconnect)
+      }
     }
   }
 
@@ -428,6 +513,33 @@ import Testing
 
     #expect(harness.element(identifier: AgentAuthView.reconnectMessageIdentifier) != nil)
     #expect(harness.element(identifier: AgentAuthView.reconnectIdentifier) == nil)
+  }
+
+  /// A call that runs when the card goes away is cancelled with the card, so
+  /// it does not outlive the view that started it.
+  @Test func theCardCancelsTheCallThatRunsWhenItGoesAway() async throws {
+    let runner = FakeTerminalAuthRunner(exitStatus: Self.successStatus)
+    let recorder = WaitingReconnect()
+    let presence = CardPresence()
+    let session = try await Self.openSession(runner: runner)
+    defer { session.close() }
+    let harness = HostedViewHarness(size: Self.cardSize) {
+      RemovableAuthCard(presence: presence, session: session, runner: runner, reconnect: recorder.reconnect)
+    }
+    defer { harness.close() }
+    harness.render()
+    try await Self.pressRunAndWait(in: harness, of: session)
+    try ConnectionModelViewsHostedTests.pressAuthAction(AgentAuthView.reconnectIdentifier, in: harness)
+    await harness.render { recorder.isWaiting }
+    try #require(recorder.isWaiting)
+
+    presence.isShown = false
+    // The card cancels its calls when it goes away, in the same render pass,
+    // so a card that cancelled nothing fails the test here.
+    harness.render()
+
+    #expect(harness.element(identifier: AgentAuthView.identifier) == nil)
+    #expect(recorder.wasCancelled)
   }
 
   @Test func aTerminalRowShowsNoTerminalView() async throws {

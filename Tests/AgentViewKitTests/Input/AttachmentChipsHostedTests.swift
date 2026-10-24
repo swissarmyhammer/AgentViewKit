@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import Foundation
 import SwiftUI
@@ -182,6 +182,52 @@ struct AttachmentComposerHost: View {
 
     #expect(!added)
     #expect(attachments.isEmpty)
+  }
+
+  // MARK: - Paste
+
+  /// The error domain of an image load that fails.
+  static let loadErrorDomain = "AttachmentChipsHostedTests.load"
+
+  /// The error code of an image load that fails.
+  static let loadErrorCode = 7
+
+  /// Makes a pasted item that gives PNG data, or the error of a load that
+  /// fails.
+  ///
+  /// - Parameter data: The PNG data, or `nil` for a load that fails with an
+  ///   error of ``loadErrorDomain``.
+  /// - Returns: The provider of the item.
+  static func pastedImage(_ data: Data?) -> NSItemProvider {
+    let provider = NSItemProvider()
+    let error = NSError(domain: loadErrorDomain, code: loadErrorCode)
+    provider.registerDataRepresentation(forTypeIdentifier: UTType.png.identifier, visibility: .all) { completion in
+      completion(data, data == nil ? error : nil)
+      return nil
+    }
+    return provider
+  }
+
+  @Test func thePasteLoadGivesTheImageDataOfAPastedItem() async throws {
+    let data = try TestImage.makePNGData()
+
+    let loaded = try await AttachmentChips.imageData(of: Self.pastedImage(data))
+
+    #expect(loaded == data)
+  }
+
+  /// A pasted item whose image does not load gives the error of the load, so
+  /// that the paste can log why it attaches nothing.
+  @Test func thePasteLoadGivesTheErrorOfAnImageThatDoesNotLoad() async {
+    await #expect {
+      try await AttachmentChips.imageData(of: Self.pastedImage(nil))
+    } throws: { error in
+      // The item provider wraps the error of the load in an error of its own.
+      (error as NSError).underlyingErrors.contains { underlying in
+        let underlying = underlying as NSError
+        return underlying.domain == Self.loadErrorDomain && underlying.code == Self.loadErrorCode
+      }
+    }
   }
 
   // MARK: - Composer

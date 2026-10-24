@@ -200,19 +200,19 @@ enum PreviewFixtures {
     properties: merged(
       packageProperties,
       with: [
-        ElicitationFields.date.name: .object([
-          "type": .string("string"), "title": .string(ElicitationFields.date.title), "format": .string("date"),
+        ElicitationFields.dueDate.name: .object([
+          "type": .string("string"), "title": .string(ElicitationFields.dueDate.title), "format": .string("date"),
         ]),
-        ElicitationFields.singleChoice.name: .object([
-          "type": .string("string"), "title": .string(ElicitationFields.singleChoice.title),
+        ElicitationFields.platform.name: .object([
+          "type": .string("string"), "title": .string(ElicitationFields.platform.title),
           "oneOf": choiceList(ElicitationFields.platformChoices),
         ]),
-        ElicitationFields.multiChoice.name: .object([
-          "type": .string("array"), "title": .string(ElicitationFields.multiChoice.title), "minItems": .number(1),
+        ElicitationFields.checks.name: .object([
+          "type": .string("array"), "title": .string(ElicitationFields.checks.title), "minItems": .number(1),
           "items": .object(["anyOf": choiceList(ElicitationFields.checkChoices)]),
         ]),
       ]),
-    required: ["name", ElicitationFields.singleChoice.name])
+    required: ["name", ElicitationFields.platform.name])
 
   /// Makes the JSON list of the titled choices of a property.
   ///
@@ -1430,54 +1430,54 @@ enum PreviewFixtures {
 
   /// The fields of a sample elicitation form: one field of each kind.
   enum ElicitationFields {
-    /// A required text field.
-    static let text = ElicitationFieldSchema(
+    /// A required text field: the name of the new package.
+    static let packageName = ElicitationFieldSchema(
       name: "name", title: "Name", description: "The name of the new package.", required: true,
       kind: .text(minLength: 1, maxLength: nil, pattern: nil, format: nil), defaultValue: nil)
 
-    /// The largest value of the ``number`` field.
+    /// The largest value of the ``retries`` field.
     static let maximumRetries: Double = 5
 
-    /// An integer field with a range.
-    static let number = ElicitationFieldSchema(
+    /// An integer field with a range: the number of runs of a failed test.
+    static let retries = ElicitationFieldSchema(
       name: "retries", title: "Retries", description: "How many times to run a failed test again.",
       required: false, kind: .number(integer: true, minimum: 0, maximum: maximumRetries),
       defaultValue: .number(1))
 
-    /// A Boolean field.
-    static let boolean = ElicitationFieldSchema(
+    /// A Boolean field: whether the output is verbose.
+    static let verboseOutput = ElicitationFieldSchema(
       name: "verbose", title: "Verbose output", description: nil, required: false, kind: .boolean,
       defaultValue: .bool(false))
 
-    /// A date field.
-    static let date = ElicitationFieldSchema(
+    /// A date field: the due date of the release.
+    static let dueDate = ElicitationFieldSchema(
       name: "due", title: "Due date", description: "The last day for the release.", required: false,
       kind: .date(dateTime: false), defaultValue: nil)
 
-    /// The choices of the ``singleChoice`` field.
+    /// The choices of the ``platform`` field.
     static let platformChoices = [
       ElicitationFieldSchema.Choice(const: "macos", title: "macOS"),
       ElicitationFieldSchema.Choice(const: "ios", title: "iOS"),
     ]
 
-    /// The choices of the ``multiChoice`` field.
+    /// The choices of the ``checks`` field.
     static let checkChoices = [
       ElicitationFieldSchema.Choice(const: "lint", title: "Lint"),
       ElicitationFieldSchema.Choice(const: "test", title: "Test"),
       ElicitationFieldSchema.Choice(const: "docs", title: "Docs"),
     ]
 
-    /// A field with one choice from a list.
-    static let singleChoice = ElicitationFieldSchema(
+    /// A field with one choice from a list: the platform of the release.
+    static let platform = ElicitationFieldSchema(
       name: "platform", title: "Platform", description: nil, required: true,
       kind: .singleChoice(platformChoices), defaultValue: nil)
 
-    /// A field with a set of choices from a list.
-    static let multiChoice = ElicitationFieldSchema(
+    /// A field with a set of choices from a list: the checks of the release.
+    static let checks = ElicitationFieldSchema(
       name: "checks", title: "Checks", description: "The checks to run before the release.",
       required: false, kind: .multiChoice(checkChoices, minItems: 1, maxItems: nil), defaultValue: nil)
 
     /// Each field of the form, in form order.
-    static let all = [text, number, boolean, date, singleChoice, multiChoice]
+    static let all = [packageName, retries, verboseOutput, dueDate, platform, checks]
   }
 }

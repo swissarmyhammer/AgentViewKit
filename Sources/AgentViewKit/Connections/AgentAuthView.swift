@@ -46,8 +46,9 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// - When `canLogout` is `true`, a Sign Out button calls
 ///   `ConnectionModel.logout(_:)`. Otherwise the button is not shown.
 ///
-/// While a call runs, its button is disabled and shows a `ProgressView`. This
-/// flag is view state. The model records each failure of a call that it can
+/// While a call runs, its button is disabled and shows a `ProgressView`. The
+/// task of the call is view state, and the card cancels it when the card goes
+/// away, so no call outlives the card. The model records each failure of a call that it can
 /// record in `authState`, and the card shows the failure from there. The card
 /// keeps no failure of its own.
 ///
@@ -151,8 +152,9 @@ public struct AgentAuthView: View {
   /// The connection model whose auth state the card shows.
   let connection: ConnectionModel
 
-  /// The calls that run.
-  @State private var running: Set<Operation> = []
+  /// The task of each call that runs, by the operation of the call. The card
+  /// cancels each task when it goes away.
+  @State private var calls: [Operation: Task<Void, Never>] = [:]
 
   @Environment(\.terminalAuthRunner) private var runner
   @Environment(\.agentReconnect) private var reconnect
@@ -279,6 +281,7 @@ public struct AgentAuthView: View {
     .accessibilityElement(children: .contain)
     .accessibilityLabel(String(localized: "Sign in to the agent", bundle: .module))
     .accessibilityIdentifier(Self.identifier)
+    .onDisappear(perform: cancelCalls)
   }
 
   /// The row of one method: the name, the description, and the button.
@@ -410,7 +413,7 @@ public struct AgentAuthView: View {
     identifier: String,
     call: @escaping @MainActor () async throws -> Void
   ) -> some View {
-    let isRunning = running.contains(operation)
+    let isRunning = calls[operation] != nil
     return Button {
       perform(operation, call)
     } label: {
@@ -429,23 +432,42 @@ public struct AgentAuthView: View {
 
   // MARK: Actions
 
-  /// Runs `call`, and records its progress under `operation`.
+  /// Starts `call` in a task that the card keeps under `operation`.
   ///
-  /// A second call while the call runs does nothing. The model records each
-  /// failure of a login, a logout and a terminal sign-in in `authState`, and
-  /// the card shows the failure from there. Thus the card does not keep the
-  /// error that `call` throws.
+  /// A second call while the call runs does nothing. The card cancels the
+  /// task when it goes away (``cancelCalls()``).
   ///
   /// - Parameters:
   ///   - operation: The key of the progress.
   ///   - call: The call to run.
   private func perform(_ operation: Operation, _ call: @escaping @MainActor () async throws -> Void) {
-    guard !running.contains(operation) else { return }
-    running.insert(operation)
-    Task {
-      try? await call()
-      running.remove(operation)
+    guard calls[operation] == nil else { return }
+    calls[operation] = Task { await run(operation, call) }
+  }
+
+  /// Runs `call`, then ends the progress of `operation`.
+  ///
+  /// The model records each failure of a login, a logout and a terminal
+  /// sign-in in `authState`, and the card shows the failure from there. Thus
+  /// the card does not keep the error that `call` throws. A call that the
+  /// card cancelled leaves the progress alone, because the card already
+  /// dropped it when it went away.
+  ///
+  /// - Parameters:
+  ///   - operation: The key of the progress.
+  ///   - call: The call to run.
+  private func run(_ operation: Operation, _ call: @MainActor () async throws -> Void) async {
+    try? await call()
+    guard !Task.isCancelled else { return }
+    calls[operation] = nil
+  }
+
+  /// Cancels each call that runs, because the card goes away.
+  private func cancelCalls() {
+    for call in calls.values {
+      call.cancel()
     }
+    calls = [:]
   }
 }
 

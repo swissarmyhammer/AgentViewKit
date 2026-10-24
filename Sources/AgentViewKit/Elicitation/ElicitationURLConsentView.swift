@@ -3,6 +3,7 @@ import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
+import os
 
 /// The consent card of a URL mode pending elicitation of a client model
 /// (plan.md §3.2 "Pending requests", §13.3, §13.4).
@@ -36,6 +37,11 @@ import SwiftUI
 ///    when the URL has no host.
 ///    The owner removes the request when the agent sends
 ///    `elicitation/complete`, and then the host removes the card.
+/// 4. A browser session that ends with no callback is the usual end. A
+///    session that does not open, for example because the browser does not
+///    start, keeps the accept. The card logs the error and shows the text of
+///    ``browserFailureMessage`` (identifier ``browserFailureIdentifier``) in
+///    the waiting state, so that the user presses Retry.
 ///
 /// Before the press, the card shows Cancel, Decline, and Open in Browser.
 /// Cancel and Esc call `cancelElicitation(_:)`. In the waiting state, the card
@@ -88,6 +94,17 @@ public struct ElicitationURLConsentView: View {
   public static let cancelIdentifier = ElicitationView.cancelIdentifier
   /// The accessibility identifier of the waiting state.
   public static let waitingIdentifier = "elicitation-waiting"
+  /// The accessibility identifier of the text that says that the browser did
+  /// not open.
+  public static let browserFailureIdentifier = "elicitation-browser-failure"
+
+  /// The text that the waiting state shows when the browser did not open.
+  public static var browserFailureMessage: String {
+    String(localized: "The browser did not open. Press Retry to open it again.", bundle: .module)
+  }
+
+  /// The log of the card.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "ElicitationURLConsentView")
 
   /// The URL scheme that the browser session waits for.
   ///
@@ -142,6 +159,10 @@ public struct ElicitationURLConsentView: View {
 
   /// The task that runs the browser session, or `nil`.
   @State private var browserTask: Task<Void, Never>?
+
+  /// Whether the last browser session of the card did not open. The waiting
+  /// state then says so, so that the user presses Retry.
+  @State private var browserDidFail = false
 
   /// The presenter that the card uses when the environment has none.
   @State private var fallbackPresenter = AuthorizationPresenter()
@@ -212,17 +233,28 @@ public struct ElicitationURLConsentView: View {
     }
   }
 
-  /// The waiting state.
+  /// The waiting state, and the failure of the browser when the last browser
+  /// session did not open.
   private var waiting: some View {
-    HStack(spacing: editorStyle.spacing.s) {
-      ProgressView()
-        .controlSize(.small)
-      Text(waitingMessage)
-        .foregroundStyle(.secondary)
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+      HStack(spacing: editorStyle.spacing.s) {
+        ProgressView()
+          .controlSize(.small)
+        Text(waitingMessage)
+          .foregroundStyle(.secondary)
+      }
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(waitingMessage)
+      .accessibilityIdentifier(Self.waitingIdentifier)
+      if browserDidFail {
+        Label(Self.browserFailureMessage, systemImage: Self.warningSymbol)
+          .font(editorTheme.font(for: .ui, style: .callout))
+          .foregroundStyle(editorTheme.severityWarning)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(Self.browserFailureMessage)
+          .accessibilityIdentifier(Self.browserFailureIdentifier)
+      }
     }
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(waitingMessage)
-    .accessibilityIdentifier(Self.waitingIdentifier)
   }
 
   /// The text of the waiting state. The visible text and the VoiceOver
@@ -297,19 +329,44 @@ public struct ElicitationURLConsentView: View {
   /// session that the card started before.
   ///
   /// The session ends when the user closes the browser. The card ignores
-  /// the result, because the server sends `elicitation/complete`. The new
-  /// session starts only after the previous session stops, so that the stop
-  /// of the previous session cannot stop the new session.
+  /// the callback URL, because the server sends `elicitation/complete`. The
+  /// new session starts only after the previous session stops, so that the
+  /// stop of the previous session cannot stop the new session. A new session
+  /// clears the failure of the session before it.
   private func openBrowser() {
     guard let url = request.url else { return }
     let previous = browserTask
     previous?.cancel()
     let presenter = presenter ?? fallbackPresenter
+    browserDidFail = false
     reportBrowser?(.open)
     browserTask = Task {
       await previous?.value
-      _ = try? await presenter.present(
-        url: url, callbackScheme: Self.callbackScheme, ephemeral: Self.ephemeral)
+      await presentBrowser(presenter, url: url)
+    }
+  }
+
+  /// Runs one browser session on `url`, and records a session that did not
+  /// open.
+  ///
+  /// A session that ends with no callback is the usual end: the user closed
+  /// the browser, or the card stopped the session. Any other error means that
+  /// the browser did not open. The card logs it and shows it in the waiting
+  /// state, so that the user presses Retry. The accept of the elicitation
+  /// stays: the agent has the consent of the user.
+  ///
+  /// - Parameters:
+  ///   - presenter: The presenter that opens the browser.
+  ///   - url: The URL of the request.
+  private func presentBrowser(_ presenter: AuthorizationPresenter, url: URL) async {
+    do {
+      _ = try await presenter.present(url: url, callbackScheme: Self.callbackScheme, ephemeral: Self.ephemeral)
+    } catch AuthorizationPresenterError.cancelled {
+      Self.logger.debug("The browser session of a URL elicitation ended with no callback.")
+    } catch {
+      Self.logger.error("The browser did not open for a URL elicitation: \(error.localizedDescription)")
+      browserDidFail = true
+      reportBrowser?(.failed)
     }
   }
 
@@ -371,6 +428,9 @@ enum ElicitationBrowserStep: Equatable {
 
   /// The card stopped its browser task.
   case stop
+
+  /// The browser session of the card did not open.
+  case failed
 }
 
 extension EnvironmentValues {

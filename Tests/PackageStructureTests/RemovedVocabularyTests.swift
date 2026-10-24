@@ -459,11 +459,16 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// - Parameters:
   ///   - symbols: The removed symbols.
   ///   - path: The file, relative to the package root.
+  ///   - makePattern: Makes the pattern of one symbol. The default finds the
+  ///     symbol as a whole word.
   /// - Returns: The uses, in line order.
   /// - Throws: The error of the read when the file cannot be read.
-  static func uses(of symbols: [String], inFile path: String) throws -> [RemovedSymbolUse] {
+  static func uses(
+    of symbols: [String], inFile path: String,
+    matching makePattern: (String) -> Regex<Substring> = WordPattern.wholeWord
+  ) throws -> [RemovedSymbolUse] {
     SourceLineScanner.matches(inSource: try PackageFiles.text(of: path), file: path) { line in
-      Self.uses(of: symbols, on: line)
+      Self.uses(of: symbols, on: line, matching: makePattern)
     }
   }
 
@@ -545,10 +550,9 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func theSymbolTableDeclaresNoStatusOrPrioritySymbol() throws {
-    let path = SymbolNameTests.sharedSymbolFile
-    let found = SourceLineScanner.matches(inSource: try PackageFiles.text(of: path), file: path) { line in
-      Self.uses(of: Self.removedItemSymbolConstants, on: line, matching: Self.symbolConstantDeclaration(named:))
-    }
+    let found = try Self.uses(
+      of: Self.removedItemSymbolConstants, inFile: SymbolNameTests.sharedSymbolFile,
+      matching: Self.symbolConstantDeclaration(named:))
 
     #expect(found.isEmpty, "Read ItemStatus or ItemPriority of EditorStyle: \(found)")
   }

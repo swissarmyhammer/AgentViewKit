@@ -258,6 +258,45 @@ import Testing
     #expect(link == file.absoluteString)
   }
 
+  /// The editor reads the file links of a prompt text that it takes, such as
+  /// a restored draft, back into its file references. The next keystroke
+  /// then gives the text back to the prompt with the same link, so the file
+  /// still goes out as an attachment.
+  @Test func aLinkedFileOfARestoredDraftKeepsItsLinkAfterTheNextKeystroke() async throws {
+    let root = try TemporaryFileRoot(files: ["notes.txt"])
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let draft = "@notes.txt "
+    let file = root.url.appending(path: "notes.txt")
+    let model = PromptInputHostedTestModel()
+    model.text = EditorKitPromptEditor.attributedText(draft, references: ["notes.txt"], root: root.url)
+    try #require(model.text.runs.compactMap(\.link) == [file])
+    let harness = try Self.mount(model, session: session, fileRoot: root.url)
+    defer { harness.close() }
+
+    // The text view draws the linked file as a chip, so the plain text of the
+    // prompt, not the string of the text view, holds the file path.
+    harness.type(Self.message)
+    await ObservationWait.until { model.plainText == draft + Self.message }
+
+    #expect(model.text.runs.compactMap(\.link) == [file])
+  }
+
+  /// The references of a prompt text are the paths, relative to the root, of
+  /// its file links. A link out of the root is no reference.
+  @Test func theReferencesOfAPromptTextAreThePathsOfItsFileLinksUnderTheRoot() throws {
+    let root = try TemporaryFileRoot(files: ["notes.txt", "src/main.swift"])
+    var text = EditorKitPromptEditor.attributedText(
+      "@notes.txt @src/main.swift @other.txt ", references: ["notes.txt", "src/main.swift"], root: root.url)
+    let other = try #require(text.range(of: "@other.txt"))
+    text[other].link = URL(filePath: "/elsewhere/other.txt")
+
+    let references = EditorKitPromptEditor.references(in: text, root: root.url)
+
+    #expect(references == ["notes.txt", "src/main.swift"])
+    #expect(EditorKitPromptEditor.references(in: text, root: nil).isEmpty)
+  }
+
   /// An accepted directory stays a trigger, and the engine of the editor then
   /// lists the entries of the directory. See ^c3ya9ed above.
   @Test func theEditorEngineListsTheEntriesOfAnAcceptedDirectory() async throws {

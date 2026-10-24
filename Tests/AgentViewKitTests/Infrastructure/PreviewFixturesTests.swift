@@ -266,7 +266,7 @@ import Testing
   @Test func theFieldContextReadsAndWritesTheAnswerOfItsOwnField() {
     var answers: [String: JSONValue] = [:]
     let binding = Binding(get: { answers }, set: { answers = $0 })
-    let field = PreviewFixtures.ElicitationFields.text
+    let field = PreviewFixtures.ElicitationFields.packageName
 
     let context = PreviewFixtures.fieldContext(field, answers: binding)
     context.value.wrappedValue = .string(Self.thoughtText)

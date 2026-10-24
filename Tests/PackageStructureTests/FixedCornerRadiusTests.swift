@@ -11,21 +11,27 @@ import Testing
 /// EditorKit `EditorStyle` target gives such a shape, with a radius of the
 /// scale of `\.editorStyle` as the smallest corner. A
 /// `RoundedRectangle(cornerRadius:)`, an `UnevenRoundedRectangle(cornerRadius:)`
-/// or a `.rect(cornerRadius:)` shape has a fixed corner, so the scan finds
-/// each one. A kit view also makes no `ConcentricRectangle` of its own, and
-/// gives no corner radius as a number: each radius comes from the scale. The
-/// scans read each Swift file of the kit as text, one line at a time.
+/// or a `.rect(cornerRadius:)` shape has a fixed corner, and so does a
+/// `.cornerRadius(_:)` modifier, so the scan finds each one. A kit view also
+/// makes no `ConcentricRectangle` of its own, and gives no corner radius as a
+/// number: each radius comes from the scale. The scans read each Swift file
+/// of the kit as text, one line at a time.
 @Suite struct FixedCornerRadiusTests {
   /// The pattern that finds a fixed corner radius: a rounded rectangle, an
-  /// uneven rounded rectangle or a `.rect` shape that takes a corner radius.
+  /// uneven rounded rectangle or a `.rect` shape that takes a corner radius,
+  /// or a `.cornerRadius(` modifier with an argument of any form, such as a
+  /// radius of the scale.
   static var fixedCornerRadiusPattern: some RegexComponent {
-    Regex {
-      ChoiceOf {
-        WordPattern.wholeWord("RoundedRectangle")
-        WordPattern.wholeWord("UnevenRoundedRectangle")
-        ".rect"
+    ChoiceOf {
+      Regex {
+        ChoiceOf {
+          WordPattern.wholeWord("RoundedRectangle")
+          WordPattern.wholeWord("UnevenRoundedRectangle")
+          ".rect"
+        }
+        "(cornerRadius:"
       }
-      "(cornerRadius:"
+      ".cornerRadius("
     }
   }
 
@@ -99,7 +105,7 @@ import Testing
   /// - Returns: `<file>:<line>` when the line gives a fixed corner radius, or
   ///   no result.
   static func fixedCornerRadiusUses(on line: SourceLine) -> [String] {
-    line.text.contains(fixedCornerRadiusPattern) ? ["\(line.file):\(line.number)"] : []
+    SourceLineScanner.uses(of: fixedCornerRadiusPattern, on: line)
   }
 
   /// Finds the lines of a source that give a corner radius as a number.
@@ -108,7 +114,7 @@ import Testing
   /// - Returns: `<file>:<line>` when the line gives a corner radius as a
   ///   number, or no result.
   static func literalCornerRadiusUses(on line: SourceLine) -> [String] {
-    line.text.contains(literalCornerRadiusPattern) ? ["\(line.file):\(line.number)"] : []
+    SourceLineScanner.uses(of: literalCornerRadiusPattern, on: line)
   }
 
   /// Finds the lines of a source that make a concentric shape.
@@ -117,7 +123,7 @@ import Testing
   /// - Returns: `<file>:<line>` when the line makes a `ConcentricRectangle`,
   ///   or no result.
   static func ownConcentricShapeUses(on line: SourceLine) -> [String] {
-    line.text.contains(ownConcentricShapePattern) ? ["\(line.file):\(line.number)"] : []
+    SourceLineScanner.uses(of: ownConcentricShapePattern, on: line)
   }
 
   /// Runs a line scan over the code of the kit library, with the comments
@@ -138,12 +144,13 @@ import Testing
       .background(.quaternary, in: EditorSurface.shape(radius: style.radii.m))
       .clipShape(RoundedRectangle(cornerSize: size))
       .clipShape(UnevenRoundedRectangle(cornerRadius: style.radii.s))
+      .cornerRadius(style.radii.m)
       """
 
     let found = SourceLineScanner.matches(
       inSource: source, file: "A.swift", match: Self.fixedCornerRadiusUses(on:))
 
-    #expect(found == ["A.swift:1", "A.swift:2", "A.swift:5"])
+    #expect(found == ["A.swift:1", "A.swift:2", "A.swift:5", "A.swift:6"])
   }
 
   @Test func theScanFindsEachCornerRadiusGivenAsANumber() {

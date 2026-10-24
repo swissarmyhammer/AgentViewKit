@@ -259,7 +259,7 @@ import Testing
   /// - Returns: `<file>:<line>` when the line uses a fixed color, or no
   ///   result.
   static func fixedColorUses(on line: SourceLine) -> [String] {
-    line.text.contains(fixedColorPattern) ? ["\(line.file):\(line.number)"] : []
+    SourceLineScanner.uses(of: fixedColorPattern, on: line)
   }
 
   /// The files that can make a color from fixed values, relative to the

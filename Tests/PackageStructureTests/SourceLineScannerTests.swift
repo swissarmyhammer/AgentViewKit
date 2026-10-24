@@ -33,6 +33,14 @@ import Testing
     #expect(found == ["1a", "1b", "2c"])
   }
 
+  @Test func usesGivesTheFileAndTheNumberOfALineThatHoldsThePattern() {
+    let found = SourceLineScanner.matches(inSource: "first\nsecond", file: "A.swift") { line in
+      SourceLineScanner.uses(of: Regex { "sec" }, on: line)
+    }
+
+    #expect(found == ["A.swift:2"])
+  }
+
   @Test func matchesNamesEachFileRelativeToTheBase() throws {
     let base = try Self.fixtures.deletingLastPathComponent()
 

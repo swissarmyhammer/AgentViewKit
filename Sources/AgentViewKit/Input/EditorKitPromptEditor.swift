@@ -7,6 +7,7 @@ import EditorText
 import EditorTheme
 import FoundationModelsACP
 import SwiftUI
+import os
 
 /// The editor of ``PromptInputView`` (plan.md §4.1, §9 D).
 ///
@@ -83,6 +84,9 @@ public struct EditorKitPromptEditor: View {
   /// the directory.
   static let directorySeparator = "/"
 
+  /// The log of the editor.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "EditorKitPromptEditor")
+
   /// The values that the composer gives.
   let context: PromptEditorContext
 
@@ -157,10 +161,7 @@ public struct EditorKitPromptEditor: View {
       }
     }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
-      // SwiftUI can report a pushed text after the model took newer input,
-      // for example a Shift-Return newline. That text is not a change.
-      guard !session.isNewestPush(text) else { return }
-      pull(text, into: model)
+      promptTextDidChange(text, in: model)
     }
   }
 
@@ -284,9 +285,7 @@ public struct EditorKitPromptEditor: View {
     let pairs: [(ReturnKeyModifiers, EventModifiers)] = [
       (.shift, .shift), (.control, .control), (.option, .option), (.command, .command),
     ]
-    return pairs.reduce(into: []) { result, pair in
-      if modifiers.contains(pair.0) { result.insert(pair.1) }
-    }
+    return EventModifiers(pairs.filter { modifiers.contains($0.0) }.map(\.1))
   }
 
   // MARK: - Commits
@@ -504,20 +503,68 @@ public struct EditorKitPromptEditor: View {
     }
   }
 
+  /// Follows a change of the text of the prompt.
+  ///
+  /// SwiftUI can report a pushed text after the model took newer input, for
+  /// example a Shift-Return newline. That text is not a change. Any other
+  /// text goes to the editor.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - model: The model of the editor.
+  private func promptTextDidChange(_ text: AttributedString, in model: EditorModel) {
+    guard !session.isNewestPush(text) else { return }
+    pull(text, into: model)
+  }
+
   /// Gives a changed text of the prompt to the editor, for example the empty
-  /// text after a submit.
+  /// text after a submit, or a restored draft.
+  ///
+  /// The file links of the text become the accepted file references
+  /// (``references(in:root:)``), the inverse of ``push(_:references:)``. So
+  /// the next push gives each linked file its link again.
   ///
   /// - Parameters:
   ///   - text: The text of the prompt.
   ///   - model: The model of the editor.
   private func pull(_ text: AttributedString, into model: EditorModel) {
     session.didPull()
+    references = Self.references(in: text, root: kitFileRoot)
     let plain = String(text.characters)
     guard plain != model.text else { return }
     model.replaceAll(plain)
-    if plain.isEmpty {
-      references = []
-    }
+  }
+
+  /// The accepted file references of a prompt text: the inverse of
+  /// ``attributedText(_:references:root:)``.
+  ///
+  /// Each `link` attribute that holds a file URL under `root` is one
+  /// reference, as its path relative to `root`.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - root: The file root, or `nil`.
+  /// - Returns: The paths, relative to `root`, of the linked files under
+  ///   `root`. No path when there is no root.
+  static func references(in text: AttributedString, root: URL?) -> Set<String> {
+    guard let root else { return [] }
+    return Set(text.runs.compactMap(\.link).compactMap { relativePath(of: $0, under: root) })
+  }
+
+  /// The path of a linked file relative to the file root.
+  ///
+  /// - Parameters:
+  ///   - link: The URL of a `link` attribute.
+  ///   - root: The file root.
+  /// - Returns: The path below `root`, or `nil` when `link` is no file URL
+  ///   under `root`.
+  static func relativePath(of link: URL, under root: URL) -> String? {
+    guard link.isFileURL else { return nil }
+    let rootPath = root.path(percentEncoded: false)
+    let base = rootPath.hasSuffix(directorySeparator) ? rootPath : rootPath + directorySeparator
+    let path = link.path(percentEncoded: false)
+    guard path.hasPrefix(base) else { return nil }
+    return String(path.dropFirst(base.count))
   }
 
   /// The prompt text of the editor text.
@@ -537,7 +584,13 @@ public struct EditorKitPromptEditor: View {
       let utf8 = text.utf8
       let lower = utf8.index(utf8.startIndex, offsetBy: reference.range.lowerBound)
       let upper = utf8.index(utf8.startIndex, offsetBy: reference.range.upperBound)
-      guard let range = Range(lower..<upper, in: result) else { continue }
+      guard let range = Range(lower..<upper, in: result) else {
+        // The detector reads the same text, so each of its ranges has a range
+        // in the text. A miss is a defect, and the file goes out with no link.
+        assertionFailure("The file reference \(reference.path) has no range in the prompt text.")
+        logger.error("The prompt text drops the link of an accepted file reference.")
+        continue
+      }
       result[range].link = root.appending(path: reference.path)
     }
     return result
@@ -583,13 +636,17 @@ struct PromptCompletionRow: View {
 ///
 /// A `@State` value that holds a model directly would make a new model each
 /// time SwiftUI makes the view value again. So the session makes the model at
-/// the first read, as ``OwnModelSlot`` does.
+/// the first read, as ``OwnModelSlot`` does: the first text of the model is
+/// the text of the prompt at the first draw, and the model, its observer and
+/// its commit task exist only from then on. The completion engine does not
+/// wait for a read: the session makes it at once, for no commands, no file
+/// root and no route.
 final class PromptEditorSession {
-  /// The model, or `nil` before the first read.
+  /// The model, or `nil` before the first read (see the type).
   private var storedModel: EditorModel?
 
-  /// The engine, or `nil` before the first completion request.
-  private var storedEngine: CompletionEngine?
+  /// The engine for ``engineCommands``, ``engineRoot`` and ``engineSigils``.
+  private var storedEngine: CompletionEngine
 
   /// The slash commands that the sources of the engine read, or `nil` when
   /// the agent did not report its commands.
@@ -605,14 +662,23 @@ final class PromptEditorSession {
   ///
   /// The session keeps one source and gives it the newest routes before each
   /// request, so a new list of routes takes effect at the next keystroke.
-  private let prefixes = PrefixCompletionSource(routes: [])
+  private let prefixes: PrefixCompletionSource
 
   /// Finds the caret of the text view of the editor, so that the menu starts
   /// at the caret.
   let caretLocator = PromptCaretLocator()
 
-  /// The closure that gets each committed transaction of the model.
-  private var onCommit: ((EditorTransaction) -> Void)?
+  /// The closure that gets each committed transaction of the model. It does
+  /// nothing until the first view value sets it (``follow(onCommit:)``).
+  private var onCommit: (EditorTransaction) -> Void = { _ in }
+
+  /// Makes a session, with the engine for no commands, no file root and no
+  /// route.
+  init() {
+    let prefixes = PrefixCompletionSource(routes: [])
+    self.prefixes = prefixes
+    storedEngine = CompletionEngine(sources: Self.sources(commands: nil, root: nil, prefixes: prefixes))
+  }
 
   /// The newest text that the editor gave to the text of the prompt, until
   /// the editor takes a text from the prompt.
@@ -659,16 +725,39 @@ final class PromptEditorSession {
     // The model registers its own dispatch observer first, so its text is
     // the new text when this observer runs.
     engine.addDispatchObserver { [weak self] transaction, _, _ in
-      guard Self.isUndoOrRedo(transaction) else { return }
-      self?.onCommit?(transaction)
+      self?.engineDidDispatch(transaction)
     }
     let transactions = model.transactions
     commitTask = Task { [weak self] in
-      for await transaction in transactions {
-        self?.onCommit?(transaction)
-      }
+      await Self.forward(transactions) { self?.onCommit($0) }
     }
     return model
+  }
+
+  /// Gives an undo or a redo of the engine to the commit closure.
+  ///
+  /// The window undo stack runs undo and redo on the engine, so they do not
+  /// reach the `transactions` stream of the model. Each other dispatch
+  /// reaches the commit closure through that stream.
+  ///
+  /// - Parameter transaction: The dispatched transaction.
+  private func engineDidDispatch(_ transaction: EditorTransaction) {
+    guard Self.isUndoOrRedo(transaction) else { return }
+    onCommit(transaction)
+  }
+
+  /// Gives each committed transaction of a stream to `commit`, until the
+  /// stream ends.
+  ///
+  /// - Parameters:
+  ///   - transactions: The `transactions` stream of the model.
+  ///   - commit: The function that gets each transaction.
+  private static func forward(
+    _ transactions: AsyncStream<EditorTransaction>, to commit: (EditorTransaction) -> Void
+  ) async {
+    for await transaction in transactions {
+      commit(transaction)
+    }
   }
 
   /// Puts the caret of `model` at the end of its text with a transaction
@@ -745,26 +834,26 @@ final class PromptEditorSession {
   func engine(commands: [AvailableCommand]?, root: URL?, routes: [PrefixCompletionRoute]) -> CompletionEngine {
     prefixes.routes = routes
     let sigils = prefixes.routes.map(\.sigil)
-    if let storedEngine, engineCommands == commands, engineRoot == root, engineSigils == sigils {
-      return storedEngine
-    }
-    let engine = CompletionEngine(sources: sources(commands: commands, root: root))
-    storedEngine = engine
+    guard engineCommands != commands || engineRoot != root || engineSigils != sigils else { return storedEngine }
+    storedEngine = CompletionEngine(sources: Self.sources(commands: commands, root: root, prefixes: prefixes))
     engineCommands = commands
     engineRoot = root
     engineSigils = sigils
-    return engine
+    return storedEngine
   }
 
-  /// The completion sources of the engine: the slash commands, unless a
+  /// The completion sources of an engine: the slash commands, unless a
   /// route takes the `/`; the file references, when there is a root; and the
   /// routes of the host, composed with EditorKit `Autocomplete`.
   ///
   /// - Parameters:
   ///   - commands: The slash commands of the session, or `nil`.
   ///   - root: The file root, or `nil`.
+  ///   - prefixes: The source of the prefix-completion routes of the host.
   /// - Returns: The sources, in builder order.
-  private func sources(commands: [AvailableCommand]?, root: URL?) -> [any EditorExtensions.CompletionSource] {
+  private static func sources(
+    commands: [AvailableCommand]?, root: URL?, prefixes: PrefixCompletionSource
+  ) -> [any EditorExtensions.CompletionSource] {
     let routes = prefixes.routes
     var sources: [any EditorExtensions.CompletionSource] = []
     if !Self.routes(routes, take: SlashCommandSource.trigger) {
@@ -774,7 +863,7 @@ final class PromptEditorSession {
       sources.append(FileReferenceSource(root: root))
     }
     if !routes.isEmpty {
-      sources += editorExtensions { Autocomplete(sources: [.prefixed(self.prefixes)]) }.completionSources
+      sources += editorExtensions { Autocomplete(sources: [.prefixed(prefixes)]) }.completionSources
     }
     return sources
   }

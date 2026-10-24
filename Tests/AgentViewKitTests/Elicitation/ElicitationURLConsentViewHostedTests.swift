@@ -111,23 +111,26 @@ import Testing
     method: ScriptedSession.elicitationMethod, id: agentRequestID, params: makeParams())
 
   /// Gets a URL mode elicitation from the agent and shows its card with a
-  /// presenter over fake browser sessions that wait until they are stopped.
+  /// presenter over fake browser sessions.
   ///
   /// - Parameters:
   ///   - params: The JSON text of the params of the request.
+  ///   - script: The result of each browser session. The default sessions
+  ///     wait until they are stopped.
   ///   - reporter: The reporter that records each focus move.
   /// - Returns: The mounted card.
   /// - Throws: The error of the transport, or an issue when the model holds
   ///   no elicitation.
   static func mount(
     _ params: String = makeParams(),
+    browser script: FakeWebAuthSession.Script = .waitsForCancel,
     reporter: RecordingFocusReporter = RecordingFocusReporter()
   ) async throws -> Mounted {
     let session = try await ScriptedSession.open()
     let pending = try await session.receiveElicitation(id: agentRequestID, params: params)
     return mount(
       ElicitationURLConsentView(request: pending, owner: session.model), of: session, size: cardSize,
-      reporter: reporter)
+      browser: script, reporter: reporter)
   }
 
   /// Gets the URL mode elicitation of ``makeParams(url:)`` from the agent and
@@ -166,20 +169,23 @@ import Testing
     return mount(RequestDeck(session: session.model), of: session, size: hostSize, reporter: reporter)
   }
 
-  /// Shows `view` with a presenter over fake browser sessions that wait
-  /// until they are stopped, and makes one render pass.
+  /// Shows `view` with a presenter over fake browser sessions, and makes one
+  /// render pass.
   ///
   /// - Parameters:
   ///   - view: The card or the deck.
   ///   - session: The scripted session whose model holds the requests.
   ///   - size: The size of the harness.
+  ///   - script: The result of each browser session. The default sessions
+  ///     wait until they are stopped.
   ///   - reporter: The reporter that records each focus move.
   /// - Returns: The mounted view.
   static func mount(
     _ view: some View, of session: ScriptedSession, size: CGSize,
+    browser script: FakeWebAuthSession.Script = .waitsForCancel,
     reporter: RecordingFocusReporter = RecordingFocusReporter()
   ) -> Mounted {
-    let browser = FakeWebAuthSession(script: .waitsForCancel)
+    let browser = FakeWebAuthSession(script: script)
     let browserSteps = ReportRecorder<ElicitationBrowserStep>()
     let content = view
       .environment(\.authorizationPresenter, AuthorizationPresenter(factory: browser))
@@ -448,6 +454,76 @@ import Testing
     #expect(mounted.browser.sessions.first?.isWaiting == false)
     #expect(mounted.browser.sessions.last?.isWaiting == true)
     #expect(mounted.responses.count == 1)
+  }
+
+  /// Presses Open in Browser, and waits until the browser session of the
+  /// card ends.
+  ///
+  /// - Parameter mounted: The mounted card, whose browser sessions end at
+  ///   once.
+  /// - Throws: An issue when the press did not accept the request.
+  static func openAndWaitForTheEndOfTheSession(_ mounted: Mounted) async throws {
+    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
+    try #require(mounted.session.model.awaitingURLCompletions.count == 1)
+    await mounted.harness.render { mounted.browser.calls.contains(.start(ephemeral: false)) }
+    mounted.harness.render()
+  }
+
+  /// Presses Open in Browser, waits until the card records that its browser
+  /// session did not open, and makes one render pass.
+  ///
+  /// - Parameter mounted: The mounted card, whose browser sessions do not
+  ///   start.
+  /// - Throws: An issue when the press did not start the browser task.
+  static func openAndWaitForTheFailureOfTheBrowser(_ mounted: Mounted) async throws {
+    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
+    try #require(mounted.browserSteps.values == [.open])
+    await ObservationWait.until { mounted.browserSteps.values.contains(.failed) }
+    mounted.harness.render()
+  }
+
+  /// A browser session that does not open keeps the waiting state, and the
+  /// card says that the browser did not open, so that the user presses Retry.
+  @Test func aBrowserThatDoesNotOpenShowsItsFailureInTheWaitingState() async throws {
+    let mounted = try await Self.mount(browser: .failsToStart)
+    defer { mounted.close() }
+
+    try await Self.openAndWaitForTheFailureOfTheBrowser(mounted)
+
+    #expect(
+      mounted.harness.element(identifier: ElicitationURLConsentView.browserFailureIdentifier)?.label
+        == ElicitationURLConsentView.browserFailureMessage)
+    #expect(
+      mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.retryIdentifier) != nil)
+  }
+
+  /// Retry opens the browser again, and the card no longer shows the
+  /// failure of the browser session before it.
+  @Test func retryClearsTheFailureOfTheBrowser() async throws {
+    let mounted = try await Self.mount(browser: .failsToStart)
+    defer { mounted.close() }
+    try await Self.openAndWaitForTheFailureOfTheBrowser(mounted)
+    try #require(mounted.harness.element(identifier: ElicitationURLConsentView.browserFailureIdentifier) != nil)
+    mounted.browser.script = .waitsForCancel
+
+    try mounted.harness.press(identifier: ElicitationURLConsentView.retryIdentifier)
+    await mounted.harness.render { mounted.browser.sessions.last?.isWaiting == true }
+
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.browserFailureIdentifier) == nil)
+  }
+
+  /// A browser that the user closes is no failure: the card shows only the
+  /// waiting state.
+  @Test func aClosedBrowserShowsNoFailure() async throws {
+    let mounted = try await Self.mount(browser: .cancelled)
+    defer { mounted.close() }
+
+    try await Self.openAndWaitForTheEndOfTheSession(mounted)
+
+    #expect(mounted.harness.element(identifier: ElicitationURLConsentView.browserFailureIdentifier) == nil)
+    #expect(
+      mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier)?.label == Self.waitingText)
   }
 
   @Test func cancelSendsCancel() async throws {
