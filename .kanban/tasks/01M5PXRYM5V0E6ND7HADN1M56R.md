@@ -71,6 +71,15 @@ comments:
     - test/commit/review: not run (no source change)
     - next: resume /implement when EK ^1psb3k1 is on EK main
   timestamp: 2026-10-24T20:41:24.818302+00:00
+- actor: claude-code
+  id: 01m5qzgfhh30kevtk8qbw1623c
+  text: |-
+    ### unblocked (2026-10-24)
+    EditorKit 01M5QT95QZRVZ6CRCGF1PSB3K1 (^1psb3k1) is on EK main e79b163; the feature commit is cd2c88b. It is additive.
+    - New API: `.selectionSurface(_ isSelected: Bool, cornerRadius: CGFloat)`, mirroring `scopeFocusRing(cornerRadius:)`. `cornerRadius: 0` gives square corners.
+    - The step form resolves to the same private modifier, so the fill, the inactive grey and `.isSelected` are identical.
+    Next: run `swift package update EditorKit` to e79b163 or later, then resume /implement with the recorded plan.
+  timestamp: 2026-10-24T22:11:42.257245+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Draw every selection through the shared EditorStyle selection surface (translucent accent, one code path)

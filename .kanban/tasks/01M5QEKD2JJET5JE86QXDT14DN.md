@@ -57,8 +57,24 @@ comments:
     - evidence: swift test — 1814 tests in 223 suites passed, 7 known issues (expected), 0 failures; the only compiler/build warning is a build-system note about the mlx-swift_Cmlx.bundle (not a repo source); demo and UI runs skipped as only Tests/PackageStructureTests/FontRoleTests.swift changed
     - next: none
   timestamp: 2026-10-24T22:09:26.292057+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5qzew4jcebywp7n635t906w
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (8167b36) — 0 findings, 0 confirmed, 0 refuted; 1 file reviewed, 0 not reviewed; 7 attempted, 0 failed. Prior 2026-10-24 17:01 finding is checked.
+    - next: none — task moved to done.
+  timestamp: 2026-10-24T22:10:49.618532+00:00
+- actor: claude-code
+  id: 01m5qzf9jww855m9v4xsjc0t25
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — FontRoleTests uses SourceLineScanner.uses(of:on:); the duplicate helper is deleted
+    - test: green — swift test 1814/223 (7 known issues)
+    - commit: b2efae7 (chore kanban), 8167b36 (code, HEAD)
+    - review: clean — 0 findings, prior item checked; task in done. Local only.
+  timestamp: 2026-10-24T22:11:03.388393+00:00
+position_column: done
+position_ordinal: ffffde80
 title: 'FontRoleTests: forbid fixed-size AppKit/UIKit font factories and preferredFont(forTextStyle:)'
 ---
 From testudoapp-2c (2026-10-24). At 6493d6f, `Tests/PackageStructureTests/FontRoleTests.swift` does not forbid the fixed-size AppKit/UIKit font factories. Each of them picks a font outside the theme roles:
