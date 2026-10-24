@@ -150,8 +150,25 @@ comments:
     - evidence: 1 file: Scripts/test-ui-test-lock.sh (+68/-9). `bash Scripts/test-ui-test-lock.sh`: 24 ok, PASS, exit 0. `swift test`: 1766 tests in 216 suites passed with 7 known issues (the existing withKnownIssue ones), UITestLockTests passed. EditorKit resolved at 3bc9d3e688bd384673b8e804e2851249558e5bb8. The build prints a SwiftPM warning, "missing creator for mutated node" (mlx-swift_Cmlx.bundle); it was already in earlier logs and is not from this change. Mutations A, B and C now fail the checks they target. Not committed. The finding is checked off and the card stays in doing.
     - next: /review
   timestamp: 2026-10-24T00:35:31.566337+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5nnjqgzx8ftjqje5ck9x4fa
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (bb6c659) — 0 findings (findings 0, confirmed 0, refuted 0; 6 validator attempts, 0 failed); 1 file reviewed, 2 .kanban/ files excluded by .reviewignore; the one prior item in `## Review Findings (2026-10-23 19:24)` is checked
+    - next: none — task moved to done
+  timestamp: 2026-10-24T00:39:41.343880+00:00
+- actor: claude-code
+  id: 01m5nnk75h4baftnsk76zawerw
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — expect_silence tells a timeout from EOF (bash 3.2 elapsed-window rule) and checks the waiter with kill -0; lock-content checks fail on a missing lock; 1 file
+    - test: green — swift test, 1766 tests in 216 suites passed, 0 failed, 0 skipped; test-ui-test-lock.sh 24 ok
+    - commit: bb6c659
+    - review: clean — 0 findings; task in done
+    - Not pushed. Code commits: 355df3e, bb6c659.
+  timestamp: 2026-10-24T00:39:57.361903+00:00
+position_column: done
+position_ordinal: ffffd080
 title: Scripts/test-examples.sh takes the shared swissarmyhammer UI-test lock
 ---
 Requested by testudoapp-2c (2026-10-23). During Testudo's UI run, an AgentViewKitDemo window came up over Testudo mid-suite and caused 3 XCTest warnings there. Testudo's `Scripts/xcodebuild-app.sh` and EditorKit already take the shared lock. AVK's UI-test runner has to take it too.

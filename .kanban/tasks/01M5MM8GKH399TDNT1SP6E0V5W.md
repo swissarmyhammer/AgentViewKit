@@ -79,6 +79,13 @@ comments:
   id: 01m5nkpwtwc1d5c62e97skfnzn
   text: 'EditorKit ^wg1hac2 is pushed: origin/main at 3bc9d3e (2026-10-23). It was rebased onto one kanban-only commit, 696c580; outside .kanban the source is byte-identical to a47fa49 (editorkit-28 checked). Before AVK is pushed: resolve EditorKit to 3bc9d3e, run the full swift test, the demo build and the dead-code check.'
   timestamp: 2026-10-24T00:07:00.700420+00:00
+- actor: claude-code
+  id: 01m5nnrjgz91rkq2zbvbe5ccyt
+  text: |-
+    ### review — clean
+    - evidence: dead-code check passed at EditorKit 3bc9d3e. `swift build` complete with EditorKit resolved at 3bc9d3e; `review sha f5374f0~1..f5374f0` with validators ["code-hygiene"] (holds `dead-code-swift`) returned 0 findings (findings 0, confirmed 0, refuted 0, attempted 21, failed 0). The rules that declined ProseFontHostedTests.swift, ThemeHeightExpectations.swift, ThemeHeightExpectationsTests.swift and FixedCodeFontTests.swift did so because f5374f0 deletes those files, so they have no added lines to review.
+    - next: none — task stays in done.
+  timestamp: 2026-10-24T00:42:52.831590+00:00
 position_column: done
 position_ordinal: ffffcf80
 title: 'Use the theme font roles: display for the composer, inputs and prose; code for code; ui for chrome'
