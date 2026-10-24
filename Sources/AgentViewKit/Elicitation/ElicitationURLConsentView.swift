@@ -202,7 +202,7 @@ public struct ElicitationURLConsentView: View {
         .accessibilityIdentifier(Self.urlIdentifier)
       if let warning = URLDisplay.warning(for: url) {
         Label(warning, systemImage: Self.warningSymbol)
-          .font(.callout)
+          .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(editorTheme.severityWarning)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel(warning)

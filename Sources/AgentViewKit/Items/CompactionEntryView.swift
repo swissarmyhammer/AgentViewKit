@@ -89,7 +89,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       header(key: key)
       if let error = entry.error {
         Text(error)
-          .font(.callout)
+          .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(editorTheme.severityError)
           .textSelection(.enabled)
           .accessibilityIdentifier(Self.errorIdentifier)
@@ -112,9 +112,9 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(Self.title)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
         Text(statusText)
-          .font(.callout)
+          .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(.secondary)
       }
       // The text is the element of the header. A container element here

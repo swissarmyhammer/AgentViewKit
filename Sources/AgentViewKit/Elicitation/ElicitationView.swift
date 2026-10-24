@@ -223,7 +223,7 @@ public struct ElicitationView: View {
   private var failure: some View {
     if let answerFailure {
       Text(answerFailure)
-        .font(.callout)
+        .font(editorTheme.font(for: .ui, style: .callout))
         .foregroundStyle(editorTheme.severityError)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityIdentifier(Self.failureIdentifier)
@@ -459,6 +459,7 @@ public struct ElicitationHeader: View {
   let request: PendingElicitation
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the default header.
   ///
@@ -478,7 +479,7 @@ public struct ElicitationHeader: View {
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       Label(Self.title(server: Self.agentServer), systemImage: Self.symbol)
-        .font(.headline)
+        .font(editorTheme.font(for: .ui, style: .headline))
       ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
       Text(request.request.message)
         .foregroundStyle(.secondary)

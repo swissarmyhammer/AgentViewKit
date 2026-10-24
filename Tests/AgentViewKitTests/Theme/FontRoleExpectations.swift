@@ -13,10 +13,22 @@ import Testing
 /// its text larger. So an expectation fails when the view reads no role, and
 /// also when it reads another role.
 enum FontRoleExpectations {
+  /// The largest change of the height of an element that the expectations
+  /// take as no change, in points.
+  ///
+  /// The frame of an element is rounded to the pixel grid at its origin. A
+  /// text of another role in the same view, such as a caption of the chrome,
+  /// grows with the theme of that role and moves the element to another
+  /// origin, so its height can round differently by a part of a point. An
+  /// enlarged role makes a text many points taller, so the expectations still
+  /// tell the roles apart.
+  static let layoutRounding: CGFloat = 1
+
   /// Expects that the text of the element with `identifier` draws in `role`:
-  /// the element is taller when `view` has the theme that enlarges `role`
-  /// than when it has no theme, and the same height when it has the theme
-  /// that enlarges another role.
+  /// the element is taller, by more than ``layoutRounding``, when `view` has
+  /// the theme that enlarges `role` than when it has no theme, and the same
+  /// height, within ``layoutRounding``, when it has the theme that enlarges
+  /// another role.
   ///
   /// The function measures the element through
   /// ``HostedViewHarness/frameHeight(of:identifier:size:)``: one time in
@@ -43,9 +55,13 @@ enum FontRoleExpectations {
       let themed = try HostedViewHarness.frameHeight(
         of: view.editorTheme(EnlargedRoleTheme(enlargedRole: candidate)), identifier: identifier, size: size)
       if candidate == role {
-        #expect(themed > unthemed, "The text does not draw in the \(role) role.", sourceLocation: sourceLocation)
+        #expect(
+          themed - unthemed > layoutRounding, "The text does not draw in the \(role) role.",
+          sourceLocation: sourceLocation)
       } else {
-        #expect(themed == unthemed, "The text draws in the \(candidate) role.", sourceLocation: sourceLocation)
+        #expect(
+          abs(themed - unthemed) <= layoutRounding, "The text draws in the \(candidate) role.",
+          sourceLocation: sourceLocation)
       }
     }
   }

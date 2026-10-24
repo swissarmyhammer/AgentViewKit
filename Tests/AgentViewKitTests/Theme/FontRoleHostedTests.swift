@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import AppKit
 import EditorExtensions
 import EditorSwiftUI
 import FoundationModelsACP
@@ -56,6 +57,42 @@ import Testing
     try FontRoleExpectations.expectText(
       of: PromptCompletionRow(item: item, isSelected: false),
       identifier: EditorKitPromptEditor.completionRowIdentifier, drawsIn: .ui)
+  }
+
+  // MARK: - ui face family
+
+  /// The name of the agent of the family test: long enough that the widths
+  /// of two families differ by many points.
+  static let familyProbeName = "The quick brown fox jumps over the lazy dog"
+
+  /// The largest difference between the drawn width of a text and the width
+  /// that a font gives it, in points: the frame of a text is rounded to the
+  /// pixel grid.
+  static let familyWidthTolerance: CGFloat = 1
+
+  @Test func theHeadlineOfTheAgentNameDrawsInTheFamilyOfTheUIFace() throws {
+    let row = AgentBreadcrumb(agent: Self.familyProbeName, version: Self.text, sessionTitle: nil)
+    let familyFont = try #require(
+      NSFont(name: UIFamilyTheme.family, size: NSFont.preferredFont(forTextStyle: .headline).pointSize))
+    let familyWidth = NSAttributedString(string: Self.familyProbeName, attributes: [.font: familyFont]).size().width
+
+    let systemDrawn = try Self.frameWidth(of: row)
+    let familyDrawn = try Self.frameWidth(of: row.editorTheme(UIFamilyTheme()))
+
+    #expect(abs(systemDrawn - familyWidth) > Self.familyWidthTolerance)
+    #expect(abs(familyDrawn - familyWidth) <= Self.familyWidthTolerance)
+  }
+
+  /// Mounts `view` and gives the width of its agent name.
+  ///
+  /// - Parameter view: The view that holds an ``AgentBreadcrumb``.
+  /// - Returns: The width of the agent name, in points.
+  /// - Throws: An issue when the view shows no agent name.
+  static func frameWidth(of view: some View) throws -> CGFloat {
+    let harness = HostedViewHarness(view)
+    defer { harness.close() }
+    harness.render()
+    return try #require(harness.frame(identifier: AgentBreadcrumb.agentIdentifier)).width
   }
 
   // MARK: - display

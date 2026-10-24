@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -24,6 +26,7 @@ public struct ContextUsageView: View {
   let style: UsageRingView.TextStyle
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// The caption of the token counts of the ring.
   private static var tokensCaption: String { String(localized: "tokens", bundle: .module) }
@@ -62,7 +65,7 @@ public struct ContextUsageView: View {
             .accessibilityIdentifier(Self.costIdentifier)
         }
       }
-      .font(.caption)
+      .font(editorTheme.font(for: .ui, style: .caption))
     }
   }
 }

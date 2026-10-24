@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import Observation
 import Quartz
 import SwiftUI
@@ -192,6 +194,8 @@ public struct AttachmentInspector: View {
   /// The file to show.
   let attachment: Attachment
 
+  @Environment(\.editorTheme) private var editorTheme
+
   /// Makes the inspector content for a file.
   ///
   /// - Parameter attachment: The file to show.
@@ -203,7 +207,7 @@ public struct AttachmentInspector: View {
     Form {
       Section {
         Text(attachment.name)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
           .truncationMode(.middle)
           .accessibilityIdentifier(Self.nameIdentifier)

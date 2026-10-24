@@ -254,7 +254,7 @@ public struct AgentAuthView: View {
   public var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.m) {
       Label(String(localized: "Sign in to the agent", bundle: .module), systemImage: Self.symbol)
-        .font(.headline)
+        .font(editorTheme.font(for: .ui, style: .headline))
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)
       if !isAuthenticated {
@@ -288,10 +288,10 @@ public struct AgentAuthView: View {
     HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(row.name)
-          .font(.body.weight(.medium))
+          .font(editorTheme.uiFont.weight(.medium))
         if let description = row.description {
           Text(description)
-            .font(.callout)
+            .font(editorTheme.font(for: .ui, style: .callout))
             .foregroundStyle(.secondary)
         }
       }
@@ -345,10 +345,10 @@ public struct AgentAuthView: View {
   private func failureView(_ failure: AuthFailure) -> some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       Text(Self.title(of: failure.operation))
-        .font(.callout.weight(.semibold))
+        .font(editorTheme.font(for: .ui, style: .callout).weight(.semibold))
         .accessibilityIdentifier(Self.failureTitleIdentifier)
       Text(failure.reason.message)
-        .font(.callout)
+        .font(editorTheme.font(for: .ui, style: .callout))
         .accessibilityIdentifier(Self.failureIdentifier)
     }
     .foregroundStyle(editorTheme.severityError)
@@ -359,7 +359,7 @@ public struct AgentAuthView: View {
   private var reconnectView: some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       Text(String(localized: "Reconnect to the agent to finish the sign-in", bundle: .module))
-        .font(.callout)
+        .font(editorTheme.font(for: .ui, style: .callout))
         .accessibilityIdentifier(Self.reconnectMessageIdentifier)
       if let reconnect {
         actionButton(

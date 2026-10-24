@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 // MARK: - Who asks
@@ -86,9 +88,10 @@ extension ElicitationHeader {
 /// The "who asks" line of the default header of an elicitation card.
 ///
 /// The line shows ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)``
-/// in one line, with the middle truncated, in the callout font and the
-/// secondary style. The text is selectable. VoiceOver reads the line as one
-/// element with the label of
+/// in one line, with the middle truncated, in the `ui` font role of the
+/// EditorKit theme at the callout text style, and in the secondary style. The
+/// text is selectable. VoiceOver reads the line as one element with the label
+/// of
 /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``
 /// and the identifier ``ElicitationView/whoAsksIdentifier``. A request with
 /// no "who asks" data shows no line.
@@ -100,6 +103,7 @@ struct ElicitationWhoAsksLine: View {
   let source: String?
 
   @Environment(\.elicitationRootAgentLabel) private var rootLabel
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     if let text = ElicitationHeader.whoAsks(agentPath: agentPath, source: source, rootLabel: rootLabel),
@@ -107,7 +111,7 @@ struct ElicitationWhoAsksLine: View {
         agentPath: agentPath, source: source, rootLabel: rootLabel)
     {
       Text(text)
-        .font(.callout)
+        .font(editorTheme.font(for: .ui, style: .callout))
         .foregroundStyle(.secondary)
         .lineLimit(1)
         .truncationMode(.middle)

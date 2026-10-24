@@ -1,5 +1,6 @@
 import EditorSwiftUI
 import EditorText
+import EditorTheme
 import SwiftUI
 
 /// A read-only code block on EditorKit (plan.md §4.1, §9).
@@ -39,6 +40,7 @@ public struct CodeBlockView: View {
   @State private var ownModel = OwnModelSlot()
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.pasteboard) private var pasteboard
 
   /// Makes a code block that keeps its own model.
@@ -94,7 +96,7 @@ public struct CodeBlockView: View {
   private var header: some View {
     HStack(spacing: theme.spacing.s) {
       Text(filename ?? language ?? Self.plainTextName)
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .foregroundStyle(.secondary)
         .lineLimit(1)
         .truncationMode(.middle)

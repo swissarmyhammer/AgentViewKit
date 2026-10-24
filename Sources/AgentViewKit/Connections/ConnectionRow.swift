@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -20,6 +22,7 @@ public struct ConnectionRow: View {
   let server: MCPServerItem
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes a row.
   ///
@@ -49,11 +52,11 @@ public struct ConnectionRow: View {
     HStack(spacing: theme.spacing.s) {
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(server.name)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
         if let transport = server.transport {
           Text(Self.label(for: transport))
-            .font(.caption)
+            .font(editorTheme.font(for: .ui, style: .caption))
             .foregroundStyle(.secondary)
             .accessibilityIdentifier(Self.transportIdentifier(for: server.name))
         }

@@ -28,7 +28,7 @@ struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
   var body: some View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       Text(title)
-        .font(.headline)
+        .font(editorTheme.font(for: .ui, style: .headline))
       Grid(alignment: .leading, horizontalSpacing: theme.spacing.m, verticalSpacing: theme.spacing.s) {
         ForEach(values, id: \.self) { value in
           GridRow {

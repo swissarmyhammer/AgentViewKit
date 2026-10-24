@@ -177,10 +177,10 @@ struct NoticeRow: View {
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(title)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
         if let description {
           Text(description)
-            .font(.callout)
+            .font(editorTheme.font(for: .ui, style: .callout))
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
         }

@@ -88,6 +88,7 @@ public struct EditorKitPromptEditor: View {
   @Environment(\.promptFileRoot) private var fileRoot
   @Environment(\.composerCompletionRoutes) private var routes
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// The model and the completion engine of the editor.
   @State private var session: PromptEditorSession
@@ -204,7 +205,7 @@ public struct EditorKitPromptEditor: View {
   /// command. The note has no glass.
   private var noCommandsNote: some View {
     Text(Self.noCommandsNote)
-      .font(.caption)
+      .font(editorTheme.font(for: .ui, style: .caption))
       .foregroundStyle(.secondary)
       .padding(.horizontal, theme.spacing.s)
       .padding(.vertical, theme.spacing.xs)
@@ -561,7 +562,7 @@ struct PromptCompletionRow: View {
       Spacer(minLength: theme.spacing.s)
       if let detail = item.detail {
         Text(detail)
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
           .lineLimit(1)
       }

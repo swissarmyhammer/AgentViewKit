@@ -41,6 +41,7 @@ public struct SourcesView: View {
 
   @Environment(\.citationSelection) private var selection
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the footer of a citation payload.
   ///
@@ -89,7 +90,7 @@ public struct SourcesView: View {
       } icon: {
         Image(systemName: SharedSymbol.sources)
       }
-      .font(.subheadline)
+      .font(editorTheme.font(for: .ui, style: .subheadline))
       .foregroundStyle(.secondary)
     }
     .onChange(of: selection?.revision) {
@@ -135,7 +136,7 @@ private struct SourceRow: View {
         LinkView(link: link)
         if !source.snippet.isEmpty {
           Text(source.snippet)
-            .font(.caption)
+            .font(editorTheme.font(for: .ui, style: .caption))
             .foregroundStyle(.secondary)
             .lineLimit(Self.snippetLineLimit)
         }

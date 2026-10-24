@@ -37,6 +37,7 @@ public struct TaskListView: View {
   let entry: PlanTranscriptEntry
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the task list of one plan entry of a `SessionModel`, for the row
   /// of the entry in the transcript.
@@ -176,7 +177,7 @@ public struct TaskListView: View {
           isExpanded: false)
       } else {
         Text(TaskListView.headerText(for: entry.entries))
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
           .accessibilityIdentifier(TaskListView.planIdentifier(row: key))
         ForEach(Array(entry.entries.enumerated()), id: \.offset) { index, item in
           PlanEntryRow(entry: item)

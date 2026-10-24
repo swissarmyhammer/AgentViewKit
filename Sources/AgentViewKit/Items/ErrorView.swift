@@ -69,9 +69,9 @@ public struct ErrorView: View {
           .accessibilityHidden(true)
         VStack(alignment: .leading, spacing: theme.spacing.xs) {
           Text(content.title)
-            .font(.headline)
+            .font(editorTheme.font(for: .ui, style: .headline))
           Text(content.detail)
-            .font(.callout)
+            .font(editorTheme.font(for: .ui, style: .callout))
             .foregroundStyle(.secondary)
             .textSelection(.enabled)
         }

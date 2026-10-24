@@ -198,7 +198,7 @@ public struct PermissionView: View {
   private var header: some View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       Label(request.request.title, systemImage: Self.symbol)
-        .font(.headline)
+        .font(editorTheme.font(for: .ui, style: .headline))
         .fontWeight(theme.symbolWeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(request.request.title)
@@ -206,7 +206,7 @@ public struct PermissionView: View {
         .accessibilityIdentifier(Self.titleIdentifier)
       if let description = request.request.description {
         Text(description)
-          .font(.callout)
+          .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(.secondary)
       }
     }
@@ -244,8 +244,8 @@ public struct PermissionView: View {
       HStack(spacing: theme.spacing.s) {
         Label(entry.title ?? id.rawValue, systemImage: Self.toolCallSymbol)
         if let kind = entry.kind {
-          Text(kind.wireValue)
-            .font(.caption)
+            Text(kind.wireValue)
+            .font(editorTheme.font(for: .ui, style: .caption))
             .foregroundStyle(.secondary)
         }
       }

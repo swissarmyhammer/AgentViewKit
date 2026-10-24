@@ -1,4 +1,6 @@
 import AppKit
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 
 /// A compact view of a file: the type icon, the name, and the size
@@ -25,6 +27,7 @@ public struct AttachmentChip: View {
   let attachment: Attachment
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the chip of a file.
   ///
@@ -53,7 +56,7 @@ public struct AttachmentChip: View {
           .truncationMode(.middle)
         if let sizeText = Self.sizeText(attachment.size) {
           Text(sizeText)
-            .font(.caption)
+            .font(editorTheme.font(for: .ui, style: .caption))
             .foregroundStyle(.secondary)
         }
       }

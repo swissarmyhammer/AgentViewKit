@@ -239,7 +239,7 @@ public struct SessionListView: View {
   /// - Returns: The message text.
   private func failure(_ message: String) -> some View {
     Text(message)
-      .font(.caption)
+      .font(editorTheme.font(for: .ui, style: .caption))
       .foregroundStyle(editorTheme.severityError)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal)
@@ -319,7 +319,7 @@ public struct SessionListView: View {
         .lineLimit(1)
       if let updatedAt = info.updatedAt.flatMap(ISO8601Time.date(from:)) {
         Text(updatedAt, format: .relative(presentation: .named))
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
       }
     }

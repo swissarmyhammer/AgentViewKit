@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -113,6 +115,7 @@ struct AgentBreadcrumb: View {
   let sessionTitle: String?
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
@@ -122,7 +125,7 @@ struct AgentBreadcrumb: View {
         DecorativeSymbolImage(name: SharedSymbol.disclosure)
           .imageScale(.small)
         Text(sessionTitle)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
           .foregroundStyle(.primary)
           .lineLimit(1)
           .accessibilityIdentifier(Self.sessionIdentifier)
@@ -145,12 +148,12 @@ struct AgentBreadcrumb: View {
     HStack(alignment: .firstTextBaseline, spacing: theme.spacing.s) {
       DecorativeSymbolImage(name: AgentInfoHeader.symbol)
       Text(agent)
-        .font(.headline)
+        .font(editorTheme.font(for: .ui, style: .headline))
         .lineLimit(1)
         .layoutPriority(Self.agentPriority)
         .accessibilityIdentifier(Self.agentIdentifier)
       Text(Self.versionLine(of: version))
-        .font(.callout)
+        .font(editorTheme.font(for: .ui, style: .callout))
         .foregroundStyle(.secondary)
         .lineLimit(1)
     }

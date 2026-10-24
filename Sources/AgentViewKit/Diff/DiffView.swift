@@ -253,7 +253,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
             .foregroundStyle(editorTheme.diffRemovedText)
         }
       }
-      .font(.caption)
+      .font(editorTheme.font(for: .ui, style: .caption))
       .monospacedDigit()
       .padding(.horizontal, theme.spacing.s)
       .padding(.vertical, theme.spacing.xs)
@@ -289,7 +289,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
         }
       } else {
         Text("The agent sent no patch text for these changes.", bundle: .module)
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
           .accessibilityIdentifier(Self.noPatchIdentifier)
       }

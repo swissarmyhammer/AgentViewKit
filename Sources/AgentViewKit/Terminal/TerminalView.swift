@@ -205,7 +205,7 @@ public struct TerminalView: View {
       Spacer(minLength: theme.spacing.s)
       if let cwd = entry.cwd?.rawValue {
         Text(cwd)
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.head)
@@ -246,7 +246,7 @@ public struct TerminalView: View {
           .accessibilityLabel(String(localized: "Running", bundle: .module))
           .accessibilityIdentifier(Self.progressIdentifier)
         Text(String(localized: "Running", bundle: .module))
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
           .accessibilityHidden(true)
       }

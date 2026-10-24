@@ -78,9 +78,9 @@ struct StatusBar: View {
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: theme.spacing.xs) {
         Text(message.title)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
         Text(message.explanation)
-          .font(.callout)
+          .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(.secondary)
       }
       .accessibilityElement(children: .combine)

@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -500,6 +502,7 @@ private struct DeckHeader: View {
   let waitingCount: Int
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
@@ -522,7 +525,7 @@ private struct DeckHeader: View {
           .accessibilityIdentifier(RequestDeck.waitingIdentifier)
       }
     }
-    .font(.callout)
+    .font(editorTheme.font(for: .ui, style: .callout))
     .labelStyle(.iconOnly)
     .buttonStyle(.borderless)
   }

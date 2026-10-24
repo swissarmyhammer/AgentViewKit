@@ -61,11 +61,11 @@ public struct ConnectionStatusChip: View {
     let reason = Self.reason(of: status)
     HStack(spacing: theme.spacing.xs) {
       Image(systemName: Self.symbolName(for: status))
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(color(for: status))
       Text(label)
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .foregroundStyle(.secondary)
         .lineLimit(1)
     }

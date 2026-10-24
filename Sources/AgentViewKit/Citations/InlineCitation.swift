@@ -248,8 +248,12 @@ struct InlineCitationPill: View {
   var body: some View {
     let textFontSize = (font ?? .body).resolve(in: fontResolutionContext).pointSize
     let metrics = InlineCitationMetrics(index: index, textFontSize: textFontSize)
-    Text(verbatim: String(index))
-      .font(.system(size: metrics.digitFontSize, weight: .semibold).monospacedDigit())
+    // The number is chrome, so it draws in the `ui` face of the theme, at the
+    // fixed size of the metrics.
+    var digitFace = editorTheme.face(for: .ui)
+    digitFace.size = metrics.digitFontSize
+    return Text(verbatim: String(index))
+      .font(digitFace.font().weight(.semibold).monospacedDigit())
       // D113 answer 5 permits the accent here and in the capsule fill: the
       // pill is a link, a button that selects its source.
       .foregroundStyle(editorTheme.accent)

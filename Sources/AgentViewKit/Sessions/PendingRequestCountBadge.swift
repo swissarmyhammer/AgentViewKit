@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -64,6 +66,8 @@ public struct PendingRequestCountBadge: View {
   /// The session model whose pending requests the badge counts.
   let session: SessionModel
 
+  @Environment(\.editorTheme) private var editorTheme
+
   /// Makes the badge of a session.
   ///
   /// - Parameter session: The session model whose pending requests the badge
@@ -76,7 +80,7 @@ public struct PendingRequestCountBadge: View {
     let count = session.pendingRequests.count
     if count > 0 {
       Text(count, format: .number)
-        .font(.caption.monospacedDigit())
+        .font(editorTheme.font(for: .ui, style: .caption).monospacedDigit())
         .foregroundStyle(.secondary)
         .padding(.horizontal, Self.horizontalPadding)
         .padding(.vertical, Self.verticalPadding)

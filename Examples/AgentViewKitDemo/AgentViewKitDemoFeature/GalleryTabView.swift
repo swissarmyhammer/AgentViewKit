@@ -1,4 +1,6 @@
 import AgentViewKit
+import EditorSwiftUI
+import EditorTheme
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -231,10 +233,7 @@ struct GalleryTabView: View, DemoStartingTab {
   /// - Returns: The section.
   private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
     VStack(alignment: .leading, spacing: 0) {
-      Text(title)
-        .font(.headline)
-        .padding([.horizontal, .top])
-        .accessibilityAddTraits(.isHeader)
+      GallerySectionTitle(title: title)
       content()
     }
   }
@@ -273,5 +272,25 @@ struct GalleryTabView: View, DemoStartingTab {
     } else {
       DemoStartView(phase: phase, tab: self)
     }
+  }
+}
+
+/// The title of one section of the sidebar of the Gallery tab.
+///
+/// The title draws in the `ui` font role of the EditorKit theme at the
+/// headline text style. It reads the theme from its own environment, so it
+/// takes the theme of the look (``SwiftUI/View/galleryLook(_:)``) and not the
+/// theme around the tab.
+private struct GallerySectionTitle: View {
+  /// The title of the section.
+  let title: String
+
+  @Environment(\.editorTheme) private var editorTheme
+
+  var body: some View {
+    Text(title)
+      .font(editorTheme.font(for: .ui, style: .headline))
+      .padding([.horizontal, .top])
+      .accessibilityAddTraits(.isHeader)
   }
 }

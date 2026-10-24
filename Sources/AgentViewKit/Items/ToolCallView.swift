@@ -643,6 +643,7 @@ private struct ToolCallWaitingStatus: View {
   let entry: ToolCallEntry
 
   @Environment(\.sessionModel) private var session
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     if let session {
@@ -651,7 +652,7 @@ private struct ToolCallWaitingStatus: View {
       } else if let host = Self.waitingHost(of: entry, in: session) {
         let text = String(localized: "Waiting for \(host)", bundle: .module)
         Label(text, systemImage: ToolCallView.urlWaitingSymbol)
-          .font(.callout)
+          .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(.secondary)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel(text)
@@ -674,7 +675,7 @@ private struct ToolCallWaitingStatus: View {
         systemImage: SharedSymbol.question)
     }
     .buttonStyle(.borderless)
-    .font(.callout)
+    .font(editorTheme.font(for: .ui, style: .callout))
     .accessibilityHint(Text("Shows the question", bundle: .module))
     .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
   }
@@ -723,6 +724,7 @@ private struct LocationChips: View {
   let locations: [FoundationModelsACP.ToolCallLocation]
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     ChipFlowLayout(spacing: theme.spacing.xs) {
@@ -742,7 +744,7 @@ private struct LocationChips: View {
     let shortText = FoundationModelsACP.ToolCallLocation.text(
       path: URL(fileURLWithPath: path).lastPathComponent, line: location.line)
     return Label(shortText, systemImage: SharedSymbol.document)
-      .font(.caption)
+      .font(editorTheme.font(for: .ui, style: .caption))
       .lineLimit(1)
       .truncationMode(.middle)
       .padding(.horizontal, theme.spacing.s)

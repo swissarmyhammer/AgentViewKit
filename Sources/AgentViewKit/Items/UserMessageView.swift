@@ -89,7 +89,7 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
 
     var body: some View {
       Label(Self.title(of: state), systemImage: Self.symbol(of: state))
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(editorTheme.statusColor(for: state))
         .accessibilityElement(children: .ignore)

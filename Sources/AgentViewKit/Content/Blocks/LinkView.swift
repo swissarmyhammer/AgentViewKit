@@ -1,4 +1,6 @@
 import AppKit
+import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACP
 import LinkPresentation
 import SwiftUI
@@ -28,6 +30,7 @@ public struct LinkView: View {
   @State private var icon: NSImage?
 
   @Environment(\.openURL) private var openURL
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view of an ACP resource link.
   ///
@@ -60,7 +63,7 @@ public struct LinkView: View {
       VStack(alignment: .leading) {
         Text(name)
         Text(uri)
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
       }
       .accessibilityElement(children: .combine)

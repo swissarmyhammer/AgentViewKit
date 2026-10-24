@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -38,6 +40,7 @@ public struct ArtifactView: View {
   let artifact: ArtifactPayload
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the panel of an artifact.
   ///
@@ -51,7 +54,7 @@ public struct ArtifactView: View {
     VStack(alignment: .leading, spacing: theme.spacing.s) {
       HStack(spacing: theme.spacing.s) {
         Label(artifact.title, systemImage: SharedSymbol.artifact)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
           .accessibilityIdentifier(Self.titleIdentifier)
         Spacer(minLength: theme.spacing.s)

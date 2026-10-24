@@ -9,17 +9,20 @@ Type size on macOS 27.
 ## Rule
 
 Each font of the kit uses a text style. The EditorKit theme in the
-`\.editorTheme` environment value has one font for each `FontRole` (EditorKit
-^wg1hac2):
+`\.editorTheme` environment value has one `FontFace` for each `FontRole`
+(EditorKit ^wg1hac2, ^aqqd6sb): a family, a system design and a size, with no
+text style of its own. `theme.font(for: role, style:)` builds the face of a
+role at a text style, and `uiFont`, `displayFont` and `codeFont` are the face
+of each role at `body`:
 
-- `uiFont` (the `ui` role) for the chrome: headers, labels, rows, chips and
-  times. Its default is `Font.body`.
-- `displayFont` (the `display` role) for the prose and the text a person
+- `uiFace` (the `ui` role) for the chrome: headers, labels, rows, chips and
+  times. Its default is `FontFace.system`, the system font.
+- `displayFace` (the `display` role) for the prose and the text a person
   types: the Markdown text of a message, the composer and the text fields.
-  Its default is `Font.body`.
-- `codeFont` (the `code` role) for the code: code blocks, diffs, commands,
-  terminal and tool output. Its default is
-  `.system(.body, design: .monospaced)`.
+  Its default is `FontFace.system`.
+- `codeFace` (the `code` role) for the code: code blocks, diffs, commands,
+  terminal and tool output. Its default is `FontFace.monospaced`, the system
+  monospaced font.
 
 The EditorKit editor draws its text in the font of its role, and its row
 height is the row height of the resolved font. An `EditorView` draws in
@@ -30,11 +33,16 @@ elicitation field name `.display`.
 The code text of each kit view uses `codeFont` as it is. The role has one
 size, and a view does not change it. Thus a command, a working directory and
 a URL do not use a caption or a callout size: they use the size of the theme
-(task ^ctff8rk). Smaller and larger chrome uses a system text style, such as
-`.caption` or `.headline`, as the EditorKit chrome does: a SwiftUI `Font`
-cannot take the font of a role at another text style. No kit view picks a
-font outside the roles: a fixed monospaced font, such as `.body.monospaced()`,
-a font family, such as `.custom("Menlo", size: 12)`, or a font design.
+(task ^ctff8rk). Smaller and larger chrome uses the `ui` role at a text
+style, such as `editorTheme.font(for: .ui, style: .caption)` or
+`editorTheme.font(for: .ui, style: .headline)`, as the EditorKit chrome does
+with `\.chromeFont`. So a theme that names a `ui` family, such as a Zed
+`ui_font_family`, reaches each caption and headline of the chrome, and the
+default themes draw the system text style as before (task ^qsby62v). No kit
+view picks a font outside the roles: a fixed monospaced font, such as
+`.body.monospaced()`, a font family, such as `.custom("Menlo", size: 12)`, a
+font design, or a bare system text style, such as `.font(.caption)`, which
+draws in the system font and not in the `ui` face.
 `Tests/PackageStructureTests/FontRoleTests.swift` scans the views of the kit
 and of the examples for such a font.
 
@@ -45,7 +53,10 @@ Two views set a point size, and both sizes come from a resolved text style:
   view shows the source in `codeFont`. In a message, the environment font is
   the `displayFont` of the prose.
 - `InlineCitation` measures the size of the text font of its run, and scales
-  the digit font from that size.
+  the digit font from that size. The digits are chrome, so they draw in a
+  copy of the `ui` face with that fixed size, and a `ui` family reaches them.
+  A view that needs a fixed size uses a face in this way: a bare
+  `.system(size:)` draws in the system font, and `FontRoleTests` finds it.
 
 Thus, when the platform scales a text style, the kit text scales with it.
 

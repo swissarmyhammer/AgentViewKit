@@ -21,6 +21,7 @@ struct OutputCapRow: View {
   let showAll: () -> Void
 
   @Environment(\.agentTheme) private var theme
+  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     HStack(spacing: theme.spacing.s) {
@@ -29,7 +30,7 @@ struct OutputCapRow: View {
           localized: "Showing the last \(rows.visibleCount) of \(rows.totalCount) lines",
           bundle: .module)
       )
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(capIdentifier)
       Spacer(minLength: theme.spacing.s)
@@ -38,7 +39,7 @@ struct OutputCapRow: View {
         systemImage: Self.showAllSymbol, action: showAll
       )
         .buttonStyle(.borderless)
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .accessibilityIdentifier(showAllIdentifier)
     }
     .padding(.horizontal, theme.spacing.m)
@@ -67,7 +68,7 @@ struct OutputExitLabel: View {
 
   var body: some View {
     Label(text, systemImage: symbolName)
-      .font(.caption)
+      .font(editorTheme.font(for: .ui, style: .caption))
       .fontWeight(theme.symbolWeight)
       .foregroundStyle(outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary)
       .padding(.horizontal, theme.spacing.m)

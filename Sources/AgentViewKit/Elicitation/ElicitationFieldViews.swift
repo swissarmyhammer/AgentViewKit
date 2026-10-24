@@ -131,7 +131,7 @@ struct ElicitationFieldChrome<Control: View>: View {
     VStack(alignment: .leading, spacing: theme.spacing.xs) {
       HStack(spacing: theme.spacing.xs) {
         Text(schema.title)
-          .font(.headline)
+          .font(editorTheme.font(for: .ui, style: .headline))
         if schema.required {
           Text(verbatim: "*")
             .foregroundStyle(editorTheme.severityError)
@@ -140,7 +140,7 @@ struct ElicitationFieldChrome<Control: View>: View {
       }
       if let description = schema.description {
         Text(description)
-          .font(.caption)
+          .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(.secondary)
       }
       control
@@ -150,7 +150,7 @@ struct ElicitationFieldChrome<Control: View>: View {
             Text(message)
           }
         }
-        .font(.caption)
+        .font(editorTheme.font(for: .ui, style: .caption))
         .foregroundStyle(editorTheme.severityError)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(ElicitationFieldView.errorsIdentifier(for: schema.name))
