@@ -88,11 +88,9 @@ public struct ImageView: View {
   /// - Parameter data: The bytes of the image.
   /// - Returns: The attachment, also before the file exists.
   private func file(of data: Data) -> Attachment {
-    let url = ContentBlockFile.url(of: data, named: name)
-    return Attachment(
-      id: AttachmentID(url.absoluteString), url: url,
-      type: ContentBlockFile.type(mimeType: image.mimeType.rawValue, fallback: .image), name: name,
-      size: data.count)
+    ContentBlockFile.attachment(
+      of: data, named: name,
+      type: ContentBlockFile.type(mimeType: image.mimeType.rawValue, fallback: .image))
   }
 
   /// Writes the block file of the image, so that the attachment commands of
