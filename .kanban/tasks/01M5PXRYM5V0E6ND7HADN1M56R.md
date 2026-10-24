@@ -121,6 +121,49 @@ comments:
     - evidence: `swift test` — 1828 tests in 225 suites passed, 7 known issues (expected), 0 failures. Regenerated AgentViewKitDemo.xcodeproj; `xcodebuild ... build` — BUILD SUCCEEDED, 0 repo warnings (only the toolchain line "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"). `Scripts/test-examples.sh AgentViewKitDemo` under the shared UI-test lock — 10 UI tests, 0 failures, "The example gate passed." No draft files left; nothing committed; no source changes.
     - next: review
   timestamp: 2026-10-24T23:08:23.944631+00:00
+- actor: claude-code
+  id: 01m5r2xjda3ck7tt1tn0vebnzy
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (41ea39e), batched, complete (attempted 14, failed 0, skipped 0; 8 PNG snapshots not text) — 2 findings, 2 confirmed, 0 refuted — Sources/AgentViewKit/Diff/DiffView.swift:267, Sources/AgentViewKit/Elicitation/ElicitationLayout.swift:166
+    - next: implement the shared selection-row modifier (selectionSurface + matching contentShape from one radius) and call it from DiffView.fileRow and ElicitationLayout tab; re-run /finish
+  timestamp: 2026-10-24T23:11:16.906414+00:00
+- actor: claude-code
+  id: 01m5r2y3ds43j9q8c2fd6579gw
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — every selection uses .selectionSurface (EK e79b163). InspectorSelectable added; SelectionFillTests added; hosted tests added; 8 PNGs re-recorded.
+    - test: green — swift test 1828/225 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: 9a3482a (chore kanban), 41ea39e (code, HEAD)
+    - review: findings — DiffView.swift:267 and ElicitationLayout.swift:166 (duplication: the selectionSurface + contentShape pair)
+  timestamp: 2026-10-24T23:11:34.329708+00:00
+- actor: claude-code
+  id: 01m5r3d09kt0fr731ggpdt5kkx
+  text: |-
+    ### review findings fixed (2026-10-24)
+    Both duplication findings had one cause: each site paired `.selectionSurface` with its own hit/focus `.contentShape` and could let the two drift apart.
+    - New kit modifier in the theme layer: `Sources/AgentViewKit/Theme/SelectableSurface.swift`. It has `SelectableSurface` (ViewModifier) plus `.selectableSurface(_:radius:)` (radius step) and `.selectableSurface(_:corners:)` (`AgentSurfaceCorners`). It reads one radius (`corners.radius(in: editorStyle)`) and applies both `.selectionSurface(_:cornerRadius:)` and `.contentShape([.interaction, .focusEffect], EditorSurface.shape(radius:))` from it. EK's step form resolves to the same private modifier as the cornerRadius form, so nothing draws differently.
+    - Call sites: `DiffView.fileRow` and `ElicitationLayout.tab` now call `.selectableSurface(isSelected, radius:)`; `.inlineEdge` stays at the tab call site.
+    - Other `.selectionSurface` sites I checked:
+      - `InspectorSelectable` had the same pairing, but with a different shape (`.selectionSurface(cornerRadius:)` + `.contentShape(.rect)`). It now uses `.selectableSurface(_:corners:)`, so a tap lands in the surface shape. Its now-unused `editorStyle` environment value is removed.
+      - `PromptCompletionRow` had no content shape. I moved it onto the shared modifier anyway, so that every selection uses one code path. Hit testing doesn't change: EK's `CompletionSuggestionsList` wraps each row in `.contentShape(Rectangle()).onTapGesture`, and the outer shape wins.
+    - Guard (written as a failing test first): two new SelectionFillTests. `onlyTheSharedSelectableSurfaceAppliesTheSelectionSurface(path:)` checks that `.selectionSurface(` appears in no file of the kit, the demo support or the demo except SelectableSurface.swift. `theSharedSelectableSurfaceAppliesTheSelectionSurface` checks that the shared file applies it. Both failed before the change and pass after it.
+    - No EditorKit API change.
+  timestamp: 2026-10-24T23:19:42.643171+00:00
+- actor: claude-code
+  id: 01m5r3d606mdme84y00cf646ae
+  text: |-
+    ### implement — changed
+    - evidence: 6 files — Sources/AgentViewKit/Theme/SelectableSurface.swift (new), Sources/AgentViewKit/Diff/DiffView.swift, Sources/AgentViewKit/Elicitation/ElicitationLayout.swift, Sources/AgentViewKit/Input/EditorKitPromptEditor.swift, Sources/AgentViewKit/Attachments/AttachmentView.swift, Tests/PackageStructureTests/SelectionFillTests.swift. `swift test`: 1828 tests in 225 suites passed with the 7 known issues, and the PackageStructureTests run passed 250/33. No snapshot changed, none re-recorded. Regenerated the xcodeproj (generate_xcodeproj.rb). Demo `xcodebuild … build`: BUILD SUCCEEDED, 0 repo warnings (the only warning is the toolchain appintentsmetadataprocessor line). Both review findings are flipped to [x]. Nothing committed.
+    - next: /review
+  timestamp: 2026-10-24T23:19:48.486785+00:00
+- actor: claude-code
+  id: 01m5r3s16wp14hz6t8pv5dcrw7
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1828 tests in 225 suites passed, 7 known issues (expected), 0 failures. xcodeproj regenerated; `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo ... build` — BUILD SUCCEEDED, 0 repo warnings (only the Xcode tool note "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"). `Scripts/test-examples.sh AgentViewKitDemo` under the UI-test lock — 10 UI tests, 0 failures, PASS AgentViewKitDemo; no demo process left running, no new files in git status.
+    - next: review
+  timestamp: 2026-10-24T23:26:16.796472+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Draw every selection through the shared EditorStyle selection surface (translucent accent, one code path)
@@ -148,3 +191,20 @@ Today's separate drawings to replace:
 - [x] Hosted tests: selected, inactive-window selected, and selected plus focused each draw the expected layer; text stays `.primary`.
 - [x] Snapshots re-recorded for the changed sites, each one listed.
 - [x] No compatibility shims; transparent backgrounds by default. #avk-8 #cross-repo
+
+## Review Findings (2026-10-24 18:09)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 14 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — the file holds no text to review:
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/elicitation-form-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/elicitation-form-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/elicitation-form-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/elicitation-form-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+
+- [x] `Sources/AgentViewKit/Diff/DiffView.swift:267` `duplication/duplication` — The file row repeats the selection-surface and hit-shape modifier pair from the tab chip in ElicitationLayout. Both pair a `.selectionSurface(isSelected, radius:)` with a `.contentShape([.interaction, .focusEffect], EditorSurface.shape(radius: editorStyle.radii[...]))` built from the same radius step. The two copies must keep the hit shape equal to the painted surface, and they can drift apart if one is edited. Extract a shared modifier, for example `SelectionRow(isSelected:radius:)` with a `.selectableRowSurface(_:radius:)` extension in EditorKit or the kit's theme layer. It applies `.selectionSurface` and the matching `.contentShape` from one radius value. Call it from `fileRow` and `tab`, passing the radius constant that differs.
+- [x] `Sources/AgentViewKit/Elicitation/ElicitationLayout.swift:166` `duplication/duplication` — The tab chip repeats the selection-surface and hit-shape pairing used by the diff file row. The hit shape of the selected tab must match its selection surface, and two copies of that pairing can drift apart. Use the same shared selection-row modifier proposed for DiffView.fileRow, so that both sites take one radius value and derive the selection surface and the hit shape from it. Keep `.inlineEdge` at this call site, since only the tab chip uses it.
