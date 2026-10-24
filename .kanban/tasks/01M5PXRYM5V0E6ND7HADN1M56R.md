@@ -80,6 +80,47 @@ comments:
     - The step form resolves to the same private modifier, so the fill, the inactive grey and `.isSelected` are identical.
     Next: run `swift package update EditorKit` to e79b163 or later, then resume /implement with the recorded plan.
   timestamp: 2026-10-24T22:11:42.257245+00:00
+- actor: claude-code
+  id: 01m5r01q75r490r6e0qqztpbzw
+  text: |-
+    ### picked up after unblock (2026-10-24)
+    `swift package update EditorKit` resolved EK main e79b1639a5b23eee83de2d78f26000d75f7d3746 (contains ^1psb3k1 feature commit cd2c88b). Implementing from the research comment with `.selectionSurface(_:cornerRadius:)`/`(_:radius:)`.
+  timestamp: 2026-10-24T22:21:07.173315+00:00
+- actor: claude-code
+  id: 01m5r22x6nk10g1agsnb6ht9gd
+  text: |-
+    ### implementation (2026-10-24)
+    EK resolved at e79b1639a5b23eee83de2d78f26000d75f7d3746.
+
+    What landed:
+    - `AttachmentSelectAction.isSelected(_:)` and `HostAttachmentTarget.isSelected(_:)` (AttachmentInspectorMode.swift) compare by URL. In host mode the selection also has to belong to this thread view's session id. One binding serves several thread views, so a file picked in another thread is not this thread's selection.
+    - `SelectOnTap` is replaced by `InspectorSelectable(file:corners:action:)` (AttachmentView.swift): one modifier for "select into the inspector and show it selected". It draws `.selectionSurface(_:cornerRadius: corners.radius(in:))`, the same value its scope ring uses. It takes the cornerRadius form, not a branch on the step. AttachmentView's corners change when a preview falls back to the chip, and a `_ConditionalContent` branch would reset the view's state. Used by AttachmentView (surfaceCorners), ImageView (new `ImageView.corners = .square`) and the ToolCallView LocationChips (`AttachmentChip.corners`, still on its resting `.quaternary` chip fill).
+    - DiffView file rows: `.selectionSurface(isSelected, radius: Self.fileRowRadius)` (.small). The content shape for `[.interaction, .focusEffect]` is now `EditorSurface.shape` of that radius, so the button's focus ring follows the same corners.
+    - ElicitationLayout tabs: the Capsule accent fill, `selectedTabOpacity` and the Capsule stroke are gone. The tab is now `.selectionSurface(isSelected, radius: Self.tabRadius)` (.medium, the kit chip corners) plus `.inlineEdge(radius:)` for the separator edge. That edge is transparent by default and shows a fill only under a host `inlineFill`. The focus-effect content shape is in the same shape. The tab is now a rounded rect, not a capsule, because a capsule is not an `AgentSurfaceCorners` value.
+    - PromptCompletionRow: `.selectionSurface(isSelected, radius: .small)` inset 2pt horizontally, matching EK's CompletionRow.
+    - Allow-lists: DiffView left ContentFillTests `backgroundInShapeFiles` and ElicitationLayout left `shapeFillFiles`. ElicitationLayout left ThemeInjectionTests `accentFiles`, so InlineCitation's chip fill is the only accent use left.
+    - New structure suite `SelectionFillTests` with fixtures `Fixtures/SelectionFill/{Violating,Clean}`. It has two forms and no allowed files: `systemSelectionStyle` (implicit `.selection` / `SelectionShapeStyle`) and `conditionalFill` (`.background(`/`.fill(` with a top-level ` ? `). Accent and tint stay with ThemeInjectionTests.
+    - Hosted tests in `SelectionSurfaceSitesHostedTests`: completion row fill when active and when inactive, and none when unselected. Image fill when active and inactive, none when unselected, and selected+focused (fill plus a square ring mask). The AttachmentView chip, active and inactive, matches the unselected view on an outer shared surface pixel for pixel, so its text keeps `.primary`. Tool call location selected vs unselected. Unit tests in `AttachmentSelectActionTests`.
+
+    Discoveries:
+    - TestImage's PNG is fully clear, so the fill shows through the ImageView, and the image pixel test reads the expected fill at the center.
+    - ArtifactView: the panel scope owns the focus ring (.medium) and the inner AttachmentView's scope is skipped. The selection fill is drawn by the inner AttachmentView with its own preview corners (square for a text preview). The plan treated ArtifactView through AttachmentView, and I followed it. Review may want the artifact's fill on the panel instead.
+    - `missing creator for mutated node … mlx-swift_Cmlx.bundle` is a SwiftPM build-system warning about a dependency product. It is not repo code and was already there.
+  timestamp: 2026-10-24T22:56:43.221823+00:00
+- actor: claude-code
+  id: 01m5r2374r37chpbwjdhfnf6bq
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` gave 1828 tests in 225 suites passed, with the 7 expected known issues. Re-recorded snapshots, each diff confined to the tab-row band: HostedSnapshotTests elicitation-form-{light,dark,reduce-transparency,increase-contrast}.png and request-deck-bar-{light,dark,reduce-transparency,increase-contrast}.png. Regenerated the xcodeproj. The demo `xcodebuild … build` gave BUILD SUCCEEDED with 0 repo warnings; the only warning line is Xcode's appintentsmetadataprocessor. `Scripts/test-examples.sh AgentViewKitDemo` ran under the shared lock: TEST SUCCEEDED, 10 UI tests, 0 failures, and "The example gate passed." Files: Sources/AgentViewKit/{Attachments/AttachmentInspectorMode.swift, Attachments/AttachmentView.swift, Content/Blocks/ImageView.swift, Diff/DiffView.swift, Elicitation/ElicitationLayout.swift, Input/EditorKitPromptEditor.swift, Items/ToolCallView.swift}; Tests/PackageStructureTests/{SelectionFillTests.swift (new), Fixtures/SelectionFill/ (new), ContentFillTests.swift, ThemeInjectionTests.swift}; Tests/AgentViewKitTests/{Attachments/AttachmentSelectActionTests.swift (new), Theme/SelectionSurfaceSitesHostedTests.swift (new)}; 8 snapshot PNGs. EK pinned at e79b163.
+    - next: /review. Open question for review: should ArtifactView draw the selection fill on its panel, which owns the focus ring, instead of on the inner preview?
+  timestamp: 2026-10-24T22:56:53.400829+00:00
+- actor: claude-code
+  id: 01m5r2r9g8w47vc2b7gb1pcjvx
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1828 tests in 225 suites passed, 7 known issues (expected), 0 failures. Regenerated AgentViewKitDemo.xcodeproj; `xcodebuild ... build` — BUILD SUCCEEDED, 0 repo warnings (only the toolchain line "appintentsmetadataprocessor: Metadata extraction skipped, no AppIntents.framework dependency found"). `Scripts/test-examples.sh AgentViewKitDemo` under the shared UI-test lock — 10 UI tests, 0 failures, "The example gate passed." No draft files left; nothing committed; no source changes.
+    - next: review
+  timestamp: 2026-10-24T23:08:23.944631+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Draw every selection through the shared EditorStyle selection surface (translucent accent, one code path)
@@ -101,9 +142,9 @@ Today's separate drawings to replace:
 - `Citations/SourcesView.swift` highlighted source: check how it draws.
 - Attachments and files that select into the host inspector show no selected state today (see ^fqr901r).
 
-- [ ] Each selection site above uses the shared modifier, with the same corners as its focus ring (`AgentSurfaceCorners`).
-- [ ] Attachment and file views show the selected state when the host inspector selection is that file.
-- [ ] A structure test forbids accent, `.selection`, `.quaternary` or tint fills used as a selection outside the shared modifier.
-- [ ] Hosted tests: selected, inactive-window selected, and selected plus focused each draw the expected layer; text stays `.primary`.
-- [ ] Snapshots re-recorded for the changed sites, each one listed.
-- [ ] No compatibility shims; transparent backgrounds by default. #avk-8 #cross-repo #blocked-upstream
+- [x] Each selection site above uses the shared modifier, with the same corners as its focus ring (`AgentSurfaceCorners`).
+- [x] Attachment and file views show the selected state when the host inspector selection is that file.
+- [x] A structure test forbids accent, `.selection`, `.quaternary` or tint fills used as a selection outside the shared modifier.
+- [x] Hosted tests: selected, inactive-window selected, and selected plus focused each draw the expected layer; text stays `.primary`.
+- [x] Snapshots re-recorded for the changed sites, each one listed.
+- [x] No compatibility shims; transparent backgrounds by default. #avk-8 #cross-repo
