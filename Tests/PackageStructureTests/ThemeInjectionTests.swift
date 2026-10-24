@@ -95,12 +95,14 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   /// link and a current item that is not the selection and has no focus read
   /// no accent: the text of a citation pill, the current source of
   /// `SourcesView.swift` and the viewport band of `ThreadMinimapView.swift`
-  /// left this list.
+  /// left this list. A selection reads no theme accent either: it draws the
+  /// tint through the shared selection surface of EditorKit, so the selected
+  /// tab of `ElicitationLayout.swift` left this list (card ^dn1m56r), and the
+  /// citation chip fill is the one use left.
   static let accentFiles: [String: [String]] = [
     KitSourceFiles.kitFile("Citations/InlineCitation.swift"): [
       "The capsule fill of a citation pill: the citation chip fill."
-    ],
-    KitSourceFiles.kitFile("Elicitation/ElicitationLayout.swift"): ["The fill of the selected tab: the selection."],
+    ]
   ]
 
   /// The pattern that finds the form in the code of a file. A match can

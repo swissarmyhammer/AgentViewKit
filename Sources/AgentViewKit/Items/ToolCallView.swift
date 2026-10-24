@@ -744,12 +744,14 @@ private struct ToolCallWaitingStatus: View {
 /// host in the host mode of a thread view, otherwise the
 /// ``InspectorSelection``. The chip is the scope of the file
 /// (`agentAttachment:<id>`, AVK-11), so its context menu and the command
-/// palette show the ``AgentAttachmentVerb`` commands for the file. The chip
-/// keeps its short label, because an ``AttachmentView`` would show the whole
-/// file.
+/// palette show the ``AgentAttachmentVerb`` commands for the file. While the
+/// inspector shows the file, the chip sits on the shared selection surface.
+/// The chip keeps its short label, because an ``AttachmentView`` would show
+/// the whole file.
 private struct LocationChips: View {
   /// The corners of a chip: the corners of an ``AttachmentChip``. The fill
-  /// of the chip and the focus ring of its scope both have them.
+  /// of the chip, its selection surface and the focus ring of its scope all
+  /// have them.
   static let corners = AttachmentChip.corners
 
   /// The ACP locations to show.
@@ -791,7 +793,7 @@ private struct LocationChips: View {
       .help(fullText)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(fullText)
-      .modifier(SelectOnTap { selectForInspector(file) })
+      .modifier(InspectorSelectable(file: file, corners: Self.corners) { selectForInspector(file) })
       .accessibilityIdentifier(ToolCallView.locationIdentifier(for: id, index: index))
       .agentAttachmentScope(file, focusRingCorners: Self.corners)
   }

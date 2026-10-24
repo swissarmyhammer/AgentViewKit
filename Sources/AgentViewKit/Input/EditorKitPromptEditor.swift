@@ -598,7 +598,19 @@ public struct EditorKitPromptEditor: View {
 }
 
 /// One row of the completion list of ``EditorKitPromptEditor``.
+///
+/// The selected row sits on the shared selection surface of EditorKit, in
+/// the small radius and inset from the edges of the list, as the completion
+/// row of EditorKit does.
 struct PromptCompletionRow: View {
+  /// The radius step of the selection surface: the small radius of a row in
+  /// a list.
+  static let selectionRadius = EditorStyle.Radius.small
+
+  /// The horizontal inset of the selection surface inside the row: the inset
+  /// of the completion row of EditorKit.
+  static let selectionHorizontalInset: CGFloat = 2
+
   /// The completion of the row.
   let item: Completion
 
@@ -623,7 +635,8 @@ struct PromptCompletionRow: View {
     }
     .padding(.horizontal, editorStyle.spacing.s)
     .padding(.vertical, editorStyle.spacing.xs)
-    .background(isSelected ? AnyShapeStyle(.selection) : AnyShapeStyle(.clear))
+    .selectionSurface(isSelected, radius: Self.selectionRadius)
+    .padding(.horizontal, Self.selectionHorizontalInset)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(item.label)
     .accessibilityValue(item.detail ?? "")

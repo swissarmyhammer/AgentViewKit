@@ -50,8 +50,6 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
   /// The files that can use ``backgroundInShape``, relative to the package
   /// root, each with the reason.
   static let backgroundInShapeFiles = [
-    KitSourceFiles.kitFile("Diff/DiffView.swift"):
-      "The fill marks the selected file of the diff: the selection or the focus.",
     KitSourceFiles.kitFile("Items/ToolCallView.swift"): "The capsule fill of a tool call badge: a small chip.",
     KitSourceFiles.kitFile("Attachments/AttachmentChip.swift"): "The fill of an attachment chip: a small chip.",
     KitSourceFiles.kitFile("Sessions/PendingRequestCountBadge.swift"):
@@ -63,20 +61,18 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
   /// The files that can use ``shapeFill``, relative to the package root, each
   /// with the reason.
   static let shapeFillFiles = [
-    KitSourceFiles.kitFile("Elicitation/ElicitationLayout.swift"):
-      "The fill marks the selected tab: the selection or the focus.",
-    KitSourceFiles.kitFile("Citations/InlineCitation.swift"): "The fill of a citation chip: a link.",
+    KitSourceFiles.kitFile("Citations/InlineCitation.swift"): "The fill of a citation chip: a link."
   ]
 
   /// The files, relative to the package root, that can use the form, each
   /// with the reason.
   ///
-  /// The reasons that permit a fill are: the selection or the focus, a link,
-  /// a small chip that is not a card, and terminal data. A current item that
-  /// is not the selection and has no focus has no fill (card ^y2mrfxt), so
-  /// the current source of `Citations/SourcesView.swift` is not in a list.
-  /// The selected row of the prompt menu, `Input/EditorKitPromptEditor.swift`,
-  /// has a `.background(.selection)` fill with no shape, so no form finds it.
+  /// The reasons that permit a fill are: a link, a small chip that is not a
+  /// card, and terminal data. A selection draws through the shared selection
+  /// surface of EditorKit, which ``SelectionFillTests`` holds, so no
+  /// selection is in a list (card ^dn1m56r). A current item that is not the
+  /// selection and has no focus has no fill (card ^y2mrfxt), so the current
+  /// source of `Citations/SourcesView.swift` is not in a list.
   var allowedFiles: [String: String] {
     switch self {
     case .backgroundInShape: Self.backgroundInShapeFiles

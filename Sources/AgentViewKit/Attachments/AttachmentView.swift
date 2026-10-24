@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -127,11 +128,11 @@ public struct AttachmentView: View {
   @ViewBuilder private var renderedFile: some View {
     if let registered = registry.resolve(type: attachment.type) {
       registered(attachment.url)
-        .modifier(SelectOnTap(action: select))
+        .modifier(InspectorSelectable(file: attachment, corners: surfaceCorners, action: select))
     } else {
       let renderer = Self.renderer(for: attachment.type)
       AttachmentPreview(attachment: attachment, renderer: renderer)
-        .modifier(SelectOnTap(action: select))
+        .modifier(InspectorSelectable(file: attachment, corners: surfaceCorners, action: select))
         .accessibilityElement(children: renderer == .chip ? .combine : .contain)
         .accessibilityIdentifier(Self.identifier(for: renderer))
     }
@@ -163,16 +164,42 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
   }
 }
 
-/// Runs an action on a tap and on the default accessibility action.
+/// Makes a file view select its file for the inspector, and shows the
+/// selected state while the inspector shows that file (card ^dn1m56r).
 ///
-/// ``AttachmentView`` and ``ImageView`` use this modifier to select a file in
-/// the inspector.
-struct SelectOnTap: ViewModifier {
-  /// The action to run.
+/// A tap and the default accessibility action run `action`. While the
+/// inspector of the environment shows `file`
+/// (``AttachmentSelectAction/isSelected(_:)``), the view sits on the shared
+/// selection surface of EditorKit: the accent at a low opacity behind the
+/// view while the window is key, and the inactive grey while it is not. The
+/// text of the view stays `.primary`.
+///
+/// The surface has the corners of the view, the same corners that the focus
+/// ring of its attachment scope follows (``AgentSurfaceCorners``). The
+/// surface reads them as a corner radius
+/// (`.selectionSurface(_:cornerRadius:)`), as the ring does
+/// (`.scopeFocusRing(cornerRadius:)`): the corners of an ``AttachmentView``
+/// change when its preview shows the chip, and only the value of the radius
+/// changes, so the view keeps its identity and its state.
+///
+/// ``AttachmentView``, ``ImageView`` and the location chips of a tool call
+/// use this modifier.
+struct InspectorSelectable: ViewModifier {
+  /// The file of the view.
+  let file: Attachment
+
+  /// The corners of the surface of the view.
+  let corners: AgentSurfaceCorners
+
+  /// The action that selects the file for the inspector.
   let action: () -> Void
+
+  @Environment(\.attachmentSelect) private var selectForInspector
+  @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
     content
+      .selectionSurface(selectForInspector.isSelected(file), cornerRadius: corners.radius(in: editorStyle))
       .contentShape(.rect)
       .onTapGesture(perform: action)
       .accessibilityAction(.default, action)

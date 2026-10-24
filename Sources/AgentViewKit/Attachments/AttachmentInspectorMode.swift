@@ -59,6 +59,20 @@ struct HostAttachmentTarget {
   func select(_ attachment: Attachment) {
     selection.wrappedValue = AgentAttachmentSelection(attachment: attachment, sessionId: sessionId)
   }
+
+  /// Whether the inspector of the host shows `file` for the thread view.
+  ///
+  /// One binding can serve more than one thread view, so a file that the
+  /// user selected in another thread view is not the selection of this one.
+  /// The read compares the URL of the file (``AttachmentSelectAction/isSelected(_:)``).
+  ///
+  /// - Parameter file: The file of a view.
+  /// - Returns: `true` when the binding holds a selection of this thread view
+  ///   whose file has the URL of `file`.
+  func isSelected(_ file: Attachment) -> Bool {
+    guard let current = selection.wrappedValue, current.sessionId == sessionId else { return false }
+    return current.attachment.url == file.url
+  }
 }
 
 /// The action that selects a file for an inspector, after a press on an
@@ -88,6 +102,26 @@ struct AttachmentSelectAction {
     } else {
       selection?.select(attachment)
     }
+  }
+
+  /// Whether the inspector that gets the selection of the action shows
+  /// `file` now: the inspector of the host in the host mode of a thread
+  /// view, otherwise the inspector selection.
+  ///
+  /// The read compares the URL of the file, not the whole attachment. A view
+  /// can name its file with other fields than the attachment that a press
+  /// selects: for example, an ``ImageView`` makes its attachment from the
+  /// bytes and the MIME type of the block, before its block file exists,
+  /// and a press selects `Attachment(url:)` of the written file.
+  ///
+  /// - Parameter file: The file of a view.
+  /// - Returns: `true` when the inspector shows a file with the URL of
+  ///   `file`.
+  func isSelected(_ file: Attachment) -> Bool {
+    if let hostTarget {
+      return hostTarget.isSelected(file)
+    }
+    return selection?.attachment?.url == file.url
   }
 }
 

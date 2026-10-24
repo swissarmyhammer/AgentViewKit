@@ -17,7 +17,8 @@ import SwiftUI
 /// view writes the file when it shows, so the ``AgentAttachmentVerb``
 /// commands of its context menu and of the command palette can run on it.
 /// The image has square corners, so the focus ring of the scope is a
-/// rectangle.
+/// rectangle. While the inspector shows the block file of the image, the
+/// image sits on the shared selection surface, in the same rectangle.
 ///
 /// The view shows an ACP `ImageContent` that a transcript entry holds. The
 /// view decodes the base64 data of the ACP value when it shows it. Data that
@@ -29,6 +30,10 @@ public struct ImageView: View {
   /// The accessibility identifier of a placeholder for bytes that are not
   /// an image.
   public static let placeholderIdentifier = "image-block-placeholder"
+
+  /// The corners of the image: square. The selection surface and the focus
+  /// ring of the scope of the image both have them.
+  static let corners = AgentSurfaceCorners.square
 
   /// The file name stem of an image with no file name in its URI.
   private static let fileStem = "image"
@@ -71,9 +76,9 @@ public struct ImageView: View {
         .scaledToFit()
         .frame(maxHeight: PreviewLayout.maximumPreviewHeight)
         .accessibilityLabel(name)
-        .modifier(SelectOnTap { select(data: data) })
+        .modifier(InspectorSelectable(file: file, corners: Self.corners) { select(data: data) })
         .accessibilityIdentifier(Self.imageIdentifier)
-        .agentAttachmentScope(file, focusRingCorners: .square)
+        .agentAttachmentScope(file, focusRingCorners: Self.corners)
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
       Label(name, systemImage: SharedSymbol.imageFailure)

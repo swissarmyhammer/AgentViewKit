@@ -73,7 +73,8 @@ public nonisolated enum ElicitationTabMarks {
 /// When the form has ``ElicitationLayoutContext/tabThreshold`` fields or
 /// fewer, the layout shows each field inline. Otherwise it shows a row of
 /// tab chips and the field of the selected tab. Each chip shows the title,
-/// the required mark, and the answered mark of its field.
+/// the required mark, and the answered mark of its field. The selected chip
+/// sits on the shared selection surface of EditorKit.
 public struct ElicitationLayout: View {
   /// The default largest number of fields that show inline. A form with
   /// more than one field shows tabs.
@@ -83,8 +84,10 @@ public struct ElicitationLayout: View {
   static let answeredSymbol = ItemStatus.completed.systemImage
   /// The symbol of a tab with no answer.
   static let notAnsweredSymbol = SharedSymbol.notChosen
-  /// The opacity of the background of the selected tab.
-  static let selectedTabOpacity = 0.2
+  /// The radius step of a tab chip: the medium radius, the corners of a chip
+  /// of the kit. The edge of the chip, the shared selection surface of the
+  /// selected tab and the focus ring of the tab button all have this shape.
+  static let tabRadius = EditorStyle.Radius.medium
 
   /// The context of the layout.
   let context: ElicitationLayoutContext
@@ -158,13 +161,9 @@ public struct ElicitationLayout: View {
       }
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      // The accent is only for the selection and the focus (card ^y2mrfxt):
-      // the fill marks the selected tab, the selection.
-      .background(
-        Capsule().fill(isSelected ? editorTheme.accent.opacity(Self.selectedTabOpacity) : .clear)
-      )
-      .overlay(Capsule().strokeBorder(.separator))
-      .contentShape(Capsule())
+      .selectionSurface(isSelected, radius: Self.tabRadius)
+      .inlineEdge(radius: editorStyle.radii[Self.tabRadius])
+      .contentShape([.interaction, .focusEffect], EditorSurface.shape(radius: editorStyle.radii[Self.tabRadius]))
     }
     .buttonStyle(.plain)
     .accessibilityElement(children: .ignore)

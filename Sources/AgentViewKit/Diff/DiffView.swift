@@ -61,6 +61,11 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// is narrower, the file list goes on top.
   static let rendererMinWidth: CGFloat = 320
 
+  /// The radius step of a file row: the small radius. The selected row sits
+  /// on the shared selection surface in this shape, and the focus ring of the
+  /// row button follows the same shape.
+  static let fileRowRadius = EditorStyle.Radius.small
+
   /// The patch text, or `nil` for a structured diff with no patch text.
   let patch: String?
 
@@ -258,10 +263,9 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       .monospacedDigit()
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .background(
-        isSelected ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear),
-        in: EditorSurface.shape(radius: editorStyle.radii.s))
-      .contentShape(Rectangle())
+      .selectionSurface(isSelected, radius: Self.fileRowRadius)
+      .contentShape(
+        [.interaction, .focusEffect], EditorSurface.shape(radius: editorStyle.radii[Self.fileRowRadius]))
     }
     .buttonStyle(.plain)
     .help(file.path)
