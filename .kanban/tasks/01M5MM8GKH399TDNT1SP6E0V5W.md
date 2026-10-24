@@ -57,8 +57,30 @@ comments:
     - evidence: `swift test` against EditorKit a47fa49 (swift package edit): 228 tests (30 suites) + 1766 tests (216 suites) passed, 7 known issues (withKnownIssue checks), 0 failures, 0 compiler warnings. Demo `xcodebuild ... build` against a47fa49: BUILD SUCCEEDED. 16 HostedSnapshotTests images re-recorded (composer-idle x4, composer-running x4, thread x4, bottom-bar-buttons x4). `swift package unedit EditorKit` done; Package.resolved (gitignored) editorkit = main 69d04fc. Not committed.
     - next: EditorKit pushes ^wg1hac2, then bump the AVK EditorKit resolution to the pushed SHA, then /review. Follow-up card ^qsby62v.
   timestamp: 2026-10-23T23:58:42.943891+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5nkn0znx5j34nmxkepej69b
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (f5374f0) — 0 findings (confirmed 0, refuted 1, attempted 21, failed 0); 33 files reviewed. Not judged: tool rule `code-hygiene/dead-code-swift` failed because the build against resolved EditorKit main fails (`TerminalView.swift`: `any Theme` has no member `codeFont`). That is expected, since the commit needs the unpushed EditorKit branch hold/font-roles (a47fa49). The four "found no file" declines are for test files this commit deleted (ProseFontHostedTests, ThemeHeightExpectations, ThemeHeightExpectationsTests, FixedCodeFontTests).
+    - next: re-run dead-code-swift once the EditorKit pin resolves to a commit with the font roles; tell testudoapp-2c before pushing.
+  timestamp: 2026-10-24T00:05:59.413431+00:00
+- actor: claude-code
+  id: 01m5nknktv5d2dg7009geq8kd5
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — display/code/ui roles across the kit; FontRoleTests; 16 HostedSnapshotTests PNGs re-recorded; follow-up ^qsby62v
+    - test: green — swift test against EditorKit clone a47fa49: 1766 tests in 216 suites passed, 0 failed, 0 skipped; 7 known issues, all withKnownIssue negative tests
+    - commit: f5374f0 (+ a87c207, a kanban chore)
+    - review: clean — 0 findings; task in done
+    - Still to do: the dead-code check (code-hygiene/dead-code-swift) couldn't build against EditorKit main. Re-run it after AVK resolves EditorKit to the pushed ^wg1hac2.
+    - Push sequence: editorkit-28 pushes ^wg1hac2 → AVK `swift package update EditorKit` to that SHA → full swift test + demo build + dead-code check → then the user pushes AVK. Testudo holds its pushes during the window.
+  timestamp: 2026-10-24T00:06:18.715507+00:00
+- actor: claude-code
+  id: 01m5nkpwtwc1d5c62e97skfnzn
+  text: 'EditorKit ^wg1hac2 is pushed: origin/main at 3bc9d3e (2026-10-23). It was rebased onto one kanban-only commit, 696c580; outside .kanban the source is byte-identical to a47fa49 (editorkit-28 checked). Before AVK is pushed: resolve EditorKit to 3bc9d3e, run the full swift test, the demo build and the dead-code check.'
+  timestamp: 2026-10-24T00:07:00.700420+00:00
+position_column: done
+position_ordinal: ffffcf80
 title: 'Use the theme font roles: display for the composer, inputs and prose; code for code; ui for chrome'
 ---
 REQUIRES an EditorKit change: check EditorKit origin/main for the theme font roles (ui, display, code) and the EditorView / SingleLineField font-role choice first. If they're missing, record that the card is waiting, and stop. editorkit-28 will send the API before its push.
