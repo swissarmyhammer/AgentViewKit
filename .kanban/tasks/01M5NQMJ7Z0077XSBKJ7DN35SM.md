@@ -168,6 +168,45 @@ comments:
     - evidence: swift test — 1792 tests in 218 suites passed, 0 failed, 7 known issues (expected); no compiler warnings from repo sources (only a build-system note about the mlx-swift_Cmlx.bundle dependency)
     - next: none; demo and UI runs skipped because only package tests changed
   timestamp: 2026-10-24T18:05:33.478994+00:00
+- actor: claude-code
+  id: 01m5qhk99p992hmh9n4gv228b5
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 1f4975c, batched, complete: 7 attempted, 0 failed); counts findings 1, confirmed 1, refuted 0 — Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift:542. Every prior `## Review Findings` item (2026-10-24 11:17 and 12:49) is `- [x]`.
+    - next: fix the open item in `## Review Findings (2026-10-24 13:06)` — add a `requiring:` check to the Retry press in `retryClearsTheFailureOfTheBrowser`; task stays in review.
+  timestamp: 2026-10-24T18:08:34.102074+00:00
+- actor: claude-code
+  id: 01m5qhm0y4522mbfn1w7j5scxh
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: changed — 2 test files (shared HostedAuthCard host; one press(_:in:requiring:until:) helper)
+    - test: green — swift test 1792/218 (7 known issues)
+    - commit: b3f57b2 (chore kanban), 1f4975c (code, HEAD)
+    - review: findings — ElicitationURLConsentViewHostedTests.swift:542 (completeness/invariant-propagation: Retry press has no requiring: check)
+  timestamp: 2026-10-24T18:08:58.308198+00:00
+- actor: claude-code
+  id: 01m5qhw60b4ycs79r9eyv6shxv
+  text: |-
+    Worked the 1 item of the 2026-10-24 13:06 Review Findings (pulled back to doing first).
+    - The real browser step sequence after a failed first session and a Retry is `[.open, .failed, .open]`, not `[.failed, .open]`: `openBrowser()` reports `.open` before the task starts, `presentBrowser` reports `.failed`, and Retry reports `.open` again in the press step. No `.stop` comes, because `stopBrowser()` is not called on Retry.
+    - Design change: the `requiring` parameter of `press(_:in:requiring:until:)` has no default now. A press with one trailing closure no longer compiles, so the hang cannot come back by omission. The harness wait (`ObservationWait.until`, `render(when:)`) has no timeout option, so a time limit was not an option without changing the shared support code.
+    - Audit: every `Self.press` call (7) has a `requiring` check. The raw `harness.press` for Cancel/Decline is followed by `mounted.result()`, which `#require`s no pending elicitation before it waits. The deck Next press is not followed by a wait.
+    - Card md edited directly with the file tool to flip the item (the description is ~20k chars; a full `update task` rewrite risked transcription errors).
+  timestamp: 2026-10-24T18:13:25.643240+00:00
+- actor: claude-code
+  id: 01m5qhw80rdbx44a776z0ghxk4
+  text: |-
+    ### implement — changed
+    - evidence: `swift test --filter ElicitationURLConsentViewHostedTests`: 27 tests in 1 suite passed. `swift test`: 1792 tests in 218 suites passed with 7 known issues, 0 failures; only warning is the known mlx-swift_Cmlx.bundle build-system note. File: Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift. The 13:06 finding is `- [x]` with a Done note (28/28 findings checked). Not committed.
+    - next: /review (task left in doing).
+  timestamp: 2026-10-24T18:13:27.704405+00:00
+- actor: claude-code
+  id: 01m5qj1f244y7rnsfxtqrfk9pr
+  text: |-
+    ### test — green
+    - evidence: swift test — 1792 tests in 218 suites passed, 7 known issues (expected), 0 failures; the only warning is the build-system "missing creator for mutated node" for the mlx-swift_Cmlx.bundle dependency, none from repo sources; no skipped tests (the "skip" matches are test names). Demo and UI runs skipped because only package tests changed.
+    - next: review/commit
+  timestamp: 2026-10-24T18:16:18.756949+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Use the EditorStyle target of EditorKit for radius, tokens, concentric shape and floating glass (after EditorKit ^4js4t70)
@@ -226,3 +265,9 @@ Acceptance:
 
 - [x] `Tests/AgentViewKitTests/Connections/AgentAuthViewHostedTests.swift:526` `reuse/reuse` — The new test builds its host with a bare `HostedViewHarness(size: Self.cardSize) { RemovableAuthCard(...) }` instead of extending the existing `harness(_:runner:reconnect:)` helper. `RemovableAuthCard.body` (added at lines 224-231) re-declares the same `AgentAuthView` environment chain that `harness` already sets up (`sessionModel`, `terminalAuthRunner`, `agentReconnect`). The two copies have already diverged: `harness` also applies `.transaction { $0.disablesAnimations = true }` and `RemovableAuthCard` does not. Make `RemovableAuthCard` the single host builder: have `harness` accept an optional `CardPresence` (or wrap its content in a `presence`-gated view), so both paths share one environment chain. If the transaction modifier must stay off for the removable card, pass that as a parameter. Do not leave two copies that differ silently. — **Done (whole file):** `RemovableAuthCard` became `HostedAuthCard(session:runner:reconnect:presence:)`, the one view that sets the environment chain (`sessionModel`, `terminalAuthRunner`, `agentReconnect`) and the no-animation transaction. A `nil` presence shows the card always. `harness(_:runner:reconnect:presence:)` returns `HostedViewHarness<HostedAuthCard>`, and `theCardCancelsTheCallThatRunsWhenItGoesAway` calls it with its `CardPresence`. The removable card passes with the transaction applied, so no parameter turns it off. The min-height test also shows `HostedAuthCard(session:)` now, so the file no longer has a third, partial copy of the chain.
 - [x] `Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift:478` `reuse/reuse` — `openAndWaitForTheFailureOfTheBrowser` and `openAndWaitForTheEndOfTheSession` (added at lines 465 and 478) each repeat the press-Open, `#require`, wait, render sequence that the existing `open(_:)` helper (line 235) already performs. Each new helper is a near-copy of `open` with a different wait predicate, and `open` is not generalized to take one. Three copies of the same press-and-wait shape will drift apart. Extract one helper that takes the `#require` check and the wait predicate as parameters, or a `pressOpen(_:until:)` that performs the press and the wait, and let `open(_:)` and the two new helpers call it. Keep each case's predicate at its call site so the test reads the same. The `WaitingReconnect` / `ReconnectRecorder` pair in AgentAuthViewHostedTests.swift is not flagged: `WaitingReconnect` suspends until cancel, which `ReconnectRecorder` cannot do, so the contract does not fit. — **Done (whole file):** one helper, `press(_:in:requiring:until:)`, presses the button, runs the `#require` checks given in `requiring`, then waits with `harness.render(when:)`. `open(_:)`, `openInDeck(_:)`, `openAndWaitForTheEndOfTheSession(_:)` and `openAndWaitForTheFailureOfTheBrowser(_:)` call it with `ElicitationURLConsentView.openIdentifier`. The same press, require and wait shape for Retry (`retryOpensTheBrowserAgainWithNoSecondAnswer`, `retryClearsTheFailureOfTheBrowser`) and for the deck Cancel (`cancelWhileWaitingRemovesTheCardStopsTheBrowserAndSendsNoSecondAnswer`) calls it too. Each check and each predicate stays at its call site.
+
+## Review Findings (2026-10-24 13:06)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 0 not reviewed.
+
+- [x] `Tests/AgentViewKitTests/Elicitation/ElicitationURLConsentViewHostedTests.swift:542` `completeness/invariant-propagation` — The new `press` helper's contract is that each press passes its checks before the wait, so a press that starts nothing fails at once instead of hanging the wait, which has no time limit. `retryClearsTheFailureOfTheBrowser` passes no `requiring` block, so if Retry does not start a browser session, `until` never becomes true and the test hangs rather than failing. The sibling call sites (`retryOpensTheBrowserAgainWithNoSecondAnswer`, `openAndWaitForTheFailureOfTheBrowser`, `cancelWhileWaitingRemovesTheCardStopsTheBrowserAndSendsNoSecondAnswer`) all carry that check, so this site did not receive the treatment the change establishes. Add a `requiring:` closure to the Retry press that requires `mounted.browserSteps.values == [.failed, .open]` (or the step sequence the test expects after the first failure), so a Retry that starts no browser task fails before the wait, matching the sibling sites. — **Done (whole file):** the Retry press of `retryClearsTheFailureOfTheBrowser` requires `mounted.browserSteps.values == [.open, .failed, .open]` (the real sequence: the first Open reports `.open`, the failed session reports `.failed`, and Retry reports `.open` in the press step; there is no `.stop`, because the failed task has already ended). The `requiring` parameter of `press(_:in:requiring:until:)` has no default now, so a press with no checks does not compile, and the doc says why. Audit of every press site in the file: all 7 `Self.press` calls (`open`, `openInDeck`, `openAndWaitForTheEndOfTheSession`, `openAndWaitForTheFailureOfTheBrowser`, both Retry tests, the deck Cancel) carry a `requiring` check. The raw `harness.press` calls for Cancel and Decline in the consent state are followed by `mounted.result()`, which `#require`s that the model holds no pending elicitation before it waits; the deck Next press has no wait. The harness wait (`ObservationWait.until` / `render(when:)`) has no time limit option, so the non-optional `requiring` is the guard.
