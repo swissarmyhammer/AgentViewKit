@@ -7,6 +7,7 @@ import EditorStyle
 import Foundation
 import SwiftUI
 import Testing
+import UniformTypeIdentifiers
 
 @testable import AgentViewKit
 
@@ -114,16 +115,16 @@ import Testing
     CGPoint(x: size.width / 2, y: size.height / 2)
   }
 
-  /// The image block of the tests, and the URL of its block file.
+  /// The image block of the tests, and the attachment of its block file.
   ///
   /// The PNG image of ``TestImage`` is clear, so the fill behind the image
   /// shows through it.
   ///
-  /// - Returns: The view of the block, and the URL of its file.
+  /// - Returns: The view of the block, and the attachment of its file.
   /// - Throws: An error when AppKit cannot make the image.
-  static func imageBlock() throws -> (view: ImageView, url: URL) {
+  static func imageBlock() throws -> (view: ImageView, file: Attachment) {
     let (png, image) = try TestImage.makePNGContent(uri: Blocks.imageURI)
-    return (ImageView(image: image), ContentBlockFile.url(of: png, named: Blocks.imageName))
+    return (ImageView(image: image), ContentBlockFile.attachment(of: png, named: Blocks.imageName, type: .png))
   }
 
   /// A completion row of the tests.
@@ -168,8 +169,8 @@ import Testing
   /// the window state behind the image.
   @Test(arguments: windowStates)
   func anImageThatTheInspectorShowsPaintsTheSharedFill(appearsActive: Bool) throws {
-    let (view, url) = try Self.imageBlock()
-    let selected = view.environment(\.inspectorSelection, InspectorSelection(attachment: Attachment(url: url)))
+    let (view, file) = try Self.imageBlock()
+    let selected = view.environment(\.inspectorSelection, InspectorSelection(attachment: file))
 
     let pixels = try Self.pixels(of: selected, appearsActive: appearsActive, size: Self.fileSize)
 
@@ -192,10 +193,10 @@ import Testing
   /// A selected image that has the focus keeps its fill, and the focus ring
   /// of its scope outlines it with the square corners of the image.
   @Test func aSelectedImageWithTheFocusHasTheFillAndTheRing() throws {
-    let (view, url) = try Self.imageBlock()
+    let (view, file) = try Self.imageBlock()
     let system = CommandSystem()
     let content = Self.onBackdrop(
-      view.environment(\.inspectorSelection, InspectorSelection(attachment: Attachment(url: url))),
+      view.environment(\.inspectorSelection, InspectorSelection(attachment: file)),
       appearsActive: true
     )
     .commandSystem(system)
@@ -203,7 +204,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    let focused = try FocusRing.focusScope(of: AttachmentID(url.absoluteString), in: harness, system: system)
+    let focused = try FocusRing.focusScope(of: file.id, in: harness, system: system)
     let pixels = try #require(RenderedPixels(cachingDisplayOf: harness.hostingView))
 
     try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: .zero)
