@@ -111,17 +111,7 @@ import Testing
   /// - Returns: `<file>:<line>` when the line picks a font outside the roles,
   ///   or no result.
   static func fontsOutsideTheRoles(on line: SourceLine) -> [String] {
-    matches(of: fontOutsideTheRolesPattern, on: line)
-  }
-
-  /// Finds the lines of a source that a pattern matches.
-  ///
-  /// - Parameters:
-  ///   - pattern: The pattern to find.
-  ///   - line: One line of a Swift file.
-  /// - Returns: `<file>:<line>` when `pattern` matches the line, or no result.
-  static func matches(of pattern: some RegexComponent, on line: SourceLine) -> [String] {
-    line.text.contains(pattern) ? ["\(line.file):\(line.number)"] : []
+    SourceLineScanner.uses(of: fontOutsideTheRolesPattern, on: line)
   }
 
   @Test func theScanFindsEachFontThatAViewPicksOutsideTheRoles() {
@@ -180,7 +170,7 @@ import Testing
       """
 
     let found = SourceLineScanner.matches(inSource: source, file: "A.swift") { line in
-      Self.matches(of: Self.bareTextStylePattern, on: line)
+      SourceLineScanner.uses(of: Self.bareTextStylePattern, on: line)
     }
 
     #expect(found == ["A.swift:1", "A.swift:2"])
