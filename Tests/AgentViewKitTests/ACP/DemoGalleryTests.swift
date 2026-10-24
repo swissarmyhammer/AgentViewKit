@@ -117,6 +117,20 @@ import Testing
     await agent.stop()
   }
 
+  /// The pending edit of the permission session names its file, so the
+  /// Gallery shows a location chip that selects the file in the inspector.
+  @Test func theScriptedToolCallOfThePermissionSessionNamesItsFile() async throws {
+    let agent = try await Self.makeGalleryAgent()
+
+    let session = try await Self.resume(DemoGallery.permission, on: agent)
+
+    let paths = session.transcript.flatMap { entry -> [String] in
+      if case .toolCall(let call) = entry { call.locations.map(\.path.rawValue) } else { [] }
+    }
+    #expect(paths == [DemoGallery.greetingPath])
+    await agent.stop()
+  }
+
   @Test func theSessionListOfTheGalleryAgentHasEachScriptedSession() async throws {
     let agent = try await Self.makeGalleryAgent()
 

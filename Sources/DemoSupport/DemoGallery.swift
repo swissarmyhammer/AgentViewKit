@@ -32,6 +32,9 @@ nonisolated public enum DemoGallery {
     "_reasoning_limit", "_error", "_no_output", "_stalled",
   ]
 
+  /// The path of the source file that the permission session edits.
+  static let greetingPath = "/project/Greeting.swift"
+
   /// The scripted sessions, in list order.
   public static let sessions: [DemoGallerySession] =
     [permission, idlePermission, formElicitation, urlElicitation, plan, compaction, notices, error, attachments]
@@ -40,12 +43,15 @@ nonisolated public enum DemoGallery {
   // MARK: - Sessions
 
   /// A pending edit, and a permission request for it with each option kind.
+  ///
+  /// The edit names its file as a location, so the expanded call shows a
+  /// location chip that selects the file in the inspector.
   static let permission: DemoGallerySession = {
     let id = idPrefix + "permission"
     let toolCallID = id + "-edit"
     let pendingEdit = #"""
       {"sessionUpdate": "tool_call_update", "toolCallId": "\#(toolCallID)", "title": "Edit Greeting.swift",
-       "kind": "edit", "status": "pending"}
+       "kind": "edit", "status": "pending", "locations": [{"path": "\#(greetingPath)", "line": 2}]}
       """#
     return waitingSession(
       id: id, title: "Permission request", prompt: "Change the greeting in Greeting.swift.",
@@ -212,7 +218,7 @@ nonisolated public enum DemoGallery {
                    {"type": "image", "mimeType": "image/png", "data": "\#(screenshotPNG)"},
                    {"type": "resource_link", "uri": "file:///project/notes.md", "name": "notes.md",
                     "mimeType": "text/markdown", "size": 48},
-                   {"type": "resource", "resource": {"uri": "file:///project/Greeting.swift", "mimeType": "text/x-swift",
+                   {"type": "resource", "resource": {"uri": "file://\#(greetingPath)", "mimeType": "text/x-swift",
                     "text": "struct Greeting {\n  let text = \"Hello\"\n}\n"}}]}
       """#
     let reply = message("agent_message", id: id + "-reply", text: "The screenshot, the notes and the code agree.")

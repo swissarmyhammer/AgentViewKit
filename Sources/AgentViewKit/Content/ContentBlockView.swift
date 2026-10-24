@@ -15,9 +15,13 @@ import SwiftUI
 /// - text: a ``ResponseView``, through Textual.
 /// - image: an ``ImageView``. A tap selects the image in the inspector.
 /// - audio: an ``AudioPlayerView``, through AVKit.
-/// - resource link: a ``LinkView`` card that opens the link in the browser.
-/// - resource: the text through Textual, or an ``AttachmentChip`` for binary
-///   contents.
+/// - resource link: for a `file:` URL, an ``AttachmentView`` of the file. A
+///   tap selects the file in the inspector, as a message attachment does.
+///   For each other URL, a ``LinkView`` card that opens the link in the
+///   browser.
+/// - resource: the text through Textual, or a ``BlobResourceView`` for binary
+///   contents: an ``AttachmentView`` of the bytes, whose tap selects them in
+///   the inspector.
 /// - unknown: an ``UnknownItemView``.
 ///
 /// Each default view is an accessibility container with the identifier
@@ -81,7 +85,11 @@ public struct ContentBlockView: View {
     case .audio(let audio):
       AudioPlayerView(audio: audio)
     case .resourceLink(let link):
-      LinkView(link: link)
+      if let file = link.fileAttachment {
+        AttachmentView(file)
+      } else {
+        LinkView(link: link)
+      }
     case .resource(let resource):
       ResourceBlockView(resource: resource, id: id)
     case .unknown(let kind, let raw):
@@ -108,6 +116,24 @@ nonisolated extension FoundationModelsACP.ContentBlock {
       }
     guard let audience = annotations?.audience else { return true }
     return audience.contains(.user)
+  }
+}
+
+nonisolated extension FoundationModelsACP.ResourceLink {
+  /// The attachment of the file that the link names, or `nil` when the URI
+  /// of the link is not a `file:` URL.
+  ///
+  /// The attachment reads the file as ``Attachment/init(url:)`` does. A file
+  /// that is not on this Mac has no size and no content type, so the size of
+  /// the link and the MIME type of the link fill them in.
+  var fileAttachment: Attachment? {
+    guard let url = URL(string: uri), url.isFileURL else { return nil }
+    var attachment = Attachment(url: url)
+    attachment.size = attachment.size ?? size
+    if attachment.type == .data {
+      attachment.type = ContentBlockFile.type(mimeType: mimeType?.rawValue, fallback: .data)
+    }
+    return attachment
   }
 }
 

@@ -52,6 +52,25 @@ renderer. A source file conforms to `public.plain-text` too, so
 as a chip. A registration with `.attachmentView(for:)` replaces the default
 for its type and each subtype.
 
+## Files in content
+
+A file in message content or in tool call content selects into the inspector
+the same way a message attachment does (^fqr901r). Each one uses the selection
+of `AttachmentView` (the `attachmentSelect` action of the environment) and the
+attachment scope, so its context menu shows Open, Reveal, Share, Save and
+Quick Look.
+
+- A blob resource: `BlobResourceView` writes the bytes to their block file
+  (`ContentBlockFile`), then shows that file in an `AttachmentView` with the
+  default renderer of its type.
+- A resource link to a `file:` URL: an `AttachmentView` of the file. A link to
+  any other URL stays a `LinkView` card that opens the link in the browser.
+- A location of a tool call: each ACP location is an absolute file path, so
+  each location chip selects its file. The chip keeps its short label (file
+  name and line), because an `AttachmentView` would show the whole file. Its
+  surface has the corners of an `AttachmentChip`, so the focus ring of the
+  scope follows the chip.
+
 ## Survey
 
 ### FoundationModels

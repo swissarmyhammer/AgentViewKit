@@ -6,8 +6,9 @@ import UniformTypeIdentifiers
 ///
 /// Text contents show through ``AttachmentTextContent``: a source type shows
 /// in a ``CodeBlockView``, and other text shows through Textual. Binary
-/// contents show as an ``AttachmentChip`` with the name, the type icon, and
-/// the size of the resource.
+/// contents show through ``BlobResourceView``: the view writes the bytes to a
+/// local file and shows that file in an ``AttachmentView``, so a press
+/// selects the file in the inspector, as a message attachment does.
 ///
 /// The view shows an ACP `EmbeddedResource` that a transcript entry holds.
 /// The view reads the members of its raw JSON when it shows it. A resource
@@ -31,7 +32,7 @@ struct ResourceBlockView: View {
     if let uri = resource.resourceURI, let text = resource.resourceText {
       Self.textView(text: text, uri: uri, mimeType: resource.resourceMimeType)
     } else if let uri = resource.resourceURI, let data = resource.resourceBlob {
-      Self.blobChip(data: data, uri: uri, mimeType: resource.resourceMimeType)
+      BlobResourceView(data: data, file: Self.blobFile(data: data, uri: uri, mimeType: resource.resourceMimeType))
     } else {
       UnknownItemView(kind: Self.rawKind, raw: resource.resource, id: id)
     }
@@ -51,22 +52,18 @@ struct ResourceBlockView: View {
       filename: fileName(uri: uri, mimeType: mimeType))
   }
 
-  /// The chip of binary contents.
+  /// The attachment of the block file of binary contents: the file that
+  /// ``ContentBlockFile/write(_:named:)`` writes for the bytes.
   ///
   /// - Parameters:
   ///   - data: The bytes of the contents.
   ///   - uri: The URI of the resource.
   ///   - mimeType: The MIME type of the resource, or `nil`.
-  /// - Returns: The chip.
-  private static func blobChip(data: Data, uri: String, mimeType: String?) -> some View {
-    let name = fileName(uri: uri, mimeType: mimeType)
-    return AttachmentChip(
-      Attachment(
-        id: AttachmentID(uri),
-        url: URL(string: uri) ?? URL(filePath: name),
-        type: ContentBlockFile.type(mimeType: mimeType, fallback: .data),
-        name: name,
-        size: data.count))
+  /// - Returns: The attachment, also before the file exists.
+  private static func blobFile(data: Data, uri: String, mimeType: String?) -> Attachment {
+    ContentBlockFile.attachment(
+      of: data, named: fileName(uri: uri, mimeType: mimeType),
+      type: ContentBlockFile.type(mimeType: mimeType, fallback: .data))
   }
 
   /// The file name of a resource: the last part of its URI, or `resource`

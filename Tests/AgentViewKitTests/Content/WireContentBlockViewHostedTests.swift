@@ -208,16 +208,22 @@ import Testing
 
   // MARK: - Resource
 
-  @Test func aWireBinaryResourceShowsAChipWithItsName() {
+  /// The resource writes its bytes in a task, and reports each state of the
+  /// write through ``SwiftUI/EnvironmentValues/resourceFileReport``. The test
+  /// waits for the loaded state, then reads the chip.
+  @Test func aWireBinaryResourceShowsAChipWithItsName() async {
+    let writes = ReportRecorder<PreviewLoadState<URL>>()
     let resource = FoundationModelsACP.EmbeddedResource(
       resource: .object([
         "uri": .string(Self.archiveURI), "mimeType": .string("application/zip"),
         "blob": .string(Self.archiveBytes.base64EncodedString()),
       ]))
     let harness = HostedViewHarness(
-      ContentBlockView(block: .resource(resource), id: Self.blockID), size: Self.hostSize)
+      ContentBlockView(block: .resource(resource), id: Self.blockID)
+        .environment(\.resourceFileReport, writes.report),
+      size: Self.hostSize)
     defer { harness.close() }
-    harness.render()
+    await harness.render { writes.values.contains(where: Self.isLoaded) }
 
     #expect(Self.labels(in: harness).contains { $0.contains(Self.archiveName) })
   }
@@ -344,6 +350,14 @@ import Testing
   /// - Returns: `true` for ``PreviewLoadState/failed``.
   static func isFailed(_ state: PreviewLoadState<URL>) -> Bool {
     if case .failed = state { true } else { false }
+  }
+
+  /// Tells whether a state of a file write is the loaded state.
+  ///
+  /// - Parameter state: The state that the resource view reported.
+  /// - Returns: `true` for ``PreviewLoadState/loaded(_:)``.
+  static func isLoaded(_ state: PreviewLoadState<URL>) -> Bool {
+    if case .loaded = state { true } else { false }
   }
 
   /// Makes the registered view of a resource link block in the tests: a text

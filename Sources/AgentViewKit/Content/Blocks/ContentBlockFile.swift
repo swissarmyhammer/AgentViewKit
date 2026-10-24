@@ -58,6 +58,20 @@ nonisolated enum ContentBlockFile {
       .appending(path: name, directoryHint: .notDirectory)
   }
 
+  /// The attachment of the block file of `data`, whether the file exists or
+  /// not.
+  ///
+  /// - Parameters:
+  ///   - data: The bytes of the block.
+  ///   - name: The file name.
+  ///   - type: The uniform type of the file.
+  /// - Returns: The attachment of ``url(of:named:)``, whose id is that URL
+  ///   and whose size is the count of `data`.
+  static func attachment(of data: Data, named name: String, type: UTType) -> Attachment {
+    let file = url(of: data, named: name)
+    return Attachment(id: AttachmentID(file.absoluteString), url: file, type: type, name: name, size: data.count)
+  }
+
   /// Writes bytes to a block file, or finds the file of an earlier write.
   ///
   /// The write occurs off the main actor.
