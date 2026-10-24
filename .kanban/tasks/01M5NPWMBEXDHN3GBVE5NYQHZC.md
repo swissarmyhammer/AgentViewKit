@@ -77,8 +77,25 @@ comments:
     - evidence: 5 files — Sources/AgentViewKitTestSupport/NSEvent+KeyEvent.swift (new), Sources/AgentViewKitTestSupport/HostedViewHarness.swift, Tests/AgentViewKitTests/Commands/AgentKeymapKeyEventTests.swift, Tests/AgentViewKitTests/Commands/AgentMainMenuHostedTests.swift, Tests/AgentViewKitTests/TestSupport/NSEventKeyEventTests.swift (new). The full `swift test` run (EditorKit 3bc9d3e) passed 1782 tests in 218 suites with 7 known issues; those are the known issues that were there before this change. The only warning is the pre-existing SwiftPM mlx-swift_Cmlx.bundle "missing creator" warning. The review finding is now `- [x]`.
     - next: /review. Not committed; the task stays in doing.
   timestamp: 2026-10-24T01:41:33.884254+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5nsats87p8jzcvqv6pm35fx
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (edba4d9) — 0 findings (attempted 7, confirmed 0, refuted 0, failed 0); prior Review Findings (2026-10-23 20:33) item checked
+    - next: task moved to done
+  timestamp: 2026-10-24T01:45:16.840041+00:00
+- actor: claude-code
+  id: 01m5nsbbdvdzehsnk7k5357kxv
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared `NSEvent.makeKeyEvent(...)` test-support helper (3 copies → 1); 5 files
+    - test: green — swift test, 1782 tests in 218 suites passed, 0 failed, 0 skipped
+    - commit: edba4d9
+    - review: clean — 0 findings; task in done
+    - Not pushed. Code commits: 4ad1a22, edba4d9. Send the SHA to testudoapp-2c (^jqpbx0h) after the push.
+  timestamp: 2026-10-24T01:45:33.883292+00:00
+position_column: done
+position_ordinal: ffffd280
 title: 'Copy Message: a main-menu placement in the Edit menu, next to Copy (D41)'
 ---
 The user's decision, relayed by testudoapp-2c on 2026-10-23: "Copy Message goes in the Edit menu." D41 stands: the same commands on all three surfaces (context menu, palette or keymap, and main menu).
