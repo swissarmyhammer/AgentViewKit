@@ -154,6 +154,18 @@
       #expect(Self.timingLabel(of: thoughtKey, in: harness) == thought)
     }
 
+    @Test func theTimeDrawsInTheUIRole() async throws {
+      let clock = SettableClock(start: Self.start)
+      let session = try await Self.openSession(clock: clock)
+      defer { session.close() }
+
+      _ = try await Self.send(Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session)
+      let entry = try #require(session.model.transcript.last)
+
+      try FontRoleExpectations.expectText(
+        of: EntryTimingView(entry: entry), identifier: EntryTimingView.identifier(for: entry.rowKey), drawsIn: .ui)
+    }
+
     @Test func aToolCallShowsTheTimeFromItsStartToItsCompletion() async throws {
       let clock = SettableClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)

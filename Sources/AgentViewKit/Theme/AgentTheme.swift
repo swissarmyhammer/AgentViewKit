@@ -7,8 +7,10 @@ import SwiftUI
 ///
 /// The type holds no color and no font. The EditorKit `Theme` in the
 /// environment (`\.editorTheme`) is the one theme of the kit: each color of
-/// the kit views, the code font (`editorFont`) and the prose font
-/// (`proseFont`) come from it. A host sets it with `.editorTheme(_:)`, and
+/// the kit views and each font come from it: the UI font (`uiFont`) for the
+/// chrome, the display font (`displayFont`) for the prose and the text a
+/// person types, and the code font (`codeFont`) for the code, one for each
+/// EditorKit `FontRole`. A host sets it with `.editorTheme(_:)`, and
 /// EditorKit gives `SystemTheme` when no host sets one. This type keeps only
 /// the layout tokens that the EditorKit theme does not have: the spacing, the
 /// radii, the symbol weight, and the density.

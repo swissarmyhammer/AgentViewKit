@@ -323,10 +323,12 @@ The kit has one theme: the EditorKit `Theme`. Set it with `.editorTheme(_:)`.
 Every color of the kit views comes from this theme. This includes the accent,
 the status colors, the diff colors, the terminal palette, and the bars. The
 EditorKit views draw no background of their own, so the content behind them
-shows through. The code font and the prose font also come from this
-theme. When you set no theme, EditorKit gives `SystemTheme`. `SystemTheme`
-follows the system appearance and the accent color of the user. EditorKit can
-also import a Zed, VS Code, or tmTheme file.
+shows through. Each font also comes from this theme, one for each EditorKit
+font role: `uiFont` for the chrome, `displayFont` for the prose, the
+composer and the text fields, and `codeFont` for the code. When you set no
+theme, EditorKit gives `SystemTheme`. `SystemTheme` follows the system
+appearance and the accent color of the user. EditorKit can also import a Zed,
+VS Code, or tmTheme file.
 
 `.agentTheme(_:)` sets only the layout tokens of the kit: spacing, radii,
 symbol weight, and density. The floating glass is always `.regular`. The

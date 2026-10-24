@@ -285,14 +285,14 @@ import Testing
     #expect(withoutHost.waitingHostName == ElicitationHeader.agentServer)
   }
 
-  @Test func theURLUsesTheEditorFontOfTheEditorTheme() async throws {
+  @Test func theURLDrawsInTheCodeRole() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let pending = try await session.receiveElicitation(id: Self.agentRequestID, params: Self.makeParams())
 
-    try ThemeHeightExpectations.expectThemeIncreasesHeight(
+    try FontRoleExpectations.expectText(
       of: ElicitationURLConsentView(request: pending, owner: session.model),
-      identifier: ElicitationURLConsentView.urlIdentifier, size: Self.cardSize)
+      identifier: ElicitationURLConsentView.urlIdentifier, drawsIn: .code, size: Self.cardSize)
   }
 
   @Test func theMinimumHeightOfTheCardIsNotMoreThanItsHeightAtTheCardWidth() async throws {

@@ -438,15 +438,15 @@ import Testing
     #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Hide Terminal")
   }
 
-  @Test func theCommandUsesTheEditorFontOfTheEditorTheme() async throws {
+  @Test func theCommandDrawsInTheCodeRole() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let pending = try await session.receivePermissionRequest(
       id: Self.agentRequestID, params: Self.makeParams(subject: Self.commandSubject))
 
-    try ThemeHeightExpectations.expectThemeIncreasesHeight(
+    try FontRoleExpectations.expectText(
       of: PermissionView(request: pending, session: session.model), identifier: PermissionView.subjectIdentifier,
-      size: Self.cardSize)
+      drawsIn: .code, size: Self.cardSize)
   }
 
   @Test func aCommandWithNoTerminalEntryHasNoLink() async throws {

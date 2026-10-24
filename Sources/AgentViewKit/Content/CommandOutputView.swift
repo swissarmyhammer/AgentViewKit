@@ -211,7 +211,7 @@ public struct CommandOutputView: View {
   private var header: some View {
     HStack(spacing: theme.spacing.s) {
       Text(command ?? String(localized: "Output", bundle: .module))
-        .font(editorTheme.editorFont)
+        .font(editorTheme.codeFont)
         .foregroundStyle(command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)

@@ -47,8 +47,10 @@ select the glass variant. This is a breaking change of the public API of
 Decision of the owner, 2026-10-11: the EditorKit themes are the themes of the
 kit. The kit has one theme. It is the EditorKit `Theme` in the SwiftUI
 environment value `\.editorTheme`. Set it with `.editorTheme(_:)` (module
-`EditorSwiftUI`). Every color of the kit views comes from this theme. The code
-font and the prose font also come from this theme. The kit keeps no copy of a
+`EditorSwiftUI`). Every color of the kit views comes from this theme. Each
+font also comes from this theme, one for each EditorKit `FontRole` (^wg1hac2):
+the UI font for the chrome, the display font for the prose and the text a
+person types, and the code font for the code. The kit keeps no copy of a
 color and no font.
 
 When the host sets no theme, EditorKit gives `SystemTheme` (`.system`).
@@ -62,8 +64,11 @@ have: spacing, radii, symbol weight, and density.
 
 Before this decision, `AgentTheme` had the tokens `accent`, `codeFont`, and
 `statusColors`. These tokens are removed. EditorKit 95ef6c4 added the
-`proseFont` role, so the `AgentTheme` token `proseFont` is also removed. The
-table below gives the EditorKit role that replaces each one.
+`proseFont` role, so the `AgentTheme` token `proseFont` is also removed.
+EditorKit ^wg1hac2 replaced `editorFont` and `proseFont` with the three font
+roles `uiFont`, `displayFont` and `codeFont` (decision of 2026-10-23: the
+composer, the text fields and the prose draw in the display role). The table
+below gives the EditorKit role that replaces each one.
 
 | kit use | EditorKit role | SystemTheme default |
 |---|---|---|
@@ -76,8 +81,9 @@ table below gives the EditorKit role that replaces each one.
 | info notice | `severityInfo` | system blue |
 | warning notice, URL warning, not-accepted attachment | `severityWarning` | system orange |
 | error notice, error message, validation error | `severityError` | system red |
-| code font, in SwiftUI text and in the EditorKit editor | `editorFont` | system monospaced font, body text style |
-| prose font | `proseFont` | system font, body text style |
+| code font: code blocks, diffs, commands, terminal and tool output, in SwiftUI text and in the EditorKit editor | `codeFont` | system monospaced font, body text style |
+| display font: the prose of a message, the composer, the text fields | `displayFont` | system font, body text style |
+| UI font: headers, labels, rows, the completion list, times | `uiFont` | system font, body text style |
 | code text | `editorForeground` | `NSColor.textColor` |
 | frame and text of a terminal or command output, ANSI colors 0-15 of the output | `terminalPalette` (`[.background]`, `[.foreground]`, `ansiColor(_:)`) | a clear background (EditorKit ^0apj6a2), the editor foreground, and Apple system colors |
 | selected text | `selection` | `NSColor.selectedTextBackgroundColor` |
@@ -186,9 +192,10 @@ later. A capture does not change the table unless a new decision changes it.
 - The default fonts are the system body text style: SF Pro for prose and SF
   Mono for code, 13 pt on macOS. The two apps show code at 13 pt. Claude
   Desktop shows prose at 16 px, but the kit follows the system text styles
-  (plan.md §5), so that the host text size setting applies. The prose font
-  is the `proseFont` role and the code font is the `editorFont` role of the
-  EditorKit theme (decision of 2026-10-11).
+  (plan.md §5), so that the host text size setting applies. The fonts come
+  from the font roles of the EditorKit theme (decision of 2026-10-11): the
+  prose font is `displayFont`, the code font is `codeFont`, and the chrome
+  font is `uiFont` (^wg1hac2, decision of 2026-10-23).
 - The accent is the `accent` role of the EditorKit theme. With `SystemTheme`,
   it is the accent color of the user, as in Xcode 27.
 - The `balanced` density agrees with the comfortable density of Claude

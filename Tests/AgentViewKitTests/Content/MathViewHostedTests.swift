@@ -78,10 +78,10 @@ import Testing
     #expect(element?.label == Self.malformedSource)
   }
 
-  @Test func theSourceFallbackUsesTheEditorFontOfTheEditorTheme() throws {
-    try ThemeHeightExpectations.expectThemeIncreasesHeight(
+  @Test func theSourceFallbackDrawsInTheCodeRole() throws {
+    try FontRoleExpectations.expectText(
       of: MathView(latex: Self.malformedSource, display: false), identifier: MathView.inlineIdentifier,
-      size: Self.hostSize)
+      drawsIn: .code, size: Self.hostSize)
   }
 
   @Test func theEngineTypesetsOnlyValidSource() {

@@ -348,7 +348,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     if actions.onAccept != nil || actions.onReject != nil {
       HStack(spacing: theme.spacing.s) {
         Text(verbatim: hunk.header)
-          .font(editorTheme.editorFont)
+          .font(editorTheme.codeFont)
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.tail)

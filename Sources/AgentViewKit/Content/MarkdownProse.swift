@@ -1,3 +1,5 @@
+import EditorSwiftUI
+import EditorTheme
 import SwiftUI
 import Textual
 
@@ -17,6 +19,10 @@ import Textual
 /// - Each citation placement becomes an ``InlineCitation`` pill in the text,
 ///   through ``CitationMarkdownParser``. Each pill gets an accessibility
 ///   element from ``InlineCitationAccessibility``.
+///
+/// Prose is content that a person reads, so the text, the math and the pills
+/// take their size from the display font of the EditorKit theme in the
+/// environment (the `display` font role).
 struct MarkdownProse: View {
   /// The Markdown text.
   let text: String
@@ -24,7 +30,16 @@ struct MarkdownProse: View {
   /// The citation pills of the text.
   var citations: [CitationPlacement] = []
 
+  @Environment(\.editorTheme) private var editorTheme
+
   var body: some View {
+    prose
+      .font(editorTheme.displayFont)
+  }
+
+  /// The block math view, or the Markdown text with its math and its pills.
+  @ViewBuilder
+  private var prose: some View {
     let parser = MathMarkdownParser()
     if let block = MathSpanScanner.soleBlock(in: text),
       MathView.canTypeset(block.latex, display: block.display)

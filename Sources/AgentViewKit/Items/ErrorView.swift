@@ -86,7 +86,7 @@ public struct ErrorView: View {
       }
       if let data = entry.data?.prettyPrinted {
         Text(data)
-          .font(editorTheme.editorFont)
+          .font(editorTheme.codeFont)
           .foregroundStyle(.secondary)
           .textSelection(.enabled)
           .accessibilityIdentifier(Self.dataIdentifier)

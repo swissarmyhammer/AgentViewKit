@@ -8,26 +8,42 @@ Type size on macOS 27.
 
 ## Rule
 
-Each font of the kit uses a text style. The prose font is the `proseFont`
-role of the EditorKit theme in the `\.editorTheme` environment value. Its
-default is `Font.body`. The code font is the `editorFont` role of the same
-theme. Its default is `.system(.body, design: .monospaced)`. The EditorKit
-editor draws its text in `editorFont` too (EditorKit 95ef6c4 and later), and
-its row height is the row height of the resolved font.
+Each font of the kit uses a text style. The EditorKit theme in the
+`\.editorTheme` environment value has one font for each `FontRole` (EditorKit
+^wg1hac2):
 
-The code text of each kit view uses `editorFont` as it is. The role has one
+- `uiFont` (the `ui` role) for the chrome: headers, labels, rows, chips and
+  times. Its default is `Font.body`.
+- `displayFont` (the `display` role) for the prose and the text a person
+  types: the Markdown text of a message, the composer and the text fields.
+  Its default is `Font.body`.
+- `codeFont` (the `code` role) for the code: code blocks, diffs, commands,
+  terminal and tool output. Its default is
+  `.system(.body, design: .monospaced)`.
+
+The EditorKit editor draws its text in the font of its role, and its row
+height is the row height of the resolved font. An `EditorView` draws in
+`codeFont` and a `SingleLineField` in `displayFont`, unless a view names
+another role with `.editorFontRole(_:)`. The composer and the multi-line
+elicitation field name `.display`.
+
+The code text of each kit view uses `codeFont` as it is. The role has one
 size, and a view does not change it. Thus a command, a working directory and
 a URL do not use a caption or a callout size: they use the size of the theme
-(task ^ctff8rk). No kit view uses a fixed monospaced font, such as
-`.body.monospaced()` or `design: .monospaced`.
-`Tests/PackageStructureTests/FixedCodeFontTests.swift` scans the views of the
-kit and of the examples for such a font.
+(task ^ctff8rk). Smaller and larger chrome uses a system text style, such as
+`.caption` or `.headline`, as the EditorKit chrome does: a SwiftUI `Font`
+cannot take the font of a role at another text style. No kit view picks a
+font outside the roles: a fixed monospaced font, such as `.body.monospaced()`,
+a font family, such as `.custom("Menlo", size: 12)`, or a font design.
+`Tests/PackageStructureTests/FontRoleTests.swift` scans the views of the kit
+and of the examples for such a font.
 
 Two views set a point size, and both sizes come from a resolved text style:
 
 - `MathView` resolves the environment font (default `.body`) and scales the
   math font from that size. When the engine cannot parse the source, the
-  view shows the source in `editorFont`.
+  view shows the source in `codeFont`. In a message, the environment font is
+  the `displayFont` of the prose.
 - `InlineCitation` measures the size of the text font of its run, and scales
   the digit font from that size.
 
@@ -49,11 +65,12 @@ test.
 
 | View | `.large` | `.accessibility3` |
 |------|----------|-------------------|
-| `CodeBlockView` (EditorKit editor, `editorFont`) | 16.0 pt | 16.0 pt |
+| `CodeBlockView` (EditorKit editor, `codeFont`) | 16.0 pt | 16.0 pt |
 | SwiftUI `Text` with `.font(.body)` | 16.0 pt | 16.0 pt |
 
 Before EditorKit 95ef6c4, the editor kept its own font metrics, and the code
-block row was 18.0 pt. At 95ef6c4, the editor draws in `editorFont`, and the
+block row was 18.0 pt. At 95ef6c4, the editor draws in the code font
+(`editorFont` then, `codeFont` since ^wg1hac2), and the
 default row (`defaultEditorLineHeight`) is the 16.0 pt row of the system
 monospaced font at 13 pt on macOS.
 

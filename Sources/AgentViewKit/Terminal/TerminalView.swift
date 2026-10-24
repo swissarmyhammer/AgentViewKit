@@ -197,7 +197,7 @@ public struct TerminalView: View {
         .foregroundStyle(.secondary)
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal", bundle: .module))
-        .font(editorTheme.editorFont)
+        .font(editorTheme.codeFont)
         .foregroundStyle(entry.command == nil ? .secondary : .primary)
         .lineLimit(1)
         .truncationMode(.middle)

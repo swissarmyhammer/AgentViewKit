@@ -70,13 +70,16 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
     static let addedText = Color(red: Level.tenth, green: Level.half, blue: Level.tenth)
     /// The text color of a removed count.
     static let removedText = Color(red: Level.half, green: Level.tenth, blue: Level.tenth)
+    /// The UI font: a text style that is larger than the body text, and not
+    /// the size of ``displayFont`` or ``codeFont``, so that no two font roles
+    /// are equal.
+    static let uiFont = Font.system(.title2, design: .serif)
+    /// The display font: a text style that is much larger than the body
+    /// text, and not the size of ``uiFont`` or ``codeFont``.
+    static let displayFont = Font.system(.largeTitle, design: .serif)
     /// The code font: a text style that is much larger than the body text,
-    /// so that a test can see it in the size of a view. It is not the size
-    /// of ``proseFont``, so a test can tell the two roles apart.
-    static let editorFont = Font.system(.title, design: .serif)
-    /// The prose font: a text style that is much larger than the body text,
-    /// so that a test can see it in the size of a view.
-    static let proseFont = Font.system(.largeTitle, design: .serif)
+    /// and not the size of ``uiFont`` or ``displayFont``.
+    static let codeFont = Font.system(.title, design: .serif)
     /// The terminal foreground (SGR 39).
     static let terminalForeground = Color(red: Level.fifth, green: Level.tenth, blue: Level.twoFifths)
     /// The terminal background.
@@ -120,8 +123,9 @@ nonisolated struct DistinctRolesTheme: EditorTheme.Theme {
   var severityError: Color { Role.error }
   var diffAddedText: Color { Role.addedText }
   var diffRemovedText: Color { Role.removedText }
-  var editorFont: Font { Role.editorFont }
-  var proseFont: Font { Role.proseFont }
+  var uiFont: Font { Role.uiFont }
+  var displayFont: Font { Role.displayFont }
+  var codeFont: Font { Role.codeFont }
   var terminalPalette: TerminalPalette { Role.terminalPalette }
 
   /// Each capture has the editor foreground and the style key.

@@ -81,6 +81,17 @@
       return harness
     }
 
+    // MARK: - Font role
+
+    @Test func theTitleRowDrawsInTheUIRole() async throws {
+      let (session, call) = try await Self.openCall(id: "font-role-call", fields: Self.readFields)
+      defer { session.close() }
+
+      try FontRoleExpectations.expectText(
+        of: ToolCallView(entry: call), identifier: ToolCallView.toggleIdentifier(for: call.id.rowKey), drawsIn: .ui,
+        size: Self.tallSize)
+    }
+
     // MARK: - Evaluation counts
 
     /// The mount makes its body evaluations in the ``mount(_:store:)``

@@ -44,7 +44,7 @@ struct MeasuredView<Content: View>: View {
   static let extraLines = 10
 
   /// The measured line height of a code block, in points, at each size: the
-  /// row of the `editorFont` of the EditorKit theme on macOS.
+  /// row of the `codeFont` of the EditorKit theme on macOS.
   static let codeLineHeight: CGFloat = 16
 
   /// The measured line height of body text, in points, at each size.

@@ -419,7 +419,7 @@ private struct ToolCallHeader: View {
         .fontWeight(theme.symbolWeight)
         .foregroundStyle(.secondary)
       Text(ToolCallView.displayTitle(entry.shownTitle))
-        .font(editorTheme.proseFont)
+        .font(editorTheme.uiFont)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: theme.spacing.s)

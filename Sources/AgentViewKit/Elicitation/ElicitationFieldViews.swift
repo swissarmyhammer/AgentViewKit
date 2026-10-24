@@ -255,6 +255,9 @@ public struct ElicitationTextField: View {
         .editorWrapMode(.viewportWidth)
         .editorTextAccessibilityIdentifier(context.controlIdentifier)
         .editorTextAccessibilityLabel(context.schema.title)
+        // An answer is text that a person types, so it draws in the display
+        // font of the theme, as the one-line `SingleLineField` does.
+        .editorFontRole(.display)
         .frame(minHeight: Self.multiLineMinimumHeight)
     } else {
       SingleLineField(model: model, id: context.identifier)

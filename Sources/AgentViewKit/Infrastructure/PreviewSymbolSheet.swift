@@ -6,9 +6,9 @@ import SwiftUI
 ///
 /// The sheet is a grid with a title and one row for each state: the icon of
 /// the state, then the name of the state. No view of the kit sets a font on
-/// its icons, so the kit draws each icon at the prose font of the EditorKit
-/// theme, the body font of its row. The sheet draws the icons and the names
-/// at that font.
+/// its icons, so the kit draws each icon at the font of its row. An icon is
+/// chrome, so the sheet draws the icons and the names at the UI font of the
+/// EditorKit theme (the `ui` font role).
 struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
   /// The title of the sheet, such as the name of the type of the states.
   let title: String
@@ -37,7 +37,7 @@ struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
           }
         }
       }
-      .font(editorTheme.proseFont)
+      .font(editorTheme.uiFont)
     }
   }
 }

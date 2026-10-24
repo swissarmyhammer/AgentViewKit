@@ -145,7 +145,7 @@ private struct ConversationEmptyHeader: View {
         }
         if let title {
           Text(title)
-            .font(editorTheme.proseFont.weight(.semibold))
+            .font(editorTheme.uiFont.weight(.semibold))
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier(ConversationLayout.emptyStateTitleIdentifier)
         }

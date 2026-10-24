@@ -16,7 +16,7 @@ import SwiftUI
 /// - The font size is the point size of the environment font, times
 ///   ``fontScale``. Thus the math follows Dynamic Type.
 /// - When the engine cannot parse the source, the view shows the source in
-///   the code font: the `editorFont` role of the EditorKit theme in the
+///   the code font: the `codeFont` (the `code` font role) of the EditorKit theme in the
 ///   `\.editorTheme` environment value. It never shows a blank.
 /// - The accessibility element has the identifier `math-inline` or
 ///   `math-block`. Its label is the LaTeX source. The element of the source
@@ -126,7 +126,7 @@ public struct MathView: View {
         .mathAccessibility(latex: latex, display: display)
     } else {
       Text(verbatim: latex)
-        .font(editorTheme.editorFont)
+        .font(editorTheme.codeFont)
         .fixedSize(horizontal: false, vertical: true)
         .mathAccessibility(latex: latex, display: display)
         .accessibilityValue(Text(verbatim: latex))

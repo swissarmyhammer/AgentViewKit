@@ -66,7 +66,7 @@ public struct MessageHeader: View {
 
   public var body: some View {
     Text(role.title)
-      .font(editorTheme.proseFont.weight(.semibold))
+      .font(editorTheme.uiFont.weight(.semibold))
       .accessibilityIdentifier(Self.roleIdentifier)
   }
 }

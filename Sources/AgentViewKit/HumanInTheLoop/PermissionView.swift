@@ -27,7 +27,7 @@ import SwiftUI
 ///   the command, the working directory, and, when the session model has the
 ///   related `TerminalEntry`, a button that shows the ``TerminalView`` of that
 ///   entry. The command and the working directory use the code font: the
-///   `editorFont` role of the EditorKit theme.
+///   `codeFont` of the EditorKit theme (the `code` font role).
 /// - One button for each option of the request, in the order of
 ///   `PermissionPresentation.order(of:)`. Each button shows the name of its
 ///   option and the symbol of its kind (``optionSymbol(for:)``). The
@@ -269,7 +269,7 @@ public struct PermissionView: View {
         Label(command.cwd.rawValue, systemImage: Self.directorySymbol)
           .foregroundStyle(.secondary)
       }
-      .font(editorTheme.editorFont)
+      .font(editorTheme.codeFont)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(
         String(localized: "Command \(command.command), in \(command.cwd.rawValue)", bundle: .module)

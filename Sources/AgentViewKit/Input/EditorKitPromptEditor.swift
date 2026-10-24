@@ -137,6 +137,9 @@ public struct EditorKitPromptEditor: View {
     // that a UI test finds one element to type into, and VoiceOver names it.
     .editorTextAccessibilityIdentifier(Self.identifier)
     .editorTextAccessibilityLabel(context.placeholder)
+    // The prompt is text that a person types, so it draws in the display
+    // font of the theme and not in the code font of an `EditorView`.
+    .editorFontRole(.display)
     .frame(minHeight: Self.minimumHeight, maxHeight: Self.maximumHeight)
     .fixedSize(horizontal: false, vertical: true)
     // The probe finds the caret of the text view, so that the menu starts at
@@ -553,7 +556,7 @@ struct PromptCompletionRow: View {
   var body: some View {
     HStack(spacing: theme.spacing.s) {
       Text(item.label)
-        .font(editorTheme.editorFont)
+        .font(editorTheme.uiFont)
         .lineLimit(1)
       Spacer(minLength: theme.spacing.s)
       if let detail = item.detail {
