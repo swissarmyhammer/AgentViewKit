@@ -48,8 +48,24 @@ comments:
     - evidence: swift test — 1791 tests in 218 suites passed, 7 known issues (expected); xcodeproj regenerated, xcodebuild AgentViewKitDemo build — BUILD SUCCEEDED, 0 warnings from repo sources (only Xcode's appintentsmetadataprocessor note); Scripts/test-examples.sh AgentViewKitDemo — build and 10 UI tests, 0 failures, under the ui-tests.lock, lock released, no draft files left
     - next: review/commit (nothing was changed by this step)
   timestamp: 2026-10-24T19:15:20.987216+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5qnhgwv7bfe2br83v2te58s
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (cdd91e0), batched run complete — 0 findings, 0 confirmed, 2 refuted, 7 attempted, 0 failed, 0 skipped; 18 files reviewed; not reviewed (no validator matches): Sources/AgentViewKit/Resources/Localizable.xcstrings, plan.md
+    - next: none — task moved to done
+  timestamp: 2026-10-24T19:17:30.651243+00:00
+- actor: claude-code
+  id: 01m5qnhydqmajerttdr7xfhmhs
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 24 files. Pill digits are primary and the chip keeps its accent fill. Source links get a secondary link mark. The current source and the minimap band are neutral. AccentMarkTests added. EK OutlineView accent text reported (EK ^5hvw4p6).
+    - test: green — swift test 1791/218 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: ecd8565 (chore kanban), cdd91e0 (code, HEAD)
+    - review: clean — 0 findings; task in done. Local only.
+  timestamp: 2026-10-24T19:17:44.503937+00:00
+position_column: done
+position_ordinal: ffffdb80
 title: Mark links and the current item without the theme accent (accent only for selection and focus)
 ---
 User decision (2026-10-24, relayed by kanbanviewkit-84), shared style rules 1 and 2:
