@@ -108,8 +108,25 @@ comments:
     - evidence: 2 files — Tests/AgentViewKitTests/Input/EditorKitPromptEditorHostedTests.swift, Tests/AgentViewKitTests/Input/ComposerCompletionRoutesHostedTests.swift; `swift test` → 1752 tests in 216 suites passed (3 known issues are the pre-existing `withKnownIssue` harness self-tests), PackageStructureTests 227 passed, 0 compiler warnings (the only `warning:` line is SwiftPM's mlx-swift_Cmlx.bundle "missing creator for mutated node" build notice, from a dependency); finding 2026-10-23 18:09 flipped to [x]. Not committed.
     - next: /review
   timestamp: 2026-10-23T23:16:59.356617+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5nh2dhak3mq5d6xdp388vs0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (dbd2e8e) — 0 findings (confirmed 0, refuted 0; 7 validator passes attempted, 0 failed); prior `## Review Findings (2026-10-23 18:09)` item checked
+    - next: task moved to done; send testudoapp-2c the SHA
+  timestamp: 2026-10-23T23:20:52.522867+00:00
+- actor: claude-code
+  id: 01m5nh2rb01mfrbec5edtmq7sh
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — shared `press(_:modifiers:in:)` test helper; 2 test files
+    - test: green — swift test, 1752 tests in 216 suites passed, 0 failed, 0 skipped
+    - commit: dbd2e8e
+    - review: clean — 0 findings; task in done
+    - Not pushed. Code commits: 7feef0f, dbd2e8e. The API was sent to testudoapp-2c; send the SHA when it's pushed.
+  timestamp: 2026-10-23T23:21:03.584875+00:00
+position_column: done
+position_ordinal: ffffce80
 title: DefaultThreadComposer takes EditorKit prefix-completion routes (one modifier or init parameter)
 ---
 Requested by testudoapp-2c (2026-10-23) for Testudo card ^6nkvrk1. Needs EditorKit ^fe1dbrc (main 7944113, code a5f50d3): `PrefixCompletionSource(routes:)`, `PrefixCompletionRoute(sigil, provider:)`, `Autocomplete(sources: [.prefixed(source)])`, `CompletionResult.isRanked`, Tab accepts an open completion. The wiring is in EditorKit's DocC article "Prefix completions".
