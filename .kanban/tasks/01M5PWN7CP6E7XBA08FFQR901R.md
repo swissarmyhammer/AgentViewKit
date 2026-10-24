@@ -41,6 +41,47 @@ comments:
     - evidence: `swift test` — 1800 tests in 219 suites passed, 7 known issues (expected); xcodeproj regenerated, `xcodebuild ... AgentViewKitDemo build` — BUILD SUCCEEDED, 0 warnings from repo sources (the only "warning:" line is Xcode's appintentsmetadataprocessor "Metadata extraction skipped, no AppIntents.framework dependency found"); `Scripts/test-examples.sh AgentViewKitDemo` — 10 UI tests, 0 failures, "The example gate passed."
     - next: review
   timestamp: 2026-10-24T19:46:18.398031+00:00
+- actor: claude-code
+  id: 01m5qqam5c8banpq69ef0tn3tc
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (1d55c1e), batched mode complete — 1 finding (1 confirmed, 1 refuted; 7 attempted, 0 failed); Docs/decisions/attachment-types.md not reviewed (no validator matched). Sources/AgentViewKit/Content/Blocks/BlobResourceView.swift:44 reuse/reuse
+    - next: extract the shared write-then-report helper used by BlobResourceView and AudioPlayerView, then re-review
+  timestamp: 2026-10-24T19:48:41.772713+00:00
+- actor: claude-code
+  id: 01m5qqb35nsyrv61ga42a4ka7k
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 10 files: BlobResourceView, file: links through AttachmentView, location chips select; follow-up ^z2qejh5 filed
+    - test: green — swift test 1800/219 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: 8b24e06 (chore kanban), 1d55c1e (code, HEAD)
+    - review: findings — BlobResourceView.swift:44 (reuse: the write-then-report pattern duplicates AudioPlayerView)
+  timestamp: 2026-10-24T19:48:57.141864+00:00
+- actor: claude-code
+  id: 01m5qqzgw7jnqwam9ay4tq091h
+  text: |-
+    Review finding BlobResourceView.swift:44 (reuse/reuse) fixed (not committed):
+    - New shared view `BlockFileWriteView<ID, Content>` (Sources/AgentViewKit/Content/Blocks/BlockFileWriteView.swift) owns the whole machine: `ContentBlockFile.write` -> `PreviewLoadState<URL>` -> `@State` -> `ObservationReport`, run in `.task(id:)`. Its inputs are `id`, `name`, `report`, the byte source `bytes: () -> Data?` (nil gives `.failed`), and a `@ViewBuilder content(state)`.
+    - `AudioPlayerView` and `BlobResourceView` no longer have `writeFile()`, `show(_:)` or `@State`. Each view keeps only its byte source (`decodedBytes()` decodes base64; `resourceBytes()` returns `data`), its own environment key (`audioFileReport` / `resourceFileReport`, passed in as `report`), and its own `content(of:)` switch.
+    - Gotcha: the package builds with `-default-isolation MainActor`. A `@Sendable` byte-source closure cannot read main-actor statics, so the closure is a plain main-actor `() -> Data?`.
+    - ViewPreviewTests needs a `#Preview` in every view file, so the new file has one.
+    - The new hosted tests in BlockFileWriteViewHostedTests reuse `WireContentBlockViewHostedTests.isFailed` so the helper is not copied.
+    - No demo-visible change: behavior is the same, and the demo takes the package as a local package reference, so the new file needs no project change.
+  timestamp: 2026-10-24T20:00:06.535247+00:00
+- actor: claude-code
+  id: 01m5qqzmktpj9xzt7yvba0hhp3
+  text: |-
+    ### implement — changed
+    - evidence: `swift test`: 1803 tests in 220 suites passed, 7 known issues (expected); PackageStructure 239 tests passed. New BlockFileWriteViewHostedTests: RED (missing type), then GREEN 3/3. The only warning is SwiftPM's "missing creator for mutated node" for the mlx-swift_Cmlx bundle, from a dependency, not from repo sources. Demo build and test-examples.sh were not run because nothing the demo shows changed. Files: Sources/AgentViewKit/Content/Blocks/BlockFileWriteView.swift (new), Sources/AgentViewKit/Content/Blocks/AudioPlayerView.swift, Sources/AgentViewKit/Content/Blocks/BlobResourceView.swift, Tests/AgentViewKitTests/Content/BlockFileWriteViewHostedTests.swift (new). Finding flipped to [x].
+    - next: /review
+  timestamp: 2026-10-24T20:00:10.362568+00:00
+- actor: claude-code
+  id: 01m5qr62d031kcjgt73g7k5mem
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1803 tests in 220 suites passed, 7 known issues (expected), 0 failures; xcodeproj regenerated with Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb, then `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo -skipMacroValidation -skipPackagePluginValidation -onlyUsePackageVersionsFromResolvedFile build` — BUILD SUCCEEDED, 0 repo warnings (only tool notices: appintentsmetadataprocessor "no AppIntents.framework dependency", SwiftPM "missing creator for mutated node" for the mlx-swift_Cmlx bundle). UI tests skipped as instructed (no demo behaviour changed).
+    - next: review
+  timestamp: 2026-10-24T20:03:41.088359+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'Tool-call and message files select into the host inspector (resource blobs, file: resource links, locations)'
@@ -64,3 +105,12 @@ Goal: a click on a file in tool-call content (and in message content where it ap
 - [x] The demo's scripted tool call shows a file chip that selects into the inspector, if the demo has one.
 
 When done, send testudoapp-2c the card id and the SHA after the user pushes. #avk-8 #cross-repo
+
+## Review Findings (2026-10-24 14:46)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 1 not reviewed.
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/attachment-types.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Content/Blocks/BlobResourceView.swift:44` `reuse/reuse` — `writeFile()` and `show(_:)` reimplement the write-then-report pattern that `AudioPlayerView` already has. Both views call `ContentBlockFile.write`, map the result to `PreviewLoadState<URL>`, store it in `@State`, and forward it to an environment `ObservationReport`. The new copy diverges only in the environment key it reports through and in the source of its bytes. Two parallel copies of the state machine will drift, and a fix to one will not reach the other. Extract one shared helper, for example a generic `ContentFileWrite` view modifier or a `func writeBlockFile(_ data: Data, named:, into: Binding<PreviewLoadState<URL>>, report: ObservationReport<PreviewLoadState<URL>>?)` that both views call. Each view keeps only its byte source (`Data` here, base64 decode in `AudioPlayerView`) and its own environment key. Alternatively, reuse the existing `AudioPlayerView` pattern directly and document the shared `show` contract in one place.
