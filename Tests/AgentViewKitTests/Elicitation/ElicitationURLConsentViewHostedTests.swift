@@ -227,6 +227,8 @@ import Testing
   /// or stops the browser task in the same step, so `requirements` read the
   /// state of that step. A check that fails stops the test before the wait,
   /// so a broken path does not hang the wait, which has no time limit.
+  /// `requirements` has no default, so each press names the checks that
+  /// prove it started the work that `condition` waits for.
   ///
   /// - Parameters:
   ///   - identifier: The accessibility identifier of the button.
@@ -238,7 +240,7 @@ import Testing
   static func press(
     _ identifier: String,
     in mounted: Mounted,
-    requiring requirements: () throws -> Void = {},
+    requiring requirements: () throws -> Void,
     until condition: @MainActor () -> Bool
   ) async throws {
     try mounted.harness.press(identifier: identifier)
@@ -540,6 +542,10 @@ import Testing
     mounted.browser.script = .waitsForCancel
 
     try await Self.press(ElicitationURLConsentView.retryIdentifier, in: mounted) {
+      // Retry starts the browser task in the same step as the press, so a
+      // press that started nothing stops the test here.
+      try #require(mounted.browserSteps.values == [.open, .failed, .open])
+    } until: {
       mounted.browser.sessions.last?.isWaiting == true
     }
 
