@@ -39,8 +39,25 @@ comments:
     - files: Sources/AgentViewKit/Terminal/TerminalPalette+Contrast.swift (new), Sources/AgentViewKit/Terminal/ANSIText.swift, Sources/AgentViewKit/Code/EditorBlockChrome.swift, Tests/AgentViewKitTests/Terminal/TerminalContrastHostedTests.swift (new), plan.md, Docs/decisions/visual-audit.md
     - next: /review
   timestamp: 2026-10-24T02:01:10.601774+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5ntggc8n8kp3ka5jjv2wde4
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (402ae3e) — 0 findings (confirmed 0, refuted 0, attempted 7, failed 0); not reviewed: .kanban/ (reviewignore), Docs/decisions/visual-audit.md and plan.md (no validator matched)
+    - next: task moved to done
+  timestamp: 2026-10-24T02:05:51.368787+00:00
+- actor: claude-code
+  id: 01m5ntgxdt5tc6zja5hgpn8fqx
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — ANSI black/white remap in ANSIText (TerminalPalette+Contrast) when the theme has no terminal background; TerminalBlockFrame passes no fill; TerminalContrastHostedTests; 6 files
+    - test: green — swift test, 1787 tests in 219 suites passed, 0 failed, 0 skipped
+    - commit: 402ae3e (+ 6448719, a kanban chore)
+    - review: clean — 0 findings; task in done
+    - Not pushed.
+  timestamp: 2026-10-24T02:06:04.730400+00:00
+position_column: done
+position_ordinal: ffffd380
 title: 'Terminal blocks stay clear: remap ANSI black/white so they contrast with whatever shows through'
 ---
 The user's decision, relayed by testudoapp-2c on 2026-10-23: "Terminal blocks: clear, fix the contrast."
