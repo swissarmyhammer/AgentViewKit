@@ -1,7 +1,7 @@
 // A fixture for ThemeInjectionTests. The package build excludes this file.
-// Each code line in the stack uses a tint, the theme accent or a theme of
-// its own, so the scan must report each one, with this file and the line
-// where the form starts.
+// Each code line in the stack uses a tint, a prominent button style, the
+// theme accent or a theme of its own, so the scan must report each one, with
+// this file and the line where the form starts.
 import SwiftUI
 
 struct TintAndTheme: View {
@@ -26,4 +26,11 @@ struct TintAndTheme: View {
 }
 
 struct OwnTheme: Theme {
+}
+
+struct ProminentActions: View {
+  var body: some View {
+    Button("Send") {}.buttonStyle(.glassProminent)
+    Button("Allow") {}.buttonStyle(.borderedProminent)
+  }
 }

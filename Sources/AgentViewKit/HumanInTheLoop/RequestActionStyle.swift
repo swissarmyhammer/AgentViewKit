@@ -6,7 +6,10 @@ import SwiftUI
 /// ``AgentAuthView``. The kind of the action and the ``RequestDeckPlace``
 /// give its button style (``RequestDeckPlace/style(of:)``).
 nonisolated enum RequestAction: Equatable, Sendable {
-  /// The one primary action of the card, for example Allow once.
+  /// The one primary action of the card, for example Allow once. It has no
+  /// prominent style, because the accent is only for the selection and the
+  /// focus (card ^k06v4gt): the primary action has the style of a secondary
+  /// action, and it keeps its place in the row.
   case primary
 
   /// An action that is not primary. In content, it uses the `.glass` style.
@@ -17,19 +20,15 @@ nonisolated enum RequestAction: Equatable, Sendable {
   case standard
 }
 
-/// The button style of a ``RequestAction``.
+/// The button style of a ``RequestAction``. No style is prominent, because a
+/// prominent style gives the button the accent tint, and the accent is only
+/// for the selection and the focus (card ^k06v4gt).
 nonisolated enum RequestActionStyle: Equatable, Sendable {
   /// The `.glass` style.
   case glass
 
-  /// The `.glassProminent` style.
-  case glassProminent
-
   /// The `.bordered` style.
   case bordered
-
-  /// The `.borderedProminent` style.
-  case borderedProminent
 
   /// No style of its own: the button keeps the button style of its
   /// environment, by default the system style.
@@ -41,26 +40,24 @@ extension RequestDeckPlace {
   /// `features/style.md`, rule 4 and "Buttons on glass").
   ///
   /// - In the bar, the button is on the glass of the request deck, and a
-  ///   glass button there is glass on glass. Thus the primary action uses the
-  ///   `.borderedProminent` style, and each other action uses the `.bordered`
-  ///   style. Only a button on a glass surface uses a bordered style.
+  ///   glass button there is glass on glass. Thus each action uses the
+  ///   `.bordered` style. Only a button on a glass surface uses a bordered
+  ///   style.
   /// - In a bar with no glass surface, for example the state banner and the
   ///   login prompt in the bottom bar of a thread, the content scrolls under
-  ///   the buttons. Thus the primary action uses the `.glassProminent` style,
-  ///   and each other action, the standard action too, uses the `.glass`
-  ///   style.
-  /// - In content, the primary action uses the `.glassProminent` style, a
-  ///   secondary action uses the `.glass` style, and a standard action keeps
-  ///   the style of its environment.
+  ///   the buttons. Thus each action, the standard action too, uses the
+  ///   `.glass` style.
+  /// - In content, the primary and the secondary action use the `.glass`
+  ///   style, and a standard action keeps the style of its environment.
   ///
   /// - Parameter action: The kind of the action.
   /// - Returns: The button style of the action.
   func style(of action: RequestAction) -> RequestActionStyle {
     switch (self, action) {
-    case (.bar, .primary): .borderedProminent
-    case (.bar, .secondary), (.bar, .standard): .bordered
-    case (.barWithoutGlass, .primary), (.content, .primary): .glassProminent
-    case (.barWithoutGlass, .secondary), (.barWithoutGlass, .standard), (.content, .secondary): .glass
+    case (.bar, .primary), (.bar, .secondary), (.bar, .standard): .bordered
+    case (.barWithoutGlass, .primary), (.barWithoutGlass, .secondary), (.barWithoutGlass, .standard),
+      (.content, .primary), (.content, .secondary):
+      .glass
     case (.content, .standard): .inherited
     }
   }
@@ -84,9 +81,7 @@ private struct RequestActionStyleModifier: ViewModifier {
     let place = RequestDeckPlace(declared: declaredPlace, isInFloatingGlassContainer: glassNamespace != nil)
     switch place.style(of: action) {
     case .glass: content.buttonStyle(.glass)
-    case .glassProminent: content.buttonStyle(.glassProminent)
     case .bordered: content.buttonStyle(.bordered)
-    case .borderedProminent: content.buttonStyle(.borderedProminent)
     case .inherited: content
     }
   }

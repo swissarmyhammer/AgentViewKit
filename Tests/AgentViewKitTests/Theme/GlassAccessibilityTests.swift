@@ -108,13 +108,12 @@ nonisolated enum GlassView: CaseIterable, Sendable {
   case editorMenu
 
   /// The accessory row while the agent does not run: the dictation button
-  /// with the `.glass` style, and Send with the `.glassProminent` style.
-  /// `ImageRenderer` does not draw the permission mode picker, which is an
-  /// AppKit control.
+  /// and Send, each with the `.glass` style. `ImageRenderer` does not draw
+  /// the permission mode picker, which is an AppKit control.
   case accessoryWhileIdle
 
-  /// The accessory row while the agent runs: the dictation button and Send
-  /// with the `.glass` style, and Stop with the `.glassProminent` style.
+  /// The accessory row while the agent runs: the dictation button, Stop and
+  /// Send, each with the `.glass` style.
   case accessoryWhileRunning
 
   /// One suggestion chip (``SuggestionChip``). `ImageRenderer` draws nothing
@@ -131,8 +130,8 @@ nonisolated enum GlassView: CaseIterable, Sendable {
   /// across the full width.
   case requestDeckInBar
 
-  /// A primary and a secondary action of a request card in content, with the
-  /// `.glassProminent` and the `.glass` style (``RequestDeckPlace/style(of:)``).
+  /// A primary and a secondary action of a request card in content, each with
+  /// the `.glass` style (``RequestDeckPlace/style(of:)``).
   case requestActionsInContent
 
   /// The width of the render of a row of glass buttons and of the composer,

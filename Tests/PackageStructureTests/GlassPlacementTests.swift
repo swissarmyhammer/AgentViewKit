@@ -48,7 +48,8 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
 
   /// The `.glass` or the `.glassProminent` button style. The floating
   /// controls and the action buttons of the request cards and the notices use
-  /// it.
+  /// the `.glass` style. ``ThemeInjectionTests`` forbids the `.glassProminent`
+  /// style in each file, so the scan finds it to place it, not to permit it.
   case glassButtonStyle
 
   var testDescription: String { rawValue }
@@ -198,13 +199,14 @@ extension GlassForm: FixtureCodeForm {
 ///
 /// The scan reads each Swift file of the kit as text. It blanks the comments
 /// and the string literals, then reads the file one line at a time. Each
-/// ``GlassForm`` can show only in its allowed files. In the composer
-/// directory `Input/`, one `.buttonStyle(.glassProminent)` gives the style to
-/// the one prominent action: Send, or Stop while the agent runs.
+/// ``GlassForm`` can show only in its allowed files. The composer directory
+/// `Input/` has no `.buttonStyle(.glassProminent)`: Send and Stop use the
+/// `.glass` style, because the accent is only for the selection and the
+/// focus (the user decision of 2026-10-24, card ^k06v4gt).
 ///
-/// Only that action has a tint (D113 answer 5). ``ThemeInjectionTests``
-/// holds the tint and the accent of each other view of the kit, so this suite
-/// does not check them again.
+/// ``ThemeInjectionTests`` forbids each prominent button style, each tint
+/// and each read of the accent outside its allowed files in the kit, the demo
+/// support and the demo, so this suite does not check them again.
 @Suite struct GlassPlacementTests {
   /// The composer directory, relative to the package root.
   static let inputPath = KitSourceFiles.kitFile("Input")
@@ -317,13 +319,12 @@ extension GlassForm: FixtureCodeForm {
     #expect(!"case .barWithoutGlass: content".contains(pattern))
   }
 
-  @Test func theInputUsesTheProminentGlassButtonStyleOneTimeForTheSendButton() throws {
+  @Test func theInputHasNoProminentGlassButtonStyle() throws {
     let found = try Self.uses(
       of: Self.prominentButtonStylePattern, inSwiftFilesBelow: PackageFiles.file(Self.inputPath),
       relativeTo: PackageFiles.root)
 
-    #expect(found.count == 1, "\(found)")
-    #expect(found.allSatisfy { $0.hasPrefix("\(GlassForm.sendButtonFile):") }, "\(found)")
+    #expect(found.isEmpty, "\(found)")
   }
 
   @Test func memberCallPatternFindsTheMemberInTheArgumentOfTheCall() {

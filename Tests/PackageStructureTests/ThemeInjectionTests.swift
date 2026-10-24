@@ -6,13 +6,14 @@ import Testing
 /// A form that puts a tint or the theme accent on a view, or that gives the
 /// kit a theme of its own (D111 step 7, D112 (d), D113 answers 5 and 6).
 ///
-/// Only the primary action of an area has a tint, and it gets the tint from
-/// the prominent glass button style. The Tinted look is a system setting, so
-/// no glass gets a tint of its own. In content, the theme accent marks only a
-/// link, the selection or the current item. The app injects the theme one
-/// time, at the root of each window. A view kit sets no theme, and has no
-/// theme or color constant of its own (TestudoApp `features/style.md`
-/// "Procedure", "Rules" and "Themes").
+/// The accent is only for the selection and the focus (the user decision of
+/// 2026-10-24, card ^k06v4gt). A prominent button style gives the accent tint,
+/// so no button uses one, and no action has a tint. The Tinted look is a
+/// system setting, so no glass gets a tint of its own. In content, the theme
+/// accent marks only a link, the selection or the current item. The app
+/// injects the theme one time, at the root of each window. A view kit sets no
+/// theme, and has no theme or color constant of its own (TestudoApp
+/// `features/style.md` "Procedure", "Rules" and "Themes").
 enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// A view modifier that sets the tint: `.tint(`, `.accentColor(`, or a
   /// modifier whose name ends in `Tint`, such as `.listItemTint(`. Nothing
@@ -28,6 +29,12 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   /// The tint or the accent color of the app as a shape style, such as
   /// `.foregroundStyle(.tint)` or `.fill(.tint)` (D113 answer 5).
   case tintShapeStyle
+
+  /// A prominent button style, such as `.buttonStyle(.glassProminent)` or
+  /// `.buttonStyle(.borderedProminent)`. The style gives the button the accent
+  /// tint, and the accent is only for the selection and the focus (card
+  /// ^k06v4gt).
+  case prominentButtonStyle
 
   /// A read of the theme accent, such as `editorTheme.accent` (D113
   /// answer 5).
@@ -49,13 +56,15 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   /// The directories that the scan of the form reads, relative to the
   /// package root.
   ///
-  /// The tint and the accent forms are rules of the look, so the scan reads
-  /// the kit, the demo support and the demo (``SystemStructureTests/scanPaths``).
-  /// The theme forms are rules of the view kit only: the demo is the app,
-  /// and the app injects the theme at the root of each window.
+  /// The tint, the prominent button style and the accent forms are rules of
+  /// the look, so the scan reads the kit, the demo support and the demo
+  /// (``SystemStructureTests/scanPaths``). The theme forms are rules of the
+  /// view kit only: the demo is the app, and the app injects the theme at the
+  /// root of each window.
   var scanPaths: [String] {
     switch self {
-    case .tintModifier, .glassTint, .tintShapeStyle, .themeAccent: SystemStructureTests.scanPaths
+    case .tintModifier, .glassTint, .tintShapeStyle, .prominentButtonStyle, .themeAccent:
+      SystemStructureTests.scanPaths
     case .themeInjection, .themeValue, .themeType: [KitSourceFiles.kitPath]
     }
   }
@@ -99,6 +108,7 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
     case .tintModifier: Self.tintModifierPattern
     case .glassTint: Self.glassTintPattern
     case .tintShapeStyle: Self.tintShapeStylePattern
+    case .prominentButtonStyle: Self.prominentButtonStylePattern
     case .themeAccent: Self.themeAccentPattern
     case .themeInjection: Self.themeInjectionPattern
     case .themeValue: Self.themeValuePattern
@@ -212,6 +222,27 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
       }
     }
     .wordBoundaryKind(.simple)
+  }
+
+  /// The pattern that finds a prominent button style: a name of the style or
+  /// of its type, as a whole word.
+  ///
+  /// The list is complete for the SwiftUI and the SwiftUICore interfaces of
+  /// the macOS SDK (`xcrun --show-sdk-path`). The prominent button styles are
+  /// `PrimitiveButtonStyle.glassProminent`, of the type
+  /// `GlassProminentButtonStyle`, and `PrimitiveButtonStyle.borderedProminent`,
+  /// of the type `BorderedProminentButtonStyle`. The pattern finds the name
+  /// itself, so it also finds a case of a kit enum that names the style, such
+  /// as `case glassProminent`.
+  static var prominentButtonStylePattern: Regex<Substring> {
+    Regex {
+      ChoiceOf {
+        WordPattern.wholeWord("glassProminent")
+        WordPattern.wholeWord("borderedProminent")
+        WordPattern.wholeWord("GlassProminentButtonStyle")
+        WordPattern.wholeWord("BorderedProminentButtonStyle")
+      }
+    }
   }
 
   /// The pattern that finds a read of the theme accent: a member `.accent`,
@@ -387,8 +418,7 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
 /// - ``FixedColorTests`` holds the fixed colors and the system background
 ///   colors.
 /// - ``ContentFillTests`` holds the custom fills behind content.
-/// - ``GlassPlacementTests`` holds the one prominent glass button style of
-///   the composer, which gives the tint to the Send button.
+/// - ``GlassPlacementTests`` holds the place of each glass button style.
 @Suite struct ThemeInjectionTests {
   /// A sample line of each form, with only that form on the line.
   static let sampleForms: [(form: ThemeInjectionForm, line: String)] = [
@@ -411,6 +441,12 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
     (.tintShapeStyle, ".background(.accentColor)"),
     (.tintShapeStyle, ".foregroundStyle(Color.accentColor)"),
     (.tintShapeStyle, ".foregroundStyle(TintShapeStyle())"),
+    (.prominentButtonStyle, ".buttonStyle(.glassProminent)"),
+    (.prominentButtonStyle, ".buttonStyle(.borderedProminent)"),
+    (.prominentButtonStyle, ".buttonStyle(GlassProminentButtonStyle())"),
+    (.prominentButtonStyle, ".buttonStyle(BorderedProminentButtonStyle())"),
+    (.prominentButtonStyle, "let style: some PrimitiveButtonStyle = .borderedProminent"),
+    (.prominentButtonStyle, "case glassProminent"),
     (.themeAccent, ".foregroundStyle(editorTheme.accent)"),
     (.themeAccent, "let color = theme.accent.opacity(opacity)"),
     (.themeAccent, #"let path = \.accent"#),
@@ -450,7 +486,11 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
     "let same = editorTheme == other",
     ".foregroundStyle(editorTheme.statusRunning)",
     "let palette = editorTheme.terminalPalette",
-    ".buttonStyle(.glassProminent)",
+    ".buttonStyle(.glass)",
+    ".buttonStyle(.bordered)",
+    "let isProminent = action == .primary",
+    "let count = Self.glassProminentCount",
+    ".navigationSplitViewStyle(.prominentDetail)",
     ".glassEffect(.regular, in: .capsule)",
     ".foregroundStyle(.tertiary)",
     "let accentOpacity = Self.accentOpacity",
@@ -474,6 +514,7 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
     (.tintModifier, [13, 19]),
     (.glassTint, [14]),
     (.tintShapeStyle, [15]),
+    (.prominentButtonStyle, [33, 34]),
     (.themeAccent, [16]),
     (.themeInjection, [17]),
     (.themeValue, [25]),
@@ -523,8 +564,9 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
     #expect(
       found.isEmpty,
       """
-      Only the primary action has a tint, the accent marks only a link, the selection or the current item, \
-      and the kit sets no theme (D111 step 7, D112 (d), D113 answers 5 and 6). \(form) is in: \(found)
+      No action has a tint or a prominent button style, the accent marks only a link, the selection or the \
+      current item, and the kit sets no theme (D111 step 7, D112 (d), D113 answers 5 and 6, card ^k06v4gt). \
+      \(form) is in: \(found)
       """)
   }
 

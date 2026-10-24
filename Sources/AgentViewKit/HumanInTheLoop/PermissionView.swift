@@ -32,8 +32,9 @@ import SwiftUI
 /// - One button for each option of the request, in the order of
 ///   `PermissionPresentation.order(of:)`. Each button shows the name of its
 ///   option and the symbol of its kind (``optionSymbol(for:)``). The
-///   `allow_once` button is
-///   prominent. The kept answers and the unknown kinds are secondary
+///   `allow_once` button is the primary action, with no prominent style
+///   (``RequestAction/primary``). The kept answers and the unknown kinds are
+///   secondary
 ///   (``PermissionPresentation/isSecondary(kind:)``).
 /// - A "switch to auto" button when
 ///   ``PermissionPresentation/autoModeOption(in:)`` gives an option for the

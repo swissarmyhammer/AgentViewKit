@@ -18,6 +18,7 @@ struct ThemeInText: View {
     VStack {
       Text(".tint(.blue) and .regular.tint(accent)")
       Text(#".foregroundStyle(.tint) and .foregroundStyle(editorTheme.accent)"#)
+      Text(".buttonStyle(.glassProminent) and .buttonStyle(.borderedProminent)")  // .glassProminent
       Text("""
         .editorTheme(.system), DefaultTheme.dark and struct OwnTheme: Theme {
         are in a multi-line literal.

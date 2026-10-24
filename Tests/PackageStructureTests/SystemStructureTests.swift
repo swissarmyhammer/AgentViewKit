@@ -180,7 +180,7 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
   /// structure.
   static let lookAlikeLines = [
     #"rows.map(\.bar)"#,
-    "case (.bar, .primary): .borderedProminent",
+    "case (.bar, .primary), (.bar, .secondary), (.bar, .standard): .bordered",
     "self = isInFloatingGlassContainer ? .bar : .content",
     "case .bar: content.floatingGlass()",
     "let height = toolbar.bar",

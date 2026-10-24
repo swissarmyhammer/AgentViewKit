@@ -562,12 +562,13 @@ public struct ElicitationFooterContext {
 ///
 /// The footer shows Cancel, Decline, and Submit. Submit is the primary action,
 /// and it is disabled until each field passes validation. Return presses
-/// Submit. The place of the card gives the button styles
-/// (``RequestDeckPlace/style(of:)``): in content, Submit has the
-/// `.glassProminent` style. In a ``RequestDeck`` in a bar of floating
-/// controls, the card is on the glass of the deck, so Submit has the
-/// `.borderedProminent` style, and Cancel and Decline have the `.bordered`
-/// style.
+/// Submit: it is the default action, and it stays last in the row. The place
+/// of the card gives the button styles (``RequestDeckPlace/style(of:)``): in
+/// content, Submit has the `.glass` style. In a ``RequestDeck`` in a bar of
+/// floating controls, the card is on the glass of the deck, so Submit, Cancel
+/// and Decline have the `.bordered` style. Submit has no prominent style,
+/// because the accent is only for the selection and the focus (card
+/// ^k06v4gt).
 public struct ElicitationFooter: View {
   /// The context of the footer.
   let context: ElicitationFooterContext

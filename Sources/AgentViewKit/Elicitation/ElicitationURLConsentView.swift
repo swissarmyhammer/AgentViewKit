@@ -55,10 +55,11 @@ import os
 ///
 /// Open in Browser and Retry are the primary actions. The place of the card
 /// gives the button styles (``RequestDeckPlace/style(of:)``): in content, the
-/// primary action has the `.glassProminent` style. In a ``RequestDeck`` in a
-/// bar of floating controls, the card is on the glass of the deck, so the
-/// primary action has the `.borderedProminent` style, and Cancel and Decline
-/// have the `.bordered` style.
+/// primary action has the `.glass` style. In a ``RequestDeck`` in a bar of
+/// floating controls, the card is on the glass of the deck, so the primary
+/// action, Cancel and Decline have the `.bordered` style. The primary action
+/// has no prominent style, because the accent is only for the selection and
+/// the focus (card ^k06v4gt).
 ///
 /// The card reads the waiting state from the owner, so a new card for an
 /// accepted request shows the waiting state. The browser session runs in the

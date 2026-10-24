@@ -120,10 +120,11 @@ import SwiftUI
 /// The place also gives the button styles of the actions in the cards and in
 /// the notices (``RequestDeckPlace/style(of:)``, TestudoApp
 /// `features/style.md`, "Buttons on glass"). In the bar, a glass button on the
-/// glass of the deck is glass on glass. Thus the one primary action of a card,
-/// for example Allow once, uses the `.borderedProminent` style, and each other
-/// action uses the `.bordered` style. In content, the actions keep the
-/// `.glassProminent` and `.glass` styles.
+/// glass of the deck is glass on glass. Thus each action of a card uses the
+/// `.bordered` style. In content, the actions use the `.glass` style. No
+/// action, not even the primary action (for example Allow once), uses a
+/// prominent style: the accent is only for the selection and the focus (card
+/// ^k06v4gt).
 ///
 /// In both places, each card has no fill, and the separator stroke of the
 /// content edge marks it (`.inlineEdge(radius:)`, D113).

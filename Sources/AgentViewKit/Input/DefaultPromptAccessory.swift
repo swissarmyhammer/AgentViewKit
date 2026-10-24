@@ -11,11 +11,10 @@ import SwiftUI
 /// While the user can cancel the work of the session, a Stop button shows
 /// beside it.
 ///
-/// Only one action of the row is prominent at a time (D110 (c)). While the
-/// agent runs, the Stop button uses the `.glassProminent` style and the submit
-/// button uses the `.glass` style. At other times, the submit button is the
-/// prominent action, and the Stop button, if it shows, uses the `.glass`
-/// style.
+/// No action of the row is prominent. The submit button and the Stop button
+/// each use the `.glass` style, while the agent runs and at other times: a
+/// prominent style gives the accent tint, and the accent is only for the
+/// selection and the focus (the user decision of 2026-10-24, card ^k06v4gt).
 ///
 /// While the agent does not run, a ``SuggestionsView`` above the row shows the
 /// prompts of
@@ -55,50 +54,10 @@ public struct DefaultPromptAccessory: View {
   /// Makes the accessory row.
   public init() {}
 
-  /// An action of the row that can be the one prominent action.
-  enum Action: Equatable {
-    /// The submit button, which sends the prompt.
-    case send
-
-    /// The Stop button, which cancels the work of the session.
-    case stop
-  }
-
-  /// The glass button style of an ``Action``.
-  enum ActionStyle: Equatable {
-    /// The `.glass` style, for an action that is not prominent.
-    case glass
-
-    /// The `.glassProminent` style, for the one prominent action.
-    case glassProminent
-  }
-
-  /// Whether the agent runs: the `agentState` of `session` is `running`.
-  ///
-  /// - Parameter session: The session model, or `nil`.
-  /// - Returns: `true` while the agent of `session` runs.
-  static func isRunning(_ session: SessionModel?) -> Bool {
-    session?.isRunning == true
-  }
-
-  /// The style of `action` for `session` (D110 (c)).
-  ///
-  /// Only one action is prominent at a time: Stop while the agent runs, and
-  /// Send at other times. The other action uses the `.glass` style.
-  ///
-  /// - Parameters:
-  ///   - action: The action of the button.
-  ///   - session: The session model of the row, or `nil`.
-  /// - Returns: The glass button style of the button.
-  static func style(of action: Action, for session: SessionModel?) -> ActionStyle {
-    let prominent: Action = isRunning(session) ? .stop : .send
-    return action == prominent ? .glassProminent : .glass
-  }
-
   /// Whether the agent runs: the `agentState` of the session model is
   /// `running`.
   private var isRunning: Bool {
-    Self.isRunning(session)
+    session?.isRunning == true
   }
 
   /// Whether the user can cancel the work of the session now: the one cancel
@@ -137,7 +96,7 @@ public struct DefaultPromptAccessory: View {
         .labelStyle(.iconOnly)
         .fontWeight(editorStyle.symbolWeight)
     }
-    .actionStyle(Self.style(of: .send, for: session))
+    .buttonStyle(.glass)
     .buttonBorderShape(.circle)
     .disabled(!submit.isEnabled)
     .help(String(localized: "Send the prompt", bundle: .module))
@@ -153,26 +112,10 @@ public struct DefaultPromptAccessory: View {
         .labelStyle(.iconOnly)
         .fontWeight(editorStyle.symbolWeight)
     }
-    .actionStyle(Self.style(of: .stop, for: session))
+    .buttonStyle(.glass)
     .buttonBorderShape(.circle)
     .help(String(localized: "Stop the work of the agent", bundle: .module))
     .accessibilityIdentifier(Self.stopIdentifier)
-  }
-}
-
-extension View {
-  /// Gives the button in this view the glass button style `style`.
-  ///
-  /// - Parameter style: The style that ``DefaultPromptAccessory/style(of:for:)``
-  ///   selects.
-  /// - Returns: The view with the button style.
-  @ViewBuilder fileprivate func actionStyle(_ style: DefaultPromptAccessory.ActionStyle) -> some View {
-    switch style {
-    case .glass:
-      self.buttonStyle(.glass)
-    case .glassProminent:
-      self.buttonStyle(.glassProminent)
-    }
   }
 }
 
