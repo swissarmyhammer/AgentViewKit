@@ -215,13 +215,13 @@ struct HostInspectorWithAttachmentActions: View {
     #expect(ids.definitions == Set(Commands.verbIDs))
   }
 
-  /// An image is the scope of its block file. The id is the URL that
-  /// ``ContentBlockFile`` gives to the bytes of the image.
+  /// An image is the scope of its block file. The id is the id of the
+  /// attachment that ``ContentBlockFile`` gives to the bytes of the image.
   @Test func anImageRegistersTheFiveCommandsAtTheScopeOfItsFile() throws {
     let (png, image) = try TestImage.makePNGContent(uri: WireContentBlockViewHostedTests.imageURI)
-    let url = ContentBlockFile.url(of: png, named: WireContentBlockViewHostedTests.imageName)
+    let file = ContentBlockFile.attachment(of: png, named: WireContentBlockViewHostedTests.imageName, type: .png)
 
-    let ids = try Self.commandIDs(of: ImageView(image: image), at: AttachmentID(url.absoluteString))
+    let ids = try Self.commandIDs(of: ImageView(image: image), at: file.id)
 
     #expect(ids.definitions == Set(Commands.verbIDs))
   }

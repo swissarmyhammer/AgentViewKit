@@ -99,8 +99,8 @@ import UniformTypeIdentifiers
         content: AnyView(ArtifactView(artifact: artifact)), id: AgentViewKit.Attachment(url: url).id)
     case .image:
       let (png, image) = try TestImage.makePNGContent(uri: WireContentBlockViewHostedTests.imageURI)
-      let url = ContentBlockFile.url(of: png, named: WireContentBlockViewHostedTests.imageName)
-      return MountedSurface(content: AnyView(ImageView(image: image)), id: AttachmentID(url.absoluteString))
+      let file = ContentBlockFile.attachment(of: png, named: WireContentBlockViewHostedTests.imageName, type: .png)
+      return MountedSurface(content: AnyView(ImageView(image: image)), id: file.id)
     }
   }
 

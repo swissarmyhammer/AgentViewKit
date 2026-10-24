@@ -182,8 +182,7 @@ import UniformTypeIdentifiers
 
   /// The attachment of the block file of the blob resource of the tests.
   static var blobAttachment: Attachment {
-    let url = ContentBlockFile.url(of: blobBytes, named: blobName)
-    return Attachment(id: AttachmentID(url.absoluteString), url: url, type: .zip, name: blobName, size: blobBytes.count)
+    ContentBlockFile.attachment(of: blobBytes, named: blobName, type: .zip)
   }
 
   /// Makes the blob resource block of the tests.
