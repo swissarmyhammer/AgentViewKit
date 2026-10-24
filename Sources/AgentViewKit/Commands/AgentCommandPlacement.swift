@@ -118,18 +118,26 @@ public nonisolated enum AgentScopeKind {
 }
 
 nonisolated extension AgentCommandVerb {
-  /// The place of the verb in the menu bar (AVK-1), or `nil` when the verb
-  /// is not in the menu bar.
+  /// The place of the verb in the menu bar (AVK-1).
+  ///
+  /// Each verb has a place, because the main menu, the context menus and the
+  /// palette show the same commands for the same focus (TestudoApp D41).
   ///
   /// | Menu | Verbs |
   /// | --- | --- |
-  /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Copy Thread |
+  /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Approve Request, Reject Request, Copy Thread |
   /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom |
+  /// | Edit | Copy Message |
+  ///
+  /// EditorKit puts the rows of the Edit path right after the Cut, Copy and
+  /// Paste rows of the system Edit menu, so Copy Message is next to Copy.
   public var menu: MenuPlacement? {
     switch self {
     case .send: MenuPlacement(path: .session, group: "agentPrompt", order: 0)
     case .cancel: MenuPlacement(path: .session, group: "agentPrompt", order: 1)
     case .focusComposer: MenuPlacement(path: .session, group: "agentComposer", order: 0)
+    case .approvePending: MenuPlacement(path: .session, group: "agentRequest", order: 0)
+    case .rejectPending: MenuPlacement(path: .session, group: "agentRequest", order: 1)
     case .copyThread: MenuPlacement(path: .session, group: "agentThread", order: 0)
     case .jumpToNext: MenuPlacement(path: .view, group: "agentPrompts", order: 0)
     case .jumpToPrevious: MenuPlacement(path: .view, group: "agentPrompts", order: 1)
@@ -137,7 +145,7 @@ nonisolated extension AgentCommandVerb {
     case .previousRequest: MenuPlacement(path: .view, group: "agentRequests", order: 1)
     case .toggleExpandAll: MenuPlacement(path: .view, group: "agentThread", order: 0)
     case .scrollToBottom: MenuPlacement(path: .view, group: "agentThread", order: 1)
-    case .approvePending, .rejectPending, .copyMessage: nil
+    case .copyMessage: MenuPlacement(path: .edit, group: "agentClipboard", order: 0)
     }
   }
 
@@ -201,17 +209,18 @@ nonisolated extension AgentCommandVerb {
   /// `path`.
   ///
   /// A verb with no ``itemKind`` shows at each path. At a path with no item
-  /// segment, each verb shows, but ``copyMessage`` needs a message. At a
-  /// path in an item scope, a verb with an ``itemKind`` shows only for an
-  /// item of that kind. Thus the context menu of a message does not show
-  /// Approve Request. No verb has the item kind ``AgentScopeKind/toolCall``,
-  /// so the context menu of a tool call shows no agent verb.
+  /// segment, each verb shows. Its availability tells if it can run there:
+  /// ``copyMessage`` needs a message, so the Edit menu shows it disabled
+  /// until a message has the focus. At a path in an item scope, a verb with
+  /// an ``itemKind`` shows only for an item of that kind. Thus the context
+  /// menu of a message does not show Approve Request. No verb has the item
+  /// kind ``AgentScopeKind/toolCall``, so the context menu of a tool call
+  /// shows no agent verb.
   ///
   /// - Parameter path: The invocation path.
   /// - Returns: `true` when the verb shows.
   func isVisible(at path: FocusPath) -> Bool {
-    guard let itemKind else { return true }
-    guard let item = AgentScopeKind.item(in: path) else { return self != .copyMessage }
+    guard let itemKind, let item = AgentScopeKind.item(in: path) else { return true }
     return item.kind == itemKind
   }
 }

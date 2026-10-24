@@ -7,6 +7,7 @@ import EditorCommands
 /// | Command-Return | ``AgentCommandVerb/send`` |
 /// | Command-Period, Escape | ``AgentCommandVerb/cancel`` |
 /// | Command-Shift-C | ``AgentCommandVerb/copyThread`` |
+/// | Control-Shift-Command-C | ``AgentCommandVerb/copyMessage`` |
 /// | Option-Up Arrow | ``AgentCommandVerb/jumpToPrevious`` |
 /// | Option-Down Arrow | ``AgentCommandVerb/jumpToNext`` |
 /// | Command-Shift-[ | ``AgentCommandVerb/previousRequest`` |
@@ -38,6 +39,11 @@ public nonisolated enum AgentKeymap {
   /// The Command-Shift-C chord.
   public static let commandShiftC: KeyChord = "⇧⌘C"
 
+  /// The Control-Shift-Command-C chord: Control-Command, the modifiers of a
+  /// kit command, with Shift on the C of Copy. Command-C stays the Copy of
+  /// the system Edit menu and of the text views.
+  public static let controlShiftCommandC: KeyChord = "⌃⇧⌘C"
+
   /// The Option-Up Arrow chord.
   public static let optionUp = KeyChord("⌥" + KeyChord.upArrow.rawValue)
 
@@ -56,6 +62,7 @@ public nonisolated enum AgentKeymap {
     .send: [commandReturn],
     .cancel: [commandPeriod, .escape],
     .copyThread: [commandShiftC],
+    .copyMessage: [controlShiftCommandC],
     .jumpToPrevious: [optionUp],
     .jumpToNext: [optionDown],
     .previousRequest: [commandShiftLeftBracket],

@@ -399,10 +399,10 @@ final class CallCounter {
         == .command(AgentCommandVerb.cancel.id, scope: fixture.path))
   }
 
-  @Test func theDefaultKeymapBindsTheEightChords() {
+  @Test func theDefaultKeymapBindsTheNineChords() {
     let expected: [(String, AgentCommandVerb)] = [
-      ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⇧⌘C", .copyThread), ("⌥↑", .jumpToPrevious),
-      ("⌥↓", .jumpToNext), ("⇧⌘{", .previousRequest), ("⇧⌘}", .nextRequest),
+      ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⇧⌘C", .copyThread), ("⌃⇧⌘C", .copyMessage),
+      ("⌥↑", .jumpToPrevious), ("⌥↓", .jumpToNext), ("⇧⌘{", .previousRequest), ("⇧⌘}", .nextRequest),
     ]
 
     #expect(AgentKeymap.sortedChords.count == expected.count)

@@ -16,12 +16,29 @@ import Testing
 /// clock.
 @MainActor struct AgentCommandPlacementTests {
   /// The verbs of the Session menu.
-  static let sessionMenuVerbs: Set<AgentCommandVerb> = [.send, .cancel, .focusComposer, .copyThread]
+  static let sessionMenuVerbs: Set<AgentCommandVerb> = [
+    .send, .cancel, .focusComposer, .copyThread, .approvePending, .rejectPending,
+  ]
 
   /// The verbs of the View menu.
   static let viewMenuVerbs: Set<AgentCommandVerb> = [
     .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .toggleExpandAll, .scrollToBottom,
   ]
+
+  /// The verbs of the Edit menu.
+  static let editMenuVerbs: Set<AgentCommandVerb> = [.copyMessage]
+
+  /// The menu of `verb` in the design (AVK-1, D41), or `nil` when the verb
+  /// is in none of the three menu tables.
+  ///
+  /// - Parameter verb: The verb.
+  /// - Returns: The menu path.
+  static func designMenu(of verb: AgentCommandVerb) -> MenuPath? {
+    if sessionMenuVerbs.contains(verb) { return .session }
+    if viewMenuVerbs.contains(verb) { return .view }
+    if editMenuVerbs.contains(verb) { return .edit }
+    return nil
+  }
 
   /// The id of the command that a host registers for the tool call scope.
   nonisolated static let hostToolCallCommandID: CommandID = "host.rollBackToBeforeThis"
@@ -36,12 +53,23 @@ import Testing
 
   @Test func eachVerbIsInTheMenuOfTheDesign() {
     for verb in AgentCommandVerb.allCases {
-      let expected: MenuPath? =
-        if Self.sessionMenuVerbs.contains(verb) { .session } else if Self.viewMenuVerbs.contains(verb) {
-          .view
-        } else { nil }
-      #expect(verb.menu?.path == expected, "\(verb)")
+      #expect(verb.menu?.path == Self.designMenu(of: verb), "\(verb)")
     }
+  }
+
+  /// D41: the main menu, the context menus and the palette show the same
+  /// commands, so no verb is left out of the main menu.
+  @Test func eachVerbHasAPlaceInTheMainMenu() {
+    for verb in AgentCommandVerb.allCases {
+      #expect(verb.menu != nil, "\(verb)")
+    }
+  }
+
+  /// EditorKit puts the rows of the Edit path right after the Cut, Copy,
+  /// Paste, Delete and Select All rows of the system Edit menu.
+  @Test func copyMessageIsInTheEditMenuAfterTheCopyRows() {
+    #expect(AgentCommandVerb.copyMessage.menu?.path == .edit)
+    #expect(SystemMenuSlot.builtInSlots[.edit] == .after(.pasteboard))
   }
 
   @Test func theDefinitionsCarryThePlacesAndTheIcons() async throws {
@@ -168,20 +196,38 @@ import Testing
     #expect(!messageIDs.contains(Self.hostToolCallCommandID))
   }
 
-  @Test func copyMessageShowsOnlyInTheScopeOfAMessage() async throws {
+  /// With no message in the path, the Edit menu shows Copy Message disabled,
+  /// as the menu shows each command that does not apply now (D41). The
+  /// palette leaves out a disabled command, so it does not show the row.
+  @Test func copyMessageIsDisabledOutsideTheScopeOfAMessage() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let userKeys = try await AgentCommandsTests.sendTurns(to: session)
-    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let fixture = AgentCommandsTests.makeFixture(
+      session: session.model, items: AgentCommandsTests.messageItems(of: session.model))
     let messagePath = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[0]))
 
-    let threadIDs = fixture.system.registry.eligible(path: fixture.path).filter(\.isVisible).map(\.id)
-    let messageIDs = fixture.system.registry.eligible(path: messagePath).filter(\.isVisible).map(\.id)
+    let threadRows = fixture.system.registry.eligible(path: fixture.path).filter(\.isVisible)
+    let messageRows = fixture.system.registry.eligible(path: messagePath).filter(\.isVisible)
 
-    #expect(!threadIDs.contains(AgentCommandVerb.copyMessage.id))
-    #expect(threadIDs.contains(AgentCommandVerb.approvePending.id))
-    #expect(messageIDs.contains(AgentCommandVerb.copyMessage.id))
-    #expect(!messageIDs.contains(AgentCommandVerb.approvePending.id))
+    #expect(threadRows.first { $0.id == AgentCommandVerb.copyMessage.id }?.isEnabled == false)
+    #expect(threadRows.contains { $0.id == AgentCommandVerb.approvePending.id })
+    #expect(messageRows.first { $0.id == AgentCommandVerb.copyMessage.id }?.isEnabled == true)
+    #expect(!messageRows.contains { $0.id == AgentCommandVerb.approvePending.id })
+  }
+
+  /// The scope of a request card is the scope of another item, so neither
+  /// its context menu nor the main menu shows Copy Message there.
+  @Test func copyMessageDoesNotShowInTheScopeOfARequest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let request = try await session.receivePermissionRequest(id: AgentCommandsTests.agentRequestID)
+    let path = fixture.path.appending(AgentScopeKind.request(request.id))
+
+    let ids = fixture.system.registry.eligible(path: path).filter(\.isVisible).map(\.id)
+
+    #expect(!ids.contains(AgentCommandVerb.copyMessage.id))
   }
 
   // MARK: - Commands of an item
