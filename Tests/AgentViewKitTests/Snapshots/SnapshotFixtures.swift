@@ -123,19 +123,24 @@ enum SnapshotFixtures {
     SessionModel.preview(transcript: [.update(.stateUpdate(.running(RunningStateUpdate())))])
   }
 
-  /// The number of the agent messages of ``failedTurnSession()``. Together
-  /// they are taller than ``threadSize``, so the transcript scrolls under the
-  /// bottom bar of the thread.
-  static let failedTurnMessageCount = 12
+  /// The default number of the agent messages of
+  /// ``failedTurnSession(messageCount:)``. With the error entry, they fit in
+  /// the part of the list of a thread of ``threadSize`` between its two bars,
+  /// when the bottom bar shows the failure banner and the sign-in card. So at
+  /// rest no row is under a bar, and each line of the image is readable
+  /// (^zg9tysk).
+  static let failedTurnMessageCount = 1
 
-  /// A session whose last turn failed: ``failedTurnMessageCount`` agent
-  /// messages, an idle state with the stop reason `error`, and an error entry
-  /// at the end of the transcript. In a thread, the state banner in the
-  /// bottom bar then shows its Show Error button.
+  /// A session whose last turn failed: `messageCount` agent messages, an idle
+  /// state with the stop reason `error`, and an error entry at the end of the
+  /// transcript. In a thread, the state banner in the bottom bar then shows
+  /// its Show Error button.
   ///
+  /// - Parameter messageCount: The number of the agent messages, at least
+  ///   one.
   /// - Returns: The session model.
-  static func failedTurnSession() -> SessionModel {
-    let messages = (1...failedTurnMessageCount).map { number in
+  static func failedTurnSession(messageCount: Int = failedTurnMessageCount) -> SessionModel {
+    let messages = (1...messageCount).map { number in
       PreviewTranscriptItem.agent(
         "Step \(number): the import reads the next rows of the customer file, and skips each row that has no "
           + "email address. The count of the skipped rows goes to the log.")
@@ -144,6 +149,15 @@ enum SnapshotFixtures {
       transcript: messages + [.update(.stateUpdate(.idle(IdleStateUpdate(stopReason: .error))))])
     session.appendError(code: .internalError, message: "The tool did not start.", data: nil)
     return session
+  }
+
+  /// The thread of the `bottom-bar-buttons` images: the failed turn of
+  /// ``failedTurnSession(messageCount:)``, with the sign-in card of
+  /// ``AgentAuthViewSurfaceHostedTests/connection`` and the default composer.
+  static var bottomBarThread: some View {
+    AgentThreadView(session: failedTurnSession(), connection: AgentAuthViewSurfaceHostedTests.connection) {
+      DefaultThreadComposer()
+    }
   }
 
   /// The default composer of the thread for `session`.

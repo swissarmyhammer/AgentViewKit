@@ -178,6 +178,17 @@ public struct ConversationView<EmptyState: View>: View {
   /// geometry change corrects the pin state.
   @State private var isNearBottom = true
 
+  /// The row key of the item of the last scroll to an item, until the list
+  /// reports the row in view, or `nil`.
+  ///
+  /// A scroll to an item far from the rows that the lazy stack laid out
+  /// places the row from the estimated heights of the rows before it. The
+  /// estimate can be wrong by tens of points, and the row then stops under
+  /// the top bar of the thread (^zg9tysk). The first report that holds the
+  /// row comes after the stack laid the row out, so the list scrolls to the
+  /// row again then (``settleItemScroll(visible:)``).
+  @State private var unsettledItemID: String?
+
   @Environment(\.conversationPageSize) private var pageSize
   @Environment(\.editorStyle) private var editorStyle
 
@@ -291,7 +302,14 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollTargetVisibilityChange(
       idType: String.self, threshold: ConversationLayout.visibilityThreshold
     ) { ids in
+      settleItemScroll(visible: ids)
       noteVisible(ids: ids, isNearBottom: nil)
+    }
+    .onScrollPhaseChange { _, phase in
+      // A scroll of the user ends the wait for the row of an item scroll.
+      if phase.isScrolling, phase != .animating {
+        unsettledItemID = nil
+      }
     }
     .onScrollGeometryChange(for: Bool.self) { geometry in
       geometry.contentSize.height - geometry.visibleRect.maxY <= anchors.tolerance
@@ -390,10 +408,16 @@ public struct ConversationView<EmptyState: View>: View {
   /// their real heights in the same layout pass, that scroll can stop with
   /// the last rows under the bar (^92k32m0). See ``scrollToBottom()``.
   ///
+  /// A scroll to an item puts the top of its row at the top edge of the
+  /// part of the list in view, below the top bar. The first scroll places
+  /// the row from estimated heights, so the list scrolls to the row again
+  /// when it first reports the row in view (``unsettledItemID``).
+  ///
   /// - Parameter target: The target.
   private func scroll(to target: ScrollAnchorTarget) {
     switch target {
     case .bottom:
+      unsettledItemID = nil
       scrollToBottom()
     case .item(let id):
       if let itemPosition = session.transcript.position(ofRowKey: id) {
@@ -401,8 +425,23 @@ public struct ConversationView<EmptyState: View>: View {
           toShow: itemPosition, count: session.transcript.count, pageSize: pageSize)
         pageCount = max(pageCount, needed)
       }
+      unsettledItemID = id
       position.scrollTo(id: id, anchor: .top)
     }
+  }
+
+  /// Scrolls to the item of the last scroll to an item again, when `ids`
+  /// holds its row for the first time after that scroll.
+  ///
+  /// The row is laid out when the list reports it in view, so this second
+  /// scroll reads the real frame of the row and puts the row below the top
+  /// bar. The list then waits for no other report.
+  ///
+  /// - Parameter ids: The identifiers of the rows in view, in any order.
+  private func settleItemScroll(visible ids: [String]) {
+    guard let id = unsettledItemID, ids.contains(id) else { return }
+    unsettledItemID = nil
+    position.scrollTo(id: id, anchor: .top)
   }
 
   /// Scrolls the list to the end of its content.

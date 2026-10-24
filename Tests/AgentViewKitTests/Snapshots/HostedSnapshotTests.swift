@@ -55,29 +55,24 @@ import Testing
   }
 
   /// The state banner with its Show Error button and the login card with its
-  /// Sign In button, in the bottom bar of a thread over a transcript that
-  /// scrolls under the bar. The bar has no glass surface, so the buttons use
-  /// the glass styles and not the bordered styles (TestudoApp
-  /// `features/style.md`, rule 4). The cache of a window shows no glass, so a
-  /// glass button shows its label with no bezel, and a bordered button shows
-  /// its bezel.
+  /// Sign In button, in the bottom bar of a thread at rest, below the
+  /// transcript. The bar has no glass surface, so the buttons use the glass
+  /// styles and not the bordered styles (TestudoApp `features/style.md`, rule
+  /// 4). The cache of a window shows no glass, so a glass button shows its
+  /// label with no bezel, and a bordered button shows its bezel.
   ///
-  /// After the first render, the test moves the list to the first message, as
-  /// the Show Error button moves it to an item. The later messages are then
-  /// under the bar.
+  /// The list is at rest and follows the bottom, and the transcript fits
+  /// between the two bars, so no row is under a bar and each line of the
+  /// image is readable (^zg9tysk). A row under a bar shows through the bar in
+  /// this image: the cache of a window draws neither the glass of the bar nor
+  /// the scroll edge effect. The scroll-to-bottom pill shows only when the
+  /// list is away from the bottom, with rows under the bar, so this image does
+  /// not show it. `GlassSnapshotTests` shows the pill in the floating controls.
   @Test(arguments: SnapshotVariant.allCases)
-  func theButtonsOfTheBottomBarOverTheTranscript(variant: SnapshotVariant) async throws {
-    let session = SnapshotFixtures.failedTurnSession()
-    let firstKey = try #require(session.transcript.first?.rowKey)
-    let anchors = ScrollAnchorManager()
-    let thread = AgentThreadView(
-      session: session, connection: AgentAuthViewSurfaceHostedTests.connection, anchors: anchors
-    ) { DefaultThreadComposer() }
-
-    try await Self.verify(thread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize, variant: variant) {
-      anchors.noteJump(to: firstKey)
-      anchors.onScroll(.item(firstKey))
-    }
+  func theButtonsOfTheBottomBarBelowTheTranscript(variant: SnapshotVariant) async throws {
+    try await Self.verify(
+      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize,
+      variant: variant)
   }
 
   @Test(arguments: SnapshotVariant.allCases)
