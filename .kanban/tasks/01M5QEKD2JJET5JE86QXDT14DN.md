@@ -27,6 +27,36 @@ comments:
     - evidence: `swift test` — 1814 tests in 223 suites passed, 7 known issues (expected), 0 failures. Regenerated xcodeproj, then `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo -skipMacroValidation -skipPackagePluginValidation -onlyUsePackageVersionsFromResolvedFile build` — BUILD SUCCEEDED, 0 repo warnings (only Xcode's appintentsmetadataprocessor notice). `Scripts/test-examples.sh AgentViewKitDemo` — 10 UI tests, 0 failures, "The example gate passed." Ran under the shared UI-test lock. No draft files left; git status is unchanged.
     - next: review
   timestamp: 2026-10-24T22:01:19.743211+00:00
+- actor: claude-code
+  id: 01m5qz0k0k4sme9vn3y0kdbbem
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (9e29d76), batched, complete (5 files reviewed, 0 not reviewed); 1 finding (1 confirmed, 0 refuted) — Tests/PackageStructureTests/FontRoleTests.swift:123 (reuse/reuse)
+    - next: implement the Review Findings (2026-10-24 17:01) checklist item; task stays in review
+  timestamp: 2026-10-24T22:03:01.523914+00:00
+- actor: claude-code
+  id: 01m5qz12rzqp390e94tmkz4an5
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files: FontRoleTests forbids Font(ofSize: and preferredFont(forTextStyle:; the citation pill measures in the ui face
+    - test: green — swift test 1814/223 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: 4c8033e (chore kanban), 9e29d76 (code, HEAD)
+    - review: findings — FontRoleTests.swift:123 (reuse: matches(of:on:) duplicates SourceLineScanner.uses(of:on:))
+  timestamp: 2026-10-24T22:03:17.663922+00:00
+- actor: claude-code
+  id: 01m5qz7h8cmrm549c9c6aanc0b
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/PackageStructureTests/FontRoleTests.swift. Deleted `FontRoleTests.matches(of:on:)`; `fontsOutsideTheRoles` now calls `SourceLineScanner.uses(of: fontOutsideTheRolesPattern, on: line)`, and the text-style test closure calls `SourceLineScanner.uses(of: Self.bareTextStylePattern, on: line)`. The file holds no other copy of the line-to-`file:line` logic, and nothing else referenced the deleted helper. `swift test`: 1814 tests in 223 suites passed, 7 known issues, FontRoleTests passed, 0 repo warnings (the only warning is the build system's "missing creator for mutated node" on the mlx-swift_Cmlx bundle). Review finding (2026-10-24 17:01) checked off.
+    - next: /review
+  timestamp: 2026-10-24T22:06:49.100113+00:00
+- actor: claude-code
+  id: 01m5qzcarmkcdws258zjm1bfck
+  text: |-
+    ### test — green
+    - evidence: swift test — 1814 tests in 223 suites passed, 7 known issues (expected), 0 failures; the only compiler/build warning is a build-system note about the mlx-swift_Cmlx.bundle (not a repo source); demo and UI runs skipped as only Tests/PackageStructureTests/FontRoleTests.swift changed
+    - next: none
+  timestamp: 2026-10-24T22:09:26.292057+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'FontRoleTests: forbid fixed-size AppKit/UIKit font factories and preferredFont(forTextStyle:)'
@@ -48,3 +78,9 @@ Checklist:
 - [x] Self-tests show each pattern catches a violating sample and leaves `thumbnail(ofSize:)` and `systemFontSize(for:)` alone.
 - [x] Every site the new rules flag routes through a theme role (`editorTheme.font(for:style:)` / `face(for:)`). List the sites. Fixing them is part of this card, not an exception.
   - Sites flagged (one): Sources/AgentViewKit/Citations/InlineCitation.swift, `InlineCitationMetrics.init`, `NSFont.monospacedDigitSystemFont(ofSize:weight:)`. Now built from `editorTheme.face(for: .ui)`. #avk-8
+
+## Review Findings (2026-10-24 17:01)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 0 not reviewed.
+
+- [x] `Tests/PackageStructureTests/FontRoleTests.swift:123` `reuse/reuse` — The new `FontRoleTests.matches(of:on:)` reimplements a helper that already exists. Its body is the same one-line check as `SourceLineScanner.uses(of:on:)`, so the package now has two copies of the same line-to-`file:line` matching logic that can drift apart. Delete `FontRoleTests.matches(of:on:)` and call `SourceLineScanner.uses(of:on:)` in its place: `fontsOutsideTheRoles` becomes `SourceLineScanner.uses(of: fontOutsideTheRolesPattern, on: line)`, and the text-style test passes `{ line in SourceLineScanner.uses(of: Self.bareTextStylePattern, on: line) }`. If the name `matches` is wanted for readability, keep it as a one-line alias, not a second body.
