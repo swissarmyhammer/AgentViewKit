@@ -50,6 +50,18 @@ readonly EVENT_TIMEOUT_SECONDS=30
 # The time that a blocked waiter must stay silent, in seconds: many tries of the waiter.
 readonly BLOCKED_SECONDS=2
 
+# A `read` whose `-t` time limit ends exits with 128 plus the number of the signal in
+# bash 4 and later, so a status above this floor is a time limit.
+readonly READ_TIMEOUT_STATUS_FLOOR=128
+
+# The exit status of a `read` that reached the end of its input. The bash 3.2 of macOS
+# gives this status also when the `-t` time limit ends, so only the time that the `read`
+# took tells the two apart there.
+readonly READ_END_OF_INPUT_STATUS=1
+
+# The number of milliseconds in one second.
+readonly MILLISECONDS_PER_SECOND=1000
+
 # The temporary directory of the check, and the ids of the holders that it started.
 # The EXIT trap reads them, so they are not local.
 work=""
@@ -130,15 +142,54 @@ line_matches() {
     esac
 }
 
-# Checks that a holder writes no line for BLOCKED_SECONDS.
+# Writes the time of the clock in milliseconds. The bash 3.2 of macOS has no clock finer
+# than a second, so `perl` (which ships with macOS) reads it.
+now_milliseconds() {
+    perl -MTime::HiRes=time -e "printf \"%d\\n\", time() * $MILLISECONDS_PER_SECOND"
+}
+
+# Tells whether a `read` with a `-t` time limit ended at its time limit, and not at the
+# end of its input. The end of the input means that every writer of the FIFO closed it,
+# for example because the holder ended.
 #
-# Arguments: the file descriptor of the FIFO of the holder, then the name of the check.
+# Arguments: the exit status of the `read`, the milliseconds that it took, then its time
+# limit in seconds.
+read_timed_out() {
+    if [ "$1" -gt "$READ_TIMEOUT_STATUS_FLOOR" ]; then
+        return 0
+    fi
+    # The bash 3.2 of macOS: a time limit and the end of the input give the same status,
+    # and only a time limit makes the `read` take the whole limit.
+    [ "$1" -eq "$READ_END_OF_INPUT_STATUS" ] &&
+        [ "$2" -ge $(($3 * MILLISECONDS_PER_SECOND)) ]
+}
+
+# Tells whether a process runs. The check shell reaps each holder that ends, so an ended
+# holder has no process id.
+#
+# Arguments: the process id.
+is_running() {
+    kill -0 "$1" 2>/dev/null
+}
+
+# Checks that a holder writes no line for BLOCKED_SECONDS, and still runs at the end of
+# that time. The `read` must end at its time limit: when it ends at the end of the input,
+# the holder closed its FIFO, so it ended and was not blocked.
+#
+# Arguments: the file descriptor of the FIFO of the holder, the process id of the holder,
+# then the name of the check.
 expect_silence() {
-    local line=""
-    if IFS= read -r -t "$BLOCKED_SECONDS" -u "$1" line; then
-        check "$2 (the line: $line)" false
+    local fd="$1" pid="$2" name="$3" line="" status=0 started elapsed
+    started="$(now_milliseconds)"
+    IFS= read -r -t "$BLOCKED_SECONDS" -u "$fd" line || status=$?
+    elapsed=$(($(now_milliseconds) - started))
+    if [ "$status" -eq 0 ]; then
+        check "$name (the line: $line)" false
+    elif ! read_timed_out "$status" "$elapsed" "$BLOCKED_SECONDS"; then
+        check "$name (the output of the holder ended after $elapsed ms)" false
     else
-        check "$2" true
+        check "$name (the holder $pid runs at the end of $BLOCKED_SECONDS seconds)" \
+            is_running "$pid"
     fi
 }
 
@@ -160,11 +211,17 @@ expect_no_lock() {
     check "$2" [ ! -e "$1" ]
 }
 
-# Checks that the lock holds a content.
+# Checks that the lock holds a content. A lock that the check cannot read fails the check,
+# also when the content that the check expects is empty.
 #
 # Arguments: the lock path, the content, then the name of the check.
 expect_lock_content() {
-    check "$3" [ "$(cat "$1" 2>/dev/null || true)" = "$2" ]
+    local content
+    if ! content="$(cat "$1" 2>/dev/null)"; then
+        check "$3 (no lock to read)" false
+        return 0
+    fi
+    check "$3" [ "$content" = "$2" ]
 }
 
 # Writes a lock content for a process id, in the format of the lock code.
@@ -190,6 +247,8 @@ check_held_lock_blocks() {
     exec 3<"$first_fifo"
     expect_line 3 "held: $first_pid *" "a holder takes a free lock"
     first_content="$(cat "$1" 2>/dev/null || true)"
+    check "the lock names the holder that took it (the lock: $first_content)" \
+        line_matches "$first_content" "$first_pid *"
 
     start_holder "$1" "$second_fifo"
     second_pid=$!
@@ -197,7 +256,7 @@ check_held_lock_blocks() {
     exec 4<"$second_fifo"
     expect_line 4 "==> Waiting for the UI test lock $1, held by: $first_content" \
         "a waiter names the holder of the lock"
-    expect_silence 4 "a waiter stays blocked while a live process holds the lock"
+    expect_silence 4 "$second_pid" "a waiter stays blocked while a live process holds the lock"
     expect_lock_content "$1" "$first_content" "the lock keeps the content of its holder"
 
     stop_holder TERM "$first_pid" "$TERMINATED_STATUS" "SIGTERM stops the holder"

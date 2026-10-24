@@ -108,6 +108,48 @@ comments:
     - evidence: 7 files: Scripts/ui-test-lock.sh (new), Scripts/test-ui-test-lock.sh (new), Scripts/test-examples.sh, Tests/PackageStructureTests/ScriptRun.swift (new), Tests/PackageStructureTests/UITestLockTests.swift (new), Tests/PackageStructureTests/ExampleGateTimeLimitTests.swift, README.md. `bash Scripts/test-ui-test-lock.sh`: 23 ok, PASS. `Scripts/test-examples.sh --self-test`: PASS. `swift test`: 1766 tests in 216 suites passed (7 known issues, all pre-existing withKnownIssue). `Scripts/test-examples.sh AgentViewKitDemo` on the real lock: BUILD SUCCEEDED, 5 UI tests with 0 failures, gate passed, lock released. EditorKit resolved at 3bc9d3e688bd384673b8e804e2851249558e5bb8 (Package.resolved and the demo's resolved file); no scratch-clone override.
     - next: /review
   timestamp: 2026-10-24T00:20:58.410999+00:00
+- actor: claude-code
+  id: 01m5nmtbrd0jfrg4jc3nfnbz30
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (355df3e) — 1 finding (1 confirmed, 1 refuted): Scripts/test-ui-test-lock.sh:141 `test-integrity/no-test-cheating`. Not in Scripts/ui-test-lock.sh, so not a cross-repo contract issue.
+    - next: implement the fix in Scripts/test-ui-test-lock.sh (`expect_silence` must tell a read timeout apart from EOF), then re-review.
+  timestamp: 2026-10-24T00:26:22.861970+00:00
+- actor: claude-code
+  id: 01m5nmtwc7dreebkm6vz5k18vz
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — Scripts/ui-test-lock.sh (Testudo's snippet), Scripts/test-ui-test-lock.sh (23 checks), UITestLockTests, ScriptRun.swift; 7 files
+    - test: green — swift test, 1766 tests in 216 suites passed, 0 failed, 0 skipped, at EditorKit 3bc9d3e; test-ui-test-lock.sh 23 ok
+    - commit: 355df3e (+ 4e6a4d2, a kanban chore)
+    - review: findings — Scripts/test-ui-test-lock.sh:141 (test-integrity/no-test-cheating)
+  timestamp: 2026-10-24T00:26:39.879475+00:00
+- actor: claude-code
+  id: 01m5nnb07fn124dk8p47t82d1c
+  text: |-
+    Fix for the review finding Scripts/test-ui-test-lock.sh:141 (test-integrity/no-test-cheating). Only Scripts/test-ui-test-lock.sh changed; Scripts/ui-test-lock.sh (Testudo's snippet) is unchanged.
+
+    Discovery that changes the suggested fix: on the bash 3.2.57 of macOS (/bin/bash, which `bash` and the Swift test both run), `read -t` returns 1 for a time limit AND for EOF. Measured on a FIFO: timeout=1, eof=1. The "> 128" status only exists in bash 4+. So "only status > 128 is silence" would fail every run here. What the fix does instead:
+    - `read_timed_out`: status > 128 counts as a timeout (bash 4+). Status 1 counts as a timeout only when the read took the whole window, measured in ms with perl Time::HiRes (bash 3.2 has no sub-second clock). A status-1 read that returns early is EOF and fails the check ("the output of the holder ended after N ms").
+    - After a timeout, `kill -0` (is_running) checks that the waiter process still runs at the end of the window. Measured: bash reaps an ended background holder, so kill -0 fails for a dead one.
+
+    Whole-script audit for the same cause (a read or wait whose failure counts as success):
+    - `expect_lock_content` read the lock with `cat ... || true`. When the lock was missing and the expected content was empty, the check passed. It now fails when it can't read the lock ("no lock to read").
+    - `first_content` in check_held_lock_blocks came from `cat ... || true`, so it was empty when the lock was missing, and that made "the lock keeps the content of its holder" vacuous. Added the check "the lock names the holder that took it", which matches `<first_pid> *`.
+    - Others reviewed and left as they are: expect_line already fails on read failure; stop_holder's `wait || status=$?` compares the status to 143/130, so 127 cannot pass; `wait "$dead_pid"`, `content="$(cat ...)"` and the `kill` in stop_holder abort under set -e.
+
+    Mutation proof (scratch copies under the session scratchpad; real files untouched):
+    - A: the waiter is SIGKILLed after 0.5 s and its FIFO closes. Before the fix: "ok: a waiter stays blocked...". After: "not ok: ... (the output of the holder ended after 665 ms)".
+    - B: the waiter is SIGKILLed after 0.5 s, but an orphan `sleep 5` keeps the FIFO open, so the read times out. Before: ok. After: "not ok: ... (the holder 23913 runs at the end of 2 seconds)". This proves the kill -0 branch.
+    - C: create_ui_test_lock reports success but leaves no lock file. Before: "ok: the lock keeps the content of its holder". After: "not ok: the lock names the holder that took it (the lock: )" and "not ok: the lock keeps the content of its holder (no lock to read)".
+  timestamp: 2026-10-24T00:35:28.111255+00:00
+- actor: claude-code
+  id: 01m5nnb3ke6m2ysck5n2p41smw
+  text: |-
+    ### implement — changed
+    - evidence: 1 file: Scripts/test-ui-test-lock.sh (+68/-9). `bash Scripts/test-ui-test-lock.sh`: 24 ok, PASS, exit 0. `swift test`: 1766 tests in 216 suites passed with 7 known issues (the existing withKnownIssue ones), UITestLockTests passed. EditorKit resolved at 3bc9d3e688bd384673b8e804e2851249558e5bb8. The build prints a SwiftPM warning, "missing creator for mutated node" (mlx-swift_Cmlx.bundle); it was already in earlier logs and is not from this change. Mutations A, B and C now fail the checks they target. Not committed. The finding is checked off and the card stays in doing.
+    - next: /review
+  timestamp: 2026-10-24T00:35:31.566337+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Scripts/test-examples.sh takes the shared swissarmyhammer UI-test lock
@@ -129,3 +171,16 @@ Requested by testudoapp-2c (2026-10-23). During Testudo's UI run, an AgentViewKi
 - [x] A shell check of the lock logic: a held lock blocks, a stale lock (dead pid) is taken over, release removes only our own lock. A small script test under Scripts/ or Tests/ that CI can run.
 
 Acceptance: a run while another holder has the lock waits, then runs; a run with a stale lock proceeds; Ctrl-C releases the lock; `Scripts/test-examples.sh` still passes. #avk-8 #testudo-request #cross-repo
+
+## Review Findings (2026-10-23 19:24)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+
+- [x] `Scripts/test-ui-test-lock.sh:141` `test-integrity/no-test-cheating` — `expect_silence` reports the check as passing whenever `read` fails, but `read` also fails on EOF. If the waiter exits early (for example, it crashes or its pipe closes), the check `a waiter stays blocked while a live process holds the lock` still passes, so it cannot tell a blocked waiter from a dead one. The check is vacuous in that case. Distinguish a timeout from EOF. Read with `-t` and treat only the timeout case (status > 128 in bash) as silence. Treat EOF as a failure, for example by checking that the holder process is still running with `kill -0` before the read, or by failing when `read` returns 1.
+  - Cross-repo note: this finding is in AVK's own test script `Scripts/test-ui-test-lock.sh`, not in the verbatim Testudo snippet `Scripts/ui-test-lock.sh`. Fixing it does not change the shared lock logic, so it is not a cross-repo contract issue.
