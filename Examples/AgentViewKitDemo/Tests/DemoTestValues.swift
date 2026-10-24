@@ -23,6 +23,18 @@ enum DemoTestValues {
   /// in-memory agent on the ACP tab.
   static let galleryLaunchArguments = [inMemoryAgentArgument, "--tab", "gallery"]
 
+  /// The identifier of the row of the scripted permission session in the
+  /// session list of the Gallery tab.
+  static let permissionSessionRow = "session-row-gallery-permission"
+
+  /// The identifier of the row of the agent message of the permission
+  /// session.
+  static let permissionAgentMessageRow = "item-row-agent-message-gallery-permission-reply"
+
+  /// The identifier of the card of a waiting permission request
+  /// (`PermissionView.identifier`).
+  static let permissionCard = "permission-card"
+
   /// The launch arguments that each test gives to the app before its own
   /// arguments.
   ///
@@ -47,6 +59,23 @@ extension XCUIApplication {
   func launch(arguments: [String]) {
     launchArguments = DemoTestValues.appKitArguments + arguments
     launch()
+  }
+
+  /// Opens the scripted permission session of the Gallery tab, and waits
+  /// until its agent message and its waiting request show.
+  ///
+  /// The app must run on the Gallery tab
+  /// (`DemoTestValues.galleryLaunchArguments`).
+  func openThePermissionSession() {
+    let row = element(DemoTestValues.permissionSessionRow)
+    XCTAssertTrue(row.waitForExistence(timeout: DemoTestValues.elementTimeout), "The Gallery lists no permission session.")
+    row.click()
+    XCTAssertTrue(
+      element(DemoTestValues.permissionAgentMessageRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      "The permission session shows no agent message.")
+    XCTAssertTrue(
+      element(DemoTestValues.permissionCard).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      "The permission session shows no waiting request.")
   }
 }
 

@@ -17,21 +17,9 @@ import XCTest
 /// The XCUIAutomation API is main-actor isolated, so the class is too.
 @MainActor
 final class MainMenuEndToEndTests: XCTestCase {
-  /// The identifier of the row of the scripted permission session in the
-  /// session list of the Gallery tab.
-  private static let permissionSessionRow = "session-row-gallery-permission"
-
-  /// The identifier of the row of the agent message of the permission
-  /// session.
-  private static let agentMessageRow = "item-row-agent-message-gallery-permission-reply"
-
   /// The identifier of the first paragraph of a message
   /// (`ResponseView.paragraphIdentifier(index: 0)`).
   private static let firstParagraph = "response-paragraph-0"
-
-  /// The identifier of the card of a waiting permission request
-  /// (`PermissionView.identifier`).
-  private static let permissionCard = "permission-card"
 
   /// The identifier of the title of a permission request card
   /// (`PermissionView.titleIdentifier`).
@@ -73,20 +61,6 @@ final class MainMenuEndToEndTests: XCTestCase {
     try await super.tearDown()
   }
 
-  /// Opens the permission session, and waits until its message and its
-  /// request show.
-  private func openThePermissionSession() {
-    let row = app.element(Self.permissionSessionRow)
-    XCTAssertTrue(row.waitForExistence(timeout: DemoTestValues.elementTimeout), "The Gallery lists no permission session.")
-    row.click()
-    XCTAssertTrue(
-      app.element(Self.agentMessageRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
-      "The permission session shows no agent message.")
-    XCTAssertTrue(
-      app.element(Self.permissionCard).waitForExistence(timeout: DemoTestValues.elementTimeout),
-      "The permission session shows no waiting request.")
-  }
-
   /// Opens a top-level menu of the menu bar.
   ///
   /// - Parameter title: The title of the menu.
@@ -111,12 +85,12 @@ final class MainMenuEndToEndTests: XCTestCase {
   }
 
   func testTheEditMenuShowsCopyMessageEnabledAfterCopyForTheFocusedMessage() throws {
-    openThePermissionSession()
+    app.openThePermissionSession()
     // A click on the text of the message makes the selectable text the first
     // responder, which stands in the scope of the message row. The paragraph
     // is as wide as the column, and its text can end before the middle of the
     // paragraph, so the click goes to the text and not to the paragraph.
-    app.element(Self.agentMessageRow).element(Self.firstParagraph).staticTexts.firstMatch.click()
+    app.element(DemoTestValues.permissionAgentMessageRow).element(Self.firstParagraph).staticTexts.firstMatch.click()
 
     let rows = openMenu(Self.editMenu)
 
@@ -129,12 +103,12 @@ final class MainMenuEndToEndTests: XCTestCase {
   }
 
   func testTheSessionMenuShowsApproveAndRejectEnabledWhileARequestWaits() throws {
-    openThePermissionSession()
+    app.openThePermissionSession()
     // A click on the card gives the focus to the card, which stands in the
     // scope of the request. XCUITest reports no element of the floating
     // controls of the thread as hittable, so the click goes to the point at
     // the middle of the title of the card.
-    app.element(Self.permissionCard).element(Self.permissionTitle).coordinate(withNormalizedOffset: Self.middle)
+    app.element(DemoTestValues.permissionCard).element(Self.permissionTitle).coordinate(withNormalizedOffset: Self.middle)
       .click()
 
     let rows = openMenu(Self.sessionMenu)
