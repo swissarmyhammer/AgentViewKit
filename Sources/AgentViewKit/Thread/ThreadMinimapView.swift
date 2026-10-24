@@ -126,6 +126,14 @@ public struct ThreadMinimapView: View {
   /// The opacity of the viewport band.
   static let bandOpacity: CGFloat = 0.18
 
+  /// The color of the viewport band: `.primary`, at ``bandOpacity``.
+  ///
+  /// The band marks the rows in view, the current item of the rail. It is not
+  /// the selection and has no focus, so it does not use the accent of the
+  /// theme: the accent is only for the selection and the focus (card
+  /// ^y2mrfxt). The band is neutral, as the viewport of the Xcode minimap.
+  static let bandColor = Color.primary
+
   /// The opacity of the ticks of the entry cases with no strong color.
   static let quietTickOpacity: CGFloat = 0.4
 
@@ -220,9 +228,7 @@ public struct ThreadMinimapView: View {
     let current = band?.lowerBound ?? 0
     return ZStack {
       Canvas { context, size in
-        // D113 answer 5 permits the accent here: the band marks the current
-        // item, the rows in view.
-        Self.draw(ticks: ticks, band: band, bandColor: editorTheme.accent, in: &context, size: size)
+        Self.draw(ticks: ticks, band: band, in: &context, size: size)
       }
       .accessibilityHidden(true)
       #if DEBUG
@@ -287,12 +293,10 @@ public struct ThreadMinimapView: View {
   /// - Parameters:
   ///   - ticks: The color and the shape of each tick, in transcript order.
   ///   - band: The positions of the entries in view, or `nil`.
-  ///   - bandColor: The color of the viewport band.
   ///   - context: The graphics context.
   ///   - size: The size of the rail.
   private static func draw(
-    ticks: [Tick], band: ClosedRange<Int>?, bandColor: Color,
-    in context: inout GraphicsContext, size: CGSize
+    ticks: [Tick], band: ClosedRange<Int>?, in context: inout GraphicsContext, size: CGSize
   ) {
     guard !ticks.isEmpty else { return }
     let slot = size.height / CGFloat(ticks.count)
@@ -433,10 +437,10 @@ public struct ThreadMinimapView: View {
   /// The color of a tool call reads `ToolCallEntry.status`, so a status
   /// change draws the rail again.
   ///
-  /// No tick uses the accent of the theme. In content, the accent marks only
-  /// a link, the selection or the current item (D113 answer 5), and on the
-  /// rail only the band of the rows in view is the current item. Thus a user
-  /// message tick is `.primary` and an agent message tick is `.secondary`.
+  /// No tick uses the accent of the theme: the accent is only for the
+  /// selection and the focus (card ^y2mrfxt), and a tick is neither. Thus a
+  /// user message tick is `.primary` and an agent message tick is
+  /// `.secondary`.
   ///
   /// - Parameters:
   ///   - entry: The transcript entry.

@@ -300,6 +300,11 @@ nonisolated enum SharedSymbol {
   /// The symbol of the sources of an answer.
   static let sources = "books.vertical"
 
+  /// The symbol of a link: the mark of the link of each row of the sources.
+  /// A link has no accent text color, so this symbol marks it (card
+  /// ^y2mrfxt).
+  static let link = "link"
+
   /// The symbol of a file location of a tool call.
   static let document = "document"
 

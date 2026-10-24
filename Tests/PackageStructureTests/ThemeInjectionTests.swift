@@ -7,11 +7,12 @@ import Testing
 /// kit a theme of its own (D111 step 7, D112 (d), D113 answers 5 and 6).
 ///
 /// The accent is only for the selection and the focus (the user decision of
-/// 2026-10-24, card ^k06v4gt). A prominent button style gives the accent tint,
-/// so no button uses one, and no action has a tint. The Tinted look is a
-/// system setting, so no glass gets a tint of its own. In content, the theme
-/// accent marks only a link, the selection or the current item. The app
-/// injects the theme one time, at the root of each window. A view kit sets no
+/// 2026-10-24, cards ^k06v4gt and ^y2mrfxt). A prominent button style gives
+/// the accent tint, so no button uses one, and no action has a tint. The
+/// Tinted look is a system setting, so no glass gets a tint of its own. A
+/// link and a current item that is not the selection and has no focus have
+/// no accent. The accent fill of the citation chip is the one exception. The
+/// app injects the theme one time, at the root of each window. A view kit sets no
 /// theme, and has no theme or color constant of its own (TestudoApp
 /// `features/style.md` "Procedure", "Rules" and "Themes").
 enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
@@ -74,8 +75,8 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   /// the form in the file.
   ///
   /// Only ``themeAccent`` has allowed files: the permitted uses of the accent
-  /// of AVK-8ak (D113 answer 5). Each other list is empty. The Tinted look is
-  /// a system setting, so no glass has a tint (D113 answer 6).
+  /// (card ^y2mrfxt). Each other list is empty. The Tinted look is a system
+  /// setting, so no glass has a tint (D113 answer 6).
   ///
   /// The list holds files, not lines, so a change to a line does not break
   /// it. The permitted uses hold each file to its number of matches: a new
@@ -87,18 +88,19 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   /// The files that can read the theme accent, relative to the package root,
   /// each with the permitted uses in the file.
   ///
-  /// The minimap draws the accent only in the band of the rows in view. Its
-  /// ticks, which mark the user and the agent rows, do not use the accent.
+  /// The accent is only for the selection and the focus, and the accent fill
+  /// of the citation chip is the one exception (the user decision of
+  /// 2026-10-24, shared style rules 1 and 2, card ^y2mrfxt). Thus the reason
+  /// of each use is the selection, the focus, or the citation chip fill. A
+  /// link and a current item that is not the selection and has no focus read
+  /// no accent: the text of a citation pill, the current source of
+  /// `SourcesView.swift` and the viewport band of `ThreadMinimapView.swift`
+  /// left this list.
   static let accentFiles: [String: [String]] = [
     KitSourceFiles.kitFile("Citations/InlineCitation.swift"): [
-      "The text of a citation pill: a link.",
-      "The capsule fill of a citation pill: a link.",
+      "The capsule fill of a citation pill: the citation chip fill."
     ],
-    KitSourceFiles.kitFile("Citations/SourcesView.swift"): ["The highlight of the current source: the current item."],
     KitSourceFiles.kitFile("Elicitation/ElicitationLayout.swift"): ["The fill of the selected tab: the selection."],
-    KitSourceFiles.kitFile("Thread/ThreadMinimapView.swift"): [
-      "The band of the rows in view: the current item. The ticks do not use the accent."
-    ],
   ]
 
   /// The pattern that finds the form in the code of a file. A match can
@@ -564,8 +566,9 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
     #expect(
       found.isEmpty,
       """
-      No action has a tint or a prominent button style, the accent marks only a link, the selection or the \
-      current item, and the kit sets no theme (D111 step 7, D112 (d), D113 answers 5 and 6, card ^k06v4gt). \
+      No action has a tint or a prominent button style, the accent marks only the selection, the focus and \
+      the fill of the citation chip, and the kit sets no theme (D111 step 7, D112 (d), D113 answer 6, cards \
+      ^k06v4gt and ^y2mrfxt). \
       \(form) is in: \(found)
       """)
   }

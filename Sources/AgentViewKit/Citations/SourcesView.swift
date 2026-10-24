@@ -9,18 +9,25 @@ import SwiftUI
 ///
 /// The view shows one row for each ``CitationSource`` of a
 /// ``CitationPayload``, in payload order. A row has the number of the source,
-/// a ``LinkView`` card that opens the source in the browser, and the snippet
-/// of the source.
+/// the link of the source, and the snippet of the source. The link is a
+/// ``LinkView`` card that opens the source in the browser, after the link
+/// mark (``SharedSymbol/link``).
 ///
 /// The footer is open by default. When an ``InlineCitation`` of the same
 /// ``SwiftUI/View/citationScope()`` selects a source, the footer opens, the
-/// row of the source shows the highlight, and the row scrolls into view.
+/// row of the source is the current source, and the row scrolls into view.
+///
+/// The accent is only for the selection and the focus (card ^y2mrfxt). A row
+/// is neither, so the link has no accent text color, and the current source
+/// has no accent and no fill: it looks the same as each other row.
 ///
 /// The footer is an accessibility container with the identifier `sources`.
 /// Each row is a container with the identifier `sources-row-<index>`. The
 /// number of a row is an element with the label "Source <index>" and the
-/// identifier `sources-number-<index>`. The number of the highlighted row has
-/// the value ``highlightedValue`` and the selected trait.
+/// identifier `sources-number-<index>`. The number of the current source has
+/// the value ``highlightedValue`` and the selected trait. The link mark of a
+/// row is an element with the label "Link" and the identifier
+/// `sources-link-mark-<index>`.
 public struct SourcesView: View {
   /// The accessibility identifier of the footer.
   public static let identifier = "sources"
@@ -31,7 +38,10 @@ public struct SourcesView: View {
   /// The start of the accessibility identifier of the number of each row.
   public static let numberIdentifierPrefix = "sources-number-"
 
-  /// The accessibility value of the number of the highlighted row.
+  /// The start of the accessibility identifier of the link mark of each row.
+  public static let linkMarkIdentifierPrefix = "sources-link-mark-"
+
+  /// The accessibility value of the number of the current source.
   public static let highlightedValue = "Highlighted"
 
   /// The payload to show.
@@ -71,6 +81,14 @@ public struct SourcesView: View {
     AccessibilityIdentifier.make(prefix: numberIdentifierPrefix, value: String(index))
   }
 
+  /// The accessibility identifier of the link mark in the row of a source.
+  ///
+  /// - Parameter index: The one-based number of the source.
+  /// - Returns: `sources-link-mark-<index>`.
+  public static func linkMarkIdentifier(index: Int) -> String {
+    AccessibilityIdentifier.make(prefix: linkMarkIdentifierPrefix, value: String(index))
+  }
+
   public var body: some View {
     let highlighted = selection?.index
     DisclosureGroup(isExpanded: $isExpanded) {
@@ -103,10 +121,12 @@ public struct SourcesView: View {
 }
 
 /// One row of a ``SourcesView``.
+///
+/// The row is not the selection and has no focus, so it draws no accent and
+/// no fill, also while it is the current source (card ^y2mrfxt). The current
+/// source differs only in its accessibility value, its selected trait and the
+/// scroll that brings it into view.
 private struct SourceRow: View {
-  /// The opacity of the accent color behind the highlighted row.
-  static let highlightOpacity = 0.14
-
   /// The largest count of snippet lines.
   static let snippetLineLimit = 3
 
@@ -116,25 +136,26 @@ private struct SourceRow: View {
   /// The source to show.
   let source: CitationSource
 
-  /// The selection revision that highlights this row, or `nil` when the row
-  /// has no highlight. A new value scrolls the row into view.
+  /// The selection revision that makes this row the current source, or `nil`
+  /// when the row is not the current source. A new value scrolls the row into
+  /// view.
   let scrollRequest: Int?
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    let isHighlighted = scrollRequest != nil
+    let isCurrent = scrollRequest != nil
     HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       InlineCitationPill(index: index)
         .accessibilityElement()
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel(Text("Source \(index)", bundle: .module))
-        .accessibilityValue(isHighlighted ? Text(SourcesView.highlightedValue) : Text(verbatim: ""))
-        .accessibilityAddTraits(isHighlighted ? .isSelected : [])
+        .accessibilityValue(isCurrent ? Text(SourcesView.highlightedValue) : Text(verbatim: ""))
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
         .accessibilityIdentifier(SourcesView.numberIdentifier(index: index))
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-        LinkView(link: link)
+        SourceLink(index: index, source: source)
         if !source.snippet.isEmpty {
           Text(source.snippet)
             .font(editorTheme.font(for: .ui, style: .caption))
@@ -144,14 +165,38 @@ private struct SourceRow: View {
       }
     }
     .padding(editorStyle.spacing.xs)
-    // D113 answer 5 permits the accent here: the highlight marks the current
-    // source.
-    .background(
-      EditorSurface.shape(radius: editorStyle.radii.s)
-        .fill(isHighlighted ? AnyShapeStyle(editorTheme.accent.opacity(Self.highlightOpacity)) : AnyShapeStyle(.clear))
-    )
     .background(ScrollIntoView(request: scrollRequest))
     .contentContainer(identifier: SourcesView.rowIdentifier(index: index))
+  }
+}
+
+/// The link of one source: the link mark, then a ``LinkView`` card that opens
+/// the source in the browser.
+///
+/// A link does not use the accent as its text color: the accent is only for
+/// the selection and the focus (card ^y2mrfxt). The link mark
+/// (``SharedSymbol/link``) marks the link in its place, with the `.secondary`
+/// style and the symbol weight of the shared style. Unlike a
+/// `DecorativeSymbolImage`, the mark is an accessibility element with the
+/// label "Link", because it tells what the card after it is.
+private struct SourceLink: View {
+  /// The one-based number of the source.
+  let index: Int
+
+  /// The source to link to.
+  let source: CitationSource
+
+  @Environment(\.editorStyle) private var editorStyle
+
+  var body: some View {
+    HStack(spacing: editorStyle.spacing.xs) {
+      Image(systemName: SharedSymbol.link)
+        .foregroundStyle(.secondary)
+        .fontWeight(editorStyle.symbolWeight)
+        .accessibilityLabel(Text("Link", bundle: .module))
+        .accessibilityIdentifier(SourcesView.linkMarkIdentifier(index: index))
+      LinkView(link: link)
+    }
   }
 
   /// The ACP resource link of the source, for the ``LinkView`` card.

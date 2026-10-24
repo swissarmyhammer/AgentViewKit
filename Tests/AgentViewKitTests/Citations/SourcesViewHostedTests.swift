@@ -224,6 +224,52 @@ private struct OpenURLButton: View {
     #expect(scrollView.contentView.bounds.minY > 0)
   }
 
+  // MARK: - Accent
+
+  /// The footer of ``payload`` with a citation selection, for the pixel tests.
+  ///
+  /// - Parameter selectedIndex: The one-based number of the source that the
+  ///   selection holds, or `nil` for an empty selection.
+  /// - Returns: The footer.
+  static func footer(selecting selectedIndex: Int?) -> some View {
+    let selection = CitationSelection()
+    if let selectedIndex {
+      selection.select(selectedIndex)
+    }
+    return SourcesView(payload: payload)
+      .environment(\.citationSelection, selection)
+  }
+
+  /// A link of the sources list shows the link mark, and no text of the list
+  /// is in the theme accent: the accent is only for the selection and the
+  /// focus (card ^y2mrfxt).
+  @Test func aLinkInTheSourcesListHasNoAccentAndShowsTheLinkMark() throws {
+    let harness = HostedViewHarness(SourcesView(payload: Self.payload), size: Self.hostSize)
+    defer { harness.close() }
+    harness.render()
+
+    #expect(harness.element(identifier: SourcesView.linkMarkIdentifier(index: 1))?.label == "Link")
+    #expect(harness.element(identifier: SourcesView.linkMarkIdentifier(index: 2))?.label == "Link")
+    let pixels = try EditorThemeViewsTests.drawnCachedPixels(of: SourcesView(payload: Self.payload))
+    #expect(!pixels.contains(EditorThemeViewsTests.Role.accent))
+  }
+
+  /// The current source, with no focus and not the selection, draws the same
+  /// pixels as a row that is not current: it has no fill (card ^y2mrfxt).
+  @Test func aCurrentSourceWithNoFocusAndNoSelectionHasNoFill() throws {
+    let harness = HostedViewHarness(Self.footer(selecting: 2), size: Self.hostSize)
+    defer { harness.close() }
+    harness.render()
+    // Row two is the current source. A footer with no current row would make
+    // the pixel comparison pass for the wrong cause.
+    try #require(Self.isHighlighted(harness, index: 2))
+
+    let current = try EditorThemeViewsTests.drawnCachedPixels(of: Self.footer(selecting: 2))
+    let plain = try EditorThemeViewsTests.drawnCachedPixels(of: Self.footer(selecting: nil))
+
+    #expect(current.isClose(to: plain))
+  }
+
   // MARK: - Links
 
   @Test func aCitationLinkInTheScopeHighlightsItsRow() throws {

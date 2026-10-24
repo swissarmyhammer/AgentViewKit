@@ -7,8 +7,8 @@ import SwiftUI
 /// The view shows the symbol with the `.secondary` style and the symbol
 /// weight of the shared style, and hides it from accessibility, because the
 /// text next to it tells the same thing. The symbol does not use the accent
-/// of the EditorKit theme: in content, the accent marks only a link, the
-/// selection or the current item (D113 answer 5).
+/// of the EditorKit theme: the accent is only for the selection and the focus
+/// (card ^y2mrfxt).
 ///
 /// ``AgentInfoHeader`` and the header of ``ConversationEmptyState`` draw their
 /// symbols with this view, so a change of the style, of the weight or of the

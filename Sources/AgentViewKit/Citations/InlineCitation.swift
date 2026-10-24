@@ -231,6 +231,9 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
 
 /// The look of a citation pill: the number of the source in a capsule.
 ///
+/// The capsule has a translucent fill of the theme accent, and the number has
+/// the text color of the environment: the accent is not a text color.
+///
 /// The pill takes its size from the font of the environment. The view has no
 /// accessibility element, because Textual draws it in a canvas. The caller
 /// adds the element.
@@ -254,12 +257,12 @@ struct InlineCitationPill: View {
     digitFace.size = metrics.digitFontSize
     return Text(verbatim: String(index))
       .font(digitFace.font().weight(.semibold).monospacedDigit())
-      // D113 answer 5 permits the accent here and in the capsule fill: the
-      // pill is a link, a button that selects its source.
-      .foregroundStyle(editorTheme.accent)
       .lineLimit(1)
       .fixedSize()
       .frame(width: metrics.size.width, height: metrics.size.height)
+      // The accent is only for the selection and the focus, so the digits keep
+      // the text color of the environment. The accent fill of the citation chip
+      // is the one exception (shared style rule 1, card ^y2mrfxt).
       .background(Capsule().fill(editorTheme.accent.opacity(Self.fillOpacity)))
   }
 }

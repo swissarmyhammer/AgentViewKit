@@ -25,8 +25,8 @@ import SwiftUI
 /// The symbol of a failure message (``StateBanner/Message/isFailure``) has the
 /// error color of the EditorKit theme, a status color of the theme (D112).
 /// The symbol of each other message has the `.secondary` style. It does not
-/// use the accent of the theme: in content, the accent marks only a link, the
-/// selection or the current item (D113 answer 5).
+/// use the accent of the theme: the accent is only for the selection and the
+/// focus (card ^y2mrfxt).
 ///
 /// The symbol of a message of work that goes on
 /// (``StateBanner/Message/isOngoing``), such as the running banner and the

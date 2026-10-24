@@ -7,8 +7,8 @@ import Testing
 /// Checks that ``PendingRequestCountBadge`` does not use the accent of the
 /// EditorKit theme (D113 answer 5).
 ///
-/// In content, the accent marks only a link, the selection or the current
-/// item. A count badge is none of these, so its text and its capsule use
+/// The accent is only for the selection and the focus (card ^y2mrfxt). A
+/// count badge is neither of these, so its text and its capsule use
 /// semantic styles. The test gives the badge ``DistinctRolesTheme``, so a
 /// pixel of the accent can come only from the accent role.
 @Suite @MainActor struct PendingRequestCountBadgeColorTests {

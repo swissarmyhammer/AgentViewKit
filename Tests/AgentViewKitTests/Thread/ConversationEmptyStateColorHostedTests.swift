@@ -6,8 +6,8 @@ import Testing
 /// Checks that ``ConversationEmptyState`` does not use the accent of the
 /// EditorKit theme (D113 answer 5).
 ///
-/// In content, the accent marks only a link, the selection or the current
-/// item. The symbol of the empty state is none of these, so it uses a
+/// The accent is only for the selection and the focus (card ^y2mrfxt). The
+/// symbol of the empty state is neither of these, so it uses a
 /// semantic style. The standard content has a symbol and no link. The test
 /// gives the empty state ``DistinctRolesTheme``, so a pixel of the accent can
 /// come only from the accent role.

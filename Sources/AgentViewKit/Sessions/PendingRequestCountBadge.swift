@@ -11,8 +11,8 @@ import SwiftUI
 /// The badge shows the count as a number in a capsule. The number has the
 /// `.secondary` style and the capsule has the `.quaternary` fill, as the other
 /// chips of the kit. The badge does not use the accent of the EditorKit
-/// theme: in content, the accent marks only a link, the selection or the
-/// current item (D113 answer 5).
+/// theme: the accent is only for the selection and the focus (card
+/// ^y2mrfxt).
 ///
 /// When the session has no pending request, the badge shows nothing. The
 /// count changes when the model of the session changes, and the badge makes

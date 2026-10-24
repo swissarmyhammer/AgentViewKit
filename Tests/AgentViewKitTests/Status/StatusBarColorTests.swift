@@ -8,8 +8,8 @@ import Testing
 /// of the EditorKit theme, and each other message with the `.secondary` style.
 ///
 /// The error color is a status color of the theme (D112). The symbol of a
-/// message that is not a failure is not a link, the selection or the current
-/// item, so it does not use the accent of the theme (D113 answer 5).
+/// message that is not a failure is not the selection or the focus, so it
+/// does not use the accent of the theme (card ^y2mrfxt).
 ///
 /// The tests give ``DistinctRolesTheme``, which has a different color for each
 /// role, so each color names its role.

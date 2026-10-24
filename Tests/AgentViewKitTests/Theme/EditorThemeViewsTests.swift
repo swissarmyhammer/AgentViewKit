@@ -228,9 +228,39 @@ import Testing
     #expect(!pixels.contains(Role.removed))
   }
 
-  @Test func theCitationPillUsesTheAccentOfTheTheme() throws {
-    let pixels = try Self.pixels(
-      of: InlineCitation(index: 1).font(.system(size: Self.citationFontSize)))
-    #expect(pixels.contains(Role.accent))
+  /// The citation pill on an opaque white ground, so that its translucent
+  /// fill draws opaque pixels.
+  static var citationPillOnWhite: some View {
+    InlineCitation(index: 1)
+      .font(.system(size: citationFontSize))
+      .background(Color.white)
+  }
+
+  /// The color of the capsule fill of the citation pill over white: the
+  /// accent at ``InlineCitationPill/fillOpacity``, over white.
+  ///
+  /// - Returns: The color.
+  /// - Throws: An error when the accent has no sRGB components.
+  static func citationFillOverWhite() throws -> Color {
+    let accent = try #require(NSColor(Role.accent).usingColorSpace(.sRGB))
+    let opacity = InlineCitationPill.fillOpacity
+    let overWhite = { (component: CGFloat) in Double(component) * opacity + (1 - opacity) }
+    return Color(
+      red: overWhite(accent.redComponent), green: overWhite(accent.greenComponent),
+      blue: overWhite(accent.blueComponent))
+  }
+
+  /// The digits of a citation pill are not in the accent: the accent is only
+  /// for the selection and the focus (card ^y2mrfxt).
+  @Test func theCitationPillDigitsDoNotUseTheAccentOfTheTheme() throws {
+    let pixels = try Self.drawnPixels(of: Self.citationPillOnWhite)
+    #expect(!pixels.contains(Role.accent))
+  }
+
+  /// The capsule of a citation pill keeps the accent fill of the theme, the
+  /// one permitted exception (shared style rule 1).
+  @Test func theCitationPillFillUsesTheAccentOfTheTheme() throws {
+    let pixels = try Self.drawnPixels(of: Self.citationPillOnWhite)
+    #expect(try pixels.contains(Self.citationFillOverWhite()))
   }
 }

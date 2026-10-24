@@ -4,12 +4,14 @@ import Testing
 
 @testable import AgentViewKit
 
-/// Checks the tick color of a message in the minimap (D113 answer 5).
+/// Checks the tick color of a message and the color of the viewport band in
+/// the minimap.
 ///
-/// In content, the accent of the EditorKit theme marks only a link, the
-/// selection or the current item. A message tick is none of these, so a user
-/// tick is `.primary` and an agent tick is `.secondary`. The tests give
-/// ``DistinctRolesTheme``, which has a different color for each role.
+/// The accent of the EditorKit theme is only for the selection and the focus
+/// (card ^y2mrfxt). A message tick and the band of the rows in view are
+/// neither, so a user tick is `.primary`, an agent tick is `.secondary`, and
+/// the band is `.primary`. The tests give ``DistinctRolesTheme``, which has a
+/// different color for each role.
 @Suite @MainActor struct ThreadMinimapTickColorTests {
   /// A theme with a different color for each role.
   static let theme = DistinctRolesTheme()
@@ -34,5 +36,9 @@ import Testing
     let entry = try Self.previewEntry { if case .agentMessage = $0 { true } else { false } }
 
     #expect(ThreadMinimapView.tint(of: entry, in: Self.theme) == Color.secondary)
+  }
+
+  @Test func theViewportBandIsPrimaryAndNotTheAccent() {
+    #expect(ThreadMinimapView.bandColor == Color.primary)
   }
 }
