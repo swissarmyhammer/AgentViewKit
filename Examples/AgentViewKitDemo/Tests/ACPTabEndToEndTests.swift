@@ -14,9 +14,6 @@ import XCTest
 /// The XCUIAutomation API is main-actor isolated, so the class is too.
 @MainActor
 final class ACPTabEndToEndTests: XCTestCase {
-  /// The launch argument that binds the in-memory agent.
-  private static let inMemoryAgentArgument = "--in-memory-agent"
-
   /// The identifier of the row of the first reply of the in-memory agent:
   /// the row key of the agent message `demo-reply-1`.
   private static let firstReplyRow = "item-row-agent-message-demo-reply-1"
@@ -61,7 +58,7 @@ final class ACPTabEndToEndTests: XCTestCase {
   override func setUp() async throws {
     try await super.setUp()
     continueAfterFailure = false
-    app.launch(arguments: [Self.inMemoryAgentArgument])
+    app.launch(arguments: [DemoTestValues.inMemoryAgentArgument])
   }
 
   override func tearDown() async throws {

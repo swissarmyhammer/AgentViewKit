@@ -15,6 +15,14 @@ enum DemoTestValues {
   /// The number of seconds that a test waits for an element.
   static let elementTimeout: TimeInterval = 20
 
+  /// The launch argument that binds the in-memory agent to the ACP tab, so
+  /// that the ACP tab loads no model.
+  static let inMemoryAgentArgument = "--in-memory-agent"
+
+  /// The launch arguments that open the window on the Gallery tab, with the
+  /// in-memory agent on the ACP tab.
+  static let galleryLaunchArguments = [inMemoryAgentArgument, "--tab", "gallery"]
+
   /// The launch arguments that each test gives to the app before its own
   /// arguments.
   ///
@@ -23,7 +31,13 @@ enum DemoTestValues {
   /// app opens no window, and the test finds no element. CI run 39072794341
   /// on Xcode 27.1 showed this. `-NSTreatUnknownArgumentsAsOpen NO` stops
   /// AppKit from opening such an argument.
-  static let appKitArguments = ["-NSTreatUnknownArgumentsAsOpen", "NO"]
+  ///
+  /// AppKit also restores the windows of the last run, by an identifier that
+  /// SwiftUI derives from the type of the content of the `WindowGroup`. When a
+  /// change gives the content a new type, the saved identifier matches no
+  /// window, and the app opens none. `-ApplePersistenceIgnoreState YES` stops
+  /// the restore, so each test starts from the window that the app makes.
+  static let appKitArguments = ["-NSTreatUnknownArgumentsAsOpen", "NO", "-ApplePersistenceIgnoreState", "YES"]
 }
 
 extension XCUIApplication {

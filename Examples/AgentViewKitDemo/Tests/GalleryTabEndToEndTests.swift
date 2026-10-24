@@ -12,16 +12,6 @@ import XCTest
 /// The XCUIAutomation API is main-actor isolated, so the class is too.
 @MainActor
 final class GalleryTabEndToEndTests: XCTestCase {
-  /// The launch argument that selects the tab of the window.
-  private static let tabArgument = "--tab"
-
-  /// The name of the Gallery tab.
-  private static let galleryTab = "gallery"
-
-  /// The launch argument that binds the in-memory agent to the ACP tab, so
-  /// that the ACP tab loads no model.
-  private static let inMemoryAgentArgument = "--in-memory-agent"
-
   /// The start of the identifier of each row of the session list.
   private static let sessionRowPrefix = "session-row-"
 
@@ -38,7 +28,7 @@ final class GalleryTabEndToEndTests: XCTestCase {
   override func setUp() async throws {
     try await super.setUp()
     continueAfterFailure = false
-    app.launch(arguments: [Self.inMemoryAgentArgument, Self.tabArgument, Self.galleryTab])
+    app.launch(arguments: DemoTestValues.galleryLaunchArguments)
   }
 
   override func tearDown() async throws {

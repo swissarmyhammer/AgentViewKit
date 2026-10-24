@@ -212,6 +212,18 @@ import Testing
     #expect(!system.registry.perform(AgentCommandVerb.nextRequest.id, at: path))
   }
 
+  /// A host such as the composer slot of a thread view gives the minimum
+  /// height of the deck to the window. A deck that measured its cards at the
+  /// zero width of the minimum probe made a window taller than the screen.
+  @Test func theMinimumHeightOfADeckIsNotMoreThanItsHeightAtTheWindowWidth() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendInOrder([.permission(id: Self.firstRequestID), .permission(id: Self.firstRequestID + 1)])
+
+    HostedLayoutExpectations.expectMinimumHeightFitsWidth(
+      of: RequestDeck(session: session.model), width: Self.size.width)
+  }
+
   @Test func aNewRequestDoesNotChangeTheFront() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }

@@ -694,7 +694,8 @@ private nonisolated struct DeckCardRoleKey: LayoutValueKey {
 /// front card. A card that does not show has the frame of the front card.
 /// Each waiting card has its ideal height, below the front card, or at the
 /// top when no card is at the front, with ``waitingSpacing`` between two
-/// cards. An empty stack has no size.
+/// cards. An empty stack has no size. For a zero proposed height, the
+/// minimum size that a host asks for, each card has its own minimum height.
 private struct DeckStackLayout: Layout {
   /// The number of sides of an edge card that the inset makes narrower: the
   /// left side and the right side.
@@ -712,9 +713,14 @@ private struct DeckStackLayout: Layout {
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
     let wholeCards = subviews.filter { $0[DeckCardRoleKey.self].showsWhole }
     guard !wholeCards.isEmpty else { return .zero }
-    let ideal = ProposedViewSize(width: proposal.width, height: nil)
-    let heights = wholeCards.map { $0.sizeThatFits(ideal).height }
-    let width = proposal.width ?? wholeCards.map { $0.sizeThatFits(ideal).width }.max() ?? 0
+    // Each card takes its ideal height at the proposed width. The minimum
+    // probe of a host, such as the window, proposes a zero size: then each
+    // card gives its own minimum height, and not the height of its text
+    // wrapped at a zero width, which is taller than a screen.
+    let isMinimumProbe = proposal.height == .zero
+    let cardProposal = ProposedViewSize(width: proposal.width, height: isMinimumProbe ? .zero : nil)
+    let heights = wholeCards.map { $0.sizeThatFits(cardProposal).height }
+    let width = proposal.width ?? wholeCards.map { $0.sizeThatFits(cardProposal).width }.max() ?? 0
     let height = heights.reduce(0, +) + CGFloat(heights.count - 1) * waitingSpacing + topInset(of: subviews)
     return CGSize(width: width, height: height)
   }
