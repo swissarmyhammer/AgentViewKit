@@ -207,26 +207,34 @@ import Testing
     var isShown = true
   }
 
-  /// The auth card of a connection while ``CardPresence/isShown`` is `true`.
-  struct RemovableAuthCard: View {
-    /// The presence of the card.
-    let presence: CardPresence
-
+  /// The auth card of the connection of a scripted session, with the
+  /// environment of the host: the session model, the terminal auth runner
+  /// and the Reconnect closure. Each test shows the card through this view,
+  /// so the environment of the card is set in one place.
+  ///
+  /// The card shows with no animation, so that one render pass shows each
+  /// change. With a presence, the card is in the view tree only while
+  /// ``CardPresence/isShown`` is `true`.
+  struct HostedAuthCard: View {
     /// The scripted session of the card.
     let session: ScriptedSession
 
-    /// The runner of the host.
-    let runner: any TerminalAuthRunner
+    /// The runner of the host, or `nil`.
+    var runner: (any TerminalAuthRunner)?
 
-    /// The Reconnect closure of the host.
-    let reconnect: AgentReconnect
+    /// The Reconnect closure of the host, or `nil`.
+    var reconnect: AgentReconnect?
+
+    /// The presence of the card, or `nil` for a card that always shows.
+    var presence: CardPresence?
 
     var body: some View {
-      if presence.isShown {
+      if presence?.isShown ?? true {
         AgentAuthView(connection: session.connection)
           .environment(\.sessionModel, session.model)
           .terminalAuthRunner(runner)
           .agentReconnect(reconnect)
+          .transaction { $0.disablesAnimations = true }
       }
     }
   }
@@ -251,25 +259,23 @@ import Testing
     }
   }
 
-  /// A harness that shows the card of the connection of `session`, with the
-  /// session model in the environment.
+  /// A harness that shows the ``HostedAuthCard`` of `session`.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - runner: The terminal auth runner of the environment, or `nil`.
   ///   - reconnect: The Reconnect closure of the environment, or `nil`.
+  ///   - presence: The presence of the card, or `nil` for a card that always
+  ///     shows.
   /// - Returns: The harness.
   static func harness(
     _ session: ScriptedSession,
     runner: (any TerminalAuthRunner)? = nil,
-    reconnect: AgentReconnect? = nil
-  ) -> HostedViewHarness<some View> {
+    reconnect: AgentReconnect? = nil,
+    presence: CardPresence? = nil
+  ) -> HostedViewHarness<HostedAuthCard> {
     HostedViewHarness(size: cardSize) {
-      AgentAuthView(connection: session.connection)
-        .environment(\.sessionModel, session.model)
-        .terminalAuthRunner(runner)
-        .agentReconnect(reconnect)
-        .transaction { $0.disablesAnimations = true }
+      HostedAuthCard(session: session, runner: runner, reconnect: reconnect, presence: presence)
     }
   }
 
@@ -371,7 +377,7 @@ import Testing
     defer { session.close() }
 
     HostedLayoutExpectations.expectMinimumHeightFitsWidth(
-      of: AgentAuthView(connection: session.connection).environment(\.sessionModel, session.model),
+      of: HostedAuthCard(session: session),
       width: Self.cardWidth)
   }
 
@@ -523,9 +529,7 @@ import Testing
     let presence = CardPresence()
     let session = try await Self.openSession(runner: runner)
     defer { session.close() }
-    let harness = HostedViewHarness(size: Self.cardSize) {
-      RemovableAuthCard(presence: presence, session: session, runner: runner, reconnect: recorder.reconnect)
-    }
+    let harness = Self.harness(session, runner: runner, reconnect: recorder.reconnect, presence: presence)
     defer { harness.close() }
     harness.render()
     try await Self.pressRunAndWait(in: harness, of: session)

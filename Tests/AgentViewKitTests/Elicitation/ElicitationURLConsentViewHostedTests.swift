@@ -208,13 +208,42 @@ import Testing
   /// - Throws: An issue when the press did not accept the request, did not
   ///   start the browser task, or removed the card.
   static func openInDeck(_ mounted: Mounted) async throws {
-    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
-    try #require(mounted.browserSteps.values == [.open])
-    try #require(mounted.session.model.awaitingURLCompletions.count == 1)
-    mounted.harness.render()
-    // A deck that removes the card of an accepted request stops the test here.
-    try #require(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
-    await mounted.harness.render { mounted.browser.sessions.contains(where: \.isWaiting) }
+    try await press(ElicitationURLConsentView.openIdentifier, in: mounted) {
+      try #require(mounted.browserSteps.values == [.open])
+      try #require(mounted.session.model.awaitingURLCompletions.count == 1)
+      mounted.harness.render()
+      // A deck that removes the card of an accepted request stops the test here.
+      try #require(mounted.harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
+    } until: {
+      mounted.browser.sessions.contains(where: \.isWaiting)
+    }
+  }
+
+  /// Presses the button with `identifier`, runs the checks that hold right
+  /// after the press, then waits until `condition` is `true` and makes one
+  /// render pass.
+  ///
+  /// A press of Open in Browser, Retry or Cancel changes the model and starts
+  /// or stops the browser task in the same step, so `requirements` read the
+  /// state of that step. A check that fails stops the test before the wait,
+  /// so a broken path does not hang the wait, which has no time limit.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the button.
+  ///   - mounted: The mounted card or deck.
+  ///   - requirements: The `#require` checks that hold after the press.
+  ///   - condition: The condition on observable values to wait for.
+  /// - Throws: The error of the press, or the issue of a check of
+  ///   `requirements` that fails.
+  static func press(
+    _ identifier: String,
+    in mounted: Mounted,
+    requiring requirements: () throws -> Void = {},
+    until condition: @MainActor () -> Bool
+  ) async throws {
+    try mounted.harness.press(identifier: identifier)
+    try requirements()
+    await mounted.harness.render(when: condition)
   }
 
   /// The URLs that the browser sessions of `browser` opened.
@@ -233,9 +262,9 @@ import Testing
   /// model holds no pending elicitation before the wait. Then the press is
   /// certain to send the answer and to start a session.
   static func open(_ mounted: Mounted) async throws {
-    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
-    try #require(mounted.session.model.pendingElicitations.isEmpty)
-    await mounted.harness.render {
+    try await press(ElicitationURLConsentView.openIdentifier, in: mounted) {
+      try #require(mounted.session.model.pendingElicitations.isEmpty)
+    } until: {
       !mounted.responses.isEmpty && mounted.browser.sessions.contains(where: \.isWaiting)
     }
   }
@@ -442,11 +471,11 @@ import Testing
     defer { mounted.close() }
     try await Self.open(mounted)
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.retryIdentifier)
-    // Retry starts the browser task in the same step as the press, so a press
-    // that started nothing stops the test here.
-    try #require(mounted.browserSteps.values == [.open, .open])
-    await ObservationWait.until {
+    try await Self.press(ElicitationURLConsentView.retryIdentifier, in: mounted) {
+      // Retry starts the browser task in the same step as the press, so a
+      // press that started nothing stops the test here.
+      try #require(mounted.browserSteps.values == [.open, .open])
+    } until: {
       Self.openedURLs(mounted.browser).count == 2 && mounted.browser.sessions.last?.isWaiting == true
     }
 
@@ -463,9 +492,11 @@ import Testing
   ///   once.
   /// - Throws: An issue when the press did not accept the request.
   static func openAndWaitForTheEndOfTheSession(_ mounted: Mounted) async throws {
-    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
-    try #require(mounted.session.model.awaitingURLCompletions.count == 1)
-    await mounted.harness.render { mounted.browser.calls.contains(.start(ephemeral: false)) }
+    try await press(ElicitationURLConsentView.openIdentifier, in: mounted) {
+      try #require(mounted.session.model.awaitingURLCompletions.count == 1)
+    } until: {
+      mounted.browser.calls.contains(.start(ephemeral: false))
+    }
     mounted.harness.render()
   }
 
@@ -476,10 +507,11 @@ import Testing
   ///   start.
   /// - Throws: An issue when the press did not start the browser task.
   static func openAndWaitForTheFailureOfTheBrowser(_ mounted: Mounted) async throws {
-    try mounted.harness.press(identifier: ElicitationURLConsentView.openIdentifier)
-    try #require(mounted.browserSteps.values == [.open])
-    await ObservationWait.until { mounted.browserSteps.values.contains(.failed) }
-    mounted.harness.render()
+    try await press(ElicitationURLConsentView.openIdentifier, in: mounted) {
+      try #require(mounted.browserSteps.values == [.open])
+    } until: {
+      mounted.browserSteps.values.contains(.failed)
+    }
   }
 
   /// A browser session that does not open keeps the waiting state, and the
@@ -507,8 +539,9 @@ import Testing
     try #require(mounted.harness.element(identifier: ElicitationURLConsentView.browserFailureIdentifier) != nil)
     mounted.browser.script = .waitsForCancel
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.retryIdentifier)
-    await mounted.harness.render { mounted.browser.sessions.last?.isWaiting == true }
+    try await Self.press(ElicitationURLConsentView.retryIdentifier, in: mounted) {
+      mounted.browser.sessions.last?.isWaiting == true
+    }
 
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.browserFailureIdentifier) == nil)
   }
@@ -641,14 +674,15 @@ import Testing
     let model = mounted.session.model
     try await Self.openInDeck(mounted)
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
-    // Cancel in the waiting state stops the browser task and the wait in the
-    // same step as the press, so a press that stopped nothing stops the test
-    // here.
-    try #require(mounted.browserSteps.values == [.open, .stop])
-    try #require(model.awaitingURLCompletions.isEmpty)
-    mounted.harness.render()
-    await ObservationWait.until { mounted.browser.calls.contains(.cancel) }
+    try await Self.press(ElicitationURLConsentView.cancelIdentifier, in: mounted) {
+      // Cancel in the waiting state stops the browser task and the wait in
+      // the same step as the press, so a press that stopped nothing stops
+      // the test here.
+      try #require(mounted.browserSteps.values == [.open, .stop])
+      try #require(model.awaitingURLCompletions.isEmpty)
+    } until: {
+      mounted.browser.calls.contains(.cancel)
+    }
 
     #expect(mounted.harness.element(identifier: ElicitationURLConsentView.identifier) == nil)
     #expect(mounted.responses.count == 1)
