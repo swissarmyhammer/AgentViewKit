@@ -285,13 +285,19 @@ public struct ElicitationTextField: View {
 /// The default view of a number field (plan.md §13.1).
 ///
 /// The view shows a slider when the field has a minimum and a maximum.
-/// Otherwise it shows a stepper with a number input. An integer field moves
-/// in steps of one and writes whole numbers.
+/// Otherwise it shows a number input beside a stepper. An integer field
+/// moves in steps of one and writes whole numbers.
 ///
-/// The number input is a SwiftUI `TextField` with a number format, not an
-/// EditorKit one-line field: the EditorKit field edits text, and has no
-/// number format that parses the typed text, shows a changed number, and
-/// keeps the last valid number for text that is not a number (^8zmkh1a).
+/// The number input is a kit one-line field in its value form
+/// (``AgentOneLineField``, EditorKit `SingleLineField(model:id:value:format:)`).
+/// Its text view carries the control identifier of the field and the title
+/// of the field as its label. Typing changes only the text. A commit (Return,
+/// Esc, a focus loss) writes the number when the whole text is one number of
+/// the format of the field, and shows the number again in that format; other
+/// text keeps the last number. An integer field reads its text with an
+/// integer format, which reads a fraction as its whole part. Return and
+/// Command-Return then press Submit of the nearest ``ElicitationView`` when
+/// the form is complete, as in a one-line text field.
 public struct ElicitationNumberField: View {
   /// The step of the stepper.
   public static let step: Double = 1
@@ -303,6 +309,13 @@ public struct ElicitationNumberField: View {
   let context: ElicitationFieldContext
 
   @Environment(\.agentTheme) private var theme
+
+  /// The model of the text of the number input.
+  @State private var inputModel = OwnModelSlot(editable: true)
+
+  /// The action of Return and Command-Return in the number input: Submit of
+  /// the nearest ``ElicitationView``, or `nil` outside a form.
+  @Environment(\.elicitationReturnAction) private var returnAction
 
   /// Makes a number field.
   ///
@@ -330,19 +343,71 @@ public struct ElicitationNumberField: View {
             .monospacedDigit()
         }
       } else {
-        Stepper(
-          value: number,
-          in: (minimum ?? -.greatestFiniteMagnitude)...(maximum ?? .greatestFiniteMagnitude),
-          step: Self.step
-        ) {
-          TextField(context.schema.title, value: number, format: .number)
-            .labelsHidden()
+        HStack(spacing: theme.spacing.xs) {
+          numberInput(number, integer: integer)
             .frame(maxWidth: Self.numberInputMaximumWidth)
+          Stepper(
+            context.schema.title,
+            value: number,
+            in: (minimum ?? -.greatestFiniteMagnitude)...(maximum ?? .greatestFiniteMagnitude),
+            step: Self.step
+          )
+          .labelsHidden()
         }
-        .accessibilityLabel(context.schema.title)
-        .accessibilityIdentifier(context.controlIdentifier)
       }
     }
+  }
+
+  /// The number input of the stepper: an integer input for an integer field,
+  /// and a number input for another field.
+  ///
+  /// - Parameters:
+  ///   - number: The binding to the number.
+  ///   - integer: Whether the field takes whole numbers only.
+  /// - Returns: The input.
+  @ViewBuilder
+  private func numberInput(_ number: Binding<Double>, integer: Bool) -> some View {
+    if integer {
+      numberInput(
+        value: Binding(
+          get: { Self.wholeNumber(nearest: number.wrappedValue) },
+          set: { number.wrappedValue = Double($0) }),
+        format: IntegerFormatStyle<Int>.number)
+    } else {
+      numberInput(value: number, format: FloatingPointFormatStyle<Double>.number)
+    }
+  }
+
+  /// The kit one-line field that edits `value` through `format`. Return and
+  /// Command-Return run ``returnAction`` after the commit writes the value.
+  ///
+  /// - Parameters:
+  ///   - value: The value that the input edits.
+  ///   - format: The format that the input shows the value in and reads the
+  ///     text with.
+  /// - Returns: The input.
+  private func numberInput<Format: ParseableFormatStyle>(
+    value: Binding<Format.FormatInput>, format: Format
+  ) -> some View where Format.FormatOutput == String {
+    AgentOneLineField(
+      model: inputModel.model(text: ""), identifier: context.controlIdentifier,
+      placeholder: context.schema.title, value: value, format: format
+    ) { _ in
+      returnAction?()
+    }
+  }
+
+  /// The whole number nearest to `value`, or the nearest end of the range of
+  /// `Int` for a value past that range.
+  ///
+  /// - Parameter value: The answer of an integer field.
+  /// - Returns: The whole number that the integer input shows.
+  static func wholeNumber(nearest value: Double) -> Int {
+    let rounded = value.rounded()
+    if let whole = Int(exactly: rounded) {
+      return whole
+    }
+    return rounded < 0 ? .min : .max
   }
 
   /// The slider over `range`.

@@ -95,6 +95,35 @@ import Testing
     return textView
   }
 
+  /// Makes the text view that carries `identifier` the first responder of
+  /// the window, selects all of its text, and types `text` in place of it:
+  /// the way to type into a field that shows a value, such as a number
+  /// field.
+  ///
+  /// - Parameters:
+  ///   - text: The text to type.
+  ///   - identifier: The accessibility identifier of the field.
+  ///   - harness: The harness that shows the field.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Returns: The text view.
+  /// - Throws: An issue when no text view carries `identifier`, when it
+  ///   cannot take the focus, or when the typing does not take the place of
+  ///   the text.
+  @discardableResult
+  static func replaceText(
+    with text: String, inFieldWith identifier: String, in harness: HostedViewHarness<some View>,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) throws -> NSTextView {
+    let textView = try textView(identifier: identifier, in: harness, sourceLocation: sourceLocation)
+    try #require(harness.window.makeFirstResponder(textView), sourceLocation: sourceLocation)
+    harness.render()
+    textView.selectAll(nil)
+    harness.render()
+    harness.type(text)
+    try #require(textView.string == text, sourceLocation: sourceLocation)
+    return textView
+  }
+
   /// Types `text` into the field with `identifier`, and then presses `key`
   /// with `modifiers`.
   ///

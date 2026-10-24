@@ -206,6 +206,22 @@ import Testing
     #expect(Self.errors(of: "color", in: harness) == nil)
   }
 
+  /// A number typed into the number input of a stepper field, and committed,
+  /// is checked against the bounds of the schema like any other answer.
+  @Test func aCommittedNumberAboveTheMaximumShowsItsError() async throws {
+    let params = ElicitationViewHostedTests.makeFormParams(
+      properties: ["count": ElicitationNumberFieldEditingHostedTests.countProperty], required: ["count"])
+    let mounted = try await Self.mount(params, announcer: RecordingAnnouncer())
+    defer { mounted.close() }
+    let harness = mounted.harness
+
+    try SingleLineFieldChecks.replaceText(
+      with: "12", inFieldWith: ElicitationNumberFieldEditingHostedTests.control, in: harness)
+    try harness.sendKey(.escape)
+
+    #expect(Self.errors(of: "count", in: harness)?.label?.contains(Self.aboveMaximumMessage) == true)
+  }
+
   // MARK: - Submit attempt
 
   @Test func aSubmitAttemptShowsTheErrorOfEachFieldThatIsNotValid() async throws {

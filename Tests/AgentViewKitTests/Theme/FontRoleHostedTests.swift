@@ -87,6 +87,13 @@ import Testing
     try FontRoleExpectations.expectEditor(in: field, drawsIn: .display)
   }
 
+  @Test func theNumberInputOfAnElicitationNumberFieldDrawsInTheDisplayRole() throws {
+    let schema = ElicitationTestFields.field(.number(integer: true, minimum: nil, maximum: nil))
+    let field = ElicitationNumberField(
+      context: ElicitationFieldContext(schema: schema, value: .constant(.number(3))))
+    try FontRoleExpectations.expectEditor(in: field, drawsIn: .display)
+  }
+
   // MARK: - code
 
   @Test func aCodeBlockDrawsInTheCodeRole() throws {

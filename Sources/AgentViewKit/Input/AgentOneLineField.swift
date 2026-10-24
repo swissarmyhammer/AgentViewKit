@@ -23,9 +23,15 @@ import SwiftUI
 /// test finds one element to type into, and the placeholder as its
 /// accessibility label. While the field is empty, EditorKit gives the text
 /// view the placeholder as its accessibility hint too.
+///
+/// A field made with a value and a format edits that value, as a SwiftUI
+/// `TextField` with a value and a format does (EditorKit
+/// `SingleLineField(model:id:value:format:)`): typing changes only the text,
+/// and each commit writes the value when the whole text is one value of the
+/// format. Return and Command-Return call `onSubmit` after that write.
 struct AgentOneLineField: View {
-  /// The model of the text of the field.
-  let model: EditorModel
+  /// The EditorKit field: a text field over the model, or a value field.
+  private let field: SingleLineField
 
   /// The accessibility identifier of the text view, and the id of the
   /// `editor:` scope of the field.
@@ -37,10 +43,70 @@ struct AgentOneLineField: View {
 
   /// The action that Return and Command-Return call with the text of the
   /// field.
-  var onSubmit: (String) -> Void = { _ in }
+  let onSubmit: (String) -> Void
+
+  /// Makes a field that edits the text of `model`.
+  ///
+  /// - Parameters:
+  ///   - model: The model of the text of the field.
+  ///   - identifier: The accessibility identifier of the text view, and the
+  ///     id of the `editor:` scope of the field.
+  ///   - placeholder: The text that the empty field shows, and the
+  ///     accessibility label of the text view.
+  ///   - onSubmit: The action that Return and Command-Return call with the
+  ///     text of the field. The default does nothing.
+  init(
+    model: EditorModel, identifier: String, placeholder: String,
+    onSubmit: @escaping (String) -> Void = { _ in }
+  ) {
+    self.init(
+      field: SingleLineField(model: model, id: identifier), identifier: identifier,
+      placeholder: placeholder, onSubmit: onSubmit)
+  }
+
+  /// Makes a field that edits `value` through `format`, with `model` as the
+  /// model of its text.
+  ///
+  /// - Parameters:
+  ///   - model: The model of the text of the field.
+  ///   - identifier: The accessibility identifier of the text view, and the
+  ///     id of the `editor:` scope of the field.
+  ///   - placeholder: The text that the empty field shows, and the
+  ///     accessibility label of the text view.
+  ///   - value: The value that the field edits.
+  ///   - format: The format that the field shows the value in and reads the
+  ///     text with.
+  ///   - onSubmit: The action that Return and Command-Return call with the
+  ///     text of the field, after the commit writes the value.
+  init<Format: ParseableFormatStyle>(
+    model: EditorModel, identifier: String, placeholder: String,
+    value: Binding<Format.FormatInput>, format: Format,
+    onSubmit: @escaping (String) -> Void
+  ) where Format.FormatOutput == String {
+    self.init(
+      field: SingleLineField(model: model, id: identifier, value: value, format: format),
+      identifier: identifier, placeholder: placeholder, onSubmit: onSubmit)
+  }
+
+  /// Makes a field that shows `field` with the slots of a kit field.
+  ///
+  /// - Parameters:
+  ///   - field: The EditorKit field.
+  ///   - identifier: The accessibility identifier of the text view.
+  ///   - placeholder: The placeholder and accessibility label of the field.
+  ///   - onSubmit: The action that Return and Command-Return call.
+  private init(
+    field: SingleLineField, identifier: String, placeholder: String,
+    onSubmit: @escaping (String) -> Void
+  ) {
+    self.field = field
+    self.identifier = identifier
+    self.placeholder = placeholder
+    self.onSubmit = onSubmit
+  }
 
   var body: some View {
-    SingleLineField(model: model, id: identifier)
+    field
       .onEditorCommit { commit in didCommit(commit) }
       .editorSizingMode(.intrinsic)
       .editorPlaceholder(placeholder)

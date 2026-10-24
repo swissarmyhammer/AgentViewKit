@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
@@ -145,7 +145,7 @@ struct HostedTextField: View {
 
   // MARK: - Number
 
-  @Test func theStepperShowsTheAnswer() {
+  @Test func theNumberInputBesideTheStepperShowsTheAnswer() {
     // The harness does not increment a stepper. See
     // `HostedViewHarness.increment(identifier:)`. The slider test covers the
     // write through the shared number binding.
@@ -154,8 +154,33 @@ struct HostedTextField: View {
     defer { harness.close() }
 
     let control = harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "count"))
-    #expect(control?.role == NSAccessibility.Role.incrementor.rawValue)
     #expect(control?.value == "3")
+    #expect(harness.accessibilityElements().contains { $0.role == NSAccessibility.Role.incrementor.rawValue })
+  }
+
+  /// A change of the answer from outside the number input, as the stepper
+  /// writes it through the same binding, shows the new number in the input.
+  @Test func theNumberInputShowsAChangeOfTheAnswer() throws {
+    let schema = Self.field("count", .number(integer: true, minimum: nil, maximum: nil))
+    let box = AnswerBox(.number(3))
+    let harness = Self.mount(schema, box: box)
+    defer { harness.close() }
+    let textView = try SingleLineFieldChecks.textView(
+      identifier: ElicitationFieldView.controlIdentifier(for: "count"), in: harness)
+
+    box.value = .number(7)
+    harness.render()
+
+    #expect(textView.string == "7")
+  }
+
+  /// The integer input reads the answer as the nearest whole number, and an
+  /// answer past the range of `Int` reads as the nearest end of that range.
+  @Test(arguments: [
+    (2.6, 3), (-2.6, -3), (1e300, Int.max), (-1e300, Int.min),
+  ])
+  func theIntegerInputReadsTheNearestWholeNumber(answer: Double, whole: Int) {
+    #expect(ElicitationNumberField.wholeNumber(nearest: answer) == whole)
   }
 
   @Test func theSliderWritesANumberInItsBounds() throws {

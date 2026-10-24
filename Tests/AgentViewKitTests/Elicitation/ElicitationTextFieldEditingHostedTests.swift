@@ -26,8 +26,7 @@ import Testing
   /// The control identifier of the `name` field.
   static let control = ElicitationFieldView.controlIdentifier(for: "name")
 
-  /// The form of a request with the one required text field `name`, and
-  /// the window of the form.
+  /// A mounted form and the window of the form.
   struct MountedForm {
     /// The mounted form.
     let form: ElicitationViewHostedTests.Mounted
@@ -36,15 +35,18 @@ import Testing
     let window: MountedThread<AnyView>
   }
 
-  /// Shows a form with the one required text field `name` in the root
-  /// command scope of a new command system.
+  /// Shows a form in the root command scope of a new command system.
   ///
+  /// - Parameter params: The JSON text of the params of the request. The
+  ///   default is a request with the one required text field `name`.
   /// - Returns: The form and its window.
   /// - Throws: The error of the transport, or an issue when the window has
   ///   no undo stack.
-  static func mount() async throws -> MountedForm {
+  static func mount(
+    _ params: String = ElicitationFieldErrorsHostedTests.requiredNameParams
+  ) async throws -> MountedForm {
     let system = CommandSystem()
-    let form = try await ElicitationViewHostedTests.mount(ElicitationFieldErrorsHostedTests.requiredNameParams) {
+    let form = try await ElicitationViewHostedTests.mount(params) {
       SingleLineFieldChecks.scoped($0, in: system)
     }
     return MountedForm(form: form, window: try SingleLineFieldChecks.window(of: form.harness, system: system))

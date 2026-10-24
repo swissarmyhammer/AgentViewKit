@@ -203,7 +203,7 @@ public struct ElicitationView: View {
   // MARK: Slots
 
   /// The layout override, or the default layout. Return in a one-line text
-  /// field of the layout runs ``submitOnReturn()``.
+  /// field or a number input of the layout runs ``submitOnReturn()``.
   private var layout: some View {
     let context = ElicitationLayoutContext(
       fields: fields.map(fieldContext), tabThreshold: tabThreshold)
@@ -414,7 +414,8 @@ public struct ElicitationView: View {
     owner.acceptElicitation(request.id, content: content)
   }
 
-  /// Presses Submit for Return in a one-line text field: sends the answers
+  /// Presses Submit for Return in a one-line text field or a number input,
+  /// after the input wrote its answer: sends the answers
   /// with ``submit()`` when the form is complete, as the enabled Submit
   /// button does. While the form is not complete, Submit is disabled, and
   /// Return does nothing.
@@ -625,8 +626,8 @@ extension EnvironmentValues {
   /// ``ElicitationFooter``.
   @Entry public var elicitationFooterOverride: ElicitationFooterRenderer? = nil
 
-  /// The action that Return in a one-line text field of the nearest
-  /// ``ElicitationView`` runs, or `nil` outside a form.
+  /// The action that Return in a one-line text field or a number input of
+  /// the nearest ``ElicitationView`` runs, or `nil` outside a form.
   ///
   /// The form gives the action of Submit, so Return presses Submit as the
   /// footer says. Like Submit, the action does nothing while the form is
@@ -634,8 +635,8 @@ extension EnvironmentValues {
   @Entry var elicitationReturnAction: ElicitationReturnAction? = nil
 }
 
-/// The action that Return in a one-line text field of an ``ElicitationView``
-/// runs (``SwiftUI/EnvironmentValues/elicitationReturnAction``).
+/// The action that Return in a one-line text field or a number input of an
+/// ``ElicitationView`` runs (``SwiftUI/EnvironmentValues/elicitationReturnAction``).
 ///
 /// The function is in a struct, not in the environment value itself: an
 /// environment value that holds a closure can invalidate its dependents on
