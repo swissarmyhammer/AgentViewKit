@@ -25,8 +25,24 @@ comments:
     - evidence: swift test — 1828 tests in 225 suites passed, 0 failed, 7 known issues (expected); no compiler warnings from repo sources (only a build-system notice about the mlx-swift_Cmlx.bundle dependency product); no skipped tests; demo and UI runs not executed
     - next: review/commit (no files changed by this step)
   timestamp: 2026-10-24T23:36:01.722960+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5r4d59crg2crz913j096grt
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (da70edd), batched mode, complete: 3 files reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 0, attempted 7, failed 0, skipped 0
+    - next: none — task moved to done
+  timestamp: 2026-10-24T23:37:16.332505+00:00
+- actor: claude-code
+  id: 01m5r4dp7ckj548bfrtpshetg3
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 test files use ContentBlockFile.attachment; filed ^bazvbmb for SelectionSurfaceSitesHostedTests
+    - test: green — swift test 1828/225 (7 known issues)
+    - commit: e7f3c28 (chore kanban), da70edd (code, HEAD)
+    - review: clean — 0 findings; task in done. Local only.
+  timestamp: 2026-10-24T23:37:33.676936+00:00
+position_column: done
+position_ordinal: ffffe180
 title: 'Tests: build block-file attachments with ContentBlockFile.attachment(of:named:type:)'
 ---
 Found while working ^z2qejh5. No view in Sources builds the block-file attachment by hand any more, but tests still do:
