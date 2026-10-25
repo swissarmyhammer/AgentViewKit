@@ -85,6 +85,7 @@ struct SuggestionChip: View {
     .floatingGlassID(FloatingGlassID.suggestion(index))
     .help(String(localized: "Use this prompt", bundle: .module))
     .accessibilityIdentifier(SuggestionsView.chipIdentifier(at: index))
+    .agentControlScope(SuggestionsView.chipIdentifier(at: index))
   }
 }
 

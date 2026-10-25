@@ -198,6 +198,7 @@ struct NoticeRow: View {
         .labelStyle(.iconOnly)
         .requestActionStyle(.secondary)
         .accessibilityIdentifier(dismissIdentifier)
+        .agentControlScope(dismissIdentifier)
     }
     .padding(editorStyle.spacing.m)
     .inlineEdge(radius: editorStyle.radii.l)

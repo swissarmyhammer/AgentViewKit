@@ -135,6 +135,11 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     self.accessory = accessory
   }
 
+  /// The corners of the editor slot, inside the field: one step of the
+  /// radius scale under the large corners of the field glass, as the field
+  /// pads the editor.
+  static var editorCorners: AgentControlCorners { .surface(.rounded(.medium)) }
+
   /// The text that the editor shows while the prompt is empty.
   static var placeholder: String {
     String(localized: "Message the agent", bundle: .module)
@@ -225,6 +230,11 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
               target: commandTarget, canSubmit: { canSubmit }, submit: submit, load: load)
           }
         }
+        // The editor is a jump target of its own. A landed jump focuses its
+        // text view, the same view that the focus probe above focuses for
+        // the Focus Composer command. A host scope around the composer is
+        // the jump target of the editor in its place.
+        .agentControlScope(EditorKitPromptEditor.identifier, corners: Self.editorCorners, yieldsToHostScope: true)
     }
     .modifier(PromptFieldSurface())
     // The menu of the editor is after the field surface, so it is a sibling

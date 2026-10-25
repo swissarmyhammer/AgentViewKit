@@ -60,8 +60,8 @@ struct ScopedDefaultComposerThreadHost: View {
 
   /// A `nav.*` move or a jump that lands on the command scope of the host
   /// around the composer makes the text view of the editor the first
-  /// responder. The editor adds no command scope of its own, so the focus
-  /// does not stop at an inner scope.
+  /// responder. In a host scope, the editor yields its own control scope to
+  /// the host scope, so the focus does not stop at an inner scope.
   @Test(arguments: AgentItemFocusRingHostedTests.FocusLanding.allCases)
   func aFocusOnTheHostScopeOfTheComposerGoesIntoTheTextOfTheEditor(
     landing: AgentItemFocusRingHostedTests.FocusLanding

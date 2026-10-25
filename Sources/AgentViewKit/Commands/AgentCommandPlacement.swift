@@ -33,7 +33,14 @@ nonisolated extension MenuPath {
 /// path, so the attachment verbs work also in an inspector of the host,
 /// outside each thread scope.
 ///
-/// Each scope gives its live object as the subject of its segment, and a
+/// Each control in a bar of a thread, such as Send, the permission-mode
+/// picker or the composer editor, adds `agentControl:<identifier>`. The id is
+/// the accessibility identifier of the control, such as `prompt-submit`. The
+/// scope makes the control a target of the EditorKit jump and navigation. It
+/// gives no subject, and it is no item: a command at its path acts on the
+/// thread.
+///
+/// Each item scope gives its live object as the subject of its segment, and a
 /// command reads it with `@FromTarget`:
 ///
 /// | Kind | Subject |
@@ -63,6 +70,10 @@ public nonisolated enum AgentScopeKind {
   /// The kind of the scope of an attachment: a chip, an image, an artifact
   /// file or the attachment inspector.
   public static let attachment = "agentAttachment"
+
+  /// The kind of the scope of a control in a bar of a thread, such as Send
+  /// or the composer editor (`agentControlScope(_:corners:)`).
+  public static let control = "agentControl"
 
   /// The kinds of the item scopes in a thread.
   ///
@@ -104,6 +115,15 @@ public nonisolated enum AgentScopeKind {
   /// - Returns: The segment `agentAttachment:<id>`.
   static func attachment(_ id: AttachmentID) -> FocusSegment {
     FocusSegment(kind: attachment, id: id.rawValue)
+  }
+
+  /// The segment of the scope of a control in a bar of a thread.
+  ///
+  /// - Parameter identifier: The accessibility identifier of the control,
+  ///   such as `prompt-submit`.
+  /// - Returns: The segment `agentControl:<identifier>`.
+  static func control(_ identifier: String) -> FocusSegment {
+    FocusSegment(kind: control, id: identifier)
   }
 
   /// The last item segment of `path`, or `nil` when the path has no item

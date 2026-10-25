@@ -92,6 +92,7 @@ struct StatusBar: View {
           .requestActionStyle(.secondary)
           .disabled(!action.isEnabled)
           .accessibilityIdentifier(action.identifier)
+          .agentControlScope(action.identifier)
       }
     }
     .padding(editorStyle.spacing.m)

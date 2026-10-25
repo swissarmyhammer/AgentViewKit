@@ -428,6 +428,7 @@ public struct AgentAuthView: View {
     .disabled(isRunning)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(identifier)
+    .agentControlScope(identifier)
   }
 
   // MARK: Actions

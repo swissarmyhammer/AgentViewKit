@@ -71,6 +71,7 @@ public struct PermissionModePicker: View {
       .pickerStyle(.segmented)
       .help(option.description ?? option.name)
       .accessibilityIdentifier(Self.pickerIdentifier)
+      .agentControlScope(Self.pickerIdentifier)
     }
   }
 }

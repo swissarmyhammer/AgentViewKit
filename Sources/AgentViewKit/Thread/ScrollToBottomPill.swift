@@ -57,6 +57,7 @@ public struct ScrollToBottomPill: View {
     .buttonBorderShape(.capsule)
     .floatingGlassID(FloatingGlassID.scrollPill)
     .accessibilityIdentifier(Self.identifier)
+    .agentControlScope(Self.identifier)
   }
 }
 

@@ -71,6 +71,7 @@ public struct SpeechInputButton: View {
       .accessibilityLabel(String(localized: "Dictate", bundle: .module))
       .accessibilityValue(valueText)
       .accessibilityIdentifier(Self.identifier)
+      .agentControlScope(Self.identifier)
       .onDisappear { stop(transcriber: transcriber) }
     }
   }

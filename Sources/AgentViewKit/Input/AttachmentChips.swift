@@ -37,6 +37,10 @@ public struct AttachmentChips: View {
   /// The start of the accessibility identifier of each "not accepted" mark.
   public static let notAcceptedIdentifierPrefix = "attachment-not-accepted-"
 
+  /// The corners of a remove button: a borderless button, whose focus ring
+  /// is a small rounded rectangle around its icon.
+  static let removeButtonCorners = AgentControlCorners.surface(.rounded(.small))
+
   /// The file name, without the extension, of a dropped or pasted image.
   static let imageFileStem = "Image"
 
@@ -193,6 +197,7 @@ public struct AttachmentChips: View {
             .help(String(localized: "Remove this attachment", bundle: .module))
             .accessibilityLabel(String(localized: "Remove \(attachment.name)", bundle: .module))
             .accessibilityIdentifier(Self.removeIdentifier(for: attachment.id))
+            .agentControlScope(Self.removeIdentifier(for: attachment.id), corners: Self.removeButtonCorners)
           }
         }
       }

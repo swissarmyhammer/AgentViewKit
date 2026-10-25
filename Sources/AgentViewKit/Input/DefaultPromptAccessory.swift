@@ -101,6 +101,7 @@ public struct DefaultPromptAccessory: View {
     .disabled(!submit.isEnabled)
     .help(String(localized: "Send the prompt", bundle: .module))
     .accessibilityIdentifier(Self.submitIdentifier)
+    .agentControlScope(Self.submitIdentifier)
   }
 
   /// The button that cancels the work of the session.
@@ -116,6 +117,7 @@ public struct DefaultPromptAccessory: View {
     .buttonBorderShape(.circle)
     .help(String(localized: "Stop the work of the agent", bundle: .module))
     .accessibilityIdentifier(Self.stopIdentifier)
+    .agentControlScope(Self.stopIdentifier)
   }
 }
 
