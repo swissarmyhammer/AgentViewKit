@@ -75,8 +75,24 @@ comments:
     - evidence: swift test — 1833 tests in 227 suites passed, 0 failed, 0 skipped, 7 known issues (expected); no warnings from repo sources (only a SwiftPM build-system note about the mlx-swift_Cmlx.bundle dependency)
     - next: review/commit
   timestamp: 2026-10-25T17:00:48.832272+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5t06ar0kbjs6f5zkm2re4sj
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 93a2ff5, Tests/AgentViewKitTests/Commands/ThreadBarControlJumpHostedTests.swift) — 1 file reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 0, attempted 7, failed 0, skipped 0. Batched sha review was complete; no `review file` fallback needed. The prior `## Review Findings (2026-10-25 11:51)` item is `- [x]`.
+    - next: task moved to done; ^j4vnh1r is unblocked on this card.
+  timestamp: 2026-10-25T17:02:07.104072+00:00
+- actor: claude-code
+  id: 01m5t06sg6f655qh8ha7qx0t24
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — renamed control→controlFrame and frame→screenFrame in ThreadBarControlJumpHostedTests
+    - test: green — swift test 1833/227 (7 known issues)
+    - commit: a5e0da6 (chore kanban), 93a2ff5 (code, HEAD)
+    - review: clean — 0 findings, prior item checked; task in done. Local only.
+  timestamp: 2026-10-25T17:02:22.214958+00:00
+position_column: done
+position_ordinal: ffffe480
 title: 'Every control in the thread bars is a jump target: Send, Stop, mode picker, sign in/out, banner buttons, composer editor'
 ---
 Asked by the user on 2026-10-25, while working on ^bc6fapz.
