@@ -95,6 +95,8 @@ comments:
     - test/commit/review: not run (no repo change)
     - needs a person to pick an option (on the card): 0 close as fixed by --primary-screen; 1 put the controls below the list (conflicts with D113 scroll-under); 2 host the bar content in its own NSHostingView; 3 file Apple Feedback
   timestamp: 2026-10-25T13:30:54.259005+00:00
+depends_on:
+- 01M5SXGMKSE6G758EP3J4VNH1R
 position_column: doing
 position_ordinal: '8280'
 title: 'Demo UI test: XCUI finds no hit point for the composer editor (testASendOfHelloShowsTheReplyOfTheAgent)'
