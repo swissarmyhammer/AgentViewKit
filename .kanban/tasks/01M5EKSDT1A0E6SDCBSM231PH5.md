@@ -73,8 +73,48 @@ comments:
     - evidence: no repo file changed (git status: only this card's .kanban files). White fill gone at HEAD 916793f / EditorKit e79b1639: EditorKit `Sources/EditorText/EditorTextView.swift:425` sets `textView.drawsBackground = false`. Hosted pixel test `EditorThemeViewsTests.theTextAreaOfACodeBlockShowsTheContentBehindTheBlock` passed (15.4 s). `swift test`: 1828 tests in 225 suites passed with 7 known issues, plus 250 tests in 33 suites and 1 test in 1 suite; only the known mlx bundle build warning. No snapshot changed, none re-recorded. `generate_xcodeproj.rb` + demo `xcodebuild ... build`: BUILD SUCCEEDED, 0 repo warnings (only the Xcode appintentsmetadataprocessor note). `Scripts/test-examples.sh AgentViewKitDemo`: 10 UI tests, 0 failures, "The example gate passed."
     - next: /review; every acceptance item is met (cause with file:line recorded, EditorKit card ^0apj6a2 landed, hosted pixel test in place).
   timestamp: 2026-10-25T13:01:52.466418+00:00
+- actor: claude-code
+  id: 01m5sjnejd6gf7jmfwdr1hp83d
+  text: |-
+    ### review — findings
+    - evidence: `review file Sources/AgentViewKit/Code/EditorBlockChrome.swift`: 0 findings. `review file Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift`: 6 findings (6 confirmed, 4 refuted) — EditorThemeViewsTests.swift:90, :140, :141, :192, :198, :199. Card items: cause recorded with file:line (EditorKit EditorTextView.swift:411 old pin; fix at :425 in e79b1639), EditorKit card ^0apj6a2 landed, hosted pixel test `theTextAreaOfACodeBlockShowsTheContentBehindTheBlock` reads a point inside the `NSTextView` bounds (maxX - 8, midY) in the window cache and expects the backdrop, with no clock/sleep/poll/retry/timeLimit/XCUITest — all met.
+    - next: implement the 6 open items of `## Review Findings (2026-10-25 08:03)`, then /review again.
+  timestamp: 2026-10-25T13:05:42.477276+00:00
+- actor: claude-code
+  id: 01m5sjp9e1rqjh9egx0xgxty79
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: no-change — the fix is already in EK e79b1639 (EditorTextView.swift:425 drawsBackground = false); the existing pixel test passes
+    - test: green (implement's full gate) — swift test 1828/225, demo build 0 repo warnings, test-examples 10/10
+    - commit: b519bd5 (chore kanban only)
+    - review: findings — review file on the evidence files; EditorThemeViewsTests.swift:90 (reuse), :140, :141, :192, :198, :199 (test-integrity, negative-only assertions)
+  timestamp: 2026-10-25T13:06:09.985582+00:00
+- actor: claude-code
+  id: 01m5sk8qcewwx34x7ktj640m1w
+  text: |-
+    Worked the 6 items of `## Review Findings (2026-10-25 08:03)`; only Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift changed.
+    - :90 exemption check: `drawnCachedPixels` predates this card (14d77a3, ^2g7w4mz). The "drops findings on pre-existing tests" wording appears only as an example in the implement/tdd skill text; ~/.claude/skills/review/SKILL.md has no such rule (it says `/review <path>` on a test file is legitimate and its findings are relayed). So the item was not exempt. The test-integrity fixes needed a no-theme pixel source anyway, so the helpers were folded into `drawnPixels(of:using:)` (light scheme + clear baseline in one place); `drawnPixels(of:)`, `drawnCachedPixels(of:)` are one-line wrappers; new `unthemedPixels(of:)` (also the body of `pixels(of:)`). External callers (AgentInfoHeaderColorTests, PendingRequestCountBadgeColorTests, SourcesViewHostedTests, ConversationEmptyStateColorHostedTests) are unchanged and pass.
+    - Discovery: under `ImageRenderer` the EditorKit editor of a `CodeBlockView` takes no height; a column probe at x = 240 over the backdrop showed backdrop only in a ~25 pt band (the header row). So "backdrop shows" is a valid positive for the header having no fill.
+    - Positive pairings: header test -> backdrop shows; code-block frame -> backdrop at the center; no-theme command output -> default theme `statusSucceeded` resolved in a light `EnvironmentValues` (RenderedPixels.contains needs a non-dynamic color); citation digits -> the capsule accent fill shows.
+    - Mutation proof (temporary tests, removed): filled header, filled frame, themed render of the no-theme test, unthemed citation pill, and three EmptyView renders — all 7 failed, on the positive or on the `requireDrawn` guard.
+    - First attempt at the citation mutant used `SystemTheme()`, which is not in scope in this file (EditorTheme is not imported); used `unthemedPixels(of:)` instead.
+  timestamp: 2026-10-25T13:16:14.094327+00:00
+- actor: claude-code
+  id: 01m5sk8tah2kd30q1e98e6xgb0
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift. Focused run (EditorThemeViewsTests + the 4 suites that call its helpers): 28 tests in 5 suites passed. Mutants: 7/7 failed as intended, then removed. `swift test`: 1828 tests in 225 suites passed with 7 known issues, plus 250 tests in 33 suites and 1 test in 1 suite; only the known mlx bundle build warning. All 6 findings of `## Review Findings (2026-10-25 08:03)` are `- [x]` with resolution notes; :90 not exempt (no written rule in the review skill), resolved by folding the helpers.
+    - next: /review ^m231ph5
+  timestamp: 2026-10-25T13:16:17.105868+00:00
+- actor: claude-code
+  id: 01m5skdp8psjykm9j8gh76ckd3
+  text: |-
+    ### test — green
+    - evidence: swift test — 1828 tests in 225 suites passed, 0 failures, 7 known issues (expected), 0 skipped; no compiler warnings from repo sources (only a build-system notice "missing creator for mutated node" on the mlx-swift_Cmlx.bundle dependency product). Demo and UI runs skipped as instructed.
+    - next: review/commit
+  timestamp: 2026-10-25T13:18:56.790078+00:00
 position_column: doing
-position_ordinal: '80'
+position_ordinal: '8380'
 title: Examine the white fill of the EditorKit text area in a code block (D113 answer 1)
 ---
 Source: ^6dvspvv (AVK-8ac) implement step.
@@ -89,3 +129,24 @@ Do:
 Acceptance:
 - The cause is recorded on this card with file:line.
 - If the kit had the fill: a test shows that the backdrop shows inside the text area of a code block. No clock, sleep, poll, retry, timeLimit or XCUITest. #avk-8
+
+## Review Findings (2026-10-25 08:02)
+
+> Scope: `review file Sources/AgentViewKit/Code/EditorBlockChrome.swift` — reviewed the whole of each named file. 1 file(s) reviewed, 0 not reviewed.
+
+## Review Findings (2026-10-25 08:03)
+
+> Scope: `review file Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift` — reviewed the whole of each named file. 1 file(s) reviewed, 0 not reviewed.
+
+- [x] `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift:90` `reuse/reuse` — `drawnCachedPixels(of:)` repeats the body of `drawnPixels(of:)` at line 76: it forces the light color scheme, takes a clear-view baseline from the same renderer, and calls `requireDrawn`. Only the pixel source differs (AppKit cache instead of `ImageRenderer`). The two functions are parallel copies that will drift apart, and the light-scheme and blank-baseline logic lives in two places. Factor the shared sequence into one helper that takes the pixel source as a closure, for example `drawnPixels(of view:, using render: (any View) throws -> RenderedPixels)`, and have both functions pass `pixels(of:)` or `cachedPixels(of:)`. Alternatively, keep both as one-line wrappers over `requireDrawn` with the light-scheme step moved into a shared function.
+  - Resolved (not exempt): `drawnCachedPixels` existed before this card (added in 14d77a3, ^2g7w4mz, 2026-10-21 03:54), but no written rule drops this finding: the `review` skill's own text has no rule that drops findings on pre-existing tests, and it states that `/review <path>` on a test file is legitimate and its findings are relayed. The fixes for the test-integrity items needed a no-theme pixel source, so the helpers were folded: one `drawnPixels(of:using:)` takes the pixel source and holds the light-scheme and clear-baseline sequence; `drawnPixels(of:)` passes `pixels(of:)`, `drawnCachedPixels(of:)` passes `cachedPixels(of:)`, and the new `unthemedPixels(of:)` (which `pixels(of:)` now calls) serves the no-theme test.
+- [x] `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift:140` `test-integrity/no-test-cheating` — The negative assertion `!pixels.contains(Role.statusBarBackground)` passes if the view draws nothing at all. The file's own doc comment (lines 65-67) says a test that finds no pixel of a role must use `drawnPixels(of:)`, which guards against this, but this test uses `pixels(of:)`. The test can pass for the wrong cause. Render with `Self.drawnPixels(of: CodeBlockView(code: "let x = 1", language: "swift"))` so the test fails when the view draws nothing. Pair the negative with a positive assertion where one applies.
+  - Resolved: `theCodeBlockHeaderHasNoStatusBarBackground` renders the code block over the backdrop through `drawnPixels(of:)` and adds the positive `pixels.contains(GlassRenderProbeTests.backdrop)` (the backdrop shows only where the header row has no fill). Mutants: a filled header fails both checks; an empty view fails the drawn guard.
+- [x] `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift:141` `test-integrity/no-test-cheating` — The negative assertion `!pixels.contains(Role.terminalBackground)` has no guard that the view drew anything, so a blank render passes it. Use `Self.drawnPixels(of:)` for this render, or add a positive assertion that the header or code draws a known color.
+  - Resolved: same test as the item above; both negatives now follow the `drawnPixels` guard and the backdrop positive.
+- [x] `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift:192` `test-integrity/no-test-cheating` — `!pixels.contains(Role.terminalBackground)` is the only assertion, and no guard checks that the frame drew anything. A blank render passes, so the test cannot fail for the rule it names. Render with `Self.drawnPixels(of: Self.clearBlock.editorBlockFrame())`, or assert a positive color the code-block frame does draw.
+  - Resolved: `theCodeBlockFrameFillsTheBlockWithNoThemeColor` renders the frame over the backdrop through `drawnPixels(of:)` and adds the positive `pixels.contains(GlassRenderProbeTests.backdrop, at: Self.center)`. Mutants: a fill inside the frame fails the positive; an empty view fails the drawn guard.
+- [x] `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift:198` `test-integrity/no-test-cheating` — Both assertions in this test are negative (`!contains(statusBarBackground)`, `!contains(succeeded)`). Their results do not depend on the view drawing anything, so a view that renders nothing passes. Render through `drawnPixels` or a checked helper, so the test first proves the command output draws something.
+  - Resolved: `withNoThemeTheCommandOutputDrawsNoRoleColor` renders through `drawnPixels(of:using: unthemedPixels(of:))` and adds the positive `pixels.contains(Self.defaultThemeSucceededInLightMode)` (the default theme's succeeded color, resolved in light mode). Mutants: rendering with `DistinctRolesTheme` fails the positive; an empty view fails the drawn guard.
+- [x] `Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift:199` `test-integrity/no-test-cheating` — `!pixels.contains(Role.succeeded)` is a negative assertion with no positive counterpart and no drawn-pixels guard. A blank render passes it. Add a positive check that the output draws the terminal background, or render through `drawnPixels` as lines 62-67 require.
+  - Resolved: same test as the item above. The default theme sets no terminal background (the block is clear, ^4rck1pf), so the positive is the default succeeded status color of the footer. Whole-file sweep: `theCitationPillDigitsDoNotUseTheAccentOfTheTheme` (already on `drawnPixels`) also gets the positive `pixels.contains(Self.citationFillOverWhite())`; a mutant without the theme fails it. The other tests with negatives already pair them with a positive.
