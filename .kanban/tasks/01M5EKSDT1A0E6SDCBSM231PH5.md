@@ -57,6 +57,22 @@ comments:
   id: 01m5nc9804wr65mm47vjdrwqd8
   text: 'EditorKit ^0apj6a2 (EditorKit main at 69d04fc, code f8ff1bc) removes the white fill of the code block''s text area: EditorTextView now sets drawsBackground = false, and Theme.editorBackground is gone, so the EditorKit editors are transparent by default. AVK adopts it in ^xqday3k. The hosted pixel test this card asked for now exists: EditorThemeViewsTests.theTextAreaOfACodeBlockShowsTheContentBehindTheBlock puts a CodeBlockView over a backdrop in a window and reads the cached pixels at the trailing end of the text view. It passes at 69d04fc and fails at the old pin 8e4d27a (checked in a scratch export of HEAD), so it holds the fix. plan.md "Open items" and Docs/decisions/visual-audit.md now say the item is answered; this card still closes in its own review.'
   timestamp: 2026-10-23T21:57:13.348792+00:00
+- actor: claude-code
+  id: 01m5sj0qm4a86kafdwnvqam7g1
+  text: |-
+    Re-checked at AVK HEAD 916793f (EditorKit pinned e79b1639 in Package.resolved; .build/checkouts/EditorKit at e79b1639). The white fill no longer happens:
+    - Fix location in EditorKit: `Sources/EditorText/EditorTextView.swift:425` — `configureForRowGrid()` now sets `textView.drawsBackground = false` (it was the AppKit default `true` with `textBackgroundColor`, the cause recorded above at EditorTextView.swift:411 of the old pin). It is the only `drawsBackground` in EditorKit `Sources/`.
+    - AVK side is still clean: `EditorBlockFrame` (Sources/AgentViewKit/Code/EditorBlockChrome.swift) gives `.background(fill ?? .clear, in: shape)` then `.inlineEdge(radius:)` with no `.inlineFill(_:)`.
+    - The hosted pixel test exists: `EditorThemeViewsTests.theTextAreaOfACodeBlockShowsTheContentBehindTheBlock` (Tests/AgentViewKitTests/Theme/EditorThemeViewsTests.swift), `.hostedSerially`, `HostedViewHarness` + `RenderedPixels(cachingDisplayOf:)`, reads a point inside the `NSTextView` bounds past the code and expects the backdrop. No clock/sleep/poll/retry/timeLimit/XCUITest. Per the earlier comment it fails at the old pin 8e4d27a.
+    - plan.md "Open items" and Docs/decisions/visual-audit.md already record the answer. No file change needed; running the full verification now.
+  timestamp: 2026-10-25T12:54:23.620419+00:00
+- actor: claude-code
+  id: 01m5sjedyj4z9hrh759g3n1e7s
+  text: |-
+    ### implement — no-change
+    - evidence: no repo file changed (git status: only this card's .kanban files). White fill gone at HEAD 916793f / EditorKit e79b1639: EditorKit `Sources/EditorText/EditorTextView.swift:425` sets `textView.drawsBackground = false`. Hosted pixel test `EditorThemeViewsTests.theTextAreaOfACodeBlockShowsTheContentBehindTheBlock` passed (15.4 s). `swift test`: 1828 tests in 225 suites passed with 7 known issues, plus 250 tests in 33 suites and 1 test in 1 suite; only the known mlx bundle build warning. No snapshot changed, none re-recorded. `generate_xcodeproj.rb` + demo `xcodebuild ... build`: BUILD SUCCEEDED, 0 repo warnings (only the Xcode appintentsmetadataprocessor note). `Scripts/test-examples.sh AgentViewKitDemo`: 10 UI tests, 0 failures, "The example gate passed."
+    - next: /review; every acceptance item is met (cause with file:line recorded, EditorKit card ^0apj6a2 landed, hosted pixel test in place).
+  timestamp: 2026-10-25T13:01:52.466418+00:00
 position_column: doing
 position_ordinal: '80'
 title: Examine the white fill of the EditorKit text area in a code block (D113 answer 1)
