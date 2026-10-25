@@ -298,14 +298,14 @@
       let system = CommandSystem()
       let shown = try await Self.show(control, system: system)
       defer { shown.close() }
-      let frame = try #require(shown.harness.frame(identifier: shown.identifier))
+      let screenFrame = try #require(shown.harness.frame(identifier: shown.identifier))
       let jump = try Self.openJump(on: shown, system: system)
 
       let chips = try #require(jump.overlayState?.chips)
 
       let chip = try #require(chips.first { $0.id == shown.path }, "\(chips.map(\.id))")
-      let control = Self.windowSpaceFrame(of: frame, in: shown.harness.window)
-      #expect(control.contains(chip.anchor.origin), "label \(chip.anchor.origin), control \(control)")
+      let controlFrame = Self.windowSpaceFrame(of: screenFrame, in: shown.harness.window)
+      #expect(controlFrame.contains(chip.anchor.origin), "label \(chip.anchor.origin), control \(controlFrame)")
     }
 
     @Test(arguments: BarControl.allCases)
