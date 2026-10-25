@@ -45,6 +45,36 @@ comments:
     - evidence: swift test — 1833 tests in 227 suites passed, 7 known issues (expected); xcodeproj regenerated, xcodebuild build of AgentViewKitDemo — BUILD SUCCEEDED, 0 repo warnings (only the Xcode appintentsmetadataprocessor notice); Scripts/test-examples.sh AgentViewKitDemo — 10 UI tests, 0 failures, "The example gate passed" (script holds the shared UI-test lock for the test step); no draft files left
     - next: review
   timestamp: 2026-10-25T16:50:48.523896+00:00
+- actor: claude-code
+  id: 01m5szstcakab0m0ea2rd029p1
+  text: |-
+    ### review — findings
+    - evidence: batched `review sha HEAD~1..HEAD` (commit 82ed6b1) completed, no fallback: 18 files reviewed, 0 not reviewed, 14 attempted, 0 failed; counts findings 1, confirmed 1, refuted 3. Finding: Tests/AgentViewKitTests/Commands/ThreadBarControlJumpHostedTests.swift:307 (swift/naming-clarity). Extra check of the file touched by the recorded `sed -i`: `review file Tests/AgentViewKitTests/Commands/AgentControlCornersTests.swift` (added whole in 82ed6b1), 7 attempted, 0 findings.
+    - next: implement the open finding, then /review again
+  timestamp: 2026-10-25T16:55:17.130203+00:00
+- actor: claude-code
+  id: 01m5sztbhkvf0188sczsfxf8wh
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 18 files: the agentControlScope modifier is on every bar control; structure and hosted jump tests; card split into ^j4vnh1r
+    - test: green — swift test 1833/227 (7 known issues), demo build 0 repo warnings, test-examples.sh 10/10 under lock
+    - commit: bd330d1 (chore kanban), 82ed6b1 (code, HEAD)
+    - review: findings — ThreadBarControlJumpHostedTests.swift:307 (naming-clarity: the local `control` shadows the parameter)
+  timestamp: 2026-10-25T16:55:34.707186+00:00
+- actor: claude-code
+  id: 01m5szzze3psgc6km3x7cjz8ed
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Commands/ThreadBarControlJumpHostedTests.swift. In `aJumpLabelShowsOnEachBarControl`, the local `control` (window-space CGRect) became `controlFrame`, and the `#expect` uses `controlFrame.contains(chip.anchor.origin)` with the message `"label \(chip.anchor.origin), control \(controlFrame)"`. The same sweep renamed the local `frame` (the AX frame in screen points) to `screenFrame`, which matches the `windowSpaceFrame(of screenFrame:in:)` parameter it feeds. Other locals in the file (`jump`, `chips`, `chip`, `window`, `responder`, `harness`, `model`, `attachment`, `anchors`, `shown`) shadow no parameter and match the role or property they hold, so they stay. `swift test`: 1833 tests in 227 suites passed with 7 known issues; PackageStructureTests 255/255. The only build warning is the SwiftPM "missing creator for mutated node" note on the mlx-swift_Cmlx bundle, which comes from the dependency and not this repo. Finding flipped to [x]. Not committed.
+    - next: /review
+  timestamp: 2026-10-25T16:58:38.915445+00:00
+- actor: claude-code
+  id: 01m5t03ya0hp0ybm3emv34cs28
+  text: |-
+    ### test — green
+    - evidence: swift test — 1833 tests in 227 suites passed, 0 failed, 0 skipped, 7 known issues (expected); no warnings from repo sources (only a SwiftPM build-system note about the mlx-swift_Cmlx.bundle dependency)
+    - next: review/commit
+  timestamp: 2026-10-25T17:00:48.832272+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'Every control in the thread bars is a jump target: Send, Stop, mode picker, sign in/out, banner buttons, composer editor'
@@ -69,3 +99,9 @@ Split on 2026-10-25 (user: "get to it", start now with today's EditorKit). The a
 - [x] No compatibility shims; transparent backgrounds by default.
 
 When ^j4vnh1r is done, ^bc6fapz can close. #avk-8 #cross-repo
+
+## Review Findings (2026-10-25 11:51)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 18 file(s) reviewed, 0 not reviewed.
+
+- [x] `Tests/AgentViewKitTests/Commands/ThreadBarControlJumpHostedTests.swift:307` `swift/naming-clarity` — The local `control` holds the window-space CGRect frame of the bar control, but the same function's parameter `control` is a `BarControl` value. The local shadows that parameter, so a reader must check which `control` is meant at each use (`control.contains(...)` reads as if it were a BarControl). The name should state the role of the frame, which naming-clarity asks for ("Name by role, not type", "Clarity over brevity"). Rename the local to name its role, for example `let controlFrame = Self.windowSpaceFrame(of: frame, in: shown.harness.window)`, and use `controlFrame.contains(chip.anchor.origin)` and `"label \(chip.anchor.origin), control \(controlFrame)"` in the `#expect` message.
