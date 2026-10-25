@@ -32,8 +32,24 @@ comments:
     - evidence: swift test — 1828 tests in 225 suites passed, 7 known issues, 0 failures; no warnings from repo sources (only a build-system "missing creator for mutated node" notice for the mlx-swift_Cmlx.bundle dependency)
     - next: review/commit
   timestamp: 2026-10-24T23:44:09.779610+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5r4vwzxm9g3meaecrwjgwp0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b34cdf9) — 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed, 0 skipped; 1 file reviewed (Tests/AgentViewKitTests/Theme/SelectionSurfaceSitesHostedTests.swift)
+    - next: none — task moved to done
+  timestamp: 2026-10-24T23:45:19.357431+00:00
+- actor: claude-code
+  id: 01m5r4w9025361g2vg2gafrf9b
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — SelectionSurfaceSitesHostedTests uses ContentBlockFile.attachment; a search of Tests/ and Sources/ found no other hand-built copies
+    - test: green — swift test 1828/225 (7 known issues)
+    - commit: 1fe690a (chore kanban), b34cdf9 (code, HEAD)
+    - review: clean — 0 findings; task in done. Local only.
+  timestamp: 2026-10-24T23:45:31.650961+00:00
+position_column: done
+position_ordinal: ffffe280
 title: 'Tests: take the image scope id in SelectionSurfaceSitesHostedTests from ContentBlockFile.attachment(of:named:type:)'
 ---
 Found while working ^7rxq60t. `SelectionSurfaceSitesHostedTests.imageBlock()` (Tests/AgentViewKitTests/Theme/SelectionSurfaceSitesHostedTests.swift) returns `ContentBlockFile.url(of:named:)`, and the image site test then builds the scope id by hand with `AttachmentID(url.absoluteString)`.
