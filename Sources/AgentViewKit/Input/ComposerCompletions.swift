@@ -25,7 +25,7 @@ extension View {
   ///   .composerCompletions([
   ///     PrefixCompletionRoute("@", provider: FileMentionProvider(index: files)),
   ///     PrefixCompletionRoute("^", provider: tasks),
-  ///     PrefixCompletionRoute("#", provider: tags),
+  ///     PrefixCompletionRoute("#", body: .tagName, provider: tags),
   ///     PrefixCompletionRoute("/", anchor: .lineStart, provider: commands),
   ///   ])
   /// ```
