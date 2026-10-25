@@ -18,6 +18,9 @@ import Testing
   /// The size that the tests render each view at.
   static let size = CGSize(width: 480, height: 240)
 
+  /// The middle of the render size.
+  static let center = CGPoint(x: size.width / 2, y: size.height / 2)
+
   /// The exit code of a command that completed.
   static let successExitCode = 0
 
@@ -56,26 +59,53 @@ import Testing
   /// - Returns: The pixels.
   /// - Throws: An error when the renderer gives no pixels.
   static func pixels(of view: some View) throws -> RenderedPixels {
-    try #require(RenderedPixels(rendering: view.editorTheme(DistinctRolesTheme()), size: size))
+    try unthemedPixels(of: view.editorTheme(DistinctRolesTheme()))
   }
 
-  /// The pixels of `view` in light mode with ``DistinctRolesTheme`` as its
-  /// EditorKit theme, after a check that the view draws something.
+  /// The pixels of `view` with the EditorKit theme of the environment: the
+  /// default theme, not ``DistinctRolesTheme``.
   ///
-  /// A test that finds no pixel of a role must use this function. A view that
-  /// draws nothing has no pixel of any role, so the test would pass for the
-  /// wrong cause.
+  /// - Parameter view: The view to render.
+  /// - Returns: The pixels.
+  /// - Throws: An error when the renderer gives no pixels.
+  static func unthemedPixels(of view: some View) throws -> RenderedPixels {
+    try #require(RenderedPixels(rendering: view, size: size))
+  }
+
+  /// The pixels of `view` in light mode, from `render`, after a check that
+  /// the view draws something.
+  ///
+  /// A test that finds no pixel of a color must render through this
+  /// function. A view that draws nothing has no pixel of any color, so the
+  /// test would pass for the wrong cause.
   ///
   /// The function renders `view` first, so a test that calls it can be the
   /// first render of the test process.
+  ///
+  /// - Parameters:
+  ///   - view: The view to render.
+  ///   - render: The renderer, for example ``pixels(of:)`` or
+  ///     ``cachedPixels(of:)``. The check renders a clear view with it too.
+  /// - Returns: The pixels.
+  /// - Throws: An error when `render` gives no pixels, or when the pixels are
+  ///   the same as the pixels of a clear view.
+  static func drawnPixels(
+    of view: some View, using render: @MainActor (AnyView) throws -> RenderedPixels
+  ) throws -> RenderedPixels {
+    let drawn = try render(AnyView(view.environment(\.colorScheme, .light)))
+    return try requireDrawn(drawn, blank: render(AnyView(Color.clear)))
+  }
+
+  /// The pixels of `view` in light mode with ``DistinctRolesTheme`` as its
+  /// EditorKit theme, after a check that the view draws something. See
+  /// ``drawnPixels(of:using:)``.
   ///
   /// - Parameter view: The view to render.
   /// - Returns: The pixels.
   /// - Throws: An error when the renderer gives no pixels, or when the pixels
   ///   are the same as the pixels of a clear view.
   static func drawnPixels(of view: some View) throws -> RenderedPixels {
-    let drawn = try pixels(of: view.environment(\.colorScheme, .light))
-    return try requireDrawn(drawn, blank: pixels(of: Color.clear))
+    try drawnPixels(of: view, using: pixels(of:))
   }
 
   /// The same as ``drawnPixels(of:)``, but the pixels come from the cache of
@@ -88,8 +118,15 @@ import Testing
   /// - Throws: An error when AppKit gives no pixels, or when the pixels are
   ///   the same as the pixels of a clear view.
   static func drawnCachedPixels(of view: some View) throws -> RenderedPixels {
-    let blank = try cachedPixels(of: Color.clear)
-    return try requireDrawn(cachedPixels(of: view.environment(\.colorScheme, .light)), blank: blank)
+    try drawnPixels(of: view, using: cachedPixels(of:))
+  }
+
+  /// The succeeded status color of the default EditorKit theme, resolved in
+  /// light mode, so that a pixel of a light-mode render can match it.
+  static var defaultThemeSucceededInLightMode: Color {
+    var environment = EnvironmentValues()
+    environment.colorScheme = .light
+    return Color(environment.editorTheme.statusSucceeded.resolve(in: environment))
   }
 
   /// The pixels that AppKit caches for `view` in a window, with
@@ -136,7 +173,12 @@ import Testing
   // it.
 
   @Test func theCodeBlockHeaderHasNoStatusBarBackground() throws {
-    let pixels = try Self.pixels(of: CodeBlockView(code: "let x = 1", language: "swift"))
+    // `ImageRenderer` does not draw the EditorKit editor, so the header row
+    // is the row of the block that draws. The backdrop fills the frame of the
+    // block, so it shows only when the header row has no fill.
+    let block = CodeBlockView(code: "let x = 1", language: "swift")
+    let pixels = try Self.drawnPixels(of: SurfaceWithBackdrop(content: block, placement: .behindToTheEdge))
+    #expect(pixels.contains(GlassRenderProbeTests.backdrop))
     #expect(!pixels.contains(Role.statusBarBackground))
     #expect(!pixels.contains(Role.terminalBackground))
   }
@@ -188,13 +230,18 @@ import Testing
   }
 
   @Test func theCodeBlockFrameFillsTheBlockWithNoThemeColor() throws {
-    let pixels = try Self.pixels(of: Self.clearBlock.editorBlockFrame())
+    // The backdrop fills the frame behind clear content, so it shows in the
+    // middle of the block only when the frame draws no fill there.
+    let block = Self.clearBlock.editorBlockFrame()
+    let pixels = try Self.drawnPixels(of: SurfaceWithBackdrop(content: block, placement: .behindToTheEdge))
+    #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.center))
     #expect(!pixels.contains(Role.terminalBackground))
   }
 
   @Test func withNoThemeTheCommandOutputDrawsNoRoleColor() throws {
     let view = CommandOutputView(command: "ls", output: "a", exitCode: Self.successExitCode)
-    let pixels = try #require(RenderedPixels(rendering: view, size: Self.size))
+    let pixels = try Self.drawnPixels(of: view, using: Self.unthemedPixels(of:))
+    #expect(pixels.contains(Self.defaultThemeSucceededInLightMode))
     #expect(!pixels.contains(Role.statusBarBackground))
     #expect(!pixels.contains(Role.succeeded))
   }
@@ -254,6 +301,9 @@ import Testing
   /// for the selection and the focus (card ^y2mrfxt).
   @Test func theCitationPillDigitsDoNotUseTheAccentOfTheTheme() throws {
     let pixels = try Self.drawnPixels(of: Self.citationPillOnWhite)
+    // The capsule shows the accent of the theme, so the theme reaches the
+    // pill, and the digits still draw no pixel of the accent.
+    #expect(try pixels.contains(Self.citationFillOverWhite()))
     #expect(!pixels.contains(Role.accent))
   }
 
