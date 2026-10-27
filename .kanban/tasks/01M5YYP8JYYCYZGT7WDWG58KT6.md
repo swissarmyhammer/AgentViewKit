@@ -24,6 +24,36 @@ comments:
     - evidence: `swift test` (full suite, one run): 1868 tests in 232 suites passed, 0 failed, 0 skipped, 7 known issues (the expected count; each is an expectFailure-style negative test, e.g. theCheckOfAViewThatChangedRecordsAnIssue, aWrappedTextWithAFixedVerticalSizeFails, aTextInAnotherRoleFails). Only build warning: SwiftPM "missing creator for mutated node ... mlx-swift_Cmlx.bundle" from the mlx-swift dependency, not repo code. No code changed; no snapshots re-recorded; Sources/AgentViewKitTestSupport untouched.
     - next: /review
   timestamp: 2026-10-27T15:43:46.062539+00:00
+- actor: claude-code
+  id: 01m5z0kqxz8m271r9a9n5ec46f
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (d983e48); counts findings 1, confirmed 1, refuted 1; Tests/AgentViewKitTests/Snapshots/RegionColorsTests.swift:68
+    - next: implement the unchecked item in ## Review Findings (2026-10-27 10:44)
+  timestamp: 2026-10-27T15:45:38.751085+00:00
+- actor: claude-code
+  id: 01m5z0m84kfanpqn98f4dnvhwx
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — GlassAccessibilityTests, RegionColors(+Tests)
+    - test: green — swift test 1868 passed, 7 known issues
+    - commit: edda21b (kanban), d983e48 (code)
+    - review: findings — Tests/AgentViewKitTests/Snapshots/RegionColorsTests.swift:68
+  timestamp: 2026-10-27T15:45:55.347178+00:00
+- actor: claude-code
+  id: 01m5z0qchm9bs2pwmwq1czhz71
+  text: |-
+    ### implement — changed
+    - evidence: 1 file — Tests/AgentViewKitTests/Snapshots/RegionColorsTests.swift. Finding fixed: `theRowAtTheEdgeBetweenTwoPixelRowsIsTheRowBelowTheEdge` now compares `RegionColors.columns(of:in: row)` to the exact expected array of 80 frames (x = k*0.5, y = 0.5, 0.5 x 0.5), replacing the vacuous `allSatisfy`. The same cause, fixed elsewhere in the file: `aRegionDoesNotContainTheColorOfThePixelsOutsideIt` had a negative `contains`, which is vacuously true on a region with no pixels, so it now first expects the trailing half to contain `notDrawn`. The other assertions were checked and are not vacuous: the `allSatisfy` in `theColumnsOfARegionAreOnePixelWideAndCoverTheRegion` follows a count check of 40; in GlassAccessibilityTests the per-span loop follows `spans.count == view.glassCount` (always >= 1), and the `contains` in `glassSpans(of:)` is a filter over non-empty one-pixel columns, not an assertion. No change there. `swift test --filter 'GlassAccessibility|RegionColors'`: 8 tests in 2 suites passed, 16 cases for eachGlassOfTheViewFollowsTheSetting. The only warning is the existing SwiftPM mlx-swift_Cmlx.bundle "missing creator" warning. Sources/AgentViewKitTestSupport untouched. Not committed.
+    - next: /review
+  timestamp: 2026-10-27T15:47:38.164516+00:00
+- actor: claude-code
+  id: 01m5z0wnm141pymhzvwz5zgzm3
+  text: |-
+    ### test — green
+    - evidence: `swift test` exit 0 — 1868 tests in 232 suites passed, 7 known issues (matches expected 7), 0 failures, 0 skipped. Only build warning: SwiftPM "missing creator for mutated node ... mlx-swift_Cmlx.bundle/Contents/MacOS" from the mlx-swift dependency bundle, not repo code. No files changed; Sources/AgentViewKitTestSupport and __Snapshots__ untouched.
+    - next: review/commit
+  timestamp: 2026-10-27T15:50:31.297054+00:00
 position_column: doing
 position_ordinal: '8680'
 title: 'Tests: GlassAccessibilityTests walks the pixel columns of a row by hand; reuse RegionColors'
@@ -34,3 +64,9 @@ Found while fixing the reuse finding of ^sbx2q4h. `RegionColors` (Tests/AgentVie
 
 Test: the existing GlassAccessibilityTests stay green with the same counts.
 #avk-8
+
+## Review Findings (2026-10-27 10:44)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 0 not reviewed.
+
+- [x] `Tests/AgentViewKitTests/Snapshots/RegionColorsTests.swift:68` `test-integrity/no-test-cheating` — The assertion `RegionColors.columns(of: pixels, in: row).allSatisfy { $0.height == onePixel.height }` is vacuously true when `columns` is empty. If `row` falls outside the image, or the column lookup returns nothing, the test still passes on this line. The test then asserts less than its name promises: it claims the edge row has columns one pixel high, but it never proves any column exists. Assert the count before the predicate, for example `#expect(!columns.isEmpty)` followed by the `allSatisfy` check, or compare the columns to an exact expected array of frames, as the test at line 40 does.
