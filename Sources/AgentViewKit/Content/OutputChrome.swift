@@ -68,20 +68,19 @@ struct OutputExitLabel: View {
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    Label(text, systemImage: symbolName)
-      .font(editorTheme.font(for: .ui, style: .caption))
-      .fontWeight(editorStyle.symbolWeight)
-      .foregroundStyle(outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary)
-      .padding(.horizontal, editorStyle.spacing.m)
-      .padding(.vertical, editorStyle.spacing.xs)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(text)
-      .accessibilityValue(outcome?.label ?? "")
-      // An element with no role does not give its value. The trait gives the
-      // static text role.
-      .accessibilityAddTraits(.isStaticText)
-      .accessibilityIdentifier(identifier)
+    StatusCaptionLabel(
+      title: text, symbolName: symbolName, color: outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary
+    )
+    .padding(.horizontal, editorStyle.spacing.m)
+    .padding(.vertical, editorStyle.spacing.xs)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(text)
+    .accessibilityValue(outcome?.label ?? "")
+    // An element with no role does not give its value. The trait gives the
+    // static text role.
+    .accessibilityAddTraits(.isStaticText)
+    .accessibilityIdentifier(identifier)
   }
 }
 

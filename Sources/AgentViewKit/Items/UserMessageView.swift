@@ -61,7 +61,6 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     /// The send state to show.
     let state: SendState
 
-    @Environment(\.editorStyle) private var editorStyle
     @Environment(\.editorTheme) private var editorTheme
 
     /// The text of a send state.
@@ -89,12 +88,11 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     }
 
     var body: some View {
-      Label(Self.title(of: state), systemImage: Self.symbol(of: state))
-        .font(editorTheme.font(for: .ui, style: .caption))
-        .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(editorTheme.statusColor(for: state))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.title(of: state))
+      StatusCaptionLabel(
+        title: Self.title(of: state), symbolName: Self.symbol(of: state), color: editorTheme.statusColor(for: state)
+      )
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(Self.title(of: state))
     }
   }
 }

@@ -124,8 +124,17 @@ import Testing
   /// The succeeded status color of the default EditorKit theme, resolved in
   /// light mode, so that a pixel of a light-mode render can match it.
   static var defaultThemeSucceededInLightMode: Color {
+    defaultThemeSucceeded(in: .light)
+  }
+
+  /// The succeeded status color of the default EditorKit theme, resolved in
+  /// `colorScheme`, so that a pixel of a render in that scheme can match it.
+  ///
+  /// - Parameter colorScheme: The color scheme of the render.
+  /// - Returns: The resolved color, with no dynamic part.
+  static func defaultThemeSucceeded(in colorScheme: ColorScheme) -> Color {
     var environment = EnvironmentValues()
-    environment.colorScheme = .light
+    environment.colorScheme = colorScheme
     return Color(environment.editorTheme.statusSucceeded.resolve(in: environment))
   }
 

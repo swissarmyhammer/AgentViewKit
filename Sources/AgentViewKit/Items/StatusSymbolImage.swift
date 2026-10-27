@@ -11,7 +11,8 @@ import SwiftUI
 /// own map from its state to the symbol name and to the color.
 /// ``ToolStatusImage``, the plan entry of ``TaskListView``, `StatusBar`, the
 /// header of ``CompactionEntryView``, the card of ``ErrorView``, the banner of
-/// ``SessionNoticeBanner`` and the rows of ``ActivityTimeline`` draw their
+/// ``SessionNoticeBanner``, the rows of ``ActivityTimeline`` and
+/// ``StatusCaptionLabel`` draw their
 /// symbols with this view, so a change of the rendering mode or of the weight
 /// reaches each of them. A caller adds its own symbol effects to
 /// the view.

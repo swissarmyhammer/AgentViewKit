@@ -21,9 +21,11 @@
         the header; each has thin separator edges. The location chip "SearchIndex.swift:2" has the quaternary \
         capsule that AVK-8r allows (text 12.6:1 light, 9.4:1 dark). Findings: the diff text wraps while its \
         gutter and line colors do not, so the lines do not match and the last lines are cut off (^q89x329); \
-        "Exit code 0" is green text at 2.2:1 in light (^sbx2q4h); the diff counts "+1 −1" are 1.9:1 in light \
-        (^a2dy2gt). Since ^zbcys18 the image draws the glass of the composer and the mic and Send buttons of the \
-        accessory row; their look is not judged yet. Since ^fs3vdg0 the diff has no side-by-side file list: the \
+        the diff counts "+1 −1" are 1.9:1 in light (^a2dy2gt). The "Exit code 0" text was green at 2.2:1 in \
+        light; since ^sbx2q4h the green is on the symbol only and the text is the primary label color, at \
+        4.5:1 or more in light and dark (StatusLabelColorHostedTests checks it). Since ^zbcys18 the image \
+        draws the glass of the composer and the mic and Send buttons of the accessory row; their look is not \
+        judged yet. Since ^fs3vdg0 the diff has no side-by-side file list: the \
         file chip "SearchIndex.swift +1 −1" stands above the patch on the gray selection surface, and the patch \
         takes the full width of the tool call body (DiffViewHostedTests checks the geometry). The new image is \
         not judged yet: whether the wider patch still wraps the long removed line (^q89x329), and the counts on \
@@ -41,25 +43,28 @@
         2026-10-27. The connection banner, the three notices, the error entry and the state banner have no \
         fill, only thin edges. The notice symbols use the severity roles (the info role is the system blue, \
         not the accent). Since ^zbcys18 "Show Error" draws its glass and its label in the look of each variant; \
-        not judged yet. Finding: the "Sent" text is green at 2.2:1 in light (^sbx2q4h).
+        not judged yet. The "Sent" text was green at 2.2:1 in light; since ^sbx2q4h the green is on the symbol \
+        only and the text is the primary label color (StatusLabelColorHostedTests checks 4.5:1 or more).
         """,
       .signIn: """
         2026-10-27. The sign-in card has no fill; Sign In and Sign Out keep the glass styles in the bar. The \
         attachment chip "Release.zip" has the quaternary fill that AVK-8r allows: name 12.6:1 light and 9.4:1 \
         dark, size 3.8:1 light, the same as secondary text, so no card. Since ^zbcys18 the glass buttons draw \
-        their glass and their labels in the look of each variant; not judged yet. Finding: the "Sent" text \
-        (^sbx2q4h).
+        their glass and their labels in the look of each variant; not judged yet. Since ^sbx2q4h the "Sent" \
+        text is the primary label color, with the green on the symbol only.
         """,
       .scrolled: """
         2026-10-27. The kit puts no opaque fill behind either bar. The "Scroll to Bottom" pill floats over the \
         rows with no fill of its own. Since ^zbcys18 the image draws the glass of both bars and the scroll edge \
-        effect over the rows under them; that look is not judged yet. Finding: the "Sent" text (^sbx2q4h).
+        effect over the rows under them; that look is not judged yet. Since ^sbx2q4h the "Sent" text is the \
+        primary label color, with the green on the symbol only.
         """,
       .inspector: """
         2026-10-27. The thread column has no fill, and the inspector form hides its own background, so the \
         column shows the system inspector background. Since ^zbcys18 the grouped-form rows draw dark with light \
         text in dark (ReviewGalleryScreenTests checks it), as the recorded attachment-inspector-dark.png shows. \
-        The QuickLook preview is hidden on purpose.
+        The QuickLook preview is hidden on purpose. Since ^sbx2q4h the "Exit code 0" text of the terminal \
+        output is the primary label color, with the green on the symbol only.
         """,
       .gallery: """
         2026-10-27. The sidebar shows the system sidebar background, with no kit fill. The open "Permission \
