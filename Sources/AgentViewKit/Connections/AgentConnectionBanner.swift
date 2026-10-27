@@ -41,7 +41,7 @@ public struct AgentConnectionBanner: View {
   public var body: some View {
     if let message = Self.makeMessage(for: connection.state) {
       StatusBar(message: message, action: nil)
-        .padding(editorStyle.spacing.m)
+        .padding(editorStyle.tile.margin)
     }
   }
 

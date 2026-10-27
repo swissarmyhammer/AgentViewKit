@@ -25,6 +25,7 @@ import Testing
     KitSourceFiles.kitFile("Items/StatusSymbolImage.swift"),
     KitSourceFiles.kitFile("Activity/ActivityTimeline.swift"),
     KitSourceFiles.kitFile("Diff/DiffView.swift"),
+    KitSourceFiles.kitFile("Diff/DiffFileChip.swift"),
   ]
 
   /// The modifier that sets the hierarchical rendering mode.

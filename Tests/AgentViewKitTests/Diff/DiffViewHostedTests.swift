@@ -1,6 +1,7 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
+  import EditorStyle
   import Foundation
   import FoundationModelsACP
   import SwiftUI
@@ -144,14 +145,17 @@
 
     // MARK: - Layout
 
-    @Test(arguments: layoutWidths) func theDetailIsAsWideAsTheView(width: CGFloat) throws {
+    /// The diff is a content tile (card ^ey6v778): the detail takes the full
+    /// width of the tile, inside the tile padding on each side.
+    @Test(arguments: layoutWidths) func theDetailIsAsWideAsTheContentOfTheTile(width: CGFloat) throws {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: width)
       defer { harness.close() }
+      let padding = EditorStyle.default.tile.padding
 
       let view = try #require(harness.frame(identifier: DiffView.containerIdentifier))
       let detail = try #require(harness.frame(identifier: DiffView.detailIdentifier))
-      #expect(abs(detail.width - view.width) <= Self.layoutTolerance)
-      #expect(abs(detail.minX - view.minX) <= Self.layoutTolerance)
+      #expect(abs(detail.width - (view.width - padding - padding)) <= Self.layoutTolerance)
+      #expect(abs(detail.minX - (view.minX + padding)) <= Self.layoutTolerance)
     }
 
     @Test(arguments: layoutWidths) func theChipsAreAboveTheDetail(width: CGFloat) throws {

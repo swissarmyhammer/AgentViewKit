@@ -86,8 +86,9 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
 
   public var body: some View {
     let key = entry.id.rowKey
-    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    ContentTileStack {
       header(key: key)
+    } body: {
       if let error = entry.error {
         Text(error)
           .font(editorTheme.font(for: .ui, style: .callout))
@@ -97,7 +98,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       }
       summary(key: key)
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)
   }
 

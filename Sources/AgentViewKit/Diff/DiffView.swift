@@ -10,7 +10,8 @@ import SwiftUI
 ///
 /// - A chip for each file of the patch, with the added and removed line
 ///   counts, in rows that wrap. The chips stand above the detail, and the
-///   detail takes the full width of the view. A press on a chip selects its
+///   detail takes the full width of the tile, inside the tile padding
+///   (`.contentTile()`). A press on a chip selects its
 ///   file. The view shows the chip of a patch with one file too, so its name
 ///   and counts stay visible. The counts use the `diffAddedText` and
 ///   `diffRemovedText` roles of the EditorKit theme in the environment.
@@ -202,10 +203,12 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   public var body: some View {
     let file = files.first { $0.path == selectedPath } ?? files.first
     let actions = ownActions ?? environmentActions
-    return VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+    return ContentTileStack {
       fileChips(selected: file)
+    } body: {
       detail(file: file, actions: actions)
     }
+    .contentTile()
     .onChange(of: selectedPath) {
       selection.lines = []
     }
@@ -219,48 +222,11 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   private func fileChips(selected: DiffSummary.FileSummary?) -> some View {
     ChipFlowLayout(spacing: editorStyle.spacing.xs) {
       ForEach(files) { file in
-        fileChip(file, isSelected: file.path == selected?.path)
-      }
-    }
-  }
-
-  /// One file chip: a button that selects the file.
-  ///
-  /// - Parameters:
-  ///   - file: The file.
-  ///   - isSelected: `true` when the renderer shows the file.
-  /// - Returns: The chip view.
-  private func fileChip(_ file: DiffSummary.FileSummary, isSelected: Bool) -> some View {
-    Button {
-      selectedPath = file.path
-    } label: {
-      HStack(spacing: editorStyle.spacing.s) {
-        Image(systemName: Self.symbolName(for: file.operation))
-          .symbolRenderingMode(.hierarchical)
-          .fontWeight(editorStyle.symbolWeight)
-          .foregroundStyle(.secondary)
-        Text(URL(fileURLWithPath: file.path).lastPathComponent)
-          .lineLimit(1)
-          .truncationMode(.middle)
-        if patch != nil {
-          Text(verbatim: "+\(file.added)")
-            .foregroundStyle(editorTheme.diffAddedText)
-          Text(verbatim: "\u{2212}\(file.removed)")
-            .foregroundStyle(editorTheme.diffRemovedText)
+        DiffFileChip(file: file, hasPatch: patch != nil, isSelected: file.path == selected?.path) {
+          selectedPath = file.path
         }
       }
-      .font(editorTheme.font(for: .ui, style: .caption))
-      .monospacedDigit()
-      .padding(.horizontal, editorStyle.spacing.s)
-      .padding(.vertical, editorStyle.spacing.xs)
-      .selectableSurface(isSelected, radius: Self.fileChipRadius)
     }
-    .buttonStyle(.plain)
-    .help(file.path)
-    .accessibilityLabel(patch == nil ? file.changeAccessibilityLabel : file.accessibilityLabel)
-    .accessibilityValue(file.path)
-    .accessibilityAddTraits(isSelected ? .isSelected : [])
-    .accessibilityIdentifier(Self.identifier(for: file.path))
   }
 
   /// The renderer, the hunk actions, and the attach button, or the note of a
@@ -271,7 +237,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   ///   - actions: The host functions of the actions.
   /// - Returns: The detail view.
   private func detail(file: DiffSummary.FileSummary?, actions: DiffActions) -> some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
       if let patch {
         rendered(patch: patch, file: file)
         if let file {

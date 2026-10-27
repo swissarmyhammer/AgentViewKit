@@ -88,12 +88,12 @@ public struct SessionStreamBanner: View {
   public var body: some View {
     let bars = shownBars
     if !bars.isEmpty {
-      VStack(spacing: editorStyle.spacing.s) {
+      VStack(spacing: editorStyle.tile.margin) {
         ForEach(bars, id: \.message.identifier) { bar in
           StatusBar(message: bar.message, action: bar.action)
         }
       }
-      .padding(editorStyle.spacing.m)
+      .padding(editorStyle.tile.margin)
     }
   }
 

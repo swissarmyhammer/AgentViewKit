@@ -97,7 +97,6 @@ public struct ElicitationLayout: View {
   @State private var selection: String?
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the default layout.
   ///
@@ -110,7 +109,7 @@ public struct ElicitationLayout: View {
     if context.usesTabs {
       tabbed
     } else {
-      VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+      VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
         ForEach(context.fields, id: \.schema.name) { field in
           ElicitationFieldView(context: field)
         }
@@ -122,11 +121,14 @@ public struct ElicitationLayout: View {
   private var tabbed: some View {
     let selected =
       context.fields.first { $0.schema.name == selection } ?? context.fields.first
-    return VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+    return VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
       ScrollView(.horizontal) {
         HStack(spacing: editorStyle.spacing.xs) {
           ForEach(context.fields, id: \.schema.name) { field in
-            tab(field, isSelected: field.schema.name == selected?.schema.name)
+            let name = field.schema.name
+            ElicitationTabChip(field: field, isSelected: name == selected?.schema.name) {
+              selection = name
+            }
           }
         }
       }
@@ -136,42 +138,6 @@ public struct ElicitationLayout: View {
           .id(selected.schema.name)
       }
     }
-  }
-
-  /// The chip of one field.
-  ///
-  /// - Parameters:
-  ///   - field: The context of the field.
-  ///   - isSelected: Whether the layout shows the field now.
-  /// - Returns: The chip.
-  private func tab(_ field: ElicitationFieldContext, isSelected: Bool) -> some View {
-    let schema = field.schema
-    let answered = ElicitationValidator.hasValidAnswer(value: field.value.wrappedValue, against: schema)
-    return Button {
-      selection = schema.name
-    } label: {
-      HStack(spacing: editorStyle.spacing.xs) {
-        Image(systemName: answered ? Self.answeredSymbol : Self.notAnsweredSymbol)
-          .foregroundStyle(answered ? editorTheme.statusSucceeded : .secondary)
-        Text(schema.title)
-        if schema.required {
-          Text(verbatim: "*")
-            .foregroundStyle(editorTheme.severityError)
-        }
-      }
-      .padding(.horizontal, editorStyle.spacing.s)
-      .padding(.vertical, editorStyle.spacing.xs)
-      .selectableSurface(isSelected, radius: Self.tabRadius)
-      .inlineEdge(radius: editorStyle.radii[Self.tabRadius])
-    }
-    .buttonStyle(.plain)
-    .accessibilityElement(children: .ignore)
-    .accessibilityAddTraits(.isButton)
-    .accessibilityAddTraits(isSelected ? .isSelected : [])
-    .accessibilityLabel(schema.title)
-    .accessibilityValue(ElicitationTabMarks.text(required: schema.required, answered: answered))
-    .accessibilityAction { selection = schema.name }
-    .accessibilityIdentifier(ElicitationView.tabIdentifier(for: schema.name))
   }
 }
 

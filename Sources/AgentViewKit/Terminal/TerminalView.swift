@@ -162,17 +162,17 @@ public struct TerminalView: View {
     let output = output
     let rows = output.rows
     let model = suppliedModel ?? ownModel.model(text: rows.text)
-    VStack(alignment: .leading, spacing: 0) {
+    ContentTileStack {
       header
+    } body: {
       if rows.isCapped {
         capRow(rows)
-        Divider()
       }
       EditorView(model: model)
         .editorSizingMode(.intrinsic)
-      Divider()
       footer
     }
+    .contentTile()
     .terminalBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
@@ -215,8 +215,6 @@ public struct TerminalView: View {
           .accessibilityIdentifier(Self.cwdIdentifier)
       }
     }
-    .padding(.horizontal, editorStyle.spacing.m)
-    .padding(.vertical, editorStyle.spacing.xs)
     .editorBlockHeader()
   }
 
@@ -251,8 +249,6 @@ public struct TerminalView: View {
           .foregroundStyle(.secondary)
           .accessibilityHidden(true)
       }
-      .padding(.horizontal, editorStyle.spacing.m)
-      .padding(.vertical, editorStyle.spacing.xs)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
   }

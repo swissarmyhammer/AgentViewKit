@@ -255,11 +255,12 @@ public struct AgentAuthView: View {
   // MARK: Body
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+    ContentTileStack {
       Label(String(localized: "Sign in to the agent", bundle: .module), systemImage: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)
+    } body: {
       if !isAuthenticated {
         ForEach(Self.rows(of: connection.authMethods, canLogin: connection.canLogin)) { row in
           rowView(row)
@@ -275,7 +276,7 @@ public struct AgentAuthView: View {
         signOutRow
       }
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
     .inlineEdge(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)

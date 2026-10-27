@@ -171,8 +171,9 @@ public struct PermissionView: View {
 
   public var body: some View {
     let options = PermissionPresentation.order(of: request.request.options)
-    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+    ContentTileStack {
       header
+    } body: {
       if let subject = request.request.subject {
         subjectView(for: subject)
       }
@@ -182,7 +183,7 @@ public struct PermissionView: View {
       }
       switchToAutoButton(for: options)
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
     .inlineEdge(radius: editorStyle.radii.l)
     .focusable()

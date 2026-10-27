@@ -68,12 +68,13 @@ struct JSONDisclosure: View {
         .font(editorTheme.codeFont)
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, editorStyle.spacing.xs)
+        .padding(.top, editorStyle.tile.gap)
     } label: {
       Text(title)
         .font(editorTheme.uiFont)
         .lineLimit(1)
     }
+    .contentTile()
     .accessibilityIdentifier(identifier)
   }
 }

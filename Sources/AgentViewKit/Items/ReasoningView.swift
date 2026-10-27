@@ -157,14 +157,16 @@ struct ReasoningBlock<Content: View>: View {
     let store = environmentStore ?? ownStore
     let expanded = isExpanded(in: store)
     let duration = policyEntry.timing.duration
-    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+    ContentTileStack {
       header(store: store, expanded: expanded, duration: duration)
+    } body: {
       if expanded {
         content()
           .foregroundStyle(.secondary)
           .contentContainer(identifier: ReasoningView.bodyIdentifier(for: id))
       }
     }
+    .contentTile()
     .contentContainer(identifier: ReasoningView.identifier(for: id))
     .accessibilityLabel(ReasoningView.accessibilityLabel(isInProgress: false, duration: duration))
     // The row is a container with this block as its one child. The second

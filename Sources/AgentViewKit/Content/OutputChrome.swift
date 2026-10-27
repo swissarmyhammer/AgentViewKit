@@ -43,8 +43,6 @@ struct OutputCapRow: View {
         .font(editorTheme.font(for: .ui, style: .caption))
         .accessibilityIdentifier(showAllIdentifier)
     }
-    .padding(.horizontal, editorStyle.spacing.m)
-    .padding(.vertical, editorStyle.spacing.xs)
   }
 }
 
@@ -64,15 +62,12 @@ struct OutputExitLabel: View {
   /// The accessibility identifier of the label.
   let identifier: String
 
-  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     StatusCaptionLabel(
       title: text, symbolName: symbolName, color: outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary
     )
-    .padding(.horizontal, editorStyle.spacing.m)
-    .padding(.vertical, editorStyle.spacing.xs)
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(text)

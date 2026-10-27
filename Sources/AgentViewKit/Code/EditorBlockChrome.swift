@@ -69,11 +69,23 @@ struct TerminalBlockFrame: ViewModifier {
 /// of the block shows behind it: no fill for a code block, and the terminal
 /// background for terminal output. A system `Divider` under the row draws
 /// the separator line that marks it. `EditorThemeViewsTests` holds this rule.
+///
+/// The block lays out its header and its body in a ``ContentTileStack``, so
+/// the tile gap of `\.editorStyle` is between them. The separator line is in
+/// the middle of that gap and takes no space in the layout, so the gap stays
+/// the tile gap (card ^ey6v778).
 struct EditorBlockHeader: ViewModifier {
+  /// The part of the tile gap above the separator line: the line is in the
+  /// middle of the gap.
+  static let separatorPlacement: CGFloat = 0.5
+
+  @Environment(\.editorStyle) private var editorStyle
+
   func body(content: Content) -> some View {
-    VStack(alignment: .leading, spacing: 0) {
-      content
+    let drop = editorStyle.tile.gap * Self.separatorPlacement
+    content.overlay(alignment: .bottom) {
       Divider()
+        .alignmentGuide(.bottom) { line in line[VerticalAlignment.center] - drop }
     }
   }
 }

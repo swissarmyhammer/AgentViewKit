@@ -351,8 +351,9 @@ public struct ToolCallView: View {
     let id = entry.id.rowKey
     let store = environmentStore ?? ownStore
     let expanded = store.isExpanded(entry: .toolCall(entry))
-    return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+    return ContentTileStack {
       ToolCallHeader(entry: entry, store: store, expanded: expanded)
+    } body: {
       ToolCallWaitingStatus(entry: entry)
       if expanded {
         ToolCallBody(entry: entry, registration: toolCallRegistry.registration(named: entry.name), editorStyle: editorStyle)
@@ -360,6 +361,7 @@ public struct ToolCallView: View {
           .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
     }
+    .contentTile()
     .contentContainer(identifier: Self.identifier(for: id))
     .modifier(ToolCallLabel(entry: entry))
     // The row is a container with this call as its one child. The second
@@ -553,7 +555,6 @@ struct ToolCallBody: View, Equatable {
         defaultBody(id: id)
       }
     }
-    .padding(.leading, editorStyle.spacing.l)
   }
 
   /// The default body: the locations, the raw input, each part of the
@@ -565,9 +566,9 @@ struct ToolCallBody: View, Equatable {
     let parts = entry.parts
     let locations = entry.locations
     let showsCommandOutput = entry.shownKind == .execute && !parts.contains(where: \.isTerminal)
-    return VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    return VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
       if !locations.isEmpty {
-        LocationChips(locations: locations, id: id)
+        ToolCallLocationChips(locations: locations, id: id)
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
       }
       if let rawInput = entry.rawInput {
@@ -733,69 +734,6 @@ private struct ToolCallWaitingStatus: View {
       return elicitation
     }
     .filter(ElicitationCard.hasCard(for:))
-  }
-}
-
-/// The locations of a tool call as a row of chips that wraps.
-///
-/// Each ACP location is an absolute file path, so each chip is the file of
-/// its path. A tap on a chip selects the file for the inspector of the
-/// environment, as a tap on an ``AttachmentView`` does: the inspector of the
-/// host in the host mode of a thread view, otherwise the
-/// ``InspectorSelection``. The chip is the scope of the file
-/// (`agentAttachment:<id>`, AVK-11), so its context menu and the command
-/// palette show the ``AgentAttachmentVerb`` commands for the file. While the
-/// inspector shows the file, the chip sits on the shared selection surface.
-/// The chip keeps its short label, because an ``AttachmentView`` would show
-/// the whole file.
-private struct LocationChips: View {
-  /// The corners of a chip: the corners of an ``AttachmentChip``. The fill
-  /// of the chip, its selection surface and the focus ring of its scope all
-  /// have them.
-  static let corners = AttachmentChip.corners
-
-  /// The ACP locations to show.
-  let locations: [FoundationModelsACP.ToolCallLocation]
-
-  /// The row key of the entry, for the identifier of each chip.
-  let id: String
-
-  @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.attachmentSelect) private var selectForInspector
-
-  var body: some View {
-    ChipFlowLayout(spacing: editorStyle.spacing.xs) {
-      ForEach(Array(locations.enumerated()), id: \.offset) { index, location in
-        chip(location, index: index)
-      }
-    }
-  }
-
-  /// One chip: the file name, with the full path in the help tag.
-  ///
-  /// - Parameters:
-  ///   - location: The ACP location to show.
-  ///   - index: The position of the location in the locations of the entry.
-  /// - Returns: The chip view.
-  private func chip(_ location: FoundationModelsACP.ToolCallLocation, index: Int) -> some View {
-    let path = location.path.rawValue
-    let file = Attachment(url: URL(filePath: path))
-    let fullText = FoundationModelsACP.ToolCallLocation.text(path: path, line: location.line)
-    let shortText = FoundationModelsACP.ToolCallLocation.text(path: file.name, line: location.line)
-    return Label(shortText, systemImage: SharedSymbol.document)
-      .font(editorTheme.font(for: .ui, style: .caption))
-      .lineLimit(1)
-      .truncationMode(.middle)
-      .padding(.horizontal, editorStyle.spacing.s)
-      .padding(.vertical, editorStyle.spacing.xs)
-      .background(.quaternary, in: EditorSurface.shape(radius: Self.corners.radius(in: editorStyle)))
-      .help(fullText)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(fullText)
-      .modifier(InspectorSelectable(file: file, corners: Self.corners) { selectForInspector(file) })
-      .accessibilityIdentifier(ToolCallView.locationIdentifier(for: id, index: index))
-      .agentAttachmentScope(file, focusRingCorners: Self.corners)
   }
 }
 

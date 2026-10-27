@@ -75,10 +75,12 @@ public struct CodeBlockView: View {
 
   public var body: some View {
     let model = suppliedModel ?? ownModel.model(text: code)
-    VStack(alignment: .leading, spacing: 0) {
+    ContentTileStack {
       header
+    } body: {
       editor(model: model)
     }
+    .contentTile()
     .editorBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
@@ -110,8 +112,6 @@ public struct CodeBlockView: View {
       .help(String(localized: "Copy code", bundle: .module))
       .accessibilityIdentifier(Self.copyIdentifier)
     }
-    .padding(.horizontal, editorStyle.spacing.m)
-    .padding(.vertical, editorStyle.spacing.xs)
     .editorBlockHeader()
   }
 

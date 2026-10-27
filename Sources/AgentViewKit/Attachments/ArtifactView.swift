@@ -52,7 +52,7 @@ public struct ArtifactView: View {
 
   public var body: some View {
     let attachment = Self.attachment(of: artifact)
-    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    ContentTileStack {
       HStack(spacing: editorStyle.spacing.s) {
         Label(artifact.title, systemImage: SharedSymbol.artifact)
           .font(editorTheme.font(for: .ui, style: .headline))
@@ -63,6 +63,7 @@ public struct ArtifactView: View {
           AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
         }
       }
+    } body: {
       if let attachment {
         AttachmentView(attachment)
       } else if let inlineText = artifact.inlineText {
@@ -72,7 +73,7 @@ public struct ArtifactView: View {
           .accessibilityIdentifier(Self.inlineTextIdentifier)
       }
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .inlineEdge(radius: Self.corners.radius(in: editorStyle))
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)

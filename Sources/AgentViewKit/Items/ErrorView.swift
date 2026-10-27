@@ -64,7 +64,7 @@ public struct ErrorView: View {
 
   public var body: some View {
     let content = Self.content(code: entry.code.wireValue, message: entry.message)
-    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    ContentTileStack {
       HStack(alignment: .top, spacing: editorStyle.spacing.m) {
         StatusSymbolImage(name: content.symbolName, color: editorTheme.severityError)
           .accessibilityHidden(true)
@@ -85,6 +85,7 @@ public struct ErrorView: View {
         .accessibilityIdentifier(Self.identifier)
         Spacer(minLength: editorStyle.spacing.s)
       }
+    } body: {
       if let data = entry.data?.prettyPrinted {
         Text(data)
           .font(editorTheme.codeFont)
@@ -93,7 +94,7 @@ public struct ErrorView: View {
           .accessibilityIdentifier(Self.dataIdentifier)
       }
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)
   }
 }

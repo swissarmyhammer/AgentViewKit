@@ -242,7 +242,7 @@ public struct ConversationView<EmptyState: View>: View {
       // state evaluates only the banner and not the list.
       if showsStateBanner {
         StateBanner(session: session) { showItem($0.rowKey) }
-          .padding(editorStyle.spacing.m)
+          .padding(editorStyle.tile.margin)
       }
     }
     .environment(\.sessionModel, session)
@@ -265,11 +265,11 @@ public struct ConversationView<EmptyState: View>: View {
     let anchors = anchors
     return ScrollView {
       VStack(spacing: 0) {
-        VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+        VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
           if shownCount < count {
             loadEarlierRow
           }
-          LazyVStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+          LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
             rows(shownCount: shownCount)
           }
           .scrollTargetLayout()

@@ -192,8 +192,9 @@ public struct ElicitationURLConsentView: View {
   // MARK: Body
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+    ContentTileStack {
       ElicitationHeaderSlot(request: request)
+    } body: {
       if let url = request.url {
         urlSection(url)
       }
@@ -202,7 +203,7 @@ public struct ElicitationURLConsentView: View {
       }
       footer
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
     .focusable()
     .focusEffectDisabled()

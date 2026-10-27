@@ -95,7 +95,7 @@ struct StatusBar: View {
           .agentControlScope(action.identifier)
       }
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(message.title)

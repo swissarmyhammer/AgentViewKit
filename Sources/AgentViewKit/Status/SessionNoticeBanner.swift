@@ -62,12 +62,12 @@ public struct SessionNoticeBanner: View {
   public var body: some View {
     let notices = session.notices
     if !notices.isEmpty {
-      VStack(spacing: editorStyle.spacing.s) {
+      VStack(spacing: editorStyle.tile.margin) {
         ForEach(notices) { notice in
           NoticeBanner(notice: notice) { session.dismissNotice(notice.id) }
         }
       }
-      .padding(editorStyle.spacing.m)
+      .padding(editorStyle.tile.margin)
     }
   }
 }
@@ -200,7 +200,7 @@ struct NoticeRow: View {
         .accessibilityIdentifier(dismissIdentifier)
         .agentControlScope(dismissIdentifier)
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)
   }
 }

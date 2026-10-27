@@ -177,19 +177,19 @@ public struct CommandOutputView: View {
       limit: showsAll ? Int.max : rowLimit)
     let rows = shown.rows
     let model = suppliedModel ?? ownModel.model(text: rows.text)
-    VStack(alignment: .leading, spacing: 0) {
+    ContentTileStack {
       header
+    } body: {
       if rows.isCapped {
         capRow(rows)
-        Divider()
       }
       EditorView(model: model)
         .editorSizingMode(.intrinsic)
       if let exitCode, let outcome = ExitOutcome(exitCode: exitCode) {
-        Divider()
         footer(exitCode: exitCode, outcome: outcome)
       }
     }
+    .contentTile()
     .terminalBlockFrame()
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
@@ -225,8 +225,6 @@ public struct CommandOutputView: View {
       .help(Self.copyTitle)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
-    .padding(.horizontal, editorStyle.spacing.m)
-    .padding(.vertical, editorStyle.spacing.xs)
     .editorBlockHeader()
   }
 

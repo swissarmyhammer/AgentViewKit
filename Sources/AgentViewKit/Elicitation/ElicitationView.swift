@@ -112,7 +112,6 @@ public struct ElicitationView: View {
   @Environment(\.elicitationLayoutOverride) private var layoutOverride
   @Environment(\.elicitationFooterOverride) private var footerOverride
   @Environment(\.elicitationTabThreshold) private var tabThreshold
-  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.announcer) private var announcer
 
@@ -183,13 +182,14 @@ public struct ElicitationView: View {
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+    ContentTileStack {
       ElicitationHeaderSlot(request: request)
+    } body: {
       layout
       failure
       footer
     }
-    .padding(editorStyle.spacing.m)
+    .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
     .focusable()
     .focusEffectDisabled()

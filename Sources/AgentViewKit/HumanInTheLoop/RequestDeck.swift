@@ -366,7 +366,7 @@ private struct DeckCards: View {
     let layout = source.layout(of: requests)
     let waitingIDs = Set(awaiting.map(\.id))
     let edgeStep = editorStyle.spacing.s
-    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
       ForEach(withdrawn) { notice in
         WithdrawnNoticeRow(notice: notice) { source.dismissWithdrawn(notice.id) }
       }
@@ -376,7 +376,7 @@ private struct DeckCards: View {
       // With no card, the stack is not in the deck, so a deck with only
       // notices has no space below the notices.
       if !cards.isEmpty {
-        DeckStackLayout(edgeStep: edgeStep, edgeInset: editorStyle.spacing.m, waitingSpacing: editorStyle.spacing.s) {
+        DeckStackLayout(edgeStep: edgeStep, edgeInset: editorStyle.spacing.m, waitingSpacing: editorStyle.tile.margin) {
           // One `ForEach` for the pending and the waiting cards, so that an
           // accepted card keeps its identity and its browser session.
           ForEach(cards) { request in
@@ -388,7 +388,7 @@ private struct DeckCards: View {
         }
       }
     }
-    .padding(cards.isEmpty && withdrawn.isEmpty ? 0 : editorStyle.spacing.m)
+    .padding(cards.isEmpty && withdrawn.isEmpty ? .zero : editorStyle.tile.margin)
     .modifier(DeckSurface())
     .contentContainer(identifier: RequestDeck.identifier)
     .animation(reduceMotion ? nil : .default, value: layout.front)
