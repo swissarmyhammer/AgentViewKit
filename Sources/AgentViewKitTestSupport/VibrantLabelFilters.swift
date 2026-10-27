@@ -70,12 +70,11 @@ import QuartzCore
   ///   - painted: `true` for the filters that paint the labels, `false` for
   ///     the filters of the layers.
   private static func swapFilters(of labels: [LabelLayer], painted: Bool) {
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
-    for label in labels {
-      label.layer.filters = painted ? label.paintedFilters : label.filters
+    CATransaction.withoutActions {
+      for label in labels {
+        label.layer.filters = painted ? label.paintedFilters : label.filters
+      }
     }
-    CATransaction.commit()
   }
 
   /// The paint of a label matrix: the filter that shows the mask of a label

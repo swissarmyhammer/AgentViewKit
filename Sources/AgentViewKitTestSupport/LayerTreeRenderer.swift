@@ -90,29 +90,19 @@ import QuartzCore
     container.bounds = CGRect(origin: .zero, size: layer.bounds.size.applying(CGAffineTransform(scaleX: scale, y: scale)))
     container.isGeometryFlipped = true
     container.sublayerTransform = CATransform3DMakeScale(scale, scale, 1)
-    withoutActions {
+    CATransaction.withoutActions {
       container.addSublayer(layer)
       layer.position = CGPoint(
         x: layer.bounds.width * layer.anchorPoint.x, y: layer.bounds.height * layer.anchorPoint.y)
     }
     defer {
-      withoutActions {
+      CATransaction.withoutActions {
         layer.removeFromSuperlayer()
         if let superlayer, let index { superlayer.insertSublayer(layer, at: UInt32(index)) }
         layer.position = position
       }
     }
     body(container)
-  }
-
-  /// Runs `changes` in a transaction with no animation.
-  ///
-  /// - Parameter changes: The layer changes.
-  private static func withoutActions(_ changes: () -> Void) {
-    CATransaction.begin()
-    CATransaction.setDisableActions(true)
-    changes()
-    CATransaction.commit()
   }
 
   /// Renders `layer` into `texture`, and waits until the GPU has written
