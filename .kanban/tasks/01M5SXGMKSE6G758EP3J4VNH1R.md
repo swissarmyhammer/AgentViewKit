@@ -1,6 +1,15 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5yd6s911k1aqsyqefrs9jvz
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: not run. The card's precondition isn't met yet.
+    - blocker: EditorKit ^tzh8q6d is in `review`, with its work on local branch `wip/leaf-scopes`. EditorKit ^wccq0y0 is in `todo`. EditorKit origin/main is still at be01754, so neither card has landed on main.
+    - next: run /finish ^j4vnh1r when EditorKit sends the main SHAs for both cards. Then close ^bc6fapz.
+  timestamp: 2026-10-27T10:06:31.201251+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
 position_column: todo
