@@ -100,10 +100,27 @@ comments:
     - no AVK code or test edits were needed. Scripts/test-examples.sh was not run (known editor.isHittable failure, left untouched). Nothing committed.
     - next: a person decides whether the mlx-swift SwiftPM warning is accepted or fixed upstream (mlx-swift pin). All ^j4vnh1r tests are otherwise passing.
   timestamp: 2026-10-27T22:42:21.936282+00:00
+- actor: claude-code
+  id: 01m5zrk4w4zj6k040z2mpcm8jv
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (54efbe4): 7 files reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 1, failed 0, skipped 0. No findings to record.
+    - next: card stays in `review`, not `done`. Acceptance item "Demo UI test: `testASendOfHelloShowsTheReplyOfTheAgent` asserts `editor.isHittable`..." is still unchecked, blocked on EditorKit ^yb2p8xe reaching main. Close the card once that item is checked.
+  timestamp: 2026-10-27T22:44:45.060831+00:00
+- actor: claude-code
+  id: 01m5zrkpa9s2a5bb9nk9vc3a8q
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed. 7 files; EditorKit at ec7a011 (^sfnvvpn); `.targetable(true)` in AgentControlScope.
+    - test: swift test passed 1880 tests, 0 failed, 0 skipped. The only warning is SwiftPM's mlx-swift_Cmlx bundle "missing creator for mutated node", which appears on every build in this session. Scripts/test-examples.sh still fails on `editor.isHittable`, as expected.
+    - commit: 3984994 (kanban), 54efbe4 (code)
+    - review: clean. 0 findings across 7 files.
+    - held in review: the `editor.isHittable` acceptance item waits on EditorKit ^yb2p8xe (placeholder overlay hidden from accessibility; cold hit test). ^bc6fapz closes after this card.
+  timestamp: 2026-10-27T22:45:02.921716+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
-position_column: doing
-position_ordinal: '8380'
+position_column: review
+position_ordinal: '8180'
 title: The thread bar controls are accessibility-hittable, and a landed jump activates them (after EditorKit ^tzh8q6d and ^wccq0y0)
 ---
 Split from ^0xggx44 on 2026-10-25 (user: "get to it"). ^0xggx44 gives every control in the thread bars an EditorKit scope through one kit modifier. This card holds the items that need EditorKit work first.
