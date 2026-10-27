@@ -135,7 +135,7 @@ public struct ReviewGallery: Sendable {
     guard pixels.hasMoreThanOneColor else { throw ReviewGalleryError.emptyImage(name: name) }
     guard let data = pixels.pngData() else { throw ReviewGalleryError.noImage(name: name) }
     let url = directory.appending(path: Self.fileName(screen: screen, variant: variant))
-    try write(data, to: url)
+    try SnapshotStore.write(data, to: url)
     return url
   }
 
@@ -149,7 +149,7 @@ public struct ReviewGallery: Sendable {
   @discardableResult
   public func writeContactSheet(_ rows: [ReviewGalleryRow]) throws -> URL {
     let url = directory.appending(path: Self.contactSheetName)
-    try write(Data(ReviewGalleryPage.html(rows: rows.map(page(of:))).utf8), to: url)
+    try SnapshotStore.write(Data(ReviewGalleryPage.html(rows: rows.map(page(of:))).utf8), to: url)
     return url
   }
 
@@ -166,17 +166,6 @@ public struct ReviewGallery: Sendable {
       return ReviewGalleryPage.Cell(fileName: name, variant: variant.rawValue, exists: exists)
     }
     return ReviewGalleryPage.Row(title: row.title, note: row.note, cells: cells)
-  }
-
-  /// Writes `data` to `url`, and makes the folder first.
-  ///
-  /// - Parameters:
-  ///   - data: The bytes of the file.
-  ///   - url: The file URL.
-  /// - Throws: The error of the file manager or of the write.
-  private func write(_ data: Data, to url: URL) throws {
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    try data.write(to: url, options: .atomic)
   }
 
   /// Whether `file` is an image or the contact sheet of the gallery.

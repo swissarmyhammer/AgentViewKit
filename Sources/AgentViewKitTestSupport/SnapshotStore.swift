@@ -319,13 +319,14 @@ public struct SnapshotStore: Sendable {
     }
   }
 
-  /// Writes `data` to `url`, and makes the folder of `url` first.
+  /// Writes `data` to `url`, and makes the folder of `url` first. The write
+  /// is atomic. ``ReviewGallery`` writes its files with it too.
   ///
   /// - Parameters:
   ///   - data: The bytes of the file.
   ///   - url: The file URL.
   /// - Throws: The error of the file manager or of the write.
-  private static func write(_ data: Data, to url: URL) throws {
+  static func write(_ data: Data, to url: URL) throws {
     try FileManager.default.createDirectory(
       at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
     try data.write(to: url, options: .atomic)

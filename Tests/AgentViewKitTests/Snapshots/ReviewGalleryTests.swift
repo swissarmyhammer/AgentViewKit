@@ -62,6 +62,18 @@ import Testing
     }
   }
 
+  @Test func theGalleryMakesAMissingFolderForItsFiles() throws {
+    try Self.withGallery { _, directory in
+      let gallery = ReviewGallery(directory: directory.url.appending(path: "missing/screenshot-check"))
+
+      let image = try gallery.write(Self.twoColorPixels, screen: Self.screen, variant: .light)
+      let sheet = try gallery.writeContactSheet(Self.rows)
+
+      #expect(FileManager.default.fileExists(atPath: image.path(percentEncoded: false)))
+      #expect(FileManager.default.fileExists(atPath: sheet.path(percentEncoded: false)))
+    }
+  }
+
   @Test func aRenderWithNoPixelsIsAnError() throws {
     try Self.withGallery { gallery, _ in
       #expect(throws: ReviewGalleryError.noPixels(name: "thread--light")) {

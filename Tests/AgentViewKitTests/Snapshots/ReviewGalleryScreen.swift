@@ -104,13 +104,28 @@
 
   /// The fixed data and the views of ``ReviewGalleryScreen``.
   enum ReviewGalleryFixtures {
+    /// The width of the image of a thread screen, in points: about the width
+    /// of the detail column of the demo window.
+    static let threadWidth: CGFloat = 760
+
+    /// The height of the image of a thread screen, in points.
+    static let threadHeight: CGFloat = 860
+
+    /// The width of the image of a screen with two columns, in points: about
+    /// the width of the demo window.
+    static let windowWidth: CGFloat = 1180
+
+    /// The height of the image of a screen with two columns, in points:
+    /// about the height of the demo window.
+    static let windowHeight: CGFloat = 760
+
     /// The size of the image of a thread screen, in points: about the detail
     /// column of the demo window.
-    static let threadSize = CGSize(width: 760, height: 860)
+    static let threadSize = CGSize(width: threadWidth, height: threadHeight)
 
     /// The size of the image of a screen with two columns, in points: about
     /// the demo window.
-    static let windowSize = CGSize(width: 1180, height: 760)
+    static let windowSize = CGSize(width: windowWidth, height: windowHeight)
 
     /// The title of each session in the header of a thread.
     static let sessionTitle = "Rename the search function"
@@ -373,7 +388,7 @@
       } lookControls: {
         EmptyView()
       }
-      let pixels = try await ViewSnapshot.hostedPixels(of: columns, size: size, variant: variant) {
+      let pixels = await ViewSnapshot.hostedPixels(of: columns, size: size, variant: variant) {
         await ObservationWait.until { !agent.connection.sessions.isEmpty && !session.pendingPermissions.isEmpty }
       }
       await agent.stop()
