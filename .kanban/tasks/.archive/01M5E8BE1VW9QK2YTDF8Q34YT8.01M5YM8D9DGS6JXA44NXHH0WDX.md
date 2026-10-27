@@ -26,6 +26,21 @@ comments:
     - `Citations/InlineCitation.swift`: the citation chip (a link), `Capsule().fill(editorTheme.accent.opacity(...))`.
     If a fill must go, remove it and remove its file from the allow list in `Tests/PackageStructureTests/ContentFillTests.swift`. The test `eachAllowedFileUsesItsForm` fails when an allowed file has no fill.
   timestamp: 2026-10-21T19:05:29.181886+00:00
+- actor: claude-code
+  id: 01m5ym7sww929jcbn5j3c04qq9
+  text: |-
+    ### Archived on 2026-10-27: the user will not take manual screenshots
+    No person will do this check. The open questions on this card are handled like this:
+    - The accent fill on the citation chip (`Citations/InlineCitation.swift:273`) breaks the rule that the accent is for selection and focus only. It is filed as its own `avk-8` card.
+    - Whether the other chip fills stay (ToolCallView:792, AttachmentChip:67, PendingRequestCountBadge:87), and whether the request deck buttons count as glass on glass, wait for a decision from the user. Nobody will check them in screenshots.
+    - The Tinted and Clear look checks are not done. No test can set those system settings deterministically (D113 answers 3 and 6).
+  timestamp: 2026-10-27T12:09:24.636777+00:00
+- actor: claude-code
+  id: 01m5ym8c8bdcx4m442fdba1yj6
+  text: |-
+    ### Correction: no card for the citation chip
+    The comment above is wrong about the citation chip. Shared style rule 1 (user decision 2026-10-24, recorded on ^y2mrfxt) permits the citation chip's accent fill, so no card was filed for it. The open question about whether the other chip fills stay is unchanged.
+  timestamp: 2026-10-27T12:09:43.435400+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5DFBW8F3WMN4JFY7M7QDDWE
