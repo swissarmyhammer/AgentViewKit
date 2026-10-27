@@ -41,8 +41,24 @@ comments:
     - no files changed in this step; nothing committed.
     - next: review
   timestamp: 2026-10-27T15:32:27.832645+00:00
-position_column: doing
-position_ordinal: '8580'
+- actor: claude-code
+  id: 01m5yzxzv6jdrv1n5caca0yrvw
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e1a2f12): findings 0, confirmed 0, refuted 0; attempted 7, failed 0; Package.swift and Tests/PackageStructureTests/ManifestTests.swift reviewed; Docs/decisions/dependencies.md skipped (no validator matches this file)
+    - next: none — moved to done
+  timestamp: 2026-10-27T15:33:45.958998+00:00
+- actor: claude-code
+  id: 01m5yzyd12ygxgg229d7m4scq7
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — Package.swift, ManifestTests, dependencies.md; EditorKit 79f043e
+    - test: green — swift test 1866 passed, 7 known issues; demo UI tests 10/10
+    - commit: 49ac48e (kanban), e1a2f12 (code)
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-27T15:33:59.458032+00:00
+position_column: done
+position_ordinal: ffffe980
 title: 'AVK: move to EditorKit main 79f043e: depend on the EditorTestSupport product, and update the window-undo tests for EditorKit ^1gab15j'
 ---
 ## Why
