@@ -88,8 +88,24 @@ comments:
     - no edits, no re-recorded snapshots, no commit.
     - next: review (the Step 2 item waiting on EditorKit ^bcsmt4w remains open on the card)
   timestamp: 2026-10-27T20:36:29.615304+00:00
-position_column: doing
-position_ordinal: '8580'
+- actor: claude-code
+  id: 01m5zhejw0qxb2q39rfp2ar5ba
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (dca5c2e) — counts findings 0, confirmed 0, refuted 1, attempted 21, failed 0, skipped 0; 33 text files reviewed, 28 snapshot PNGs not reviewed (binary)
+    - next: card stays in review, not done — the Step 2 subtask (EditorStyle.tile swap to EditorKit + theme-override test) is open and waits on EditorKit ^bcsmt4w
+  timestamp: 2026-10-27T20:39:55.520951+00:00
+- actor: claude-code
+  id: 01m5zhf6xx75n8415htcztnz00
+  text: |-
+    ### finish iteration 1 — clean (held in review)
+    - implement: changed — step 1: ContentTile.swift plus 25 kit files converted, guard and inset tests
+    - test: green — swift test x2 1875 passed, 7 known issues; demo UI 10/10
+    - commit: 755082f (kanban), dca5c2e (code, 61 files incl. 28 snapshots)
+    - review: clean — 0 findings. Held in `review` because the step 2 subtask (swap to EditorStyle.tile and add the theme-override test) waits on EditorKit ^bcsmt4w.
+  timestamp: 2026-10-27T20:40:16.061320+00:00
+position_column: review
+position_ordinal: '80'
 title: 'AVK-8 tiles: one theme-driven padding, gap and margin for every content tile, bordered or not (cards, banners, request cards, tool calls, terminal output, code blocks, diffs, artifacts), from the user''s gallery review'
 ---
 ## Why
