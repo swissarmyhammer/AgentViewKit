@@ -48,6 +48,15 @@ comments:
     - implement: stuck — no AVK change. EditorKit's default `diffAddedText` / `diffRemovedText` (system green and red) can't reach 4.5:1 as text in light on any surface. The removed count also fails in dark on the selection surfaces. Proposed EditorKit defaults are in the comment above.
     - next: the user decides whether EditorKit's defaults move off the system green and red. The same decision applies to ^pppqe0q (the pending status symbol).
   timestamp: 2026-10-27T15:36:33.231952+00:00
+- actor: claude-code
+  id: 01m5zaw8t16gsyxxara7rrze28
+  text: |-
+    ### Decision by the user, 2026-10-27: keep the colours; they must be theme-settable
+    The user, verbatim: "the colors i've seen look great, but they should be theme settable".
+    - The EditorKit defaults stay as they are (system green and red). No EditorKit default change.
+    - They are already theme-settable: `diffAddedText` and `diffRemovedText` are `EditorTheme` roles (EditorKit `Sources/EditorTheme/Theme.swift:102,106`), and AVK's `DiffView.fileChip` reads them through `editorTheme`. A theme that needs more contrast sets these roles.
+    - Archived: nothing left to do.
+  timestamp: 2026-10-27T18:45:03.937243+00:00
 position_column: doing
 position_ordinal: '8580'
 title: 'AVK-8 diff file list: make the added and removed counts readable in light (finding of ^8q34yt8)'

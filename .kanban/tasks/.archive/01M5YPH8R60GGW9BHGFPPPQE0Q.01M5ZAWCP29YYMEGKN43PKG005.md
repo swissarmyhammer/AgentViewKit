@@ -1,6 +1,16 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5zawaxwq7n9v2r86s6g73pg
+  text: |-
+    ### Decision by the user, 2026-10-27: keep the colours; they must be theme-settable
+    The user, verbatim: "the colors i've seen look great, but they should be theme settable".
+    - The EditorKit default `statusPending` stays as it is. No EditorKit default change.
+    - It is already theme-settable: `statusPending` is an `EditorTheme` role (EditorKit `Sources/EditorTheme/Theme.swift:90`), and AVK reads status colours through `editorTheme.statusColor(for:)`.
+    - Archived: nothing left to do.
+  timestamp: 2026-10-27T18:45:06.108383+00:00
 position_column: todo
 position_ordinal: a380
 title: 'AVK-8 status symbol: give the pending status symbol at least 3:1 contrast in light and dark (finding of ^8q34yt8)'
