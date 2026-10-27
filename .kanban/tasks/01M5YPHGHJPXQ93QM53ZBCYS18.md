@@ -69,8 +69,24 @@ comments:
     - evidence: `swift test` — 1854 tests in 230 suites passed, 0 failed, 0 skipped, 7 known issues (expected count). Compile-warning check: touched all Swift files of AgentViewKitTestSupport and AgentViewKitTests, ran `swift build --build-tests` — build complete, 0 warnings in repo code (only the toolchain's "missing creator for mutated node" notice about the mlx-swift_Cmlx.bundle, which is not repo code). No code changed; `__Snapshots__` not re-recorded; nothing committed.
     - next: review / commit
   timestamp: 2026-10-27T14:04:59.289478+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m5ytyj48vvr35n5fh5p5mr05
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ffe2b40), 3 files reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 0 (7 attempted, 0 failed); every prior Review Findings item is checked
+    - next: moved to done
+  timestamp: 2026-10-27T14:06:41.800219+00:00
+- actor: claude-code
+  id: 01m5ytyzhy0pmz77dbnk0rqwar
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 3 files (shared CATransaction.withoutActions)
+    - test: green — swift test 1854 passed, 7 known issues
+    - commit: cc2ece3 (kanban), ffe2b40 (code)
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-27T14:06:55.550784+00:00
+position_column: done
+position_ordinal: ffffe680
 title: 'AVK-8 review gallery: render through Core Animation so the images show the dark look of sidebar lists, inspector forms and glass controls, Liquid Glass, the scroll edge effect and the mic/Send buttons (found by ^8q34yt8)'
 ---
 Found while building the review gallery of ^8q34yt8 (2026-10-27). This is a limit of the test render path, not a kit finding.
