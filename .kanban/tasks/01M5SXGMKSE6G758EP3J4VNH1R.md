@@ -63,6 +63,43 @@ comments:
       4. Segmented picker: proposed that a landing focuses it and does not press, since there is no meaningful press target.
     - next: pick this up again when EditorKit sends the SHAs.
   timestamp: 2026-10-27T14:26:38.604478+00:00
+- actor: claude-code
+  id: 01m5zngnrks7ezv6zjbg99m3v3
+  text: |-
+    ### implement: research (2026-10-27, pass 3)
+    - `swift package update EditorKit` resolved to ec7a011 (^sfnvvpn done). EditorTestSupport is a library product now and already sits in `editorKitTestSupportProducts` of Package.swift, so AVK can import `accessibilityHitTest(atCenterOfScopeAt:in:window:)` and `accessibilityIdentifier(of:)`.
+    - EK leaf landing (JumpMode `press(at:)`): `.enabled` focuses then presses through the AX press action; `.disabled` does nothing and the scope gets no jump label; `.segmented` (the permission-mode picker) only focuses, then Left/Right/Space change the segment. So for the picker "activates" now means "focuses, no press".
+    - Observables for a landed press, all synchronous in the press: Send -> host `onSubmit` count (needs non-empty text, so the host needs a real text binding); Stop -> `requestStartReport` gets `session/cancel`; Reload -> `session/resume`; Sign In / Sign Out -> the button disables while its call runs (hold `auth/login` / `auth/logout` so the call never ends); Dismiss -> `session.notices` empty; Show Error -> `anchors.anchorID` is the error row key; dictation -> `speechInputPhaseReport` gets `.recording`; suggestion -> the composer text becomes the suggestion; Remove -> the attachment leaves the binding; pill -> `anchors.isPinnedToBottom`.
+    - The current host uses `.constant` bindings for text and attachments, so suggestion and Remove presses change nothing observable, and Send is disabled (empty text). The host gets an observable draft.
+    - With `.targetable(true)` a disabled Send gets no jump label, so `aJumpLabelShowsOnEachBarControl(send)` needs text in the composer; a separate test covers the disabled Send.
+  timestamp: 2026-10-27T21:50:58.323873+00:00
+- actor: claude-code
+  id: 01m5zqpc6t790m5td3sh98ajwz
+  text: |-
+    ### implement: findings (2026-10-27, pass 3)
+    - Landed: `.targetable(true)` in `AgentControlScope`. TDD: RED had 23 issues in `ThreadBarControlJumpHostedTests` (no press for any of the 11 buttons, a disabled Send still got a label, 10 hit tests answered a scroll view or a row). GREEN: the suite passes (13 + 11 + 2 + 1 + 13 + 1 cases).
+    - New tests: `aJumpToEachBarButtonPressesIt` (Send, Stop, Sign In, Sign Out, Dismiss, Reload, Show Error, dictation, suggestion, Remove, pill), `aJumpToEachFocusOnlyBarControlFocusesIt` (editor, picker), `aDisabledSendIsNoJumpTarget`, `theHitTestAtTheCenterOfEachBarControlAnswersTheControl` (all 13, through EditorTestSupport `accessibilityHitTest(atCenterOfScopeAt:in:window:)`). The host now binds an observable draft (text, attachments, submit count) and records `requestStartReport` and `speechInputPhaseReport`; Sign In / Sign Out hold `auth/login` and `auth/logout`, so no sign-in or sign-out ever completes in a test.
+    - Picker: the window hit test answers the segment under the point (`permission-mode-value-default`), as VoiceOver reads a segmented control; the test accepts a segment of the picker. A landing only focuses it (EK `.segmented`).
+    - EK first-read gap (for EditorKit): right after mount, the FIRST `accessibilityHitTest(atCenterOfScopeAt:)` over the suggestion chip and over Remove (each in a nested horizontal ScrollView) answers `HostingScrollView`; the second read answers the control. The test reads the tree once first (`harness.frame(identifier:)`, the precondition that the control shows), with a comment. A real AX client has read the tree already, so it is likely only the helper's build-for-one-read tree, but EditorKit should confirm in `LeafControlHitTestOverrideTests` with a first read straight after mount.
+    - Breaks from the EK range, fixed minimally (no tile adoption): `EditorStyle.tile` is now ambiguous between EK's stored `Tile` and AVK's internal `ContentTileSpacing` extension in the test module, so `ContentTileInsetHostedTests` and `DiffViewHostedTests` annotate the type `ContentTileSpacing`. `ViewValueLayoutTests.theStyleHasNoPaddingByte` failed (40 uncovered bytes = EK's new `tile` and `chip` fields); it now lists both, and two new tests cover `EditorStyle.Tile` and `EditorStyle.Chip`. The sort-priority removal broke no AVK test (ThreadTopBarHostedTests reading-order tests pass).
+    - Demo UI test (`Scripts/test-examples.sh`, which takes the shared UI-test lock; it waited on an EditorKit holder once): `submit.isHittable` is now true and XCUI logs no "Falling back to element center point" for Send. `editor.isHittable` is FALSE, before and after typing, and XCUI logs "Falling back to element center point: {670, 840}" for `editor.click()`. The XCUI tree shows the `prompt-editor` TextView with a sibling Group of the identical frame inside `prompt-field-surface`; in a hosted copy of that shape the sibling is `EditorSwiftUI.PlaceholderHostingView` (EditorKit's placeholder overlay). The in-process `window.accessibilityHitTest` answers the text view, but XCUI does not. The editor is no leaf control, so the ^sfnvvpn override does not cover it.
+  timestamp: 2026-10-27T22:29:02.298711+00:00
+- actor: claude-code
+  id: 01m5zqpqgd33zvcf97xhvdv0y4
+  text: |-
+    ### implement — stuck
+    - evidence: EditorKit resolved to ec7a011. 9 files: Sources/AgentViewKit/Commands/AgentControlScope.swift; Tests/AgentViewKitTests/Commands/ThreadBarControlJumpHostedTests.swift; Tests/AgentViewKitTests/Input/PromptInputViewHostedTests.swift (draft holds attachments); Tests/AgentViewKitTests/Theme/ContentTileInsetHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffViewHostedTests.swift, Tests/AgentViewKitTests/Infrastructure/ViewValueLayoutTests.swift (EK-range breaks); Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift. Full `swift test` before the last fix: 1878 tests in 233 suites, 1 failure (ViewValueLayoutTests, now fixed and re-run: 11/11 pass) and 7 intentional known issues, plus 260 and 1 tests passed; the touched suites re-ran green (48 tests in 5 suites). Only build warning: the known mlx-swift "missing creator" SwiftPM notice. Bar-edge suites ThreadBarInsetHostedTests and ThreadBarBannerOverlapHostedTests pass.
+    - gap: card item "Demo UI test asserts `editor.isHittable` and `submit.isHittable`, and no 'Falling back to element center point'". Send passes; `editor.isHittable` fails (Scripts/test-examples.sh: AgentViewKitDemo FAIL at ACPTabEndToEndTests.swift `editor.isHittable`), and XCUI falls back to the centre point for the editor click. The editor is EditorKit's text view, not a leaf control, and the XCUI tree shows EditorSwiftUI's PlaceholderHostingView as a same-frame sibling of the text view. The fix is in EditorKit (the ^sfnvvpn family: a targetable scope whose content is a text view, or the placeholder overlay taking the XCUI hit). The assertion stays in the demo test so the gap is visible.
+    - next: EditorKit makes the composer text view XCUI-hittable (and confirms the first-read nested-ScrollView hit test), then re-run Scripts/test-examples.sh and /test for ^j4vnh1r. Then ^bc6fapz can close.
+  timestamp: 2026-10-27T22:29:13.869557+00:00
+- actor: claude-code
+  id: 01m5zres3g8d622h6ff0yp4kvm
+  text: |-
+    ### test — red
+    - evidence: `swift test` (taken under the shared UI test lock via Scripts/ui-test-lock.sh) exit 0. 1880 tests in 233 suites passed, 0 failed, 0 skipped. The 7 known issues are the intentional `withKnownIssue` cases in SnapshotStoreTests, HostedLayoutExpectationsTests and FontRoleExpectationsTests, which prove the check helpers fail on bad input. No compiler warnings in AVK code. One warning is present and reproducible on every build: `warning: missing creator for mutated node: ('.build/out/Products/Debug/mlx-swift_Cmlx.bundle/Contents/MacOS')`. It comes from SwiftPM packaging the mlx-swift dependency's resource bundle. I deleted the stale generated bundle (git-ignored .build output) and rebuilt, and the warning came back, so it is not AVK code and not a stale-cache problem.
+    - no AVK code or test edits were needed. Scripts/test-examples.sh was not run (known editor.isHittable failure, left untouched). Nothing committed.
+    - next: a person decides whether the mlx-swift SwiftPM warning is accepted or fixed upstream (mlx-swift pin). All ^j4vnh1r tests are otherwise passing.
+  timestamp: 2026-10-27T22:42:21.936282+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
 position_column: doing
@@ -78,10 +115,10 @@ Do not start until both commits are on EditorKit main. Record the SHAs when you 
 
 Background: SwiftUI's AX hit test returns the transcript row under any view layered over a ScrollView (`.safeAreaBar`, `.overlay`, `.safeAreaInset`, `ZStack`). Minimal repro and the full analysis are in the comments of ^bc6fapz.
 
-- [ ] Hosted tests: a landed jump on each bar control (Send, Stop, permission-mode picker, Sign in / Sign out, banner Dismiss / Reload / Show Error) activates it; a disabled control is not activated.
-- [ ] Hosted tests: `window.accessibilityHitTest` at the centre of each bar control returns the control, not the row under the bar.
+- [x] Hosted tests: a landed jump on each bar control (Send, Stop, permission-mode picker, Sign in / Sign out, banner Dismiss / Reload / Show Error) activates it; a disabled control is not activated.
+- [x] Hosted tests: `window.accessibilityHitTest` at the centre of each bar control returns the control, not the row under the bar.
 - [ ] Demo UI test: `testASendOfHelloShowsTheReplyOfTheAgent` asserts `editor.isHittable` and `submit.isHittable`, and the XCUI log has no "Falling back to element center point" for them.
-- [ ] D113 scroll-under unchanged: the bar-edge hosted tests still pass.
-- [ ] No compatibility shims; transparent backgrounds by default.
+- [x] D113 scroll-under unchanged: the bar-edge hosted tests still pass.
+- [x] No compatibility shims; transparent backgrounds by default.
 
 When this card is done, ^bc6fapz can close. #avk-8 #cross-repo
