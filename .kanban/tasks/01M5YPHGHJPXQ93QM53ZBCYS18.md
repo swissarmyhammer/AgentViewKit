@@ -39,6 +39,36 @@ comments:
     - evidence: `swift test` run twice (flakiness check for the CARenderer CompositedSnapshotTests): run 1 and run 2 each "1854 tests in 230 suites passed with 7 known issues" (82.5s / 82.2s), exit 0, 0 failures, 0 skipped. Only compiler-side output is a SwiftPM "missing creator for mutated node" note on the mlx-swift_Cmlx.bundle dependency product (not repo code). No source changes, no re-recorded __Snapshots__, no demo/UI launch (UI-test lock not needed).
     - next: review/commit
   timestamp: 2026-10-27T13:57:08.222380+00:00
+- actor: claude-code
+  id: 01m5ythbzybs18p2b40q6tb926
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (17bc4b9), 8 files reviewed, 0 not reviewed; counts findings 1, confirmed 1, refuted 1 — Sources/AgentViewKitTestSupport/VibrantLabelFilters.swift:73 (reuse/reuse)
+    - next: implement the 2026-10-27 08:57 Review Findings item, then re-review
+  timestamp: 2026-10-27T13:59:29.534574+00:00
+- actor: claude-code
+  id: 01m5yths1k1d79gnnf1xhw0dwv
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 8 files (CARenderer path C, vibrant label filters, composited tests)
+    - test: green — swift test x2, 1854 passed, 7 known issues
+    - commit: 974253a (kanban), 17bc4b9 (code)
+    - review: findings — Sources/AgentViewKitTestSupport/VibrantLabelFilters.swift:73
+  timestamp: 2026-10-27T13:59:42.899631+00:00
+- actor: claude-code
+  id: 01m5ytn3et7qv5rbdnfkxff1ge
+  text: |-
+    ### implement — changed
+    - evidence: Review finding (VibrantLabelFilters.swift:73 reuse/reuse) fixed. The no-animation transaction now lives in one internal place, `CATransaction.withoutActions(_:)` in the new Sources/AgentViewKitTestSupport/CATransaction+WithoutActions.swift, which follows the `NSView+Descendants` extension pattern. The private copy in LayerTreeRenderer is deleted. Its two call sites in `withContainer` and `VibrantLabelFilters.swapFilters(of:painted:)` call the shared function. rg for `CATransaction.begin|commit|setDisableActions` over the repo finds only the shared function. `swift test --filter 'Composited|ReviewGallery|ViewSnapshot'`: 36 tests in 5 suites passed, exit 0. The only warning is the old SwiftPM mlx-swift_Cmlx.bundle "missing creator" note from the dependency. Finding flipped to [x].
+    - next: /review
+  timestamp: 2026-10-27T14:01:31.866453+00:00
+- actor: claude-code
+  id: 01m5ytve0spkxq886j9fy0rbg0
+  text: |-
+    ### test — green
+    - evidence: `swift test` — 1854 tests in 230 suites passed, 0 failed, 0 skipped, 7 known issues (expected count). Compile-warning check: touched all Swift files of AgentViewKitTestSupport and AgentViewKitTests, ran `swift build --build-tests` — build complete, 0 warnings in repo code (only the toolchain's "missing creator for mutated node" notice about the mlx-swift_Cmlx.bundle, which is not repo code). No code changed; `__Snapshots__` not re-recorded; nothing committed.
+    - next: review / commit
+  timestamp: 2026-10-27T14:04:59.289478+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'AVK-8 review gallery: render through Core Animation so the images show the dark look of sidebar lists, inspector forms and glass controls, Liquid Glass, the scroll edge effect and the mic/Send buttons (found by ^8q34yt8)'
@@ -71,3 +101,9 @@ Files: `Sources/AgentViewKitTestSupport/ViewSnapshot.swift`, `LayerTreeRenderer.
 - [x] Path A, `HostedSnapshotTests` and the recorded `__Snapshots__` are unchanged.
 - [x] What cannot be drawn in process is recorded in a comment.
 #avk-8
+
+## Review Findings (2026-10-27 08:57)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 0 not reviewed.
+
+- [x] `Sources/AgentViewKitTestSupport/VibrantLabelFilters.swift:73` `reuse/reuse` — `swapFilters(of:painted:)` reimplements the no-animation transaction that `LayerTreeRenderer.withoutActions(_:)` already provides: begin a `CATransaction`, set `setDisableActions(true)`, run the changes, commit. The same four-step sequence is written out again here, so the pattern now lives in two places and a fix to one will not reach the other. Move `withoutActions` out of the `private` scope of `LayerTreeRenderer` into a shared `internal` location in AgentViewKitTestSupport (for example a static on `VibrantLabelFilters`, or a small free function), and call it from `swapFilters(of:painted:)`: `withoutActions { for label in labels { label.layer.filters = painted ? label.paintedFilters : label.filters } }`.
