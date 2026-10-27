@@ -27,6 +27,7 @@ import Testing
   @Test func aRegionDoesNotContainTheColorOfThePixelsOutsideIt() throws {
     let pixels = try Self.halves()
 
+    #expect(RegionColors.contains(RenderedPixelsTests.notDrawn, in: Self.trailingHalf, of: pixels))
     #expect(!RegionColors.contains(RenderedPixelsTests.drawn, in: Self.trailingHalf, of: pixels))
   }
 
@@ -62,9 +63,14 @@ import Testing
     let pixels = try Self.halves()
     let onePixel = RenderedPixelsTests.onePixel
 
+    let columnCount = Int(RenderedPixelsTests.size.width / onePixel.width)
+    let expectedColumns = (0..<columnCount).map { column in
+      CGRect(x: CGFloat(column) * onePixel.width, y: onePixel.height, width: onePixel.width, height: onePixel.height)
+    }
+
     let row = RegionColors.row(of: pixels, at: onePixel.height)
 
     #expect(row.minY == onePixel.height)
-    #expect(RegionColors.columns(of: pixels, in: row).allSatisfy { $0.height == onePixel.height })
+    #expect(RegionColors.columns(of: pixels, in: row) == expectedColumns)
   }
 }
