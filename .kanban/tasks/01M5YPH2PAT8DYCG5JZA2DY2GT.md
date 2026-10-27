@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m5ywqvk8abyaa0n0r3jxrqy7
+  text: 'Checked after ^fs3vdg0: still applies. The file row became a file chip (`DiffView.fileChip(_:isSelected:)` in `Sources/AgentViewKit/Diff/DiffView.swift`), but the counts are still `Text(verbatim: "+\(file.added)")` in `editorTheme.diffAddedText` and `Text(verbatim: "\u{2212}\(file.removed)")` in `editorTheme.diffRemovedText`, and the selected chip still sits on the gray `selectableSurface`. So the 1.9:1 / 3.1:1 contrast in light is unchanged. The file to edit is the same; the function is now `fileChip` (was `fileRow`). The chip keeps the accessibility identifier `DiffView.identifier(for:)`, so the card''s hosted pixel test can find the chip the same way.'
+  timestamp: 2026-10-27T14:37:59.272628+00:00
 position_column: todo
 position_ordinal: a280
 title: 'AVK-8 diff file list: make the added and removed counts readable in light (finding of ^8q34yt8)'
