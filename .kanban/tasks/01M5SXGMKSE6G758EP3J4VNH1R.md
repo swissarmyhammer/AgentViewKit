@@ -10,6 +10,16 @@ comments:
     - blocker: EditorKit ^tzh8q6d is in `review`, with its work on local branch `wip/leaf-scopes`. EditorKit ^wccq0y0 is in `todo`. EditorKit origin/main is still at be01754, so neither card has landed on main.
     - next: run /finish ^j4vnh1r when EditorKit sends the main SHAs for both cards. Then close ^bc6fapz.
   timestamp: 2026-10-27T10:06:31.201251+00:00
+- actor: claude-code
+  id: 01m5ydad75srwyhakssdy9tyxs
+  text: |-
+    ### Notes for implement from EditorKit (editorkit-a9, 2026-10-27)
+    - ^tzh8q6d lands on EditorKit main (no branch). It adds JumpAction.press: focus, then the accessibility press. A Button runs once, a Toggle flips, a Picker or Menu opens. Space/Return presses again after a jump. nav.* only focuses. Disabled controls get no label and nav skips them.
+    - A press landing happens only with an explicit `.targetable(true)`. `AgentControlScope` (Sources/AgentViewKit/Commands/AgentControlScope.swift:59) calls only `.commandScope(segment:)`, so it must add `.targetable(true)` to each bar control.
+    - `ThreadBarControlJumpHostedTests.aJumpToEachBarControlLandsOnIt` will now run each control's action. A landing on Dismiss removes its banner, so the test must check the action, not a frame that stays put. Send must not send a real prompt unless the test says it should. Sign Out must not leave the session in a broken state.
+    - Menu-opening landings are tested in EditorKit's new EditorCommandsUIMenuHostedTests target.
+    - ^wccq0y0 (beacon AX hit test) comes after ^tzh8q6d, also on main.
+  timestamp: 2026-10-27T10:08:29.925909+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
 position_column: todo
