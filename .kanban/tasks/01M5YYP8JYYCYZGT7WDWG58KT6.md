@@ -54,8 +54,24 @@ comments:
     - evidence: `swift test` exit 0 — 1868 tests in 232 suites passed, 7 known issues (matches expected 7), 0 failures, 0 skipped. Only build warning: SwiftPM "missing creator for mutated node ... mlx-swift_Cmlx.bundle/Contents/MacOS" from the mlx-swift dependency bundle, not repo code. No files changed; Sources/AgentViewKitTestSupport and __Snapshots__ untouched.
     - next: review/commit
   timestamp: 2026-10-27T15:50:31.297054+00:00
-position_column: doing
-position_ordinal: '8680'
+- actor: claude-code
+  id: 01m5z0yr3fv44hbvgfeh7dqe13
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d37e4bd) — 0 findings, 0 confirmed, 0 refuted; 1 file reviewed, 0 not reviewed; 7 attempted, 0 failed; prior item RegionColorsTests.swift:68 checked
+    - next: none — moved to done
+  timestamp: 2026-10-27T15:51:39.375502+00:00
+- actor: claude-code
+  id: 01m5z0z6525pab01tvs59xvzqk
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — RegionColorsTests now asserts exact frames
+    - test: green — swift test 1868 passed, 7 known issues
+    - commit: 112afb7 (kanban), d37e4bd (code)
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-27T15:51:53.762683+00:00
+position_column: done
+position_ordinal: ffffea80
 title: 'Tests: GlassAccessibilityTests walks the pixel columns of a row by hand; reuse RegionColors'
 ---
 Found while fixing the reuse finding of ^sbx2q4h. `RegionColors` (Tests/AgentViewKitTests/Snapshots/RegionColors.swift) is now the one walk over the pixels of a region in the test target: `contains(_:in:of:tolerance:)` and `columns(of:in:)` sit on the same pixel enumeration as `colors(of:in:)`.
