@@ -7,8 +7,20 @@
   import Testing
 
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffViewHostedTests {
-    /// A size that shows the file list and the hunk actions.
-    static let tallSize = CGSize(width: 720, height: 900)
+    /// A size that shows the file chips and the hunk actions.
+    nonisolated static let tallSize = CGSize(width: 720, height: 900)
+
+    /// A width too narrow for the two file chips of the fixture patch on one
+    /// line.
+    nonisolated static let narrowWidth: CGFloat = 160
+
+    /// The widths of the layout tests: a narrow one and a wide one. It is
+    /// `nonisolated` because the arguments of a test use it.
+    nonisolated static let layoutWidths = [narrowWidth, tallSize.width]
+
+    /// The largest difference that layout rounding makes between two edges, in
+    /// points.
+    static let layoutTolerance: CGFloat = 1
 
     /// The start of the accessibility identifier of the test renderer.
     static let rendererPrefix = "test-renderer-"
@@ -31,6 +43,17 @@
       @@ -10 +10,2 @@
        }
       +// end
+      diff --git a/README.md b/README.md
+      --- a/README.md
+      +++ b/README.md
+      @@ -1 +1 @@
+      -# Old
+      +# New
+
+      """
+
+    /// A patch with one file: the second file of ``patch``.
+    static let oneFilePatch = """
       diff --git a/README.md b/README.md
       --- a/README.md
       +++ b/README.md
@@ -66,9 +89,12 @@
     /// - Parameters:
     ///   - log: The record of the calls.
     ///   - installsRenderer: `true` to install the test renderer.
+    ///   - width: The width of the harness.
     /// - Returns: The harness, after one render pass.
-    static func mountDiff(log: CallLog, installsRenderer: Bool) -> HostedViewHarness<some View> {
-      let harness = HostedViewHarness(size: tallSize) {
+    static func mountDiff(
+      log: CallLog, installsRenderer: Bool, width: CGFloat = tallSize.width
+    ) -> HostedViewHarness<some View> {
+      let harness = HostedViewHarness(size: CGSize(width: width, height: tallSize.height)) {
         Group {
           if installsRenderer {
             diffView(log: log)
@@ -116,9 +142,57 @@
       #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
     }
 
-    // MARK: - File list
+    // MARK: - Layout
 
-    @Test func eachFileHasARowWithItsLanguageAndCounts() {
+    @Test(arguments: layoutWidths) func theDetailIsAsWideAsTheView(width: CGFloat) throws {
+      let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: width)
+      defer { harness.close() }
+
+      let view = try #require(harness.frame(identifier: DiffView.containerIdentifier))
+      let detail = try #require(harness.frame(identifier: DiffView.detailIdentifier))
+      #expect(abs(detail.width - view.width) <= Self.layoutTolerance)
+      #expect(abs(detail.minX - view.minX) <= Self.layoutTolerance)
+    }
+
+    @Test(arguments: layoutWidths) func theChipsAreAboveTheDetail(width: CGFloat) throws {
+      let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: width)
+      defer { harness.close() }
+
+      let detail = try #require(harness.frame(identifier: DiffView.detailIdentifier))
+      for path in [Self.firstPath, Self.secondPath] {
+        let chip = try #require(harness.frame(identifier: DiffView.identifier(for: path)))
+        // The y axis of the screen goes up, so the bottom edge of a chip is
+        // `minY` and the top edge of the detail is `maxY`.
+        #expect(chip.minY >= detail.maxY - Self.layoutTolerance, "chip \(path)")
+      }
+    }
+
+    @Test func theChipsShareALineWhenTheyFit() throws {
+      let harness = Self.mountDiff(log: CallLog(), installsRenderer: true)
+      defer { harness.close() }
+
+      let first = try #require(harness.frame(identifier: DiffView.identifier(for: Self.firstPath)))
+      let second = try #require(harness.frame(identifier: DiffView.identifier(for: Self.secondPath)))
+      #expect(abs(second.minY - first.minY) <= Self.layoutTolerance)
+      #expect(second.minX >= first.maxX)
+    }
+
+    @Test func theChipsWrapToASecondLineWhenTheyDoNotFit() throws {
+      let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: Self.narrowWidth)
+      defer { harness.close() }
+
+      let first = try #require(harness.frame(identifier: DiffView.identifier(for: Self.firstPath)))
+      let second = try #require(harness.frame(identifier: DiffView.identifier(for: Self.secondPath)))
+      // The y axis of the screen goes up, so a chip on the line below the
+      // first chip has its top edge, `maxY`, under the bottom edge of the
+      // first chip, `minY`.
+      #expect(second.maxY <= first.minY)
+      #expect(abs(second.minX - first.minX) <= Self.layoutTolerance)
+    }
+
+    // MARK: - File chips
+
+    @Test func eachFileHasAChipWithItsLanguageAndCounts() {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
       defer { harness.close() }
 
@@ -128,7 +202,16 @@
       #expect(second?.label == "Markdown diff, +1 \u{2212}1")
     }
 
-    @Test func aPressOnAFileGivesThatFileToTheRenderer() throws {
+    @Test func withOneFileTheChipShows() {
+      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(patch: Self.oneFilePatch) }
+      defer { harness.close() }
+      harness.render()
+
+      let chip = harness.element(identifier: DiffView.identifier(for: Self.secondPath))
+      #expect(chip?.label == "Markdown diff, +1 \u{2212}1")
+    }
+
+    @Test func aPressOnAChipGivesThatFileToTheRenderer() throws {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true)
       defer { harness.close() }
       let secondRenderer = Self.rendererIdentifier(for: Self.secondPath)

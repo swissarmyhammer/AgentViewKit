@@ -8,9 +8,11 @@ import SwiftUI
 ///
 /// The view shows:
 ///
-/// - A list of the files of the patch, with the added and removed line
-///   counts. The list is on the left, or on top when the view is narrow. A
-///   press on a file selects it. The counts use the `diffAddedText` and
+/// - A chip for each file of the patch, with the added and removed line
+///   counts, in rows that wrap. The chips stand above the detail, and the
+///   detail takes the full width of the view. A press on a chip selects its
+///   file. The view shows the chip of a patch with one file too, so its name
+///   and counts stay visible. The counts use the `diffAddedText` and
 ///   `diffRemovedText` roles of the EditorKit theme in the environment.
 /// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
 ///   full patch and the path of the selected file. The default renderer is
@@ -30,11 +32,15 @@ import SwiftUI
 /// view then shows the file of each change with its operation, and a note.
 /// See ``init(diff:onAccept:onReject:onAttach:)``.
 public struct DiffView: View, PrefixedAccessibilityIdentifier {
-  /// The start of the accessibility identifier of each file row.
+  /// The start of the accessibility identifier of each file chip.
   public static let identifierPrefix = "diff-file-"
 
   /// The accessibility identifier of the view.
   public static let containerIdentifier = "diff-view"
+
+  /// The accessibility identifier of the detail: the renderer, the hunk
+  /// actions and the attach button, or the note of a diff with no patch text.
+  public static let detailIdentifier = "diff-detail"
 
   /// The accessibility identifier of the "Attach to prompt" button.
   public static let attachIdentifier = "diff-attach"
@@ -54,17 +60,10 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// The symbol of each Reject button.
   static let rejectSymbol = SharedSymbol.reject
 
-  /// The width of the file list when it is on the left.
-  static let fileListWidth: CGFloat = 220
-
-  /// The smallest width of the renderer next to the file list. When the view
-  /// is narrower, the file list goes on top.
-  static let rendererMinWidth: CGFloat = 320
-
-  /// The radius step of a file row: the small radius. The selected row sits
-  /// on the shared selection surface in this shape, and the focus ring of the
-  /// row button follows the same shape.
-  static let fileRowRadius = EditorStyle.Radius.small
+  /// The radius step of a file chip: the small radius. The selected chip
+  /// sits on the shared selection surface in this shape, and the focus ring
+  /// of the chip button follows the same shape.
+  static let fileChipRadius = EditorStyle.Radius.small
 
   /// The patch text, or `nil` for a structured diff with no patch text.
   let patch: String?
@@ -203,17 +202,9 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   public var body: some View {
     let file = files.first { $0.path == selectedPath } ?? files.first
     let actions = ownActions ?? environmentActions
-    return ViewThatFits(in: .horizontal) {
-      HStack(alignment: .top, spacing: editorStyle.spacing.m) {
-        fileList(selected: file)
-          .frame(width: Self.fileListWidth)
-        detail(file: file, actions: actions)
-          .frame(minWidth: Self.rendererMinWidth, alignment: .leading)
-      }
-      VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
-        fileList(selected: file)
-        detail(file: file, actions: actions)
-      }
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
+      fileChips(selected: file)
+      detail(file: file, actions: actions)
     }
     .onChange(of: selectedPath) {
       selection.lines = []
@@ -221,25 +212,25 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     .contentContainer(identifier: Self.containerIdentifier)
   }
 
-  /// The list of the files, with their counts.
+  /// The chips of the files, with their counts, in rows that wrap.
   ///
   /// - Parameter selected: The file that the renderer shows.
-  /// - Returns: The list view.
-  private func fileList(selected: DiffSummary.FileSummary?) -> some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+  /// - Returns: The chips view.
+  private func fileChips(selected: DiffSummary.FileSummary?) -> some View {
+    ChipFlowLayout(spacing: editorStyle.spacing.xs) {
       ForEach(files) { file in
-        fileRow(file, isSelected: file.path == selected?.path)
+        fileChip(file, isSelected: file.path == selected?.path)
       }
     }
   }
 
-  /// One file row: a button that selects the file.
+  /// One file chip: a button that selects the file.
   ///
   /// - Parameters:
   ///   - file: The file.
   ///   - isSelected: `true` when the renderer shows the file.
-  /// - Returns: The row view.
-  private func fileRow(_ file: DiffSummary.FileSummary, isSelected: Bool) -> some View {
+  /// - Returns: The chip view.
+  private func fileChip(_ file: DiffSummary.FileSummary, isSelected: Bool) -> some View {
     Button {
       selectedPath = file.path
     } label: {
@@ -251,7 +242,6 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
         Text(URL(fileURLWithPath: file.path).lastPathComponent)
           .lineLimit(1)
           .truncationMode(.middle)
-        Spacer(minLength: editorStyle.spacing.s)
         if patch != nil {
           Text(verbatim: "+\(file.added)")
             .foregroundStyle(editorTheme.diffAddedText)
@@ -263,7 +253,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       .monospacedDigit()
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .selectableSurface(isSelected, radius: Self.fileRowRadius)
+      .selectableSurface(isSelected, radius: Self.fileChipRadius)
     }
     .buttonStyle(.plain)
     .help(file.path)
@@ -298,6 +288,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
       }
     }
     .environment(\.diffLineSelection, selection)
+    .contentContainer(identifier: Self.detailIdentifier)
   }
 
   /// The "Attach to prompt" button of the selected file.

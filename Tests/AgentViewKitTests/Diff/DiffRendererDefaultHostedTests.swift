@@ -10,7 +10,7 @@
   /// Tests for the EditorKit renderer that ``DiffView`` uses when the host
   /// installs no renderer (plan.md §4.1, decision 12).
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffRendererDefaultHostedTests {
-    /// A size that shows the file list and the renderer.
+    /// A size that shows the file chips and the renderer.
     static let size = CGSize(width: 720, height: 900)
 
     /// The path of the first file of the fixture patch.

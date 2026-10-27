@@ -19,11 +19,15 @@
       .thread: """
         2026-10-27. No fill behind the messages, the code block, the terminal output, the tool calls, the plan or \
         the header; each has thin separator edges. The location chip "SearchIndex.swift:2" has the quaternary \
-        capsule that AVK-8r allows (text 12.6:1 light, 9.4:1 dark). The selected file row of the diff uses the \
-        gray selection surface. Findings: the diff text wraps while its gutter and line colors do not, so the \
-        lines do not match and the last lines are cut off (^q89x329); "Exit code 0" is green text at 2.2:1 in \
-        light (^sbx2q4h); the diff counts "+1 −1" are 1.9:1 in light (^a2dy2gt). Since ^zbcys18 the image draws \
-        the glass of the composer and the mic and Send buttons of the accessory row; their look is not judged yet.
+        capsule that AVK-8r allows (text 12.6:1 light, 9.4:1 dark). Findings: the diff text wraps while its \
+        gutter and line colors do not, so the lines do not match and the last lines are cut off (^q89x329); \
+        "Exit code 0" is green text at 2.2:1 in light (^sbx2q4h); the diff counts "+1 −1" are 1.9:1 in light \
+        (^a2dy2gt). Since ^zbcys18 the image draws the glass of the composer and the mic and Send buttons of the \
+        accessory row; their look is not judged yet. Since ^fs3vdg0 the diff has no side-by-side file list: the \
+        file chip "SearchIndex.swift +1 −1" stands above the patch on the gray selection surface, and the patch \
+        takes the full width of the tool call body (DiffViewHostedTests checks the geometry). The new image is \
+        not judged yet: whether the wider patch still wraps the long removed line (^q89x329), and the counts on \
+        the chip (^a2dy2gt), are to be judged again.
         """,
       .requestDeck: """
         2026-10-27. The request cards have no fill. The cards behind the front card show as thin top edges, so \
