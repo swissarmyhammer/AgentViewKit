@@ -147,4 +147,54 @@ import Testing
     #expect(mounted.form.harness.element(identifier: ElicitationView.submitIdentifier)?.isEnabled == false)
     #expect(!mounted.window.stack.canUndo)
   }
+
+  /// A submitted form leaves the window, and the typing of its text field
+  /// leaves the window undo stack with it, so ⌘Z never undoes typing in a
+  /// field that is gone.
+  ///
+  /// The form shows in a card of the ``RequestDeck``, so that the answer
+  /// takes the card out of the window. Since EditorKit ^1gab15j an editor's
+  /// entries stay on the window stack for as long as its `EditorModel` is
+  /// alive, and leave on the next main run loop pass after the model is
+  /// released. A field with no supplied model keeps its model in a kit-owned
+  /// `@State` slot, so the model goes with the card. The check applies only to
+  /// that kit-owned slot: a model that a host supplies keeps its entries for
+  /// as long as the host keeps the model.
+  @Test func aSubmittedFormTakesTheTypingOfItsFieldOffTheWindowUndoStack() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let window = try await Self.mountInTheDeck(session)
+    defer { window.harness.close() }
+    try SingleLineFieldChecks.type(Self.name, intoFieldWith: Self.control, in: window.harness)
+    try #require(window.stack.canUndo)
+
+    try window.harness.sendKey(.return)
+    // The model removes the answered elicitation in the same step as the
+    // press, so a Return that did not submit the form stops the test here.
+    try #require(session.model.pendingElicitations.isEmpty)
+    window.harness.render()
+    try #require(window.harness.element(identifier: Self.control) == nil)
+    await RunLoopBlockFence.afterPendingBlocks()
+
+    #expect(!window.stack.canUndo)
+    #expect(!window.stack.canRedo)
+  }
+
+  /// Shows the thread and the deck of `session` under the root command scope
+  /// of a new command system, and gets an elicitation with the one required
+  /// text field `name`, which the deck shows in a card.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The window, with its undo stack.
+  /// - Throws: The error of the transport, or an issue when the window has
+  ///   no undo stack.
+  static func mountInTheDeck(_ session: ScriptedSession) async throws -> MountedThread<some View> {
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    _ = try await session.receiveElicitation(
+      id: ElicitationViewHostedTests.agentRequestID, params: ElicitationFieldErrorsHostedTests.requiredNameParams)
+    harness.render()
+    return try SingleLineFieldChecks.window(
+      of: harness, system: system, path: AgentCommandScopeHostedTests.path(of: session.model))
+  }
 }

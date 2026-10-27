@@ -199,6 +199,39 @@ import Testing
     #expect(open.window.stack.canRedo)
   }
 
+  /// An answered card leaves the window, and the typing of its comment field
+  /// leaves the window undo stack with it, so ⌘Z never undoes typing in a
+  /// field that is gone.
+  ///
+  /// Since EditorKit ^1gab15j an editor's entries stay on the window stack
+  /// for as long as its `EditorModel` is alive, and leave on the next main
+  /// run loop pass after the model is released. The card keeps the model of
+  /// its comment field in a kit-owned `@State` slot, so the model goes with
+  /// the card. The check applies only to that kit-owned slot: a model that a
+  /// host supplies keeps its entries for as long as the host keeps the model.
+  @Test func anAnsweredCardTakesTheTypingOfItsCommentFieldOffTheWindowUndoStack() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    var answers: [PermissionAnswer] = []
+    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    defer { open.window.harness.close() }
+    try SingleLineFieldChecks.type(
+      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
+    try #require(open.window.stack.canUndo)
+
+    try open.window.harness.sendKey(.return)
+    // The card reports its answer in the same step as it starts the answer
+    // task, so a Return that the field did not submit stops the test here.
+    try #require(answers.count == 1)
+    let model = session.model
+    await open.window.harness.render(when: { model.pendingPermissions.isEmpty })
+    try #require(Self.commentValue(in: open.window.harness) == nil)
+    await RunLoopBlockFence.afterPendingBlocks()
+
+    #expect(!open.window.stack.canUndo)
+    #expect(!open.window.stack.canRedo)
+  }
+
   /// The nested-scope rule of the user: the comment field has its own
   /// `editor:` scope in the scope of the card, so a jump that lands on the
   /// card focuses the card, and the caret does not go into the field.

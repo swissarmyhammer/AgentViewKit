@@ -262,20 +262,29 @@ public struct ElicitationTextField: View {
         .frame(minHeight: Self.multiLineMinimumHeight)
     } else {
       SingleLineField(model: model, id: context.identifier)
-        .onEditorCommit { commit in didCommit(commit) }
+        .onEditorCommit { [returnAction] commit in Self.run(returnAction, for: commit) }
         .editorSizingMode(.intrinsic)
         .editorTextAccessibilityIdentifier(context.controlIdentifier)
         .editorTextAccessibilityLabel(context.schema.title)
     }
   }
 
-  /// Runs ``returnAction`` when `commit` submits the one-line input
+  /// Runs `returnAction` when `commit` submits the one-line input
   /// (`EditorCommitReason.submitsField`): Return and Command-Return press
   /// Submit. Esc and a focus loss end the edit, keep the answer, and press
   /// no action of the form.
   ///
-  /// - Parameter commit: One end of an edit of the one-line input.
-  private func didCommit(_ commit: EditorCommit) {
+  /// The commit callback calls this with the ``returnAction`` that it
+  /// captured, and does not capture the view. EditorKit keeps the callback on
+  /// the model (`EditorModel.onEditCommit`), and the view keeps its own model
+  /// in its state, so a callback that captured the view would keep that
+  /// model alive after the field left the window. Since EditorKit ^1gab15j
+  /// the typing of the field would then stay on the window undo stack.
+  ///
+  /// - Parameters:
+  ///   - returnAction: The action of Return, or `nil` outside a form.
+  ///   - commit: One end of an edit of the one-line input.
+  private static func run(_ returnAction: ElicitationReturnAction?, for commit: EditorCommit) {
     guard commit.reason.submitsField else { return }
     returnAction?()
   }
