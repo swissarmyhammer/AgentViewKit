@@ -32,5 +32,16 @@
       let html = try String(contentsOf: sheet, encoding: .utf8)
       #expect(!html.contains("No image:"))
     }
+
+    @Test(arguments: [ReviewGalleryScreen.gallery, .inspector])
+    func theDarkImageShowsLightTextOnTheDarkGlassColumn(screen: ReviewGalleryScreen) async throws {
+      let column = try #require(screen.glassColumn)
+      let pixels = try #require(try await screen.pixels(in: .dark))
+
+      let colors = try #require(RegionColors(of: pixels, in: column))
+
+      #expect(colors.background.luminance <= CompositedSnapshotTests.darkLuminance, "\(colors)")
+      #expect(colors.contrast >= CompositedSnapshotTests.minimumTextContrast, "\(colors)")
+    }
   }
 #endif

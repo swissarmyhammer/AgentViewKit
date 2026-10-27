@@ -13,11 +13,12 @@
   /// list scrolled under both bars, the attachment inspector and the gallery
   /// columns of the demo app.
   ///
-  /// Each screen is the real kit view in the hidden window of path A of
-  /// ``ViewSnapshot``, with fixed preview data. The cache of a window draws no
-  /// Liquid Glass and no scroll edge effect, so each image shows what the kit
-  /// draws: its fills, tints, layout and text over the content. Apple's glass
-  /// is not in the images.
+  /// Each screen is the real kit view in the hidden window of ``ViewSnapshot``,
+  /// with fixed preview data, rendered by Core Animation (path C, ^zbcys18).
+  /// The images show what a window shows: Liquid Glass, the scroll edge
+  /// effect, the vibrant labels in the look of each variant, and the mic and
+  /// Send buttons of the composer. A popover is its own window, so no image
+  /// shows one.
   ///
   /// The raw value is the name of the screen in the image names.
   enum ReviewGalleryScreen: String, CaseIterable {
@@ -81,20 +82,33 @@
       }
     }
 
+    /// The region of the glass column of the screen whose dark look a test
+    /// checks, in points from the top leading corner of the image: the session
+    /// list in the sidebar of the gallery columns, and the top of the
+    /// attachment inspector with its form rows. `nil` for a screen with no
+    /// glass column.
+    var glassColumn: CGRect? {
+      switch self {
+      case .gallery: ReviewGalleryFixtures.sidebarColumn
+      case .inspector: ReviewGalleryFixtures.inspectorColumn
+      case .thread, .requestDeck, .banners, .signIn, .scrolled: nil
+      }
+    }
+
     /// The pixels of the screen in `variant`.
     ///
     /// - Parameter variant: The settings of the image.
-    /// - Returns: The pixels, or `nil` when AppKit gives no cache.
+    /// - Returns: The pixels, or `nil` when the computer has no Metal device.
     /// - Throws: An issue when the screen cannot be built.
     func pixels(in variant: SnapshotVariant) async throws -> RenderedPixels? {
       switch self {
       case .thread: try await ReviewGalleryFixtures.threadPixels(size: size, variant: variant)
       case .requestDeck:
-        try await ViewSnapshot.hostedPixels(of: ReviewGalleryFixtures.deckThread, size: size, variant: variant)
+        try await ViewSnapshot.compositedPixels(of: ReviewGalleryFixtures.deckThread, size: size, variant: variant)
       case .banners:
-        try await ViewSnapshot.hostedPixels(of: ReviewGalleryFixtures.bannerThread, size: size, variant: variant)
+        try await ViewSnapshot.compositedPixels(of: ReviewGalleryFixtures.bannerThread, size: size, variant: variant)
       case .signIn:
-        try await ViewSnapshot.hostedPixels(of: ReviewGalleryFixtures.signInThread(), size: size, variant: variant)
+        try await ViewSnapshot.compositedPixels(of: ReviewGalleryFixtures.signInThread(), size: size, variant: variant)
       case .scrolled: try ReviewGalleryFixtures.scrolledPixels(size: size, variant: variant)
       case .inspector: try await ReviewGalleryFixtures.inspectorPixels(size: size, variant: variant)
       case .gallery: try await ReviewGalleryFixtures.galleryPixels(size: size, variant: variant)
@@ -126,6 +140,26 @@
     /// The size of the image of a screen with two columns, in points: about
     /// the demo window.
     static let windowSize = CGSize(width: windowWidth, height: windowHeight)
+
+    /// The width of the part of the attachment inspector that
+    /// ``inspectorColumn`` reads, in points from the trailing edge: inside
+    /// the inspector at each width it takes.
+    static let inspectorColumnWidth: CGFloat = 200
+
+    /// The height of the part of the attachment inspector that
+    /// ``inspectorColumn`` reads, in points from the top: the form rows over
+    /// the preview.
+    static let inspectorColumnHeight: CGFloat = 350
+
+    /// The session list in the sidebar of the gallery columns: the least
+    /// width of the sidebar, from the top to the bottom of the window.
+    static let sidebarColumn = CGRect(
+      x: 0, y: 0, width: DemoWindowLayout.sidebarMinimumWidth, height: windowHeight)
+
+    /// The form rows at the top of the attachment inspector, at the trailing
+    /// edge of the window.
+    static let inspectorColumn = CGRect(
+      x: windowWidth - inspectorColumnWidth, y: 0, width: inspectorColumnWidth, height: inspectorColumnHeight)
 
     /// The title of each session in the header of a thread.
     static let sessionTitle = "Rename the search function"
@@ -251,7 +285,7 @@
       let thread = demoThread(session, connection: connection)
         .environment(\.expandedBlocksStore, ExpandedBlocksStore(defaultExpanded: { _ in true }))
         .environment(\.codeBlockModelCache, cache)
-      return try await ViewSnapshot.hostedPixels(of: thread, size: size, variant: variant) {
+      return try await ViewSnapshot.compositedPixels(of: thread, size: size, variant: variant) {
         await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
       }
     }
@@ -331,7 +365,7 @@
       harness.render()
       try #require(!anchors.isPinnedToBottom, "The list of the scrolled screen did not leave the bottom.")
       harness.render()
-      return ViewSnapshot.pixels(of: harness)
+      return ViewSnapshot.compositedPixels(of: harness)
     }
 
     /// The pixels of the thread with the attachment inspector open on a file
@@ -350,7 +384,7 @@
         named: SnapshotFixtures.inspectorFileName, in: directory)
       let thread = demoThread(try transcriptSession(), connection: connection)
         .environment(\.inspectorSelection, InspectorSelection(attachment: attachment))
-      return try await ViewSnapshot.hostedPixels(
+      return try await ViewSnapshot.compositedPixels(
         of: thread, size: size, variant: variant, hiding: [QLPreviewView.self])
     }
 
@@ -388,7 +422,7 @@
       } lookControls: {
         EmptyView()
       }
-      let pixels = await ViewSnapshot.hostedPixels(of: columns, size: size, variant: variant) {
+      let pixels = await ViewSnapshot.compositedPixels(of: columns, size: size, variant: variant) {
         await ObservationWait.until { !agent.connection.sessions.isEmpty && !session.pendingPermissions.isEmpty }
       }
       await agent.stop()
