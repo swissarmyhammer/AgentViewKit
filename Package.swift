@@ -76,9 +76,12 @@ let readmeEditorKitProducts: [Target.Dependency] = [
   .product(name: "EditorStyle", package: "EditorKit"),
 ]
 
-/// The EditorKit test support product that the model and view tests link.
+/// The EditorKit test support products that the model and view tests link:
+/// the recording command system, and the hosted window and accessibility
+/// helpers, such as the accessibility hit test.
 let editorKitTestSupportProducts: [Target.Dependency] = [
-  .product(name: "EditorCommandsTestSupport", package: "EditorKit")
+  .product(name: "EditorCommandsTestSupport", package: "EditorKit"),
+  .product(name: "EditorTestSupport", package: "EditorKit"),
 ]
 
 /// The Markdown renderer (plan.md §4.2). Docs/decisions/dependencies.md

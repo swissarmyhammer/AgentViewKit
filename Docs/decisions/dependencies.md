@@ -14,7 +14,7 @@ of each row, and compares the set with the direct dependencies of the kit.
 |---|---|---|---|
 | textual | https://github.com/gonzalezreal/textual | exact 0.5.0 | `Textual` |
 | swiftui-math | https://github.com/gonzalezreal/swiftui-math | exact 0.1.0 | `SwiftUIMath` |
-| EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorComplete`, `EditorDecorations`, `EditorExtensions`, `EditorDiff` |
+| EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorTestSupport`, `EditorComplete`, `EditorDecorations`, `EditorExtensions`, `EditorDiff` |
 | FoundationModelsACP | git@github.com:swissarmyhammer/FoundationModelsACP.git | branch main | `FoundationModelsACP` |
 | FoundationModelsACPClient | git@github.com:swissarmyhammer/FoundationModelsACPClient.git | branch main | `FoundationModelsACPClient` |
 

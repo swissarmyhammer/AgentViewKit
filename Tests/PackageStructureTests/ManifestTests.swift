@@ -30,8 +30,12 @@ import Testing
   /// Router target, and the ACP target that the kit target now holds.
   static let removedTargetPrefixes = ["AgentViewKitRouter", "AgentViewKitACP"]
 
-  /// The EditorKit product that only the tests link.
-  static let editorKitTestSupportProduct = "EditorCommandsTestSupport"
+  /// The EditorKit products that only the tests link: the recording command
+  /// system, and the hosted window and accessibility helpers.
+  static let editorKitTestSupportProducts: Set<String> = [
+    "EditorCommandsTestSupport",
+    "EditorTestSupport",
+  ]
 
   /// The EditorKit products that the package uses.
   static let editorKitProducts: Set<String> = [
@@ -42,6 +46,7 @@ import Testing
     "EditorCommands",
     "EditorCommandsUI",
     "EditorCommandsTestSupport",
+    "EditorTestSupport",
     "EditorComplete",
     "EditorDecorations",
     "EditorExtensions",
@@ -73,11 +78,20 @@ import Testing
 
   @Test func linksTheACPAndEditorKitProductsToTheKitTarget() throws {
     let products = try kitTargetProducts()
-    let expected = Self.acpProducts.union(Self.editorKitProducts.subtracting([Self.editorKitTestSupportProduct]))
+    let expected = Self.acpProducts.union(Self.editorKitProducts.subtracting(Self.editorKitTestSupportProducts))
     #expect(products.isSuperset(of: expected), "\(products)")
   }
 
-  @Test func usesTheTwelveEditorKitProducts() {
+  /// The kit test target links each EditorKit test support product, and the
+  /// kit target links none of them.
+  @Test func linksTheEditorKitTestSupportProductsToTheKitTestsOnly() throws {
+    let testSupport = try Set(products(inArrayNamed: "editorKitTestSupportProducts"))
+    #expect(testSupport == Self.editorKitTestSupportProducts)
+    #expect(manifest.contains(/\+ acpProducts \+ editorKitTestSupportProducts,/))
+    #expect(try kitTargetProducts().isDisjoint(with: Self.editorKitTestSupportProducts))
+  }
+
+  @Test func usesTheThirteenEditorKitProducts() {
     let names = manifest.matches(of: /\.product\(\s*name:\s*"(?<name>[^"]+)",\s*package:\s*"EditorKit"\s*\)/)
       .map { String($0.output.name) }
     #expect(Set(names) == Self.editorKitProducts)
