@@ -70,10 +70,7 @@
     /// - Returns: `nil` when the label holds no ink, or no ink after the
     ///   first run.
     init?(of pixels: RenderedPixels, in frame: CGRect) {
-      let columnWidth = 1 / pixels.scale
-      let columns = stride(from: frame.minX, to: frame.maxX, by: columnWidth).map { left in
-        CGRect(x: left, y: frame.minY, width: columnWidth, height: frame.height)
-      }
+      let columns = RegionColors.columns(of: pixels, in: frame)
       let inked = columns.map { column in
         (RegionColors(of: pixels, in: column)?.contrast ?? 1) > Self.inkContrast
       }
@@ -118,28 +115,11 @@
       return (pixels, parts, EditorThemeViewsTests.defaultThemeSucceeded(in: variant.colorScheme))
     }
 
-    /// Whether a pixel of `region` of `pixels` is close to `color`.
-    ///
-    /// - Parameters:
-    ///   - pixels: The image.
-    ///   - color: A color with no dynamic part.
-    ///   - region: The region, in points from the top leading corner.
-    /// - Returns: `true` when the pixel of one point of `region` has the
-    ///   color, within ``RenderedPixels/defaultTolerance``.
-    static func containsPixel(of pixels: RenderedPixels, closeTo color: Color, in region: CGRect) -> Bool {
-      let step = 1 / pixels.scale
-      return stride(from: region.minY, to: region.maxY, by: step).contains { y in
-        stride(from: region.minX, to: region.maxX, by: step).contains { x in
-          pixels.contains(color, at: CGPoint(x: x, y: y))
-        }
-      }
-    }
-
     @Test(arguments: SucceededStatusLabel.allCases, [SnapshotVariant.light, .dark])
     func theSymbolHasTheStatusColor(label: SucceededStatusLabel, variant: SnapshotVariant) throws {
       let (pixels, parts, succeeded) = try Self.render(label, in: variant)
 
-      let symbolHasTheColor = Self.containsPixel(of: pixels, closeTo: succeeded, in: parts.symbol)
+      let symbolHasTheColor = RegionColors.contains(succeeded, in: parts.symbol, of: pixels)
       #expect(symbolHasTheColor, "\(parts.symbol)")
     }
 
@@ -147,7 +127,7 @@
     func theTitleDoesNotHaveTheStatusColor(label: SucceededStatusLabel, variant: SnapshotVariant) throws {
       let (pixels, parts, succeeded) = try Self.render(label, in: variant)
 
-      let titleHasTheColor = Self.containsPixel(of: pixels, closeTo: succeeded, in: parts.title)
+      let titleHasTheColor = RegionColors.contains(succeeded, in: parts.title, of: pixels)
       #expect(!titleHasTheColor, "\(parts.title)")
     }
 
