@@ -41,6 +41,94 @@ comments:
     ### Correction: no card for the citation chip
     The comment above is wrong about the citation chip. Shared style rule 1 (user decision 2026-10-24, recorded on ^y2mrfxt) permits the citation chip's accent fill, so no card was filed for it. The open question about whether the other chip fills stay is unchanged.
   timestamp: 2026-10-27T12:09:43.435400+00:00
+- actor: claude-code
+  id: 01m5ymeqqrfhh6653749k3kj0g
+  text: |-
+    ### Original system settings, recorded 2026-10-27 before any change (macOS 27.0.1, 26A434)
+    - Dark mode: OFF (light). `osascript ... get dark mode` = false; `defaults read -g AppleInterfaceStyle` = key absent.
+    - Reduce Transparency: OFF. `com.apple.universalaccess reduceTransparency` = key absent; NSWorkspace.accessibilityDisplayShouldReduceTransparency = false.
+    - Increase Contrast: OFF. `increaseContrast` = key absent; NSWorkspace...IncreaseContrast = false.
+    - Reduce Motion: OFF. `reduceMotion` = key absent; NSWorkspace...ReduceMotion = false.
+    - Liquid Glass look: global domain has `NSGlassTintAmount = 0`, `NSGlassBuddyTintAmount = 0`, `NSGlassEverEditedInBuddy = 1`. The look name (Clear or Tinted) is confirmed in the next comment after reading System Settings > Appearance.
+    - Full snapshots before the run: scratchpad `defaults-before/global.txt` and `defaults-before/ua.txt` (session scratchpad, outside the repo).
+    Restore target: every value above, keys that were absent are deleted again.
+  timestamp: 2026-10-27T12:13:11.800811+00:00
+- actor: claude-code
+  id: 01m5ymr5syfxnyxs1x3e7ykpp8
+  text: |-
+    ### System settings: none changed, all read back 2026-10-27
+    The run never wrote a system setting. Read back after the system-setting approach was dropped:
+    - Dark mode: false (light). `AppleInterfaceStyle`: absent.
+    - `com.apple.universalaccess` `reduceTransparency`, `increaseContrast`, `reduceMotion`: absent. NSWorkspace reports all three as false.
+    - `NSGlassTintAmount` = 0, `NSGlassBuddyTintAmount` = 0 (unchanged).
+    - The global domain matches the snapshot taken before the run, apart from timestamp keys.
+    Why the system-setting route could not run here: the sah shell (zellij → claude → sah) and Ghostty have neither Screen Recording nor Accessibility. `screencapture` reports "could not create image from display", `osascript` UI scripting reports "not allowed assistive access", and an XCUITest screenshot fails with "Image creation failed". One probe XCUITest (`ZZProbeTests`, run under the UI test lock) was added and deleted again. The lock was released. The user then dropped the system-setting and Finder/System Settings approach (see the rewritten description).
+  timestamp: 2026-10-27T12:18:21.118324+00:00
+- actor: claude-code
+  id: 01m5ypkvrwcdp36e402t2hcr35
+  text: |-
+    ### Finding 1: the diff rows do not match the wrapped text → ^q89x329
+    - Screen: `thread`. Setting: light and dark.
+    - View: the expanded "Edit SearchIndex.swift" tool call with the diff (`DiffView` → `EditorKitDiffRenderer` → EditorKit `DiffView`, inline).
+    - PNGs: `~/Library/Caches/AgentViewKit/screenshot-check/thread--light.png`, `thread--dark.png`.
+    - The removed line wraps onto two text rows. The gutter and the line colors keep one row for each patch line, so the wrapped text stands on the green row of the added line, and the last lines are cut off.
+  timestamp: 2026-10-27T12:50:56.924917+00:00
+- actor: claude-code
+  id: 01m5ypkybytrnk0hnsne19w3tp
+  text: |-
+    ### Finding 2: "Sent" and "Exit code 0" are green text at 2.2:1 in light → ^sbx2q4h
+    - Screens: `sign-in`, `banners`, `scrolled` ("Sent"), `thread`, `inspector` ("Exit code 0"). Setting: light.
+    - Views: `UserMessageView.SendStateLabel`, `OutputExitLabel`.
+    - PNGs: `~/Library/Caches/AgentViewKit/screenshot-check/sign-in--light.png`, `banners--light.png`, `scrolled--light.png`, `thread--light.png`.
+    - The whole label, text included, is `statusSucceeded` (#34c759) on white: 2.2:1, far below the secondary label color (3.9:1). Dark is 8.2:1.
+  timestamp: 2026-10-27T12:50:59.582817+00:00
+- actor: claude-code
+  id: 01m5ypm0j38j68cjv1dsqjj20q
+  text: |-
+    ### Finding 3: the diff counts "+1 −1" are 1.9:1 in light → ^a2dy2gt
+    - Screen: `thread`. Setting: light.
+    - View: the file list row of `DiffView` ("SearchIndex.swift +1 −1").
+    - PNG: `~/Library/Caches/AgentViewKit/screenshot-check/thread--light.png`.
+    - `+1` in `diffAddedText` (#34c759) on the selected row (#eeeeee) is 1.9:1; `−1` in `diffRemovedText` (#ff383c) is 3.1:1. Dark is 6.8:1 and more.
+  timestamp: 2026-10-27T12:51:01.827967+00:00
+- actor: claude-code
+  id: 01m5ypm2qhkbvntf0vwvn6my4e
+  text: |-
+    ### Finding 4: the pending status symbol is below 3:1 → ^fppqe0q
+    - Screen: `request-deck`. Setting: light and dark.
+    - View: the trailing status symbol of the pending tool call "Run swift test" (`ToolCallView`, `statusPending`).
+    - PNGs: `~/Library/Caches/AgentViewKit/screenshot-check/request-deck--light.png`, `request-deck--dark.png`.
+    - #bdbdbd on white (1.9:1) and #565656 on #1e1e1e (2.3:1). The EditorKit default of `statusPending` is the tertiary label color.
+  timestamp: 2026-10-27T12:51:04.049664+00:00
+- actor: claude-code
+  id: 01m5ypm6vq4ff33dem2gtykp0v
+  text: |-
+    ### Not a kit finding: the limits of the render path → ^zbcys18
+    Path A of `ViewSnapshot` (the cache of a hidden window) draws no Liquid Glass and no scroll edge effect. In the dark images, some parts also miss the dark look:
+    - sidebar `List` rows draw black text (`gallery--dark.png`);
+    - `.inspector` grouped-form rows draw white (`inspector--dark.png`);
+    - `.glass` labels draw black, and bordered buttons on the deck glass draw white (`request-deck--dark.png`, `sign-in--dark.png`, `banners--dark.png`);
+    - the symbol-only glass buttons of the composer accessory row (mic, Send) are not drawn in either variant.
+    Throwaway probes with plain SwiftUI views (no kit code) gave the same results, so these are not kit problems. They were added under `Tests/` one at a time, run, and deleted. ^zbcys18 records the work to fix or document them. Because of these limits, the gallery cannot show the dictation symbol (AVK-8ai) or the look popover (a popover is its own window), and cannot judge glass on glass. Each note in the contact sheet says so.
+  timestamp: 2026-10-27T12:51:08.279409+00:00
+- actor: claude-code
+  id: 01m5ypxdys8dwpdsc2hq992wfm
+  text: |-
+    ### implement — changed
+    - evidence: `swift test`: 1847 tests in 229 suites passed (7 known issues, the existing `withKnownIssue` tests), 255 tests in 34 suites passed, 1 test passed, 0 failures, 0 warnings from repo code. `__Snapshots__` unchanged. The gallery wrote 14 PNGs and `index.html` to `~/Library/Caches/AgentViewKit/screenshot-check/`. Files: new `Sources/AgentViewKitTestSupport/ReviewGallery.swift`, `Sources/AgentViewKitTestSupport/ReviewGalleryPage.swift`, `Tests/AgentViewKitTests/Snapshots/ReviewGalleryTests.swift`, `ReviewGalleryScreen.swift`, `ReviewGalleryScreenTests.swift`, `ReviewGalleryNotes.swift`; changed `Sources/AgentViewKitTestSupport/ViewSnapshot.swift` (`makeHarness(of:size:variant:)` and `pixels(of:hiding:)`; `hostedPixels` now uses them, with the same behavior), `Tests/AgentViewKitTests/TestSupport/ViewSnapshotTests.swift` (3 new hosted tests). Cards: ^q89x329, ^sbx2q4h, ^a2dy2gt, ^fppqe0q (kit findings), ^zbcys18 (render-path limits).
+    - How I judged: no tool in this session shows image content, not mine and not a subagent's. So I measured each PNG with Vision OCR (text and boxes), the colors behind each text and their contrast, accent-colored pixel groups, and maps of filled areas. Plain SwiftUI probes, added and deleted, told the kit apart from the render path. The user reviews the same images in the contact sheet.
+    - Hex colors in the first text of three new cards made 7 tags (30d158, 34c759, 808080, eeeeee, ff383c, 565656, bdbdbd). I rewrote the colors without `#` and deleted the tags.
+    - next: `/review`
+  timestamp: 2026-10-27T12:56:10.457031+00:00
+- actor: claude-code
+  id: 01m5yq51fjq5act2pd4yb4fv5d
+  text: |-
+    ### test — green
+    - evidence: `swift test` exit 0, 1847 tests in 229 suites passed, 7 known issues (the expected count), 0 failures, 0 skipped. `ruby Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb` ok; `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo -skipMacroValidation -skipPackagePluginValidation -onlyUsePackageVersionsFromResolvedFile build` BUILD SUCCEEDED.
+    - warnings: none in repo code. Two tool messages only: SwiftPM "missing creator for mutated node ... mlx-swift_Cmlx.bundle" (dependency bundle) and appintentsmetadataprocessor "Metadata extraction skipped, no AppIntents.framework dependency found" (Xcode note for an app that uses no App Intents).
+    - no code edited, no snapshots re-recorded, no UI tests or demo launch run (so the UI test lock was not taken).
+    - next: review
+  timestamp: 2026-10-27T13:00:19.826086+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5DFBW8F3WMN4JFY7M7QDDWE
@@ -66,47 +154,46 @@ depends_on:
 - 01M5E8XAAZ7ZAT3RKSG102C8KK
 - 01M5E8XMJXF8XABYA7P3ZGM5SF
 - 01M5E8XTQS654VRMEBB5A6B05B
-position_column: todo
-position_ordinal: '9e80'
-title: 'AVK-8u Screenshot check by an agent: the demo app compared with Finder and System Settings, in seven appearance settings including the Tinted look and the Clear look (D111 step 8, D113 answers 3 and 6)'
+position_column: doing
+position_ordinal: '8380'
+title: 'AVK-8u Screenshot check by an agent: a review gallery of the full kit screens in light and dark, written by swift test, judged for what the kit draws (D111 step 8, D113)'
 ---
 ## Why
 
-D111 step 8 (`style.md` "Procedure"): "Check with a screenshot. Build, run, take a screenshot, and compare it with Finder and System Settings. Remove each opaque layer that stays." `style.md`: "The screenshot step is part of the acceptance of each Liquid Glass card. Take the screenshots in light mode, dark mode, Reduce Transparency, Increase Contrast and the Tinted look, and keep them with the test results for a person to look at."
+D111 step 8 (`style.md` "Procedure"): "Check with a screenshot. ... Remove each opaque layer that stays." D113 (testudoapp-4c) names what the check looks for: no fill on content (answers 1 and 4; if a group needs more, a `GroupBox` or a grouped `Form`, never a fill), and the list under the bars with no opaque fill (answer 7).
 
-D113 (testudoapp-4c):
-- Answer 6: "A test cannot turn the system setting on deterministically, so the Tinted check is the manual screenshot check (AVK-8u)."
-- Answer 3: "The Clear look is a system setting that the system applies to `.regular` glass." So the Clear look is checked here as well.
-- Answer 1: "If the step-8 screenshot shows that a group needs more, use a system container (GroupBox, or a grouped Form), never a custom fill."
+User decisions (2026-10-27):
+- An agent renders the screens, judges them and files the findings. No person captures or looks.
+- The screenshots come from the automated test suite, in process. No script or test changes a system setting, and nothing captures or compares with Finder or System Settings. The kit uses Apple's built-in glass effects, and Apple tests its own rendering. The snapshots check what the kit draws (fills, tints, layout, readability over content), not Apple's glass. The earlier plan of seven system settings with the Tinted and the Clear look is dropped.
+- The full screens are a review gallery, not snapshot assertions yet, because the designs are not settled. The gallery has two variants: light and dark. The existing snapshot tests stay as they are.
 
-User decision (2026-10-27): the check stays, and an AGENT does all of it. The user will not take screenshots. The agent captures the screenshots, looks at them itself, judges them and files the findings. It is not an automatic test in the suite: tests of AVK-8 stay deterministic (no clock, sleep, poll, retry, timeLimit or XCUITest). The screenshots are a one-time artifact of this card.
+## How the gallery works
 
-## Rules for the run
-
-- Every demo launch holds the shared UI-test lock (`$HOME/Library/Caches/swissarmyhammer/ui-tests.lock`, the same lock `Scripts/test-examples.sh` takes). Launch with the demo `--primary-screen` switch.
-- Before you change any system setting, write its current value in a comment. Put every setting back when you finish, even if the run fails: dark mode, Reduce Transparency, Increase Contrast, the Liquid Glass look (Tinted or Clear) and Reduce Motion. End with a comment that lists the restored values.
-- Find out how to set each one: `defaults write` of the `com.apple.universalaccess` keys (`reduceTransparency`, `increaseContrast`, `reduceMotion`), `osascript` for dark mode (`tell application "System Events" to tell appearance preferences to set dark mode to …`). For the Liquid Glass Tinted/Clear look, find the key: read `defaults read -g` and the relevant domains before and after you switch the look in System Settings with UI scripting (`osascript`). Record the key in a comment. If a setting cannot be switched from a script, say which one and why in a comment. Do not skip it without saying so.
-- Capture with `screencapture -l <windowid>` (window), or `-R` for a region. Find window ids with a small Swift or `osascript` helper that uses CGWindowListCopyWindowInfo.
-- Keep the screenshots outside the repo, in `~/Library/Caches/AgentViewKit/screenshot-check/<date>/<setting>/<screen>.png`, and record that path in a comment.
+- `Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreenTests.swift` renders each screen of `ReviewGalleryScreen` (`ReviewGalleryScreen.swift`) in light and dark with path A of `ViewSnapshot` (the real kit views in a hidden window), and writes `<screen>--<variant>.png` and the contact sheet `index.html` (one row for each screen, one column for each variant, the note under each row) to `~/Library/Caches/AgentViewKit/screenshot-check/`. Each `swift test` run writes the folder again.
+- Run it: `swift test --filter ReviewGalleryScreenTests` (it also runs in the full `swift test`), then open `~/Library/Caches/AgentViewKit/screenshot-check/index.html`.
+- The test compares no image, so a changed screen does not fail it. It fails when a screen cannot be built, when a render gives no image or an image of one color, or when a file cannot be written.
+- The judgement of each screen is in `Tests/AgentViewKitTests/Snapshots/ReviewGalleryNotes.swift`.
+- To make the gallery a snapshot test later: `ReviewGallery` (`Sources/AgentViewKitTestSupport/ReviewGallery.swift`) and `SnapshotStore` take the same pixels from `ViewSnapshot` and the same `SnapshotVariant`. Give the pixels of each screen to `SnapshotStore(suite:).verify(_:named:)` with `variant.name(of: screen.rawValue)` in place of `ReviewGallery.write(_:screen:variant:)`, and record the reference images.
+- Limits of the render path (^zbcys18): no Liquid Glass, no scroll edge effect and no popover (the Look popover is its own window). In dark, sidebar `List` rows, `.inspector` form rows, `.glass` labels and bordered buttons on glass miss the dark look. The symbol-only glass buttons of the composer accessory row (mic, Send) are not drawn. So the gallery cannot show the dictation symbol (AVK-8ai), the editor menu, glass on glass, or the morphs of the floating glass; a deterministic in-process render reduces motion.
 
 ## What to do
 
-- [ ] Build the demo app: regenerate with `generate_xcodeproj.rb`, then `xcodebuild -project Examples/AgentViewKitDemo/AgentViewKitDemo.xcodeproj -scheme AgentViewKitDemo -skipMacroValidation -skipPackagePluginValidation -onlyUsePackageVersionsFromResolvedFile build`. Record the result in a comment.
-- [ ] Write the list of screens in a comment, and drive the demo to each one (launch switches in DemoLaunchOptions or demo test values, menu commands or keyboard through `osascript`). The screens: the ACP tab (`ACPTabView`) with a session that has a transcript, a tool call card, a code block, terminal output, a diff, a permission request in the deck, a notice banner, the state banner, the sign-in prompt, the scroll-to-bottom pill, the suggestion chips and the composer; the list scrolled so that rows are under the top bar and under the bottom bar; the gallery (`GalleryColumns`) with the look popover; the attachment inspector open. If a screen can't be reached, add the smallest demo-only launch switch that reaches it.
-- [ ] Capture each screen in seven settings: light mode, dark mode, Reduce Transparency, Increase Contrast, the Tinted look, the Clear look, and the Tinted look with dark mode. Capture a Finder window and System Settings in the same seven settings.
-- [ ] Judge the Tinted look: the floating glass (composer field, editor menu, pill, chips, accessory buttons) takes the system tint like Finder's toolbar. The kit adds no tint of its own (D113 answer 6). Send is the only tinted action.
-- [ ] Judge the Clear look: the floating glass shows more of the content under it, like Finder's toolbar. No floating control stays frosted or opaque (D113 answer 3).
-- [ ] Judge the content: no card, notice, request card, code block or header row has a fill (D113 answers 1 and 4). Each one shows a thin separator edge. Look especially at the request card in the bottom bar (AVK-8y): is its text readable over the scrolled list, and do the cards behind it still read as a stack? Look also at the chips that AVK-8r allows (ToolCallView badge, AttachmentChip, PendingRequestCountBadge; the citation chip's accent fill is permitted by shared style rule 1), the dictation symbol while it listens (AVK-8ai), and the terminal background (AVK-8aa). For each group that needs more, the fix is a `GroupBox` or a grouped `Form`, never a fill.
-- [ ] Judge the request deck buttons in the bottom bar (`.glass` and `.bordered`, ^k06v4gt): is it glass on glass?
-- [ ] Judge the bars: the list scrolls under the top bar and the bottom bar, with the scroll edge effect (D113 answer 7). No opaque fill behind a bar, the sidebar, the inspector, the composer or the toolbar.
-- [ ] Judge the morphs: show and hide the pill, the editor menu and the suggestion chips, and capture a sequence of frames (`screencapture` in a loop, or a short `screencapture -v` recording). The glass morphs and does not jump. With Reduce Motion on, nothing moves.
-- [ ] For each finding, write a comment with the screen, the setting, the view and the screenshot path.
-- [ ] For each finding, make one new small `avk-8` card with the file, what to change and a deterministic test.
-- [ ] Put every system setting back, and record the restored values.
+- [x] Record the system settings before the run, and confirm in a comment that none changed (2026-10-27).
+- [x] Add the review gallery: `ReviewGallery` and its contact sheet (`ReviewGalleryPage`) in `AgentViewKitTestSupport`, with unit tests (`ReviewGalleryTests`), and `ViewSnapshot.makeHarness(of:size:variant:)` and `ViewSnapshot.pixels(of:hiding:)` for a screen that needs more than one render pass (`ViewSnapshotHostedTests`).
+- [x] Render the screens in light and dark: the thread (transcript, code block, tool call with a diff and a location chip, terminal output, plan, state banner, suggestion chips, composer), the request deck in the bar (a permission request in front of a form request), the banners (connection, a notice of each severity, the state banner with Show Error), the sign-in prompt under a prompt with an attachment chip, the list scrolled under both bars with the scroll-to-bottom pill, the attachment inspector, and the gallery columns (the session list with a pending-request badge, and an open session).
+- [x] Judge the content: no card, notice, request card, code block, terminal output or header row has a fill; each shows thin edges.
+- [x] Judge the chips that AVK-8r allows (the location chip, the attachment chip, the pending-request badge) and the terminal background. The fills of the chips stay an open question for the user.
+- [x] Judge the request deck in the bar: the cards read as a stack. Glass on glass cannot be judged without glass (^zbcys18).
+- [x] Judge the bars: no opaque fill behind a bar, the sidebar, the inspector or the composer.
+- [x] Judge the tints: the accent is only for the selection and the focus (^k06v4gt); the kit tints no action.
+- [x] Write the judgement of each screen under its row in the contact sheet (`ReviewGalleryNotes`).
+- [x] For each finding, write a comment with the screen, the setting, the view and the PNG path.
+- [x] For each finding, make one new small `avk-8` card with the file, what to change and a deterministic test: ^q89x329, ^sbx2q4h, ^a2dy2gt, ^fppqe0q. The limits of the render path are ^zbcys18.
+- [x] The full `swift test` is green, with no change to the recorded snapshots.
 
 ## Acceptance
 
-- A comment on this card says "Screenshots checked in seven settings, with the Tinted look and the Clear look. No opaque layer stays," or lists the findings, with a new card for each one.
-- The screenshot folder is recorded in a comment.
-- Every system setting is back at its value from before the run, and a comment records it.
-- No automatic test is added to the suite in this card (new cards for findings carry their own deterministic tests). #avk-8
+- Each `swift test` run writes 14 PNGs (7 screens in light and dark) and `index.html` to `~/Library/Caches/AgentViewKit/screenshot-check/`, and the full suite is green. The existing snapshot tests and their recorded images are unchanged.
+- The contact sheet shows the judgement and the card ids under each row, and a comment on this card lists the findings, with a new card for each one.
+- No system setting is changed, and a comment records the values read before and after.
+- This card says how a later card makes the gallery a snapshot test (see "How the gallery works"). #avk-8
