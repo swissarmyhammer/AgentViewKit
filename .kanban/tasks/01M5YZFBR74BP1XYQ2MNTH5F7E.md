@@ -32,8 +32,25 @@ comments:
     - no source or test files were edited; no snapshots re-recorded; AgentViewKitTestSupport untouched; nothing committed.
     - next: review
   timestamp: 2026-10-27T16:17:54.117500+00:00
-position_column: doing
-position_ordinal: '8680'
+- actor: claude-code
+  id: 01m5z2jc8ybav4xsb11hwpv11d
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (aef34e0): 4 files reviewed, 0 not reviewed; findings 0, confirmed 0, refuted 1, attempted 7, failed 0, skipped 0
+    - next: moved to done; no prior review findings sections
+  timestamp: 2026-10-27T16:19:51.198366+00:00
+- actor: claude-code
+  id: 01m5z2jybz2b236n80wzpndwjq
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — leak fix in AgentOneLineField and ElicitationTextField, plus 2 undo-stack tests
+    - test: green — swift test x2 1870 passed, 7 known issues; demo UI 10/10
+    - commit: 2c73b98 (kanban), aef34e0 (code)
+    - review: clean — 0 findings; card moved to done
+    - still open in EditorKit: SingleLineField's onEditCommit captures its model (ElicitationNumberField leak); sent to editorkit-a9
+  timestamp: 2026-10-27T16:20:09.727888+00:00
+position_column: done
+position_ordinal: ffffeb80
 title: 'AVK: pin that a field the kit tears down leaves no stale entry on the window undo stack (EditorKit ^1gab15j)'
 ---
 ## Why
