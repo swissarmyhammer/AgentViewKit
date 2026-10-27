@@ -78,8 +78,24 @@ comments:
     - no code changed; no __Snapshots__ re-recorded; Sources/AgentViewKitTestSupport untouched
     - next: review / commit
   timestamp: 2026-10-27T15:14:47.964051+00:00
-position_column: doing
-position_ordinal: '8580'
+- actor: claude-code
+  id: 01m5yyyazcg34ye4pgfvnr9k2b
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ddd2b48) — 3 files reviewed, 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed); prior Review Findings (2026-10-27 10:06) item checked
+    - next: none; card moved to done
+  timestamp: 2026-10-27T15:16:28.780770+00:00
+- actor: claude-code
+  id: 01m5yyyp2ksk0wtvc16zfnya5z
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — RegionColors helpers, the test reads pixels through them
+    - test: green — swift test 1866 passed, 7 known issues
+    - commit: 9afbf9d (kanban), ddd2b48 (code)
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-27T15:16:40.147362+00:00
+position_column: done
+position_ordinal: ffffe880
 title: 'AVK-8 status labels: draw the text of "Sent" and "Exit code" in a readable color, and keep the status color on the symbol (finding of ^8q34yt8)'
 ---
 Found by the review gallery of ^8q34yt8 (2026-10-27).
