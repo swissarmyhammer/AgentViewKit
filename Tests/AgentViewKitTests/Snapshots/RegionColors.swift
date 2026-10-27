@@ -71,10 +71,35 @@ struct RegionColors {
   ///   pixel of the image is in `region`.
   static func columns(of pixels: RenderedPixels, in region: CGRect) -> [CGRect] {
     guard let pixelRegion = pixelRegion(of: pixels, in: region) else { return [] }
-    let toPoints = CGAffineTransform(scaleX: 1 / pixels.scale, y: 1 / pixels.scale)
     return (Int(pixelRegion.minX)..<Int(pixelRegion.maxX)).map { column in
-      CGRect(x: CGFloat(column), y: pixelRegion.minY, width: 1, height: pixelRegion.height).applying(toPoints)
+      CGRect(x: CGFloat(column), y: pixelRegion.minY, width: 1, height: pixelRegion.height)
+        .applying(toPoints(of: pixels))
     }
+  }
+
+  /// The frame of the row of pixels of `pixels` that holds the points at `y`.
+  ///
+  /// The row is the row that ``RenderedPixels/contains(_:at:tolerance:)``
+  /// reads at `y`, so a region of one row reads the same pixels as a point on
+  /// each of its columns. A point on the edge between two rows is in the row
+  /// below the edge.
+  ///
+  /// - Parameters:
+  ///   - pixels: The image.
+  ///   - y: The distance from the top of the image, in points.
+  /// - Returns: The frame, in points from the top leading corner of the image:
+  ///   one pixel high, and as wide as the image.
+  static func row(of pixels: RenderedPixels, at y: CGFloat) -> CGRect {
+    CGRect(x: 0, y: (y * pixels.scale).rounded(.down), width: CGFloat(pixels.width), height: 1)
+      .applying(toPoints(of: pixels))
+  }
+
+  /// The transform from pixels of `pixels` to points.
+  ///
+  /// - Parameter pixels: The image.
+  /// - Returns: The transform that divides each value by the scale of `pixels`.
+  private static func toPoints(of pixels: RenderedPixels) -> CGAffineTransform {
+    CGAffineTransform(scaleX: 1 / pixels.scale, y: 1 / pixels.scale)
   }
 
   /// The distance from the top leading corner of a pixel to its center, in

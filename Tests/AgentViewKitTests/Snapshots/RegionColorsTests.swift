@@ -47,4 +47,24 @@ import Testing
 
     #expect(RegionColors.columns(of: pixels, in: outside).isEmpty)
   }
+
+  @Test func theRowAtAPointIsThePixelRowThatHoldsThePoint() throws {
+    let pixels = try Self.halves()
+    let onePixel = RenderedPixelsTests.onePixel
+    let inSecondPixelRow = onePixel.height + onePixel.height / 2
+
+    let row = RegionColors.row(of: pixels, at: inSecondPixelRow)
+
+    #expect(row == CGRect(x: 0, y: onePixel.height, width: RenderedPixelsTests.size.width, height: onePixel.height))
+  }
+
+  @Test func theRowAtTheEdgeBetweenTwoPixelRowsIsTheRowBelowTheEdge() throws {
+    let pixels = try Self.halves()
+    let onePixel = RenderedPixelsTests.onePixel
+
+    let row = RegionColors.row(of: pixels, at: onePixel.height)
+
+    #expect(row.minY == onePixel.height)
+    #expect(RegionColors.columns(of: pixels, in: row).allSatisfy { $0.height == onePixel.height })
+  }
 }

@@ -46,16 +46,20 @@ import Testing
   /// The spans of the glasses of `view` on its row, from the leading edge to
   /// the trailing edge, in the render with each setting off.
   ///
+  /// A glass pixel is a pixel of the row (``RegionColors/row(of:at:)``) that
+  /// does not show the backdrop. Each span runs from the center of its first
+  /// glass pixel to the center of its last one.
+  ///
   /// - Parameter view: The glass view.
   /// - Returns: The spans, in points from the leading edge of the render.
   /// - Throws: An error when the renderer gives no pixels.
   static func glassSpans(of view: GlassView) throws -> [ClosedRange<CGFloat>] {
     let pixels = try GlassRenderProbeTests.pixels(of: view.content, size: view.size)
-    let step = 1 / RenderedPixels.renderScale
-    let glassColumns = stride(from: step / 2, to: view.size.width, by: step).filter { x in
-      !pixels.contains(GlassRenderProbeTests.backdrop, at: CGPoint(x: x, y: view.row))
+    let row = RegionColors.row(of: pixels, at: view.row)
+    let glassColumns = RegionColors.columns(of: pixels, in: row).filter { column in
+      !RegionColors.contains(GlassRenderProbeTests.backdrop, in: column, of: pixels)
     }
-    return spans(of: glassColumns, step: step)
+    return spans(of: glassColumns.map(\.midX), step: 1 / RenderedPixels.renderScale)
   }
 
   /// Joins the adjacent values of `columns` into spans.
