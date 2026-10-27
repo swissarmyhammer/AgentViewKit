@@ -31,8 +31,24 @@ comments:
     - evidence: `swift test` (exit 0) — 1859 tests in 230 suites passed, 0 failed, 7 known issues (expected count), 0 skipped. Only compiler/build output warning is the build-system notice "missing creator for mutated node: .../mlx-swift_Cmlx.bundle/Contents/MacOS" from the mlx-swift dependency bundle, not repo code. No source or test edits were needed; snapshots not re-recorded; Sources/AgentViewKitTestSupport untouched.
     - next: review
   timestamp: 2026-10-27T14:41:40.529047+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m5yx1sekp33y3dayjp44gr92
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0676da6): 0 findings, 0 confirmed, 0 refuted; 6 files reviewed, 0 not reviewed; 7 attempted, 0 failed, 0 skipped
+    - next: none — moved to done
+  timestamp: 2026-10-27T14:43:24.755820+00:00
+- actor: claude-code
+  id: 01m5yx24tqhk4k6f63pajc69yw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 6 files (DiffView stacked layout, shared ChipFlowLayout)
+    - test: green — swift test 1859 passed, 7 known issues
+    - commit: 3916f94 (kanban), 0676da6 (code)
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-27T14:43:36.407541+00:00
+position_column: done
+position_ordinal: ffffe780
 title: 'AVK-8 diff: file chips in a row above, the file content full width below; drop the side-by-side layout (user review of the gallery)'
 ---
 ## Why
