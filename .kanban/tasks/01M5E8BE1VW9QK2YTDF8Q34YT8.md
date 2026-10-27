@@ -129,6 +129,44 @@ comments:
     - no code edited, no snapshots re-recorded, no UI tests or demo launch run (so the UI test lock was not taken).
     - next: review
   timestamp: 2026-10-27T13:00:19.826086+00:00
+- actor: claude-code
+  id: 01m5yqax0xn34f3w5pnkkf4gkt
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (b0756eb), 8 files reviewed, 0 not reviewed; 3 findings (confirmed 5, refuted 2) — Sources/AgentViewKitTestSupport/ReviewGallery.swift:177, Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift:109, Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift:113
+    - next: implement the 3 unchecked items in "## Review Findings (2026-10-27 08:01)"; card stays in review
+  timestamp: 2026-10-27T13:03:31.869686+00:00
+- actor: claude-code
+  id: 01m5yqbe116vhfpe541f8b7g9s
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 8 files (review gallery), cards ^q89x329 ^sbx2q4h ^a2dy2gt ^fppqe0q ^zbcys18
+    - test: green — swift test 1847 passed, 7 known issues; demo build succeeded
+    - commit: 54f287a (kanban), b0756eb (code)
+    - review: findings — Sources/AgentViewKitTestSupport/ReviewGallery.swift:177, Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift:109, Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift:113
+  timestamp: 2026-10-27T13:03:49.281379+00:00
+- actor: claude-code
+  id: 01m5yqjptc5p0yezpa8mky0s8q
+  text: |-
+    ### Review findings 2026-10-27 08:01 fixed
+    - reuse/reuse (`ReviewGallery.swift` `write(_:to:)`): removed the private copy. `SnapshotStore.write(_:to:)` is now internal (no `private`), and `ReviewGallery.write(_:screen:variant:)` and `writeContactSheet(_:)` call it. The folder-first atomic write is now in one place. The SnapshotStore helper makes `url.deletingLastPathComponent()`, and the gallery made `directory`. Both are the same folder, because each gallery URL is `directory.appending(path: <file name>)`. New guard test `ReviewGalleryTests.theGalleryMakesAMissingFolderForItsFiles` writes an image and the contact sheet into a nested folder that does not exist. This is a refactor with no new behavior, so the test passes before and after the change.
+    - magic-numbers-swift (`ReviewGalleryScreen.swift`): `threadSize` and `windowSize` now use the named `static let` constants `threadWidth`, `threadHeight`, `windowWidth` and `windowHeight`. I ran swiftlint `no_magic_numbers` with `allowed_numbers: [0, 1, -1, 100]` (the validator's config) over the whole file: 4 violations before (both literals on each of the two lines), 0 after. The other numbers in the file are inside JSON or prose strings, so the rule does not report them.
+    - Also removed a compiler warning in the same file: in `galleryPixels`, `try` stood before `ViewSnapshot.hostedPixels` (which is `rethrows`) when its settle closure does not throw ("no calls to throwing functions occur within 'try' expression"). The earlier test record missed it because the incremental build did not compile the file again.
+  timestamp: 2026-10-27T13:07:47.660102+00:00
+- actor: claude-code
+  id: 01m5yqjt45mcekavawcynp6nmp
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKitTestSupport/ReviewGallery.swift, Sources/AgentViewKitTestSupport/SnapshotStore.swift, Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift, Tests/AgentViewKitTests/Snapshots/ReviewGalleryTests.swift. `swift test --filter 'ReviewGallery|ViewSnapshot|SnapshotStore'`: 44 tests in 5 suites passed, 1 known issue (the expected `withKnownIssue` in SnapshotStoreTests), 0 failures, 0 compiler warnings in repo code (only the SwiftPM mlx bundle message). swiftlint no_magic_numbers: 0 violations in the 4 files. `__Snapshots__` unchanged. All 3 findings checked.
+    - next: /test then /review; card stays in doing
+  timestamp: 2026-10-27T13:07:51.045619+00:00
+- actor: claude-code
+  id: 01m5yqqstpgrkn5hjvkeqypn2c
+  text: |-
+    ### test — green
+    - evidence: `swift test` (full, no worktree) — 1848 tests in 229 suites passed, 0 failed, 0 skipped, 7 known issues (the expected count). No compiler warnings in repo code; the only `warning:` line is a build-system note about the mlx-swift_Cmlx.bundle dependency, not repo code. No code changed, no `__Snapshots__` re-recorded, no UI-test lock needed.
+    - next: review
+  timestamp: 2026-10-27T13:10:34.582879+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5DFBW8F3WMN4JFY7M7QDDWE
@@ -197,3 +235,11 @@ User decisions (2026-10-27):
 - The contact sheet shows the judgement and the card ids under each row, and a comment on this card lists the findings, with a new card for each one.
 - No system setting is changed, and a comment records the values read before and after.
 - This card says how a later card makes the gallery a snapshot test (see "How the gallery works"). #avk-8
+
+## Review Findings (2026-10-27 08:01)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 0 not reviewed.
+
+- [x] `Sources/AgentViewKitTestSupport/ReviewGallery.swift:177` `reuse/reuse` — The private `write(_:to:)` reimplements the folder creation and atomic write that `SnapshotStore` already has. Two copies of the same create-directory-then-atomic-write logic will drift apart, and a fix to one will not reach the other. Make the SnapshotStore helper internal (drop `private`) and call it from `ReviewGallery.write(_:to:)`, or move it to a shared file-scope helper. Keep the one-line folder-first behavior in one place.
+- [x] `Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift:109` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift:113` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
