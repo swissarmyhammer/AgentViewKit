@@ -59,12 +59,51 @@ public enum ViewSnapshot {
     of view: some View, size: CGSize, variant: SnapshotVariant,
     hiding hiddenTypes: [NSView.Type] = [], settle: @MainActor () async throws -> Void = {}
   ) async rethrows -> RenderedPixels? {
-    let harness = HostedViewHarness(variant.pinned(view), size: size)
+    let harness = makeHarness(of: view, size: size, variant: variant)
     defer { harness.close() }
-    harness.window.appearance = NSAppearance(named: variant.appearanceName)
     harness.render()
     try await settle()
     harness.render()
+    return pixels(of: harness, hiding: hiddenTypes)
+  }
+
+  /// Mounts `view` in a hidden window with the settings of `variant`, for a
+  /// test that drives the view through more than one render pass before the
+  /// image, such as a scroll by command (path A).
+  ///
+  /// The window has the appearance of `variant`. The caller makes the render
+  /// passes, reads the image with ``pixels(of:hiding:)``, and closes the
+  /// harness. ``hostedPixels(of:size:variant:hiding:settle:)`` does the same
+  /// with one settle step.
+  ///
+  /// - Parameters:
+  ///   - view: The real view to show.
+  ///   - size: The size of the view, in points.
+  ///   - variant: The settings of the image.
+  /// - Returns: The harness, before its first render pass.
+  @MainActor
+  public static func makeHarness(of view: some View, size: CGSize, variant: SnapshotVariant)
+    -> HostedViewHarness<some View>
+  {
+    let harness = HostedViewHarness(variant.pinned(view), size: size)
+    harness.window.appearance = NSAppearance(named: variant.appearanceName)
+    return harness
+  }
+
+  /// Reads the pixels that AppKit caches for the view of `harness` (path A),
+  /// after it hides the scroll edge effects and each AppKit view of
+  /// `hiddenTypes`. See ``hostedPixels(of:size:variant:hiding:settle:)``.
+  ///
+  /// - Parameters:
+  ///   - harness: The harness of ``makeHarness(of:size:variant:)``, after its
+  ///     last render pass.
+  ///   - hiddenTypes: The classes of the AppKit views that the image does not
+  ///     show. The default hides no view.
+  /// - Returns: The pixels, or `nil` when AppKit gives no cache.
+  @MainActor
+  public static func pixels(of harness: HostedViewHarness<some View>, hiding hiddenTypes: [NSView.Type] = [])
+    -> RenderedPixels?
+  {
     ScrollPocketProbe.hidePockets(in: harness.hostingView)
     harness.hostingView.hideDescendants(of: hiddenTypes)
     return RenderedPixels(cachingDisplayOf: harness.hostingView, scale: RenderedPixels.renderScale)

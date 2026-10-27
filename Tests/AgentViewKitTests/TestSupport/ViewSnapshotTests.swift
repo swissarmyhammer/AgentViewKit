@@ -156,6 +156,40 @@ import Testing
     #expect(!hidden.contains(SnapshotVariantTests.off))
     #expect(hidden.isClose(to: backgroundPixels))
   }
+
+  @Test(arguments: SnapshotVariant.allCases)
+  func aSnapshotHarnessGivesAppKitViewsTheAppearanceOfTheVariant(variant: SnapshotVariant) throws {
+    let harness = ViewSnapshot.makeHarness(of: AppearanceReader(), size: SnapshotVariantTests.size, variant: variant)
+    defer { harness.close() }
+    harness.render()
+
+    let pixels = try #require(ViewSnapshot.pixels(of: harness))
+
+    #expect(pixels.contains(SnapshotVariantTests.on) == (variant == .dark))
+  }
+
+  @Test func thePixelsOfASnapshotHarnessShowTheChangeOfTheLastRenderPass() throws {
+    let flag = SettleFlag()
+    let harness = ViewSnapshot.makeHarness(of: FlagReader(flag: flag), size: SnapshotVariantTests.size, variant: .light)
+    defer { harness.close() }
+    harness.render()
+    flag.isSet = true
+    harness.render()
+
+    let pixels = try #require(ViewSnapshot.pixels(of: harness))
+
+    #expect(pixels.contains(SnapshotVariantTests.on))
+  }
+
+  @Test func thePixelsOfASnapshotHarnessShowNoViewOfAHiddenType() throws {
+    let harness = ViewSnapshot.makeHarness(of: AppearanceReader(), size: SnapshotVariantTests.size, variant: .light)
+    defer { harness.close() }
+    harness.render()
+
+    let pixels = try #require(ViewSnapshot.pixels(of: harness, hiding: [AppearanceFillView.self]))
+
+    #expect(!pixels.contains(SnapshotVariantTests.off))
+  }
 }
 
 /// A view that draws ``SnapshotVariantTests/on`` when its setting is on in
