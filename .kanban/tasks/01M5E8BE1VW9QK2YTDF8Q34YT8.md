@@ -167,6 +167,22 @@ comments:
     - evidence: `swift test` (full, no worktree) — 1848 tests in 229 suites passed, 0 failed, 0 skipped, 7 known issues (the expected count). No compiler warnings in repo code; the only `warning:` line is a build-system note about the mlx-swift_Cmlx.bundle dependency, not repo code. No code changed, no `__Snapshots__` re-recorded, no UI-test lock needed.
     - next: review
   timestamp: 2026-10-27T13:10:34.582879+00:00
+- actor: claude-code
+  id: 01m5yqtcabmbgrwdsth69kq2b6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ce73ab1) — 0 findings, 0 confirmed, 0 refuted; 4 files reviewed, 0 not reviewed; 7 attempted, 0 failed, 0 skipped. Every prior Review Findings item is checked.
+    - next: none — card moved to done.
+  timestamp: 2026-10-27T13:11:59.051648+00:00
+- actor: claude-code
+  id: 01m5yqv4hq94yrzjqfnp9fbwmw
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 4 files (SnapshotStore write helper reused, named screen sizes)
+    - test: green — swift test 1848 passed, 7 known issues
+    - commit: b1110b0 (kanban), ce73ab1 (code)
+    - review: clean — 0 findings; card moved to done
+  timestamp: 2026-10-27T13:12:23.863786+00:00
 depends_on:
 - 01M5DFBC5CXFEGX6P4XB316BQV
 - 01M5DFBW8F3WMN4JFY7M7QDDWE
@@ -192,8 +208,8 @@ depends_on:
 - 01M5E8XAAZ7ZAT3RKSG102C8KK
 - 01M5E8XMJXF8XABYA7P3ZGM5SF
 - 01M5E8XTQS654VRMEBB5A6B05B
-position_column: doing
-position_ordinal: '8380'
+position_column: done
+position_ordinal: ffffe580
 title: 'AVK-8u Screenshot check by an agent: a review gallery of the full kit screens in light and dark, written by swift test, judged for what the kit draws (D111 step 8, D113)'
 ---
 ## Why
