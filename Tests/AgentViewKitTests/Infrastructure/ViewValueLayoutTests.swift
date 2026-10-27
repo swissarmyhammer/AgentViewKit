@@ -19,9 +19,22 @@ import Testing
 
   /// ``ToolCallBody`` holds the shared style of the EditorKit `EditorStyle`
   /// target as a value, so the style must have no padding byte either.
+  ///
+  /// The key path of the stored tile tokens names its type: the kit's own
+  /// `EditorStyle.tile` extension has the same name.
   @Test func theStyleHasNoPaddingByte() {
-    StoredLayout<EditorStyle>(\.spacing, \.radii, \.symbolWeight, \.density)
-      .expectNoPaddingByte()
+    StoredLayout<EditorStyle>(
+      \.spacing, \.radii, \.tile as KeyPath<EditorStyle, EditorStyle.Tile>, \.chip, \.symbolWeight, \.density
+    )
+    .expectNoPaddingByte()
+  }
+
+  @Test func theTileTokensHaveNoPaddingByte() {
+    StoredLayout<EditorStyle.Tile>(\.padding, \.gap, \.margin).expectNoPaddingByte()
+  }
+
+  @Test func theChipTokensHaveNoPaddingByte() {
+    StoredLayout<EditorStyle.Chip>(\.paddingRatio, \.inlineRowMarginRatio).expectNoPaddingByte()
   }
 
   @Test func theSpacingStepsHaveNoPaddingByte() {

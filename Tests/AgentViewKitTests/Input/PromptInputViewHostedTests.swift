@@ -26,19 +26,26 @@ struct PromptInputHost: View {
   }
 }
 
-/// The text of a hosted composer, and a count of the host submit calls.
+/// The text and the attachments of a hosted composer, and a count of the host
+/// submit calls.
 @Observable final class PromptInputHostedTestModel {
   /// The text of the composer.
   var text: AttributedString
+
+  /// The files to send with the next prompt.
+  var attachments: [AgentViewKit.Attachment]
 
   /// The number of times that the composer called the host `onSubmit`.
   var submitCount = 0
 
   /// Makes a model.
   ///
-  /// - Parameter text: The first text of the composer.
-  init(text: String = "") {
+  /// - Parameters:
+  ///   - text: The first text of the composer.
+  ///   - attachments: The first attachments of the composer.
+  init(text: String = "", attachments: [AgentViewKit.Attachment] = []) {
     self.text = AttributedString(text)
+    self.attachments = attachments
   }
 
   /// The text of the composer as a plain string.

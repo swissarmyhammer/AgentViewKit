@@ -87,11 +87,15 @@ final class ACPTabEndToEndTests: XCTestCase {
   func testASendOfHelloShowsTheReplyOfTheAgent() throws {
     waitForTheSession()
     let editor = app.element(DemoTestValues.promptEditor)
+    // The hit test of the window over a bar control answers the control, not
+    // the transcript row under the bar, so XCUI clicks the control itself.
+    XCTAssertTrue(editor.isHittable, "The composer editor is not hittable.")
 
     editor.click()
     editor.typeText("hello")
     let submit = app.element(DemoTestValues.promptSubmit)
     XCTAssertTrue(submit.waitForExistence(timeout: DemoTestValues.elementTimeout))
+    XCTAssertTrue(submit.isHittable, "The Send button is not hittable.")
     submit.click()
 
     XCTAssertTrue(waitForElement(Self.firstReplyRow), "The transcript shows no reply.")

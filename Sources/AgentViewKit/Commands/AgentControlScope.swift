@@ -14,12 +14,20 @@ import SwiftUI
 /// commands of the host move to it. The scope gives no subject, and it adds
 /// no context menu, so a command at its path acts on the thread.
 ///
-/// EditorKit decides what a landed jump does. Today it focuses the scope: a
-/// focusable view of the content, such as the text view of the composer
+/// The scope asks for the EditorKit leaf landing (`.targetable(true)`), and
+/// EditorKit decides what a landed jump does. A landing on a button presses
+/// it through its own accessibility press action, as a click does, so a
+/// disabled button takes nothing, and a disabled control gets no jump label
+/// and no nav stop. A landing on the segmented permission-mode picker only
+/// focuses it: the arrow keys and Space then change its segment. A landing
+/// on content that is no leaf control, such as the composer editor, focuses
+/// the scope: a focusable view of the content, such as the text view of the
 /// editor, or else the EditorKit beacon of the scope, which then draws the
 /// system focus ring over the control. `.scopeFocusRing(cornerRadius:)` gives
 /// that ring the corners of the control (``AgentControlCorners``). A
-/// `.focusEffectDisabled()` above the control turns the ring off.
+/// `.focusEffectDisabled()` above the control turns the ring off. The leaf
+/// landing also makes the accessibility hit test of the window over the
+/// control answer the control, not a transcript row under the bar.
 ///
 /// The beacon draws nothing else and takes no click, so the control keeps
 /// its look and its own background: none. With no enclosing agent command
@@ -57,6 +65,7 @@ struct AgentControlScope: ViewModifier {
     if isScoped {
       content
         .commandScope(segment: segment)
+        .targetable(true)
         .scopeFocusRing(cornerRadius: corners.radius(in: editorStyle))
     } else {
       content
