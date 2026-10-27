@@ -53,6 +53,12 @@ extension DiffView {
 /// EditorKit cannot read the patch, a row shows the line where the parse
 /// stopped.
 ///
+/// Each line of the patch stands on one row, with no soft wrap: the inline
+/// layout takes the EditorKit wrap mode `.none`, so a line wider than the
+/// view scrolls sideways, and the text, the line-number gutters and the line
+/// colors keep one row for each line (finding of ^8q34yt8). The side-by-side
+/// layout keeps one row for each line already.
+///
 /// The renderer adds no accessibility identifier. The EditorKit `DiffView`
 /// puts its own identifiers on its AppKit views: `editor.diff` on the root,
 /// and `editor.diff.old` and `editor.diff.new` on the two columns of the
@@ -71,6 +77,7 @@ struct EditorKitDiffRenderer: View {
     case .success(let diff):
       EditorSwiftUI.DiffView(patch: diff)
         .diffLayout(layout.documentLayout)
+        .diffWrapMode(.none)
     case .failure(let error):
       let text = String(
         localized: "Cannot read the patch at line \(Self.line(of: error))", bundle: .module)

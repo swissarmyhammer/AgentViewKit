@@ -28,12 +28,15 @@
         judged yet. Since ^fs3vdg0 the diff has no side-by-side file list: the \
         file chip "SearchIndex.swift +1 −1" stands above the patch on the gray selection surface, and the patch \
         takes the full width of the tool call body (DiffViewHostedTests checks the geometry). The new image is \
-        not judged yet: whether the wider patch still wraps the long removed line (^q89x329), and the counts on \
-        the chip (^a2dy2gt), are to be judged again. Since ^ey6v778 each content tile takes the tile spacing of \
-        the theme: the tool calls, the reasoning, the code block, the diff and the terminal output have the \
-        tile padding on each edge, the terminal output starts on the leading edge of its header with the tile \
-        gap above and below it, the separator under a block header sits in the middle of the gap, and the rows \
-        of the transcript have the tile margin between them. The new image is not judged yet.
+        not judged yet: the counts on the chip (^a2dy2gt) are to be judged again. Since ^ey6v778 each content \
+        tile takes the tile spacing of the theme: the tool calls, the reasoning, the code block, the diff and \
+        the terminal output have the tile padding on each edge, the terminal output starts on the leading edge \
+        of its header with the tile gap above and below it, the separator under a block header sits in the \
+        middle of the gap, and the rows of the transcript have the tile margin between them. The new image is \
+        not judged yet. Since ^q89x329 the diff has no soft wrap: each patch line stands on one row, a line \
+        wider than the patch scrolls sideways, and the text, the gutter and the line colors keep one row for \
+        each line, with the last line inside the diff (DiffLongLineHostedTests checks it at 480 points). The \
+        new image is not judged yet.
         """,
       .requestDeck: """
         2026-10-27. The request cards have no fill. The cards behind the front card show as thin top edges, so \
