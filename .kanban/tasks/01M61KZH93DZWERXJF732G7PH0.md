@@ -13,14 +13,22 @@ comments:
     - "Ten full runs in a row": open, to check over the next runs. Every main run since (4 so far) exited 0.
     - If it happens again, capture the full swift test log under a unique name, the system log around the exit (`log show` for the pid), and any pkill/killall in the agent transcripts at that time.
   timestamp: 2026-10-28T20:00:06.988729+00:00
-position_column: todo
-position_ordinal: b280
+- actor: claude-code
+  id: 01m62bxgzsrw0ae2qhddb36nab
+  text: |-
+    2026-10-28, closed.
+    Cause: not AVK code. An EditorKit subagent ran a machine-wide `pkill -f swiftpm-testing-helper`, which killed AVK's PackageStructureTests helper mid-run. That explains the output stopping with no summary and no crash report.
+    Fix: every sibling session was told never to pkill or killall test processes by name. AVK has no retry wrapper and skips no test.
+    Verification: on main cc9ee2d with EditorKit 112f24d, ten full `swift test` runs in a row each exited 0 (288 + 1907 + 37 tests). Each run took the shared UI-test lock on its own, and two runs waited on peers' swiftpm-testing-helper holds. The logs are in the session scratchpad ten-runs/.
+  timestamp: 2026-10-28T23:00:56.953477+00:00
+position_column: done
+position_ordinal: fffffc80
 title: A full swift test run sometimes ends the PackageStructureTests process with no summary and exit 1, though no test failed
 ---
 Seen in the wt/banner worktree on 2026-10-28. A full `swift test` under the UI-test lock exited 1 with "PackageStructureTests reported failures". No test failed: the process's output stopped partway through `RemovedVocabularyTests` and never printed a summary, and there was no crash report. `swift test --filter PackageStructureTests` alone passed (274 tests), and a second full run with no code change was green.
 
 ## Work
-- [ ] Reproduce it by repeating the full `swift test` under the lock until it fails, or by running PackageStructureTests in parallel with the other targets the way swift test does. Record the frequency.
-- [ ] Find the cause. Candidates: a scanner reading a file that another target's test is writing (the review gallery, or a generated demo project), a timeout or kill of the test process, or very large stdout from a scan.
-- [ ] Fix the cause, with no retry wrapper and no skipped test.
-- [ ] Ten full runs in a row without it.
+- [x] Reproduce it by repeating the full `swift test` under the lock until it fails, or by running PackageStructureTests in parallel with the other targets the way swift test does. Record the frequency.
+- [x] Find the cause. Candidates: a scanner reading a file that another target's test is writing (the review gallery, or a generated demo project), a timeout or kill of the test process, or very large stdout from a scan.
+- [x] Fix the cause, with no retry wrapper and no skipped test.
+- [x] Ten full runs in a row without it.

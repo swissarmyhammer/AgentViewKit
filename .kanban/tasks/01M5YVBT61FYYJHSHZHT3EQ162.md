@@ -8,6 +8,13 @@ comments:
     ### Waits on EditorKit ^1b4z2mv
     EditorKit filed the move as ^1b4z2mv. It is queued after EditorKit ^1gab15j and ahead of ^bcsmt4w (the tile tokens). editorkit-a9 merges each helper with its EditorKit equivalent, and will send the main SHA plus a map from each old AVK name to its new EditorTestSupport name. Until that arrives, don't change the AVK test-support files listed above. They are the source the move reads.
   timestamp: 2026-10-27T14:14:05.638812+00:00
+- actor: claude-code
+  id: 01m62an25xyqpwrbteb4e1v307
+  text: |-
+    2026-10-28, agreed with editorkit-40: the EditorKit card is ^1b4z2mv, and it runs after ^p9rqatc. EditorKit reads AVK's canonical files read-only from local main cc9ee2d, so no push is needed.
+    The scope is smaller now. Moving to EditorTestSupport, each merged with its EditorKit equivalent: HostedViewHarness(+TextViews), HostedLayoutExpectations, HostedSerialTrait, NSEvent+KeyEvent, NSView+Descendants, ObservationWait, RunLoopBlockFence, ChangeCounter, ChangeFlag, SnapshotText, SnapshotVariant, SnapshotStore, the data part of RenderedPixels and RenderedPixels+PNG (merged into CapturedImage), and possibly FakePasteboard.
+    Not ported (renderer code, deleted under "real capture only", which is ^x7z136m's job): LayerTreeRenderer, VibrantLabelFilters, ScrollPocketProbe, CATransaction+WithoutActions, ViewSnapshot's composited path, and `RenderedPixels.init(rendering:)`. ReviewGallery(+Page) are replaced by EditorReviewGallery (^wprq982).
+  timestamp: 2026-10-28T22:38:51.069563+00:00
 position_column: todo
 position_ordinal: a680
 title: 'AVK-8 test support: delete AVK''s copies of the generic test helpers and use EditorKit''s EditorTestSupport (after the EditorKit move)'
