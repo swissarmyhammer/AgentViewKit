@@ -165,34 +165,32 @@ import Testing
     defer { session.close() }
     let window = try await Self.mountInTheDeck(session)
     defer { window.harness.close() }
-    try SingleLineFieldChecks.type(Self.name, intoFieldWith: Self.control, in: window.harness)
-    try #require(window.stack.canUndo)
+    let model = session.model
 
-    try window.harness.sendKey(.return)
     // The model removes the answered elicitation in the same step as the
-    // press, so a Return that did not submit the form stops the test here.
-    try #require(session.model.pendingElicitations.isEmpty)
-    window.harness.render()
-    try #require(window.harness.element(identifier: Self.control) == nil)
-    await RunLoopBlockFence.afterPendingBlocks()
-
-    #expect(!window.stack.canUndo)
-    #expect(!window.stack.canRedo)
+    // press, so the request is gone as soon as the form is submitted.
+    try await SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack(
+      typing: Self.name, intoFieldWith: Self.control, in: window,
+      answered: { model.pendingElicitations.isEmpty }, requestIsGone: { model.pendingElicitations.isEmpty })
   }
 
   /// Shows the thread and the deck of `session` under the root command scope
-  /// of a new command system, and gets an elicitation with the one required
-  /// text field `name`, which the deck shows in a card.
+  /// of a new command system, and gets an elicitation with `params`, which
+  /// the deck shows in a card.
   ///
-  /// - Parameter session: The scripted session.
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - params: The JSON text of the params of the request. The default is
+  ///     a request with the one required text field `name`.
   /// - Returns: The window, with its undo stack.
   /// - Throws: The error of the transport, or an issue when the window has
   ///   no undo stack.
-  static func mountInTheDeck(_ session: ScriptedSession) async throws -> MountedThread<some View> {
+  static func mountInTheDeck(
+    _ session: ScriptedSession, params: String = ElicitationFieldErrorsHostedTests.requiredNameParams
+  ) async throws -> MountedThread<some View> {
     let system = CommandSystem()
     let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
-    _ = try await session.receiveElicitation(
-      id: ElicitationViewHostedTests.agentRequestID, params: ElicitationFieldErrorsHostedTests.requiredNameParams)
+    _ = try await session.receiveElicitation(id: ElicitationViewHostedTests.agentRequestID, params: params)
     harness.render()
     return try SingleLineFieldChecks.window(
       of: harness, system: system, path: AgentCommandScopeHostedTests.path(of: session.model))

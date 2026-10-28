@@ -108,6 +108,30 @@ import Testing
     #expect(!mounted.window.stack.canUndo)
   }
 
+  /// A submitted form leaves the window, and the typing of its number input
+  /// leaves the window undo stack with it, so ⌘Z never undoes typing in an
+  /// input that is gone.
+  ///
+  /// The form shows in a card of the ``RequestDeck``, so that the answer
+  /// takes the card out of the window. The number field keeps the model of
+  /// its input in a kit-owned `@State` slot, and the Return action of the
+  /// input captures the view: EditorKit holds that commit callback in the
+  /// mounted view, not in the model, so the model goes with the card.
+  @Test func aSubmittedFormTakesTheTypingOfItsNumberInputOffTheWindowUndoStack() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let window = try await ElicitationTextFieldEditingHostedTests.mountInTheDeck(
+      session, params: Self.requiredCountParams)
+    defer { window.harness.close() }
+    let model = session.model
+
+    // The model removes the answered elicitation in the same step as the
+    // press, so the request is gone as soon as the form is submitted.
+    try await SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack(
+      typing: Self.typedCount, intoFieldWith: Self.control, in: window, replacingAllText: true,
+      answered: { model.pendingElicitations.isEmpty }, requestIsGone: { model.pendingElicitations.isEmpty })
+  }
+
   /// Types `text` in place of the default of a form with the one optional
   /// field `count` (``countWithDefaultParams``), commits it with Esc, and
   /// expects that the input shows `number`, and that Submit then sends
