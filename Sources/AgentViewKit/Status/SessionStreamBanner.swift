@@ -216,14 +216,15 @@ extension SessionStreamBanner {
     symbolName: SharedSymbol.replaying,
     identifier: replayingIdentifier, isOngoing: true)
 
-  /// The text of the missed-updates banner.
+  /// The text of the missed-updates banner: a state that needs care, so a
+  /// warning, as on the stream banner of KanbanViewKit.
   static let missedUpdatesMessage = StatusBar.Message(
     title: String(localized: "Updates are missing", bundle: .module),
     explanation: String(
       localized: "The connection did not keep all updates of this session. Reload the history from the agent.",
       bundle: .module),
     symbolName: SharedSymbol.warning,
-    identifier: missedUpdatesIdentifier)
+    identifier: missedUpdatesIdentifier, severity: .warning)
 
   /// Makes the text of the reload-failed banner: the transcript still lacks
   /// updates, because the last reload failed.

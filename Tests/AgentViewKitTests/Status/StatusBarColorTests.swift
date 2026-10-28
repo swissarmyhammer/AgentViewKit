@@ -6,12 +6,13 @@ import Testing
 
 /// Checks that each failure message of the kit names the failure severity,
 /// so that its status bar shows the symbol with the error color of the
-/// EditorKit theme, and that each other message is neutral, so that its
-/// symbol has the `.secondary` style.
+/// EditorKit theme, that each warning message names the warning severity, so
+/// that its symbol has the warning color, and that each other message is
+/// neutral, so that its symbol has the `.secondary` style.
 ///
-/// The error color is a status color of the theme (D112). The symbol of a
-/// message that is not a failure is not the selection or the focus, so it
-/// does not use the accent of the theme (card ^y2mrfxt).
+/// The error and warning colors are status colors of the theme (D112). No
+/// symbol of a status message is the selection or the focus, so none uses
+/// the accent of the theme (card ^y2mrfxt).
 ///
 /// The tests give ``DistinctRolesTheme``, which has a different color for each
 /// role, so each color names its role.
@@ -37,8 +38,12 @@ import Testing
     return [failedTurn, StateBanner.message(forUnknownStopReason: "_error"), failedConnection, failedReload]
   }
 
-  /// Messages that are not failures: a running agent, a complete turn and a
-  /// closed session.
+  /// The warning messages: the missed updates of the session stream, as the
+  /// stream banner of KanbanViewKit shows them.
+  static let warningMessages = [SessionStreamBanner.missedUpdatesMessage]
+
+  /// Messages that are neither failures nor warnings: a running agent, a
+  /// complete turn and a closed session.
   static func otherMessages() throws -> [StatusBar.Message] {
     [
       StateBanner.message(for: try StateBannerStopReasonTests.decodeState(#"{"state": "running"}"#)),
@@ -55,6 +60,16 @@ import Testing
     let message = SessionStreamBanner.makeReloadFailedMessage(errorDescription: Self.reloadErrorDescription)
 
     #expect(message.explanation.contains(Self.reloadErrorDescription))
+  }
+
+  @Test func eachWarningMessageNamesTheWarningSeverity() {
+    #expect(Self.warningMessages.allSatisfy { $0.severity == .warning })
+  }
+
+  @Test func aWarningBarTintsItsSymbolWithTheWarningColor() {
+    for message in Self.warningMessages {
+      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Role.warning, "\(message.identifier)")
+    }
   }
 
   @Test func eachOtherMessageIsNeutral() throws {
