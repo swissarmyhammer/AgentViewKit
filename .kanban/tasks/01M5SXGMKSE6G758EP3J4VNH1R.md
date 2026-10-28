@@ -140,10 +140,27 @@ comments:
     - gap: acceptance item "Demo UI test: … asserts `editor.isHittable` … no 'Falling back to element center point'" stays unchecked. At the editor's centre, the remote AX hit test (XCTest `hitTestElement:withPoint:error:`) answers the `conversation-empty-state` AXScrollArea under the bar. The in-process `window.accessibilityHitTest` answers the text view. Details are in the findings comment. EditorKit owns the hit test.
     - next: EditorKit makes a remote (out-of-process) AX hit test at an EditorView's centre answer its text view when the editor sits in a bar over a ScrollView. Then pull EditorKit, re-run Scripts/test-examples.sh and check off the item. Nothing is committed; the card stays in doing.
   timestamp: 2026-10-28T12:25:06.171469+00:00
+- actor: claude-code
+  id: 01m617m7m26zt4k5hfzscbz13d
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (2071461) — 0 findings, 0 confirmed, 0 refuted; 7 validators attempted, 0 failed, 0 skipped; 1 file reviewed
+    - next: card stays in review, not done. Open acceptance item: demo UI test `editor.isHittable`, blocked on EditorKit ^sva41w0 (out-of-process hit test). That item is not a finding for this diff.
+  timestamp: 2026-10-28T12:26:43.714021+00:00
+- actor: claude-code
+  id: 01m617mqh3c7jh7wbxzbbgzsrb
+  text: |-
+    ### finish iteration 4 — clean, held
+    - implement: stuck on the demo item only. EditorKit is at f588cb5; the tree pre-read is removed. The in-process hit test returns the text view, but the out-of-process one (XCUI) returns the conversation-empty-state ScrollView.
+    - test: swift test passed 1889 tests, 0 failed. test-examples.sh passed 8 of 9; `editor.isHittable` fails.
+    - commit: cad3615 (kanban), 2071461 (code)
+    - review: clean. 0 findings.
+    - Held in review for EditorKit ^sva41w0 (out-of-process hit test for EditorView, SingleLineField and the other bar elements).
+  timestamp: 2026-10-28T12:27:00.003151+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
-position_column: doing
-position_ordinal: '8380'
+position_column: review
+position_ordinal: '80'
 title: The thread bar controls are accessibility-hittable, and a landed jump activates them (after EditorKit ^tzh8q6d and ^wccq0y0)
 ---
 Split from ^0xggx44 on 2026-10-25 (user: "get to it"). ^0xggx44 gives every control in the thread bars an EditorKit scope through one kit modifier. This card holds the items that need EditorKit work first.

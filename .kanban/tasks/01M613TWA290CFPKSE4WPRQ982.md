@@ -10,6 +10,10 @@ comments:
     - EditorKit ^p9rqatc (built on ^1b4z2mv) adds the generic helper to EditorTestSupport, with discovery of every reference PNG and the missing-PNG check. When it lands, AVK switches to it and deletes AVK's ReviewGallery.swift and ReviewGalleryPage.swift. If it lands before this card starts, do this card in EditorKit's helper and don't extend AVK's copy.
     - KanbanViewKit (^1fas8q0) and SnapshotViewKit build theirs on the same helper.
   timestamp: 2026-10-28T11:36:03.568088+00:00
+- actor: claude-code
+  id: 01m617xjc3qh7xk2c195c35eqv
+  text: 'User standard: "our standard for sibling packages will be screenshot-check/index.html make it so". AVK''s path stays ~/Library/Caches/AgentViewKit/screenshot-check/index.html. EditorKit is writing the standard into style.md as a "Review gallery" section. This card also adds a short "Review gallery" section to ARCHITECTURE.md (where the page is, that `swift test` regenerates it, and what it contains), and a test that pins the path.'
+  timestamp: 2026-10-28T12:31:49.635903+00:00
 position_column: todo
 position_ordinal: ab80
 title: Review gallery shows every recorded snapshot, not only the full screens
