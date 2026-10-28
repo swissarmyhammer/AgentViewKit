@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI

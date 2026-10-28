@@ -169,7 +169,7 @@ import Testing
     #expect(ThreadAccessibility.actionRequiredAnnouncements(old: new, new: old).isEmpty)
   }
 
-  // MARK: - Labels and priorities
+  // MARK: - Labels and the focus mover
 
   @Test func theReasoningLabelTellsTheProgress() {
     #expect(
@@ -179,12 +179,6 @@ import Testing
       ReasoningView.accessibilityLabel(isInProgress: false, duration: 4.4)
         == "Reasoning, 4 seconds")
     #expect(ReasoningView.accessibilityLabel(isInProgress: false, duration: nil) == "Reasoning")
-  }
-
-  @Test func eachPriorityHasASpeechPriority() {
-    #expect(VoiceOverAnnouncer.speechPriority(of: .low) == .low)
-    #expect(VoiceOverAnnouncer.speechPriority(of: .medium) == .default)
-    #expect(VoiceOverAnnouncer.speechPriority(of: .high) == .high)
   }
 
   @Test func theMoverCountsEachMove() {

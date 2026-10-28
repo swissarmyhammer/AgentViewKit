@@ -1,4 +1,5 @@
 import AppKit
+import EditorCommandsUI
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme

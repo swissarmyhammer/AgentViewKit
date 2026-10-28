@@ -105,7 +105,8 @@ let editorKitTestSupportProducts: [Target.Dependency] = [
 
 /// The EditorKit test support product that the style tests link: the hosted
 /// window and accessibility helpers. The recording command system is not in
-/// it, because no style view registers a command.
+/// it, because no style view registers a command. The package structure
+/// tests link it too, for its source scan helpers.
 let styleTestSupportProducts: [Target.Dependency] = [
   .product(name: "EditorTestSupport", package: "EditorKit")
 ]
@@ -242,14 +243,14 @@ let package = Package(
       dependencies: ["AgentViewKitStyle"] + styleEditorKitProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
-    // Reads the package files as text. It links PackageFileSupport, which has
-    // no dependency, and the EditorKit `EditorTestSupport` product for the
-    // shared line scan of `SourceScanning` (`LightAndDarkOnlyTests`). The
-    // fixtures are Swift files that the scanner reads, so the build excludes
-    // them.
+    // Reads the package files as text. It links PackageFileSupport, which
+    // has no dependency, and the shared source scan helpers of
+    // EditorTestSupport (`SourceScanning`, for `LightAndDarkOnlyTests` and
+    // `AnnouncementPathScanTests`), and no target of the kit. The fixtures
+    // are Swift files that the scanner reads, so the build excludes them.
     .testTarget(
       name: "PackageStructureTests",
-      dependencies: ["PackageFileSupport", .product(name: "EditorTestSupport", package: "EditorKit")],
+      dependencies: ["PackageFileSupport"] + styleTestSupportProducts,
       exclude: ["Fixtures"]
     ),
     // The compiled snippets of README.md (plan.md §1). Each `// readme:compile`

@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import EditorCommandsUI
 import Foundation
 import FoundationModelsACP
 import SwiftUI

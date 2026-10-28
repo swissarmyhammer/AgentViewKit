@@ -1,4 +1,5 @@
 import AppKit
+import EditorCommandsUI
 import FoundationModelsACP
 import OSLog
 import SwiftUI
