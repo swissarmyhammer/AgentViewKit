@@ -50,8 +50,19 @@ comments:
     - evidence: 5 files — Tests/AgentViewKitTests/Diff/DiffHarness.swift (new), Tests/AgentViewKitTests/Diff/DiffLineNumberHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffLongLineHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffRendererDefaultHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffViewHostedTests.swift. Both runs held the UI test lock. Diff suites (`swift test --filter 'Diff(LineNumber|LongLine|RendererDefault|View)HostedTests|DiffSummaryTests'`): 50 tests in 5 suites passed. Full `swift test`: 1893 tests in 236 suites passed, 7 known issues (the existing withKnownIssue sites), 0 failures. The only warning is the existing mlx-swift_Cmlx "missing creator" packaging warning. Review finding DiffLineNumberHostedTests.swift:73 is checked off.
     - next: /review
   timestamp: 2026-10-28T12:43:52.667009+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m618p8cpcdpsxm692wt9xgrv
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b8d5a96) — 0 findings (confirmed 0, refuted 0; 5 files reviewed, 7 validator runs, 0 failed); prior finding DiffLineNumberHostedTests.swift:73 reuse/reuse is checked
+    - next: none — card moved to done
+  timestamp: 2026-10-28T12:45:18.614868+00:00
+- actor: claude-code
+  id: 01m618q61ryhpne3h9m4jzjfxw
+  text: '### finish iteration 2 — clean: implement changed (DiffHarness), test 1893 passed, commit de14a7f/b8d5a96, review clean; done'
+  timestamp: 2026-10-28T12:45:48.984053+00:00
+position_column: done
+position_ordinal: ffffee80
 title: Diff line numbers sit in one right-aligned column on every row (after EditorKit fixes its inline gutters)
 ---
 User review of the screenshot gallery: "line numbers on diffs are insonsistently spaced between + and - lines -- i'd expect them to all right align consistently".
