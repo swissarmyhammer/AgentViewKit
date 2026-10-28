@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorCommands
 import EditorSwiftUI
 import EditorTheme
 import Foundation
@@ -84,6 +85,11 @@ struct GalleryTabView: View, DemoStartingTab {
   /// The start of the accessibility identifier of each row of the
   /// connection states.
   static let stateRowIdentifierPrefix = "demo-gallery-state-"
+
+  /// The scope of the list of the connection states: the segment of the
+  /// list, and the segment kind of a row.
+  static let stateListScope = AgentRowListScope(
+    list: FocusSegment(kind: "galleryConnectionStates"), rowKind: "galleryConnectionState")
 
   /// The symbol of the state with no open session.
   static let noSessionSymbol = "text.bubble"
@@ -237,13 +243,18 @@ struct GalleryTabView: View, DemoStartingTab {
     }
   }
 
-  /// The list of the connection states. A press on a row opens the state.
+  /// The list of the connection states, an ``AgentRowList``. Return and a
+  /// double click on a row open the state, and so does the press action of
+  /// the row for VoiceOver.
   private var stateList: some View {
-    List(DemoConnectionState.allCases, id: \.self) { state in
-      Button(state.title) {
-        Task { await open(state) }
-      }
-      .accessibilityIdentifier(Self.stateRowIdentifierPrefix + state.rawValue)
+    AgentRowList(
+      DemoConnectionState.allCases, id: \.rawValue, scope: Self.stateListScope,
+      onOpen: { state in Task { await open(state) } }
+    ) { state in
+      Text(state.title)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { Task { await open(state) } }
+        .accessibilityIdentifier(Self.stateRowIdentifierPrefix + state.rawValue)
     }
   }
 

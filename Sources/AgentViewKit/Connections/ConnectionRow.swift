@@ -65,7 +65,6 @@ public struct ConnectionRow: View {
       Spacer(minLength: editorStyle.spacing.s)
       ConnectionStatusChip(status: server.status)
     }
-    .padding(.vertical, editorStyle.rowPadding)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(server.name)
     .accessibilityIdentifier(Self.identifier(for: server.name))
@@ -84,7 +83,10 @@ public struct ConnectionRow: View {
 }
 
 #Preview("MCP server rows") {
-  List(PreviewFixtures.mcpSession.mcpServers) { server in
+  AgentRowList(
+    PreviewFixtures.mcpSession.mcpServers, id: \.name,
+    scope: ConnectionsView.scope(for: PreviewFixtures.mcpSession)
+  ) { server in
     ConnectionRow(server: server)
   }
 }

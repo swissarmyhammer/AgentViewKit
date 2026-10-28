@@ -105,10 +105,12 @@ final class ACPTabEndToEndTests: XCTestCase {
     XCTAssertTrue(userRow.exists, "The transcript shows no user message.")
   }
 
+  /// A click on a row of the session list selects it, and a double click
+  /// opens it, as Return does.
   func testSelectingTheSavedSessionShowsItsReplayedHistory() throws {
     waitForTheSession()
 
-    app.element(Self.sessionRow).click()
+    app.element(Self.sessionRow).doubleClick()
 
     XCTAssertTrue(waitForElement(Self.replayedReplyRow), "The resumed session shows no replayed message.")
   }

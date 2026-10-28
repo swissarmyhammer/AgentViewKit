@@ -72,15 +72,16 @@ extension XCUIApplication {
     launch()
   }
 
-  /// Opens the scripted permission session of the Gallery tab, and waits
-  /// until its agent message and its waiting request show.
+  /// Opens the scripted permission session of the Gallery tab with a double
+  /// click on its row, and waits until its agent message and its waiting
+  /// request show. A single click only selects the row.
   ///
   /// The app must run on the Gallery tab
   /// (`DemoTestValues.galleryLaunchArguments`).
   func openThePermissionSession() {
     let row = element(DemoTestValues.permissionSessionRow)
     XCTAssertTrue(row.waitForExistence(timeout: DemoTestValues.elementTimeout), "The Gallery lists no permission session.")
-    row.click()
+    row.doubleClick()
     XCTAssertTrue(
       element(DemoTestValues.permissionAgentMessageRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
       "The permission session shows no agent message.")
