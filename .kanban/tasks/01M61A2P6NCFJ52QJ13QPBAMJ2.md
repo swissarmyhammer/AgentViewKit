@@ -89,6 +89,63 @@ comments:
       - Snapshots: no pixel change and none re-recorded.
     - Nothing is staged or committed. The card stays in doing.
   timestamp: 2026-10-28T14:18:53.766309+00:00
+- actor: claude-code
+  id: 01m61ehp79y409c4f0g6jxcvts
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (ce75110) — 3 findings (3 confirmed, 4 refuted, 56 attempted, 0 failed) — Sources/AgentViewKitStyle/Infrastructure/StylePreviewFixtures.swift:34, Tests/PackageStructureTests/KitSourceFiles.swift:79, Tests/PackageStructureTests/ThreadBarControlScopeStructureTests.swift:148. The 10 acceptance items are still unchecked. Five code-hygiene Swift rules declined the 12 old Sources/AgentViewKit paths this commit moved to AgentViewKitStyle (no file at the old path).
+    - next: fix the three findings, check off the acceptance items, re-run /review ^qpbamj2 on the fix commit.
+  timestamp: 2026-10-28T14:27:40.393507+00:00
+- actor: claude-code
+  id: 01m61hyvhy2kq16ng14pqyrx5q
+  text: |-
+    Implement pass 2: the three review findings are fixed, and the 10 acceptance items are checked against ce75110.
+
+    Findings:
+    - StylePreviewFixtures.swift: `line: 42` is now `line: locationLine`, from `static let locationLine = 42`. swiftlint `no_magic_numbers` (allowed [0, 1, -1, 100]) found 1 violation before the fix: StylePreviewFixtures.swift:34:75. After the fix it finds 0 in all of Sources/AgentViewKitStyle and in the two test files.
+    - KitSourceFiles.swift: a new `private static func scanDirectories<Match>(_ paths: [String], _ scan:)` holds the flatMap. `scanViewFiles` calls it with `viewPaths`, and `scanLibraryFiles` calls it with `libraryPaths`. Their doc comments are unchanged.
+    - ThreadBarControlScopeStructureTests.swift: a new `static func expectScope(after expression: String, inFile file: String) throws` holds the read, the `#require` of the range, the modifier lookup and the `#expect`. `theEditorSlotOfTheComposerHasItsScope` and `theButtonOfTheStatusBarHasItsScopeInTheStyleOfTheKit` each call it. No other copy of the modifierNames(after: expressionEnd) check is left in Tests/; BarControlScan.controlCalls is the scanner itself.
+
+    Where the work differs from the acceptance items:
+    - Status bar message: the type is `StatusBar.Message`, not `StateBanner.Message`. `StateBanner` is AVK's ACP-bound view (it takes a SessionModel), so a Style type with that name would collide with it. The message has an explicit `severity` (`.neutral`, `.information`, `.warning`, `.failure`) and an explicit `isOngoing`. These replace `isFailure` and the check that compared symbol names.
+    - `.neutral` is the default severity and draws in the secondary color. Every message that is not a failure keeps the pixels it had, so no snapshot changed.
+    - Surface corners: the type is `SurfaceCorners`. The coordinator asked to drop "Agent" from `AgentSurfaceCorners`, and no typealias was added.
+    - Symbols: the tool-kind and file-operation constants are public in `SharedSymbol` (AgentViewKitStyle), and `binary` = "01.square" is new. The clock symbols were replaced at every use:
+      - activity → waveform.path.ecg
+      - entryTime → calendar
+      - replaying → arrow.trianglehead.counterclockwise
+      - partialHistory → questionmark.text.page
+      - No clock, clock.*, timer or alarm name is left in Sources or Examples.
+    - Stays in AgentViewKit because it is ACP-bound:
+      - `ToolKindSymbol` and `ToolStatusSymbol`, which switch over ACP `ToolKind` and `ToolCallStatus`.
+      - `DiffSummary.files(of: Diff)`, `gitPatchText` and `hasPath`.
+      - `DiffView`, because `init(diff:)` takes an ACP Diff.
+      - The ToolCallEntry subject of the tool-call command.
+      - AgentScopeKind's other kinds, whose subjects are SessionModel, PendingPermissionRequest.ID and AttachmentID.
+      - The agent-only symbols, in `SharedSymbol+Agent.swift`.
+      - `AgentStatusBarActionStyle` and `AgentLocationChipStyle`. These apply the AVK-only `.requestActionStyle`, `.agentControlScope`, inspector and attachment scope.
+    - AVK re-exports AgentViewKitStyle and keeps no copy. `AgentScopeKind.toolCall` and its segment factory are public in AgentViewKitStyle.
+    - Renamed files: the diff renderer setup is in AgentViewKitStyle/Diff/EditorKitDiffRenderer.swift, not Diff/DiffRendererSlot+EditorKit.swift. The location text moved from ACPLocationText to `ToolCallLocationChips.Location`.
+  timestamp: 2026-10-28T15:27:17.566057+00:00
+- actor: claude-code
+  id: 01m61hz1an1wbmc4ca5wdn5m57
+  text: |-
+    ### implement — changed
+    - evidence: 3 files changed:
+      - Sources/AgentViewKitStyle/Infrastructure/StylePreviewFixtures.swift
+      - Tests/PackageStructureTests/KitSourceFiles.swift
+      - Tests/PackageStructureTests/ThreadBarControlScopeStructureTests.swift
+    - The 3 findings and the 10 acceptance items are checked.
+    - swiftlint no_magic_numbers: 1 violation before the fix, 0 after.
+    - The PackageStructureTests and AgentViewKitStyleTests targets, run with `--filter` under the UI-test lock: 274/274 and 37/37 passed.
+    - Full `swift test` under Scripts/ui-test-lock.sh:
+      - PackageStructureTests: 274 passed.
+      - AgentViewKitTests: 1899 passed, with 7 known issues.
+      - AgentViewKitStyleTests: 37 passed.
+      - 0 failures. The only warning is the existing mlx-swift_Cmlx one.
+    - Nothing is committed. The card stays in doing.
+    - next: /commit, then /review ^qpbamj2 on the fix commit.
+  timestamp: 2026-10-28T15:27:23.477714+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'AVK is the shared visual layer: make the tile, surface, symbols, chips, status bar look and diff renderer setup public for SVK and KVK'
@@ -96,16 +153,214 @@ title: 'AVK is the shared visual layer: make the tile, surface, symbols, chips, 
 User decision, relayed by snapshotviewkit-ec: "I'm very happy for you to make those public from AVK and build on top of AVK. Similar for KVK: collaborate with it to decide what is redundant in KVK and should actually be shared from AVK." AgentViewKit becomes the shared visual layer for the view kits. SnapshotViewKit, and KanbanViewKit where they overlap, depend on AVK. This replaces EditorKit ^qane0e0's lift into EditorStyle; editorkit-a9 has been asked to trim or close it.
 
 ## Make public, with doc comments, a docc topic and no shims
-- [ ] ContentTile, `.contentTile()` and ContentTileStack (Theme/ContentTile.swift)
-- [ ] SelectableSurface, `.selectableSurface` and AgentSurfaceCorners (Theme/SelectableSurface.swift)
-- [ ] The tool-kind and file-operation symbols (Items/SharedSymbol.swift, ToolKindSymbol.swift). Add a binary-file symbol. Replace entryTime "timer" and activity "clock", which break style.md's clock rule, with non-clock symbols, and fix every use.
-- [ ] ToolCallLocationChips, ChipFlowLayout (Items/ToolCallLocationChips.swift) and DiffFileChip (Diff/DiffFileChip.swift)
-- [ ] The StatusBar look (Status/StatusBar.swift), for SVK's stream banner
-- [ ] The diff renderer setup: EditorKitDiffRenderer (Diff/DiffRendererSlot+EditorKit.swift) and the `\.diffLayout` environment value
-- [ ] AgentScopeKind.toolCall stays public; SVK uses it for "Roll Back to Before This"
-- [ ] Every new public symbol has a test through the public API (a test target with no `@testable import`), plus a #Preview
-- [ ] The public-API docs (docc) and ARCHITECTURE.md name AVK as the shared visual layer for SVK and KVK
-- [ ] `swift test` is green
+- [x] ContentTile, `.contentTile()` and ContentTileStack (Theme/ContentTile.swift)
+- [x] SelectableSurface, `.selectableSurface` and AgentSurfaceCorners (Theme/SelectableSurface.swift)
+- [x] The tool-kind and file-operation symbols (Items/SharedSymbol.swift, ToolKindSymbol.swift). Add a binary-file symbol. Replace entryTime "timer" and activity "clock", which break style.md's clock rule, with non-clock symbols, and fix every use.
+- [x] ToolCallLocationChips, ChipFlowLayout (Items/ToolCallLocationChips.swift) and DiffFileChip (Diff/DiffFileChip.swift)
+- [x] The StatusBar look (Status/StatusBar.swift), for SVK's stream banner
+- [x] The diff renderer setup: EditorKitDiffRenderer (Diff/DiffRendererSlot+EditorKit.swift) and the `\.diffLayout` environment value
+- [x] AgentScopeKind.toolCall stays public; SVK uses it for "Roll Back to Before This"
+- [x] Every new public symbol has a test through the public API (a test target with no `@testable import`), plus a #Preview
+- [x] The public-API docs (docc) and ARCHITECTURE.md name AVK as the shared visual layer for SVK and KVK
+- [x] `swift test` is green
 
 ## Order
 After ^gjr9xg, which is changing ToolCallLocationChips, DiffFileChip and DiffView right now. Then send the SHA to snapshotviewkit-ec and kanbanviewkit-2c. A follow-up card, worked out with kanbanviewkit-2c, decides what KVK duplicates and should take from AVK instead.
+
+## Review Findings (2026-10-28 09:20)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 90 file(s) reviewed, 8 not reviewed.
+
+> 8 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `Docs/decisions/acp-client-kit.md` — no validator matches this file
+> - `Docs/decisions/dependencies.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+> - `Sources/AgentViewKitStyle/AgentViewKitStyle.docc/AgentViewKitStyle.md` — no validator matches this file
+> - `Sources/AgentViewKitStyle/Resources/Localizable.xcstrings` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Content/ChipFlowLayout.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Diff/DiffFileChip.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Diff/DiffRendererSlot+EditorKit.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Diff/DiffSummary.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Items/ACPLocationText.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Items/LiveSymbolEffect.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Items/SharedSymbol.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Items/StatusSymbolImage.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Items/ToolCallLocationChips.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Status/StatusBar.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Theme/ContentTile.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/disallowed-constructs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> disallowed-constructs-swift found no file at Sources/AgentViewKit/Theme/SelectableSurface.swift, so its constructs are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Content/ChipFlowLayout.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Diff/DiffFileChip.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Diff/DiffRendererSlot+EditorKit.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Diff/DiffSummary.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Items/ACPLocationText.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Items/LiveSymbolEffect.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Items/SharedSymbol.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Items/StatusSymbolImage.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Items/ToolCallLocationChips.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Status/StatusBar.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Theme/ContentTile.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/function-length-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> function-length-swift found no file at Sources/AgentViewKit/Theme/SelectableSurface.swift, so its bodies are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Content/ChipFlowLayout.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Diff/DiffFileChip.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Diff/DiffRendererSlot+EditorKit.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Diff/DiffSummary.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Items/ACPLocationText.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Items/LiveSymbolEffect.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Items/SharedSymbol.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Items/StatusSymbolImage.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Items/ToolCallLocationChips.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Status/StatusBar.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Theme/ContentTile.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/idioms-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> idioms-swift found no file at Sources/AgentViewKit/Theme/SelectableSurface.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Content/ChipFlowLayout.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Diff/DiffFileChip.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Diff/DiffRendererSlot+EditorKit.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Diff/DiffSummary.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Items/ACPLocationText.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Items/LiveSymbolEffect.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Items/SharedSymbol.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Items/StatusSymbolImage.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Items/ToolCallLocationChips.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Status/StatusBar.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Theme/ContentTile.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/magic-numbers-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> magic-numbers-swift found no file at Sources/AgentViewKit/Theme/SelectableSurface.swift, so its literals are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Content/ChipFlowLayout.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Diff/DiffFileChip.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Diff/DiffRendererSlot+EditorKit.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Diff/DiffSummary.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Items/ACPLocationText.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Items/LiveSymbolEffect.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Items/SharedSymbol.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Items/StatusSymbolImage.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Items/ToolCallLocationChips.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Status/StatusBar.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Theme/ContentTile.swift, so its declarations are unread
+
+> ⚠️ tool rule 'code-hygiene/missing-docs-swift' declined an item — it judged the rest of the code, and this it could not judge:
+> missing-docs-swift found no file at Sources/AgentViewKit/Theme/SelectableSurface.swift, so its declarations are unread
+
+- [x] `Sources/AgentViewKitStyle/Infrastructure/StylePreviewFixtures.swift:34` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/PackageStructureTests/KitSourceFiles.swift:79` `reuse/reuse` — scanLibraryFiles is a near-copy of scanViewFiles directly above it: both flatMap a fixed list of directory paths through PackageFiles.file and the scan closure. The only difference is which path list is walked. The new function duplicates the shared walk instead of generalizing scanViewFiles over its path list, so the two can diverge. Add a private `scanDirectories(_ paths: [String], _ scan:)` that holds the flatMap, and have both `scanViewFiles` and `scanLibraryFiles` call it with `viewPaths` and `libraryPaths`. The doc comments of each stay as they are.
+- [x] `Tests/PackageStructureTests/ThreadBarControlScopeStructureTests.swift:148` `duplication/duplication` — The new test `theButtonOfTheStatusBarHasItsScopeInTheStyleOfTheKit` repeats the body of the existing `theEditorSlotOfTheComposerHasItsScope` (line 129). Both read the code of a file, find an expression with `range(of:)`, take `BarControlScan.modifierNames(after: BarControlScan.expressionEnd(...), in: code)`, and assert that the modifiers contain `scopeModifier`. The two bodies differ only in the file and the expression text. Two copies of the scope check can drift apart, for example if the scope rule or the modifier-lookup changes in one place only. Extract a helper such as `static func expectScope(after expression: String, inFile file: String) throws` that holds the shared steps and the `#expect`. Call it from both `theEditorSlotOfTheComposerHasItsScope` and `theButtonOfTheStatusBarHasItsScopeInTheStyleOfTheKit`, passing `Self.editorSlotCall` with `ComposerGlassStructureTests.composerFile`, and `Self.statusBarButtonExpression` with `GlassForm.statusBarActionStyleFile`.
