@@ -65,7 +65,7 @@ enum KitSourceFiles {
   /// - Throws: The error of `PackageFiles.file(_:)` when a view path is not
   ///   in the package, or the error of `scan`.
   static func scanViewFiles<Match>(_ scan: (URL) throws -> [Match]) throws -> [Match] {
-    try viewPaths.flatMap { path in try scan(PackageFiles.file(path)) }
+    try scanDirectories(viewPaths, scan)
   }
 
   /// Runs a scan over the directory of each library, ``libraryPaths``.
@@ -77,6 +77,21 @@ enum KitSourceFiles {
   /// - Throws: The error of `PackageFiles.file(_:)` when a library path is
   ///   not in the package, or the error of `scan`.
   static func scanLibraryFiles<Match>(_ scan: (URL) throws -> [Match]) throws -> [Match] {
-    try libraryPaths.flatMap { path in try scan(PackageFiles.file(path)) }
+    try scanDirectories(libraryPaths, scan)
+  }
+
+  /// Runs a scan over each directory of a list.
+  ///
+  /// - Parameters:
+  ///   - paths: The directories, relative to the package root.
+  ///   - scan: The scan of one directory. It gets the URL of the directory
+  ///     and gives the results that it finds there.
+  /// - Returns: The results of each directory, in the order of `paths`.
+  /// - Throws: The error of `PackageFiles.file(_:)` when a path is not in the
+  ///   package, or the error of `scan`.
+  private static func scanDirectories<Match>(
+    _ paths: [String], _ scan: (URL) throws -> [Match]
+  ) throws -> [Match] {
+    try paths.flatMap { path in try scan(PackageFiles.file(path)) }
   }
 }

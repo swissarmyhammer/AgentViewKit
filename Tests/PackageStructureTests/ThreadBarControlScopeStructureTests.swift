@@ -126,14 +126,27 @@ import Testing
     #expect(try !Self.controlCalls(in: file).isEmpty)
   }
 
-  @Test func theEditorSlotOfTheComposerHasItsScope() throws {
-    let code = try ThreadBottomBarStructureTests.code(of: ComposerGlassStructureTests.composerFile)
-    let call = try #require(code.range(of: Self.editorSlotCall))
+  /// Checks that the modifier chain of an expression in a file has
+  /// ``scopeModifier``.
+  ///
+  /// - Parameters:
+  ///   - expression: The code text of the expression. The check reads the
+  ///     chain of its first occurrence in the file.
+  ///   - file: The file, relative to the package root.
+  /// - Throws: An error when the file cannot be read, or when the file does
+  ///   not hold `expression`.
+  static func expectScope(after expression: String, inFile file: String) throws {
+    let code = try ThreadBottomBarStructureTests.code(of: file)
+    let match = try #require(code.range(of: expression), "\(file) has no \(expression)")
 
     let modifiers = BarControlScan.modifierNames(
-      after: BarControlScan.expressionEnd(from: call.upperBound, in: code), in: code)
+      after: BarControlScan.expressionEnd(from: match.upperBound, in: code), in: code)
 
-    #expect(modifiers.contains(Self.scopeModifier), "\(modifiers)")
+    #expect(modifiers.contains(scopeModifier), "\(file): \(expression) has \(modifiers)")
+  }
+
+  @Test func theEditorSlotOfTheComposerHasItsScope() throws {
+    try Self.expectScope(after: Self.editorSlotCall, inFile: ComposerGlassStructureTests.composerFile)
   }
 
   /// The status bar of the style library draws its button with no control
@@ -146,13 +159,7 @@ import Testing
   /// The kit style of the status bar button gives the button its scope, so
   /// the button of each bar of a thread is an EditorKit jump target.
   @Test func theButtonOfTheStatusBarHasItsScopeInTheStyleOfTheKit() throws {
-    let code = try ThreadBottomBarStructureTests.code(of: GlassForm.statusBarActionStyleFile)
-    let button = try #require(code.range(of: Self.statusBarButtonExpression))
-
-    let modifiers = BarControlScan.modifierNames(
-      after: BarControlScan.expressionEnd(from: button.upperBound, in: code), in: code)
-
-    #expect(modifiers.contains(Self.scopeModifier), "\(modifiers)")
+    try Self.expectScope(after: Self.statusBarButtonExpression, inFile: GlassForm.statusBarActionStyleFile)
   }
 
   /// The code text that sets the kit style of the status bar button.

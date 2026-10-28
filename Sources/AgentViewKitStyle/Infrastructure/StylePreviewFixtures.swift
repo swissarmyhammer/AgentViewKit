@@ -27,11 +27,15 @@ enum StylePreviewFixtures {
     "Package.swift", "Sources/Board/BoardColumn.swift", "README.md", "Tests/BoardTests/BoardColumnTests.swift",
   ]
 
+  /// The line of the sample location that has one.
+  static let locationLine = 42
+
   /// The sample locations of a tool call: a file with a line, and a file
   /// with none.
   static let locations = [
     ToolCallLocationChips.Location(
-      path: "/Users/preview/Board/Sources/Board/BoardColumn.swift", line: 42, identifier: "preview-location-0"),
+      path: "/Users/preview/Board/Sources/Board/BoardColumn.swift", line: locationLine,
+      identifier: "preview-location-0"),
     ToolCallLocationChips.Location(
       path: "/Users/preview/Board/Package.swift", line: nil, identifier: "preview-location-1"),
   ]
