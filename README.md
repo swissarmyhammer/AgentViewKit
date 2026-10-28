@@ -645,8 +645,14 @@ When the look of a view changes, its test fails, and it writes
 The difference image shows each pixel that changed in magenta. The test also
 attaches the two images.
 
+Each `swift test` run also writes the review gallery,
+`~/Library/Caches/AgentViewKit/screenshot-check/index.html`: the key screens
+of the kit, in light and dark (EditorKit `style.md` "Review gallery"). The
+user reviews that page. There is no manual check and no comparison with
+Finder or System Settings.
+
 To record the reference images again, run the tests in the record mode, and
-then look at each image before the commit:
+then review the new images before the commit:
 
 ```bash
 AVK_SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
