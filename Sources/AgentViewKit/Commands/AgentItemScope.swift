@@ -22,14 +22,15 @@ import SwiftUI
 /// the `nav.*` commands of the host move between the items, and a jump label
 /// shows on the item. The item has no focusable view of its own, so the
 /// EditorKit beacon of the scope takes the focus that a move or a jump puts
-/// on the item, and draws the system focus ring over the item.
-/// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of the surface
-/// of the item (``SurfaceCorners``): by default the corners of a card
-/// of the kit (``SurfaceCorners/card``). A `.focusEffectDisabled()` above
-/// the item turns the ring off. When `isTargetable` is
-/// `false`, for example on a deck card that does not show whole,
-/// `.targetable(false)` removes the item from the jump labels and from the
-/// navigation snapshot, so no jump and no move lands on it. The modifier
+/// on the item, and the scope then draws its focus ring around the item, in
+/// the theme accent (`\.themeAccent`), never in the `.tint` of a host
+/// (EditorKit ^d5f8cwa). `.scopeFocusRing(cornerRadius:)` gives the ring the
+/// corners of the surface of the item (``SurfaceCorners``): by default the
+/// corners of a card of the kit (``SurfaceCorners/card``). A
+/// `.focusEffectDisabled()` above the item turns the ring off. When
+/// `isTargetable` is `false`, for example on a deck card that does not show
+/// whole, `.targetable(false)` removes the item from the jump labels and from
+/// the navigation snapshot, so no jump and no move lands on it. The modifier
 /// applies the same modifiers for each value of `isTargetable`, so a change
 /// of the value keeps the identity and the state of the item.
 ///
@@ -45,7 +46,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   /// Tells if a jump or a `nav.*` move can land on the item.
   let isTargetable: Bool
 
-  /// The corners of the focus ring that the beacon of the scope draws.
+  /// The corners of the focus ring that the scope draws.
   let focusRingCorners: SurfaceCorners
 
   @Environment(\.agentCommandSystem) private var system

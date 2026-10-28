@@ -15,15 +15,16 @@ import UniformTypeIdentifiers
 ///
 /// The views of ``Surface`` have no focusable view at the center of their
 /// scope, so EditorKit gives the focus to the beacon of the scope, and the
-/// beacon draws the system focus ring over the view. The ring has the
-/// corners of the surface of the view: the medium radius of the style for a
-/// chip and an artifact panel, and square corners for an image. The
-/// inspector has a focusable view of its own, which takes the focus and
-/// draws its own ring.
+/// scope draws its focus ring around the view in the theme accent
+/// (EditorKit ^d5f8cwa). The ring has the corners of the surface of the
+/// view: the medium radius of the style for a chip and an artifact panel,
+/// and square corners for an image. The inspector has a focusable view of
+/// its own, which takes the focus and draws its own ring.
 ///
-/// Each test mounts one view at the root of a command system, lands the
-/// focus on its scope, and renders one pass before it reads the first
-/// responder of the window.
+/// Each test mounts one view at the root of a command system, in the
+/// ``AgentItemFocusRingHostedTests/AccentLook``, lands the focus on its
+/// scope, and renders one pass before it reads the first responder of the
+/// window and the ring of the scope.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentFocusRingHostedTests {
   /// The suite whose helpers make the files of the attachments.
   typealias Shared = AttachmentInspectorHostedTests
@@ -121,40 +122,42 @@ import UniformTypeIdentifiers
     let mounted = try makeView(directory)
     let system = CommandSystem()
     let harness = HostedViewHarness(
-      mounted.content.commandSystem(system), size: AttachmentCommandsHostedTests.viewSize)
+      mounted.content.modifier(Ring.AccentLook()).commandSystem(system), size: AttachmentCommandsHostedTests.viewSize)
     defer { harness.close() }
     harness.render()
     try inspect(try focusScope(of: mounted.id, in: harness, system: system))
   }
 
   /// Lands a `nav.*` move on the root scope of the attachment `id`, renders
-  /// one pass, and reads the first responder of the window.
+  /// one pass, and reads the first responder of the window and the ring of
+  /// the scope.
   ///
   /// - Parameters:
   ///   - id: The id of the attachment of the scope.
   ///   - harness: The harness that shows the scope.
   ///   - system: The command system of the window.
-  /// - Returns: The first responder, with the area of the scope.
-  /// - Throws: An issue when the focus does not land.
+  /// - Returns: The first responder, with the area of the scope and its
+  ///   ring.
+  /// - Throws: An issue when the focus does not land, or an error when a
+  ///   capture fails.
   static func focusScope(
     of id: AttachmentID, in harness: HostedViewHarness<some View>, system: CommandSystem
   ) throws -> Ring.FocusedItem {
     let scope = FocusPath.root(AgentScopeKind.attachment(id))
 
-    try #require(system.geometry.requestFocus(at: scope))
-    harness.render()
-
-    let responder = try #require(harness.window.firstResponder as? NSView)
-    return Ring.FocusedItem(responder: responder, itemRect: try #require(system.geometry.rect(of: scope)))
+    return try Ring.focus(scope, in: harness, system: system) {
+      try #require(system.geometry.requestFocus(at: scope))
+    }
   }
 
-  /// The beacon of the scope holds the focus, and its ring is over the whole
-  /// scope.
+  /// The beacon of the scope holds the focus, and the scope draws its ring
+  /// around the view in the theme accent, not in the tint of the host.
   @Test(arguments: Surface.allCases)
   func theBeaconOfTheScopeHoldsTheFocus(surface: Surface) throws {
     try Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
+      #expect(focused.responder is GeometryProbeView)
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
-      #expect(focused.responder.focusRingMaskBounds == focused.responder.bounds)
+      Ring.expectTheThemeAccent(in: focused.ring)
     }
   }
 
@@ -162,7 +165,7 @@ import UniformTypeIdentifiers
   @Test(arguments: Surface.allCases)
   func theFocusRingHasTheCornersOfTheSurface(surface: Surface) throws {
     try Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
-      try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: surface.cornerRadius)
+      try Ring.expectRing(of: focused, cornerRadius: surface.cornerRadius)
     }
   }
 
@@ -184,6 +187,7 @@ import UniformTypeIdentifiers
     let harness = HostedViewHarness(
       AttachmentView(attachment)
         .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shown.corners = $0 }
+        .modifier(Ring.AccentLook())
         .commandSystem(system),
       size: AttachmentCommandsHostedTests.viewSize)
     defer { harness.close() }
@@ -191,7 +195,7 @@ import UniformTypeIdentifiers
     await harness.render(when: { shown.corners != nil })
     let focused = try Self.focusScope(of: attachment.id, in: harness, system: system)
 
-    try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: EditorStyle.default.radii.m)
+    try Ring.expectRing(of: focused, cornerRadius: EditorStyle.default.radii.m)
   }
 
   /// The inspector has a focusable view of its own, so a `nav.*` move on its
