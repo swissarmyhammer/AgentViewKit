@@ -39,7 +39,11 @@
         new image is not judged yet. Since step 2 of ^ey6v778 the tile tokens are EditorKit's EditorStyle.tile, \
         which a theme sets (ContentTileThemeHostedTests checks it): the padding and the gap are the same as \
         before, and the tile margin between rows, around and between deck cards and between banners is \
-        EditorKit's small spacing step, 8 points, where it was 12; the new images are not judged yet.
+        EditorKit's small spacing step, 8 points, where it was 12; the new images are not judged yet. Since \
+        ^7abggb0 the inline diff has one line-number column, as wide as its widest number: a context or an \
+        added row shows its new number, a removed row its old number, and every number ends at one right edge \
+        beside the +/- marker column (DiffLineNumberHostedTests checks it with a hunk past line 1000). The new \
+        image is not judged yet.
         """,
       .requestDeck: """
         2026-10-27. The request cards have no fill. The cards behind the front card show as thin top edges, so \

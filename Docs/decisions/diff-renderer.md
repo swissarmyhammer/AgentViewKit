@@ -65,3 +65,20 @@ This file records how `DiffView` gets its default renderer from EditorKit.
   `HostedViewHarness.views(withAccessibilityIdentifier:)`, which walks the
   `NSView` tree.
 - The kit identifier `diff-editor-renderer` is removed. No code needs it.
+
+## The line-number columns
+
+- The inline layout has one right-aligned line-number column,
+  `DiffLineNumbers.Side.inline` (column id `diff.line`, EditorKit `fb4ef5b`,
+  card ^8zwzkda). A context or an added row shows its new line number, and a
+  removed row its old line number, so the number of each row ends at one x.
+  The `+`/`-` marker column (`diff.marker`) tells the kinds apart. The
+  side-by-side layout keeps the `diff.old` and `diff.new` columns, one for
+  each side.
+- Each line-number column is as wide as its widest line number (EditorKit
+  `a044349`, card ^xc9zq15), so a short hunk deep in a file keeps its
+  four-digit numbers inside the column.
+- The kit picks this up with the EditorKit pin `f588cb5` (card ^7abggb0).
+  `DiffLineNumberHostedTests` reads the glyph rows of the gutter lane
+  (`GutterLaneView.preparedGlyphText`, `preparedGlyphRunRect`) and checks the
+  one column, the numbers, and the one right edge, with a hunk past line 1000.
