@@ -282,6 +282,53 @@ import Testing
     return textView
   }
 
+  /// Types `text` into the field with `identifier`, presses Return to answer
+  /// the request that shows the field, and expects that the answer takes the
+  /// typing of the field off the window undo stack, so ⌘Z never undoes typing
+  /// in a field that is gone.
+  ///
+  /// The view of the request must keep the model of the field in a kit-owned
+  /// `@State` slot: since EditorKit ^1gab15j an editor's entries stay on the
+  /// window stack for as long as its `EditorModel` is alive, and leave on the
+  /// next main run loop pass after the model is released.
+  ///
+  /// - Parameters:
+  ///   - text: The text to type.
+  ///   - identifier: The accessibility identifier of the field.
+  ///   - window: The mounted window, with the field of one pending request.
+  ///   - replacingAllText: Whether the typing takes the place of all the text
+  ///     of the field, as in ``type(_:intoFieldWith:in:replacingAllText:sourceLocation:)``.
+  ///     The default is `false`.
+  ///   - answered: Whether the Return answered the request. The model must
+  ///     report the answer in the same step as the press, so a Return that did
+  ///     not answer the request stops the check before any wait.
+  ///   - requestIsGone: Whether the model no longer holds the request. The
+  ///     check waits for it before it renders the window, so it must read
+  ///     observable model values.
+  ///   - sourceLocation: The location of the caller, for the failure report.
+  /// - Throws: An issue when the field cannot take the typing, when the
+  ///   typing leaves nothing to undo, when the Return answers nothing, or when
+  ///   the field stays in the window.
+  static func expectAnswerTakesTheTypingOffTheUndoStack(
+    typing text: String, intoFieldWith identifier: String, in window: MountedThread<some View>,
+    replacingAllText: Bool = false, answered: () -> Bool, requestIsGone: @MainActor () -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) async throws {
+    try type(
+      text, intoFieldWith: identifier, in: window.harness, replacingAllText: replacingAllText,
+      sourceLocation: sourceLocation)
+    try #require(window.stack.canUndo, sourceLocation: sourceLocation)
+
+    try window.harness.sendKey(.return)
+    try #require(answered(), sourceLocation: sourceLocation)
+    await window.harness.render(when: requestIsGone)
+    try #require(window.harness.element(identifier: identifier) == nil, sourceLocation: sourceLocation)
+    await RunLoopBlockFence.afterPendingBlocks()
+
+    #expect(!window.stack.canUndo, sourceLocation: sourceLocation)
+    #expect(!window.stack.canRedo, sourceLocation: sourceLocation)
+  }
+
   /// Expects that exactly one view and exactly one accessibility element
   /// carry `identifier`, and that the view is the editable text view of the
   /// field: the element that takes typing.

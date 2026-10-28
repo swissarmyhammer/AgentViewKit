@@ -165,19 +165,13 @@ import Testing
     defer { session.close() }
     let window = try await Self.mountInTheDeck(session)
     defer { window.harness.close() }
-    try SingleLineFieldChecks.type(Self.name, intoFieldWith: Self.control, in: window.harness)
-    try #require(window.stack.canUndo)
+    let model = session.model
 
-    try window.harness.sendKey(.return)
     // The model removes the answered elicitation in the same step as the
-    // press, so a Return that did not submit the form stops the test here.
-    try #require(session.model.pendingElicitations.isEmpty)
-    window.harness.render()
-    try #require(window.harness.element(identifier: Self.control) == nil)
-    await RunLoopBlockFence.afterPendingBlocks()
-
-    #expect(!window.stack.canUndo)
-    #expect(!window.stack.canRedo)
+    // press, so the request is gone as soon as the form is submitted.
+    try await SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack(
+      typing: Self.name, intoFieldWith: Self.control, in: window,
+      answered: { model.pendingElicitations.isEmpty }, requestIsGone: { model.pendingElicitations.isEmpty })
   }
 
   /// Shows the thread and the deck of `session` under the root command scope

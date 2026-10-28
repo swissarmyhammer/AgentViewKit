@@ -123,20 +123,13 @@ import Testing
     let window = try await ElicitationTextFieldEditingHostedTests.mountInTheDeck(
       session, params: Self.requiredCountParams)
     defer { window.harness.close() }
-    try SingleLineFieldChecks.type(
-      Self.typedCount, intoFieldWith: Self.control, in: window.harness, replacingAllText: true)
-    try #require(window.stack.canUndo)
+    let model = session.model
 
-    try window.harness.sendKey(.return)
     // The model removes the answered elicitation in the same step as the
-    // press, so a Return that did not submit the form stops the test here.
-    try #require(session.model.pendingElicitations.isEmpty)
-    window.harness.render()
-    try #require(window.harness.element(identifier: Self.control) == nil)
-    await RunLoopBlockFence.afterPendingBlocks()
-
-    #expect(!window.stack.canUndo)
-    #expect(!window.stack.canRedo)
+    // press, so the request is gone as soon as the form is submitted.
+    try await SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack(
+      typing: Self.typedCount, intoFieldWith: Self.control, in: window, replacingAllText: true,
+      answered: { model.pendingElicitations.isEmpty }, requestIsGone: { model.pendingElicitations.isEmpty })
   }
 
   /// Types `text` in place of the default of a form with the one optional

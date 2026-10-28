@@ -215,21 +215,13 @@ import Testing
     var answers: [PermissionAnswer] = []
     let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
-    try SingleLineFieldChecks.type(
-      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
-    try #require(open.window.stack.canUndo)
-
-    try open.window.harness.sendKey(.return)
-    // The card reports its answer in the same step as it starts the answer
-    // task, so a Return that the field did not submit stops the test here.
-    try #require(answers.count == 1)
     let model = session.model
-    await open.window.harness.render(when: { model.pendingPermissions.isEmpty })
-    try #require(Self.commentValue(in: open.window.harness) == nil)
-    await RunLoopBlockFence.afterPendingBlocks()
 
-    #expect(!open.window.stack.canUndo)
-    #expect(!open.window.stack.canRedo)
+    // The card reports its answer in the same step as it starts the answer
+    // task, and the model drops the request when that task ends.
+    try await SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack(
+      typing: Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window,
+      answered: { answers.count == 1 }, requestIsGone: { model.pendingPermissions.isEmpty })
   }
 
   /// The nested-scope rule of the user: the comment field has its own
