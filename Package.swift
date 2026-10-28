@@ -242,12 +242,14 @@ let package = Package(
       dependencies: ["AgentViewKitStyle"] + styleEditorKitProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
-    // Reads the package files as text. It links only PackageFileSupport,
-    // which has no dependency. The fixtures are Swift files that the scanner
-    // reads, so the build excludes them.
+    // Reads the package files as text. It links PackageFileSupport, which has
+    // no dependency, and the line scan of the EditorKit test support
+    // (`SourceScanning`), which the scan for a SwiftUI `List` reads with. It
+    // links no target of the kit. The fixtures are Swift files that the
+    // scanner reads, so the build excludes them.
     .testTarget(
       name: "PackageStructureTests",
-      dependencies: ["PackageFileSupport"],
+      dependencies: ["PackageFileSupport"] + styleTestSupportProducts,
       exclude: ["Fixtures"]
     ),
     // The compiled snippets of README.md (plan.md §1). Each `// readme:compile`

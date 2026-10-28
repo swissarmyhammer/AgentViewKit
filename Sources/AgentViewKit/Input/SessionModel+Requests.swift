@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient

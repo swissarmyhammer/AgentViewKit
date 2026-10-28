@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import Observation
 
 @testable import AgentViewKit

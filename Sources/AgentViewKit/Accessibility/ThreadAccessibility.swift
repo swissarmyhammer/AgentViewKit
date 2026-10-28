@@ -1,5 +1,6 @@
 // Scoped imports: the whole module also has a `Content` type, which hides the
 // `Content` of each `ViewModifier` in this file.
+import EditorCommandsUI
 import struct FoundationModelsACP.IdleStateUpdate
 import struct FoundationModelsACP.MessageId
 import enum FoundationModelsACP.SessionUpdate

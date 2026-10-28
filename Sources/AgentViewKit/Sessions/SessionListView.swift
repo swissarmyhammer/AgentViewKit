@@ -1,3 +1,5 @@
+import EditorCommands
+import EditorCommandsUI
 import EditorCore
 import EditorSwiftUI
 import EditorTheme
@@ -23,10 +25,17 @@ import SwiftUI
 ///
 /// - When `canListSessions` is false, the view shows no list and no Refresh
 ///   button, and sends no `session/list`.
-/// - When `canResumeSessions` is false, a row is not a button.
+/// - When `canResumeSessions` is false, a row does not open.
 /// - When `canDeleteSessions` is false, a row has no delete button.
 ///
-/// A press on a row calls `resumeSession(_:)` with the `cwd` and the full
+/// The rows are an ``AgentRowList``, not a SwiftUI `List`: the selected row
+/// is the row whose scope has the focus, the arrow keys and Esc move the
+/// selection through the `nav.*` commands of EditorKit, and a jump session of
+/// the host labels each row. Return or a double click on a row opens it, and
+/// so does the press action of the row for VoiceOver. VoiceOver reads a row as
+/// one element: the title, the time and the open questions of its session.
+///
+/// To open a row, the view calls `resumeSession(_:)` with the `cwd` and the full
 /// `additionalDirectories` of the `SessionInfo` of the row and
 /// `replayFrom: .start`, and gives the model of the session to `onOpen`. ACP
 /// v2 requires the same `cwd` and the full list of additional directories
@@ -75,6 +84,35 @@ public struct SessionListView: View {
   /// The space between the header, the failure message, and the list, in
   /// points.
   static let sectionSpacing: CGFloat = 0
+
+  /// The segment kind of the scope of the list of sessions.
+  static let listKind = "sessionList"
+
+  /// The segment kind of the scope of a row.
+  static let rowKind = "session"
+
+  /// The segment of the scope of the "Load More" row.
+  static let loadMoreSegment = FocusSegment(kind: "sessionListLoadMore")
+
+  /// The segment of the scope of the list of sessions of a connection model.
+  ///
+  /// Two pickers in one window, such as the two lists of the Gallery tab of
+  /// the demo app, show two connection models, so each list has its own path.
+  ///
+  /// - Parameter connection: The connection model of the picker.
+  /// - Returns: The segment `sessionList:<id>`, with the identity of the
+  ///   connection model as its id.
+  static func listSegment(for connection: ConnectionModel) -> FocusSegment {
+    FocusSegment(kind: listKind, id: String(UInt(bitPattern: ObjectIdentifier(connection))))
+  }
+
+  /// The segment of the scope of the row of a session.
+  ///
+  /// - Parameter id: The identifier of the session.
+  /// - Returns: The segment `session:<id>`.
+  static func rowSegment(for id: SessionId) -> FocusSegment {
+    FocusSegment(kind: rowKind, id: id.rawValue)
+  }
 
   /// The accessibility identifier of the row of a session.
   ///
@@ -218,19 +256,40 @@ public struct SessionListView: View {
     }
   }
 
-  /// The rows and the "Load More" row.
+  /// The rows and the "Load More" row, in an ``AgentRowList``. A row opens
+  /// only when the agent serves `session/resume`.
   private var list: some View {
-    List {
-      ForEach(Self.sessions(in: connection.sessions, matching: searchModel.text), id: \.sessionId) { info in
-        row(for: info)
-      }
+    AgentRowList(
+      Self.sessions(in: connection.sessions, matching: searchModel.text), id: \.sessionId.rawValue,
+      scope: AgentRowListScope(list: Self.listSegment(for: connection), rowKind: Self.rowKind),
+      onOpen: openAction
+    ) { info in
+      row(for: info)
+    } footer: {
       if connection.hasMoreSessions {
-        Button(String(localized: "Load More", bundle: .module), systemImage: Self.loadMoreSymbol) {
-          start(Self.loadMoreIdentifier) { await perform { try await connection.loadMoreSessions() } }
-        }
-        .accessibilityIdentifier(Self.loadMoreIdentifier)
+        loadMoreButton
       }
     }
+  }
+
+  /// The action that opens the session of a row, or `nil` when the agent
+  /// does not serve `session/resume`.
+  private var openAction: ((SessionInfo) -> Void)? {
+    guard connection.canResumeSessions else { return nil }
+    return { open($0) }
+  }
+
+  /// The "Load More" row: a button in a scope of its own, so a `nav.*` move
+  /// and a jump reach it, and a landed jump presses it. It is in the list,
+  /// which routes its keys as it routes the keys of a row, so the Up Arrow
+  /// goes back to the rows.
+  private var loadMoreButton: some View {
+    Button(String(localized: "Load More", bundle: .module), systemImage: Self.loadMoreSymbol) {
+      start(Self.loadMoreIdentifier) { await perform { try await connection.loadMoreSessions() } }
+    }
+    .accessibilityIdentifier(Self.loadMoreIdentifier)
+    .commandScope(segment: Self.loadMoreSegment)
+    .targetable(true)
   }
 
   /// The failure message of the last call.
@@ -248,28 +307,32 @@ public struct SessionListView: View {
 
   /// The row of one session.
   ///
-  /// The resume control is the one accessibility element of the row that
-  /// tells the session. For an open session that is not ``currentSession``
-  /// and has pending requests, its label is the label of the session and the
-  /// open question text, such as "Second, 2 open questions". The
+  /// The summary is the one accessibility element of the row that tells the
+  /// session. For an open session that is not ``currentSession`` and has
+  /// pending requests, its label is the label of the session and the open
+  /// question text, such as "Second, 2 open questions". The
   /// ``PendingRequestCountBadge`` is visual only and is hidden from
-  /// accessibility, so VoiceOver reads the count one time.
+  /// accessibility, so VoiceOver reads the count one time. When the agent
+  /// serves `session/resume`, the summary is a button whose press action
+  /// opens the session, as Return and a double click on the row do.
   ///
   /// - Parameter info: The session to show.
-  /// - Returns: The resume control, the ``PendingRequestCountBadge`` of an
-  ///   open session that is not ``currentSession``, and, when the agent
-  ///   serves `session/delete`, the delete button.
+  /// - Returns: The summary, the ``PendingRequestCountBadge`` of an open
+  ///   session that is not ``currentSession``, and, when the agent serves
+  ///   `session/delete`, the delete button.
   private func row(for info: SessionInfo) -> some View {
     let otherSession = otherOpenSession(for: info.sessionId)
     let openQuestions = Self.openQuestionsLabel(of: otherSession)
     return HStack {
-      resumeControl(for: info)
+      summary(of: info)
+        .accessibilityElement(children: .combine)
         .accessibilityLabel { label in
           label
           if let openQuestions {
             Text(openQuestions)
           }
         }
+        .modifier(SessionRowOpenAction(open: connection.canResumeSessions ? { open(info) } : nil))
         .accessibilityIdentifier(Self.rowIdentifier(for: info.sessionId))
       if let otherSession {
         PendingRequestCountBadge(session: otherSession)
@@ -290,25 +353,6 @@ public struct SessionListView: View {
     }
   }
 
-  /// The title and time of a session: a resume button when the agent serves
-  /// `session/resume`, else plain text.
-  ///
-  /// - Parameter info: The session to show.
-  /// - Returns: The control.
-  @ViewBuilder private func resumeControl(for info: SessionInfo) -> some View {
-    if connection.canResumeSessions {
-      Button {
-        start(Self.rowIdentifier(for: info.sessionId)) { await resume(info) }
-      } label: {
-        summary(of: info)
-      }
-      .buttonStyle(.plain)
-    } else {
-      summary(of: info)
-        .accessibilityElement(children: .combine)
-    }
-  }
-
   /// The title and the relative time of the last activity of a session.
   ///
   /// - Parameter info: The session to show.
@@ -324,7 +368,6 @@ public struct SessionListView: View {
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .contentShape(Rectangle())
   }
 
   /// Calls `refreshSessions(cwd:)` when the agent lists its sessions.
@@ -338,6 +381,14 @@ public struct SessionListView: View {
       return
     }
     await perform { try await connection.refreshSessions(cwd: cwd) }
+  }
+
+  /// Opens the session of a row: starts its resume, and reports the press of
+  /// the row.
+  ///
+  /// - Parameter info: The session to open.
+  private func open(_ info: SessionInfo) {
+    start(Self.rowIdentifier(for: info.sessionId)) { await resume(info) }
   }
 
   /// Resumes a session with all its retained history, and gives its model
@@ -442,6 +493,27 @@ public struct SessionListView: View {
     guard !needle.isEmpty else { return sessions }
     return sessions.filter { info in
       [info.title ?? "", info.cwd.rawValue].contains { $0.localizedStandardContains(needle) }
+    }
+  }
+}
+
+/// The press action of the summary of a session row, when the row opens.
+///
+/// A row that opens is a button for VoiceOver: its press action opens the
+/// session, as Return and a double click on the row do. A row of an agent
+/// that does not serve `session/resume` is plain text.
+private struct SessionRowOpenAction: ViewModifier {
+  /// The action that opens the session of the row, or `nil` for a row that
+  /// does not open.
+  let open: (() -> Void)?
+
+  @ViewBuilder func body(content: Self.Content) -> some View {
+    if let open {
+      content
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { open() }
+    } else {
+      content
     }
   }
 }

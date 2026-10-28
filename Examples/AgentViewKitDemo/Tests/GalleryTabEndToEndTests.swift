@@ -42,7 +42,8 @@ final class GalleryTabEndToEndTests: XCTestCase {
     XCTAssertFalse(app.element(Self.failure).exists, "The start of the Gallery failed.")
     XCTAssertTrue(rowShows, "The Gallery lists no recorded session.")
 
-    row.click()
+    // A click on a row selects it, and a double click opens it.
+    row.doubleClick()
 
     XCTAssertTrue(
       app.element(withIdentifierPrefix: Self.itemRowPrefix).waitForExistence(timeout: DemoTestValues.elementTimeout),
