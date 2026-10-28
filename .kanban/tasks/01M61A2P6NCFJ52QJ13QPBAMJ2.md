@@ -154,8 +154,15 @@ comments:
     - Next: `/review ^qpbamj2 HEAD~1..HEAD` with main clean at b486340. If it's clean, the card goes to done.
     - Then send snapshotviewkit-ec and kanbanviewkit-2c the SHA and the name changes: `StatusBar.Message` (not StateBanner.Message); severity `.neutral` (default) / `.information` / `.warning` / `.failure`; `isOngoing` is explicit; AgentSurfaceCorners → SurfaceCorners. They link AVK, so they may need main pushed; ask the user before pushing.
   timestamp: 2026-10-28T15:28:12.409444+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m61jsgm1qmcxmnxhwzgm6vvf
+  text: |-
+    ### review — clean
+    - evidence: review sha c1dfef8..b486340 — 3 files reviewed, 0 not reviewed; counts findings 0, confirmed 0, refuted 0 (7 attempted, 0 failed, 0 skipped). All 3 prior findings of 2026-10-28 09:20 checked; all 10 acceptance items checked.
+    - next: moved to done; send the SHA to snapshotviewkit-ec and kanbanviewkit-2c per the card's Order section.
+  timestamp: 2026-10-28T15:41:51.105318+00:00
+position_column: done
+position_ordinal: fffff080
 title: 'AVK is the shared visual layer: make the tile, surface, symbols, chips, status bar look and diff renderer setup public for SVK and KVK'
 ---
 User decision, relayed by snapshotviewkit-ec: "I'm very happy for you to make those public from AVK and build on top of AVK. Similar for KVK: collaborate with it to decide what is redundant in KVK and should actually be shared from AVK." AgentViewKit becomes the shared visual layer for the view kits. SnapshotViewKit, and KanbanViewKit where they overlap, depend on AVK. This replaces EditorKit ^qane0e0's lift into EditorStyle; editorkit-a9 has been asked to trim or close it.
