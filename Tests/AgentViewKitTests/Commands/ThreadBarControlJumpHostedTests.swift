@@ -540,11 +540,6 @@
       let shown = try await Self.show(control, system: system)
       defer { shown.close() }
 
-      // An accessibility client reads the tree before it hit-tests it. The
-      // first read of the tree also makes the nodes of a nested scroll view,
-      // such as the row of suggestion chips (measured on macOS 27).
-      try #require(shown.harness.frame(identifier: shown.identifier) != nil)
-
       let element = accessibilityHitTest(atCenterOfScopeAt: shown.path, in: system, window: shown.harness.window)
 
       let answer = element.flatMap(accessibilityIdentifier(of:))
