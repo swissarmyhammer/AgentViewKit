@@ -10,6 +10,22 @@ comments:
     - acceptance: items 1-3 checked against a36c815 (git grep and git ls-tree). "swift test is green" left unchecked: 1 skip and 1 warning, and green means zero of each.
     - next: a person decides how to run the five rules on LightAndDarkOnlyTests.swift (re-run review sha 0e80f75..a36c815 once wt/rtic-removal is checked out or merged here), then /review ^ffeg9my again. Card stays in review.
   timestamp: 2026-10-28T14:07:44.444699+00:00
+- actor: claude-code
+  id: 01m61jnvgz267qb0kvdswx5zkr
+  text: |-
+    ### HANDOFF (2026-10-28)
+    - State: in review. The work is done on worktree branch `wt/rtic-removal` (worktree /Users/wballard/github/swissarmyhammer/AgentViewKit-wt/rtic). Commits:
+      - 73cf2b9: the removal, 32 PNGs deleted.
+      - a36c815: plan.md and README say no manual check.
+      - 595044f: the demo's Increased Contrast look removed (user decision), and LightAndDarkOnlyTests also scans the demo.
+    - Tests: swift test passed 1893 + 267 + 1, 0 failures, 0 skips. test-examples.sh fails only on the known editor.isHittable test.
+    - The earlier review was incomplete, because the code-hygiene rules read the main tree and skipped LightAndDarkOnlyTests.swift.
+    - Next, with main clean and after the leak branch merges:
+      1. `git merge --no-ff wt/rtic-removal`
+      2. `/review <this card> <merge-base>..HEAD` in main
+      3. If clean, move to done, then remove the worktree and the branch.
+    - Also seen: Scripts/test-examples.sh once hung for about 50 minutes, because its own time limit never fired. That's worth a card.
+  timestamp: 2026-10-28T15:39:51.199072+00:00
 position_column: review
 position_ordinal: '8280'
 title: Remove every Reduce Transparency and Increase Contrast test; snapshots are light and dark only

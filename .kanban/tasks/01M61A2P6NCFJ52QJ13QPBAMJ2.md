@@ -146,6 +146,14 @@ comments:
     - Nothing is committed. The card stays in doing.
     - next: /commit, then /review ^qpbamj2 on the fix commit.
   timestamp: 2026-10-28T15:27:23.477714+00:00
+- actor: claude-code
+  id: 01m61j0h3sn4fm3v4w6twn42f8
+  text: |-
+    ### HANDOFF (session ending, 2026-10-28)
+    - State: in doing. All three findings are fixed and checked, and 10/10 acceptance items hold. Code is on local main: ce75110 (feature) and b486340 (finding fixes). Full swift test passed (274 + 1899 + 37), apart from the mlx warning, which has its own card.
+    - Next: `/review ^qpbamj2 HEAD~1..HEAD` with main clean at b486340. If it's clean, the card goes to done.
+    - Then send snapshotviewkit-ec and kanbanviewkit-2c the SHA and the name changes: `StatusBar.Message` (not StateBanner.Message); severity `.neutral` (default) / `.information` / `.warning` / `.failure`; `isOngoing` is explicit; AgentSurfaceCorners → SurfaceCorners. They link AVK, so they may need main pushed; ask the user before pushing.
+  timestamp: 2026-10-28T15:28:12.409444+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'AVK is the shared visual layer: make the tile, surface, symbols, chips, status bar look and diff renderer setup public for SVK and KVK'

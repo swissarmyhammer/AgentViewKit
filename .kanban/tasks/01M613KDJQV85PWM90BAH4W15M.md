@@ -10,6 +10,17 @@ comments:
     - work items: 5 of 6 checked from commit 10f3ff2. Pin: Package.resolved is gitignored, Package.swift tracks EditorKit `main`, and the worktree resolves EditorKit f588cb5, which contains 3cb4805. `swift test` in /Users/wballard/github/swissarmyhammer/AgentViewKit-wt/leak: 1902 tests in 237 suites passed with 7 known issues, 1 skipped (theGeneratedDemoProjectPinsTheRootACPRevisions), 1 SwiftPM build warning (missing creator for mutated node, mlx-swift_Cmlx.bundle). Both release tests and the new number-field test pass. The `swift test` is green item stays unchecked: a skip and a warning are present.
     - next: fold the shared mount/type/Return/fence/undo-stack steps into one helper that both submitted-form tests call, then re-review.
   timestamp: 2026-10-28T13:50:08.469642+00:00
+- actor: claude-code
+  id: 01m61j0mxvh4cw1ng1m4qxsq8q
+  text: |-
+    ### HANDOFF (session ending, 2026-10-28)
+    - State: the work is done on worktree branch `wt/leak-workarounds` (worktree /Users/wballard/github/swissarmyhammer/AgentViewKit-wt/leak). Commits 10f3ff2 (workarounds removed) and b1ce596 (the review finding fixed: SingleLineFieldChecks helper). Full swift test passed with 0 skips; test-examples fails only on the known editor.isHittable.
+    - The earlier review in main was incomplete, because the code-hygiene rules read the main working tree, not the commit. Re-review after merging.
+    - Next, with main clean:
+      1. `git merge --no-ff wt/leak-workarounds`
+      2. `/review <this card> <merge-base>..HEAD` in main
+      3. If clean, move to done, then `git worktree remove ../AgentViewKit-wt/leak && git branch -d wt/leak-workarounds`.
+  timestamp: 2026-10-28T15:28:16.315060+00:00
 position_column: review
 position_ordinal: '8180'
 title: Drop the AVK leak workarounds now that EditorKit ^jmq52v6 fixed the onEditCommit leak

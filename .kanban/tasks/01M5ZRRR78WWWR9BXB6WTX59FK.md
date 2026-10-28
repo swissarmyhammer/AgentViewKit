@@ -17,6 +17,19 @@ comments:
     - review: 0 findings, but five Swift hygiene rules read the main working tree and skipped StatusBar.swift and StyleGuideLinkTests.swift. The review isn't complete.
     - Moved back to review: the code isn't on main yet. Next: merge wt/style-docs into main once main is clean (after ^qpbamj2 commits), resolve the StatusBar.swift comment conflict (main moves that file into AgentViewKitStyle), then re-review the merged commit in main.
   timestamp: 2026-10-28T14:11:28.170212+00:00
+- actor: claude-code
+  id: 01m61j0rdwjdzew38atzj05g9s
+  text: |-
+    ### HANDOFF (session ending, 2026-10-28)
+    - State: in review. The work is done on worktree branch `wt/style-docs` (worktree /Users/wballard/github/swissarmyhammer/AgentViewKit-wt/docs), commit c43ef30. Full swift test passed.
+    - Expected merge conflict: c43ef30 changes a comment in Sources/AgentViewKit/Status/StatusBar.swift, which main has moved into Sources/AgentViewKitStyle (^qpbamj2). Apply the repointed `../EditorKit/style.md` citation to the moved file, and drop the old path.
+    - Next, after the leak and RT/IC branches merge:
+      1. `git merge --no-ff wt/style-docs`
+      2. Resolve the conflict.
+      3. Run `swift test --filter PackageStructureTests` (StyleGuideLinkTests).
+      4. `/review ^wtx59fk <merge-base>..HEAD` in main
+      5. If clean, move to done, then remove the worktree and the branch.
+  timestamp: 2026-10-28T15:28:19.900256+00:00
 position_column: review
 position_ordinal: '8380'
 title: AVK docs point to EditorKit/style.md as the one shared style guide (after EditorKit moves it)
