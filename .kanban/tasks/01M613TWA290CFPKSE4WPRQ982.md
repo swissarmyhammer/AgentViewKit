@@ -1,6 +1,15 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m614qeqgrbkbv1ry4x8ntge2
+  text: |-
+    The user widened this: "EK, AVK, KVK, SVK all need complete gallery as well, using EK themes + style guidelines".
+    - Every AVK gallery entry renders under EditorKit's theme system: `.editorTheme(_:)` at the root, with SystemTheme as the default. The AVK snapshot fixtures already do this; check it holds for the discovered snapshots' page too. The views follow ../EditorKit/style.md.
+    - EditorKit ^p9rqatc (built on ^1b4z2mv) adds the generic helper to EditorTestSupport, with discovery of every reference PNG and the missing-PNG check. When it lands, AVK switches to it and deletes AVK's ReviewGallery.swift and ReviewGalleryPage.swift. If it lands before this card starts, do this card in EditorKit's helper and don't extend AVK's copy.
+    - KanbanViewKit (^1fas8q0) and SnapshotViewKit build theirs on the same helper.
+  timestamp: 2026-10-28T11:36:03.568088+00:00
 position_column: todo
 position_ordinal: ab80
 title: Review gallery shows every recorded snapshot, not only the full screens

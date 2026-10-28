@@ -117,10 +117,33 @@ comments:
     - review: clean. 0 findings across 7 files.
     - held in review: the `editor.isHittable` acceptance item waits on EditorKit ^yb2p8xe (placeholder overlay hidden from accessibility; cold hit test). ^bc6fapz closes after this card.
   timestamp: 2026-10-27T22:45:02.921716+00:00
+- actor: claude-code
+  id: 01m617h1bbd5g1mts40xrh0agq
+  text: |-
+    ### implement: findings (2026-10-28, pass 4)
+    - `swift package update EditorKit` resolved to f588cb5, which descends from a044349 and cf8cc84 (^yb2p8xe). The demo's own Package.resolved (git-ignored .xcodeproj) also pins f588cb5. AVK builds on it with no source change.
+    - Removed the tree pre-read and its comment from `ThreadBarControlJumpHostedTests.theHitTestAtTheCenterOfEachBarControlAnswersTheControl`. On a cold hit test the suite passes: 6 tests, with all 13 hit-test cases.
+    - `Scripts/test-examples.sh` still FAILS: `ACPTabEndToEndTests.swift` `editor.isHittable`, "The composer editor is not hittable". The other 8 UI tests pass.
+    - ^yb2p8xe did remove the placeholder sibling: the XCUI tree no longer shows a Group with the same frame next to `prompt-editor`. So the cause is now a different one.
+    - What I measured with temporary probes (all reverted; the demo files match HEAD again):
+      - **Remote AX hit test.** Calling XCTest's own `XCAXClient_iOS -hitTestElement:withPoint:error:` at the editor's centre (670,840) answers the AXScrollArea of `conversation-empty-state`. That is the transcript under the bar: AXScrollArea → `conversation-empty-state` → `agentThread demo-session` → … → window. At Send's centre the same call answers `prompt-submit`. The XCUI snapshot's own `hitPoint:` says hittable YES at (670,840). So it is only the AX hit test that loses.
+      - **In-process hit test.** Inside the demo app, at the same moment, `window.accessibilityHitTest`, `NSApp.accessibilityHitTest` and `contentView.accessibilityHitTest` at the editor's centre all answer `EditorInputTextView` (`prompt-editor`). The parent chain is right: `prompt-field-surface` (label `agentControl prompt-editor`) → `thread-floating-controls` → `agentThread`. With AXEnhancedUserInterface set the answer is the same. So the in-process read, which EditorTestSupport and AVK's hosted test use, answers the text view. The read an out-of-process client makes (XCUI, and VoiceOver or Hover Text the same way) answers the scroll view behind the bar.
+      - The same split shows on other elements. XCUI reports not hittable for `prompt-field-surface`, `agent-auth`, `agent-auth-title`, `thread-floating-controls` and the picker segments. The remote hit at a segment answers the whole `permission-mode-picker` RadioGroup. Leaf buttons (Send, Sign In, Sign Out) and the picker as a whole are hittable.
+      - Ruled out: the disabled state, since `session-list-search` is "Disabled" too and is hittable. Also ruled out: the child window `NSCampoLightweightUIHostWindow` (100,804 280x168). It does not cover (670,840), and the picker, which it does cover, is hittable.
+    - Conclusion: the leaf override answers remote clients for leaf controls. The editor scope is no leaf control, so a remote hit at its centre still falls through to SwiftUI, which answers the ScrollView under the floating bar. EditorKit owns the hit test (card: "Do not build landing or activation behaviour in AVK"), so the fix belongs there. The repro is AVK `Scripts/test-examples.sh`. An EditorKit test should hit-test through the remote AX path (an XCUI or AXUIElementCopyElementAtPosition test of an EditorView in a `.safeAreaBar` or overlay over a ScrollView), not only through `window.accessibilityHitTest` in process.
+  timestamp: 2026-10-28T12:24:58.987894+00:00
+- actor: claude-code
+  id: 01m617h8bv0h007r5mq44sktn1
+  text: |-
+    ### implement — stuck
+    - evidence: 1 file changed, Tests/AgentViewKitTests/Commands/ThreadBarControlJumpHostedTests.swift (tree pre-read and its comment removed). EditorKit resolved to f588cb5, which contains a044349 and cf8cc84. `swift test --filter ThreadBarControlJumpHostedTests`: 6 tests passed, all 13 hit-test cases on a cold hit test. Full `swift test`, run under the UI-test lock: 1889 tests in 235 suites passed, 0 failed, 0 skipped. The 7 known issues are the intentional `withKnownIssue` cases. The only warning is the existing mlx-swift_Cmlx "missing creator" notice. `Scripts/test-examples.sh`: AgentViewKitDemo FAIL, 1 of 9: ACPTabEndToEndTests `editor.isHittable` ("The composer editor is not hittable"). XCUI still falls back to the centre point for the editor click.
+    - gap: acceptance item "Demo UI test: … asserts `editor.isHittable` … no 'Falling back to element center point'" stays unchecked. At the editor's centre, the remote AX hit test (XCTest `hitTestElement:withPoint:error:`) answers the `conversation-empty-state` AXScrollArea under the bar. The in-process `window.accessibilityHitTest` answers the text view. Details are in the findings comment. EditorKit owns the hit test.
+    - next: EditorKit makes a remote (out-of-process) AX hit test at an EditorView's centre answer its text view when the editor sits in a bar over a ScrollView. Then pull EditorKit, re-run Scripts/test-examples.sh and check off the item. Nothing is committed; the card stays in doing.
+  timestamp: 2026-10-28T12:25:06.171469+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
-position_column: review
-position_ordinal: '8180'
+position_column: doing
+position_ordinal: '8380'
 title: The thread bar controls are accessibility-hittable, and a landed jump activates them (after EditorKit ^tzh8q6d and ^wccq0y0)
 ---
 Split from ^0xggx44 on 2026-10-25 (user: "get to it"). ^0xggx44 gives every control in the thread bars an EditorKit scope through one kit modifier. This card holds the items that need EditorKit work first.

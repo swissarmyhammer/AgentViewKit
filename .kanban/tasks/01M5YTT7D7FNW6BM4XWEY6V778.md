@@ -162,8 +162,24 @@ comments:
     - evidence: 1 file — Tests/PackageStructureTests/ContentTilePaddingTests.swift. `swift test --filter PackageStructureTests` passed 263 tests in 35 suites. Full `swift test` passed 1889 tests in 235 suites, plus 263 in PackageStructureTests. The only warning is the existing mlx-swift_Cmlx "missing creator for mutated node" packaging warning, which this card did not cause. The finding is checked; 0 of 1 open.
     - next: /review
   timestamp: 2026-10-28T11:26:21.246497+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m6148mzfsvc3beqm5y9mghmd
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (2f5996e), 1 file reviewed (Tests/PackageStructureTests/ContentTilePaddingTests.swift); counts findings 0, confirmed 0, refuted 1, attempted 7, failed 0; prior finding (ContentTilePaddingTests.swift:64) checked
+    - next: none — moved to done
+  timestamp: 2026-10-28T11:27:58.447696+00:00
+- actor: claude-code
+  id: 01m61495sr2nrjb7tf4kjq7pvq
+  text: |-
+    ### finish iteration (step 2, round 2) — clean
+    - implement: changed. 1 file, ContentTilePaddingTests.swift: the guards match the type as a token, with any qualifier or whitespace.
+    - test: swift test passed 1889 tests in 235 suites, plus 263 PackageStructureTests. The only warning is the existing mlx-swift_Cmlx one.
+    - commit: 8ea2bf0 (kanban), 2f5996e (code)
+    - review: clean. 0 findings; the earlier finding is checked. Card is done.
+  timestamp: 2026-10-28T11:28:15.672544+00:00
+position_column: done
+position_ordinal: ffffed80
 title: 'AVK-8 tiles: one theme-driven padding, gap and margin for every content tile, bordered or not (cards, banners, request cards, tool calls, terminal output, code blocks, diffs, artifacts), from the user''s gallery review'
 ---
 ## Why
