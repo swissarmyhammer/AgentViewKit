@@ -26,8 +26,15 @@ comments:
       3. If clean, move to done, then remove the worktree and the branch.
     - Also seen: Scripts/test-examples.sh once hung for about 50 minutes, because its own time limit never fired. That's worth a card.
   timestamp: 2026-10-28T15:39:51.199072+00:00
-position_column: review
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m61m3yd70b5rp307x1tj1mwd
+  text: |-
+    ### review — clean
+    - evidence: `review sha 0e80f75..595044f` on main 220216f — 0 findings, 0 confirmed, 0 refuted (14 attempted, 0 failed); 24 files reviewed, 34 not reviewed (32 PNGs with no text, plus README.md and plan.md, which no validator matches). The five code-hygiene Swift rules now judged Tests/PackageStructureTests/LightAndDarkOnlyTests.swift; their only declines name Tests/AgentViewKitTests/Theme/GlassAccessibilityTests.swift, which this change deletes, so it has no added lines. Blocker item and "`swift test` is green" checked per user (swift test exit 0 on 220216f: 1892 + 282 + 37 + 1 passed, 0 skipped, 7 intentional known issues; mlx-swift_Cmlx warnings excluded by user decision).
+    - next: none — moved to done.
+  timestamp: 2026-10-28T16:05:01.479938+00:00
+position_column: done
+position_ordinal: fffff180
 title: Remove every Reduce Transparency and Increase Contrast test; snapshots are light and dark only
 ---
 User decision (2026-10-28), from the question about rule 9 of EditorKit/style.md: "Remove all RT/IC tests". This covers glass checks and also kit-logic contrast checks such as the terminal ANSI grey remap. The same decision goes to KanbanViewKit (^mvbb914 there), EditorKit and TestudoApp.
@@ -43,7 +50,7 @@ User decision (2026-10-28), from the question about rule 9 of EditorKit/style.md
 - [x] `rg -n "ReduceTransparency|reduceTransparency|colorSchemeContrast|increaseContrast|IncreaseContrast|reduce-transparency|increase-contrast" Tests Sources Examples` finds nothing that a test sets or names, apart from kit code that legitimately reads the environment
 - [x] No RT/IC PNGs remain under __Snapshots__
 - [x] A package-structure test fails if a test sets either setting again
-- [ ] `swift test` is green
+- [x] `swift test` is green
 
 ## Review Findings (2026-10-28 09:04)
 
@@ -103,5 +110,5 @@ User decision (2026-10-28), from the question about rule 9 of EditorKit/style.md
 > missing-docs-swift found no file at Tests/PackageStructureTests/LightAndDarkOnlyTests.swift, so its declarations are unread
 
 ## Blocker (2026-10-28 09:04)
-- [ ] The review is incomplete: five code-hygiene tool rules (disallowed-constructs-swift, function-length-swift, idioms-swift, magic-numbers-swift, missing-docs-swift) read files from the main working tree, and Tests/PackageStructureTests/LightAndDarkOnlyTests.swift exists only at a36c815 (branch wt/rtic-removal), so those rules never judged the one new Swift file in the change. A person must decide how to run them on it: re-run `review sha 0e80f75..a36c815` with wt/rtic-removal checked out (or merged) in this repository, then re-review this card.
+- [x] The review is incomplete: five code-hygiene tool rules (disallowed-constructs-swift, function-length-swift, idioms-swift, magic-numbers-swift, missing-docs-swift) read files from the main working tree, and Tests/PackageStructureTests/LightAndDarkOnlyTests.swift exists only at a36c815 (branch wt/rtic-removal), so those rules never judged the one new Swift file in the change. A person must decide how to run them on it: re-run `review sha 0e80f75..a36c815` with wt/rtic-removal checked out (or merged) in this repository, then re-review this card.
 - `swift test` is green stays unchecked: the worktree run had 0 failures but 1 skip (`theGeneratedDemoProjectPinsTheRootACPRevisions`) and 1 warning (mlx-swift_Cmlx packaging), and the green contract is zero failures, zero warnings, zero skipped.

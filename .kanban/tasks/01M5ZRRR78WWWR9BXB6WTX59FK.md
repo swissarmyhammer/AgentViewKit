@@ -30,8 +30,15 @@ comments:
       4. `/review ^wtx59fk <merge-base>..HEAD` in main
       5. If clean, move to done, then remove the worktree and the branch.
   timestamp: 2026-10-28T15:28:19.900256+00:00
-position_column: review
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m61m4xrqpjf9jx4stgwzr2d4
+  text: |-
+    ### review — clean
+    - evidence: review sha 0cd85f2..220216f — counts findings 0, confirmed 0, refuted 0 (7 validator runs attempted, 0 failed). 24 files reviewed. No validator matched 3 files: ARCHITECTURE.md, Docs/decisions/visual-audit.md, plan.md. Searched by hand: `rg "features/(style|research)|research-liquid-glass|style.md"` shows that the only old TestudoApp guide paths left are the `retiredGuidePaths` constant in StyleGuideLinkTests. Every bare `style.md` citation is qualified as EditorKit's guide, either on the line before it or in the file header (ContentFillTests). The rest of the TestudoApp mentions in Sources/Tests (for example HostPathContextMenu.swift `session:<tab id>` scope, AgentCommandPlacement.swift "TestudoApp D41", ConversationView.swift and ThreadBarInset/ScrollEdgeEffect measurements) name the host app or its decisions. None of them cites the style guide.
+    - next: none — card moved to done.
+  timestamp: 2026-10-28T16:05:33.591052+00:00
+position_column: done
+position_ordinal: fffff280
 title: AVK docs point to EditorKit/style.md as the one shared style guide (after EditorKit moves it)
 ---
 User: "make sure we have unified style.md in editorkit i think, and that the other packages ARCHITECTURE.md clearly says use that style for editor, kanban, agent view … and testudo app".
