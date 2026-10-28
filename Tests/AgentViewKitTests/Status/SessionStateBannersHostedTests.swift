@@ -309,6 +309,35 @@
       #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
     }
 
+    /// A resume that the banner did not start clears the missed updates, and
+    /// the banner then forgets its failed reload. A session model gets
+    /// `hasMissedUpdates` only from its first subscription, so the missed
+    /// updates come back with a second session model that the same banner
+    /// shows: the banner keeps its state, because the root view keeps its
+    /// type.
+    @Test func missedUpdatesThatComeBackAfterAClearShowTheMissedUpdatesBanner() async throws {
+      let failed = try await Self.openOverflowingSession(resumeAnswer: .failure)
+      defer { failed.close() }
+      let harness = HostedViewHarness(
+        SessionStreamBanner(session: failed.model, connection: failed.connection), size: Self.size)
+      defer { harness.close() }
+      try await Self.reloadAndWaitForTheFailure(of: failed, in: harness)
+      try #require(Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      failed.agent.failingMethods = []
+
+      _ = try await failed.connection.resumeSession(ScriptedSession.replayFromStartRequest)
+      await harness.render { !failed.model.hasMissedUpdates }
+      #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      let missing = try await Self.openOverflowingSession()
+      defer { missing.close() }
+      harness.hostingView.rootView = SessionStreamBanner(session: missing.model, connection: missing.connection)
+      await harness.render { missing.model.hasMissedUpdates }
+
+      #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
+      #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      #expect(SessionStreamBanner.missedUpdatesMessage.severity == .warning)
+    }
+
     /// The press of Reload starts the resume in a task. The agent holds its
     /// answer, so the model replays until the test releases the answer.
     @Test func anOverflowShowsTheMissedUpdatesBannerAndReloadReplaysFromTheStart() async throws {

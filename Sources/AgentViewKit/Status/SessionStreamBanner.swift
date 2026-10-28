@@ -22,7 +22,10 @@ import SwiftUI
 ///   transcript, and the banner then tells that the reload failed, with the
 ///   localized description of the error, as a failure. The Reload button
 ///   stays, so the user can reload again, and a new press shows the
-///   missed-updates text again while the resume runs.
+///   missed-updates text again while the resume runs. The banner forgets
+///   the failed reload when the model clears `hasMissedUpdates`, whatever
+///   clears it, so missed updates that come back later show the
+///   missed-updates text, not an old failure.
 /// - When `history` is `.retained` and no replay runs, a note tells that the
 ///   history can be partial. The agent replays only the history that it
 ///   keeps, so the note never tells that the history is complete.
@@ -73,7 +76,8 @@ public struct SessionStreamBanner: View {
   /// `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
-  /// The state of the reload that the Reload button starts.
+  /// The state of the reload that the Reload button starts. It goes back to
+  /// ``ReloadPhase/idle`` each time the model clears `hasMissedUpdates`.
   @State private var reloadPhase = ReloadPhase.idle
 
   /// Makes the banners of the stream state of a session model.
@@ -111,6 +115,15 @@ public struct SessionStreamBanner: View {
   }
 
   public var body: some View {
+    bannerStack
+      .onChange(of: session.hasMissedUpdates) { _, missesUpdates in
+        if !missesUpdates { reloadPhase = .idle }
+      }
+  }
+
+  /// The stack of the banners that ``shownBars`` gives, or nothing when it
+  /// gives none.
+  @ViewBuilder private var bannerStack: some View {
     let bars = shownBars
     if !bars.isEmpty {
       VStack(spacing: editorStyle.tile.margin) {
