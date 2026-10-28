@@ -53,14 +53,16 @@ extension SystemSettingName: SampledCodeForm {
 /// Holds the tests and the snapshots to light and dark only (EditorKit
 /// `style.md` rule 9).
 ///
-/// No test sets Reduce Transparency or Increase Contrast. The scan reads each
-/// code line of the test sources with the `SourceScanning` helpers of
-/// EditorKit `EditorTestSupport`, and fails when a line names a
-/// ``SystemSettingName`` as a whole word. A `//` comment line is not code.
+/// No test and no demo source sets Reduce Transparency or Increase Contrast.
+/// The scan reads each code line of the test sources and of the demo app with
+/// the `SourceScanning` helpers of EditorKit `EditorTestSupport`, and fails
+/// when a line names a ``SystemSettingName`` as a whole word. A `//` comment
+/// line is not code.
 @Suite struct LightAndDarkOnlyTests {
-  /// The directories of the test sources, relative to the package root.
-  static let testSourcePaths = [
-    "Tests", "Sources/AgentViewKitTestSupport", "Examples/ReadmeSnippets", "Examples/AgentViewKitDemo/Tests",
+  /// The directories of the test sources and of the demo app, with each of
+  /// its Swift folders, relative to the package root.
+  static let scannedPaths = [
+    "Tests", "Sources/AgentViewKitTestSupport", "Examples/ReadmeSnippets", "Examples/AgentViewKitDemo",
   ]
 
   /// This file, relative to the package root. It names each setting in its
@@ -95,28 +97,32 @@ extension SystemSettingName: SampledCodeForm {
     SystemSettingName.expectNoFormFindsALookAlikeLine()
   }
 
-  @Test func theScanReadsTheTestSources() throws {
-    #expect(try !Self.scannedFiles().isEmpty)
+  @Test func theScanReadsTheTestAndDemoSources() throws {
+    let files = try Self.scannedFiles()
+    let demo = try PackageFiles.file("Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift")
+    #expect(!files.isEmpty)
+    #expect(files.contains { $0.standardizedFileURL == demo })
   }
 
   @Test(arguments: SystemSettingName.allCases)
-  func noTestSetsReduceTransparencyOrIncreaseContrast(name: SystemSettingName) throws {
+  func noTestOrDemoSourceSetsReduceTransparencyOrIncreaseContrast(name: SystemSettingName) throws {
     let found = try sourceScanViolations(
       in: Self.scannedFiles(), matching: Regex<AnyRegexOutput>(name.pattern), where: isSourceCodeLine
     ) { file, index, _ in
       "\(Self.relativePath(of: file)):\(index + 1)"
     }
 
-    #expect(found.isEmpty, "The tests are light and dark only (EditorKit style.md rule 9). \(name) is in: \(found)")
+    #expect(
+      found.isEmpty, "The tests and the demo are light and dark only (EditorKit style.md rule 9). \(name) is in: \(found)")
   }
 
-  /// The Swift files below ``testSourcePaths``, except ``scanFile``.
+  /// The Swift files below ``scannedPaths``, except ``scanFile``.
   ///
   /// - Returns: The file URLs.
   /// - Throws: ``PathOutsideRoot`` when a path leaves the package root.
   static func scannedFiles() throws -> [URL] {
     let skipped = try PackageFiles.file(scanFile)
-    return try testSourcePaths.flatMap { path in
+    return try scannedPaths.flatMap { path in
       try swiftFiles(under: PackageFiles.file(path))
     }
     .filter { $0.standardizedFileURL != skipped }

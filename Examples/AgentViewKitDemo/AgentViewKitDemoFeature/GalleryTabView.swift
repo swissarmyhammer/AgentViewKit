@@ -33,9 +33,8 @@ import SwiftUI
 ///   ``SessionThreadColumn`` with no composer, under the ``RequestDeck`` of
 ///   the connection model.
 /// - The Look button of the toolbar shows the ``GalleryLookControls`` in a
-///   popover: the EditorKit theme, the appearance, the increased contrast,
-///   the density, and the text size. ``GalleryColumns`` tells why the
-///   controls are not in an inspector.
+///   popover: the EditorKit theme, the appearance, the density, and the text
+///   size. ``GalleryColumns`` tells why the controls are not in an inspector.
 struct GalleryTabView: View, DemoStartingTab {
   /// The agents of the tab after the start.
   private struct Sources {

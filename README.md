@@ -565,8 +565,7 @@ two tabs:
   elicitations, plans, compactions, notices, errors, attachments, the other
   stop reasons, and the sign-in and connection states. The popover of the
   Look button sets the EditorKit theme (`SystemTheme`, `DefaultTheme.light`,
-  `DefaultTheme.dark`), the appearance, the increased contrast, the density,
-  and the text size.
+  `DefaultTheme.dark`), the appearance, the density, and the text size.
 
 The launch arguments are in
 [`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):

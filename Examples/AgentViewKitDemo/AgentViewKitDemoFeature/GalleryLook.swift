@@ -78,10 +78,6 @@ struct GalleryLook: Equatable {
   /// The appearance of the window.
   var appearance = Appearance.system
 
-  /// Whether the kit views show the increased contrast, also when the system
-  /// setting is off.
-  var increasedContrast = false
-
   /// The density of the rows of the kit views.
   var density = EditorStyle.default.density
 
@@ -113,10 +109,6 @@ private struct GalleryLookModifier: ViewModifier {
   /// The look to give to the environment.
   let look: GalleryLook
 
-  /// The contrast of the system. The modifier keeps it when the look does not
-  /// ask for the increased contrast.
-  @Environment(\.colorSchemeContrast) private var systemContrast
-
   func body(content: Content) -> some View {
     content
       // The style is closer to the content than the theme, so it replaces
@@ -124,7 +116,6 @@ private struct GalleryLookModifier: ViewModifier {
       .editorStyle(look.style)
       .editorTheme(look.theme.theme)
       .dynamicTypeSize(look.textSize)
-      .environment(\._colorSchemeContrast, look.increasedContrast ? .increased : systemContrast)
       .preferredColorScheme(look.appearance.colorScheme)
   }
 }
@@ -146,7 +137,6 @@ struct GalleryLookControls: View {
           Text(appearance.title).tag(appearance)
         }
       }
-      Toggle("Increased Contrast", isOn: $look.increasedContrast)
       Picker("Density", selection: $look.density) {
         ForEach(EditorStyle.Density.allCases, id: \.self) { density in
           Text(density.rawValue.capitalized).tag(density)
