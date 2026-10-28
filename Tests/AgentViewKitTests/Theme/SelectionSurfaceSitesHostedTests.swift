@@ -12,15 +12,18 @@ import UniformTypeIdentifiers
 @testable import AgentViewKit
 
 /// The kit draws each selection through the shared selection surface of
-/// EditorKit (card ^dn1m56r): the accent at ``EditorStyle/selectionOpacity``
-/// behind a selected item while the window is key, `.primary` at
+/// EditorKit (card ^dn1m56r): the theme accent at
+/// ``EditorStyle/selectionOpacity`` behind a selected item while the window
+/// is key, never the `.tint` of a host (EditorKit ^d5f8cwa), `.primary` at
 /// ``EditorStyle/inactiveSelectionOpacity`` while it is not, and the text of
 /// the item stays `.primary`. A focused item keeps its fill, and the focus
 /// ring of its scope outlines it.
 ///
-/// Each test shows a view over a white backdrop in light mode, with a red
-/// tint, in a window of a ``HostedViewHarness``. The window of a harness is
-/// not key, so each test sets `\.appearsActive` itself.
+/// Each test shows a view over a white backdrop in light mode, in the
+/// ``AgentItemFocusRingHostedTests/AccentLook``: under a red host tint and
+/// the shared ``AccentTheme`` of EditorKit with a blue accent, in a window of
+/// a ``HostedViewHarness``. The window of a harness is not key, so each test
+/// sets `\.appearsActive` itself.
 @Suite(.serialized, .hostedSerially) @MainActor struct SelectionSurfaceSitesHostedTests {
   /// The attachment of the kit. FoundationModelsACP has a type of the same
   /// name.
@@ -32,7 +35,7 @@ import UniformTypeIdentifiers
   /// The suite whose helpers land the focus on an attachment scope.
   typealias FocusRing = AttachmentFocusRingHostedTests
 
-  /// The suite whose helper reads the mask of a focus ring.
+  /// The suite whose helpers give the accent look and read a focus ring.
   typealias Ring = AgentItemFocusRingHostedTests
 
   /// The suite whose helpers show a tool call with a location.
@@ -40,9 +43,6 @@ import UniformTypeIdentifiers
 
   /// The suite whose helpers make the image block.
   typealias Blocks = WireContentBlockViewHostedTests
-
-  /// The accent of each test: a color that no part of the views draws.
-  static let tint = Color.red
 
   /// The backdrop below each view.
   static let backdrop = Color.white
@@ -62,8 +62,8 @@ import UniformTypeIdentifiers
 
   // MARK: - Helpers
 
-  /// `view` over the backdrop, in light mode, with the tint of the tests and
-  /// the window state `appearsActive`.
+  /// `view` over the backdrop, in light mode, in the accent look of the
+  /// tests with the window state `appearsActive`.
   ///
   /// - Parameters:
   ///   - view: The view to show.
@@ -74,8 +74,7 @@ import UniformTypeIdentifiers
       backdrop
       view
     }
-    .tint(tint)
-    .environment(\.appearsActive, appearsActive)
+    .modifier(Ring.AccentLook(appearsActive: appearsActive))
     .environment(\.colorScheme, .light)
   }
 
@@ -92,7 +91,7 @@ import UniformTypeIdentifiers
   }
 
   /// The pixels of a window that the fill of a selected surface covers: the
-  /// accent at the selection opacity while the window is key, and the
+  /// theme accent at the selection opacity while the window is key, and the
   /// inactive grey while it is not.
   ///
   /// - Parameters:
@@ -103,7 +102,8 @@ import UniformTypeIdentifiers
   static func fillPixels(appearsActive: Bool, size: CGSize) throws -> RenderedPixels {
     let fill =
       appearsActive
-      ? tint.opacity(EditorStyle.selectionOpacity) : Color.primary.opacity(EditorStyle.inactiveSelectionOpacity)
+      ? Ring.accent.opacity(EditorStyle.selectionOpacity)
+      : Color.primary.opacity(EditorStyle.inactiveSelectionOpacity)
     return try pixels(of: fill, appearsActive: appearsActive, size: size)
   }
 
@@ -207,7 +207,7 @@ import UniformTypeIdentifiers
     let focused = try FocusRing.focusScope(of: file.id, in: harness, system: system)
     let pixels = try #require(RenderedPixels(cachingDisplayOf: harness.hostingView))
 
-    try Ring.expectFocusRingMask(of: focused.responder, cornerRadius: .zero)
+    try Ring.expectRing(of: focused, cornerRadius: .zero)
     #expect(
       pixels.isClose(
         to: try Self.fillPixels(appearsActive: true, size: Self.fileSize), at: [Self.center(of: Self.fileSize)]))

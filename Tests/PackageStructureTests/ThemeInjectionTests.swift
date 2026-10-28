@@ -38,7 +38,7 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   case prominentButtonStyle
 
   /// A read of the theme accent, such as `editorTheme.accent` (D113
-  /// answer 5).
+  /// answer 5) or `@Environment(\.themeAccent)` (EditorKit ^d5f8cwa).
   case themeAccent
 
   /// A call that injects a theme, such as `.editorTheme(.system)` (D112 (d)).
@@ -95,10 +95,11 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   /// link and a current item that is not the selection and has no focus read
   /// no accent: the text of a citation pill, the current source of
   /// `SourcesView.swift` and the viewport band of `ThreadMinimapView.swift`
-  /// left this list. A selection reads no theme accent either: it draws the
-  /// tint through the shared selection surface of EditorKit, so the selected
-  /// tab of `ElicitationLayout.swift` left this list (card ^dn1m56r), and the
-  /// citation chip fill is the one use left.
+  /// left this list. A selection and a focus read no theme accent either:
+  /// the shared selection surface and the scope focus ring of EditorKit paint
+  /// the theme accent themselves (`\.themeAccent`, EditorKit ^d5f8cwa), so
+  /// the selected tab of `ElicitationLayout.swift` left this list (card
+  /// ^dn1m56r), and the citation chip fill is the one use left.
   static let accentFiles: [String: [String]] = [
     KitSourceFiles.kitFile("Citations/InlineCitation.swift"): [
       "The capsule fill of a citation pill: the citation chip fill."
@@ -250,15 +251,18 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
   }
 
   /// The pattern that finds a read of the theme accent: a member `.accent`,
-  /// `.tokenTint` or `.selectedTokenTint`, as a whole word.
+  /// `.tokenTint`, `.selectedTokenTint` or `.themeAccent`, as a whole word.
   ///
   /// The list is complete for the `Theme` protocol of EditorKit
-  /// (`EditorTheme/Theme.swift`). It names the accent `accent`, and two
-  /// members whose default is the accent: `tokenTint` and
-  /// `selectedTokenTint`. The pattern finds the member after each receiver,
-  /// such as `editorTheme`, `theme` or a key path `\.accent`.
-  /// `statusRunning` also has the accent as its default, but it is a status
-  /// role of the theme, not the accent.
+  /// (`EditorTheme/Theme.swift`) and for the environment value of the theme
+  /// accent (`EditorStyle/ThemeAccent.swift`). The protocol names the accent
+  /// `accent`, and two members whose default is the accent: `tokenTint` and
+  /// `selectedTokenTint`. `.editorTheme(_:)` writes the accent into the
+  /// environment value `themeAccent`, and a view that paints the selection or
+  /// the focus itself reads it there (EditorKit ^d5f8cwa). The pattern finds
+  /// the member after each receiver, such as `editorTheme`, `theme` or a key
+  /// path `\.accent` or `\.themeAccent`. `statusRunning` also has the accent
+  /// as its default, but it is a status role of the theme, not the accent.
   static var themeAccentPattern: Regex<Substring> {
     Regex {
       "."
@@ -266,6 +270,7 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
         WordPattern.wholeWord("accent")
         WordPattern.wholeWord("tokenTint")
         WordPattern.wholeWord("selectedTokenTint")
+        WordPattern.wholeWord("themeAccent")
       }
     }
   }
@@ -456,6 +461,7 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
     (.themeAccent, #"let path = \.accent"#),
     (.themeAccent, ".foregroundStyle(editorTheme.tokenTint)"),
     (.themeAccent, ".foregroundStyle(editorTheme.selectedTokenTint)"),
+    (.themeAccent, #"@Environment(\.themeAccent) private var accent"#),
     (.themeInjection, ".editorTheme(.system)"),
     (.themeInjection, #".environment(\.editorTheme, theme)"#),
     (.themeInjection, #".transformEnvironment(\EnvironmentValues.editorTheme) { _ in }"#),

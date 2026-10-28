@@ -22,15 +22,18 @@ import SwiftUI
 /// focuses it: the arrow keys and Space then change its segment. A landing
 /// on content that is no leaf control, such as the composer editor, focuses
 /// the scope: a focusable view of the content, such as the text view of the
-/// editor, or else the EditorKit beacon of the scope, which then draws the
-/// system focus ring over the control. `.scopeFocusRing(cornerRadius:)` gives
-/// that ring the corners of the control (``AgentControlCorners``). A
-/// `.focusEffectDisabled()` above the control turns the ring off. The leaf
-/// landing also makes the accessibility hit test of the window over the
-/// control answer the control, not a transcript row under the bar.
+/// editor, or else the EditorKit beacon of the scope, and the scope then
+/// draws its focus ring around the control, in the theme accent
+/// (`\.themeAccent`), never in the `.tint` of a host (EditorKit ^d5f8cwa).
+/// `.scopeFocusRing(cornerRadius:)` gives that ring the corners of the
+/// control (``AgentControlCorners``). A `.focusEffectDisabled()` above the
+/// control turns the ring off. The leaf landing also makes the accessibility
+/// hit test of the window over the control answer the control, not a
+/// transcript row under the bar.
 ///
-/// The beacon draws nothing else and takes no click, so the control keeps
-/// its look and its own background: none. With no enclosing agent command
+/// The beacon draws nothing and takes no click, and the scope draws nothing
+/// but its focus ring, so the control keeps its look and its own background:
+/// none. With no enclosing agent command
 /// scope, the modifier does not change the view.
 ///
 /// A control that `yieldsToHostScope` takes its scope only while the
@@ -42,7 +45,7 @@ struct AgentControlScope: ViewModifier {
   /// The segment of the control, such as `agentControl:prompt-submit`.
   let segment: FocusSegment
 
-  /// The corners of the focus ring that the beacon of the scope draws.
+  /// The corners of the focus ring that the scope draws.
   let corners: AgentControlCorners
 
   /// Whether a command scope of the host around the control takes the
