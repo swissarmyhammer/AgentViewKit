@@ -95,10 +95,14 @@ comments:
     - test/commit/review: not run (no repo change)
     - needs a person to pick an option (on the card): 0 close as fixed by --primary-screen; 1 put the controls below the list (conflicts with D113 scroll-under); 2 host the bar content in its own NSHostingView; 3 file Apple Feedback
   timestamp: 2026-10-25T13:30:54.259005+00:00
+- actor: claude-code
+  id: 01m62a7nmscyy0rax64mwtfrkn
+  text: '2026-10-28: fixed upstream by EditorKit ^vdkg268. EditorKit c5e13cf fixed the composer hit test but broke clicks on the sidebar rows. EditorKit 112f24d fixes both. The cause was EditorKit''s AccessibilityHitTestCorrection stopping at conversation-empty-state, an ancestor whose AX frame covers the whole detail column. AVK main 2a5c7fd with Package.resolved on EditorKit 112f24d: Scripts/test-examples.sh is green 3 runs in a row (10/10 tests each, no "Falling back to element center point"). swift test is green: 1907 + 288 + 37 + 1. The cause was in EditorKit''s accessibility, not AVK''s, so EditorKit''s Composer UI tests (including the `--split-thread` layout) cover it.'
+  timestamp: 2026-10-28T22:31:32.249739+00:00
 depends_on:
 - 01M5SXGMKSE6G758EP3J4VNH1R
-position_column: doing
-position_ordinal: '8280'
+position_column: done
+position_ordinal: fffffb80
 title: 'Demo UI test: XCUI finds no hit point for the composer editor (testASendOfHelloShowsTheReplyOfTheAgent)'
 ---
 Found by the test step of ^32a58sq (2026-10-22). The test fails at HEAD without that card's change too.

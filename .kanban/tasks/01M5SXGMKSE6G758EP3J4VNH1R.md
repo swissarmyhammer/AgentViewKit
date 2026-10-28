@@ -159,8 +159,8 @@ comments:
   timestamp: 2026-10-28T12:27:00.003151+00:00
 depends_on:
 - 01M5SXEQEEADHVWS3A40XGGX44
-position_column: review
-position_ordinal: '80'
+position_column: done
+position_ordinal: fffff980
 title: The thread bar controls are accessibility-hittable, and a landed jump activates them (after EditorKit ^tzh8q6d and ^wccq0y0)
 ---
 Split from ^0xggx44 on 2026-10-25 (user: "get to it"). ^0xggx44 gives every control in the thread bars an EditorKit scope through one kit modifier. This card holds the items that need EditorKit work first.
@@ -174,7 +174,7 @@ Background: SwiftUI's AX hit test returns the transcript row under any view laye
 
 - [x] Hosted tests: a landed jump on each bar control (Send, Stop, permission-mode picker, Sign in / Sign out, banner Dismiss / Reload / Show Error) activates it; a disabled control is not activated.
 - [x] Hosted tests: `window.accessibilityHitTest` at the centre of each bar control returns the control, not the row under the bar.
-- [ ] Demo UI test: `testASendOfHelloShowsTheReplyOfTheAgent` asserts `editor.isHittable` and `submit.isHittable`, and the XCUI log has no "Falling back to element center point" for them.
+- [x] Demo UI test: `testASendOfHelloShowsTheReplyOfTheAgent` asserts `editor.isHittable` and `submit.isHittable`, and the XCUI log has no "Falling back to element center point" for them.
 - [x] D113 scroll-under unchanged: the bar-edge hosted tests still pass.
 - [x] No compatibility shims; transparent backgrounds by default.
 

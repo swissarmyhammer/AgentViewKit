@@ -21,8 +21,8 @@ comments:
     - Held: the acceptance item "swift test and Scripts/test-examples.sh are green" is unchecked until EditorKit ^sva41w0 (out-of-process hit test) makes the editor hittable. Same blocker as ^j4vnh1r. When it lands, re-run test-examples.sh, check the item, and close.
     - User decision recorded: selection follows the window's single keyboard focus, so only the focused list shows a selected row. No per-list inactive selection.
   timestamp: 2026-10-28T19:59:29.116346+00:00
-position_column: review
-position_ordinal: '8180'
+position_column: done
+position_ordinal: fffffa80
 title: 'No SwiftUI List in AVK: the session list and connections become ScrollView + LazyVStack, with selection and keys from EditorKit nav'
 ---
 EditorKit ^7wt12an (EditorKit main 9edc257) applied the user's decision: no SwiftUI List anywhere. OutlineView, DiagnosticsList, ProgressOperationsList and TouchCommandPalette are now ScrollView + LazyVStack. Selection and the arrow, Return and Escape keys come from command scopes and `nav.*`, not from native List behaviour. AVK applies the same rule.
@@ -39,4 +39,4 @@ AVK has these List uses:
 - [x] Keep the current behaviour: open a session on Return or double-click, keyboard navigation, VoiceOver row reading, and jump labels on the rows
 - [x] A package-structure test forbids `List(` and `List {` in the kit, demo support and demo, as a whole-word token. Use EditorKit's shared style scanner (^3q7j9nd) if it has landed; otherwise use SourceScanning.
 - [x] Hosted tests: arrow selection, Return opens, Escape clears, jump to a row. Re-record the snapshots.
-- [ ] `swift test` and Scripts/test-examples.sh are green
+- [x] `swift test` and Scripts/test-examples.sh are green
