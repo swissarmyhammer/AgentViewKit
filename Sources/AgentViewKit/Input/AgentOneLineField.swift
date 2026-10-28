@@ -107,7 +107,7 @@ struct AgentOneLineField: View {
   }
 
   /// The field, with ``onSubmit`` as the action of the commits that submit
-  /// it (`EditorCommitReason.submitsField`).
+  /// it (`SingleLineField.onFieldSubmit(_:)`).
   ///
   /// EditorKit holds the commit callback in the mounted view, not in the
   /// model of the field. So `onSubmit` can capture the view that shows the
@@ -116,10 +116,7 @@ struct AgentOneLineField: View {
   /// window, and its entries leave the window undo stack.
   var body: some View {
     field
-      .onEditorCommit { [onSubmit] commit in
-        guard commit.reason.submitsField else { return }
-        onSubmit(commit.text)
-      }
+      .onFieldSubmit(onSubmit)
       .editorSizingMode(.intrinsic)
       .editorPlaceholder(placeholder)
       .editorTextAccessibilityIdentifier(identifier)
@@ -139,6 +136,38 @@ extension EditorCommitReason {
     switch self {
     case .submit, .submitNow: true
     case .leave, .focusLoss: false
+    }
+  }
+}
+
+extension EditorCommit {
+  /// The text that this end of an edit submits, or `nil` when it submits
+  /// nothing (`EditorCommitReason.submitsField`).
+  ///
+  /// Return and Command-Return submit the text of the commit, also when the
+  /// edit changed nothing. Esc and a focus loss submit nothing.
+  var submittedText: String? {
+    reason.submitsField ? text : nil
+  }
+}
+
+extension SingleLineField {
+  /// This field, with `action` as the action of the commits that submit it:
+  /// the one submit-on-commit rule of the one-line fields of the kit
+  /// (`EditorCommit.submittedText`).
+  ///
+  /// Return and Command-Return call `action` with the text of the field.
+  /// Esc and a focus loss end the edit, keep the text, and call nothing, so
+  /// Esc in a field never answers a request. The mounted view holds the
+  /// callback, not the model of the field (`onEditorCommit(_:)`).
+  ///
+  /// - Parameter action: The action that a submit calls with the text of the
+  ///   field.
+  /// - Returns: The same field, with its commit callback set.
+  func onFieldSubmit(_ action: @escaping (String) -> Void) -> SingleLineField {
+    onEditorCommit { commit in
+      guard let text = commit.submittedText else { return }
+      action(text)
     }
   }
 }

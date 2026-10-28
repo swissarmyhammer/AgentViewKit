@@ -244,7 +244,14 @@ public struct ElicitationTextField: View {
   /// The EditorKit input for `model`. The text view of the input carries
   /// the control identifier of the field, and the title of the field as its
   /// accessibility label. Return and Command-Return in a one-line input run
-  /// ``returnAction``: in an ``ElicitationView``, they press Submit.
+  /// ``returnAction`` (`SingleLineField.onFieldSubmit(_:)`): in an
+  /// ``ElicitationView``, they press Submit. Esc and a focus loss end the
+  /// edit, keep the answer, and press no action of the form.
+  ///
+  /// EditorKit holds the commit callback of the one-line input in the
+  /// mounted view, not in the model, so the callback keeps no model alive
+  /// after the field leaves the window: the own model of the view goes with
+  /// its state, and the typing of the field leaves the window undo stack.
   ///
   /// - Parameter model: The model to edit.
   /// - Returns: A one-line field or a multi-line editor.
@@ -262,28 +269,11 @@ public struct ElicitationTextField: View {
         .frame(minHeight: Self.multiLineMinimumHeight)
     } else {
       SingleLineField(model: model, id: context.identifier)
-        .onEditorCommit { commit in runReturnAction(for: commit) }
+        .onFieldSubmit { _ in returnAction?() }
         .editorSizingMode(.intrinsic)
         .editorTextAccessibilityIdentifier(context.controlIdentifier)
         .editorTextAccessibilityLabel(context.schema.title)
     }
-  }
-
-  /// Runs ``returnAction`` when `commit` submits the one-line input
-  /// (`EditorCommitReason.submitsField`): Return and Command-Return press
-  /// Submit. Esc and a focus loss end the edit, keep the answer, and press
-  /// no action of the form.
-  ///
-  /// The commit callback of the input calls this on the view. EditorKit
-  /// holds that callback in the mounted view, not in the model, so the
-  /// callback keeps no model alive after the field leaves the window: the
-  /// own model of the view goes with its state, and the typing of the field
-  /// leaves the window undo stack.
-  ///
-  /// - Parameter commit: One end of an edit of the one-line input.
-  private func runReturnAction(for commit: EditorCommit) {
-    guard commit.reason.submitsField else { return }
-    returnAction?()
   }
 }
 
