@@ -19,7 +19,7 @@ struct BarView: CustomTestStringConvertible, Sendable {
 }
 
 /// Checks that the banner and the login prompt of a thread are in the bottom
-/// bar (TestudoApp `features/style.md`, "Scroll under the bars", D113 answer
+/// bar (EditorKit `style.md`, "Scroll under the bars", D113 answer
 /// 7).
 ///
 /// The list of a view scrolls under its bars. A banner or a prompt next to a

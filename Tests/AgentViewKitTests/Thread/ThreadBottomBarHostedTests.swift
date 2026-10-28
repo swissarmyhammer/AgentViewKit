@@ -10,7 +10,7 @@
 
   /// Tests for the bottom bar of a thread: the state banner and the login
   /// prompt are in the bar with the composer, and the list scrolls under the
-  /// bar (TestudoApp `features/style.md`, "Scroll under the bars", D113
+  /// bar (EditorKit `style.md`, "Scroll under the bars", D113
   /// answer 7).
   ///
   /// The frame tests read the frames that the views report to AppKit after

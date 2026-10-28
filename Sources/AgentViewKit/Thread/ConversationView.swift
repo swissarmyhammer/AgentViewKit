@@ -137,7 +137,7 @@ extension View {
 ///
 /// In the bottom bar of the view (`.safeAreaBar(edge: .bottom)`),
 /// ``StateBanner/init(session:onShowError:)`` shows the `agentState` of the
-/// model. The list scrolls under the bar (TestudoApp `features/style.md`,
+/// model. The list scrolls under the bar (EditorKit `style.md`,
 /// "Scroll under the bars"). The list asks for the soft scroll edge effect at
 /// its top and bottom edges, so no window gives the opaque hard band. AppKit
 /// makes the effect of an edge as tall as the whole inset of that edge. At

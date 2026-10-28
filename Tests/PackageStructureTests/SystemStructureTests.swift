@@ -5,7 +5,7 @@ import Testing
 
 /// A form that puts a custom background or a visual-effect view on the system
 /// structure, or that extends a view under the sidebar (D111 steps 2 and 6,
-/// TestudoApp `features/style.md` rule 1).
+/// EditorKit `style.md` rule 1).
 ///
 /// The system gives the look of the bars, the sidebar and the inspector. A
 /// view puts no custom background and no visual-effect view on them.
@@ -122,8 +122,8 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
 /// Holds the kit on the system structure (D111 steps 2 and 6, D113 answer 7).
 ///
 /// - The kit, the demo support and the demo put no custom background and no
-///   visual-effect view on a bar, the sidebar or the inspector (TestudoApp
-///   `features/style.md` rule 1), and extend no view under the sidebar. The
+///   visual-effect view on a bar, the sidebar or the inspector (EditorKit
+///   `style.md` rule 1), and extend no view under the sidebar. The
 ///   scan reads the code lines of each Swift file: it blanks the comments and
 ///   the string literals, then reads the file one line at a time.
 /// - The side panel of the kit is the system `.inspector`.

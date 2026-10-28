@@ -36,8 +36,8 @@ nonisolated enum RequestActionStyle: Equatable, Sendable {
 }
 
 extension RequestDeckPlace {
-  /// The button style of `action` in this place (TestudoApp
-  /// `features/style.md`, rule 4 and "Buttons on glass").
+  /// The button style of `action` in this place (EditorKit
+  /// `style.md`, rule 4 and "Buttons on glass").
   ///
   /// - In the bar, the button is on the glass of the request deck, and a
   ///   glass button there is glass on glass. Thus each action uses the
@@ -112,7 +112,7 @@ extension View {
   /// A view in a bar with no glass surface declares
   /// ``RequestDeckPlace/barWithoutGlass``. It can be in the glass container
   /// of the bar, but its buttons are not on glass, so they keep the glass
-  /// styles (TestudoApp `features/style.md`, rule 4).
+  /// styles (EditorKit `style.md`, rule 4).
   ///
   /// - Parameter place: The place of the buttons.
   /// - Returns: The view with the place in its environment.

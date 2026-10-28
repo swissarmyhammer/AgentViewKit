@@ -6,7 +6,7 @@ import SwiftUI
 import Testing
 
 /// Checks that each glass view of the kit follows Reduce Transparency and
-/// Increase Contrast (D110 (f), TestudoApp `features/style.md` rule 9).
+/// Increase Contrast (D110 (f), EditorKit `style.md` rule 9).
 ///
 /// The test uses the method of ^dbbyg9w (``GlassRenderProbeTests``): it
 /// renders a glass view over the backdrop two times with ``RenderedPixels``,

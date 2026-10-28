@@ -12,8 +12,8 @@ import SwiftUI
 /// button style of its own, which comes from the place of the bar
 /// (``RequestDeckPlace/style(of:)``): the `.glass` style. A bar has no glass
 /// surface, and the content scrolls under it, so its button keeps the glass
-/// style in the top bar and in the bottom bar of a thread too (TestudoApp
-/// `features/style.md`, rule 4). In the bottom bar, ``StateBanner`` declares
+/// style in the top bar and in the bottom bar of a thread too (EditorKit
+/// `style.md`, rule 4). In the bottom bar, ``StateBanner`` declares
 /// the place of a bar with no glass for it
 /// (``RequestDeckPlace/barWithoutGlass``).
 ///

@@ -104,8 +104,8 @@ import SwiftUI
 /// request had while it was pending. A notice stays until the user presses
 /// Dismiss: a new request does not remove it.
 ///
-/// The surface of the deck comes from its place (TestudoApp
-/// `features/style.md`, "How the steps apply"). The deck reads whether a
+/// The surface of the deck comes from its place (EditorKit
+/// `style.md`, "How the steps apply"). The deck reads whether a
 /// `FloatingGlassContainer` is above it: the container gives its glass
 /// namespace (`\.floatingGlassNamespace`), and out of a container the
 /// namespace is `nil`:
@@ -118,8 +118,8 @@ import SwiftUI
 /// - In content, the deck has no glass and no fill.
 ///
 /// The place also gives the button styles of the actions in the cards and in
-/// the notices (``RequestDeckPlace/style(of:)``, TestudoApp
-/// `features/style.md`, "Buttons on glass"). In the bar, a glass button on the
+/// the notices (``RequestDeckPlace/style(of:)``, EditorKit
+/// `style.md`, "Buttons on glass"). In the bar, a glass button on the
 /// glass of the deck is glass on glass. Thus each action of a card uses the
 /// `.bordered` style. In content, the actions use the `.glass` style. No
 /// action, not even the primary action (for example Allow once), uses a
@@ -421,7 +421,7 @@ private struct DeckCards: View {
 }
 
 /// The place of a ``RequestDeck`` or of other action buttons, which gives the
-/// surface of the deck (TestudoApp `features/style.md`, "How the steps
+/// surface of the deck (EditorKit `style.md`, "How the steps
 /// apply") and the button styles of the actions (``style(of:)``).
 nonisolated enum RequestDeckPlace: Equatable, Sendable {
   /// In a bar of floating controls, for example the composer slot of
@@ -433,7 +433,7 @@ nonisolated enum RequestDeckPlace: Equatable, Sendable {
 
   /// In a bar with no glass surface, for example the state banner and the
   /// login prompt in the bottom bar of ``AgentThreadView``. The content
-  /// scrolls under the bar (TestudoApp `features/style.md`, rule 4). A view
+  /// scrolls under the bar (EditorKit `style.md`, rule 4). A view
   /// declares this place for its buttons with
   /// ``SwiftUI/View/requestActionPlace(_:)``. A deck never has this place.
   case barWithoutGlass

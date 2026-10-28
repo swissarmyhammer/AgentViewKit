@@ -57,7 +57,7 @@ import Testing
   /// The state banner with its Show Error button and the login card with its
   /// Sign In button, in the bottom bar of a thread at rest, below the
   /// transcript. The bar has no glass surface, so the buttons use the glass
-  /// styles and not the bordered styles (TestudoApp `features/style.md`, rule
+  /// styles and not the bordered styles (EditorKit `style.md`, rule
   /// 4). The cache of a window shows no glass, so a glass button shows its
   /// label with no bezel, and a bordered button shows its bezel.
   ///

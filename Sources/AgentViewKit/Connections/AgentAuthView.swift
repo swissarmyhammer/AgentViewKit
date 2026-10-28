@@ -62,7 +62,7 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// place of the card (``RequestDeckPlace/style(of:)``): the `.glass` style.
 /// In the bottom bar of a thread, the card has no glass surface, and the
 /// content scrolls under it, so its buttons keep the glass style there too
-/// (TestudoApp `features/style.md`, rule 4). There, ``AgentLoginPrompt``
+/// (EditorKit `style.md`, rule 4). There, ``AgentLoginPrompt``
 /// declares the place of a bar with no glass for it
 /// (``RequestDeckPlace/barWithoutGlass``).
 ///

@@ -24,8 +24,7 @@ import Testing
     ///
     /// - Throws: The error of the file manager when it cannot make an item.
     init() throws {
-      top = FileManager.default.temporaryDirectory
-        .appending(path: "PackageFilesTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+      top = PackageFilesTests.makeTemporaryDirectoryURL()
       link = top.appending(path: "link", directoryHint: .isDirectory)
       target = top.appending(path: "deeper/real", directoryHint: .isDirectory)
       let file = target.appending(path: PackageFilesTests.linkedFilePath)
@@ -132,5 +131,48 @@ import Testing
     #expect(throws: CocoaError.self) {
       try PackageFiles.swiftFiles(in: missing)
     }
+  }
+
+  /// The file extensions that the visible-files test asks for.
+  private static let visibleFileExtensions: Set<String> = ["md", "swift"]
+
+  /// The files of the visible-files test that the scan lists, relative to
+  /// the temporary directory, sorted by path.
+  private static let listedFiles = ["Docs/Guide.md", "Top.swift"]
+
+  /// The files of the visible-files test that the scan skips: a file with
+  /// another extension, and a file in a hidden directory.
+  private static let skippedFiles = ["Image.png", ".hidden/Note.md"]
+
+  @Test func visibleFilesListsEachFileWithAnExtensionAndSkipsHiddenItems() throws {
+    let top = Self.makeTemporaryDirectoryURL()
+    defer { try? FileManager.default.removeItem(at: top) }
+    for path in Self.listedFiles + Self.skippedFiles {
+      let file = top.appending(path: path)
+      try FileManager.default.createDirectory(
+        at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try Data().write(to: file)
+    }
+
+    let files = try PackageFiles.visibleFiles(in: top, withExtensions: Self.visibleFileExtensions)
+
+    #expect(try files.map { try PackageFiles.relativePath(of: $0, to: top) }.sorted() == Self.listedFiles)
+  }
+
+  @Test func visibleFilesThrowsForAMissingDirectory() throws {
+    let missing = try PackageFiles.file("Sources/NoSuchDirectory")
+
+    #expect(throws: CocoaError.self) {
+      try PackageFiles.visibleFiles(in: missing, withExtensions: Self.visibleFileExtensions)
+    }
+  }
+
+  /// The URL of a new, unique directory in the temporary directory. The
+  /// function makes no item on disk.
+  ///
+  /// - Returns: The URL, with a directory hint.
+  private static func makeTemporaryDirectoryURL() -> URL {
+    FileManager.default.temporaryDirectory
+      .appending(path: "PackageFilesTests-\(UUID().uuidString)", directoryHint: .isDirectory)
   }
 }
