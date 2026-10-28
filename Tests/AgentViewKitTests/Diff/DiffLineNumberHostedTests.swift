@@ -71,13 +71,7 @@
     ///
     /// - Returns: The harness.
     static func mountPatch() -> HostedViewHarness<some View> {
-      let harness = HostedViewHarness(size: size) {
-        DiffView(patch: patch)
-          .diffLayout(.inline)
-          .transaction { $0.disablesAnimations = true }
-      }
-      harness.render()
-      return harness
+      DiffHarness.mountInline(patch: patch, size: size)
     }
 
     /// The number of rows of the EditorKit diff: one for each line of its

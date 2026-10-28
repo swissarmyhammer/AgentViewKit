@@ -95,22 +95,18 @@
     static func mountDiff(
       log: CallLog, installsRenderer: Bool, width: CGFloat = tallSize.width
     ) -> HostedViewHarness<some View> {
-      let harness = HostedViewHarness(size: CGSize(width: width, height: tallSize.height)) {
-        Group {
-          if installsRenderer {
-            diffView(log: log)
-              .diffRenderer { _, file in
-                Text("Rendered \(file ?? "none")")
-                  .accessibilityIdentifier(rendererIdentifier(for: file))
-              }
-          } else {
-            diffView(log: log)
-          }
+      let view = Group {
+        if installsRenderer {
+          diffView(log: log)
+            .diffRenderer { _, file in
+              Text("Rendered \(file ?? "none")")
+                .accessibilityIdentifier(rendererIdentifier(for: file))
+            }
+        } else {
+          diffView(log: log)
         }
-        .transaction { $0.disablesAnimations = true }
       }
-      harness.render()
-      return harness
+      return DiffHarness.mount(view, size: CGSize(width: width, height: tallSize.height))
     }
 
     /// The diff view of the fixture patch with actions that write to `log`.
@@ -208,9 +204,8 @@
     }
 
     @Test func withOneFileTheChipShows() {
-      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(patch: Self.oneFilePatch) }
+      let harness = DiffHarness.mount(DiffView(patch: Self.oneFilePatch), size: Self.tallSize)
       defer { harness.close() }
-      harness.render()
 
       let chip = harness.element(identifier: DiffView.identifier(for: Self.secondPath))
       #expect(chip?.label == "Markdown diff, +1 \u{2212}1")
@@ -283,12 +278,9 @@
 
     @Test func aRendererSelectionIsTheAttachedLines() throws {
       let log = CallLog()
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        Self.diffView(log: log)
-          .diffRenderer { _, _ in SelectingRenderer() }
-      }
+      let harness = DiffHarness.mount(
+        Self.diffView(log: log).diffRenderer { _, _ in SelectingRenderer() }, size: Self.tallSize)
       defer { harness.close() }
-      harness.render()
 
       try harness.press(identifier: SelectingRenderer.identifier)
       try harness.press(identifier: DiffView.attachIdentifier)
@@ -298,9 +290,8 @@
     }
 
     @Test func withNoActionsTheButtonsDoNotShow() {
-      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(patch: Self.patch) }
+      let harness = DiffHarness.mount(DiffView(patch: Self.patch), size: Self.tallSize)
       defer { harness.close() }
-      harness.render()
 
       #expect(harness.element(identifier: DiffView.identifier(for: Self.firstPath)) != nil)
       #expect(harness.element(identifier: DiffView.acceptIdentifier(for: 0)) == nil)
@@ -316,9 +307,8 @@
     ])
 
     @Test func aDiffWithNoPatchTextShowsTheFileOfEachChange() {
-      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(diff: Self.structuredDiff) }
+      let harness = DiffHarness.mount(DiffView(diff: Self.structuredDiff), size: Self.tallSize)
       defer { harness.close() }
-      harness.render()
 
       let file = harness.element(identifier: DiffView.identifier(for: "/p/new.swift"))
       #expect(file?.label == "Added Swift file")
@@ -330,9 +320,8 @@
     @Test func aDiffWithGitPatchTextShowsThePatch() {
       let diff = FoundationModelsACP.Diff(
         changes: [], patch: DiffPatch(format: .gitPatch, text: Self.patch))
-      let harness = HostedViewHarness(size: Self.tallSize) { DiffView(diff: diff) }
+      let harness = DiffHarness.mount(DiffView(diff: diff), size: Self.tallSize)
       defer { harness.close() }
-      harness.render()
 
       let first = harness.element(identifier: DiffView.identifier(for: Self.firstPath))
       #expect(first?.label == "Swift diff, +2 \u{2212}1")
@@ -350,17 +339,15 @@
       let (session, call) = try await ToolCallViewHostedTests.openCall(id: "diff-tool-call", fields: fields)
       defer { session.close() }
       let store = ToolCallViewHostedTests.makeExpandedStore(for: call)
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        ToolCallView(entry: call)
-          .environment(\.expandedBlocksStore, store)
-          .diffActions(
-            DiffActions(
-              onAccept: { log.accepted.append(($0, $1)) },
-              onReject: nil,
-              onAttach: nil))
-      }
+      let view = ToolCallView(entry: call)
+        .environment(\.expandedBlocksStore, store)
+        .diffActions(
+          DiffActions(
+            onAccept: { log.accepted.append(($0, $1)) },
+            onReject: nil,
+            onAttach: nil))
+      let harness = DiffHarness.mount(view, size: Self.tallSize)
       defer { harness.close() }
-      harness.render()
 
       #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)

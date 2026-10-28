@@ -34,17 +34,12 @@
       let fragments: [CGRect]
     }
 
-    /// Makes a harness that shows the diff of ``PreviewFixtures/smallPatch``,
-    /// after one render pass.
+    /// Makes a harness that shows the inline diff of
+    /// ``PreviewFixtures/smallPatch``, after one render pass.
     ///
     /// - Returns: The harness.
     static func mountSmallPatch() -> HostedViewHarness<some View> {
-      let harness = HostedViewHarness(size: size) {
-        DiffView(patch: PreviewFixtures.smallPatch)
-          .transaction { $0.disablesAnimations = true }
-      }
-      harness.render()
-      return harness
+      DiffHarness.mountInline(patch: PreviewFixtures.smallPatch, size: size)
     }
 
     /// The root view of the EditorKit diff, and the text view under it.

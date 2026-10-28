@@ -52,11 +52,7 @@
     /// - Parameter view: The view to show.
     /// - Returns: The harness.
     static func mount(_ view: some View) -> HostedViewHarness<some View> {
-      let harness = HostedViewHarness(size: size) {
-        view.transaction { $0.disablesAnimations = true }
-      }
-      harness.render()
-      return harness
+      DiffHarness.mount(view, size: size)
     }
 
     // MARK: - Default renderer
@@ -70,7 +66,7 @@
     }
 
     @Test func theInlineLayoutHasNoColumns() {
-      let harness = Self.mount(DiffView(patch: Self.patch).diffLayout(.inline))
+      let harness = DiffHarness.mountInline(patch: Self.patch, size: Self.size)
       defer { harness.close() }
 
       #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
