@@ -40,18 +40,6 @@ import Testing
   }
 
   @Test(arguments: SnapshotVariant.allCases)
-  func onlyTheReduceTransparencyVariantReducesTransparency(variant: SnapshotVariant) throws {
-    let reduces = try Self.showsTheSetting(of: variant) { $0.accessibilityReduceTransparency }
-    #expect(reduces == (variant == .reduceTransparency))
-  }
-
-  @Test(arguments: SnapshotVariant.allCases)
-  func onlyTheIncreaseContrastVariantIncreasesTheContrast(variant: SnapshotVariant) throws {
-    let increases = try Self.showsTheSetting(of: variant) { $0.colorSchemeContrast == .increased }
-    #expect(increases == (variant == .increaseContrast))
-  }
-
-  @Test(arguments: SnapshotVariant.allCases)
   func eachVariantReducesMotion(variant: SnapshotVariant) throws {
     #expect(try Self.showsTheSetting(of: variant) { $0.accessibilityReduceMotion })
   }
@@ -67,7 +55,7 @@ import Testing
   }
 
   @Test func theNameOfAnImageEndsWithTheVariant() {
-    #expect(SnapshotVariant.increaseContrast.name(of: "thread") == "thread-increase-contrast")
+    #expect(SnapshotVariant.dark.name(of: "thread") == "thread-dark")
   }
 
   /// The side of a view that is smaller than ``size``, in points.

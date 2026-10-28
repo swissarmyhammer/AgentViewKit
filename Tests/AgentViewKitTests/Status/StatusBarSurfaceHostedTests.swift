@@ -25,9 +25,7 @@ import Testing
         identifier: SessionStreamBanner.reloadIdentifier, isEnabled: true, perform: {}))
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsInsideTheEdgeOfTheBar(reducesTransparency: Bool) throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
-      of: Self.bar, reducesTransparency: reducesTransparency, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheBar() throws {
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.bar, size: Self.size)
   }
 }

@@ -162,7 +162,7 @@ import Testing
   /// second later shows the text of the file. Thus the preview row shows its
   /// place at the fixed height of the preview, with the backdrop through the
   /// row, on each run.
-  @Test(arguments: SnapshotFixtures.colorSchemeVariants)
+  @Test(arguments: SnapshotVariant.allCases)
   func theAttachmentInspector(variant: SnapshotVariant) async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }

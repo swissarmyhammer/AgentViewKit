@@ -21,11 +21,9 @@ import Testing
 /// resolves each run color as the editor paints it: as an `NSColor`, in the
 /// appearance of the window.
 @Suite(.serialized, .hostedSerially) @MainActor struct TerminalContrastHostedTests {
-  /// The appearances of the tests: Light, Dark, and both with Increase
-  /// Contrast.
-  nonisolated static let appearances: [NSAppearance.Name] = [
-    .aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua,
-  ]
+  /// The appearances of the tests: Light and Dark only (EditorKit `style.md`
+  /// rule 9).
+  nonisolated static let appearances: [NSAppearance.Name] = [.aqua, .darkAqua]
 
   /// The command in the header.
   static let command = "ls"

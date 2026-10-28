@@ -21,9 +21,7 @@ import Testing
     CodeBlockView(code: "let x = 1\nprint(x)", language: "swift")
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsInsideTheEdgeOfTheCodeBlock(reducesTransparency: Bool) throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
-      of: Self.block, reducesTransparency: reducesTransparency, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheCodeBlock() throws {
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.block, size: Self.size)
   }
 }

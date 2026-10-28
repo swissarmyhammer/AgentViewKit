@@ -36,9 +36,7 @@ import Testing
     return NoticeBanner(notice: notice) {}
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsInsideTheEdgeOfTheBanner(reducesTransparency: Bool) throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
-      of: Self.banner(), reducesTransparency: reducesTransparency, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheBanner() throws {
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.banner(), size: Self.size)
   }
 }

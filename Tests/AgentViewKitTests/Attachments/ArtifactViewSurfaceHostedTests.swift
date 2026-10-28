@@ -24,9 +24,7 @@ import UniformTypeIdentifiers
         inlineText: "Step one"))
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func theBackdropShowsInsideTheEdgeOfThePanel(reducesTransparency: Bool) throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
-      of: Self.panel, reducesTransparency: reducesTransparency, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfThePanel() throws {
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.panel, size: Self.size)
   }
 }

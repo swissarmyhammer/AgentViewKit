@@ -16,9 +16,8 @@ import SwiftUI
 /// view of an `NSViewRepresentable`, such as the EditorKit editor. The
 /// renderer runs in the test process, with no window and no screen.
 ///
-/// `ImageRenderer` draws Liquid Glass, and the glass follows the
-/// accessibility values in the environment, such as
-/// `_accessibilityReduceTransparency`. The cache of a view in a window does
+/// `ImageRenderer` draws Liquid Glass, and the glass follows the values in
+/// the environment, such as the color scheme. The cache of a view in a window does
 /// not show the glass, because the render server of the system draws it
 /// there (`GlassRenderProbeTests`).
 public struct RenderedPixels: Equatable {
@@ -54,7 +53,7 @@ public struct RenderedPixels: Equatable {
   /// AVK-13, the change was at most 109 pixels of 409,600 (0.027 percent),
   /// all on the rims, and a byte changed by up to 39 levels. This share is
   /// about four times the largest share that was measured. A change of the
-  /// look of a glass, such as Reduce Transparency, changes thousands of
+  /// look of a glass, such as the dark color scheme, changes thousands of
   /// pixels, so a snapshot test still finds it.
   public static let glassRimShare = 0.001
 

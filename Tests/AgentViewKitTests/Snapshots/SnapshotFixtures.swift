@@ -98,10 +98,6 @@ enum SnapshotFixtures {
   /// The name of the file that the attachment inspector shows.
   static let inspectorFileName = "answer.swift"
 
-  /// The variants of a view that only the color scheme changes: light and
-  /// dark. It is `nonisolated` because the arguments of a test use it.
-  nonisolated static let colorSchemeVariants: [SnapshotVariant] = [.light, .dark]
-
   /// A session with a user message, an agent message with a code block, a
   /// tool call that completed, and a last agent message.
   static var threadSession: SessionModel {

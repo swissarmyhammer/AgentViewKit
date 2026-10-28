@@ -568,8 +568,7 @@ two tabs:
   elicitations, plans, compactions, notices, errors, attachments, the other
   stop reasons, and the sign-in and connection states. The popover of the
   Look button sets the EditorKit theme (`SystemTheme`, `DefaultTheme.light`,
-  `DefaultTheme.dark`), the appearance, the increased contrast, the density,
-  and the text size.
+  `DefaultTheme.dark`), the appearance, the density, and the text size.
 
 The launch arguments are in
 [`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):
@@ -630,8 +629,9 @@ certain to come.
 
 The snapshot tests make PNG images of the real views of the kit, with fixed
 data and fixed dates, at two pixels for each point, in sRGB. Each view has
-four images: light, dark, Reduce Transparency and Increase Contrast. The
-reference images are in `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
+two images, light and dark, and no test flips a system setting (EditorKit
+`style.md` rule 9). The reference images are in
+`Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
 
 - `HostedSnapshotTests/`: each view in a hidden window
   (`ViewSnapshot.hostedPixels`). These images show the AppKit views, such as
@@ -647,8 +647,14 @@ When the look of a view changes, its test fails, and it writes
 The difference image shows each pixel that changed in magenta. The test also
 attaches the two images.
 
+Each `swift test` run also writes the review gallery,
+`~/Library/Caches/AgentViewKit/screenshot-check/index.html`: the key screens
+of the kit, in light and dark (EditorKit `style.md` "Review gallery"). The
+user reviews that page. There is no manual check and no comparison with
+Finder or System Settings.
+
 To record the reference images again, run the tests in the record mode, and
-then look at each image before the commit:
+then review the new images before the commit:
 
 ```bash
 AVK_SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
