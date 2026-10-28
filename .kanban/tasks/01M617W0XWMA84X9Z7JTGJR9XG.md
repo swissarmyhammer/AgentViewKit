@@ -32,8 +32,24 @@ comments:
     - evidence: 9 files — Sources/AgentViewKit/Diff/DiffPlace.swift (new), Sources/AgentViewKit/Diff/DiffView.swift, Sources/AgentViewKit/Diff/DiffSummary+Changes.swift, Sources/AgentViewKit/Items/ToolCallView.swift, Sources/AgentViewKit/Items/ToolCallLocationChips.swift, Tests/AgentViewKitTests/Diff/DiffFileLocationTests.swift (new), Tests/AgentViewKitTests/Items/ToolCallViewHostedTests.swift, Tests/AgentViewKitTests/Snapshots/ReviewGalleryScreen.swift, Tests/AgentViewKitTests/Snapshots/ReviewGalleryNotes.swift. `swift test` (under the UI-test lock): 1901 tests in 237 suites passed (7 known issues, the existing withKnownIssue tests), 263 + 1 in the other runs passed, only the pre-existing mlx-swift_Cmlx warning. No reference image needed a re-record.
     - next: /review
   timestamp: 2026-10-28T13:13:03.351405+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m61adjkhnx13a8j42y2tc580
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0e80f75) — 0 findings, 0 confirmed, 0 refuted; 9 files reviewed, 7 validator runs, 0 failed, 0 skipped
+    - next: none; all acceptance items checked, task moved to done
+  timestamp: 2026-10-28T13:15:31.313506+00:00
+- actor: claude-code
+  id: 01m61aedvz8sdhmb2bsrt6f97s
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 9 files (DiffPlace, single diff chip)
+    - test: swift test 1901 passed
+    - commit: fea4f39 / 0e80f75
+    - review: clean; done
+  timestamp: 2026-10-28T13:15:59.231817+00:00
+position_column: done
+position_ordinal: ffffef80
 title: 'Diff in a tool call: show each file once (diff chip only), with no nested tile, so the indentation lines up'
 ---
 User: "the diff view -- you are showing the affected files twice -- name pill, and a diff pill -- just keep the diff pill, then you can avoid the extra indentation of the diff pill/diff view section and get more consistent indentation alignment".
