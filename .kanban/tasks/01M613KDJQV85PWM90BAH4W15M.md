@@ -34,8 +34,15 @@ comments:
   id: 01m61m1j70mw2qf8d9xz89kt9f
   text: 'Correction to the review comment above: the user authorized it, so the `swift test` is green subtask is now checked (merged main 220216f: 1892 + 282 + 37 + 1 passed, 0 skipped, 7 known issues, no AVK-target warnings). The finding checkboxes are unchanged.'
   timestamp: 2026-10-28T16:03:43.456730+00:00
-position_column: review
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m61njtwrjr2atn39nh3p1zvv
+  text: |-
+    ### review — clean
+    - evidence: review sha 220216f..50bb615 — 0 findings (0 confirmed, 0 refuted; 7 attempted, 0 failed), 3 files reviewed. 08:47 finding verified fixed: both undo-stack tests call SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack. 11:02 finding verified fixed: ElicitationTextField.input and AgentOneLineField.body both call SingleLineField.onFieldSubmit, which uses EditorCommit.submittedText; runReturnAction(for:) is gone, and nothing else in Sources tests submitsField. Both checked off.
+    - next: none — moved to done
+  timestamp: 2026-10-28T16:30:37.976555+00:00
+position_column: done
+position_ordinal: fffff380
 title: Drop the AVK leak workarounds now that EditorKit ^jmq52v6 fixed the onEditCommit leak
 ---
 EditorKit ^jmq52v6 is on main at 3cb4805. The view now holds the edit-commit callback and the model reaches it only through a weak receiver, so a callback can capture view state or the model without leaking. `EditorModel.onEditCommit` no longer exists. No public API changed.
@@ -52,10 +59,10 @@ EditorKit ^jmq52v6 is on main at 3cb4805. The view now holds the edit-commit cal
 
 > Scope: `review sha 10f3ff2~1..10f3ff2` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 0 not reviewed.
 
-- [ ] `Tests/AgentViewKitTests/Elicitation/ElicitationNumberFieldEditingHostedTests.swift:120` `reuse/reuse` — The new test `aSubmittedFormTakesTheTypingOfItsNumberInputOffTheWindowUndoStack` is a near-copy of the existing text-field test with the same name pattern. It repeats the same mount, type, Return, pending-elicitation check, render check, fence, and undo-stack assertions. Only the typed text and the field differ. Each copy has to be maintained separately. Move the shared steps (mount in the deck, type into the control, assert `canUndo`, press Return, assert the elicitation is gone, fence, assert the stack is empty) into one helper, such as a `SingleLineFieldChecks` function that takes the mounted window, the typed text, and the control identifier. Have both tests call it with their own params and text, so each test keeps only its own setup and expectations.
+- [x] `Tests/AgentViewKitTests/Elicitation/ElicitationNumberFieldEditingHostedTests.swift:120` `reuse/reuse` — The new test `aSubmittedFormTakesTheTypingOfItsNumberInputOffTheWindowUndoStack` is a near-copy of the existing text-field test with the same name pattern. It repeats the same mount, type, Return, pending-elicitation check, render check, fence, and undo-stack assertions. Only the typed text and the field differ. Each copy has to be maintained separately. Move the shared steps (mount in the deck, type into the control, assert `canUndo`, press Return, assert the elicitation is gone, fence, assert the stack is empty) into one helper, such as a `SingleLineFieldChecks` function that takes the mounted window, the typed text, and the control identifier. Have both tests call it with their own params and text, so each test keeps only its own setup and expectations.
 
 ## Review Findings (2026-10-28 11:02)
 
 > Scope: `review sha 0e80f75..b1ce596` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 0 not reviewed.
 
-- [ ] `Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift:284` `reuse/reuse` — `runReturnAction(for:)` repeats the commit-to-submit logic that `AgentOneLineField.body` already has (`guard commit.reason.submitsField`, then call the action with the commit). Two copies of the same submit-on-commit rule can drift apart, for example if one later forgets the guard and Esc starts submitting. Move the guard-and-forward into one place, for example a helper on `SingleLineField` or a `View` modifier in `AgentOneLineField.swift` that takes a `() -> Void` action. Have both `ElicitationTextField.input` and `AgentOneLineField.body` call it. Confidence is moderate: the two views differ in placeholder and edge styling, so `ElicitationTextField` may not be able to use `AgentOneLineField` directly.
+- [x] `Sources/AgentViewKit/Elicitation/ElicitationFieldViews.swift:284` `reuse/reuse` — `runReturnAction(for:)` repeats the commit-to-submit logic that `AgentOneLineField.body` already has (`guard commit.reason.submitsField`, then call the action with the commit). Two copies of the same submit-on-commit rule can drift apart, for example if one later forgets the guard and Esc starts submitting. Move the guard-and-forward into one place, for example a helper on `SingleLineField` or a `View` modifier in `AgentOneLineField.swift` that takes a `() -> Void` action. Have both `ElicitationTextField.input` and `AgentOneLineField.body` call it. Confidence is moderate: the two views differ in placeholder and edge styling, so `ElicitationTextField` may not be able to use `AgentOneLineField` directly.
