@@ -18,15 +18,21 @@ import SwiftUI
 /// the whole file.
 ///
 /// A chip is not a content tile, so it keeps the small padding of a chip.
-/// ``ToolCallView`` shows the chips in its expanded body.
+/// ``ToolCallView`` shows the chips in its expanded body, for each location
+/// that no diff of the call shows as a ``DiffView`` file chip (card ^tgjr9xg).
 struct ToolCallLocationChips: View {
+  /// One ACP location, with its position in the locations of the entry.
+  typealias Indexed = (offset: Int, element: FoundationModelsACP.ToolCallLocation)
+
   /// The corners of a chip: the corners of an ``AttachmentChip``. The fill
   /// of the chip, its selection surface and the focus ring of its scope all
   /// have them.
   static let corners = AttachmentChip.corners
 
-  /// The ACP locations to show.
-  let locations: [FoundationModelsACP.ToolCallLocation]
+  /// The ACP locations to show, each with its position in the locations of
+  /// the entry. The identifier of a chip keeps that position, so it stays the
+  /// same when the call hides another location.
+  let locations: [Indexed]
 
   /// The row key of the entry, for the identifier of each chip.
   let id: String
@@ -37,7 +43,7 @@ struct ToolCallLocationChips: View {
 
   var body: some View {
     ChipFlowLayout(spacing: editorStyle.spacing.xs) {
-      ForEach(Array(locations.enumerated()), id: \.offset) { index, location in
+      ForEach(locations, id: \.offset) { index, location in
         chip(location, index: index)
       }
     }
@@ -73,6 +79,6 @@ struct ToolCallLocationChips: View {
 #Preview("Location chip") {
   let path = PreviewFixtures.projectDirectory.appending(path: PreviewFixtures.codeSampleFilename).path
   ToolCallLocationChips(
-    locations: [FoundationModelsACP.ToolCallLocation(path: AbsolutePath(rawValue: path))],
+    locations: [(offset: 0, element: FoundationModelsACP.ToolCallLocation(path: AbsolutePath(rawValue: path)))],
     id: "preview-locations")
 }

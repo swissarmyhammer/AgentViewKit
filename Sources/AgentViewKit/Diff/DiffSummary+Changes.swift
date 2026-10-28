@@ -17,6 +17,27 @@ nonisolated extension DiffSummary {
   /// The log of the structured changes that the kit cannot show.
   private static let logger = Logger(subsystem: "AgentViewKit", category: "DiffSummary")
 
+  /// The `git_patch` text of an ACP diff.
+  ///
+  /// - Parameter diff: The ACP diff.
+  /// - Returns: The patch text, or `nil` when the diff has no patch text in
+  ///   the `git_patch` format.
+  static func gitPatchText(of diff: FoundationModelsACP.Diff) -> String? {
+    guard let patch = diff.patch, patch.format == .gitPatch else { return nil }
+    return patch.text
+  }
+
+  /// The files that ``DiffView`` shows for an ACP diff, one file chip each.
+  ///
+  /// - Parameter diff: The ACP diff.
+  /// - Returns: The files of the `git_patch` text (``parse(gitPatch:)``), or
+  ///   the files of the structured changes when the diff has no `git_patch`
+  ///   text.
+  static func files(of diff: FoundationModelsACP.Diff) -> [FileSummary] {
+    guard let patch = gitPatchText(of: diff) else { return files(of: diff.changes) }
+    return parse(gitPatch: patch)
+  }
+
   /// The files of the structured changes of an ACP diff.
   ///
   /// - Parameter changes: The `changes` of an ACP `Diff`.
@@ -94,5 +115,25 @@ nonisolated extension DiffSummary.FileSummary {
   /// The label is "<operation> <language> file", such as "Added Swift file".
   public var changeAccessibilityLabel: String {
     String(localized: "\(operation.label) \(language) file", bundle: .module)
+  }
+
+  /// The separator of the components of a path.
+  static let pathSeparator = "/"
+
+  /// Tells whether `location` is the path of this file, so that a tool call
+  /// shows the file once: as its ``DiffView`` file chip, with no location
+  /// chip of its own.
+  ///
+  /// An ACP location is an absolute path. The path of a file of a git patch
+  /// is relative to the root of the repository, and the path of a structured
+  /// change is absolute. The agent writes the location and the diff of one
+  /// call, so the paths match as written, with no change of case.
+  ///
+  /// - Parameter location: The path of a location of the tool call.
+  /// - Returns: `true` when `location` is ``path``, or when ``path`` is
+  ///   relative and `location` ends with it after a path separator.
+  func hasPath(_ location: String) -> Bool {
+    guard location != path else { return true }
+    return !path.hasPrefix(Self.pathSeparator) && location.hasSuffix(Self.pathSeparator + path)
   }
 }

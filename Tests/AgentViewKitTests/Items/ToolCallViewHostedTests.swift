@@ -40,6 +40,40 @@
       "content": [{"type": "content", "content": {"type": "text", "text": "The file."}}]
       """#
 
+    /// The folder of the project of the edit fixture, before a relative path of
+    /// the patch.
+    static let projectDirectory = "/project/"
+
+    /// The file that the edit fixture only reads: it has a location and no
+    /// diff.
+    static let readOnlyPath = "/project/Package.swift"
+
+    /// The locations of the edit fixture: the two files of
+    /// ``DiffViewHostedTests/patch`` as absolute paths, then
+    /// ``readOnlyPath``.
+    static let editLocations = [
+      projectDirectory + DiffViewHostedTests.firstPath, projectDirectory + DiffViewHostedTests.secondPath,
+      readOnlyPath,
+    ]
+
+    /// The fields of a completed edit with a raw input, a raw output, the
+    /// locations ``editLocations``, and one diff part with the patch of two
+    /// files, ``DiffViewHostedTests/patch``. The title and the raw values name
+    /// no file.
+    ///
+    /// - Returns: The fields, as JSON members.
+    /// - Throws: The error of the JSON encode of the patch.
+    static func editFields() throws -> String {
+      let patch = try #require(String(data: JSONEncoder().encode(DiffViewHostedTests.patch), encoding: .utf8))
+      let locations = editLocations.map { #"{"path": "\#($0)"}"# }.joined(separator: ", ")
+      return #"""
+        "title": "Edit two files", "kind": "edit", "status": "completed",
+        "locations": [\#(locations)],
+        "rawInput": {"replaceAll": false}, "rawOutput": {"applied": true},
+        "content": [{"type": "diff", "changes": [], "patch": {"format": "git_patch", "text": \#(patch)}}]
+        """#
+    }
+
     /// Opens a scripted session and sends one tool call.
     ///
     /// - Parameters:
@@ -217,6 +251,77 @@
 
       #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: call.id.rowKey, index: 0)) != nil)
       #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
+    }
+
+    // MARK: - Diff
+
+    /// The chips of a call: its location chips and its diff file chips. Each
+    /// location chip has the identifier of the chip at index 0 with its own
+    /// index in place of the 0, and the identifier of a diff file chip starts
+    /// with ``DiffView/identifierPrefix`` and ends with the path of its file.
+    ///
+    /// - Parameters:
+    ///   - key: The row key of the call.
+    ///   - harness: The harness that shows the call.
+    /// - Returns: The accessibility elements of the chips.
+    static func chips<Content: View>(
+      ofCall key: String, in harness: HostedViewHarness<Content>
+    ) -> [AccessibilityElementSnapshot] {
+      let locationPrefix = ToolCallView.locationIdentifier(for: key, index: 0).dropLast()
+      return harness.accessibilityElements().filter { element in
+        guard let identifier = element.identifier else { return false }
+        return identifier.hasPrefix(locationPrefix) || identifier.hasPrefix(DiffView.identifierPrefix)
+      }
+    }
+
+    /// Each file of the diff shows once, as its ``DiffView`` file chip: the
+    /// location of the same file shows no chip of its own (card ^tgjr9xg).
+    /// The location that the diff does not show keeps its chip.
+    @Test func eachFileOfADiffShowsOnceAsItsDiffChip() async throws {
+      let (session, call) = try await Self.openCall(id: "diff-once-call", fields: try Self.editFields())
+      defer { session.close() }
+      let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
+      defer { harness.close() }
+      let key = call.id.rowKey
+      let chips = Self.chips(ofCall: key, in: harness)
+
+      for (index, location) in Self.editLocations.enumerated() {
+        let name = URL(filePath: location).lastPathComponent
+        let named = chips.filter { chip in
+          [chip.identifier, chip.label, chip.value].contains { $0?.contains(name) == true }
+        }
+        #expect(named.count == 1, "\(location): \(named.compactMap(\.identifier))")
+        let isInDiff = location != Self.readOnlyPath
+        let chip = harness.element(identifier: ToolCallView.locationIdentifier(for: key, index: index))
+        #expect((chip == nil) == isInDiff, "\(location)")
+      }
+      for path in [DiffViewHostedTests.firstPath, DiffViewHostedTests.secondPath] {
+        #expect(harness.element(identifier: DiffView.identifier(for: path)) != nil, "\(path)")
+      }
+    }
+
+    /// A diff in a tool call is no tile of its own (card ^tgjr9xg): its file
+    /// chips and its detail start on the leading edge of the other blocks of
+    /// the expanded body.
+    @Test func theDiffChipsTheDiffTextAndTheOtherBlocksShareOneLeadingEdge() async throws {
+      let (session, call) = try await Self.openCall(id: "diff-edge-call", fields: try Self.editFields())
+      defer { session.close() }
+      let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
+      defer { harness.close() }
+      let key = call.id.rowKey
+      let identifiers = [
+        ToolCallView.locationsIdentifier(for: key), ToolCallView.inputIdentifier(for: key),
+        DiffView.identifier(for: DiffViewHostedTests.firstPath), DiffView.detailIdentifier,
+        ToolCallView.outputIdentifier(for: key),
+      ]
+
+      let edges = try identifiers.map { identifier in
+        try #require(harness.frame(identifier: identifier), "\(identifier)").minX
+      }
+      let first = try #require(edges.first)
+      for (identifier, edge) in zip(identifiers, edges) {
+        #expect(abs(edge - first) <= DiffViewHostedTests.layoutTolerance, "\(identifier)")
+      }
     }
 
     // MARK: - Status

@@ -43,7 +43,11 @@
         ^7abggb0 the inline diff has one line-number column, as wide as its widest number: a context or an \
         added row shows its new number, a removed row its old number, and every number ends at one right edge \
         beside the +/- marker column (DiffLineNumberHostedTests checks it with a hunk past line 1000). The new \
-        image is not judged yet.
+        image is not judged yet. Since ^tgjr9xg the edit shows its file once: the location chip \
+        "SearchIndex.swift:2" is gone, because the diff file chip "SearchIndex.swift +1 −1" names the same file, \
+        and the diff is no tile of its own inside the call, so the chip and the patch start on the leading edge \
+        of the call body with no second tile padding (ToolCallViewHostedTests checks both). The new image is \
+        not judged yet.
         """,
       .requestDeck: """
         2026-10-27. The request cards have no fill. The cards behind the front card show as thin top edges, so \
@@ -85,7 +89,9 @@
         text in dark (ReviewGalleryScreenTests checks it), as the recorded attachment-inspector-dark.png shows. \
         The QuickLook preview is hidden on purpose. Since ^sbx2q4h the "Exit code 0" text of the terminal \
         output is the primary label color, with the green on the symbol only. Since ^ey6v778 the tiles of the \
-        thread column take the tile spacing of the theme; the new image is not judged yet.
+        thread column take the tile spacing of the theme; the new image is not judged yet. Since ^tgjr9xg the \
+        edit shows its file once, as its diff file chip, with no second tile inside the call, as on the thread \
+        screen; the new image is not judged yet.
         """,
       .gallery: """
         2026-10-27. The sidebar shows the system sidebar background, with no kit fill. The open "Permission \

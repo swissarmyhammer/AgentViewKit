@@ -58,7 +58,9 @@ extension View {
 ///
 /// A press on the row expands the call. The expanded body shows the
 /// locations as path chips, the raw input and the raw output as JSON in a
-/// ``CodeBlockView``, and each part of the content. A press on a path chip
+/// ``CodeBlockView``, and each part of the content. Each file shows once: a
+/// location that a diff part shows as a ``DiffView`` file chip has no path
+/// chip (card ^tgjr9xg). A press on a path chip
 /// selects its file in the inspector, as a message attachment does, and the
 /// context menu of the chip shows the ``AgentAttachmentVerb`` commands for
 /// the file. Each part of the content shows this way:
@@ -68,7 +70,9 @@ extension View {
 /// - A diff shows through ``DiffView``, with the renderer of
 ///   ``SwiftUI/View/diffRenderer(_:)`` and the actions of
 ///   ``SwiftUI/View/diffActions(_:)``. A structured ACP diff with no
-///   `git_patch` text shows the file of each change.
+///   `git_patch` text shows the file of each change. The call is the tile of
+///   the diff (``DiffPlace/toolCall``), so the file chips and the patch start
+///   on the leading edge of the other blocks of the body.
 /// - A terminal reference shows a label with the id of the terminal. The
 ///   `TerminalEntry` of the terminal has its own row in the transcript.
 /// - Unknown content shows through ``UnknownItemView``.
@@ -358,6 +362,7 @@ public struct ToolCallView: View {
       if expanded {
         ToolCallBody(entry: entry, registration: toolCallRegistry.registration(named: entry.name), editorStyle: editorStyle)
           .equatable()
+          .diffPlace(.toolCall)
           .contentContainer(identifier: Self.bodyIdentifier(for: id))
       }
     }
@@ -564,7 +569,7 @@ struct ToolCallBody: View, Equatable {
   /// - Returns: The body view.
   private func defaultBody(id: String) -> some View {
     let parts = entry.parts
-    let locations = entry.locations
+    let locations = Self.locations(entry.locations, notShownBy: parts)
     let showsCommandOutput = entry.shownKind == .execute && !parts.contains(where: \.isTerminal)
     return VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
       if !locations.isEmpty {
@@ -583,6 +588,27 @@ struct ToolCallBody: View, Equatable {
         jsonBlock(rawOutput, title: String(localized: "Output", bundle: .module))
           .contentContainer(identifier: ToolCallView.outputIdentifier(for: id))
       }
+    }
+  }
+
+  /// The locations that no diff part shows, so that each file of the call
+  /// shows once (card ^tgjr9xg). A diff part shows each of its files as a
+  /// ``DiffView`` file chip, so a location of the same file has no location
+  /// chip. See ``DiffSummary/FileSummary/hasPath(_:)``.
+  ///
+  /// - Parameters:
+  ///   - locations: The locations of the entry.
+  ///   - parts: The parts of the content of the entry.
+  /// - Returns: The other locations, each with its position in `locations`.
+  static func locations(
+    _ locations: [FoundationModelsACP.ToolCallLocation], notShownBy parts: [ToolCallPart]
+  ) -> [ToolCallLocationChips.Indexed] {
+    let diffFiles = parts.flatMap { part -> [DiffSummary.FileSummary] in
+      guard case .diff(let diff) = part else { return [] }
+      return DiffSummary.files(of: diff)
+    }
+    return locations.enumerated().filter { _, location in
+      !diffFiles.contains { $0.hasPath(location.path.rawValue) }
     }
   }
 

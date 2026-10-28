@@ -195,7 +195,8 @@
     }
 
     /// The update of a completed edit with a patch of one file, and the
-    /// location of the file, so that the expanded call shows a location chip.
+    /// location of the same file. The diff shows the file as its file chip,
+    /// so the expanded call shows no location chip for it (card ^tgjr9xg).
     ///
     /// - Returns: The update.
     /// - Throws: The error of the JSON encode or decode.

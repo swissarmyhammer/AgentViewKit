@@ -10,11 +10,13 @@ import SwiftUI
 ///
 /// - A chip for each file of the patch, with the added and removed line
 ///   counts, in rows that wrap. The chips stand above the detail, and the
-///   detail takes the full width of the tile, inside the tile padding
-///   (`.contentTile()`). A press on a chip selects its
-///   file. The view shows the chip of a patch with one file too, so its name
-///   and counts stay visible. The counts use the `diffAddedText` and
-///   `diffRemovedText` roles of the EditorKit theme in the environment.
+///   detail takes the full width of the tile. On its own, the diff is a
+///   content tile, with the tile padding (`.contentTile()`); in a tool call,
+///   the call is the tile, and the diff pads nothing (``DiffPlace``). A press
+///   on a chip selects its file. The view shows the chip of a patch with one
+///   file too, so its name and counts stay visible. The counts use the
+///   `diffAddedText` and `diffRemovedText` roles of the EditorKit theme in the
+///   environment.
 /// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
 ///   full patch and the path of the selected file. The default renderer is
 ///   the EditorKit diff view, in the ``SwiftUI/EnvironmentValues/diffLayout``.
@@ -129,12 +131,9 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     onReject: DiffActions.HunkAction? = nil,
     onAttach: DiffActions.AttachAction? = nil
   ) {
-    let actions = Self.ownActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach)
-    if let patch = diff.patch, patch.format == .gitPatch {
-      self.init(patch: patch.text, files: DiffSummary.parse(gitPatch: patch.text), actions: actions)
-    } else {
-      self.init(patch: nil, files: DiffSummary.files(of: diff.changes), actions: actions)
-    }
+    self.init(
+      patch: DiffSummary.gitPatchText(of: diff), files: DiffSummary.files(of: diff),
+      actions: Self.ownActions(onAccept: onAccept, onReject: onReject, onAttach: onAttach))
   }
 
   /// Makes a diff view from its parts.
@@ -208,7 +207,7 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
     } body: {
       detail(file: file, actions: actions)
     }
-    .contentTile()
+    .modifier(DiffPlaceTile())
     .onChange(of: selectedPath) {
       selection.lines = []
     }
