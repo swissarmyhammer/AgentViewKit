@@ -112,6 +112,10 @@ import Testing
       (SessionStreamBanner.closedMessage, .closed), (SessionStreamBanner.replayingMessage, .replaying),
       (SessionStreamBanner.missedUpdatesMessage, .warning),
       (SessionStreamBanner.partialHistoryMessage, .partialHistory),
+      (
+        SessionStreamBanner.makeReloadFailedMessage(errorDescription: StatusBarColorTests.reloadErrorDescription),
+        .error
+      ),
     ]
     let notices = [
       Use(

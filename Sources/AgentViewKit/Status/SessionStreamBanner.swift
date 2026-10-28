@@ -15,9 +15,13 @@ import SwiftUI
 ///   history.
 /// - While `hasMissedUpdates` is true, a banner tells that the transcript can
 ///   lack updates. Its Reload button calls `ConnectionModel.resumeSession(_:)`
-///   with `replayFrom: .start`. The button is disabled while the replay runs.
-///   The banner goes away only when the model clears `hasMissedUpdates`. A
-///   failed resume adds an error entry to the transcript.
+///   with `replayFrom: .start`. The button is disabled while the resume or
+///   the replay runs. The banner goes away only when the model clears
+///   `hasMissedUpdates`. A failed resume adds an error entry to the
+///   transcript, and the banner then tells that the reload failed, with the
+///   localized description of the error, as a failure. The Reload button
+///   stays, so the user can reload again, and a new press shows the
+///   missed-updates text again while the resume runs.
 /// - When `history` is `.retained` and no replay runs, a note tells that the
 ///   history can be partial. The agent replays only the history that it
 ///   keeps, so the note never tells that the history is complete.
@@ -43,6 +47,9 @@ public struct SessionStreamBanner: View {
   /// The accessibility identifier of the text of the missed-updates banner.
   public static let missedUpdatesIdentifier = "session-stream-missed-updates"
 
+  /// The accessibility identifier of the text of the reload-failed banner.
+  public static let reloadFailedIdentifier = "session-stream-reload-failed"
+
   /// The accessibility identifier of the Reload button.
   public static let reloadIdentifier = "session-stream-reload"
 
@@ -65,6 +72,9 @@ public struct SessionStreamBanner: View {
   /// `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
+  /// The state of the reload that the Reload button starts.
+  @State private var reloadPhase = ReloadPhase.idle
+
   /// Makes the banners of the stream state of a session model.
   ///
   /// - Parameters:
@@ -85,6 +95,20 @@ public struct SessionStreamBanner: View {
     let action: StatusBar.Action?
   }
 
+  /// The state of the reload that the Reload button starts.
+  private enum ReloadPhase: Equatable {
+    /// No reload runs, and the last reload did not fail.
+    case idle
+
+    /// A reload runs.
+    case reloading
+
+    /// The last reload failed.
+    ///
+    /// - Parameter errorDescription: The localized description of its error.
+    case failed(errorDescription: String)
+  }
+
   public var body: some View {
     let bars = shownBars
     if !bars.isEmpty {
@@ -102,15 +126,20 @@ public struct SessionStreamBanner: View {
   private var shownBars: [Bar] {
     guard !session.isClosed else { return [Bar(message: Self.closedMessage, action: nil)] }
     let replaying = session.isReplaying
+    let canReload = !replaying && reloadPhase != .reloading
     let rows: [(isShown: Bool, bar: Bar)] = [
       (replaying, Bar(message: Self.replayingMessage, action: nil)),
-      (
-        session.hasMissedUpdates,
-        Bar(message: Self.missedUpdatesMessage, action: makeReloadAction(isEnabled: !replaying))
-      ),
+      (session.hasMissedUpdates, Bar(message: missedUpdatesBarMessage, action: makeReloadAction(isEnabled: canReload))),
       (isHistoryRetained && !replaying, Bar(message: Self.partialHistoryMessage, action: nil)),
     ]
     return rows.filter(\.isShown).map(\.bar)
+  }
+
+  /// The text of the banner of the missed updates: the reload-failed text
+  /// after a failed reload, and otherwise the missed-updates text.
+  private var missedUpdatesBarMessage: StatusBar.Message {
+    guard case .failed(let errorDescription) = reloadPhase else { return Self.missedUpdatesMessage }
+    return Self.makeReloadFailedMessage(errorDescription: errorDescription)
   }
 
   /// Whether the transcript of the model holds a replay of the retained
@@ -131,15 +160,41 @@ public struct SessionStreamBanner: View {
       title: String(localized: "Reload", bundle: .module), systemImage: Self.reloadSymbol,
       identifier: Self.reloadIdentifier,
       isEnabled: isEnabled
-    ) { [session, reportRequestStart] in
+    ) { [session, reportRequestStart, phase = $reloadPhase] in
       let request = ResumeSessionRequest.makeAgentViewKitRequest(
         sessionId: session.sessionId,
         cwd: cwd,
         additionalDirectories: session.additionalDirectories,
         replayFrom: .start(ReplayFromStart()))
+      phase.wrappedValue = .reloading
       session.startRequest("session/resume", reporting: reportRequestStart) {
-        _ = try await connection.resumeSession(request)
+        try await Self.resume(request, on: connection, recordingIn: phase)
       }
+    }
+  }
+
+  /// Sends the `session/resume` request of the Reload button, and records
+  /// its outcome in `phase`.
+  ///
+  /// A success sets ``ReloadPhase/idle``. A failure sets
+  /// ``ReloadPhase/failed(errorDescription:)`` with the localized
+  /// description of the error, and throws the error again, so that the
+  /// session model also adds an error entry to the transcript.
+  ///
+  /// - Parameters:
+  ///   - request: The `session/resume` request.
+  ///   - connection: The connection model that sends the request.
+  ///   - phase: The state of the reload of the banner.
+  /// - Throws: The error of the request.
+  private static func resume(
+    _ request: ResumeSessionRequest, on connection: ConnectionModel, recordingIn phase: Binding<ReloadPhase>
+  ) async throws {
+    do {
+      _ = try await connection.resumeSession(request)
+      phase.wrappedValue = .idle
+    } catch {
+      phase.wrappedValue = .failed(errorDescription: error.localizedDescription)
+      throw error
     }
   }
 }
@@ -169,6 +224,20 @@ extension SessionStreamBanner {
       bundle: .module),
     symbolName: SharedSymbol.warning,
     identifier: missedUpdatesIdentifier)
+
+  /// Makes the text of the reload-failed banner: the transcript still lacks
+  /// updates, because the last reload failed.
+  ///
+  /// - Parameter errorDescription: The localized description of the error of
+  ///   the reload.
+  /// - Returns: The text, a failure whose explanation tells the error.
+  static func makeReloadFailedMessage(errorDescription: String) -> StatusBar.Message {
+    StatusBar.Message(
+      title: String(localized: "Updates are still missing", bundle: .module),
+      explanation: String(localized: "The reload failed: \(errorDescription)", bundle: .module),
+      symbolName: SharedSymbol.error,
+      identifier: reloadFailedIdentifier, severity: .failure)
+  }
 
   /// The text of the partial-history note.
   static let partialHistoryMessage = StatusBar.Message(

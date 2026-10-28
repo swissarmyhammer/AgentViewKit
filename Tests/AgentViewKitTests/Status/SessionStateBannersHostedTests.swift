@@ -184,21 +184,128 @@
 
     // MARK: - Missed updates
 
+    /// How the scripted agent answers `session/resume` in a missed-updates
+    /// test.
+    enum ResumeAnswer {
+      /// The agent holds its answer until the test releases it, and then
+      /// answers with a result.
+      case held
+      /// The agent answers at once with a JSON-RPC error.
+      case failure
+    }
+
     /// Opens a scripted session whose update buffer overflows before the
     /// `session/new` result, so that the session model gets
-    /// `hasMissedUpdates`. The agent holds its answer to `session/resume`.
+    /// `hasMissedUpdates`.
     ///
-    /// - Parameter additionalDirectories: The additional workspace roots of
-    ///   the `session/new` request.
+    /// - Parameters:
+    ///   - additionalDirectories: The additional workspace roots of the
+    ///     `session/new` request.
+    ///   - resumeAnswer: How the agent answers `session/resume`.
     /// - Returns: The open session.
     /// - Throws: The error of the encoder, of `initialize` or of
     ///   `session/new`.
-    static func openOverflowingSession(additionalDirectories: [AbsolutePath] = []) async throws -> ScriptedSession {
+    static func openOverflowingSession(
+      additionalDirectories: [AbsolutePath] = [], resumeAnswer: ResumeAnswer = .held
+    ) async throws -> ScriptedSession {
       let chunkFrames = try (1...overflowUpdateCount).map(chunkFrame(index:))
       return try await ScriptedSession.open(bufferLimits: smallBufferLimits, additionalDirectories: additionalDirectories) {
         $0.leadIns["session/new"] = { _, _ in chunkFrames }
-        $0.heldMethods = [ScriptedSession.resumeMethod]
+        switch resumeAnswer {
+        case .held: $0.heldMethods = [ScriptedSession.resumeMethod]
+        case .failure: $0.failingMethods = [ScriptedSession.resumeMethod]
+        }
       }
+    }
+
+    /// Whether the last entry of the transcript of `model` is an error entry,
+    /// as the failure of a request that a view started adds.
+    ///
+    /// - Parameter model: The session model.
+    /// - Returns: `true` when the last entry is an error entry.
+    static func endsWithAnError(_ model: SessionModel) -> Bool {
+      guard case .error = model.transcript.last else { return false }
+      return true
+    }
+
+    /// Waits for the missed-updates banner, presses Reload, and waits until
+    /// the failure of the resume is in the transcript.
+    ///
+    /// The banner records the failure before the session model adds the
+    /// error entry, so the banner shows the failure when the entry is there.
+    ///
+    /// - Parameters:
+    ///   - session: An overflowing session whose agent fails `session/resume`.
+    ///   - harness: The harness that shows the thread of the session.
+    /// - Throws: The error of the press.
+    static func reloadAndWaitForTheFailure<Content: View>(
+      of session: ScriptedSession, in harness: HostedViewHarness<Content>
+    ) async throws {
+      let model = session.model
+      await harness.render { model.hasMissedUpdates }
+
+      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      await harness.render { !model.isReplaying && endsWithAnError(model) }
+    }
+
+    @Test func aFailedReloadShowsTheReloadFailedBannerWithTheReloadButton() async throws {
+      let session = try await Self.openOverflowingSession(resumeAnswer: .failure)
+      defer { session.close() }
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      defer { harness.close() }
+
+      try await Self.reloadAndWaitForTheFailure(of: session, in: harness)
+
+      #expect(session.model.hasMissedUpdates)
+      #expect(Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
+      let reload = try #require(harness.element(identifier: SessionStreamBanner.reloadIdentifier))
+      #expect(reload.label == "Reload")
+      #expect(reload.isEnabled)
+    }
+
+    /// The test reads the error that the agent gives to `session/resume` with
+    /// a resume of its own before the press, so the expected text comes from
+    /// the same failure and not from a copy of its wording.
+    @Test func theReloadFailedBannerExplainsTheErrorOfTheReload() async throws {
+      let session = try await Self.openOverflowingSession(resumeAnswer: .failure)
+      defer { session.close() }
+      let failure = try #require(
+        await #expect(throws: (any Error).self) {
+          try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
+        })
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      defer { harness.close() }
+
+      try await Self.reloadAndWaitForTheFailure(of: session, in: harness)
+
+      let label = try #require(harness.element(identifier: SessionStreamBanner.reloadFailedIdentifier)?.label)
+      #expect(label.contains(failure.localizedDescription))
+    }
+
+    @Test func aReloadAfterAFailureShowsTheMissedUpdatesBannerAgainWhileItRuns() async throws {
+      let session = try await Self.openOverflowingSession(resumeAnswer: .failure)
+      defer { session.close() }
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      defer { harness.close() }
+      let model = session.model
+      let agent = session.agent
+      try await Self.reloadAndWaitForTheFailure(of: session, in: harness)
+      agent.failingMethods = []
+      agent.heldMethods = [ScriptedSession.resumeMethod]
+
+      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      await harness.render { model.isReplaying && agent.isHoldingAnswer }
+
+      #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
+      #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.isEnabled == false)
+
+      agent.releaseHeldAnswer()
+      await harness.render { !model.hasMissedUpdates }
+
+      #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
     }
 
     /// The press of Reload starts the resume in a task. The agent holds its

@@ -25,12 +25,16 @@ import Testing
   /// A failure of the connection to the agent.
   struct ConnectionFailure: Error {}
 
-  /// The three failure messages: a failed turn, the `_error` stop reason and a
-  /// failed connection.
+  /// The text of the error of a failed reload.
+  static let reloadErrorDescription = "The agent has no history for this session."
+
+  /// The four failure messages: a failed turn, the `_error` stop reason, a
+  /// failed connection and a failed reload of the session stream.
   static func failureMessages() throws -> [StatusBar.Message] {
     let failedTurn = StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "error"))
     let failedConnection = try #require(AgentConnectionBanner.makeMessage(for: .failed(ConnectionFailure())))
-    return [failedTurn, StateBanner.message(forUnknownStopReason: "_error"), failedConnection]
+    let failedReload = SessionStreamBanner.makeReloadFailedMessage(errorDescription: reloadErrorDescription)
+    return [failedTurn, StateBanner.message(forUnknownStopReason: "_error"), failedConnection, failedReload]
   }
 
   /// Messages that are not failures: a running agent, a complete turn and a
@@ -45,6 +49,12 @@ import Testing
 
   @Test func eachFailureMessageNamesTheFailureSeverity() throws {
     #expect(try Self.failureMessages().allSatisfy { $0.severity == .failure })
+  }
+
+  @Test func theReloadFailedMessageExplainsTheErrorOfTheReload() {
+    let message = SessionStreamBanner.makeReloadFailedMessage(errorDescription: Self.reloadErrorDescription)
+
+    #expect(message.explanation.contains(Self.reloadErrorDescription))
   }
 
   @Test func eachOtherMessageIsNeutral() throws {

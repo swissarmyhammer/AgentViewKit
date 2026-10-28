@@ -28,6 +28,7 @@ import Testing
       SessionStreamBanner.closedMessage,
       SessionStreamBanner.missedUpdatesMessage,
       SessionStreamBanner.partialHistoryMessage,
+      SessionStreamBanner.makeReloadFailedMessage(errorDescription: StatusBarColorTests.reloadErrorDescription),
     ]
   }
 
