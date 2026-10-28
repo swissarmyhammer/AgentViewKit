@@ -4,9 +4,12 @@ Status: decided. Source: plan.md §6, §14 research R11.
 Task ^6vztrss. Date: 2026-09-17.
 
 This file records how the thread views work with VoiceOver. The code is in
-`Sources/AgentViewKit/Accessibility/ThreadAccessibility.swift` and
-`Sources/AgentViewKit/Platform/Announcer.swift`. The hosted tests are in
-`Tests/AgentViewKitTests/Accessibility/`.
+`Sources/AgentViewKit/Accessibility/ThreadAccessibility.swift`. The
+`Announcer`, `AnnouncementPriority`, `VoiceOverAnnouncer` and
+`FocusReporter` types and the `announcer` and `focusReporter` environment
+values are in the EditorKit `EditorCommandsUI` target (EditorKit ^gfv7042),
+and the recording doubles of the tests are in `EditorTestSupport`. The
+hosted tests are in `Tests/AgentViewKitTests/Accessibility/`.
 
 ## Linked reading groups
 
@@ -100,6 +103,12 @@ announcement.
 - The environment value `announcer` is a `VoiceOverAnnouncer` by default.
   It posts `AccessibilityNotification.Announcement` with the
   `accessibilitySpeechAnnouncementPriority` attribute: low, default, or high.
+- A host sets `announcer` above `.commandSystem(_:)`. The command system
+  gives that announcer to its overlays, so jump mode announces through the
+  same announcer as the kit views (`JumpModeAnnouncerHostedTests`).
+- No code of the kit, of the demo app or of their tests posts an
+  announcement itself or names `VoiceOverAnnouncer`, except where it sets the
+  `announcer` environment value (`AnnouncementPathScanTests`).
 
 ## Focus
 

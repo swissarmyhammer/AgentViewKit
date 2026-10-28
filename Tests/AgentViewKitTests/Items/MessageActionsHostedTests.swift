@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import DemoSupport
+import EditorCommandsUI
 import Foundation
 import FoundationModelsACPClient
 import PackageFileSupport

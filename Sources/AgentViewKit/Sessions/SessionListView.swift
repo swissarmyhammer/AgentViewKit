@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import EditorCore
 import EditorSwiftUI
 import EditorTheme

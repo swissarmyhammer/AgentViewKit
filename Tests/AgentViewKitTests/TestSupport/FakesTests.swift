@@ -33,38 +33,6 @@ import Testing
     #expect(pasteboard.string(forType: .string) == "copied")
   }
 
-  // MARK: - Announcer
-
-  @Test func recordingAnnouncerRecordsAnnouncementsInOrder() {
-    let announcer = RecordingAnnouncer()
-    let kitAnnouncer: any Announcer = announcer
-
-    kitAnnouncer.announce("Turn complete", priority: .medium)
-    kitAnnouncer.announce("Action required", priority: .high)
-
-    #expect(
-      announcer.announcements == [
-        .init(message: "Turn complete", priority: .medium),
-        .init(message: "Action required", priority: .high),
-      ])
-    announcer.reset()
-    #expect(announcer.announcements.isEmpty)
-  }
-
-  // MARK: - Focus
-
-  @Test func recordingFocusReporterRecordsMovesInOrder() {
-    let reporter = RecordingFocusReporter()
-    let kitReporter: any FocusReporter = reporter
-
-    kitReporter.focusMoved(to: "permission-card")
-    kitReporter.focusMoved(to: "elicitation-form")
-
-    #expect(reporter.moves == ["permission-card", "elicitation-form"])
-    reporter.reset()
-    #expect(reporter.moves.isEmpty)
-  }
-
   // MARK: - Web authentication
 
   static let authorizationURL = URL(string: "https://auth.example.com/authorize")!

@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import SwiftUI
 
 /// The view of the binary contents of an embedded resource block

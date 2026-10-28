@@ -276,7 +276,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 | Dark mode | ✓ system appearance | ✓ `data-theme` | ✓ | ✓ `.dark` |
 | Material / glass | ✓ `floatingGlass()` of EditorKit `EditorStyle`, always `.regular` | ✗ | ✗ | ✗ |
 | Screen reader labels | ✓ `ThreadAccessibility` | partial: `label` props | ? | partial: labels |
-| Boundary announcements | ✓ `VoiceOverAnnouncer` (`Platform/Announcer.swift`) | ✗ | ? | ? |
+| Boundary announcements | ✓ `VoiceOverAnnouncer` (EditorKit `EditorCommandsUI`) | ✗ | ? | ? |
 | Focus to new request card | ✓ `AccessibilityFocusMover` | ✗ | ? | ? |
 | Linked reading groups | ✓ `accessibilityReadingScope()` | ✗ | ✗ | ✗ |
 | Reduce Motion | partial: `ShimmerView`, `ToolCallView` only | ? | ? | ? |
