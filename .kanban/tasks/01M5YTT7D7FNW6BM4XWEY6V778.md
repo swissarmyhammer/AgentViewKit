@@ -133,6 +133,35 @@ comments:
     - evidence: 27 files — Sources/AgentViewKit/Theme/ContentTile.swift; Tests/PackageStructureTests/ContentTilePaddingTests.swift; new Tests/AgentViewKitTests/Theme/ContentTileThemeHostedTests.swift; Tests/AgentViewKitTests/Theme/ContentTileInsetHostedTests.swift, Diff/DiffViewHostedTests.swift, Infrastructure/ViewValueLayoutTests.swift, Thread/ThreadBarInsetHostedTests.swift, HumanInTheLoop/RequestDeckWithdrawnHostedTests.swift, Snapshots/ReviewGalleryNotes.swift; 16 re-recorded PNGs (thread, bottom-bar-buttons, request-deck-bar, session-notice × 4 variants). Full `swift test` exit 0: 1 + 262 + 1889 tests passed, 7 known issues (pre-existing); only warning is the pre-existing mlx-swift_Cmlx "missing creator for mutated node".
     - next: /review. Value difference to judge: tile margin is now EditorKit's 8pt (was 12pt); the gallery notes say so.
   timestamp: 2026-10-27T23:18:15.953073+00:00
+- actor: claude-code
+  id: 01m613rg8a1esrqbt78744nknp
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (c6046a2): 1 finding (1 confirmed, 3 refuted, 7 attempted, 0 failed); 9 text files reviewed, 16 snapshot PNGs not reviewed (binary). Finding: Tests/PackageStructureTests/ContentTilePaddingTests.swift:64 (completeness/invariant-propagation)
+    - next: implementer makes the `extension EditorStyle` guard catch qualified and whitespace-variant spellings (`extension EditorKit.EditorStyle`, `extension  EditorStyle`) and adds the `extension EditorKit.EditorStyle {` assertion to `theScanFindsEachExtensionOfTheStyle`; then re-review
+  timestamp: 2026-10-28T11:19:09.322227+00:00
+- actor: claude-code
+  id: 01m613rz4196d2f7bsmtmc73yj
+  text: |-
+    ### finish iteration (step 2, round 1) — findings
+    - implement: changed. 25 files; tiles read EditorKit's EditorStyle.tile; ContentTileThemeHostedTests added; 16 snapshots re-recorded (margin 12→8pt, EditorKit's default).
+    - test: swift test passed 1 + 262 + 1889 tests (the implementer's full run). The only warning is the existing mlx-swift_Cmlx one.
+    - commit: 4d23765 (kanban), c6046a2 (code)
+    - review: 1 finding, Tests/PackageStructureTests/ContentTilePaddingTests.swift:64 (the extension guard matches only the literal spelling)
+  timestamp: 2026-10-28T11:19:24.545790+00:00
+- actor: claude-code
+  id: 01m613w4rrx7kwhgt5tz9v4twe
+  text: 'Picked up the open finding (ContentTilePaddingTests.swift `styleExtension` literal). Research: the suite doc says the kit adds no token of its own to `EditorStyle`, and `styleExtensions` documents "extends `EditorStyle` or a type of it", so nested types (`EditorStyle.Tile`) are in scope. The test target already has the pieces to reuse: `WordPattern.wholeWord`/`memberPattern` (simple word boundaries) and `SourceLineScanner.matchStartLines(of:in:)`, which matches over a whole blanked file so a match can span lines. Plan: replace the three fixed spellings of the scan (`extension EditorStyle`, `.padding(`, `editorStyle.tile.`) with RegexBuilder patterns that read names as whole words and allow any whitespace; the extension pattern runs over the whole code text so `extension` and the type may sit on different lines, and accepts any dotted qualifier (`EditorKit.`, `EditorStyle.`) and backticks.'
+  timestamp: 2026-10-28T11:21:08.632374+00:00
+- actor: claude-code
+  id: 01m6145p1y9m87tf1q562zmk32
+  text: |-
+    Fixed the 2026-10-28 06:16 finding across the whole scan in Tests/PackageStructureTests/ContentTilePaddingTests.swift. The three fixed spellings are now RegexBuilder patterns built on the existing `WordPattern`: `styleExtensionPattern` (the word `extension`, any whitespace including line breaks, any dotted qualifier with optional backticks, then `EditorStyle` as a whole word, so `EditorKit.EditorStyle`, `EditorStyle.EditorStyle`, `<Module>.EditorStyle` and the nested `EditorStyle.Tile` all match, and `EditorStyleSheet` or `EditorKit.EditorStyles` do not), `paddingCallPattern` (`.padding (` too) and `tileTokenPattern` (`editorStyle .tile .padding` too, and `editorStyle.tiles.` no longer counts). The extension scan now reads the whole blanked file through `SourceLineScanner.matchStartLines`, so an extension that breaks across lines is found at its `extension` line. TDD: RED was `theScanFindsEachExtensionOfTheStyle` (extended with the qualified, whitespace, tab, line-break and backtick forms, `extension EditorKit.EditorStyle {` among them, plus negatives) and the new `theScanReadsAPaddingCallAndATileTokenWithAnySpacing`. Both failed on the old literals and pass now. The kit has no extension of EditorStyle under any spelling, so `theKitAddsNoTokenOfItsOwnToTheStyle` still passes. The full run shows 7 known issues. They come from the deliberate `withKnownIssue` self-tests in SnapshotStoreTests, HostedLayoutExpectationsTests and FontRoleExpectationsTests, not from this change.
+
+    ### implement — changed
+    - evidence: 1 file — Tests/PackageStructureTests/ContentTilePaddingTests.swift. `swift test --filter PackageStructureTests` passed 263 tests in 35 suites. Full `swift test` passed 1889 tests in 235 suites, plus 263 in PackageStructureTests. The only warning is the existing mlx-swift_Cmlx "missing creator for mutated node" packaging warning, which this card did not cause. The finding is checked; 0 of 1 open.
+    - next: /review
+  timestamp: 2026-10-28T11:26:21.246497+00:00
 position_column: doing
 position_ordinal: '8380'
 title: 'AVK-8 tiles: one theme-driven padding, gap and margin for every content tile, bordered or not (cards, banners, request cards, tool calls, terminal output, code blocks, diffs, artifacts), from the user''s gallery review'
@@ -174,3 +203,27 @@ Before you start, check the EditorKit main SHA with the final names, and use tho
 - Every content tile, bordered or not, takes its padding, gap and margin from the EditorStyle tile tokens, through the one AVK modifier.
 - The structure guard and the hosted inset tests pass, and changing the theme's tile padding changes the tiles.
 - The full `swift test` is green, and the gallery shows consistent tiles. #avk-8
+
+## Review Findings (2026-10-28 06:16)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 16 not reviewed.
+
+> 16 file(s) not reviewed — the file holds no text to review:
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/bottom-bar-buttons-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/request-deck-bar-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/session-notice-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/session-notice-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/session-notice-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/session-notice-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/thread-dark.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/thread-increase-contrast.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/thread-light.png` — not UTF-8 text, so there is nothing to review
+> - `Tests/AgentViewKitTests/Snapshots/__Snapshots__/HostedSnapshotTests/thread-reduce-transparency.png` — not UTF-8 text, so there is nothing to review
+
+- [x] `Tests/PackageStructureTests/ContentTilePaddingTests.swift:64` `completeness/invariant-propagation` — The guard that keeps AVK from adding members to EditorKit's EditorStyle matches only the literal text `extension EditorStyle`. A kit file that extends the same type under another spelling, such as `extension EditorKit.EditorStyle` or a double space in `extension  EditorStyle`, is not flagged. The test that promises the kit adds no token of its own (`theKitAddsNoTokenOfItsOwnToTheStyle`) can therefore pass while the token it guards is still added, which would shadow EditorKit's `tile` again. Match the type name as a token rather than a fixed spelling. Normalize whitespace in the code line, and accept an optional module qualifier such as `EditorKit.` before `EditorStyle`. Add one assertion in `theScanFindsEachExtensionOfTheStyle` for `extension EditorKit.EditorStyle {` so the qualified form is proven to be caught.
