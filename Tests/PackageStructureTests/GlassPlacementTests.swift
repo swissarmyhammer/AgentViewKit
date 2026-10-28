@@ -121,7 +121,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// buttons and the login card. Their action buttons take the button style
   /// of ``requestActionStyleFile``, and have no glass button style of their
   /// own. Only on the glass of the request deck in a bar do the buttons use
-  /// the bordered styles (TestudoApp `features/style.md`, "Buttons on glass").
+  /// the bordered styles (EditorKit `style.md`, "Buttons on glass").
   static let requestCardFiles: Set<String> = [
     KitSourceFiles.kitFile("HumanInTheLoop/PermissionView.swift"),
     KitSourceFiles.kitFile("Elicitation/ElicitationView.swift"),
@@ -134,7 +134,7 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The files of the views in a bar with no glass surface: the state banner
   /// and the login prompt in the bottom bar of a thread. The content scrolls
   /// under the bar, so each view declares the place of a bar with no glass,
-  /// and its buttons keep the glass styles (TestudoApp `features/style.md`,
+  /// and its buttons keep the glass styles (EditorKit `style.md`,
   /// rule 4). They are in the glass container of the bar, so with no
   /// declaration they would get the bordered styles of the deck glass.
   static let barWithoutGlassFiles: Set<String> = [

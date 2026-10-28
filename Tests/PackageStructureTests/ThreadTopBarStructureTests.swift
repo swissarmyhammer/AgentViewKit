@@ -1,7 +1,7 @@
 import Testing
 
 /// Checks that the header and the banners at the top of a thread are in the
-/// top bar (TestudoApp `features/style.md`, "Scroll under the bars", D113
+/// top bar (EditorKit `style.md`, "Scroll under the bars", D113
 /// answer 7), and that only the header is on glass.
 ///
 /// The list of a thread scrolls under its top bar, and thus under the

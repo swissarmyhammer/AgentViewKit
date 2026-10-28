@@ -80,8 +80,7 @@ public protocol StatusBarActionStyle {
 
 /// The default look of the button of a ``StatusBar``: the `.glass` button
 /// style. A bar is content, and the content scrolls under the bars of a view,
-/// so its button keeps the glass style (TestudoApp `features/style.md`, rule
-/// 4).
+/// so its button keeps the glass style (EditorKit `style.md`, rule 4).
 public struct GlassStatusBarActionStyle: StatusBarActionStyle {
   /// Makes the default style.
   public init() {}

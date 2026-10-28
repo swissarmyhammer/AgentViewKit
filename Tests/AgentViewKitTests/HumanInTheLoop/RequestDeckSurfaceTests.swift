@@ -6,8 +6,8 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// Checks the surface of a ``RequestDeck`` in each place (TestudoApp
-/// `features/style.md`, "How the steps apply"), and the band of each card
+/// Checks the surface of a ``RequestDeck`` in each place (EditorKit
+/// `style.md`, "How the steps apply"), and the band of each card
 /// that shows in the stack.
 ///
 /// In a bar of floating controls, the deck is user input: it is on the
@@ -61,8 +61,8 @@ struct RequestDeckSurfaceTests {
   }
 
   /// Each action of a request card, and its button style in the bar. A glass
-  /// button on the glass of the deck is glass on glass (TestudoApp
-  /// `features/style.md`, "Buttons on glass"), so each style is bordered. The
+  /// button on the glass of the deck is glass on glass (EditorKit
+  /// `style.md`, "Buttons on glass"), so each style is bordered. The
   /// accent is only for the selection and the focus, so the primary action
   /// has no prominent style (card ^k06v4gt).
   ///
@@ -87,7 +87,7 @@ struct RequestDeckSurfaceTests {
   /// Each action, and its button style in a bar with no glass surface, for
   /// example the state banner and the login card in the bottom bar of a
   /// thread. The content scrolls under the bar, so each action uses the glass
-  /// style (TestudoApp `features/style.md`, rule 4).
+  /// style (EditorKit `style.md`, rule 4).
   ///
   /// It is `nonisolated` because the arguments of a test use it.
   nonisolated static let barWithoutGlassStyles: [(action: RequestAction, style: RequestActionStyle)] = [

@@ -10,7 +10,7 @@ import SwiftUI
 /// marks its edge (`.inlineEdge(radius:)`, D113). Its button takes its look
 /// from the ``StatusBarActionStyle`` of the environment: by default
 /// ``GlassStatusBarActionStyle``, the `.glass` style of a button that the
-/// content scrolls under (TestudoApp `features/style.md`, rule 4). A kit that
+/// content scrolls under (EditorKit `style.md`, rule 4). A kit that
 /// gives the button more, such as the focus scope of a bar control, sets its
 /// own style with ``SwiftUI/View/statusBarActionStyle(_:)``.
 ///

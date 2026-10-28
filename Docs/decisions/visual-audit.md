@@ -96,7 +96,7 @@ below gives the EditorKit role that replaces each one.
 | +N / −N counts of a diff | `diffAddedText`, `diffRemovedText` | system green and system red at full opacity |
 
 The kit does not draw the role `statusBarBackground` (D113 answers 1 and 4,
-TestudoApp `features/style.md` "How the steps apply"). A code block has no
+[EditorKit `style.md`](../../../EditorKit/style.md) "How the steps apply"). A code block has no
 fill. The header row of a code block, a terminal, or command output is
 content, not a bar: it has no fill, and a separator line is under it. Before
 D113, the table had the row "frame of a code block" with `editorBackground`,

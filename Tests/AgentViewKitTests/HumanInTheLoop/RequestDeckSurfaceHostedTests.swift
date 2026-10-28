@@ -7,8 +7,8 @@ import Testing
 
 /// Checks the surface of a ``RequestDeck`` in a window: the deck has no fill
 /// in content and in the bar, and a card in the composer slot of
-/// ``AgentThreadView`` is in the floating controls of the thread (TestudoApp
-/// `features/style.md`, "How the steps apply").
+/// ``AgentThreadView`` is in the floating controls of the thread (EditorKit
+/// `style.md`, "How the steps apply").
 ///
 /// The pixel tests read the cache of a window, because each card can take
 /// the VoiceOver focus, so `ImageRenderer` draws nothing for it

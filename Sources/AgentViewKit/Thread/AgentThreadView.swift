@@ -33,11 +33,11 @@ import SwiftUI
 ///
 /// The bottom bar of the view (`.safeAreaBar(edge: .bottom)`) holds the
 /// floating controls of the thread. The conversation scrolls under the bar
-/// (TestudoApp `features/style.md`, "Scroll under the bars"). From the top,
+/// (EditorKit `style.md`, "Scroll under the bars"). From the top,
 /// the bar shows the state banner, the login prompt and the composer slot.
 /// The banner and the login prompt are content with no glass. Their buttons
-/// keep the glass styles, because the content scrolls under them (TestudoApp
-/// `features/style.md`, rule 4). The composer slot is directly below its chat
+/// keep the glass styles, because the content scrolls under them (EditorKit
+/// `style.md`, rule 4). The composer slot is directly below its chat
 /// (D36). The default slot is a ``DefaultThreadComposer``: a
 /// ``PromptInputView`` that keeps its own text. Give a custom composer with
 /// ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)``,
@@ -269,7 +269,7 @@ public struct AgentThreadView<Composer: View>: View {
   /// at the top in the top bar, and the floating controls in the bottom bar.
   ///
   /// The list scrolls under the two bars, and thus under the toolbar of the
-  /// window, with the scroll edge effect (TestudoApp `features/style.md`,
+  /// window, with the scroll edge effect (EditorKit `style.md`,
   /// "Scroll under the bars", D113 answer 7). The ``ConversationView`` asks
   /// for the soft effect at its top and bottom edges, so no window gives the
   /// opaque hard band. At the top, AppKit makes the effect as tall as the
@@ -321,12 +321,12 @@ public struct AgentThreadView<Composer: View>: View {
   /// scroll-to-bottom pill and the composer slot, in one glass container
   /// (D110 (c)).
   ///
-  /// The list scrolls under the bar (TestudoApp `features/style.md`, "Scroll
+  /// The list scrolls under the bar (EditorKit `style.md`, "Scroll
   /// under the bars", D113 answer 7). The banner and the login prompt are
   /// content: they have no glass, and a container with no glass child draws
   /// nothing. Each of them declares the place of a bar with no glass
   /// (``RequestDeckPlace/barWithoutGlass``), so their buttons keep the glass
-  /// styles (``RequestDeckPlace/style(of:)``, TestudoApp `features/style.md`,
+  /// styles (``RequestDeckPlace/style(of:)``, EditorKit `style.md`,
   /// rule 4). Only the buttons on the glass of a request deck in the
   /// composer slot use the bordered styles. From the top,
   /// the order is the pill, the banner, the login prompt when the host gave

@@ -120,15 +120,50 @@ public enum PackageFiles {
   /// - Throws: `CocoaError(.fileReadNoSuchFile)` when `directory` is not an
   ///   existing directory.
   public static func swiftFiles(in directory: URL) throws -> [URL] {
+    try items(below: directory, options: []).filter { $0.pathExtension == swiftExtension }
+  }
+
+  /// The files below a directory with one of some extensions, in its
+  /// subdirectories too, with no hidden item.
+  ///
+  /// The scan skips each hidden file and each hidden directory with all that
+  /// it holds, such as `.git`, `.build` and `.kanban` below the package root.
+  /// A directory that does not exist is an error, as in ``swiftFiles(in:)``.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory to read.
+  ///   - extensions: The file extensions to keep, without the dot, such as
+  ///     `md`.
+  /// - Returns: The URL of each file below `directory` with an extension in
+  ///   `extensions`.
+  /// - Throws: `CocoaError(.fileReadNoSuchFile)` when `directory` is not an
+  ///   existing directory.
+  public static func visibleFiles(in directory: URL, withExtensions extensions: Set<String>) throws -> [URL] {
+    try items(below: directory, options: .skipsHiddenFiles).filter { extensions.contains($0.pathExtension) }
+  }
+
+  /// Each item below a directory, in its subdirectories too.
+  ///
+  /// - Parameters:
+  ///   - directory: The directory to read.
+  ///   - options: The options of the file enumerator.
+  /// - Returns: The URL of each file and each directory below `directory`.
+  /// - Throws: `CocoaError(.fileReadNoSuchFile)` when `directory` is not an
+  ///   existing directory.
+  private static func items(
+    below directory: URL,
+    options: FileManager.DirectoryEnumerationOptions
+  ) throws -> [URL] {
     var isDirectory: ObjCBool = false
     let path = directory.path(percentEncoded: false)
     let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
     guard exists, isDirectory.boolValue,
-      let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
+      let enumerator = FileManager.default.enumerator(
+        at: directory, includingPropertiesForKeys: nil, options: options)
     else {
       throw CocoaError(.fileReadNoSuchFile, userInfo: [NSFilePathErrorKey: path])
     }
-    return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == swiftExtension }
+    return enumerator.compactMap { $0 as? URL }
   }
 
   /// The relative path and the text of each Swift file below a directory.

@@ -13,8 +13,8 @@ import Testing
 /// link and a current item that is not the selection and has no focus have
 /// no accent. The accent fill of the citation chip is the one exception. The
 /// app injects the theme one time, at the root of each window. A view kit sets no
-/// theme, and has no theme or color constant of its own (TestudoApp
-/// `features/style.md` "Procedure", "Rules" and "Themes").
+/// theme, and has no theme or color constant of its own (EditorKit
+/// `style.md` "Procedure", "Liquid Glass rules" and "Themes").
 enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// A view modifier that sets the tint: `.tint(`, `.accentColor(`, or a
   /// modifier whose name ends in `Tint`, such as `.listItemTint(`. Nothing

@@ -5,7 +5,7 @@ import Testing
 
 /// A form that puts a custom fill behind content: behind a content card, a
 /// panel or the header row of a code block, a terminal or command output
-/// (D111 step 1, D113 answers 1 and 4, TestudoApp `features/style.md` "How
+/// (D111 step 1, D113 answers 1 and 4, EditorKit `style.md` "How
 /// the steps apply").
 ///
 /// Content has no fill. A thin `.separator` stroke marks the edge of a card,

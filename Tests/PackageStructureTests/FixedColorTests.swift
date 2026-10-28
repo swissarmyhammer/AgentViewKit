@@ -268,8 +268,8 @@ import Testing
   /// The computed 256-color table of `ANSIText.swift` is terminal data, not a
   /// theme color. D113 answer 8 permits it: the colors 0 to 15 come from
   /// `TerminalPalette`, and the xterm formula gives the colors 16 to 255. A
-  /// standard formula is not a color constant of a kit (TestudoApp
-  /// `features/style.md` "Computed palettes").
+  /// standard formula is not a color constant of a kit (EditorKit
+  /// `style.md` "Computed palettes").
   static let allowedFiles: Set<String> = [KitSourceFiles.kitFile("Terminal/ANSIText.swift")]
 
   /// The files that can use a system background, relative to the package

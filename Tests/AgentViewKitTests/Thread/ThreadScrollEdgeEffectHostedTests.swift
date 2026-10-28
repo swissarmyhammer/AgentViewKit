@@ -9,8 +9,8 @@
   /// bars (^ph0m0hf).
   ///
   /// The list scrolls under the top bar and the bottom bar of the thread, and
-  /// asks for the SOFT scroll edge effect at both edges (TestudoApp
-  /// `features/style.md`, "Scroll under the bars", D113 answer 7). With the
+  /// asks for the SOFT scroll edge effect at both edges (EditorKit
+  /// `style.md`, "Scroll under the bars", D113 answer 7). With the
   /// `.automatic` style, AppKit picks the effect from the context of the
   /// window. TestudoApp measured the HARD effect in its window: an opaque band
   /// over its tab bar and the top bar of the thread, with a separator line at

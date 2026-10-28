@@ -22,7 +22,7 @@ import SwiftUI
 ///
 /// ``AgentThreadView`` shows the prompt in its bottom bar, below the state
 /// banner and above the composer, so that the list scrolls under it
-/// (TestudoApp `features/style.md`, "Scroll under the bars"). The bar gives
+/// (EditorKit `style.md`, "Scroll under the bars"). The bar gives
 /// the space around the prompt.
 struct AgentLoginPrompt: View {
   /// The session model of the thread.
