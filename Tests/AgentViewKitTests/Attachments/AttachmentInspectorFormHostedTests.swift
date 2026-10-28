@@ -57,15 +57,13 @@ import Testing
     #expect(form.maxX - preview.maxX == leadingInset)
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func theBackdropOfTheHostShowsInTheMarginOfTheForm(reducesTransparency: Bool) throws {
+  @Test func theBackdropOfTheHostShowsInTheMarginOfTheForm() throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(in: directory)
 
     let pixels = try ContentEdgeHostedProbe.pixels(
-      of: AttachmentInspector(attachment), backdrop: .behindToTheEdge,
-      reducesTransparency: reducesTransparency, size: Self.size)
+      of: AttachmentInspector(attachment), backdrop: .behindToTheEdge, size: Self.size)
 
     #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.marginPoint))
   }

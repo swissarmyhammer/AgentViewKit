@@ -232,7 +232,7 @@ public enum ViewSnapshot {
   /// The image shows a glass look: `ImageRenderer` draws Liquid Glass in the
   /// test process with no window and no screen. The look can be different
   /// from the Liquid Glass that the system draws in a window on the screen.
-  /// It also follows Reduce Transparency and Increase Contrast.
+  /// It also follows the color scheme of the variant.
   ///
   /// - Parameters:
   ///   - view: The glass part to render.

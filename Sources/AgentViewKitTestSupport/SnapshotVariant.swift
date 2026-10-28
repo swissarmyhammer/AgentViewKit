@@ -2,17 +2,13 @@ import AppKit
 import SwiftUI
 import Testing
 
-/// One look of a view in a snapshot image (AVK-13): light, dark, Reduce
-/// Transparency, or Increase Contrast.
+/// One look of a view in a snapshot image (AVK-13): light or dark.
 ///
-/// ``pinned(_:)`` sets each setting that changes the look of a view, so that
-/// the settings of the computer do not change the image. The dark variant
-/// sets the dark color scheme. The Reduce Transparency and Increase Contrast
-/// variants use the light color scheme and the private environment keys
-/// that the glass tests use (`GlassRenderProbeTests`). Each variant reduces
-/// motion and turns off the animations, so that a view shows its final
-/// state, and uses one locale and one time zone, so that a date shows the
-/// same text on each computer.
+/// The snapshots are light and dark only (EditorKit `style.md` rule 9).
+/// ``pinned(_:)`` sets the color scheme of the variant. Each variant also
+/// reduces motion and turns off the animations, so that a view shows its
+/// final state, and uses one locale and one time zone, so that a date shows
+/// the same text on each computer.
 ///
 /// The type is `nonisolated` because the arguments of a test use its cases.
 public nonisolated enum SnapshotVariant: String, CaseIterable, Sendable, CustomTestStringConvertible {
@@ -21,12 +17,6 @@ public nonisolated enum SnapshotVariant: String, CaseIterable, Sendable, CustomT
 
   /// The dark color scheme with standard settings.
   case dark
-
-  /// The light color scheme with Reduce Transparency on.
-  case reduceTransparency = "reduce-transparency"
-
-  /// The light color scheme with Increase Contrast on.
-  case increaseContrast = "increase-contrast"
 
   /// The time zone of each variant.
   public static let timeZone = TimeZone.gmt
@@ -58,16 +48,6 @@ public nonisolated enum SnapshotVariant: String, CaseIterable, Sendable, CustomT
     self == .dark ? .darkAqua : .aqua
   }
 
-  /// Whether the variant reduces transparency.
-  public var reducesTransparency: Bool {
-    self == .reduceTransparency
-  }
-
-  /// The contrast of the variant.
-  public var contrast: ColorSchemeContrast {
-    self == .increaseContrast ? .increased : .standard
-  }
-
   /// `view` in the center of the full image, over the window background, with
   /// each setting of the variant.
   ///
@@ -82,8 +62,6 @@ public nonisolated enum SnapshotVariant: String, CaseIterable, Sendable, CustomT
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(Color(nsColor: .windowBackgroundColor))
       .environment(\.colorScheme, colorScheme)
-      .environment(\._accessibilityReduceTransparency, reducesTransparency)
-      .environment(\._colorSchemeContrast, contrast)
       .environment(\._accessibilityReduceMotion, true)
       .environment(\.locale, Self.locale)
       .environment(\.timeZone, Self.timeZone)

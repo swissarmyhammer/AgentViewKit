@@ -37,16 +37,12 @@ import Testing
     }
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func inContentTheBackdropShowsInsideTheEdgeOfTheCard(reducesTransparency: Bool) throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(
-      of: Self.deckInContent, reducesTransparency: reducesTransparency, size: Self.size)
+  @Test func inContentTheBackdropShowsInsideTheEdgeOfTheCard() throws {
+    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.deckInContent, size: Self.size)
   }
 
-  @Test(arguments: ContentEdgeHostedProbe.reduceTransparencyValues)
-  func inTheBarTheBackdropShowsBehindTheCard(reducesTransparency: Bool) throws {
-    let rendered = try ContentEdgeHostedProbe.pixels(
-      of: Self.deckInBar, backdrop: .behind, reducesTransparency: reducesTransparency, size: Self.size)
+  @Test func inTheBarTheBackdropShowsBehindTheCard() throws {
+    let rendered = try ContentEdgeHostedProbe.pixels(of: Self.deckInBar, backdrop: .behind, size: Self.size)
 
     #expect(rendered.contains(GlassRenderProbeTests.backdrop))
   }

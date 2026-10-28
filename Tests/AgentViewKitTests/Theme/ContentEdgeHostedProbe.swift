@@ -6,15 +6,13 @@ import Testing
 
 /// The shared method of the tests that check the edge of a view of the kit
 /// in content.
-/// ``expectBackdropShowsInsideTheEdge(of:reducesTransparency:size:sourceLocation:)``
-/// checks that the view has no fill, and that the separator stroke of the
-/// content edge (`.inlineEdge(radius:)`) marks its edge
-/// (D113).
+/// ``expectBackdropShowsInsideTheEdge(of:size:sourceLocation:)`` checks that
+/// the view has no fill, and that the separator stroke of the content edge
+/// (`.inlineEdge(radius:)`) marks its edge (D113).
 ///
 /// A test shows the view over the backdrop of ``GlassRenderProbeTests`` in
-/// an off-screen window, and reads the pixels with ``RenderedPixels``. It
-/// does this one time with Reduce Transparency off and one time with it on
-/// (the method of ^dbbyg9w).
+/// an off-screen window, in light mode, and reads the pixels with
+/// ``RenderedPixels`` (the method of ^dbbyg9w).
 ///
 /// The method reads the cache of the window, and not an `ImageRenderer`
 /// render, because `ImageRenderer` does not draw some of the views that it
@@ -24,16 +22,11 @@ import Testing
 /// of ``PermissionView`` and each card of ``RequestDeck``. A focusable view
 /// with no such modifier draws. `ImageRenderer` also does not draw an AppKit
 /// view, such as the EditorKit editor of a code block. The cache of a window
-/// shows no glass (``GlassRenderProbeHostedTests``), also with
-/// Reduce Transparency on. Thus a view on glass shows the backdrop. A view on
-/// glass has no separator stroke, so the edge check finds no edge.
-/// `GlassPlacementTests` reads the source, and keeps the glass in the files
-/// that can use it.
+/// shows no glass (``GlassRenderProbeHostedTests``). Thus a view on glass
+/// shows the backdrop. A view on glass has no separator stroke, so the edge
+/// check finds no edge. `GlassPlacementTests` reads the source, and keeps
+/// the glass in the files that can use it.
 enum ContentEdgeHostedProbe {
-  /// The two values of Reduce Transparency that each test shows the view
-  /// with. It is `nonisolated` because the arguments of a test use it.
-  nonisolated static let reduceTransparencyValues = [false, true]
-
   /// The distance from the leading edge of the window to the point that the
   /// edge check reads on the separator stroke, in points.
   ///
@@ -55,24 +48,20 @@ enum ContentEdgeHostedProbe {
   /// is one pixel at a scale of two.
   static let rowStep: CGFloat = 0.5
 
-  /// The pixels of `view` with the backdrop, in light mode, with only
-  /// Reduce Transparency changed.
+  /// The pixels of `view` with the backdrop, in light mode.
   ///
   /// - Parameters:
   ///   - view: The view to show over the backdrop.
   ///   - placement: Where the backdrop is.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
   ///   - windowSize: The size of the content of the window.
   /// - Returns: The pixels.
   /// - Throws: An error when AppKit gives no pixels.
   static func pixels(
-    of view: some View, backdrop placement: BackdropPlacement, reducesTransparency: Bool,
-    size windowSize: CGSize
+    of view: some View, backdrop placement: BackdropPlacement, size windowSize: CGSize
   ) throws -> RenderedPixels {
     let surface = SurfaceWithBackdrop(content: view, placement: placement)
     return try GlassRenderProbeHostedTests.cachedPixels(
-      of: GlassRenderProbeTests.pinned(surface, with: .reduceTransparency, on: reducesTransparency),
-      size: windowSize)
+      of: GlassRenderProbeTests.pinned(surface), size: windowSize)
   }
 
   /// Checks that `view` has no fill, and that a separator stroke marks its
@@ -91,17 +80,13 @@ enum ContentEdgeHostedProbe {
   /// - Parameters:
   ///   - view: The view with the content edge. It must fill the width of the
   ///     window.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
   ///   - windowSize: The size of the content of the window.
   ///   - sourceLocation: The location of the caller, for the failure report.
   /// - Throws: An error when AppKit gives no pixels.
   static func expectBackdropShowsInsideTheEdge(
-    of view: some View, reducesTransparency: Bool, size windowSize: CGSize,
-    sourceLocation: SourceLocation = #_sourceLocation
+    of view: some View, size windowSize: CGSize, sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
-    let rendered = try pixels(
-      of: view, backdrop: .behindToTheEdge, reducesTransparency: reducesTransparency,
-      size: windowSize)
+    let rendered = try pixels(of: view, backdrop: .behindToTheEdge, size: windowSize)
     let rows = stride(from: 0, to: windowSize.height, by: rowStep)
     let edgeShows = rows.contains { row in
       rendered.showsTheEdge(atRow: row)

@@ -193,12 +193,14 @@ let package = Package(
       exclude: ["Snapshots/__Snapshots__"],
       swiftSettings: mainActorIsolated
     ),
-    // Reads the package files as text. It links only PackageFileSupport,
-    // which has no dependency. The fixtures are Swift files that the scanner
-    // reads, so the build excludes them.
+    // Reads the package files as text. It links PackageFileSupport, which has
+    // no dependency, and the EditorKit `EditorTestSupport` product for the
+    // shared line scan of `SourceScanning` (`LightAndDarkOnlyTests`). The
+    // fixtures are Swift files that the scanner reads, so the build excludes
+    // them.
     .testTarget(
       name: "PackageStructureTests",
-      dependencies: ["PackageFileSupport"],
+      dependencies: ["PackageFileSupport", .product(name: "EditorTestSupport", package: "EditorKit")],
       exclude: ["Fixtures"]
     ),
     // The compiled snippets of README.md (plan.md §1). Each `// readme:compile`

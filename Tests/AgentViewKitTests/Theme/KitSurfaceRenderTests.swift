@@ -10,8 +10,8 @@ import Testing
 /// no fill (D113, `.inlineEdge(radius:)` with no `.inlineFill(_:)`).
 ///
 /// The render tests use the method of ^dbbyg9w (``GlassRenderProbeTests``):
-/// each test renders a view two times, one time with a setting off and one
-/// time with the setting on, and compares the pixels.
+/// each test renders a view in light mode and reads the pixels, or compares
+/// them with the pixels of a different view.
 @Suite @MainActor struct KitSurfaceRenderTests {
   /// The size that the tests render at.
   static let size = CGSize(width: 80, height: 80)
@@ -46,19 +46,13 @@ import Testing
     ]
   }
 
-  /// The pixels of `view` at ``size``, in light mode, with only Reduce
-  /// Transparency changed.
+  /// The pixels of `view` at ``size``, in light mode.
   ///
-  /// - Parameters:
-  ///   - view: The view to render.
-  ///   - reducesTransparency: Whether Reduce Transparency is on.
+  /// - Parameter view: The view to render.
   /// - Returns: The pixels.
   /// - Throws: An error when the renderer gives no pixels.
-  static func pixels(of view: some View, reducesTransparency: Bool = false) throws
-    -> RenderedPixels
-  {
-    try GlassRenderProbeTests.pixels(
-      of: view, with: .reduceTransparency, on: reducesTransparency, size: size)
+  static func pixels(of view: some View) throws -> RenderedPixels {
+    try GlassRenderProbeTests.pixels(of: view, size: size)
   }
 
   /// A content edge of a card over the backdrop: the large radius of the
@@ -72,13 +66,6 @@ import Testing
     for point in Self.insidePoints {
       #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: point))
     }
-  }
-
-  @Test func theContentEdgeHasNoGlassThatFollowsReduceTransparency() throws {
-    let edge = Self.contentEdge
-    let on = try Self.pixels(of: edge, reducesTransparency: true)
-    let off = try Self.pixels(of: edge, reducesTransparency: false)
-    #expect(on.isClose(to: off))
   }
 
   /// The floating glass of the kit over the backdrop, with no backdrop
@@ -137,17 +124,6 @@ import Testing
   /// as a part of a component from 0 to 1.
   static var insideTheRimTolerance: Double {
     insideTheRimLevels / levelsInAComponent
-  }
-
-  /// The test compares the two renders only at ``insidePoints``, which are
-  /// far from the edge of the glass. The rim of a rounded glass changes after
-  /// its first renders in the process, at a render that is not the same in
-  /// each run (``RenderedPixels/isClose(to:at:tolerance:)``). Thus two full
-  /// renders can be different when Reduce Transparency has no effect on the
-  /// glass.
-  @Test func theFloatingGlassFollowsReduceTransparency() throws {
-    try GlassRenderProbeTests.expectDifferentPixels(
-      of: Self.floatingGlass, with: .reduceTransparency, at: Self.insidePoints, size: Self.size)
   }
 
   /// The floating glass is always `.regular` glass. The system applies the

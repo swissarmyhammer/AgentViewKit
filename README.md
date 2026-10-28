@@ -627,8 +627,9 @@ certain to come.
 
 The snapshot tests make PNG images of the real views of the kit, with fixed
 data and fixed dates, at two pixels for each point, in sRGB. Each view has
-four images: light, dark, Reduce Transparency and Increase Contrast. The
-reference images are in `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
+two images, light and dark, and no test flips a system setting (EditorKit
+`style.md` rule 9). The reference images are in
+`Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
 
 - `HostedSnapshotTests/`: each view in a hidden window
   (`ViewSnapshot.hostedPixels`). These images show the AppKit views, such as
