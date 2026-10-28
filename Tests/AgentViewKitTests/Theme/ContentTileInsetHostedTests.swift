@@ -26,9 +26,8 @@
     /// The output of the terminal of the tests.
     static let output = "Build complete!"
 
-    /// The tile tokens of the default style: the kit's own
-    /// ``ContentTileSpacing``, which the tile views read.
-    static let tile: ContentTileSpacing = EditorStyle.default.tile
+    /// The tile tokens of the default style, which the tile views read.
+    static let tile = EditorStyle.default.tile
 
     /// Expects that two lengths are the same within ``layoutTolerance``.
     ///

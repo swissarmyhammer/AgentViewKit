@@ -20,9 +20,9 @@ import EditorStyle
   /// each height comes from the views and not from the insets:
   ///
   /// - The top bar of the thread starts one small spacing above the
-  ///   ``AgentInfoHeader``, the padding of its glass container. It ends two
-  ///   medium spacings below the text of the notice: the padding of the
-  ///   ``SessionNoticeBanner`` and the padding of the row.
+  ///   ``AgentInfoHeader``, the padding of its glass container. It ends below
+  ///   the text of the notice by the tile padding of the row and the tile
+  ///   margin of the ``SessionNoticeBanner``.
   /// - The floating controls end one medium spacing above the bottom edge
   ///   of the list, their outer padding, which is out of their element.
   /// - A bar of the host is an element with ``hostBarIdentifier``. With no
@@ -93,11 +93,13 @@ import EditorStyle
     /// - Returns: The height, in points.
     /// - Throws: An issue when the header or the notice is not there.
     static func topBarHeight(in harness: HostedViewHarness<some View>, session: ScriptedSession) throws -> CGFloat {
-      let spacing = EditorStyle.default.spacing
+      let style = EditorStyle.default
       let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
       let notice = try #require(harness.frame(identifier: ThreadTopBarHostedTests.noticeIdentifier(of: session)))
-      // The y axis of the screen goes up.
-      return (header.maxY + spacing.s) - (notice.minY - 2 * spacing.m)
+      // Below the text of the notice: the padding of its tile, and then the
+      // margin around the notice banners. The y axis of the screen goes up.
+      let belowNotice = style.tile.padding + style.tile.margin
+      return (header.maxY + style.spacing.s) - (notice.minY - belowNotice)
     }
 
     /// The screen y of the bottom edge of the bars of the host in `harness`:

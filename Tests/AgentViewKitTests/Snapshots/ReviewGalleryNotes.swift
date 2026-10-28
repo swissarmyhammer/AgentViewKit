@@ -36,7 +36,10 @@
         not judged yet. Since ^q89x329 the diff has no soft wrap: each patch line stands on one row, a line \
         wider than the patch scrolls sideways, and the text, the gutter and the line colors keep one row for \
         each line, with the last line inside the diff (DiffLongLineHostedTests checks it at 480 points). The \
-        new image is not judged yet.
+        new image is not judged yet. Since step 2 of ^ey6v778 the tile tokens are EditorKit's EditorStyle.tile, \
+        which a theme sets (ContentTileThemeHostedTests checks it): the padding and the gap are the same as \
+        before, and the tile margin between rows, around and between deck cards and between banners is \
+        EditorKit's small spacing step, 8 points, where it was 12; the new images are not judged yet.
         """,
       .requestDeck: """
         2026-10-27. The request cards have no fill. The cards behind the front card show as thin top edges, so \

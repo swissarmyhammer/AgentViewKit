@@ -152,7 +152,10 @@ import Testing
     let text = try #require(harness.frame(identifier: RequestDeck.identifier(forWithdrawn: record.id)))
     let dismiss = try #require(harness.frame(identifier: RequestDeck.dismissIdentifier(forWithdrawn: record.id)))
 
-    let insets = 2 * EditorStyle.default.spacing.m
+    // The deck pads its tiles by the tile margin, and the notice pads its
+    // own content by the tile padding.
+    let tile = EditorStyle.default.tile
+    let insets = tile.margin + tile.padding
     #expect(deck.maxY - text.maxY == insets)
     #expect(min(text.minY, dismiss.minY) - deck.minY == insets)
   }

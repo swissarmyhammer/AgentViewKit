@@ -10,14 +10,17 @@ import Testing
 /// output, a code block, a diff, an artifact. Each tile takes its padding
 /// from `.contentTile()`, its header-to-body gap from `ContentTileStack`, and
 /// the space to its neighbours from the tile margin. All three are the tile
-/// tokens of `\.editorStyle` (`editorStyle.tile`). So a tile file gives no
-/// padding of its own: each `.padding(` call in it reads a tile token and
-/// holds no number literal.
+/// tokens of EditorKit (`EditorStyle.tile`), read from `\.editorStyle`
+/// (`editorStyle.tile`), so a theme or a host sets them. A tile file gives no
+/// padding of its own: each `.padding(` call in it reads a tile token of
+/// `editorStyle` and holds no number literal. And the kit adds no token of
+/// its own to `EditorStyle`, so `editorStyle.tile` is EditorKit's.
 ///
 /// The scan reads each Swift file of the kit as text, one line at a time,
 /// with the comments and the string literals blanked. It reads the code
 /// above the previews of a file only: a preview pads its canvas, not a tile.
-/// The files of ``nonTileFiles`` are not tiles, so the scan skips them.
+/// The files of ``nonTileFiles`` are not tiles, so the padding scan skips
+/// them.
 @Suite struct ContentTilePaddingTests {
   /// The files of the kit that are not tiles, relative to the package root,
   /// each with the reason. Each other file of the kit is a tile file.
@@ -51,9 +54,38 @@ import Testing
   /// The text that starts a padding call.
   static let paddingCall = ".padding("
 
-  /// The text that names a tile token: `editorStyle.tile.padding`,
-  /// `editorStyle.tile.gap` or `editorStyle.tile.margin`.
-  static let tileToken = "tile."
+  /// The text that names a tile token of the style in the environment:
+  /// `editorStyle.tile.padding`, `editorStyle.tile.gap` or
+  /// `editorStyle.tile.margin`.
+  static let tileToken = "editorStyle.tile."
+
+  /// The text that adds members to the style of EditorKit, such as tile
+  /// tokens of the kit's own.
+  static let styleExtension = "extension EditorStyle"
+
+  /// The code of a Swift file, with the comments and the string literals
+  /// blanked, one element for each line.
+  ///
+  /// - Parameter source: The text of a Swift file.
+  /// - Returns: The lines of the code.
+  static func codeLines(of source: String) -> [Substring] {
+    let code = String(
+      decoding: SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(source.utf8)), as: UTF8.self)
+    return code.split(separator: "\n", omittingEmptySubsequences: false)
+  }
+
+  /// Finds the extensions of `EditorStyle` in a file of the kit.
+  ///
+  /// - Parameters:
+  ///   - source: The text of a Swift file.
+  ///   - file: The file name to write into each result.
+  /// - Returns: `<file>:<line>` for each line of code that extends
+  ///   `EditorStyle` or a type of it, in line order.
+  static func styleExtensions(in source: String, file: String) -> [String] {
+    codeLines(of: source).enumerated().compactMap { offset, line in
+      line.contains(styleExtension) ? "\(file):\(offset + 1)" : nil
+    }
+  }
 
   /// Tells whether code holds a number literal, such as `8`, `-2` or `.5`.
   ///
@@ -100,10 +132,7 @@ import Testing
   /// - Returns: `<file>:<line>` for each padding call above the previews
   ///   that gives a padding of its own, in line order.
   static func ownPaddings(in source: String, file: String) -> [String] {
-    let code = String(
-      decoding: SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(source.utf8)), as: UTF8.self)
-    let lines = code.split(separator: "\n", omittingEmptySubsequences: false)
-      .prefix(lineCountAbovePreviews(in: source))
+    let lines = codeLines(of: source).prefix(lineCountAbovePreviews(in: source))
     return lines.enumerated().compactMap { offset, line in
       isOwnPadding(line) ? "\(file):\(offset + 1)" : nil
     }
@@ -119,11 +148,34 @@ import Testing
       .padding(.top, editorStyle.tile.gap)
       .contentTile()
       .padding(.leading, editorStyle.tile.padding) // .padding(4)
+      .padding(tokens.tile.padding)
       """
 
     let found = Self.ownPaddings(in: source, file: "A.swift")
 
-    #expect(found == ["A.swift:1", "A.swift:2", "A.swift:3", "A.swift:4"])
+    #expect(found == ["A.swift:1", "A.swift:2", "A.swift:3", "A.swift:4", "A.swift:9"])
+  }
+
+  @Test func theScanFindsEachExtensionOfTheStyle() {
+    let source = """
+      nonisolated extension EditorStyle {
+      extension EditorStyle.Tile {
+      // extension EditorStyle {
+      let name = "extension EditorStyle"
+      extension EditorTheme {
+      """
+
+    let found = Self.styleExtensions(in: source, file: "A.swift")
+
+    #expect(found == ["A.swift:1", "A.swift:2"])
+  }
+
+  @Test func theKitAddsNoTokenOfItsOwnToTheStyle() throws {
+    let files = try PackageFiles.swiftFileTexts(
+      below: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root)
+    let found = files.flatMap { file in Self.styleExtensions(in: file.text, file: file.path) }
+
+    #expect(found.isEmpty, "Read the tile tokens of EditorKit's EditorStyle; add none in the kit: \(found)")
   }
 
   @Test func theScanSkipsThePreviewsOfAFile() {

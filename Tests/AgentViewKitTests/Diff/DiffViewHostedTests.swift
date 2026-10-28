@@ -150,9 +150,8 @@
     @Test(arguments: layoutWidths) func theDetailIsAsWideAsTheContentOfTheTile(width: CGFloat) throws {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: width)
       defer { harness.close() }
-      // The kit's own tile tokens, which the diff view reads.
-      let tile: ContentTileSpacing = EditorStyle.default.tile
-      let padding = tile.padding
+      // The tile padding of the default style, which the diff view reads.
+      let padding = EditorStyle.default.tile.padding
 
       let view = try #require(harness.frame(identifier: DiffView.containerIdentifier))
       let detail = try #require(harness.frame(identifier: DiffView.detailIdentifier))

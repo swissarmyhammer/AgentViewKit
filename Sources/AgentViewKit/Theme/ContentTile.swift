@@ -1,40 +1,15 @@
 import EditorStyle
 import SwiftUI
 
-/// The spacing of a content tile: its padding, the gap between its parts and
-/// the margin between two tiles (card ^ey6v778).
+/// The padding of a content tile: the tile padding of `\.editorStyle` on
+/// each edge of the content (card ^ey6v778).
 ///
 /// A content tile is a view that shows one block of content, with a border
 /// or with none: a card, a banner, a request card, a tool call, terminal
-/// output, a code block, a diff, an artifact. Each tile reads these three
-/// lengths, so each tile has the same spacing.
-nonisolated struct ContentTileSpacing: Equatable, Sendable {
-  /// The inset of the content of a tile from the edge of the tile, the same
-  /// for the header row and the body.
-  let padding: CGFloat
-
-  /// The space between the header and the body of a tile, and between the
-  /// stacked parts inside a tile.
-  let gap: CGFloat
-
-  /// The space between two neighbouring tiles in a list or a transcript.
-  let margin: CGFloat
-}
-
-nonisolated extension EditorStyle {
-  /// The spacing of a content tile in this style.
-  ///
-  /// This is the one place in the kit that sets the tile spacing. Each
-  /// length is a spacing step of the style, so a theme that changes the
-  /// spacing steps changes the tiles. EditorKit adds tile tokens that a theme
-  /// sets on their own (^bcsmt4w); this property then reads them.
-  var tile: ContentTileSpacing {
-    ContentTileSpacing(padding: spacing.m, gap: spacing.s, margin: spacing.m)
-  }
-}
-
-/// The padding of a content tile: the tile padding of `\.editorStyle` on
-/// each edge of the content.
+/// output, a code block, a diff, an artifact. Its padding, the gap between
+/// its parts and the margin to its neighbours are the tile tokens of
+/// EditorKit (`EditorStyle.tile`), so a theme or a host that sets them
+/// changes each tile of the kit.
 ///
 /// A tile with a border and a tile with no border use the same padding. The
 /// modifier draws no border and no fill: a tile opts into its edge with
