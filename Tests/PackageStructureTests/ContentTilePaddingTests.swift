@@ -1,5 +1,6 @@
 import Foundation
 import PackageFileSupport
+import RegexBuilder
 import Testing
 
 /// Holds the padding of each content tile to the tile tokens of the theme
@@ -16,11 +17,14 @@ import Testing
 /// `editorStyle` and holds no number literal. And the kit adds no token of
 /// its own to `EditorStyle`, so `editorStyle.tile` is EditorKit's.
 ///
-/// The scan reads each Swift file of the kit as text, one line at a time,
-/// with the comments and the string literals blanked. It reads the code
-/// above the previews of a file only: a preview pads its canvas, not a tile.
-/// The files of ``nonTileFiles`` are not tiles, so the padding scan skips
-/// them.
+/// The scan reads each Swift file of the kit as text, with the comments and
+/// the string literals blanked. It reads names as whole words and allows any
+/// white space between them, so a spelling such as `.padding (` or
+/// `extension EditorKit.EditorStyle` does not slip past it. The padding scan
+/// reads one line at a time, and the code above the previews of a file only:
+/// a preview pads its canvas, not a tile. The files of ``nonTileFiles`` are
+/// not tiles, so the padding scan skips them. The extension scan reads the
+/// whole code of each file of the kit, so an extension may span lines.
 @Suite struct ContentTilePaddingTests {
   /// The files of the kit that are not tiles, relative to the package root,
   /// each with the reason. Each other file of the kit is a tile file.
@@ -51,17 +55,84 @@ import Testing
   /// The comment that starts the previews of a file, with their samples.
   static let previewsMark = "// MARK: - Previews"
 
-  /// The text that starts a padding call.
-  static let paddingCall = ".padding("
+  /// The name of the style type of EditorKit.
+  static let styleTypeName = "EditorStyle"
 
-  /// The text that names a tile token of the style in the environment:
+  /// The pattern of a padding call: `.`, the name `padding` as a whole word,
+  /// then `(`, with any white space between them, such as `.padding(` or
+  /// `.padding (`.
+  ///
+  /// A `Regex` is not `Sendable`, so each read makes the value again.
+  static var paddingCallPattern: Regex<Substring> {
+    Regex {
+      "."
+      ZeroOrMore(.whitespace)
+      WordPattern.wholeWord("padding")
+      ZeroOrMore(.whitespace)
+      "("
+    }
+  }
+
+  /// The pattern that names a tile token of the style in the environment:
   /// `editorStyle.tile.padding`, `editorStyle.tile.gap` or
-  /// `editorStyle.tile.margin`.
-  static let tileToken = "editorStyle.tile."
+  /// `editorStyle.tile.margin`, with any white space before each `.`.
+  ///
+  /// A `Regex` is not `Sendable`, so each read makes the value again.
+  static var tileTokenPattern: Regex<Substring> {
+    Regex {
+      WordPattern.memberPattern(after: "editorStyle", WordPattern.wholeWord("tile"))
+      ZeroOrMore(.whitespace)
+      "."
+    }
+  }
 
-  /// The text that adds members to the style of EditorKit, such as tile
-  /// tokens of the kit's own.
-  static let styleExtension = "extension EditorStyle"
+  /// The pattern of one name of a type path, such as `EditorKit`, with or
+  /// without backticks.
+  ///
+  /// A `Regex` is not `Sendable`, so each read makes the value again.
+  static var typeNamePattern: Regex<Substring> {
+    Regex {
+      Optionally("`")
+      OneOrMore(.word)
+      Optionally("`")
+    }
+  }
+
+  /// The pattern of an extension that adds members to the style of EditorKit,
+  /// such as tile tokens of the kit's own: the word `extension`, then a type
+  /// path that names `EditorStyle` as a whole word.
+  ///
+  /// White space of any kind and length, line breaks too, may stand between
+  /// the words and around each `.`. Any qualifier may stand before the name:
+  /// the module of the type (`EditorKit.EditorStyle`, or
+  /// `EditorStyle.EditorStyle` after the module `EditorStyle` that holds it),
+  /// or another path. A nested type of the style (`EditorStyle.Tile`) may
+  /// follow the name, so its extensions match too.
+  ///
+  /// A `Regex` is not `Sendable`, so each read makes the value again.
+  static var styleExtensionPattern: Regex<Substring> {
+    Regex {
+      WordPattern.wholeWord("extension")
+      OneOrMore(.whitespace)
+      ZeroOrMore {
+        typeNamePattern
+        ZeroOrMore(.whitespace)
+        "."
+        ZeroOrMore(.whitespace)
+      }
+      Optionally("`")
+      WordPattern.wholeWord(styleTypeName)
+    }
+  }
+
+  /// The code of a Swift file, with the comments and the string literals
+  /// blanked. The line breaks stay, so the line numbers stay.
+  ///
+  /// - Parameter source: The text of a Swift file.
+  /// - Returns: The code.
+  static func code(of source: String) -> String {
+    String(decoding: SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(source.utf8)), as: UTF8.self)
+  }
 
   /// The code of a Swift file, with the comments and the string literals
   /// blanked, one element for each line.
@@ -69,21 +140,22 @@ import Testing
   /// - Parameter source: The text of a Swift file.
   /// - Returns: The lines of the code.
   static func codeLines(of source: String) -> [Substring] {
-    let code = String(
-      decoding: SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(source.utf8)), as: UTF8.self)
-    return code.split(separator: "\n", omittingEmptySubsequences: false)
+    code(of: source).split(separator: "\n", omittingEmptySubsequences: false)
   }
 
   /// Finds the extensions of `EditorStyle` in a file of the kit.
   ///
+  /// The scan reads the code of the file as one text, so an extension whose
+  /// type path starts on the next line is found too.
+  ///
   /// - Parameters:
   ///   - source: The text of a Swift file.
   ///   - file: The file name to write into each result.
-  /// - Returns: `<file>:<line>` for each line of code that extends
-  ///   `EditorStyle` or a type of it, in line order.
+  /// - Returns: `<file>:<line>` for each extension of `EditorStyle` or of a
+  ///   type of it, with the line of the word `extension`, in line order.
   static func styleExtensions(in source: String, file: String) -> [String] {
-    codeLines(of: source).enumerated().compactMap { offset, line in
-      line.contains(styleExtension) ? "\(file):\(offset + 1)" : nil
+    SourceLineScanner.matchStartLines(of: styleExtensionPattern, in: code(of: source)).map {
+      "\(file):\($0)"
     }
   }
 
@@ -116,12 +188,13 @@ import Testing
   ///
   /// - Parameter line: One line of code, with the comments and the string
   ///   literals blanked.
-  /// - Returns: `true` when the line holds a `.padding(` call whose
-  ///   arguments on the line name no tile token or hold a number literal.
+  /// - Returns: `true` when the line holds a `.padding(` call
+  ///   (``paddingCallPattern``) whose arguments on the line name no tile
+  ///   token (``tileTokenPattern``) or hold a number literal.
   static func isOwnPadding(_ line: Substring) -> Bool {
-    guard let call = line.range(of: paddingCall) else { return false }
-    let arguments = line[call.upperBound...]
-    return !arguments.contains(tileToken) || holdsNumberLiteral(arguments)
+    guard let call = line.firstMatch(of: paddingCallPattern) else { return false }
+    let arguments = line[call.range.upperBound...]
+    return !arguments.contains(tileTokenPattern) || holdsNumberLiteral(arguments)
   }
 
   /// Finds the padding calls of a tile file that do not read a tile token.
@@ -163,11 +236,38 @@ import Testing
       // extension EditorStyle {
       let name = "extension EditorStyle"
       extension EditorTheme {
+      extension EditorKit.EditorStyle {
+      extension EditorStyle.EditorStyle {
+      public extension EditorKit . EditorStyle.Tile {
+      extension  EditorStyle {
+      extension\tEditorStyle: Sendable {
+      extension
+        EditorStyle {
+      extension `EditorStyle` {
+      extension EditorStyleSheet {
+      extension EditorKit.EditorStyles {
+      extension Array where Element == EditorStyle {
       """
 
     let found = Self.styleExtensions(in: source, file: "A.swift")
 
-    #expect(found == ["A.swift:1", "A.swift:2"])
+    #expect(
+      found == [
+        "A.swift:1", "A.swift:2", "A.swift:6", "A.swift:7", "A.swift:8", "A.swift:9", "A.swift:10",
+        "A.swift:11", "A.swift:13",
+      ])
+  }
+
+  @Test func theScanReadsAPaddingCallAndATileTokenWithAnySpacing() {
+    let source = """
+      .padding (8)
+      .padding(editorStyle .tile .padding)
+      .padding(editorStyle.tiles.padding)
+      """
+
+    let found = Self.ownPaddings(in: source, file: "A.swift")
+
+    #expect(found == ["A.swift:1", "A.swift:3"])
   }
 
   @Test func theKitAddsNoTokenOfItsOwnToTheStyle() throws {
