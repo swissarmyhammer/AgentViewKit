@@ -46,10 +46,6 @@ struct AgentOneLineField: View {
   /// field.
   let onSubmit: (String) -> Void
 
-  /// The link from the commit callback of the model to ``onSubmit``. The
-  /// field keeps it in its own state, so it goes with the field.
-  @State private var submitRelay = SubmitRelay()
-
   /// Makes a field that edits the text of `model`.
   ///
   /// - Parameters:
@@ -110,57 +106,25 @@ struct AgentOneLineField: View {
     self.onSubmit = onSubmit
   }
 
+  /// The field, with ``onSubmit`` as the action of the commits that submit
+  /// it (`EditorCommitReason.submitsField`).
+  ///
+  /// EditorKit holds the commit callback in the mounted view, not in the
+  /// model of the field. So `onSubmit` can capture the view that shows the
+  /// field, and the state of that view that keeps the model
+  /// (``OwnModelSlot``): the model still goes when the field leaves the
+  /// window, and its entries leave the window undo stack.
   var body: some View {
     field
-      .onEditorCommit(submitRelay.makeCommitCallback(submitting: onSubmit))
+      .onEditorCommit { [onSubmit] commit in
+        guard commit.reason.submitsField else { return }
+        onSubmit(commit.text)
+      }
       .editorSizingMode(.intrinsic)
       .editorPlaceholder(placeholder)
       .editorTextAccessibilityIdentifier(identifier)
       .editorTextAccessibilityLabel(placeholder)
       .agentTextInputEdge()
-  }
-}
-
-/// The commit callback of an ``AgentOneLineField``: it calls the newest
-/// `onSubmit` of the field when a commit submits the field.
-///
-/// EditorKit keeps the commit callback of a field on the model of the field
-/// (`EditorModel.onEditCommit`), and the model can live longer than the
-/// field. An `onSubmit` captures the view that shows the field, and that view
-/// often keeps the model in its own state (``OwnModelSlot``). A callback that
-/// held `onSubmit` would then hold the model through that state, and the model
-/// would never go. Since EditorKit ^1gab15j its entries would then stay on
-/// the window undo stack after the field left the window. So the callback
-/// holds the relay weakly, and the field keeps the relay in its own state:
-/// the relay and its `onSubmit` go with the field, and then the model goes
-/// with the state that keeps it.
-final class SubmitRelay {
-  /// The action that Return and Command-Return call with the text of the
-  /// field.
-  private var onSubmit: (String) -> Void = { _ in }
-
-  /// Takes `onSubmit` as the action of the relay, and makes the commit
-  /// callback that calls it.
-  ///
-  /// The field calls this at each update, so the relay always calls the
-  /// newest `onSubmit`.
-  ///
-  /// - Parameter onSubmit: The action of the field.
-  /// - Returns: A commit callback that holds the relay weakly.
-  func makeCommitCallback(
-    submitting onSubmit: @escaping (String) -> Void
-  ) -> @MainActor (EditorCommit) -> Void {
-    self.onSubmit = onSubmit
-    return { [weak self] commit in self?.didCommit(commit) }
-  }
-
-  /// Calls the action with the text of `commit` when the commit submits the
-  /// field (`EditorCommitReason.submitsField`).
-  ///
-  /// - Parameter commit: One end of an edit of the field.
-  private func didCommit(_ commit: EditorCommit) {
-    guard commit.reason.submitsField else { return }
-    onSubmit(commit.text)
   }
 }
 

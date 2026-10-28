@@ -262,29 +262,26 @@ public struct ElicitationTextField: View {
         .frame(minHeight: Self.multiLineMinimumHeight)
     } else {
       SingleLineField(model: model, id: context.identifier)
-        .onEditorCommit { [returnAction] commit in Self.run(returnAction, for: commit) }
+        .onEditorCommit { commit in runReturnAction(for: commit) }
         .editorSizingMode(.intrinsic)
         .editorTextAccessibilityIdentifier(context.controlIdentifier)
         .editorTextAccessibilityLabel(context.schema.title)
     }
   }
 
-  /// Runs `returnAction` when `commit` submits the one-line input
+  /// Runs ``returnAction`` when `commit` submits the one-line input
   /// (`EditorCommitReason.submitsField`): Return and Command-Return press
   /// Submit. Esc and a focus loss end the edit, keep the answer, and press
   /// no action of the form.
   ///
-  /// The commit callback calls this with the ``returnAction`` that it
-  /// captured, and does not capture the view. EditorKit keeps the callback on
-  /// the model (`EditorModel.onEditCommit`), and the view keeps its own model
-  /// in its state, so a callback that captured the view would keep that
-  /// model alive after the field left the window. Since EditorKit ^1gab15j
-  /// the typing of the field would then stay on the window undo stack.
+  /// The commit callback of the input calls this on the view. EditorKit
+  /// holds that callback in the mounted view, not in the model, so the
+  /// callback keeps no model alive after the field leaves the window: the
+  /// own model of the view goes with its state, and the typing of the field
+  /// leaves the window undo stack.
   ///
-  /// - Parameters:
-  ///   - returnAction: The action of Return, or `nil` outside a form.
-  ///   - commit: One end of an edit of the one-line input.
-  private static func run(_ returnAction: ElicitationReturnAction?, for commit: EditorCommit) {
+  /// - Parameter commit: One end of an edit of the one-line input.
+  private func runReturnAction(for commit: EditorCommit) {
     guard commit.reason.submitsField else { return }
     returnAction?()
   }

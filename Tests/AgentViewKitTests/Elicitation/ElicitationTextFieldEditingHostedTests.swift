@@ -181,18 +181,22 @@ import Testing
   }
 
   /// Shows the thread and the deck of `session` under the root command scope
-  /// of a new command system, and gets an elicitation with the one required
-  /// text field `name`, which the deck shows in a card.
+  /// of a new command system, and gets an elicitation with `params`, which
+  /// the deck shows in a card.
   ///
-  /// - Parameter session: The scripted session.
+  /// - Parameters:
+  ///   - session: The scripted session.
+  ///   - params: The JSON text of the params of the request. The default is
+  ///     a request with the one required text field `name`.
   /// - Returns: The window, with its undo stack.
   /// - Throws: The error of the transport, or an issue when the window has
   ///   no undo stack.
-  static func mountInTheDeck(_ session: ScriptedSession) async throws -> MountedThread<some View> {
+  static func mountInTheDeck(
+    _ session: ScriptedSession, params: String = ElicitationFieldErrorsHostedTests.requiredNameParams
+  ) async throws -> MountedThread<some View> {
     let system = CommandSystem()
     let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
-    _ = try await session.receiveElicitation(
-      id: ElicitationViewHostedTests.agentRequestID, params: ElicitationFieldErrorsHostedTests.requiredNameParams)
+    _ = try await session.receiveElicitation(id: ElicitationViewHostedTests.agentRequestID, params: params)
     harness.render()
     return try SingleLineFieldChecks.window(
       of: harness, system: system, path: AgentCommandScopeHostedTests.path(of: session.model))
