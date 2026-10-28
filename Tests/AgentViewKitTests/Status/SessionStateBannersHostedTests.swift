@@ -338,6 +338,30 @@
       #expect(SessionStreamBanner.missedUpdatesMessage.severity == .warning)
     }
 
+    /// The banner swaps from a session whose reload failed straight to
+    /// another session with missed updates, so `hasMissedUpdates` stays true
+    /// across the swap. The failure belongs to the first session, so the
+    /// second one shows the missed-updates text.
+    @Test func aSwapToAnotherSessionWithMissedUpdatesShowsTheMissedUpdatesBanner() async throws {
+      let failed = try await Self.openOverflowingSession(resumeAnswer: .failure)
+      defer { failed.close() }
+      let harness = HostedViewHarness(
+        SessionStreamBanner(session: failed.model, connection: failed.connection), size: Self.size)
+      defer { harness.close() }
+      try await Self.reloadAndWaitForTheFailure(of: failed, in: harness)
+      try #require(Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      let missing = try await Self.openOverflowingSession()
+      defer { missing.close() }
+      try #require(missing.model.hasMissedUpdates)
+
+      harness.hostingView.rootView = SessionStreamBanner(session: missing.model, connection: missing.connection)
+      harness.render()
+
+      #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
+      #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
+      #expect(SessionStreamBanner.missedUpdatesMessage.severity == .warning)
+    }
+
     /// The press of Reload starts the resume in a task. The agent holds its
     /// answer, so the model replays until the test releases the answer.
     @Test func anOverflowShowsTheMissedUpdatesBannerAndReloadReplaysFromTheStart() async throws {
