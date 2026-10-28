@@ -477,7 +477,7 @@ two lists equal.
 - `MessageActions`: copy, copy thread, export, retry, and edit, in the message footer.
 - `ThreadMinimapView`: the rail of the transcript entries, with the tool call status. A drag moves the thread.
 - `StateBanner`: shows `requiresAction`, an idle session with a pending request, and a stop reason that needs attention, also the extension stop reasons.
-- `SessionStreamBanner`: the replay marker, the partial-history note, the missed-updates banner with Reload, and the closed state.
+- `SessionStreamBanner`: the replay marker, the partial-history note, the missed-updates banner with Reload, the reload-failed banner with the error of the reload and Reload, and the closed state.
 - `SessionNoticeBanner`: one banner for each notice of the session model.
 - `SessionListView`: the sessions of `ConnectionModel.sessions`, with cursor paging. When an open session that is not the `currentSession` has open requests, its row shows a `PendingRequestCountBadge` with the number of the requests, and the row label adds the count text, such as "2 open questions". The badge is visual only and is hidden from VoiceOver, so VoiceOver reads the count one time.
 
