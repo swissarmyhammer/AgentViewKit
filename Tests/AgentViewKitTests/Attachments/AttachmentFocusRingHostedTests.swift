@@ -60,7 +60,7 @@ import UniformTypeIdentifiers
   @MainActor @Observable final class ShownSurface {
     /// The corners of the shown surface, or `nil` before a surface reports
     /// them.
-    var corners: AgentSurfaceCorners?
+    var corners: SurfaceCorners?
   }
 
   /// A view to mount, with the id of the attachment of its scope.

@@ -105,17 +105,29 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// the deck in a bar.
   static let requestActionStyleFile = KitSourceFiles.kitFile("HumanInTheLoop/RequestActionStyle.swift")
 
-  /// The files of the request cards, the notices, the status bars and the
-  /// login card. Their action buttons take the button style of
-  /// ``requestActionStyleFile``, and have no glass button style of their own.
-  /// Only on the glass of the request deck in a bar do the buttons use the
-  /// bordered styles (TestudoApp `features/style.md`, "Buttons on glass").
+  /// The file of the style of the button of each status bar of the kit
+  /// (``KitSourceFiles/statusBarFile``). The status bar of the style library
+  /// shows its button through the style of the environment, and the kit sets
+  /// this style where it shows a bar, so the button takes the button style of
+  /// its place here.
+  static let statusBarActionStyleFile = KitSourceFiles.kitFile("Status/AgentStatusBarActionStyle.swift")
+
+  /// The file of the default style of the button of a status bar in the style
+  /// library: the `.glass` button style, for a bar of a view kit that sets no
+  /// style of its own.
+  static let defaultStatusBarActionStyleFile = KitSourceFiles.styleFile("Status/StatusBarActionStyle.swift")
+
+  /// The files of the request cards, the notices, the style of the status bar
+  /// buttons and the login card. Their action buttons take the button style
+  /// of ``requestActionStyleFile``, and have no glass button style of their
+  /// own. Only on the glass of the request deck in a bar do the buttons use
+  /// the bordered styles (TestudoApp `features/style.md`, "Buttons on glass").
   static let requestCardFiles: Set<String> = [
     KitSourceFiles.kitFile("HumanInTheLoop/PermissionView.swift"),
     KitSourceFiles.kitFile("Elicitation/ElicitationView.swift"),
     KitSourceFiles.kitFile("Elicitation/ElicitationURLConsentView.swift"),
     KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
-    KitSourceFiles.statusBarFile,
+    statusBarActionStyleFile,
     KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
   ]
 
@@ -136,14 +148,16 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     memberCallPattern("requestActionPlace", WordPattern.wholeWord("barWithoutGlass"))
   }
 
-  /// The files that can use a glass button style: the floating controls, and
-  /// the button style of the actions of the request cards and the notices.
+  /// The files that can use a glass button style: the floating controls, the
+  /// button style of the actions of the request cards and the notices, and
+  /// the default style of the button of a status bar of the style library.
   static let glassButtonFiles: Set<String> = [
     sendButtonFile,
     suggestionsFile,
     KitSourceFiles.kitFile("Input/SpeechInputButton.swift"),
     scrollPillFile,
     requestActionStyleFile,
+    defaultStatusBarActionStyleFile,
   ]
 
   /// The name of the prominent glass button style.
@@ -269,6 +283,24 @@ extension GlassForm: FixtureCodeForm {
     }
   }
 
+  /// Finds the lines that use a pattern in the code of the kit and of its
+  /// style library: a rule of the glass of the kit views is a rule of the
+  /// style views too.
+  ///
+  /// - Parameters:
+  ///   - pattern: The pattern to find.
+  ///   - allowed: The files, relative to the package root, that the scan
+  ///     skips.
+  /// - Returns: `<file>:<line>` for each line that uses the pattern, in the
+  ///   order of ``KitSourceFiles/libraryPaths``, then of the file paths, then
+  ///   in line order.
+  /// - Throws: The error of ``uses(of:inSwiftFilesBelow:relativeTo:allowing:)``.
+  static func libraryUses(of pattern: Regex<Substring>, allowing allowed: Set<String> = []) throws -> [String] {
+    try KitSourceFiles.scanLibraryFiles { directory in
+      try uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, allowing: allowed)
+    }
+  }
+
   /// Finds the lines that use a pattern in the code of a fixture directory.
   ///
   /// - Parameters:
@@ -286,26 +318,23 @@ extension GlassForm: FixtureCodeForm {
 
   @Test(arguments: GlassForm.allCases)
   func eachGlassFormShowsOnlyInItsAllowedFiles(form: GlassForm) throws {
-    let found = try Self.uses(
-      of: form.pattern, inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root,
-      allowing: form.allowedFiles)
+    let found = try Self.libraryUses(of: form.pattern, allowing: form.allowedFiles)
 
     #expect(found.isEmpty, "\(form) shows outside its allowed files: \(found)")
   }
 
   @Test func eachRequestCardTakesTheButtonStylesOfItsActionsFromThePlaceOfTheDeck() throws {
-    let found = try Self.uses(
-      of: GlassForm.callPattern("requestActionStyle"), inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
-      relativeTo: PackageFiles.root)
+    let found = try Self.libraryUses(of: GlassForm.callPattern("requestActionStyle"))
     let files = Set(found.compactMap { $0.split(separator: ":").first.map(String.init) })
 
     #expect(GlassForm.requestCardFiles.isSubset(of: files), "\(GlassForm.requestCardFiles.subtracting(files))")
   }
 
   @Test func eachViewInABarWithNoGlassDeclaresThePlaceOfABarWithNoGlassOneTime() throws {
-    let found = try CodeScan.lines.uses(
-      of: GlassForm.barWithoutGlassPlacePattern, inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
-      relativeTo: PackageFiles.root)
+    let found = try KitSourceFiles.scanLibraryFiles { directory in
+      try CodeScan.lines.uses(
+        of: GlassForm.barWithoutGlassPlacePattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+    }
     let files = found.compactMap { $0.split(separator: ":").first.map(String.init) }
 
     #expect(files.sorted() == GlassForm.barWithoutGlassFiles.sorted(), "\(found)")

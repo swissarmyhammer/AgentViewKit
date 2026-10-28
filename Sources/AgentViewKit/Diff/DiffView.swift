@@ -34,10 +34,7 @@ import SwiftUI
 /// A structured ACP diff with no `git_patch` text has no lines to render. The
 /// view then shows the file of each change with its operation, and a note.
 /// See ``init(diff:onAccept:onReject:onAttach:)``.
-public struct DiffView: View, PrefixedAccessibilityIdentifier {
-  /// The start of the accessibility identifier of each file chip.
-  public static let identifierPrefix = "diff-file-"
-
+public struct DiffView: View {
   /// The accessibility identifier of the view.
   public static let containerIdentifier = "diff-view"
 
@@ -62,11 +59,6 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
 
   /// The symbol of each Reject button.
   static let rejectSymbol = SharedSymbol.reject
-
-  /// The radius step of a file chip: the small radius. The selected chip
-  /// sits on the shared selection surface in this shape, and the focus ring
-  /// of the chip button follows the same shape.
-  static let fileChipRadius = EditorStyle.Radius.small
 
   /// The patch text, or `nil` for a structured diff with no patch text.
   let patch: String?
@@ -180,21 +172,6 @@ public struct DiffView: View, PrefixedAccessibilityIdentifier {
   /// - Returns: `diff-reject-<index>`.
   public static func rejectIdentifier(for index: Int) -> String {
     AccessibilityIdentifier.make(prefix: rejectPrefix, value: String(index))
-  }
-
-  /// The symbol of a file operation.
-  ///
-  /// - Parameter operation: The change to the file.
-  /// - Returns: The SF Symbol name.
-  static func symbolName(for operation: DiffSummary.Operation) -> String {
-    switch operation {
-    case .added: SharedSymbol.addedFile
-    case .deleted: SharedSymbol.deletedFile
-    case .modified: SharedSymbol.modifiedFile
-    case .renamed: SharedSymbol.renamedFile
-    case .copied: SharedSymbol.copiedFile
-    case .unknown: ItemStatus.unknown.systemImage
-    }
   }
 
   // MARK: - Body

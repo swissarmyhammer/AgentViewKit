@@ -20,13 +20,17 @@ import SwiftUI
 /// idle state, when the agent gives one. The `message(for:)` function that
 /// takes a `StateUpdate` gives the text of each value.
 ///
+/// Each message names its severity: a failed turn is a failure, and each
+/// other state is neutral. The message of a running agent tells of work that
+/// goes on, so its symbol moves.
+///
 /// The body also reads the pending requests of the model. While the state is
 /// `.idle` and a permission request or an elicitation waits for the user,
 /// the bar shows the `.requiresAction` text, because an agent can report
 /// idle while its requests wait.
 ///
 /// The bar has the identifier ``bannerIdentifier``. The text of the bar has
-/// the ``Message/identifier`` of its message.
+/// the ``StatusBar/Message/identifier`` of its message.
 ///
 /// The bar shows a Show Error button when the host gives an `onShowError`
 /// closure and the transcript has an error. That error is the last
@@ -42,46 +46,6 @@ public struct StateBanner: View {
 
   /// The symbol of the Show Error button.
   static let showErrorSymbol = SharedSymbol.details
-
-  /// The text that the bar shows for one state.
-  public struct Message: Equatable, Sendable {
-    /// The short title of the bar.
-    public let title: String
-
-    /// The explanation below the title.
-    public let explanation: String
-
-    /// The SF Symbol name of the bar.
-    public let symbolName: String
-
-    /// The accessibility identifier of the text of the bar. Each message has
-    /// a different identifier.
-    public let identifier: String
-
-    /// Whether the message tells of a failure, such as an idle state with
-    /// the stop reason `error`, or a failed connection.
-    ///
-    /// Each concept has one symbol in the kit, so a message whose symbol is
-    /// the error symbol tells of a failure. The bar shows the symbol of a
-    /// failure with the error color of the EditorKit theme.
-    var isFailure: Bool {
-      symbolName == SharedSymbol.error
-    }
-
-    /// The symbols of the messages of work that goes on: an agent that runs,
-    /// and a history that the agent sends again.
-    static let ongoingSymbols: Set<String> = [ItemStatus.inProgress.systemImage, SharedSymbol.replaying]
-
-    /// Whether the message tells of work that goes on, such as an agent that
-    /// runs or a replay of the history.
-    ///
-    /// Each concept has one symbol in the kit, so the symbol of the message
-    /// tells the concept. The bar animates the symbol of such a message with
-    /// a symbol effect, except under Reduce Motion.
-    var isOngoing: Bool {
-      Self.ongoingSymbols.contains(symbolName)
-    }
-  }
 
   /// The session model whose `agentState` the bar shows.
   let session: SessionModel
@@ -106,7 +70,7 @@ public struct StateBanner: View {
   /// - Parameter state: The `agentState` of a session model.
   /// - Returns: The text. Each state has a text, and a state that the kit
   ///   does not know gives a general text with its wire value.
-  public static func message(for state: StateUpdate) -> Message {
+  public static func message(for state: StateUpdate) -> StatusBar.Message {
     switch state {
     case .running:
       runningMessage
@@ -115,7 +79,7 @@ public struct StateBanner: View {
     case .idle(let idle):
       message(forIdle: idle)
     case .unknown(let wireValue, _):
-      Message(
+      StatusBar.Message(
         title: String(localized: "The agent reported an unknown state", bundle: .module),
         explanation: String(localized: "The agent sent the state \(wireValue).", bundle: .module),
         symbolName: ItemStatus.unknown.systemImage,
@@ -137,7 +101,7 @@ public struct StateBanner: View {
   ///   - hasPendingRequests: Whether a permission request or an elicitation
   ///     of the session waits for the answer of the user.
   /// - Returns: The text.
-  static func message(for state: StateUpdate, hasPendingRequests: Bool) -> Message {
+  static func message(for state: StateUpdate, hasPendingRequests: Bool) -> StatusBar.Message {
     guard hasPendingRequests, case .idle = state else { return message(for: state) }
     return requiresActionMessage
   }
@@ -147,7 +111,7 @@ public struct StateBanner: View {
   /// - Parameter idle: The idle state, with its optional stop reason and its
   ///   optional error object.
   /// - Returns: The text of the stop reason.
-  private static func message(forIdle idle: IdleStateUpdate) -> Message {
+  private static func message(forIdle idle: IdleStateUpdate) -> StatusBar.Message {
     switch idle.stopReason {
     case nil:
       readyMessage
@@ -183,7 +147,7 @@ public struct StateBanner: View {
   ///   - showError: The closure of the Show Error button, or `nil` for no
   ///     button.
   /// - Returns: The bar.
-  private func bar(_ message: Message, showError: (() -> Void)?) -> some View {
+  private func bar(_ message: StatusBar.Message, showError: (() -> Void)?) -> some View {
     StatusBar(
       message: message,
       action: showError.map {
@@ -193,6 +157,7 @@ public struct StateBanner: View {
           identifier: Self.showErrorIdentifier, isEnabled: true, perform: $0)
       }
     )
+    .statusBarActionStyle(AgentStatusBarActionStyle())
     // The bar has no glass surface, and the content scrolls under it.
     .requestActionPlace(.barWithoutGlass)
     .accessibilityIdentifier(Self.bannerIdentifier)
@@ -218,21 +183,21 @@ public struct StateBanner: View {
 extension StateBanner {
   /// The text for an agent that runs. The agent can run with no prompt open,
   /// for example for background work or a compaction.
-  private static let runningMessage = Message(
+  private static let runningMessage = StatusBar.Message(
     title: String(localized: "The agent is working", bundle: .module),
     explanation: String(localized: "Wait for the result, or stop the work.", bundle: .module),
     symbolName: ItemStatus.inProgress.systemImage,
-    identifier: "state-banner-running")
+    identifier: "state-banner-running", isOngoing: true)
 
   /// The text for an idle agent that gave no stop reason.
-  private static let readyMessage = Message(
+  private static let readyMessage = StatusBar.Message(
     title: String(localized: "The agent is ready", bundle: .module),
     explanation: String(localized: "Send a message to the agent.", bundle: .module),
     symbolName: ItemStatus.completed.systemImage,
     identifier: "state-banner-ready")
 
   /// The text for an idle state with the stop reason `end_turn`.
-  private static let turnCompleteMessage = Message(
+  private static let turnCompleteMessage = StatusBar.Message(
     title: String(localized: "The response is complete", bundle: .module),
     explanation: String(
       localized: "The agent finished the response. Send a message to continue.", bundle: .module),
@@ -240,7 +205,7 @@ extension StateBanner {
     identifier: "state-banner-end-turn")
 
   /// The text for an idle state with the stop reason `cancelled`.
-  private static let cancelledMessage = Message(
+  private static let cancelledMessage = StatusBar.Message(
     title: String(localized: "The response was cancelled", bundle: .module),
     explanation: String(
       localized: "The agent stopped the work because of the cancel request.", bundle: .module),
@@ -250,7 +215,7 @@ extension StateBanner {
   /// The text for an agent that waits for the user: the `.requiresAction`
   /// state, or an idle state while a request of the session waits for the
   /// answer of the user.
-  private static let requiresActionMessage = Message(
+  private static let requiresActionMessage = StatusBar.Message(
     title: String(localized: "The agent needs your input", bundle: .module),
     explanation: String(
       localized: "Answer the request to let the agent continue.", bundle: .module),
@@ -258,7 +223,7 @@ extension StateBanner {
     identifier: "state-banner-requires-action")
 
   /// The text for an idle state with the stop reason `max_tokens`.
-  private static let maxTokensMessage = Message(
+  private static let maxTokensMessage = StatusBar.Message(
     title: String(localized: "The response is incomplete", bundle: .module),
     explanation: String(
       localized: "The model used its maximum number of output tokens. Ask it to continue.",
@@ -267,7 +232,7 @@ extension StateBanner {
     identifier: "state-banner-max-tokens")
 
   /// The text for an idle state with the stop reason `max_turn_requests`.
-  private static let maxTurnRequestsMessage = Message(
+  private static let maxTurnRequestsMessage = StatusBar.Message(
     title: String(localized: "The response reached its request limit", bundle: .module),
     explanation: String(
       localized: "The response used its maximum number of model requests. Send a message to continue.",
@@ -276,7 +241,7 @@ extension StateBanner {
     identifier: "state-banner-max-turn-requests")
 
   /// The text for an idle state with the stop reason `refusal`.
-  private static let refusalMessage = Message(
+  private static let refusalMessage = StatusBar.Message(
     title: String(localized: "The model refused to continue", bundle: .module),
     explanation: String(localized: "Change the request and send it again.", bundle: .module),
     symbolName: SharedSymbol.refusal,
@@ -291,10 +256,10 @@ extension StateBanner {
   ///
   /// - Parameter error: The error object of the idle state, or `nil` when the
   ///   agent gave none.
-  /// - Returns: The text. When the agent gave an error object, the
+  /// - Returns: The text, a failure. When the agent gave an error object, the
   ///   explanation shows its `message`.
-  private static func failedTurnMessage(error: ACPError?) -> Message {
-    Message(
+  private static func failedTurnMessage(error: ACPError?) -> StatusBar.Message {
+    StatusBar.Message(
       title: String(localized: "The response failed", bundle: .module),
       explanation: error.map {
         String(localized: "The agent reported this failure: \($0.message)", bundle: .module)
@@ -303,7 +268,7 @@ extension StateBanner {
           localized: "The response stopped because of a failure in the agent. Send the request again.",
           bundle: .module),
       symbolName: SharedSymbol.error,
-      identifier: failedTurnIdentifier)
+      identifier: failedTurnIdentifier, severity: .failure)
   }
 }
 

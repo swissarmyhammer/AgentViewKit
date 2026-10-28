@@ -4,8 +4,10 @@ import Testing
 
 @testable import AgentViewKit
 
-/// Checks that the symbol of a status bar shows a failure with the error color
-/// of the EditorKit theme, and each other message with the `.secondary` style.
+/// Checks that each failure message of the kit names the failure severity,
+/// so that its status bar shows the symbol with the error color of the
+/// EditorKit theme, and that each other message is neutral, so that its
+/// symbol has the `.secondary` style.
 ///
 /// The error color is a status color of the theme (D112). The symbol of a
 /// message that is not a failure is not the selection or the focus, so it
@@ -25,7 +27,7 @@ import Testing
 
   /// The three failure messages: a failed turn, the `_error` stop reason and a
   /// failed connection.
-  static func failureMessages() throws -> [StateBanner.Message] {
+  static func failureMessages() throws -> [StatusBar.Message] {
     let failedTurn = StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "error"))
     let failedConnection = try #require(AgentConnectionBanner.makeMessage(for: .failed(ConnectionFailure())))
     return [failedTurn, StateBanner.message(forUnknownStopReason: "_error"), failedConnection]
@@ -33,7 +35,7 @@ import Testing
 
   /// Messages that are not failures: a running agent, a complete turn and a
   /// closed session.
-  static func otherMessages() throws -> [StateBanner.Message] {
+  static func otherMessages() throws -> [StatusBar.Message] {
     [
       StateBanner.message(for: try StateBannerStopReasonTests.decodeState(#"{"state": "running"}"#)),
       StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "end_turn")),
@@ -41,12 +43,12 @@ import Testing
     ]
   }
 
-  @Test func eachFailureMessageIsAFailure() throws {
-    #expect(try Self.failureMessages().allSatisfy(\.isFailure))
+  @Test func eachFailureMessageNamesTheFailureSeverity() throws {
+    #expect(try Self.failureMessages().allSatisfy { $0.severity == .failure })
   }
 
-  @Test func noOtherMessageIsAFailure() throws {
-    #expect(try Self.otherMessages().allSatisfy { !$0.isFailure })
+  @Test func eachOtherMessageIsNeutral() throws {
+    #expect(try Self.otherMessages().allSatisfy { $0.severity == .neutral })
   }
 
   @Test func aFailureBarTintsItsSymbolWithTheErrorColor() throws {

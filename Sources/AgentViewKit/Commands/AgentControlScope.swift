@@ -82,7 +82,7 @@ enum AgentControlCorners: Equatable, Sendable {
 
   /// The corners of a surface of the kit, such as the field of the composer
   /// around the editor.
-  case surface(AgentSurfaceCorners)
+  case surface(SurfaceCorners)
 
   /// The corner radius of these corners.
   ///

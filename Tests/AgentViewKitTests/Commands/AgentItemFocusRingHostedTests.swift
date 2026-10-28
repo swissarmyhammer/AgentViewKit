@@ -102,7 +102,7 @@ import Testing
       return AgentScopeKind.message(rowKey: try #require(session.model.transcript.first).rowKey)
     case .toolCall:
       let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(to: session, rendering: harness)
-      return AgentScopeKind.toolCall(toolCall.toolCallId)
+      return AgentScopeKind.toolCall(toolCall.toolCallId.rawValue)
     case .request:
       return AgentScopeKind.request(try await session.sendPermissionRequest(id: requestID, rendering: harness))
     }

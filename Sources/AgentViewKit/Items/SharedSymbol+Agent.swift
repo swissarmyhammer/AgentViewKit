@@ -1,13 +1,19 @@
+import AgentViewKitStyle
 import Foundation
 
-/// The symbol table of the kit: each SF Symbol that a view of the kit shows.
+/// The agent symbols of the kit: each SF Symbol of a concept that only the
+/// views of an agent thread show.
 ///
-/// Each constant is one concept, and each concept has one symbol. A view
-/// reads the name of a concept from here, so all views of that concept change
-/// together, and two concepts do not show the same symbol. A symbol name is
-/// written in this file only. The package test `SymbolNameTests` makes sure
-/// that no other source file of the kit writes a symbol name, and that this
-/// file writes each name one time.
+/// The shared symbols of the view kits, such as the error, the tool kinds
+/// and the file operations, are in ``AgentViewKitStyle/SharedSymbol``. This
+/// extension adds the concepts of the kit to the same table, so a view of
+/// the kit reads each symbol as `SharedSymbol.<concept>`. A symbol name is
+/// written in the two table files only. The package test `SymbolNameTests`
+/// makes sure that no other source file of the kit writes a symbol name, and
+/// that the two files write each name one time.
+///
+/// No symbol of the table is a clock symbol (`clock`, each `clock.*` symbol,
+/// `timer`, `alarm`): a clock is a scheduled task (EditorKit `style.md`).
 ///
 /// The symbols of the status of work and of a priority are not in this
 /// table. They come from `ItemStatus` and `ItemPriority` of the EditorKit
@@ -17,63 +23,7 @@ import Foundation
 /// for work that the user cancelled, `.unknown` for a value that the kit does
 /// not know, and `ItemPriority.low`, `.medium` and `.high` for the priority
 /// of a plan entry.
-nonisolated enum SharedSymbol {
-  // MARK: - Status
-
-  /// The symbol of an error: a failed tool call, an idle state with the stop
-  /// reason `error`, a failed message, command or connection, a failed MCP
-  /// server, an error notice, an error card and a patch that the kit cannot
-  /// read.
-  static let error = "xmark.octagon.fill"
-
-  /// The symbol of a warning: a warning notice, a lost tool result, missing
-  /// updates, an attachment that the agent does not accept and a link that
-  /// leaves the app.
-  static let warning = "exclamationmark.triangle.fill"
-
-  /// The symbol of an information notice.
-  static let information = "info.circle.fill"
-
-  // MARK: - Tool kinds
-
-  /// The symbol of a tool that reads a file.
-  static let read = "text.document"
-
-  /// The symbol of an edit: a tool that edits a file, and the Edit button of
-  /// a message.
-  static let edit = "pencil"
-
-  /// The symbol of a deletion: a tool that deletes a file, and the Delete
-  /// button of a session.
-  static let delete = "trash"
-
-  /// The symbol of a tool that moves a file.
-  static let move = "arrow.left.arrow.right"
-
-  /// The symbol of a tool that searches.
-  static let search = "magnifyingglass"
-
-  /// The symbol of a terminal or a shell command: the `execute` tool kind,
-  /// a terminal, a command output row, a command in a permission request,
-  /// the terminal link of a permission request and the Run button of a
-  /// terminal sign-in.
-  static let terminal = "apple.terminal"
-
-  /// The symbol of the reasoning of the model: a thinking tool, a thought,
-  /// and a response that stopped during the reasoning.
-  static let reasoning = "brain"
-
-  /// The symbol of a tool that fetches a web resource.
-  static let web = "globe"
-
-  /// The symbol of a change of the session mode: a tool that changes the
-  /// session mode, and the "switch to auto" button of a permission request.
-  static let switchMode = "switch.2"
-
-  /// The symbol of a tool: a tool of an other kind, a tool call in a
-  /// permission request and the menu of the tools.
-  static let tool = "wrench.and.screwdriver"
-
+nonisolated extension SharedSymbol {
   // MARK: - Agent state and stop reasons
 
   /// The symbol of a request to the user: an agent that waits for the user,
@@ -111,11 +61,13 @@ nonisolated enum SharedSymbol {
   /// The symbol of a closed session.
   static let closed = "lock.fill"
 
-  /// The symbol of a session that loads its history again.
-  static let replaying = "clock.arrow.trianglehead.counterclockwise.rotate.90"
+  /// The symbol of a session that loads its history again: the history
+  /// winds back, and the agent sends it again.
+  static let replaying = "arrow.trianglehead.counterclockwise"
 
-  /// The symbol of a history that can be partial.
-  static let partialHistory = "clock.badge.questionmark"
+  /// The symbol of a history that can be partial: a page of text that the
+  /// kit cannot vouch for.
+  static let partialHistory = "questionmark.text.page"
 
   /// The symbol of an agent that is not connected, and of an MCP server whose
   /// connection is closed.
@@ -137,23 +89,6 @@ nonisolated enum SharedSymbol {
   /// The symbol of the button that signs out of an agent.
   static let signOut = "rectangle.portrait.and.arrow.right"
 
-  // MARK: - File operations of a diff
-
-  /// The symbol of a file that a patch makes.
-  static let addedFile = "plus.square"
-
-  /// The symbol of a file that a patch removes.
-  static let deletedFile = "minus.square"
-
-  /// The symbol of a file whose lines a patch changes.
-  static let modifiedFile = "dot.square"
-
-  /// The symbol of a file that a patch moves to a new path.
-  static let renamedFile = "arrow.right.square"
-
-  /// The symbol of a file that a change copies to a new path.
-  static let copiedFile = "plus.square.on.square"
-
   // MARK: - Buttons
 
   /// The symbol of a button that copies text to the pasteboard.
@@ -165,11 +100,6 @@ nonisolated enum SharedSymbol {
   /// The symbol of a button that shares or exports: the Share button of an
   /// attachment and the Export button of a thread.
   static let share = "square.and.arrow.up"
-
-  /// The symbol of a button that does a thing again: Refresh, Retry, the
-  /// Reload button of a banner, the Reconnect button of the auth card and the
-  /// Retry button of the URL consent card.
-  static let reload = "arrow.clockwise"
 
   /// The symbol of an answer that accepts one time: the allow-once option of
   /// a permission request, the Accept button of a diff hunk and the Submit
@@ -245,10 +175,6 @@ nonisolated enum SharedSymbol {
   /// The symbol of a button that removes a value: an attachment or a date.
   static let remove = "xmark.circle.fill"
 
-  /// The symbol of a button that closes a thing with no answer: the button
-  /// that closes a notice and the Cancel button of an elicitation.
-  static let dismiss = "xmark"
-
   /// The symbol of a button that sends text to the agent: the button that
   /// sends the prompt and the Send button of the comment of a permission
   /// request.
@@ -300,14 +226,6 @@ nonisolated enum SharedSymbol {
   /// The symbol of the sources of an answer.
   static let sources = "books.vertical"
 
-  /// The symbol of a link: the mark of the link of each row of the sources.
-  /// A link has no accent text color, so this symbol marks it (card
-  /// ^y2mrfxt).
-  static let link = "link"
-
-  /// The symbol of a file location of a tool call.
-  static let document = "document"
-
   /// The symbol of a compaction of the context.
   static let compaction = "arrow.down.right.and.arrow.up.left"
 
@@ -320,15 +238,16 @@ nonisolated enum SharedSymbol {
   /// The symbol of an artifact.
   static let artifact = "richtext.page"
 
-  /// The symbol of an activity timeline with no entries.
-  static let activity = "clock"
+  /// The symbol of an activity timeline with no entries: the trace of an
+  /// activity.
+  static let activity = "waveform.path.ecg"
 
   /// The symbol of a question of the agent to the user.
   static let question = "questionmark.bubble"
 
   /// The symbol of the time of a transcript entry: its start time and its
-  /// duration.
-  static let entryTime = "timer"
+  /// duration, the time that the entry took.
+  static let entryTime = "calendar"
 
   // MARK: - Usage
 

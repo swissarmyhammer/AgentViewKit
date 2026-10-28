@@ -258,7 +258,7 @@
     /// The chips of a call: its location chips and its diff file chips. Each
     /// location chip has the identifier of the chip at index 0 with its own
     /// index in place of the 0, and the identifier of a diff file chip starts
-    /// with ``DiffView/identifierPrefix`` and ends with the path of its file.
+    /// with ``DiffFileChip/identifierPrefix`` and ends with the path of its file.
     ///
     /// - Parameters:
     ///   - key: The row key of the call.
@@ -270,7 +270,7 @@
       let locationPrefix = ToolCallView.locationIdentifier(for: key, index: 0).dropLast()
       return harness.accessibilityElements().filter { element in
         guard let identifier = element.identifier else { return false }
-        return identifier.hasPrefix(locationPrefix) || identifier.hasPrefix(DiffView.identifierPrefix)
+        return identifier.hasPrefix(locationPrefix) || identifier.hasPrefix(DiffFileChip.identifierPrefix)
       }
     }
 
@@ -296,7 +296,7 @@
         #expect((chip == nil) == isInDiff, "\(location)")
       }
       for path in [DiffViewHostedTests.firstPath, DiffViewHostedTests.secondPath] {
-        #expect(harness.element(identifier: DiffView.identifier(for: path)) != nil, "\(path)")
+        #expect(harness.element(identifier: DiffFileChip.identifier(for: path)) != nil, "\(path)")
       }
     }
 
@@ -311,7 +311,7 @@
       let key = call.id.rowKey
       let identifiers = [
         ToolCallView.locationsIdentifier(for: key), ToolCallView.inputIdentifier(for: key),
-        DiffView.identifier(for: DiffViewHostedTests.firstPath), DiffView.detailIdentifier,
+        DiffFileChip.identifier(for: DiffViewHostedTests.firstPath), DiffView.detailIdentifier,
         ToolCallView.outputIdentifier(for: key),
       ]
 

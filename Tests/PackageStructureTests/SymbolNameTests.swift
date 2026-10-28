@@ -86,6 +86,22 @@ import Testing
     #expect(Self.names(in: source) == ["doc.text", "doc.on.clipboard", "bolt.fill", "bolt"])
   }
 
+  @Test func theScanFindsTheBodyOfAnExtensionOfASymbolType() {
+    let source = """
+      nonisolated extension SharedSymbol {
+        static let userAction = "hand.raised.fill"
+      }
+      extension AgentViewKitStyle.SharedSymbol {
+        static let refusal = "exclamationmark.bubble.fill"
+      }
+      extension SharedTable {
+        static let title = "Title"
+      }
+      """
+
+    #expect(Self.names(in: source) == ["hand.raised.fill", "exclamationmark.bubble.fill"])
+  }
+
   @Test func theScanSkipsCommentsAndLiteralsWithAnEscape() {
     let source = """
       // Image(systemName: "doc")
@@ -114,6 +130,7 @@ import Testing
     let names = try Self.symbolNames()
 
     #expect(names.contains { $0.file.hasPrefix(KitSourceFiles.kitFile("")) })
+    #expect(names.contains { $0.file.hasPrefix(KitSourceFiles.styleFile("")) })
   }
 
   // MARK: - The system data
@@ -162,18 +179,29 @@ import Testing
 
   // MARK: - The symbol table
 
-  /// The file of the symbol table of the kit. Each symbol name of the kit is
-  /// in the symbol table.
-  static let sharedSymbolFile = KitSourceFiles.kitFile("Items/SharedSymbol.swift")
+  /// The file of the shared symbol table of the style library: the symbols
+  /// that each view kit shows.
+  static let styleSymbolFile = KitSourceFiles.styleFile("Symbols/SharedSymbol.swift")
 
-  /// The symbol names that the symbol table writes.
+  /// The file of the agent symbols of the kit: an extension of the shared
+  /// symbol table.
+  static let agentSymbolFile = KitSourceFiles.kitFile("Items/SharedSymbol+Agent.swift")
+
+  /// The files of the symbol table. The two files together are the table:
+  /// each symbol name of the two libraries is in one of them.
+  static let symbolTableFiles = [styleSymbolFile, agentSymbolFile]
+
+  /// The symbol names that the files of the symbol table write.
   ///
-  /// - Returns: The uses, in source order.
-  /// - Throws: The error when the file cannot be read.
+  /// - Returns: The uses, in the order of ``symbolTableFiles`` and in source
+  ///   order.
+  /// - Throws: The error when a file cannot be read.
   static func tableNames() throws -> [SymbolNameUse] {
-    let tableFile = try PackageFiles.file(Self.sharedSymbolFile)
-    return SymbolNameScanner(source: try String(contentsOf: tableFile, encoding: .utf8))
-      .names(file: Self.sharedSymbolFile)
+    try symbolTableFiles.flatMap { path in
+      let tableFile = try PackageFiles.file(path)
+      return SymbolNameScanner(source: try String(contentsOf: tableFile, encoding: .utf8))
+        .names(file: path)
+    }
   }
 
   /// The test compares only the names that show a system symbol. The scan
@@ -182,13 +210,15 @@ import Testing
   /// the system.
   @Test func eachSymbolNameOfTheKitIsWrittenOnlyInTheSymbolTable() throws {
     let availableNames = try SystemSymbolData.availableNames()
-    let kitNames = try SymbolNameScanner.names(
-      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root
-    ).filter { availableNames.contains($0.name) }
+    let libraryNames = try KitSourceFiles.scanLibraryFiles { directory in
+      try SymbolNameScanner.names(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+    }.filter { availableNames.contains($0.name) }
 
-    let outside = kitNames.filter { $0.file != Self.sharedSymbolFile }
+    let outside = libraryNames.filter { !Self.symbolTableFiles.contains($0.file) }
 
-    #expect(!kitNames.isEmpty)
+    for file in Self.symbolTableFiles {
+      #expect(libraryNames.contains { $0.file == file }, "\(file) writes no symbol name")
+    }
     #expect(outside.isEmpty, "Add the name to SharedSymbol and read it from there: \(outside)")
   }
 

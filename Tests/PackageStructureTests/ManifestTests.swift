@@ -7,8 +7,9 @@ import Testing
 /// The test reads `Package.swift` as text. The manifest spells each library
 /// product and each dependency product in full, so the text is the contract.
 @Suite struct ManifestTests {
-  /// The one library product of the package (plan.md §11 decision 1).
-  static let libraryProduct = "AgentViewKit"
+  /// The two library products of the package (plan.md §11 decision 1): the
+  /// kit, and its style, the shared look of the view kits.
+  static let libraryProducts = ["AgentViewKit", "AgentViewKitStyle"]
 
   /// The ACP products that the `AgentViewKit` target links.
   static let acpProducts: Set<String> = [
@@ -71,9 +72,9 @@ import Testing
     manifest = try PackageFiles.text(of: "Package.swift")
   }
 
-  @Test func declaresTheOneLibraryProduct() {
+  @Test func declaresTheKitAndTheStyleLibraryProducts() {
     let names = manifest.matches(of: /\.library\(\s*name:\s*"(?<name>[^"]+)"/).map { String($0.output.name) }
-    #expect(names == [Self.libraryProduct])
+    #expect(names == Self.libraryProducts)
   }
 
   @Test func linksTheACPAndEditorKitProductsToTheKitTarget() throws {
@@ -169,12 +170,14 @@ import Testing
   /// The dependency products of the `AgentViewKit` target.
   ///
   /// The target lists its dependencies as a sum of named arrays, such as
-  /// `editorKitProducts + acpProducts`. The function reads the declaration of
-  /// each array and returns the product names in it.
+  /// `editorKitProducts + acpProducts`, after the literal array of its
+  /// target dependency, `["AgentViewKitStyle"]`. The function reads the
+  /// declaration of each named array and returns the product names in it.
   func kitTargetProducts() throws -> Set<String> {
     let target = /\.target\(\s*name:\s*"AgentViewKit",\s*dependencies:\s*(?<arrays>[^,\n]+),/
     let match = try #require(manifest.firstMatch(of: target))
     let arrayNames = match.output.arrays.split(separator: "+").map { $0.trimmingCharacters(in: .whitespaces) }
+      .filter { !$0.hasPrefix("[") }
     return try Set(arrayNames.flatMap { try products(inArrayNamed: $0) })
   }
 

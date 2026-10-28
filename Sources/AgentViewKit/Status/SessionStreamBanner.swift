@@ -79,7 +79,7 @@ public struct SessionStreamBanner: View {
   /// One banner of the view.
   private struct Bar {
     /// The text of the banner.
-    let message: StateBanner.Message
+    let message: StatusBar.Message
 
     /// The button of the banner, or `nil` for no button.
     let action: StatusBar.Action?
@@ -93,6 +93,7 @@ public struct SessionStreamBanner: View {
           StatusBar(message: bar.message, action: bar.action)
         }
       }
+      .statusBarActionStyle(AgentStatusBarActionStyle())
       .padding(editorStyle.tile.margin)
     }
   }
@@ -145,23 +146,23 @@ public struct SessionStreamBanner: View {
 
 extension SessionStreamBanner {
   /// The text of the closed banner.
-  static let closedMessage = StateBanner.Message(
+  static let closedMessage = StatusBar.Message(
     title: String(localized: "The session is closed", bundle: .module),
     explanation: String(
       localized: "The agent sends no more updates. You can read the transcript.", bundle: .module),
     symbolName: SharedSymbol.closed,
     identifier: closedIdentifier)
 
-  /// The text of the replay marker.
-  static let replayingMessage = StateBanner.Message(
+  /// The text of the replay marker: work that goes on, so its symbol moves.
+  static let replayingMessage = StatusBar.Message(
     title: String(localized: "Loading the history", bundle: .module),
     explanation: String(
       localized: "The agent sends the history of the session again.", bundle: .module),
     symbolName: SharedSymbol.replaying,
-    identifier: replayingIdentifier)
+    identifier: replayingIdentifier, isOngoing: true)
 
   /// The text of the missed-updates banner.
-  static let missedUpdatesMessage = StateBanner.Message(
+  static let missedUpdatesMessage = StatusBar.Message(
     title: String(localized: "Updates are missing", bundle: .module),
     explanation: String(
       localized: "The connection did not keep all updates of this session. Reload the history from the agent.",
@@ -170,7 +171,7 @@ extension SessionStreamBanner {
     identifier: missedUpdatesIdentifier)
 
   /// The text of the partial-history note.
-  static let partialHistoryMessage = StateBanner.Message(
+  static let partialHistoryMessage = StatusBar.Message(
     title: String(localized: "The history can be partial", bundle: .module),
     explanation: String(
       localized: "The agent replayed only the history that it keeps. Older messages can be missing.",

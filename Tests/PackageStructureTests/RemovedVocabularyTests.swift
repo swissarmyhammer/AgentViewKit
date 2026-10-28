@@ -134,8 +134,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   ]
 
   /// The names of the ACP value types that the kit copied. No source of the
-  /// kit library declares a type with one of these names, so each name in a
-  /// kit source is the ACP type.
+  /// kit library or of the style library declares a type with one of these
+  /// names, so each name in a kit source is the ACP type.
   static let acpValueTypeNames = [
     "JSONValue", "StopReason", "ToolKind", "ToolCallStatus", "ContentBlock",
     "Annotations", "ImageContent", "AudioContent", "ResourceLink", "EmbeddedResource",
@@ -202,11 +202,10 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func theKitDeclaresNoTypeWithTheNameOfAnACPValueType() throws {
-    let found = try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(Self.kitSourcesPath),
-      relativeTo: PackageFiles.root
-    ) { line in
-      Self.declarations(of: Self.acpValueTypeNames, on: line)
+    let found = try KitSourceFiles.scanLibraryFiles { directory in
+      try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root) { line in
+        Self.declarations(of: Self.acpValueTypeNames, on: line)
+      }
     }
 
     #expect(found.isEmpty, "\(found)")
@@ -315,9 +314,6 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
       of: ["UserMessageView", "AssistantMessageView", "TranscriptMessageView", "MessageHeader", "MessageLayout"],
       input: "date")
   }
-
-  /// The directory of the Swift files of the kit library.
-  static let kitSourcesPath = "Sources/AgentViewKit"
 
   /// The `@Observable` classes that the kit can declare. Each one holds view
   /// state only, and the comment names that state. No class holds a value
@@ -550,9 +546,11 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func theSymbolTableDeclaresNoStatusOrPrioritySymbol() throws {
-    let found = try Self.uses(
-      of: Self.removedItemSymbolConstants, inFile: SymbolNameTests.sharedSymbolFile,
-      matching: Self.symbolConstantDeclaration(named:))
+    let found = try SymbolNameTests.symbolTableFiles.flatMap { file in
+      try Self.uses(
+        of: Self.removedItemSymbolConstants, inFile: file,
+        matching: Self.symbolConstantDeclaration(named:))
+    }
 
     #expect(found.isEmpty, "Read ItemStatus or ItemPriority of EditorStyle: \(found)")
   }
@@ -675,7 +673,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func eachObservableClassOfTheKitHoldsViewStateOnly() throws {
-    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(Self.kitSourcesPath))
+    let files = try KitSourceFiles.scanLibraryFiles(PackageFiles.swiftFiles(in:))
 
     let names = try files.flatMap { file in
       Self.observableClassNames(inSource: try String(contentsOf: file, encoding: .utf8))

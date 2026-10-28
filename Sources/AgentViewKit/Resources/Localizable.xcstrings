@@ -11,32 +11,12 @@
         }
       }
     },
-    "%@ %@ file" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ %2$@ file"
-          }
-        }
-      }
-    },
     "%@ asks for input" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ asks for input"
-          }
-        }
-      }
-    },
-    "%@ diff, +%lld −%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ diff, +%2$lld −%3$lld"
           }
         }
       }
@@ -231,16 +211,6 @@
         }
       }
     },
-    "Added" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Added"
-          }
-        }
-      }
-    },
     "Allow and Switch to Auto Mode" : {
       "localizations" : {
         "en" : {
@@ -351,32 +321,12 @@
         }
       }
     },
-    "Cannot read the patch at line %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot read the patch at line %lld"
-          }
-        }
-      }
-    },
     "Change the request and send it again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Change the request and send it again."
-          }
-        }
-      }
-    },
-    "Changed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changed"
           }
         }
       }
@@ -491,16 +441,6 @@
         }
       }
     },
-    "Copied" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copied"
-          }
-        }
-      }
-    },
     "Copy" : {
       "localizations" : {
         "en" : {
@@ -567,16 +507,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete"
-          }
-        }
-      }
-    },
-    "Deleted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deleted"
           }
         }
       }
@@ -907,16 +837,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Model Settings"
-          }
-        }
-      }
-    },
-    "Modified" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modified"
           }
         }
       }
@@ -1387,16 +1307,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove this attachment"
-          }
-        }
-      }
-    },
-    "Renamed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Renamed"
           }
         }
       }
@@ -1987,16 +1897,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terminal, %@"
-          }
-        }
-      }
-    },
-    "Text" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text"
           }
         }
       }

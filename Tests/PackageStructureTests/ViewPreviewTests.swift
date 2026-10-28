@@ -242,11 +242,14 @@ extension ViewPreviewForm: SampledCodeForm, FixtureCodeForm {
   }
 
   @Test func eachViewFileOfTheKitHasAPreview() throws {
-    let kit = try PackageFiles.file(KitSourceFiles.kitPath)
-    let views = try Self.files(using: .viewDeclaration, inSwiftFilesBelow: kit, relativeTo: PackageFiles.root)
+    let views = try KitSourceFiles.scanLibraryFiles { directory in
+      Array(try Self.files(using: .viewDeclaration, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root))
+    }
 
-    let missing = try Self.viewFilesWithNoPreview(
-      inSwiftFilesBelow: kit, relativeTo: PackageFiles.root, allowing: Set(Self.filesWithNoPreview.keys))
+    let missing = try KitSourceFiles.scanLibraryFiles { directory in
+      try Self.viewFilesWithNoPreview(
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, allowing: Set(Self.filesWithNoPreview.keys))
+    }
 
     #expect(!views.isEmpty)
     #expect(

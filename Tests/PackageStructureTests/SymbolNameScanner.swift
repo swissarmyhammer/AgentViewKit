@@ -23,8 +23,10 @@ struct SymbolNameUse: Equatable, CustomStringConvertible {
 ///   `symbolName:` label, such as `Image(systemName: "folder")`;
 /// - the value or the body of a declaration whose name has the word `symbol`
 ///   in any case, or whose name is `systemImage` or `systemName`. Examples
-///   are `static let commandSymbol = "terminal"`, `enum ToolKindSymbol { … }`
-///   and `var systemImage: String { … }`.
+///   are `static let commandSymbol = "terminal"`, `enum ToolKindSymbol { … }`,
+///   `extension SharedSymbol { … }` and `var systemImage: String { … }`. An
+///   extension can name its type with the module, such as
+///   `extension AgentViewKitStyle.SharedSymbol { … }`.
 ///
 /// Other literals are not symbol names. Thus the accessibility identifier
 /// `static let identifier = "terminal"` is not a symbol name. The scan
@@ -67,7 +69,7 @@ struct SymbolNameScanner {
   ///
   /// - Returns: The pattern.
   static func symbolDeclaration() -> Regex<(Substring, Substring)> {
-    #/\b(let|var|func|enum|struct|class)\s+(?:\w*[Ss]ymbol\w*|systemImage|systemName)\b/#
+    #/\b(let|var|func|enum|struct|class|extension)\s+(?:\w+\s*\.\s*)*(?:\w*[Ss]ymbol\w*|systemImage|systemName)\b/#
   }
 
   /// The symbol names of the source, in source order.

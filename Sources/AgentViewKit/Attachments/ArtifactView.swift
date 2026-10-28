@@ -35,7 +35,7 @@ public struct ArtifactView: View {
 
   /// The corners of the panel: the medium radius of `\.editorStyle`. The
   /// edge of the panel and the focus ring of its scope both have them.
-  static let corners = AgentSurfaceCorners.rounded(.medium)
+  static let corners = SurfaceCorners.rounded(.medium)
 
   /// The artifact to show.
   let artifact: ArtifactPayload

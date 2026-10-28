@@ -51,3 +51,38 @@ struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
   }
   .padding()
 }
+
+/// The sheets of the states that the callers of `StatusSymbolImage` map to
+/// a symbol and a color: the status and the priority of a plan entry
+/// (``TaskListView``), and the severity of a notice
+/// (``SessionNoticeBanner``). Each state shows its symbol in its color of the
+/// EditorKit theme.
+private struct StatusSymbolSheets: View {
+  @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.editorTheme) private var editorTheme
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.l) {
+      PreviewSymbolSheet(
+        title: "Plan entry status", values: PreviewFixtures.planEntryStatuses, label: TaskListView.statusLabel
+      ) { status in
+        StatusSymbolImage(name: TaskListView.statusSymbol(status), color: editorTheme.statusColor(for: status))
+      }
+      PreviewSymbolSheet(
+        title: "Plan entry priority", values: PreviewFixtures.planEntryPriorities, label: TaskListView.priorityLabel
+      ) { priority in
+        StatusSymbolImage(name: TaskListView.prioritySymbol(priority), color: editorTheme.tint(for: priority))
+      }
+      PreviewSymbolSheet(
+        title: "Notice severity", values: PreviewFixtures.noticeSeverities, label: NoticeBanner.severityLabel
+      ) { severity in
+        StatusSymbolImage(name: NoticeBanner.symbolName(for: severity), color: editorTheme.tint(for: severity))
+      }
+    }
+    .padding()
+  }
+}
+
+#Preview("Each status, priority and severity") {
+  StatusSymbolSheets()
+}

@@ -186,7 +186,7 @@ import Testing
     }
     var registry = fixture.system.registry
     registry.register(definition, at: fixture.path)
-    let toolCallPath = fixture.path.appending(AgentScopeKind.toolCall(ToolCallId(rawValue: Self.toolCallID)))
+    let toolCallPath = fixture.path.appending(AgentScopeKind.toolCall(Self.toolCallID))
     let messagePath = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[0]))
 
     let toolCallIDs = registry.contextMenuMirror(at: toolCallPath).map(\.id)

@@ -89,9 +89,18 @@ not a dependency of the kit. Thus the table above does not list it.
 | Target | Can import |
 |---|---|
 | `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `FoundationModelsACP`, `FoundationModelsACPClient` |
+| `AgentViewKitStyle` | EditorKit products `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` |
 
-`AgentViewKit` is the one library target and the one library product
-(plan.md §11 decision 1).
+The package has two library targets and two library products,
+`AgentViewKit` and `AgentViewKitStyle` (plan.md §11 decision 1, owner
+decision of 2026-10-28). `AgentViewKitStyle` holds the shared look of the
+view kits. It links only the EditorKit products `EditorStyle`,
+`EditorTheme`, `EditorSwiftUI`, `EditorDiff` and `EditorCommands`. It links
+no ACP package, no Textual and no swiftui-math, and
+`AgentViewKitStyleClosureTests` proves that closure. `AgentViewKit` holds the
+views and the ACP helpers. It depends on `AgentViewKitStyle`, re-exports it
+and keeps no copy of it. SnapshotViewKit and KanbanViewKit link only
+`AgentViewKitStyle`.
 
 `Tests/PackageStructureTests/ImportBoundaryTests.swift` enforces the
 forbidden list: no target in `Sources/` imports `FoundationModels`,

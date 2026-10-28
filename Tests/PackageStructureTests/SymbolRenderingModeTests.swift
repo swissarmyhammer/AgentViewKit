@@ -22,10 +22,10 @@ import Testing
     KitSourceFiles.taskListFile,
     KitSourceFiles.kitFile("Items/CompactionEntryView.swift"),
     KitSourceFiles.kitFile("Items/ToolCallView.swift"),
-    KitSourceFiles.kitFile("Items/StatusSymbolImage.swift"),
+    KitSourceFiles.styleFile("Symbols/StatusSymbolImage.swift"),
     KitSourceFiles.kitFile("Activity/ActivityTimeline.swift"),
     KitSourceFiles.kitFile("Diff/DiffView.swift"),
-    KitSourceFiles.kitFile("Diff/DiffFileChip.swift"),
+    KitSourceFiles.styleFile("Diff/DiffFileChip.swift"),
   ]
 
   /// The modifier that sets the hierarchical rendering mode.

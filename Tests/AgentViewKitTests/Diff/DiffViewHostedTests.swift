@@ -161,7 +161,7 @@
 
       let detail = try #require(harness.frame(identifier: DiffView.detailIdentifier))
       for path in [Self.firstPath, Self.secondPath] {
-        let chip = try #require(harness.frame(identifier: DiffView.identifier(for: path)))
+        let chip = try #require(harness.frame(identifier: DiffFileChip.identifier(for: path)))
         // The y axis of the screen goes up, so the bottom edge of a chip is
         // `minY` and the top edge of the detail is `maxY`.
         #expect(chip.minY >= detail.maxY - Self.layoutTolerance, "chip \(path)")
@@ -172,8 +172,8 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true)
       defer { harness.close() }
 
-      let first = try #require(harness.frame(identifier: DiffView.identifier(for: Self.firstPath)))
-      let second = try #require(harness.frame(identifier: DiffView.identifier(for: Self.secondPath)))
+      let first = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.firstPath)))
+      let second = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.secondPath)))
       #expect(abs(second.minY - first.minY) <= Self.layoutTolerance)
       #expect(second.minX >= first.maxX)
     }
@@ -182,8 +182,8 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: Self.narrowWidth)
       defer { harness.close() }
 
-      let first = try #require(harness.frame(identifier: DiffView.identifier(for: Self.firstPath)))
-      let second = try #require(harness.frame(identifier: DiffView.identifier(for: Self.secondPath)))
+      let first = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.firstPath)))
+      let second = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.secondPath)))
       // The y axis of the screen goes up, so a chip on the line below the
       // first chip has its top edge, `maxY`, under the bottom edge of the
       // first chip, `minY`.
@@ -197,8 +197,8 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
       defer { harness.close() }
 
-      let first = harness.element(identifier: DiffView.identifier(for: Self.firstPath))
-      let second = harness.element(identifier: DiffView.identifier(for: Self.secondPath))
+      let first = harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath))
+      let second = harness.element(identifier: DiffFileChip.identifier(for: Self.secondPath))
       #expect(first?.label == "Swift diff, +2 \u{2212}1")
       #expect(second?.label == "Markdown diff, +1 \u{2212}1")
     }
@@ -207,7 +207,7 @@
       let harness = DiffHarness.mount(DiffView(patch: Self.oneFilePatch), size: Self.tallSize)
       defer { harness.close() }
 
-      let chip = harness.element(identifier: DiffView.identifier(for: Self.secondPath))
+      let chip = harness.element(identifier: DiffFileChip.identifier(for: Self.secondPath))
       #expect(chip?.label == "Markdown diff, +1 \u{2212}1")
     }
 
@@ -217,7 +217,7 @@
       let secondRenderer = Self.rendererIdentifier(for: Self.secondPath)
       #expect(harness.element(identifier: secondRenderer) == nil)
 
-      try harness.press(identifier: DiffView.identifier(for: Self.secondPath))
+      try harness.press(identifier: DiffFileChip.identifier(for: Self.secondPath))
 
       #expect(harness.element(identifier: secondRenderer) != nil)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
@@ -293,7 +293,7 @@
       let harness = DiffHarness.mount(DiffView(patch: Self.patch), size: Self.tallSize)
       defer { harness.close() }
 
-      #expect(harness.element(identifier: DiffView.identifier(for: Self.firstPath)) != nil)
+      #expect(harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath)) != nil)
       #expect(harness.element(identifier: DiffView.acceptIdentifier(for: 0)) == nil)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
       #expect(harness.element(identifier: DiffView.attachIdentifier) == nil)
@@ -310,7 +310,7 @@
       let harness = DiffHarness.mount(DiffView(diff: Self.structuredDiff), size: Self.tallSize)
       defer { harness.close() }
 
-      let file = harness.element(identifier: DiffView.identifier(for: "/p/new.swift"))
+      let file = harness.element(identifier: DiffFileChip.identifier(for: "/p/new.swift"))
       #expect(file?.label == "Added Swift file")
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) != nil)
       #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
@@ -323,7 +323,7 @@
       let harness = DiffHarness.mount(DiffView(diff: diff), size: Self.tallSize)
       defer { harness.close() }
 
-      let first = harness.element(identifier: DiffView.identifier(for: Self.firstPath))
+      let first = harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath))
       #expect(first?.label == "Swift diff, +2 \u{2212}1")
       #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) == nil)

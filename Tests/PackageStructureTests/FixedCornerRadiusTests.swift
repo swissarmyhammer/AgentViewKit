@@ -133,8 +133,9 @@ import Testing
   /// - Returns: `<file>:<line>` for each match.
   /// - Throws: The error of the scan when a file cannot be read.
   static func kitCodeMatches(_ match: (SourceLine) -> [String]) throws -> [String] {
-    try SourceLineScanner.codeMatches(
-      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root, match: match)
+    try KitSourceFiles.scanLibraryFiles { directory in
+      try SourceLineScanner.codeMatches(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, match: match)
+    }
   }
 
   @Test func theScanFindsEachRoundedRectangleAndRectWithACornerRadius() {

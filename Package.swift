@@ -2,11 +2,18 @@
 //
 // AgentViewKit: a SwiftUI agent UI component library (plan.md).
 //
-// plan.md §11 decision 1: one library product and one library target. The
-// `AgentViewKit` target holds the views and the ACP helpers in
-// `Sources/AgentViewKit/ACP/`. The views bind directly to the models of
-// FoundationModelsACPClient. The target links FoundationModelsACP and
-// FoundationModelsACPClient directly.
+// plan.md §11 decision 1: two library products. The `AgentViewKit` target
+// holds the views and the ACP helpers in `Sources/AgentViewKit/ACP/`. The
+// views bind directly to the models of FoundationModelsACPClient. The target
+// links FoundationModelsACP and FoundationModelsACPClient directly.
+//
+// AgentViewKit is the shared visual layer of the view kits (user decision,
+// 2026-10-28). The `AgentViewKitStyle` target holds the shared look: the
+// content tile, the selectable surface, the shared symbols, the file chips,
+// the status bar and the diff renderer setup. It links only EditorKit, and
+// no ACP product, so that SnapshotViewKit and KanbanViewKit link it with no
+// ACP package in their closure. The `AgentViewKit` target links it and keeps
+// no copy of it.
 //
 // The kit is an ACP client kit. It does not depend on FoundationModels,
 // FoundationModelsRouter or FoundationModelsExtras. A FoundationModels agent
@@ -52,6 +59,18 @@ let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorStyle", package: "EditorKit"),
 ]
 
+/// The EditorKit products that the style target links: the shared style and
+/// the theme, the SwiftUI views and the diff parser of the diff renderer, and
+/// the focus segment of a scope kind. None of them links an ACP product.
+/// `AgentViewKitStyleClosureTests` checks the closure of this list.
+let styleEditorKitProducts: [Target.Dependency] = [
+  .product(name: "EditorStyle", package: "EditorKit"),
+  .product(name: "EditorTheme", package: "EditorKit"),
+  .product(name: "EditorSwiftUI", package: "EditorKit"),
+  .product(name: "EditorDiff", package: "EditorKit"),
+  .product(name: "EditorCommands", package: "EditorKit"),
+]
+
 /// The ACP products: the wire types and the client connection. The kit
 /// target links them directly (plan.md §11 decision 1).
 let acpProducts: [Target.Dependency] = [
@@ -84,6 +103,13 @@ let editorKitTestSupportProducts: [Target.Dependency] = [
   .product(name: "EditorTestSupport", package: "EditorKit"),
 ]
 
+/// The EditorKit test support product that the style tests link: the hosted
+/// window and accessibility helpers. The recording command system is not in
+/// it, because no style view registers a command.
+let styleTestSupportProducts: [Target.Dependency] = [
+  .product(name: "EditorTestSupport", package: "EditorKit")
+]
+
 /// The Markdown renderer (plan.md §4.2). Docs/decisions/dependencies.md
 /// records the product name and the version.
 let textualProducts: [Target.Dependency] = [
@@ -105,6 +131,7 @@ let package = Package(
   ],
   products: [
     .library(name: "AgentViewKit", targets: ["AgentViewKit"]),
+    .library(name: "AgentViewKitStyle", targets: ["AgentViewKitStyle"]),
   ],
   dependencies: [
     // The in-family packages use the SSH URL and `branch: "main"`, as each
@@ -122,12 +149,24 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/swiftui-math", exact: "0.1.0"),
   ],
   targets: [
+    // The shared look of the view kits. It links only EditorKit: no ACP
+    // product, no Textual and no math engine. ImportBoundaryTests holds its
+    // imports, and AgentViewKitStyleClosureTests holds its dependency
+    // closure. The string catalog holds its own English text.
+    .target(
+      name: "AgentViewKitStyle",
+      dependencies: styleEditorKitProducts,
+      resources: [
+        .process("Resources/Localizable.xcstrings")
+      ],
+      swiftSettings: mainActorIsolated
+    ),
     // The views and the ACP helpers. No target imports
     // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
     // ImportBoundaryTests enforces this.
     .target(
       name: "AgentViewKit",
-      dependencies: editorKitProducts + acpProducts + textualProducts + mathEngineProducts,
+      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts + mathEngineProducts,
       // The TextMate grammars of GrammarBundle, and their licenses. The string
       // catalog holds the English source text of each localized string of
       // the kit. Each `String(localized:)` call and each SwiftUI text key of
@@ -158,8 +197,8 @@ let package = Package(
     // The scripted in-memory ACP agent, the agent starter of the demo app
     // (`DemoAgent`), and the launch options of the demo app. The ACP tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
-    // sources into the app. The target is not a product, because the package
-    // has exactly one library product (plan.md §11 decision 1). It links
+    // sources into the app. The target is not a product: the two library
+    // products are the kit and its style (plan.md §11 decision 1). It links
     // FoundationModelsACPAgent for the agent of the ACP tab and of the
     // Gallery tab, which runs in the process of the app.
     .target(
@@ -176,6 +215,7 @@ let package = Package(
       name: "AgentViewKitTests",
       dependencies: [
         "AgentViewKit",
+        "AgentViewKitStyle",
         "AgentViewKitTestSupport",
         // The scripted wire agent and the in-memory demo agent of the ACP
         // tests.
@@ -191,6 +231,15 @@ let package = Package(
       // The snapshot tests read their reference PNG images from disk
       // (AVK-13), so the build excludes that folder.
       exclude: ["Snapshots/__Snapshots__"],
+      swiftSettings: mainActorIsolated
+    ),
+    // The tests of the public API of the style library. No file imports it
+    // with `@testable`, so each test reads only what a host of the product
+    // reads. It links no ACP product and no target of the kit, and it hosts
+    // its views with the window helpers of EditorKit.
+    .testTarget(
+      name: "AgentViewKitStyleTests",
+      dependencies: ["AgentViewKitStyle"] + styleEditorKitProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
     // Reads the package files as text. It links only PackageFileSupport,

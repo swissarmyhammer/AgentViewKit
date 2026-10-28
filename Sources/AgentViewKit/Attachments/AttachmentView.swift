@@ -101,7 +101,7 @@ public struct AttachmentView: View {
   /// The corners that the shown surface of the default renderer reports
   /// (``AttachmentSurfaceCornersKey``), or `nil` while no surface reports
   /// them.
-  @State private var shownCorners: AgentSurfaceCorners?
+  @State private var shownCorners: SurfaceCorners?
 
   public var body: some View {
     renderedFile
@@ -119,7 +119,7 @@ public struct AttachmentView: View {
   /// both when the default renderer is the chip and when a preview that
   /// cannot load its file shows the chip in its place. Only the value of the
   /// corners changes, so the view keeps its identity and its state.
-  private var surfaceCorners: AgentSurfaceCorners {
+  private var surfaceCorners: SurfaceCorners {
     guard registry.resolve(type: attachment.type) == nil else { return .square }
     return shownCorners ?? .square
   }
@@ -152,14 +152,14 @@ public struct AttachmentView: View {
 ///
 /// The value is `nil` when no surface in the view reports its corners.
 struct AttachmentSurfaceCornersKey: PreferenceKey {
-  static var defaultValue: AgentSurfaceCorners? { nil }
+  static var defaultValue: SurfaceCorners? { nil }
 
   /// Keeps the first corners that a surface reports.
   ///
   /// - Parameters:
   ///   - value: The corners of the surfaces so far.
   ///   - nextValue: The corners of the next surface.
-  static func reduce(value: inout AgentSurfaceCorners?, nextValue: () -> AgentSurfaceCorners?) {
+  static func reduce(value: inout SurfaceCorners?, nextValue: () -> SurfaceCorners?) {
     value = value ?? nextValue()
   }
 }
@@ -175,7 +175,7 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
 /// text of the view stays `.primary`.
 ///
 /// The surface has the corners of the view, the same corners that the focus
-/// ring of its attachment scope follows (``AgentSurfaceCorners``), and a tap
+/// ring of its attachment scope follows (``SurfaceCorners``), and a tap
 /// lands in the same shape (``SelectableSurface``). The corners of an
 /// ``AttachmentView`` change when its preview shows the chip, and only the
 /// value of the radius changes, so the view keeps its identity and its state.
@@ -187,7 +187,7 @@ struct InspectorSelectable: ViewModifier {
   let file: Attachment
 
   /// The corners of the surface of the view.
-  let corners: AgentSurfaceCorners
+  let corners: SurfaceCorners
 
   /// The action that selects the file for the inspector.
   let action: () -> Void

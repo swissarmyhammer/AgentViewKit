@@ -373,7 +373,7 @@ public struct ToolCallView: View {
     // hidden child keeps SwiftUI from merging the call into the row, so the
     // call keeps its identifier. See `contentContainer(identifier:)`.
     .background { Color.clear.accessibilityHidden(true) }
-    .agentItemScope(AgentScopeKind.toolCall(entry.toolCallId), subject: entry)
+    .agentItemScope(AgentScopeKind.toolCall(entry.toolCallId.rawValue), subject: entry)
   }
 }
 
@@ -569,11 +569,12 @@ struct ToolCallBody: View, Equatable {
   /// - Returns: The body view.
   private func defaultBody(id: String) -> some View {
     let parts = entry.parts
-    let locations = Self.locations(entry.locations, notShownBy: parts)
+    let locations = Self.chipLocations(entry.locations, notShownBy: parts, id: id)
     let showsCommandOutput = entry.shownKind == .execute && !parts.contains(where: \.isTerminal)
     return VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
       if !locations.isEmpty {
-        ToolCallLocationChips(locations: locations, id: id)
+        ToolCallLocationChips(locations: locations)
+          .toolCallLocationChipStyle(AgentLocationChipStyle())
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
       }
       if let rawInput = entry.rawInput {
@@ -596,20 +597,29 @@ struct ToolCallBody: View, Equatable {
   /// ``DiffView`` file chip, so a location of the same file has no location
   /// chip. See ``DiffSummary/FileSummary/hasPath(_:)``.
   ///
+  /// Each chip keeps the position of its location in `locations` in its
+  /// identifier (``locationIdentifier(for:index:)``), so the identifier of a
+  /// chip stays the same when the call hides another location.
+  ///
   /// - Parameters:
   ///   - locations: The locations of the entry.
   ///   - parts: The parts of the content of the entry.
-  /// - Returns: The other locations, each with its position in `locations`.
-  static func locations(
-    _ locations: [FoundationModelsACP.ToolCallLocation], notShownBy parts: [ToolCallPart]
-  ) -> [ToolCallLocationChips.Indexed] {
+  ///   - id: The row key of the entry, for the identifier of each chip.
+  /// - Returns: The chip location of each other location, in order.
+  static func chipLocations(
+    _ locations: [FoundationModelsACP.ToolCallLocation], notShownBy parts: [ToolCallPart], id: String
+  ) -> [ToolCallLocationChips.Location] {
     let diffFiles = parts.flatMap { part -> [DiffSummary.FileSummary] in
       guard case .diff(let diff) = part else { return [] }
       return DiffSummary.files(of: diff)
     }
-    return locations.enumerated().filter { _, location in
-      !diffFiles.contains { $0.hasPath(location.path.rawValue) }
-    }
+    return locations.enumerated()
+      .filter { _, location in !diffFiles.contains { $0.hasPath(location.path.rawValue) } }
+      .map { index, location in
+        ToolCallLocationChips.Location(
+          path: location.path.rawValue, line: location.line,
+          identifier: ToolCallView.locationIdentifier(for: id, index: index))
+      }
   }
 
   /// A JSON value as a code block. The header shows the title.

@@ -11,7 +11,12 @@ nonisolated extension MenuPath {
   public static let session: MenuPath = "Session"
 }
 
-/// The kinds of the focus segments of the agent command scopes.
+/// The kinds of the focus segments of the agent command scopes of the kit.
+///
+/// The kind of the scope of a tool call, ``toolCall``, and its segment are in
+/// the style library, so that another kit names a tool call scope with no ACP
+/// product. This extension adds the kinds whose segments take a subject of
+/// the kit.
 ///
 /// An ``AgentThreadView`` adds the segment `agentThread:<sessionId>`. In that
 /// scope, each message row adds `agentMessage:<rowKey>`, each permission
@@ -54,7 +59,7 @@ nonisolated extension MenuPath {
 /// ```swift
 /// @FromTarget(kind: AgentScopeKind.message) var entry: TranscriptEntry?
 /// ```
-public nonisolated enum AgentScopeKind {
+nonisolated extension AgentScopeKind {
   /// The kind of the scope of a thread.
   public static let thread = "agentThread"
 
@@ -63,9 +68,6 @@ public nonisolated enum AgentScopeKind {
 
   /// The kind of the scope of a permission request card.
   public static let request = "agentRequest"
-
-  /// The kind of the scope of a tool call card.
-  public static let toolCall = "agentToolCall"
 
   /// The kind of the scope of an attachment: a chip, an image, an artifact
   /// file or the attachment inspector.
@@ -95,18 +97,6 @@ public nonisolated enum AgentScopeKind {
   /// - Returns: The segment `agentRequest:<uuidString>`.
   static func request(_ id: PendingPermissionRequest.ID) -> FocusSegment {
     FocusSegment(kind: request, id: id.uuidString)
-  }
-
-  /// The segment of the scope of a tool call card.
-  ///
-  /// The id is the ACP `toolCallId`, and not the row key of the entry, so
-  /// that another kit can name the same tool call. For example, a checkpoint
-  /// of SnapshotViewKit names its tool call by that id.
-  ///
-  /// - Parameter id: The ACP `toolCallId` of the tool call.
-  /// - Returns: The segment `agentToolCall:<toolCallId>`.
-  static func toolCall(_ id: ToolCallId) -> FocusSegment {
-    FocusSegment(kind: toolCall, id: id.rawValue)
   }
 
   /// The segment of the scope of an attachment.

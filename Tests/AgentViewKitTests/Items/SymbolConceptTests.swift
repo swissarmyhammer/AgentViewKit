@@ -108,7 +108,7 @@ import Testing
       (.info, .information), (.warning, .warning), (.error, .error), (.unknown("custom"), .unknown),
     ]
     let connection: [(ConnectionState, Concept)] = [(.disconnected, .disconnected), (.failed(ReadFailure()), .error)]
-    let stream: [(StateBanner.Message, Concept)] = [
+    let stream: [(StatusBar.Message, Concept)] = [
       (SessionStreamBanner.closedMessage, .closed), (SessionStreamBanner.replayingMessage, .replaying),
       (SessionStreamBanner.missedUpdatesMessage, .warning),
       (SessionStreamBanner.partialHistoryMessage, .partialHistory),
@@ -162,7 +162,7 @@ import Testing
       (.renamed(from: "old.swift"), .renamedFile), (.copied(from: "old.swift"), .copiedFile),
       (.unknown("custom"), .unknown),
     ]
-    return operations.map { Use(concept: $1, place: "diff \($0)", name: DiffView.symbolName(for: $0)) }
+    return operations.map { Use(concept: $1, place: "diff \($0)", name: DiffFileChip.symbolName(for: $0)) }
   }
 
   /// The symbols of the footer of a command output and of a terminal.

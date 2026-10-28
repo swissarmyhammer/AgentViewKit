@@ -38,7 +38,6 @@ import Testing
   static let controlFiles = [
     KitSourceFiles.kitFile("Connections/AgentAuthView.swift"),
     KitSourceFiles.kitFile("Status/SessionNoticeBanner.swift"),
-    KitSourceFiles.statusBarFile,
     GlassForm.scrollPillFile,
     GlassForm.sendButtonFile,
     KitSourceFiles.kitFile("Input/SpeechInputButton.swift"),
@@ -57,6 +56,7 @@ import Testing
       KitSourceFiles.kitFile("Connections/AgentLoginPrompt.swift"),
       KitSourceFiles.kitFile("Status/SessionStreamBanner.swift"),
       KitSourceFiles.kitFile("Status/StateBanner.swift"),
+      GlassForm.statusBarActionStyleFile,
       ComposerGlassStructureTests.composerFile,
       ComposerGlassStructureTests.editorFile,
       KitSourceFiles.kitFile("Input/DefaultThreadComposer.swift"),
@@ -64,6 +64,12 @@ import Testing
 
   /// The code text of the call of the editor slot in the composer.
   static let editorSlotCall = "editor(context)"
+
+  /// The code text of the button of a status bar in the style of the kit.
+  /// The status bar of the style library builds the button with no scope,
+  /// and shows it through the style of the environment, so the kit style
+  /// (``GlassForm/statusBarActionStyleFile``) gives the button its scope.
+  static let statusBarButtonExpression = "configuration.button"
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
@@ -128,6 +134,41 @@ import Testing
       after: BarControlScan.expressionEnd(from: call.upperBound, in: code), in: code)
 
     #expect(modifiers.contains(Self.scopeModifier), "\(modifiers)")
+  }
+
+  /// The status bar of the style library draws its button with no control
+  /// of its own: the button comes from the style of the environment, which
+  /// the kit sets in each view that shows a bar.
+  @Test func theStatusBarBuildsNoControlOutsideItsActionStyle() throws {
+    #expect(try Self.controlCalls(in: KitSourceFiles.statusBarFile).isEmpty)
+  }
+
+  /// The kit style of the status bar button gives the button its scope, so
+  /// the button of each bar of a thread is an EditorKit jump target.
+  @Test func theButtonOfTheStatusBarHasItsScopeInTheStyleOfTheKit() throws {
+    let code = try ThreadBottomBarStructureTests.code(of: GlassForm.statusBarActionStyleFile)
+    let button = try #require(code.range(of: Self.statusBarButtonExpression))
+
+    let modifiers = BarControlScan.modifierNames(
+      after: BarControlScan.expressionEnd(from: button.upperBound, in: code), in: code)
+
+    #expect(modifiers.contains(Self.scopeModifier), "\(modifiers)")
+  }
+
+  /// The code text that sets the kit style of the status bar button.
+  static let kitStatusBarStyleCall = "statusBarActionStyle(AgentStatusBarActionStyle())"
+
+  /// Each file of the kit that shows a status bar sets the kit style of its
+  /// button, so the button has its scope and the button style of its place.
+  @Test func eachKitFileThatShowsAStatusBarSetsTheKitStyleOfItsButton() throws {
+    let files = try PackageFiles.swiftFileTexts(
+      below: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root)
+    let codes = try files.map { file in (path: file.path, code: try ThreadBottomBarStructureTests.code(of: file.path)) }
+    let barFiles = codes.filter { $0.code.contains(GlassForm.callPattern("StatusBar")) }
+    let unstyled = barFiles.filter { !$0.code.contains(Self.kitStatusBarStyleCall) }.map(\.path)
+
+    #expect(!barFiles.isEmpty)
+    #expect(unstyled.isEmpty, "Set .\(Self.kitStatusBarStyleCall) on the bar: \(unstyled)")
   }
 
   @Test func theScanReportsEachUnscopedControlOfTheFixture() throws {

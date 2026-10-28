@@ -35,19 +35,30 @@ import Testing
     KitSourceFiles.kitFile("Citations/SourcesView.swift"): "A list of source rows.",
     KitSourceFiles.kitFile("Connections/AgentInfoHeader.swift"): "The glass header of the thread: a bar.",
     KitSourceFiles.kitFile("Connections/ConnectionRow.swift"): "A list row.",
-    KitSourceFiles.kitFile("Diff/DiffFileChip.swift"): "A small chip.",
     KitSourceFiles.kitFile("Elicitation/ElicitationTabChip.swift"): "A small chip.",
     KitSourceFiles.kitFile("Input/AgentOneLineField.swift"): "A text field.",
     KitSourceFiles.kitFile("Input/EditorKitPromptEditor.swift"): "The prompt editor of the composer.",
     KitSourceFiles.kitFile("Input/PromptInputView.swift"): "The composer: a bar.",
-    KitSourceFiles.kitFile("Items/ToolCallLocationChips.swift"): "Small chips.",
     KitSourceFiles.kitFile("Sessions/PendingRequestCountBadge.swift"): "A small badge.",
     KitSourceFiles.kitFile("Sessions/SessionListView.swift"): "A list of sessions.",
     KitSourceFiles.kitFile("Status/TaskListView.swift"): "A list of plan rows.",
     KitSourceFiles.kitFile("Thread/AgentThreadView.swift"): "The bars of the thread.",
     KitSourceFiles.kitFile("Thread/ConversationEmptyState.swift"): "The empty state of the list.",
     KitSourceFiles.kitFile("Thread/ConversationView.swift"): "The list of the transcript.",
+    KitSourceFiles.styleFile("Chips/ToolCallLocationChips.swift"): "Small chips.",
+    KitSourceFiles.styleFile("Diff/DiffFileChip.swift"): "A small chip.",
   ]
+
+  /// The Swift files of the kit and of its style library, each with its
+  /// text: a rule of the tiles of the kit is a rule of the style views too.
+  ///
+  /// - Returns: The files, in the order of ``KitSourceFiles/libraryPaths``.
+  /// - Throws: The error of the scan when a directory cannot be read.
+  static func libraryFileTexts() throws -> [(path: String, text: String)] {
+    try KitSourceFiles.scanLibraryFiles { directory in
+      try PackageFiles.swiftFileTexts(below: directory, relativeTo: PackageFiles.root)
+    }
+  }
 
   /// The text that starts a preview.
   static let previewMacro = "#Preview"
@@ -271,8 +282,7 @@ import Testing
   }
 
   @Test func theKitAddsNoTokenOfItsOwnToTheStyle() throws {
-    let files = try PackageFiles.swiftFileTexts(
-      below: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root)
+    let files = try Self.libraryFileTexts()
     let found = files.flatMap { file in Self.styleExtensions(in: file.text, file: file.path) }
 
     #expect(found.isEmpty, "Read the tile tokens of EditorKit's EditorStyle; add none in the kit: \(found)")
@@ -296,8 +306,7 @@ import Testing
   }
 
   @Test func noTileFileGivesAPaddingOfItsOwn() throws {
-    let files = try PackageFiles.swiftFileTexts(
-      below: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root)
+    let files = try Self.libraryFileTexts()
     let found = files.filter { Self.nonTileFiles[$0.path] == nil }.flatMap { file in
       Self.ownPaddings(in: file.text, file: file.path)
     }
@@ -306,10 +315,7 @@ import Testing
   }
 
   @Test func eachFileOfTheNonTileListIsInTheKit() throws {
-    let files = Set(
-      try PackageFiles.swiftFileTexts(
-        below: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root
-      ).map(\.path))
+    let files = Set(try Self.libraryFileTexts().map(\.path))
 
     let missing = Self.nonTileFiles.keys.filter { !files.contains($0) }.sorted()
 

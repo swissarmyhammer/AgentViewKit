@@ -50,7 +50,7 @@ enum ContentFillForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
   /// The files that can use ``backgroundInShape``, relative to the package
   /// root, each with the reason.
   static let backgroundInShapeFiles = [
-    KitSourceFiles.kitFile("Items/ToolCallLocationChips.swift"): "The capsule fill of a tool call badge: a small chip.",
+    KitSourceFiles.styleFile("Chips/ToolCallLocationChips.swift"): "The capsule fill of a tool call badge: a small chip.",
     KitSourceFiles.kitFile("Attachments/AttachmentChip.swift"): "The fill of an attachment chip: a small chip.",
     KitSourceFiles.kitFile("Sessions/PendingRequestCountBadge.swift"):
       "The capsule fill of the pending-request badge: a small chip.",

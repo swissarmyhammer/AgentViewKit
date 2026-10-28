@@ -78,9 +78,10 @@ import Testing
   }
 
   @Test func noKitViewGivesATernaryStringLiteralKey() throws {
-    let found = try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root,
-      match: Self.ternaryKeyUses(on:))
+    let found = try KitSourceFiles.scanLibraryFiles { directory in
+      try SourceLineScanner.matches(
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, match: Self.ternaryKeyUses(on:))
+    }
 
     #expect(found.isEmpty, "Give each branch as String(localized:bundle: .module): \(found)")
   }

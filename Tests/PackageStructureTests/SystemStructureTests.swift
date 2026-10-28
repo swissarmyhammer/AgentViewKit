@@ -135,8 +135,8 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
 ///   banner and prompt in its bar, so this suite does not check them again.
 @Suite struct SystemStructureTests {
   /// The directories that the scan reads, relative to the package root: the
-  /// kit, the demo support and the demo.
-  static let scanPaths = [KitSourceFiles.kitPath, "Sources/DemoSupport", "Examples/AgentViewKitDemo"]
+  /// kit, its style library, the demo support and the demo.
+  static let scanPaths = KitSourceFiles.libraryPaths + ["Sources/DemoSupport", "Examples/AgentViewKitDemo"]
 
   /// The file of the side panel of the kit, which shows an attachment in the
   /// system inspector.

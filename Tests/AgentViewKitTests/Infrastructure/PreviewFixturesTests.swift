@@ -281,9 +281,9 @@ import Testing
 
     #expect(messages.count == PreviewFixtures.agentStates.count)
     #expect(Set(messages.map(\.identifier)).count == messages.count)
-    #expect(messages.contains { $0.isFailure })
+    #expect(messages.contains { $0.severity == .failure })
     #expect(messages.contains { $0.isOngoing })
-    #expect(messages.contains { !$0.isFailure && !$0.isOngoing })
+    #expect(messages.contains { $0.severity == .neutral && !$0.isOngoing })
   }
 
   @Test func theLongStatusMessageIsLongerThanEachStatusMessage() {
@@ -296,7 +296,7 @@ import Testing
   @Test func theFailedTurnStatusMessageIsTheFailureOfAnIdleStateWithAnError() {
     let message = PreviewFixtures.failedTurnStatusMessage
 
-    #expect(message.isFailure)
+    #expect(message.severity == .failure)
     #expect(message.identifier == StateBanner.failedTurnIdentifier)
   }
 

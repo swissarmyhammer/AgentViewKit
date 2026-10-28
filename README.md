@@ -41,7 +41,10 @@ The package is pre-1.0 and has no tag. Depend on the `main` branch:
 .package(url: "git@github.com:swissarmyhammer/AgentViewKit.git", branch: "main")
 ```
 
-Then link the kit. The one product holds the views and the ACP helpers:
+Then link the kit. The package has two library products. `AgentViewKit`
+holds the views and the ACP helpers, and re-exports `AgentViewKitStyle`.
+`AgentViewKitStyle` holds only the shared look and links only EditorKit. An
+app links `AgentViewKit`:
 
 ```swift
 .target(

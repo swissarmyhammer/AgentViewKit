@@ -66,7 +66,7 @@ enum ThemeInjectionForm: String, CaseIterable, CustomTestStringConvertible, Send
     switch self {
     case .tintModifier, .glassTint, .tintShapeStyle, .prominentButtonStyle, .themeAccent:
       SystemStructureTests.scanPaths
-    case .themeInjection, .themeValue, .themeType: [KitSourceFiles.kitPath]
+    case .themeInjection, .themeValue, .themeType: KitSourceFiles.libraryPaths
     }
   }
 

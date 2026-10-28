@@ -93,30 +93,7 @@ nonisolated extension DiffSummary {
   }
 }
 
-nonisolated extension DiffSummary.Operation {
-  /// The word that tells the operation, such as "Added".
-  ///
-  /// An operation that the kit does not know gives "Changed".
-  public var label: String {
-    switch self {
-    case .added: String(localized: "Added", bundle: .module)
-    case .deleted: String(localized: "Deleted", bundle: .module)
-    case .modified: String(localized: "Modified", bundle: .module)
-    case .renamed: String(localized: "Renamed", bundle: .module)
-    case .copied: String(localized: "Copied", bundle: .module)
-    case .unknown: String(localized: "Changed", bundle: .module)
-    }
-  }
-}
-
 nonisolated extension DiffSummary.FileSummary {
-  /// The label that VoiceOver reads for a file of a diff with no patch text.
-  ///
-  /// The label is "<operation> <language> file", such as "Added Swift file".
-  public var changeAccessibilityLabel: String {
-    String(localized: "\(operation.label) \(language) file", bundle: .module)
-  }
-
   /// The separator of the components of a path.
   static let pathSeparator = "/"
 

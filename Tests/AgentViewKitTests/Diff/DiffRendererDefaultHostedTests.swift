@@ -62,7 +62,7 @@
       defer { harness.close() }
 
       #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
-      #expect(harness.element(identifier: DiffView.unreadablePatchIdentifier) == nil)
+      #expect(harness.element(identifier: EditorKitDiffRenderer.unreadablePatchIdentifier) == nil)
     }
 
     @Test func theInlineLayoutHasNoColumns() {
@@ -97,7 +97,7 @@
       let harness = Self.mount(DiffView(patch: Self.unreadablePatch))
       defer { harness.close() }
 
-      let row = harness.element(identifier: DiffView.unreadablePatchIdentifier)
+      let row = harness.element(identifier: EditorKitDiffRenderer.unreadablePatchIdentifier)
       #expect(row?.label == "Cannot read the patch at line 3")
       #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
     }

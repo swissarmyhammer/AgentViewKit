@@ -57,6 +57,13 @@ The owner made these decisions on 2026-10-02:
 - **One product.** The package has one library product and one library
   target, `AgentViewKit`. The `AgentViewKitACP` target is merged into it.
   The FoundationModels target and the Router target of the kit are removed.
+  On 2026-10-28 the owner decided that AgentViewKit is the shared visual
+  layer of the view kits. The package now has two library products,
+  `AgentViewKit` and `AgentViewKitStyle`. `AgentViewKitStyle` holds the
+  shared look and links only EditorKit products: no ACP package, no Textual
+  and no swiftui-math. `AgentViewKit` holds the views and the ACP helpers,
+  depends on `AgentViewKitStyle` and re-exports it. SnapshotViewKit and
+  KanbanViewKit link only `AgentViewKitStyle` (plan.md §11 decision 1).
 - **Keep Textual and swiftui-math.** Textual renders Markdown, and
   swiftui-math renders math. They stay as UI dependencies.
 - **Remove branches, checkpoints, subagents and compaction markers now.** ACP

@@ -140,9 +140,10 @@ struct GlassButtonShapeLine {
   }
 
   @Test func eachGlassButtonOfTheSmallFloatingControlsHasACapsuleOrACircle() throws {
-    let found = try Self.unshapedStyles(
-      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root,
-      isInScope: Self.isSmallFloatingControl)
+    let found = try KitSourceFiles.scanLibraryFiles { directory in
+      try Self.unshapedStyles(
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, isInScope: Self.isSmallFloatingControl)
+    }
 
     #expect(found.isEmpty, "A glass button has no capsule or circle border shape: \(found)")
   }

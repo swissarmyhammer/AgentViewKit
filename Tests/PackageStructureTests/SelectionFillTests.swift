@@ -172,7 +172,7 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
   /// The one file that applies the shared selection surface of EditorKit:
   /// the kit modifier `.selectableSurface`, which pairs the surface with the
   /// hit and focus shape of the same corners.
-  static let selectableSurfaceFile = KitSourceFiles.kitFile("Theme/SelectableSurface.swift")
+  static let selectableSurfaceFile = KitSourceFiles.styleFile("Theme/SelectableSurface.swift")
 
   /// The pattern that finds a call of the shared selection surface of
   /// EditorKit, in either of its forms.
@@ -190,9 +190,10 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
   }
 
   @Test func theSharedSelectableSurfaceAppliesTheSelectionSurface() throws {
-    let found = try SourceLineScanner.codeMatchStarts(
-      of: Self.selectionSurfaceCall, inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
-      relativeTo: PackageFiles.root)
+    let found = try KitSourceFiles.scanLibraryFiles { directory in
+      try SourceLineScanner.codeMatchStarts(
+        of: Self.selectionSurfaceCall, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+    }
 
     #expect(
       found.contains { $0.hasPrefix("\(Self.selectableSurfaceFile):") },

@@ -22,7 +22,7 @@ public struct AttachmentChip: View {
   /// the chip and the focus ring of its scope both have them. The chip
   /// reports them (``AttachmentSurfaceCornersKey``), so the scope of an
   /// ``AttachmentView`` that shows the chip has them too.
-  static let corners = AgentSurfaceCorners.rounded(.medium)
+  static let corners = SurfaceCorners.rounded(.medium)
 
   /// The attached file.
   let attachment: Attachment

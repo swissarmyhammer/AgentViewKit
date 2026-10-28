@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// A layout that puts its views in rows, and starts a new row when a view
@@ -5,19 +6,41 @@ import SwiftUI
 ///
 /// Each view gets its ideal size, at most the width of a row, so a chip
 /// wider than the row truncates its own text. The location chips of a tool
-/// call and the file chips of a ``DiffView`` use it.
-struct ChipFlowLayout: Layout {
+/// call (``ToolCallLocationChips``) and the file chips of a diff
+/// (``DiffFileChip``) use it.
+public struct ChipFlowLayout: Layout {
   /// The space between two views, and between two rows.
   let spacing: CGFloat
 
-  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+  /// Makes the layout.
+  ///
+  /// - Parameter spacing: The space between two views, and between two rows.
+  public init(spacing: CGFloat) {
+    self.spacing = spacing
+  }
+
+  /// The size of the rows of `subviews` in the width of `proposal`.
+  ///
+  /// - Parameters:
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The views to arrange.
+  ///   - cache: No cache.
+  /// - Returns: The width of the widest row, and the height of all rows.
+  public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
     let frames = arrange(subviews, width: proposal.width ?? .infinity)
     let width = frames.map(\.maxX).max() ?? 0
     let height = frames.map(\.maxY).max() ?? 0
     return CGSize(width: width, height: height)
   }
 
-  func placeSubviews(
+  /// Places each view of `subviews` in its row.
+  ///
+  /// - Parameters:
+  ///   - bounds: The frame of the layout.
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The views to place.
+  ///   - cache: No cache.
+  public func placeSubviews(
     in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
   ) {
     let frames = arrange(subviews, width: bounds.width)
@@ -52,4 +75,14 @@ struct ChipFlowLayout: Layout {
     }
     return frames
   }
+}
+
+#Preview("Chips in rows that wrap") {
+  ChipFlowLayout(spacing: EditorStyle.default.spacing.xs) {
+    ForEach(StylePreviewFixtures.chipTitles, id: \.self) { title in
+      Text(title)
+    }
+  }
+  .frame(width: StylePreviewFixtures.narrowWidth)
+  .padding()
 }

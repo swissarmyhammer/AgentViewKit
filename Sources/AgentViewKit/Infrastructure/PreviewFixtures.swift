@@ -369,20 +369,20 @@ enum PreviewFixtures {
   /// The messages show each look of the bar: the symbol of a failure in the
   /// error color, the symbol of work that goes on with its live effect, and
   /// each other symbol in the secondary style.
-  static var statusMessages: [StateBanner.Message] {
+  static var statusMessages: [StatusBar.Message] {
     agentStates.map(StateBanner.message(for:))
   }
 
   /// The message of the status bar for an idle state with the stop reason
   /// `error`: the failure that the Show Error button of the state banner
   /// goes with.
-  static var failedTurnStatusMessage: StateBanner.Message {
+  static var failedTurnStatusMessage: StatusBar.Message {
     StateBanner.message(for: .idle(IdleStateUpdate(stopReason: .error)))
   }
 
-  /// A status message whose title and explanation are longer than the
+  /// A failure message whose title and explanation are longer than the
   /// texts of each of ``statusMessages``, so that the bar wraps them.
-  static let longStatusMessage = StateBanner.Message(
+  static let longStatusMessage = StatusBar.Message(
     title: "The agent stopped because the package registry refused the credentials of the build service",
     explanation: """
       The agent reported this failure: the registry at packages.example.com answered 401 Unauthorized \
@@ -390,7 +390,7 @@ enum PreviewFixtures {
       request again.
       """,
     symbolName: SharedSymbol.error,
-    identifier: "preview-status-long")
+    identifier: "preview-status-long", severity: .failure)
 
   /// The width of a narrow column, in points. A status bar or a sign-in card
   /// in this column wraps its long texts, such as ``longStatusMessage`` and

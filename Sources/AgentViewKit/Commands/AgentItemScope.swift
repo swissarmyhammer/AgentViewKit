@@ -24,8 +24,8 @@ import SwiftUI
 /// EditorKit beacon of the scope takes the focus that a move or a jump puts
 /// on the item, and draws the system focus ring over the item.
 /// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of the surface
-/// of the item (``AgentSurfaceCorners``): by default the corners of a card
-/// of the kit (``AgentSurfaceCorners/card``). A `.focusEffectDisabled()` above
+/// of the item (``SurfaceCorners``): by default the corners of a card
+/// of the kit (``SurfaceCorners/card``). A `.focusEffectDisabled()` above
 /// the item turns the ring off. When `isTargetable` is
 /// `false`, for example on a deck card that does not show whole,
 /// `.targetable(false)` removes the item from the jump labels and from the
@@ -46,7 +46,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
   let isTargetable: Bool
 
   /// The corners of the focus ring that the beacon of the scope draws.
-  let focusRingCorners: AgentSurfaceCorners
+  let focusRingCorners: SurfaceCorners
 
   @Environment(\.agentCommandSystem) private var system
   @Environment(\.editorStyle) private var editorStyle
@@ -80,42 +80,11 @@ extension View {
   /// - Returns: A view in the scope of the item.
   func agentItemScope(
     _ segment: FocusSegment, subject: some Sendable, isTargetable: Bool = true,
-    focusRingCorners: AgentSurfaceCorners = .card
+    focusRingCorners: SurfaceCorners = .card
   ) -> some View {
     modifier(
       AgentItemScope(
         segment: segment, subject: subject, isTargetable: isTargetable, focusRingCorners: focusRingCorners))
-  }
-}
-
-/// The corners of the surface of an item, which the focus ring of its scope
-/// (``AgentItemScope``) follows.
-///
-/// The corners name a step of the radius scale of `\.editorStyle`, or square
-/// corners for a surface that is not rounded, such as an image. A view that
-/// draws its surface from the same value keeps the surface and the ring in
-/// step.
-enum AgentSurfaceCorners: Equatable, Sendable {
-  /// Corners of a step of the radius scale, for example `.medium` for
-  /// `EditorStyle.Radii.m`.
-  case rounded(EditorStyle.Radius)
-
-  /// Square corners: the surface and its ring are rectangles.
-  case square
-
-  /// The corners of a card of the kit: the large radius of the scale, the
-  /// least corner of `.inlineEdge(radius:)` on a card.
-  static let card = AgentSurfaceCorners.rounded(.large)
-
-  /// The corner radius in `style`.
-  ///
-  /// - Parameter style: The shared style that gives the radius scale.
-  /// - Returns: The radius of the step, or zero for square corners.
-  func radius(in style: EditorStyle) -> CGFloat {
-    switch self {
-    case .rounded(let step): style.radii[step]
-    case .square: .zero
-    }
   }
 }
 

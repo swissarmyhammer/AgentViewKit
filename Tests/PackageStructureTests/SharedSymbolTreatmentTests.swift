@@ -17,7 +17,7 @@ import Testing
 @Suite struct SharedSymbolTreatmentTests {
   /// The file of the view modifier that applies the live symbol effect and
   /// removes the symbol effects under Reduce Motion.
-  static let liveEffectFile = KitSourceFiles.kitFile("Items/LiveSymbolEffect.swift")
+  static let liveEffectFile = KitSourceFiles.styleFile("Symbols/LiveSymbolEffect.swift")
 
   /// The text of the modifiers that only `LiveSymbolEffect` writes: the
   /// variable color effect and the removal of the symbol effects.
@@ -73,11 +73,10 @@ import Testing
   }
 
   @Test func onlyTheSharedModifierWritesTheLiveEffectAndTheReduceMotionRule() throws {
-    let found = try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(KitSourceFiles.kitPath),
-      relativeTo: PackageFiles.root
-    ) { line in
-      Self.uses(of: Self.liveEffectModifiers, on: line)
+    let found = try KitSourceFiles.scanLibraryFiles { directory in
+      try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root) { line in
+        Self.uses(of: Self.liveEffectModifiers, on: line)
+      }
     }
 
     let outside = found.filter { !$0.hasPrefix(Self.liveEffectFile + ":") }

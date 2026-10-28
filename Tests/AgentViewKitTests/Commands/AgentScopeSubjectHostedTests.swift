@@ -107,7 +107,7 @@ import Testing
 
     let entry = try await Self.sendScopeToolCall(to: session, rendering: harness)
 
-    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.toolCall(entry.toolCallId))
+    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.toolCall(entry.toolCallId.rawValue))
     #expect(system.registry.tree.nodes.contains { $0.path == path })
   }
 
@@ -120,7 +120,8 @@ import Testing
     defer { harness.close() }
     let entry = try await Self.sendScopeToolCall(to: session, rendering: harness)
     let log = Self.registerProbe(of: AgentScopeKind.toolCall, as: ToolCallEntry.self, at: model, in: system)
-    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.toolCall(entry.toolCallId))
+    let path = AgentCommandScopeHostedTests.path(of: model)
+      .appending(AgentScopeKind.toolCall(entry.toolCallId.rawValue))
 
     try #require(system.registry.perform(Self.probeID, at: path, clicked: path))
 

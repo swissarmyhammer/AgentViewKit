@@ -39,6 +39,6 @@ import Testing
     let style = EditorStyle.default
     let corners = AgentControlCorners.surface(.rounded(.medium))
 
-    #expect(corners.radius(in: style) == AgentSurfaceCorners.rounded(.medium).radius(in: style))
+    #expect(corners.radius(in: style) == SurfaceCorners.rounded(.medium).radius(in: style))
   }
 }

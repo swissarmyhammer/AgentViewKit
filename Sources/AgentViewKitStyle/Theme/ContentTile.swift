@@ -9,15 +9,22 @@ import SwiftUI
 /// output, a code block, a diff, an artifact. Its padding, the gap between
 /// its parts and the margin to its neighbours are the tile tokens of
 /// EditorKit (`EditorStyle.tile`), so a theme or a host that sets them
-/// changes each tile of the kit.
+/// changes each tile of each view kit.
 ///
 /// A tile with a border and a tile with no border use the same padding. The
 /// modifier draws no border and no fill: a tile opts into its edge with
 /// `.inlineEdge(radius:)`, and the content behind the tile shows through it.
-struct ContentTile: ViewModifier {
+public struct ContentTile: ViewModifier {
   @Environment(\.editorStyle) private var editorStyle
 
-  func body(content: Content) -> some View {
+  /// Makes the padding of a content tile.
+  public init() {}
+
+  /// Pads `content` with the tile padding of `\.editorStyle`.
+  ///
+  /// - Parameter content: The content of the tile.
+  /// - Returns: The padded content.
+  public func body(content: Content) -> some View {
     content.padding(editorStyle.tile.padding)
   }
 }
@@ -28,7 +35,7 @@ struct ContentTile: ViewModifier {
 /// The parts of the body stack in the same column as the header, so the gap
 /// also falls between two parts of the body. The layout pads nothing; the
 /// tile puts `.contentTile()` around it.
-struct ContentTileStack<Header: View, TileBody: View>: View {
+public struct ContentTileStack<Header: View, TileBody: View>: View {
   /// The header row of the tile.
   let header: Header
 
@@ -42,12 +49,12 @@ struct ContentTileStack<Header: View, TileBody: View>: View {
   /// - Parameters:
   ///   - header: The header row of the tile.
   ///   - body: The parts of the body of the tile, from the top.
-  init(@ViewBuilder header: () -> Header, @ViewBuilder body: () -> TileBody) {
+  public init(@ViewBuilder header: () -> Header, @ViewBuilder body: () -> TileBody) {
     self.header = header()
     self.tileBody = body()
   }
 
-  var body: some View {
+  public var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
       header
       tileBody
@@ -62,7 +69,7 @@ extension View {
   /// this modifier. The modifier draws no border and no fill.
   ///
   /// - Returns: The padded tile.
-  func contentTile() -> some View {
+  public func contentTile() -> some View {
     modifier(ContentTile())
   }
 }
@@ -70,16 +77,16 @@ extension View {
 #Preview("A tile with an edge, and a tile with none") {
   VStack(alignment: .leading, spacing: EditorStyle.default.tile.margin) {
     ContentTileStack {
-      Text(PreviewFixtures.lintCommand)
+      Text(StylePreviewFixtures.tileHeader)
     } body: {
-      Text(PreviewFixtures.lintOutput)
+      Text(StylePreviewFixtures.tileBody)
     }
     .contentTile()
     .inlineEdge(radius: EditorStyle.default.radii.l)
     ContentTileStack {
-      Text(PreviewFixtures.lintCommand)
+      Text(StylePreviewFixtures.tileHeader)
     } body: {
-      Text(PreviewFixtures.lintOutput)
+      Text(StylePreviewFixtures.tileBody)
     }
     .contentTile()
   }

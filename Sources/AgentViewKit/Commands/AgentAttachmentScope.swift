@@ -32,7 +32,7 @@ struct AgentAttachmentScope: ViewModifier {
 
   /// The corners of the surface of the attachment, which the focus ring of
   /// the scope follows.
-  let focusRingCorners: AgentSurfaceCorners
+  let focusRingCorners: SurfaceCorners
 
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
@@ -86,7 +86,7 @@ extension View {
   /// - Returns: A view in the scope of the attachment, or this view.
   @ViewBuilder
   func agentAttachmentScope(
-    _ attachment: Attachment?, focusRingCorners: AgentSurfaceCorners = .card
+    _ attachment: Attachment?, focusRingCorners: SurfaceCorners = .card
   ) -> some View {
     if let attachment {
       modifier(AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners))

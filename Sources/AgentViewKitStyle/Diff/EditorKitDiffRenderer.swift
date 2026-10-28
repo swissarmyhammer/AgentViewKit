@@ -2,8 +2,7 @@ import EditorDiff
 import EditorSwiftUI
 import SwiftUI
 
-/// The layout of the diff renderer that the kit installs (plan.md §4.1,
-/// decision 12).
+/// The layout of the EditorKit diff renderer (plan.md §4.1, decision 12).
 public nonisolated enum DiffLayout: Sendable, Hashable {
   /// One column. The removed lines of a change stand above its added lines.
   case inline
@@ -12,7 +11,7 @@ public nonisolated enum DiffLayout: Sendable, Hashable {
   case sideBySide
 
   /// The EditorKit layout of this layout.
-  var documentLayout: DiffDocument.Layout {
+  public var documentLayout: DiffDocument.Layout {
     switch self {
     case .inline: .inline
     case .sideBySide: .sideBySide
@@ -21,10 +20,10 @@ public nonisolated enum DiffLayout: Sendable, Hashable {
 }
 
 extension EnvironmentValues {
-  /// The layout of the diff renderer that the kit installs.
+  /// The layout of the EditorKit diff renderer (``EditorKitDiffRenderer``).
   ///
   /// The default is ``DiffLayout/inline``. A renderer that a host installs
-  /// with ``SwiftUI/View/diffRenderer(_:)`` can read the value too.
+  /// in a diff view can read the value too.
   @Entry public var diffLayout: DiffLayout = .inline
 }
 
@@ -38,19 +37,13 @@ extension View {
   }
 }
 
-extension DiffView {
-  /// The accessibility identifier of the row that shows when EditorKit cannot
-  /// read the patch.
-  public static let unreadablePatchIdentifier = "diff-patch-unreadable"
-}
-
-/// The default diff renderer: the EditorKit `DiffView` (plan.md §4.1,
-/// decision 12).
+/// The default diff renderer of the view kits: the EditorKit `DiffView`
+/// (plan.md §4.1, decision 12).
 ///
 /// The renderer parses the patch with `EditorDiff`, and keeps only the
-/// selected file. It applies the ``SwiftUI/EnvironmentValues/diffLayout``. The
-/// EditorKit `DiffView` reads the EditorKit theme of the environment. When
-/// EditorKit cannot read the patch, a row shows the line where the parse
+/// selected file. It applies the ``SwiftUI/EnvironmentValues/diffLayout``.
+/// The EditorKit `DiffView` reads the EditorKit theme of the environment.
+/// When EditorKit cannot read the patch, a row shows the line where the parse
 /// stopped.
 ///
 /// Each line of the patch stands on one row, with no soft wrap: the inline
@@ -59,11 +52,15 @@ extension DiffView {
 /// colors keep one row for each line (finding of ^8q34yt8). The side-by-side
 /// layout keeps one row for each line already.
 ///
-/// The renderer adds no accessibility identifier. The EditorKit `DiffView`
-/// puts its own identifiers on its AppKit views: `editor.diff` on the root,
-/// and `editor.diff.old` and `editor.diff.new` on the two columns of the
-/// side-by-side layout.
-struct EditorKitDiffRenderer: View {
+/// The renderer adds no accessibility identifier to the diff. The EditorKit
+/// `DiffView` puts its own identifiers on its AppKit views: `editor.diff` on
+/// the root, and `editor.diff.old` and `editor.diff.new` on the two columns
+/// of the side-by-side layout.
+public struct EditorKitDiffRenderer: View {
+  /// The accessibility identifier of the row that shows when EditorKit cannot
+  /// read the patch.
+  public static let unreadablePatchIdentifier = "diff-patch-unreadable"
+
   /// The full patch text.
   let patch: String
 
@@ -72,7 +69,17 @@ struct EditorKitDiffRenderer: View {
 
   @Environment(\.diffLayout) private var layout
 
-  var body: some View {
+  /// Makes the renderer of a patch.
+  ///
+  /// - Parameters:
+  ///   - patch: The full patch text.
+  ///   - file: The path of the file to show, or `nil` to show each file.
+  public init(patch: String, file: String?) {
+    self.patch = patch
+    self.file = file
+  }
+
+  public var body: some View {
     switch Self.diff(of: patch, file: file) {
     case .success(let diff):
       EditorSwiftUI.DiffView(patch: diff)
@@ -85,7 +92,7 @@ struct EditorKitDiffRenderer: View {
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)
-        .accessibilityIdentifier(DiffView.unreadablePatchIdentifier)
+        .accessibilityIdentifier(Self.unreadablePatchIdentifier)
     }
   }
 
@@ -99,7 +106,7 @@ struct EditorKitDiffRenderer: View {
   ///   - patch: The full patch text.
   ///   - file: The path of the file to keep, or `nil` to keep each file.
   /// - Returns: The parsed patch, or the parse error.
-  static func diff(of patch: String, file: String?) -> Result<UnifiedDiff, UnifiedDiffError> {
+  public static func diff(of patch: String, file: String?) -> Result<UnifiedDiff, UnifiedDiffError> {
     let parsed: UnifiedDiff
     do {
       parsed = try UnifiedDiff.parse(patch)
@@ -115,7 +122,7 @@ struct EditorKitDiffRenderer: View {
   ///
   /// - Parameter error: The parse error.
   /// - Returns: The line of the error.
-  static func line(of error: UnifiedDiffError) -> Int {
+  public static func line(of error: UnifiedDiffError) -> Int {
     switch error {
     case .malformedHunkHeader(let line), .hunkLineCountMismatch(let line), .unexpectedLine(let line):
       line
@@ -123,18 +130,15 @@ struct EditorKitDiffRenderer: View {
   }
 }
 
-#Preview("Small diff") {
-  EditorKitDiffRenderer(patch: PreviewFixtures.smallPatch, file: nil)
+#Preview("A diff, inline and side by side") {
+  VStack {
+    EditorKitDiffRenderer(patch: StylePreviewFixtures.patch, file: nil)
+    EditorKitDiffRenderer(patch: StylePreviewFixtures.patch, file: nil)
+      .diffLayout(.sideBySide)
+  }
 }
 
-#Preview("Large diff") {
-  EditorKitDiffRenderer(patch: PreviewFixtures.largePatch, file: nil)
-}
-
-#Preview("Diff that only adds") {
-  EditorKitDiffRenderer(patch: PreviewFixtures.addedOnlyPatch, file: nil)
-}
-
-#Preview("Diff that only removes") {
-  EditorKitDiffRenderer(patch: PreviewFixtures.removedOnlyPatch, file: nil)
+#Preview("A patch that EditorKit cannot read") {
+  EditorKitDiffRenderer(patch: StylePreviewFixtures.unreadablePatch, file: nil)
+    .padding()
 }

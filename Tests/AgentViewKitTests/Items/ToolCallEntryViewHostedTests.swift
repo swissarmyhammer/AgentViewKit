@@ -336,7 +336,7 @@
         in: session, harness: harness, store: store)
 
       #expect(harness.element(identifier: DiffView.containerIdentifier) != nil)
-      #expect(harness.element(identifier: DiffView.identifier(for: Self.addedPath)) != nil)
+      #expect(harness.element(identifier: DiffFileChip.identifier(for: Self.addedPath)) != nil)
       #expect(harness.element(identifier: UnknownItemView.identifier) == nil)
     }
 

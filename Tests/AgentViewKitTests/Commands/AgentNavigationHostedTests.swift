@@ -103,7 +103,7 @@ import Testing
     let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
     let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(to: session, rendering: harness)
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
-    let items = messages + [thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId))]
+    let items = messages + [thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId.rawValue))]
     let jump = JumpModeController(system: system)
 
     try #require(jump.activate(layer: thread))
@@ -245,7 +245,7 @@ import Testing
     let scopes = Set(system.geometry.snapshot(layer: thread).scopes.map(\.path))
 
     #expect(scopes.contains(thread.appending(AgentScopeKind.message(rowKey: message.rowKey))))
-    #expect(scopes.contains(thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId))))
+    #expect(scopes.contains(thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId.rawValue))))
     #expect(scopes.contains(thread.appending(AgentScopeKind.request(request))))
   }
 }

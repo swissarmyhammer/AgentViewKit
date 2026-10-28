@@ -22,16 +22,30 @@ public nonisolated enum DiffSummary {
     /// - Parameter from: The old path of the file.
     case renamed(from: String)
 
-    /// The change copies a file to a new path. Only a structured ACP diff
-    /// gives this operation. See ``DiffSummary/files(of:)``.
+    /// The change copies a file to a new path. A patch does not give this
+    /// operation; a structured change does, such as a structured ACP diff
+    /// in AgentViewKit.
     ///
     /// - Parameter from: The path of the file that the change copies.
     case copied(from: String)
 
-    /// A change that the kit does not know, with its wire name. Only a
-    /// structured ACP diff gives this operation. See
-    /// ``DiffSummary/files(of:)``.
+    /// A change that the view kit does not know, with its wire name. A patch
+    /// does not give this operation; a structured change does.
     case unknown(String)
+
+    /// The word that tells the operation, such as "Added".
+    ///
+    /// An operation that the view kit does not know gives "Changed".
+    public var label: String {
+      switch self {
+      case .added: String(localized: "Added", bundle: .module)
+      case .deleted: String(localized: "Deleted", bundle: .module)
+      case .modified: String(localized: "Modified", bundle: .module)
+      case .renamed: String(localized: "Renamed", bundle: .module)
+      case .copied: String(localized: "Copied", bundle: .module)
+      case .unknown: String(localized: "Changed", bundle: .module)
+      }
+    }
   }
 
   /// One hunk of a file: the `@@` header and the lines after it.
@@ -109,6 +123,13 @@ public nonisolated enum DiffSummary {
     /// "Swift diff, +2 −1".
     public var accessibilityLabel: String {
       DiffSummary.accessibilityLabel(language: language, added: added, removed: removed)
+    }
+
+    /// The label that VoiceOver reads for a file of a diff with no patch text.
+    ///
+    /// The label is "<operation> <language> file", such as "Added Swift file".
+    public var changeAccessibilityLabel: String {
+      String(localized: "\(operation.label) \(language) file", bundle: .module)
     }
   }
 

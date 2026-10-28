@@ -9,7 +9,7 @@ import Testing
 @Suite @MainActor struct StatusBarEffectTests {
   /// The messages of work that goes on: the running banner and the replaying
   /// banner.
-  static func ongoingMessages() throws -> [StateBanner.Message] {
+  static func ongoingMessages() throws -> [StatusBar.Message] {
     [
       StateBanner.message(for: try StateBannerStopReasonTests.decodeState(#"{"state": "running"}"#)),
       SessionStreamBanner.replayingMessage,
@@ -19,7 +19,7 @@ import Testing
   /// Messages of work that does not go on: a complete turn, a cancelled turn,
   /// a request to the user, a failed turn and the other session stream
   /// banners.
-  static func settledMessages() throws -> [StateBanner.Message] {
+  static func settledMessages() throws -> [StatusBar.Message] {
     [
       StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "end_turn")),
       StateBanner.message(for: try StateBannerStopReasonTests.idleUpdate(stopReason: "cancelled")),

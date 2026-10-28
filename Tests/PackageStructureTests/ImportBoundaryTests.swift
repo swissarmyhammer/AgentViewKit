@@ -36,6 +36,26 @@ import Testing
   /// The directory of the Swift files of the kit target.
   static let kitSourcesPath = "Sources/AgentViewKit"
 
+  /// The directory of the Swift files of the style library.
+  static let styleSourcesPath = KitSourceFiles.stylePath
+
+  /// The modules that no Swift file of the style library can import.
+  ///
+  /// The style library is the shared look of the view kits, with no agent
+  /// in it: it links EditorKit only. Thus it imports no ACP module, not the
+  /// Markdown text (`Textual`) or the math (`SwiftUIMath`) of the kit, and
+  /// no view kit, `AgentViewKit` or `KanbanViewKit`, so that each kit can
+  /// link it.
+  static let forbiddenInStyle: Set<String> = [
+    "FoundationModelsACP",
+    "FoundationModelsACPClient",
+    agentModule,
+    "Textual",
+    "SwiftUIMath",
+    "AgentViewKit",
+    "KanbanViewKit",
+  ]
+
   /// The package directories that hold Swift files.
   static let swiftDirectories = ["Sources", "Tests", "Examples"]
 
@@ -61,11 +81,14 @@ import Testing
   /// - No target in `Sources/` imports a FoundationModels runtime or another
   ///   view kit.
   /// - The kit target does not import the agent package.
+  /// - The style library imports no ACP module, no text or math package of
+  ///   the kit, and no view kit (``forbiddenInStyle``).
   /// - No Swift file imports the merged ACP module.
   static let boundaries: [(directory: String, forbidden: Set<String>)] =
     [
       ("Sources", forbiddenInSources),
       (kitSourcesPath, Set([agentModule])),
+      (styleSourcesPath, forbiddenInStyle),
     ] + swiftDirectories.map { ($0, Set([mergedModule])) }
 
   /// Expects that no Swift file below `directory` imports a module of
@@ -83,6 +106,13 @@ import Testing
   @Test(arguments: boundaries)
   func noSwiftFileCrossesTheImportBoundaryOfItsDirectory(directory: String, forbidden: Set<String>) throws {
     try Self.expectNoImport(below: PackageFiles.file(directory), of: forbidden)
+  }
+
+  @Test func theStyleLibraryImportsNoACPModuleNoKitPackageAndNoViewKit() throws {
+    let style = try PackageFiles.file(Self.styleSourcesPath)
+
+    #expect(try !PackageFiles.swiftFiles(in: style).isEmpty)
+    try Self.expectNoImport(below: style, of: Self.forbiddenInStyle)
   }
 
   @Test func scannerReportsEachForbiddenImportInTheFixture() throws {

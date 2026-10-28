@@ -33,7 +33,7 @@ public struct ImageView: View {
 
   /// The corners of the image: square. The selection surface and the focus
   /// ring of the scope of the image both have them.
-  static let corners = AgentSurfaceCorners.square
+  static let corners = SurfaceCorners.square
 
   /// The file name stem of an image with no file name in its URI.
   private static let fileStem = "image"
