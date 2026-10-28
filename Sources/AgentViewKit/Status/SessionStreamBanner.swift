@@ -22,7 +22,11 @@ import SwiftUI
 ///   transcript, and the banner then tells that the reload failed, with the
 ///   localized description of the error, as a failure. The Reload button
 ///   stays, so the user can reload again, and a new press shows the
-///   missed-updates text again while the resume runs.
+///   missed-updates text again while the resume runs. The banner forgets
+///   the failed reload when the model clears `hasMissedUpdates`, whatever
+///   clears it, and when it gets another session model. Thus missed updates
+///   that come back later, and the missed updates of another session, show
+///   the missed-updates text, not an old failure.
 /// - When `history` is `.retained` and no replay runs, a note tells that the
 ///   history can be partial. The agent replays only the history that it
 ///   keeps, so the note never tells that the history is complete.
@@ -73,7 +77,10 @@ public struct SessionStreamBanner: View {
   /// `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
-  /// The state of the reload that the Reload button starts.
+  /// The state of the reload that the Reload button starts. It goes back to
+  /// ``ReloadPhase/idle`` at each change of ``reloadScope``: when the model
+  /// clears or raises `hasMissedUpdates`, and when the banner gets another
+  /// session model.
   @State private var reloadPhase = ReloadPhase.idle
 
   /// Makes the banners of the stream state of a session model.
@@ -110,7 +117,31 @@ public struct SessionStreamBanner: View {
     case failed(errorDescription: String)
   }
 
+  /// What one reload state belongs to: one session model, while its missed
+  /// updates last. The reload state goes back to ``ReloadPhase/idle`` at
+  /// each change of the scope.
+  private struct ReloadScope: Equatable {
+    /// The identity of the session model. Two models of the same session id,
+    /// such as the models of two connections, are two scopes.
+    let session: ObjectIdentifier
+
+    /// Whether the session model misses updates.
+    let missesUpdates: Bool
+  }
+
+  /// The scope of the reload state now.
+  private var reloadScope: ReloadScope {
+    ReloadScope(session: ObjectIdentifier(session), missesUpdates: session.hasMissedUpdates)
+  }
+
   public var body: some View {
+    bannerStack
+      .onChange(of: reloadScope) { reloadPhase = .idle }
+  }
+
+  /// The stack of the banners that ``shownBars`` gives, or nothing when it
+  /// gives none.
+  @ViewBuilder private var bannerStack: some View {
     let bars = shownBars
     if !bars.isEmpty {
       VStack(spacing: editorStyle.tile.margin) {
