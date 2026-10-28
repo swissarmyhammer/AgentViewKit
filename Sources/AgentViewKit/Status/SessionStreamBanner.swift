@@ -26,7 +26,10 @@ import SwiftUI
 ///   the failed reload when the model clears `hasMissedUpdates`, whatever
 ///   clears it, and when it gets another session model. Thus missed updates
 ///   that come back later, and the missed updates of another session, show
-///   the missed-updates text, not an old failure.
+///   the missed-updates text, not an old failure. A reload belongs to the
+///   session model that started it: when the banner gets another session
+///   model, the Reload button of that model takes a press at once, and the
+///   late outcome of the old reload changes nothing.
 /// - When `history` is `.retained` and no replay runs, a note tells that the
 ///   history can be partial. The agent replays only the history that it
 ///   keeps, so the note never tells that the history is complete.
@@ -77,11 +80,12 @@ public struct SessionStreamBanner: View {
   /// `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
-  /// The state of the reload that the Reload button starts. It goes back to
-  /// ``ReloadPhase/idle`` at each change of ``reloadScope``: when the model
-  /// clears or raises `hasMissedUpdates`, and when the banner gets another
-  /// session model.
-  @State private var reloadPhase = ReloadPhase.idle
+  /// The reload that the Reload button started last, or `nil` when no reload
+  /// runs and the last one did not fail. The banner drops it as soon as it
+  /// no longer belongs to the session model (``ReloadScope/contains(_:)``):
+  /// when the model clears `hasMissedUpdates`, and when the banner gets
+  /// another session model.
+  @State private var reload: Reload?
 
   /// Makes the banners of the stream state of a session model.
   ///
@@ -103,40 +107,68 @@ public struct SessionStreamBanner: View {
     let action: StatusBar.Action?
   }
 
-  /// The state of the reload that the Reload button starts.
+  /// How far one reload that the Reload button started got.
   private enum ReloadPhase: Equatable {
-    /// No reload runs, and the last reload did not fail.
-    case idle
-
-    /// A reload runs.
+    /// The reload runs.
     case reloading
 
-    /// The last reload failed.
+    /// The reload failed.
     ///
     /// - Parameter errorDescription: The localized description of its error.
     case failed(errorDescription: String)
   }
 
-  /// What one reload state belongs to: one session model, while its missed
-  /// updates last. The reload state goes back to ``ReloadPhase/idle`` at
-  /// each change of the scope.
+  /// One reload that the Reload button started, with the scope that it
+  /// belongs to.
+  private struct Reload {
+    /// The session model and the missed updates that the reload started for.
+    let scope: ReloadScope
+
+    /// How far the reload got.
+    let phase: ReloadPhase
+  }
+
+  /// What one reload belongs to: one session model, while the missed updates
+  /// that the reload started for last.
   private struct ReloadScope: Equatable {
     /// The identity of the session model. Two models of the same session id,
     /// such as the models of two connections, are two scopes.
     let session: ObjectIdentifier
 
-    /// Whether the session model misses updates.
+    /// Whether the session model missed updates when the reload started.
     let missesUpdates: Bool
+
+    /// Makes the scope of a reload that starts now for `model`.
+    ///
+    /// - Parameter model: The session model that the reload resumes.
+    init(of model: SessionModel) {
+      session = ObjectIdentifier(model)
+      missesUpdates = model.hasMissedUpdates
+    }
+
+    /// Whether a reload of this scope still belongs to `model`: `model` is the
+    /// session model of the scope, and its missed updates did not change.
+    ///
+    /// - Parameter model: The session model that the banner shows now.
+    /// - Returns: `true` when the reload belongs to `model`.
+    func contains(_ model: SessionModel) -> Bool {
+      session == ObjectIdentifier(model) && missesUpdates == model.hasMissedUpdates
+    }
   }
 
-  /// The scope of the reload state now.
-  private var reloadScope: ReloadScope {
-    ReloadScope(session: ObjectIdentifier(session), missesUpdates: session.hasMissedUpdates)
+  /// The phase of the reload of the session model that the banner shows, or
+  /// `nil` when the last reload is not one of this model and its missed
+  /// updates.
+  private var reloadPhase: ReloadPhase? {
+    guard let reload, reload.scope.contains(session) else { return nil }
+    return reload.phase
   }
 
   public var body: some View {
     bannerStack
-      .onChange(of: reloadScope) { reloadPhase = .idle }
+      .onChange(of: reloadPhase) { _, phase in
+        if phase == nil { reload = nil }
+      }
   }
 
   /// The stack of the banners that ``shownBars`` gives, or nothing when it
@@ -170,7 +202,7 @@ public struct SessionStreamBanner: View {
   /// The text of the banner of the missed updates: the reload-failed text
   /// after a failed reload, and otherwise the missed-updates text.
   private var missedUpdatesBarMessage: StatusBar.Message {
-    guard case .failed(let errorDescription) = reloadPhase else { return Self.missedUpdatesMessage }
+    guard case .failed(let errorDescription)? = reloadPhase else { return Self.missedUpdatesMessage }
     return Self.makeReloadFailedMessage(errorDescription: errorDescription)
   }
 
@@ -192,23 +224,24 @@ public struct SessionStreamBanner: View {
       title: String(localized: "Reload", bundle: .module), systemImage: Self.reloadSymbol,
       identifier: Self.reloadIdentifier,
       isEnabled: isEnabled
-    ) { [session, reportRequestStart, phase = $reloadPhase] in
+    ) { [session, reportRequestStart, reload = $reload] in
       let request = ResumeSessionRequest.makeAgentViewKitRequest(
         sessionId: session.sessionId,
         cwd: cwd,
         additionalDirectories: session.additionalDirectories,
         replayFrom: .start(ReplayFromStart()))
-      phase.wrappedValue = .reloading
+      let scope = ReloadScope(of: session)
+      reload.wrappedValue = Reload(scope: scope, phase: .reloading)
       session.startRequest("session/resume", reporting: reportRequestStart) {
-        try await Self.resume(request, on: connection, recordingIn: phase)
+        try await Self.resume(request, on: connection, recordingIn: reload, of: scope)
       }
     }
   }
 
   /// Sends the `session/resume` request of the Reload button, and records
-  /// its outcome in `phase`.
+  /// its outcome with ``record(_:in:of:)``.
   ///
-  /// A success sets ``ReloadPhase/idle``. A failure sets
+  /// A success records no reload. A failure records
   /// ``ReloadPhase/failed(errorDescription:)`` with the localized
   /// description of the error, and throws the error again, so that the
   /// session model also adds an error entry to the transcript.
@@ -216,18 +249,36 @@ public struct SessionStreamBanner: View {
   /// - Parameters:
   ///   - request: The `session/resume` request.
   ///   - connection: The connection model that sends the request.
-  ///   - phase: The state of the reload of the banner.
+  ///   - reload: The reload of the banner.
+  ///   - scope: The scope that the reload started in.
   /// - Throws: The error of the request.
   private static func resume(
-    _ request: ResumeSessionRequest, on connection: ConnectionModel, recordingIn phase: Binding<ReloadPhase>
+    _ request: ResumeSessionRequest, on connection: ConnectionModel,
+    recordingIn reload: Binding<Reload?>, of scope: ReloadScope
   ) async throws {
     do {
       _ = try await connection.resumeSession(request)
-      phase.wrappedValue = .idle
+      record(nil, in: reload, of: scope)
     } catch {
-      phase.wrappedValue = .failed(errorDescription: error.localizedDescription)
+      record(.failed(errorDescription: error.localizedDescription), in: reload, of: scope)
       throw error
     }
+  }
+
+  /// Records the outcome of the reload that started in `scope`, only while
+  /// the reload of the banner is still of that scope. The banner drops the
+  /// reload of a session model that it no longer shows, so the late outcome
+  /// of such a reload changes nothing, and the reload of another session
+  /// model keeps its own phase.
+  ///
+  /// - Parameters:
+  ///   - phase: The phase that the reload got to, or `nil` for a reload that
+  ///     is done and did not fail.
+  ///   - reload: The reload of the banner.
+  ///   - scope: The scope that the reload started in.
+  private static func record(_ phase: ReloadPhase?, in reload: Binding<Reload?>, of scope: ReloadScope) {
+    guard reload.wrappedValue?.scope == scope else { return }
+    reload.wrappedValue = phase.map { Reload(scope: scope, phase: $0) }
   }
 }
 
