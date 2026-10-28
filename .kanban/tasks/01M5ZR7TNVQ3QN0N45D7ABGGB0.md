@@ -25,6 +25,31 @@ comments:
     - evidence: 4 files — Tests/AgentViewKitTests/Diff/DiffLineNumberHostedTests.swift (new: 4 hosted tests — one `diff.line` column with numbers 8,9,9,10,11,1001,1001,1002,1003; no `diff.old`/`diff.new` in inline; one right edge for added/removed/context rows; each run inside its cell), Tests/AgentViewKitTests/Diff/EditorDiffIdentifier.swift (gutter column ids), Tests/AgentViewKitTests/Snapshots/ReviewGalleryNotes.swift (thread note), Docs/decisions/diff-renderer.md (line-number columns section with EditorKit SHAs fb4ef5b, a044349, pin f588cb5). `swift test` under Scripts/ui-test-lock.sh: 1893 tests in 236 suites passed, 7 known issues (the existing withKnownIssue sites), 0 failures. The only warning is the existing mlx-swift_Cmlx "missing creator" packaging warning. No reference PNG changed. The gallery regenerated.
     - next: /review
   timestamp: 2026-10-28T12:35:27.928973+00:00
+- actor: claude-code
+  id: 01m61889xm90v6swngj2zta6jv
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (4e7b9e4) — 1 finding (1 confirmed, 0 refuted); Tests/AgentViewKitTests/Diff/DiffLineNumberHostedTests.swift:73 `reuse/reuse`. Docs/decisions/diff-renderer.md not reviewed (no validator matches it).
+    - next: move the shared inline DiffView mount into one helper that both `mountPatch` and `DiffLongLineHostedTests.mountSmallPatch` call; re-run /review.
+  timestamp: 2026-10-28T12:37:41.428629+00:00
+- actor: claude-code
+  id: 01m618kha65kjrhhha8rqstkft
+  text: |-
+    Pulled back from review to doing to fix the reuse finding at DiffLineNumberHostedTests.swift:73.
+    - New Tests/AgentViewKitTests/Diff/DiffHarness.swift: `@MainActor enum DiffHarness` has `mount(_:size:)`, which makes a HostedViewHarness of the size, turns animations off and renders one pass. It also has `mountInline(patch:size:)`, which is `mount(DiffView(patch:).diffLayout(.inline), size:)`.
+    - `DiffLineNumberHostedTests.mountPatch` and `DiffLongLineHostedTests.mountSmallPatch` are now one call each to `DiffHarness.mountInline`, and only the patch and the size differ. mountSmallPatch did not set `.diffLayout(.inline)` before. Inline is the default (`theLayoutDefaultsToInline`), so the explicit layout changes nothing.
+    - Other copies in the Diff folder now go through the helper too. In DiffRendererDefaultHostedTests, `mount(_:)` now forwards to `DiffHarness.mount`, and `theInlineLayoutHasNoColumns` calls `mountInline`. In DiffViewHostedTests, `mountDiff` and the six direct `HostedViewHarness(...)` + `harness.render()` mounts call `DiffHarness.mount`: withOneFileTheChipShows, aRendererSelectionIsTheAttachedLines, withNoActionsTheButtonsDoNotShow, aDiffWithNoPatchTextShowsTheFileOfEachChange, aDiffWithGitPatchTextShowsThePatch, and environmentActionsReachADiffInAToolCall.
+    - Behavior change: those six direct mounts did not turn animations off before, and now they do. They all still pass.
+    - Note: the `DiffView` in these tests is the AVK `DiffView`, which wraps the EditorKit renderer. The finding text calls it "the EditorKit DiffView".
+    - The `dump validators` output for one .swift file is 657 KB, because it carries other languages' tool-rule bodies. I read only the Swift, duplication, reuse and test-integrity sections.
+  timestamp: 2026-10-28T12:43:49.446697+00:00
+- actor: claude-code
+  id: 01m618kmev4mxqfcyj1gr74e3d
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Tests/AgentViewKitTests/Diff/DiffHarness.swift (new), Tests/AgentViewKitTests/Diff/DiffLineNumberHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffLongLineHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffRendererDefaultHostedTests.swift, Tests/AgentViewKitTests/Diff/DiffViewHostedTests.swift. Both runs held the UI test lock. Diff suites (`swift test --filter 'Diff(LineNumber|LongLine|RendererDefault|View)HostedTests|DiffSummaryTests'`): 50 tests in 5 suites passed. Full `swift test`: 1893 tests in 236 suites passed, 7 known issues (the existing withKnownIssue sites), 0 failures. The only warning is the existing mlx-swift_Cmlx "missing creator" packaging warning. Review finding DiffLineNumberHostedTests.swift:73 is checked off.
+    - next: /review
+  timestamp: 2026-10-28T12:43:52.667009+00:00
 position_column: doing
 position_ordinal: '8380'
 title: Diff line numbers sit in one right-aligned column on every row (after EditorKit fixes its inline gutters)
@@ -46,3 +71,12 @@ The inline diff comes from EditorKit's `DiffView` (../EditorKit/Sources/EditorSw
 - [x] `swift test` is green
 
 #cross-repo
+
+## Review Findings (2026-10-28 07:36)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 1 not reviewed.
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/diff-renderer.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Diff/DiffLineNumberHostedTests.swift:73` `reuse/reuse` — `mountPatch()` reimplements the existing `DiffLongLineHostedTests.mountSmallPatch`, which mounts the same EditorKit `DiffView` with `.diffLayout(.inline)` and disabled animations in a `HostedViewHarness`. Two copies of the mount setup will drift apart, and a fix to one will not reach the other. Move the shared mount into one helper that takes the patch and size, for example in `AgentViewKitTestSupport` or the diff test folder, and have both `mountPatch` and `mountSmallPatch` call it. Only the patch and size should differ between the two tests.
