@@ -82,6 +82,24 @@ struct EditorKitSessionPromptInputHost: View {
     editorSession.model.state.value(CompletionSessionField.self)
   }
 
+  /// Waits until the editor shows the "no commands" note, and renders, so
+  /// that the note is in the accessibility tree with its frame.
+  ///
+  /// ``typeSlash(_:in:)`` waits for the text of the draft, and the text says
+  /// nothing about the menu. The note comes from the completion session of
+  /// the editor, so the wait reads that observable value: a session open on
+  /// the slash with no row.
+  ///
+  /// - Parameters:
+  ///   - editorSession: The session of the editor.
+  ///   - harness: The harness of the composer.
+  static func renderNoCommandsNote(of editorSession: PromptEditorSession, in harness: HostedViewHarness<some View>) async {
+    await harness.render {
+      let completion = Self.completion(of: editorSession)
+      return completion.isOpen && completion.listedItems.isEmpty && completion.prefix == SlashCommandSource.trigger
+    }
+  }
+
   @Test func theCompletionListIsAboveTheGlassOfTheField() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -131,12 +149,14 @@ struct EditorKitSessionPromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let draft = PromptInputHostedTestModel()
+    let editorSession = PromptEditorSession()
     let harness = try await Self.mount(
-      draft, editorSession: PromptEditorSession(), session: session,
+      draft, editorSession: editorSession, session: session,
       commandsUpdate: SlashCommandSessionModelTests.emptyCommandsUpdate)
     defer { harness.close() }
 
     try await Self.typeSlash(draft, in: harness)
+    await Self.renderNoCommandsNote(of: editorSession, in: harness)
 
     let note = try #require(harness.frame(identifier: EditorKitPromptEditor.noCommandsIdentifier))
     let field = try #require(harness.frame(identifier: PromptFieldSurface.identifier))

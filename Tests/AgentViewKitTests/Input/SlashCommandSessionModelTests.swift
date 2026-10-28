@@ -48,12 +48,14 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - draft: The model that holds the text of the composer.
+  ///   - editorSession: The session of the editor, which the test reads to
+  ///     wait for the menu.
   /// - Returns: The harness.
   static func mount(
-    session: ScriptedSession, draft: PromptInputHostedTestModel
+    session: ScriptedSession, draft: PromptInputHostedTestModel, editorSession: PromptEditorSession
   ) throws -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: size) {
-      PromptInputHost(model: draft)
+      EditorKitSessionPromptInputHost(model: draft, editorSession: editorSession)
         .environment(\.sessionModel, session.model)
     }
     harness.render()
@@ -103,7 +105,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let draft = PromptInputHostedTestModel()
-    let harness = try Self.mount(session: session, draft: draft)
+    let editorSession = PromptEditorSession()
+    let harness = try Self.mount(session: session, draft: draft, editorSession: editorSession)
     defer { harness.close() }
     let model = session.model
     try await session.sendUpdate(Self.emptyCommandsUpdate)
@@ -112,6 +115,7 @@ import Testing
     harness.type("/")
     try harness.requireTextViewShows("/")
     await harness.render { draft.plainText == "/" }
+    await ComposerEditorMenuHostedTests.renderNoCommandsNote(of: editorSession, in: harness)
 
     #expect(model.availableCommands?.isEmpty == true)
     #expect(Self.noteLabel(in: harness) == EditorKitPromptEditor.noCommandsNote)
