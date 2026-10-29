@@ -2,15 +2,6 @@ import EditorCommands
 import FoundationModelsACP
 import FoundationModelsACPClient
 
-nonisolated extension MenuPath {
-  /// The Session menu of the agent commands.
-  ///
-  /// The path has no system slot, so EditorKit `EditorMenuCommands` shows it
-  /// as a custom menu, with the raw value as its title. A host puts its own
-  /// session commands in the same menu with this path.
-  public static let session: MenuPath = "Session"
-}
-
 /// The kinds of the focus segments of the agent command scopes of the kit.
 ///
 /// The kind of the scope of a tool call, ``toolCall``, and its segment are in
