@@ -1,6 +1,5 @@
 import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -16,6 +15,9 @@ import Testing
 /// code line that holds the word `List` followed by `(` or `{` is a finding. A
 /// `//` comment line is not code, so a comment may name a list.
 @Suite struct NoSwiftUIListTests {
+  /// This package, found from this file with EditorKit's `PackageFiles`.
+  static let package = PackageFiles()
+
   /// The directories that the scan reads, relative to the package root: the
   /// kit, its style library, the demo support and the demo app.
   static let scannedPaths = [
@@ -51,7 +53,7 @@ import Testing
   /// - Throws: The error of `PackageFiles.file(_:)` when the directory is not
   ///   in the package.
   static func files(below path: String) throws -> [URL] {
-    swiftFiles(under: try PackageFiles.file(path))
+    swiftFiles(under: try package.file(path))
   }
 
   /// Finds the lists in `files`.
@@ -61,10 +63,8 @@ import Testing
   ///   with the path relative to the package root.
   /// - Throws: The error of a file read.
   static func lists(in files: [URL]) throws -> [String] {
-    try sourceScanViolations(in: files, matching: listPattern, where: isSourceCodeLine) { file, index, line in
-      let path = (try? PackageFiles.relativePath(of: file, to: PackageFiles.root)) ?? file.path
-      return "\(path):\(index + 1): \(line.trimmingCharacters(in: .whitespaces))"
-    }
+    try sourceScanViolations(
+      in: files, matching: listPattern, where: isSourceCodeLine, format: package.scanViolation(file:index:line:))
   }
 
   @Test func thePatternFindsAListAsAWholeWordOnly() throws {

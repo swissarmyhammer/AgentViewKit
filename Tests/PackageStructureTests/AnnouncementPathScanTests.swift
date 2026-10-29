@@ -1,6 +1,5 @@
 import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds **one announcement path** (EditorKit ^gfv7042).
@@ -20,6 +19,9 @@ import Testing
 /// comment line is not code, so the scan skips it. The package builds for
 /// macOS only, so the scan does not look for the UIKit post.
 @Suite struct AnnouncementPathScanTests {
+  /// This package, found from this file with EditorKit's `PackageFiles`.
+  static let package = PackageFiles()
+
   /// The directories that the scan reads, relative to the package root.
   static let scannedPaths = ["Sources", "Examples", "Tests/AgentViewKitTests", "Tests/AgentViewKitStyleTests"]
 
@@ -39,7 +41,7 @@ import Testing
   func theScanReadsTheSwiftFilesOfEachDirectory(_ path: String) throws {
     // A moved directory gives an empty scan, and an empty scan finds no
     // violation.
-    #expect(!swiftFiles(under: try PackageFiles.file(path)).isEmpty)
+    #expect(!swiftFiles(under: try Self.package.file(path)).isEmpty)
   }
 
   @Test(
@@ -75,7 +77,7 @@ import Testing
   /// - Throws: ``PackageFiles/PathOutsideRoot`` when a path is not in the
   ///   package.
   static func scannedFiles() throws -> [URL] {
-    try scannedPaths.flatMap { swiftFiles(under: try PackageFiles.file($0)) }
+    try scannedPaths.flatMap { swiftFiles(under: try package.file($0)) }
   }
 
   /// The pattern of a line that sets the environment value `announcer`.
@@ -122,7 +124,7 @@ import Testing
   ///   - line: The line that holds the hit.
   /// - Returns: The one-line violation text.
   static func packageScanViolation(file: URL, index: Int, line: Substring) -> String {
-    let path = (try? PackageFiles.relativePath(of: file, to: PackageFiles.root)) ?? file.path
+    let path = (try? package.relativePath(of: file)) ?? file.path
     return "\(path):\(index + 1): \(line.trimmingCharacters(in: .whitespaces))"
   }
 }

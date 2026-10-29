@@ -42,6 +42,7 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 
 - AgentViewKit keeps no copy of the rules. The docs and the code comments cite a rule by its number, a D-number or a section name of that guide, as EditorKit `style.md`.
 - The guide says that the view kits build on AgentViewKit for the shared visuals. KanbanViewKit and SnapshotViewKit use them from AgentViewKit and keep no copy.
+- Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`. `TextInputControlScanTests` runs EditorKit's `TextInputControlScanner` over `Sources/` and `Examples/`, with `PromptCaretProbe.swift` as the one allowed file.
 - `StyleGuideLinkTests` checks that this file links the guide, and that no file of the package names the old TestudoApp path of the guide or of its research page.
 
 ## Review gallery

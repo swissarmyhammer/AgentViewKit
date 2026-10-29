@@ -1,6 +1,5 @@
 import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// A name that a test uses to show a view with Reduce Transparency or
@@ -59,6 +58,9 @@ extension SystemSettingName: SampledCodeForm {
 /// when a line names a ``SystemSettingName`` as a whole word. A `//` comment
 /// line is not code.
 @Suite struct LightAndDarkOnlyTests {
+  /// This package, found from this file with EditorKit's `PackageFiles`.
+  static let package = PackageFiles()
+
   /// The directories of the test sources and of the demo app, with each of
   /// its Swift folders, relative to the package root.
   static let scannedPaths = [
@@ -99,7 +101,8 @@ extension SystemSettingName: SampledCodeForm {
 
   @Test func theScanReadsTheTestAndDemoSources() throws {
     let files = try Self.scannedFiles()
-    let demo = try PackageFiles.file("Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift")
+    let demo = try Self.package.file("Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift")
+      .standardizedFileURL
     #expect(!files.isEmpty)
     #expect(files.contains { $0.standardizedFileURL == demo })
   }
@@ -121,9 +124,9 @@ extension SystemSettingName: SampledCodeForm {
   /// - Returns: The file URLs.
   /// - Throws: ``PathOutsideRoot`` when a path leaves the package root.
   static func scannedFiles() throws -> [URL] {
-    let skipped = try PackageFiles.file(scanFile)
+    let skipped = try package.file(scanFile).standardizedFileURL
     return try scannedPaths.flatMap { path in
-      try swiftFiles(under: PackageFiles.file(path))
+      try swiftFiles(under: package.file(path))
     }
     .filter { $0.standardizedFileURL != skipped }
   }
@@ -134,6 +137,6 @@ extension SystemSettingName: SampledCodeForm {
   /// - Parameter file: A scanned file.
   /// - Returns: The path for the report of a hit.
   static func relativePath(of file: URL) -> String {
-    (try? PackageFiles.relativePath(of: file, to: PackageFiles.root)) ?? file.path
+    (try? package.relativePath(of: file)) ?? file.path
   }
 }

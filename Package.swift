@@ -241,10 +241,11 @@ let package = Package(
     ),
     // Reads the package files as text. It links PackageFileSupport, which
     // has no dependency, and the shared source scan helpers of
-    // EditorTestSupport (`SourceScanning`, for `LightAndDarkOnlyTests`,
-    // `AnnouncementPathScanTests` and `NoSwiftUIListTests`), and no target of
-    // the kit. The fixtures are Swift files that the scanner reads, so the
-    // build excludes them.
+    // EditorTestSupport (`SourceScanning` and its `PackageFiles`, for
+    // `LightAndDarkOnlyTests`, `AnnouncementPathScanTests` and
+    // `NoSwiftUIListTests`, and `TextInputControlScanner`, for
+    // `TextInputControlScanTests`), and no target of the kit. The fixtures
+    // are Swift files that the scanner reads, so the build excludes them.
     .testTarget(
       name: "PackageStructureTests",
       dependencies: ["PackageFileSupport"] + styleTestSupportProducts,
