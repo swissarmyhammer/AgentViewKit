@@ -1,4 +1,5 @@
 @testable import AgentViewKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTestSupport
 import FoundationModelsACPClient
@@ -102,7 +103,10 @@ import Testing
 
   @Test(arguments: ReviewAppearance.allCases)
   func theSessionNotice(look: ReviewAppearance) async throws {
+    // The banner has no margin of its own (^rgsq3k4); the image spaces it
+    // with the tile margin, as the top bar of a thread does.
     let banner = SessionNoticeBanner(session: SessionNoticeBannerSurfaceHostedTests.session)
+      .padding(EditorStyle.default.tile.margin)
 
     try await Self.verify(banner, named: "session-notice", size: SnapshotFixtures.cardSize, look: look)
   }

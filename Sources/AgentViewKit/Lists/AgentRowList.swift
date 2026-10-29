@@ -49,7 +49,8 @@ public struct AgentRowListScope: Hashable, Sendable {
 /// (`.selectableSurface(_:corners:)`), the one place where the list paints the
 /// accent. A click selects a row. Each row has the tile padding of the style
 /// (`editorStyle.tile.padding`), and the rows have the tile margin between
-/// them.
+/// them. The list has no margin around its rows (^rgsq3k4): the layout that
+/// holds it gives one, such as `.scrollContentMargins(\.tile.margin)`.
 ///
 /// The list registers the `nav.*` commands of EditorKit at its own scope, so
 /// the keys work in each host: the Down Arrow and the Up Arrow select the next
@@ -130,7 +131,6 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
           }
           footer
         }
-        .padding(editorStyle.tile.margin)
       }
       .background(AgentRowListMount(target: target, values: values(system: system, path: path, proxy: proxy)))
     }
@@ -273,4 +273,5 @@ struct AgentRowListRow<Content: View>: View {
   ) { suggestion in
     Text(suggestion)
   }
+  .scrollContentMargins(\.tile.margin)
 }

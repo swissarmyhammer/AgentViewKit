@@ -299,23 +299,41 @@ public struct AgentThreadView<Composer: View>: View {
           // The header floats on glass in its own container. The banners are
           // out of the container, so their buttons keep the place of content.
           // The padding is in the container, so a header that shows nothing
-          // takes no space.
+          // takes no space. The header has no padding of its own (^rgsq3k4):
+          // the bar insets it in its glass with the steps of the style.
           FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-            AgentInfoHeader(connection: connection, sessionTitle: sessionTitle).floatingGlass()
+            AgentInfoHeader(connection: connection, sessionTitle: sessionTitle).padding(headerInset).floatingGlass()
               .hostPathContextMenu(headerContextMenuPath)
               .padding(.horizontal, editorStyle.spacing.m)
               .padding(.vertical, editorStyle.spacing.s)
           }
-          AgentConnectionBanner(connection: connection)
         }
-        SessionNoticeBanner(session: session)
-        SessionStreamBanner(session: session, connection: connection)
+        // The bar spaces the banners, which have no margin of their own
+        // (^rgsq3k4): a group gives its padding to each banner, and a banner
+        // that shows nothing takes no space.
+        Group {
+          if let connection {
+            AgentConnectionBanner(connection: connection)
+          }
+          SessionNoticeBanner(session: session)
+          SessionStreamBanner(session: session, connection: connection)
+        }
+        .padding(editorStyle.tile.margin)
       }
     }
     .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
     .agentCommandScope(session: session, anchors: anchors)
     .onDisappear(perform: closeWhenSupported)
+  }
+
+  /// The inset of the ``AgentInfoHeader`` in its glass: the medium spacing
+  /// step on the leading and the trailing edge, and the small step on the
+  /// top and the bottom edge. The header has no padding of its own
+  /// (^rgsq3k4).
+  private var headerInset: EdgeInsets {
+    let spacing = editorStyle.spacing
+    return EdgeInsets(top: spacing.s, leading: spacing.m, bottom: spacing.s, trailing: spacing.m)
   }
 
   /// The content of the bottom bar: the state banner, the login prompt, the

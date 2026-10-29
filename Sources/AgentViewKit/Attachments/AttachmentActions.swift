@@ -105,6 +105,8 @@ nonisolated struct AttachmentDocument: ExportOnlyDocument {
   }
 }
 
+// MARK: - Previews
+
 /// The actions of one file of the previews, in the attachment scope of the
 /// file.
 ///

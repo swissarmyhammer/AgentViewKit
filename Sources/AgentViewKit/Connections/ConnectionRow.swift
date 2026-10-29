@@ -89,4 +89,5 @@ public struct ConnectionRow: View {
   ) { server in
     ConnectionRow(server: server)
   }
+  .scrollContentMargins(\.tile.margin)
 }

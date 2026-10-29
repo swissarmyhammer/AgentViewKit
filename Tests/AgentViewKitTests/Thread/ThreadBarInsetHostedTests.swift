@@ -20,10 +20,12 @@ import EditorStyle
   /// The tests read the frames of the accessibility elements in the bars, so
   /// each height comes from the views and not from the insets:
   ///
-  /// - The top bar of the thread starts one small spacing above the
-  ///   ``AgentInfoHeader``, the padding of its glass container. It ends below
-  ///   the text of the notice by the tile padding of the row and the tile
-  ///   margin of the ``SessionNoticeBanner``.
+  /// - The top bar of the thread starts two small spacings above the
+  ///   ``AgentInfoHeader``: the inset of the header in its glass, and the
+  ///   padding of its glass container. It
+  ///   ends below the text of the notice by the tile padding of the row and
+  ///   the tile margin that the bar gives the ``SessionNoticeBanner``
+  ///   (^rgsq3k4).
   /// - The floating controls end one medium spacing above the bottom edge
   ///   of the list, their outer padding, which is out of their element.
   /// - A bar of the host is an element with ``hostBarIdentifier``. With no
@@ -100,7 +102,14 @@ import EditorStyle
       // Below the text of the notice: the padding of its tile, and then the
       // margin around the notice banners. The y axis of the screen goes up.
       let belowNotice = style.tile.padding + style.tile.margin
-      return (header.maxY + style.spacing.s) - (notice.minY - belowNotice)
+      return (header.maxY + aboveHeader) - (notice.minY - belowNotice)
+    }
+
+    /// The space of the top bar above the ``AgentInfoHeader``: the inset of
+    /// the header in its glass and the padding of its glass container, one
+    /// small spacing each.
+    static var aboveHeader: CGFloat {
+      EditorStyle.default.spacing.s + EditorStyle.default.spacing.s
     }
 
     /// The screen y of the bottom edge of the bars of the host in `harness`:
@@ -125,7 +134,7 @@ import EditorStyle
     static func expectTheHeaderBelowTheHostBars(in harness: HostedViewHarness<some View>) throws {
       let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
       // The y axis of the screen goes up.
-      let topBarTop = header.maxY + EditorStyle.default.spacing.s
+      let topBarTop = header.maxY + aboveHeader
       let hostBottom = hostBarsBottom(in: harness)
 
       #expect(abs(topBarTop - hostBottom) <= insetTolerance, "top bar top \(topBarTop), host bars bottom \(hostBottom)")

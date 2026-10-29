@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -10,9 +11,11 @@ import SwiftUI
 ///
 /// The badge shows the count as a number in a capsule. The number has the
 /// `.secondary` style and the capsule has the `.quaternary` fill, as the other
-/// chips of the kit. The badge does not use the accent of the EditorKit
-/// theme: the accent is only for the selection and the focus (card
-/// ^y2mrfxt).
+/// chips of the kit. The number is inset in the capsule by the steps of the
+/// style, as in the other chips: the small step on the leading and the
+/// trailing edge, and the extra small step on the top and the bottom edge.
+/// The badge does not use the accent of the EditorKit theme: the accent is
+/// only for the selection and the focus (card ^y2mrfxt).
 ///
 /// When the session has no pending request, the badge shows nothing. The
 /// count changes when the model of the session changes, and the badge makes
@@ -34,14 +37,6 @@ import SwiftUI
 public struct PendingRequestCountBadge: View {
   /// The text after the row identifier in the identifier of a badge.
   public static let identifierSuffix = "-pending"
-
-  /// The space between the number and the left and right edges of the
-  /// capsule, in points.
-  static let horizontalPadding: CGFloat = 6
-
-  /// The space between the number and the top and bottom edges of the
-  /// capsule, in points.
-  static let verticalPadding: CGFloat = 2
 
   /// The accessibility identifier of the badge of a session.
   ///
@@ -66,6 +61,7 @@ public struct PendingRequestCountBadge: View {
   /// The session model whose pending requests the badge counts.
   let session: SessionModel
 
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the badge of a session.
@@ -82,8 +78,8 @@ public struct PendingRequestCountBadge: View {
       Text(count, format: .number)
         .font(editorTheme.font(for: .ui, style: .caption).monospacedDigit())
         .foregroundStyle(.secondary)
-        .padding(.horizontal, Self.horizontalPadding)
-        .padding(.vertical, Self.verticalPadding)
+        .padding(.horizontal, editorStyle.spacing.s)
+        .padding(.vertical, editorStyle.spacing.xs)
         .background(.quaternary, in: Capsule())
         .accessibilityIdentifier(Self.identifier(for: session.sessionId))
         .accessibilityHidden(true)

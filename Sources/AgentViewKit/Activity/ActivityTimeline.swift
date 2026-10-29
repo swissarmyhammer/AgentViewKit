@@ -32,6 +32,9 @@ import SwiftUI
 /// ``rowIdentifier(for:)``, and its expanded view has the identifier from
 /// ``detailIdentifier(for:)``. Both take the
 /// ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of the entry.
+///
+/// The rows have no margin around them (^rgsq3k4): the layout that holds the
+/// timeline gives one, such as `.scrollContentMargins(\.rowPadding)`.
 public struct ActivityTimeline: View {
   /// The accessibility identifier of the timeline.
   public static let identifier = "activity-timeline"
@@ -106,7 +109,6 @@ public struct ActivityTimeline: View {
               )
             }
           }
-          .padding(editorStyle.rowPadding)
         }
       }
     }
@@ -298,4 +300,5 @@ private struct ActivityEntryRow: View {
 
 #Preview("Activity timeline") {
   ActivityTimeline(session: .previewSample)
+    .scrollContentMargins(\.rowPadding)
 }

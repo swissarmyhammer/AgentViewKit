@@ -31,19 +31,25 @@ struct ACPSettingsSheet: View {
   let session: SessionModel
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: Self.groupSpacing) {
           GroupBox("MCP Servers") {
+            // The kit views have no margin of their own: the sheet spaces
+            // them with the steps of the style.
             ConnectionsView()
               .environment(\.sessionModel, session)
+              .scrollContentMargins(\.tile.margin)
               .frame(minHeight: Self.connectionsHeight)
           }
           GroupBox("Agent") {
             VStack(alignment: .leading) {
               AgentInfoHeader(connection: connection)
+                .padding(.horizontal, editorStyle.spacing.m)
+                .padding(.vertical, editorStyle.spacing.s)
               AgentAuthView(connection: connection)
             }
           }

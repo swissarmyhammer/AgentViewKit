@@ -133,6 +133,8 @@ import Testing
   static var threadHeader: some View {
     FloatingGlassContainer(spacing: spacing) {
       AgentInfoHeader(connection: AgentAuthViewSurfaceHostedTests.connection, sessionTitle: headerSessionTitle)
+        .padding(.horizontal, EditorStyle.default.spacing.m)
+        .padding(.vertical, EditorStyle.default.spacing.s)
         .floatingGlass()
     }
   }

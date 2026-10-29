@@ -10,9 +10,8 @@ import Testing
 /// edge (D113).
 ///
 /// The tests use the edge check of ``ContentEdgeHostedProbe``. They show
-/// one ``NoticeBanner``, because ``SessionNoticeBanner`` puts a margin around
-/// its banners, and the edge check needs a banner that fills the width of
-/// the window.
+/// one ``NoticeBanner``, the one banner of a notice, because the edge check
+/// needs a banner that fills the width of the window.
 @Suite(.serialized, .hostedSerially) @MainActor struct SessionNoticeBannerSurfaceHostedTests {
   /// The size of the window. The banner fills the width and is shorter than
   /// the height.

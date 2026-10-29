@@ -202,7 +202,7 @@
     /// - Returns: The session, the manager, and the harness.
     /// - Throws: The error of the scripted session.
     static func mountScrolledConversation() async throws -> (
-      ScriptedSession, ScrollAnchorManager, HostedViewHarness<ConversationView<ConversationEmptyState>>
+      ScriptedSession, ScrollAnchorManager, HostedViewHarness<ConversationView<DefaultConversationEmptyState>>
     ) {
       let session = try await openSession(messages: scrollEntryCount)
       let (anchors, harness) = mountConversation(of: session)
@@ -216,7 +216,7 @@
     /// - Returns: The manager and the harness.
     static func makeManagedConversation(
       of session: ScriptedSession
-    ) -> (ScrollAnchorManager, HostedViewHarness<ConversationView<ConversationEmptyState>>) {
+    ) -> (ScrollAnchorManager, HostedViewHarness<ConversationView<DefaultConversationEmptyState>>) {
       let anchors = ScrollAnchorManager()
       let harness = HostedViewHarness(ConversationView(session: session.model, anchors: anchors))
       return (anchors, harness)
@@ -230,7 +230,7 @@
     /// - Returns: The manager and the harness.
     static func mountConversation(
       of session: ScriptedSession
-    ) -> (ScrollAnchorManager, HostedViewHarness<ConversationView<ConversationEmptyState>>) {
+    ) -> (ScrollAnchorManager, HostedViewHarness<ConversationView<DefaultConversationEmptyState>>) {
       let (anchors, harness) = makeManagedConversation(of: session)
       reportRows(at: .bottom, of: session.model, to: anchors)
       return (anchors, harness)
@@ -311,7 +311,7 @@
       _ session: ScriptedSession, to firstKey: String
     ) -> (
       ScrollAnchorManager, ReportRecorder<ScrollAnchorTarget>,
-      HostedViewHarness<ConversationView<ConversationEmptyState>>
+      HostedViewHarness<ConversationView<DefaultConversationEmptyState>>
     ) {
       let (anchors, harness) = makeManagedConversation(of: session)
       harness.render()

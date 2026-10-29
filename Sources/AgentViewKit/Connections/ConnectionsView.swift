@@ -12,7 +12,9 @@ import SwiftUI
 ///
 /// The rows are an ``AgentRowList``, not a SwiftUI `List`: the arrow keys
 /// select a row through the `nav.*` commands of EditorKit, and a jump session
-/// of the host labels each row. A row does not open.
+/// of the host labels each row. A row does not open. The list has no margin
+/// around its rows (^rgsq3k4): the host gives one, such as
+/// `.scrollContentMargins(\.tile.margin)`.
 public struct ConnectionsView: View {
   /// The accessibility identifier of the empty state.
   public static let emptyIdentifier = "connections-empty"
@@ -60,6 +62,7 @@ public struct ConnectionsView: View {
 #Preview("MCP servers") {
   ConnectionsView()
     .environment(\.sessionModel, PreviewFixtures.mcpSession)
+    .scrollContentMargins(\.tile.margin)
 }
 
 #Preview("No MCP servers") {
