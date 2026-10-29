@@ -12,14 +12,13 @@ import Testing
 /// gives the empty state ``DistinctRolesTheme``, so a pixel of the accent can
 /// come only from the accent role.
 ///
-/// The empty state is in a `ScrollView`, and `ImageRenderer` does not draw
-/// the content of a `ScrollView`: on macOS, a `ScrollView` is an AppKit
-/// `NSScrollView`, and `ImageRenderer` does not draw an AppKit view
-/// (``RenderedPixels``). Thus the test reads the cache of a window.
-@Suite @MainActor struct ConversationEmptyStateColorHostedTests {
-  @Test(.hostedSerially) func theEmptyStateDrawsNoPixelOfTheAccent() throws {
-    let pixels = try EditorThemeViewsTests.drawnCachedPixels(of: ConversationEmptyState())
+/// The empty state is in a `ScrollView`, an AppKit `NSScrollView` on macOS,
+/// so the test captures it in a real window, where the window server draws
+/// the content of the scroll view (``EditorThemeViewsTests``).
+@Suite(.serialized, .hostedSerially) @MainActor struct ConversationEmptyStateColorHostedTests {
+  @Test func theEmptyStateDrawsNoPixelOfTheAccent() async throws {
+    let image = try await EditorThemeViewsTests.drawnCapture(of: ConversationEmptyState())
 
-    #expect(!pixels.contains(DistinctRolesTheme.Role.accent))
+    #expect(try !EditorThemeViewsTests.contains(image, DistinctRolesTheme.Role.accent))
   }
 }

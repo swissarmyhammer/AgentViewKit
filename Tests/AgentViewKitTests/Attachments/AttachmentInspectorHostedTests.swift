@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
@@ -439,7 +440,7 @@ import UniformTypeIdentifiers
   static func inspectorItems<Content: View>(in harness: HostedViewHarness<Content>)
     -> [NSSplitViewItem]
   {
-    harness.views(of: NSSplitView.self)
+    views(ofType: NSSplitView.self, in: harness.hostingView)
       .compactMap { $0.delegate as? NSSplitViewController }
       .flatMap(\.splitViewItems)
       .filter { $0.behavior == .inspector }

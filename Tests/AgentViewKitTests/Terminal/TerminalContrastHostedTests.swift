@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
+import EditorTestSupport
 import EditorTheme
 import SwiftUI
 import Testing
@@ -146,16 +147,14 @@ import Testing
         })
   }
 
-  @Test func underTheDefaultThemeTheTerminalFrameDrawsNoFill() throws {
+  @Test func underTheDefaultThemeTheTerminalFrameDrawsNoFill() async throws {
     // Clear content over a backdrop that fills the frame: only a fill of the
     // frame can hide the backdrop in the middle of the block.
-    let block = Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity).terminalBlockFrame()
-    let size = EditorThemeViewsTests.size
-    let pixels = try #require(
-      RenderedPixels(
-        rendering: SurfaceWithBackdrop(content: block, placement: .behindToTheEdge), size: size))
+    let block = EditorThemeViewsTests.clearBlock.terminalBlockFrame()
+    let image = try await EditorThemeViewsTests.unthemedCapture(
+      of: SurfaceWithBackdrop(content: block, placement: .behindToTheEdge))
 
-    #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: CGPoint(x: size.width / 2, y: size.height / 2)))
+    #expect(try GlassRenderProbeTests.showsBackdrop(image, at: EditorThemeViewsTests.center))
   }
 }
 

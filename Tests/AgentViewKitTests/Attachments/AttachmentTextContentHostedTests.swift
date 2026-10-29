@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorTestSupport
 import SwiftUI
 import Testing
 import UniformTypeIdentifiers

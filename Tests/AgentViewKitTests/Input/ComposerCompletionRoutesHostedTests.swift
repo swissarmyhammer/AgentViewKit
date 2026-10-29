@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorComplete
 import EditorExtensions
+import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing

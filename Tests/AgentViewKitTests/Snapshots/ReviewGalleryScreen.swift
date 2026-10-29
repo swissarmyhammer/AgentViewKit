@@ -2,6 +2,8 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import DemoSupport
+  import struct EditorTestSupport.CapturedImage
+  import enum EditorTestSupport.ReviewAppearance
   import FoundationModelsACP
   import FoundationModelsACPClient
   import Quartz
@@ -13,12 +15,12 @@
   /// list scrolled under both bars, the attachment inspector and the gallery
   /// columns of the demo app.
   ///
-  /// Each screen is the real kit view in the hidden window of ``ViewSnapshot``,
-  /// with fixed preview data, rendered by Core Animation (path C, ^zbcys18).
-  /// The images show what a window shows: Liquid Glass, the scroll edge
-  /// effect, the vibrant labels in the look of each variant, and the mic and
-  /// Send buttons of the composer. A popover is its own window, so no image
-  /// shows one.
+  /// Each screen is the real kit view in a real window on the screen, with
+  /// fixed preview data, captured from the window server (``CaptureMount``,
+  /// EditorKit `style.md` rule 9). The images show what the app shows: Liquid
+  /// Glass, the scroll edge effect, the vibrant labels in each look, and the
+  /// mic and Send buttons of the composer. A popover is its own window, so no
+  /// image shows one.
   ///
   /// The raw value is the name of the screen in the image names.
   enum ReviewGalleryScreen: String, CaseIterable {
@@ -95,23 +97,22 @@
       }
     }
 
-    /// The pixels of the screen in `variant`.
+    /// The capture of the screen in `look`.
     ///
-    /// - Parameter variant: The settings of the image.
-    /// - Returns: The pixels, or `nil` when the computer has no Metal device.
-    /// - Throws: An issue when the screen cannot be built.
-    func pixels(in variant: SnapshotVariant) async throws -> RenderedPixels? {
+    /// - Parameter look: The look of the window.
+    /// - Returns: The image.
+    /// - Throws: An issue when the screen cannot be built, or the error of the
+    ///   capture.
+    func capture(in look: ReviewAppearance) async throws -> CapturedImage {
       switch self {
-      case .thread: try await ReviewGalleryFixtures.threadPixels(size: size, variant: variant)
-      case .requestDeck:
-        try await ViewSnapshot.compositedPixels(of: ReviewGalleryFixtures.deckThread, size: size, variant: variant)
-      case .banners:
-        try await ViewSnapshot.compositedPixels(of: ReviewGalleryFixtures.bannerThread, size: size, variant: variant)
+      case .thread: try await ReviewGalleryFixtures.threadImage(size: size, look: look)
+      case .requestDeck: try await CaptureMount.capture(ReviewGalleryFixtures.deckThread, size: size, appearance: look)
+      case .banners: try await CaptureMount.capture(ReviewGalleryFixtures.bannerThread, size: size, appearance: look)
       case .signIn:
-        try await ViewSnapshot.compositedPixels(of: ReviewGalleryFixtures.signInThread(), size: size, variant: variant)
-      case .scrolled: try ReviewGalleryFixtures.scrolledPixels(size: size, variant: variant)
-      case .inspector: try await ReviewGalleryFixtures.inspectorPixels(size: size, variant: variant)
-      case .gallery: try await ReviewGalleryFixtures.galleryPixels(size: size, variant: variant)
+        try await CaptureMount.capture(ReviewGalleryFixtures.signInThread(), size: size, appearance: look)
+      case .scrolled: try await ReviewGalleryFixtures.scrolledImage(size: size, look: look)
+      case .inspector: try await ReviewGalleryFixtures.inspectorImage(size: size, look: look)
+      case .gallery: try await ReviewGalleryFixtures.galleryImage(size: size, look: look)
       }
     }
   }
@@ -272,21 +273,22 @@
       .speechTranscriber(FakeSpeechTranscriber())
     }
 
-    /// The pixels of the thread screen: each block expanded, after the
+    /// The capture of the thread screen: each block expanded, after the
     /// syntax parse of the code block.
     ///
     /// - Parameters:
     ///   - size: The size of the image.
-    ///   - variant: The settings of the image.
-    /// - Returns: The pixels.
-    /// - Throws: An issue when the cache has no model for the code block.
-    static func threadPixels(size: CGSize, variant: SnapshotVariant) async throws -> RenderedPixels? {
+    ///   - look: The look of the window.
+    /// - Returns: The image.
+    /// - Throws: An issue when the cache has no model for the code block, or
+    ///   the error of the capture.
+    static func threadImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
       let session = try transcriptSession()
       let cache = CodeBlockModelCache()
       let thread = demoThread(session, connection: connection)
         .environment(\.expandedBlocksStore, ExpandedBlocksStore(defaultExpanded: { _ in true }))
         .environment(\.codeBlockModelCache, cache)
-      return try await ViewSnapshot.compositedPixels(of: thread, size: size, variant: variant) {
+      return try await CaptureMount.capture(thread, size: size, appearance: look) { _ in
         await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
       }
     }
@@ -339,17 +341,18 @@
         connection: AgentAuthViewSurfaceHostedTests.connection)
     }
 
-    /// The pixels of the scrolled screen: the long transcript of
+    /// The capture of the scrolled screen: the long transcript of
     /// ``PreviewFixtures/scrolledSession``, moved to the row at
     /// ``scrolledRowIndex`` as the Show Error button of the state banner moves
     /// it, so that the list is away from the bottom and shows the pill.
     ///
     /// - Parameters:
     ///   - size: The size of the image.
-    ///   - variant: The settings of the image.
-    /// - Returns: The pixels.
-    /// - Throws: An issue when the list does not leave the bottom.
-    static func scrolledPixels(size: CGSize, variant: SnapshotVariant) throws -> RenderedPixels? {
+    ///   - look: The look of the window.
+    /// - Returns: The image.
+    /// - Throws: An issue when the list does not leave the bottom, or the error
+    ///   of the capture.
+    static func scrolledImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
       let session = PreviewFixtures.scrolledSession
       let anchors = ScrollAnchorManager()
       let thread = AgentThreadView(
@@ -357,43 +360,39 @@
       ) {
         DefaultThreadComposer()
       }
-      let harness = ViewSnapshot.makeHarness(of: thread, size: size, variant: variant)
-      defer { harness.close() }
-      harness.render()
-      let key = session.transcript.map(\.rowKey)[scrolledRowIndex]
-      anchors.noteJump(to: key)
-      anchors.onScroll(.item(key))
-      harness.render()
-      try #require(!anchors.isPinnedToBottom, "The list of the scrolled screen did not leave the bottom.")
-      harness.render()
-      return ViewSnapshot.compositedPixels(of: harness)
+      return try await CaptureMount.capture(thread, size: size, appearance: look) { mount in
+        let key = session.transcript.map(\.rowKey)[scrolledRowIndex]
+        anchors.noteJump(to: key)
+        anchors.onScroll(.item(key))
+        mount.render()
+        try #require(!anchors.isPinnedToBottom, "The list of the scrolled screen did not leave the bottom.")
+      }
     }
 
-    /// The pixels of the thread with the attachment inspector open on a file
+    /// The capture of the thread with the attachment inspector open on a file
     /// on disk. The image hides the live QuickLook preview, which draws out
     /// of process at a time that no event tells.
     ///
     /// - Parameters:
     ///   - size: The size of the image.
-    ///   - variant: The settings of the image.
-    /// - Returns: The pixels.
-    /// - Throws: The error of the file of the attachment.
-    static func inspectorPixels(size: CGSize, variant: SnapshotVariant) async throws -> RenderedPixels? {
+    ///   - look: The look of the window.
+    /// - Returns: The image.
+    /// - Throws: The error of the file of the attachment, or of the capture.
+    static func inspectorImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
       let directory = try TemporaryDirectory()
       defer { directory.remove() }
       let attachment = try AttachmentInspectorHostedTests.attachment(
         named: SnapshotFixtures.inspectorFileName, in: directory)
       let thread = demoThread(try transcriptSession(), connection: connection)
         .environment(\.inspectorSelection, InspectorSelection(attachment: attachment))
-      return try await ViewSnapshot.compositedPixels(
-        of: thread, size: size, variant: variant, hiding: [QLPreviewView.self])
+      return try await CaptureMount.capture(thread, size: size, appearance: look, hiding: [QLPreviewView.self])
     }
 
     /// The id of the scripted permission session of the Gallery tab
     /// (`DemoGallery.permission`).
     static let permissionSessionID = "gallery-permission"
 
-    /// The pixels of the gallery columns of the demo app: the session list of
+    /// The capture of the gallery columns of the demo app: the session list of
     /// the scripted sessions of the Gallery tab (``InMemoryDemoScript/gallery``)
     /// in the sidebar, and the resumed permission session in the detail. The
     /// permission session is open and waits for an answer, so its row shows
@@ -405,10 +404,11 @@
     ///
     /// - Parameters:
     ///   - size: The size of the image.
-    ///   - variant: The settings of the image.
-    /// - Returns: The pixels.
-    /// - Throws: The error of the start of the agent or of `session/resume`.
-    static func galleryPixels(size: CGSize, variant: SnapshotVariant) async throws -> RenderedPixels? {
+    ///   - look: The look of the window.
+    /// - Returns: The image.
+    /// - Throws: The error of the start of the agent, of `session/resume`, or
+    ///   of the capture.
+    static func galleryImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
       let agent = try await DemoAgent.makeInProcess(script: .gallery)
       let session = try await agent.connection.resumeSession(
         ResumeSessionRequest(
@@ -423,11 +423,16 @@
       } lookControls: {
         EmptyView()
       }
-      let pixels = await ViewSnapshot.compositedPixels(of: columns, size: size, variant: variant) {
-        await ObservationWait.until { !agent.connection.sessions.isEmpty && !session.pendingPermissions.isEmpty }
+      do {
+        let image = try await CaptureMount.capture(columns, size: size, appearance: look) { mount in
+          await mount.render { !agent.connection.sessions.isEmpty && !session.pendingPermissions.isEmpty }
+        }
+        await agent.stop()
+        return image
+      } catch {
+        await agent.stop()
+        throw error
       }
-      await agent.stop()
-      return pixels
     }
   }
 #endif

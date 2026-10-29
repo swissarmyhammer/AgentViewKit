@@ -1,26 +1,34 @@
 import AgentViewKitTestSupport
+import struct EditorTestSupport.CapturedImage
 import Foundation
 import SwiftUI
 import Testing
 
-/// Tests for ``ReviewGallery``: the names of its images, the checks of a
-/// render, the contact sheet, and the removal of the images of an earlier
-/// run. Each test uses its own temporary folder.
-@Suite @MainActor struct ReviewGalleryTests {
+/// Tests for ``ReviewGallery``: the names of its images, the check of a
+/// capture, the contact sheet, and the removal of the images of an earlier
+/// run. Each test uses its own temporary folder. The test images are
+/// captures of a real window, so the suite holds the shared UI test lock.
+@Suite(.serialized, .hostedSerially) @MainActor struct ReviewGalleryTests {
   /// The size of each test image, in points.
   static let imageSize = CGSize(width: 40, height: 20)
 
   /// The name of the screen of the test images.
   static let screen = "thread"
 
-  /// Pixels with two colors: a red half and a blue half.
-  static var twoColorPixels: RenderedPixels? {
-    RenderedPixels(rendering: HStack(spacing: 0) { Color.red; Color.blue }, size: imageSize)
+  /// A capture with two colors: a red half and a blue half.
+  ///
+  /// - Returns: The image.
+  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
+  static func twoColorImage() async throws -> CapturedImage {
+    try await CapturedImage(showing: HStack(spacing: 0) { Color.red; Color.blue }, size: imageSize)
   }
 
-  /// Pixels with one color only, as a render that drew nothing.
-  static var oneColorPixels: RenderedPixels? {
-    RenderedPixels(rendering: Color.red, size: imageSize)
+  /// A capture with one color only, as a screen that shows nothing.
+  ///
+  /// - Returns: The image.
+  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
+  static func oneColorImage() async throws -> CapturedImage {
+    try await CapturedImage(showing: Color.red, size: imageSize)
   }
 
   /// The two rows of the contact sheet tests, in order.
@@ -34,14 +42,14 @@ import Testing
   ///
   /// - Parameter body: The test, with the gallery and its folder.
   /// - Throws: The error of the folder or of `body`.
-  static func withGallery(_ body: (ReviewGallery, TemporaryDirectory) throws -> Void) throws {
+  static func withGallery(_ body: (ReviewGallery, TemporaryDirectory) async throws -> Void) async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
-    try body(ReviewGallery(directory: directory.url), directory)
+    try await body(ReviewGallery(directory: directory.url), directory)
   }
 
-  @Test func theGalleryShowsTheLightAndTheDarkVariantsOnly() {
-    #expect(ReviewGallery.variants == [.light, .dark])
+  @Test func theGalleryShowsTheLightAndTheDarkLooksOnly() {
+    #expect(ReviewGallery.looks == [.light, .dark])
   }
 
   @Test func theDefaultFolderIsTheScreenshotCheckFolderOfTheCaches() throws {
@@ -52,50 +60,45 @@ import Testing
         == caches.appending(path: "AgentViewKit/screenshot-check", directoryHint: .isDirectory).standardizedFileURL)
   }
 
-  @Test func anImageIsNamedByItsScreenAndItsVariant() throws {
-    try Self.withGallery { gallery, directory in
-      let url = try gallery.write(Self.twoColorPixels, screen: Self.screen, variant: .dark)
+  @Test func anImageIsNamedByItsScreenAndItsLookAndHoldsTheCapture() async throws {
+    let image = try await Self.twoColorImage()
+    try await Self.withGallery { gallery, directory in
+      let url = try gallery.write(image, screen: Self.screen, look: .dark)
 
       #expect(url == directory.url.appending(path: "thread--dark.png"))
-      let data = try Data(contentsOf: url)
-      #expect(RenderedPixels(pngData: data, scale: RenderedPixels.renderScale) != nil)
+      #expect(try CapturedImage(decoding: Data(contentsOf: url)) == image)
     }
   }
 
-  @Test func theGalleryMakesAMissingFolderForItsFiles() throws {
-    try Self.withGallery { _, directory in
+  @Test func theGalleryMakesAMissingFolderForItsFiles() async throws {
+    let image = try await Self.twoColorImage()
+    try await Self.withGallery { _, directory in
       let gallery = ReviewGallery(directory: directory.url.appending(path: "missing/screenshot-check"))
 
-      let image = try gallery.write(Self.twoColorPixels, screen: Self.screen, variant: .light)
+      let written = try gallery.write(image, screen: Self.screen, look: .light)
       let sheet = try gallery.writeContactSheet(Self.rows)
 
-      #expect(FileManager.default.fileExists(atPath: image.path(percentEncoded: false)))
+      #expect(FileManager.default.fileExists(atPath: written.path(percentEncoded: false)))
       #expect(FileManager.default.fileExists(atPath: sheet.path(percentEncoded: false)))
     }
   }
 
-  @Test func aRenderWithNoPixelsIsAnError() throws {
-    try Self.withGallery { gallery, _ in
-      #expect(throws: ReviewGalleryError.noPixels(name: "thread--light")) {
-        try gallery.write(nil, screen: Self.screen, variant: .light)
-      }
-    }
-  }
-
-  @Test func aRenderOfOneColorIsAnEmptyImage() throws {
-    try Self.withGallery { gallery, directory in
+  @Test func aCaptureOfOneColorIsAnEmptyImage() async throws {
+    let image = try await Self.oneColorImage()
+    try await Self.withGallery { gallery, directory in
       #expect(throws: ReviewGalleryError.emptyImage(name: "thread--light")) {
-        try gallery.write(Self.oneColorPixels, screen: Self.screen, variant: .light)
+        try gallery.write(image, screen: Self.screen, look: .light)
       }
       #expect(!FileManager.default.fileExists(atPath: directory.url.appending(path: "thread--light.png").path))
     }
   }
 
-  @Test func theContactSheetHasARowForEachScreenAndACellForEachVariant() throws {
-    try Self.withGallery { gallery, _ in
+  @Test func theContactSheetHasARowForEachScreenAndACellForEachLook() async throws {
+    let image = try await Self.twoColorImage()
+    try await Self.withGallery { gallery, _ in
       for row in Self.rows {
-        for variant in ReviewGallery.variants {
-          try gallery.write(Self.twoColorPixels, screen: row.screen, variant: variant)
+        for look in ReviewGallery.looks {
+          try gallery.write(image, screen: row.screen, look: look)
         }
       }
 
@@ -112,9 +115,10 @@ import Testing
     }
   }
 
-  @Test func theContactSheetMarksAMissingImage() throws {
-    try Self.withGallery { gallery, _ in
-      try gallery.write(Self.twoColorPixels, screen: Self.screen, variant: .light)
+  @Test func theContactSheetMarksAMissingImage() async throws {
+    let image = try await Self.twoColorImage()
+    try await Self.withGallery { gallery, _ in
+      try gallery.write(image, screen: Self.screen, look: .light)
 
       let html = try String(contentsOf: gallery.writeContactSheet([Self.rows[0]]), encoding: .utf8)
 
@@ -123,8 +127,8 @@ import Testing
     }
   }
 
-  @Test func theContactSheetEscapesItsText() throws {
-    try Self.withGallery { gallery, _ in
+  @Test func theContactSheetEscapesItsText() async throws {
+    try await Self.withGallery { gallery, _ in
       let row = ReviewGalleryRow(screen: Self.screen, title: "A <b> & \"c\"", note: "x < y")
 
       let html = try String(contentsOf: gallery.writeContactSheet([row]), encoding: .utf8)
@@ -135,10 +139,11 @@ import Testing
     }
   }
 
-  @Test func theRemovalOfAnEarlierRunKeepsOtherFiles() throws {
-    try Self.withGallery { gallery, directory in
+  @Test func theRemovalOfAnEarlierRunKeepsOtherFiles() async throws {
+    let image = try await Self.twoColorImage()
+    try await Self.withGallery { gallery, directory in
       let kept = try directory.file(named: "notes.txt", contents: Data())
-      try gallery.write(Self.twoColorPixels, screen: Self.screen, variant: .light)
+      try gallery.write(image, screen: Self.screen, look: .light)
       try gallery.writeContactSheet(Self.rows)
 
       try gallery.removeEarlierRun()
@@ -148,8 +153,8 @@ import Testing
     }
   }
 
-  @Test func theRemovalOfAnEarlierRunAcceptsAMissingFolder() throws {
-    try Self.withGallery { _, directory in
+  @Test func theRemovalOfAnEarlierRunAcceptsAMissingFolder() async throws {
+    try await Self.withGallery { _, directory in
       let gallery = ReviewGallery(directory: directory.url.appending(path: "missing"))
 
       try gallery.removeEarlierRun()

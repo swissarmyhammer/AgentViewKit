@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorTestSupport
 import FoundationModelsACPClient
 import Testing
 
@@ -83,13 +84,13 @@ import Testing
     let entries = try await Self.openPolicyEntries()
     defer { entries.session.close() }
     let store = ExpandedBlocksStore()
-    let readerOfToolCall = ChangeFlag.observing { _ = store.isExpanded(entry: entries.toolCall) }
-    let readerOfThought = ChangeFlag.observing { _ = store.isExpanded(entry: entries.thought) }
+    let readerOfToolCall = ObservationFlag.observing { _ = store.isExpanded(entry: entries.toolCall) }
+    let readerOfThought = ObservationFlag.observing { _ = store.isExpanded(entry: entries.thought) }
 
     store.toggle(entry: entries.toolCall)
 
-    #expect(readerOfToolCall.value)
-    #expect(!readerOfThought.value)
+    #expect(readerOfToolCall.isRaised)
+    #expect(!readerOfThought.isRaised)
   }
 
   @Test func toggleWithNoSeedFlipsThePolicyValue() async throws {
@@ -164,11 +165,11 @@ import Testing
     let entries = try await Self.openPolicyEntries()
     defer { entries.session.close() }
     let store = Self.makeStoreThatExpandsToolCalls()
-    let reader = ChangeFlag.observing { _ = store.isExpanded(entry: entries.toolCall) }
+    let reader = ObservationFlag.observing { _ = store.isExpanded(entry: entries.toolCall) }
 
     store.collapse(entry: entries.toolCall)
 
-    #expect(reader.value)
+    #expect(reader.isRaised)
     #expect(!store.isExpanded(entry: entries.toolCall))
   }
 

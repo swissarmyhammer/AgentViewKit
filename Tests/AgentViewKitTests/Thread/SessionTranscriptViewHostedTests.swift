@@ -1,6 +1,7 @@
 #if DEBUG
   import AgentViewKit
   import AgentViewKitTestSupport
+  import EditorTestSupport
   import FoundationModelsACP
   import FoundationModelsACPClient
   import SwiftUI
@@ -248,7 +249,8 @@
     /// tree after one direct layout pass. The test does not wait for a
     /// visibility report: SwiftUI sends it on a later update, and for the
     /// off-screen harness window it can send no report. A wait for it with no
-    /// bound holds `HostedTestLock` and stops all hosted tests.
+    /// bound holds the UI test lock of EditorKit (`.hostedSerially`) and
+    /// stops all hosted tests.
     ///
     /// The `onScrollTargetVisibilityChange` action of the view is a closure
     /// in the body of the view, so a test cannot get it or compare it.

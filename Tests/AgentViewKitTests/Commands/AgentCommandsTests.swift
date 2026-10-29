@@ -1,8 +1,10 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import AppKit
 import EditorCommands
 import EditorCommandsTestSupport
 import EditorCommandsUI
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -569,19 +571,20 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let pasteboard = FakePasteboard()
-    let fixture = Self.makeFixture(session: model) { $0.pasteboard = pasteboard }
-    #expect(AgentCommandTarget.plainText(of: model).isEmpty)
-    try await session.sendUpdate(
-      WireBlockJSON.makeChunk("user_message_chunk", messageID: "copy-u", block: WireBlockJSON.makeText("Hi.")))
-    try await session.sendUpdate(
-      WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
-    try await session.sendUpdate(
-      WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
-    await ObservationWait.until { model.transcript.count == 3 }
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let fixture = Self.makeFixture(session: model) { $0.pasteboard = pasteboard }
+      #expect(AgentCommandTarget.plainText(of: model).isEmpty)
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk("user_message_chunk", messageID: "copy-u", block: WireBlockJSON.makeText("Hi.")))
+      try await session.sendUpdate(
+        WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
+      await ObservationWait.until { model.transcript.count == 3 }
 
-    #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
-    #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.")
+      #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
+      #expect(pasteboard.string(forType: .string) == "User:\nHi.\n\nAssistant:\nHello.")
+    }
   }
 
   /// The manager sends the scroll to the bottom from a main-actor task, so

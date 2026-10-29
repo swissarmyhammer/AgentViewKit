@@ -4,6 +4,7 @@ import AppKit
 import EditorCommands
 import EditorCommandsTestSupport
 import EditorCommandsUI
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI

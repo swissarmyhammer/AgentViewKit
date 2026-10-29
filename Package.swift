@@ -181,20 +181,19 @@ let package = Package(
       ],
       swiftSettings: mainActorIsolated
     ),
-    // The hosted view harness, the recording fakes, and the session model
-    // over the scripted agent of `DemoSupport`. This target is not a product.
-    // Each test target that links a package target links it too.
+    // The agent-specific test helpers: the recording fakes, and the session
+    // model over the scripted agent of `DemoSupport`. The generic helpers,
+    // such as the hosted view harness, are EditorKit's `EditorTestSupport`
+    // (`NoEditorKitDuplicateTests`). This target is not a product. Each test
+    // target that links a package target links it too. It links
+    // EditorTestSupport for the capture of a real window (`CapturedImage`)
+    // and the looks of a screenshot (`ReviewAppearance`), which the review
+    // gallery writes.
     .target(
       name: "AgentViewKitTestSupport",
-      dependencies: ["AgentViewKit", "DemoSupport", "HostedWindowSupport"] + acpProducts,
+      dependencies: ["AgentViewKit", "DemoSupport"] + acpProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
-    // The Objective-C window of the hosted view harness. The window catches
-    // the exception of a display cycle loop of AppKit, such as a constraint
-    // update loop, so that a hosted test fails and does not stop the test
-    // process. Swift cannot catch an Objective-C exception. This target is
-    // not a product, and it links only AppKit.
-    .target(name: "HostedWindowSupport"),
     // The scripted in-memory ACP agent, the agent starter of the demo app
     // (`DemoAgent`), and the launch options of the demo app. The ACP tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
@@ -224,9 +223,6 @@ let package = Package(
         // ProtocolVersionTests reads the ACP version decision from disk, and
         // the decision table tests read their tables with MarkdownTable.
         "PackageFileSupport",
-        // HostedViewHarnessTests checks the window of the harness that
-        // catches the exception of a display cycle loop.
-        "HostedWindowSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,
       // The snapshot tests read their reference PNG images from disk

@@ -2,6 +2,7 @@
   import AgentViewKit
   import AgentViewKitTestSupport
   import EditorSwiftUI
+  import EditorTestSupport
   import Foundation
   import FoundationModelsACPClient
   import SwiftUI
@@ -131,17 +132,18 @@
         ])
     }
 
+    /// The terminal has exited, so its footer shows the exit code and no
+    /// progress indicator moves while the window is captured.
     @Test func theFrameUsesTheTerminalBackgroundAndTheHeaderHasNoFill() async throws {
-      let (session, terminal) = try await Self.openTerminal(Self.outputField("ok"))
+      let (session, terminal) = try await Self.openTerminal(
+        Self.outputField("ok") + #", "exitStatus": {"exitCode": \#(Self.successExitCode)}"#)
       defer { session.close() }
 
-      let pixels = try #require(
-        RenderedPixels(
-          rendering: TerminalView(entry: terminal).editorTheme(DistinctRolesTheme()),
-          size: Self.renderSize))
+      let image = try await GlassRenderProbeTests.capture(
+        of: TerminalView(entry: terminal).editorTheme(DistinctRolesTheme()), size: Self.renderSize)
 
-      #expect(pixels.contains(DistinctRolesTheme.Role.terminalBackground))
-      #expect(!pixels.contains(DistinctRolesTheme.Role.statusBarBackground))
+      #expect(try EditorThemeViewsTests.contains(image, DistinctRolesTheme.Role.terminalBackground))
+      #expect(try !EditorThemeViewsTests.contains(image, DistinctRolesTheme.Role.statusBarBackground))
     }
 
     @Test func invalidUTF8OutputShowsReplacementCharacters() async throws {

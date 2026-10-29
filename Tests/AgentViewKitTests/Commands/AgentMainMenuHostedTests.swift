@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -72,7 +73,7 @@ import Testing
   ///   - pasteboard: The pasteboard of the copy commands.
   /// - Returns: The harness and the path of the message that has the focus.
   static func focusMessage(
-    of session: ScriptedSession, in system: CommandSystem, pasteboard: FakePasteboard
+    of session: ScriptedSession, in system: CommandSystem, pasteboard: NSPasteboard
   ) async throws -> (harness: HostedViewHarness<some View>, path: FocusPath) {
     let harness = AgentCommandScopeHostedTests.mount(
       session: session, system: system, outerScope: false, pasteboard: pasteboard)
@@ -91,16 +92,17 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let pasteboard = FakePasteboard()
-    let focused = try await Self.focusMessage(of: session, in: system, pasteboard: pasteboard)
-    defer { focused.harness.close() }
-    let edit = Self.openMenu(.edit, at: focused.path, in: system)
-    let item = try #require(Self.item(of: .copyMessage, in: edit.menu))
-    try #require(item.isEnabled)
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let focused = try await Self.focusMessage(of: session, in: system, pasteboard: pasteboard)
+      defer { focused.harness.close() }
+      let edit = Self.openMenu(.edit, at: focused.path, in: system)
+      let item = try #require(Self.item(of: .copyMessage, in: edit.menu))
+      try #require(item.isEnabled)
 
-    edit.menu.performActionForItem(at: edit.menu.index(of: item))
+      edit.menu.performActionForItem(at: edit.menu.index(of: item))
 
-    #expect(pasteboard.contents == AgentCommandScopeHostedTests.message)
+      #expect(pasteboard.string(forType: .string) == AgentCommandScopeHostedTests.message)
+    }
   }
 
   @Test func copyMessageInTheEditMenuIsDisabledWithNoMessageFocused() async throws {
@@ -121,20 +123,21 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let pasteboard = FakePasteboard()
-    let focused = try await Self.focusMessage(of: session, in: system, pasteboard: pasteboard)
-    defer { focused.harness.close() }
-    let edit = Self.openMenu(.edit, at: focused.path, in: system)
-    let event = try Self.cKeyEvent(modifiers: Self.copyMessageModifiers)
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let focused = try await Self.focusMessage(of: session, in: system, pasteboard: pasteboard)
+      defer { focused.harness.close() }
+      let edit = Self.openMenu(.edit, at: focused.path, in: system)
+      let event = try Self.cKeyEvent(modifiers: Self.copyMessageModifiers)
 
-    try #require(edit.menu.performKeyEquivalent(with: event))
+      try #require(edit.menu.performKeyEquivalent(with: event))
 
-    #expect(pasteboard.contents == AgentCommandScopeHostedTests.message)
-    let chord = try #require(KeyChordTranslator.chord(for: event))
-    #expect(chord == AgentKeymap.defaultChords[.copyMessage]?.first)
-    #expect(
-      system.registry.resolveKey(chord.asSequence, mode: .cua, at: focused.path)
-        == .command(AgentCommandVerb.copyMessage.id, scope: AgentCommandScopeHostedTests.path(of: session.model)))
+      #expect(pasteboard.string(forType: .string) == AgentCommandScopeHostedTests.message)
+      let chord = try #require(KeyChordTranslator.chord(for: event))
+      #expect(chord == AgentKeymap.defaultChords[.copyMessage]?.first)
+      #expect(
+        system.registry.resolveKey(chord.asSequence, mode: .cua, at: focused.path)
+          == .command(AgentCommandVerb.copyMessage.id, scope: AgentCommandScopeHostedTests.path(of: session.model)))
+    }
   }
 
   /// Command-C stays the Copy of the system Edit menu and of the text views:
@@ -144,16 +147,17 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let pasteboard = FakePasteboard()
-    let focused = try await Self.focusMessage(of: session, in: system, pasteboard: pasteboard)
-    defer { focused.harness.close() }
-    let edit = Self.openMenu(.edit, at: focused.path, in: system)
-    let event = try Self.cKeyEvent(modifiers: .command)
-    let chord = try #require(KeyChordTranslator.chord(for: event))
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let focused = try await Self.focusMessage(of: session, in: system, pasteboard: pasteboard)
+      defer { focused.harness.close() }
+      let edit = Self.openMenu(.edit, at: focused.path, in: system)
+      let event = try Self.cKeyEvent(modifiers: .command)
+      let chord = try #require(KeyChordTranslator.chord(for: event))
 
-    #expect(!edit.menu.performKeyEquivalent(with: event))
-    #expect(pasteboard.contents == nil)
-    #expect(system.registry.resolveKey(chord.asSequence, mode: .cua, at: focused.path) == .unbound)
+      #expect(!edit.menu.performKeyEquivalent(with: event))
+      #expect(pasteboard.string(forType: .string) == nil)
+      #expect(system.registry.resolveKey(chord.asSequence, mode: .cua, at: focused.path) == .unbound)
+    }
   }
 
   // MARK: - Approve and Reject

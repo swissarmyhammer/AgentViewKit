@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import DemoSupport
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient

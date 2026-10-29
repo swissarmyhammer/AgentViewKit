@@ -103,13 +103,21 @@ import Testing
   }
 
   /// The test support target links the kit, the scripted agent of
-  /// `DemoSupport` with the ACP products, for its session helper, and the
-  /// Objective-C window of `HostedWindowSupport`, for the hosted view
-  /// harness. It links no other target.
-  @Test func declaresTheTestSupportTargetOnTheKitTheScriptedAgentAndTheHostedWindow() {
+  /// `DemoSupport` with the ACP products, for its session helper, and
+  /// EditorKit `EditorTestSupport`, for the generic test helpers and the
+  /// capture of a real window that the review gallery writes. It links no
+  /// other target.
+  @Test func declaresTheTestSupportTargetOnTheKitAndTheScriptedAgent() {
     let target =
-      /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit",\s*"DemoSupport",\s*"HostedWindowSupport"\]\s*\+\s*acpProducts,/
+      /\.target\(\s*name:\s*"AgentViewKitTestSupport",\s*dependencies:\s*\["AgentViewKit",\s*"DemoSupport"\]\s*\+\s*acpProducts\s*\+\s*styleTestSupportProducts,/
     #expect(manifest.contains(target))
+  }
+
+  /// The Objective-C window target of the old hosted view harness is gone:
+  /// EditorKit's `CaptureWindow` catches the exception of a display cycle
+  /// loop (`ExceptionCatchingPanel`).
+  @Test func declaresNoHostedWindowSupportTarget() {
+    #expect(!manifest.contains("HostedWindowSupport"))
   }
 
   @Test func linksTheTestSupportTargetFromTheKitTestTarget() {

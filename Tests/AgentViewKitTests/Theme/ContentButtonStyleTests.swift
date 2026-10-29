@@ -9,9 +9,10 @@ import Testing
 /// inspector is system glass, so a glass button in it is glass on glass. Only
 /// a floating control and the action buttons of a request card can use glass.
 ///
-/// A render cannot show a glass button style, because the cache of a window
-/// shows no glass (``GlassRenderProbeHostedTests``). Thus the tests read the
-/// source of each view.
+/// The pixel tests capture a real window from the window server
+/// (``GlassRenderProbeTests``), which shows Liquid Glass. These tests check the
+/// rule itself: they read the source of each view for the button style that
+/// it must use, so a view with no snapshot is checked too.
 @Suite struct ContentButtonStyleTests {
   /// A view with buttons in content, and the button style that it must use.
   nonisolated struct ContentButtons: CustomTestStringConvertible, Sendable {

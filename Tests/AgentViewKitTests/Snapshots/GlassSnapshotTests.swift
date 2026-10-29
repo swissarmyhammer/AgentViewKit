@@ -1,46 +1,29 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
 import EditorStyle
+import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
-/// The snapshot images of the glass parts of the kit in isolation (AVK-13,
-/// path B of ``ViewSnapshot``).
+/// The snapshot images of the glass parts of the kit over the text of a
+/// transcript, each in a real window on the screen, captured from the window
+/// server (AVK-13, EditorKit `style.md` rule 9).
 ///
-/// `ImageRenderer` draws each glass part with no window. The images show a
-/// glass look, which can be different from the Liquid Glass that the system
-/// draws in a window. ``HostedSnapshotTests`` shows the full views with no
-/// glass.
-///
-/// `ImageRenderer` cannot draw the full glass views of the kit:
-///
-/// - It draws an AppKit view as a yellow placeholder. The full composer has
-///   AppKit parts (the EditorKit editor, the drop target of the attachments,
-///   and the bordered controls of the accessory row), so its render is the
-///   placeholder.
-/// - It draws nothing for a view with `accessibilityFocused(_:)`, such as
-///   each card of a ``RequestDeck``. In the bar, the buttons of a card also
-///   use the bordered styles, which are AppKit controls.
-/// - It stops the process with a SwiftUI fatal error ("no current update to
-///   enqueue action to") for the full ``AgentThreadView``.
-///
-/// Thus each image shows the glass surface of the kit for the part, with
-/// SwiftUI content of the kit in the place of the AppKit and focus parts:
-/// the field surface of the composer (``PromptFieldSurface``), the floating
-/// glass of the deck in the bar, and the scroll-to-bottom pill with the
-/// field in one `FloatingGlassContainer`.
+/// The window server draws the Liquid Glass of each part as the app shows it,
+/// with the real views on the glass: the header of a thread, the composer with
+/// the EditorKit editor and its accessory row, the request deck in the bar
+/// with its cards, and the scroll-to-bottom pill with the composer in one
+/// `FloatingGlassContainer`.
 ///
 /// Clear glass over the plain window background shows almost no pixels. In
 /// a thread, the transcript scrolls under the bottom bar. Thus each glass
 /// part is at the bottom of its image, over text (``overText(_:)``), so that
 /// the image shows the glass.
 ///
-/// Each test compares the image with its reference image in
-/// `__Snapshots__/GlassSnapshotTests/`. The rim of a rounded glass changes
-/// after the first renders of the process, so the image can have
-/// ``RenderedPixels/glassRimShare`` of changed pixels.
-@Suite @MainActor struct GlassSnapshotTests {
+/// Each test compares the capture with its reference image
+/// `<name>-light.png` or `<name>-dark.png` in
+/// `__Snapshots__/GlassSnapshotTests/` (EditorKit `SnapshotStore`).
+@Suite(.serialized, .hostedSerially) @MainActor struct GlassSnapshotTests {
   /// The size of the image of the floating controls of the thread, in
   /// points.
   static let controlsSize = CGSize(width: 480, height: 200)
@@ -51,24 +34,24 @@ import Testing
   /// The spacing of the style between two floating controls.
   static var spacing: CGFloat { EditorStyle.default.spacing.s }
 
-  /// Renders `view` in `variant` and compares the image with its reference
-  /// image.
+  /// Shows `view` over text in `look` and compares the capture with its
+  /// reference image.
   ///
   /// - Parameters:
-  ///   - view: The glass part to render.
+  ///   - view: The glass part to show.
   ///   - name: The name of the view in the image name, such as
   ///     `composer-field`.
   ///   - size: The size of the image, in points.
-  ///   - variant: The settings of the image.
+  ///   - look: The look of the window.
   ///   - sourceLocation: The location of the caller, for the issue.
-  /// - Throws: The error of ``SnapshotStore``.
+  /// - Throws: The error of the capture, or of `SnapshotStore`.
   static func verify(
-    _ view: some View, named name: String, size: CGSize, variant: SnapshotVariant,
+    _ view: some View, named name: String, size: CGSize, look: ReviewAppearance,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) throws {
-    try SnapshotStore(suite: "GlassSnapshotTests", changedPixelShare: RenderedPixels.glassRimShare).verify(
-      ViewSnapshot.renderedPixels(of: overText(view), size: size, variant: variant), named: variant.name(of: name),
-      sourceLocation: sourceLocation)
+  ) async throws {
+    let part = overText(view)
+    let image = try await CaptureMount.capture(part, size: size, appearance: look)
+    try SnapshotStore(suite: "GlassSnapshotTests").verify(image, named: name, in: look, sourceLocation: sourceLocation)
   }
 
   /// The Markdown text under the glass: two plain paragraphs of a transcript.
@@ -87,8 +70,8 @@ import Testing
   /// The text that fills an image behind a part: ``backdropCopies`` copies
   /// of ``backdropMarkdown`` from the top of the image, as a transcript.
   ///
-  /// The text is a SwiftUI `Text`, and not a ``ResponseView``:
-  /// `ImageRenderer` draws nothing for a ``ResponseView``.
+  /// The text is a SwiftUI `Text` of Markdown, which draws in its first
+  /// layout pass with no load, so each capture shows the same text.
   static var backdrop: some View {
     let margin = EditorStyle.default.spacing.m
     return VStack(alignment: .leading, spacing: margin) {
@@ -113,46 +96,16 @@ import Testing
     }
   }
 
-  /// The field of the composer: the placeholder text of the composer in the
-  /// place of the editor, on the field surface of ``PromptInputView``.
-  static var field: some View {
-    Text(PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.placeholder)
-      .foregroundStyle(.secondary)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .modifier(PromptFieldSurface())
-  }
-
-  /// The glass parts of the composer of `session`: the field above the
-  /// accessory row (``DefaultPromptAccessory``), in one
-  /// `FloatingGlassContainer`, as ``PromptInputView`` shows them. The row
-  /// shows the Stop button while the agent of `session` runs.
+  /// The composer of `session` in one `FloatingGlassContainer`, as in the
+  /// composer slot of ``AgentThreadView``: the field of the composer with the
+  /// EditorKit editor, above the accessory row. The row shows the Stop button
+  /// while the agent of `session` runs.
   ///
   /// - Parameter session: The session of the composer.
   /// - Returns: The view.
   static func composer(for session: SessionModel) -> some View {
     FloatingGlassContainer(spacing: spacing) {
-      VStack(alignment: .leading, spacing: spacing) {
-        field
-        DefaultPromptAccessory()
-      }
-    }
-    .environment(\.sessionModel, session)
-  }
-
-  /// The floating glass of a ``RequestDeck`` in the bar, with the header of
-  /// the form request of ``RequestDeckSurfaceTests/session`` in the place of
-  /// the cards. In the bar, the deck pads its cards with the medium spacing
-  /// of the theme.
-  ///
-  /// - Returns: The view.
-  /// - Throws: An issue when the session holds no form request.
-  static func deckInBar() throws -> some View {
-    let request = try #require(RequestDeckSurfaceTests.session.pendingElicitations.first)
-    return FloatingGlassContainer(spacing: spacing) {
-      ElicitationHeader(request: request)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(EditorStyle.default.spacing.m)
-        .floatingGlass()
+      SnapshotFixtures.composer(for: session)
     }
   }
 
@@ -163,7 +116,7 @@ import Testing
     FloatingGlassContainer(spacing: spacing) {
       VStack(spacing: spacing) {
         ScrollToBottomPill(newItemCount: newItemCount) {}
-        composer(for: SnapshotFixtures.idleSession)
+        SnapshotFixtures.composer(for: SnapshotFixtures.idleSession)
       }
     }
   }
@@ -184,33 +137,34 @@ import Testing
     }
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theHeaderOfTheThread(variant: SnapshotVariant) throws {
-    try Self.verify(Self.threadHeader, named: "thread-header", size: Self.headerSize, variant: variant)
+  @Test(arguments: ReviewAppearance.allCases)
+  func theHeaderOfTheThread(look: ReviewAppearance) async throws {
+    try await Self.verify(Self.threadHeader, named: "thread-header", size: Self.headerSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theComposer(variant: SnapshotVariant) throws {
-    try Self.verify(
+  @Test(arguments: ReviewAppearance.allCases)
+  func theComposer(look: ReviewAppearance) async throws {
+    try await Self.verify(
       Self.composer(for: SnapshotFixtures.idleSession), named: "composer-field-idle",
-      size: SnapshotFixtures.composerSize, variant: variant)
+      size: SnapshotFixtures.composerSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theComposerWhileTheAgentRuns(variant: SnapshotVariant) throws {
-    try Self.verify(
+  @Test(arguments: ReviewAppearance.allCases)
+  func theComposerWhileTheAgentRuns(look: ReviewAppearance) async throws {
+    try await Self.verify(
       Self.composer(for: SnapshotFixtures.runningSession), named: "composer-field-running",
-      size: SnapshotFixtures.composerSize, variant: variant)
+      size: SnapshotFixtures.composerSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theRequestDeckInTheBar(variant: SnapshotVariant) throws {
-    try Self.verify(
-      Self.deckInBar(), named: "request-deck-bar", size: RequestDeckSurfaceTests.size, variant: variant)
+  @Test(arguments: ReviewAppearance.allCases)
+  func theRequestDeckInTheBar(look: ReviewAppearance) async throws {
+    try await Self.verify(
+      RequestDeckSurfaceHostedTests.deckInBar, named: "request-deck-bar", size: RequestDeckSurfaceTests.size,
+      look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theFloatingControlsOfTheThread(variant: SnapshotVariant) throws {
-    try Self.verify(Self.floatingControls, named: "floating-controls", size: Self.controlsSize, variant: variant)
+  @Test(arguments: ReviewAppearance.allCases)
+  func theFloatingControlsOfTheThread(look: ReviewAppearance) async throws {
+    try await Self.verify(Self.floatingControls, named: "floating-controls", size: Self.controlsSize, look: look)
   }
 }

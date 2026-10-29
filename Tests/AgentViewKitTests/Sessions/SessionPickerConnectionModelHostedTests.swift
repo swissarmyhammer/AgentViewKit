@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import DemoSupport
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Observation

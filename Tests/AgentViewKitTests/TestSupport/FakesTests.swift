@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import AuthenticationServices
+import EditorTestSupport
 import Foundation
 import FoundationModelsACPClient
 import Testing
@@ -9,28 +10,14 @@ import Testing
 @Suite @MainActor struct FakesTests {
   // MARK: - Pasteboard
 
-  @Test func fakePasteboardRecordsCopiesInOrder() {
-    let pasteboard = FakePasteboard()
-    let kitPasteboard: any AgentViewKit.Pasteboard = pasteboard
-
-    kitPasteboard.copyText("first")
-    kitPasteboard.copyText("second")
-
-    #expect(pasteboard.copies == ["first", "second"])
-    #expect(pasteboard.contents == "second")
-    pasteboard.reset()
-    #expect(pasteboard.copies.isEmpty)
-    #expect(pasteboard.contents == nil)
-  }
-
   @Test func systemPasteboardConformsAndWritesAString() {
-    let pasteboard = NSPasteboard.withUniqueName()
-    defer { pasteboard.releaseGlobally() }
-    let kitPasteboard: any AgentViewKit.Pasteboard = pasteboard
+    NSPasteboard.withIsolated { pasteboard in
+      let kitPasteboard: any AgentViewKit.Pasteboard = pasteboard
 
-    kitPasteboard.copyText("copied")
+      kitPasteboard.copyText("copied")
 
-    #expect(pasteboard.string(forType: .string) == "copied")
+      #expect(pasteboard.string(forType: .string) == "copied")
+    }
   }
 
   // MARK: - Web authentication

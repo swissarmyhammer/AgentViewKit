@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorTestSupport
 import SwiftUI
 import Testing
 
@@ -55,7 +56,7 @@ struct ScopedDefaultComposerThreadHost: View {
     #expect(EditorKitPromptEditor.identifier == "prompt-editor")
     #expect(editor.role == Self.textAreaRole)
     #expect(textView.accessibilityIdentifier() == EditorKitPromptEditor.identifier)
-    #expect(harness.views(withAccessibilityIdentifier: EditorKitPromptEditor.identifier) == [textView])
+    #expect(views(withAccessibilityIdentifier: EditorKitPromptEditor.identifier, in: harness.hostingView) == [textView])
   }
 
   /// A `nav.*` move or a jump that lands on the command scope of the host

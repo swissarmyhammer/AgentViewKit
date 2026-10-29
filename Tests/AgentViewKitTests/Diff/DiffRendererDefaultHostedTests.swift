@@ -2,6 +2,7 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import EditorDiff
+  import EditorTestSupport
   import Foundation
   import PackageFileSupport
   import SwiftUI
@@ -61,7 +62,7 @@
       let harness = Self.mount(DiffView(patch: Self.patch))
       defer { harness.close() }
 
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: EditorKitDiffRenderer.unreadablePatchIdentifier) == nil)
     }
 
@@ -69,9 +70,9 @@
       let harness = DiffHarness.mountInline(patch: Self.patch, size: Self.size)
       defer { harness.close() }
 
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
-      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn).isEmpty)
-      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
+      #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn, in: harness.hostingView).isEmpty)
+      #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn, in: harness.hostingView).isEmpty)
     }
 
     @Test func anOverrideReplacesTheEditorKitRenderer() {
@@ -81,16 +82,16 @@
       defer { harness.close() }
 
       #expect(harness.element(identifier: "custom-renderer") != nil)
-      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
     }
 
     @Test func theSideBySideLayoutShowsTheEditorKitColumns() {
       let harness = Self.mount(DiffView(patch: Self.patch).diffLayout(.sideBySide))
       defer { harness.close() }
 
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn).isEmpty)
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn, in: harness.hostingView).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn, in: harness.hostingView).isEmpty)
     }
 
     @Test func anUnreadablePatchShowsTheLineOfTheParseError() {
@@ -99,7 +100,7 @@
 
       let row = harness.element(identifier: EditorKitDiffRenderer.unreadablePatchIdentifier)
       #expect(row?.label == "Cannot read the patch at line 3")
-      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
     }
 
     // MARK: - Layout setting

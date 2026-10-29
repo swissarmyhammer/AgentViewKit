@@ -1,55 +1,56 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
 import EditorSwiftUI
+import EditorTestSupport
 import FoundationModelsACPClient
 import Quartz
 import SwiftUI
 import Testing
 
-/// The snapshot images of the real views of the kit in a hidden window
-/// (AVK-13, path A of ``ViewSnapshot``).
+/// The snapshot images of the real views of the kit, each in a real window on
+/// the screen, captured from the window server (AVK-13, EditorKit `style.md`
+/// rule 9).
 ///
 /// Each test shows one view with the fixed data of ``SnapshotFixtures`` in
-/// each ``SnapshotVariant``, and compares the image with its reference image
-/// in `__Snapshots__/HostedSnapshotTests/`. The cache of a window shows no
-/// glass, so a glass part shows the window background here.
-/// ``GlassSnapshotTests`` shows the glass parts.
+/// each look, Light and Dark, in a ``CaptureMount``, and compares the capture
+/// with its reference image `<name>-light.png` or `<name>-dark.png` in
+/// `__Snapshots__/HostedSnapshotTests/` (EditorKit `SnapshotStore`). The
+/// window server draws each part as the app shows it: the AppKit views, the
+/// Liquid Glass and the scroll edge effect.
 ///
 /// To record the reference images again, run
-/// `AVK_SNAPSHOT_RECORD=1 swift test --filter SnapshotTests`, and then look
-/// at each image before the commit.
+/// `SNAPSHOT_RECORD=1 swift test --filter SnapshotTests`, look at each image
+/// before the commit, and run the tests again without the variable.
 @Suite(.serialized, .hostedSerially) @MainActor struct HostedSnapshotTests {
-  /// Shows `view` in `variant` and compares the image with its reference
+  /// Shows `view` in `look` and compares the capture with its reference
   /// image.
   ///
   /// - Parameters:
   ///   - view: The real view to show.
   ///   - name: The name of the view in the image name, such as `thread`.
   ///   - size: The size of the image, in points.
-  ///   - variant: The settings of the image.
+  ///   - look: The look of the window.
   ///   - hiddenTypes: The classes of the AppKit views that the image does not
-  ///     show (``ViewSnapshot/hostedPixels(of:size:variant:hiding:settle:)``).
+  ///     show (``CaptureMount/capture(_:size:appearance:hiding:settle:)``).
   ///   - settle: The wait for a certain event before the image.
   ///   - sourceLocation: The location of the caller, for the issue.
-  /// - Throws: The error of `settle`, or of ``SnapshotStore``.
-  static func verify(
-    _ view: some View, named name: String, size: CGSize, variant: SnapshotVariant,
+  /// - Throws: The error of `settle`, of the capture, or of `SnapshotStore`.
+  static func verify<Content: View>(
+    _ view: Content, named name: String, size: CGSize, look: ReviewAppearance,
     hiding hiddenTypes: [NSView.Type] = [], settle: @MainActor () async throws -> Void = {},
     sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
-    let pixels = try await ViewSnapshot.hostedPixels(
-      of: view, size: size, variant: variant, hiding: hiddenTypes, settle: settle)
-    try SnapshotStore(suite: "HostedSnapshotTests")
-      .verify(pixels, named: variant.name(of: name), sourceLocation: sourceLocation)
+    let image = try await CaptureMount<Content>.capture(
+      view, size: size, appearance: look, hiding: hiddenTypes, settle: { _ in try await settle() })
+    try SnapshotStore(suite: "HostedSnapshotTests").verify(image, named: name, in: look, sourceLocation: sourceLocation)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theThread(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theThread(look: ReviewAppearance) async throws {
     let session = SnapshotFixtures.threadSession
     let cache = CodeBlockModelCache()
     let thread = AgentThreadView(session: session).environment(\.codeBlockModelCache, cache)
 
-    try await Self.verify(thread, named: "thread", size: SnapshotFixtures.threadSize, variant: variant) {
+    try await Self.verify(thread, named: "thread", size: SnapshotFixtures.threadSize, look: look) {
       await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
     }
   }
@@ -57,79 +58,75 @@ import Testing
   /// The state banner with its Show Error button and the login card with its
   /// Sign In button, in the bottom bar of a thread at rest, below the
   /// transcript. The bar has no glass surface, so the buttons use the glass
-  /// styles and not the bordered styles (EditorKit `style.md`, rule
-  /// 4). The cache of a window shows no glass, so a glass button shows its
-  /// label with no bezel, and a bordered button shows its bezel.
+  /// styles and not the bordered styles (EditorKit `style.md`, rule 4).
   ///
   /// The list is at rest and follows the bottom, and the transcript fits
   /// between the two bars, so no row is under a bar and each line of the
-  /// image is readable (^zg9tysk). A row under a bar shows through the bar in
-  /// this image: the cache of a window draws neither the glass of the bar nor
-  /// the scroll edge effect. The scroll-to-bottom pill shows only when the
-  /// list is away from the bottom, with rows under the bar, so this image does
-  /// not show it. `GlassSnapshotTests` shows the pill in the floating controls.
-  @Test(arguments: SnapshotVariant.allCases)
-  func theButtonsOfTheBottomBarBelowTheTranscript(variant: SnapshotVariant) async throws {
+  /// image is readable (^zg9tysk). The scroll-to-bottom pill shows only when
+  /// the list is away from the bottom, with rows under the bar, so this image
+  /// does not show it. `GlassSnapshotTests` shows the pill in the floating
+  /// controls.
+  @Test(arguments: ReviewAppearance.allCases)
+  func theButtonsOfTheBottomBarBelowTheTranscript(look: ReviewAppearance) async throws {
     try await Self.verify(
-      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize,
-      variant: variant)
+      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theIdleComposer(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theIdleComposer(look: ReviewAppearance) async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.idleSession)
 
-    try await Self.verify(composer, named: "composer-idle", size: SnapshotFixtures.composerSize, variant: variant)
+    try await Self.verify(composer, named: "composer-idle", size: SnapshotFixtures.composerSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theComposerWhileTheAgentRuns(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theComposerWhileTheAgentRuns(look: ReviewAppearance) async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.runningSession)
 
-    try await Self.verify(composer, named: "composer-running", size: SnapshotFixtures.composerSize, variant: variant)
+    try await Self.verify(composer, named: "composer-running", size: SnapshotFixtures.composerSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func thePermissionRequestCard(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func thePermissionRequestCard(look: ReviewAppearance) async throws {
     let card = try PermissionViewSurfaceHostedTests.card()
 
-    try await Self.verify(card, named: "permission-card", size: SnapshotFixtures.cardSize, variant: variant)
+    try await Self.verify(card, named: "permission-card", size: SnapshotFixtures.cardSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theRequestDeckInTheBar(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theRequestDeckInTheBar(look: ReviewAppearance) async throws {
     try await Self.verify(
       RequestDeckSurfaceHostedTests.deckInBar, named: "request-deck-bar", size: RequestDeckSurfaceTests.size,
-      variant: variant)
+      look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theSessionNotice(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theSessionNotice(look: ReviewAppearance) async throws {
     let banner = SessionNoticeBanner(session: SessionNoticeBannerSurfaceHostedTests.session)
 
-    try await Self.verify(banner, named: "session-notice", size: SnapshotFixtures.cardSize, variant: variant)
+    try await Self.verify(banner, named: "session-notice", size: SnapshotFixtures.cardSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theStatusBanner(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theStatusBanner(look: ReviewAppearance) async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 
-    try await Self.verify(banner, named: "status-banner", size: SnapshotFixtures.bannerSize, variant: variant)
+    try await Self.verify(banner, named: "status-banner", size: SnapshotFixtures.bannerSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theCodeBlock(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theCodeBlock(look: ReviewAppearance) async throws {
     let model = EditorModel(PreviewFixtures.codeSample)
     let block = CodeBlockView(
       code: PreviewFixtures.codeSample, language: PreviewFixtures.codeSampleLanguage, model: model)
 
-    try await Self.verify(block, named: "code-block", size: SnapshotFixtures.codeBlockSize, variant: variant) {
+    try await Self.verify(block, named: "code-block", size: SnapshotFixtures.codeBlockSize, look: look) {
       await SnapshotFixtures.waitForSyntax(of: model)
     }
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theTerminalOutput(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theTerminalOutput(look: ReviewAppearance) async throws {
     let entry = try #require(
       PreviewFixtures.entry(
         .terminal(
@@ -138,17 +135,17 @@ import Testing
         as: TerminalEntry.self))
 
     try await Self.verify(
-      TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize, variant: variant)
+      TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize, look: look)
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func theElicitationForm(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theElicitationForm(look: ReviewAppearance) async throws {
     let session = PreviewFixtures.elicitationSession
     let request = try #require(session.pendingElicitations.first)
 
     try await Self.verify(
       ElicitationView(request: request, owner: session), named: "elicitation-form",
-      size: SnapshotFixtures.elicitationSize, variant: variant)
+      size: SnapshotFixtures.elicitationSize, look: look)
   }
 
   /// The attachment inspector of a file on disk, over the text backdrop of
@@ -158,12 +155,12 @@ import Testing
   ///
   /// The image hides the live `QLPreviewView` of the preview row. QuickLook
   /// draws the preview out of process, and no event tells when it is drawn:
-  /// a read soon after the mount shows no preview, and a read about one
+  /// a capture soon after the mount shows no preview, and a capture about one
   /// second later shows the text of the file. Thus the preview row shows its
   /// place at the fixed height of the preview, with the backdrop through the
   /// row, on each run.
-  @Test(arguments: SnapshotVariant.allCases)
-  func theAttachmentInspector(variant: SnapshotVariant) async throws {
+  @Test(arguments: ReviewAppearance.allCases)
+  func theAttachmentInspector(look: ReviewAppearance) async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try AttachmentInspectorHostedTests.attachment(
@@ -174,7 +171,7 @@ import Testing
     }
 
     try await Self.verify(
-      inspector, named: "attachment-inspector", size: SnapshotFixtures.inspectorSize, variant: variant,
+      inspector, named: "attachment-inspector", size: SnapshotFixtures.inspectorSize, look: look,
       hiding: [QLPreviewView.self])
   }
 }

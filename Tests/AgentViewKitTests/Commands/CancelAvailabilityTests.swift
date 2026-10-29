@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorCommands
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
@@ -120,11 +121,11 @@ import Testing
   @Test func theEndOfThePendingRequestsOfAnIdleSessionStopsTheCancel() throws {
     let model = Self.makeSession(state: Self.idle, pendingPermissions: [Self.permissionRequest])
     let fixture = AgentCommandsTests.makeFixture(session: model)
-    let reader = ChangeFlag.observing { _ = AgentCommandTarget.canCancel(model) }
+    let reader = ObservationFlag.observing { _ = AgentCommandTarget.canCancel(model) }
 
     model.cancelAllPending()
 
-    #expect(reader.value)
+    #expect(reader.isRaised)
     #expect(model.pendingPermissions.isEmpty)
     #expect(!AgentCommandTarget.canCancel(model))
     #expect(try !AgentCommandsTests.isAvailable(.cancel, in: fixture))
@@ -207,14 +208,14 @@ import Testing
     try await Self.makeIdleAfterRunning(session)
     #expect(!AgentCommandTarget.canCancel(model))
     #expect(!Self.escapeCancels(in: model))
-    let reader = ChangeFlag.observing { _ = AgentCommandTarget.canCancel(model) }
+    let reader = ObservationFlag.observing { _ = AgentCommandTarget.canCancel(model) }
 
     try await session.sendRequest(
       ScriptedSession.permissionMethod, id: AgentCommandsTests.agentRequestID,
       params: ScriptedSession.permissionParams)
     await ObservationWait.until { !model.pendingPermissions.isEmpty }
 
-    #expect(reader.value)
+    #expect(reader.isRaised)
     #expect(Self.isIdle(model.agentState))
     #expect(AgentCommandTarget.canCancel(model))
     #expect(try AgentCommandsTests.isAvailable(.cancel, in: fixture))

@@ -4,6 +4,7 @@ import AppKit
 import EditorCommands
 import EditorCommandsUI
 import EditorSwiftUI
+import EditorTestSupport
 import SwiftUI
 import Testing
 
@@ -68,7 +69,7 @@ import Testing
     identifier: String, in harness: HostedViewHarness<some View>,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> NSTextView {
-    let view = harness.views(withAccessibilityIdentifier: identifier).first
+    let view = views(withAccessibilityIdentifier: identifier, in: harness.hostingView).first
     return try #require(view as? NSTextView, sourceLocation: sourceLocation)
   }
 
@@ -346,7 +347,7 @@ import Testing
     let elements = harness.accessibilityElements().filter { $0.identifier == identifier }
 
     #expect(textView.isEditable, sourceLocation: sourceLocation)
-    #expect(harness.views(withAccessibilityIdentifier: identifier) == [textView], sourceLocation: sourceLocation)
+    #expect(views(withAccessibilityIdentifier: identifier, in: harness.hostingView) == [textView], sourceLocation: sourceLocation)
     #expect(elements.count == 1, "\(elements)", sourceLocation: sourceLocation)
   }
 }

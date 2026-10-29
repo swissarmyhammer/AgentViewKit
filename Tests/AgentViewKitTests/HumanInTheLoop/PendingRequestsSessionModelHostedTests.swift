@@ -4,6 +4,7 @@
   import AppKit
   import DemoSupport
   import EditorCommandsUI
+  import EditorTestSupport
   import Foundation
   import FoundationModelsACP
   import FoundationModelsACPClient
@@ -140,8 +141,8 @@
     ///   - text: The text of the prompt that the answer comes before.
     ///   - model: The session model.
     /// - Returns: A flag that is not set yet.
-    static func flagAnswerBeforePrompt(withText text: String, in model: SessionModel) -> ChangeFlag {
-      ChangeFlag.observing {
+    static func flagAnswerBeforePrompt(withText text: String, in model: SessionModel) -> ObservationFlag {
+      ObservationFlag.observing {
         _ = model.pendingPermissions
       } when: {
         MainActor.assumeIsolated { !transcriptHasUserMessage(withText: text, in: model) }
@@ -227,7 +228,7 @@
           && Self.response(to: Self.agentRequestID, in: session) != nil
       }
 
-      #expect(answeredBeforePrompt.value)
+      #expect(answeredBeforePrompt.isRaised)
       #expect(Self.transcriptHasUserMessage(withText: Self.comment, in: model))
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
       #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))

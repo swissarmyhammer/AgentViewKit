@@ -21,7 +21,7 @@ import Testing
     CodeBlockView(code: "let x = 1\nprint(x)", language: "swift")
   }
 
-  @Test func theBackdropShowsInsideTheEdgeOfTheCodeBlock() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.block, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheCodeBlock() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.block, size: Self.size)
   }
 }

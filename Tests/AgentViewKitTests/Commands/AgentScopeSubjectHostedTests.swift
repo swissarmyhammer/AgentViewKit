@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Synchronization
@@ -81,12 +82,13 @@ import Testing
   ///
   /// - Parameters:
   ///   - session: The scripted session.
-  ///   - harness: The harness that renders the view after the wait.
+  ///   - harness: The mount that renders the view after the wait: a
+  ///     `HostedViewHarness` or a `CaptureMount`.
   /// - Returns: The tool call entry of the session model.
   /// - Throws: The error of the transport, or the error of `#require` when the
   ///   transcript has no tool call entry.
   static func sendScopeToolCall(
-    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
+    to session: ScriptedSession, rendering harness: some RenderedMount
   ) async throws -> ToolCallEntry {
     try await session.sendToolCallUpdate(title: toolCallTitle, status: .inProgress)
     let model = session.model
@@ -173,27 +175,28 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let pasteboard = FakePasteboard()
-    let capture = CommandSystemCapture()
-    let harness = HostedViewHarness(size: AgentCommandScopeHostedTests.windowSize) {
-      VStack {
-        AgentThreadView(session: model)
-        CommandSystemCaptureView(capture: capture)
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let capture = CommandSystemCapture()
+      let harness = HostedViewHarness(size: AgentCommandScopeHostedTests.windowSize) {
+        VStack {
+          AgentThreadView(session: model)
+          CommandSystemCaptureView(capture: capture)
+        }
+        .agentCommandScope(session: model)
+        .environment(\.pasteboard, pasteboard)
+        .transaction { $0.disablesAnimations = true }
       }
-      .agentCommandScope(session: model)
-      .environment(\.pasteboard, pasteboard)
-      .transaction { $0.disablesAnimations = true }
+      defer { harness.close() }
+      try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
+      let system = try #require(capture.system)
+      let entry = try #require(model.transcript.first)
+      let path = AgentCommandScopeHostedTests.path(of: model)
+        .appending(AgentScopeKind.message(rowKey: entry.rowKey))
+
+      #expect(system.registry.perform(AgentCommandVerb.copyMessage.id, at: path, clicked: path))
+
+      #expect(pasteboard.string(forType: .string) == AgentCommandScopeHostedTests.message)
     }
-    defer { harness.close() }
-    try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
-    let system = try #require(capture.system)
-    let entry = try #require(model.transcript.first)
-    let path = AgentCommandScopeHostedTests.path(of: model)
-      .appending(AgentScopeKind.message(rowKey: entry.rowKey))
-
-    #expect(system.registry.perform(AgentCommandVerb.copyMessage.id, at: path, clicked: path))
-
-    #expect(pasteboard.contents == AgentCommandScopeHostedTests.message)
   }
 }
 

@@ -4,6 +4,7 @@ import AppKit
 import EditorCommands
 import EditorCommandsUI
 import EditorSwiftUI
+import EditorTestSupport
 import FoundationModelsACP
 import SwiftUI
 import Testing

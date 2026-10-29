@@ -36,7 +36,7 @@ import Testing
     AgentAuthView(connection: connection)
   }
 
-  @Test func theBackdropShowsInsideTheEdgeOfTheCard() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.card, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheCard() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.card, size: Self.size)
   }
 }

@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import AuthenticationServices
+import EditorTestSupport
 import Foundation
 import Testing
 

@@ -1,6 +1,6 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
 import EditorStyle
+import EditorTestSupport
 import SwiftUI
 import Testing
 
@@ -10,22 +10,15 @@ import Testing
 /// the view has no fill, and that the separator stroke of the content edge
 /// (`.inlineEdge(radius:)`) marks its edge (D113).
 ///
-/// A test shows the view over the backdrop of ``GlassRenderProbeTests`` in
-/// an off-screen window, in light mode, and reads the pixels with
-/// ``RenderedPixels`` (the method of ^dbbyg9w).
-///
-/// The method reads the cache of the window, and not an `ImageRenderer`
-/// render, because `ImageRenderer` does not draw some of the views that it
-/// checks. `ImageRenderer` draws nothing for a view with
-/// `accessibilityFocused(_:)`, for example a view that can take the VoiceOver
-/// focus (``SwiftUI/View/accessibilityFocusTarget(_:)``), such as the card
-/// of ``PermissionView`` and each card of ``RequestDeck``. A focusable view
-/// with no such modifier draws. `ImageRenderer` also does not draw an AppKit
-/// view, such as the EditorKit editor of a code block. The cache of a window
-/// shows no glass (``GlassRenderProbeHostedTests``). Thus a view on glass
-/// shows the backdrop. A view on glass has no separator stroke, so the edge
-/// check finds no edge. `GlassPlacementTests` reads the source, and keeps
-/// the glass in the files that can use it.
+/// A test shows the view over the backdrop of ``GlassRenderProbeTests`` in a
+/// real window on the screen, in the Light appearance, and reads the capture
+/// of the window from the window server (the method of ^dbbyg9w). The window
+/// server draws each view as the app shows it: the AppKit views, such as the
+/// EditorKit editor of a code block, the views that can take the VoiceOver
+/// focus, such as each card of ``RequestDeck``, and Liquid Glass. A view on
+/// glass has no separator stroke, so the edge check finds no edge.
+/// `GlassPlacementTests` reads the source, and keeps the glass in the files
+/// that can use it.
 enum ContentEdgeHostedProbe {
   /// The distance from the leading edge of the window to the point that the
   /// edge check reads on the separator stroke, in points.
@@ -33,7 +26,7 @@ enum ContentEdgeHostedProbe {
   /// The view fills the width of the window, so its edge is at the leading
   /// edge of the window. The stroke is one point wide and is centered on the
   /// edge, so it covers the first half point. The point is in the first pixel
-  /// at a scale of one and at a scale of two.
+  /// of a capture.
   static let strokeOffset: CGFloat = 0.25
 
   /// The distance from the leading edge of the window to the point that the
@@ -44,24 +37,23 @@ enum ContentEdgeHostedProbe {
   /// the view is at the point.
   static let insideOffset: CGFloat = 1.5
 
-  /// The distance between two rows that the edge check reads, in points. It
-  /// is one pixel at a scale of two.
-  static let rowStep: CGFloat = 0.5
+  /// The distance between two rows that the edge check reads, in points: one
+  /// pixel of a capture.
+  static var rowStep: CGFloat { 1 / CaptureGeometry.scale }
 
-  /// The pixels of `view` with the backdrop, in light mode.
+  /// The capture of `view` with the backdrop, in the Light appearance.
   ///
   /// - Parameters:
   ///   - view: The view to show over the backdrop.
   ///   - placement: Where the backdrop is.
   ///   - windowSize: The size of the content of the window.
-  /// - Returns: The pixels.
-  /// - Throws: An error when AppKit gives no pixels.
-  static func pixels(
+  /// - Returns: The image.
+  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
+  static func capture(
     of view: some View, backdrop placement: BackdropPlacement, size windowSize: CGSize
-  ) throws -> RenderedPixels {
-    let surface = SurfaceWithBackdrop(content: view, placement: placement)
-    return try GlassRenderProbeHostedTests.cachedPixels(
-      of: GlassRenderProbeTests.pinned(surface), size: windowSize)
+  ) async throws -> CapturedImage {
+    try await GlassRenderProbeTests.capture(
+      of: SurfaceWithBackdrop(content: view, placement: placement), size: windowSize)
   }
 
   /// Checks that `view` has no fill, and that a separator stroke marks its
@@ -82,32 +74,34 @@ enum ContentEdgeHostedProbe {
   ///     window.
   ///   - windowSize: The size of the content of the window.
   ///   - sourceLocation: The location of the caller, for the failure report.
-  /// - Throws: An error when AppKit gives no pixels.
+  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
   static func expectBackdropShowsInsideTheEdge(
     of view: some View, size windowSize: CGSize, sourceLocation: SourceLocation = #_sourceLocation
-  ) throws {
-    let rendered = try pixels(of: view, backdrop: .behindToTheEdge, size: windowSize)
+  ) async throws {
+    let image = try await capture(of: view, backdrop: .behindToTheEdge, size: windowSize)
     let rows = stride(from: 0, to: windowSize.height, by: rowStep)
-    let edgeShows = rows.contains { row in
-      rendered.showsTheEdge(atRow: row)
+    let edgeShows = try rows.contains { row in
+      try showsTheEdge(in: image, atRow: row)
     }
     #expect(edgeShows, "No row shows the edge with the backdrop inside it", sourceLocation: sourceLocation)
   }
-}
 
-extension RenderedPixels {
-  /// Whether the row at `row` shows a separator stroke on the leading edge
-  /// of a view with no fill, over the backdrop of ``GlassRenderProbeTests``.
+  /// Whether the row at `row` of `image` shows a separator stroke on the
+  /// leading edge of a view with no fill, over the backdrop of
+  /// ``GlassRenderProbeTests``.
   ///
-  /// - Parameter row: The distance of the row from the top of the window, in
-  ///   points.
+  /// - Parameters:
+  ///   - image: The capture of a view over the backdrop.
+  ///   - row: The distance of the row from the top of the window, in points.
   /// - Returns: `true` when the point on the edge does not show the backdrop,
   ///   and the point inside the edge shows it.
-  fileprivate func showsTheEdge(atRow row: CGFloat) -> Bool {
-    let backdrop = GlassRenderProbeTests.backdrop
-    let onTheEdge = CGPoint(x: ContentEdgeHostedProbe.strokeOffset, y: row)
-    let insideTheEdge = CGPoint(x: ContentEdgeHostedProbe.insideOffset, y: row)
-    return !contains(backdrop, at: onTheEdge) && contains(backdrop, at: insideTheEdge)
+  /// - Throws: `CapturedImageError.pixelsUnreadable` when the color has no
+  ///   sRGB form.
+  private static func showsTheEdge(in image: CapturedImage, atRow row: CGFloat) throws -> Bool {
+    let onTheEdge = CGPoint(x: strokeOffset, y: row)
+    let insideTheEdge = CGPoint(x: insideOffset, y: row)
+    return try !GlassRenderProbeTests.showsBackdrop(image, at: onTheEdge)
+      && GlassRenderProbeTests.showsBackdrop(image, at: insideTheEdge)
   }
 }
 

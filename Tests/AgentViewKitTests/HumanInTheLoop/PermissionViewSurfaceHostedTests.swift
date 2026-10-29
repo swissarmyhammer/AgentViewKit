@@ -8,9 +8,9 @@ import Testing
 /// Checks that the card of ``PermissionView`` has no fill and no glass, and
 /// that the separator stroke of the content edge marks its edge (D113).
 ///
-/// The tests use the edge check of ``ContentEdgeHostedProbe``. The card can
-/// take the VoiceOver focus, so `ImageRenderer` draws nothing for it, and the
-/// method reads the cache of a window.
+/// The tests use the edge check of ``ContentEdgeHostedProbe``, which captures
+/// the card in a real window. The card can take the VoiceOver focus, and the
+/// window server draws it as the app shows it.
 @Suite(.serialized, .hostedSerially) @MainActor struct PermissionViewSurfaceHostedTests {
   /// The size of the window. The card fills the width and is shorter than
   /// the height.
@@ -41,7 +41,7 @@ import Testing
     return PermissionView(request: request, session: session)
   }
 
-  @Test func theBackdropShowsInsideTheEdgeOfTheCard() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.card(), size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheCard() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.card(), size: Self.size)
   }
 }

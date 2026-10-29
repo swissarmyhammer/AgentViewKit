@@ -3,6 +3,7 @@ import EditorStyle
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import AppKit
+  import EditorTestSupport
   import SwiftUI
   import Testing
 
@@ -81,7 +82,7 @@ import EditorStyle
     /// - Throws: An issue when the list or its scroll view is not there.
     static func listScrollView(in harness: HostedViewHarness<some View>) throws -> NSScrollView {
       let visiblePart = try #require(harness.frame(identifier: ConversationLayout.listIdentifier))
-      return try #require(harness.views(of: NSScrollView.self).first { harness.screenFrame(of: $0).contains(visiblePart) })
+      return try #require(views(ofType: NSScrollView.self, in: harness.hostingView).first { harness.screenFrame(of: $0).contains(visiblePart) })
     }
 
     /// The height of the top bar of the thread in `harness`, from the frames
@@ -221,7 +222,7 @@ import EditorStyle
       defer { session.close() }
 
       try Self.expectInsetsOfTheBars(
-        of: SplitViewThreadHost(session: session), session: session, size: Self.splitWindowSize,
+        of: SplitViewThreadHost(thread: Self.thread(session)), session: session, size: Self.splitWindowSize,
         styleMask: Self.titledStyle)
     }
   }
@@ -231,9 +232,9 @@ import EditorStyle
   /// column shows an item header and a divider above the thread, and the
   /// thread has a tab bar in an outer top bar. The thread shows its
   /// attachments in the inspector of the host.
-  struct SplitViewThreadHost: View {
-    /// The scripted session of the thread.
-    let session: ScriptedSession
+  struct SplitViewThreadHost<Thread: View>: View {
+    /// The thread view of the detail column.
+    let thread: Thread
 
     var body: some View {
       NavigationSplitView {
@@ -244,7 +245,7 @@ import EditorStyle
         VStack(spacing: 0) {
           Text(verbatim: "Item header")
           Divider()
-          ThreadBarInsetHostedTests.thread(session)
+          thread
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .contain)
             .contentShape(Rectangle())

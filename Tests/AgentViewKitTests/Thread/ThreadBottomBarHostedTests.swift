@@ -3,6 +3,7 @@
   import AgentViewKitTestSupport
   import AppKit
   import EditorCommandsUI
+  import EditorTestSupport
   import FoundationModelsACP
   import FoundationModelsACPClient
   import SwiftUI
@@ -49,7 +50,7 @@
     /// - Throws: An issue when the list or its scroll view is not there.
     static func listFrame(in harness: HostedViewHarness<some View>) throws -> CGRect {
       let visiblePart = try #require(harness.frame(identifier: ConversationLayout.listIdentifier))
-      let frames = harness.views(of: NSScrollView.self).map(harness.screenFrame(of:))
+      let frames = views(ofType: NSScrollView.self, in: harness.hostingView).map(harness.screenFrame(of:))
       return try #require(frames.first { $0.contains(visiblePart) })
     }
 

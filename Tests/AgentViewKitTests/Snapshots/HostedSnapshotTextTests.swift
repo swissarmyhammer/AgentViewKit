@@ -1,5 +1,6 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
+import EditorTestSupport
+import Foundation
 import SwiftUI
 import Testing
 
@@ -7,40 +8,42 @@ import Testing
 /// ``HostedSnapshotTests`` hold no text over other text (^zg9tysk).
 ///
 /// A banner of a bar over a row of the transcript mixes the glyphs of the
-/// two texts, and the recognizer of ``SnapshotText`` then misses words of
-/// them. The test mounts the view of the image, takes the text of each
-/// static text element of its accessibility tree, and expects the
-/// recognizer to read each word of that text in the recorded image of each
-/// ``SnapshotVariant``.
+/// two texts, and the text recognizer of EditorKit (`CapturedImage`
+/// `missingWords(of:)`) then misses words of them. The test mounts the view
+/// of the image, takes the text of each static text element of its
+/// accessibility tree, and expects the recognizer to read each word of that
+/// text in the recorded image of each look.
 @Suite(.serialized, .hostedSerially) @MainActor struct HostedSnapshotTextTests {
   /// The accessibility role of a static text element.
   static let staticTextRole = "AXStaticText"
 
-  /// The words of each static text element of `view`, at `size`.
+  /// The text of each static text element of `view`, at `size`, one element
+  /// after the other.
   ///
   /// - Parameters:
   ///   - view: The view of the image.
   ///   - size: The size of the image, in points.
-  /// - Returns: The words, in the form of ``SnapshotText/words(of:)``.
-  static func shownWords(of view: some View, size: CGSize) -> [String] {
+  /// - Returns: The labels of the elements, joined by spaces.
+  static func shownText(of view: some View, size: CGSize) -> String {
     let harness = HostedViewHarness(view, size: size)
     defer { harness.close() }
     harness.render()
     return harness.accessibilityElements()
       .filter { $0.role == staticTextRole }
       .compactMap(\.label)
-      .flatMap(SnapshotText.words(of:))
+      .joined(separator: " ")
   }
 
-  @Test(arguments: SnapshotVariant.allCases)
-  func eachWordOfTheBottomBarButtonsImageIsReadable(variant: SnapshotVariant) throws {
-    let expected = Self.shownWords(of: SnapshotFixtures.bottomBarThread, size: SnapshotFixtures.threadSize)
-    let image = try SnapshotStore(suite: "HostedSnapshotTests")
-      .referenceURL(named: variant.name(of: "bottom-bar-buttons"))
+  @Test(arguments: ReviewAppearance.allCases)
+  func eachWordOfTheBottomBarButtonsImageIsReadable(look: ReviewAppearance) throws {
+    let expected = Self.shownText(of: SnapshotFixtures.bottomBarThread, size: SnapshotFixtures.threadSize)
+    let reference = try SnapshotStore(suite: "HostedSnapshotTests").referenceURL(named: "bottom-bar-buttons", in: look)
+    let image = try CapturedImage(decoding: Data(contentsOf: reference))
 
-    let recognized = try SnapshotText.recognizedWords(inImageAt: image)
+    let missing = try image.missingWords(of: expected)
+    let recognized = try image.recognizedWords()
 
     #expect(!expected.isEmpty)
-    #expect(SnapshotText.missingWords(of: expected, in: recognized).isEmpty, "read \(recognized)")
+    #expect(missing.isEmpty, "missing \(missing), read \(recognized)")
   }
 }

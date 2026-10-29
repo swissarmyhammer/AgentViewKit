@@ -4,6 +4,7 @@ import AppKit
 import DemoSupport
 import EditorCommands
 import EditorCommandsUI
+import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -61,7 +62,9 @@ import Testing
   ///     scope, so that only the scope of ``AgentThreadView`` itself
   ///     registers the commands.
   ///   - composer: The text of the composer, or `nil` for no composer.
-  ///   - pasteboard: The pasteboard of the copy command.
+  ///   - pasteboard: The pasteboard of the copy command, one of
+  ///     `NSPasteboard.withIsolated(_:)`, or `nil` for a test that copies
+  ///     nothing.
   ///   - requestStartReport: The report that gets the method of each request
   ///     that a view starts, or `nil`.
   ///   - submitReport: The report that gets each submit outcome of the
@@ -73,7 +76,7 @@ import Testing
   /// - Returns: The harness.
   static func mount(
     session: ScriptedSession, system: CommandSystem, outerScope: Bool,
-    composer: PromptInputHostedTestModel? = nil, pasteboard: FakePasteboard = FakePasteboard(),
+    composer: PromptInputHostedTestModel? = nil, pasteboard: NSPasteboard? = nil,
     requestStartReport: ObservationReport<String>? = nil,
     submitReport: ObservationReport<PromptSubmitOutcome>? = nil,
     answerReport: ObservationReport<PermissionAnswer>? = nil,
@@ -94,7 +97,7 @@ import Testing
       )
       .focusEffectDisabled(!isFocusEffectEnabled)
       .environment(\.sessionModel, session.model)
-      .environment(\.pasteboard, pasteboard)
+      .transformEnvironment(\.pasteboard) { if let pasteboard { $0 = pasteboard } }
       .environment(\.requestStartReport, requestStartReport)
       .environment(\.promptSubmitReport, submitReport)
       .environment(\.permissionAnswerReport, answerReport)
@@ -148,10 +151,11 @@ import Testing
   ///
   /// - Parameters:
   ///   - session: The scripted session.
-  ///   - harness: The harness that renders the view after the wait.
+  ///   - harness: The mount that renders the view after the wait: a
+  ///     `HostedViewHarness` or a `CaptureMount`.
   /// - Throws: The error of the transport.
   static func sendScopeMessage(
-    to session: ScriptedSession, rendering harness: HostedViewHarness<some View>
+    to session: ScriptedSession, rendering harness: some RenderedMount
   ) async throws {
     try await send([ChunkMessage(kind: "user_message_chunk", messageID: "scope-message", text: message)], to: session)
     let model = session.model
@@ -472,21 +476,22 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let pasteboard = FakePasteboard()
-    let harness = Self.mount(session: session, system: system, outerScope: false, pasteboard: pasteboard)
-    defer { harness.close() }
-    let messages = [
-      ChunkMessage(kind: "user_message_chunk", messageID: "copy-u1", text: "Hi."),
-      ChunkMessage(kind: "agent_message_chunk", messageID: "copy-m1", text: "Hello."),
-      ChunkMessage(kind: "user_message_chunk", messageID: "copy-u2", text: "Again."),
-    ]
-    try await Self.send(messages, to: session)
-    let model = session.model
-    await harness.render { model.transcript.count == messages.count }
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let harness = Self.mount(session: session, system: system, outerScope: false, pasteboard: pasteboard)
+      defer { harness.close() }
+      let messages = [
+        ChunkMessage(kind: "user_message_chunk", messageID: "copy-u1", text: "Hi."),
+        ChunkMessage(kind: "agent_message_chunk", messageID: "copy-m1", text: "Hello."),
+        ChunkMessage(kind: "user_message_chunk", messageID: "copy-u2", text: "Again."),
+      ]
+      try await Self.send(messages, to: session)
+      let model = session.model
+      await harness.render { model.transcript.count == messages.count }
 
-    #expect(system.registry.perform(AgentCommandVerb.copyThread.id, at: Self.path(of: model)))
+      #expect(system.registry.perform(AgentCommandVerb.copyThread.id, at: Self.path(of: model)))
 
-    #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
+      #expect(pasteboard.string(forType: .string) == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
+    }
   }
 
   /// The reaction of the jump command of a session to a given visibility
@@ -498,8 +503,8 @@ import Testing
   /// visibility report of the four rows itself, in transcript order, as
   /// `ConversationView` gives it. It does not wait for the report of
   /// SwiftUI: SwiftUI sends it on a later update, and for the off-screen
-  /// harness window it can send no report. A wait for it holds
-  /// `HostedTestLock` and stops all hosted tests.
+  /// harness window it can send no report. A wait for it holds the shared
+  /// UI test lock of EditorKit (`.hostedSerially`) and stops all hosted tests.
   ///
   /// The command sets the anchor; the given report does not set it. The
   /// test does not check the rows in view that the manager keeps, because

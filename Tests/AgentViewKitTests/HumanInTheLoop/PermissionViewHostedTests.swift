@@ -398,7 +398,7 @@ import Testing
     let harness = try await Self.mountCard(in: session, requestStartReport: starts.report)
     defer { harness.close() }
     let agent = session.agent
-    let allowedBeforeModeSet = ChangeFlag.observing {
+    let allowedBeforeModeSet = ObservationFlag.observing {
       _ = session.model.pendingPermissions
     } when: {
       MainActor.assumeIsolated { agent.messages(method: Self.setConfigOptionMethod).isEmpty }
@@ -412,7 +412,7 @@ import Testing
     await ObservationWait.until { !agent.messages(method: Self.setConfigOptionMethod).isEmpty }
 
     #expect(result == (try Self.selectedResult(.allowOnce)))
-    #expect(allowedBeforeModeSet.value)
+    #expect(allowedBeforeModeSet.isRaised)
     let params = agent.messages(method: Self.setConfigOptionMethod).first?["params"]
     #expect(params?["configId"] == .string(Self.modeID))
     #expect(params?["value"] == .string(PermissionPresentation.autoModeID))

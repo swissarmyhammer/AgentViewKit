@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import EditorSwiftUI
+import EditorTestSupport
 import SwiftUI
 import Testing
 
@@ -207,17 +208,18 @@ import Testing
   // MARK: - Copy
 
   @Test func copyPutsTheFullOutputOnThePasteboard() throws {
-    let pasteboard = FakePasteboard()
-    let harness = HostedViewHarness(
-      CommandOutputView(
-        command: Self.command, output: Self.longOutput, exitCode: nil, rowLimit: Self.rowLimit)
-        .environment(\.pasteboard, pasteboard))
-    defer { harness.close() }
-    harness.render()
+    try NSPasteboard.withIsolated { pasteboard in
+      let harness = HostedViewHarness(
+        CommandOutputView(
+          command: Self.command, output: Self.longOutput, exitCode: nil, rowLimit: Self.rowLimit)
+          .environment(\.pasteboard, pasteboard))
+      defer { harness.close() }
+      harness.render()
 
-    #expect(harness.element(identifier: CommandOutputView.copyIdentifier)?.label == "Copy output")
-    try harness.press(identifier: CommandOutputView.copyIdentifier)
-
-    #expect(pasteboard.copies == [Self.longOutput])
+      #expect(harness.element(identifier: CommandOutputView.copyIdentifier)?.label == "Copy output")
+      try pasteboard.expectOneCopy(of: Self.longOutput) {
+        try harness.press(identifier: CommandOutputView.copyIdentifier)
+      }
+    }
   }
 }

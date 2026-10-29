@@ -542,7 +542,7 @@
 
       let element = accessibilityHitTest(atCenterOfScopeAt: shown.path, in: system, window: shown.harness.window)
 
-      let answer = element.flatMap(accessibilityIdentifier(of:))
+      let answer = element.flatMap { accessibilityIdentifier(of: $0) }
       #expect(control.names(answer, identifier: shown.identifier), "\(String(describing: answer))")
     }
 

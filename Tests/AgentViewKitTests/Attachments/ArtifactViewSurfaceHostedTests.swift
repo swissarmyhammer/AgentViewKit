@@ -24,7 +24,7 @@ import UniformTypeIdentifiers
         inlineText: "Step one"))
   }
 
-  @Test func theBackdropShowsInsideTheEdgeOfThePanel() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.panel, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfThePanel() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.panel, size: Self.size)
   }
 }

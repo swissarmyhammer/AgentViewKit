@@ -2,6 +2,7 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import AppKit
+  import EditorTestSupport
   import SwiftUI
   import Testing
 
@@ -50,7 +51,7 @@
       root: NSView, text: NSTextView
     ) {
       let root = try #require(
-        harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).first)
+        views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).first)
       let text = try #require(root.descendants.lazy.compactMap { $0 as? NSTextView }.first)
       return (root, text)
     }

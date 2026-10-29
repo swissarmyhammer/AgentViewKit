@@ -1,6 +1,7 @@
 #if DEBUG
   import AppKit
   import EditorStyle
+  import EditorTestSupport
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import FoundationModelsACPClient
@@ -108,7 +109,7 @@
       defer { harness.close() }
 
       let tile = try #require(harness.frame(identifier: TerminalView.identifier))
-      let textView = try #require(harness.views(of: NSTextView.self).first)
+      let textView = try #require(views(ofType: NSTextView.self, in: harness.hostingView).first)
       let output = harness.screenFrame(of: textView)
 
       Self.expectLength(output.minX - tile.minX, is: Self.tile.padding, "leading inset of the output")
@@ -122,7 +123,7 @@
 
       let command = try #require(harness.frame(identifier: TerminalView.commandIdentifier))
       let footer = try #require(harness.frame(identifier: TerminalView.footerIdentifier))
-      let textView = try #require(harness.views(of: NSTextView.self).first)
+      let textView = try #require(views(ofType: NSTextView.self, in: harness.hostingView).first)
       let output = harness.screenFrame(of: textView)
 
       Self.expectLength(command.minY - output.maxY, is: Self.tile.gap, "header-to-body gap")

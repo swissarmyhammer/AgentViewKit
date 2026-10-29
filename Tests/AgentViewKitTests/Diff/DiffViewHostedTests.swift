@@ -2,6 +2,7 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import EditorStyle
+  import EditorTestSupport
   import Foundation
   import FoundationModelsACP
   import SwiftUI
@@ -127,7 +128,7 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
       defer { harness.close() }
 
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
     }
 
@@ -136,7 +137,7 @@
       defer { harness.close() }
 
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) != nil)
-      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
     }
 
     // MARK: - Layout
@@ -313,7 +314,7 @@
       let file = harness.element(identifier: DiffFileChip.identifier(for: "/p/new.swift"))
       #expect(file?.label == "Added Swift file")
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) != nil)
-      #expect(harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: DiffView.attachIdentifier) == nil)
     }
 
@@ -325,7 +326,7 @@
 
       let first = harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath))
       #expect(first?.label == "Swift diff, +2 \u{2212}1")
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) == nil)
     }
 
@@ -349,7 +350,7 @@
       let harness = DiffHarness.mount(view, size: Self.tallSize)
       defer { harness.close() }
 
-      #expect(!harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).isEmpty)
+      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
       try harness.press(identifier: DiffView.acceptIdentifier(for: 0))
 

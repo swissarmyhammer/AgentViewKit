@@ -1,4 +1,5 @@
 import EditorSwiftUI
+import EditorTestSupport
 
 /// The accessibility identifiers and the gutter column ids of the EditorKit
 /// `DiffView`.
@@ -6,7 +7,7 @@ import EditorSwiftUI
 /// The kit also has a type with the name `DiffView`. This file does not
 /// import AgentViewKit, so the name `DiffView` here is the EditorKit view.
 /// EditorKit puts these identifiers on its AppKit views. A hosted test finds
-/// them with `HostedViewHarness.views(withAccessibilityIdentifier:)`.
+/// them with `views(withAccessibilityIdentifier:in:)` of EditorTestSupport.
 enum EditorDiffIdentifier {
   /// The identifier of the root of the EditorKit diff view, in both layouts.
   static let root = DiffView.accessibilityIdentifier

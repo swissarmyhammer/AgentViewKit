@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
+import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
@@ -211,7 +212,7 @@ private struct OpenURLButton: View {
       .environment(\.citationScrollReport, scrolls.report))
     defer { harness.close() }
     harness.render()
-    let scrollView = try #require(harness.views(of: NSScrollView.self).first)
+    let scrollView = try #require(views(ofType: NSScrollView.self, in: harness.hostingView).first)
     #expect(scrollView.contentView.bounds.minY == 0)
 
     try harness.press(identifier: InlineCitation.identifier(index: 2))
@@ -243,20 +244,20 @@ private struct OpenURLButton: View {
   /// A link of the sources list shows the link mark, and no text of the list
   /// is in the theme accent: the accent is only for the selection and the
   /// focus (card ^y2mrfxt).
-  @Test func aLinkInTheSourcesListHasNoAccentAndShowsTheLinkMark() throws {
+  @Test func aLinkInTheSourcesListHasNoAccentAndShowsTheLinkMark() async throws {
     let harness = HostedViewHarness(SourcesView(payload: Self.payload), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
     #expect(harness.element(identifier: SourcesView.linkMarkIdentifier(index: 1))?.label == "Link")
     #expect(harness.element(identifier: SourcesView.linkMarkIdentifier(index: 2))?.label == "Link")
-    let pixels = try EditorThemeViewsTests.drawnCachedPixels(of: SourcesView(payload: Self.payload))
-    #expect(!pixels.contains(EditorThemeViewsTests.Role.accent))
+    let image = try await EditorThemeViewsTests.drawnCapture(of: SourcesView(payload: Self.payload))
+    #expect(try !EditorThemeViewsTests.contains(image, EditorThemeViewsTests.Role.accent))
   }
 
   /// The current source, with no focus and not the selection, draws the same
   /// pixels as a row that is not current: it has no fill (card ^y2mrfxt).
-  @Test func aCurrentSourceWithNoFocusAndNoSelectionHasNoFill() throws {
+  @Test func aCurrentSourceWithNoFocusAndNoSelectionHasNoFill() async throws {
     let harness = HostedViewHarness(Self.footer(selecting: 2), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
@@ -264,10 +265,10 @@ private struct OpenURLButton: View {
     // the pixel comparison pass for the wrong cause.
     try #require(Self.isHighlighted(harness, index: 2))
 
-    let current = try EditorThemeViewsTests.drawnCachedPixels(of: Self.footer(selecting: 2))
-    let plain = try EditorThemeViewsTests.drawnCachedPixels(of: Self.footer(selecting: nil))
+    let current = try await EditorThemeViewsTests.drawnCapture(of: Self.footer(selecting: 2))
+    let plain = try await EditorThemeViewsTests.drawnCapture(of: Self.footer(selecting: nil))
 
-    #expect(current.isClose(to: plain))
+    #expect(current == plain)
   }
 
   // MARK: - Links

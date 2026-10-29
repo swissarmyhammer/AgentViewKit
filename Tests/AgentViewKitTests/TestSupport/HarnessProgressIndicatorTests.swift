@@ -1,4 +1,4 @@
-import AgentViewKitTestSupport
+import EditorTestSupport
 import SwiftUI
 import Testing
 

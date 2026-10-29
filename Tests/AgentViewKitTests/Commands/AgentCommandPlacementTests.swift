@@ -1,8 +1,10 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import AppKit
 import EditorCommands
 import EditorCommandsTestSupport
 import EditorCommandsUI
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -236,16 +238,17 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let userKeys = try await AgentCommandsTests.sendTurns(to: session)
-    let pasteboard = FakePasteboard()
-    let fixture = AgentCommandsTests.makeFixture(
-      session: session.model, items: AgentCommandsTests.messageItems(of: session.model)
-    ) { $0.pasteboard = pasteboard }
-    let path = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[1]))
+    NSPasteboard.withIsolated { pasteboard in
+      let fixture = AgentCommandsTests.makeFixture(
+        session: session.model, items: AgentCommandsTests.messageItems(of: session.model)
+      ) { $0.pasteboard = pasteboard }
+      let path = fixture.path.appending(AgentScopeKind.message(rowKey: userKeys[1]))
 
-    #expect(!fixture.system.perform(AgentCommandVerb.copyMessage.id))
-    #expect(fixture.system.registry.perform(AgentCommandVerb.copyMessage.id, at: path, clicked: path))
+      #expect(!fixture.system.perform(AgentCommandVerb.copyMessage.id))
+      #expect(fixture.system.registry.perform(AgentCommandVerb.copyMessage.id, at: path, clicked: path))
 
-    #expect(pasteboard.contents == "Question 1.")
+      #expect(pasteboard.string(forType: .string) == "Question 1.")
+    }
   }
 
   @Test func approveInTheScopeOfACardAnswersThatRequest() async throws {

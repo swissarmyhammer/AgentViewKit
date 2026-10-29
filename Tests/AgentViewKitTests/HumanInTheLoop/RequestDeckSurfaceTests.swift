@@ -126,20 +126,6 @@ struct RequestDeckSurfaceTests {
     #expect(RequestDeckPlace.content.style(of: action) == style)
   }
 
-  /// The test compares the two renders only at ``centerPoint``. The render
-  /// draws no card, because each card can take the VoiceOver focus
-  /// (``ContentEdgeHostedProbe``). In the bar, it draws the glass of the
-  /// deck as a band across the full width, in the center of the render. The
-  /// center is far from the edge of the glass. The rim of a rounded glass
-  /// changes after its first renders in the process, at a render that is not
-  /// the same in each run (``RenderedPixels/isClose(to:at:tolerance:)``).
-  @Test func inTheBarTheRenderDrawsTheGlassOfTheDeck() throws {
-    let inBar = try #require(RenderedPixels(rendering: Self.deck(inBar: true), size: Self.size))
-    let inContent = try #require(RenderedPixels(rendering: Self.deck(inBar: false), size: Self.size))
-
-    #expect(!inBar.isClose(to: inContent, at: [Self.centerPoint]))
-  }
-
   @Test func anEdgeCardShowsOnlyItsTopBandAndTheOutsetOfItsStroke() {
     let band = DeckCardBand(role: .edge(depth: Self.edgeDepth), edgeStep: Self.edgeStep)
     let outset = DeckCardBand.strokeOutset

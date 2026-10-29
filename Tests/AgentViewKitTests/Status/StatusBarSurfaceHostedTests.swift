@@ -25,7 +25,7 @@ import Testing
         identifier: SessionStreamBanner.reloadIdentifier, isEnabled: true, perform: {}))
   }
 
-  @Test func theBackdropShowsInsideTheEdgeOfTheBar() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.bar, size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheBar() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.bar, size: Self.size)
   }
 }

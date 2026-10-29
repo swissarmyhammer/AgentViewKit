@@ -2,6 +2,7 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
+import EditorTestSupport
 import SwiftUI
 import Testing
 import Textual
@@ -104,16 +105,17 @@ import Textual
   // MARK: - Copy
 
   @Test func copyWritesTheCodeToThePasteboard() throws {
-    let pasteboard = FakePasteboard()
-    let harness = HostedViewHarness(
-      CodeBlockView(code: Self.swiftCode, language: "swift")
-        .environment(\.pasteboard, pasteboard))
-    defer { harness.close() }
-    harness.render()
+    try NSPasteboard.withIsolated { pasteboard in
+      let harness = HostedViewHarness(
+        CodeBlockView(code: Self.swiftCode, language: "swift")
+          .environment(\.pasteboard, pasteboard))
+      defer { harness.close() }
+      harness.render()
 
-    try harness.press(identifier: CodeBlockView.copyIdentifier)
-
-    #expect(pasteboard.copies == [Self.swiftCode])
+      try pasteboard.expectOneCopy(of: Self.swiftCode) {
+        try harness.press(identifier: CodeBlockView.copyIdentifier)
+      }
+    }
   }
 
   @Test func theCopyButtonHasALabel() {
@@ -127,19 +129,21 @@ import Textual
   // MARK: - Textual
 
   @Test func aFencedBlockInATextualDocumentMountsACodeBlock() throws {
-    let pasteboard = FakePasteboard()
-    let markdown = "Some prose.\n\n```json\n{\"a\": 1}\n```\n\nMore prose."
-    let harness = HostedViewHarness(
-      StructuredText(markdown: markdown)
-        .textual.codeBlockStyle(EditorKitCodeBlockStyle())
-        .environment(\.pasteboard, pasteboard))
-    defer { harness.close() }
-    harness.render()
+    try NSPasteboard.withIsolated { pasteboard in
+      let markdown = "Some prose.\n\n```json\n{\"a\": 1}\n```\n\nMore prose."
+      let harness = HostedViewHarness(
+        StructuredText(markdown: markdown)
+          .textual.codeBlockStyle(EditorKitCodeBlockStyle())
+          .environment(\.pasteboard, pasteboard))
+      defer { harness.close() }
+      harness.render()
 
-    let element = harness.element(identifier: CodeBlockView.identifier)
-    #expect(element?.label == "json code block")
-    try harness.press(identifier: CodeBlockView.copyIdentifier)
-    #expect(pasteboard.copies == ["{\"a\": 1}"])
+      let element = harness.element(identifier: CodeBlockView.identifier)
+      #expect(element?.label == "json code block")
+      try pasteboard.expectOneCopy(of: "{\"a\": 1}") {
+        try harness.press(identifier: CodeBlockView.copyIdentifier)
+      }
+    }
   }
 
   @Test func aFencedBlockWithNoLanguageMountsAsPlainText() {

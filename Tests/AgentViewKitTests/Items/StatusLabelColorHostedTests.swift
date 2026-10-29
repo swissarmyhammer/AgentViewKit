@@ -1,6 +1,6 @@
 #if DEBUG
   @testable import AgentViewKit
-  @testable import AgentViewKitTestSupport
+  import EditorTestSupport
   import SwiftUI
   import Testing
 
@@ -42,7 +42,7 @@
     }
   }
 
-  /// The two parts of a status label in an image: the symbol, and the title
+  /// The two parts of a status label in a capture: the symbol, and the title
   /// after it.
   ///
   /// The symbol is the first run of columns of the label that hold ink: a
@@ -61,18 +61,19 @@
     /// image.
     let title: CGRect
 
-    /// Finds the parts of the label in `frame` of `pixels`.
+    /// Finds the parts of the label in `frame` of `image`.
     ///
     /// - Parameters:
-    ///   - pixels: The image.
+    ///   - image: The capture.
     ///   - frame: The frame of the label, in points from the top leading
     ///     corner of the image.
     /// - Returns: `nil` when the label holds no ink, or no ink after the
     ///   first run.
-    init?(of pixels: RenderedPixels, in frame: CGRect) {
-      let columns = RegionColors.columns(of: pixels, in: frame)
-      let inked = columns.map { column in
-        (RegionColors(of: pixels, in: column)?.contrast ?? 1) > Self.inkContrast
+    /// - Throws: A `CapturedImageError` when a column cannot be read.
+    init?(of image: CapturedImage, in frame: CGRect) throws {
+      let columns = RegionColors.columns(of: image, in: frame)
+      let inked = try columns.map { column in
+        (try RegionColors(of: image, in: column)?.contrast ?? 1) > Self.inkContrast
       }
       guard let start = inked.firstIndex(of: true),
         let gap = inked[start...].firstIndex(of: false),
@@ -88,54 +89,53 @@
   ///
   /// The status color belongs to the symbol only. The title takes a readable
   /// style, so that it contrasts with the window background as body text
-  /// must. Each test reads the image of path A of ``ViewSnapshot``.
+  /// must. Each test reads a capture of the label in a real window
+  /// (``CaptureMount``).
   @Suite(.serialized, .hostedSerially) @MainActor struct StatusLabelColorHostedTests {
     /// The size of each image, in points.
     static let size = CGSize(width: 320, height: 60)
 
-    /// The image and the parts of `label` in `variant`, with the status
-    /// color that the label draws in `variant`.
+    /// The capture and the parts of `label` in `look`, with the status color
+    /// that the label draws in `look`.
     ///
     /// - Parameters:
     ///   - label: The label to show.
-    ///   - variant: The settings of the image.
-    /// - Returns: The image, the parts of the label, and the succeeded color
-    ///   of the default EditorKit theme in the color scheme of `variant`.
-    /// - Throws: An issue when the image, the element or a part is missing.
-    static func render(_ label: SucceededStatusLabel, in variant: SnapshotVariant) throws -> (
-      pixels: RenderedPixels, parts: StatusLabelParts, succeeded: Color
+    ///   - look: The look of the window.
+    /// - Returns: The capture, the parts of the label, and the succeeded color
+    ///   of the default EditorKit theme in the color scheme of `look`.
+    /// - Throws: An issue when the element or a part is missing, or the error
+    ///   of the capture.
+    static func capture(_ label: SucceededStatusLabel, in look: ReviewAppearance) async throws -> (
+      image: CapturedImage, parts: StatusLabelParts, succeeded: CGColor
     ) {
-      let harness = ViewSnapshot.makeHarness(of: label.view, size: size, variant: variant)
-      defer { harness.close() }
-      harness.render()
-      let pixels = try #require(ViewSnapshot.pixels(of: harness))
-      let frame = try #require(harness.frame(identifier: label.identifier), "No element \(label.identifier).")
-      let region = ThreadBarControlJumpHostedTests.windowSpaceFrame(of: frame, in: harness.window)
-      let parts = try #require(StatusLabelParts(of: pixels, in: region), "No symbol and title in \(region).")
-      return (pixels, parts, EditorThemeViewsTests.defaultThemeSucceeded(in: variant.colorScheme))
+      let region = try CaptureMount.windowFrame(of: label.identifier, in: label.view, size: size)
+      let image = try await CaptureMount.capture(label.view, size: size, appearance: look)
+      let parts = try #require(try StatusLabelParts(of: image, in: region), "No symbol and title in \(region).")
+      let scheme: ColorScheme = look == .dark ? .dark : .light
+      return (image, parts, CaptureGeometry.cgColor(of: EditorThemeViewsTests.defaultThemeSucceeded(in: scheme)))
     }
 
-    @Test(arguments: SucceededStatusLabel.allCases, [SnapshotVariant.light, .dark])
-    func theSymbolHasTheStatusColor(label: SucceededStatusLabel, variant: SnapshotVariant) throws {
-      let (pixels, parts, succeeded) = try Self.render(label, in: variant)
+    @Test(arguments: SucceededStatusLabel.allCases, ReviewAppearance.allCases)
+    func theSymbolHasTheStatusColor(label: SucceededStatusLabel, look: ReviewAppearance) async throws {
+      let (image, parts, succeeded) = try await Self.capture(label, in: look)
 
-      let symbolHasTheColor = RegionColors.contains(succeeded, in: parts.symbol, of: pixels)
+      let symbolHasTheColor = try RegionColors.contains(succeeded, in: parts.symbol, of: image)
       #expect(symbolHasTheColor, "\(parts.symbol)")
     }
 
-    @Test(arguments: SucceededStatusLabel.allCases, [SnapshotVariant.light, .dark])
-    func theTitleDoesNotHaveTheStatusColor(label: SucceededStatusLabel, variant: SnapshotVariant) throws {
-      let (pixels, parts, succeeded) = try Self.render(label, in: variant)
+    @Test(arguments: SucceededStatusLabel.allCases, ReviewAppearance.allCases)
+    func theTitleDoesNotHaveTheStatusColor(label: SucceededStatusLabel, look: ReviewAppearance) async throws {
+      let (image, parts, succeeded) = try await Self.capture(label, in: look)
 
-      let titleHasTheColor = RegionColors.contains(succeeded, in: parts.title, of: pixels)
+      let titleHasTheColor = try RegionColors.contains(succeeded, in: parts.title, of: image)
       #expect(!titleHasTheColor, "\(parts.title)")
     }
 
-    @Test(arguments: SucceededStatusLabel.allCases, [SnapshotVariant.light, .dark])
-    func theTitleIsReadable(label: SucceededStatusLabel, variant: SnapshotVariant) throws {
-      let (pixels, parts, _) = try Self.render(label, in: variant)
+    @Test(arguments: SucceededStatusLabel.allCases, ReviewAppearance.allCases)
+    func theTitleIsReadable(label: SucceededStatusLabel, look: ReviewAppearance) async throws {
+      let (image, parts, _) = try await Self.capture(label, in: look)
 
-      let colors = try #require(RegionColors(of: pixels, in: parts.title))
+      let colors = try #require(try RegionColors(of: image, in: parts.title))
       #expect(colors.contrast >= CompositedSnapshotTests.minimumTextContrast, "\(colors)")
     }
   }

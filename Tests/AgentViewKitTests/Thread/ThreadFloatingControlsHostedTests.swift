@@ -4,6 +4,7 @@
   import EditorCommands
   import EditorCommandsUI
   import EditorStyle
+  import EditorTestSupport
   import FoundationModelsACPClient
   import SwiftUI
   import Testing
@@ -214,10 +215,10 @@
     ///   - harness: The harness that shows the thread.
     static func applyHeldScroll(
       count: Int, of held: (targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void),
-      unpinned: ChangeFlag, anchors: ScrollAnchorManager, harness: HostedViewHarness<some View>
+      unpinned: ObservationFlag, anchors: ScrollAnchorManager, harness: HostedViewHarness<some View>
     ) async {
       await ObservationWait.until {
-        unpinned.value || held.targets.values.count == count || !anchors.isPinnedToBottom
+        unpinned.isRaised || held.targets.values.count == count || !anchors.isPinnedToBottom
       }
       if let target = held.targets.values.last {
         held.viewScroll(target)
@@ -256,10 +257,10 @@
         SessionTranscriptViewHostedTests.chunk("user_message_chunk", messageID: Self.promptMessageID, text: Self.message))
       await harness.render(when: { model.transcript.count == 1 })
       let held = Self.holdScrollTargets(of: anchors)
-      let firstUnpin = ChangeFlag.observing { _ = anchors.isPinnedToBottom }
+      let firstUnpin = ObservationFlag.observing { _ = anchors.isPinnedToBottom }
       await Self.applyHeldScroll(count: 1, of: held, unpinned: firstUnpin, anchors: anchors, harness: harness)
       try #require(anchors.isPinnedToBottom)
-      let unpinned = ChangeFlag.observing { _ = anchors.isPinnedToBottom }
+      let unpinned = ObservationFlag.observing { _ = anchors.isPinnedToBottom }
 
       try await session.sendUpdate(SessionStateBannersHostedTests.stateUpdate(#""state": "running""#))
       try await session.sendUpdate(
@@ -270,7 +271,7 @@
       await harness.render(when: { model.transcript.count == 3 })
       await Self.applyHeldScroll(count: 3, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
 
-      #expect(!unpinned.value, "the thread unpinned during the turn")
+      #expect(!unpinned.isRaised, "the thread unpinned during the turn")
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
     }
 

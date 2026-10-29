@@ -27,8 +27,10 @@ block from Textual, and the related decisions of `CodeBlockView`.
 
 - The `Pasteboard` protocol of the test-support task (^he8kkt1) has the
   requirement `copyText(_:)`. The task text says `setString(_:)`. The kit
-  keeps `copyText(_:)`, because `FakePasteboard` and its tests use it, and
-  because `NSPasteboard` already has a `setString(_:forType:)` method.
+  keeps `copyText(_:)`, because the views and their tests use it, and
+  because `NSPasteboard` already has a `setString(_:forType:)` method. The
+  tests copy to an isolated `NSPasteboard` of EditorKit
+  (`NSPasteboard.withIsolated`).
 - `EnvironmentValues.pasteboard` defaults to `NSPasteboard.general`.
 
 ## The label and the header

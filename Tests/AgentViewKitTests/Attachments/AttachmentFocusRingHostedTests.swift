@@ -22,9 +22,10 @@ import UniformTypeIdentifiers
 /// its own, which takes the focus and draws its own ring.
 ///
 /// Each test mounts one view at the root of a command system, in the
-/// ``AgentItemFocusRingHostedTests/AccentLook``, lands the focus on its
-/// scope, and renders one pass before it reads the first responder of the
-/// window and the ring of the scope.
+/// ``AgentItemFocusRingHostedTests/AccentLook``, in a real key window on the
+/// screen (``CaptureMount``), lands the focus on its scope, and renders one
+/// pass before it reads the first responder of the window and the ring of
+/// the scope from captures of the window server.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentFocusRingHostedTests {
   /// The suite whose helpers make the files of the attachments.
   typealias Shared = AttachmentInspectorHostedTests
@@ -115,17 +116,16 @@ import UniformTypeIdentifiers
   /// - Throws: The error of the write of the file, or an issue when the
   ///   focus does not land.
   static func inspectFocusedScope(
-    of makeView: (TemporaryDirectory) throws -> MountedSurface, _ inspect: (Ring.FocusedItem) throws -> Void
-  ) throws {
+    of makeView: (TemporaryDirectory) throws -> MountedSurface, _ inspect: (Ring.FocusedItem) async throws -> Void
+  ) async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let mounted = try makeView(directory)
     let system = CommandSystem()
-    let harness = HostedViewHarness(
+    let mount = CaptureMount(
       mounted.content.modifier(Ring.AccentLook()).commandSystem(system), size: AttachmentCommandsHostedTests.viewSize)
-    defer { harness.close() }
-    harness.render()
-    try inspect(try focusScope(of: mounted.id, in: harness, system: system))
+    defer { mount.close() }
+    try await inspect(try await focusScope(of: mounted.id, in: mount, system: system))
   }
 
   /// Lands a `nav.*` move on the root scope of the attachment `id`, renders
@@ -134,18 +134,18 @@ import UniformTypeIdentifiers
   ///
   /// - Parameters:
   ///   - id: The id of the attachment of the scope.
-  ///   - harness: The harness that shows the scope.
+  ///   - mount: The mount that shows the scope.
   ///   - system: The command system of the window.
   /// - Returns: The first responder, with the area of the scope and its
   ///   ring.
   /// - Throws: An issue when the focus does not land, or an error when a
   ///   capture fails.
   static func focusScope(
-    of id: AttachmentID, in harness: HostedViewHarness<some View>, system: CommandSystem
-  ) throws -> Ring.FocusedItem {
+    of id: AttachmentID, in mount: CaptureMount<some View>, system: CommandSystem
+  ) async throws -> Ring.FocusedItem {
     let scope = FocusPath.root(AgentScopeKind.attachment(id))
 
-    return try Ring.focus(scope, in: harness, system: system) {
+    return try await Ring.focus(scope, in: mount, system: system) {
       try #require(system.geometry.requestFocus(at: scope))
     }
   }
@@ -153,8 +153,8 @@ import UniformTypeIdentifiers
   /// The beacon of the scope holds the focus, and the scope draws its ring
   /// around the view in the theme accent, not in the tint of the host.
   @Test(arguments: Surface.allCases)
-  func theBeaconOfTheScopeHoldsTheFocus(surface: Surface) throws {
-    try Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
+  func theBeaconOfTheScopeHoldsTheFocus(surface: Surface) async throws {
+    try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
       #expect(focused.responder is GeometryProbeView)
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
       Ring.expectTheThemeAccent(in: focused.ring)
@@ -163,9 +163,9 @@ import UniformTypeIdentifiers
 
   /// The focus ring of the scope has the corners of the surface of the view.
   @Test(arguments: Surface.allCases)
-  func theFocusRingHasTheCornersOfTheSurface(surface: Surface) throws {
-    try Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
-      try Ring.expectRing(of: focused, cornerRadius: surface.cornerRadius)
+  func theFocusRingHasTheCornersOfTheSurface(surface: Surface) async throws {
+    try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
+      try await Ring.expectRing(of: focused, cornerRadius: surface.cornerRadius)
     }
   }
 
@@ -184,26 +184,26 @@ import UniformTypeIdentifiers
     let attachment = AgentViewKit.Attachment(url: url)
     let shown = ShownSurface()
     let system = CommandSystem()
-    let harness = HostedViewHarness(
+    let mount = CaptureMount(
       AttachmentView(attachment)
         .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shown.corners = $0 }
         .modifier(Ring.AccentLook())
         .commandSystem(system),
       size: AttachmentCommandsHostedTests.viewSize)
-    defer { harness.close() }
+    defer { mount.close() }
 
-    await harness.render(when: { shown.corners != nil })
-    let focused = try Self.focusScope(of: attachment.id, in: harness, system: system)
+    await mount.render(when: { shown.corners != nil })
+    let focused = try await Self.focusScope(of: attachment.id, in: mount, system: system)
 
-    try Ring.expectRing(of: focused, cornerRadius: EditorStyle.default.radii.m)
+    try await Ring.expectRing(of: focused, cornerRadius: EditorStyle.default.radii.m)
   }
 
   /// The inspector has a focusable view of its own, so a `nav.*` move on its
   /// scope focuses that view and not the beacon of the scope. The ring is
   /// the ring of that view, and the inspector keeps the default corners of
   /// its scope.
-  @Test func aFocusableViewOfTheInspectorTakesTheFocusOfItsScope() throws {
-    try Self.inspectFocusedScope(of: { directory in
+  @Test func aFocusableViewOfTheInspectorTakesTheFocusOfItsScope() async throws {
+    try await Self.inspectFocusedScope(of: { directory in
       let attachment = try Shared.attachment(named: "blob.bin", in: directory)
       return MountedSurface(content: AnyView(AttachmentInspector(attachment)), id: attachment.id)
     }) { focused in

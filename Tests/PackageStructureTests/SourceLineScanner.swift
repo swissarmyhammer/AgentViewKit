@@ -115,7 +115,7 @@ enum SourceLineScanner {
   /// - Returns: The path and the code of each file, in the order of the file
   ///   paths.
   /// - Throws: The error of `PackageFiles.swiftFileTexts(below:relativeTo:)`.
-  private static func codeTexts(
+  static func codeTexts(
     inSwiftFilesBelow directory: URL,
     relativeTo base: URL,
     skipping skipped: Set<String>

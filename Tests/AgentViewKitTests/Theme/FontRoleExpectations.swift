@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
+import EditorTestSupport
 import EditorTheme
 import SwiftUI
 import Testing
@@ -117,7 +118,7 @@ enum FontRoleExpectations {
     let harness = HostedViewHarness(view, size: size)
     defer { harness.close() }
     harness.render()
-    let textView = try #require(harness.views(of: NSTextView.self).first, sourceLocation: sourceLocation)
+    let textView = try #require(views(ofType: NSTextView.self, in: harness.hostingView).first, sourceLocation: sourceLocation)
     return try #require(textView.font, sourceLocation: sourceLocation).pointSize
   }
 }

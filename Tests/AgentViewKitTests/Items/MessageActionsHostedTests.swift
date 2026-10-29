@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import DemoSupport
 import EditorCommandsUI
+import EditorTestSupport
 import Foundation
 import FoundationModelsACPClient
 import PackageFileSupport
@@ -104,19 +105,21 @@ import Testing
   ///
   /// - Parameters:
   ///   - turn: The session turn.
-  ///   - pasteboard: The pasteboard of the copy buttons.
+  ///   - pasteboard: The pasteboard of the copy buttons, one of
+  ///     `NSPasteboard.withIsolated(_:)`, or `nil` for a test that copies
+  ///     nothing.
   ///   - requestStartReport: The report that gets the method of each request
   ///     that a view starts, or `nil`.
   ///   - content: The view to show.
   /// - Returns: The harness.
   static func mount(
-    _ turn: SessionTurn, pasteboard: FakePasteboard = FakePasteboard(),
+    _ turn: SessionTurn, pasteboard: NSPasteboard? = nil,
     requestStartReport: ObservationReport<String>? = nil, @ViewBuilder content: () -> some View
   ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: windowSize) {
       content()
         .environment(\.sessionModel, turn.session.model)
-        .environment(\.pasteboard, pasteboard)
+        .transformEnvironment(\.pasteboard) { if let pasteboard { $0 = pasteboard } }
         .environment(\.requestStartReport, requestStartReport)
     }
     harness.render()
@@ -176,61 +179,66 @@ import Testing
   @Test func withNoSessionModelAnEntryRowShowsOnlyCopy() async throws {
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
-    let pasteboard = FakePasteboard()
-    let harness = HostedViewHarness(size: Self.windowSize) {
-      MessageActions(entry: turn.agent).environment(\.pasteboard, pasteboard)
-    }
-    defer { harness.close() }
-    harness.render()
+    try NSPasteboard.withIsolated { pasteboard in
+      let harness = HostedViewHarness(size: Self.windowSize) {
+        MessageActions(entry: turn.agent).environment(\.pasteboard, pasteboard)
+      }
+      defer { harness.close() }
+      harness.render()
 
-    #expect(Self.shownActions(in: harness) == [MessageActions.Action.copy.identifier])
-    try harness.press(identifier: MessageActions.Action.copy.identifier)
-    #expect(pasteboard.copies == [Self.answerChunks.joined()])
+      #expect(Self.shownActions(in: harness) == [MessageActions.Action.copy.identifier])
+      try pasteboard.expectOneCopy(of: Self.answerChunks.joined()) {
+        try harness.press(identifier: MessageActions.Action.copy.identifier)
+      }
+    }
   }
 
   @Test func copyOnAnEntryWritesTheJoinedTextOfTheEntry() async throws {
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
-    let pasteboard = FakePasteboard()
-    let harness = Self.mount(turn, pasteboard: pasteboard) { MessageActions(entry: turn.agent) }
-    defer { harness.close() }
+    try NSPasteboard.withIsolated { pasteboard in
+      let harness = Self.mount(turn, pasteboard: pasteboard) { MessageActions(entry: turn.agent) }
+      defer { harness.close() }
 
-    try harness.press(identifier: MessageActions.Action.copy.identifier)
-
-    #expect(pasteboard.copies == [Self.answerChunks.joined()])
+      try pasteboard.expectOneCopy(of: Self.answerChunks.joined()) {
+        try harness.press(identifier: MessageActions.Action.copy.identifier)
+      }
+    }
   }
 
   @Test func copyThreadOnAnEntryWritesTheTextOfTheCopyCommand() async throws {
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
-    let pasteboard = FakePasteboard()
-    let harness = Self.mount(turn, pasteboard: pasteboard) { MessageActions(entry: turn.user) }
-    defer { harness.close() }
-
-    try harness.press(identifier: MessageActions.Action.copyThread.identifier)
-
     let expected = AgentCommandTarget.plainText(of: turn.session.model)
     #expect(!expected.isEmpty)
-    #expect(pasteboard.copies == [expected])
+    try NSPasteboard.withIsolated { pasteboard in
+      let harness = Self.mount(turn, pasteboard: pasteboard) { MessageActions(entry: turn.user) }
+      defer { harness.close() }
+
+      try pasteboard.expectOneCopy(of: expected) {
+        try harness.press(identifier: MessageActions.Action.copyThread.identifier)
+      }
+    }
   }
 
   @Test func copyThreadInTheFooterOfAThreadViewRunsTheCopyThreadCommand() async throws {
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
-    let pasteboard = FakePasteboard()
-    let copyThread = MessageActions.Action.copyThread.identifier
-    let harness = Self.mount(turn, pasteboard: pasteboard) {
-      AgentThreadView(session: turn.session.model)
-        .messageFooter { MessageActions(entry: $0) }
-    }
-    defer { harness.close() }
-    #expect(Self.shownActions(in: harness).contains(copyThread))
-
-    try harness.press(identifier: copyThread)
-
     let expected = AgentCommandTarget.plainText(of: turn.session.model)
     #expect(!expected.isEmpty)
-    #expect(pasteboard.copies == [expected])
+    try NSPasteboard.withIsolated { pasteboard in
+      let copyThread = MessageActions.Action.copyThread.identifier
+      let harness = Self.mount(turn, pasteboard: pasteboard) {
+        AgentThreadView(session: turn.session.model)
+          .messageFooter { MessageActions(entry: $0) }
+      }
+      defer { harness.close() }
+      #expect(Self.shownActions(in: harness).contains(copyThread))
+
+      try pasteboard.expectOneCopy(of: expected) {
+        try harness.press(identifier: copyThread)
+      }
+    }
   }
 
   @Test func editOnAUserEntryPutsTheTextInTheComposerOfTheScope() async throws {

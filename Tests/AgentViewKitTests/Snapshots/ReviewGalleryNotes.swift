@@ -4,12 +4,13 @@
   ///
   /// A note names the date of the review and the id of each card that a
   /// finding made. When a screen changes, review its images again and write
-  /// a new note. The notes of 2026-10-27 judged the images of path A of
-  /// `ViewSnapshot`, which drew no Liquid Glass, no scroll edge effect, no
-  /// mic and Send buttons, and vibrant labels black in dark. Since ^zbcys18
-  /// the gallery renders with path C, which draws each of them; a sentence
-  /// that named a limit of path A now names what the image draws, and what a
-  /// person still has to judge.
+  /// a new note. The notes of 2026-10-27 judged images that a stand-in
+  /// renderer of the test support drew, with no Liquid Glass, no scroll edge
+  /// effect, no mic and Send buttons, and vibrant labels black in dark. Since
+  /// ^x7z136m each image is a capture of a real window from the window server
+  /// (EditorKit `style.md` rule 9), which shows each of them; a sentence that
+  /// named a limit of the renderer names what the image shows, and what a
+  /// person still has to judge. Each note keeps the date of its review.
   enum ReviewGalleryNotes {
     /// The note of a screen that no reviewer judged.
     static let notJudged = "Not judged yet."

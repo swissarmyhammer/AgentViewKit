@@ -1,6 +1,7 @@
 #if DEBUG
   @testable import AgentViewKit
   import AgentViewKitTestSupport
+  import EditorTestSupport
   import SwiftUI
 
   /// The one mount of the diff tests: a hosted harness that shows a view with

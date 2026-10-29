@@ -1,9 +1,8 @@
-@testable import AgentViewKitTestSupport
 import CoreGraphics
-import SwiftUI
+import EditorTestSupport
 
-/// The colors of one region of an image: its background and its ink, for the
-/// contrast checks of the composited images (^zbcys18).
+/// The colors of one region of a capture: its background and its ink, for
+/// the contrast checks of the text that a real window shows (^zbcys18).
 ///
 /// The background is the color that covers the most pixels of the region.
 /// The ink is the pixel whose contrast with the background is the largest,
@@ -21,15 +20,17 @@ struct RegionColors {
     ink.contrast(with: background)
   }
 
-  /// Reads the colors of `region` of `pixels`.
+  /// Reads the colors of `region` of `image`.
   ///
   /// - Parameters:
-  ///   - pixels: The image.
+  ///   - image: The capture.
   ///   - region: The region, in points from the top leading corner of the
   ///     image.
   /// - Returns: `nil` when no pixel of the image is in `region`.
-  init?(of pixels: RenderedPixels, in region: CGRect) {
-    let colors = Self.colors(of: pixels, in: region)
+  /// - Throws: A `CapturedImageError` when the region cannot be read.
+  init?(of image: CapturedImage, in region: CGRect) throws {
+    guard let crop = try Self.crop(of: image, in: region) else { return nil }
+    let colors = try Self.colors(of: crop)
     let counts = Dictionary(colors.map { ($0, 1) }, uniquingKeysWith: +)
     guard let background = counts.max(by: { $0.value < $1.value })?.key.color,
       let ink = colors.map(\.color).max(by: { $0.contrast(with: background) < $1.contrast(with: background) })
@@ -38,128 +39,83 @@ struct RegionColors {
     self.ink = ink
   }
 
-  /// Whether a pixel of `region` of `pixels` has `color`.
-  ///
-  /// The pixels are the pixels that ``colors(of:in:)`` reads, and each one
-  /// is matched as ``RenderedPixels/contains(_:at:tolerance:)`` matches it.
+  /// Whether a pixel of `region` of `image` shows `color`, as
+  /// `CapturedImage.contains(_:)` reads a pixel.
   ///
   /// - Parameters:
-  ///   - color: The color to find. Use a color with no dynamic part, such as
-  ///     a resolved theme color.
+  ///   - color: The color to find, with no dynamic part, such as a resolved
+  ///     theme color.
   ///   - region: The region, in points from the top leading corner of the
   ///     image.
-  ///   - pixels: The image.
-  ///   - tolerance: The largest difference of one component, from 0 to 1.
-  /// - Returns: `true` when at least one pixel of `region` has `color`.
-  static func contains(
-    _ color: Color, in region: CGRect, of pixels: RenderedPixels, tolerance: Double = RenderedPixels.defaultTolerance
-  ) -> Bool {
-    centers(of: pixels, in: region).contains { pixels.contains(color, at: $0, tolerance: tolerance) }
+  ///   - image: The capture.
+  /// - Returns: `true` when at least one pixel of `region` shows `color`.
+  /// - Throws: A `CapturedImageError` when the region cannot be read.
+  static func contains(_ color: CGColor, in region: CGRect, of image: CapturedImage) throws -> Bool {
+    try crop(of: image, in: region)?.contains(color) ?? false
   }
 
-  /// The frame of each column of the pixels of `region` of `pixels`.
+  /// The frame of each column of the pixels of `region` of `image`.
   ///
-  /// The columns hold the pixels that ``colors(of:in:)`` reads: each frame is
+  /// The columns hold the pixels that ``init(of:in:)`` reads: each frame is
   /// one pixel wide, and as high as the pixels of `region`.
   ///
   /// - Parameters:
-  ///   - pixels: The image.
+  ///   - image: The capture.
   ///   - region: The region, in points from the top leading corner of the
   ///     image.
   /// - Returns: The frames, in points from the top leading corner of the
   ///   image, from the leading column to the trailing column. Empty when no
   ///   pixel of the image is in `region`.
-  static func columns(of pixels: RenderedPixels, in region: CGRect) -> [CGRect] {
-    guard let pixelRegion = pixelRegion(of: pixels, in: region) else { return [] }
+  static func columns(of image: CapturedImage, in region: CGRect) -> [CGRect] {
+    guard let pixelRegion = pixelRegion(of: image, in: region) else { return [] }
+    let toPoints = CGAffineTransform(scaleX: 1 / CaptureGeometry.scale, y: 1 / CaptureGeometry.scale)
     return (Int(pixelRegion.minX)..<Int(pixelRegion.maxX)).map { column in
-      CGRect(x: CGFloat(column), y: pixelRegion.minY, width: 1, height: pixelRegion.height)
-        .applying(toPoints(of: pixels))
+      CGRect(x: CGFloat(column), y: pixelRegion.minY, width: 1, height: pixelRegion.height).applying(toPoints)
     }
   }
 
-  /// The frame of the row of pixels of `pixels` that holds the points at `y`.
-  ///
-  /// The row is the row that ``RenderedPixels/contains(_:at:tolerance:)``
-  /// reads at `y`, so a region of one row reads the same pixels as a point on
-  /// each of its columns. A point on the edge between two rows is in the row
-  /// below the edge.
+  /// The pixels of `image` in `region`, as an image of their own.
   ///
   /// - Parameters:
-  ///   - pixels: The image.
-  ///   - y: The distance from the top of the image, in points.
-  /// - Returns: The frame, in points from the top leading corner of the image:
-  ///   one pixel high, and as wide as the image.
-  static func row(of pixels: RenderedPixels, at y: CGFloat) -> CGRect {
-    CGRect(x: 0, y: (y * pixels.scale).rounded(.down), width: CGFloat(pixels.width), height: 1)
-      .applying(toPoints(of: pixels))
-  }
-
-  /// The transform from pixels of `pixels` to points.
-  ///
-  /// - Parameter pixels: The image.
-  /// - Returns: The transform that divides each value by the scale of `pixels`.
-  private static func toPoints(of pixels: RenderedPixels) -> CGAffineTransform {
-    CGAffineTransform(scaleX: 1 / pixels.scale, y: 1 / pixels.scale)
-  }
-
-  /// The distance from the top leading corner of a pixel to its center, in
-  /// pixels.
-  private static let pixelCenter: CGFloat = 0.5
-
-  /// The color of each pixel of `pixels` whose top leading corner is in
-  /// `region`.
-  ///
-  /// - Parameters:
-  ///   - pixels: The image.
+  ///   - image: The capture.
   ///   - region: The region, in points from the top leading corner.
-  /// - Returns: The colors, from the top row to the bottom row.
-  private static func colors(of pixels: RenderedPixels, in region: CGRect) -> [PixelColor] {
-    centers(of: pixels, in: region).compactMap(pixels.offset(of:)).map { offset in
-      PixelColor(components: pixels.components(atOffset: offset))
+  /// - Returns: The crop, or `nil` when the region holds no pixel of the
+  ///   image.
+  /// - Throws: A `CapturedImageError` when the crop cannot be made.
+  private static func crop(of image: CapturedImage, in region: CGRect) throws -> CapturedImage? {
+    try pixelRegion(of: image, in: region).map { try image.cropped(to: $0) }
+  }
+
+  /// The color of each pixel of `crop`, column by column.
+  ///
+  /// - Parameter crop: The pixels of a region.
+  /// - Returns: The colors.
+  /// - Throws: A `CapturedImageError` when a column cannot be read.
+  private static func colors(of crop: CapturedImage) throws -> [PixelColor] {
+    try (0..<crop.pixelWidth).flatMap { column in
+      try crop.pixelColumn(at: column).map(PixelColor.init(bytes:))
     }
   }
 
-  /// The center of each pixel of `pixels` whose top leading corner is in
-  /// `region`.
-  ///
-  /// This method is the one walk over the pixels of a region: ``colors(of:in:)``
-  /// and ``contains(_:in:of:tolerance:)`` both read the pixels it gives.
-  ///
-  /// - Parameters:
-  ///   - pixels: The image.
-  ///   - region: The region, in points from the top leading corner.
-  /// - Returns: The centers, in points from the top leading corner, from the
-  ///   top row to the bottom row.
-  private static func centers(of pixels: RenderedPixels, in region: CGRect) -> [CGPoint] {
-    guard let pixelRegion = pixelRegion(of: pixels, in: region) else { return [] }
-    return (Int(pixelRegion.minY)..<Int(pixelRegion.maxY)).flatMap { row in
-      (Int(pixelRegion.minX)..<Int(pixelRegion.maxX)).map { column in
-        CGPoint(
-          x: (CGFloat(column) + pixelCenter) / pixels.scale,
-          y: (CGFloat(row) + pixelCenter) / pixels.scale)
-      }
-    }
-  }
-
-  /// `region` in whole pixels of `pixels`: each pixel whose area meets
+  /// `region` in whole pixels of `image`: each pixel whose area meets
   /// `region`, within the image.
   ///
   /// - Parameters:
-  ///   - pixels: The image.
+  ///   - image: The capture.
   ///   - region: The region, in points from the top leading corner.
   /// - Returns: The region in pixels from the top leading corner, or `nil`
   ///   when it holds no pixel of the image.
-  private static func pixelRegion(of pixels: RenderedPixels, in region: CGRect) -> CGRect? {
-    let pixelRegion = region.applying(CGAffineTransform(scaleX: pixels.scale, y: pixels.scale)).integral
-      .intersection(CGRect(x: 0, y: 0, width: pixels.width, height: pixels.height))
+  private static func pixelRegion(of image: CapturedImage, in region: CGRect) -> CGRect? {
+    let bounds = CGRect(x: 0, y: 0, width: image.pixelWidth, height: image.pixelHeight)
+    let pixelRegion = CaptureGeometry.pixels(of: region).intersection(bounds)
     return pixelRegion.isEmpty ? nil : pixelRegion
   }
 }
 
-/// The color of one opaque pixel, hashable so that ``RegionColors`` can count
-/// the pixels of each color.
+/// The color of one opaque pixel of a capture, hashable so that
+/// ``RegionColors`` can count the pixels of each color.
 private struct PixelColor: Hashable {
-  /// The place of each color channel in the components of a pixel.
+  /// The place of each color channel in the bytes of a pixel.
   private enum Channel: Int {
     /// The red channel, first.
     case red
@@ -169,13 +125,24 @@ private struct PixelColor: Hashable {
     case blue
   }
 
-  /// Red, green, blue and alpha, from 0 to 1.
-  let components: [Double]
+  /// The largest value of one byte of a pixel.
+  private static let byteMaximum = Double(UInt8.max)
 
-  /// The color as an opaque ``ResolvedColor``.
+  /// Red, green, blue and alpha, one byte each, as a capture holds them.
+  let bytes: [UInt8]
+
+  /// The color as an opaque ``ResolvedColor``. A capture is flattened over
+  /// its background, so each pixel is opaque.
   var color: ResolvedColor {
     ResolvedColor(
-      red: components[Channel.red.rawValue], green: components[Channel.green.rawValue],
-      blue: components[Channel.blue.rawValue], alpha: 1)
+      red: component(.red), green: component(.green), blue: component(.blue), alpha: 1)
+  }
+
+  /// One channel of the pixel, from 0 to 1.
+  ///
+  /// - Parameter channel: The channel.
+  /// - Returns: The value.
+  private func component(_ channel: Channel) -> Double {
+    Double(bytes[channel.rawValue]) / Self.byteMaximum
   }
 }

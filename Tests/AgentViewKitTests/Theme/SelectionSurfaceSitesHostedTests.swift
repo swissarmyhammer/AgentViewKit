@@ -1,9 +1,9 @@
-import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
 import EditorExtensions
 import EditorStyle
+import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
@@ -21,9 +21,10 @@ import UniformTypeIdentifiers
 ///
 /// Each test shows a view over a white backdrop in light mode, in the
 /// ``AgentItemFocusRingHostedTests/AccentLook``: under a red host tint and
-/// the shared ``AccentTheme`` of EditorKit with a blue accent, in a window of
-/// a ``HostedViewHarness``. The window of a harness is not key, so each test
-/// sets `\.appearsActive` itself.
+/// the shared ``AccentTheme`` of EditorKit with a blue accent, in a real
+/// window on the screen, captured from the window server. Each test sets
+/// `\.appearsActive` itself, so that it chooses the window state of the
+/// selection.
 @Suite(.serialized, .hostedSerially) @MainActor struct SelectionSurfaceSitesHostedTests {
   /// The attachment of the kit. FoundationModelsACP has a type of the same
   /// name.
@@ -43,6 +44,9 @@ import UniformTypeIdentifiers
 
   /// The suite whose helpers make the image block.
   typealias Blocks = WireContentBlockViewHostedTests
+
+  /// The suite whose helper compares one pixel of two captures.
+  typealias Surfaces = KitSurfaceRenderTests
 
   /// The backdrop below each view.
   static let backdrop = Color.white
@@ -78,33 +82,33 @@ import UniformTypeIdentifiers
     .environment(\.colorScheme, .light)
   }
 
-  /// The pixels of `view` over the backdrop, from the cache of a window.
+  /// The capture of `view` over the backdrop, in a real window.
   ///
   /// - Parameters:
   ///   - view: The view to show.
   ///   - appearsActive: Whether the window appears active.
   ///   - size: The size of the window.
-  /// - Returns: The pixels.
-  /// - Throws: An error when AppKit gives no pixels.
-  static func pixels(of view: some View, appearsActive: Bool, size: CGSize) throws -> RenderedPixels {
-    try GlassRenderProbeHostedTests.cachedPixels(of: onBackdrop(view, appearsActive: appearsActive), size: size)
+  /// - Returns: The image.
+  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
+  static func capture(of view: some View, appearsActive: Bool, size: CGSize) async throws -> CapturedImage {
+    try await GlassRenderProbeTests.capture(of: onBackdrop(view, appearsActive: appearsActive), size: size)
   }
 
-  /// The pixels of a window that the fill of a selected surface covers: the
+  /// The capture of a window that the fill of a selected surface covers: the
   /// theme accent at the selection opacity while the window is key, and the
   /// inactive grey while it is not.
   ///
   /// - Parameters:
   ///   - appearsActive: Whether the window appears active.
   ///   - size: The size of the window.
-  /// - Returns: The pixels.
-  /// - Throws: An error when AppKit gives no pixels.
-  static func fillPixels(appearsActive: Bool, size: CGSize) throws -> RenderedPixels {
+  /// - Returns: The image.
+  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
+  static func fillCapture(appearsActive: Bool, size: CGSize) async throws -> CapturedImage {
     let fill =
       appearsActive
       ? Ring.accent.opacity(EditorStyle.selectionOpacity)
       : Color.primary.opacity(EditorStyle.inactiveSelectionOpacity)
-    return try pixels(of: fill, appearsActive: appearsActive, size: size)
+    return try await capture(of: fill, appearsActive: appearsActive, size: size)
   }
 
   /// The center of a window of `size`.
@@ -145,22 +149,21 @@ import UniformTypeIdentifiers
   /// The selected row of the completion list paints the shared fill of the
   /// window state behind its text.
   @Test(arguments: windowStates)
-  func theSelectedCompletionRowPaintsTheSharedFill(appearsActive: Bool) throws {
-    let selected = try Self.pixels(
+  func theSelectedCompletionRowPaintsTheSharedFill(appearsActive: Bool) async throws {
+    let selected = try await Self.capture(
       of: Self.completionRow(isSelected: true), appearsActive: appearsActive, size: Self.rowSize)
+    let fill = try await Self.fillCapture(appearsActive: appearsActive, size: Self.rowSize)
 
-    #expect(
-      selected.isClose(
-        to: try Self.fillPixels(appearsActive: appearsActive, size: Self.rowSize), at: [Self.rowSurfacePoint]))
+    #expect(try Surfaces.samePixel(in: selected, and: fill, at: Self.rowSurfacePoint))
   }
 
   /// A row that is not selected paints no fill.
-  @Test func aCompletionRowThatIsNotSelectedPaintsNoFill() throws {
-    let row = try Self.pixels(of: Self.completionRow(isSelected: false), appearsActive: true, size: Self.rowSize)
+  @Test func aCompletionRowThatIsNotSelectedPaintsNoFill() async throws {
+    let row = try await Self.capture(
+      of: Self.completionRow(isSelected: false), appearsActive: true, size: Self.rowSize)
+    let clear = try await Self.capture(of: Color.clear, appearsActive: true, size: Self.rowSize)
 
-    #expect(
-      row.isClose(
-        to: try Self.pixels(of: Color.clear, appearsActive: true, size: Self.rowSize), at: [Self.rowSurfacePoint]))
+    #expect(try Surfaces.samePixel(in: row, and: clear, at: Self.rowSurfacePoint))
   }
 
   // MARK: - Image
@@ -168,31 +171,30 @@ import UniformTypeIdentifiers
   /// An image whose block file the inspector shows paints the shared fill of
   /// the window state behind the image.
   @Test(arguments: windowStates)
-  func anImageThatTheInspectorShowsPaintsTheSharedFill(appearsActive: Bool) throws {
+  func anImageThatTheInspectorShowsPaintsTheSharedFill(appearsActive: Bool) async throws {
     let (view, file) = try Self.imageBlock()
     let selected = view.environment(\.inspectorSelection, InspectorSelection(attachment: file))
 
-    let pixels = try Self.pixels(of: selected, appearsActive: appearsActive, size: Self.fileSize)
+    let image = try await Self.capture(of: selected, appearsActive: appearsActive, size: Self.fileSize)
+    let fill = try await Self.fillCapture(appearsActive: appearsActive, size: Self.fileSize)
 
-    #expect(
-      pixels.isClose(
-        to: try Self.fillPixels(appearsActive: appearsActive, size: Self.fileSize),
-        at: [Self.center(of: Self.fileSize)]))
+    #expect(try Surfaces.samePixel(in: image, and: fill, at: Self.center(of: Self.fileSize)))
   }
 
   /// An image whose file the inspector does not show paints no fill.
-  @Test func anImageThatTheInspectorDoesNotShowPaintsNoFill() throws {
+  @Test func anImageThatTheInspectorDoesNotShowPaintsNoFill() async throws {
     let (view, _) = try Self.imageBlock()
     let unselected = view.environment(\.inspectorSelection, InspectorSelection())
 
-    let pixels = try Self.pixels(of: unselected, appearsActive: true, size: Self.fileSize)
+    let image = try await Self.capture(of: unselected, appearsActive: true, size: Self.fileSize)
+    let clear = try await Self.capture(of: Color.clear, appearsActive: true, size: Self.fileSize)
 
-    #expect(pixels.isClose(to: try Self.pixels(of: Color.clear, appearsActive: true, size: Self.fileSize)))
+    #expect(image == clear)
   }
 
   /// A selected image that has the focus keeps its fill, and the focus ring
   /// of its scope outlines it with the square corners of the image.
-  @Test func aSelectedImageWithTheFocusHasTheFillAndTheRing() throws {
+  @Test func aSelectedImageWithTheFocusHasTheFillAndTheRing() async throws {
     let (view, file) = try Self.imageBlock()
     let system = CommandSystem()
     let content = Self.onBackdrop(
@@ -200,17 +202,15 @@ import UniformTypeIdentifiers
       appearsActive: true
     )
     .commandSystem(system)
-    let harness = HostedViewHarness(content, size: Self.fileSize)
-    defer { harness.close() }
-    harness.render()
+    let mount = CaptureMount(content, size: Self.fileSize)
+    defer { mount.close() }
 
-    let focused = try FocusRing.focusScope(of: file.id, in: harness, system: system)
-    let pixels = try #require(RenderedPixels(cachingDisplayOf: harness.hostingView))
+    let focused = try await FocusRing.focusScope(of: file.id, in: mount, system: system)
+    let image = try await mount.capture()
 
-    try Ring.expectRing(of: focused, cornerRadius: .zero)
-    #expect(
-      pixels.isClose(
-        to: try Self.fillPixels(appearsActive: true, size: Self.fileSize), at: [Self.center(of: Self.fileSize)]))
+    try await Ring.expectRing(of: focused, cornerRadius: .zero)
+    let fill = try await Self.fillCapture(appearsActive: true, size: Self.fileSize)
+    #expect(try Surfaces.samePixel(in: image, and: fill, at: Self.center(of: Self.fileSize)))
   }
 
   // MARK: - Attachment chip
@@ -221,20 +221,21 @@ import UniformTypeIdentifiers
   /// surface. So the text of the chip keeps the `.primary` color of the
   /// unselected chip.
   @Test(arguments: windowStates)
-  func aSelectedAttachmentViewDrawsOnlyTheSharedSurfaceBehindItsText(appearsActive: Bool) throws {
+  func aSelectedAttachmentViewDrawsOnlyTheSharedSurfaceBehindItsText(appearsActive: Bool) async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let file = try Shared.attachment(named: Locations.fileName, in: directory)
     let unselected = AttachmentView(file).environment(\.inspectorSelection, InspectorSelection())
     let onSurface = unselected.selectionSurface(true, cornerRadius: EditorStyle.default.radii.m)
 
-    let selected = try Self.pixels(
+    let selected = try await Self.capture(
       of: AttachmentView(file).environment(\.inspectorSelection, InspectorSelection(attachment: Attachment(url: file.url))),
       appearsActive: appearsActive, size: Self.fileSize)
-    let expected = try Self.pixels(of: onSurface, appearsActive: appearsActive, size: Self.fileSize)
+    let expected = try await Self.capture(of: onSurface, appearsActive: appearsActive, size: Self.fileSize)
+    let plain = try await Self.capture(of: unselected, appearsActive: appearsActive, size: Self.fileSize)
 
-    try #require(!expected.isClose(to: try Self.pixels(of: unselected, appearsActive: appearsActive, size: Self.fileSize)))
-    #expect(selected.isClose(to: expected))
+    try #require(expected != plain)
+    #expect(selected == expected)
   }
 
   // MARK: - Tool call location
@@ -249,12 +250,12 @@ import UniformTypeIdentifiers
     defer { session.close() }
     let view = Locations.expandedView(of: call)
 
-    let selected = try Self.pixels(
+    let selected = try await Self.capture(
       of: view.environment(\.inspectorSelection, InspectorSelection(attachment: Attachment(url: url))),
       appearsActive: true, size: Locations.hostSize)
-    let unselected = try Self.pixels(
+    let unselected = try await Self.capture(
       of: view.environment(\.inspectorSelection, InspectorSelection()), appearsActive: true, size: Locations.hostSize)
 
-    #expect(!selected.isClose(to: unselected))
+    #expect(selected != unselected)
   }
 }

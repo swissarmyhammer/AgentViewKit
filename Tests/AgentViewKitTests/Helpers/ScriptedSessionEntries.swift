@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorTestSupport
 import FoundationModelsACPClient
 import Testing
 

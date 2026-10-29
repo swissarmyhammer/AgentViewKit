@@ -20,9 +20,11 @@ enum WindowFocusCall: String, CaseIterable, CustomTestStringConvertible, Sendabl
   /// An `activate` call on the application, which takes the focus.
   case activateApplication
 
-  /// A `setActivationPolicy(.regular)` call, which lets the application show
-  /// in the Dock and take the focus.
-  case regularActivationPolicy
+  /// A `setActivationPolicy(_:)` call of any policy. `.regular` lets the
+  /// application show in the Dock and take the focus. The test process keeps
+  /// the activation policy that it starts with, as in EditorKit: no test
+  /// code sets one.
+  case setActivationPolicy
 
   var testDescription: String { rawValue }
 
@@ -43,8 +45,8 @@ enum WindowFocusCall: String, CaseIterable, CustomTestStringConvertible, Sendabl
       GlassForm.callPattern(rawValue)
     case .activateApplication:
       WordPattern.memberPattern(after: Self.applicationReceiver, GlassForm.callPattern("activate"))
-    case .regularActivationPolicy:
-      GlassForm.memberCallPattern("setActivationPolicy", WordPattern.wholeWord("regular"))
+    case .setActivationPolicy:
+      GlassForm.callPattern(rawValue)
     }
   }
 }
@@ -59,12 +61,14 @@ extension WindowFocusCall: SampledCodeForm {
 /// Holds each window of the tests off the screen, and the test process out of
 /// the focus (AVK-12).
 ///
-/// A hosted test mounts its view in a window that is never on the screen, and
-/// the test process has the `.prohibited` activation policy. Thus a test run
-/// shows no window and does not take the focus from the user. No test source
-/// and no test-support source can show a window or make the application
-/// active. The scan blanks the comments and the string literals of each file,
-/// then reads the file one line at a time.
+/// A hosted test mounts its view in the window of EditorKit's
+/// `HostedViewHarness`, which is never on the screen and never key, and the
+/// test process keeps the activation policy that it starts with, as in
+/// EditorKit. Thus a test run shows no window and does not take the focus
+/// from the user. No test source and no test-support source can show a
+/// window, make the application active or set an activation policy. The scan
+/// blanks the comments and the string literals of each file, then reads the
+/// file one line at a time.
 @Suite struct HiddenTestWindowTests {
   /// The directories of the test sources and of the test-support sources,
   /// relative to the package root.
@@ -83,7 +87,8 @@ extension WindowFocusCall: SampledCodeForm {
     (.activateApplication, "NSApp.activate(ignoringOtherApps: true)"),
     (.activateApplication, "NSApplication.shared.activate()"),
     (.activateApplication, "NSRunningApplication.current.activate()"),
-    (.regularActivationPolicy, "NSApplication.shared.setActivationPolicy(.regular)"),
+    (.setActivationPolicy, "NSApplication.shared.setActivationPolicy(.regular)"),
+    (.setActivationPolicy, "application.setActivationPolicy(.prohibited)"),
   ]
 
   /// Lines that look like a call, but do not show a window or take the focus.
@@ -91,7 +96,7 @@ extension WindowFocusCall: SampledCodeForm {
     "try #require(jump.activate(layer: thread))",
     "NSWorkspace.shared.activateFileViewerSelecting([url])",
     "window.orderOut(nil)",
-    "application.setActivationPolicy(.prohibited)",
+    "let policy = NSApp.activationPolicy()",
   ]
 
   @Test func eachPatternFindsOnlyItsOwnCall() {

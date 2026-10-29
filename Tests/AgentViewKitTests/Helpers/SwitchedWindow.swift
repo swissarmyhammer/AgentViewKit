@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import EditorCommandsUI
+import EditorTestSupport
 import SwiftUI
 
 /// The root of a ``SwitchedWindow``: its content while the switch is on,

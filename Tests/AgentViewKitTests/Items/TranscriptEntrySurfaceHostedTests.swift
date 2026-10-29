@@ -57,7 +57,7 @@ nonisolated enum TranscriptEntrySurfaceKind: CaseIterable, Sendable {
   }
 
   @Test(arguments: TranscriptEntrySurfaceKind.allCases)
-  func theBackdropShowsInsideTheEdgeOfTheEntry(kind: TranscriptEntrySurfaceKind) throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.entryView(of: kind), size: Self.size)
+  func theBackdropShowsInsideTheEdgeOfTheEntry(kind: TranscriptEntrySurfaceKind) async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.entryView(of: kind), size: Self.size)
   }
 }

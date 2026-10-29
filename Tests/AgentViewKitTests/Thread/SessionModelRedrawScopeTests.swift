@@ -1,6 +1,7 @@
 #if DEBUG
   import AgentViewKit
   import AgentViewKitTestSupport
+  import EditorTestSupport
   import FoundationModelsACPClient
   import SwiftUI
   import Testing

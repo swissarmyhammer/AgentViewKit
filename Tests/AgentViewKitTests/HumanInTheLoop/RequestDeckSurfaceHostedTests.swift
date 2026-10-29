@@ -1,6 +1,6 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
 import EditorStyle
+import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -10,10 +10,10 @@ import Testing
 /// ``AgentThreadView`` is in the floating controls of the thread (EditorKit
 /// `style.md`, "How the steps apply").
 ///
-/// The pixel tests read the cache of a window, because each card can take
-/// the VoiceOver focus, so `ImageRenderer` draws nothing for it
-/// (``ContentEdgeHostedProbe``). The cache shows no glass,
-/// so the backdrop shows behind a deck with no fill, also on glass.
+/// The pixel tests capture a real window (``ContentEdgeHostedProbe``), where
+/// the window server draws each card, which can take the VoiceOver focus, and
+/// the floating glass of the deck in the bar. The backdrop shows behind a deck
+/// with no fill, also on glass.
 @Suite(.serialized, .hostedSerially) @MainActor struct RequestDeckSurfaceHostedTests {
   /// The size of the window. The deck fills the width.
   static let size = RequestDeckSurfaceTests.size
@@ -37,14 +37,30 @@ import Testing
     }
   }
 
-  @Test func inContentTheBackdropShowsInsideTheEdgeOfTheCard() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.deckInContent, size: Self.size)
+  @Test func inContentTheBackdropShowsInsideTheEdgeOfTheCard() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.deckInContent, size: Self.size)
   }
 
-  @Test func inTheBarTheBackdropShowsBehindTheCard() throws {
-    let rendered = try ContentEdgeHostedProbe.pixels(of: Self.deckInBar, backdrop: .behind, size: Self.size)
+  @Test func inTheBarTheBackdropShowsBehindTheCard() async throws {
+    let image = try await ContentEdgeHostedProbe.capture(of: Self.deckInBar, backdrop: .behind, size: Self.size)
 
-    #expect(rendered.contains(GlassRenderProbeTests.backdrop))
+    #expect(try image.contains(CaptureGeometry.cgColor(of: GlassRenderProbeTests.backdrop)))
+  }
+
+  /// In the bar, the window server draws the floating glass of the deck over
+  /// the backdrop: the pixel at ``RequestDeckSurfaceTests/centerPoint``, in
+  /// the glass of the deck in the bar, differs from the same pixel of the
+  /// deck in content, which has no glass.
+  @Test func inTheBarTheWindowDrawsTheGlassOfTheDeck() async throws {
+    let size = RequestDeckSurfaceTests.size
+    let center = CaptureGeometry.pixel(at: RequestDeckSurfaceTests.centerPoint)
+    let centerPixel = CGRect(x: center.x, y: center.y, width: 1, height: 1)
+
+    let inBar = try await GlassRenderProbeTests.capture(of: RequestDeckSurfaceTests.deck(inBar: true), size: size)
+    let inContent = try await GlassRenderProbeTests.capture(
+      of: RequestDeckSurfaceTests.deck(inBar: false), size: size)
+
+    #expect(try inBar.cropped(to: centerPixel) != inContent.cropped(to: centerPixel))
   }
 
   @Test func aCardInTheComposerSlotIsInTheFloatingControlsOfTheThread() throws {

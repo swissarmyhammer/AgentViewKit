@@ -2,6 +2,7 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import EditorStyle
+  import EditorTestSupport
   import FoundationModelsACPClient
   import SwiftUI
   import Testing

@@ -1,12 +1,12 @@
 #if DEBUG
   @testable import AgentViewKit
-  import AgentViewKitTestSupport
+  import EditorTestSupport
   import SwiftUI
   import Testing
 
-  /// A view that the composited image of path C of ``ViewSnapshot`` draws
-  /// with Liquid Glass and vibrancy (^zbcys18), with the identifier of the
-  /// element whose text the checks read.
+  /// A view that a real window shows with Liquid Glass and vibrancy
+  /// (^zbcys18), with the identifier of the element whose text the checks
+  /// read.
   ///
   /// The type is `nonisolated` because the arguments of a test use its cases.
   nonisolated enum CompositedProbe: CaseIterable, Sendable, CustomTestStringConvertible {
@@ -55,9 +55,13 @@
     }
   }
 
-  /// Tests for path C of ``ViewSnapshot``: the image that Core Animation
-  /// composites for the hidden window, with Liquid Glass, vibrancy and the
-  /// controls that only the render server draws (^zbcys18).
+  /// Tests of the text and the glyphs on Liquid Glass as the window server
+  /// composites a real window (^zbcys18): vibrancy, the glass of a sidebar and
+  /// of an inspector, and the controls that only the window server draws.
+  ///
+  /// Each test captures the view in a ``CaptureMount``, and reads the region
+  /// of one element: its frame in the accessibility tree of the same view at
+  /// the same size (``CaptureMount/windowFrame(of:in:size:)``).
   @Suite(.serialized, .hostedSerially) @MainActor struct CompositedSnapshotTests {
     /// The size of each probe image, in points.
     static let size = CGSize(width: 400, height: 300)
@@ -74,80 +78,62 @@
     /// the light one is 1.
     static let darkLuminance = 0.05
 
-    /// The colors of the element with `identifier` in the composited image of
-    /// `view` in `variant`.
+    /// The colors of the element with `identifier` in a capture of `view` in
+    /// `look`.
     ///
     /// - Parameters:
     ///   - identifier: The accessibility identifier of the element.
     ///   - view: The view to show.
     ///   - size: The size of the image, in points.
-    ///   - variant: The settings of the image.
+    ///   - look: The look of the window.
     /// - Returns: The colors of the frame of the element.
-    /// - Throws: An issue when the image or the element is missing.
-    static func colors(
-      of identifier: String, in view: some View, size: CGSize = size, variant: SnapshotVariant
-    ) throws -> RegionColors {
-      let harness = ViewSnapshot.makeHarness(of: view, size: size, variant: variant)
-      defer { harness.close() }
-      harness.render()
-      let pixels = try #require(ViewSnapshot.compositedPixels(of: harness))
-      let frame = try #require(harness.frame(identifier: identifier), "No element \(identifier).")
-      let region = ThreadBarControlJumpHostedTests.windowSpaceFrame(of: frame, in: harness.window)
-      return try #require(RegionColors(of: pixels, in: region))
+    /// - Throws: An issue when the element is missing, or the error of the
+    ///   capture.
+    static func colors<Content: View>(
+      of identifier: String, in view: Content, size: CGSize = size, look: ReviewAppearance
+    ) async throws -> RegionColors {
+      let region = try CaptureMount.windowFrame(of: identifier, in: view, size: size)
+      let image = try await CaptureMount.capture(view, size: size, appearance: look)
+      return try #require(try RegionColors(of: image, in: region))
     }
 
-    @Test(arguments: CompositedProbe.allCases, [SnapshotVariant.light, .dark])
-    func theTextOnGlassIsReadable(probe: CompositedProbe, variant: SnapshotVariant) throws {
-      let colors = try Self.colors(of: probe.identifier, in: probe.view, variant: variant)
+    @Test(arguments: CompositedProbe.allCases, ReviewAppearance.allCases)
+    func theTextOnGlassIsReadable(probe: CompositedProbe, look: ReviewAppearance) async throws {
+      let colors = try await Self.colors(of: probe.identifier, in: probe.view, look: look)
 
       #expect(colors.contrast >= Self.minimumTextContrast, "\(colors)")
     }
 
     @Test(arguments: [CompositedProbe.sidebarList, .inspectorForm])
-    func theDarkTextOnGlassIsLightOnADarkBackground(probe: CompositedProbe) throws {
-      let colors = try Self.colors(of: probe.identifier, in: probe.view, variant: .dark)
+    func theDarkTextOnGlassIsLightOnADarkBackground(probe: CompositedProbe) async throws {
+      let colors = try await Self.colors(of: probe.identifier, in: probe.view, look: .dark)
 
       #expect(colors.background.luminance <= Self.darkLuminance, "\(colors)")
       #expect(colors.ink.luminance > colors.background.luminance, "\(colors)")
     }
 
-    @Test(arguments: [SnapshotVariant.light, .dark])
-    func theComposerShowsTheGlyphOfTheMicAndSendButtons(variant: SnapshotVariant) throws {
+    @Test(arguments: ReviewAppearance.allCases)
+    func theComposerShowsTheGlyphOfTheMicAndSendButtons(look: ReviewAppearance) async throws {
       for identifier in [SpeechInputButton.identifier, DefaultPromptAccessory.submitIdentifier] {
-        let colors = try Self.colors(
-          of: identifier, in: ReviewGalleryFixtures.deckThread, size: ReviewGalleryFixtures.threadSize,
-          variant: variant)
+        let colors = try await Self.colors(
+          of: identifier, in: ReviewGalleryFixtures.deckThread, size: ReviewGalleryFixtures.threadSize, look: look)
 
         #expect(colors.contrast >= Self.minimumGlyphContrast, "\(identifier): \(colors)")
       }
     }
 
-    @Test func theCompositedImageShowsLiquidGlass() async throws {
-      let bounds = CGRect(origin: .zero, size: GlassRenderProbeTests.size)
-      let center = [CGPoint(x: bounds.midX, y: bounds.midY)]
+    /// A real window shows Liquid Glass: the glass changes the backdrop at the
+    /// center of the window, and with no glass the center shows the backdrop.
+    @Test func aRealWindowShowsLiquidGlass() async throws {
+      let size = GlassRenderProbeTests.size
+      let center = CaptureGeometry.pixel(at: CGPoint(x: size.width / 2, y: size.height / 2))
+      let backdrop = CaptureGeometry.cgColor(of: GlassRenderProbeTests.backdrop)
 
-      let withGlass = try #require(
-        await ViewSnapshot.compositedPixels(of: GlassOverBackdrop(glass: .regular), size: bounds.size, variant: .light))
-      let withoutGlass = try #require(
-        await ViewSnapshot.compositedPixels(of: GlassOverBackdrop(glass: nil), size: bounds.size, variant: .light))
+      let withGlass = try await CaptureMount.capture(GlassOverBackdrop(glass: .regular), size: size)
+      let withoutGlass = try await CaptureMount.capture(GlassOverBackdrop(glass: nil), size: size)
 
-      #expect(!withGlass.isClose(to: withoutGlass, at: center))
-    }
-
-    @Test func aCompositedImageLeavesTheWindowAsItWas() throws {
-      let harness = ViewSnapshot.makeHarness(of: CompositedProbe.sidebarList.view, size: Self.size, variant: .dark)
-      defer { harness.close() }
-      harness.render()
-      let layer = try #require(harness.hostingView.layer)
-      let superlayer = layer.superlayer
-      let cachedBefore = try #require(ViewSnapshot.pixels(of: harness))
-
-      let first = try #require(ViewSnapshot.compositedPixels(of: harness))
-      let second = try #require(ViewSnapshot.compositedPixels(of: harness))
-
-      #expect(first.changedPixelCount(comparedWith: second) == 0)
-      #expect(layer.superlayer === superlayer)
-      #expect(try #require(ViewSnapshot.pixels(of: harness)).changedPixelCount(comparedWith: cachedBefore) == 0)
+      #expect(try withoutGlass.shows(backdrop, atX: center.x, y: center.y))
+      #expect(try !withGlass.shows(backdrop, atX: center.x, y: center.y))
     }
   }
 #endif

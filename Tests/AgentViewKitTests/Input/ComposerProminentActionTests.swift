@@ -9,9 +9,10 @@ import Testing
 /// tint, so Send and Stop each use the `.glass` style, while the agent runs
 /// and while it is idle.
 ///
-/// A render cannot show a glass button style, because the cache of a window
-/// shows no glass (``GlassRenderProbeHostedTests``). Thus a scan of the source
-/// makes sure that each button writes the `.glass` style.
+/// The pixel tests capture a real window from the window server
+/// (``GlassRenderProbeTests``), which shows Liquid Glass, but a capture cannot
+/// tell `.glass` from a prominent glass style with no tint. Thus a scan of the
+/// source makes sure that each button writes the `.glass` style.
 /// ``GlassPlacementTests`` checks that `Input/` has no prominent glass style.
 /// No test reads a clock, polls, or has a time limit.
 @MainActor struct ComposerProminentActionTests {

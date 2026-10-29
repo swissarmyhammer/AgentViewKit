@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import EditorTestSupport
 import Quartz
 import SwiftUI
 import Testing
@@ -48,7 +49,7 @@ import Testing
 
     let form = try #require(harness.frame(identifier: AttachmentInspector.formIdentifier))
     let name = try #require(harness.frame(identifier: AttachmentInspector.nameIdentifier))
-    let previewView = try #require(harness.views(of: QLPreviewView.self).first)
+    let previewView = try #require(views(ofType: QLPreviewView.self, in: harness.hostingView).first)
     let preview = harness.screenFrame(of: previewView)
 
     let leadingInset = preview.minX - form.minX
@@ -57,15 +58,15 @@ import Testing
     #expect(form.maxX - preview.maxX == leadingInset)
   }
 
-  @Test func theBackdropOfTheHostShowsInTheMarginOfTheForm() throws {
+  @Test func theBackdropOfTheHostShowsInTheMarginOfTheForm() async throws {
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let attachment = try Self.attachment(in: directory)
 
-    let pixels = try ContentEdgeHostedProbe.pixels(
+    let image = try await ContentEdgeHostedProbe.capture(
       of: AttachmentInspector(attachment), backdrop: .behindToTheEdge, size: Self.size)
 
-    #expect(pixels.contains(GlassRenderProbeTests.backdrop, at: Self.marginPoint))
+    #expect(try GlassRenderProbeTests.showsBackdrop(image, at: Self.marginPoint))
   }
 
   /// Mounts the inspector of a file in `directory` in a window of ``size``,

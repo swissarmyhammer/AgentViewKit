@@ -1,4 +1,5 @@
 import EditorCommandsUI
+import EditorTestSupport
 import Observation
 
 @testable import AgentViewKit

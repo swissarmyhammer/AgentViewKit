@@ -36,7 +36,7 @@ import Testing
     return NoticeBanner(notice: notice) {}
   }
 
-  @Test func theBackdropShowsInsideTheEdgeOfTheBanner() throws {
-    try ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.banner(), size: Self.size)
+  @Test func theBackdropShowsInsideTheEdgeOfTheBanner() async throws {
+    try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.banner(), size: Self.size)
   }
 }

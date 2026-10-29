@@ -5,26 +5,26 @@
 
   /// The review gallery of the full screens of the kit (^8q34yt8).
   ///
-  /// The test renders each ``ReviewGalleryScreen`` in each variant of
-  /// ``ReviewGallery/variants`` (light and dark), writes the images to
-  /// ``ReviewGallery/defaultDirectory``, and writes the contact sheet
-  /// `index.html` next to them. Each run of `swift test` writes the folder
-  /// again. Open `index.html` to review the screens.
+  /// The test captures each ``ReviewGalleryScreen`` in a real window on the
+  /// screen in each look of ``ReviewGallery/looks`` (Light and Dark), writes
+  /// the images to ``ReviewGallery/defaultDirectory``, and writes the contact
+  /// sheet `index.html` next to them. Each run of `swift test` writes the
+  /// folder again. Open `index.html` to review the screens.
   ///
   /// The gallery compares no image with a reference image, so a changed
   /// screen does not fail the test. The test fails when a screen cannot be
-  /// built, when a render gives no image or an image of one color, or when a
-  /// file cannot be written. To make a screen a snapshot test later, give its
-  /// pixels to `SnapshotStore.verify(_:named:sourceLocation:)` in place of
-  /// `ReviewGallery.write(_:screen:variant:)`.
+  /// built, when a capture fails or holds one color only, or when a file
+  /// cannot be written. To make a screen a snapshot test later, give its
+  /// capture to EditorKit `SnapshotStore.verify(_:named:in:sourceLocation:)`
+  /// in place of `ReviewGallery.write(_:screen:look:)`.
   @Suite(.serialized, .hostedSerially) @MainActor struct ReviewGalleryScreenTests {
-    @Test func eachScreenIsWrittenInEachVariantWithTheContactSheet() async throws {
+    @Test func eachScreenIsWrittenInEachLookWithTheContactSheet() async throws {
       let gallery = ReviewGallery()
       try gallery.removeEarlierRun()
 
       for screen in ReviewGalleryScreen.allCases {
-        for variant in ReviewGallery.variants {
-          try gallery.write(try await screen.pixels(in: variant), screen: screen.rawValue, variant: variant)
+        for look in ReviewGallery.looks {
+          try gallery.write(try await screen.capture(in: look), screen: screen.rawValue, look: look)
         }
       }
       let sheet = try gallery.writeContactSheet(ReviewGalleryScreen.allCases.map(\.row))
@@ -36,9 +36,9 @@
     @Test(arguments: [ReviewGalleryScreen.gallery, .inspector])
     func theDarkImageShowsLightTextOnTheDarkGlassColumn(screen: ReviewGalleryScreen) async throws {
       let column = try #require(screen.glassColumn)
-      let pixels = try #require(try await screen.pixels(in: .dark))
+      let image = try await screen.capture(in: .dark)
 
-      let colors = try #require(RegionColors(of: pixels, in: column))
+      let colors = try #require(try RegionColors(of: image, in: column))
 
       #expect(colors.background.luminance <= CompositedSnapshotTests.darkLuminance, "\(colors)")
       #expect(colors.contrast >= CompositedSnapshotTests.minimumTextContrast, "\(colors)")

@@ -1,6 +1,7 @@
 import AgentViewKit
 import AgentViewKitTestSupport
 import DemoSupport
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -229,10 +230,11 @@ extension ScriptedSession {
   ///
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
-  ///   - harness: The harness that renders the view after the wait.
+  ///   - harness: The mount that renders the view after the wait: a
+  ///     `HostedViewHarness` or a `CaptureMount`.
   /// - Returns: The local id of the pending request.
   /// - Throws: The error of the transport.
-  func sendPermissionRequest(id: Int, rendering harness: HostedViewHarness<some View>) async throws -> UUID {
+  func sendPermissionRequest(id: Int, rendering harness: some RenderedMount) async throws -> UUID {
     try await sendInOrder([.permission(id: id)])
     harness.render()
     return try #require(model.pendingPermissions.first?.id)

@@ -1,5 +1,5 @@
-import AgentViewKitTestSupport
 import AppKit
+import EditorTestSupport
 import SwiftUI
 
 extension HostedViewHarness {
@@ -11,6 +11,6 @@ extension HostedViewHarness {
   ///
   /// - Returns: The number of progress indicators below the hosting view.
   func progressIndicatorCount() -> Int {
-    views(of: NSProgressIndicator.self).count
+    views(ofType: NSProgressIndicator.self, in: hostingView).count
   }
 }

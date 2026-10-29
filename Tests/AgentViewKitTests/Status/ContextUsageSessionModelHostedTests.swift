@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI

@@ -2,6 +2,7 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import AppKit
+  import EditorTestSupport
   import EditorText
   import SwiftUI
   import Testing
@@ -125,7 +126,7 @@
       lane: GutterLaneView, rowCount: Int, rows: [NumberedRow]
     ) {
       let root = try #require(
-        harness.views(withAccessibilityIdentifier: EditorDiffIdentifier.root).first)
+        views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).first)
       let rowCount = try rowCount(under: root)
       let lane = try lineNumberLane(under: root, rowCount: rowCount)
       return (lane, rowCount, try numberedRows(of: lane, rowCount: rowCount))

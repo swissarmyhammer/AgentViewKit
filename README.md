@@ -621,31 +621,43 @@ run of the run loop for a time. After a change on the main actor, a hosted
 test calls `HostedViewHarness.render()` and reads the accessibility tree.
 After a change that comes from asynchronous work, the test waits for its
 event with `render(when:)` or `ObservationWait.until(_:)`, and then checks
-the result with an expectation. A hosted test holds `HostedTestLock`, and a
-wait has no time limit, so each hosted wait must be for an event that is
-certain to come.
+the result with an expectation. A hosted suite runs under the
+`.hostedSerially` trait of EditorKit, which holds the shared UI test lock of
+the Mac for each test, and a wait has no time limit, so each hosted wait must
+be for an event that is certain to come.
 
 ### Snapshot images
 
-The snapshot tests make PNG images of the real views of the kit, with fixed
-data and fixed dates, at two pixels for each point, in sRGB. Each view has
-two images, light and dark, and no test flips a system setting (EditorKit
-`style.md` rule 9). The reference images are in
-`Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
+The snapshot tests and the pixel tests capture the real views of the kit in
+a real window on the screen, from the window server, with ScreenCaptureKit
+(EditorKit `CapturedImage`, `style.md` rule 9). No test draws a view with a
+renderer of its own: no `ImageRenderer`, no `cacheDisplay` and no layer-tree
+renderer; `RealCaptureOnlyTests` holds this. The window is the key window,
+with no activation of the test process, and the capture shows what the app
+shows: the AppKit views, Liquid Glass and the scroll edge effect. Each view
+has fixed data and fixed dates, at two pixels for each point, in sRGB, and two
+images, Light and Dark; no test flips a system setting. The reference images
+are in `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`, as
+`<name>-light.png` and `<name>-dark.png` (EditorKit `SnapshotStore`):
 
-- `HostedSnapshotTests/`: each view in a hidden window
-  (`ViewSnapshot.hostedPixels`). These images show the AppKit views, such as
-  the list of the thread and the EditorKit editor. The cache of a window shows
-  no glass.
-- `GlassSnapshotTests/`: the glass parts in isolation, over text
-  (`ViewSnapshot.renderedPixels`, with `ImageRenderer`). These images show a
-  glass look. It can be different from the Liquid Glass that the system
-  draws in a window.
+- `HostedSnapshotTests/`: each view of the kit, such as the thread, the
+  composer, the cards and the banners.
+- `GlassSnapshotTests/`: the glass parts over the text of a transcript: the
+  thread header, the composer, the request deck in the bar and the floating
+  controls.
+
+A capture holds the shared UI test lock of the Mac
+(`~/Library/Caches/swissarmyhammer/ui-tests.lock`), so no two runs capture the
+screen at once. The process that runs `swift test` needs the Screen Recording
+permission: allow the terminal or Xcode that runs it in System Settings ›
+Privacy & Security › Screen & System Audio Recording. Without it, each capture
+fails with `WindowCaptureError.screenRecordingNotAllowed`, which names the
+process; no test skips.
 
 When the look of a view changes, its test fails, and it writes
-`<name>.actual.png` and `<name>.diff.png` to `.build/snapshots/<suite>/`.
-The difference image shows each pixel that changed in magenta. The test also
-attaches the two images.
+`<name>-<look>.actual.png` and `<name>-<look>.diff.png` to
+`.build/snapshots/<suite>/`. The difference image shows each pixel that
+changed in magenta. The test also attaches the two images.
 
 Each `swift test` run also writes the review gallery,
 `~/Library/Caches/AgentViewKit/screenshot-check/index.html`: the key screens
@@ -657,7 +669,7 @@ To record the reference images again, run the tests in the record mode, and
 then review the new images before the commit:
 
 ```bash
-AVK_SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
+SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
 ```
 
 In the record mode, each snapshot test records an issue, so that a run with

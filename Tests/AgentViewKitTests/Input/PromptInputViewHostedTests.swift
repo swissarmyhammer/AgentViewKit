@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import DemoSupport
+import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
