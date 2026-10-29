@@ -5,7 +5,6 @@ import EditorCommandsUI
 import EditorTestSupport
 import Foundation
 import FoundationModelsACPClient
-import PackageFileSupport
 import SwiftUI
 import Testing
 
@@ -287,7 +286,7 @@ import Testing
   // MARK: - Selection
 
   @Test func theSelectionModeEqualsTheDecision() throws {
-    let text = try PackageFiles.text(of: Self.decisionPath)
+    let text = try PackageFiles().text(of: Self.decisionPath)
     let lines = text.split(separator: "\n").filter { $0.hasPrefix(Self.modePrefix) }
     #expect(lines.count == 1, "The file must have exactly one \(Self.modePrefix) line.")
     let line = try #require(lines.first)

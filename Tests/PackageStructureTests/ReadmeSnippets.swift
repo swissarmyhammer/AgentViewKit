@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 
 /// The compiled snippets of `README.md` (plan.md §1).
 ///
@@ -90,7 +90,7 @@ enum ReadmeSnippets {
 
   /// The README text.
   static func readme() throws -> String {
-    try PackageFiles.text(of: readmePath)
+    try PackageFiles().text(of: readmePath)
   }
 
   /// The snippets of the README.
@@ -101,7 +101,7 @@ enum ReadmeSnippets {
   /// The text of each snippet file on disk, keyed by the file name without
   /// `.swift`.
   static func snippetFiles() throws -> [String: String] {
-    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(snippetsPath))
+    let files = try swiftFiles(under: PackageFiles().file(snippetsPath))
     return Dictionary(
       uniqueKeysWithValues: try files.map { file in
         (file.deletingPathExtension().lastPathComponent, try String(contentsOf: file, encoding: .utf8))

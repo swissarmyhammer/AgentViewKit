@@ -1,3 +1,4 @@
+import EditorTestSupport
 import Foundation
 import PackageFileSupport
 import Testing
@@ -106,7 +107,7 @@ import Testing
   /// - Returns: The paths of the Markdown files in ``decisionsPath``.
   /// - Throws: The error of the read when the directory cannot be read.
   static func recordPaths() throws -> [String] {
-    try FileManager.default.contentsOfDirectory(atPath: PackageFiles.file(decisionsPath).path(percentEncoded: false))
+    try FileManager.default.contentsOfDirectory(atPath: PackageFiles().file(decisionsPath).path(percentEncoded: false))
       .filter { $0.hasSuffix(".\(recordExtension)") }
       .sorted()
       .map { "\(decisionsPath)/\($0)" }
@@ -118,7 +119,7 @@ import Testing
   /// - Returns: `true` when a line of the record is ``notCurrentLine``.
   /// - Throws: The error of the read when the record cannot be read.
   static func isNotCurrent(_ path: String) throws -> Bool {
-    try PackageFiles.text(of: path).split(separator: "\n").contains { $0 == notCurrentLine }
+    try PackageFiles().text(of: path).split(separator: "\n").contains { $0 == notCurrentLine }
   }
 
   /// The documents that describe the kit as it is now: ``documentPaths`` and
@@ -136,18 +137,18 @@ import Testing
   /// - Throws: The read error, or ``MarkdownTable/MissingTable`` when the
   ///   record has no package table.
   static func dependencyPackages() throws -> [String] {
-    let text = try PackageFiles.text(of: dependenciesRecordPath)
+    let text = try PackageFiles().text(of: dependenciesRecordPath)
     return try MarkdownTable.rows(in: text, header: dependencyTableHeader).map { $0.first ?? "" }
   }
 
   @Test func theClientKitRecordHasItsTitle() throws {
-    let lines = try PackageFiles.text(of: Self.clientKitRecordPath).split(separator: "\n")
+    let lines = try PackageFiles().text(of: Self.clientKitRecordPath).split(separator: "\n")
 
     #expect(lines.first.map(String.init) == Self.clientKitTitle)
   }
 
   @Test func theClientKitRecordNamesEachHostHook() throws {
-    let text = try PackageFiles.text(of: Self.clientKitRecordPath)
+    let text = try PackageFiles().text(of: Self.clientKitRecordPath)
     let section = try #require(
       text.components(separatedBy: "\n\(Self.hostHooksHeading)\n").dropFirst().first?
         .components(separatedBy: "\n## ").first)
@@ -172,7 +173,7 @@ import Testing
   }
 
   @Test func theAttachmentTableNamesNoRouterSource() throws {
-    let text = try PackageFiles.text(of: Self.attachmentTypesRecordPath)
+    let text = try PackageFiles().text(of: Self.attachmentTypesRecordPath)
     let rows = try MarkdownTable.rows(in: text, header: Self.attachmentTableHeader)
 
     #expect(!rows.isEmpty)
@@ -180,7 +181,7 @@ import Testing
   }
 
   @Test func theClientKitRecordHasTheBindingRuleSection() throws {
-    let lines = try PackageFiles.text(of: Self.clientKitRecordPath).split(separator: "\n")
+    let lines = try PackageFiles().text(of: Self.clientKitRecordPath).split(separator: "\n")
 
     #expect(lines.contains { $0 == Self.bindingRuleHeading })
   }
@@ -202,7 +203,7 @@ import Testing
   }
 
   @Test func theUpdatePlanIsDeleted() throws {
-    let path = try PackageFiles.file(Self.updatePlanPath).path(percentEncoded: false)
+    let path = try PackageFiles().file(Self.updatePlanPath).path(percentEncoded: false)
 
     #expect(!FileManager.default.fileExists(atPath: path))
   }

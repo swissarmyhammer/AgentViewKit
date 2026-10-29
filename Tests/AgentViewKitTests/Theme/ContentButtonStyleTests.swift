@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Checks that the buttons in content use no glass button style (D110 (b),
@@ -54,7 +54,7 @@ import Testing
 
   @Test(arguments: contentButtons)
   func theButtonsInContentUseTheirContentButtonStyle(_ view: ContentButtons) throws {
-    let source = try String(contentsOf: PackageFiles.file(view.path), encoding: .utf8)
+    let source = try String(contentsOf: PackageFiles().file(view.path), encoding: .utf8)
 
     #expect(source.contains(view.style), "\(view.path) does not use \(view.style)")
   }

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the SF Symbol names of the kit and of the examples current and free
@@ -17,7 +17,7 @@ import Testing
   /// - Throws: The error of the scan when a directory cannot be read.
   static func symbolNames() throws -> [SymbolNameUse] {
     try KitSourceFiles.scanViewFiles { directory in
-      try SymbolNameScanner.names(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+      try SymbolNameScanner.names(inSwiftFilesBelow: directory, relativeTo: PackageFiles().root)
     }
   }
 
@@ -198,7 +198,7 @@ import Testing
   /// - Throws: The error when a file cannot be read.
   static func tableNames() throws -> [SymbolNameUse] {
     try symbolTableFiles.flatMap { path in
-      let tableFile = try PackageFiles.file(path)
+      let tableFile = try PackageFiles().file(path)
       return SymbolNameScanner(source: try String(contentsOf: tableFile, encoding: .utf8))
         .names(file: path)
     }
@@ -211,7 +211,7 @@ import Testing
   @Test func eachSymbolNameOfTheKitIsWrittenOnlyInTheSymbolTable() throws {
     let availableNames = try SystemSymbolData.availableNames()
     let libraryNames = try KitSourceFiles.scanLibraryFiles { directory in
-      try SymbolNameScanner.names(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+      try SymbolNameScanner.names(inSwiftFilesBelow: directory, relativeTo: PackageFiles().root)
     }.filter { availableNames.contains($0.name) }
 
     let outside = libraryNames.filter { !Self.symbolTableFiles.contains($0.file) }

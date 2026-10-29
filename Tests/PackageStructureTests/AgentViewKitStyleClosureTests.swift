@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Proves that the dependency closure of the `AgentViewKitStyle` product holds
@@ -33,7 +33,7 @@ import Testing
   let manifest: String
 
   init() throws {
-    manifest = try PackageFiles.text(of: "Package.swift")
+    manifest = try PackageFiles().text(of: "Package.swift")
   }
 
   @Test func declaresTheStyleProduct() {
@@ -114,7 +114,7 @@ import Testing
   /// - Returns: The name of each reached package.
   /// - Throws: The error of a read of the checkout of `root`.
   static func packageClosure(from root: String) throws -> Set<String> {
-    let checkouts = try PackageFiles.file(checkoutsPath)
+    let checkouts = try PackageFiles().file(checkoutsPath)
     var reached: Set<String> = []
     var pending = [root]
     while let name = pending.popLast() {

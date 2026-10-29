@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorTestSupport
 import Foundation
 import PackageFileSupport
 import Testing
@@ -43,7 +44,7 @@ private typealias Attachment = AgentViewKit.Attachment
   /// - Throws: ``MarkdownTable/MissingTable`` when the file has no renderer
   ///   table, or ``TableError`` when a row is not in the expected form.
   private static func tableRows() throws -> [Row] {
-    let text = try PackageFiles.text(of: decisionPath)
+    let text = try PackageFiles().text(of: decisionPath)
     return try MarkdownTable.rows(in: text, header: header).map { cells in
       guard cells.count == columnCount else {
         throw TableError.wrongCellCount(cells)

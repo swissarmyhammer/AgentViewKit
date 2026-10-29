@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -513,7 +513,7 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
 
   /// The fixture directory of the form scan.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ThemeInjection") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ThemeInjection") }
   }
 
   /// The fixture file that uses each form, relative to ``fixtures``.
@@ -567,7 +567,7 @@ extension ThemeInjectionForm: SampledCodeForm, FixtureCodeForm {
   func noSourceUsesTheFormOutsideItsAllowedFiles(form: ThemeInjectionForm) throws {
     let found = try form.scanPaths.flatMap { path in
       try SourceLineScanner.codeMatchStarts(
-        of: form.pattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+        of: form.pattern, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root,
         skipping: Set(form.allowedFiles.keys))
     }
 

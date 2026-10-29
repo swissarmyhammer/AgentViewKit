@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -191,7 +191,7 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
 
   /// The fixture directory of the form scan.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/SystemStructure") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/SystemStructure") }
   }
 
   /// The fixture file that uses each form, relative to ``fixtures``.
@@ -254,7 +254,7 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
   func noSourcePutsACustomBackgroundOnTheSystemStructure(form: SystemStructureForm) throws {
     let found = try Self.scanPaths.flatMap { path in
       try GlassPlacementTests.uses(
-        of: form.pattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+        of: form.pattern, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root,
         allowing: Set(form.allowedFiles.keys))
     }
 
@@ -276,7 +276,7 @@ extension SystemStructureForm: SampledCodeForm, FixtureCodeForm {
   @Test func eachAllowedFileIsInThePackage() throws {
     let allowed = SystemStructureForm.allCases.flatMap { $0.allowedFiles.keys }
     let missing = try allowed.filter { path in
-      try !FileManager.default.fileExists(atPath: PackageFiles.file(path).path(percentEncoded: false))
+      try !FileManager.default.fileExists(atPath: PackageFiles().file(path).path(percentEncoded: false))
     }
 
     #expect(missing.isEmpty, "\(missing)")

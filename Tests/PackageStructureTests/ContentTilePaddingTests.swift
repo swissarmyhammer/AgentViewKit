@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -56,7 +56,7 @@ import Testing
   /// - Throws: The error of the scan when a directory cannot be read.
   static func libraryFileTexts() throws -> [(path: String, text: String)] {
     try KitSourceFiles.scanLibraryFiles { directory in
-      try PackageFiles.swiftFileTexts(below: directory, relativeTo: PackageFiles.root)
+      try PackageFiles().swiftFileTexts(under: directory)
     }
   }
 

@@ -2,7 +2,6 @@ import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
-import PackageFileSupport
 import SwiftUI
 import Testing
 
@@ -335,7 +334,8 @@ import Testing
   // MARK: - Web views
 
   @Test func noSourceFileUsesAWebView() throws {
-    let files = try PackageFiles.swiftFiles(in: PackageFiles.file("Sources"))
+    let files = try swiftFiles(under: PackageFiles().file("Sources"))
+    #expect(!files.isEmpty)
     for file in files {
       let text = try String(contentsOf: file, encoding: .utf8)
       #expect(!text.contains("import WebKit"), "\(file.lastPathComponent) imports WebKit.")

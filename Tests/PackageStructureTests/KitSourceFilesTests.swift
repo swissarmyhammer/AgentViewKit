@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the shared paths of ``KitSourceFiles`` in the package, so a scan
@@ -12,19 +12,19 @@ import Testing
   @Test func eachSharedFileOfTheKitIsInThePackage() throws {
     let files = [KitSourceFiles.statusBarFile, KitSourceFiles.taskListFile]
 
-    let texts = try files.map { try PackageFiles.text(of: $0) }
+    let texts = try files.map { try PackageFiles().text(of: $0) }
 
     #expect(texts.allSatisfy { !$0.isEmpty })
   }
 
   @Test func eachViewPathIsADirectoryOfThePackage() throws {
-    let found = try KitSourceFiles.scanViewFiles(PackageFiles.swiftFiles(in:))
+    let found = try KitSourceFiles.scanViewFiles(swiftFiles(under:))
 
     #expect(!found.isEmpty)
   }
 
   @Test func theViewScanGivesEachViewDirectoryToTheScanInOrder() throws {
-    let expected = try KitSourceFiles.viewPaths.map { try PackageFiles.file($0) }
+    let expected = try KitSourceFiles.viewPaths.map { try PackageFiles().file($0) }
 
     let scanned = try KitSourceFiles.scanViewFiles { directory in [directory] }
 

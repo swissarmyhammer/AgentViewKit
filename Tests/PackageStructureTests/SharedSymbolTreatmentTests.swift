@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the treatment of the status symbols in one place.
@@ -74,7 +74,7 @@ import Testing
 
   @Test func onlyTheSharedModifierWritesTheLiveEffectAndTheReduceMotionRule() throws {
     let found = try KitSourceFiles.scanLibraryFiles { directory in
-      try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root) { line in
+      try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: PackageFiles().root) { line in
         Self.uses(of: Self.liveEffectModifiers, on: line)
       }
     }
@@ -100,7 +100,7 @@ import Testing
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     let found = try files.flatMap { file in
-      SourceLineScanner.matches(inSource: try PackageFiles.text(of: file), file: file) { line in
+      SourceLineScanner.matches(inSource: try PackageFiles().text(of: file), file: file) { line in
         uses(of: [call], on: line)
       }
     }

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -283,7 +283,7 @@ import Testing
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ThemeColors") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ThemeColors") }
   }
 
   /// The fixture file that uses each fixed color form, relative to
@@ -369,14 +369,14 @@ import Testing
 
   @Test(arguments: allowedFiles)
   func eachAllowedFileIsInThePackage(path: String) throws {
-    let file = try PackageFiles.file(path)
+    let file = try PackageFiles().file(path)
 
     #expect(FileManager.default.fileExists(atPath: file.path(percentEncoded: false)), "\(path)")
   }
 
   @Test func noViewUsesAFixedColor() throws {
     let found = try KitSourceFiles.scanViewFiles { directory in
-      try Self.fixedColorUses(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+      try Self.fixedColorUses(inSwiftFilesBelow: directory, relativeTo: PackageFiles().root)
     }
 
     #expect(found.isEmpty, "Use a color of the EditorKit theme: \(found)")
@@ -412,7 +412,7 @@ import Testing
   /// no files. Thus each root must hold Swift files.
   @Test(arguments: SystemStructureTests.scanPaths)
   func eachSystemBackgroundScanRootHoldsSwiftFiles(path: String) throws {
-    let files = try PackageFiles.swiftFiles(in: PackageFiles.file(path))
+    let files = try swiftFiles(under: PackageFiles().file(path))
 
     #expect(!files.isEmpty, "\(path)")
   }
@@ -420,7 +420,7 @@ import Testing
   @Test(arguments: SystemStructureTests.scanPaths)
   func noViewUsesASystemBackground(path: String) throws {
     let found = try GlassPlacementTests.uses(
-      of: Self.systemBackgroundPattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+      of: Self.systemBackgroundPattern, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root,
       allowing: Set(Self.systemBackgroundAllowedFiles.keys))
 
     #expect(found.isEmpty, "Remove the hard-coded background (D111 step 1): \(found)")

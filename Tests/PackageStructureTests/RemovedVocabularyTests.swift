@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -203,7 +203,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
 
   @Test func theKitDeclaresNoTypeWithTheNameOfAnACPValueType() throws {
     let found = try KitSourceFiles.scanLibraryFiles { directory in
-      try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root) { line in
+      try SourceLineScanner.matches(inSwiftFilesBelow: directory, relativeTo: PackageFiles().root) { line in
         Self.declarations(of: Self.acpValueTypeNames, on: line)
       }
     }
@@ -438,8 +438,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   static func uses(of symbols: [String], below paths: [String]) throws -> [RemovedSymbolUse] {
     try paths.flatMap { path in
       try SourceLineScanner.matches(
-        inSwiftFilesBelow: PackageFiles.file(path),
-        relativeTo: PackageFiles.root
+        inSwiftFilesBelow: PackageFiles().file(path),
+        relativeTo: PackageFiles().root
       ) { line in
         Self.uses(of: symbols, on: line)
       }
@@ -463,7 +463,7 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     of symbols: [String], inFile path: String,
     matching makePattern: (String) -> Regex<Substring> = WordPattern.wholeWord
   ) throws -> [RemovedSymbolUse] {
-    SourceLineScanner.matches(inSource: try PackageFiles.text(of: path), file: path) { line in
+    SourceLineScanner.matches(inSource: try PackageFiles().text(of: path), file: path) { line in
       Self.uses(of: symbols, on: line, matching: makePattern)
     }
   }
@@ -579,8 +579,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   /// - Returns: The names of the files that match.
   /// - Throws: The error of the scan when a file cannot be read.
   static func fileNames(matching makePattern: () -> Regex<Substring>) throws -> [String] {
-    let swiftFiles = try swiftPaths.flatMap { try PackageFiles.swiftFiles(in: PackageFiles.file($0)) }
-    let files = swiftFiles + [try PackageFiles.file(readmePath)]
+    let swiftFiles = try swiftPaths.flatMap { try EditorTestSupport.swiftFiles(under: PackageFiles().file($0)) }
+    let files = swiftFiles + [try PackageFiles().file(readmePath)]
     return try files.filter { file in
       try String(contentsOf: file, encoding: .utf8).contains(makePattern())
     }
@@ -673,7 +673,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   }
 
   @Test func eachObservableClassOfTheKitHoldsViewStateOnly() throws {
-    let files = try KitSourceFiles.scanLibraryFiles(PackageFiles.swiftFiles(in:))
+    let files = try KitSourceFiles.scanLibraryFiles(swiftFiles(under:))
+    #expect(!files.isEmpty)
 
     let names = try files.flatMap { file in
       Self.observableClassNames(inSource: try String(contentsOf: file, encoding: .utf8))
@@ -704,8 +705,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     let patterns = try Self.removedInitializers.map { ($0, try $0.pattern()) }
 
     let found = try SourceLineScanner.matches(
-      inSwiftFilesBelow: PackageFiles.file(Self.sourcesPath),
-      relativeTo: PackageFiles.root
+      inSwiftFilesBelow: PackageFiles().file(Self.sourcesPath),
+      relativeTo: PackageFiles().root
     ) { line in
       patterns.compactMap { initializer, pattern in
         Self.use(of: initializer, matching: pattern, on: line)

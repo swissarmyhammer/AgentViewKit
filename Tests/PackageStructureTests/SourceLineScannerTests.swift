@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -8,7 +8,7 @@ import Testing
   /// The fixture directory. It holds one Swift file at the top and one Swift
   /// file in a subdirectory.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ImportBoundary/Violating") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ImportBoundary/Violating") }
   }
 
   @Test func matchesGivesEachLineItsFileAndNumber() {
@@ -54,7 +54,7 @@ import Testing
   /// The fixture directory with the comments and the string literals of the
   /// fixed color scan.
   static var literalFixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ThemeColors/Clean") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ThemeColors/Clean") }
   }
 
   @Test func codeMatchesSkipsTheCommentsAndTheStringLiterals() throws {

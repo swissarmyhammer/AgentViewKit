@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 
 /// Finds the lines of source files that match a pattern. The tests that make
 /// sure that no kit source declares a name use it.
@@ -34,6 +34,6 @@ enum SourceLines {
   /// - Throws: The error of `PackageFiles.file(_:)` for a path outside the
   ///   package, or the error of ``matching(_:in:)``.
   static func matching(_ pattern: Regex<AnyRegexOutput>, inPackageFiles paths: [String]) throws -> [String] {
-    try matching(pattern, in: paths.map { try PackageFiles.file($0) })
+    try matching(pattern, in: paths.map { try PackageFiles().file($0) })
   }
 }

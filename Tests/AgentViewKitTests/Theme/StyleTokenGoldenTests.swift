@@ -1,5 +1,6 @@
 import CoreGraphics
 import EditorStyle
+import EditorTestSupport
 import PackageFileSupport
 import SwiftUI
 import Testing
@@ -82,7 +83,7 @@ import Testing
   /// - Throws: ``MarkdownTable/MissingTable`` when the file has no token
   ///   table, or ``TableError`` when a row is not in the expected form.
   private static func tableRows() throws -> [Row] {
-    let text = try PackageFiles.text(of: decisionPath)
+    let text = try PackageFiles().text(of: decisionPath)
     return try MarkdownTable.rows(in: text, header: header).map { cells in
       guard cells.count == columnCount else {
         throw TableError.wrongCellCount(cells)

@@ -1,6 +1,5 @@
 import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Tests that each hosted test file runs under the `.hostedSerially` trait of
@@ -31,7 +30,7 @@ import Testing
 
   @Test func eachHostedTestFileHasTheSerialTrait() throws {
     let files = try Self.testsFolders
-      .flatMap { try PackageFiles.swiftFiles(in: PackageFiles.file($0)) }
+      .flatMap { try swiftFiles(under: PackageFiles().file($0)) }
       .filter { $0.standardizedFileURL != Self.thisFile }
     try #require(!files.isEmpty)
 

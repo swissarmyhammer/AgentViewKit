@@ -4,7 +4,6 @@
   import EditorDiff
   import EditorTestSupport
   import Foundation
-  import PackageFileSupport
   import SwiftUI
   import Testing
 
@@ -142,8 +141,8 @@
     // MARK: - Source
 
     @Test func noDiffSourceHasTheOldPlaceholderText() throws {
-      let directory = try PackageFiles.file("Sources/AgentViewKit/Diff")
-      let files = try PackageFiles.swiftFiles(in: directory)
+      let directory = try PackageFiles().file("Sources/AgentViewKit/Diff")
+      let files = swiftFiles(under: directory)
       #expect(!files.isEmpty)
       for file in files {
         let text = try String(contentsOf: file, encoding: .utf8)

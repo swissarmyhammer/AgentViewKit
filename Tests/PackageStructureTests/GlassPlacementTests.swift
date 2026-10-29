@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -232,7 +232,7 @@ extension GlassForm: FixtureCodeForm {
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/GlassPlacement") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/GlassPlacement") }
   }
 
   /// The fixture file that uses each glass form outside its allowed files,
@@ -297,7 +297,7 @@ extension GlassForm: FixtureCodeForm {
   /// - Throws: The error of ``uses(of:inSwiftFilesBelow:relativeTo:allowing:)``.
   static func libraryUses(of pattern: Regex<Substring>, allowing allowed: Set<String> = []) throws -> [String] {
     try KitSourceFiles.scanLibraryFiles { directory in
-      try uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, allowing: allowed)
+      try uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles().root, allowing: allowed)
     }
   }
 
@@ -333,7 +333,7 @@ extension GlassForm: FixtureCodeForm {
   @Test func eachViewInABarWithNoGlassDeclaresThePlaceOfABarWithNoGlassOneTime() throws {
     let found = try KitSourceFiles.scanLibraryFiles { directory in
       try CodeScan.lines.uses(
-        of: GlassForm.barWithoutGlassPlacePattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+        of: GlassForm.barWithoutGlassPlacePattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles().root)
     }
     let files = found.compactMap { $0.split(separator: ":").first.map(String.init) }
 
@@ -350,8 +350,8 @@ extension GlassForm: FixtureCodeForm {
 
   @Test func theInputHasNoProminentGlassButtonStyle() throws {
     let found = try Self.uses(
-      of: Self.prominentButtonStylePattern, inSwiftFilesBelow: PackageFiles.file(Self.inputPath),
-      relativeTo: PackageFiles.root)
+      of: Self.prominentButtonStylePattern, inSwiftFilesBelow: PackageFiles().file(Self.inputPath),
+      relativeTo: PackageFiles().root)
 
     #expect(found.isEmpty, "\(found)")
   }
@@ -401,7 +401,7 @@ extension GlassForm: FixtureCodeForm {
 
   @Test(arguments: allowedFiles)
   func eachAllowedFileIsInThePackage(path: String) throws {
-    let file = try PackageFiles.file(path)
+    let file = try PackageFiles().file(path)
 
     #expect(FileManager.default.fileExists(atPath: file.path(percentEncoded: false)), "\(path)")
   }

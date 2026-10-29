@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorTestSupport
 import FoundationModelsACP
 import PackageFileSupport
 import Testing
@@ -149,7 +150,7 @@ import Testing
   ///   table, or ``TableError/wrongCellCount(_:)`` for a row of a different
   ///   width.
   private static func cells(header: String, columnCount: Int) throws -> [[String]] {
-    let text = try PackageFiles.text(of: decisionPath)
+    let text = try PackageFiles().text(of: decisionPath)
     let rows = try MarkdownTable.rows(in: text, header: header)
     for row in rows where row.count != columnCount {
       throw TableError.wrongCellCount(row)

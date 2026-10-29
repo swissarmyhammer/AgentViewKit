@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 
 /// The paths and the search texts that the scans of the kit views share.
 ///
@@ -92,6 +92,6 @@ enum KitSourceFiles {
   private static func scanDirectories<Match>(
     _ paths: [String], _ scan: (URL) throws -> [Match]
   ) throws -> [Match] {
-    try paths.flatMap { path in try scan(PackageFiles.file(path)) }
+    try paths.flatMap { path in try scan(PackageFiles().file(path)) }
   }
 }

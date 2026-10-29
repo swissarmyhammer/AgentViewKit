@@ -1,3 +1,4 @@
+import EditorTestSupport
 import EditorTheme
 import Foundation
 import SwiftUI

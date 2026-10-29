@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 
 /// One SF Symbol name in a Swift source file.
 struct SymbolNameUse: Equatable, CustomStringConvertible {
@@ -181,7 +181,7 @@ struct SymbolNameScanner {
   /// - Throws: An error when the directory or a file cannot be read, or
   ///   `PackageFiles.FileOutsideDirectory` when a file is not below `base`.
   static func names(inSwiftFilesBelow directory: URL, relativeTo base: URL) throws -> [SymbolNameUse] {
-    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base).flatMap { file in
+    try PackageFiles(root: base).swiftFileTexts(under: directory).flatMap { file in
       SymbolNameScanner(source: file.text).names(file: file.path)
     }
   }

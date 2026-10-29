@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -275,7 +275,7 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
 
   /// The fixture directory of the form scan.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ContentFill") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ContentFill") }
   }
 
   /// The fixture file that uses each form, relative to ``fixtures``.
@@ -318,7 +318,7 @@ extension ContentFillForm: SampledCodeForm, FixtureCodeForm {
   @Test(arguments: SystemStructureTests.scanPaths, ContentFillForm.allCases)
   func noSourcePutsACustomFillBehindContent(path: String, form: ContentFillForm) throws {
     let found = try SourceLineScanner.codeMatchStarts(
-      of: form.pattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+      of: form.pattern, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root,
       skipping: Set(form.allowedFiles.keys))
 
     #expect(found.isEmpty, "Content has no fill (D113 answer 1). Use a .separator stroke. \(form) is in: \(found)")

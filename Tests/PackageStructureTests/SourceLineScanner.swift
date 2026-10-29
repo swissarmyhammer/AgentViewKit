@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 
 /// One line of a Swift source file.
 struct SourceLine: Equatable {
@@ -33,7 +33,7 @@ enum SourceLineScanner {
     relativeTo base: URL,
     match: (SourceLine) -> [Match]
   ) throws -> [Match] {
-    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base).flatMap { file in
+    try PackageFiles(root: base).swiftFileTexts(under: directory).flatMap { file in
       matches(inSource: file.text, file: file.path, match: match)
     }
   }
@@ -51,7 +51,7 @@ enum SourceLineScanner {
   ///   - match: The function that finds the matches on one line.
   /// - Returns: The matches, in the order of the file paths, then in line
   ///   order.
-  /// - Throws: The error of `PackageFiles.swiftFileTexts(below:relativeTo:)`.
+  /// - Throws: The error of `PackageFiles.swiftFileTexts(under:)`.
   static func codeMatches<Match>(
     inSwiftFilesBelow directory: URL,
     relativeTo base: URL,
@@ -78,7 +78,7 @@ enum SourceLineScanner {
   ///   - skipped: The files, relative to `base`, that the scan does not read.
   /// - Returns: `<file>:<line>` for each match, with the line where the match
   ///   starts, in the order of the file paths, then in line order.
-  /// - Throws: The error of `PackageFiles.swiftFileTexts(below:relativeTo:)`.
+  /// - Throws: The error of `PackageFiles.swiftFileTexts(under:)`.
   static func codeMatchStarts(
     of pattern: Regex<Substring>,
     inSwiftFilesBelow directory: URL,
@@ -114,13 +114,13 @@ enum SourceLineScanner {
   ///   - skipped: The files, relative to `base`, that the read skips.
   /// - Returns: The path and the code of each file, in the order of the file
   ///   paths.
-  /// - Throws: The error of `PackageFiles.swiftFileTexts(below:relativeTo:)`.
+  /// - Throws: The error of `PackageFiles.swiftFileTexts(under:)`.
   static func codeTexts(
     inSwiftFilesBelow directory: URL,
     relativeTo base: URL,
     skipping skipped: Set<String>
   ) throws -> [(path: String, code: String)] {
-    try PackageFiles.swiftFileTexts(below: directory, relativeTo: base)
+    try PackageFiles(root: base).swiftFileTexts(under: directory)
       .filter { !skipped.contains($0.path) }
       .map { file in
         let code = SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(file.text.utf8))

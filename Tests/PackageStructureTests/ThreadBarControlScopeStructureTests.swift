@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Checks that each control in the bars of a thread is an EditorKit jump
@@ -73,7 +73,7 @@ import Testing
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/BarControlScope") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/BarControlScope") }
   }
 
   /// The fixture file with one control of each type with no scope, and one
@@ -168,8 +168,8 @@ import Testing
   /// Each file of the kit that shows a status bar sets the kit style of its
   /// button, so the button has its scope and the button style of its place.
   @Test func eachKitFileThatShowsAStatusBarSetsTheKitStyleOfItsButton() throws {
-    let files = try PackageFiles.swiftFileTexts(
-      below: PackageFiles.file(KitSourceFiles.kitPath), relativeTo: PackageFiles.root)
+    let files = try PackageFiles().swiftFileTexts(
+      under: PackageFiles().file(KitSourceFiles.kitPath))
     let codes = try files.map { file in (path: file.path, code: try ThreadBottomBarStructureTests.code(of: file.path)) }
     let barFiles = codes.filter { $0.code.contains(GlassForm.callPattern("StatusBar")) }
     let unstyled = barFiles.filter { !$0.code.contains(Self.kitStatusBarStyleCall) }.map(\.path)

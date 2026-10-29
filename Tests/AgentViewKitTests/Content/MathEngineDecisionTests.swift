@@ -1,6 +1,6 @@
 import AgentViewKit
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Checks that the R9 decision in `Docs/decisions/math-engine.md` agrees with
@@ -40,7 +40,7 @@ import Testing
   /// - Returns: The text after the prefix, with no spaces and no backticks
   ///   at the ends.
   private static func lineValue(_ prefix: String) throws -> String {
-    let text = try PackageFiles.text(of: decisionPath)
+    let text = try PackageFiles().text(of: decisionPath)
     let lines = text.split(separator: "\n").filter { $0.hasPrefix(prefix) }
     #expect(lines.count == 1, "The file must have exactly one \(prefix) line.")
     let line = try #require(lines.first)
@@ -54,7 +54,7 @@ import Testing
   }
 
   @Test func manifestPinsTheEngineToTheDecidedVersion() throws {
-    let manifest = try PackageFiles.text(of: "Package.swift")
+    let manifest = try PackageFiles().text(of: "Package.swift")
     let url = try Self.lineValue(Self.urlPrefix)
     let version = try Self.lineValue(Self.versionPrefix)
     #expect(manifest.contains(#".package(url: "\#(url)", exact: "\#(version)")"#))
@@ -63,7 +63,7 @@ import Testing
 
   @Test func resolvedFilePinsTheEngineToTheDecidedVersion() throws {
     let version = try Self.lineValue(Self.versionPrefix)
-    let data = try Data(contentsOf: PackageFiles.file("Package.resolved"))
+    let data = try Data(contentsOf: PackageFiles().file("Package.resolved"))
     let resolved = try JSONDecoder().decode(ResolvedPins.self, from: data)
     let pin = try #require(resolved.pins.first { $0.identity == MathView.engineName })
     #expect(pin.state.version == version)
@@ -76,7 +76,7 @@ import Testing
   /// - Parameter prefix: The start of the first line, such as `review:`.
   /// - Returns: The lines of the paragraph, joined with one space.
   private static func paragraph(startingWith prefix: String) throws -> String {
-    let text = try PackageFiles.text(of: decisionPath)
+    let text = try PackageFiles().text(of: decisionPath)
     let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
     let starts = lines.indices.filter { lines[$0].hasPrefix(prefix) }
     #expect(starts.count == 1, "The file must have exactly one \(prefix) paragraph.")
@@ -90,7 +90,7 @@ import Testing
   /// - Returns: The heading and the body of the section, up to the next
   ///   heading.
   private static func spiSection() throws -> String {
-    let text = try PackageFiles.text(of: decisionPath)
+    let text = try PackageFiles().text(of: decisionPath)
     let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
     let start = try #require(
       lines.firstIndex { String($0) == spiHeading },
@@ -106,7 +106,7 @@ import Testing
   /// - Returns: The path of each file, relative to the package root, and the
   ///   text of the file. The list is sorted by path.
   private static func spiFiles() throws -> [(path: String, text: String)] {
-    try PackageFiles.swiftFileTexts(below: PackageFiles.file(kitSources), relativeTo: PackageFiles.root)
+    try PackageFiles().swiftFileTexts(under: PackageFiles().file(kitSources))
       .filter { $0.text.contains(spiImport) }
   }
 
@@ -133,7 +133,7 @@ import Testing
   }
 
   @Test func theDecisionNamesEachEngineSymbolThatTheKitUses() throws {
-    let decision = try PackageFiles.text(of: Self.decisionPath)
+    let decision = try PackageFiles().text(of: Self.decisionPath)
     // A symbol of the engine, such as `Math.typographicBounds`.
     let symbol = /Math\.[A-Za-z_][A-Za-z0-9_]*/
     var symbols: Set<String> = []

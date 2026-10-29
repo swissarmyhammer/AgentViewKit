@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -168,7 +168,7 @@ extension ViewPreviewForm: SampledCodeForm, FixtureCodeForm {
 
   /// The fixture directory of the form scan.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ViewPreview") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ViewPreview") }
   }
 
   /// The fixture directory, relative to ``fixtures``, with view files that
@@ -243,12 +243,12 @@ extension ViewPreviewForm: SampledCodeForm, FixtureCodeForm {
 
   @Test func eachViewFileOfTheKitHasAPreview() throws {
     let views = try KitSourceFiles.scanLibraryFiles { directory in
-      Array(try Self.files(using: .viewDeclaration, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root))
+      Array(try Self.files(using: .viewDeclaration, inSwiftFilesBelow: directory, relativeTo: PackageFiles().root))
     }
 
     let missing = try KitSourceFiles.scanLibraryFiles { directory in
       try Self.viewFilesWithNoPreview(
-        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, allowing: Set(Self.filesWithNoPreview.keys))
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles().root, allowing: Set(Self.filesWithNoPreview.keys))
     }
 
     #expect(!views.isEmpty)

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -47,7 +47,7 @@ struct GlassButtonShapeLine {
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/GlassButtonShape") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/GlassButtonShape") }
   }
 
   /// The fixture file with a glass button and no border shape, relative to
@@ -142,7 +142,7 @@ struct GlassButtonShapeLine {
   @Test func eachGlassButtonOfTheSmallFloatingControlsHasACapsuleOrACircle() throws {
     let found = try KitSourceFiles.scanLibraryFiles { directory in
       try Self.unshapedStyles(
-        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, isInScope: Self.isSmallFloatingControl)
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles().root, isInScope: Self.isSmallFloatingControl)
     }
 
     #expect(found.isEmpty, "A glass button has no capsule or circle border shape: \(found)")

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the component list of `README.md` equal to the component inventory
@@ -79,12 +79,12 @@ import Testing
 
   /// The component names of plan.md §9.
   static func planNames() throws -> [String] {
-    componentNames(in: try section(planHeading, of: PackageFiles.text(of: "plan.md")))
+    componentNames(in: try section(planHeading, of: PackageFiles().text(of: "plan.md")))
   }
 
   /// The component names of the README list.
   static func readmeNames() throws -> [String] {
-    componentNames(in: try section(readmeHeading, of: PackageFiles.text(of: "README.md")))
+    componentNames(in: try section(readmeHeading, of: PackageFiles().text(of: "README.md")))
   }
 
   @Test func thePlanInventoryNamesTheDropInView() throws {

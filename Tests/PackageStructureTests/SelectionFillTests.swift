@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -129,7 +129,7 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
 
   /// The fixture directory of the form scan.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/SelectionFill") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/SelectionFill") }
   }
 
   /// The fixture file that uses each form, relative to ``fixtures``.
@@ -162,7 +162,7 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
   @Test(arguments: SystemStructureTests.scanPaths, SelectionFillForm.allCases)
   func noSourceDrawsASelectionOutsideTheSharedSurface(path: String, form: SelectionFillForm) throws {
     let found = try SourceLineScanner.codeMatchStarts(
-      of: form.pattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root)
+      of: form.pattern, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root)
 
     #expect(
       found.isEmpty,
@@ -181,7 +181,7 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
   @Test(arguments: SystemStructureTests.scanPaths)
   func onlyTheSharedSelectableSurfaceAppliesTheSelectionSurface(path: String) throws {
     let found = try SourceLineScanner.codeMatchStarts(
-      of: Self.selectionSurfaceCall, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+      of: Self.selectionSurfaceCall, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root,
       skipping: [Self.selectableSurfaceFile])
 
     #expect(
@@ -192,7 +192,7 @@ extension SelectionFillForm: SampledCodeForm, FixtureCodeForm {
   @Test func theSharedSelectableSurfaceAppliesTheSelectionSurface() throws {
     let found = try KitSourceFiles.scanLibraryFiles { directory in
       try SourceLineScanner.codeMatchStarts(
-        of: Self.selectionSurfaceCall, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+        of: Self.selectionSurfaceCall, inSwiftFilesBelow: directory, relativeTo: PackageFiles().root)
     }
 
     #expect(

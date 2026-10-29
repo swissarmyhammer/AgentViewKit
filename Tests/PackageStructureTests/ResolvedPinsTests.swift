@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the pins of the in-family ACP packages equal in the two
@@ -34,7 +34,7 @@ import Testing
 
   /// Tells whether the demo project was generated in this checkout.
   static var demoProjectIsGenerated: Bool {
-    guard let url = try? PackageFiles.file(demoPath) else { return false }
+    guard let url = try? PackageFiles().file(demoPath) else { return false }
     return FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
   }
 
@@ -44,7 +44,7 @@ import Testing
   /// - Parameter path: The path of the file, relative to the package root.
   /// - Returns: The pins of the ACP packages.
   private func acpPins(of path: String) throws -> [ResolvedFile.Pin] {
-    let data = try Data(contentsOf: PackageFiles.file(path))
+    let data = try Data(contentsOf: PackageFiles().file(path))
     return try JSONDecoder().decode(ResolvedFile.self, from: data).pins
       .filter { Self.acpIdentities.contains($0.identity) }
       .sorted { $0.identity < $1.identity }
@@ -58,7 +58,7 @@ import Testing
   }
 
   @Test func theGeneratorCopiesTheRootPinsIntoTheDemoProject() throws {
-    let generator = try PackageFiles.text(of: Self.generatorPath)
+    let generator = try PackageFiles().text(of: Self.generatorPath)
     let projectRelativePath = try #require(
       Self.demoPath.firstMatch(of: /\.xcodeproj\/(?<inner>.+)$/)?.output.inner)
 

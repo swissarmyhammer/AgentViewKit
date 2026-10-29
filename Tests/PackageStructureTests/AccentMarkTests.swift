@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -73,7 +73,7 @@ import Testing
   @Test(arguments: SystemStructureTests.scanPaths)
   func noSourceUsesTheAccentAsATextColor(path: String) throws {
     let found = try SourceLineScanner.codeMatchStarts(
-      of: Self.accentTextPattern, inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root)
+      of: Self.accentTextPattern, inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root)
 
     #expect(
       found.isEmpty,

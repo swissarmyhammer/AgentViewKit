@@ -1,9 +1,9 @@
 import AgentViewKit
 import DemoSupport
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
-import PackageFileSupport
 import Testing
 
 /// The objects of one test over the in-memory agent: the scripted agent and
@@ -58,7 +58,7 @@ private struct Harness {
   // MARK: - Decision file
 
   @Test func valuesMatchTheSupportedLine() throws {
-    let text = try PackageFiles.text(of: Self.decisionPath)
+    let text = try PackageFiles().text(of: Self.decisionPath)
     let lines = text.split(separator: "\n").filter { $0.hasPrefix(Self.supportedPrefix) }
     #expect(lines.count == 1, "The file must have exactly one supported line.")
     let line = try #require(lines.first)
@@ -71,7 +71,7 @@ private struct Harness {
   }
 
   @Test func decisionFileHasTheSurveyTable() throws {
-    let text = try PackageFiles.text(of: Self.decisionPath)
+    let text = try PackageFiles().text(of: Self.decisionPath)
     #expect(text.contains("| peer | role | ACP library | protocol version | source | checked |"))
     for peer in ["Claude Code", "Codex", "Gemini CLI", "Zed", "Xcode 27"] {
       #expect(text.contains("| \(peer)"), "The table has no row for \(peer).")

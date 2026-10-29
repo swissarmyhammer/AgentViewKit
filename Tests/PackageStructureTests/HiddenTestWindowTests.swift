@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -111,7 +111,7 @@ extension WindowFocusCall: SampledCodeForm {
   func noTestSourceShowsAWindowOrTakesTheFocus(call: WindowFocusCall) throws {
     let found = try Self.testSourcePaths.flatMap { path in
       try SourceLineScanner.codeMatches(
-        inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root,
+        inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root,
         skipping: Set(Self.allowedFiles.keys)
       ) { line in
         line.text.contains(call.pattern) ? ["\(line.file):\(line.number)"] : []

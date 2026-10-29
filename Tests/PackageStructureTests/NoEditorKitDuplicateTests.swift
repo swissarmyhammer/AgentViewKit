@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -123,15 +123,19 @@ extension TopLevelDeclaration: SampledCodeForm {
 /// The generic helpers, such as the hosted view harness and the observation
 /// waits, live in EditorKit's `EditorTestSupport`, and the review gallery in
 /// its `EditorReviewGallery`, so that EditorKit, AgentViewKit and
-/// KanbanViewKit share one copy. `AgentViewKitTestSupport` keeps only the
-/// agent-specific helpers. A top-level type or function of
-/// `AgentViewKitTestSupport` whose name EditorKit's test support also
-/// declares is a copy, and fails the suite. The scan blanks the comments and
+/// KanbanViewKit share one copy; the package files of a test are EditorKit's
+/// `PackageFiles` too. `AgentViewKitTestSupport` keeps only the agent-specific
+/// helpers. A top-level type or function of the package's own test code
+/// (``scannedPaths``) whose name EditorKit's test support also declares is a
+/// copy, and fails the suite. The scan blanks the comments and
 /// the string literals of each file, then reads each line at brace depth 0:
 /// a member of a type or of an extension is not top level.
 @Suite struct NoEditorKitDuplicateTests {
-  /// The directory of the agent test support, relative to the package root.
-  static let agentTestSupportPath = "Sources/AgentViewKitTestSupport"
+  /// The directories of the package's own test code, relative to the package
+  /// root: the agent test support, the package file support of the tests (the
+  /// decision-record table reader, after its copy of EditorKit's
+  /// `PackageFiles` went), and the test targets.
+  static let scannedPaths = ["Sources/AgentViewKitTestSupport", "Sources/PackageFileSupport", "Tests"]
 
   /// The checkout of EditorKit that SwiftPM resolves, relative to the
   /// package root.
@@ -240,8 +244,9 @@ extension TopLevelDeclaration: SampledCodeForm {
     #expect(names == Self.depthSample.topLevelNames)
   }
 
-  @Test func noAgentTestSupportDeclarationCopiesEditorKitTestSupport() throws {
-    let checkout = PackageFiles.root.appending(path: Self.editorKitCheckoutPath)
+  @Test func noTestCodeDeclarationCopiesEditorKitTestSupport() throws {
+    let package = PackageFiles()
+    let checkout = package.root.appending(path: Self.editorKitCheckoutPath)
     let checkoutExists = FileManager.default.fileExists(atPath: checkout.path(percentEncoded: false))
     try #require(
       checkoutExists,
@@ -251,10 +256,12 @@ extension TopLevelDeclaration: SampledCodeForm {
       names.formUnion(
         try Self.declarations(inSwiftFilesBelow: checkout.appending(path: path), relativeTo: checkout).keys)
     }
-    let agentDeclarations = try Self.declarations(
-      inSwiftFilesBelow: PackageFiles.file(Self.agentTestSupportPath), relativeTo: PackageFiles.root)
+    let ownDeclarations = try Self.scannedPaths.reduce(into: [String: [String]]()) { places, path in
+      places.merge(
+        try Self.declarations(inSwiftFilesBelow: package.file(path), relativeTo: package.root), uniquingKeysWith: +)
+    }
 
-    let copies = agentDeclarations
+    let copies = ownDeclarations
       .filter { editorKitNames.contains($0.key) }
       .sorted { $0.key < $1.key }
       .map { "\($0.key) (\($0.value.joined(separator: ", ")))" }

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// The import boundaries of the ACP client kit (plan.md §1, §11 decision 1).
@@ -71,7 +71,7 @@ import Testing
 
   /// The fixture directory for the scanner tests.
   static var fixtures: URL {
-    get throws { try PackageFiles.file("Tests/PackageStructureTests/Fixtures/ImportBoundary") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ImportBoundary") }
   }
 
   /// The import boundaries of the package: each pair is a directory,
@@ -105,13 +105,13 @@ import Testing
 
   @Test(arguments: boundaries)
   func noSwiftFileCrossesTheImportBoundaryOfItsDirectory(directory: String, forbidden: Set<String>) throws {
-    try Self.expectNoImport(below: PackageFiles.file(directory), of: forbidden)
+    try Self.expectNoImport(below: PackageFiles().file(directory), of: forbidden)
   }
 
   @Test func theStyleLibraryImportsNoACPModuleNoKitPackageAndNoViewKit() throws {
-    let style = try PackageFiles.file(Self.styleSourcesPath)
+    let style = try PackageFiles().file(Self.styleSourcesPath)
 
-    #expect(try !PackageFiles.swiftFiles(in: style).isEmpty)
+    #expect(!swiftFiles(under: style).isEmpty)
     try Self.expectNoImport(below: style, of: Self.forbiddenInStyle)
   }
 

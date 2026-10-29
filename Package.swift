@@ -206,9 +206,11 @@ let package = Package(
       dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
-    // Finds and reads the package files for the tests, and reads the Markdown
-    // tables of the decision records. This target is not a product and has no
-    // dependency, so that PackageStructureTests can link it without the kit.
+    // Reads the Markdown tables of the decision records for the tests. The
+    // tests find and read the package files with EditorKit's `PackageFiles`
+    // (`EditorTestSupport`); this target keeps no copy of it
+    // (`NoEditorKitDuplicateTests`). It is not a product and has no
+    // dependency.
     .target(name: "PackageFileSupport"),
 
     .testTarget(
@@ -239,13 +241,12 @@ let package = Package(
       dependencies: ["AgentViewKitStyle"] + styleEditorKitProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
-    // Reads the package files as text. It links PackageFileSupport, which
-    // has no dependency, and the shared source scan helpers of
-    // EditorTestSupport (`SourceScanning` and its `PackageFiles`, for
-    // `LightAndDarkOnlyTests`, `AnnouncementPathScanTests` and
-    // `NoSwiftUIListTests`, and `TextInputControlScanner`, for
-    // `TextInputControlScanTests`), and no target of the kit. The fixtures
-    // are Swift files that the scanner reads, so the build excludes them.
+    // Reads the package files as text. It links the shared source scan
+    // helpers of EditorTestSupport (`PackageFiles`, `swiftFiles(under:)`,
+    // `sourceScanViolations` and `TextInputControlScanner`), the decision
+    // record table reader of PackageFileSupport, and no target of the kit.
+    // The fixtures are Swift files that the scanner reads, so the build
+    // excludes them.
     .testTarget(
       name: "PackageStructureTests",
       dependencies: ["PackageFileSupport"] + styleTestSupportProducts,

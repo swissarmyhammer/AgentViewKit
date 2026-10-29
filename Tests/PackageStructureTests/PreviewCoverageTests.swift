@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// One public view type of a Swift file.
@@ -140,8 +140,8 @@ struct PublicViewDeclaration: Equatable, CustomStringConvertible {
   // MARK: - The sources
 
   @Test func eachPublicViewOfTheSourcesHasAPreviewInItsFile() throws {
-    let files = try PackageFiles.swiftFileTexts(
-      below: PackageFiles.file(Self.sourcesPath), relativeTo: PackageFiles.root)
+    let files = try PackageFiles().swiftFileTexts(
+      under: PackageFiles().file(Self.sourcesPath))
 
     let views = files.flatMap { Self.publicViewNames(in: $0.text) }
     let missing = files.flatMap { Self.viewsWithNoPreview(in: $0.text, file: $0.path) }

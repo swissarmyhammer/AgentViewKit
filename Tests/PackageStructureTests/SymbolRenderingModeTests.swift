@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the symbols of the status views in one rendering mode.
@@ -68,7 +68,7 @@ import Testing
 
   @Test func eachSymbolImageOfTheStatusViewsUsesTheHierarchicalMode() throws {
     let found = try Self.statusViewFiles.flatMap { file in
-      Self.imagesWithNoHierarchicalMode(in: try PackageFiles.text(of: file), file: file)
+      Self.imagesWithNoHierarchicalMode(in: try PackageFiles().text(of: file), file: file)
     }
 
     #expect(found.isEmpty, "Add \(Self.hierarchicalModifier) to: \(found)")

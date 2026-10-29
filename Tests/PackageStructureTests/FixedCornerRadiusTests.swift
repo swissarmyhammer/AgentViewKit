@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -134,7 +134,7 @@ import Testing
   /// - Throws: The error of the scan when a file cannot be read.
   static func kitCodeMatches(_ match: (SourceLine) -> [String]) throws -> [String] {
     try KitSourceFiles.scanLibraryFiles { directory in
-      try SourceLineScanner.codeMatches(inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, match: match)
+      try SourceLineScanner.codeMatches(inSwiftFilesBelow: directory, relativeTo: PackageFiles().root, match: match)
     }
   }
 

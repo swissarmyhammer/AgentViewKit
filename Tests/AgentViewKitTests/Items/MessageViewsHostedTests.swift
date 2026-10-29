@@ -2,7 +2,6 @@ import AgentViewKit
 import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import SwiftUI
 import Testing
 
@@ -159,7 +158,7 @@ import Testing
   }
 
   @Test func theEntryViewsMakeNoKitCopyOfTheEntryContent() throws {
-    let files = try Self.entryViewSources.map { try PackageFiles.file($0) }
+    let files = try Self.entryViewSources.map { try PackageFiles().file($0) }
     let copy = try Regex(#"\bMessage\(|\bReasoning\(|AgentViewKit\.ContentBlock"#)
 
     let copies = try SourceLines.matching(copy, in: files)

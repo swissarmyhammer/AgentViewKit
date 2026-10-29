@@ -5,7 +5,6 @@
   import Foundation
   import FoundationModelsACP
   import FoundationModelsACPClient
-  import PackageFileSupport
   import SwiftUI
   import Testing
 
@@ -194,7 +193,7 @@
     }
 
     @Test func noKitSourceDeclaresATurnOrAWaitState() throws {
-      let files = try PackageFiles.swiftFiles(in: PackageFiles.file("Sources/AgentViewKit"))
+      let files = try swiftFiles(under: PackageFiles().file("Sources/AgentViewKit"))
       let names = Self.turnStateNames.joined(separator: "|")
       let declaration = try Regex(#"\b(let|var)\s+(\#(names))\w*\b"#)
       #expect(!files.isEmpty)

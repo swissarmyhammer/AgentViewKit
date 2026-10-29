@@ -3,7 +3,6 @@ import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
-import PackageFileSupport
 import SwiftUI
 import Testing
 
@@ -53,7 +52,7 @@ import Testing
   static func start() async throws -> Scenario {
     let directory = try TemporaryDirectory()
     let stage = try RecordedSessionsStage.make(
-      copying: try PackageFiles.file(recordingsPath), below: directory.url)
+      copying: try PackageFiles().file(recordingsPath), below: directory.url)
     let agent = try await DemoAgent.makeInProcess(recordedSessions: stage)
     return Scenario(directory: directory, stage: stage, agent: agent)
   }

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -211,7 +211,7 @@ import Testing
   @Test func noViewPicksAFontOutsideTheRoles() throws {
     let found = try KitSourceFiles.scanViewFiles { directory in
       try SourceLineScanner.matches(
-        inSwiftFilesBelow: directory, relativeTo: PackageFiles.root, match: Self.fontsOutsideTheRoles(on:))
+        inSwiftFilesBelow: directory, relativeTo: PackageFiles().root, match: Self.fontsOutsideTheRoles(on:))
     }
 
     #expect(

@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// A renderer that draws a view outside the window server, which a test uses
@@ -84,7 +84,7 @@ extension StandInRenderer: SampledCodeForm {
   func noTestCodeDrawsAViewWithAStandInRenderer(renderer: StandInRenderer) throws {
     let found = try Self.testCodePaths.flatMap { path in
       try SourceLineScanner.codeMatches(
-        inSwiftFilesBelow: PackageFiles.file(path), relativeTo: PackageFiles.root, skipping: []
+        inSwiftFilesBelow: PackageFiles().file(path), relativeTo: PackageFiles().root, skipping: []
       ) { line in
         line.text.contains(renderer.pattern) ? ["\(line.file):\(line.number)"] : []
       }

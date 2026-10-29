@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// A view that must show only in one bar of a file, and the start of the
@@ -51,7 +51,7 @@ struct BarView: CustomTestStringConvertible, Sendable {
   /// - Returns: The code text.
   /// - Throws: An error when the file cannot be read.
   static func code(of file: String) throws -> String {
-    let text = try String(contentsOf: PackageFiles.file(file), encoding: .utf8)
+    let text = try String(contentsOf: PackageFiles().file(file), encoding: .utf8)
     return String(decoding: SwiftLiteralLexer.blankingCommentsAndLiterals(in: Array(text.utf8)), as: UTF8.self)
   }
 

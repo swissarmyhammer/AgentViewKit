@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 
 /// The output and the exit status of one run of a script of the package.
 ///
@@ -21,8 +21,8 @@ struct ScriptRun {
   static func run(_ scriptPath: String, arguments: [String] = []) throws -> ScriptRun {
     let process = Process()
     process.executableURL = URL(filePath: "/bin/bash")
-    process.arguments = [try PackageFiles.file(scriptPath).path(percentEncoded: false)] + arguments
-    process.currentDirectoryURL = PackageFiles.root
+    process.arguments = [try PackageFiles().file(scriptPath).path(percentEncoded: false)] + arguments
+    process.currentDirectoryURL = PackageFiles().root
     let pipe = Pipe()
     process.standardOutput = pipe
     process.standardError = pipe

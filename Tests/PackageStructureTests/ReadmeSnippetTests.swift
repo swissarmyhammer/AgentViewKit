@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 
 /// Holds the compiled snippets of `README.md` and the files of
@@ -18,7 +18,7 @@ import Testing
   }
 
   @Test func theRootHoldsTheReadme() throws {
-    let readme = try PackageFiles.file(ReadmeSnippets.readmePath)
+    let readme = try PackageFiles().file(ReadmeSnippets.readmePath)
 
     #expect(FileManager.default.fileExists(atPath: readme.path(percentEncoded: false)))
   }

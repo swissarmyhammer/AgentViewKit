@@ -1,5 +1,5 @@
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import RegexBuilder
 import Testing
 
@@ -119,8 +119,8 @@ import Testing
   /// - Throws: The error of
   ///   ``GlassPlacementTests/uses(of:inSwiftFilesBelow:relativeTo:allowing:)``.
   static func codeLineCount(of pattern: Regex<Substring>, in file: String) throws -> Int {
-    let directory = try PackageFiles.file(file).deletingLastPathComponent()
-    let found = try GlassPlacementTests.uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles.root)
+    let directory = try PackageFiles().file(file).deletingLastPathComponent()
+    let found = try GlassPlacementTests.uses(of: pattern, inSwiftFilesBelow: directory, relativeTo: PackageFiles().root)
     return found.filter { $0.hasPrefix("\(file):") }.count
   }
 
