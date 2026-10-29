@@ -65,6 +65,7 @@ extension SystemSettingName: SampledCodeForm {
   /// its Swift folders, relative to the package root.
   static let scannedPaths = [
     "Tests", "Sources/AgentViewKitTestSupport", "Examples/ReadmeSnippets", "Examples/AgentViewKitDemo",
+    IntegrationPackage.testsPath,
   ]
 
   /// This file, relative to the package root. It names each setting in its

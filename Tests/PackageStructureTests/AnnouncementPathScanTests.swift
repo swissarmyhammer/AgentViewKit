@@ -23,7 +23,9 @@ import Testing
   static let package = PackageFiles()
 
   /// The directories that the scan reads, relative to the package root.
-  static let scannedPaths = ["Sources", "Examples", "Tests/AgentViewKitTests", "Tests/AgentViewKitStyleTests"]
+  static let scannedPaths = [
+    "Sources", "Examples", "Tests/AgentViewKitTests", "Tests/AgentViewKitStyleTests", IntegrationPackage.testsPath,
+  ]
 
   /// The tokens of a direct announcement: the SwiftUI post, the AppKit
   /// notification, and the announcer of EditorKit that posts them.

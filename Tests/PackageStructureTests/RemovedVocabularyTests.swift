@@ -86,8 +86,8 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
   ]
 
   /// The directories of the Swift files of the kit, of the demo app, of
-  /// their support targets, and of their tests.
-  static let swiftPaths = [sourcesPath, "Tests/AgentViewKitTests", "Examples"]
+  /// their support targets, and of their tests in both packages.
+  static let swiftPaths = [sourcesPath, "Tests/AgentViewKitTests", "Examples", IntegrationPackage.testsPath]
 
   /// The README of the package.
   static let readmePath = "README.md"

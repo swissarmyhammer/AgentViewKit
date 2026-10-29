@@ -7,9 +7,11 @@ import Testing
 /// The test reads `Package.swift` as text. The manifest spells each library
 /// product and each dependency product in full, so the text is the contract.
 @Suite struct ManifestTests {
-  /// The two library products of the package (plan.md §11 decision 1): the
-  /// kit, and its style, the shared look of the view kits.
-  static let libraryProducts = ["AgentViewKit", "AgentViewKitStyle"]
+  /// The library products of the package (plan.md §11 decision 1): the kit,
+  /// and its style, the shared look of the view kits, for a host; and the
+  /// two test support products, for the nested integration package (§11
+  /// decision 21).
+  static let libraryProducts = ["AgentViewKit", "AgentViewKitStyle", "AgentViewKitTestSupport", "DemoSupport"]
 
   /// The ACP products that the `AgentViewKit` target links.
   static let acpProducts: Set<String> = [
@@ -72,7 +74,7 @@ import Testing
     manifest = try PackageFiles().text(of: "Package.swift")
   }
 
-  @Test func declaresTheKitAndTheStyleLibraryProducts() {
+  @Test func declaresTheKitTheStyleAndTheTestSupportLibraryProducts() {
     let names = manifest.matches(of: /\.library\(\s*name:\s*"(?<name>[^"]+)"/).map { String($0.output.name) }
     #expect(names == Self.libraryProducts)
   }
@@ -132,6 +134,20 @@ import Testing
         manifest.contains(#".package(url: "git@github.com:swissarmyhammer/\#(sibling).git", branch: "main")"#),
         "\(sibling) is not pinned to main"
       )
+    }
+  }
+
+  /// The integration package depends on the root package by path, and names
+  /// each other package with the URL and the pin of the root manifest, so
+  /// that SwiftPM resolves one copy of each (plan.md §11 decision 21).
+  @Test func theIntegrationPackageDependsOnTheRootByPathAndPinsAsTheRootDoes() throws {
+    let integration = try PackageFiles().text(of: IntegrationPackage.manifestPath)
+    let urlDependencies = integration.matches(of: /\.package\(url:[^\n]*\)/).map { String($0.output) }
+
+    #expect(integration.contains(#".package(path: "..")"#))
+    #expect(!urlDependencies.isEmpty)
+    for dependency in urlDependencies {
+      #expect(manifest.contains(dependency), "\(dependency) differs from the root manifest")
     }
   }
 

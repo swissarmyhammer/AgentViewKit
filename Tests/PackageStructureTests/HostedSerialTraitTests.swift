@@ -21,9 +21,10 @@ import Testing
   /// The name of the trait that each hosted suite must have.
   static let traitMarker = ".hostedSerially"
 
-  /// The folders of the test targets that mount views, relative to the
-  /// package root.
-  static let testsFolders = ["Tests/AgentViewKitTests"]
+  /// The folder of the test targets that mount views, relative to the
+  /// package root: the nested integration package (plan.md §11 decision 21).
+  /// No root test mounts a view (`RootTestsHostNoViewTests`).
+  static let testsFolders = [IntegrationPackage.testsPath]
 
   /// This file. It holds the markers as text, so the scan skips it.
   static var thisFile: URL { URL(filePath: #filePath).standardizedFileURL }

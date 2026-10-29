@@ -99,6 +99,7 @@ import Testing
   /// deleted update plan: the manifest and the scripts.
   static let updatePlanScanFiles = [
     "Package.swift", "Scripts/check-readme.sh", "Scripts/extract-readme-snippets.sh", "Scripts/test-examples.sh",
+    IntegrationPackage.manifestPath,
   ]
 
   /// The path of each decision record, relative to the package root, in name

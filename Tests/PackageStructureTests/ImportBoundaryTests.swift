@@ -56,8 +56,13 @@ import Testing
     "KanbanViewKit",
   ]
 
-  /// The package directories that hold Swift files.
-  static let swiftDirectories = ["Sources", "Tests", "Examples"]
+  /// The package directories that hold Swift files, with the tests of the
+  /// integration package.
+  static let swiftDirectories = ["Sources", "Tests", "Examples", IntegrationPackage.testsPath]
+
+  /// The hosted tests of the public API of the style library. They link the
+  /// style library only, so they hold the import rule of the style library.
+  static let styleIntegrationTestsPath = "\(IntegrationPackage.testsPath)/AgentViewKitStyleIntegrationTests"
 
   /// The modules that the violating fixture imports, and that the scanner
   /// tests forbid.
@@ -83,12 +88,14 @@ import Testing
   /// - The kit target does not import the agent package.
   /// - The style library imports no ACP module, no text or math package of
   ///   the kit, and no view kit (``forbiddenInStyle``).
+  /// - The hosted tests of the style library hold the same rule.
   /// - No Swift file imports the merged ACP module.
   static let boundaries: [(directory: String, forbidden: Set<String>)] =
     [
       ("Sources", forbiddenInSources),
       (kitSourcesPath, Set([agentModule])),
       (styleSourcesPath, forbiddenInStyle),
+      (styleIntegrationTestsPath, forbiddenInStyle),
     ] + swiftDirectories.map { ($0, Set([mergedModule])) }
 
   /// Expects that no Swift file below `directory` imports a module of

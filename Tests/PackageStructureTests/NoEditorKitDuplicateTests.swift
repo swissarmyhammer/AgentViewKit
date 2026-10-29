@@ -134,8 +134,11 @@ extension TopLevelDeclaration: SampledCodeForm {
   /// The directories of the package's own test code, relative to the package
   /// root: the agent test support, the package file support of the tests (the
   /// decision-record table reader, after its copy of EditorKit's
-  /// `PackageFiles` went), and the test targets.
-  static let scannedPaths = ["Sources/AgentViewKitTestSupport", "Sources/PackageFileSupport", "Tests"]
+  /// `PackageFiles` went), the test targets, and the test targets of the
+  /// integration package.
+  static let scannedPaths = [
+    "Sources/AgentViewKitTestSupport", "Sources/PackageFileSupport", "Tests", IntegrationPackage.testsPath,
+  ]
 
   /// The checkout of EditorKit that SwiftPM resolves, relative to the
   /// package root.

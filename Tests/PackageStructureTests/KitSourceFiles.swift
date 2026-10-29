@@ -25,8 +25,15 @@ enum KitSourceFiles {
   static let libraryPaths = [kitPath, stylePath]
 
   /// The directories of the Swift files that a view scan reads: the kit, its
-  /// support targets and the examples.
-  static let viewPaths = ["Sources", "Examples"]
+  /// style, the demo support target and the examples.
+  ///
+  /// The test code is not a view of the kit, so no view scan reads it: not
+  /// the test targets of either package, and not `AgentViewKitTestSupport`,
+  /// which holds the fixtures that both test packages share, such as the
+  /// test themes with fixed colors and faces (plan.md §11 decision 21). The
+  /// scans of the test code read it (``RealCaptureOnlyTests``,
+  /// ``HiddenTestWindowTests``, ``LightAndDarkOnlyTests``).
+  static let viewPaths = [kitPath, stylePath, "Sources/DemoSupport", "Examples"]
 
   /// The text that starts a symbol image.
   static let symbolImageCall = "Image(systemName:"

@@ -52,8 +52,11 @@ extension StandInRenderer: SampledCodeForm {
 /// blanks the comments and the string literals of each file, then reads the
 /// file one line at a time.
 @Suite struct RealCaptureOnlyTests {
-  /// The directories of the test code, relative to the package root.
-  static let testCodePaths = ["Sources/AgentViewKitTestSupport", "Tests", "Examples/ReadmeSnippets"]
+  /// The directories of the test code, relative to the package root, with
+  /// the tests of the integration package, which take the captures.
+  static let testCodePaths = [
+    "Sources/AgentViewKitTestSupport", "Tests", "Examples/ReadmeSnippets", IntegrationPackage.testsPath,
+  ]
 
   /// A sample line of each renderer.
   static let sampleLines: [(form: StandInRenderer, line: String)] = [

@@ -72,7 +72,9 @@ extension WindowFocusCall: SampledCodeForm {
 @Suite struct HiddenTestWindowTests {
   /// The directories of the test sources and of the test-support sources,
   /// relative to the package root.
-  static let testSourcePaths = ["Tests", "Sources/AgentViewKitTestSupport", "Examples/ReadmeSnippets"]
+  static let testSourcePaths = [
+    "Tests", "Sources/AgentViewKitTestSupport", "Examples/ReadmeSnippets", IntegrationPackage.testsPath,
+  ]
 
   /// The files, relative to the package root, that can make a
   /// ``WindowFocusCall``, each with the reason. The list is empty: no test
