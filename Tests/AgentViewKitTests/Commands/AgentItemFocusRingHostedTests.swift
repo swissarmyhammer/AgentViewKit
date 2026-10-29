@@ -5,8 +5,10 @@ import EditorCommands
 import EditorCommandsUI
 import EditorStyle
 import EditorSwiftUI
-import struct EditorTestSupport.AccentTheme
-import struct EditorTestSupport.CapturedImage
+import struct EditorTestSupport.FocusRing
+import class EditorTestSupport.FocusRingBed
+import enum EditorTestSupport.RunLoopBlockFence
+import func EditorTestSupport.waitForLiveBeacons
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -19,14 +21,12 @@ import Testing
 /// around the item in the theme accent, never in the `.tint` of the host
 /// (EditorKit ^d5f8cwa). The ring has the corners of a card of the kit.
 ///
-/// Each test shows one item of a session (``mountItems(of:system:isFocusEffectEnabled:)``)
-/// in the look of ``AccentLook``, in a real key window on the screen
-/// (``CaptureMount``): under the red tint of a host and the shared
-/// ``AccentTheme`` of EditorKit with a blue accent. It captures the window
-/// from the window server before the focus lands and again after, and the
-/// ring is the pixels that changed in the first pixel column inside the item:
-/// the band of the ring that laps into the item, which the ring of each shape
-/// paints down its straight side.
+/// Each test shows one item of a session (``mountItems(of:isFocusEffectEnabled:)``)
+/// in a `FocusRingBed` of EditorKit: a real key window on the screen, under
+/// the red tint of a host and the shared `AccentTheme` of EditorKit with the
+/// blue accent of the bed. It captures the window from the window server
+/// before the focus lands, and reads the ring against that capture down the
+/// pixel column just outside the left edge of the item.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentItemFocusRingHostedTests {
   /// The kind of an item of a thread.
   enum ItemKind: CaseIterable, Sendable {
@@ -49,237 +49,84 @@ import Testing
   /// The JSON-RPC id of the permission request of the request card.
   static let requestID = 100
 
-  /// The tint of the host: a red that the ring and the selection must not
-  /// take.
-  static let hostTint = Color.red
-
-  /// The theme accent of the tests: a blue that no part of the views draws.
-  static let accent = Color.blue
-
-  /// The index of the red channel of a pixel, the channel of the host tint.
-  static let redChannel = 0
-
-  /// The index of the blue channel of a pixel, the largest channel of a ring
-  /// pixel in the blue accent.
-  static let accentChannel = 2
-
-  /// The color channels of a pixel, before its alpha: red, green and blue.
-  static let colorChannelCount = 3
-
-  /// The color behind each capture: a white that the red tint and the blue
-  /// accent both differ from.
-  static let captureBackground = CGColor(gray: 1, alpha: 1)
-
-  /// The segment of the one scope of a reference ring bed.
-  static let referenceSegment = FocusSegment(kind: "ring", id: "reference")
-
-  /// The look of a bed that shows a focus ring or a selection in the theme
-  /// accent: the red tint of a host, the shared ``AccentTheme`` of EditorKit
-  /// with the blue accent, and a window that appears active or not.
-  ///
-  /// The look sets `\.appearsActive` itself, so that a test chooses the
-  /// window state of the selection whatever the key window is.
-  struct AccentLook: ViewModifier {
-    /// Whether the window appears active.
-    var appearsActive = true
-
-    func body(content: Content) -> some View {
-      content
-        .tint(AgentItemFocusRingHostedTests.hostTint)
-        .editorTheme(AccentTheme(accent: AgentItemFocusRingHostedTests.accent))
-        .environment(\.appearsActive, appearsActive)
-    }
-  }
-
-  /// What a focus ring changes in the first pixel column inside a scope.
-  struct RingColumn: Equatable {
-    /// The rows of the column that the ring changes, in pixels from the top
-    /// of the scope.
-    let rows: [Int]
-
-    /// The pixels of those rows after the focus lands: the red, green, blue
-    /// and alpha bytes of each.
-    let pixels: [[UInt8]]
-
-    /// Reads the pixels of the first column inside `scope` that differ
-    /// between `baseline` and `focused`.
-    ///
-    /// A capture holds the rows of the window from the top, as the window
-    /// space of EditorKit does, so the column is read from the top, and only
-    /// its rows in the capture.
-    ///
-    /// - Parameters:
-    ///   - focused: The capture of the window after the focus lands.
-    ///   - baseline: The capture of the window before the focus lands.
-    ///   - scope: The rect of the scope, in the window space of EditorKit.
-    /// - Throws: An error when a capture has no such column.
-    init(focused: CapturedImage, baseline: CapturedImage, scope: CGRect) throws {
-      let scale = CaptureGeometry.scale
-      let column = Int((scope.minX * scale).rounded())
-      let now = try focused.pixelColumn(at: column)
-      let before = try baseline.pixelColumn(at: column)
-      let top = Int((scope.minY * scale).rounded())
-      let shown = max(top, 0)..<min(Int((scope.maxY * scale).rounded()), now.count)
-      let changed = (shown.isEmpty ? [] : Array(shown)).filter { now[$0] != before[$0] }
-      rows = changed.map { $0 - top }
-      pixels = changed.map { now[$0] }
-    }
-  }
-
-  /// The first responder of a window, with the area of the focused item and
-  /// what its ring changed.
+  /// The first responder of the window of a bed, with the area of the
+  /// focused scope and the ring it draws.
   struct FocusedItem {
     /// The first responder of the window.
     let responder: NSView
 
-    /// The rect of the item scope, in the window space of EditorKit.
+    /// The rect of the scope, in the window space of EditorKit.
     let itemRect: CGRect
 
-    /// What the focus ring changed in the first pixel column inside the
-    /// item.
-    let ring: RingColumn
+    /// The ring of the scope, against a capture before the focus landed.
+    let ring: FocusRing
 
-    /// The size of the window that shows the item.
-    let windowSize: CGSize
+    /// The ring that a plain scope of EditorKit of the size of the item
+    /// draws with corners of `cornerRadius`: the ring the item must draw
+    /// when it has those corners.
+    ///
+    /// - Parameter cornerRadius: The radius of the corners; zero for a
+    ///   rectangle.
+    /// - Returns: The ring of the plain scope.
+    /// - Throws: A `FocusRingBedError` when the focus does not land on the
+    ///   plain scope, or an error when a capture fails.
+    func plainScopeRing(cornerRadius: CGFloat) async throws -> FocusRing {
+      try await FocusRingBed.referenceRing(size: itemRect.size, cornerRadius: cornerRadius)
+    }
   }
 
-  /// The capture of the hosting view of `mount` from the window server, over
-  /// the white capture background.
-  ///
-  /// - Parameter mount: The mount that shows the view.
-  /// - Returns: The image.
-  /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
-  static func capture(_ mount: CaptureMount<some View>) async throws -> CapturedImage {
-    try await CapturedImage(capturing: mount.hostingView, over: captureBackground)
-  }
-
-  /// Captures the window of `mount`, lands the focus with `land`, renders
-  /// one pass, and reads the first responder and the ring of `scope`.
+  /// Captures the window of `bed`, waits for the beacon of `scope`, lands
+  /// the focus with `land`, and reads the first responder and the ring of
+  /// `scope`.
   ///
   /// - Parameters:
   ///   - scope: The path of the scope that the focus lands on.
-  ///   - mount: The mount that shows the scope.
-  ///   - system: The command system of the window.
+  ///   - bed: The bed that shows the scope.
   ///   - land: Lands the focus on the scope.
   /// - Returns: The first responder, with the area of the scope and its
   ///   ring.
-  /// - Throws: An issue when the focus does not land, or an error when a
-  ///   capture fails.
-  static func focus(
-    _ scope: FocusPath, in mount: CaptureMount<some View>, system: CommandSystem,
-    by land: () throws -> Void
+  /// - Throws: An issue when the beacon never goes live or the focus does
+  ///   not land, or an error when a capture fails.
+  static func focusedItem(
+    at scope: FocusPath, in bed: FocusRingBed, by land: () throws -> Void
   ) async throws -> FocusedItem {
-    let baseline = try await capture(mount)
+    let baseline = try await bed.capture()
+    try #require(waitForLiveBeacons([scope], in: bed.system))
     try land()
-    mount.render()
+    await RunLoopBlockFence.afterPendingBlocks()
 
-    let responder = try #require(mount.window.firstResponder as? NSView)
-    let scopeRect = try #require(system.geometry.rect(of: scope))
-    let ring = try RingColumn(focused: await capture(mount), baseline: baseline, scope: scopeRect)
-    return FocusedItem(
-      responder: responder, itemRect: scopeRect, ring: ring, windowSize: mount.hostingView.bounds.size)
-  }
-
-  /// What the focus ring of a plain scope of EditorKit changes in the first
-  /// pixel column inside it, for a scope at `rect` with corners of
-  /// `cornerRadius`, in a window of `size` in the ``AccentLook``.
-  ///
-  /// This is the ring that an item with those corners must draw.
-  ///
-  /// - Parameters:
-  ///   - rect: The rect of the scope, in the window space of EditorKit.
-  ///   - cornerRadius: The radius of the corners of the ring.
-  ///   - size: The size of the window.
-  /// - Returns: What the ring changed.
-  /// - Throws: An issue when the focus does not land on the scope, or an
-  ///   error when a capture fails.
-  static func referenceRing(at rect: CGRect, cornerRadius: CGFloat, windowSize size: CGSize) async throws
-    -> RingColumn
-  {
-    let system = CommandSystem()
-    let path = FocusPath.root(referenceSegment)
-    let mount = CaptureMount(
-      Color.clear
-        .frame(width: rect.width, height: rect.height)
-        .commandScope(segment: referenceSegment)
-        .scopeFocusRing(cornerRadius: cornerRadius)
-        .padding(.leading, rect.minX)
-        .padding(.top, rect.minY)
-        .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .modifier(AccentLook())
-        .commandSystem(system),
-      size: size)
-    defer { mount.close() }
-
-    let focused = try await focus(path, in: mount, system: system) {
-      try #require(system.geometry.requestFocus(at: path))
-    }
-
-    try #require(focused.itemRect == rect)
-    return focused.ring
-  }
-
-  /// Expects the ring of `focused` to be the ring of a plain scope of
-  /// EditorKit at the same rect with corners of `cornerRadius`.
-  ///
-  /// - Parameters:
-  ///   - focused: The focused scope and its ring.
-  ///   - cornerRadius: The radius of the corners of the expected ring.
-  /// - Throws: An issue when the reference ring does not land, or an error
-  ///   when a capture fails.
-  static func expectRing(of focused: FocusedItem, cornerRadius: CGFloat) async throws {
-    let expected = try await referenceRing(
-      at: focused.itemRect, cornerRadius: cornerRadius, windowSize: focused.windowSize)
-
-    #expect(!expected.rows.isEmpty)
-    #expect(focused.ring.rows == expected.rows)
-  }
-
-  /// Expects each pixel of `ring` to take the theme accent, not the red
-  /// tint of the host: blue is the largest channel, and it is larger than
-  /// red.
-  ///
-  /// - Parameter ring: What a focus ring changed.
-  static func expectTheThemeAccent(in ring: RingColumn) {
-    #expect(!ring.pixels.isEmpty)
-    for pixel in ring.pixels {
-      #expect(pixel.prefix(colorChannelCount).max() == pixel[accentChannel])
-      #expect(pixel[accentChannel] > pixel[redChannel])
-    }
+    let responder = try #require(bed.window.firstResponder as? NSView)
+    let itemRect = try #require(bed.system.geometry.rect(of: scope))
+    return FocusedItem(responder: responder, itemRect: itemRect, ring: try await bed.ring(of: scope, against: baseline))
   }
 
   /// Shows the items of `model`, the rows of its conversation and the cards
-  /// of its deck, in the agent command scope of the session and in the
-  /// ``AccentLook``.
+  /// of its deck, in the agent command scope of the session, in a
+  /// `FocusRingBed`.
   ///
   /// The bed shows the conversation without the bars of ``AgentThreadView``,
   /// so that the Liquid Glass of a bar does not cover a row and its ring.
   ///
   /// - Parameters:
   ///   - model: The session model.
-  ///   - system: The command system of the window.
   ///   - isFocusEffectEnabled: `false` to apply `.focusEffectDisabled()`
   ///     above the items.
-  /// - Returns: The mount.
-  static func mountItems(
-    of model: SessionModel, system: CommandSystem, isFocusEffectEnabled: Bool
-  ) -> CaptureMount<some View> {
-    CaptureMount(
+  /// - Returns: The bed.
+  static func mountItems(of model: SessionModel, isFocusEffectEnabled: Bool) -> FocusRingBed {
+    FocusRingBed(size: AgentCommandScopeHostedTests.windowSize) {
       VStack {
         ConversationView(session: model)
         RequestDeck(session: model)
       }
       .agentCommandScope(session: model)
       .focusEffectDisabled(!isFocusEffectEnabled)
-      .modifier(AccentLook())
       .environment(\.sessionModel, model)
-      .commandSystem(system)
-      .transaction { $0.disablesAnimations = true },
-      size: AgentCommandScopeHostedTests.windowSize)
+      .transaction { $0.disablesAnimations = true }
+    }
   }
 
-  /// Shows one item of `kind`, lands the focus on it by `landing`, renders
-  /// one pass, and gives the focused item to `inspect`.
+  /// Shows one item of `kind`, lands the focus on it by `landing`, and gives
+  /// the focused item to `inspect`.
   ///
   /// - Parameters:
   ///   - kind: The kind of the item.
@@ -295,15 +142,14 @@ import Testing
   ) async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let system = CommandSystem()
-    let mount = mountItems(of: session.model, system: system, isFocusEffectEnabled: isFocusEffectEnabled)
-    defer { mount.close() }
+    let bed = mountItems(of: session.model, isFocusEffectEnabled: isFocusEffectEnabled)
+    defer { bed.close() }
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
-    let item = thread.appending(try await sendItem(kind, to: session, rendering: mount))
+    let item = thread.appending(try await sendItem(kind, to: session, rendering: bed))
 
     try await inspect(
-      try await focus(item, in: mount, system: system) {
-        try land(on: item, in: thread, system: system, by: landing)
+      try await focusedItem(at: item, in: bed) {
+        try land(on: item, in: thread, system: bed.system, by: landing)
       })
   }
 
@@ -358,7 +204,7 @@ import Testing
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
       #expect(focused.responder is GeometryProbeView)
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
-      Self.expectTheThemeAccent(in: focused.ring)
+      #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
     }
   }
 
@@ -367,7 +213,9 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      try await Self.expectRing(of: focused, cornerRadius: EditorStyle.default.radii.l)
+      let expected = try await focused.plainScopeRing(cornerRadius: EditorStyle.default.radii.l)
+      #expect(!expected.rows.isEmpty)
+      #expect(focused.ring.rows == expected.rows)
     }
   }
 

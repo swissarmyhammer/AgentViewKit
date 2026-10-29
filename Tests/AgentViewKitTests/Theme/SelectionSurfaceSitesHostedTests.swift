@@ -19,12 +19,13 @@ import UniformTypeIdentifiers
 /// the item stays `.primary`. A focused item keeps its fill, and the focus
 /// ring of its scope outlines it.
 ///
-/// Each test shows a view over a white backdrop in light mode, in the
-/// ``AgentItemFocusRingHostedTests/AccentLook``: under a red host tint and
-/// the shared ``AccentTheme`` of EditorKit with a blue accent, in a real
-/// window on the screen, captured from the window server. Each test sets
-/// `\.appearsActive` itself, so that it chooses the window state of the
-/// selection.
+/// Each test shows a view over a white backdrop in light mode, under the
+/// red `FocusRingBed.hostTint` and the shared `AccentTheme` of EditorKit
+/// with the blue `FocusRingBed.defaultAccent`, in a real window on the
+/// screen, captured from the window server. Each test sets `\.appearsActive`
+/// itself, so that it chooses the window state of the selection. The test
+/// of a focused item mounts it in a `FocusRingBed`, which gives the same
+/// look to a key window.
 @Suite(.serialized, .hostedSerially) @MainActor struct SelectionSurfaceSitesHostedTests {
   /// The attachment of the kit. FoundationModelsACP has a type of the same
   /// name.
@@ -34,10 +35,7 @@ import UniformTypeIdentifiers
   typealias Shared = AttachmentInspectorHostedTests
 
   /// The suite whose helpers land the focus on an attachment scope.
-  typealias FocusRing = AttachmentFocusRingHostedTests
-
-  /// The suite whose helpers give the accent look and read a focus ring.
-  typealias Ring = AgentItemFocusRingHostedTests
+  typealias AttachmentRing = AttachmentFocusRingHostedTests
 
   /// The suite whose helpers show a tool call with a location.
   typealias Locations = ContentFileSelectionHostedTests
@@ -66,20 +64,31 @@ import UniformTypeIdentifiers
 
   // MARK: - Helpers
 
-  /// `view` over the backdrop, in light mode, in the accent look of the
-  /// tests with the window state `appearsActive`.
+  /// `view` over the backdrop, in light mode.
+  ///
+  /// - Parameter view: The view to show.
+  /// - Returns: The view to mount.
+  static func backdropped(_ view: some View) -> some View {
+    ZStack {
+      backdrop
+      view
+    }
+    .environment(\.colorScheme, .light)
+  }
+
+  /// `view` over the backdrop, in light mode, under the red tint of a host
+  /// and the `AccentTheme` of the blue accent of a `FocusRingBed`, with the
+  /// window state `appearsActive`.
   ///
   /// - Parameters:
   ///   - view: The view to show.
   ///   - appearsActive: Whether the window appears active.
   /// - Returns: The view to mount.
   static func onBackdrop(_ view: some View, appearsActive: Bool) -> some View {
-    ZStack {
-      backdrop
-      view
-    }
-    .modifier(Ring.AccentLook(appearsActive: appearsActive))
-    .environment(\.colorScheme, .light)
+    backdropped(view)
+      .tint(FocusRingBed.hostTint)
+      .editorTheme(AccentTheme(accent: FocusRingBed.defaultAccent))
+      .environment(\.appearsActive, appearsActive)
   }
 
   /// The capture of `view` over the backdrop, in a real window.
@@ -94,9 +103,19 @@ import UniformTypeIdentifiers
     try await GlassRenderProbeTests.capture(of: onBackdrop(view, appearsActive: appearsActive), size: size)
   }
 
-  /// The capture of a window that the fill of a selected surface covers: the
-  /// theme accent at the selection opacity while the window is key, and the
-  /// inactive grey while it is not.
+  /// The fill of a selected surface: the theme accent at the selection
+  /// opacity while the window is key, and the inactive grey while it is
+  /// not.
+  ///
+  /// - Parameter appearsActive: Whether the window appears active.
+  /// - Returns: The fill.
+  static func selectionFill(appearsActive: Bool) -> Color {
+    appearsActive
+      ? FocusRingBed.defaultAccent.opacity(EditorStyle.selectionOpacity)
+      : Color.primary.opacity(EditorStyle.inactiveSelectionOpacity)
+  }
+
+  /// The capture of a window that the fill of a selected surface covers.
   ///
   /// - Parameters:
   ///   - appearsActive: Whether the window appears active.
@@ -104,11 +123,7 @@ import UniformTypeIdentifiers
   /// - Returns: The image.
   /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
   static func fillCapture(appearsActive: Bool, size: CGSize) async throws -> CapturedImage {
-    let fill =
-      appearsActive
-      ? Ring.accent.opacity(EditorStyle.selectionOpacity)
-      : Color.primary.opacity(EditorStyle.inactiveSelectionOpacity)
-    return try await capture(of: fill, appearsActive: appearsActive, size: size)
+    try await capture(of: selectionFill(appearsActive: appearsActive), appearsActive: appearsActive, size: size)
   }
 
   /// The center of a window of `size`.
@@ -194,23 +209,28 @@ import UniformTypeIdentifiers
 
   /// A selected image that has the focus keeps its fill, and the focus ring
   /// of its scope outlines it with the square corners of the image.
+  ///
+  /// The image and the fill it is compared with each show in a
+  /// `FocusRingBed` of the same size, so the center of the image is the
+  /// same point of both captures.
   @Test func aSelectedImageWithTheFocusHasTheFillAndTheRing() async throws {
     let (view, file) = try Self.imageBlock()
-    let system = CommandSystem()
-    let content = Self.onBackdrop(
-      view.environment(\.inspectorSelection, InspectorSelection(attachment: file)),
-      appearsActive: true
-    )
-    .commandSystem(system)
-    let mount = CaptureMount(content, size: Self.fileSize)
-    defer { mount.close() }
+    let bed = FocusRingBed(size: Self.fileSize) {
+      Self.backdropped(view.environment(\.inspectorSelection, InspectorSelection(attachment: file)))
+    }
+    defer { bed.close() }
+    let fillBed = FocusRingBed(size: Self.fileSize) { Self.backdropped(Self.selectionFill(appearsActive: true)) }
+    defer { fillBed.close() }
 
-    let focused = try await FocusRing.focusScope(of: file.id, in: mount, system: system)
-    let image = try await mount.capture()
+    let focused = try await AttachmentRing.focusScope(of: file.id, in: bed)
+    let image = try await bed.capture()
+    let fill = try await fillBed.capture()
 
-    try await Ring.expectRing(of: focused, cornerRadius: .zero)
-    let fill = try await Self.fillCapture(appearsActive: true, size: Self.fileSize)
-    #expect(try Surfaces.samePixel(in: image, and: fill, at: Self.center(of: Self.fileSize)))
+    let expected = try await focused.plainScopeRing(cornerRadius: .zero)
+    #expect(!expected.rows.isEmpty)
+    #expect(focused.ring.rows == expected.rows)
+    let imageCenter = CGPoint(x: focused.itemRect.midX, y: focused.itemRect.midY)
+    #expect(try Surfaces.samePixel(in: image, and: fill, at: imageCenter))
   }
 
   // MARK: - Attachment chip

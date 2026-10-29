@@ -35,6 +35,17 @@ extension HostedViewHarness: RenderedMount {}
 
 extension CaptureMount: RenderedMount {}
 
+/// The bed of EditorKit that shows command scopes with focus rings in a real
+/// key window, which a test renders after it sends an item of a session.
+extension FocusRingBed: RenderedMount {
+  /// Makes SwiftUI update the view now: a layout pass of the content view of
+  /// the window, the hosting view of the bed, then a display of the window.
+  func render() {
+    window.contentView?.layoutSubtreeIfNeeded()
+    window.displayIfNeeded()
+  }
+}
+
 /// The mount of a key screen of EditorKit's review gallery, as the `settle`
 /// of a `ReviewScreen` receives it: the real key window on the screen.
 extension ReviewMount: RenderedMount {

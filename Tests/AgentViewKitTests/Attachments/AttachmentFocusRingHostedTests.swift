@@ -3,6 +3,7 @@ import AppKit
 import EditorCommands
 import EditorCommandsUI
 import EditorStyle
+import class EditorTestSupport.FocusRingBed
 import Foundation
 import SwiftUI
 import Testing
@@ -21,11 +22,11 @@ import UniformTypeIdentifiers
 /// and square corners for an image. The inspector has a focusable view of
 /// its own, which takes the focus and draws its own ring.
 ///
-/// Each test mounts one view at the root of a command system, in the
-/// ``AgentItemFocusRingHostedTests/AccentLook``, in a real key window on the
-/// screen (``CaptureMount``), lands the focus on its scope, and renders one
-/// pass before it reads the first responder of the window and the ring of
-/// the scope from captures of the window server.
+/// Each test mounts one view in a `FocusRingBed` of EditorKit: a real key
+/// window on the screen, under the red tint of a host and the shared
+/// `AccentTheme` with the blue accent of the bed. It lands the focus on the
+/// scope of the view, and reads the first responder of the window and the
+/// ring of the scope from captures of the window server.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentFocusRingHostedTests {
   /// The suite whose helpers make the files of the attachments.
   typealias Shared = AttachmentInspectorHostedTests
@@ -106,8 +107,8 @@ import UniformTypeIdentifiers
     }
   }
 
-  /// Mounts the view that `makeView` makes, lands a `nav.*` move on its
-  /// scope, renders one pass, and gives the first responder to `inspect`.
+  /// Mounts the view that `makeView` makes in a `FocusRingBed`, lands a
+  /// `nav.*` move on its scope, and gives the focused scope to `inspect`.
   ///
   /// - Parameters:
   ///   - makeView: Makes the view to mount over a file in a temporary
@@ -121,32 +122,26 @@ import UniformTypeIdentifiers
     let directory = try TemporaryDirectory()
     defer { directory.remove() }
     let mounted = try makeView(directory)
-    let system = CommandSystem()
-    let mount = CaptureMount(
-      mounted.content.modifier(Ring.AccentLook()).commandSystem(system), size: AttachmentCommandsHostedTests.viewSize)
-    defer { mount.close() }
-    try await inspect(try await focusScope(of: mounted.id, in: mount, system: system))
+    let bed = FocusRingBed(size: AttachmentCommandsHostedTests.viewSize) { mounted.content }
+    defer { bed.close() }
+    try await inspect(try await focusScope(of: mounted.id, in: bed))
   }
 
-  /// Lands a `nav.*` move on the root scope of the attachment `id`, renders
-  /// one pass, and reads the first responder of the window and the ring of
-  /// the scope.
+  /// Lands a `nav.*` move on the root scope of the attachment `id`, and
+  /// reads the first responder of the window and the ring of the scope.
   ///
   /// - Parameters:
   ///   - id: The id of the attachment of the scope.
-  ///   - mount: The mount that shows the scope.
-  ///   - system: The command system of the window.
+  ///   - bed: The bed that shows the scope.
   /// - Returns: The first responder, with the area of the scope and its
   ///   ring.
   /// - Throws: An issue when the focus does not land, or an error when a
   ///   capture fails.
-  static func focusScope(
-    of id: AttachmentID, in mount: CaptureMount<some View>, system: CommandSystem
-  ) async throws -> Ring.FocusedItem {
+  static func focusScope(of id: AttachmentID, in bed: FocusRingBed) async throws -> Ring.FocusedItem {
     let scope = FocusPath.root(AgentScopeKind.attachment(id))
 
-    return try await Ring.focus(scope, in: mount, system: system) {
-      try #require(system.geometry.requestFocus(at: scope))
+    return try await Ring.focusedItem(at: scope, in: bed) {
+      try #require(bed.system.geometry.requestFocus(at: scope))
     }
   }
 
@@ -157,7 +152,7 @@ import UniformTypeIdentifiers
     try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
       #expect(focused.responder is GeometryProbeView)
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
-      Ring.expectTheThemeAccent(in: focused.ring)
+      #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
     }
   }
 
@@ -165,7 +160,9 @@ import UniformTypeIdentifiers
   @Test(arguments: Surface.allCases)
   func theFocusRingHasTheCornersOfTheSurface(surface: Surface) async throws {
     try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
-      try await Ring.expectRing(of: focused, cornerRadius: surface.cornerRadius)
+      let expected = try await focused.plainScopeRing(cornerRadius: surface.cornerRadius)
+      #expect(!expected.rows.isEmpty)
+      #expect(focused.ring.rows == expected.rows)
     }
   }
 
@@ -183,19 +180,18 @@ import UniformTypeIdentifiers
       named: WireContentBlockViewHostedTests.imageName, contents: Data(Self.undecodableImageText.utf8))
     let attachment = AgentViewKit.Attachment(url: url)
     let shown = ShownSurface()
-    let system = CommandSystem()
-    let mount = CaptureMount(
+    let bed = FocusRingBed(size: AttachmentCommandsHostedTests.viewSize) {
       AttachmentView(attachment)
         .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shown.corners = $0 }
-        .modifier(Ring.AccentLook())
-        .commandSystem(system),
-      size: AttachmentCommandsHostedTests.viewSize)
-    defer { mount.close() }
+    }
+    defer { bed.close() }
 
-    await mount.render(when: { shown.corners != nil })
-    let focused = try await Self.focusScope(of: attachment.id, in: mount, system: system)
+    await bed.render(when: { shown.corners != nil })
+    let focused = try await Self.focusScope(of: attachment.id, in: bed)
 
-    try await Ring.expectRing(of: focused, cornerRadius: EditorStyle.default.radii.m)
+    let expected = try await focused.plainScopeRing(cornerRadius: EditorStyle.default.radii.m)
+    #expect(!expected.rows.isEmpty)
+    #expect(focused.ring.rows == expected.rows)
   }
 
   /// The inspector has a focusable view of its own, so a `nav.*` move on its
