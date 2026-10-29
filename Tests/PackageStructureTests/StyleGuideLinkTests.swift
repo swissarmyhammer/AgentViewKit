@@ -37,6 +37,9 @@ import Testing
   /// - Throws: `CocoaError(.fileReadNoSuchFile)` when `directory` is not an
   ///   existing directory, so a wrong path fails the test instead of scanning
   ///   nothing.
+  ///
+  /// TEMPORARY (EditorKit ^ny8zhz5): the listing moves to `PackageFiles`;
+  /// delete this copy when it lands.
   static func visibleFiles(below directory: URL, withExtensions extensions: Set<String>) throws -> [URL] {
     var isDirectory: ObjCBool = false
     guard
