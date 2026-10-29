@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: b180
+position_column: doing
+position_ordinal: '8480'
 title: 'Snapshots capture the real window from the window server: drop the compositing renderer, LayerTreeRenderer and VibrantLabelFilters (after EditorKit''s real-capture helper)'
 ---
 User decision, relayed by editorkit-a9, for every view kit: "we need all the view kit sessions to adopt this proper approach, building your own renderer is just a horrible idea, it doesn't prove that our app will really work". The EditorKit gallery, built from AVK's compositing renderer, drew backward text in every screenshot, and the real UI never does that.
