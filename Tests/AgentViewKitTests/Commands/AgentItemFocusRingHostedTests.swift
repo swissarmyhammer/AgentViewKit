@@ -61,17 +61,25 @@ import Testing
     /// The ring of the scope, against a capture before the focus landed.
     let ring: FocusRing
 
-    /// The ring that a plain scope of EditorKit of the size of the item
-    /// draws with corners of `cornerRadius`: the ring the item must draw
-    /// when it has those corners.
+    /// Expects ``ring`` to have corners of `cornerRadius`: row for row, the
+    /// ring that a plain scope of EditorKit of the size of the item draws
+    /// with those corners (`FocusRingBed.referenceRing(size:cornerRadius:accent:)`).
     ///
-    /// - Parameter cornerRadius: The radius of the corners; zero for a
-    ///   rectangle.
-    /// - Returns: The ring of the plain scope.
+    /// It also expects that reference ring to have rows, so that two empty
+    /// rings never pass as the same corners.
+    ///
+    /// - Parameters:
+    ///   - cornerRadius: The radius of the corners; zero for a rectangle.
+    ///   - sourceLocation: The place an issue is recorded at; the caller by
+    ///     default.
     /// - Throws: A `FocusRingBedError` when the focus does not land on the
     ///   plain scope, or an error when a capture fails.
-    func plainScopeRing(cornerRadius: CGFloat) async throws -> FocusRing {
-      try await FocusRingBed.referenceRing(size: itemRect.size, cornerRadius: cornerRadius)
+    func expectRingCorners(
+      cornerRadius: CGFloat, sourceLocation: SourceLocation = #_sourceLocation
+    ) async throws {
+      let expected = try await FocusRingBed.referenceRing(size: itemRect.size, cornerRadius: cornerRadius)
+      #expect(!expected.rows.isEmpty, sourceLocation: sourceLocation)
+      #expect(ring.rows == expected.rows, sourceLocation: sourceLocation)
     }
   }
 
@@ -213,9 +221,7 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      let expected = try await focused.plainScopeRing(cornerRadius: EditorStyle.default.radii.l)
-      #expect(!expected.rows.isEmpty)
-      #expect(focused.ring.rows == expected.rows)
+      try await focused.expectRingCorners(cornerRadius: EditorStyle.default.radii.l)
     }
   }
 
