@@ -1,0 +1,174 @@
+#if DEBUG
+  import AgentViewKit
+  import AgentViewKitTestSupport
+  import EditorTestSupport
+  import Foundation
+  import FoundationModelsACP
+  import FoundationModelsACPClient
+  import SwiftUI
+  import Testing
+
+  /// The thread view over a session model while the agent ends its background
+  /// runs after the streamed answer (plan.md §3.8 "Background runs").
+  ///
+  /// The kit keeps no state for this order. Each row and the state banner
+  /// show only what the session model reports.
+  @Suite(.serialized, .hostedSerially) @MainActor struct BackgroundRunsHostedTests {
+    /// A size that shows each row of the script and the state banner.
+    static let tallSize = CGSize(width: 480, height: 1_200)
+
+    /// The number of agent messages of the script: the streamed answer and
+    /// the full message with a new `messageId`.
+    static let agentMessageCount = 2
+
+    /// The title of the state banner while the agent runs.
+    static let runningTitle = StateBanner.message(for: .running(RunningStateUpdate())).title
+
+    /// Shows the thread of a scripted session.
+    ///
+    /// - Parameter session: The scripted session.
+    /// - Returns: The harness.
+    static func makeHarness(session: ScriptedSession) -> HostedViewHarness<some View> {
+      HostedViewHarness(AgentThreadView(session: session.model), size: tallSize)
+    }
+
+    /// The tool call object of an entry.
+    ///
+    /// - Parameter entry: A transcript entry.
+    /// - Returns: The object, or `nil` when the entry is not a tool call.
+    static func toolCall(of entry: TranscriptEntry) -> ToolCallEntry? {
+      if case .toolCall(let toolCall) = entry { toolCall } else { nil }
+    }
+
+    /// The tool call entry of `model` with the `toolCallId` `id`.
+    ///
+    /// ``BackgroundRunScript`` uses the title of each tool call as its
+    /// `toolCallId`. The lookup reads `ToolCallEntry.toolCallId`, because the
+    /// title is display text that the agent can change.
+    ///
+    /// - Parameters:
+    ///   - id: The `toolCallId` of the tool call.
+    ///   - model: The session model.
+    /// - Returns: The entry, or `nil` when the transcript has no such entry.
+    static func toolCall(id: String, in model: SessionModel) -> ToolCallEntry? {
+      let toolCallId = ToolCallId(rawValue: id)
+      return model.transcript.lazy.compactMap(toolCall(of:)).first { $0.toolCallId == toolCallId }
+    }
+
+    /// Tells whether `model` reports the change of one step of the script.
+    ///
+    /// - Parameters:
+    ///   - change: The change of the step.
+    ///   - model: The session model.
+    /// - Returns: `true` when the model reports the change.
+    static func isReported(change: BackgroundRunScript.Change, by model: SessionModel) -> Bool {
+      switch change {
+      case .agentRunning(let isRunning):
+        ComposerSessionModelHostedTests.isRunning(model) == isRunning
+      case .agentMessageText(let messageID, let text):
+        AgentMessageLookup.agentMessage(messageID: messageID, in: model)
+          .map { SessionTranscriptViewHostedTests.text(of: $0.content) } == text
+      case .toolCallStatus(let title, let status):
+        toolCall(id: title, in: model)?.status == status
+      }
+    }
+
+    /// The label that the row of a tool call entry must show.
+    ///
+    /// - Parameter entry: The tool call entry.
+    /// - Returns: The label from the title and the status of the entry, or
+    ///   `nil` when the model has no title or no status for the entry.
+    static func expectedLabel(of entry: ToolCallEntry) -> String? {
+      guard let title = entry.title, let status = entry.status else { return nil }
+      return ToolCallView.accessibilityLabel(title: title, status: status)
+    }
+
+    /// Tells whether `harness` shows the transcript and the state of `model`:
+    /// one row for each entry in transcript order, an assistant message view
+    /// for each agent message, the title and the status of each tool call,
+    /// and the banner of the agent state.
+    ///
+    /// - Parameters:
+    ///   - model: The session model.
+    ///   - harness: The harness that shows the thread.
+    /// - Returns: `true` when the view shows what the model reports.
+    static func showsTheModel<Content: View>(_ model: SessionModel, in harness: HostedViewHarness<Content>) -> Bool {
+      let rowsMatch = SessionTranscriptViewHostedTests.rowKeys(in: harness) == model.transcript.map(\.rowKey)
+      let messages = model.transcript.filter { AgentMessageLookup.agentMessage(of: $0) != nil }
+      let messagesMatch = messages.allSatisfy { entry in
+        harness.element(identifier: AssistantMessageView.identifier(for: entry.rowKey)) != nil
+      }
+      let toolCallsMatch = model.transcript.allSatisfy { entry in
+        toolCall(of: entry).map { toolCall in
+          harness.element(identifier: ToolCallView.identifier(for: entry.rowKey))?.label == expectedLabel(of: toolCall)
+        } ?? true
+      }
+      let bannerMatches = harness.stateBannerLabel == model.agentState.map { StateBanner.message(for: $0).title }
+      return rowsMatch && messagesMatch && toolCallsMatch && bannerMatches
+    }
+
+    /// Sends each step of ``BackgroundRunScript`` through the scripted agent.
+    /// After each step, waits for the event that the model reports the
+    /// change of the step, makes one ``HostedViewHarness/render()`` pass, and
+    /// then calls `afterStep`.
+    ///
+    /// - Parameters:
+    ///   - session: The scripted session.
+    ///   - harness: The harness that shows the thread of the session.
+    ///   - afterStep: The checks after one step.
+    static func playScript<Content: View>(
+      session: ScriptedSession,
+      harness: HostedViewHarness<Content>,
+      afterStep: (BackgroundRunScript.Step) -> Void = { _ in }
+    ) async throws {
+      let model = session.model
+      for step in BackgroundRunScript.steps {
+        try await session.send(update: step.update)
+        await harness.render { isReported(change: step.change, by: model) }
+        afterStep(step)
+      }
+    }
+
+    @Test func eachStepShowsWhatTheModelReportsAndTheRunningBannerStaysUntilIdle() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.makeHarness(session: session)
+      defer { harness.close() }
+      let model = session.model
+
+      try await Self.playScript(session: session, harness: harness) { step in
+        #expect(Self.isReported(change: step.change, by: model), "\(step.change)")
+        #expect(Self.showsTheModel(model, in: harness), "\(step.change)")
+        let isIdleStep = step.change == .agentRunning(false)
+        #expect(ComposerSessionModelHostedTests.isRunning(model) == !isIdleStep, "\(step.change)")
+        #expect((harness.stateBannerLabel == Self.runningTitle) == !isIdleStep, "\(step.change)")
+      }
+    }
+
+    @Test func theThreadShowsTwoAgentMessageRowsWithTheToolRowsBetweenThem() async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let harness = Self.makeHarness(session: session)
+      defer { harness.close() }
+      let model = session.model
+
+      try await Self.playScript(session: session, harness: harness)
+
+      let transcript = model.transcript
+      let messagePositions = transcript.indices.filter { AgentMessageLookup.agentMessage(of: transcript[$0]) != nil }
+      let toolPositions = transcript.indices.filter { Self.toolCall(of: transcript[$0]) != nil }
+      #expect(messagePositions.count == Self.agentMessageCount)
+      #expect(
+        messagePositions.map { AgentMessageLookup.agentMessage(of: transcript[$0])?.messageId?.rawValue }
+          == [BackgroundRunScript.streamedMessageID, BackgroundRunScript.fullMessageID])
+      let first = try #require(messagePositions.first)
+      let last = try #require(messagePositions.last)
+      #expect(toolPositions.count == BackgroundRunScript.toolTitles.count)
+      #expect(toolPositions.allSatisfy { first < $0 && $0 < last })
+      #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == transcript.map(\.rowKey))
+      for position in messagePositions {
+        #expect(harness.element(identifier: AssistantMessageView.identifier(for: transcript[position].rowKey)) != nil)
+      }
+    }
+  }
+#endif

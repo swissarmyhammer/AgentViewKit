@@ -16,40 +16,11 @@ import Testing
 /// the change (``ObservationWait/until(_:)``). No test reads a clock, polls,
 /// or has a time limit.
 @MainActor struct CancelAvailabilityTests {
-  /// The idle state, with no stop reason.
-  static let idle = StateUpdate.idle(IdleStateUpdate())
-
   /// The running state.
   static let running = StateUpdate.running(RunningStateUpdate())
 
   /// The requires-action state.
   static let requiresAction = StateUpdate.requiresAction(RequiresActionStateUpdate())
-
-  /// A permission request of the preview session, with one allow option and
-  /// one reject option.
-  static let permissionRequest = RequestPermissionRequest(
-    options: [
-      PermissionOption(kind: .allowOnce, name: "Allow", optionId: PermissionOptionId(rawValue: "allow")),
-      PermissionOption(kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
-    ],
-    sessionId: SessionModel.previewSessionId,
-    title: "Run the tests?")
-
-  /// Makes a preview session model: first the state, then the permission
-  /// requests, in this order.
-  ///
-  /// - Parameters:
-  ///   - state: The `agentState` of the model, or `nil` for no state.
-  ///   - pendingPermissions: The permission requests that arrive after the
-  ///     state.
-  /// - Returns: The model.
-  static func makeSession(
-    state: StateUpdate?, pendingPermissions: [RequestPermissionRequest] = []
-  ) -> SessionModel {
-    SessionModel.preview(
-      transcript: state.map { [.update(.stateUpdate($0))] } ?? [],
-      pendingPermissions: pendingPermissions)
-  }
 
   /// Tells if the Esc key of the composer cancels for `session`.
   ///
@@ -72,7 +43,8 @@ import Testing
   // MARK: - Idle
 
   @Test func anIdleSessionWithAPendingPermissionCanCancel() throws {
-    let model = Self.makeSession(state: Self.idle, pendingPermissions: [Self.permissionRequest])
+    let model = CancelFixtures.makeSession(
+      state: CancelFixtures.idle, pendingPermissions: [CancelFixtures.permissionRequest])
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(model.pendingPermissions.count == 1)
@@ -81,7 +53,7 @@ import Testing
   }
 
   @Test func anIdleSessionWithNoPendingRequestCannotCancel() throws {
-    let model = Self.makeSession(state: Self.idle)
+    let model = CancelFixtures.makeSession(state: CancelFixtures.idle)
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(!AgentCommandTarget.canCancel(model))
@@ -89,7 +61,8 @@ import Testing
   }
 
   @Test func aSessionWithNoStateAndAPendingPermissionCannotCancel() throws {
-    let model = Self.makeSession(state: nil, pendingPermissions: [Self.permissionRequest])
+    let model = CancelFixtures.makeSession(
+      state: nil, pendingPermissions: [CancelFixtures.permissionRequest])
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(!AgentCommandTarget.canCancel(model))
@@ -99,7 +72,7 @@ import Testing
   // MARK: - Running and requires action
 
   @Test func aRunningSessionCanCancel() throws {
-    let model = Self.makeSession(state: Self.running)
+    let model = CancelFixtures.makeSession(state: Self.running)
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(AgentCommandTarget.canCancel(model))
@@ -108,7 +81,7 @@ import Testing
   }
 
   @Test func aSessionThatRequiresActionCanCancel() throws {
-    let model = Self.makeSession(state: Self.requiresAction)
+    let model = CancelFixtures.makeSession(state: Self.requiresAction)
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(AgentCommandTarget.canCancel(model))
@@ -119,7 +92,8 @@ import Testing
   // MARK: - A request that ends
 
   @Test func theEndOfThePendingRequestsOfAnIdleSessionStopsTheCancel() throws {
-    let model = Self.makeSession(state: Self.idle, pendingPermissions: [Self.permissionRequest])
+    let model = CancelFixtures.makeSession(
+      state: CancelFixtures.idle, pendingPermissions: [CancelFixtures.permissionRequest])
     let fixture = AgentCommandsTests.makeFixture(session: model)
     let reader = ObservationFlag.observing { _ = AgentCommandTarget.canCancel(model) }
 
@@ -135,7 +109,8 @@ import Testing
   // MARK: - Esc
 
   @Test func escapeCancelsAnIdleSessionWithAPendingPermission() {
-    let model = Self.makeSession(state: Self.idle, pendingPermissions: [Self.permissionRequest])
+    let model = CancelFixtures.makeSession(
+      state: CancelFixtures.idle, pendingPermissions: [CancelFixtures.permissionRequest])
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(Self.escapeCancels(in: model))
@@ -143,7 +118,7 @@ import Testing
   }
 
   @Test func escapeDoesNotCancelAnIdleSessionWithNoPendingRequest() {
-    let model = Self.makeSession(state: Self.idle)
+    let model = CancelFixtures.makeSession(state: CancelFixtures.idle)
     let fixture = AgentCommandsTests.makeFixture(session: model)
 
     #expect(!Self.escapeCancels(in: model))
@@ -156,43 +131,20 @@ import Testing
 
   // MARK: - A request that arrives over the wire
 
-  /// Tells if `state` is the idle state.
-  ///
-  /// - Parameter state: The `agentState` of a session model, or `nil`.
-  /// - Returns: `true` for `.idle`.
-  static func isIdle(_ state: StateUpdate?) -> Bool {
-    if case .idle = state { true } else { false }
-  }
-
-  /// Sends `running` and then `idle` from the agent, in this order.
-  ///
-  /// Each send waits for the event that the model has the state, so the next
-  /// update goes out after the model folded the last one.
-  ///
-  /// - Parameter session: The scripted session.
-  /// - Throws: The error of the transport.
-  static func makeIdleAfterRunning(_ session: ScriptedSession) async throws {
-    let model = session.model
-    try await session.sendUpdate(ScriptedSession.runningState)
-    await ObservationWait.until { AgentCommandTarget.isActive(model.agentState) }
-    try await session.sendUpdate(ScriptedSession.idleState)
-    await ObservationWait.until { Self.isIdle(model.agentState) }
-  }
-
   @Test func aSessionElicitationThatArrivesWhileIdleEnablesCancelAndEscape() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
     let fixture = AgentCommandsTests.makeFixture(session: model)
-    try await Self.makeIdleAfterRunning(session)
+    try await CancelFixtures.makeIdleAfterRunning(session)
     #expect(!AgentCommandTarget.canCancel(model))
 
     try await session.sendRequest(
-      ScriptedSession.elicitationMethod, id: AgentCommandsTests.agentRequestID,
+      ScriptedSession.elicitationMethod, id: AgentCommandFixtures.agentRequestID,
       params: ScriptedSession.formElicitationParams)
     await ObservationWait.until { !model.pendingElicitations.isEmpty }
 
-    #expect(Self.isIdle(model.agentState))
+    #expect(CancelFixtures.isIdle(model.agentState))
     #expect(model.pendingPermissions.isEmpty)
     #expect(AgentCommandTarget.canCancel(model))
     #expect(try AgentCommandsTests.isAvailable(.cancel, in: fixture))
@@ -205,18 +157,18 @@ import Testing
     defer { session.close() }
     let model = session.model
     let fixture = AgentCommandsTests.makeFixture(session: model)
-    try await Self.makeIdleAfterRunning(session)
+    try await CancelFixtures.makeIdleAfterRunning(session)
     #expect(!AgentCommandTarget.canCancel(model))
     #expect(!Self.escapeCancels(in: model))
     let reader = ObservationFlag.observing { _ = AgentCommandTarget.canCancel(model) }
 
     try await session.sendRequest(
-      ScriptedSession.permissionMethod, id: AgentCommandsTests.agentRequestID,
+      ScriptedSession.permissionMethod, id: AgentCommandFixtures.agentRequestID,
       params: ScriptedSession.permissionParams)
     await ObservationWait.until { !model.pendingPermissions.isEmpty }
 
     #expect(reader.isRaised)
-    #expect(Self.isIdle(model.agentState))
+    #expect(CancelFixtures.isIdle(model.agentState))
     #expect(AgentCommandTarget.canCancel(model))
     #expect(try AgentCommandsTests.isAvailable(.cancel, in: fixture))
     #expect(Self.escapeCancels(in: model))

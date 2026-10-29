@@ -1,8 +1,5 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
 import CoreGraphics
-import EditorStyle
-import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -13,15 +10,6 @@ import Testing
 /// In a bar of floating controls, the deck is user input: it is on the
 /// floating glass of the kit. In content, the deck has no glass and no fill.
 struct RequestDeckSurfaceTests {
-  /// The size of each render.
-  static let size = CGSize(width: 320, height: 320)
-
-  /// The center of each render. The deck is in the center of its `ZStack`,
-  /// so this point is in the glass of a deck in the bar.
-  static var centerPoint: CGPoint {
-    CGPoint(x: size.width / 2, y: size.height / 2)
-  }
-
   /// The edge step of the band tests, in points.
   static let edgeStep: CGFloat = 8
 
@@ -30,27 +18,6 @@ struct RequestDeckSurfaceTests {
 
   /// The depth of the edge card in the band test.
   static let edgeDepth = 2
-
-  /// A code-built session model that holds one form elicitation.
-  static var session: SessionModel {
-    .preview(pendingElicitations: [PreviewFixtures.formElicitation])
-  }
-
-  /// The deck of ``session`` over the backdrop of ``GlassRenderProbeTests``.
-  ///
-  /// - Parameter inBar: Whether the deck is in a `FloatingGlassContainer`,
-  ///   as in the composer slot of ``AgentThreadView``.
-  /// - Returns: The view.
-  static func deck(inBar: Bool) -> some View {
-    ZStack {
-      GlassRenderProbeTests.backdrop
-      if inBar {
-        FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) { RequestDeck(session: session) }
-      } else {
-        RequestDeck(session: session)
-      }
-    }
-  }
 
   @Test func outOfAFloatingContainerTheDeckIsInContent() {
     #expect(RequestDeckPlace(isInFloatingGlassContainer: false) == .content)

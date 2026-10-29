@@ -1,17 +1,16 @@
 import AgentViewKitTestSupport
-import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
-import SwiftUI
 import Testing
 
-@testable import AgentViewKit
 @testable import DemoSupport
 
 /// Tests of the agent of the Gallery tab: FoundationModelsACPAgent runs in this
 /// process over a stage of the recorded sessions of the demo app, with the stub
-/// model. No test starts a program.
+/// model (``RecordedSessionsScenario``). No test starts a program. The hosted
+/// tests of the Gallery tab are in `RecordedSessionsGalleryHostedTests` of the
+/// IntegrationTests package.
 ///
 /// The recorded sessions of the demo app are replaced over time, so no test
 /// reads their content or counts them.
@@ -22,99 +21,19 @@ import Testing
 /// resumes at the same time open the same index database, and one of them
 /// fails because the database is locked.
 @Suite(.serialized) struct RecordedSessionsAgentTests {
-  /// The directory of the recorded sessions of the demo app, relative to the
-  /// package root.
-  static let recordingsPath = "Examples/AgentViewKitDemo/RecordedSessions"
-
-  /// The agent of one test, and the temporary directory of its stage.
-  struct Scenario {
-    /// The temporary directory that holds the stage.
-    let directory: TemporaryDirectory
-
-    /// The stage of the recorded sessions that the agent runs over.
-    let stage: RecordedSessionsStage
-
-    /// The agent, connected and initialized.
-    let agent: DemoAgent
-
-    /// Stops the agent and removes the stage.
-    func stop() async {
-      await agent.stop()
-      directory.remove()
-    }
-  }
-
-  /// Copies the recorded sessions of the demo app to a new stage, and starts
-  /// the agent over it.
-  ///
-  /// - Returns: The scenario.
-  /// - Throws: The error of the stage or of the start.
-  static func start() async throws -> Scenario {
-    let directory = try TemporaryDirectory()
-    let stage = try RecordedSessionsStage.make(
-      copying: try PackageFiles().file(recordingsPath), below: directory.url)
-    let agent = try await DemoAgent.makeInProcess(recordedSessions: stage)
-    return Scenario(directory: directory, stage: stage, agent: agent)
-  }
-
-  /// Lists the sessions of the agent in its working directory, as the
-  /// session list of the Gallery tab does.
-  ///
-  /// - Parameter agent: The agent.
-  /// - Returns: The listed sessions.
-  /// - Throws: The error of `session/list`.
-  static func listSessions(of agent: DemoAgent) async throws -> [SessionInfo] {
-    try await agent.connection.refreshSessions(cwd: agent.workingDirectory)
-    return agent.connection.sessions
-  }
-
   @Test func theAgentListsTheRecordedSessions() async throws {
-    let scenario = try await Self.start()
+    let scenario = try await RecordedSessionsScenario.start()
 
-    let sessions = try await Self.listSessions(of: scenario.agent)
+    let sessions = try await RecordedSessionsScenario.listSessions(of: scenario.agent)
 
     #expect(!sessions.isEmpty)
     await scenario.stop()
   }
 
-  /// The list reports the end of its first refresh, so the test waits for
-  /// that report, with no clock, and then renders the list.
-  @Test(.hostedSerially) func theSessionListOfTheGalleryShowsARowOfARecordedSession() async throws {
-    let scenario = try await Self.start()
-    let calls = ReportRecorder<String?>()
-    let harness = HostedViewHarness(
-      SessionListView(connection: scenario.agent.connection, cwd: scenario.agent.workingDirectory, onOpen: { _ in })
-        .environment(\.sessionListCallReport, calls.report),
-      size: SessionPickerConnectionModelHostedTests.listSize)
-
-    await harness.render { !calls.values.isEmpty }
-
-    #expect(calls.values == [nil])
-    #expect(!SessionPickerConnectionModelHostedTests.rowIdentifiers(in: harness).isEmpty)
-    harness.close()
-    await scenario.stop()
-  }
-
-  @Test(.hostedSerially) func theGalleryDetailShowsATranscriptRowOfEachRecordedSession() async throws {
-    try await Self.hostTheGalleryWindowOfEachSession { info, harness in
-      #expect(!Self.transcriptRowIdentifiers(in: harness).isEmpty, "\(info.sessionId)")
-    }
-  }
-
-  @Test(.hostedSerially) func theGalleryWindowOfEachRecordedSessionGetsNarrower() async throws {
-    try await Self.hostTheGalleryWindowOfEachSession { info, harness in
-      harness.window.styleMask.insert(.resizable)
-      harness.window.setContentSize(CGSize(width: Self.narrowWindowWidth, height: GalleryWindowReplica.windowSize.height))
-      harness.render()
-
-      #expect(harness.hostingView.frame.width == Self.narrowWindowWidth, "\(info.sessionId)")
-    }
-  }
-
   @Test func aResumeFromTheStartReplaysEachRecordedSession() async throws {
-    let scenario = try await Self.start()
+    let scenario = try await RecordedSessionsScenario.start()
 
-    try await Self.resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
+    try await RecordedSessionsScenario.resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
       #expect(!session.transcript.isEmpty, "\(info.sessionId)")
     }
     await scenario.stop()
@@ -122,7 +41,7 @@ import Testing
 
   @Test func aRunOfTheAgentLeavesTheProjectStoreOfTheHomeDirectoryUnchanged() async throws {
     let homeStore = FolderSnapshot(of: Self.homeProjectStore)
-    let scenario = try await Self.start()
+    let scenario = try await RecordedSessionsScenario.start()
 
     try await Self.openAndResumeEachSession(of: scenario.agent)
     await scenario.stop()
@@ -131,7 +50,7 @@ import Testing
   }
 
   @Test func theAgentWritesAProjectFileIntoTheConfigurationDirectoryOfTheStage() async throws {
-    let scenario = try await Self.start()
+    let scenario = try await RecordedSessionsScenario.start()
     let stageStore = Self.projectStore(in: scenario.stage.configurationDirectory)
 
     try await Self.openAndResumeEachSession(of: scenario.agent)
@@ -215,69 +134,6 @@ extension RecordedSessionsAgentTests {
   /// - Throws: The error of a request.
   static func openAndResumeEachSession(of agent: DemoAgent) async throws {
     try await agent.openSession { _ in }
-    try await resumeEachSessionFromTheStart(of: agent) { _, _ in }
-  }
-
-  /// Lists the sessions of the agent, resumes each one from the start, and
-  /// gives each resumed session to `body`, one at a time.
-  ///
-  /// - Parameters:
-  ///   - agent: The agent.
-  ///   - body: The work on one listed session and its resumed model.
-  /// - Throws: The error of a request, or of `body`.
-  static func resumeEachSessionFromTheStart(
-    of agent: DemoAgent, _ body: (SessionInfo, SessionModel) async throws -> Void
-  ) async throws {
-    for info in try await listSessions(of: agent) {
-      let session = try await agent.connection.resumeSession(resumeFromStartRequest(of: info))
-      try await body(info, session)
-    }
-  }
-
-  /// A width of the Gallery window that is less than its first width, and
-  /// more than the minimum widths of its columns, in points.
-  static let narrowWindowWidth: CGFloat = 1100
-
-  /// Resumes each listed session from the start, shows it in the window of
-  /// the Gallery tab, and runs `check`.
-  ///
-  /// The resume returns after the replay, so the model holds the transcript
-  /// of the session. The helper waits for that transcript, with no clock,
-  /// and then makes one render pass before `check` reads the window.
-  ///
-  /// - Parameter check: The checks of one session and its window.
-  /// - Throws: The error of the start or of a request.
-  static func hostTheGalleryWindowOfEachSession(
-    _ check: (SessionInfo, HostedViewHarness<GalleryWindowReplica>) -> Void
-  ) async throws {
-    let scenario = try await start()
-    let connection = scenario.agent.connection
-    try await resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
-      let harness = HostedViewHarness(
-        GalleryWindowReplica(session: session, connection: connection), size: GalleryWindowReplica.windowSize)
-      await harness.render { !session.transcript.isEmpty }
-      check(info, harness)
-      harness.close()
-    }
-    await scenario.stop()
-  }
-
-  /// The identifiers of the transcript rows that show.
-  ///
-  /// - Parameter harness: The harness that shows the transcript.
-  /// - Returns: The row identifiers, in view order.
-  static func transcriptRowIdentifiers(in harness: HostedViewHarness<some View>) -> [String] {
-    harness.accessibilityElements().compactMap(\.identifier).filter { $0.hasPrefix(ItemRow.identifierPrefix) }
-  }
-
-  /// The `session/resume` request of a listed session, with a replay from
-  /// the start, as the Gallery tab sends it.
-  ///
-  /// - Parameter info: The listed session.
-  /// - Returns: The request.
-  static func resumeFromStartRequest(of info: SessionInfo) -> ResumeSessionRequest {
-    ResumeSessionRequest.makeAgentViewKitRequest(
-      sessionId: info.sessionId, cwd: info.cwd, additionalDirectories: info.additionalDirectories ?? [],
-      replayFrom: .start(ReplayFromStart()))
+    try await RecordedSessionsScenario.resumeEachSessionFromTheStart(of: agent) { _, _ in }
   }
 }

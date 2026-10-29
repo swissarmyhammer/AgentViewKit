@@ -161,7 +161,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let fixture = AgentCommandsTests.makeFixture(session: session.model)
-    let request = try await session.receivePermissionRequest(id: AgentCommandsTests.agentRequestID)
+    let request = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
     let path = fixture.path.appending(AgentScopeKind.request(request.id))
 
     let items = fixture.system.registry.contextMenuMirror(at: path)
@@ -224,7 +224,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let fixture = AgentCommandsTests.makeFixture(session: session.model)
-    let request = try await session.receivePermissionRequest(id: AgentCommandsTests.agentRequestID)
+    let request = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
     let path = fixture.path.appending(AgentScopeKind.request(request.id))
 
     let ids = fixture.system.registry.eligible(path: path).filter(\.isVisible).map(\.id)
@@ -269,7 +269,7 @@ import Testing
     try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: AgentCommandsTests.secondRequestID)
 
-    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandsTests.allowOptionID)
+    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandFixtures.allowOptionID)
     #expect(model.pendingPermissions.map(\.id) == [requests.first.id])
   }
 }

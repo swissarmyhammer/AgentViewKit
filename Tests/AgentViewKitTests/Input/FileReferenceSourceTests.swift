@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import EditorComplete
 import EditorCore
 import Foundation
@@ -13,34 +14,6 @@ struct InMemoryFileSystem: FileSystem {
   func entries(at directory: String) async throws -> [FileSystemEntry] {
     guard let entries = directories[directory] else { throw CocoaError(.fileNoSuchFile) }
     return entries
-  }
-}
-
-/// A temporary directory with files, for the tests that read the disk.
-struct TemporaryFileRoot: ~Copyable {
-  /// The directory.
-  let url: URL
-
-  /// Makes a directory with `files`. A path that ends in `/` is a directory.
-  ///
-  /// - Parameter files: The paths to make, relative to the directory.
-  init(files: [String]) throws {
-    url = FileManager.default.temporaryDirectory
-      .appending(path: "FileReferenceTests-\(UUID().uuidString)", directoryHint: .isDirectory)
-    for file in files {
-      let item = url.appending(path: file)
-      if file.hasSuffix("/") {
-        try FileManager.default.createDirectory(at: item, withIntermediateDirectories: true)
-      } else {
-        try FileManager.default.createDirectory(
-          at: item.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try Data(file.utf8).write(to: item)
-      }
-    }
-  }
-
-  deinit {
-    try? FileManager.default.removeItem(at: url)
   }
 }
 

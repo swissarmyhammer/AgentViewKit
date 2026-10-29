@@ -20,6 +20,17 @@
 // and a Router agent reach the kit through FoundationModelsACPAgent and ACP
 // (plan.md §1).
 //
+// Two more library products are test support only: `AgentViewKitTestSupport`
+// and `DemoSupport`. The nested `IntegrationTests/` package links them by
+// path, because a test target of this package cannot be a dependency. No host
+// of the kit links them (plan.md §11 decision 1).
+//
+// The tiers of the tests (plan.md §11 decision 21). `swift test` here runs
+// the unit tests only: no test of this package mounts a view in a window or a
+// hosting view, or captures a window (`RootTestsHostNoViewTests`). The hosted,
+// snapshot, pixel, focus-ring and review gallery tests are in the nested
+// package, and run with `swift test --package-path IntegrationTests`.
+//
 // PackageStructureTests reads this file as text. Spell each library product
 // and each dependency product in full, as `.library(name:` and
 // `.product(name:package:)`, so that the tests can find them.
@@ -133,6 +144,9 @@ let package = Package(
   products: [
     .library(name: "AgentViewKit", targets: ["AgentViewKit"]),
     .library(name: "AgentViewKitStyle", targets: ["AgentViewKitStyle"]),
+    // Test support only, for the nested IntegrationTests package.
+    .library(name: "AgentViewKitTestSupport", targets: ["AgentViewKitTestSupport"]),
+    .library(name: "DemoSupport", targets: ["DemoSupport"]),
   ],
   dependencies: [
     // The in-family packages use the SSH URL and `branch: "main"`, as each
@@ -184,8 +198,10 @@ let package = Package(
     // The agent-specific test helpers: the recording fakes, and the session
     // model over the scripted agent of `DemoSupport`. The generic helpers,
     // such as the hosted view harness, are EditorKit's `EditorTestSupport`
-    // (`NoEditorKitDuplicateTests`). This target is not a product. Each test
-    // target that links a package target links it too. It links
+    // (`NoEditorKitDuplicateTests`). Each test target that links a package
+    // target links it too. It is a test support product, so that the
+    // IntegrationTests package and the unit tests share one copy of each
+    // fixture; no host of the kit links it. It links
     // EditorTestSupport for the capture of a real window (`CapturedImage`)
     // and the looks of a screenshot (`ReviewAppearance`), which the review
     // gallery writes.
@@ -197,8 +213,9 @@ let package = Package(
     // The scripted in-memory ACP agent, the agent starter of the demo app
     // (`DemoAgent`), and the launch options of the demo app. The ACP tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
-    // sources into the app. The target is not a product: the two library
-    // products are the kit and its style (plan.md §11 decision 1). It links
+    // sources into the app. It is a test support product for the
+    // IntegrationTests package; the two library products of a host are the
+    // kit and its style (plan.md §11 decision 1). It links
     // FoundationModelsACPAgent for the agent of the ACP tab and of the
     // Gallery tab, which runs in the process of the app.
     .target(
@@ -227,15 +244,12 @@ let package = Package(
         "PackageFileSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,
-      // The snapshot tests read their reference PNG images from disk
-      // (AVK-13), so the build excludes that folder.
-      exclude: ["Snapshots/__Snapshots__"],
       swiftSettings: mainActorIsolated
     ),
-    // The tests of the public API of the style library. No file imports it
-    // with `@testable`, so each test reads only what a host of the product
-    // reads. It links no ACP product and no target of the kit, and it hosts
-    // its views with the window helpers of EditorKit.
+    // The unit tests of the public API of the style library. No file imports
+    // it with `@testable`, so each test reads only what a host of the product
+    // reads. It links no ACP product and no target of the kit. Its hosted
+    // tests are in the IntegrationTests package.
     .testTarget(
       name: "AgentViewKitStyleTests",
       dependencies: ["AgentViewKitStyle"] + styleEditorKitProducts + styleTestSupportProducts,

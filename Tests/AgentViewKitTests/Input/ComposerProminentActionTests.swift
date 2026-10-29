@@ -1,4 +1,5 @@
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import EditorCommands
 import Testing
 
@@ -45,7 +46,7 @@ import Testing
   // MARK: - The commands
 
   @Test func thePaletteShowsTheSendCommandAndTheCancelCommandWhileTheAgentRuns() {
-    let session = CancelAvailabilityTests.makeSession(state: CancelAvailabilityTests.running)
+    let session = CancelFixtures.makeSession(state: CancelAvailabilityTests.running)
     let fixture = AgentCommandsTests.makeFixture(session: session)
 
     let paletteIDs = Set(fixture.system.registry.eligible(path: fixture.path).filter(\.isVisible).map(\.id))

@@ -1,4 +1,5 @@
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI

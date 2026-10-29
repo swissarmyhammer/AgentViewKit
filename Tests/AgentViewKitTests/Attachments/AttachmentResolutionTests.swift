@@ -1,4 +1,5 @@
 import AgentViewKit
+import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
 import PackageFileSupport
