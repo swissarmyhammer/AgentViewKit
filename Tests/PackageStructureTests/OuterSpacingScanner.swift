@@ -2,6 +2,9 @@ import Foundation
 
 /// Finds the outer spacing of the views of one Swift file (^rgsq3k4).
 ///
+/// TEMPORARY (EditorKit ^ny8zhz5): the scanner moves to EditorKit's style
+/// rules; delete this copy when it lands.
+///
 /// A view carries no padding or margin of its own around it: the containing
 /// layout spaces it (EditorKit `style.md`, the user rule of 2026-10-29). The
 /// scanner reads the code of a file, with the comments and the string

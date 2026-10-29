@@ -4,6 +4,9 @@ import SwiftUI
 /// The content margin of the scroll views in a subtree, from one value of
 /// the style of the theme (^rgsq3k4).
 ///
+/// TEMPORARY (EditorKit ^ny8zhz5): the modifier moves to EditorStyle;
+/// delete this copy when it lands.
+///
 /// A kit list, such as the `AgentRowList` of AgentViewKit, has no padding around
 /// its rows: the layout that holds the list gives that space. The modifier
 /// reads the value at `step` from `\.editorStyle`, so a theme or a host that
