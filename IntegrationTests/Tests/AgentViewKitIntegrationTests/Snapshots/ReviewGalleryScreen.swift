@@ -89,6 +89,11 @@
     /// The EditorKit key screen with the id, the title, the dated note and the
     /// size of this screen.
     ///
+    /// The endless animations of the screen are held still, as in each
+    /// capture of the package (``StillCaptureContent``,
+    /// ``stopProgressIndicators(in:)``), so that each capture takes the first
+    /// two equal images.
+    ///
     /// - Parameters:
     ///   - settle: The wait for an event of the mounted screen before the
     ///     capture. Do not wait for a time.
@@ -100,8 +105,12 @@
       @ViewBuilder content: @escaping @MainActor (ReviewAppearance) -> Content
     ) throws -> ReviewScreen {
       ReviewScreen(
-        id: rawValue, title: title, note: try ReviewGalleryNotes.note(of: self), size: size, settle: settle,
-        content: content)
+        id: rawValue, title: title, note: try ReviewGalleryNotes.note(of: self), size: size,
+        settle: { mount in
+          try await settle(mount)
+          stopProgressIndicators(in: mount.hostingView)
+        },
+        content: { appearance in StillCaptureContent(content: content(appearance)) })
     }
 
     /// Runs `body` with the key screen of this screen, and frees what the
@@ -144,20 +153,16 @@
       return try await body(made)
     }
 
-    /// The image of the screen in `appearance`, as EditorKit's review gallery
-    /// writes it: the gallery records this screen alone, with no reference
-    /// image, in a temporary folder, and the image is read back from there.
+    /// The image of the screen in `appearance` that `gallery` wrote when it
+    /// recorded the screen. The check of a look reads the page of the run, so
+    /// no screen is mounted and captured a second time for it.
     ///
-    /// - Parameter appearance: The look of the window.
+    /// - Parameters:
+    ///   - appearance: The look of the window.
+    ///   - gallery: The gallery that recorded the screen.
     /// - Returns: The image.
-    /// - Throws: An issue when the gallery did not write both images of the
-    ///   screen, or the error of a fixture, of the gallery or of the read.
-    func capture(in appearance: ReviewAppearance) async throws -> CapturedImage {
-      let folder = try TemporaryDirectory()
-      defer { folder.remove() }
-      let gallery = ReviewGallery(package: ReviewGalleryScreenTests.package, directory: folder.url)
-      let report = try await withReviewScreen { screen in try await gallery.record([screen], snapshotRoots: []) }
-      try #require(report.isComplete, "\(report.failureDescription)")
+    /// - Throws: The error of the read or of the decode.
+    func recordedImage(in appearance: ReviewAppearance, of gallery: ReviewGallery) throws -> CapturedImage {
       let file = gallery.directory.appending(path: ReviewGallery.screenPath(id: rawValue, appearance: appearance))
       return try CapturedImage(decoding: Data(contentsOf: file))
     }

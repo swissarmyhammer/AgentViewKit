@@ -89,14 +89,17 @@ func hideViews(of types: [NSView.Type], in root: NSView) {
 /// the image shows Liquid Glass, the scroll edge effect and every AppKit view,
 /// as the app shows them. The view shows in the appearance of its look, under
 /// the pins of every screen of the kits (EditorKit `ReviewScreenRoot`): one
-/// locale, one time zone, one calendar and no animation. A test that mounts
-/// one runs under `.hostedSerially`. The test calls ``close()`` at the end.
+/// locale, one time zone, one calendar and no animation. The endless
+/// animations of the kit are held still (``StillCaptureContent``,
+/// ``stopProgressIndicators(in:)``), so that the capture takes the first two
+/// equal images. A test that mounts one runs under `.hostedSerially`. The test
+/// calls ``close()`` at the end.
 final class CaptureMount<Content: View> {
   /// The window, on the screen once the first capture orders it in.
   let window: CaptureWindow
 
   /// The hosting view of the view: the content view of the window.
-  let hostingView: NSHostingView<ReviewScreenRoot<Content>>
+  let hostingView: NSHostingView<ReviewScreenRoot<StillCaptureContent<Content>>>
 
   /// Mounts `content` at `size` in the appearance of `appearance`, and lays it
   /// out.
@@ -114,7 +117,7 @@ final class CaptureMount<Content: View> {
   ) {
     window = CaptureWindow(contentSize: size, styleMask: styleMask)
     window.appearance = NSAppearance(named: appearance.appearanceName)
-    hostingView = NSHostingView(rootView: ReviewScreenRoot { content })
+    hostingView = NSHostingView(rootView: ReviewScreenRoot { StillCaptureContent(content: content) })
     hostingView.frame = NSRect(origin: .zero, size: size)
     window.contentView = hostingView
     render()
@@ -126,12 +129,14 @@ final class CaptureMount<Content: View> {
     layOutAndDisplay(hostingView, in: window)
   }
 
-  /// Captures the whole window from the window server.
+  /// Captures the whole window from the window server, after it stops each
+  /// progress indicator (``stopProgressIndicators(in:)``).
   ///
   /// - Returns: The image of the window: the view over the window background.
   /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
   func capture() async throws -> CapturedImage {
-    try await CapturedImage(capturing: window)
+    stopProgressIndicators(in: hostingView)
+    return try await CapturedImage(capturing: window)
   }
 
   /// Closes the window.
@@ -186,7 +191,7 @@ extension CaptureMount {
   /// - Returns: The frame.
   /// - Throws: An issue when no element has `identifier`.
   static func windowFrame(of identifier: String, in content: Content, size: CGSize) throws -> CGRect {
-    let harness = HostedViewHarness(ReviewScreenRoot { content }, size: size)
+    let harness = HostedViewHarness(ReviewScreenRoot { StillCaptureContent(content: content) }, size: size)
     defer { harness.close() }
     harness.render()
     let frame = try #require(harness.frame(identifier: identifier), "No element \(identifier).")
