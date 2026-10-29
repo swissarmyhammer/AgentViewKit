@@ -6,8 +6,12 @@
 # org (see the EditorKit workflow for the history).
 #
 # Jobs:
-#   - ci: the shared build and test job. It runs `swift build --build-tests`
-#     and `swift test` with the Xcode and Swift toolchain of the runner.
+#   - ci: the shared build and test job. Its unit job runs `swift build
+#     --build-tests` and `swift test` with the Xcode and Swift toolchain of
+#     the runner: the unit tests only, with no window and no capture. It also
+#     builds the nested `IntegrationTests/` package. Its integration job runs
+#     that package after the unit job: the hosted, snapshot, pixel, focus-ring
+#     and review gallery tests. This is the shape of EditorKit and TestudoApp.
 #   - readme: the README gate. `Scripts/check-readme.sh` writes the snippets of
 #     README.md again, compares them with the committed files, and builds the
 #     `ReadmeSnippetsTests` target.
@@ -28,6 +32,10 @@ concurrency:
 jobs:
   ci:
     uses: swissarmyhammer/workflows/.github/workflows/swift-ci.yaml@main
+    with:
+      # The integration suite is a nested package. This input makes the unit
+      # job build it on every run and makes the integration job run it.
+      integration-package-path: IntegrationTests
 
   # The README gate (plan.md §1). `Scripts/check-readme.sh` holds the whole
   # gate. A README snippet that is not in `Examples/ReadmeSnippets/Snippets`,

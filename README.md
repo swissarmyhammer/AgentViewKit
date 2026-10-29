@@ -609,10 +609,22 @@ time. While another run holds the lock, the script waits and names the holder.
 ## Tests and gates
 
 ```bash
-swift test                  # the unit tests, the hosted view tests, and the README snippets
-Scripts/check-readme.sh     # the README gate
-Scripts/test-examples.sh    # the demo UI tests
+swift test                                    # the unit tests and the README snippets: no window, no capture
+swift test --package-path IntegrationTests    # the hosted, snapshot, pixel and review gallery tests
+Scripts/check-readme.sh                       # the README gate
+Scripts/test-examples.sh                      # the demo UI tests
 ```
+
+The tests have two tiers, and the package boundary separates them. `swift
+test` at the root runs the unit tests only: the models, the commands, the
+wire and the source scans. No test of the root package mounts a view in a
+window or a hosting view, or captures a window; `RootTestsHostNoViewTests`
+holds this. Run it on each change. The nested `IntegrationTests/` package
+holds each test that mounts a view in EditorKit's `HostedViewHarness`, each
+capture of a real window, the snapshot and pixel tests, the focus rings and
+the review gallery. It depends on the root package by path, has its own
+`.build`, and runs once per batch of work, and in the integration job of CI.
+Use `--filter` to run one of its tests.
 
 ### The test rule
 
@@ -636,9 +648,10 @@ renderer; `RealCaptureOnlyTests` holds this. The window is the key window,
 with no activation of the test process, and the capture shows what the app
 shows: the AppKit views, Liquid Glass and the scroll edge effect. Each view
 has fixed data and fixed dates, at two pixels for each point, in sRGB, and two
-images, Light and Dark; no test flips a system setting. The reference images
-are in `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`, as
-`<name>-light.png` and `<name>-dark.png` (EditorKit `SnapshotStore`):
+images, Light and Dark; no test flips a system setting. These tests are in
+the `IntegrationTests/` package. The reference images are in
+`IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/`,
+as `<name>-light.png` and `<name>-dark.png` (EditorKit `SnapshotStore`):
 
 - `HostedSnapshotTests/`: each view of the kit, such as the thread, the
   composer, the cards and the banners.
@@ -648,31 +661,33 @@ are in `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`, as
 
 A capture holds the shared UI test lock of the Mac
 (`~/Library/Caches/swissarmyhammer/ui-tests.lock`), so no two runs capture the
-screen at once. The process that runs `swift test` needs the Screen Recording
-permission: allow the terminal or Xcode that runs it in System Settings ›
-Privacy & Security › Screen & System Audio Recording. Without it, each capture
-fails with `WindowCaptureError.screenRecordingNotAllowed`, which names the
-process; no test skips.
+screen at once. The process that runs `swift test --package-path
+IntegrationTests` needs the Screen Recording permission: allow the terminal
+or Xcode that runs it in System Settings › Privacy & Security › Screen &
+System Audio Recording. Without it, each capture fails with
+`WindowCaptureError.screenRecordingNotAllowed`, which names the process; no
+test skips. The root `swift test` captures nothing, so it needs no
+permission.
 
 When the look of a view changes, its test fails, and it writes
 `<name>-<look>.actual.png` and `<name>-<look>.diff.png` to
 `.build/snapshots/<suite>/`. The difference image shows each pixel that
 changed in magenta. The test also attaches the two images.
 
-Each `swift test` run also writes the review gallery,
+Each run of the integration package also writes the review gallery,
 `~/Library/Caches/AgentViewKit/screenshot-check/index.html`, with EditorKit's
 `ReviewGallery` helper (EditorKit `style.md` "Review gallery"): first the key
 screens of the kit, in light and dark, with dated notes, then every reference
-PNG under `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`, grouped by
-suite, light and dark side by side. A reference PNG that the page does not
-show fails the run. The user reviews that page. There is no manual check and
-no comparison with Finder or System Settings.
+PNG under `IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/`,
+grouped by suite, light and dark side by side. A reference PNG that the page
+does not show fails the run. The user reviews that page. There is no manual
+check and no comparison with Finder or System Settings.
 
 To record the reference images again, run the tests in the record mode, and
 then review the new images before the commit:
 
 ```bash
-SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
+SNAPSHOT_RECORD=1 swift test --package-path IntegrationTests --filter SnapshotTests
 ```
 
 In the record mode, each snapshot test records an issue, so that a run with

@@ -21,6 +21,8 @@ The package has two library products:
 | `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine (`AgentViewKitStyleClosureTests`). |
 | `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math | An ACP client app: the agent thread views and the ACP helpers. |
 
+Two more library products, `AgentViewKitTestSupport` and `DemoSupport`, are test support for the nested `IntegrationTests/` package (see "Test tiers"). No host of the kit links them.
+
 ```mermaid
 flowchart LR
   EditorKit --> AgentViewKitStyle
@@ -49,7 +51,30 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 
 The review gallery is one page, `~/Library/Caches/AgentViewKit/screenshot-check/index.html` (EditorKit `style.md`, "Review gallery"). The user reviews the look of the kit there; there is no manual check.
 
-- A normal `swift test` writes the page again. `ReviewGalleryScreenTests` builds it with EditorKit's `ReviewGallery` helper (`ReviewGallery(package: "AgentViewKit").record(_:snapshotRoots:)` of `EditorTestSupport`), and `ReviewGalleryPathTests` pins the path. AgentViewKit keeps no gallery code of its own.
+- A run of the integration package (`swift test --package-path IntegrationTests`, see "Test tiers") writes the page again. The root `swift test` does not. `ReviewGalleryScreenTests` builds it with EditorKit's `ReviewGallery` helper (`ReviewGallery(package: "AgentViewKit").record(_:snapshotRoots:)` of `EditorTestSupport`), and `ReviewGalleryPathTests` pins the path. AgentViewKit keeps no gallery code of its own.
 - The page shows the key screens first: the thread, the request deck, the banners, the sign-in prompt, the scrolled list, the attachment inspector and the gallery columns, each captured from a real window in Light and in Dark, with its dated note (`ReviewGalleryNotes`).
-- Then it shows every reference PNG under `Tests/AgentViewKitTests/Snapshots/__Snapshots__/**`, grouped by suite, with Light and Dark side by side. Discovery needs no registration, so a new snapshot shows up on its own.
+- Then it shows every reference PNG under `IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/**`, grouped by suite, with Light and Dark side by side. Discovery needs no registration, so a new snapshot shows up on its own.
 - The test fails when the page does not show a reference PNG or a key screen.
+
+## Test tiers
+
+The tests have two tiers, and a package boundary separates them (plan.md §11 decision 21), as in EditorKit and TestudoApp:
+
+| Tier | Package | Targets | Holds | Runs |
+| --- | --- | --- | --- | --- |
+| Unit | the root package | `AgentViewKitTests`, `AgentViewKitStyleTests`, `PackageStructureTests`, `ReadmeSnippetsTests` | the models, the commands, the wire, the scripted agents and the source scans. No window, no hosting view, no capture (`RootTestsHostNoViewTests`). | `swift test`, on each change: the per-card gate. |
+| Integration | `IntegrationTests/`, which depends on the root package by path | `AgentViewKitIntegrationTests`, `AgentViewKitStyleIntegrationTests` | each test that mounts a view in EditorKit's `HostedViewHarness`, an `NSHostingView` or a window, each capture of a real window, the snapshot and pixel tests, the focus rings and the review gallery. | `swift test --package-path IntegrationTests`, once per batch, and in the integration job of CI (`integration-package-path`). |
+
+```mermaid
+flowchart LR
+  Kit[AgentViewKit + AgentViewKitStyle] --> Support[AgentViewKitTestSupport + DemoSupport]
+  Support --> Unit[root Tests/: unit tiers]
+  Support --> Integration[IntegrationTests/: hosted and capture tiers]
+  Kit --> Unit
+  Kit --> Integration
+```
+
+- A test target of the root package cannot be a dependency, so a fixture that both tiers use lives once in `Sources/AgentViewKitTestSupport`, a test support product. `DemoSupport` is a product for the same reason. No host of the kit links either one.
+- A helper that only the integration tests use lives in the integration target. A test that reads the package sources as text (a source scan) stays in the root package: EditorKit's `PackageFiles()` takes the nearest `Package.swift` above the test file, which is `IntegrationTests/` for an integration test.
+- The source scans of `PackageStructureTests` read `IntegrationTests/Tests` too, so the rules of the test code hold in both packages. `HostedSerialTraitTests` holds the `.hostedSerially` trait on each hosted file there.
+- The integration package names the root package after the folder of the checkout, because SwiftPM names a path dependency after its directory: `AgentViewKit` in a clone, the folder name in a git worktree.
