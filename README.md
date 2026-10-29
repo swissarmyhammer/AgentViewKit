@@ -660,10 +660,13 @@ When the look of a view changes, its test fails, and it writes
 changed in magenta. The test also attaches the two images.
 
 Each `swift test` run also writes the review gallery,
-`~/Library/Caches/AgentViewKit/screenshot-check/index.html`: the key screens
-of the kit, in light and dark (EditorKit `style.md` "Review gallery"). The
-user reviews that page. There is no manual check and no comparison with
-Finder or System Settings.
+`~/Library/Caches/AgentViewKit/screenshot-check/index.html`, with EditorKit's
+`ReviewGallery` helper (EditorKit `style.md` "Review gallery"): first the key
+screens of the kit, in light and dark, with dated notes, then every reference
+PNG under `Tests/AgentViewKitTests/Snapshots/__Snapshots__/`, grouped by
+suite, light and dark side by side. A reference PNG that the page does not
+show fails the run. The user reviews that page. There is no manual check and
+no comparison with Finder or System Settings.
 
 To record the reference images again, run the tests in the record mode, and
 then review the new images before the commit:

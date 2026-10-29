@@ -18,9 +18,56 @@ protocol RenderedMount {
   func render(when condition: @MainActor () -> Bool) async
 }
 
+extension RenderedMount {
+  /// Waits until `condition` holds, then until the main run loop has run the
+  /// update that SwiftUI queued for the change, then renders.
+  ///
+  /// - Parameter condition: The condition on observable model values that are
+  ///   certain to change.
+  func render(when condition: @MainActor () -> Bool) async {
+    await ObservationWait.until(condition)
+    await RunLoopBlockFence.afterPendingBlocks()
+    render()
+  }
+}
+
 extension HostedViewHarness: RenderedMount {}
 
 extension CaptureMount: RenderedMount {}
+
+/// The mount of a key screen of EditorKit's review gallery, as the `settle`
+/// of a `ReviewScreen` receives it: the real key window on the screen.
+extension ReviewMount: RenderedMount {
+  /// Makes SwiftUI update the view now: a layout pass of the hosting view,
+  /// then a display of the window.
+  func render() {
+    layOutAndDisplay(hostingView, in: window)
+  }
+}
+
+/// Makes SwiftUI update a mounted view now: a layout pass of `view`, then a
+/// display of `window`.
+///
+/// - Parameters:
+///   - view: The hosting view of the mount.
+///   - window: The window that shows it.
+func layOutAndDisplay(_ view: NSView, in window: NSWindow) {
+  view.layoutSubtreeIfNeeded()
+  window.displayIfNeeded()
+}
+
+/// Hides each AppKit view of `types` under `root`, such as the `QLPreviewView`
+/// of the attachment inspector: QuickLook draws its preview out of process, at
+/// a time that no event of the view tells.
+///
+/// - Parameters:
+///   - types: The classes of the views to hide.
+///   - root: The hosting view of the mount.
+func hideViews(of types: [NSView.Type], in root: NSView) {
+  for view in root.descendants where types.contains(where: view.isKind(of:)) {
+    view.isHidden = true
+  }
+}
 
 /// A view of the kit mounted in a real borderless window of its own, for a
 /// capture from the window server (EditorKit `style.md`, rule 9).
@@ -65,19 +112,7 @@ final class CaptureMount<Content: View> {
   /// Makes SwiftUI update the view now: a layout pass of the hosting view,
   /// then a display of the window.
   func render() {
-    hostingView.layoutSubtreeIfNeeded()
-    window.displayIfNeeded()
-  }
-
-  /// Waits until `condition` holds, then until the main run loop has run the
-  /// update that SwiftUI queued for the change, then renders.
-  ///
-  /// - Parameter condition: The condition on observable model values that are
-  ///   certain to change.
-  func render(when condition: @MainActor () -> Bool) async {
-    await ObservationWait.until(condition)
-    await RunLoopBlockFence.afterPendingBlocks()
-    render()
+    layOutAndDisplay(hostingView, in: window)
   }
 
   /// Captures the whole window from the window server.
@@ -120,9 +155,7 @@ extension CaptureMount {
     defer { mount.close() }
     try await settle(mount)
     mount.render()
-    for view in mount.hostingView.descendants where hiddenTypes.contains(where: view.isKind(of:)) {
-      view.isHidden = true
-    }
+    hideViews(of: hiddenTypes, in: mount.hostingView)
     return try await mount.capture()
   }
 

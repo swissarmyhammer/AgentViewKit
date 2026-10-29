@@ -43,3 +43,12 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 - AgentViewKit keeps no copy of the rules. The docs and the code comments cite a rule by its number, a D-number or a section name of that guide, as EditorKit `style.md`.
 - The guide says that the view kits build on AgentViewKit for the shared visuals. KanbanViewKit and SnapshotViewKit use them from AgentViewKit and keep no copy.
 - `StyleGuideLinkTests` checks that this file links the guide, and that no file of the package names the old TestudoApp path of the guide or of its research page.
+
+## Review gallery
+
+The review gallery is one page, `~/Library/Caches/AgentViewKit/screenshot-check/index.html` (EditorKit `style.md`, "Review gallery"). The user reviews the look of the kit there; there is no manual check.
+
+- A normal `swift test` writes the page again. `ReviewGalleryScreenTests` builds it with EditorKit's `ReviewGallery` helper (`ReviewGallery(package: "AgentViewKit").record(_:snapshotRoots:)` of `EditorTestSupport`), and `ReviewGalleryPathTests` pins the path. AgentViewKit keeps no gallery code of its own.
+- The page shows the key screens first: the thread, the request deck, the banners, the sign-in prompt, the scrolled list, the attachment inspector and the gallery columns, each captured from a real window in Light and in Dark, with its dated note (`ReviewGalleryNotes`).
+- Then it shows every reference PNG under `Tests/AgentViewKitTests/Snapshots/__Snapshots__/**`, grouped by suite, with Light and Dark side by side. Discovery needs no registration, so a new snapshot shows up on its own.
+- The test fails when the page does not show a reference PNG or a key screen.

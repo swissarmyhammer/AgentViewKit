@@ -1,36 +1,41 @@
 #if DEBUG
-  import AgentViewKitTestSupport
+  import EditorTestSupport
   import Foundation
   import Testing
 
-  /// The review gallery of the full screens of the kit (^8q34yt8).
+  /// The review gallery of the package (^8q34yt8, ^wprq982), written with
+  /// EditorKit's `ReviewGallery` helper (EditorKit `style.md`, "Review
+  /// gallery").
   ///
-  /// The test captures each ``ReviewGalleryScreen`` in a real window on the
-  /// screen in each look of ``ReviewGallery/looks`` (Light and Dark), writes
-  /// the images to ``ReviewGallery/defaultDirectory``, and writes the contact
-  /// sheet `index.html` next to them. Each run of `swift test` writes the
-  /// folder again. Open `index.html` to review the screens.
+  /// The test records each ``ReviewGalleryScreen`` in a real window on the
+  /// screen in Light and in Dark, finds every reference PNG under
+  /// ``snapshotRoot``, and writes the page `index.html` with both into
+  /// ``gallery``. Each run of `swift test` writes the folder again. Open the
+  /// page to review the screens.
   ///
   /// The gallery compares no image with a reference image, so a changed
-  /// screen does not fail the test. The test fails when a screen cannot be
-  /// built, when a capture fails or holds one color only, or when a file
-  /// cannot be written. To make a screen a snapshot test later, give its
-  /// capture to EditorKit `SnapshotStore.verify(_:named:in:sourceLocation:)`
-  /// in place of `ReviewGallery.write(_:screen:look:)`.
+  /// screen does not fail the test. The test fails when a key screen cannot
+  /// be built or captured, and when the page does not show a key screen or a
+  /// reference PNG.
   @Suite(.serialized, .hostedSerially) @MainActor struct ReviewGalleryScreenTests {
-    @Test func eachScreenIsWrittenInEachLookWithTheContactSheet() async throws {
-      let gallery = ReviewGallery()
-      try gallery.removeEarlierRun()
+    /// The name of the package, for the folder and the title of the page.
+    static let package = "AgentViewKit"
 
-      for screen in ReviewGalleryScreen.allCases {
-        for look in ReviewGallery.looks {
-          try gallery.write(try await screen.capture(in: look), screen: screen.rawValue, look: look)
-        }
+    /// The review gallery of the package, at
+    /// `~/Library/Caches/AgentViewKit/screenshot-check/`.
+    static let gallery = ReviewGallery(package: package)
+
+    /// The folder of the reference PNGs of the snapshot suites: the
+    /// `__Snapshots__` folder next to this file.
+    static let snapshotRoot = URL(filePath: #filePath).deletingLastPathComponent()
+      .appending(path: ReviewImageSource.referenceFolderName, directoryHint: .isDirectory)
+
+    @Test func thePageShowsEachKeyScreenAndEachReferenceSnapshot() async throws {
+      let report = try await ReviewGalleryScreen.withReviewScreens(ReviewGalleryScreen.allCases[...]) { screens in
+        try await Self.gallery.record(screens, snapshotRoots: [Self.snapshotRoot])
       }
-      let sheet = try gallery.writeContactSheet(ReviewGalleryScreen.allCases.map(\.row))
 
-      let html = try String(contentsOf: sheet, encoding: .utf8)
-      #expect(!html.contains("No image:"))
+      expectReviewGalleryComplete(report)
     }
 
     @Test(arguments: [ReviewGalleryScreen.gallery, .inspector])
@@ -42,6 +47,20 @@
 
       #expect(colors.background.luminance <= CompositedSnapshotTests.darkLuminance, "\(colors)")
       #expect(colors.contrast >= CompositedSnapshotTests.minimumTextContrast, "\(colors)")
+    }
+  }
+
+  /// Pins the place of the review gallery page that the user opens (EditorKit
+  /// `style.md`, "Review gallery"). It captures nothing, so it holds no lock.
+  @Suite struct ReviewGalleryPathTests {
+    /// The page, relative to the home folder of the user.
+    static let pagePath = "Library/Caches/AgentViewKit/screenshot-check/index.html"
+
+    @Test func thePageIsScreenshotCheckIndexInTheCachesFolderOfThePackage() {
+      let expected = FileManager.default.homeDirectoryForCurrentUser.appending(path: Self.pagePath)
+
+      #expect(
+        ReviewGalleryScreenTests.gallery.pageURL.path(percentEncoded: false) == expected.path(percentEncoded: false))
     }
   }
 #endif

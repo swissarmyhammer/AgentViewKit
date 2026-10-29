@@ -2,27 +2,27 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import DemoSupport
-  import struct EditorTestSupport.CapturedImage
-  import enum EditorTestSupport.ReviewAppearance
+  import EditorTestSupport
   import FoundationModelsACP
   import FoundationModelsACPClient
   import Quartz
   import SwiftUI
   import Testing
 
-  /// The full screens of the review gallery (^8q34yt8): the whole thread
+  /// The key screens of the review gallery (^8q34yt8): the whole thread
   /// view, the request deck in the bar, the banners, the sign-in prompt, the
   /// list scrolled under both bars, the attachment inspector and the gallery
   /// columns of the demo app.
   ///
-  /// Each screen is the real kit view in a real window on the screen, with
-  /// fixed preview data, captured from the window server (``CaptureMount``,
-  /// EditorKit `style.md` rule 9). The images show what the app shows: Liquid
-  /// Glass, the scroll edge effect, the vibrant labels in each look, and the
-  /// mic and Send buttons of the composer. A popover is its own window, so no
-  /// image shows one.
+  /// Each screen is an EditorKit `ReviewScreen`: the real kit view with fixed
+  /// preview data, which EditorKit's `ReviewGallery.record` mounts in a real
+  /// key window on the screen in Light and in Dark and captures from the
+  /// window server (EditorKit `style.md` rule 9 and "Review gallery"). The
+  /// images show what the app shows: Liquid Glass, the scroll edge effect,
+  /// the vibrant labels in each look, and the mic and Send buttons of the
+  /// composer. A popover is its own window, so no image shows one.
   ///
-  /// The raw value is the name of the screen in the image names.
+  /// The raw value is the id of the screen in the image names.
   enum ReviewGalleryScreen: String, CaseIterable {
     /// The thread with a transcript, a code block, a tool call with a diff,
     /// terminal output, a plan, the state banner, the suggestion chips, the
@@ -52,7 +52,7 @@
     /// and a thread in the detail.
     case gallery
 
-    /// The title of the screen in the contact sheet.
+    /// The title of the row of the screen on the page.
     var title: String {
       switch self {
       case .thread: "Thread"
@@ -63,17 +63,6 @@
       case .inspector: "Attachment inspector"
       case .gallery: "Gallery columns"
       }
-    }
-
-    /// The judgement of the reviewer under the row of the screen, with the
-    /// id of each card that a finding made.
-    var note: String {
-      ReviewGalleryNotes.notes[self] ?? ReviewGalleryNotes.notJudged
-    }
-
-    /// The row of the screen in the contact sheet.
-    var row: ReviewGalleryRow {
-      ReviewGalleryRow(screen: rawValue, title: title, note: note)
     }
 
     /// The size of the image of the screen, in points.
@@ -97,23 +86,80 @@
       }
     }
 
-    /// The capture of the screen in `look`.
+    /// The EditorKit key screen with the id, the title, the dated note and the
+    /// size of this screen.
     ///
-    /// - Parameter look: The look of the window.
-    /// - Returns: The image.
-    /// - Throws: An issue when the screen cannot be built, or the error of the
-    ///   capture.
-    func capture(in look: ReviewAppearance) async throws -> CapturedImage {
+    /// - Parameters:
+    ///   - settle: The wait for an event of the mounted screen before the
+    ///     capture. Do not wait for a time.
+    ///   - content: The view of the screen in a look.
+    /// - Returns: The key screen.
+    /// - Throws: The error of ``ReviewGalleryNotes/note(of:)``.
+    func reviewScreen<Content: View>(
+      settle: @escaping @MainActor (ReviewMount) async throws -> Void = { _ in },
+      @ViewBuilder content: @escaping @MainActor (ReviewAppearance) -> Content
+    ) throws -> ReviewScreen {
+      ReviewScreen(
+        id: rawValue, title: title, note: try ReviewGalleryNotes.note(of: self), size: size, settle: settle,
+        content: content)
+    }
+
+    /// Runs `body` with the key screen of this screen, and frees what the
+    /// screen holds after it: the file of the attachment inspector, and the
+    /// agent of the gallery columns.
+    ///
+    /// - Parameter body: The work with the key screen.
+    /// - Returns: The result of `body`.
+    /// - Throws: The error of a fixture, or of `body`.
+    func withReviewScreen<T>(_ body: (ReviewScreen) async throws -> T) async throws -> T {
       switch self {
-      case .thread: try await ReviewGalleryFixtures.threadImage(size: size, look: look)
-      case .requestDeck: try await CaptureMount.capture(ReviewGalleryFixtures.deckThread, size: size, appearance: look)
-      case .banners: try await CaptureMount.capture(ReviewGalleryFixtures.bannerThread, size: size, appearance: look)
-      case .signIn:
-        try await CaptureMount.capture(ReviewGalleryFixtures.signInThread(), size: size, appearance: look)
-      case .scrolled: try await ReviewGalleryFixtures.scrolledImage(size: size, look: look)
-      case .inspector: try await ReviewGalleryFixtures.inspectorImage(size: size, look: look)
-      case .gallery: try await ReviewGalleryFixtures.galleryImage(size: size, look: look)
+      case .thread: try await body(ReviewGalleryFixtures.threadScreen())
+      case .requestDeck: try await body(reviewScreen { _ in ReviewGalleryFixtures.deckThread })
+      case .banners: try await body(reviewScreen { _ in ReviewGalleryFixtures.bannerThread })
+      case .signIn: try await body(ReviewGalleryFixtures.signInScreen())
+      case .scrolled: try await body(ReviewGalleryFixtures.scrolledScreen())
+      case .inspector: try await ReviewGalleryFixtures.withInspectorScreen(body)
+      case .gallery: try await ReviewGalleryFixtures.withGalleryScreen(body)
       }
+    }
+
+    /// Runs `body` with the key screen of each of `screens`, in order, and
+    /// frees what each screen holds after it.
+    ///
+    /// - Parameters:
+    ///   - screens: The screens still to make.
+    ///   - made: The key screens made so far.
+    ///   - body: The work with every key screen.
+    /// - Returns: The result of `body`.
+    /// - Throws: The error of a fixture, or of `body`.
+    static func withReviewScreens<T>(
+      _ screens: ArraySlice<ReviewGalleryScreen>, made: [ReviewScreen] = [],
+      _ body: ([ReviewScreen]) async throws -> T
+    ) async throws -> T {
+      if let first = screens.first {
+        return try await first.withReviewScreen { screen in
+          try await withReviewScreens(screens.dropFirst(), made: made + [screen], body)
+        }
+      }
+      return try await body(made)
+    }
+
+    /// The image of the screen in `appearance`, as EditorKit's review gallery
+    /// writes it: the gallery records this screen alone, with no reference
+    /// image, in a temporary folder, and the image is read back from there.
+    ///
+    /// - Parameter appearance: The look of the window.
+    /// - Returns: The image.
+    /// - Throws: An issue when the gallery did not write both images of the
+    ///   screen, or the error of a fixture, of the gallery or of the read.
+    func capture(in appearance: ReviewAppearance) async throws -> CapturedImage {
+      let folder = try TemporaryDirectory()
+      defer { folder.remove() }
+      let gallery = ReviewGallery(package: ReviewGalleryScreenTests.package, directory: folder.url)
+      let report = try await withReviewScreen { screen in try await gallery.record([screen], snapshotRoots: []) }
+      try #require(report.isComplete, "\(report.failureDescription)")
+      let file = gallery.directory.appending(path: ReviewGallery.screenPath(id: rawValue, appearance: appearance))
+      return try CapturedImage(decoding: Data(contentsOf: file))
     }
   }
 
@@ -273,23 +319,21 @@
       .speechTranscriber(FakeSpeechTranscriber())
     }
 
-    /// The capture of the thread screen: each block expanded, after the
-    /// syntax parse of the code block.
+    /// The thread screen: each block expanded, captured after the syntax
+    /// parse of the code block.
     ///
-    /// - Parameters:
-    ///   - size: The size of the image.
-    ///   - look: The look of the window.
-    /// - Returns: The image.
-    /// - Throws: An issue when the cache has no model for the code block, or
-    ///   the error of the capture.
-    static func threadImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
+    /// - Returns: The key screen.
+    /// - Throws: The error of a decode or of the note. The settle records an
+    ///   issue when the cache has no model for the code block.
+    static func threadScreen() throws -> ReviewScreen {
       let session = try transcriptSession()
       let cache = CodeBlockModelCache()
-      let thread = demoThread(session, connection: connection)
-        .environment(\.expandedBlocksStore, ExpandedBlocksStore(defaultExpanded: { _ in true }))
-        .environment(\.codeBlockModelCache, cache)
-      return try await CaptureMount.capture(thread, size: size, appearance: look) { _ in
+      return try ReviewGalleryScreen.thread.reviewScreen(settle: { _ in
         await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
+      }) { _ in
+        demoThread(session, connection: connection)
+          .environment(\.expandedBlocksStore, ExpandedBlocksStore(defaultExpanded: { _ in true }))
+          .environment(\.codeBlockModelCache, cache)
       }
     }
 
@@ -341,94 +385,104 @@
         connection: AgentAuthViewSurfaceHostedTests.connection)
     }
 
-    /// The capture of the scrolled screen: the long transcript of
+    /// The sign-in screen: ``signInThread()`` in each look.
+    ///
+    /// - Returns: The key screen.
+    /// - Throws: The error of ``signInThread()`` or of the note.
+    static func signInScreen() throws -> ReviewScreen {
+      let thread = try signInThread()
+      return try ReviewGalleryScreen.signIn.reviewScreen { _ in thread }
+    }
+
+    /// The scrolled screen: the long transcript of
     /// ``PreviewFixtures/scrolledSession``, moved to the row at
     /// ``scrolledRowIndex`` as the Show Error button of the state banner moves
     /// it, so that the list is away from the bottom and shows the pill.
     ///
-    /// - Parameters:
-    ///   - size: The size of the image.
-    ///   - look: The look of the window.
-    /// - Returns: The image.
-    /// - Throws: An issue when the list does not leave the bottom, or the error
-    ///   of the capture.
-    static func scrolledImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
+    /// - Returns: The key screen.
+    /// - Throws: The error of the note. The settle records an issue when the
+    ///   list does not leave the bottom.
+    static func scrolledScreen() throws -> ReviewScreen {
       let session = PreviewFixtures.scrolledSession
       let anchors = ScrollAnchorManager()
-      let thread = AgentThreadView(
-        session: session, connection: connection, anchors: anchors, sessionTitle: sessionTitle
-      ) {
-        DefaultThreadComposer()
-      }
-      return try await CaptureMount.capture(thread, size: size, appearance: look) { mount in
+      return try ReviewGalleryScreen.scrolled.reviewScreen(settle: { mount in
         let key = session.transcript.map(\.rowKey)[scrolledRowIndex]
         anchors.noteJump(to: key)
         anchors.onScroll(.item(key))
         mount.render()
         try #require(!anchors.isPinnedToBottom, "The list of the scrolled screen did not leave the bottom.")
+      }) { _ in
+        AgentThreadView(session: session, connection: connection, anchors: anchors, sessionTitle: sessionTitle) {
+          DefaultThreadComposer()
+        }
       }
     }
 
-    /// The capture of the thread with the attachment inspector open on a file
-    /// on disk. The image hides the live QuickLook preview, which draws out
-    /// of process at a time that no event tells.
+    /// Runs `body` with the screen of the thread with the attachment
+    /// inspector open on a file on disk, and removes the file after it. The
+    /// image hides the live QuickLook preview, which draws out of process at
+    /// a time that no event tells.
     ///
-    /// - Parameters:
-    ///   - size: The size of the image.
-    ///   - look: The look of the window.
-    /// - Returns: The image.
-    /// - Throws: The error of the file of the attachment, or of the capture.
-    static func inspectorImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
+    /// - Parameter body: The work with the key screen.
+    /// - Returns: The result of `body`.
+    /// - Throws: The error of the file of the attachment, of a decode, of the
+    ///   note, or of `body`.
+    static func withInspectorScreen<T>(_ body: (ReviewScreen) async throws -> T) async throws -> T {
       let directory = try TemporaryDirectory()
       defer { directory.remove() }
       let attachment = try AttachmentInspectorHostedTests.attachment(
         named: SnapshotFixtures.inspectorFileName, in: directory)
-      let thread = demoThread(try transcriptSession(), connection: connection)
-        .environment(\.inspectorSelection, InspectorSelection(attachment: attachment))
-      return try await CaptureMount.capture(thread, size: size, appearance: look, hiding: [QLPreviewView.self])
+      let session = try transcriptSession()
+      let screen = try ReviewGalleryScreen.inspector.reviewScreen(settle: { mount in
+        hideViews(of: [QLPreviewView.self], in: mount.hostingView)
+      }) { _ in
+        demoThread(session, connection: connection)
+          .environment(\.inspectorSelection, InspectorSelection(attachment: attachment))
+      }
+      return try await body(screen)
     }
 
     /// The id of the scripted permission session of the Gallery tab
     /// (`DemoGallery.permission`).
     static let permissionSessionID = "gallery-permission"
 
-    /// The capture of the gallery columns of the demo app: the session list of
-    /// the scripted sessions of the Gallery tab (``InMemoryDemoScript/gallery``)
-    /// in the sidebar, and the resumed permission session in the detail. The
-    /// permission session is open and waits for an answer, so its row shows
-    /// the count of open requests.
+    /// Runs `body` with the screen of the gallery columns of the demo app: the
+    /// session list of the scripted sessions of the Gallery tab
+    /// (``InMemoryDemoScript/gallery``) in the sidebar, and the resumed
+    /// permission session in the detail. The permission session is open and
+    /// waits for an answer, so its row shows the count of open requests.
     ///
     /// The image is made after the list shows the sessions that the agent
-    /// sent, and after the permission request came. The function stops the
-    /// agent at the end.
+    /// sent, and after the permission request came. The agent stops after
+    /// `body`, also when it throws.
     ///
-    /// - Parameters:
-    ///   - size: The size of the image.
-    ///   - look: The look of the window.
-    /// - Returns: The image.
-    /// - Throws: The error of the start of the agent, of `session/resume`, or
-    ///   of the capture.
-    static func galleryImage(size: CGSize, look: ReviewAppearance) async throws -> CapturedImage {
+    /// - Parameter body: The work with the key screen.
+    /// - Returns: The result of `body`.
+    /// - Throws: The error of the start of the agent, of `session/resume`, of
+    ///   the note, or of `body`.
+    static func withGalleryScreen<T>(_ body: (ReviewScreen) async throws -> T) async throws -> T {
       let agent = try await DemoAgent.makeInProcess(script: .gallery)
-      let session = try await agent.connection.resumeSession(
-        ResumeSessionRequest(
-          cwd: agent.workingDirectory, sessionId: SessionId(rawValue: permissionSessionID),
-          replayFrom: .start(ReplayFromStart())))
-      let columns = GalleryColumns {
-        SessionListView(connection: agent.connection, cwd: agent.workingDirectory, onOpen: { _ in })
-          .navigationSplitViewColumnWidth(
-            min: DemoWindowLayout.sidebarMinimumWidth, ideal: DemoWindowLayout.sidebarIdealWidth)
-      } detail: {
-        demoThread(session, connection: agent.connection)
-      } lookControls: {
-        EmptyView()
-      }
       do {
-        let image = try await CaptureMount.capture(columns, size: size, appearance: look) { mount in
+        let session = try await agent.connection.resumeSession(
+          ResumeSessionRequest(
+            cwd: agent.workingDirectory, sessionId: SessionId(rawValue: permissionSessionID),
+            replayFrom: .start(ReplayFromStart())))
+        let screen = try ReviewGalleryScreen.gallery.reviewScreen(settle: { mount in
           await mount.render { !agent.connection.sessions.isEmpty && !session.pendingPermissions.isEmpty }
+        }) { _ in
+          GalleryColumns {
+            SessionListView(connection: agent.connection, cwd: agent.workingDirectory, onOpen: { _ in })
+              .navigationSplitViewColumnWidth(
+                min: DemoWindowLayout.sidebarMinimumWidth, ideal: DemoWindowLayout.sidebarIdealWidth)
+          } detail: {
+            demoThread(session, connection: agent.connection)
+          } lookControls: {
+            EmptyView()
+          }
         }
+        let result = try await body(screen)
         await agent.stop()
-        return image
+        return result
       } catch {
         await agent.stop()
         throw error

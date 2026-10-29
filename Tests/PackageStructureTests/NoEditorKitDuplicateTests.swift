@@ -140,15 +140,6 @@ extension TopLevelDeclaration: SampledCodeForm {
   /// The directories of EditorKit's test support, relative to its checkout.
   static let editorKitTestSupportPaths = ["Sources/EditorTestSupport", "Sources/EditorReviewGallery"]
 
-  /// The names that both test supports can declare, each with the reason.
-  /// Only the review gallery is here: card ^wprq982 removes it from
-  /// `AgentViewKitTestSupport`.
-  static let allowedNames: [String: String] = [
-    "ReviewGallery": "removed by card ^wprq982",
-    "ReviewGalleryError": "removed by card ^wprq982",
-    "ReviewGalleryPage": "removed by card ^wprq982",
-  ]
-
   /// A sample line of each declaration kind.
   static let sampleLines: [(form: TopLevelDeclaration, line: String)] = [
     (.structure, "@MainActor public struct AccessibilityElementSnapshot: Equatable, Sendable {"),
@@ -249,12 +240,6 @@ extension TopLevelDeclaration: SampledCodeForm {
     #expect(names == Self.depthSample.topLevelNames)
   }
 
-  @Test func eachAllowedNameIsAReviewGalleryName() {
-    let others = Self.allowedNames.keys.filter { !$0.hasPrefix("ReviewGallery") }
-
-    #expect(others.isEmpty, "Only the review gallery names of card ^wprq982 are allowed: \(others)")
-  }
-
   @Test func noAgentTestSupportDeclarationCopiesEditorKitTestSupport() throws {
     let checkout = PackageFiles.root.appending(path: Self.editorKitCheckoutPath)
     let checkoutExists = FileManager.default.fileExists(atPath: checkout.path(percentEncoded: false))
@@ -270,7 +255,7 @@ extension TopLevelDeclaration: SampledCodeForm {
       inSwiftFilesBelow: PackageFiles.file(Self.agentTestSupportPath), relativeTo: PackageFiles.root)
 
     let copies = agentDeclarations
-      .filter { editorKitNames.contains($0.key) && Self.allowedNames[$0.key] == nil }
+      .filter { editorKitNames.contains($0.key) }
       .sorted { $0.key < $1.key }
       .map { "\($0.key) (\($0.value.joined(separator: ", ")))" }
 
