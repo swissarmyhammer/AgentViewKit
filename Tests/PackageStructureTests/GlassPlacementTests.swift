@@ -12,17 +12,11 @@ import Testing
 ///
 /// The floating glass, its glass id and its container come from the EditorKit
 /// `EditorStyle` target, so the kit makes no `.glassEffect(`, no
-/// `.glassEffectID(` and no `GlassEffectContainer` of its own.
+/// `.glassEffectID(` and no `GlassEffectContainer` of its own: EditorKit's
+/// `glassPlacement` engine holds that (``StyleRuleEngineTests``). These forms
+/// place the floating glass of EditorStyle and the glass button style in the
+/// files of the kit.
 enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
-  /// A direct `.glassEffect(` call. No file of the kit makes one: the
-  /// floating glass of EditorStyle makes the glass.
-  case glassEffect
-
-  /// A `.glassEffectID(` call, which lets a glass morph (D113 answer 2). No
-  /// file of the kit makes one: the glass id modifiers of EditorStyle make
-  /// it.
-  case glassEffectID
-
   /// The glass id modifier of EditorStyle, `floatingGlassID(_:)`. It puts a
   /// glass in the glass namespace of its container (D113 answer 2). The
   /// scroll-to-bottom pill and the suggestion chips use it on their glass
@@ -36,20 +30,16 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// top bar, a floating surface (``ThreadTopBarStructureTests``).
   case floatingGlass
 
-  /// A `GlassEffectContainer`. No file of the kit makes one: the
-  /// `FloatingGlassContainer` of EditorStyle makes it.
-  case glassEffectContainer
-
   /// The shared container of the floating controls of EditorStyle,
   /// `FloatingGlassContainer`. The composer and the thread view use it. The
   /// thread view has one for the header in its top bar, and one for the
   /// scroll-to-bottom pill and the composer slot in its bottom bar.
   case floatingGlassContainer
 
-  /// The `.glass` or the `.glassProminent` button style. The floating
-  /// controls and the action buttons of the request cards and the notices use
-  /// the `.glass` style. ``ThemeInjectionTests`` forbids the `.glassProminent`
-  /// style in each file, so the scan finds it to place it, not to permit it.
+  /// The `.glass` button style. The floating controls and the action buttons
+  /// of the request cards and the notices use it. EditorKit's
+  /// `themeInjection` engine forbids each prominent button style in each
+  /// file (``StyleRuleEngineTests``).
   case glassButtonStyle
 
   var testDescription: String { rawValue }
@@ -57,25 +47,16 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The pattern that finds the form in a line of code.
   var pattern: Regex<Substring> {
     switch self {
-    case .glassEffect: GlassForm.callPattern("glassEffect")
-    case .glassEffectID: GlassForm.callPattern("glassEffectID")
     case .glassID: GlassForm.callPattern("floatingGlassID")
     case .floatingGlass: GlassForm.callPattern("floatingGlass")
-    case .glassEffectContainer: WordPattern.wholeWord("GlassEffectContainer")
     case .floatingGlassContainer: WordPattern.wholeWord("FloatingGlassContainer")
-    case .glassButtonStyle:
-      GlassForm.buttonStylePattern(
-        ChoiceOf {
-          WordPattern.wholeWord(GlassForm.prominentStyle)
-          WordPattern.wholeWord("glass")
-        })
+    case .glassButtonStyle: GlassForm.buttonStylePattern(WordPattern.wholeWord("glass"))
     }
   }
 
   /// The files that can use the form, relative to the package root.
   var allowedFiles: Set<String> {
     switch self {
-    case .glassEffect, .glassEffectID, .glassEffectContainer: []
     case .glassID: [GlassForm.scrollPillFile, GlassForm.suggestionsFile]
     case .floatingGlass:
       [ComposerGlassStructureTests.composerFile, GlassForm.requestDeckFile, ComposerGlassStructureTests.threadFile]
@@ -160,9 +141,6 @@ enum GlassForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
     defaultStatusBarActionStyleFile,
   ]
 
-  /// The name of the prominent glass button style.
-  static let prominentStyle = "glassProminent"
-
   /// The pattern that finds a call of a function: the name as a whole word,
   /// then `(`.
   ///
@@ -208,27 +186,23 @@ extension GlassForm: FixtureCodeForm {
   static var scan: CodeScan { .lines }
 }
 
-/// Holds the glass of the kit on the floating controls and on the action
-/// buttons of the request cards and the notices (D110 (b), (c)).
+/// Holds the floating glass of the kit on the floating controls, and the
+/// glass button style on the floating controls and on the action buttons of
+/// the request cards and the notices (D110 (b), (c)).
 ///
 /// The scan reads each Swift file of the kit as text. It blanks the comments
 /// and the string literals, then reads the file one line at a time. Each
-/// ``GlassForm`` can show only in its allowed files. The composer directory
-/// `Input/` has no `.buttonStyle(.glassProminent)`: Send and Stop use the
-/// `.glass` style, because the accent is only for the selection and the
-/// focus (the user decision of 2026-10-24, card ^k06v4gt).
+/// ``GlassForm`` can show only in its allowed files.
 ///
-/// ``ThemeInjectionTests`` forbids each prominent button style, each tint
-/// and each read of the accent outside its allowed files in the kit, the demo
-/// support and the demo, so this suite does not check them again.
+/// EditorKit's engines (``StyleRuleEngineTests``) forbid the custom glass of
+/// SwiftUI (`glassPlacement`), and each prominent button style, each tint
+/// and each read of the accent outside its allowed files (`themeInjection`),
+/// so this suite does not check them again. Send and Stop use the `.glass`
+/// style, because the accent is only for the selection and the focus (the
+/// user decision of 2026-10-24, card ^k06v4gt).
 @Suite struct GlassPlacementTests {
   /// The composer directory, relative to the package root.
   static let inputPath = KitSourceFiles.kitFile("Input")
-
-  /// The pattern that finds the prominent glass button style.
-  static var prominentButtonStylePattern: Regex<Substring> {
-    GlassForm.buttonStylePattern(WordPattern.wholeWord(GlassForm.prominentStyle))
-  }
 
   /// The fixture directory of the scan tests.
   static var fixtures: URL {
@@ -241,21 +215,11 @@ extension GlassForm: FixtureCodeForm {
 
   /// Each glass form of ``violatingFixtureFile``, and the line that uses it.
   static let violatingFixtureForms: [(form: GlassForm, line: Int)] = [
-    (.glassEffect, 9),
-    (.floatingGlass, 10),
-    (.glassEffectContainer, 11),
-    (.floatingGlassContainer, 12),
-    (.glassButtonStyle, 13),
-    (.glassEffectID, 14),
-    (.glassID, 15),
+    (.floatingGlass, 9),
+    (.floatingGlassContainer, 10),
+    (.glassButtonStyle, 11),
+    (.glassID, 12),
   ]
-
-  /// The fixture file with two prominent glass button styles, relative to
-  /// ``fixtures``.
-  static let prominentFixtureFile = "Violating/Input/TwoProminentActions.swift"
-
-  /// The lines of ``prominentFixtureFile`` that use the prominent style.
-  static let prominentFixtureLines = [9, 10]
 
   /// Each file of each allow list, relative to the package root.
   static let allowedFiles = GlassForm.allCases.reduce(into: Set<String>()) { files, form in
@@ -348,14 +312,6 @@ extension GlassForm: FixtureCodeForm {
     #expect(!"case .barWithoutGlass: content".contains(pattern))
   }
 
-  @Test func theInputHasNoProminentGlassButtonStyle() throws {
-    let found = try Self.uses(
-      of: Self.prominentButtonStylePattern, inSwiftFilesBelow: PackageFiles().file(Self.inputPath),
-      relativeTo: PackageFiles().root)
-
-    #expect(found.isEmpty, "\(found)")
-  }
-
   @Test func memberCallPatternFindsTheMemberInTheArgumentOfTheCall() {
     let pattern = GlassForm.memberCallPattern("foregroundStyle", WordPattern.wholeWord("tint"))
 
@@ -370,21 +326,9 @@ extension GlassForm: FixtureCodeForm {
     #expect(found == ["\(Self.violatingFixtureFile):\(line)"])
   }
 
-  @Test func theScanReportsEachProminentGlassButtonStyleOfTheInputFixture() throws {
-    let found = try Self.fixtureUses(of: Self.prominentButtonStylePattern, in: "Violating/Input")
-
-    #expect(found == Self.prominentFixtureLines.map { "\(Self.prominentFixtureFile):\($0)" })
-  }
-
   @Test(arguments: GlassForm.allCases)
   func theScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture(form: GlassForm) throws {
     try form.expectNoUseInTheCleanFixture()
-  }
-
-  @Test func theProminentScanIgnoresTheCommentsAndTheStringLiteralsOfTheCleanFixture() throws {
-    let found = try Self.fixtureUses(of: Self.prominentButtonStylePattern, in: CodeFormFixtures.clean)
-
-    #expect(found.isEmpty, "\(found)")
   }
 
   @Test(arguments: GlassForm.allCases)

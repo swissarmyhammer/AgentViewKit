@@ -33,9 +33,10 @@ import Testing
   static let topBarViews = ([header] + banners)
     .map { BarView(file: ComposerGlassStructureTests.threadFile, view: $0, barStart: topBarStart) }
 
-  /// The glass forms that make a glass surface: a direct glass effect and the
-  /// floating glass of the kit.
-  static let surfaceForms = [GlassForm.glassEffect, GlassForm.floatingGlass]
+  /// The glass forms that make a glass surface in the thread view: the
+  /// floating glass of the kit. EditorKit's `glassPlacement` engine holds the
+  /// thread view to no direct glass effect (``StyleRuleEngineTests``).
+  static let surfaceForms = [GlassForm.floatingGlass]
 
   /// The code lines of the top bar of the thread, with each comment and each
   /// string literal blanked.

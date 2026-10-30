@@ -14,10 +14,11 @@ import Testing
 /// view on the minimap. A current item that is not the selection and has no
 /// focus now has no accent and no fill.
 ///
-/// ``ThemeInjectionTests`` holds the files that can read the accent at all,
-/// and ``ContentFillTests`` holds the files that can fill behind content.
-/// This suite names the two old forms, so that neither one comes back in a
-/// file that a later card adds to those lists.
+/// EditorKit's `themeInjection` and `contentFills` engines
+/// (``StyleRuleEngineTests``) hold the files that can read the accent at all
+/// and the files that can fill behind content. This suite names the two old
+/// forms, so that neither one comes back in a file that a later card adds to
+/// those allow lists.
 @Suite struct AccentMarkTests {
   /// The files that show a current item, relative to the package root: the
   /// current source of the sources list and the rows in view on the minimap.
@@ -27,8 +28,26 @@ import Testing
     KitSourceFiles.kitFile("Thread/ThreadMinimapView.swift"),
   ]
 
-  /// The forms that put a fill behind a current item.
-  static let currentItemFillForms: [ContentFillForm] = [.backgroundInShape, .shapeFill, .editorStyleFill]
+  /// The pattern that finds a read of the theme accent: a member `.accent`,
+  /// `.tokenTint`, `.selectedTokenTint` or `.themeAccent`, as a whole word.
+  ///
+  /// The list is complete for the `Theme` protocol of EditorKit
+  /// (`EditorTheme/Theme.swift`) and for the environment value of the theme
+  /// accent (`EditorStyle/ThemeAccent.swift`). The protocol names the accent
+  /// `accent`, and two members whose default is the accent: `tokenTint` and
+  /// `selectedTokenTint`. The pattern finds the member after each receiver,
+  /// such as `editorTheme`, `theme` or a key path `\.accent`.
+  static var themeAccentPattern: Regex<Substring> {
+    Regex {
+      "."
+      ChoiceOf {
+        WordPattern.wholeWord("accent")
+        WordPattern.wholeWord("tokenTint")
+        WordPattern.wholeWord("selectedTokenTint")
+        WordPattern.wholeWord("themeAccent")
+      }
+    }
+  }
 
   /// The pattern of the theme accent as a text color: a `foregroundStyle(` or
   /// `foregroundColor(` call that reads the theme accent before its first `)`.
@@ -40,7 +59,7 @@ import Testing
         GlassForm.callPattern("foregroundColor")
       }
       ZeroOrMore(CharacterClass.anyOf(")").inverted)
-      ThemeInjectionForm.themeAccentPattern
+      themeAccentPattern
     }
   }
 
@@ -86,14 +105,15 @@ import Testing
   func aCurrentItemReadsNoAccent(file: String) throws {
     let code = try ThreadBottomBarStructureTests.code(of: file)
 
-    #expect(SourceLineScanner.matchStartLines(of: ThemeInjectionForm.themeAccentPattern, in: code).isEmpty)
+    #expect(SourceLineScanner.matchStartLines(of: Self.themeAccentPattern, in: code).isEmpty)
   }
 
-  /// A current item that is not the selection and has no focus has no fill.
-  @Test(arguments: currentItemFiles, currentItemFillForms)
-  func aCurrentItemHasNoFill(file: String, form: ContentFillForm) throws {
-    let code = try ThreadBottomBarStructureTests.code(of: file)
+  /// A current item that is not the selection and has no focus has no fill:
+  /// EditorKit's `contentFills` engine finds nothing in its file.
+  @Test(arguments: currentItemFiles)
+  func aCurrentItemHasNoFill(file: String) throws {
+    let lines = try StyleRuleScanner.contentFills.lines(inSource: PackageFiles().text(of: file))
 
-    #expect(SourceLineScanner.matchStartLines(of: form.pattern, in: code).isEmpty, "\(form)")
+    #expect(lines.isEmpty, "\(file) fills at lines \(lines)")
   }
 }

@@ -51,10 +51,10 @@ import Testing
     #expect(files.sorted() == ["Violating/ImportsNothingForbidden.swift", "Violating/Nested/ImportsRuntimes.swift"])
   }
 
-  /// The fixture directory with the comments and the string literals of the
-  /// fixed color scan.
+  /// The fixture directory with color names in comments and in each kind of
+  /// string literal, and one line of code.
   static var literalFixtures: URL {
-    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/ThemeColors/Clean") }
+    get throws { try PackageFiles().file("Tests/PackageStructureTests/Fixtures/SourceLineScanner") }
   }
 
   @Test func codeMatchesSkipsTheCommentsAndTheStringLiterals() throws {

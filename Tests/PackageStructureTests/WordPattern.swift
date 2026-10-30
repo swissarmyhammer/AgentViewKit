@@ -3,10 +3,10 @@ import RegexBuilder
 /// The word patterns that the source scans of this target share.
 ///
 /// One pattern serves each scan that finds a name as a whole word, for
-/// example ``RemovedVocabularyTests`` and ``PreviewCoverageTests``. Thus the
+/// example ``RemovedVocabularyTests`` and ``ViewPreviewTests``. Thus the
 /// word boundaries of the scans cannot become different. One pattern also
 /// serves each scan that finds a member after a receiver, for example
-/// ``FixedColorTests`` and ``GlassForm/memberCallPattern(_:_:)``.
+/// ``SystemStructureTests`` and ``GlassForm/memberCallPattern(_:_:)``.
 enum WordPattern {
   /// The pattern that finds a member after a receiver: a word boundary, the
   /// receiver, then optional whitespace, then `.`, then the member. For the
@@ -55,5 +55,45 @@ enum WordPattern {
       Anchor.wordBoundary
     }
     .wordBoundaryKind(.simple)
+  }
+
+  /// The pattern of a dot with no name directly before it: the dot of a
+  /// modifier or of an implicit member, such as `.selection` after `(`.
+  static var dotAfterNoName: Regex<Substring> {
+    Regex {
+      Anchor.wordBoundary.inverted
+      "."
+    }
+    .wordBoundaryKind(.simple)
+  }
+
+  /// The pattern of the text between the parentheses of a call: text with
+  /// no parentheses, and pairs of parentheses with up to two levels of
+  /// nested pairs. The text can continue on the next lines.
+  static var argumentText: Regex<Substring> {
+    let other = CharacterClass.anyOf("()").inverted
+    let innerPair = Regex {
+      "("
+      ZeroOrMore(other)
+      ")"
+    }
+    let pair = Regex {
+      "("
+      ZeroOrMore {
+        ChoiceOf {
+          other
+          innerPair
+        }
+      }
+      ")"
+    }
+    return Regex {
+      ZeroOrMore {
+        ChoiceOf {
+          other
+          pair
+        }
+      }
+    }
   }
 }

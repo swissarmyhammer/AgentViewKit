@@ -7,7 +7,8 @@ import Testing
 ///
 /// No file of the kit makes a `GlassEffectContainer`: the shared
 /// `FloatingGlassContainer` of the EditorKit `EditorStyle` target makes it
-/// (``GlassPlacementTests``). That container makes no second container in a
+/// (``GlassPlacementTests``, and EditorKit's `glassPlacement` engine in
+/// ``StyleRuleEngineTests``). That container makes no second container in a
 /// container, so a group of floating controls has one container. The thread
 /// view puts the scroll-to-bottom pill and the composer slot in one shared
 /// container, and the composer uses the shared container too.
@@ -65,16 +66,12 @@ import Testing
 
   /// Each glass form that a file must not write, as the file and the form.
   ///
-  /// The thread view writes no direct `.glassEffect` call: its header gets
-  /// the floating glass of the kit, and its floating controls get their
-  /// glass from their own files. The composer writes no direct
-  /// `.glassEffect` call. The editor is in the field glass, so it writes no
-  /// glass.
+  /// The editor is in the field glass, so it writes no floating glass.
+  /// EditorKit's `glassPlacement` engine holds each file, the thread view
+  /// and the composer among them, to no direct `.glassEffect` call
+  /// (``StyleRuleEngineTests``).
   static let forbiddenGlass = [
-    (file: threadFile, form: GlassForm.glassEffect),
-    (file: composerFile, form: GlassForm.glassEffect),
-    (file: editorFile, form: GlassForm.glassEffect),
-    (file: editorFile, form: GlassForm.floatingGlass),
+    (file: editorFile, form: GlassForm.floatingGlass)
   ]
 
   /// Each glass that shows or hides next to another glass in the shared

@@ -28,7 +28,7 @@ struct BarView: CustomTestStringConvertible, Sendable {
 /// ``ConversationView`` alone puts its state banner in its own bottom bar.
 ///
 /// The scan blanks the comments and the string literals of each file, then
-/// finds the block of the bar with ``PreviewCoverageTests/balancedBody(in:from:)``.
+/// finds the block of the bar with ``balancedBody(in:from:)``.
 @Suite struct ThreadBottomBarStructureTests {
   /// The code text before the opening brace of the content of the bottom bar
   /// of a thread: the floating controls of ``AgentThreadView``.
@@ -66,7 +66,28 @@ struct BarView: CustomTestStringConvertible, Sendable {
     guard let range = code.range(of: start), let open = code[range.upperBound...].firstIndex(of: "{") else {
       return nil
     }
-    return PreviewCoverageTests.balancedBody(in: code, from: open)
+    return balancedBody(in: code, from: open)
+  }
+
+  /// Finds the text inside a pair of braces.
+  ///
+  /// - Parameters:
+  ///   - source: The text that holds the braces.
+  ///   - open: The index of the opening brace.
+  /// - Returns: The text between the opening brace and the brace that closes
+  ///   it, or `nil` when no brace closes it.
+  static func balancedBody(in source: String, from open: String.Index) -> Substring? {
+    var depth = 0
+    for index in source[open...].indices {
+      switch source[index] {
+      case "{": depth += 1
+      case "}":
+        depth -= 1
+        if depth == 0 { return source[source.index(after: open)..<index] }
+      default: break
+      }
+    }
+    return nil
   }
 
   /// Expects that the file of `place` calls its view one time, and only in

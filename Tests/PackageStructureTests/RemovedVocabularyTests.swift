@@ -524,6 +524,19 @@ struct RemovedSymbolUse: Equatable, CustomStringConvertible {
     try Self.expectNoUse(of: Self.removedStyleCopySymbols)
   }
 
+  /// The kit names of a removed look and of a removed renderer: the content
+  /// surface modifier and its type, which put a fill behind content (AVK-8ab,
+  /// D113 answer 1), and the layer-tree renderer of the old test support,
+  /// which rebuilt the image of a window outside the window server
+  /// (EditorKit `style.md` rule 9). EditorKit's `contentFills` and
+  /// `offscreenRenderers` engines hold the forms of SwiftUI and AppKit; these
+  /// names are the kit's own.
+  static let removedLookSymbols = ["agentContentSurface", "AgentContentSurface", "LayerTreeRenderer"]
+
+  @Test func noFileUsesTheRemovedLookOrRenderer() throws {
+    try Self.expectNoUse(of: Self.removedLookSymbols)
+  }
+
   /// The constants of the symbol table that named a status or a priority.
   /// The views read the symbol of `ItemStatus` and `ItemPriority` of the
   /// EditorKit `EditorStyle` target in their place.

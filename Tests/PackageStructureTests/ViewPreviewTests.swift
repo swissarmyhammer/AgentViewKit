@@ -88,10 +88,13 @@ enum ViewPreviewForm: String, CaseIterable, CustomTestStringConvertible, Sendabl
     .wordBoundaryKind(.simple)
   }
 
+  /// The macro that starts a preview.
+  static let previewMacro = "#Preview"
+
   /// The pattern that finds the `#Preview` macro as a whole word.
   static var previewPattern: Regex<Substring> {
     Regex {
-      PreviewCoverageTests.previewMacro
+      previewMacro
       Anchor.wordBoundary
     }
     .wordBoundaryKind(.simple)
@@ -122,8 +125,9 @@ extension ViewPreviewForm: SampledCodeForm, FixtureCodeForm {
 /// string literals, then reads each file as one text. Thus a declaration can
 /// continue on the next lines.
 ///
-/// ``PreviewCoverageTests`` does a different check. It reads only the public
-/// views, and it makes sure that a preview names each of them.
+/// EditorKit's `PreviewCoverageScanner` (``StyleRuleEngineTests``) does a
+/// different check. It reads only the public views, and it makes sure that a
+/// preview names each of them.
 @Suite struct ViewPreviewTests {
   /// The view files of the kit that have no `#Preview`, relative to the
   /// package root, each with the reason. Each view of these files has no look

@@ -16,27 +16,4 @@ import Testing
 
     #expect(texts.allSatisfy { !$0.isEmpty })
   }
-
-  @Test func eachViewPathIsADirectoryOfThePackage() throws {
-    let found = try KitSourceFiles.scanViewFiles(swiftFiles(under:))
-
-    #expect(!found.isEmpty)
-  }
-
-  @Test func theViewScanGivesEachViewDirectoryToTheScanInOrder() throws {
-    let expected = try KitSourceFiles.viewPaths.map { try PackageFiles().file($0) }
-
-    let scanned = try KitSourceFiles.scanViewFiles { directory in [directory] }
-
-    #expect(scanned == expected)
-  }
-
-  /// The error that a scan of a test throws.
-  struct ScanFailure: Error, Equatable {}
-
-  @Test func theViewScanGivesTheErrorOfTheScan() {
-    #expect(throws: ScanFailure()) {
-      try KitSourceFiles.scanViewFiles { _ -> [URL] in throw ScanFailure() }
-    }
-  }
 }

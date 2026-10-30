@@ -3,8 +3,8 @@ import Foundation
 
 /// The paths and the search texts that the scans of the kit views share.
 ///
-/// The symbol name scan, the rendering mode scan, the shared symbol scan and
-/// the fixed color scan read the same directories, the same files and the
+/// The engine scans of ``StyleRuleEngineTests``, the rendering mode scan and
+/// the shared symbol scan read the same directories, the same files and the
 /// same texts. Each scan reads them here, so one change to a path or to a
 /// text reaches each scan.
 ///
@@ -31,8 +31,9 @@ enum KitSourceFiles {
   /// the test targets of either package, and not `AgentViewKitTestSupport`,
   /// which holds the fixtures that both test packages share, such as the
   /// test themes with fixed colors and faces (plan.md §11 decision 21). The
-  /// scans of the test code read it (``RealCaptureOnlyTests``,
-  /// ``HiddenTestWindowTests``, ``LightAndDarkOnlyTests``).
+  /// scans of the test code read it (the `offscreenRenderers` engine of
+  /// ``StyleRuleEngineTests``, ``HiddenTestWindowTests``,
+  /// ``LightAndDarkOnlyTests``).
   static let viewPaths = [kitPath, stylePath, "Sources/DemoSupport", "Examples"]
 
   /// The text that starts a symbol image.
@@ -61,20 +62,6 @@ enum KitSourceFiles {
     "\(stylePath)/\(path)"
   }
 
-  /// Runs a scan over each directory of ``viewPaths``.
-  ///
-  /// Each view scan walks the same directories. The walk is here, so a scan
-  /// gives only its own scanner call.
-  ///
-  /// - Parameter scan: The scan of one directory. It gets the URL of the
-  ///   directory and gives the results that it finds there.
-  /// - Returns: The results of each directory, in the order of ``viewPaths``.
-  /// - Throws: The error of `PackageFiles.file(_:)` when a view path is not
-  ///   in the package, or the error of `scan`.
-  static func scanViewFiles<Match>(_ scan: (URL) throws -> [Match]) throws -> [Match] {
-    try scanDirectories(viewPaths, scan)
-  }
-
   /// Runs a scan over the directory of each library, ``libraryPaths``.
   ///
   /// - Parameter scan: The scan of one directory. It gets the URL of the
@@ -84,21 +71,6 @@ enum KitSourceFiles {
   /// - Throws: The error of `PackageFiles.file(_:)` when a library path is
   ///   not in the package, or the error of `scan`.
   static func scanLibraryFiles<Match>(_ scan: (URL) throws -> [Match]) throws -> [Match] {
-    try scanDirectories(libraryPaths, scan)
-  }
-
-  /// Runs a scan over each directory of a list.
-  ///
-  /// - Parameters:
-  ///   - paths: The directories, relative to the package root.
-  ///   - scan: The scan of one directory. It gets the URL of the directory
-  ///     and gives the results that it finds there.
-  /// - Returns: The results of each directory, in the order of `paths`.
-  /// - Throws: The error of `PackageFiles.file(_:)` when a path is not in the
-  ///   package, or the error of `scan`.
-  private static func scanDirectories<Match>(
-    _ paths: [String], _ scan: (URL) throws -> [Match]
-  ) throws -> [Match] {
-    try paths.flatMap { path in try scan(PackageFiles().file(path)) }
+    try libraryPaths.flatMap { path in try scan(PackageFiles().file(path)) }
   }
 }

@@ -15,9 +15,10 @@ import Testing
 /// ternary is how each selection fill of the kit was written before the
 /// shared surface.
 ///
-/// ``ThemeInjectionTests`` holds the accent and the tint, which are the other
-/// two styles of a selection fill: the tint shape style is in no file, and the
-/// theme accent is only in the chip fill of a citation.
+/// EditorKit's `themeInjection` engine (``StyleRuleEngineTests``) holds the
+/// accent and the tint, which are the other two styles of a selection fill:
+/// the tint shape style is in no file, and the theme accent is only in the
+/// chip fill of a citation.
 enum SelectionFillForm: String, CaseIterable, CustomTestStringConvertible, Sendable {
   /// The system selection shape style: the implicit member `.selection`, or
   /// its type `SelectionShapeStyle`.
@@ -50,7 +51,7 @@ enum SelectionFillForm: String, CaseIterable, CustomTestStringConvertible, Senda
     Regex {
       ChoiceOf {
         Regex {
-          ThemeInjectionForm.dotAfterNoName
+          WordPattern.dotAfterNoName
           "selection"
           Anchor.wordBoundary
           NegativeLookahead {
@@ -76,7 +77,7 @@ enum SelectionFillForm: String, CaseIterable, CustomTestStringConvertible, Senda
         GlassForm.callPattern("background")
         GlassForm.callPattern("fill")
       }
-      ContentFillForm.argumentText
+      WordPattern.argumentText
       OneOrMore(.whitespace)
       "?"
       OneOrMore(.whitespace)
