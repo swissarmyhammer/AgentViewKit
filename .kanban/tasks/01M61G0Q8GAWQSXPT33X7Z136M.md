@@ -1,6 +1,20 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m644j6xa9r0eap90tp34vzha
+  text: |-
+    2026-10-29: the code for all four cards is on wt/real-capture: a23c89e (^t3eq162 with ^x7z136m), 3fff217 (^wprq982) and 9476f13 (^2e88z0k). The build is clean, with zero warnings in AVK's own targets. PackageStructureTests 297/42, AgentViewKitStyleTests 37 and ReadmeSnippetsTests 1 pass.
+    Not merged: AgentViewKitTests hasn't completed a run. ScreenCaptureKit is refused in every test runner on this machine (swiftpm-testing-helper hangs, xctest gets -3801). The user chose to reset the Screen Recording grant and keep the swift test path, and EditorKit is confirming. 0 PNGs have been re-recorded.
+    Remaining once capture works:
+    - Run AgentViewKitTests and explain the count against 1907/240.
+    - Re-record every PNG in light and dark, and delete the orphans.
+    - Regenerate the gallery.
+    - Factor the ring-corner check that appears four times into one helper.
+    - Rebase onto main: 3f62385 moved MenuPath.session.
+    Then merge, review in main and push.
+  timestamp: 2026-10-29T15:30:55.018246+00:00
 position_column: doing
 position_ordinal: '8480'
 title: 'Snapshots capture the real window from the window server: drop the compositing renderer, LayerTreeRenderer and VibrantLabelFilters (after EditorKit''s real-capture helper)'

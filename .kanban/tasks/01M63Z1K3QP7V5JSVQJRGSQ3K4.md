@@ -1,6 +1,21 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m63zeprckfe15zd0r22sekgs
+  text: 'When this lands, send the commit hash and the list of changed views to testudoapp-af, for Testudo card ^j5t8dxr (Testudo uses the full AgentViewKit). KVK doesn''t need it: it links only AgentViewKitStyle. Requested by kanbanviewkit-07 on 2026-10-29.'
+  timestamp: 2026-10-29T14:01:37.292729+00:00
+- actor: claude-code
+  id: 01m64nxeemy8j3v184kkkx179x
+  text: |-
+    ### implement — changed
+    - evidence: commit c7f668e on wt/no-outer-padding (worktree AgentViewKit-wt/no-outer-padding). swift build --build-tests clean (only the known mlx warning); swift test --filter PackageStructureTests 297/297 green incl. new OuterPaddingTests; demo xcodebuild build SUCCEEDED.
+    - not run (by instruction: another agent records snapshots): hosted tests, snapshot/capture tests, Examples UI tests. To run after merge: ThreadBarInsetHostedTests (header now measured +2·spacing.s; test updated), ConversationViewHostedTests, ThreadTopBarHostedTests, ConnectionModelViewsHostedTests, SessionListView*/Sources*/TaskList hosted suites, then re-record snapshots.
+    - discoveries: SwiftUI gives .contentMargins to the NSScrollView as contentInsets, so ConversationView keeps its row padding (its contentInsets must equal the bar heights). contentMargins does not leak into a nested ScrollView. EditorKit has no theme-aware scroll-margin wrapper; added .scrollContentMargins(_:) in AgentViewKitStyle — candidate to move to EditorStyle.
+    - look changes vs before (default theme): badge padding 6/2 → 8/4; completion row inset 2 → 4; session row line spacing 2 → 4; plan tile loses the trailing rowPadding below the last entry; AgentInfoHeader accessibility frame no longer includes the glass inset.
+    - next: /review; snapshots re-recorded after merge; send hash + view list to testudoapp-af for ^j5t8dxr.
+  timestamp: 2026-10-29T20:34:08.980381+00:00
 position_column: todo
 position_ordinal: b280
 title: 'No outer padding on controls: AVK views carry no default margin; the containing layout spaces them with theme values'
