@@ -81,3 +81,16 @@ flowchart LR
 - A helper that only the integration tests use lives in the integration target.
 - A hosted suite runs under `.hostedSerially`, which holds only the key window gate of the test process. A test whose effects reach past its process (real input events, the shared defaults, the shared pasteboard, the workspace) runs under `.machineSerially` instead, which first holds the shared UI test lock of the Mac. No AgentViewKit test needs it today: each pasteboard test uses an isolated pasteboard, and no test posts a window server event, writes the shared defaults or opens a file with the workspace.
 - The integration package names the root package after the folder of the checkout, because SwiftPM names a path dependency after its directory: `AgentViewKit` in a clone, the folder name in a git worktree.
+
+## Allowed build warning
+
+A build is clean when AgentViewKit's own targets give no warning. One warning from a dependency is allowed, and a run that shows it is still green:
+
+```
+warning: missing creator for mutated node: ('…/mlx-swift_Cmlx.bundle/Contents/MacOS')
+```
+
+- It comes from Swift Build, not from AgentViewKit or mlx-swift. Swift Build counts the `.metal` files of a resource bundle as sources that produce a binary, so code signing names the bundle's `Contents/MacOS` folder, which no step creates. Any package with Metal shaders in a resource bundle gets it.
+- AgentViewKit needs MLX, and every mlx-swift version ships `.metal` sources, so AgentViewKit cannot remove it. The native build system drops the compiled `default.metallib`, so it is no way out.
+- The Metal compiler warnings from mlx-swift's own shader headers are allowed for the same reason.
+- When Swift Build no longer counts `.metal` files as making a binary (`willProduceBinary` in `SWBTaskConstruction/TaskProducers/TaskProducer.swift`), the warning goes away and this note goes with it.
