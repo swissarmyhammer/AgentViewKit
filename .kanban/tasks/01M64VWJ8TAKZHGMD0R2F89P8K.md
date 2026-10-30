@@ -12,8 +12,8 @@ comments:
     - Wait-for-idle costs at least 0.45 s per action, so the app's main loop never goes quiet. Look for repeating timers or animations in the demo app.
     Screenshots cost under 10 s in total.
   timestamp: 2026-10-29T22:29:15.814295+00:00
-position_column: todo
-position_ordinal: b380
+position_column: done
+position_ordinal: ffffff8680
 title: Capture tests and the review gallery move to a nested IntegrationTests package; root swift test is unit-only; capture is fast and parallel
 ---
 User directive, relayed by EditorKit (2026-10-29): screenshot galleries and every screen-capture test are integration tests.
