@@ -35,10 +35,10 @@ import Testing
   }
 
   @Test(arguments: ReviewAppearance.allCases)
-  func eachWordOfTheBottomBarButtonsImageIsReadable(look: ReviewAppearance) throws {
+  func eachWordOfTheBottomBarButtonsImageIsReadable(look: ReviewAppearance) async throws {
     let expected = Self.shownText(of: SnapshotFixtures.bottomBarThread, size: SnapshotFixtures.threadSize)
-    let reference = try SnapshotStore(suite: "HostedSnapshotTests").referenceURL(named: "bottom-bar-buttons", in: look)
-    let image = try CapturedImage(decoding: Data(contentsOf: reference))
+    let image = try await CaptureMount.capture(
+      SnapshotFixtures.bottomBarThread, size: SnapshotFixtures.threadSize, appearance: look)
 
     let missing = try image.missingWords(of: expected)
     let recognized = try image.recognizedWords()

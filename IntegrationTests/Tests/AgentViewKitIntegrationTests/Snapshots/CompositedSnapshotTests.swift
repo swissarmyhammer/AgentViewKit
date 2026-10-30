@@ -1,6 +1,8 @@
 #if DEBUG
   @testable import AgentViewKit
+  import AgentViewKitTestSupport
   import EditorTestSupport
+  import FoundationModelsACPClient
   import SwiftUI
   import Testing
 
@@ -32,6 +34,17 @@
 
     var testDescription: String {
       identifier
+    }
+
+    /// The name of the AppKit class of the view whose region the checks read,
+    /// or `nil` to read the element with ``identifier``. The row of a `List`
+    /// has no element in the accessibility tree of the harness, so the checks
+    /// read the cell that hosts it.
+    var viewClassName: String? {
+      switch self {
+      case .sidebarList: "ListTableCellView"
+      case .inspectorForm, .glassButton: nil
+      }
     }
 
     /// The view of the probe, with the identifier on the element to read.
@@ -97,26 +110,56 @@
       return try #require(try RegionColors(of: image, in: region))
     }
 
+    /// The colors of the region of `probe` in a capture of its view in `look`.
+    ///
+    /// - Parameters:
+    ///   - probe: The probe.
+    ///   - look: The look of the window.
+    /// - Returns: The colors of the region of the probe.
+    /// - Throws: An issue when the probe is missing, or the error of the
+    ///   capture.
+    static func colors(of probe: CompositedProbe, look: ReviewAppearance) async throws -> RegionColors {
+      guard let className = probe.viewClassName else {
+        return try await colors(of: probe.identifier, in: probe.view, look: look)
+      }
+      let region = try CaptureMount.windowFrame(ofViewNamed: className, in: probe.view, size: size)
+      let image = try await CaptureMount.capture(probe.view, size: size, appearance: look)
+      return try #require(try RegionColors(of: image, in: region))
+    }
+
     @Test(arguments: CompositedProbe.allCases, ReviewAppearance.allCases)
     func theTextOnGlassIsReadable(probe: CompositedProbe, look: ReviewAppearance) async throws {
-      let colors = try await Self.colors(of: probe.identifier, in: probe.view, look: look)
+      let colors = try await Self.colors(of: probe, look: look)
 
       #expect(colors.contrast >= Self.minimumTextContrast, "\(colors)")
     }
 
     @Test(arguments: [CompositedProbe.sidebarList, .inspectorForm])
     func theDarkTextOnGlassIsLightOnADarkBackground(probe: CompositedProbe) async throws {
-      let colors = try await Self.colors(of: probe.identifier, in: probe.view, look: .dark)
+      let colors = try await Self.colors(of: probe, look: .dark)
 
       #expect(colors.background.luminance <= Self.darkLuminance, "\(colors)")
       #expect(colors.ink.luminance > colors.background.luminance, "\(colors)")
+    }
+
+    /// A thread whose composer holds a draft, so that the Send button is
+    /// enabled: WCAG 1.4.11 exempts the glyph of a disabled control, and the
+    /// Send button of an empty composer is disabled.
+    static var draftThread: some View {
+      AgentThreadView(
+        session: SessionModel.preview(transcript: [.user("Why does the build fail?")]),
+        connection: ReviewGalleryFixtures.connection
+      ) {
+        PromptInputView(text: .constant(AttributedString("Run the tests")), onSubmit: {})
+      }
+      .speechTranscriber(FakeSpeechTranscriber())
     }
 
     @Test(arguments: ReviewAppearance.allCases)
     func theComposerShowsTheGlyphOfTheMicAndSendButtons(look: ReviewAppearance) async throws {
       for identifier in [SpeechInputButton.identifier, DefaultPromptAccessory.submitIdentifier] {
         let colors = try await Self.colors(
-          of: identifier, in: ReviewGalleryFixtures.deckThread, size: ReviewGalleryFixtures.threadSize, look: look)
+          of: identifier, in: Self.draftThread, size: ReviewGalleryFixtures.threadSize, look: look)
 
         #expect(colors.contrast >= Self.minimumGlyphContrast, "\(identifier): \(colors)")
       }

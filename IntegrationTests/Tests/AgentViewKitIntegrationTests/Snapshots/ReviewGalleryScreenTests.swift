@@ -8,7 +8,7 @@
   /// gallery").
   ///
   /// The test records each ``ReviewGalleryScreen`` in a real window on the
-  /// screen in Light and in Dark, finds every reference PNG under
+  /// screen in Light and in Dark, shows every image that the snapshot suites generated in
   /// ``snapshotRoot``, and writes the page `index.html` with both into
   /// ``gallery``. Each run of `swift test --package-path IntegrationTests`
   /// writes the folder again. Open the page to review the screens. The test
@@ -27,12 +27,11 @@
     /// `~/Library/Caches/AgentViewKit/screenshot-check/`.
     static let gallery = ReviewGallery(package: package)
 
-    /// The folder of the reference PNGs of the snapshot suites: the
-    /// `__Snapshots__` folder next to this file.
-    static let snapshotRoot = URL(filePath: #filePath).deletingLastPathComponent()
-      .appending(path: ReviewImageSource.referenceFolderName, directoryHint: .isDirectory)
+    /// The folder of the images that the snapshot suites generated.
+    static let snapshotRoot = GeneratedImages.root
 
-    @Test func thePageShowsEachKeyScreenAndEachReferenceSnapshot() async throws {
+    @Test func thePageShowsEachKeyScreenAndEachGeneratedSnapshot() async throws {
+      try await GeneratedImages.generateAll()
       let report = try await ReviewGalleryScreen.withReviewScreens(ReviewGalleryScreen.allCases[...]) { screens in
         try await Self.gallery.record(screens, snapshotRoots: [Self.snapshotRoot])
       }

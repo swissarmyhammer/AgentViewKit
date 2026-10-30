@@ -31,12 +31,14 @@ import Testing
 
   /// The deck of ``session`` over the backdrop of ``GlassRenderProbeTests``.
   ///
-  /// - Parameter inBar: Whether the deck is in a `FloatingGlassContainer`,
-  ///   as in the composer slot of ``AgentThreadView``.
+  /// - Parameters:
+  ///   - inBar: Whether the deck is in a `FloatingGlassContainer`, as in the
+  ///     composer slot of ``AgentThreadView``.
+  ///   - backdrop: The color behind the deck.
   /// - Returns: The view.
-  static func deck(inBar: Bool) -> some View {
+  static func deck(inBar: Bool, backdrop: Color = GlassRenderProbeTests.backdrop) -> some View {
     ZStack {
-      GlassRenderProbeTests.backdrop
+      backdrop
       if inBar {
         FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) { RequestDeck(session: session) }
       } else {
@@ -68,10 +70,24 @@ import Testing
     try await ContentEdgeHostedProbe.expectBackdropShowsInsideTheEdge(of: Self.deckInContent, size: Self.size)
   }
 
-  @Test func inTheBarTheBackdropShowsBehindTheCard() async throws {
-    let image = try await ContentEdgeHostedProbe.capture(of: Self.deckInBar, backdrop: .behind, size: Self.size)
+  /// The backdrop of the deck in the bar differs from
+  /// ``GlassRenderProbeTests/backdrop`` in each channel, so that glass over
+  /// the one looks different from glass over the other.
+  static let otherBackdrop = Color(red: 0.9, green: 0.1, blue: 0.1)
 
-    #expect(try image.contains(CaptureGeometry.cgColor(of: GlassRenderProbeTests.backdrop)))
+  /// In the bar, the card is Liquid Glass that the window server draws: it
+  /// shows the backdrop through it and tints it, so no pixel of the card keeps
+  /// the exact color of the backdrop. The glass is not a fill: the same deck
+  /// over another backdrop looks different at the center of the card.
+  @Test func inTheBarTheBackdropShowsThroughTheGlassOfTheCard() async throws {
+    let center = CaptureGeometry.pixel(at: Self.centerPoint)
+    let centerPixel = CGRect(x: center.x, y: center.y, width: 1, height: 1)
+
+    let overBackdrop = try await GlassRenderProbeTests.capture(of: Self.deck(inBar: true), size: Self.size)
+    let overOther = try await GlassRenderProbeTests.capture(
+      of: Self.deck(inBar: true, backdrop: Self.otherBackdrop), size: Self.size)
+
+    #expect(try overBackdrop.cropped(to: centerPixel) != overOther.cropped(to: centerPixel))
   }
 
   /// In the bar, the window server draws the floating glass of the deck over

@@ -106,7 +106,13 @@
     static func capture(in host: Host, scrolledTo index: Int) async throws -> ScrolledThread {
       let session = PreviewFixtures.scrolledSession
       let anchors = ScrollAnchorManager()
-      let thread = AgentThreadView(session: session, anchors: anchors) { DefaultThreadComposer() }
+      // The host gives the connection, as TestudoApp does: the header of the
+      // agent fills the top bar. With no connection, no notice and no stream
+      // banner, the top bar has no content and no height (^rgsq3k4), so the
+      // top edge would have no rows under a bar.
+      let thread = AgentThreadView(
+        session: session, connection: ReviewGalleryFixtures.connection, anchors: anchors
+      ) { DefaultThreadComposer() }
         .transaction { $0.disablesAnimations = true }
       switch host {
       case .plain:
