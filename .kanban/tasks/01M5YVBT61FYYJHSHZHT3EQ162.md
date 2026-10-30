@@ -15,8 +15,8 @@ comments:
     The scope is smaller now. Moving to EditorTestSupport, each merged with its EditorKit equivalent: HostedViewHarness(+TextViews), HostedLayoutExpectations, HostedSerialTrait, NSEvent+KeyEvent, NSView+Descendants, ObservationWait, RunLoopBlockFence, ChangeCounter, ChangeFlag, SnapshotText, SnapshotVariant, SnapshotStore, the data part of RenderedPixels and RenderedPixels+PNG (merged into CapturedImage), and possibly FakePasteboard.
     Not ported (renderer code, deleted under "real capture only", which is ^x7z136m's job): LayerTreeRenderer, VibrantLabelFilters, ScrollPocketProbe, CATransaction+WithoutActions, ViewSnapshot's composited path, and `RenderedPixels.init(rendering:)`. ReviewGallery(+Page) are replaced by EditorReviewGallery (^wprq982).
   timestamp: 2026-10-28T22:38:51.069563+00:00
-position_column: todo
-position_ordinal: a680
+position_column: done
+position_ordinal: fffffe80
 title: 'AVK-8 test support: delete AVK''s copies of the generic test helpers and use EditorKit''s EditorTestSupport (after the EditorKit move)'
 ---
 ## Why

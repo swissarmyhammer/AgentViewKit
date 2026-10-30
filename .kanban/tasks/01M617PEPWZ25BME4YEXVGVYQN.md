@@ -34,8 +34,8 @@ comments:
       - The only warning was from mlx-swift.
     - next: /review
   timestamp: 2026-10-29T20:55:35.163970+00:00
-position_column: todo
-position_ordinal: ac80
+position_column: done
+position_ordinal: ffffff8480
 title: 'A source-scan test holds the style.md "Text input" rule: every typing surface is an EditorKit editor'
 ---
 EditorKit/style.md gained a "Text input" section at EditorKit 107e869 (user request). Every place where the user types uses an EditorKit editor: EditorView for multi-line text, SingleLineField for one line. Not allowed in the kit, the demo support or the demo: SwiftUI TextField / TextEditor / SecureField, AppKit NSTextField / NSTextView, UIKit UITextField / UITextView, and `.searchable`.

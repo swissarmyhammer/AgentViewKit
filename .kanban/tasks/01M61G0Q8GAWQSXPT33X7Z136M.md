@@ -15,8 +15,8 @@ comments:
     - Rebase onto main: 3f62385 moved MenuPath.session.
     Then merge, review in main and push.
   timestamp: 2026-10-29T15:30:55.018246+00:00
-position_column: doing
-position_ordinal: '8480'
+position_column: done
+position_ordinal: fffffd80
 title: 'Snapshots capture the real window from the window server: drop the compositing renderer, LayerTreeRenderer and VibrantLabelFilters (after EditorKit''s real-capture helper)'
 ---
 User decision, relayed by editorkit-a9, for every view kit: "we need all the view kit sessions to adopt this proper approach, building your own renderer is just a horrible idea, it doesn't prove that our app will really work". The EditorKit gallery, built from AVK's compositing renderer, drew backward text in every screenshot, and the real UI never does that.

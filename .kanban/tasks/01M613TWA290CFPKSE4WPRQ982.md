@@ -35,8 +35,8 @@ comments:
     - add the ARCHITECTURE.md "Review gallery" section.
     The stopped implementer's work in progress (discovery, folder mode, missing-PNG check; 954-line patch, targeted tests green) was reverted out of AVK. It's saved for EditorKit to start from at /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/c880133d-bf6f-444f-8105-515cb9db8591/scratchpad/gallery/avk-complete-gallery-wip.patch. Blocked until the EditorKit ^p9rqatc SHA arrives.
   timestamp: 2026-10-28T12:56:30.960674+00:00
-position_column: doing
-position_ordinal: '8380'
+position_column: done
+position_ordinal: ffffff80
 title: Review gallery shows every recorded snapshot, not only the full screens
 ---
 User: "we actually need a COMPLETE gallery of all taken snapshots, not just these full screens".

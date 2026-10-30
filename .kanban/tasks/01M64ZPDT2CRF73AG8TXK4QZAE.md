@@ -22,8 +22,8 @@ comments:
     - Root swift test is green: 234 + 855 + 16 tests. IntegrationTests builds; nothing in it was run because of the UI pause.
     - Eight engine gaps were reported to EditorKit.
   timestamp: 2026-10-30T00:25:10.345003+00:00
-position_column: todo
-position_ordinal: b480
+position_column: done
+position_ordinal: ffffff8580
 title: 'Adopt EditorKit 8c924484: StyleRules engines replace AVK''s own style scans; PromptCaretProbe allow entry dropped; capture errors and HostedViewHarness.click'
 ---
 EditorKit 8c924484 is on origin/main.

@@ -16,8 +16,8 @@ comments:
     - look changes vs before (default theme): badge padding 6/2 → 8/4; completion row inset 2 → 4; session row line spacing 2 → 4; plan tile loses the trailing rowPadding below the last entry; AgentInfoHeader accessibility frame no longer includes the glass inset.
     - next: /review; snapshots re-recorded after merge; send hash + view list to testudoapp-af for ^j5t8dxr.
   timestamp: 2026-10-29T20:34:08.980381+00:00
-position_column: todo
-position_ordinal: b280
+position_column: done
+position_ordinal: ffffff8280
 title: 'No outer padding on controls: AVK views carry no default margin; the containing layout spaces them with theme values'
 ---
 User rule (relayed by kanbanviewkit-07 on 2026-10-29, for every view kit): "padding and margin should be modifiers or wrappers that are theme aware for defaults. i don't want to fight padding and margin 'between' controls. inside a control - icon text in a button for example of course you need to pad or margin, but a control itself should not have a margin or pad by default, that is a containing layout concern." EditorKit's matching fix is ^zycpt0j (SingleLineField lineFragmentPadding).
