@@ -80,18 +80,27 @@ extension XCUIApplication {
   /// (`DemoTestValues.galleryLaunchArguments`).
   func openThePermissionSession() {
     let row = element(DemoTestValues.permissionSessionRow)
-    XCTAssertTrue(row.waitForExistence(timeout: DemoTestValues.elementTimeout), "The Gallery lists no permission session.")
+    XCTAssertTrue(row.appears(), "The Gallery lists no permission session.")
     row.doubleClick()
     XCTAssertTrue(
-      element(DemoTestValues.permissionAgentMessageRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      element(DemoTestValues.permissionAgentMessageRow).appears(),
       "The permission session shows no agent message.")
     XCTAssertTrue(
-      element(DemoTestValues.permissionCard).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      element(DemoTestValues.permissionCard).appears(),
       "The permission session shows no waiting request.")
   }
 }
 
 extension XCUIElement {
+  /// Whether the element shows: true at once when it already exists, and
+  /// otherwise after the wait of `DemoTestValues.elementTimeout`. The check of
+  /// `exists` first skips the wait for an element that is there.
+  ///
+  /// - Returns: Whether the element exists.
+  func appears() -> Bool {
+    exists || waitForExistence(timeout: DemoTestValues.elementTimeout)
+  }
+
   /// The first element of any type with `identifier` under this element.
   ///
   /// - Parameter identifier: The accessibility identifier.

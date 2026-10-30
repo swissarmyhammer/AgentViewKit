@@ -67,7 +67,7 @@ final class MainMenuEndToEndTests: XCTestCase {
   /// - Returns: The rows of the open menu.
   private func openMenu(_ title: String) -> XCUIElementQuery {
     let menuBarItem = app.menuBars.menuBarItems[title]
-    XCTAssertTrue(menuBarItem.waitForExistence(timeout: DemoTestValues.elementTimeout), "The menu bar has no \(title) menu.")
+    XCTAssertTrue(menuBarItem.appears(), "The menu bar has no \(title) menu.")
     menuBarItem.click()
     return menuBarItem.menus.firstMatch.menuItems
   }
