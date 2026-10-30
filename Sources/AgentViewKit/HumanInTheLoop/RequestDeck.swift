@@ -678,6 +678,11 @@ nonisolated struct DeckCardBand: Shape {
   /// `.inlineEdge(radius:)`, which is one point wide.
   static let strokeOutset: CGFloat = 1
 
+  /// How far the band of a card that shows whole goes out of the frame: the
+  /// focus ring of EditorKit (^8qtcdqc) stands 3 points outside the card, and
+  /// the mask must not cut it.
+  static let wholeOutset: CGFloat = 4
+
   /// The place of the card in the deck.
   let role: DeckCardRole
 
@@ -686,8 +691,9 @@ nonisolated struct DeckCardBand: Shape {
 
   func path(in rect: CGRect) -> Path {
     let outset = Self.strokeOutset
-    var band = rect.insetBy(dx: -outset, dy: -outset)
+    var band = rect.insetBy(dx: -Self.wholeOutset, dy: -Self.wholeOutset)
     if case .edge(let depth) = role {
+      band = rect.insetBy(dx: -outset, dy: -outset)
       band.size.height = CGFloat(depth) * edgeStep + outset
     }
     return Path(band)

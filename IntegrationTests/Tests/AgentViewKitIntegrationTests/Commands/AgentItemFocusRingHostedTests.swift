@@ -46,14 +46,6 @@ import Testing
     case jump
   }
 
-  /// Why the ring of the permission card is a known issue: the card is a
-  /// focusable view of its scope, so EditorKit draws no scope ring, and
-  /// EditorKit has no public ring API for the card to draw it with (asked of
-  /// EditorKit; pending). The card overlays a band of its own that the bed
-  /// does not find yet.
-  static let requestRingIssue: Comment =
-    "EditorKit: no public focus ring API for a focusable scope content (pending)"
-
   /// The JSON-RPC id of the permission request of the request card.
   static let requestID = 100
 
@@ -87,14 +79,17 @@ import Testing
   static func focusedItem(
     at scope: FocusPath, in bed: FocusRingBed, by land: () throws -> Void
   ) async throws -> FocusedItem {
+    // When the window becomes key, SwiftUI focuses a lone focusable view (the
+    // permission card) by itself, so the baseline would already show its ring.
+    bed.window.makeFirstResponder(nil)
+    await RunLoopBlockFence.afterPendingBlocks()
     let baseline = try await bed.capture()
     try #require(waitForLiveBeacons([scope], in: bed.system))
     try land()
     await RunLoopBlockFence.afterPendingBlocks()
-    // A focusable view of the scope (the permission card) shows its own ring
-    // one update after the focus lands, and a capture lets that update run.
+    // A focusable view of the scope shows its ring one update after the focus
+    // lands, and a capture lets that update run.
     _ = try await bed.capture()
-
     let responder = try #require(bed.window.firstResponder as? NSView)
     let itemRect = try #require(bed.system.geometry.rect(of: scope))
     return FocusedItem(responder: responder, itemRect: itemRect, ring: try await bed.ring(of: scope, against: baseline))
@@ -210,13 +205,7 @@ import Testing
       case .message, .toolCall: #expect(focused.responder is GeometryProbeView)
       }
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
-      if kind == .request {
-        withKnownIssue(Self.requestRingIssue) {
-          #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
-        }
-      } else {
-        #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
-      }
+      #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
     }
   }
 
@@ -225,15 +214,8 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      if kind == .request {
-        await withKnownIssue(Self.requestRingIssue) {
-          try await FocusRingBed.expectRingCorners(
-            of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
-        }
-      } else {
-        try await FocusRingBed.expectRingCorners(
-          of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
-      }
+      try await FocusRingBed.expectRingCorners(
+        of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
     }
   }
 
