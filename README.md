@@ -644,7 +644,8 @@ The snapshot tests and the pixel tests capture the real views of the kit in
 a real window on the screen, from the window server, with ScreenCaptureKit
 (EditorKit `CapturedImage`, `style.md` rule 9). No test draws a view with a
 renderer of its own: no `ImageRenderer`, no `cacheDisplay` and no layer-tree
-renderer; `RealCaptureOnlyTests` holds this. The window is the key window,
+renderer; EditorKit's `offscreenRenderers` engine holds this
+(`StyleRuleEngineTests`). The window is the key window,
 with no activation of the test process, and the capture shows what the app
 shows: the AppKit views, Liquid Glass and the scroll edge effect. Each view
 has fixed data and fixed dates, at two pixels for each point, in sRGB, and two

@@ -102,8 +102,8 @@ content, not a bar: it has no fill, and a separator line is under it. Before
 D113, the table had the row "frame of a code block" with `editorBackground`,
 and the row "header bar of a code block, terminal, or command output" with
 `statusBarBackground`. D113 replaces these two rows. `EditorThemeViewsTests`
-checks the pixels, and `ContentFillTests` forbids the `statusBarBackground`
-role and a theme color as a background.
+checks the pixels, and EditorKit's `contentFills` engine (`StyleRuleEngineTests`)
+forbids a theme color, such as the `statusBarBackground` role, as a background.
 
 EditorKit ^0apj6a2 (EditorKit main at 69d04fc) makes its views transparent by
 default and removes the roles `editorBackground` and `gutterBackground`. The

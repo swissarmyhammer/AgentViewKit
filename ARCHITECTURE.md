@@ -44,7 +44,8 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 
 - AgentViewKit keeps no copy of the rules. The docs and the code comments cite a rule by its number, a D-number or a section name of that guide, as EditorKit `style.md`.
 - The guide says that the view kits build on AgentViewKit for the shared visuals. KanbanViewKit and SnapshotViewKit use them from AgentViewKit and keep no copy.
-- Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`. `TextInputControlScanTests` runs EditorKit's `TextInputControlScanner` over `Sources/` and `Examples/`, with `PromptCaretProbe.swift` as the one allowed file.
+- Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`. `StyleRuleEngineTests` runs EditorKit's `textInputControls` engine over `Sources/` and `Examples/`, with no allowed file: a cast to the editor's own text view builds nothing, so it is not banned.
+- The source rules of `style.md` that a pattern of code finds (text input, font roles, theme injection, fixed colors, content fills, system structure, glass placement, offscreen renderers, SF Symbol names, the hosted serial trait and the preview coverage) run as EditorKit's `EditorTestSupport` engines in one suite, `StyleRuleEngineTests`, with the roots and the allow list of this package. AgentViewKit keeps no scanner of its own for these rules; its other structure suites hold the rules of the kit alone.
 - `StyleGuideLinkTests` checks that this file links the guide, and that no file of the package names the old TestudoApp path of the guide or of its research page.
 
 ## Review gallery
@@ -76,5 +77,5 @@ flowchart LR
 
 - A test target of the root package cannot be a dependency, so a fixture that both tiers use lives once in `Sources/AgentViewKitTestSupport`, a test support product. `DemoSupport` is a product for the same reason. No host of the kit links either one.
 - A helper that only the integration tests use lives in the integration target. A test that reads the package sources as text (a source scan) stays in the root package: EditorKit's `PackageFiles()` takes the nearest `Package.swift` above the test file, which is `IntegrationTests/` for an integration test.
-- The source scans of `PackageStructureTests` read `IntegrationTests/Tests` too, so the rules of the test code hold in both packages. `HostedSerialTraitTests` holds the `.hostedSerially` trait on each hosted file there.
+- The source scans of `PackageStructureTests` read `IntegrationTests/Tests` too, so the rules of the test code hold in both packages. EditorKit's `HostedSerialScanner` (`StyleRuleEngineTests`) holds the `.hostedSerially` trait on each suite or test there that mounts a window.
 - The integration package names the root package after the folder of the checkout, because SwiftPM names a path dependency after its directory: `AgentViewKit` in a clone, the folder name in a git worktree.
