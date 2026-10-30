@@ -173,6 +173,13 @@ extension CaptureMount {
     defer { mount.close() }
     try await settle(mount)
     mount.render()
+    // The insertion point of a focused text view blinks, so two captures of
+    // one view differ by when they were taken (a 2 pt by 16 pt bar). No
+    // capture shows it: the display mode `.hidden` stays hidden when the
+    // blink or the focus would show the indicator again.
+    for indicator in mount.hostingView.descendants.compactMap({ $0 as? NSTextInsertionIndicator }) {
+      indicator.displayMode = .hidden
+    }
     hideViews(of: hiddenTypes, in: mount.hostingView)
     return try await mount.capture()
   }
@@ -198,6 +205,33 @@ extension CaptureMount {
     harness.render()
     let frame = try #require(harness.frame(identifier: identifier), "No element \(identifier).")
     return ThreadBarControlJumpHostedTests.windowSpaceFrame(of: frame, in: harness.window)
+  }
+
+  /// The frame of the first AppKit view whose class is named `className`
+  /// when `content` shows at `size`, in points from the top leading corner of
+  /// the window: the region of a capture of the same view at the same size
+  /// that shows the view.
+  ///
+  /// The cell of a `List` row hosts its SwiftUI content in a view that the
+  /// accessibility tree of the harness does not list, so a `List` row has no
+  /// frame by identifier (``windowFrame(of:in:size:)``). The cell is a
+  /// private AppKit class, so the lookup is by the name of the class.
+  ///
+  /// - Parameters:
+  ///   - className: The name of the class of the view, such as
+  ///     `ListTableCellView`.
+  ///   - content: The view, as it is given to the mount of the capture.
+  ///   - size: The size of the content of the window, in points.
+  /// - Returns: The frame.
+  /// - Throws: An issue when no view has the class.
+  static func windowFrame(ofViewNamed className: String, in content: Content, size: CGSize) throws -> CGRect {
+    let harness = HostedViewHarness(ReviewScreenRoot { content }, size: size)
+    defer { harness.close() }
+    harness.render()
+    let view = try #require(
+      harness.hostingView.descendants.first { String(describing: type(of: $0)) == className },
+      "No view of the class \(className).")
+    return ThreadBarControlJumpHostedTests.windowSpaceFrame(of: harness.screenFrame(of: view), in: harness.window)
   }
 }
 

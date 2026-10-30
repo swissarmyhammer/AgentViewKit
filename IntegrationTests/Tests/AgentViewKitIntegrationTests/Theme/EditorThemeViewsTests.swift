@@ -251,8 +251,12 @@ import Testing
     let image = try await Self.capture(of: DiffView(patch: Self.patch))
     #expect(try Self.contains(image, Role.addedText))
     #expect(try Self.contains(image, Role.removedText))
-    #expect(try !Self.contains(image, Role.added))
-    #expect(try !Self.contains(image, Role.removed))
+    // The counts are in the chip of the file, at the top. The renderer of the
+    // patch draws the full band colors in its body, at the trailing edge, so
+    // only the top of the image tells which color the counts use.
+    let chips = try image.cropped(to: CGRect(x: 0, y: 0, width: image.pixelWidth, height: image.pixelHeight / 4))
+    #expect(try !Self.contains(chips, Role.added))
+    #expect(try !Self.contains(chips, Role.removed))
   }
 
   /// The citation pill on an opaque white ground, so that its translucent
