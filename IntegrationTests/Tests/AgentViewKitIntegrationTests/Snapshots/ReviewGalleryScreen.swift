@@ -89,10 +89,10 @@
     /// The EditorKit key screen with the id, the title, the dated note and the
     /// size of this screen.
     ///
-    /// The endless animations of the screen are held still, as in each
-    /// capture of the package (``StillCaptureContent``,
-    /// ``stopProgressIndicators(in:)``), so that each capture takes the first
-    /// two equal images.
+    /// EditorKit's `ReviewScreenRoot` shows the screen with Reduce Motion on,
+    /// and the settle stops each AppKit progress indicator, which reads no
+    /// Reduce Motion (``stopProgressIndicators(in:)``), as in each capture of
+    /// the package, so that each capture takes the first two equal images.
     ///
     /// - Parameters:
     ///   - settle: The wait for an event of the mounted screen before the
@@ -110,7 +110,7 @@
           try await settle(mount)
           stopProgressIndicators(in: mount.hostingView)
         },
-        content: { appearance in StillCaptureContent(content: content(appearance)) })
+        content: content)
     }
 
     /// Runs `body` with the key screen of this screen, and frees what the
