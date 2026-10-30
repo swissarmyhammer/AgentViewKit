@@ -52,7 +52,7 @@ let acpProducts: [Target.Dependency] = [
 /// EditorKit, TestudoApp and the FoundationModels packages:
 ///
 /// - `swift test` at the repository root runs ONLY the unit tests: the models,
-///   the commands, the wire and the source scans, with no window, no hosting
+///   the commands, the wire and the scripted agents, with no window, no hosting
 ///   view and no capture. It is the per-card gate and the TDD loop.
 /// - `swift test --package-path IntegrationTests` runs the integration tests:
 ///   each test that mounts a view in a window or a hosting view, each capture

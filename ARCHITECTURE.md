@@ -18,7 +18,7 @@ The package has two library products:
 
 | Product | Target | Links | For |
 | --- | --- | --- | --- |
-| `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine (`AgentViewKitStyleClosureTests`). |
+| `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine. |
 | `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math | An ACP client app: the agent thread views and the ACP helpers. |
 
 Two more library products, `AgentViewKitTestSupport` and `DemoSupport`, are test support for the nested `IntegrationTests/` package (see "Test tiers"). No host of the kit links them.
@@ -46,9 +46,8 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 
 - AgentViewKit keeps no copy of the rules. The docs and the code comments cite a rule by its number, a D-number or a section name of that guide, as EditorKit `style.md`.
 - The guide says that the view kits build on AgentViewKit for the shared visuals. KanbanViewKit and SnapshotViewKit use them from AgentViewKit and keep no copy.
-- Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`. `StyleRuleEngineTests` runs EditorKit's `textInputControls` engine over `Sources/` and `Examples/`, with no allowed file: a cast to the editor's own text view builds nothing, so it is not banned.
-- The source rules of `style.md` that a pattern of code finds (text input, font roles, theme injection, fixed colors, content fills, system structure, glass placement, offscreen renderers, outer spacing, SF Symbol names, the hosted serial trait and the preview coverage) run as EditorKit's `EditorTestSupport` engines in one suite, `StyleRuleEngineTests`, with the roots and the allow list of this package. AgentViewKit keeps no scanner of its own for these rules; its other structure suites hold the rules of the kit alone.
-- `StyleGuideLinkTests` checks that this file links the guide, and that no file of the package names the old TestudoApp path of the guide or of its research page.
+- Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`.
+- Review enforces the rules of `style.md` and the rules of the kit (user decision of 2026-10-30, ^v0nj72). No test reads the source or the docs of the package as text.
 
 ## Review gallery
 
@@ -65,7 +64,7 @@ The tests have two tiers, and a package boundary separates them (plan.md §11 de
 
 | Tier | Package | Targets | Holds | Runs |
 | --- | --- | --- | --- | --- |
-| Unit | the root package | `AgentViewKitTests`, `AgentViewKitStyleTests`, `PackageStructureTests`, `ReadmeSnippetsTests` | the models, the commands, the wire, the scripted agents and the source scans. No window, no hosting view, no capture (`RootTestsHostNoViewTests`). | `swift test`, on each change: the per-card gate. |
+| Unit | the root package | `AgentViewKitTests`, `AgentViewKitStyleTests` | the models, the commands, the wire and the scripted agents. No window, no hosting view, no capture. | `swift test`, on each change: the per-card gate. |
 | Integration | `IntegrationTests/`, which depends on the root package by path | `AgentViewKitIntegrationTests`, `AgentViewKitStyleIntegrationTests` | each test that mounts a view in EditorKit's `HostedViewHarness`, an `NSHostingView` or a window, each capture of a real window, the snapshot and pixel tests, the focus rings and the review gallery. | `swift test --package-path IntegrationTests`, once per batch, and in the integration job of CI (`integration-package-path`). |
 
 ```mermaid
@@ -78,6 +77,7 @@ flowchart LR
 ```
 
 - A test target of the root package cannot be a dependency, so a fixture that both tiers use lives once in `Sources/AgentViewKitTestSupport`, a test support product. `DemoSupport` is a product for the same reason. No host of the kit links either one.
-- A helper that only the integration tests use lives in the integration target. A test that reads the package sources as text (a source scan) stays in the root package: EditorKit's `PackageFiles()` takes the nearest `Package.swift` above the test file, which is `IntegrationTests/` for an integration test.
-- The source scans of `PackageStructureTests` read `IntegrationTests/Tests` too, so the rules of the test code hold in both packages. EditorKit's `HostedSerialScanner` (`StyleRuleEngineTests`) holds the `.hostedSerially` trait on each suite or test there that mounts a window.
+- The layout follows EditorTestSupport's DocC article "Integration tests". `AgentViewKitTestSupport` holds the agent fixtures and re-exports EditorTestSupport (`@_exported import EditorTestSupport`), so both tiers read the generic helpers through it. AgentViewKit keeps no copy of a generic helper: the recorders, the clock, the temporary folder, the window undo checks and the shared harness checks come from EditorTestSupport.
+- A helper that only the integration tests use lives in the integration target.
+- A hosted suite runs under `.hostedSerially`, which holds only the key window gate of the test process. A test whose effects reach past its process (real input events, the shared defaults, the shared pasteboard, the workspace) runs under `.machineSerially` instead, which first holds the shared UI test lock of the Mac. No AgentViewKit test needs it today: each pasteboard test uses an isolated pasteboard, and no test posts a window server event, writes the shared defaults or opens a file with the workspace.
 - The integration package names the root package after the folder of the checkout, because SwiftPM names a path dependency after its directory: `AgentViewKit` in a clone, the folder name in a git worktree.

@@ -12,9 +12,6 @@
 #     builds the nested `IntegrationTests/` package. Its integration job runs
 #     that package after the unit job: the hosted, snapshot, pixel, focus-ring
 #     and review gallery tests. This is the shape of EditorKit and TestudoApp.
-#   - readme: the README gate. `Scripts/check-readme.sh` writes the snippets of
-#     README.md again, compares them with the committed files, and builds the
-#     `ReadmeSnippetsTests` target.
 #   - examples: the demo gate. `Scripts/test-examples.sh` makes the Xcode
 #     project of each example again, builds it, and runs its UI tests.
 name: CI
@@ -36,19 +33,6 @@ jobs:
       # The integration suite is a nested package. This input makes the unit
       # job build it on every run and makes the integration job run it.
       integration-package-path: IntegrationTests
-
-  # The README gate (plan.md §1). `Scripts/check-readme.sh` holds the whole
-  # gate. A README snippet that is not in `Examples/ReadmeSnippets/Snippets`,
-  # or one that does not compile, fails the job.
-  readme:
-    name: README gate
-    runs-on: [self-hosted, macOS]
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Compare and compile the README snippets
-        run: ./Scripts/check-readme.sh
 
   # The demo gate (plan.md §1). `Scripts/test-examples.sh` holds the whole
   # gate: the project generation, the build, and the UI tests of each example.

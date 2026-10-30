@@ -9,8 +9,7 @@ import SwiftUI
 import Testing
 
 /// Tests for the action row of a message in a window: copy, copy thread,
-/// retry, edit, and the buttons of each sender. The selection decision is in
-/// `MessageActionsSourceScanTests` of the root package.
+/// retry, edit, and the buttons of each sender.
 ///
 /// Each action of a button runs in the press, and the press makes a render
 /// pass. Only the retry sends a request, so only the retry test waits, on the

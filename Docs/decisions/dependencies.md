@@ -4,11 +4,7 @@ Status: decided. Source: plan.md §1, §4 and §11 decision 1, and
 `Docs/decisions/acp-client-kit.md`.
 
 This file records each direct package dependency, its version requirement,
-and the products that AgentViewKit uses. `Tests/PackageStructureTests/ManifestTests.swift`
-reads the Textual row and compares it with `Package.swift` and
-`Package.resolved`. Keep the form of that row.
-`Tests/PackageStructureTests/DecisionRecordTests.swift` reads the first cell
-of each row, and compares the set with the direct dependencies of the kit.
+and the products that AgentViewKit uses.
 
 | Package | URL | Requirement | Products |
 |---|---|---|---|
@@ -57,9 +53,8 @@ not a dependency of the kit. Thus the table above does not list it.
   directory.
 - The demo Xcode project gets the same package from
   `Examples/AgentViewKitDemo/Scripts/generate_xcodeproj.rb`.
-- `Tests/PackageStructureTests/ImportBoundaryTests.swift` holds the kit target
-  free of an import of `FoundationModelsACPAgent`. A host of the kit links only
-  the `AgentViewKit` product, so it does not build the agent.
+- The kit target does not import `FoundationModelsACPAgent`. A host of the
+  kit links only the `AgentViewKit` product, so it does not build the agent.
 
 ## Textual
 
@@ -96,12 +91,10 @@ The package has two library targets and two library products,
 decision of 2026-10-28). `AgentViewKitStyle` holds the shared look of the
 view kits. It links only the EditorKit products `EditorStyle`,
 `EditorTheme`, `EditorSwiftUI`, `EditorDiff` and `EditorCommands`. It links
-no ACP package, no Textual and no swiftui-math, and
-`AgentViewKitStyleClosureTests` proves that closure. `AgentViewKit` holds the
+no ACP package, no Textual and no swiftui-math. `AgentViewKit` holds the
 views and the ACP helpers. It depends on `AgentViewKitStyle`, re-exports it
 and keeps no copy of it. SnapshotViewKit and KanbanViewKit link only
 `AgentViewKitStyle`.
 
-`Tests/PackageStructureTests/ImportBoundaryTests.swift` enforces the
-forbidden list: no target in `Sources/` imports `FoundationModels`,
+The forbidden list: no target in `Sources/` imports `FoundationModels`,
 `FoundationModelsRouter` or `FoundationModelsExtras` (plan.md §11 decision 1).

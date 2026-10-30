@@ -5,10 +5,7 @@ Not current. See `Docs/decisions/acp-client-kit.md`.
 Status: decided. Source: plan.md §9 C, §11 decision 15, and §14 R14.
 
 This file records which data source supplies `SubagentRun` values for
-`SubagentTreeView`. `Tests/AgentViewKitTests/Subagents/SubagentSourceTests.swift`
-reads the `decision:` line and compares it with `SubagentSource.v1`. It also
-makes sure that the table has one row for each `SubagentSource` case. Keep the
-form of the `decision:` line and the table rows.
+`SubagentTreeView`.
 
 decision: `router`
 
@@ -116,7 +113,7 @@ thread id and the parent tool call id, with the AG-UI field names as the model.
   cancelled run can still do work.
 - The adapter tests are in
   `Tests/AgentViewKitRouterTests/Subagents/SubagentAdapterTests.swift`. The
-  `AgentViewKitTests` target cannot import the Router (ImportBoundaryTests).
+  `AgentViewKitTests` target cannot import the Router.
 
 ## Fixture
 

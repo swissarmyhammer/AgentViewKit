@@ -3,11 +3,8 @@
 Status: decided. Source: plan.md §3.7, §11 decision 20, and §14 R6.
 
 This file records the ACP versions that agents and clients speak today, and
-the versions that the ACP adapter of `AgentViewKit` accepts.
-`Tests/AgentViewKitTests/ACP/ProtocolVersionTests.swift` reads the
-`supported:` line and compares it with
-`SupportedProtocolVersions.values`. Keep the form of the `supported:` line: a
-list of integers in backticks, with a comma between two integers.
+the versions that the ACP adapter of `AgentViewKit` accepts. The
+`supported:` line matches `SupportedProtocolVersions.values`.
 
 supported: `2`
 

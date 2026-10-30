@@ -156,9 +156,7 @@ extension View {
   /// Finder, Share, Save and Quick Look work in each mode. The host closes
   /// its inspector with a write of `nil` to the binding.
   ///
-  /// For an example window, see `InspectorWindow` in
-  /// `Examples/ReadmeSnippets/Snippets/HostInspector.swift`. The build
-  /// compiles that snippet, and the README shows it.
+  /// For an example window, see `InspectorWindow` in the README.
   ///
   /// - Parameter mode: The inspector mode.
   /// - Returns: A view whose thread views use `mode`.

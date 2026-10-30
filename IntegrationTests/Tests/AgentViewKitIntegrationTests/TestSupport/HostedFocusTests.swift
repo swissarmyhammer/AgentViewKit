@@ -52,8 +52,8 @@ final class KeyStatusReportingWindow: NSWindow {
 
 /// The AVK-12 rule at run time: a hosted test of the kit shows no window and
 /// takes no focus from the user, also after a key goes to a SwiftUI focus
-/// target. The test process sets no activation policy, as in EditorKit
-/// (`HiddenTestWindowTests`), so these tests read the real focus state.
+/// target. The test process sets no activation policy, as in EditorKit, so
+/// these tests read the real focus state.
 @Suite(.serialized, .hostedSerially) @MainActor struct HostedFocusTests {
   @Test func aMountedViewThatGetsAKeyShowsNoWindowAndTakesNoFocus() throws {
     let log = HostedEventLog()

@@ -17,8 +17,6 @@ import Testing
 /// EditorKit editor of a code block, the views that can take the VoiceOver
 /// focus, such as each card of ``RequestDeck``, and Liquid Glass. A view on
 /// glass has no separator stroke, so the edge check finds no edge.
-/// `GlassPlacementTests` reads the source, and keeps the glass in the files
-/// that can use it.
 enum ContentEdgeHostedProbe {
   /// The distance from the leading edge of the window to the point that the
   /// edge check reads on the separator stroke, in points.

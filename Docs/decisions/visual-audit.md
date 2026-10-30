@@ -8,14 +8,12 @@ that come from them. The kit reads its layout tokens from the shared style of
 the EditorKit `EditorStyle` target (`\.editorStyle`), and EditorKit took these
 values for `EditorStyle.default` (^7dn35sm, KanbanViewKit plan.md decision 18).
 Before that card, the kit held them in its own `AgentTheme`.
-`Tests/AgentViewKitTests/Theme/StyleTokenGoldenTests.swift` parses the token
-table below. It compares each row with the same token of `EditorStyle.default`.
-When EditorKit changes a default, change the table in the same change.
+When EditorKit changes a default, change the token table below in the same
+change.
 
-Keep the header and the form of the rows. Put the token and the default value
-in backticks. Write a point value as a number, and a weight or a density as
-its SwiftUI case name. The table has no color token, no font token, and no
-glass token. The colors and the fonts come from the EditorKit theme (see
+Put the token and the default value in backticks. Write a point value as a
+number, and a weight or a density as its SwiftUI case name. The table has no
+color token, no font token, and no glass token. The colors and the fonts come from the EditorKit theme (see
 "Colors and the code font"). The glass is always `.regular` (see "The
 removed material level").
 
@@ -102,8 +100,9 @@ content, not a bar: it has no fill, and a separator line is under it. Before
 D113, the table had the row "frame of a code block" with `editorBackground`,
 and the row "header bar of a code block, terminal, or command output" with
 `statusBarBackground`. D113 replaces these two rows. `EditorThemeViewsTests`
-checks the pixels, and EditorKit's `contentFills` engine (`StyleRuleEngineTests`)
-forbids a theme color, such as the `statusBarBackground` role, as a background.
+checks the pixels. No view uses a theme color, such as the
+`statusBarBackground` role, as a background. Review holds this (EditorKit
+style.md).
 
 EditorKit ^0apj6a2 (EditorKit main at 69d04fc) makes its views transparent by
 default and removes the roles `editorBackground` and `gutterBackground`. The

@@ -9,9 +9,8 @@ import SwiftUI
 /// change together, and two concepts do not show the same symbol. A kit adds
 /// the symbols of its own concepts in an extension of this table, in one
 /// file of its own: AgentViewKit writes its agent symbols in
-/// `SharedSymbol+Agent.swift`. The package test `SymbolNameTests` makes sure
-/// that no other source file of the package writes a symbol name, and that
-/// the two table files write each name one time.
+/// `SharedSymbol+Agent.swift`. No other source file of the package writes a
+/// symbol name, and the two table files write each name one time.
 ///
 /// No symbol of the table is a clock symbol (`clock`, each `clock.*` symbol,
 /// `timer`, `alarm`): a clock is a scheduled task (EditorKit `style.md`).
