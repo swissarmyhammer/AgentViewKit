@@ -68,11 +68,11 @@ final class ACPTabEndToEndTests: XCTestCase {
 
   /// Waits until the first session of the in-memory agent shows.
   private func waitForTheSession() {
-    let sessionShows = app.element(Self.sessionRow).waitForExistence(timeout: DemoTestValues.elementTimeout)
+    let sessionShows = app.element(Self.sessionRow).appears()
     XCTAssertFalse(app.element(Self.failure).exists, "The start of the agent failed.")
     XCTAssertTrue(sessionShows, "The sidebar shows no session.")
     XCTAssertTrue(
-      app.element(DemoTestValues.promptEditor).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      app.element(DemoTestValues.promptEditor).appears(),
       "The composer has no editor.")
   }
 
@@ -81,7 +81,7 @@ final class ACPTabEndToEndTests: XCTestCase {
   /// - Parameter identifier: The accessibility identifier.
   /// - Returns: `true` when the element exists before the time limit.
   private func waitForElement(_ identifier: String) -> Bool {
-    app.element(identifier).waitForExistence(timeout: DemoTestValues.elementTimeout)
+    app.element(identifier).appears()
   }
 
   func testASendOfHelloShowsTheReplyOfTheAgent() throws {
@@ -94,7 +94,7 @@ final class ACPTabEndToEndTests: XCTestCase {
     editor.click()
     editor.typeText("hello")
     let submit = app.element(DemoTestValues.promptSubmit)
-    XCTAssertTrue(submit.waitForExistence(timeout: DemoTestValues.elementTimeout))
+    XCTAssertTrue(submit.appears())
     XCTAssertTrue(submit.isHittable, "The Send button is not hittable.")
     submit.click()
 
@@ -133,9 +133,9 @@ final class ACPTabEndToEndTests: XCTestCase {
     // auth card while `authState` is `.required`. Thus the test finds the
     // card of the sheet in the sheet.
     let sheet = app.sheets.firstMatch
-    XCTAssertTrue(sheet.waitForExistence(timeout: DemoTestValues.elementTimeout), "No settings sheet shows.")
+    XCTAssertTrue(sheet.appears(), "No settings sheet shows.")
     XCTAssertTrue(
-      sheet.element(Self.agentAuth).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      sheet.element(Self.agentAuth).appears(),
       "The sheet has no AgentAuthView.")
     XCTAssertTrue(
       sheet.element(Self.connectionsEmpty).exists,

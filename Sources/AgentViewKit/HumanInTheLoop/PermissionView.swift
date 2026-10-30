@@ -152,9 +152,6 @@ public struct PermissionView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.themeAccent) private var themeAccent
-  @Environment(\.appearsActive) private var appearsActive
-  @Environment(\.isFocusEffectEnabled) private var isFocusEffectEnabled
   @Environment(\.permissionAnswerReport) private var reportAnswer
 
   /// The report that gets the method of each request that the "switch to
@@ -191,12 +188,12 @@ public struct PermissionView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .inlineEdge(radius: editorStyle.radii.l)
     // The card is a focusable view of its item scope, so a jump or a move
-    // lands the focus on the card and the scope draws no ring (EditorKit
-    // `scopeFocusRing`). The card draws the ring of the scope itself while
-    // it holds the focus. The system focus effect stays off.
-    .overlay { focusRing }
+    // lands the focus on the card and the scope draws no ring. EditorKit's
+    // focus ring (^8qtcdqc) draws it in the theme accent with the large
+    // radius of the style, and the system focus effect stays off.
     .focusable()
     .focusEffectDisabled()
+    .editorFocusRing(isFocused: isFocused, radius: .large)
     .focused($isFocused)
     .defaultFocus($isFocused, true)
     .onExitCommand { session.startCancelPermission(request.id) }
@@ -205,46 +202,6 @@ public struct PermissionView: View {
     .accessibilityIdentifier(Self.identifier)
     .accessibilityFocusTarget(Self.identifier)
   }
-
-  /// The focus ring of the card: the band that EditorKit's scope ring draws,
-  /// in the theme accent, with the large corner radius of the style. It shows
-  /// while the card has the keyboard focus in an active window.
-  private var focusRing: some View {
-    CardFocusRing(
-      accent: themeAccent, radius: editorStyle.radii.l, isEnabled: appearsActive && isFocusEffectEnabled)
-  }
-
-  /// The band of the ring. It is inside the focusable card, so the
-  /// environment value `isFocused` tells whether the card holds the focus.
-  private struct CardFocusRing: View {
-    let accent: Color
-    let radius: CGFloat
-    let isEnabled: Bool
-
-    @Environment(\.isFocused) private var isFocused
-
-    var body: some View {
-      if isFocused, isEnabled {
-        RoundedRectangle(cornerRadius: radius + PermissionView.ringOutset)
-          .strokeBorder(
-            accent.opacity(PermissionView.ringOpacity), lineWidth: PermissionView.ringOutset + PermissionView.ringInset
-          )
-          .padding(-PermissionView.ringOutset)
-          .allowsHitTesting(false)
-          .accessibilityHidden(true)
-      }
-    }
-  }
-
-  /// How far the band of the ring stands outside the card, in points, as the
-  /// band of the AppKit focus ring does.
-  private static let ringOutset: CGFloat = 3
-
-  /// How far the band of the ring laps into the card, in points.
-  private static let ringInset: CGFloat = 1
-
-  /// The opacity of the theme accent in the ring.
-  private static let ringOpacity = 0.5
 
   /// The title and the description.
   private var header: some View {

@@ -38,7 +38,7 @@ final class GalleryTabEndToEndTests: XCTestCase {
 
   func testOpeningARecordedSessionShowsItsTranscript() throws {
     let row = app.element(withIdentifierPrefix: Self.sessionRowPrefix)
-    let rowShows = row.waitForExistence(timeout: DemoTestValues.elementTimeout)
+    let rowShows = row.appears()
     XCTAssertFalse(app.element(Self.failure).exists, "The start of the Gallery failed.")
     XCTAssertTrue(rowShows, "The Gallery lists no recorded session.")
 
@@ -46,7 +46,7 @@ final class GalleryTabEndToEndTests: XCTestCase {
     row.doubleClick()
 
     XCTAssertTrue(
-      app.element(withIdentifierPrefix: Self.itemRowPrefix).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      app.element(withIdentifierPrefix: Self.itemRowPrefix).appears(),
       "The opened session shows no transcript row.")
   }
 }

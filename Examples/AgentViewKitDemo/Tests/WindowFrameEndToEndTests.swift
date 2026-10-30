@@ -32,7 +32,7 @@ final class WindowFrameEndToEndTests: XCTestCase {
   func testTheWindowOfTheGalleryTabFitsTheVisibleFrameOfItsScreen() throws {
     app.launch(arguments: DemoTestValues.galleryLaunchArguments)
     XCTAssertTrue(
-      app.element(DemoTestValues.permissionSessionRow).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      app.element(DemoTestValues.permissionSessionRow).appears(),
       "The Gallery lists no permission session.")
 
     try assertTheWindowFitsTheVisibleFrameOfItsScreen()
@@ -41,7 +41,7 @@ final class WindowFrameEndToEndTests: XCTestCase {
   func testTheWindowOfTheACPTabFitsTheVisibleFrameOfItsScreen() throws {
     app.launch(arguments: [DemoTestValues.inMemoryAgentArgument])
     XCTAssertTrue(
-      app.element(DemoTestValues.promptEditor).waitForExistence(timeout: DemoTestValues.elementTimeout),
+      app.element(DemoTestValues.promptEditor).appears(),
       "The composer has no editor.")
 
     try assertTheWindowFitsTheVisibleFrameOfItsScreen()
@@ -67,7 +67,7 @@ final class WindowFrameEndToEndTests: XCTestCase {
   ) throws {
     let window = app.windows.firstMatch
     XCTAssertTrue(
-      window.waitForExistence(timeout: DemoTestValues.elementTimeout), "The app shows no window.", file: file,
+      window.appears(), "The app shows no window.", file: file,
       line: line)
     let windowFrame = window.frame
     let visibleFrame = try XCTUnwrap(
