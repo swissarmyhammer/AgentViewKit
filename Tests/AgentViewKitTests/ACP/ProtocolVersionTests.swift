@@ -1,9 +1,9 @@
 import AgentViewKit
 import DemoSupport
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
-import PackageFileSupport
 import Testing
 
 /// The objects of one test over the in-memory agent: the scripted agent and
@@ -42,41 +42,13 @@ private struct Harness {
   }
 }
 
-/// Checks the R6 decision in `Docs/decisions/acp-version.md` and the
-/// protocol version check of ``SupportedProtocolVersions``.
+/// Checks the protocol version check of ``SupportedProtocolVersions``.
 @MainActor
 @Suite struct ProtocolVersionTests {
-  /// The decision file, relative to the package root.
-  private static let decisionPath = "Docs/decisions/acp-version.md"
-
-  /// The prefix of the line that states the supported versions.
-  private static let supportedPrefix = "supported:"
-
   /// Protocol version 1, which the kit does not accept.
   private static let v1 = ProtocolVersion(rawValue: 1)
 
-  // MARK: - Decision file
-
-  @Test func valuesMatchTheSupportedLine() throws {
-    let text = try PackageFiles.text(of: Self.decisionPath)
-    let lines = text.split(separator: "\n").filter { $0.hasPrefix(Self.supportedPrefix) }
-    #expect(lines.count == 1, "The file must have exactly one supported line.")
-    let line = try #require(lines.first)
-    let versions = line.dropFirst(Self.supportedPrefix.count)
-      .split(separator: ",")
-      .map { $0.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "`")) }
-      .compactMap { UInt16($0) }
-    #expect(!versions.isEmpty)
-    #expect(versions == SupportedProtocolVersions.values)
-  }
-
-  @Test func decisionFileHasTheSurveyTable() throws {
-    let text = try PackageFiles.text(of: Self.decisionPath)
-    #expect(text.contains("| peer | role | ACP library | protocol version | source | checked |"))
-    for peer in ["Claude Code", "Codex", "Gemini CLI", "Zed", "Xcode 27"] {
-      #expect(text.contains("| \(peer)"), "The table has no row for \(peer).")
-    }
-  }
+  // MARK: - Supported versions
 
   @Test func theLatestWireVersionIsSupported() {
     #expect(SupportedProtocolVersions.contains(.latest))

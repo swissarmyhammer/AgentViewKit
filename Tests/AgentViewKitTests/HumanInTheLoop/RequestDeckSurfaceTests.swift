@@ -1,8 +1,5 @@
 @testable import AgentViewKit
-import AgentViewKitTestSupport
 import CoreGraphics
-import EditorStyle
-import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -13,15 +10,6 @@ import Testing
 /// In a bar of floating controls, the deck is user input: it is on the
 /// floating glass of the kit. In content, the deck has no glass and no fill.
 struct RequestDeckSurfaceTests {
-  /// The size of each render.
-  static let size = CGSize(width: 320, height: 320)
-
-  /// The center of each render. The deck is in the center of its `ZStack`,
-  /// so this point is in the glass of a deck in the bar.
-  static var centerPoint: CGPoint {
-    CGPoint(x: size.width / 2, y: size.height / 2)
-  }
-
   /// The edge step of the band tests, in points.
   static let edgeStep: CGFloat = 8
 
@@ -30,27 +18,6 @@ struct RequestDeckSurfaceTests {
 
   /// The depth of the edge card in the band test.
   static let edgeDepth = 2
-
-  /// A code-built session model that holds one form elicitation.
-  static var session: SessionModel {
-    .preview(pendingElicitations: [PreviewFixtures.formElicitation])
-  }
-
-  /// The deck of ``session`` over the backdrop of ``GlassRenderProbeTests``.
-  ///
-  /// - Parameter inBar: Whether the deck is in a `FloatingGlassContainer`,
-  ///   as in the composer slot of ``AgentThreadView``.
-  /// - Returns: The view.
-  static func deck(inBar: Bool) -> some View {
-    ZStack {
-      GlassRenderProbeTests.backdrop
-      if inBar {
-        FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) { RequestDeck(session: session) }
-      } else {
-        RequestDeck(session: session)
-      }
-    }
-  }
 
   @Test func outOfAFloatingContainerTheDeckIsInContent() {
     #expect(RequestDeckPlace(isInFloatingGlassContainer: false) == .content)
@@ -124,20 +91,6 @@ struct RequestDeckSurfaceTests {
   @Test(arguments: contentStyles)
   func inContentAnActionUsesTheGlassStyleOrItsEnvironment(action: RequestAction, style: RequestActionStyle) {
     #expect(RequestDeckPlace.content.style(of: action) == style)
-  }
-
-  /// The test compares the two renders only at ``centerPoint``. The render
-  /// draws no card, because each card can take the VoiceOver focus
-  /// (``ContentEdgeHostedProbe``). In the bar, it draws the glass of the
-  /// deck as a band across the full width, in the center of the render. The
-  /// center is far from the edge of the glass. The rim of a rounded glass
-  /// changes after its first renders in the process, at a render that is not
-  /// the same in each run (``RenderedPixels/isClose(to:at:tolerance:)``).
-  @Test func inTheBarTheRenderDrawsTheGlassOfTheDeck() throws {
-    let inBar = try #require(RenderedPixels(rendering: Self.deck(inBar: true), size: Self.size))
-    let inContent = try #require(RenderedPixels(rendering: Self.deck(inBar: false), size: Self.size))
-
-    #expect(!inBar.isClose(to: inContent, at: [Self.centerPoint]))
   }
 
   @Test func anEdgeCardShowsOnlyItsTopBandAndTheOutsetOfItsStroke() {

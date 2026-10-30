@@ -4,12 +4,8 @@ Status: decided. Source: plan.md §3.6, §9 F, and §14 R15.
 
 This file records which files each data source accepts as an attachment, and
 the default view that `AttachmentView` uses for each uniform type.
-`Tests/AgentViewKitTests/Attachments/AttachmentResolutionTests.swift` parses
-the table below. It compares each row with
-`AttachmentView.defaultRenderer(for:)`. A change to the table must come with
-the same change to the code. Keep the header and the form of the rows. Put the
-type identifier and the renderer name in backticks. Do not use a `|` character
-in a cell.
+A change to the table below must come with the same change to
+`AttachmentView.defaultRenderer(for:)`.
 
 The Router is not a data source of the kit (`Docs/decisions/acp-client-kit.md`),
 so the table does not name it.

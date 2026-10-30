@@ -7,12 +7,8 @@ Code, Cursor, and Codex. It maps them onto the four ACP `PermissionOptionKind`
 values and onto the ACP config option of category `mode`. Then it records how
 `PermissionView` shows the options and when it offers "switch to auto".
 
-`Tests/AgentViewKitTests/HumanInTheLoop/PermissionPresentationTests.swift`
-parses the two tables in the Decision section. It compares each row with
-`PermissionPresentation` in
-`Sources/AgentViewKit/HumanInTheLoop/PermissionPresentation.swift`. Keep the
-headers and the form of the rows. Use `yes` or `no` in the flag columns. Put
-the kind and the mode state in backticks.
+The two tables in the Decision section match `PermissionPresentation` in
+`Sources/AgentViewKit/HumanInTheLoop/PermissionPresentation.swift`.
 
 ## Survey
 

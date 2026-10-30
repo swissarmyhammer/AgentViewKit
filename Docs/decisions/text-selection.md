@@ -4,9 +4,7 @@ Status: decided. Source: plan.md §9 A, §11 decision 8, §14 research R10.
 Task ^h41qtbk. Date: 2026-09-17.
 
 This file records how far a text selection goes in a thread on macOS 27.
-`Tests/AgentViewKitTests/Items/MessageActionsHostedTests.swift` reads the
-`mode:` line and compares it with `MessageActions.selectionMode`. Keep the form
-of this line.
+The `mode:` line matches `MessageActions.selectionMode`.
 
 mode: `perMessage`
 

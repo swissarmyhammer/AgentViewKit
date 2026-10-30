@@ -8,9 +8,8 @@ import Foundation
 /// and the file operations, are in ``AgentViewKitStyle/SharedSymbol``. This
 /// extension adds the concepts of the kit to the same table, so a view of
 /// the kit reads each symbol as `SharedSymbol.<concept>`. A symbol name is
-/// written in the two table files only. The package test `SymbolNameTests`
-/// makes sure that no other source file of the kit writes a symbol name, and
-/// that the two files write each name one time.
+/// written in the two table files only: no other source file of the kit
+/// writes a symbol name, and the two files write each name one time.
 ///
 /// No symbol of the table is a clock symbol (`clock`, each `clock.*` symbol,
 /// `timer`, `alarm`): a clock is a scheduled task (EditorKit `style.md`).

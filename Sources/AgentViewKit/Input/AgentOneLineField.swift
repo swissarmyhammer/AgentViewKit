@@ -173,8 +173,9 @@ extension SingleLineField {
 }
 
 extension View {
-  /// Puts this text input in the edge of a kit text input: a small inset
-  /// and the content edge with the small corners of `\.editorStyle`.
+  /// Puts this text input in the edge of a kit text input: an inset from
+  /// the edge, and the content edge with the small corners of
+  /// `\.editorStyle`.
   ///
   /// - Returns: The input in its edge.
   func agentTextInputEdge() -> some View {
@@ -182,15 +183,21 @@ extension View {
   }
 }
 
-/// The edge of a kit text input: the extra-small spacing of `\.editorStyle`
-/// as an inset, and `.inlineEdge(radius:)` with the small radius of the
-/// scale.
+/// The edge of a kit text input: an inset of the text from the edge, and
+/// `.inlineEdge(radius:)` with the small radius of the scale.
+///
+/// An EditorKit text input is bare (EditorKit `style.md`, rule 10): its
+/// first glyph stands at its leading edge, with no text inset of its own
+/// (EditorKit ^zycpt0j). So the edge gives the space around the input: the
+/// control spacing of EditorKit (`.editorControlSpacing(_:)`) at the sides,
+/// and the extra-small spacing of `\.editorStyle` above and below the line.
 struct AgentTextInputEdge: ViewModifier {
   @Environment(\.editorStyle) private var editorStyle
 
   func body(content: Content) -> some View {
     content
-      .padding(editorStyle.spacing.xs)
+      .editorControlSpacing(.horizontal)
+      .padding(.vertical, editorStyle.spacing.xs)
       .inlineEdge(radius: editorStyle.radii.s)
   }
 }

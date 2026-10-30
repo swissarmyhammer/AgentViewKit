@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import FoundationModelsACP
 import SwiftUI
 import Testing

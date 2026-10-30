@@ -6,11 +6,6 @@ Status: decided. Source: plan.md §9 E and §14 R13.
 
 This file records what each data source can restore from a checkpoint, and
 the v1 fields of the `Checkpoint` model. `CheckpointView` uses these fields.
-`Tests/AgentViewKitTests/Checkpoints/CheckpointCapabilitiesTests.swift` parses
-the table below. It compares each row with the `CheckpointCapabilities` value
-of the same source. Keep the header and the form of the rows. Use `yes` or
-`no` in the two restore columns. Put the source, the granularity, and the wire
-call in backticks.
 
 ## Capabilities
 

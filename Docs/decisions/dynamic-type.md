@@ -43,8 +43,7 @@ view picks a font outside the roles: a fixed monospaced font, such as
 `.body.monospaced()`, a font family, such as `.custom("Menlo", size: 12)`, a
 font design, or a bare system text style, such as `.font(.caption)`, which
 draws in the system font and not in the `ui` face.
-`Tests/PackageStructureTests/FontRoleTests.swift` scans the views of the kit
-and of the examples for such a font.
+Review holds this (EditorKit style.md).
 
 Two views set a point size, and both sizes come from a resolved text style:
 
@@ -56,7 +55,7 @@ Two views set a point size, and both sizes come from a resolved text style:
   the digit font from that size. The digits are chrome, so they draw in a
   copy of the `ui` face with that fixed size, and a `ui` family reaches them.
   A view that needs a fixed size uses a face in this way: a bare
-  `.system(size:)` draws in the system font, and `FontRoleTests` finds it.
+  `.system(size:)` draws in the system font.
 
 Thus, when the platform scales a text style, the kit text scales with it.
 

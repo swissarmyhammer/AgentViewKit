@@ -186,6 +186,10 @@ public struct EditorKitPromptEditor: View {
 
   /// The list of the open completion session.
   ///
+  /// The list insets each row by the extra small spacing step on the leading
+  /// and the trailing edge, so the selection surface of a row stands clear
+  /// of the edges of the menu. A row has no padding around it (^rgsq3k4).
+  ///
   /// - Parameters:
   ///   - completion: The open session.
   ///   - model: The model of the editor.
@@ -193,7 +197,10 @@ public struct EditorKitPromptEditor: View {
   private func completionList(_ completion: CompletionSessionState, model: EditorModel) -> some View {
     CompletionSuggestionsList(
       items: completion.listedItems, selectedIndex: completion.listedSelectedIndex, id: \.label,
-      row: { item, isSelected in PromptCompletionRow(item: item, isSelected: isSelected) },
+      row: { item, isSelected in
+        PromptCompletionRow(item: item, isSelected: isSelected)
+          .padding(.horizontal, editorStyle.spacing.xs)
+      },
       onCommit: { item in accept(item, in: model) }
     )
     .frame(width: Self.completionListWidth)
@@ -600,16 +607,12 @@ public struct EditorKitPromptEditor: View {
 /// One row of the completion list of ``EditorKitPromptEditor``.
 ///
 /// The selected row sits on the shared selection surface of EditorKit, in
-/// the small radius and inset from the edges of the list, as the completion
-/// row of EditorKit does.
+/// the small radius. The row has no padding around its surface (^rgsq3k4):
+/// the list of ``EditorKitPromptEditor`` insets the row from its edges.
 struct PromptCompletionRow: View {
   /// The radius step of the selection surface: the small radius of a row in
   /// a list.
   static let selectionRadius = EditorStyle.Radius.small
-
-  /// The horizontal inset of the selection surface inside the row: the inset
-  /// of the completion row of EditorKit.
-  static let selectionHorizontalInset: CGFloat = 2
 
   /// The completion of the row.
   let item: Completion
@@ -636,7 +639,6 @@ struct PromptCompletionRow: View {
     .padding(.horizontal, editorStyle.spacing.s)
     .padding(.vertical, editorStyle.spacing.xs)
     .selectableSurface(isSelected, radius: Self.selectionRadius)
-    .padding(.horizontal, Self.selectionHorizontalInset)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(item.label)
     .accessibilityValue(item.detail ?? "")

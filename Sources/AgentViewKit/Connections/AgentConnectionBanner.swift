@@ -19,6 +19,10 @@ import SwiftUI
 ///
 /// The text of each banner has its own accessibility identifier:
 /// ``disconnectedIdentifier`` and ``failedIdentifier``.
+///
+/// The banner has no margin around it (^rgsq3k4): the layout that holds it
+/// spaces it, as the top bar of ``AgentThreadView`` does with the tile
+/// margin.
 public struct AgentConnectionBanner: View {
   /// The accessibility identifier of the text of the disconnected banner.
   public static let disconnectedIdentifier = "agent-connection-disconnected"
@@ -28,8 +32,6 @@ public struct AgentConnectionBanner: View {
 
   /// The connection model whose state the banner shows.
   let connection: ConnectionModel
-
-  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the banner of the connection state of a connection model.
   ///
@@ -42,7 +44,6 @@ public struct AgentConnectionBanner: View {
     if let message = Self.makeMessage(for: connection.state) {
       StatusBar(message: message, action: nil)
         .statusBarActionStyle(AgentStatusBarActionStyle())
-        .padding(editorStyle.tile.margin)
     }
   }
 

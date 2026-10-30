@@ -62,7 +62,7 @@ This file records how `DiffView` gets its default renderer from EditorKit.
   (`editor.diff.new`) on the two columns of the side-by-side layout.
 - These identifiers are on `NSView`s, not on SwiftUI accessibility elements.
   The hosted tests find them with
-  `HostedViewHarness.views(withAccessibilityIdentifier:)`, which walks the
+  `views(withAccessibilityIdentifier:in:)` of EditorKit, which walks the
   `NSView` tree.
 - The kit identifier `diff-editor-renderer` is removed. No code needs it.
 

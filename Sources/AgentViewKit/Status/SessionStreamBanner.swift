@@ -45,6 +45,10 @@ import SwiftUI
 ///
 /// The text of each banner has its own accessibility identifier, such as
 /// ``missedUpdatesIdentifier``.
+///
+/// The banners stand one tile margin apart, and the view has no margin
+/// around them (^rgsq3k4): the layout that holds the view spaces it, as the
+/// top bar of ``AgentThreadView`` does with the tile margin.
 public struct SessionStreamBanner: View {
   /// The accessibility identifier of the text of the closed banner.
   public static let closedIdentifier = "session-stream-closed"
@@ -182,7 +186,6 @@ public struct SessionStreamBanner: View {
         }
       }
       .statusBarActionStyle(AgentStatusBarActionStyle())
-      .padding(editorStyle.tile.margin)
     }
   }
 

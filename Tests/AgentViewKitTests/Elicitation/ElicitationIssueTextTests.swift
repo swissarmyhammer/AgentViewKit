@@ -1,4 +1,5 @@
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing

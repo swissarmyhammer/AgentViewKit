@@ -1,3 +1,4 @@
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 

@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import Foundation
 import Testing
 
@@ -15,6 +16,9 @@ import Testing
 
   /// The key of the XDG configuration root in the environment of the agent.
   static let configurationHomeKey = "XDG_CONFIG_HOME"
+
+  /// The name of the configuration file in the user layer of the agent.
+  static let profileFileName = "config.yaml"
 
   /// The name of the first recording. It sorts before ``secondRecording``.
   static let firstRecording = "alpha-recording"
@@ -47,7 +51,7 @@ import Testing
   struct Recordings {
     /// The temporary directory of the test. It holds the recordings and the
     /// stages.
-    let directory: TemporaryDirectory
+    let directory: TemporaryFolder
 
     /// The directory that holds the recordings.
     var url: URL { directory.url.appending(path: "recordings", directoryHint: .isDirectory) }
@@ -59,7 +63,7 @@ import Testing
     ///
     /// - Throws: The error of a write.
     init() throws {
-      directory = try TemporaryDirectory()
+      directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
       try write("** linguist-generated=true\n", to: "\(firstRecording)/\(attributesFileName)")
       try write("# Recordings\n", to: topFileName)
       for (recording, session) in [(firstRecording, firstSession), (secondRecording, secondSession)] {
@@ -203,13 +207,36 @@ import Testing
     try Self.expectEmptyDirectory(stage.workingDirectory, of: stage)
   }
 
-  @Test func theConfigurationDirectoryIsAnEmptyDirectoryOfTheStage() throws {
+  @Test func theConfigurationDirectoryHoldsOnlyTheUserLayerOfTheAgent() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
-    try Self.expectEmptyDirectory(stage.configurationDirectory, of: stage)
+    let names = try FileManager.default.contentsOfDirectory(
+      atPath: stage.configurationDirectory.path(percentEncoded: false))
+    #expect(names == [stage.userLayerDirectory.lastPathComponent])
+  }
+
+  @Test func theUserLayerHoldsOnlyTheProfileFile() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+
+    let stage = try recordings.makeStage()
+
+    let names = try FileManager.default.contentsOfDirectory(
+      atPath: stage.userLayerDirectory.path(percentEncoded: false))
+    #expect(names == [Self.profileFileName])
+  }
+
+  @Test func theProfileFileNamesTheStandardModelOfTheRecordings() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+
+    let stage = try recordings.makeStage()
+
+    let text = try String(contentsOf: stage.profileFile, encoding: .utf8)
+    #expect(text == "profile:\n  standard:\n    - mlx-community/Qwen3.8-27B-mxfp4\n")
   }
 
   @Test func theAgentEnvironmentPutsTheConfigurationRootInTheStage() throws {
@@ -222,7 +249,7 @@ import Testing
   }
 
   @Test func aBundleWithNoRecordingsGivesTheErrorDescriptionAsTheFailureText() throws {
-    let bundleDirectory = try TemporaryDirectory()
+    let bundleDirectory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { bundleDirectory.remove() }
     let bundle = try #require(Bundle(url: bundleDirectory.url))
 
@@ -234,7 +261,7 @@ import Testing
   }
 
   @Test func aBundleWithRecordingsGivesTheRecordingsDirectory() throws {
-    let bundleDirectory = try TemporaryDirectory()
+    let bundleDirectory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { bundleDirectory.remove() }
     let recordings = bundleDirectory.url.appending(
       path: RecordedSessionsStage.recordingsResourceName, directoryHint: .isDirectory)

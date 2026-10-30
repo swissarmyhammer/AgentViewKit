@@ -917,8 +917,8 @@ This section records how the views get their data (review of 2026-10-11). Paths 
 
 ### Result
 
-- No view reads a FoundationModels `Transcript`. `Package.swift` and `ImportBoundaryTests` forbid FoundationModels imports. `ThreadExporter` reads `[TranscriptEntry]` of the ACP client. `DemoSupport` holds ACP agents only. There is one source of truth: the FoundationModelsACPClient models.
-- The legacy designs are gone: the Router, the structured items, the `schemaName` catalog, `AgentViewKitACP` and the kit copies of the ACP value types. `RemovedVocabularyTests` prevents their return.
+- No view reads a FoundationModels `Transcript`. `Package.swift` forbids FoundationModels imports. `ThreadExporter` reads `[TranscriptEntry]` of the ACP client. `DemoSupport` holds ACP agents only. There is one source of truth: the FoundationModelsACPClient models.
+- The legacy designs are gone: the Router, the structured items, the `schemaName` catalog, `AgentViewKitACP` and the kit copies of the ACP value types.
 - The problems are smaller. Different views read the same concept in different ways. Some helpers calculate again the state that the client already has. Some APIs are not used or are only partly connected.
 
 ### Binding map

@@ -17,7 +17,10 @@ import SwiftUI
 /// view is empty.
 ///
 /// A notice is not in the transcript, so the banners are not rows of the
-/// conversation. ``AgentThreadView`` shows them above the conversation.
+/// conversation. ``AgentThreadView`` shows them above the conversation. The
+/// banners stand one tile margin apart, and the view has no margin around
+/// them (^rgsq3k4): the layout that holds the view spaces it, as the top
+/// bar of ``AgentThreadView`` does with the tile margin.
 /// Notices are stable ACP since schema alpha.8.
 ///
 /// The accessibility label of each banner is the severity, the title and the
@@ -67,7 +70,6 @@ public struct SessionNoticeBanner: View {
           NoticeBanner(notice: notice) { session.dismissNotice(notice.id) }
         }
       }
-      .padding(editorStyle.tile.margin)
     }
   }
 }

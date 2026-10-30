@@ -20,9 +20,16 @@
 // and a Router agent reach the kit through FoundationModelsACPAgent and ACP
 // (plan.md §1).
 //
-// PackageStructureTests reads this file as text. Spell each library product
-// and each dependency product in full, as `.library(name:` and
-// `.product(name:package:)`, so that the tests can find them.
+// Two more library products are test support only: `AgentViewKitTestSupport`
+// and `DemoSupport`. The nested `IntegrationTests/` package links them by
+// path, because a test target of this package cannot be a dependency. No host
+// of the kit links them (plan.md §11 decision 1).
+//
+// The tiers of the tests (plan.md §11 decision 21). `swift test` here runs
+// the unit tests only: no test of this package mounts a view in a window or a
+// hosting view, or captures a window. The hosted, snapshot, pixel, focus-ring
+// and review gallery tests are in the nested package, and run with
+// `swift test --package-path IntegrationTests`.
 
 import PackageDescription
 
@@ -62,7 +69,6 @@ let editorKitProducts: [Target.Dependency] = [
 /// The EditorKit products that the style target links: the shared style and
 /// the theme, the SwiftUI views and the diff parser of the diff renderer, and
 /// the focus segment of a scope kind. None of them links an ACP product.
-/// `AgentViewKitStyleClosureTests` checks the closure of this list.
 let styleEditorKitProducts: [Target.Dependency] = [
   .product(name: "EditorStyle", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
@@ -82,17 +88,8 @@ let acpProducts: [Target.Dependency] = [
 /// links it: the ACP tab runs FoundationModelsACPAgent in the process of the
 /// app with the live model, and the Gallery tab runs it over the recorded
 /// sessions with the stub model. The kit target does not import it.
-/// ImportBoundaryTests enforces this.
 let demoAgentProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPAgent", package: "FoundationModelsACPAgent")
-]
-
-/// The EditorKit products that a host imports to set the theme and the style of the kit (README
-/// "The theme").
-let readmeEditorKitProducts: [Target.Dependency] = [
-  .product(name: "EditorSwiftUI", package: "EditorKit"),
-  .product(name: "EditorTheme", package: "EditorKit"),
-  .product(name: "EditorStyle", package: "EditorKit"),
 ]
 
 /// The EditorKit test support products that the model and view tests link:
@@ -105,8 +102,7 @@ let editorKitTestSupportProducts: [Target.Dependency] = [
 
 /// The EditorKit test support product that the style tests link: the hosted
 /// window and accessibility helpers. The recording command system is not in
-/// it, because no style view registers a command. The package structure
-/// tests link it too, for its source scan helpers.
+/// it, because no style view registers a command.
 let styleTestSupportProducts: [Target.Dependency] = [
   .product(name: "EditorTestSupport", package: "EditorKit")
 ]
@@ -133,6 +129,9 @@ let package = Package(
   products: [
     .library(name: "AgentViewKit", targets: ["AgentViewKit"]),
     .library(name: "AgentViewKitStyle", targets: ["AgentViewKitStyle"]),
+    // Test support only, for the nested IntegrationTests package.
+    .library(name: "AgentViewKitTestSupport", targets: ["AgentViewKitTestSupport"]),
+    .library(name: "DemoSupport", targets: ["DemoSupport"]),
   ],
   dependencies: [
     // The in-family packages use the SSH URL and `branch: "main"`, as each
@@ -151,9 +150,8 @@ let package = Package(
   ],
   targets: [
     // The shared look of the view kits. It links only EditorKit: no ACP
-    // product, no Textual and no math engine. ImportBoundaryTests holds its
-    // imports, and AgentViewKitStyleClosureTests holds its dependency
-    // closure. The string catalog holds its own English text.
+    // product, no Textual and no math engine. The string catalog holds its
+    // own English text.
     .target(
       name: "AgentViewKitStyle",
       dependencies: styleEditorKitProducts,
@@ -164,7 +162,6 @@ let package = Package(
     ),
     // The views and the ACP helpers. No target imports
     // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
-    // ImportBoundaryTests enforces this.
     .target(
       name: "AgentViewKit",
       dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts + mathEngineProducts,
@@ -181,25 +178,26 @@ let package = Package(
       ],
       swiftSettings: mainActorIsolated
     ),
-    // The hosted view harness, the recording fakes, and the session model
-    // over the scripted agent of `DemoSupport`. This target is not a product.
-    // Each test target that links a package target links it too.
+    // The agent-specific test helpers: the recording fakes, and the session
+    // model over the scripted agent of `DemoSupport`. The generic helpers,
+    // such as the hosted view harness, are EditorKit's `EditorTestSupport`.
+    // Each test target that links a package target links it too. It is a
+    // test support product, so that the IntegrationTests package and the
+    // unit tests share one copy of each fixture; no host of the kit links it.
+    // It links EditorTestSupport for the capture of a real window
+    // (`CapturedImage`) and the looks of a screenshot (`ReviewAppearance`),
+    // which the review gallery writes.
     .target(
       name: "AgentViewKitTestSupport",
-      dependencies: ["AgentViewKit", "DemoSupport", "HostedWindowSupport"] + acpProducts,
+      dependencies: ["AgentViewKit", "DemoSupport"] + acpProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
-    // The Objective-C window of the hosted view harness. The window catches
-    // the exception of a display cycle loop of AppKit, such as a constraint
-    // update loop, so that a hosted test fails and does not stop the test
-    // process. Swift cannot catch an Objective-C exception. This target is
-    // not a product, and it links only AppKit.
-    .target(name: "HostedWindowSupport"),
     // The scripted in-memory ACP agent, the agent starter of the demo app
     // (`DemoAgent`), and the launch options of the demo app. The ACP tests
     // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
-    // sources into the app. The target is not a product: the two library
-    // products are the kit and its style (plan.md §11 decision 1). It links
+    // sources into the app. It is a test support product for the
+    // IntegrationTests package; the two library products of a host are the
+    // kit and its style (plan.md §11 decision 1). It links
     // FoundationModelsACPAgent for the agent of the ACP tab and of the
     // Gallery tab, which runs in the process of the app.
     .target(
@@ -207,11 +205,6 @@ let package = Package(
       dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
-    // Finds and reads the package files for the tests, and reads the Markdown
-    // tables of the decision records. This target is not a product and has no
-    // dependency, so that PackageStructureTests can link it without the kit.
-    .target(name: "PackageFileSupport"),
-
     .testTarget(
       name: "AgentViewKitTests",
       dependencies: [
@@ -221,53 +214,18 @@ let package = Package(
         // The scripted wire agent and the in-memory demo agent of the ACP
         // tests.
         "DemoSupport",
-        // ProtocolVersionTests reads the ACP version decision from disk, and
-        // the decision table tests read their tables with MarkdownTable.
-        "PackageFileSupport",
-        // HostedViewHarnessTests checks the window of the harness that
-        // catches the exception of a display cycle loop.
-        "HostedWindowSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,
-      // The snapshot tests read their reference PNG images from disk
-      // (AVK-13), so the build excludes that folder.
-      exclude: ["Snapshots/__Snapshots__"],
       swiftSettings: mainActorIsolated
     ),
-    // The tests of the public API of the style library. No file imports it
-    // with `@testable`, so each test reads only what a host of the product
-    // reads. It links no ACP product and no target of the kit, and it hosts
-    // its views with the window helpers of EditorKit.
+    // The unit tests of the public API of the style library. No file imports
+    // it with `@testable`, so each test reads only what a host of the product
+    // reads. It links no ACP product and no target of the kit. Its hosted
+    // tests are in the IntegrationTests package.
     .testTarget(
       name: "AgentViewKitStyleTests",
       dependencies: ["AgentViewKitStyle"] + styleEditorKitProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
-    ),
-    // Reads the package files as text. It links PackageFileSupport, which
-    // has no dependency, and the shared source scan helpers of
-    // EditorTestSupport (`SourceScanning`, for `LightAndDarkOnlyTests`,
-    // `AnnouncementPathScanTests` and `NoSwiftUIListTests`), and no target of
-    // the kit. The fixtures are Swift files that the scanner reads, so the
-    // build excludes them.
-    .testTarget(
-      name: "PackageStructureTests",
-      dependencies: ["PackageFileSupport"] + styleTestSupportProducts,
-      exclude: ["Fixtures"]
-    ),
-    // The compiled snippets of README.md (plan.md §1). Each `// readme:compile`
-    // block of the README is a file in `Examples/ReadmeSnippets/Snippets/`,
-    // that `Scripts/extract-readme-snippets.sh` writes. This target compiles
-    // the files against the products that a host imports: the kit, the ACP
-    // products, and the EditorKit theme products. Thus a snippet that does
-    // not compile fails the build. `ReadmeSnippetTests` in
-    // PackageStructureTests holds the README and the files equal. It is a
-    // test target, and not in `Sources/`, so that no product links the
-    // snippets. It has no default isolation, so that the snippets compile in
-    // a host with the language default.
-    .testTarget(
-      name: "ReadmeSnippetsTests",
-      dependencies: ["AgentViewKit"] + acpProducts + readmeEditorKitProducts,
-      path: "Examples/ReadmeSnippets"
     ),
   ],
   swiftLanguageModes: [.v6]

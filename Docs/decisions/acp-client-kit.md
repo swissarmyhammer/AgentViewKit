@@ -5,9 +5,7 @@ Status: decided. Source: the update plan of 2026-10-02, sections 1, 2, 3 and
 `plan.md` and deleted the plan file. The git history keeps it.
 Date: 2026-10-05.
 
-This file records the scope of the kit. `DecisionRecordTests` in
-`Tests/PackageStructureTests/` reads the title line of this file. Keep the
-title line.
+This file records the scope of the kit.
 
 ## Decision
 
@@ -103,8 +101,7 @@ that only changes what one view shows:
 | A selection: a citation, lines of a diff, an attachment of the inspector | `CitationSelection`, `DiffLineSelection`, `InspectorSelection` |
 | The draft of the composer: the text and the attachments | `UserInput` and the text binding of `PromptInputView` |
 
-`RemovedVocabularyTests.eachObservableClassOfTheKitHoldsViewStateOnly` fails
-when the kit declares an `@Observable` class that is not in this table.
+The kit declares no `@Observable` class that is not in this table.
 
 The host gives a closure or a service only for work that no model does. The
 section "Host hooks" names the two hooks of the agent connection. The other
@@ -120,8 +117,8 @@ host values are platform services or host actions, not session state:
 ## Host hooks
 
 Task ^gzj5cye removed the old kit session model, its stream copy, its
-tracking of prompts and its thread actions protocol. `RemovedVocabularyTests`
-names each removed type. The views call the models directly.
+tracking of prompts and its thread actions protocol. The views call the
+models directly.
 
 The host gives the kit only these two environment values. The models do not
 have this behavior:
@@ -146,8 +143,8 @@ Task ^71k836q removed the kit copies of the ACP value types: `JSONValue`,
 kit `ToolKind`, `ToolCallStatus`, `PlanEntry`, `AuthMethod` and
 `SessionSummary`. The views read the ACP values of FoundationModelsACP that
 the client models hold. No kit function converts an ACP value to a kit value
-of the same meaning. `RemovedVocabularyTests` fails when a source of the kit
-declares a type with the name of one of these ACP types.
+of the same meaning. No source of the kit declares a type with the name of
+one of these ACP types.
 
 The kit adds members to the ACP `JSONValue` in an extension
 (`JSONValue+Members.swift` and `ACPJSONText.swift`): parse, encode,

@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import Foundation
 import FoundationModelsACP
 import Testing
@@ -115,21 +116,6 @@ enum CapabilityCase: String, CaseIterable, CustomTestStringConvertible {
   /// The text of each prompt.
   static let message = "Look"
 
-  /// The wire type of a block.
-  ///
-  /// - Parameter block: The block.
-  /// - Returns: The `type` value of the block on the wire.
-  static func wireType(of block: FoundationModelsACP.ContentBlock) -> String {
-    switch block {
-    case .text: "text"
-    case .image: "image"
-    case .audio: "audio"
-    case .resourceLink: "resource_link"
-    case .resource: "resource"
-    case .unknown(let type, _): type
-    }
-  }
-
   /// The embedded resource value of a block.
   ///
   /// - Parameter block: The block.
@@ -147,7 +133,7 @@ enum CapabilityCase: String, CaseIterable, CustomTestStringConvertible {
 
     let blocks = PromptContent.makeBlocks(for: input, accepting: capabilityCase.capabilities)
 
-    #expect(blocks.map(Self.wireType(of:)) == capabilityCase.expectedTypes)
+    #expect(blocks.map(ContentBlockWireType.wireType(of:)) == capabilityCase.expectedTypes)
     #expect(blocks.first == .text(FoundationModelsACP.TextContent(text: Self.message)))
   }
 
@@ -215,7 +201,7 @@ enum CapabilityCase: String, CaseIterable, CustomTestStringConvertible {
 
     let blocks = PromptContent.makeBlocks(for: input, accepting: CapabilityCase.both.capabilities)
 
-    #expect(blocks.map(Self.wireType(of:)) == ["text", "resource_link"])
+    #expect(blocks.map(ContentBlockWireType.wireType(of:)) == ["text", "resource_link"])
   }
 
   @Test(arguments: CapabilityCase.allCases)

@@ -1,6 +1,7 @@
 import EditorCommands
 import EditorCommandsUI
 import EditorCore
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -78,9 +79,6 @@ public struct SessionListView: View {
   /// The title of a session that has no title.
   public static let untitledTitle = "Untitled Session"
 
-  /// The space between the title and the time of a row, in points.
-  static let rowLineSpacing: CGFloat = 2
-
   /// The space between the header, the failure message, and the list, in
   /// points.
   static let sectionSpacing: CGFloat = 0
@@ -149,6 +147,10 @@ public struct SessionListView: View {
 
   /// The EditorKit theme that gives the error color of the failure message.
   @Environment(\.editorTheme) private var editorTheme
+
+  /// The style that gives the space of the header, of the failure message
+  /// and of the rows (^rgsq3k4).
+  @Environment(\.editorStyle) private var editorStyle
 
   /// The model of the search text that filters the rows.
   @State private var search = OwnModelSlot(editable: true)
@@ -229,7 +231,7 @@ public struct SessionListView: View {
         .accessibilityIdentifier(Self.newSessionIdentifier)
       }
     }
-    .padding()
+    .padding(editorStyle.spacing.l)
   }
 
   /// The list, the empty state, or the state of an agent that does not list
@@ -270,6 +272,7 @@ public struct SessionListView: View {
         loadMoreButton
       }
     }
+    .scrollContentMargins(\.tile.margin)
   }
 
   /// The action that opens the session of a row, or `nil` when the agent
@@ -301,7 +304,7 @@ public struct SessionListView: View {
       .font(editorTheme.font(for: .ui, style: .caption))
       .foregroundStyle(editorTheme.severityError)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal)
+      .padding(.horizontal, editorStyle.spacing.l)
       .accessibilityIdentifier(Self.failureIdentifier)
   }
 
@@ -358,7 +361,7 @@ public struct SessionListView: View {
   /// - Parameter info: The session to show.
   /// - Returns: The two lines of text.
   private func summary(of info: SessionInfo) -> some View {
-    VStack(alignment: .leading, spacing: Self.rowLineSpacing) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Text(Self.title(of: info))
         .lineLimit(1)
       if let updatedAt = info.updatedAt.flatMap(ISO8601Time.date(from:)) {

@@ -4,12 +4,7 @@ Status: decided. Source: plan.md §9 B, §11 decision 7, §14 research R9.
 Task ^vznkzkp. Date: 2026-09-16.
 
 This file records the math engine of `MathView` and how `ResponseView` routes
-math spans to it. `Tests/AgentViewKitTests/Content/MathEngineDecisionTests.swift`
-reads the `engine:`, `url:`, and `version:` lines. It compares them with
-`MathView.engineName`, `Package.swift`, and `Package.resolved`. Keep the form of
-these three lines. The same tests read the `review:` line and the section "The
-SPI symbols". They fail when a source file of the kit uses an engine symbol
-that the section does not name.
+math spans to it.
 
 engine: `swiftui-math`
 url: `https://github.com/gonzalezreal/swiftui-math`

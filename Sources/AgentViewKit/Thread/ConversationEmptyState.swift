@@ -79,6 +79,10 @@ extension View {
 /// The view is one accessibility container with the identifier
 /// ``ConversationLayout/emptyStateIdentifier``. VoiceOver reads the title as
 /// a heading, and then each paragraph of the text. Long text scrolls.
+///
+/// The text has no margin around it (^rgsq3k4): the layout that holds the
+/// view gives one, such as `.scrollContentMargins(\.spacing.l)`. The default
+/// empty state of ``ConversationView`` has that margin.
 public struct ConversationEmptyState: View {
   /// The content that the host gave to the initializer, or `nil` to use the
   /// content of the environment.
@@ -114,7 +118,6 @@ public struct ConversationEmptyState: View {
         ConversationEmptyHeader(title: shown.title, systemImage: shown.systemImage)
         ResponseView(id: ConversationLayout.emptyStateIdentifier, markdown: shown.markdown)
       }
-      .padding(editorStyle.spacing.l)
     }
     .defaultScrollAnchor(.center, for: .alignment)
     .scrollBounceBehavior(.basedOnSize)
@@ -157,4 +160,5 @@ private struct ConversationEmptyHeader: View {
 
 #Preview("Empty conversation") {
   ConversationEmptyState()
+    .scrollContentMargins(\.spacing.l)
 }

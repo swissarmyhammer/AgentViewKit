@@ -1,8 +1,10 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import AppKit
 import EditorCommands
 import EditorCommandsTestSupport
 import EditorCommandsUI
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -31,17 +33,8 @@ final class CallCounter {
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
 
-  /// The JSON-RPC id of the permission request that the scripted agent sends.
-  static let agentRequestID = 100
-
   /// The JSON-RPC id of the second permission request of the reject test.
   static let secondRequestID = 101
-
-  /// The `allow_once` option of ``ScriptedSession/permissionParams``.
-  static let allowOptionID = "yes"
-
-  /// The `reject_once` option of ``ScriptedSession/permissionParams``.
-  static let rejectOptionID = "no"
 
   /// The comment of the reject test.
   static let comment = "Use the test file."
@@ -449,15 +442,15 @@ final class CallCounter {
     defer { session.close() }
     let starts = ReportRecorder<String>()
     let fixture = Self.makeFixture(session: session.model) { $0.requestStartReport = starts.report }
-    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
+    _ = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
 
     try #require(fixture.system.perform(AgentCommandVerb.approvePending.id))
     // The command starts the answer in the same step as the dispatch, so a
     // dispatch that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.permissionMethod])
-    let result = await session.result(ofRequest: Self.agentRequestID)
+    let result = await session.result(ofRequest: AgentCommandFixtures.agentRequestID)
 
-    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
+    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandFixtures.allowOptionID)
   }
 
   @Test func rejectAnswersTheRequestOfThePayloadAndSendsTheComment() async throws {
@@ -466,13 +459,14 @@ final class CallCounter {
     let model = session.model
     let starts = ReportRecorder<String>()
     let fixture = Self.makeFixture(session: model) { $0.requestStartReport = starts.report }
-    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
+    _ = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
     try await session.sendRequest(
       ScriptedSession.permissionMethod, id: Self.secondRequestID, params: ScriptedSession.permissionParams)
     await ObservationWait.until { model.pendingPermissions.count == 2 }
     let second = try #require(model.pendingPermissions.last)
     let payload = AgentCommandPayload.permission(
-      request: second.id, option: PermissionOptionId(rawValue: Self.rejectOptionID), comment: Self.comment)
+      request: second.id, option: PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID),
+      comment: Self.comment)
 
     try #require(fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: payload))
     // The command starts the answer in the same step as the dispatch, so a
@@ -481,7 +475,7 @@ final class CallCounter {
     let result = await session.result(ofRequest: Self.secondRequestID)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
-    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
+    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandFixtures.rejectOptionID)
     #expect(model.pendingPermissions.count == 1)
     #expect(session.promptTexts == [Self.comment])
   }
@@ -496,7 +490,7 @@ final class CallCounter {
     in session: ScriptedSession
   ) async throws -> (first: PendingPermissionRequest, second: PendingPermissionRequest) {
     let model = session.model
-    let first = try await session.receivePermissionRequest(id: agentRequestID)
+    let first = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
     try await session.sendRequest(
       ScriptedSession.permissionMethod, id: secondRequestID, params: ScriptedSession.permissionParams)
     await ObservationWait.until { model.pendingPermissions.count == 2 }
@@ -518,7 +512,7 @@ final class CallCounter {
     try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.secondRequestID)
 
-    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
+    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandFixtures.allowOptionID)
     #expect(model.pendingPermissions.map(\.id) == [requests.first.id])
   }
 
@@ -544,7 +538,7 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let fixture = Self.makeFixture(session: session.model)
-    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
+    _ = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
 
     #expect(try !Self.isAvailable(.previousRequest, in: fixture))
     #expect(try !Self.isAvailable(.nextRequest, in: fixture))
@@ -555,8 +549,8 @@ final class CallCounter {
     defer { session.close() }
     let model = session.model
     let fixture = Self.makeFixture(session: model)
-    let request = try await session.receivePermissionRequest(id: Self.agentRequestID)
-    let allow = PermissionOptionId(rawValue: Self.allowOptionID)
+    let request = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
+    let allow = PermissionOptionId(rawValue: AgentCommandFixtures.allowOptionID)
     let wrongKind = AgentCommandPayload.permission(request: request.id, option: allow)
 
     #expect(!fixture.system.perform(AgentCommandVerb.rejectPending.id, payload: wrongKind))
@@ -569,19 +563,20 @@ final class CallCounter {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let pasteboard = FakePasteboard()
-    let fixture = Self.makeFixture(session: model) { $0.pasteboard = pasteboard }
-    #expect(AgentCommandTarget.plainText(of: model).isEmpty)
-    try await session.sendUpdate(
-      WireBlockJSON.makeChunk("user_message_chunk", messageID: "copy-u", block: WireBlockJSON.makeText("Hi.")))
-    try await session.sendUpdate(
-      WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
-    try await session.sendUpdate(
-      WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
-    await ObservationWait.until { model.transcript.count == 3 }
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let fixture = Self.makeFixture(session: model) { $0.pasteboard = pasteboard }
+      #expect(AgentCommandTarget.plainText(of: model).isEmpty)
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk("user_message_chunk", messageID: "copy-u", block: WireBlockJSON.makeText("Hi.")))
+      try await session.sendUpdate(
+        WireBlockJSON.makeToolCallUpdate(id: "copy-c", fields: #""title": "Read", "kind": "read", "status": "completed""#))
+      try await session.sendUpdate(
+        WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: WireBlockJSON.makeText("Hello.")))
+      await ObservationWait.until { model.transcript.count == 3 }
 
-    #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
-    #expect(pasteboard.contents == "User:\nHi.\n\nAssistant:\nHello.")
+      #expect(fixture.system.perform(AgentCommandVerb.copyThread.id))
+      #expect(pasteboard.string(forType: .string) == "User:\nHi.\n\nAssistant:\nHello.")
+    }
   }
 
   /// The manager sends the scroll to the bottom from a main-actor task, so
@@ -701,7 +696,7 @@ final class CallCounter {
     #expect(try !Self.isAvailable(.approvePending, in: fixture))
     #expect(try !Self.isAvailable(.rejectPending, in: fixture))
 
-    _ = try await session.receivePermissionRequest(id: Self.agentRequestID)
+    _ = try await session.receivePermissionRequest(id: AgentCommandFixtures.agentRequestID)
     #expect(try Self.isAvailable(.approvePending, in: fixture))
     #expect(try Self.isAvailable(.rejectPending, in: fixture))
 
@@ -709,9 +704,9 @@ final class CallCounter {
     // The command starts the answer in the same step as the dispatch, so a
     // dispatch that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.permissionMethod])
-    let result = await session.result(ofRequest: Self.agentRequestID)
+    let result = await session.result(ofRequest: AgentCommandFixtures.agentRequestID)
 
-    #expect(result?["outcome"]?["optionId"]?.stringValue == Self.rejectOptionID)
+    #expect(result?["outcome"]?["optionId"]?.stringValue == AgentCommandFixtures.rejectOptionID)
     #expect(model.pendingPermissions.isEmpty)
     #expect(try !Self.isAvailable(.approvePending, in: fixture))
     #expect(try !Self.isAvailable(.rejectPending, in: fixture))
@@ -750,7 +745,7 @@ final class CallCounter {
       try await session.sendUpdate(WireBlockJSON.makeChunk("agent_message_chunk", messageID: "copy-m", block: block))
     }
     await ObservationWait.until {
-      BackgroundRunsHostedTests.agentMessage(messageID: "copy-m", in: model)?.content.count == blocks.count
+      AgentMessageLookup.agentMessage(messageID: "copy-m", in: model)?.content.count == blocks.count
     }
 
     #expect(AgentCommandTarget.plainText(of: model) == expected)

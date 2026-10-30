@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import AppKit
 import Foundation
 import Testing

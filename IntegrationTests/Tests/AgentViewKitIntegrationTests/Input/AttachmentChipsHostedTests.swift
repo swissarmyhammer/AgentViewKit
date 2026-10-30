@@ -1,0 +1,295 @@
+@testable import AgentViewKit
+import AgentViewKitTestSupport
+import EditorTestSupport
+import Foundation
+import SwiftUI
+import Testing
+import UniformTypeIdentifiers
+
+/// The attachment of the kit. Swift Testing declares a type with the same
+/// name.
+private typealias Attachment = AgentViewKit.Attachment
+
+/// The text and the attachments of a hosted composer.
+@Observable final class AttachmentChipsTestModel {
+  /// The text of the composer.
+  var text: AttributedString
+
+  /// The attachments of the composer.
+  var attachments: [AgentViewKit.Attachment]
+
+  /// Makes a model.
+  ///
+  /// - Parameters:
+  ///   - text: The first text of the composer.
+  ///   - attachments: The first attachments of the composer.
+  init(text: String = "", attachments: [AgentViewKit.Attachment]) {
+    self.text = AttributedString(text)
+    self.attachments = attachments
+  }
+}
+
+/// A host view that owns the text and the attachments of a stock composer.
+struct AttachmentComposerHost: View {
+  /// The model that holds the text and the attachments.
+  @Bindable var model: AttachmentChipsTestModel
+
+  var body: some View {
+    PromptInputView(text: $model.text, attachments: $model.attachments, onSubmit: {})
+  }
+}
+
+@Suite(.serialized, .hostedSerially) @MainActor struct AttachmentChipsHostedTests {
+  /// The text that the submit test sends.
+  static let message = "Look at these"
+
+  /// The size of a window that shows the full composer.
+  static let composerSize = CGSize(width: 480, height: 240)
+
+  /// The size of a window that shows the chip row.
+  static let rowSize = CGSize(width: 480, height: 80)
+
+  /// A source file. The file does not have to exist.
+  static let sourceURL = URL(filePath: "/tmp/attachment-chips/Main.swift")
+
+  /// A PDF file. The file does not have to exist.
+  static let pdfURL = URL(filePath: "/tmp/attachment-chips/Report.pdf")
+
+  /// The attachments of the render tests.
+  private static let twoAttachments = [Attachment(url: sourceURL), Attachment(url: pdfURL)]
+
+  /// The URIs of the resource link blocks of the first `session/prompt`
+  /// frame.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The URIs, in block order.
+  static func linkedFiles(of session: ScriptedSession) -> [String] {
+    (session.promptBlocks.first ?? [])
+      .filter { $0["type"]?.stringValue == "resource_link" }
+      .compactMap { $0["uri"]?.stringValue }
+  }
+
+  /// Makes a new empty directory for the files that a test writes.
+  ///
+  /// - Returns: The location of the directory.
+  static func makeDirectory() throws -> URL {
+    let directory = FileManager.default.temporaryDirectory
+      .appending(path: "AttachmentChipsHostedTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    return directory
+  }
+
+  // MARK: - Render and remove
+
+  @Test func twoAttachmentsRenderTwoChipsAndARemoveLeavesOne() async throws {
+    let model = AttachmentChipsTestModel(attachments: Self.twoAttachments)
+    let harness = HostedViewHarness(size: Self.rowSize) {
+      AttachmentChips(attachments: Bindable(model).attachments)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let first = Self.twoAttachments[0].id
+    let second = Self.twoAttachments[1].id
+    #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: first)) != nil)
+    #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: second)) != nil)
+
+    try harness.press(identifier: AttachmentChips.removeIdentifier(for: first))
+
+    #expect(model.attachments.map(\.id) == [second])
+    #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: first)) == nil)
+    #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: second)) != nil)
+  }
+
+  @Test func theIdentifiersHoldTheAttachmentIdentifier() {
+    let id = AttachmentID("file:///tmp/a.txt")
+    #expect(AttachmentChips.chipIdentifier(for: id) == "attachment-chip-file:///tmp/a.txt")
+    #expect(AttachmentChips.removeIdentifier(for: id) == "attachment-remove-file:///tmp/a.txt")
+  }
+
+  // MARK: - Drop
+
+  @Test func aDropOfTwoFileURLsAddsTwoAttachmentsWithTheResolvedTypes() throws {
+    var attachments: [Attachment] = []
+    let directory = try Self.makeDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let added = AttachmentChips.add(
+      [.file(Self.sourceURL), .file(Self.pdfURL)], to: &attachments, directory: directory)
+
+    #expect(added)
+    #expect(attachments.map(\.url) == [Self.sourceURL, Self.pdfURL])
+    #expect(attachments.map(\.type) == [.swiftSource, .pdf])
+  }
+
+  @Test func aDropAddsAFileOneTimeOnly() throws {
+    var attachments = [Attachment(url: Self.sourceURL)]
+    let directory = try Self.makeDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let added = AttachmentChips.add([.file(Self.sourceURL)], to: &attachments, directory: directory)
+
+    #expect(!added)
+    #expect(attachments.map(\.url) == [Self.sourceURL])
+  }
+
+  @Test func aDropOfAWebURLAddsNothing() throws {
+    var attachments: [Attachment] = []
+    let directory = try Self.makeDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let webURL = try #require(URL(string: "https://example.com/page.html"))
+
+    let added = AttachmentChips.add([.file(webURL)], to: &attachments, directory: directory)
+
+    #expect(!added)
+    #expect(attachments.isEmpty)
+  }
+
+  @Test func aDroppedImageIsWrittenToAFileAndAdded() throws {
+    var attachments: [Attachment] = []
+    let directory = try Self.makeDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let data = try TestImage.makePNGData()
+
+    let added = AttachmentChips.add([.image(data)], to: &attachments, directory: directory)
+
+    #expect(added)
+    let attachment = try #require(attachments.first)
+    #expect(attachments.count == 1)
+    #expect(attachment.type == .png)
+    #expect(attachment.url.path.hasPrefix(directory.path))
+    #expect(try Data(contentsOf: attachment.url) == data)
+  }
+
+  @Test func twoDroppedImagesGoToTwoFiles() throws {
+    var attachments: [Attachment] = []
+    let directory = try Self.makeDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let data = try TestImage.makePNGData()
+
+    AttachmentChips.add([.image(data), .image(data)], to: &attachments, directory: directory)
+
+    #expect(attachments.count == 2)
+    NameChecks.expectDistinct(attachments.map(\.url))
+  }
+
+  @Test func dataThatIsNotAnImageAddsNothing() throws {
+    var attachments: [Attachment] = []
+    let directory = try Self.makeDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let added = AttachmentChips.add(
+      [.image(Data("not an image".utf8))], to: &attachments, directory: directory)
+
+    #expect(!added)
+    #expect(attachments.isEmpty)
+  }
+
+  // MARK: - Paste
+
+  /// The error domain of an image load that fails.
+  static let loadErrorDomain = "AttachmentChipsHostedTests.load"
+
+  /// The error code of an image load that fails.
+  static let loadErrorCode = 7
+
+  /// Makes a pasted item that gives PNG data, or the error of a load that
+  /// fails.
+  ///
+  /// - Parameter data: The PNG data, or `nil` for a load that fails with an
+  ///   error of ``loadErrorDomain``.
+  /// - Returns: The provider of the item.
+  static func pastedImage(_ data: Data?) -> NSItemProvider {
+    let provider = NSItemProvider()
+    let error = NSError(domain: loadErrorDomain, code: loadErrorCode)
+    provider.registerDataRepresentation(forTypeIdentifier: UTType.png.identifier, visibility: .all) { completion in
+      completion(data, data == nil ? error : nil)
+      return nil
+    }
+    return provider
+  }
+
+  @Test func thePasteLoadGivesTheImageDataOfAPastedItem() async throws {
+    let data = try TestImage.makePNGData()
+
+    let loaded = try await AttachmentChips.imageData(of: Self.pastedImage(data))
+
+    #expect(loaded == data)
+  }
+
+  /// A pasted item whose image does not load gives the error of the load, so
+  /// that the paste can log why it attaches nothing.
+  @Test func thePasteLoadGivesTheErrorOfAnImageThatDoesNotLoad() async {
+    await #expect {
+      try await AttachmentChips.imageData(of: Self.pastedImage(nil))
+    } throws: { error in
+      // The item provider wraps the error of the load in an error of its own.
+      (error as NSError).underlyingErrors.contains { underlying in
+        let underlying = underlying as NSError
+        return underlying.domain == Self.loadErrorDomain && underlying.code == Self.loadErrorCode
+      }
+    }
+  }
+
+  // MARK: - Composer
+
+  @Test func theComposerShowsTheRowOnlyWhenItHasAttachments() async {
+    let model = AttachmentChipsTestModel(attachments: [])
+    let harness = HostedViewHarness(size: Self.composerSize) {
+      AttachmentComposerHost(model: model)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let identifier = AttachmentChips.chipIdentifier(for: Self.twoAttachments[0].id)
+    #expect(harness.element(identifier: identifier) == nil)
+    model.attachments = [Self.twoAttachments[0]]
+    harness.render()
+
+    #expect(harness.element(identifier: identifier) != nil)
+  }
+
+  @Test func aSubmitPassesTheAttachmentsAndClearsTheRow() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = AttachmentChipsTestModel(text: Self.message, attachments: Self.twoAttachments)
+    let harness = HostedViewHarness(size: Self.composerSize) {
+      AttachmentComposerHost(model: model)
+        .environment(\.sessionModel, session.model)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    // The composer clears its attachments in the same step as it starts the
+    // prompt task, so a submit that sent nothing stops the test here.
+    try #require(model.attachments.isEmpty)
+    await ObservationWait.until { !session.promptBlocks.isEmpty }
+
+    #expect(session.promptBlocks.count == 1)
+    #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))
+    #expect(model.attachments.isEmpty)
+  }
+
+  @Test func aFileThatIsAChipAndALinkIsSentOneTime() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    var text = AttributedString(Self.message)
+    text.link = Self.sourceURL
+    let model = AttachmentChipsTestModel(attachments: Self.twoAttachments)
+    model.text = text
+    let harness = HostedViewHarness(size: Self.composerSize) {
+      AttachmentComposerHost(model: model)
+        .environment(\.sessionModel, session.model)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try #require(model.attachments.isEmpty)
+    await ObservationWait.until { !session.promptBlocks.isEmpty }
+
+    #expect(session.promptBlocks.count == 1)
+    #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))
+  }
+}

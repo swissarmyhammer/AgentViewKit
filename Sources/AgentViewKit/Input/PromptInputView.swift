@@ -199,7 +199,10 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     // blends their shapes (D110 (c)). In the floating controls of a thread
     // view, the composer uses the container of the thread.
     FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-      VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+      // The field and the accessory are controls, so the stack keeps the
+      // control spacing of EditorKit between them (EditorKit `style.md`,
+      // rule 10).
+      ControlStack(alignment: .leading) {
         field(context)
         accessory()
       }
@@ -217,7 +220,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// - Parameter context: The context that the editor gets.
   /// - Returns: The field on its surface.
   private func field(_ context: PromptEditorContext) -> some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
+    ControlStack(alignment: .leading) {
       if !attachments.wrappedValue.isEmpty {
         AttachmentChips(attachments: attachments)
       }
@@ -236,6 +239,11 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
         // the Focus Composer command. A host scope around the composer is
         // the jump target of the editor in its place.
         .agentControlScope(EditorKitPromptEditor.identifier, corners: Self.editorCorners, yieldsToHostScope: true)
+        // An EditorKit editor is bare (EditorKit `style.md`, rule 10): its
+        // text has no inset of its own (EditorKit ^zycpt0j). The field gives
+        // the editor the control spacing of EditorKit at its sides, so the
+        // text stands in from the chips and the edge of the glass.
+        .editorControlSpacing(.horizontal)
     }
     .modifier(PromptFieldSurface())
     // The menu of the editor is after the field surface, so it is a sibling
@@ -441,14 +449,12 @@ struct PromptEditorMenuKey: PreferenceKey {
 /// The layer fills the field. The leading edge of the menu is at the caret of
 /// the editor, and the menu stays inside the field: near the trailing edge it
 /// moves back so that its trailing edge is the trailing edge of the field. The
-/// bottom edge of the menu is the small spacing of the style above the top
-/// edge of the field. The menu adds no fill of its own: its one surface is
-/// the floating glass.
+/// bottom edge of the menu is the control spacing of EditorKit
+/// (`EditorStyle.controlSpacing`) above the top edge of the field. The menu
+/// adds no fill of its own: its one surface is the floating glass.
 struct PromptEditorMenuLayer: View {
   /// The menu to show.
   let menu: PromptEditorMenu
-
-  @Environment(\.editorStyle) private var editorStyle
 
   /// The leading edge of the menu in the field.
   ///
@@ -472,7 +478,9 @@ struct PromptEditorMenuLayer: View {
           Self.leading(
             caret: proxy[menu.anchor].minX + menu.caretOffset, width: menu.width,
             fieldWidth: proxy.size.width))
-        .padding(.bottom, editorStyle.spacing.s)
+        // The menu and the field are two controls: the control spacing of
+        // EditorKit is between them (EditorKit `style.md`, rule 10).
+        .editorControlSpacing(.bottom)
         // A frame with no height at the top of the field. The menu is at its
         // bottom, so the menu goes up from the top of the field.
         .frame(width: proxy.size.width, height: 0, alignment: .bottomLeading)

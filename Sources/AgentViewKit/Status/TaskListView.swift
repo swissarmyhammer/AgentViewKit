@@ -168,7 +168,7 @@ public struct TaskListView: View {
   /// `planId` changes this view in place.
   public var body: some View {
     let key = entry.id.rowKey
-    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+    VStack(alignment: .leading, spacing: headerGap) {
       if let unknown = entry.unknownContent {
         JSONDisclosure(
           id: key,
@@ -180,12 +180,30 @@ public struct TaskListView: View {
         Text(TaskListView.headerText(for: entry.entries))
           .font(editorTheme.font(for: .ui, style: .headline))
           .accessibilityIdentifier(TaskListView.planIdentifier(row: key))
-        ForEach(Array(entry.entries.enumerated()), id: \.offset) { index, item in
-          PlanEntryRow(entry: item)
-            .accessibilityIdentifier(TaskListView.entryIdentifier(row: key, index: index))
+        VStack(alignment: .leading, spacing: entryGap) {
+          ForEach(Array(entry.entries.enumerated()), id: \.offset) { index, item in
+            PlanEntryRow(entry: item)
+              .accessibilityIdentifier(TaskListView.entryIdentifier(row: key, index: index))
+          }
         }
       }
     }
+  }
+
+  /// The space between the header and the first entry: the extra small
+  /// spacing step and the row padding of the style.
+  ///
+  /// An entry has no padding of its own (^rgsq3k4), so the stacks give the
+  /// row padding that each entry had above and below it.
+  private var headerGap: CGFloat {
+    editorStyle.spacing.xs + editorStyle.rowPadding
+  }
+
+  /// The space between two entries: the row padding below the first entry,
+  /// the extra small spacing step, and the row padding above the second
+  /// entry.
+  private var entryGap: CGFloat {
+    editorStyle.rowPadding + editorStyle.spacing.xs + editorStyle.rowPadding
   }
 }
 
@@ -212,7 +230,6 @@ private struct PlanEntryRow: View {
       )
       .help(TaskListView.priorityLabel(entry.priority))
     }
-    .padding(.vertical, editorStyle.rowPadding)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(TaskListView.entryLabel(entry))
     .accessibilityAddTraits(.isStaticText)

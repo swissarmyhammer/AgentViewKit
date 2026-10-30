@@ -274,6 +274,11 @@ public struct ConversationView<EmptyState: View>: View {
           }
           .scrollTargetLayout()
         }
+        // The list keeps the inset of its rows in its content, and gives no
+        // content margin (^rgsq3k4): SwiftUI gives a content margin to the
+        // AppKit scroll view as `contentInsets`, and the content insets of
+        // the list are the heights of the bars above and below it
+        // (ThreadBarInsetHostedTests).
         .padding(editorStyle.rowPadding)
         // The target of a scroll to the bottom near the end of the content
         // (`scrollToBottom()`).
@@ -517,16 +522,44 @@ public struct ConversationView<EmptyState: View>: View {
   }
 }
 
-extension ConversationView where EmptyState == ConversationEmptyState {
+/// The default empty state of a ``ConversationView``: a
+/// ``ConversationEmptyState`` with the large spacing step of the style as the
+/// margin of its scroll content (``ConversationEmptyStateMargin``).
+public typealias DefaultConversationEmptyState = ModifiedContent<ConversationEmptyState, ConversationEmptyStateMargin>
+
+/// The layout of the default empty state slot of a ``ConversationView``: it
+/// gives the empty state the large spacing step of the style as the margin
+/// of its scroll content, with EditorStyle's `.scrollContentMargins(_:)`.
+/// The empty state has no margin of its own (^rgsq3k4).
+public struct ConversationEmptyStateMargin: ViewModifier {
+  /// Makes the margin of the default empty state.
+  public init() {}
+
+  /// Gives `content` the margin of the default empty state.
+  ///
+  /// - Parameter content: The empty state.
+  /// - Returns: The empty state with the margin of its scroll content.
+  public func body(content: Content) -> some View {
+    content.scrollContentMargins(\.spacing.l)
+  }
+}
+
+extension ConversationView where EmptyState == DefaultConversationEmptyState {
   /// Makes the list of the transcript of a session model with the default
   /// empty state.
+  ///
+  /// The empty state has no margin of its own (^rgsq3k4), so the default
+  /// slot gives it the large spacing step of the style. A custom empty state
+  /// gets the margin that its host gives.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - anchors: The manager that keeps the scroll position. With `nil`,
   ///     the view makes its own manager.
   public init(session: SessionModel, anchors: ScrollAnchorManager? = nil) {
-    self.init(session: session, anchors: anchors) { ConversationEmptyState() }
+    self.init(session: session, anchors: anchors) {
+      ConversationEmptyState().modifier(ConversationEmptyStateMargin())
+    }
   }
 }
 

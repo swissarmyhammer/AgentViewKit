@@ -256,6 +256,7 @@ struct GalleryTabView: View, DemoStartingTab {
         .accessibilityAction { Task { await open(state) } }
         .accessibilityIdentifier(Self.stateRowIdentifierPrefix + state.rawValue)
     }
+    .scrollContentMargins(\.tile.margin)
   }
 
   /// The open session, the state with no open session, a state that did not

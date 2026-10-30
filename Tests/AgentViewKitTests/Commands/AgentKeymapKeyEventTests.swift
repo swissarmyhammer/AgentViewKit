@@ -3,6 +3,7 @@ import AppKit
 import AgentViewKitTestSupport
 import EditorCommands
 import EditorCommandsUI
+import EditorTestSupport
 import Testing
 
 /// Tests that a real Control-Command key event spells the default chord of

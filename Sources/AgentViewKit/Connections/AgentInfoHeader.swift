@@ -28,6 +28,10 @@ import SwiftUI
 /// is the surface that the host of the header gives, such as the floating
 /// glass in the top bar of ``AgentThreadView``.
 ///
+/// The header has no padding around it (^rgsq3k4): the host spaces it, and
+/// the host that puts it on glass insets it in the glass, as the top bar of
+/// ``AgentThreadView`` does with the spacing steps of the style.
+///
 /// VoiceOver reads the header as one header element with the identifier
 /// ``identifier``. Its label is "Agent, Session", or the name of the agent
 /// alone, and its value is the version line.
@@ -49,8 +53,6 @@ public struct AgentInfoHeader: View {
   /// `nil` for the agent alone.
   let sessionTitle: String?
 
-  @Environment(\.editorStyle) private var editorStyle
-
   /// Makes the header of the agent of a connection model.
   ///
   /// - Parameters:
@@ -66,8 +68,6 @@ public struct AgentInfoHeader: View {
     if let info = connection.initializeResponse?.info {
       let agent = info.title ?? info.name
       AgentBreadcrumb(agent: agent, version: info.version, sessionTitle: sessionTitle)
-        .padding(.horizontal, editorStyle.spacing.m)
-        .padding(.vertical, editorStyle.spacing.s)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.label(agent: agent, sessionTitle: sessionTitle))
         .accessibilityValue(AgentBreadcrumb.versionLine(of: info.version))

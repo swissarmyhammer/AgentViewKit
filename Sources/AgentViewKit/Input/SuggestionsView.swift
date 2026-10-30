@@ -62,10 +62,6 @@ public struct SuggestionsView: View {
 
 /// One chip of a ``SuggestionsView``: a Liquid Glass button that sets the
 /// composer text to its suggestion.
-///
-/// The chip is a view of its own, so that a test can render its glass:
-/// `ImageRenderer` draws nothing in the horizontal scroll view of
-/// ``SuggestionsView``.
 struct SuggestionChip: View {
   /// The suggested prompt of the chip.
   let suggestion: String

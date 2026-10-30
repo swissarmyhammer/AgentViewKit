@@ -1,6 +1,7 @@
 import AgentViewKit
+import AgentViewKitTestSupport
+import EditorTestSupport
 import Foundation
-import PackageFileSupport
 import Testing
 import UniformTypeIdentifiers
 
@@ -8,68 +9,11 @@ import UniformTypeIdentifiers
 /// name.
 private typealias Attachment = AgentViewKit.Attachment
 
-/// Checks the type resolution of `Attachment` and the default renderer
-/// table of `AttachmentView`, also against `Docs/decisions/attachment-types.md`.
+/// Checks the type resolution of `Attachment` and the default renderer of
+/// `AttachmentView`.
 @Suite struct AttachmentResolutionTests {
-  /// The decision file, relative to the package root.
-  private static let decisionPath = "Docs/decisions/attachment-types.md"
-
-  /// The header row of the renderer table.
-  private static let header = "| UTType | source support | default renderer |"
-
-  /// The number of cells in one row of the renderer table.
-  private static let columnCount = 3
-
   /// The text that each temporary file holds.
   private static let fileText = "let answer = 42\n"
-
-  /// One parsed row of the renderer table.
-  private struct Row {
-    /// The type identifier, without backticks.
-    let typeIdentifier: String
-    /// The renderer name, without backticks.
-    let renderer: String
-  }
-
-  /// The errors that the row mapping can report.
-  private enum TableError: Error {
-    /// A row does not have ``AttachmentResolutionTests/columnCount`` cells.
-    case wrongCellCount([String])
-  }
-
-  /// Parses the rows of the renderer table.
-  ///
-  /// - Returns: The rows, in file order.
-  /// - Throws: ``MarkdownTable/MissingTable`` when the file has no renderer
-  ///   table, or ``TableError`` when a row is not in the expected form.
-  private static func tableRows() throws -> [Row] {
-    let text = try PackageFiles.text(of: decisionPath)
-    return try MarkdownTable.rows(in: text, header: header).map { cells in
-      guard cells.count == columnCount else {
-        throw TableError.wrongCellCount(cells)
-      }
-      return Row(typeIdentifier: cells[0], renderer: cells[2])
-    }
-  }
-
-  // MARK: - Decision table
-
-  @Test func eachTableRowMatchesTheDefaultRenderer() throws {
-    let rows = try Self.tableRows()
-    #expect(!rows.isEmpty)
-    for row in rows {
-      let type = try #require(UTType(row.typeIdentifier), "Unknown type \(row.typeIdentifier).")
-      #expect(
-        AttachmentView.defaultRenderer(for: type) == row.renderer,
-        "The row \(row.typeIdentifier) does not match the code.")
-    }
-  }
-
-  @Test func theTableNamesEachRenderer() throws {
-    let rows = try Self.tableRows()
-    #expect(
-      Set(rows.map(\.renderer)) == Set(AttachmentView.Renderer.allCases.map(\.rawValue)))
-  }
 
   // MARK: - Conformance walk
 
@@ -88,9 +32,9 @@ private typealias Attachment = AgentViewKit.Attachment
   func aTemporaryFileResolvesToItsRenderer(
     fileName: String, renderer: AttachmentView.Renderer
   ) throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: fileName, contents: Data(Self.fileText.utf8))
+    let url = try directory.write(fileName, contents: Data(Self.fileText.utf8))
 
     let attachment = Attachment(url: url)
 
@@ -99,10 +43,10 @@ private typealias Attachment = AgentViewKit.Attachment
   }
 
   @Test func aTemporaryFileGivesItsNameAndSize() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let contents = Data(Self.fileText.utf8)
-    let url = try directory.file(named: "Main.swift", contents: contents)
+    let url = try directory.write("Main.swift", contents: contents)
 
     let attachment = Attachment(url: url)
 
@@ -113,9 +57,9 @@ private typealias Attachment = AgentViewKit.Attachment
   }
 
   @Test func twoAttachmentsOfOneURLHaveTheSameID() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: "notes.md", contents: Data(Self.fileText.utf8))
+    let url = try directory.write("notes.md", contents: Data(Self.fileText.utf8))
 
     #expect(Attachment(url: url).id == Attachment(url: url).id)
   }

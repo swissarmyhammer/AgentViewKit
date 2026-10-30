@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -18,21 +19,12 @@ import Testing
 /// starts a program, and no test uses the live model: the agent of the ACP
 /// tab runs with the stub model of the package.
 @Suite struct DemoAgentTests {
-  /// The working directory of each test session.
-  static let workingDirectory = "/tmp/demo-agent"
-
-  /// The launch options that start the in-memory agent in
-  /// ``workingDirectory``.
-  static let inMemoryOptions = DemoLaunchOptions(arguments: [
-    "app", InMemoryDemoAgent.launchArgument, DemoLaunchOptions.cwdArgument, workingDirectory,
-  ])
-
   /// Starts the in-memory agent.
   ///
   /// - Returns: The connected agent.
   /// - Throws: The error of ``DemoAgent/makeInProcess(options:environment:)``.
   private static func makeInMemoryAgent() async throws -> DemoAgent {
-    try await DemoAgent.makeInProcess(options: inMemoryOptions)
+    try await DemoAgent.makeInProcess(options: DemoAgentFixtures.inMemoryOptions)
   }
 
   /// The name of the configuration root of the ACP tab agent of a test,
@@ -46,8 +38,8 @@ import Testing
   ///
   /// - Returns: The connected agent, and the temporary working directory.
   /// - Throws: The error of the directory or of the start.
-  static func makeACPTabAgent() async throws -> (agent: DemoAgent, directory: TemporaryDirectory) {
-    let directory = try TemporaryDirectory()
+  static func makeACPTabAgent() async throws -> (agent: DemoAgent, directory: TemporaryFolder) {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     var options = DemoLaunchOptions(arguments: [
       "app", DemoLaunchOptions.cwdArgument, directory.url.path(percentEncoded: false),
     ])
@@ -65,7 +57,7 @@ import Testing
   /// - Parameter agent: The agent.
   /// - Throws: The error of `session/new` or of `session/resume`.
   static func openAndResumeASession(of agent: DemoAgent) async throws {
-    let opened = DemoAgentSignInTests.OpenedSessions()
+    let opened = DemoAgentFixtures.OpenedSessions()
     try await agent.openSession { opened.sessions.append($0) }
     let sessionId = try #require(opened.sessions.first).sessionId
     let request = ResumeSessionRequest(
@@ -88,7 +80,7 @@ import Testing
   }
 
   @Test func theHomeOfTheAgentIsTheDemoDotfolderInTheConfigurationRootOfTheEnvironment() throws {
-    let configurationRoot = URL(filePath: Self.workingDirectory, directoryHint: .isDirectory)
+    let configurationRoot = URL(filePath: DemoAgentFixtures.workingDirectory, directoryHint: .isDirectory)
       .appending(path: Self.configurationDirectoryName, directoryHint: .isDirectory)
     let environment = [RecordedSessionsStageTests.configurationHomeKey: configurationRoot.path(percentEncoded: false)]
     let expectedSynced = configurationRoot.appending(path: DemoAgent.agentDotfolderName, directoryHint: .isDirectory)
@@ -123,7 +115,7 @@ import Testing
         let started = try await DemoAgentTests.makeACPTabAgent()
         return (started.agent, started.directory.remove)
       case .recordedSessions:
-        let scenario = try await RecordedSessionsAgentTests.start()
+        let scenario = try await RecordedSessionsScenario.start()
         return (scenario.agent, scenario.directory.remove)
       }
     }
@@ -151,13 +143,13 @@ import Testing
   @Test func openSessionOpensANewSessionInTheWorkingDirectoryOfTheOptions() async throws {
     let agent = try await Self.makeInMemoryAgent()
 
-    let opened = DemoAgentSignInTests.OpenedSessions()
+    let opened = DemoAgentFixtures.OpenedSessions()
 
     try await agent.openSession { opened.sessions.append($0) }
 
     let session = try #require(opened.sessions.first)
     #expect(opened.sessions.count == 1)
-    #expect(agent.workingDirectory == AbsolutePath(rawValue: Self.workingDirectory))
+    #expect(agent.workingDirectory == AbsolutePath(rawValue: DemoAgentFixtures.workingDirectory))
     #expect(session.sessionId == SessionId(rawValue: InMemoryDemoAgent.sessionID))
     #expect(agent.connection.session(for: session.sessionId) === session)
     await agent.stop()
@@ -271,7 +263,7 @@ import Testing
     let connection = ConnectionModel()
     _ = await connection.connect(over: clientEnd)
     let agent = try await DemoAgent.makeStarted(
-      connection: connection, workingDirectory: AbsolutePath(rawValue: DemoAgentTests.workingDirectory))
+      connection: connection, workingDirectory: AbsolutePath(rawValue: DemoAgentFixtures.workingDirectory))
     return Scenario(agent: agent, scripted: scripted)
   }
 
@@ -281,20 +273,14 @@ import Testing
   ///
   /// - Parameter scenario: The scenario.
   /// - Returns: The box that gets the session of each run.
-  static func openSessionExpectingSignIn(in scenario: Scenario) async -> OpenedSessions {
-    let opened = OpenedSessions()
+  static func openSessionExpectingSignIn(in scenario: Scenario) async -> DemoAgentFixtures.OpenedSessions {
+    let opened = DemoAgentFixtures.OpenedSessions()
     let agent = scenario.agent
     let error = await #expect(throws: RequestError.self) {
       try await agent.openSession { opened.sessions.append($0) }
     }
     #expect(error?.code == .authenticationRequired)
     return opened
-  }
-
-  /// The sessions that the operation of a test opened, in open order.
-  final class OpenedSessions {
-    /// The sessions, in open order.
-    var sessions: [SessionModel] = []
   }
 
   @Test func anAgentLoginAfterAnAnswerWithCode32000RunsTheKeptNewSessionOneTime() async throws {

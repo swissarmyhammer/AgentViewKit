@@ -1,5 +1,6 @@
 import AgentViewKit
 import AgentViewKitTestSupport
+import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -49,7 +50,7 @@ import Testing
     // message comes after each other entry.
     let model = session.model
     await ObservationWait.until {
-      BackgroundRunsHostedTests.agentMessage(messageID: "export-m", in: model)?.content.count == blocks.count
+      AgentMessageLookup.agentMessage(messageID: "export-m", in: model)?.content.count == blocks.count
     }
   }
 
@@ -73,7 +74,7 @@ import Testing
       WireBlockJSON.makeChunk(
         "agent_message_chunk", messageID: "export-later", block: WireBlockJSON.makeText(Self.laterAnswer)))
     let model = session.model
-    await ObservationWait.until { BackgroundRunsHostedTests.agentMessage(messageID: "export-later", in: model) != nil }
+    await ObservationWait.until { AgentMessageLookup.agentMessage(messageID: "export-later", in: model) != nil }
 
     #expect(ThreadExporter.markdown(for: session.model.transcript) == expected)
   }

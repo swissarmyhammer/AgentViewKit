@@ -108,7 +108,7 @@ announcement.
   same announcer as the kit views (`JumpModeAnnouncerHostedTests`).
 - No code of the kit, of the demo app or of their tests posts an
   announcement itself or names `VoiceOverAnnouncer`, except where it sets the
-  `announcer` environment value (`AnnouncementPathScanTests`).
+  `announcer` environment value.
 
 ## Focus
 

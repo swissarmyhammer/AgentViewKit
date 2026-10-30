@@ -26,9 +26,9 @@ import Testing
   }
 
   @Test func aDispatchRunsTheCommandAtThePath() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let attachment = try AttachmentInspectorHostedTests.attachment(named: "blob.bin", in: directory)
+    let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let fixture = Shared.makeFixture(for: attachment)
 
     let ran = AgentCommandDispatch.perform(
@@ -39,10 +39,10 @@ import Testing
   }
 
   @Test func aDispatchWithNoSystemRunsNothing() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Shared.makeFixture(
-      for: try AttachmentInspectorHostedTests.attachment(named: "blob.bin", in: directory))
+      for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
 
     let ran = AgentCommandDispatch.perform(AgentAttachmentVerb.saveAttachment.id, in: nil, at: fixture.path)
 
@@ -51,10 +51,10 @@ import Testing
   }
 
   @Test func aDispatchWithNoPathRunsNothing() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Shared.makeFixture(
-      for: try AttachmentInspectorHostedTests.attachment(named: "blob.bin", in: directory))
+      for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
 
     let ran = AgentCommandDispatch.perform(
       AgentAttachmentVerb.saveAttachment.id, in: Self.system(of: fixture), at: nil)

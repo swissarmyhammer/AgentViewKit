@@ -62,12 +62,6 @@ branches, over SSH.
 
 ## Quick start
 
-Each block below that starts with `// readme:compile <Name>` is the file
-`<Name>.swift` in [`Examples/ReadmeSnippets/Snippets/`](Examples/ReadmeSnippets/Snippets).
-`swift test` compiles the files against the products that you import, and a
-test holds the README and the files equal. Thus the code that you copy is the
-code that we build. See [The README gate](#the-readme-gate).
-
 ### An ACP agent
 
 `ConnectionModel` of FoundationModelsACPClient connects to the agent and holds
@@ -80,7 +74,6 @@ state.
 For an agent program, the transport is the `transport` of an `AgentProcess`.
 
 ```swift
-// readme:compile ACPQuickStart
 import AgentViewKit
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -164,7 +157,6 @@ agent stops. When the agent closes its connection first,
 `ConnectionModel.state` becomes `.disconnected`.
 
 ```swift
-// readme:compile InProcessQuickStart
 import AgentViewKit
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -192,7 +184,7 @@ enum InProcessQuickStart {
   /// ```
   ///
   /// The kit does not import FoundationModelsACPAgent, so this example is a
-  /// comment and the snippet build does not compile it.
+  /// comment.
   ///
   /// Show the session with `ACPThread(connection:session:)` of the quick
   /// start above.
@@ -214,7 +206,6 @@ connection request, such as a sign-in form of `auth/login`, show. Add the
 typed modifiers for the item kinds that your app shows in its own way.
 
 ```swift
-// readme:compile HostApp
 import AgentViewKit
 import FoundationModelsACPClient
 import SwiftUI
@@ -352,7 +343,6 @@ To import the theme modules, add the EditorKit products `EditorSwiftUI`,
 `EditorTheme`, and `EditorStyle` to the host target.
 
 ```swift
-// readme:compile HostTheme
 import AgentViewKit
 import EditorStyle
 import EditorSwiftUI
@@ -396,7 +386,6 @@ of the attachment, so the context menu and the command palette run it too. A
 write of `nil` closes the inspector.
 
 ```swift
-// readme:compile HostInspector
 import AgentViewKit
 import FoundationModelsACPClient
 import SwiftUI
@@ -467,8 +456,7 @@ to the file chip. Nothing is dropped.
 
 ## Components
 
-The list follows the inventory of [`plan.md`](plan.md) §9. A test holds the
-two lists equal.
+The list follows the inventory of [`plan.md`](plan.md) §9.
 
 **Thread**
 
@@ -609,10 +597,22 @@ time. While another run holds the lock, the script waits and names the holder.
 ## Tests and gates
 
 ```bash
-swift test                  # the unit tests, the hosted view tests, and the README snippets
-Scripts/check-readme.sh     # the README gate
-Scripts/test-examples.sh    # the demo UI tests
+swift test                                    # the unit tests: no window, no capture
+swift test --package-path IntegrationTests    # the hosted, snapshot, pixel and review gallery tests
+Scripts/test-examples.sh                      # the demo UI tests
 ```
+
+The tests have two tiers, and the package boundary separates them. `swift
+test` at the root runs the unit tests only: the models, the commands, the
+wire and the scripted agents. No test of the root package mounts a view in a
+window or a hosting view, or captures a window. Run it on each change. No
+test reads the source or the docs of the package as text: review holds the
+rules of EditorKit `style.md`. The nested `IntegrationTests/` package
+holds each test that mounts a view in EditorKit's `HostedViewHarness`, each
+capture of a real window, the snapshot and pixel tests, the focus rings and
+the review gallery. It depends on the root package by path, has its own
+`.build`, and runs once per batch of work, and in the integration job of CI.
+Use `--filter` to run one of its tests.
 
 ### The test rule
 
@@ -621,56 +621,69 @@ run of the run loop for a time. After a change on the main actor, a hosted
 test calls `HostedViewHarness.render()` and reads the accessibility tree.
 After a change that comes from asynchronous work, the test waits for its
 event with `render(when:)` or `ObservationWait.until(_:)`, and then checks
-the result with an expectation. A hosted test holds `HostedTestLock`, and a
-wait has no time limit, so each hosted wait must be for an event that is
-certain to come.
+the result with an expectation. A hosted suite runs under the
+`.hostedSerially` trait of EditorKit, which holds the key window gate of the
+test process for each test, so no two hosted tests and no capture of the
+process run at once. A test whose effects reach past its process, such as a
+real input event or a write to the shared defaults, runs under
+`.machineSerially` instead, which first holds the shared UI test lock of the
+Mac. A wait has no time limit, so each hosted wait must be for an event that
+is certain to come.
 
 ### Snapshot images
 
-The snapshot tests make PNG images of the real views of the kit, with fixed
-data and fixed dates, at two pixels for each point, in sRGB. Each view has
-two images, light and dark, and no test flips a system setting (EditorKit
-`style.md` rule 9). The reference images are in
-`Tests/AgentViewKitTests/Snapshots/__Snapshots__/`:
+The snapshot tests and the pixel tests capture the real views of the kit in
+a real window on the screen, from the window server, with ScreenCaptureKit
+(EditorKit `CapturedImage`, `style.md` rule 9). No test draws a view with a
+renderer of its own: no `ImageRenderer`, no `cacheDisplay` and no layer-tree
+renderer. The window is the key window, with no activation of the test
+process, and the capture shows what the app shows: the AppKit views, Liquid
+Glass and the scroll edge effect. Each view has fixed data and fixed dates, at
+two pixels for each point, in sRGB, and two images, Light and Dark; no test
+flips a system setting. These tests are in the `IntegrationTests/` package.
+The reference images are in
+`IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/`,
+as `<name>-light.png` and `<name>-dark.png` (EditorKit `SnapshotStore`):
 
-- `HostedSnapshotTests/`: each view in a hidden window
-  (`ViewSnapshot.hostedPixels`). These images show the AppKit views, such as
-  the list of the thread and the EditorKit editor. The cache of a window shows
-  no glass.
-- `GlassSnapshotTests/`: the glass parts in isolation, over text
-  (`ViewSnapshot.renderedPixels`, with `ImageRenderer`). These images show a
-  glass look. It can be different from the Liquid Glass that the system
-  draws in a window.
+- `HostedSnapshotTests/`: each view of the kit, such as the thread, the
+  composer, the cards and the banners.
+- `GlassSnapshotTests/`: the glass parts over the text of a transcript: the
+  thread header, the composer, the request deck in the bar and the floating
+  controls.
+
+A capture holds the key window gate of its process (EditorKit
+`KeyWindowGate`), so no two captures or hosted tests of the process make a
+window key at once; it waits on no other run of the Mac. The process that
+runs `swift test --package-path IntegrationTests` needs the Screen Recording
+permission: allow the terminal or Xcode that runs it in System Settings ›
+Privacy & Security › Screen & System Audio Recording. Without it, each
+capture fails with `WindowCaptureError.screenRecordingNotAllowed`, which names
+the process; no test skips. The root `swift test` captures nothing, so it
+needs no permission.
 
 When the look of a view changes, its test fails, and it writes
-`<name>.actual.png` and `<name>.diff.png` to `.build/snapshots/<suite>/`.
-The difference image shows each pixel that changed in magenta. The test also
-attaches the two images.
+`<name>-<look>.actual.png` and `<name>-<look>.diff.png` to
+`.build/snapshots/<suite>/`. The difference image shows each pixel that
+changed in magenta. The test also attaches the two images.
 
-Each `swift test` run also writes the review gallery,
-`~/Library/Caches/AgentViewKit/screenshot-check/index.html`: the key screens
-of the kit, in light and dark (EditorKit `style.md` "Review gallery"). The
-user reviews that page. There is no manual check and no comparison with
-Finder or System Settings.
+Each run of the integration package also writes the review gallery,
+`~/Library/Caches/AgentViewKit/screenshot-check/index.html`, with EditorKit's
+`ReviewGallery` helper (EditorKit `style.md` "Review gallery"): first the key
+screens of the kit, in light and dark, with dated notes, then every reference
+PNG under `IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/`,
+grouped by suite, light and dark side by side. A reference PNG that the page
+does not show fails the run. The user reviews that page. There is no manual
+check and no comparison with Finder or System Settings.
 
 To record the reference images again, run the tests in the record mode, and
 then review the new images before the commit:
 
 ```bash
-AVK_SNAPSHOT_RECORD=1 swift test --filter SnapshotTests
+SNAPSHOT_RECORD=1 swift test --package-path IntegrationTests --filter SnapshotTests
 ```
 
 In the record mode, each snapshot test records an issue, so that a run with
 the variable never passes.
-
-### The README gate
-
-`Scripts/extract-readme-snippets.sh` writes each `// readme:compile` block of
-this file to `Examples/ReadmeSnippets/Snippets/<Name>.swift`. The
-`ReadmeSnippetsTests` target compiles that directory on each `swift test`.
-`Scripts/check-readme.sh` extracts the blocks again, fails when the result
-differs from the committed files, and builds the target. When you change a
-block, run the extraction script and commit the result.
 
 ## Design documents
 
