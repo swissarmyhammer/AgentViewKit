@@ -118,6 +118,10 @@ final class CaptureMount<Content: View> {
     window = CaptureWindow(contentSize: size, styleMask: styleMask)
     window.appearance = NSAppearance(named: appearance.appearanceName)
     hostingView = NSHostingView(rootView: ReviewScreenRoot { content })
+    // A view with no outer padding is as small as its content, and the
+    // default sizing of a hosting view shrinks the window around it. The
+    // window keeps the `size` of the mount, as EditorKit's own mount keeps it.
+    hostingView.sizingOptions = []
     hostingView.frame = NSRect(origin: .zero, size: size)
     window.contentView = hostingView
     render()
