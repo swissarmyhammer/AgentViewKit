@@ -103,7 +103,11 @@ its own record, so the copy writes no file of its own. Then it runs
 FoundationModelsACPAgent in the process of
 the app, through the package, with that copy as its transcript location, so
 that a restore never changes the files in this directory. The tab starts no
-`acp-agent` program, writes no configuration file, and sets no
-`XDG_CONFIG_HOME`. The agent uses its stub model, so no model loads. When the
+`acp-agent` program, and sets no
+`XDG_CONFIG_HOME`. The agent uses its stub model, so no model loads. The
+copy holds a user-layer `config.yaml` that names `Qwen3.8-27B-mxfp4` as the
+`standard` model, because the agent restores a session only when the model
+that it recorded is the resident model of its slot, and all the recordings
+here ran with that model. When the
 recorded `cwd` of a session is missing on the computer, the agent replays the
 session with no tools and writes nothing for it.

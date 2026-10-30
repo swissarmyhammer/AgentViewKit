@@ -25,8 +25,11 @@ import Foundation
 /// The stage is a copy, so the agent never changes the recordings.
 ///
 /// The stage also gives an empty working directory for the start of the
-/// agent and for `session/list`, and an empty configuration directory for
-/// the user layer of the agent. The stage holds no configuration file:
+/// agent and for `session/list`, and a configuration directory for the user
+/// layer of the agent. The user layer holds one file, ``profileFileName``,
+/// that names ``recordedStandardModel``: the agent restores a session only
+/// when the model that it recorded is the resident model of its slot, and the
+/// default `standard` model of the agent is not the model of the recordings.
 /// ``DemoAgent/makeInProcess(recordedSessions:)`` gives the transcript
 /// location and ``agentEnvironment`` to the agent in code.
 public struct RecordedSessionsStage: Equatable, Sendable {
@@ -59,6 +62,20 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   /// reads its user layer from.
   static let configurationHomeKey = "XDG_CONFIG_HOME"
 
+  /// The `standard` model that the recorded sessions of the demo app ran
+  /// with, without a drafter. The agent restores a session only when this
+  /// model is the resident model of its slot.
+  nonisolated public static let recordedStandardModel = "mlx-community/Qwen3.8-27B-mxfp4"
+
+  /// The name of the configuration file in the user layer of the agent.
+  nonisolated public static let profileFileName = "config.yaml"
+
+  /// The text of the configuration file: the profile with the
+  /// ``recordedStandardModel`` in the `standard` slot.
+  nonisolated static var profileText: String {
+    "profile:\n  standard:\n    - \(recordedStandardModel)\n"
+  }
+
   /// The start of the name of each stage directory.
   static let stageNamePrefix = "AgentViewKitDemo-RecordedSessions-"
 
@@ -76,11 +93,22 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     directory(named: Self.workingDirectoryName)
   }
 
-  /// The empty configuration root of the agent: the user layer of the agent
-  /// is the dotfolder below it. The agent writes its project store there,
-  /// and not into `~/.config` of the home directory.
+  /// The configuration root of the agent: the user layer of the agent is the
+  /// dotfolder below it. The agent writes its project store there, and not
+  /// into `~/.config` of the home directory.
   public var configurationDirectory: URL {
     directory(named: Self.configurationDirectoryName)
+  }
+
+  /// The user layer of the agent: the dotfolder of the demo below
+  /// ``configurationDirectory``.
+  public var userLayerDirectory: URL {
+    configurationDirectory.appending(path: DemoAgent.agentDotfolderName, directoryHint: .isDirectory)
+  }
+
+  /// The configuration file in ``userLayerDirectory``.
+  public var profileFile: URL {
+    userLayerDirectory.appending(path: Self.profileFileName, directoryHint: .notDirectory)
   }
 
   /// The directory with the name `name` directly below ``root``.
@@ -135,14 +163,15 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     return stage
   }
 
-  /// Makes the transcript location, the working directory, and the
-  /// configuration directory.
+  /// Makes the transcript location, the working directory, and the user
+  /// layer in the configuration directory, and writes ``profileFile``.
   ///
   /// - Throws: The error of the file manager.
   private func makeDirectories() throws {
-    for directory in [transcriptsDirectory, workingDirectory, configurationDirectory] {
+    for directory in [transcriptsDirectory, workingDirectory, userLayerDirectory] {
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
+    try Data(Self.profileText.utf8).write(to: profileFile)
   }
 
   /// Copies each directory and each file of one recording into

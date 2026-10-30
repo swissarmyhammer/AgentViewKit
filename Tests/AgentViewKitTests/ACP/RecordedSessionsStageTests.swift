@@ -17,6 +17,9 @@ import Testing
   /// The key of the XDG configuration root in the environment of the agent.
   static let configurationHomeKey = "XDG_CONFIG_HOME"
 
+  /// The name of the configuration file in the user layer of the agent.
+  static let profileFileName = "config.yaml"
+
   /// The name of the first recording. It sorts before ``secondRecording``.
   static let firstRecording = "alpha-recording"
 
@@ -204,13 +207,36 @@ import Testing
     try Self.expectEmptyDirectory(stage.workingDirectory, of: stage)
   }
 
-  @Test func theConfigurationDirectoryIsAnEmptyDirectoryOfTheStage() throws {
+  @Test func theConfigurationDirectoryHoldsOnlyTheUserLayerOfTheAgent() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
-    try Self.expectEmptyDirectory(stage.configurationDirectory, of: stage)
+    let names = try FileManager.default.contentsOfDirectory(
+      atPath: stage.configurationDirectory.path(percentEncoded: false))
+    #expect(names == [stage.userLayerDirectory.lastPathComponent])
+  }
+
+  @Test func theUserLayerHoldsOnlyTheProfileFile() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+
+    let stage = try recordings.makeStage()
+
+    let names = try FileManager.default.contentsOfDirectory(
+      atPath: stage.userLayerDirectory.path(percentEncoded: false))
+    #expect(names == [Self.profileFileName])
+  }
+
+  @Test func theProfileFileNamesTheStandardModelOfTheRecordings() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+
+    let stage = try recordings.makeStage()
+
+    let text = try String(contentsOf: stage.profileFile, encoding: .utf8)
+    #expect(text == "profile:\n  standard:\n    - mlx-community/Qwen3.8-27B-mxfp4\n")
   }
 
   @Test func theAgentEnvironmentPutsTheConfigurationRootInTheStage() throws {
