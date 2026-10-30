@@ -524,8 +524,25 @@ public struct ConversationView<EmptyState: View>: View {
 
 /// The default empty state of a ``ConversationView``: a
 /// ``ConversationEmptyState`` with the large spacing step of the style as the
-/// margin of its scroll content.
-public typealias DefaultConversationEmptyState = ModifiedContent<ConversationEmptyState, ScrollContentMargins>
+/// margin of its scroll content (``ConversationEmptyStateMargin``).
+public typealias DefaultConversationEmptyState = ModifiedContent<ConversationEmptyState, ConversationEmptyStateMargin>
+
+/// The layout of the default empty state slot of a ``ConversationView``: it
+/// gives the empty state the large spacing step of the style as the margin
+/// of its scroll content, with EditorStyle's `.scrollContentMargins(_:)`.
+/// The empty state has no margin of its own (^rgsq3k4).
+public struct ConversationEmptyStateMargin: ViewModifier {
+  /// Makes the margin of the default empty state.
+  public init() {}
+
+  /// Gives `content` the margin of the default empty state.
+  ///
+  /// - Parameter content: The empty state.
+  /// - Returns: The empty state with the margin of its scroll content.
+  public func body(content: Content) -> some View {
+    content.scrollContentMargins(\.spacing.l)
+  }
+}
 
 extension ConversationView where EmptyState == DefaultConversationEmptyState {
   /// Makes the list of the transcript of a session model with the default
@@ -541,7 +558,7 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
   ///     the view makes its own manager.
   public init(session: SessionModel, anchors: ScrollAnchorManager? = nil) {
     self.init(session: session, anchors: anchors) {
-      ConversationEmptyState().modifier(ScrollContentMargins(\.spacing.l))
+      ConversationEmptyState().modifier(ConversationEmptyStateMargin())
     }
   }
 }

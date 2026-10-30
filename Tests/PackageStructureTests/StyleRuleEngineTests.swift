@@ -106,6 +106,16 @@ struct StyleRuleScan: Sendable, CustomTestStringConvertible {
       """
   ]
 
+  /// The modifiers and the view modifier types that draw a surface around the
+  /// view before them, so a padding before one is the inset of that surface:
+  /// the surfaces of the kit (`.contentTile()`, `.selectableSurface(...)`,
+  /// `.modifier(DeckSurface())`), and the surfaces of EditorStyle that the
+  /// kit applies.
+  static let outerSpacingSurfaces: Set<String> = [
+    "contentTile", "selectableSurface", "DeckSurface", "floatingGlass", "selectionSurface", "surfaceBackground",
+    "inlineFill", "inlineEdge", "scopeFocusRing",
+  ]
+
   /// The files that may paint a fill, each with the reason: a link, a small
   /// chip that is not a card, and terminal data (D113 answer 1). A selection
   /// draws through the shared selection surface of EditorKit
@@ -156,6 +166,12 @@ struct StyleRuleScan: Sendable, CustomTestStringConvertible {
     .engine(
       .offscreenRenderers, roots: allCodePaths,
       advice: "A test captures the real window from the window server (style.md rule 9)."),
+    .engine(
+      .outerSpacing(surfaces: outerSpacingSurfaces), roots: KitSourceFiles.libraryPaths,
+      advice: """
+        A view has no padding or margin around it: the containing layout spaces it, and each space is a \
+        value of \\.editorStyle (style.md rule 10, ^rgsq3k4).
+        """),
     StyleRuleScan(
       name: "symbol names", roots: KitSourceFiles.viewPaths, allowList: symbolNameFiles,
       advice: "Use an SF Symbol of macOS 27 by its current name (style.md, SF Symbols)."
