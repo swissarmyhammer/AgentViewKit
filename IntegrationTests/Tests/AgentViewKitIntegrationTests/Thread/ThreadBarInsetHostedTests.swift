@@ -20,9 +20,9 @@ import EditorStyle
   /// The tests read the frames of the accessibility elements in the bars, so
   /// each height comes from the views and not from the insets:
   ///
-  /// - The top bar of the thread starts two small spacings above the
-  ///   ``AgentInfoHeader``: the inset of the header in its glass, and the
-  ///   padding of its glass container. It
+  /// - The top bar of the thread starts one small spacing above the
+  ///   ``AgentInfoHeader``, the padding of its glass container; the element of
+  ///   the header is its glass, with the inset of the header in it. The bar
   ///   ends below the text of the notice by the tile padding of the row and
   ///   the tile margin that the bar gives the ``SessionNoticeBanner``
   ///   (^rgsq3k4).
@@ -105,11 +105,12 @@ import EditorStyle
       return (header.maxY + aboveHeader) - (notice.minY - belowNotice)
     }
 
-    /// The space of the top bar above the ``AgentInfoHeader``: the inset of
-    /// the header in its glass and the padding of its glass container, one
-    /// small spacing each.
+    /// The space of the top bar above the ``AgentInfoHeader``: the padding of
+    /// its glass container, one small spacing. The frame of the header
+    /// element is the frame of its glass, so it holds the inset of the header
+    /// in the glass.
     static var aboveHeader: CGFloat {
-      EditorStyle.default.spacing.s + EditorStyle.default.spacing.s
+      EditorStyle.default.spacing.s
     }
 
     /// The screen y of the bottom edge of the bars of the host in `harness`:

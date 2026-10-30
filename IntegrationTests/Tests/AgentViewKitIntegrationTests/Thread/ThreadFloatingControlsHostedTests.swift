@@ -200,25 +200,30 @@
     /// Gives the list the scroll to the bottom that the manager sent after an
     /// append, and lays out the result.
     ///
-    /// The helper waits for the event that the recorder holds `count`
-    /// targets, or that the manager was unpinned (`unpinned`): a manager that
-    /// was unpinned at the append sends no scroll for it, and the test then
-    /// reads the unpin. A pinned manager always sends the scroll of an append.
+    /// The helper waits for the event that the recorder holds more than
+    /// `baseline` targets, or that the manager was unpinned (`unpinned`): a
+    /// manager that was unpinned at the append sends no scroll for it, and
+    /// the test then reads the unpin. A pinned manager always sends the scroll
+    /// of an append. The wait counts from `baseline`, and not to a fixed
+    /// number, because the manager can send more than one scroll for an
+    /// append, and a scroll of the first layout can come before the test holds
+    /// the targets. The limit of the wait makes a scroll that never comes an
+    /// issue, and not a test that hangs.
     ///
     /// - Parameters:
-    ///   - count: The number of targets that the recorder holds after the
-    ///     scroll.
+    ///   - baseline: The number of targets that the recorder held before the
+    ///     change that the test made.
     ///   - held: The recorder and the scroll closure of
     ///     ``holdScrollTargets(of:)``.
     ///   - unpinned: The flag that a change of the pin state sets.
     ///   - anchors: The manager of the scroll position of the thread.
     ///   - harness: The harness that shows the thread.
     static func applyHeldScroll(
-      count: Int, of held: (targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void),
+      after baseline: Int, of held: (targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void),
       unpinned: ObservationFlag, anchors: ScrollAnchorManager, harness: HostedViewHarness<some View>
     ) async {
-      await ObservationWait.until {
-        unpinned.isRaised || held.targets.values.count == count || !anchors.isPinnedToBottom
+      await ObservationWait.until(within: .seconds(10)) {
+        unpinned.isRaised || held.targets.values.count > baseline || !anchors.isPinnedToBottom
       }
       if let target = held.targets.values.last {
         held.viewScroll(target)
@@ -256,20 +261,25 @@
       try await session.sendUpdate(
         SessionTranscriptViewHostedTests.chunk("user_message_chunk", messageID: Self.promptMessageID, text: Self.message))
       await harness.render(when: { model.transcript.count == 1 })
+      // The first entry shows the list, and the list sends its first scroll
+      // to the bottom in the pass that shows it, which can be before the test
+      // holds the targets. The test holds from here, and starts each wait at
+      // the targets that it holds before the change.
       let held = Self.holdScrollTargets(of: anchors)
-      let firstUnpin = ObservationFlag.observing { _ = anchors.isPinnedToBottom }
-      await Self.applyHeldScroll(count: 1, of: held, unpinned: firstUnpin, anchors: anchors, harness: harness)
+      harness.render()
       try #require(anchors.isPinnedToBottom)
       let unpinned = ObservationFlag.observing { _ = anchors.isPinnedToBottom }
 
+      var baseline = held.targets.values.count
       try await session.sendUpdate(SessionStateBannersHostedTests.stateUpdate(#""state": "running""#))
       try await session.sendUpdate(
         SessionTranscriptViewHostedTests.chunk("agent_message_chunk", messageID: Self.replyMessageID, text: Self.reply))
       await harness.render(when: { model.transcript.count == 2 })
-      await Self.applyHeldScroll(count: 2, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+      await Self.applyHeldScroll(after: baseline, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+      baseline = held.targets.values.count
       try await session.sendUpdate(SessionEntryRowsHostedTests.planUpdate(firstStatus: "completed"))
       await harness.render(when: { model.transcript.count == 3 })
-      await Self.applyHeldScroll(count: 3, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+      await Self.applyHeldScroll(after: baseline, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
 
       #expect(!unpinned.isRaised, "the thread unpinned during the turn")
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
