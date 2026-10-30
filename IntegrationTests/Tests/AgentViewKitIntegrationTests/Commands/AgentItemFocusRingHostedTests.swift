@@ -83,6 +83,9 @@ import Testing
     try #require(waitForLiveBeacons([scope], in: bed.system))
     try land()
     await RunLoopBlockFence.afterPendingBlocks()
+    // A focusable view of the scope (the permission card) shows its own ring
+    // one update after the focus lands, and a capture lets that update run.
+    _ = try await bed.capture()
 
     let responder = try #require(bed.window.firstResponder as? NSView)
     let itemRect = try #require(bed.system.geometry.rect(of: scope))
@@ -191,7 +194,13 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemTakesTheThemeAccent(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      #expect(focused.responder is GeometryProbeView)
+      // A permission card is a focusable view of its scope, so EditorKit
+      // lands the focus on the focus proxy of the card, and the card draws
+      // the ring. The beacon holds the focus of the other items.
+      switch kind {
+      case .request: #expect(!(focused.responder is GeometryProbeView))
+      case .message, .toolCall: #expect(focused.responder is GeometryProbeView)
+      }
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
       #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
     }
