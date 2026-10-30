@@ -46,11 +46,6 @@ import Testing
     case jump
   }
 
-  /// Why the ring of the permission card is a known issue (handed to EditorKit,
-  /// which owns `FocusRingBed`).
-  static let requestRingIssue: Comment =
-    "EditorKit: FocusRingBed reads no editorFocusRing after a landed focus (pending)"
-
   /// The JSON-RPC id of the permission request of the request card.
   static let requestID = 100
 
@@ -93,7 +88,7 @@ import Testing
     bed.window.makeFirstResponder(nil)
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(
-      !String(describing: type(of: bed.window.firstResponder as Any)).contains("KeyViewProxy"),
+      !(bed.window.firstResponder.map { String(describing: type(of: $0)) } ?? "").contains("KeyViewProxy"),
       "A view holds the focus before the baseline.")
     let baseline = try await bed.capture()
     try #require(waitForLiveBeacons([scope], in: bed.system))
@@ -217,13 +212,7 @@ import Testing
       case .message, .toolCall: #expect(focused.responder is GeometryProbeView)
       }
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
-      if kind == .request {
-        withKnownIssue(Self.requestRingIssue) {
-          #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
-        }
-      } else {
-        #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
-      }
+      #expect(focused.ring.isDrawn(in: FocusRingBed.defaultAccent))
     }
   }
 
@@ -232,15 +221,8 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      if kind == .request {
-        await withKnownIssue(Self.requestRingIssue) {
-          try await FocusRingBed.expectRingCorners(
-            of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
-        }
-      } else {
-        try await FocusRingBed.expectRingCorners(
-          of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
-      }
+      try await FocusRingBed.expectRingCorners(
+        of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
     }
   }
 
