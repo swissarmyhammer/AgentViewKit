@@ -174,13 +174,12 @@ extension CaptureMount {
     try await settle(mount)
     mount.render()
     // The insertion point of a focused text view blinks, so two captures of
-    // one view differ by when they were taken (a 2 pt by 16 pt bar). The text
-    // view resets the display mode of its indicator on each blink, so the
-    // capture takes the focus out of every text view: no capture shows an
-    // insertion point.
-    mount.window.makeFirstResponder(nil)
-    await RunLoopBlockFence.afterPendingBlocks()
-    mount.render()
+    // one view differ by when they were taken (a 2 pt by 16 pt bar). No
+    // capture shows it: the display mode `.hidden` stays hidden when the
+    // blink or the focus would show the indicator again.
+    for indicator in mount.hostingView.descendants.compactMap({ $0 as? NSTextInsertionIndicator }) {
+      indicator.displayMode = .hidden
+    }
     hideViews(of: hiddenTypes, in: mount.hostingView)
     return try await mount.capture()
   }
