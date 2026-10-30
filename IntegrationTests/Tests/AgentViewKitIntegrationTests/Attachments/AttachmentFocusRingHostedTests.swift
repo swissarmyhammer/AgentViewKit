@@ -157,7 +157,8 @@ import UniformTypeIdentifiers
   @Test(arguments: Surface.allCases)
   func theFocusRingHasTheCornersOfTheSurface(surface: Surface) async throws {
     try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
-      try await focused.expectRingCorners(cornerRadius: surface.cornerRadius)
+      try await FocusRingBed.expectRingCorners(
+        of: focused.ring, size: focused.itemRect.size, cornerRadius: surface.cornerRadius)
     }
   }
 
@@ -184,7 +185,8 @@ import UniformTypeIdentifiers
     await bed.render(when: { shown.corners != nil })
     let focused = try await Self.focusScope(of: attachment.id, in: bed)
 
-    try await focused.expectRingCorners(cornerRadius: EditorStyle.default.radii.m)
+    try await FocusRingBed.expectRingCorners(
+      of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.m)
   }
 
   /// The inspector has a focusable view of its own, so a `nav.*` move on its

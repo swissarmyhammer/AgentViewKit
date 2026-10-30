@@ -58,29 +58,10 @@ import Testing
     /// The rect of the scope, in the window space of EditorKit.
     let itemRect: CGRect
 
-    /// The ring of the scope, against a capture before the focus landed.
+    /// The ring of the scope, against a capture before the focus landed. A
+    /// test checks its corners with EditorKit's
+    /// `FocusRingBed.expectRingCorners(of:size:cornerRadius:)`.
     let ring: FocusRing
-
-    /// Expects ``ring`` to have corners of `cornerRadius`: row for row, the
-    /// ring that a plain scope of EditorKit of the size of the item draws
-    /// with those corners (`FocusRingBed.referenceRing(size:cornerRadius:accent:)`).
-    ///
-    /// It also expects that reference ring to have rows, so that two empty
-    /// rings never pass as the same corners.
-    ///
-    /// - Parameters:
-    ///   - cornerRadius: The radius of the corners; zero for a rectangle.
-    ///   - sourceLocation: The place an issue is recorded at; the caller by
-    ///     default.
-    /// - Throws: A `FocusRingBedError` when the focus does not land on the
-    ///   plain scope, or an error when a capture fails.
-    func expectRingCorners(
-      cornerRadius: CGFloat, sourceLocation: SourceLocation = #_sourceLocation
-    ) async throws {
-      let expected = try await FocusRingBed.referenceRing(size: itemRect.size, cornerRadius: cornerRadius)
-      #expect(!expected.rows.isEmpty, sourceLocation: sourceLocation)
-      #expect(ring.rows == expected.rows, sourceLocation: sourceLocation)
-    }
   }
 
   /// Captures the window of `bed`, waits for the beacon of `scope`, lands
@@ -221,7 +202,8 @@ import Testing
   @Test(arguments: ItemKind.allCases, FocusLanding.allCases)
   func theFocusRingOfAFocusedItemHasTheCornersOfACard(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
-      try await focused.expectRingCorners(cornerRadius: EditorStyle.default.radii.l)
+      try await FocusRingBed.expectRingCorners(
+        of: focused.ring, size: focused.itemRect.size, cornerRadius: EditorStyle.default.radii.l)
     }
   }
 

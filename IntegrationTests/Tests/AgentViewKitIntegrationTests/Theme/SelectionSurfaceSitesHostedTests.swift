@@ -224,7 +224,7 @@ import UniformTypeIdentifiers
     let image = try await bed.capture()
     let fill = try await fillBed.capture()
 
-    try await focused.expectRingCorners(cornerRadius: .zero)
+    try await FocusRingBed.expectRingCorners(of: focused.ring, size: focused.itemRect.size, cornerRadius: .zero)
     let imageCenter = CGPoint(x: focused.itemRect.midX, y: focused.itemRect.midY)
     #expect(try Surfaces.samePixel(in: image, and: fill, at: imageCenter))
   }
