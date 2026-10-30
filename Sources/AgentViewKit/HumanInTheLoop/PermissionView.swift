@@ -153,6 +153,7 @@ public struct PermissionView: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.permissionAnswerReport) private var reportAnswer
+  @Environment(\.permissionRingIsExternal) private var ringIsExternal
 
   /// The report that gets the method of each request that the "switch to
   /// auto" button starts, or `nil`.
@@ -193,7 +194,8 @@ public struct PermissionView: View {
     // radius of the style, and the system focus effect stays off.
     .focusable()
     .focusEffectDisabled()
-    .editorFocusRing(isFocused: isFocused, radius: .large)
+    .editorFocusRing(isFocused: isFocused && !ringIsExternal, radius: .large)
+    .preference(key: PermissionCardFocusKey.self, value: isFocused)
     .focused($isFocused)
     .defaultFocus($isFocused, true)
     .onExitCommand { session.startCancelPermission(request.id) }
@@ -473,7 +475,22 @@ struct PermissionAnswer: Equatable {
   let comment: String?
 }
 
+/// Whether a ``PermissionView`` holds the keyboard focus, for a host that draws
+/// the ring above a mask that would cut it (``RequestDeck``).
+struct PermissionCardFocusKey: PreferenceKey {
+  static let defaultValue = false
+
+  static func reduce(value: inout Bool, nextValue: () -> Bool) {
+    value = value || nextValue()
+  }
+}
+
 extension EnvironmentValues {
+  /// Whether the host of a ``PermissionView`` draws its focus ring, so the card
+  /// draws none. A ``RequestDeck`` masks the card, and the mask would cut the
+  /// outer part of the ring.
+  @Entry var permissionRingIsExternal: Bool = false
+
   /// The ``ObservationReport`` that gets each ``PermissionAnswer`` of the
   /// nearest ``PermissionView``, or `nil`.
   ///

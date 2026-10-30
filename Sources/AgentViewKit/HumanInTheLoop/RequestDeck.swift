@@ -612,6 +612,12 @@ private struct DeckCard: View {
   /// The shared style that gives the radius of the edge of the card.
   @Environment(\.editorStyle) private var editorStyle
 
+  /// Whether `.focusEffectDisabled()` above the deck is off, so the ring shows.
+  @Environment(\.isFocusEffectEnabled) private var isFocusEffectEnabled
+
+  /// Whether the permission card holds the keyboard focus.
+  @State private var cardHasFocus = false
+
   var body: some View {
     let identifier = RequestDeck.identifier(for: request.id.uuidString)
     let showsWhole = role.showsWhole
@@ -619,11 +625,16 @@ private struct DeckCard: View {
     // behind it. An edge card thus hides its content, and the band shows only
     // the top edge of its stroke above the front card.
     cardContent
+      .environment(\.permissionRingIsExternal, true)
       .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
       .opacity(showsWhole ? 1 : 0)
       .inlineEdge(radius: editorStyle.radii.l)
       .mask { DeckCardBand(role: role, edgeStep: edgeStep) }
+      // The ring is above the mask: the mask is the frame of the card plus
+      // 1 pt, and it would cut the outer 2 pt of the ring.
+      .onPreferenceChange(PermissionCardFocusKey.self) { cardHasFocus = $0 }
+      .editorFocusRing(isFocused: cardHasFocus && showsWhole && isFocusEffectEnabled, radius: .large)
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
       .accessibilityHidden(!showsWhole)
