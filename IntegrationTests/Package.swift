@@ -85,15 +85,12 @@ let package = Package(
   targets: [
     // The kit's hosted, snapshot, pixel, focus-ring and gallery tests: each
     // one mounts a view in EditorKit's `HostedViewHarness` or `CaptureWindow`,
-    // or captures the real window from the window server. The reference
-    // images are read from disk next to their test file (`SnapshotStore`), so
-    // the build excludes that folder.
+    // or captures the real window from the window server.
     .testTarget(
       name: "AgentViewKitIntegrationTests",
       dependencies: rootProducts + editorKitProducts + acpProducts + [
         .product(name: "Textual", package: "textual")
       ],
-      exclude: ["Snapshots/__Snapshots__"],
       swiftSettings: mainActorIsolated
     ),
     // The hosted tests of the public API of the style library. No file

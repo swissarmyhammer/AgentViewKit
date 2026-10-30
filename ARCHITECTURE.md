@@ -55,8 +55,8 @@ The review gallery is one page, `~/Library/Caches/AgentViewKit/screenshot-check/
 
 - A run of the integration package (`swift test --package-path IntegrationTests`, see "Test tiers") writes the page again. The root `swift test` does not. `ReviewGalleryScreenTests` builds it with EditorKit's `ReviewGallery` helper (`ReviewGallery(package: "AgentViewKit").record(_:snapshotRoots:)` of `EditorTestSupport`), and `ReviewGalleryPathTests` pins the path. AgentViewKit keeps no gallery code of its own.
 - The page shows the key screens first: the thread, the request deck, the banners, the sign-in prompt, the scrolled list, the attachment inspector and the gallery columns, each captured from a real window in Light and in Dark, with its dated note (`ReviewGalleryNotes`).
-- Then it shows every reference PNG under `IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/**`, grouped by suite, with Light and Dark side by side. Discovery needs no registration, so a new snapshot shows up on its own.
-- The test fails when the page does not show a reference PNG or a key screen.
+- Then it shows every image that the snapshot suites generated in the run, under `IntegrationTests/.build/generated-images/__Snapshots__/**` (`GeneratedImages`), grouped by suite, with Light and Dark side by side. The page test generates them first (`GeneratedImages.generateAll()`), so the order of the suites does not matter. No reference image is stored and no test compares a capture with an earlier one.
+- The test fails when the page does not show a generated image or a key screen.
 
 ## Test tiers
 

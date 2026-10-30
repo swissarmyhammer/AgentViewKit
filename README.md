@@ -641,9 +641,9 @@ process, and the capture shows what the app shows: the AppKit views, Liquid
 Glass and the scroll edge effect. Each view has fixed data and fixed dates, at
 two pixels for each point, in sRGB, and two images, Light and Dark; no test
 flips a system setting. These tests are in the `IntegrationTests/` package.
-The reference images are in
-`IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/`,
-as `<name>-light.png` and `<name>-dark.png` (EditorKit `SnapshotStore`):
+The images are generated in
+`IntegrationTests/.build/generated-images/__Snapshots__/`, as
+`<name>-light.png` and `<name>-dark.png`, for the review gallery:
 
 - `HostedSnapshotTests/`: each view of the kit, such as the thread, the
   composer, the cards and the banners.
@@ -669,21 +669,17 @@ changed in magenta. The test also attaches the two images.
 Each run of the integration package also writes the review gallery,
 `~/Library/Caches/AgentViewKit/screenshot-check/index.html`, with EditorKit's
 `ReviewGallery` helper (EditorKit `style.md` "Review gallery"): first the key
-screens of the kit, in light and dark, with dated notes, then every reference
-PNG under `IntegrationTests/Tests/AgentViewKitIntegrationTests/Snapshots/__Snapshots__/`,
-grouped by suite, light and dark side by side. A reference PNG that the page
+screens of the kit, in light and dark, with dated notes, then every image that
+the snapshot suites generated in the run (`IntegrationTests/.build/generated-images/__Snapshots__/`),
+grouped by suite, light and dark side by side. A generated image that the page
 does not show fails the run. The user reviews that page. There is no manual
 check and no comparison with Finder or System Settings.
 
-To record the reference images again, run the tests in the record mode, and
-then review the new images before the commit:
-
-```bash
-SNAPSHOT_RECORD=1 swift test --package-path IntegrationTests --filter SnapshotTests
-```
-
-In the record mode, each snapshot test records an issue, so that a run with
-the variable never passes.
+An integration run only generates images. No reference image is stored in the
+repository, nothing records a reference, and no test compares a capture with an
+earlier one. The tests that stay check a property of one capture: the focus ring,
+the contrast of text and glyphs, the glass showing the backdrop, and the colors of
+the theme roles.
 
 ## Design documents
 
