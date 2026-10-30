@@ -79,7 +79,7 @@ import UniformTypeIdentifiers
   ///   - directory: The directory of the file of the view.
   /// - Returns: The view, with the id of the attachment of its scope.
   /// - Throws: The error of the write of the file.
-  static func mount(_ surface: Surface, in directory: TemporaryDirectory) throws -> MountedSurface {
+  static func mount(_ surface: Surface, in directory: TemporaryFolder) throws -> MountedSurface {
     switch surface {
     case .chip:
       let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
@@ -88,11 +88,11 @@ import UniformTypeIdentifiers
       let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
       return MountedSurface(content: AnyView(AttachmentView(attachment)), id: attachment.id)
     case .attachmentImage:
-      let url = try directory.file(named: WireContentBlockViewHostedTests.imageName, contents: TestImage.makePNGData())
+      let url = try directory.write(WireContentBlockViewHostedTests.imageName, contents: TestImage.makePNGData())
       let attachment = AgentViewKit.Attachment(url: url)
       return MountedSurface(content: AnyView(AttachmentView(attachment)), id: attachment.id)
     case .artifact:
-      let url = try directory.file(named: "plan.txt", contents: Data(AttachmentFixtures.fileText.utf8))
+      let url = try directory.write("plan.txt", contents: Data(AttachmentFixtures.fileText.utf8))
       let artifact = ArtifactPayload(
         id: "artifact-1", title: "The plan", type: UTType.plainText.identifier, url: url)
       return MountedSurface(
@@ -114,9 +114,9 @@ import UniformTypeIdentifiers
   /// - Throws: The error of the write of the file, or an issue when the
   ///   focus does not land.
   static func inspectFocusedScope(
-    of makeView: (TemporaryDirectory) throws -> MountedSurface, _ inspect: (Ring.FocusedItem) async throws -> Void
+    of makeView: (TemporaryFolder) throws -> MountedSurface, _ inspect: (Ring.FocusedItem) async throws -> Void
   ) async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let mounted = try makeView(directory)
     let bed = FocusRingBed(size: AttachmentCommandsHostedTests.viewSize) { mounted.content }
@@ -170,10 +170,10 @@ import UniformTypeIdentifiers
   /// surface reports its corners (``AttachmentSurfaceCornersKey``) before it
   /// lands the focus.
   @Test func theFocusRingOfAPreviewThatShowsTheChipHasTheCornersOfTheChip() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(
-      named: WireContentBlockViewHostedTests.imageName, contents: Data(Self.undecodableImageText.utf8))
+    let url = try directory.write(
+      WireContentBlockViewHostedTests.imageName, contents: Data(Self.undecodableImageText.utf8))
     let attachment = AgentViewKit.Attachment(url: url)
     let shown = ShownSurface()
     let bed = FocusRingBed(size: AttachmentCommandsHostedTests.viewSize) {

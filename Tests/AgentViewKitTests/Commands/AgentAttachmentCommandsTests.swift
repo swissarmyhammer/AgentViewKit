@@ -101,7 +101,7 @@ import Testing
   // MARK: - Registration
 
   @Test func eachVerbIsInTheDefinitionsAtTheAttachmentPath() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
 
@@ -112,7 +112,7 @@ import Testing
   }
 
   @Test func theDefinitionsCarryThePlacesAndTheIcons() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
 
@@ -126,7 +126,7 @@ import Testing
   }
 
   @Test func noVerbIsAvailableAtAPathOutsideTheAttachmentScope() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
     let messagePath = Self.threadPath.appending(AgentScopeKind.message(rowKey: Self.messageRowKey))
@@ -143,7 +143,7 @@ import Testing
   }
 
   @Test func theContextMenuOfAnAttachmentShowsTheFiveVerbs() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
 
@@ -156,7 +156,7 @@ import Testing
   /// The thread verbs of a message, such as Copy Message, do not show in the
   /// context menu of an attachment in that message.
   @Test func theContextMenuOfAnAttachmentInAThreadShowsNoMessageVerb() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     var fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
     let session = SessionModel.preview(requestSender: PreviewSessionRequestSender())
@@ -170,7 +170,7 @@ import Testing
   }
 
   @Test func aGroupThatIsOffRegistersNoAttachmentVerb() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(
       for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory), groupsOff: [.attachment])
@@ -180,7 +180,7 @@ import Testing
   }
 
   @Test func theDeregistrationRemovesEachVerb() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     var fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
 
@@ -193,7 +193,7 @@ import Testing
   // MARK: - Runs
 
   @Test func aRunOfEachVerbGivesTheAttachmentOfTheScopeToTheService() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let fixture = Self.makeFixture(for: attachment)
@@ -210,7 +210,7 @@ import Testing
   /// A button dispatches through the target, which runs the command at the
   /// path of its scope.
   @Test func theTargetRunsAVerbThroughTheRegistryOfItsScope() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let fixture = Self.makeFixture(for: attachment)
@@ -240,7 +240,7 @@ import Testing
   }
 
   @Test func noVerbIsAvailableForAFileThatDoesNotExist() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "gone.bin", in: directory)
     try FileManager.default.removeItem(at: attachment.url)
@@ -253,7 +253,7 @@ import Testing
   }
 
   @Test func noVerbIsAvailableWithNoService() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
     fixture.target.service = nil

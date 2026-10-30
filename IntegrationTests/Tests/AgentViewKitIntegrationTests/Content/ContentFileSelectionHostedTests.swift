@@ -85,9 +85,9 @@ import UniformTypeIdentifiers
   // MARK: - Resource link
 
   @Test func aPressOnAFileResourceLinkSelectsTheFileInTheInspector() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: Self.fileName, contents: Self.blobBytes)
+    let url = try directory.write(Self.fileName, contents: Self.blobBytes)
     let selection = InspectorSelection()
     let harness = HostedViewHarness(
       ContentBlockView(block: Self.makeLinkBlock(to: url), id: Self.blockID)
@@ -105,9 +105,9 @@ import UniformTypeIdentifiers
   /// In the host mode of a thread view, a press on a `file:` link writes the
   /// file to the binding of the host, with the session id of the thread.
   @Test func aPressOnAFileResourceLinkSelectsTheFileInTheInspectorOfTheHost() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: Self.fileName, contents: Self.blobBytes)
+    let url = try directory.write(Self.fileName, contents: Self.blobBytes)
     let state = HostAttachmentState()
     let target = HostAttachmentTarget(
       selection: Binding(get: { state.selection }, set: { state.selection = $0 }), sessionId: Self.hostSessionID)
@@ -124,9 +124,9 @@ import UniformTypeIdentifiers
   }
 
   @Test func aFileResourceLinkKeepsTheAttachmentCommandsInItsContextMenu() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: Self.fileName, contents: Self.blobBytes)
+    let url = try directory.write(Self.fileName, contents: Self.blobBytes)
 
     let menu = await Self.contextMenuIDs(
       of: ContentBlockView(block: Self.makeLinkBlock(to: url), id: Self.blockID), at: Attachment(url: url).id)
@@ -148,9 +148,9 @@ import UniformTypeIdentifiers
   // MARK: - Tool call locations
 
   @Test func aPressOnALocationOfAToolCallSelectsItsFileInTheInspector() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: Self.fileName, contents: Self.blobBytes)
+    let url = try directory.write(Self.fileName, contents: Self.blobBytes)
     let (session, call) = try await Self.openLocationCall(path: url.path(percentEncoded: false))
     defer { session.close() }
     let selection = InspectorSelection()
@@ -165,9 +165,9 @@ import UniformTypeIdentifiers
   }
 
   @Test func aLocationOfAToolCallKeepsTheAttachmentCommandsInItsContextMenu() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: Self.fileName, contents: Self.blobBytes)
+    let url = try directory.write(Self.fileName, contents: Self.blobBytes)
     let (session, call) = try await Self.openLocationCall(path: url.path(percentEncoded: false))
     defer { session.close() }
 

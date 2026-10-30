@@ -90,11 +90,10 @@ func hideViews(of types: [NSView.Type], in root: NSView) {
 /// as the app shows them. The view shows in the appearance of its look, under
 /// the pins of every screen of the kits (EditorKit `ReviewScreenRoot`): one
 /// locale, one time zone, one calendar, no animation and Reduce Motion on, so
-/// the endless animations of the kit stand still. The capture stops each
-/// AppKit progress indicator, which reads no Reduce Motion
-/// (``stopProgressIndicators(in:)``), so that it takes the first two equal
-/// images. A test that mounts one runs under `.hostedSerially`. The test calls
-/// ``close()`` at the end.
+/// the endless animations of the kit stand still. EditorKit's capture stops
+/// each AppKit progress indicator, which reads no Reduce Motion, so that it
+/// takes the first two equal images. A test that mounts one runs under
+/// `.hostedSerially`. The test calls ``close()`` at the end.
 final class CaptureMount<Content: View> {
   /// The window, on the screen once the first capture orders it in.
   let window: CaptureWindow
@@ -130,14 +129,12 @@ final class CaptureMount<Content: View> {
     layOutAndDisplay(hostingView, in: window)
   }
 
-  /// Captures the whole window from the window server, after it stops each
-  /// progress indicator (``stopProgressIndicators(in:)``).
+  /// Captures the whole window from the window server.
   ///
   /// - Returns: The image of the window: the view over the window background.
   /// - Throws: A `WindowCaptureError`, or the error of ScreenCaptureKit.
   func capture() async throws -> CapturedImage {
-    stopProgressIndicators(in: hostingView)
-    return try await CapturedImage(capturing: window)
+    try await CapturedImage(capturing: window)
   }
 
   /// Closes the window.

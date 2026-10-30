@@ -51,8 +51,8 @@
     /// The hosted tests do not wait for the report of SwiftUI. SwiftUI sends
     /// it from `onScrollTargetVisibilityChange` on a later update, and for the
     /// off-screen harness window it can send no report. A wait for it holds
-    /// the UI test lock of EditorKit (`.hostedSerially`) and stops all hosted
-    /// tests. Thus each scroll test
+    /// the key window gate of EditorKit (`.hostedSerially`) and stops all
+    /// hosted tests of the process. Thus each scroll test
     /// gives the reports to the manager itself, in a fixed order. A report
     /// holds the row keys in transcript order, and a list that is not at the
     /// bottom reports the distance `.greatestFiniteMagnitude`, as

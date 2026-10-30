@@ -166,7 +166,7 @@ import Testing
   /// row, on each run.
   @Test(arguments: ReviewAppearance.allCases)
   func theAttachmentInspector(look: ReviewAppearance) async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(
       named: SnapshotFixtures.inspectorFileName, in: directory)

@@ -24,7 +24,7 @@ import Testing
   static let marginPoint = CGPoint(x: 2, y: 2)
 
   @Test func theContentOfTheInspectorIsAScrollingForm() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let harness = try Self.mountInspector(in: directory)
     defer { harness.close() }
@@ -42,7 +42,7 @@ import Testing
   /// leading edge of the name row, and its trailing inset from the form is
   /// the same as its leading inset.
   @Test func thePreviewHasTheLeadingAndTrailingInsetOfTheSectionRows() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let harness = try Self.mountInspector(in: directory)
     defer { harness.close() }
@@ -59,7 +59,7 @@ import Testing
   }
 
   @Test func theBackdropOfTheHostShowsInTheMarginOfTheForm() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try Self.attachment(in: directory)
 
@@ -78,7 +78,7 @@ import Testing
   /// - Parameter directory: The directory of the file.
   /// - Returns: The harness of the inspector. The caller closes it.
   /// - Throws: The error of the write of the file.
-  static func mountInspector(in directory: TemporaryDirectory) throws
+  static func mountInspector(in directory: TemporaryFolder) throws
     -> HostedViewHarness<AttachmentInspector>
   {
     try AttachmentInspectorHostedTests.mountInspectorContent(
@@ -91,7 +91,7 @@ import Testing
   /// - Parameter directory: The directory of the file.
   /// - Returns: The attachment of the file.
   /// - Throws: The error of the write of the file.
-  static func attachment(in directory: TemporaryDirectory) throws -> AgentViewKit.Attachment {
+  static func attachment(in directory: TemporaryFolder) throws -> AgentViewKit.Attachment {
     try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
   }
 }

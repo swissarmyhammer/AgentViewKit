@@ -16,10 +16,10 @@ public enum AttachmentFixtures {
   ///   - directory: The directory of the file.
   /// - Returns: The attachment of the file.
   /// - Throws: The error of the write.
-  public static func attachment(named name: String, in directory: TemporaryDirectory) throws
+  public static func attachment(named name: String, in directory: TemporaryFolder) throws
     -> AgentViewKit.Attachment
   {
-    AgentViewKit.Attachment(url: try directory.file(named: name, contents: Data(fileText.utf8)))
+    AgentViewKit.Attachment(url: try directory.write(name, contents: Data(fileText.utf8)))
   }
 
   /// The ids of each attachment verb, in the order of the verbs.

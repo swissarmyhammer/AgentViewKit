@@ -1,5 +1,6 @@
 import DemoSupport
 import EditorTestSupport
+import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -10,12 +11,18 @@ import FoundationModelsACPClient
 /// The agent tests of the recorded sessions, the tests of ``DemoAgent`` and
 /// the hosted tests of the Gallery tab share this scenario.
 public struct RecordedSessionsScenario {
-  /// The directory of the recorded sessions of the demo app, relative to the
-  /// package root.
-  public static let recordingsPath = "Examples/AgentViewKitDemo/RecordedSessions"
+  /// The directory of the recorded sessions of the demo app.
+  ///
+  /// This file is `Sources/AgentViewKitTestSupport/` below the package root,
+  /// so the root is two directories above the folder of the file.
+  public static let recordingsDirectory = URL(filePath: #filePath)
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+    .appending(path: "Examples/AgentViewKitDemo/RecordedSessions", directoryHint: .isDirectory)
 
   /// The temporary directory that holds the stage.
-  public let directory: TemporaryDirectory
+  public let directory: TemporaryFolder
 
   /// The stage of the recorded sessions that the agent runs over.
   public let stage: RecordedSessionsStage
@@ -35,9 +42,9 @@ public struct RecordedSessionsScenario {
   /// - Returns: The scenario.
   /// - Throws: The error of the stage or of the start.
   public static func start() async throws -> RecordedSessionsScenario {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     let stage = try RecordedSessionsStage.make(
-      copying: try PackageFiles().file(recordingsPath), below: directory.url)
+      copying: recordingsDirectory, below: directory.url)
     let agent = try await DemoAgent.makeInProcess(recordedSessions: stage)
     return RecordedSessionsScenario(directory: directory, stage: stage, agent: agent)
   }

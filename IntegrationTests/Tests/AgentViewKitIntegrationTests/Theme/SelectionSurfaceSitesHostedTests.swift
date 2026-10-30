@@ -238,7 +238,7 @@ import UniformTypeIdentifiers
   /// unselected chip.
   @Test(arguments: windowStates)
   func aSelectedAttachmentViewDrawsOnlyTheSharedSurfaceBehindItsText(appearsActive: Bool) async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let file = try AttachmentFixtures.attachment(named: Locations.fileName, in: directory)
     let unselected = AttachmentView(file).environment(\.inspectorSelection, InspectorSelection())
@@ -259,9 +259,9 @@ import UniformTypeIdentifiers
   /// The chip of a tool call location whose file the inspector shows draws a
   /// selected state.
   @Test func aLocationThatTheInspectorShowsDrawsTheSelectedState() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: Locations.fileName, contents: Locations.blobBytes)
+    let url = try directory.write(Locations.fileName, contents: Locations.blobBytes)
     let (session, call) = try await Locations.openLocationCall(path: url.path(percentEncoded: false))
     defer { session.close() }
     let view = Locations.expandedView(of: call)

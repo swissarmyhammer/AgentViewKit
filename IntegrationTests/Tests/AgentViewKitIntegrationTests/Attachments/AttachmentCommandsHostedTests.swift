@@ -81,7 +81,7 @@ struct HostInspectorWithAttachmentActions: View {
   /// In the built-in mode, a press on each button of the inspector of a
   /// thread view runs the command of the button on the selected file.
   @Test func eachButtonOfTheBuiltInInspectorRunsItsCommand() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let service = RecordingAttachmentFileService()
@@ -109,7 +109,7 @@ struct HostInspectorWithAttachmentActions: View {
   /// inspector with ``AttachmentInspector``. A press on each button runs the
   /// command of the button on that file.
   @Test func eachButtonOfTheInspectorOfTheHostRunsItsCommand() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let service = RecordingAttachmentFileService()
@@ -135,9 +135,9 @@ struct HostInspectorWithAttachmentActions: View {
   // MARK: - Artifact
 
   @Test func eachButtonOfAnArtifactRunsItsCommand() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: "plan.txt", contents: Data(AttachmentFixtures.fileText.utf8))
+    let url = try directory.write("plan.txt", contents: Data(AttachmentFixtures.fileText.utf8))
     let artifact = ArtifactPayload(
       id: "artifact-1", title: "The plan", type: UTType.plainText.identifier, url: url)
     let service = RecordingAttachmentFileService()
@@ -183,7 +183,7 @@ struct HostInspectorWithAttachmentActions: View {
   }
 
   @Test func aChipRegistersTheFiveCommandsAtItsScope() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
 
@@ -194,7 +194,7 @@ struct HostInspectorWithAttachmentActions: View {
   }
 
   @Test func aChipOfTheComposerRegistersTheFiveCommandsAtItsScope() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
 
@@ -204,7 +204,7 @@ struct HostInspectorWithAttachmentActions: View {
   }
 
   @Test func theInspectorRegistersTheFiveCommandsAtItsScope() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
 
@@ -227,7 +227,7 @@ struct HostInspectorWithAttachmentActions: View {
   /// The chip of an ``AttachmentView`` is in the scope of the view, and makes
   /// no second scope for the same attachment.
   @Test func theChipOfAnAttachmentViewMakesNoSecondScope() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let system = CommandSystem()
@@ -253,7 +253,7 @@ struct HostInspectorWithAttachmentActions: View {
   /// read the registry, so a change of the registry updates the chip and its
   /// scope, and that update would register the older window again by itself.
   @Test func closingTheNewerOfTwoWindowsAtOnePathHandsTheCommandsBackToTheOlderWindow() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let system = CommandSystem()
@@ -284,7 +284,7 @@ struct HostInspectorWithAttachmentActions: View {
   /// scope registers no command of the kit. The scope is the root of the
   /// window, so the window undo commands of EditorKit stay there.
   @Test func theAttachmentGroupOffRemovesTheButtonsAndTheCommands() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let system = CommandSystem()

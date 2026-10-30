@@ -51,7 +51,7 @@ import UniformTypeIdentifiers
   // MARK: - Default renderers
 
   @Test func aSwiftFileMountsTheCodeRenderer() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "Main.swift", in: directory)
     let harness = HostedViewHarness(AttachmentView(attachment), size: Self.hostSize)
@@ -63,7 +63,7 @@ import UniformTypeIdentifiers
   }
 
   @Test func aBinaryFileMountsTheChip() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let harness = HostedViewHarness(AttachmentView(attachment), size: Self.hostSize)
@@ -75,7 +75,7 @@ import UniformTypeIdentifiers
   }
 
   @Test func aRegisteredPDFViewWinsOverTheDefault() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "paper.pdf", in: directory)
     let harness = HostedViewHarness(
@@ -105,7 +105,7 @@ import UniformTypeIdentifiers
   /// ``aPressOnAChipShowsTheInspectorItemOfTheSplitView()`` checks the item
   /// that the split view shows.
   @Test func aPressOnAChipSelectsItsAttachmentForTheInspectorContent() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let selection = InspectorSelection()
@@ -131,7 +131,7 @@ import UniformTypeIdentifiers
   }
 
   @Test func aClearedSelectionClosesTheInspector() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let selection = InspectorSelection(attachment: attachment)
@@ -161,7 +161,7 @@ import UniformTypeIdentifiers
   /// ``theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView()``
   /// checks the item that the split view shows.
   @Test func theSelectionOfTheHostOfAThreadViewGivesItsAttachmentToTheInspectorContent() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "notes.md", in: directory)
     let selection = InspectorSelection()
@@ -190,7 +190,7 @@ import UniformTypeIdentifiers
   /// fence waits until each common-mode block that was added before it ran,
   /// thus it waits for both blocks.
   @Test func aPressOnAChipShowsTheInspectorItemOfTheSplitView() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let selection = InspectorSelection()
@@ -219,7 +219,7 @@ import UniformTypeIdentifiers
   /// common-mode block that was added before it ran, thus it waits for both
   /// blocks.
   @Test func theSelectionOfTheHostOfAThreadViewShowsTheInspectorItemOfTheSplitView() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "notes.md", in: directory)
     let selection = InspectorSelection()
@@ -258,9 +258,9 @@ import UniformTypeIdentifiers
   // MARK: - Artifact
 
   @Test func anArtifactWithAURLShowsItsBodyAndActions() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: "plan", contents: Data(AttachmentFixtures.fileText.utf8))
+    let url = try directory.write("plan", contents: Data(AttachmentFixtures.fileText.utf8))
     let artifact = ArtifactPayload(
       id: "artifact-1", title: "The plan", type: UTType.swiftSource.identifier, url: url)
     let harness = HostedViewHarness(ArtifactView(artifact: artifact), size: Self.hostSize)

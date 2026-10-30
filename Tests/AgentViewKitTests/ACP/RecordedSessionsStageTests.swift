@@ -48,7 +48,7 @@ import Testing
   struct Recordings {
     /// The temporary directory of the test. It holds the recordings and the
     /// stages.
-    let directory: TemporaryDirectory
+    let directory: TemporaryFolder
 
     /// The directory that holds the recordings.
     var url: URL { directory.url.appending(path: "recordings", directoryHint: .isDirectory) }
@@ -60,7 +60,7 @@ import Testing
     ///
     /// - Throws: The error of a write.
     init() throws {
-      directory = try TemporaryDirectory()
+      directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
       try write("** linguist-generated=true\n", to: "\(firstRecording)/\(attributesFileName)")
       try write("# Recordings\n", to: topFileName)
       for (recording, session) in [(firstRecording, firstSession), (secondRecording, secondSession)] {
@@ -223,7 +223,7 @@ import Testing
   }
 
   @Test func aBundleWithNoRecordingsGivesTheErrorDescriptionAsTheFailureText() throws {
-    let bundleDirectory = try TemporaryDirectory()
+    let bundleDirectory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { bundleDirectory.remove() }
     let bundle = try #require(Bundle(url: bundleDirectory.url))
 
@@ -235,7 +235,7 @@ import Testing
   }
 
   @Test func aBundleWithRecordingsGivesTheRecordingsDirectory() throws {
-    let bundleDirectory = try TemporaryDirectory()
+    let bundleDirectory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { bundleDirectory.remove() }
     let recordings = bundleDirectory.url.appending(
       path: RecordedSessionsStage.recordingsResourceName, directoryHint: .isDirectory)

@@ -90,9 +90,9 @@
     /// size of this screen.
     ///
     /// EditorKit's `ReviewScreenRoot` shows the screen with Reduce Motion on,
-    /// and the settle stops each AppKit progress indicator, which reads no
-    /// Reduce Motion (``stopProgressIndicators(in:)``), as in each capture of
-    /// the package, so that each capture takes the first two equal images.
+    /// and EditorKit's capture stops each AppKit progress indicator, which
+    /// reads no Reduce Motion, so that each capture takes the first two equal
+    /// images.
     ///
     /// - Parameters:
     ///   - settle: The wait for an event of the mounted screen before the
@@ -106,11 +106,7 @@
     ) throws -> ReviewScreen {
       ReviewScreen(
         id: rawValue, title: title, note: try ReviewGalleryNotes.note(of: self), size: size,
-        settle: { mount in
-          try await settle(mount)
-          stopProgressIndicators(in: mount.hostingView)
-        },
-        content: content)
+        settle: settle, content: content)
     }
 
     /// Runs `body` with the key screen of this screen, and frees what the
@@ -433,7 +429,7 @@
     /// - Throws: The error of the file of the attachment, of a decode, of the
     ///   note, or of `body`.
     static func withInspectorScreen<T>(_ body: (ReviewScreen) async throws -> T) async throws -> T {
-      let directory = try TemporaryDirectory()
+      let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
       defer { directory.remove() }
       let attachment = try AttachmentFixtures.attachment(
         named: SnapshotFixtures.inspectorFileName, in: directory)

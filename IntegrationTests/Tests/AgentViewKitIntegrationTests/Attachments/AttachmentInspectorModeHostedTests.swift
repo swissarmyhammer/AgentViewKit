@@ -122,7 +122,7 @@ struct SplitViewHostWithThreadTabs: View {
   /// show the inspector item, as in
   /// ``AttachmentInspectorHostedTests/aPressOnAChipShowsTheInspectorItemOfTheSplitView()``.
   @Test func aThreadViewWithTheDefaultModeShowsTheKitInspectorAfterAPress() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let session = try await ScriptedSession.open()
@@ -153,7 +153,7 @@ struct SplitViewHostWithThreadTabs: View {
   /// The chip writes in the same step as the press, so the test reads the
   /// binding at once.
   @Test func aThreadViewInTheHostModeAddsNoInspectorAndAPressSetsTheHostSelection() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let state = HostAttachmentState()
@@ -218,7 +218,7 @@ struct SplitViewHostWithThreadTabs: View {
   /// stayed `nil`. The test does not open a second window, and it does not
   /// use the tab bar of a window.
   @Test func aSplitViewHostWithItsOwnInspectorSwitchesBetweenTwoThreadTabs() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachments = [
       try AttachmentFixtures.attachment(named: "first.bin", in: directory),

@@ -11,7 +11,7 @@
   /// The time decorator of the transcript rows: ``EntryTimingView``,
   /// `.entryTiming(_:)` and `.transcriptTiming(_:)`.
   ///
-  /// Each test gives the connection model a ``SettableClock``, so that each
+  /// Each test gives the connection model a ``FixedClock``, so that each
   /// entry gets a known start time and a known end time from the client
   /// model. The kit reads the times. It records no time itself.
   ///
@@ -70,7 +70,7 @@
     /// - Parameter clock: The clock of the test.
     /// - Returns: The open session.
     /// - Throws: The error of `initialize` or of `session/new`.
-    static func openSession(clock: SettableClock) async throws -> ScriptedSession {
+    static func openSession(clock: FixedClock) async throws -> ScriptedSession {
       try await ScriptedSession.open(now: clock.now)
     }
 
@@ -131,7 +131,7 @@
     // MARK: - The decorator on each row
 
     @Test func eachRowShowsTheStartAndTheDurationOfItsEntry() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let harness = Self.mountThread(session.model, showsTiming: true)
@@ -156,7 +156,7 @@
     }
 
     @Test func theTimeDrawsInTheUIRole() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
 
@@ -168,7 +168,7 @@
     }
 
     @Test func aToolCallShowsTheTimeFromItsStartToItsCompletion() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let harness = Self.mountThread(session.model, showsTiming: true)
@@ -190,7 +190,7 @@
     }
 
     @Test func aUserMessageShowsOnlyItsStart() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let harness = Self.mountThread(session.model, showsTiming: true)
@@ -205,7 +205,7 @@
     }
 
     @Test func theThoughtTitleTellsTheDurationOfTheThought() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let harness = Self.mountThread(session.model, showsTiming: false)
@@ -226,7 +226,7 @@
     }
 
     @Test func theTimelineRowOfAThoughtTellsTheDurationOfTheThought() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let harness = HostedViewHarness(size: Self.tallSize) {
@@ -249,7 +249,7 @@
     // MARK: - No time
 
     @Test func withNoDecoratorNoRowShowsATime() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let harness = Self.mountThread(session.model, showsTiming: false)
@@ -265,7 +265,7 @@
     }
 
     @Test func aReplayedEntryShowsNoTime() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let replayedChunk = try JSONValue(json: Self.chunk("agent_message_chunk", messageID: Self.messageID))
       let session = try await ScriptedSession.open(
         configure: { agent in
@@ -290,7 +290,7 @@
     // MARK: - One view of the host
 
     @Test func theDecoratorWrapsOneViewOfTheHost() async throws {
-      let clock = SettableClock(start: Self.start)
+      let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
       let model = session.model

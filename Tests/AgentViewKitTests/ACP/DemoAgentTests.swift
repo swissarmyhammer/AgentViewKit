@@ -38,8 +38,8 @@ import Testing
   ///
   /// - Returns: The connected agent, and the temporary working directory.
   /// - Throws: The error of the directory or of the start.
-  static func makeACPTabAgent() async throws -> (agent: DemoAgent, directory: TemporaryDirectory) {
-    let directory = try TemporaryDirectory()
+  static func makeACPTabAgent() async throws -> (agent: DemoAgent, directory: TemporaryFolder) {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     var options = DemoLaunchOptions(arguments: [
       "app", DemoLaunchOptions.cwdArgument, directory.url.path(percentEncoded: false),
     ])

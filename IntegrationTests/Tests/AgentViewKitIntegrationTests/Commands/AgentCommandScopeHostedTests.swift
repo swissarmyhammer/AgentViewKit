@@ -503,8 +503,9 @@ import Testing
   /// visibility report of the four rows itself, in transcript order, as
   /// `ConversationView` gives it. It does not wait for the report of
   /// SwiftUI: SwiftUI sends it on a later update, and for the off-screen
-  /// harness window it can send no report. A wait for it holds the shared
-  /// UI test lock of EditorKit (`.hostedSerially`) and stops all hosted tests.
+  /// harness window it can send no report. A wait for it holds the key
+  /// window gate of EditorKit (`.hostedSerially`) and stops all hosted tests
+  /// of the process.
   ///
   /// The command sets the anchor; the given report does not set it. The
   /// test does not check the rows in view that the manager keeps, because

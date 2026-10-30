@@ -26,7 +26,7 @@ import Testing
   }
 
   @Test func aDispatchRunsTheCommandAtThePath() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let fixture = Shared.makeFixture(for: attachment)
@@ -39,7 +39,7 @@ import Testing
   }
 
   @Test func aDispatchWithNoSystemRunsNothing() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Shared.makeFixture(
       for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
@@ -51,7 +51,7 @@ import Testing
   }
 
   @Test func aDispatchWithNoPathRunsNothing() throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Shared.makeFixture(
       for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))

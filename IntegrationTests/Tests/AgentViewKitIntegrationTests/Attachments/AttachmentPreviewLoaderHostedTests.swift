@@ -44,9 +44,9 @@ import Testing
   }
 
   @Test func theDefaultLoaderReadsTheTextOfAFileOnDisk() async throws {
-    let directory = try TemporaryDirectory()
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.file(named: "build.log", contents: Data(PreviewFixtures.buildLogText.utf8))
+    let url = try directory.write("build.log", contents: Data(PreviewFixtures.buildLogText.utf8))
 
     #expect(await EnvironmentValues().attachmentPreviewLoader.text(url) == PreviewFixtures.buildLogText)
   }
