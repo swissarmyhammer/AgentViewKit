@@ -86,8 +86,15 @@ import Testing
   ) async throws -> FocusedItem {
     // When the window becomes key, SwiftUI focuses a lone focusable view (the
     // permission card) by itself, so the baseline would already show its ring.
+    // The window is key and unfocused before the baseline (EditorKit's
+    // `unfocusedCapture`).
+    bed.window.makeKeyAndOrderFront(nil)
+    await RunLoopBlockFence.afterPendingBlocks()
     bed.window.makeFirstResponder(nil)
     await RunLoopBlockFence.afterPendingBlocks()
+    try #require(
+      !String(describing: type(of: bed.window.firstResponder as Any)).contains("KeyViewProxy"),
+      "A view holds the focus before the baseline.")
     let baseline = try await bed.capture()
     try #require(waitForLiveBeacons([scope], in: bed.system))
     try land()
