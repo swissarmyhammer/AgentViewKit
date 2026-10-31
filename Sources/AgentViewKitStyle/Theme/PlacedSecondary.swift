@@ -32,6 +32,9 @@ extension View {
   /// Says that the views below stand on chrome, so ``SwiftUI/EnvironmentValues/placedSecondary``
   /// gives them the vibrant `.secondary`.
   ///
+  /// A sheet is chrome. The kit cannot see that a view stands in a sheet, so a host marks the
+  /// root of each sheet that it presents with this modifier, as it marks a bar or a sidebar.
+  ///
   /// - Returns: The view with the place in its environment.
   public func onChrome() -> some View {
     environment(\.isOnChrome, true)

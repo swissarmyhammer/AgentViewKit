@@ -15,7 +15,8 @@ import SwiftUI
 /// ``AgentAttachmentVerb`` commands for the file. In an ``AttachmentView``,
 /// the chip uses the scope of the view.
 public struct AttachmentChip: View {
-  /// The side of the type icon, in points.
+  /// The side of the type icon, in points at the default theme font. The icon
+  /// stands beside the two lines of text, so it scales with them.
   private static let iconSide: CGFloat = 28
 
   /// The corners of the chip: the medium radius of `\.editorStyle`. The fill of
@@ -30,6 +31,7 @@ public struct AttachmentChip: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.placedSecondary) private var placedSecondary
+  @ThemeFontScale(.ui) private var fontScale
 
   /// Makes the chip of a file.
   ///
@@ -50,7 +52,7 @@ public struct AttachmentChip: View {
     HStack(spacing: editorStyle.spacing.s) {
       Image(nsImage: NSWorkspace.shared.icon(for: attachment.type))
         .resizable()
-        .frame(width: Self.iconSide, height: Self.iconSide)
+        .frame(width: Self.iconSide * fontScale, height: Self.iconSide * fontScale)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(attachment.name)

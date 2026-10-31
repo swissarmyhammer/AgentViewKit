@@ -21,7 +21,9 @@ public struct LinkView: View {
   /// The accessibility identifier of the card.
   public static let cardIdentifier = "link-card"
 
-  /// The largest width of the card, in points.
+  /// The largest width of the card, in points at the default theme font. The
+  /// system draws the text of the card, but the card stands among the text of
+  /// the transcript, so its measure scales with that text.
   private static let maximumCardWidth: CGFloat = 400
 
   /// The ACP link to show.
@@ -34,6 +36,7 @@ public struct LinkView: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
+  @ThemeFontScale(.display) private var fontScale
 
   /// Makes the view of an ACP resource link.
   ///
@@ -52,7 +55,7 @@ public struct LinkView: View {
       } label: {
         LinkCard(name: name, url: url, icon: icon)
           .allowsHitTesting(false)
-          .frame(maxWidth: Self.maximumCardWidth, alignment: .leading)
+          .frame(maxWidth: Self.maximumCardWidth * fontScale, alignment: .leading)
       }
       .buttonStyle(.plain)
       .help(uri)
