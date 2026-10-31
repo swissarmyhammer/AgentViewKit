@@ -122,7 +122,9 @@ import Testing
       Use(
         concept: .information, place: "withdrawn request notice",
         name: NoticeBanner.symbolName(for: WithdrawnNoticeRow.severity)),
-      Use(concept: .dismiss, place: "notice Dismiss", name: NoticeRow.dismissSymbol),
+      Use(
+        concept: .dismiss, place: "notice Dismiss",
+        name: StatusBar.Action.makeDismiss(identifier: "", perform: {}).systemImage),
     ]
     return severities.map { Use(concept: $1, place: "notice \($0)", name: NoticeBanner.symbolName(for: $0)) }
       + notices

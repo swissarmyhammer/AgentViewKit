@@ -96,6 +96,24 @@ import Testing
     #expect(withButton.width > without.width)
   }
 
+  @Test func aBarWithNoExplanationShowsNoExplanationLine() {
+    let titleOnly = StatusBar.Message(
+      title: "Title", explanation: "", symbolName: SharedSymbol.information, identifier: "message")
+    let withLine = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: nil))
+    let without = StyleViewHost.fittingSize(of: StatusBar(message: titleOnly, action: nil))
+
+    #expect(without.height < withLine.height)
+  }
+
+  @Test func aMessageKeepsItsAccessibilityLabelAndItsSymbolHelp() {
+    let message = StatusBar.Message(
+      title: "Title", explanation: "Explanation", symbolName: SharedSymbol.information, identifier: "message",
+      accessibilityLabel: "Warning, Title", symbolHelp: "Warning")
+
+    #expect(message.accessibilityLabel == "Warning, Title")
+    #expect(message.symbolHelp == "Warning")
+  }
+
   @Test func aStatusSymbolTakesTheSizeOfItsSymbol() {
     let size = StyleViewHost.fittingSize(
       of: StatusSymbolImage(name: SharedSymbol.error, color: .secondary).liveSymbolEffect(isActive: true))
