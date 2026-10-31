@@ -607,8 +607,8 @@ test` at the root runs the unit tests only: the models, the commands, the
 wire and the scripted agents. No test of the root package mounts a view in a
 window or a hosting view, or captures a window. Run it on each change. No
 test reads the source or the docs of the package as text: review holds the
-rules of EditorKit `style.md`. The nested `IntegrationTests/` package
-holds each test that mounts a view in EditorKit's `HostedViewHarness`, the
+rules of EditorKit `style.md`. The nested `IntegrationTests/` package,
+with its one test target `IntegrationTests`, holds each test that mounts a view in EditorKit's `HostedViewHarness`, the
 snapshot images of real windows and the review gallery. It depends on the root package by path, has its own
 `.build`, and runs once per batch of work, and in the integration job of CI.
 Use `--filter` to run one of its tests.

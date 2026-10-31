@@ -31,6 +31,7 @@ let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorSwiftUI", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
   .product(name: "EditorStyle", package: "EditorKit"),
+  .product(name: "EditorDiff", package: "EditorKit"),
   .product(name: "EditorCommands", package: "EditorKit"),
   .product(name: "EditorCommandsUI", package: "EditorKit"),
   .product(name: "EditorComplete", package: "EditorKit"),
@@ -67,7 +68,7 @@ let acpProducts: [Target.Dependency] = [
 /// Its `.build` is its own: `swift package clean --package-path
 /// IntegrationTests` cleans it, a clean at the root does not.
 let package = Package(
-  name: "AgentViewKitIntegrationTests",
+  name: "IntegrationTests",
   // The same floor as the root package.
   platforms: [
     .macOS("27.0")
@@ -83,29 +84,15 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
   ],
   targets: [
-    // The kit's hosted, snapshot and gallery tests: each
-    // one mounts a view in EditorKit's `HostedViewHarness` or `CaptureWindow`,
-    // or captures the real window from the window server.
+    // The hosted, snapshot and gallery tests: each one mounts a view in
+    // EditorKit's `HostedViewHarness` or `CaptureWindow`, or captures the real
+    // window from the window server. No file of `Style/` imports the style
+    // library with `@testable`, so each of those tests reads only what a host
+    // of the product reads.
     .testTarget(
-      name: "AgentViewKitIntegrationTests",
+      name: "IntegrationTests",
       dependencies: rootProducts + editorKitProducts + acpProducts + [
         .product(name: "Textual", package: "textual")
-      ],
-      swiftSettings: mainActorIsolated
-    ),
-    // The hosted tests of the public API of the style library. No file
-    // imports it with `@testable`, so each test reads only what a host of the
-    // product reads. It links no ACP product and no target of the kit.
-    .testTarget(
-      name: "AgentViewKitStyleIntegrationTests",
-      dependencies: [
-        .product(name: "AgentViewKitStyle", package: rootPackageName),
-        .product(name: "EditorStyle", package: "EditorKit"),
-        .product(name: "EditorTheme", package: "EditorKit"),
-        .product(name: "EditorSwiftUI", package: "EditorKit"),
-        .product(name: "EditorDiff", package: "EditorKit"),
-        .product(name: "EditorCommands", package: "EditorKit"),
-        .product(name: "EditorTestSupport", package: "EditorKit"),
       ],
       swiftSettings: mainActorIsolated
     ),
