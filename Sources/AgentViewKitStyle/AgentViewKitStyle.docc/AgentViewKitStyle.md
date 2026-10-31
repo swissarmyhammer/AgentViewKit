@@ -71,6 +71,7 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 - ``DiffSummary``
 - ``EditorKitDiffRenderer``
+- ``DiffContentView``
 - ``DiffLayout``
 - ``SwiftUI/EnvironmentValues/diffLayout``
 - ``SwiftUI/View/diffLayout(_:)``
