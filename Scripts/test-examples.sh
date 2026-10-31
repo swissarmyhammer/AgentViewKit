@@ -9,11 +9,12 @@
 #   2. builds the app with `xcodebuild -scheme <AppName> build`,
 #   3. runs the UI tests of the scheme with `xcodebuild -scheme <AppName> test`.
 #
-# The UI tests bring the app to the front, so step 3 holds the shared swissarmyhammer
-# UI test lock (`Scripts/ui-test-lock.sh`), as the UI test runs of Testudo and EditorKit
-# do. While another run holds it, the script waits and names the holder. Steps 1 and 2
-# launch no app, so they run outside the lock. The script releases the lock when step 3
-# ends, and at exit, SIGINT or SIGTERM.
+# The UI tests bring the app to the front, so step 3 holds EditorKit's UI test gate of the
+# Mac through `ui-test-gate`, then the shared swissarmyhammer UI test lock
+# (`Scripts/ui-test-lock.sh`), as the UI test runs of Testudo and EditorKit do. While another
+# run holds either, the script waits and names the holder. Steps 1 and 2 launch no app, so
+# they run outside both. The script releases them when step 3 ends, and at exit, SIGINT or
+# SIGTERM.
 #
 # The UI tests drive the app through XCUIApplication. The process that runs this script must
 # have the Accessibility and the Automation permissions, and a user session must be logged in.
@@ -64,6 +65,10 @@ readonly INTERRUPTED_STATUS=130
 # The exit status of the script when it gets SIGTERM while it holds the UI test lock and
 # runs no step. The lock code exits with INTERRUPTED_STATUS on SIGINT.
 readonly TERMINATED_STATUS=143
+
+# The exit status of `ui-test-gate` when its wait for the gate ran out and the command did not
+# run.
+readonly GATE_TIMEOUT_STATUS=75
 
 # shellcheck source=Scripts/ui-test-lock.sh
 . "$REPO_ROOT/Scripts/ui-test-lock.sh"
@@ -267,6 +272,28 @@ run_example() {
     run_ui_tests "$app_name" "$project" "$results" "$derived_data"
 }
 
+# Runs the UI tests of one example under the UI test gate of the Mac, which EditorKit's
+# `ui-test-gate` command holds exclusive. The app comes to the front and takes keys, so no
+# hosted test, capture or UI class of any run makes a window key during the step.
+#
+# The gate comes before the lock (EditorKit `Scripts/with-ui-test-lock.sh`), and it runs a
+# command, not a shell function. So the gate runs this script again with `--ui-tests`. The
+# time limit of the step thus starts after the wait for the gate.
+#
+# Arguments: the name of the example, its project, its results directory, then its
+# DerivedData directory.
+# Returns: non-zero when the gate cannot be built or held, else the status of the step.
+run_ui_tests() {
+    run_with_limit "$BUILD_TIMEOUT" swift build --package-path "$REPO_ROOT" --product ui-test-gate || return 1
+    local status=0
+    swift run --skip-build --package-path "$REPO_ROOT" ui-test-gate -- \
+        "$REPO_ROOT/Scripts/test-examples.sh" --ui-tests "$@" || status=$?
+    if [ "$status" -eq "$GATE_TIMEOUT_STATUS" ]; then
+        echo "The wait for the UI test gate ran out, so the UI tests did not run." >&2
+    fi
+    return "$status"
+}
+
 # Runs the UI tests of one example while it holds the shared UI test lock. The lock
 # waits while another run holds it.
 #
@@ -277,7 +304,7 @@ run_example() {
 # Arguments: the name of the example, its project, its results directory, then its
 # DerivedData directory.
 # Returns: non-zero when the lock cannot be taken, else the status of the step.
-run_ui_tests() {
+run_ui_tests_under_gate() {
     local app_name="$1"
     local project="$2"
     local results="$3"
@@ -401,6 +428,12 @@ self_test() {
 main() {
     if [ "${1:-}" = "--self-test" ]; then
         self_test
+        return
+    fi
+
+    if [ "${1:-}" = "--ui-tests" ]; then
+        shift
+        run_ui_tests_under_gate "$@"
         return
     fi
 
