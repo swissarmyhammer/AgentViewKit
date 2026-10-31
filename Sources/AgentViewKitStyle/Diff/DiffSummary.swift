@@ -29,6 +29,9 @@ public nonisolated enum DiffSummary {
     /// - Parameter from: The path of the file that the change copies.
     case copied(from: String)
 
+    /// The patch changes a binary file, which has no lines to count.
+    case binary
+
     /// A change that the view kit does not know, with its wire name. A patch
     /// does not give this operation; a structured change does.
     case unknown(String)
@@ -43,6 +46,7 @@ public nonisolated enum DiffSummary {
       case .modified: String(localized: "Modified", bundle: .module)
       case .renamed: String(localized: "Renamed", bundle: .module)
       case .copied: String(localized: "Copied", bundle: .module)
+      case .binary: String(localized: "Binary", bundle: .module)
       case .unknown: String(localized: "Changed", bundle: .module)
       }
     }
@@ -167,6 +171,12 @@ public nonisolated enum DiffSummary {
 
   /// The start of the mode line of a deleted file.
   static let deletedFileHeader = "deleted file mode"
+
+  /// The start of the line of a binary file with no patch data.
+  static let binaryFilesHeader = "Binary files "
+
+  /// The line before the data of a binary patch.
+  static let gitBinaryPatchHeader = "GIT binary patch"
 
   /// The path that stands for no file.
   static let devNull = "/dev/null"
@@ -374,6 +384,8 @@ public nonisolated enum DiffSummary {
           from: String(line.dropFirst(DiffSummary.renameFromHeader.count)))
       } else if line.hasPrefix(DiffSummary.renameToHeader) {
         current?.path = String(line.dropFirst(DiffSummary.renameToHeader.count))
+      } else if line.hasPrefix(DiffSummary.binaryFilesHeader) || line == DiffSummary.gitBinaryPatchHeader {
+        current?.operation = .binary
       }
     }
 

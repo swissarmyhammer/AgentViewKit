@@ -34,7 +34,7 @@ struct AttachmentActions: View {
 
   var body: some View {
     if !groupsOff.contains(.attachment) {
-      ControlStack(.horizontal) {
+      InspectorActionRow {
         ForEach(AgentAttachmentVerb.allCases, id: \.self) { verb in
           Button(verb.title, systemImage: verb.icon) { didTap(verb) }
             .help(verb.title)
@@ -42,8 +42,6 @@ struct AttachmentActions: View {
             .accessibilityIdentifier(verb.identifier(prefix: identifierPrefix))
         }
       }
-      .labelStyle(.iconOnly)
-      .buttonStyle(.borderless)
     }
   }
 

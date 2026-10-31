@@ -149,8 +149,7 @@ extension StatusBar.Message.Severity {
 ///
 /// The bar gives the layout, the edge and the accessibility elements. The kit
 /// style of a bar button (``AgentStatusBarActionStyle``) gives the Dismiss
-/// button its button style and its scope, and the button shows its symbol
-/// only. ``NoticeBanner`` and the notice of a request that the agent withdraws
+/// button its button style and its scope. ``NoticeBanner`` and the notice of a request that the agent withdraws
 /// (``WithdrawnNoticeRow``) show this row.
 struct NoticeRow: View {
   /// The severity, which gives the symbol and the tint.
@@ -182,7 +181,6 @@ struct NoticeRow: View {
         symbolHelp: NoticeBanner.severityLabel(severity)),
       action: .makeDismiss(identifier: dismissIdentifier, perform: dismiss)
     )
-    .labelStyle(.iconOnly)
     .statusBarActionStyle(AgentStatusBarActionStyle())
   }
 }

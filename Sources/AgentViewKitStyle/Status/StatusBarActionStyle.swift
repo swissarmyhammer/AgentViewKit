@@ -4,7 +4,9 @@ import SwiftUI
 /// ``StatusBar/Action``, disabled when the action takes no press, with the
 /// accessibility identifier and the hint of the action.
 ///
-/// The button has no button style of its own. A ``StatusBarActionStyle``
+/// The button shows only its symbol when the action asks for it
+/// (``StatusBar/Action/isIconOnly``). It has no button style of its own. A
+/// ``StatusBarActionStyle``
 /// gives it one, and can add more around it, such as a focus scope.
 public struct StatusBarActionButton: View {
   /// The action of the button.
@@ -22,6 +24,21 @@ public struct StatusBarActionButton: View {
       .disabled(!action.isEnabled)
       .accessibilityIdentifier(action.identifier)
       .modifier(AccessibilityHint(hint: action.hint))
+      .modifier(IconOnlyLabel(action: action))
+  }
+}
+
+/// The label of a button that shows only its symbol: its title is the tooltip.
+private struct IconOnlyLabel: ViewModifier {
+  /// The action of the button.
+  let action: StatusBar.Action
+
+  func body(content: Content) -> some View {
+    if action.isIconOnly {
+      content.labelStyle(.iconOnly).help(action.title)
+    } else {
+      content
+    }
   }
 }
 

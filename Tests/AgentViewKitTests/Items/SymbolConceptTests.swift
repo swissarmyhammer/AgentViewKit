@@ -227,7 +227,7 @@ import Testing
       Use(concept: .terminal, place: "permission terminal link", name: PermissionView.terminalLinkSymbol),
       Use(concept: .accept, place: "hunk Accept", name: DiffView.acceptSymbol),
       Use(concept: .reject, place: "hunk Reject", name: DiffView.rejectSymbol),
-      Use(concept: .reload, place: "banner Reload", name: SessionStreamBanner.reloadSymbol),
+      Use(concept: .reload, place: "banner Reload", name: StatusBar.Action.reload(identifier: "", isEnabled: true) {}.systemImage),
       Use(concept: .details, place: "banner Show Error", name: StateBanner.showErrorSymbol),
       Use(concept: .loadMore, place: "session list Load More", name: SessionListView.loadMoreSymbol),
       Use(concept: .showAll, place: "output Show All", name: OutputCapRow.showAllSymbol),

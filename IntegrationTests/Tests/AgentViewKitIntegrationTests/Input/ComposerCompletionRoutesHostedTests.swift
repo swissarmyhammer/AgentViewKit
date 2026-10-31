@@ -5,6 +5,7 @@ import EditorComplete
 import EditorExtensions
 import EditorTestSupport
 import Foundation
+import EditorStyle
 import SwiftUI
 import Testing
 
@@ -301,8 +302,9 @@ struct RoutedComposerThreadHost: View {
 
   // MARK: - Placement
 
-  /// The popup sits at the caret: its leading edge is at the caret, and it is
-  /// above the glass of the field, in the floating bottom bar.
+  /// The popup sits at the caret: the frame of the list is the frame of its
+  /// rows, which stand the scroll content margin of the list past the caret,
+  /// and it is above the glass of the field, in the floating bottom bar.
   @Test func thePopupSitsAtTheCaret() async throws {
     let fixture = ComposerRouteFixture.tasks
     let session = try await ScriptedSession.open()
@@ -317,7 +319,8 @@ struct RoutedComposerThreadHost: View {
     let caret = textView.firstRect(forCharacterRange: textView.selectedRange(), actualRange: nil)
     let list = try #require(thread.harness.frame(identifier: EditorKitPromptEditor.completionListIdentifier))
     let field = try #require(thread.harness.frame(identifier: PromptFieldSurface.identifier))
-    #expect(abs(list.minX - caret.minX) <= Self.caretTolerance, "list \(list), caret \(caret)")
+    let margin = EditorStyle.default.spacing.xs
+    #expect(abs(list.minX - caret.minX - margin) <= Self.caretTolerance, "list \(list), caret \(caret)")
     #expect(list.minY > field.maxY, "list \(list), field \(field)")
   }
 }

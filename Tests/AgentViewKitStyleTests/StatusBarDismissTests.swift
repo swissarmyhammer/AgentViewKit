@@ -21,6 +21,19 @@ import Testing
     #expect(action.isEnabled)
   }
 
+  @Test func theDismissActionShowsOnlyItsSymbol() {
+    let action = StatusBar.Action.makeDismiss(identifier: "dismiss", perform: {})
+
+    #expect(action.isIconOnly)
+  }
+
+  @Test func anActionShowsItsTitleByDefault() {
+    let action = StatusBar.Action(
+      title: "Retry", systemImage: SharedSymbol.reload, identifier: "retry", isEnabled: true, perform: {})
+
+    #expect(!action.isIconOnly)
+  }
+
   @Test func theDismissActionRunsItsClosure() {
     var pressed = false
     let action = StatusBar.Action.makeDismiss(identifier: "dismiss") { pressed = true }

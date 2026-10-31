@@ -21,8 +21,19 @@ import Testing
     StatusBar(
       message: SessionStreamBanner.missedUpdatesMessage,
       action: StatusBar.Action(
-        title: "Reload", systemImage: SessionStreamBanner.reloadSymbol,
+        title: "Reload", systemImage: SharedSymbol.reload,
         identifier: SessionStreamBanner.reloadIdentifier, isEnabled: true, perform: {}))
+  }
+
+  @Test func aDismissibleBarNamesItsButtonAndItself() throws {
+    let harness = HostedViewHarness(size: Self.size) {
+      StatusBar(
+        message: SessionStreamBanner.missedUpdatesMessage,
+        action: .makeDismiss(identifier: "bar-dismiss", perform: {}), identifier: "bar")
+    }
+
+    #expect(harness.element(identifier: "bar") != nil)
+    #expect(harness.element(identifier: "bar-dismiss")?.label == "Dismiss")
   }
 
   @Test func theBackdropShowsInsideTheEdgeOfTheBar() async throws {
