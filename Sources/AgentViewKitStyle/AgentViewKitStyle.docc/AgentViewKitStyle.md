@@ -30,6 +30,7 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``SurfaceCorners``
 - ``SwiftUI/View/selectableSurface(_:radius:)``
 - ``SwiftUI/View/selectableSurface(_:corners:)``
+- ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
 
 ### Symbols

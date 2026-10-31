@@ -13,4 +13,11 @@ import Testing
 
     #expect(edged == StyleViewHost.fittingSize(of: Self.label))
   }
+
+  @Test(arguments: [SurfaceCorners.card, .square])
+  func theEdgeOfCornersAddsNoSpace(corners: SurfaceCorners) {
+    let edged = StyleViewHost.fittingSize(of: Self.label.changeHighlightEdge(corners: corners, isShowing: true))
+
+    #expect(edged == StyleViewHost.fittingSize(of: Self.label))
+  }
 }
