@@ -411,7 +411,6 @@ private struct ToolCallHeader: View {
 
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
     let id = entry.id.rowKey
@@ -444,7 +443,6 @@ private struct ToolCallHeader: View {
         .fontWeight(editorStyle.symbolWeight)
         .foregroundStyle(.secondary)
       Text(ToolCallView.displayTitle(entry.shownTitle))
-        .font(editorTheme.uiFont)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)

@@ -71,7 +71,6 @@ struct JSONDisclosure: View {
         .padding(.top, editorStyle.tile.gap)
     } label: {
       Text(title)
-        .font(editorTheme.uiFont)
         .lineLimit(1)
     }
     .contentTile()

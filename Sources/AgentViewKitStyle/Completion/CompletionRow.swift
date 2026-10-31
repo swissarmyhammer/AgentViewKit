@@ -48,7 +48,6 @@ public struct CompletionRow: View {
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
       Text(label)
-        .font(editorTheme.uiFont)
         .lineLimit(1)
       Spacer(minLength: editorStyle.spacing.s)
       if let detail {

@@ -1,6 +1,5 @@
 import EditorDiff
 import EditorSwiftUI
-import EditorTheme
 import SwiftUI
 
 /// What a view kit shows for a diff: the EditorKit `DiffView`, or a note in
@@ -33,8 +32,6 @@ public struct DiffContentView: View {
 
   @Environment(\.diffLayout) private var layout
 
-  @Environment(\.editorTheme) private var editorTheme
-
   /// Makes the view of a parsed patch.
   ///
   /// - Parameter diff: The parsed patch.
@@ -60,7 +57,6 @@ public struct DiffContentView: View {
         .diffWrapMode(.none)
     case .note(let text, let systemImage, let identifier):
       Label(text, systemImage: systemImage)
-        .font(editorTheme.uiFont)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)

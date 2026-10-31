@@ -60,6 +60,18 @@ import Testing
       identifier: EditorKitPromptEditor.completionRowIdentifier, drawsIn: .ui)
   }
 
+  @Test func theTitleOfAnEmptyStateViewDrawsInTheUIRole() throws {
+    try FontRoleExpectations.expectText(
+      of: EmptyStateView(Self.emptyStateTitle, systemImage: SharedSymbol.connection, description: Text(Self.text)),
+      identifier: EmptyStateView.titleIdentifier, drawsIn: .ui)
+  }
+
+  @Test func theDescriptionOfAnEmptyStateViewDrawsInTheUIRole() throws {
+    try FontRoleExpectations.expectText(
+      of: EmptyStateView(Self.emptyStateTitle, systemImage: SharedSymbol.connection, description: Text(Self.text)),
+      identifier: EmptyStateView.descriptionIdentifier, drawsIn: .ui)
+  }
+
   // MARK: - ui face family
 
   /// The name of the agent of the family test: long enough that the widths
