@@ -1,4 +1,4 @@
-import DemoSupport
+import AgentViewKitDemoSupport
 import FoundationModelsACPClient
 
 /// The launch options of the in-memory demo agent, and the box of the

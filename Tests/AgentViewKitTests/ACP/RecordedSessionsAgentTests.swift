@@ -4,7 +4,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Tests of the agent of the Gallery tab: FoundationModelsACPAgent runs in this
 /// process over a stage of the recorded sessions of the demo app, with the stub

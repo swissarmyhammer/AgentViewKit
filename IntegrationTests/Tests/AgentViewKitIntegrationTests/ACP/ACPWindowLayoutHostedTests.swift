@@ -1,7 +1,7 @@
 #if DEBUG
   import AgentViewKit
   import AgentViewKitTestSupport
-  import DemoSupport
+  import AgentViewKitDemoSupport
   import EditorTestSupport
   import FoundationModelsACP
   import FoundationModelsACPClient

@@ -5,7 +5,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Tests of the scripted part of the Gallery tab of the demo app: the
 /// sessions of ``DemoGallery`` and the connection states of

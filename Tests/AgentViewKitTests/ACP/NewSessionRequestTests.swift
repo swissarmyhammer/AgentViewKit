@@ -5,7 +5,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Fixed-order tests of the requests that ``InMemoryDemoACPAgent`` sends at
 /// once after the `session/new` result.

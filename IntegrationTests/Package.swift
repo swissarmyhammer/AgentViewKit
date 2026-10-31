@@ -21,7 +21,7 @@ let rootProducts: [Target.Dependency] = [
   .product(name: "AgentViewKit", package: rootPackageName),
   .product(name: "AgentViewKitStyle", package: rootPackageName),
   .product(name: "AgentViewKitTestSupport", package: rootPackageName),
-  .product(name: "DemoSupport", package: rootPackageName),
+  .product(name: "AgentViewKitDemoSupport", package: rootPackageName),
 ]
 
 /// The EditorKit products that the hosted and capture tests import: the

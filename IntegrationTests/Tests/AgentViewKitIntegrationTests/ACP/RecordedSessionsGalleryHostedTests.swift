@@ -7,7 +7,7 @@ import SwiftUI
 import Testing
 
 @testable import AgentViewKit
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Hosted tests of the Gallery tab over the agent of the Gallery tab:
 /// FoundationModelsACPAgent runs in this process over a stage of the recorded

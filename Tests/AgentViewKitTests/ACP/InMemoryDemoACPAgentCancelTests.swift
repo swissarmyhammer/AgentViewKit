@@ -2,7 +2,7 @@ import AgentViewKit
 import FoundationModelsACP
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Fixed-order wire tests of `session/cancel` on ``InMemoryDemoACPAgent``.
 ///

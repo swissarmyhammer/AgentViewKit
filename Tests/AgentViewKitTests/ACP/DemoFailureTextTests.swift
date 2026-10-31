@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// The tests of ``DemoFailureText``: the text of a failed request of a demo
 /// tab.

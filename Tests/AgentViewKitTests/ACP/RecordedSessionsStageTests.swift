@@ -2,7 +2,7 @@ import AgentViewKitTestSupport
 import Foundation
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// The tests of ``RecordedSessionsStage``: the temporary copy of the recorded
 /// sessions that the Gallery tab of the demo app gives to

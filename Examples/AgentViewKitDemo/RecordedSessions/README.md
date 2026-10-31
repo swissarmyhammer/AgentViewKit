@@ -82,7 +82,7 @@ To record these sessions again:
 
 FoundationModelsACPAgent cannot make some entry kinds and states, or makes
 them only in the live work of a prompt that a resume does not replay. The
-Gallery shows these from `InMemoryDemoACPAgent` of `DemoSupport`
+Gallery shows these from `InMemoryDemoACPAgent` of `AgentViewKitDemoSupport`
 (`DemoGallery` and `DemoConnectionState`), next to the recorded sessions.
 They are not in this directory.
 

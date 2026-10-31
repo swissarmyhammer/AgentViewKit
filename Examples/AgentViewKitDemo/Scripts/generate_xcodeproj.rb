@@ -5,7 +5,7 @@
 #
 # The project shape is in `Examples/Scripts/xcodeproj_generator.rb`. This file names what is
 # the demo's own. Run it after you add, remove, or rename a source file below
-# `AgentViewKitDemo/`, `AgentViewKitDemoFeature/`, `Tests/`, or `Sources/DemoSupport/`.
+# `AgentViewKitDemo/`, `AgentViewKitDemoFeature/`, `Tests/`, or `Sources/AgentViewKitDemoSupport/`.
 # `Scripts/test-examples.sh` at the repository root runs it before each build. The
 # `.xcodeproj` is git-ignored.
 #
@@ -20,9 +20,9 @@ PACKAGE_PRODUCTS = %w[AgentViewKit].freeze
 # The package target that compiles into the app: the in-memory agent, `DemoAgent` (which starts
 # the agent and connects a `ConnectionModel`), and the launch options. It is not a product, so
 # the app compiles its files.
-SHARED_SOURCES = %w[../../Sources/DemoSupport].freeze
+SHARED_SOURCES = %w[../../Sources/AgentViewKitDemoSupport].freeze
 
-# The packages whose modules `Sources/DemoSupport` imports. FoundationModelsACPAgent is the
+# The packages whose modules `Sources/AgentViewKitDemoSupport` imports. FoundationModelsACPAgent is the
 # agent of the ACP tab and of the Gallery tab, which runs in the app process. The app also
 # imports the EditorKit theme modules `EditorSwiftUI`, `EditorTheme` and `EditorStyle`, to set
 # the theme and the shared style of the kit views, and the EditorKit command modules `EditorCommands` and `EditorCommandsUI`,

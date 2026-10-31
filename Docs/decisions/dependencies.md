@@ -36,7 +36,7 @@ not a dependency of the kit. Thus the table above does not list it.
 
 | Package | URL | Requirement | Product | Target that links it |
 |---|---|---|---|---|
-| FoundationModelsACPAgent | git@github.com:swissarmyhammer/FoundationModelsACPAgent.git | branch main | `FoundationModelsACPAgent` | `DemoSupport` |
+| FoundationModelsACPAgent | git@github.com:swissarmyhammer/FoundationModelsACPAgent.git | branch main | `FoundationModelsACPAgent` | `AgentViewKitDemoSupport` |
 
 - The ACP tab of the demo app runs the agent in the process of the app with
   the live model (`DemoAgent.makeInProcess(options:environment:)`). The

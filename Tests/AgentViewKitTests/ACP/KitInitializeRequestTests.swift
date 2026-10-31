@@ -4,7 +4,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Tests of the `initialize` request that a kit host sends.
 ///

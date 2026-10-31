@@ -2,7 +2,7 @@ import AgentViewKit
 import FoundationModelsACP
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// The tests of the script of the in-memory demo agent.
 struct InMemoryDemoAgentTests {
