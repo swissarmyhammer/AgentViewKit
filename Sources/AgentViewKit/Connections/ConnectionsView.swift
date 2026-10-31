@@ -1,4 +1,5 @@
 import EditorCommands
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -48,8 +49,8 @@ public struct ConnectionsView: View {
         ConnectionRow(server: server)
       }
     } else {
-      EmptyStateView(
-        String(localized: "No MCP Servers", bundle: .module),
+      ThemedEmptyState(
+        title: Text("No MCP Servers", bundle: .module),
         systemImage: SharedSymbol.connection,
         description: Text("The MCP servers of the session show here.", bundle: .module)
       )

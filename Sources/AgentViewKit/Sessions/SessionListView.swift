@@ -241,8 +241,8 @@ public struct SessionListView: View {
   /// its sessions.
   @ViewBuilder private var content: some View {
     if !connection.canListSessions {
-      EmptyStateView(
-        String(localized: "Session List Not Available", bundle: .module),
+      ThemedEmptyState(
+        title: Text("Session List Not Available", bundle: .module),
         systemImage: SharedSymbol.sessionList,
         description: Text("The agent does not list its sessions.", bundle: .module)
       )
@@ -250,8 +250,8 @@ public struct SessionListView: View {
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier(Self.unavailableIdentifier)
     } else if connection.sessions.isEmpty {
-      EmptyStateView(
-        String(localized: "No Sessions", bundle: .module),
+      ThemedEmptyState(
+        title: Text("No Sessions", bundle: .module),
         systemImage: SharedSymbol.conversation,
         description: Text("The sessions of the agent show here.", bundle: .module)
       )

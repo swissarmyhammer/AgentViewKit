@@ -91,8 +91,8 @@ public struct ActivityTimeline: View {
     let entries = session.transcript.compactMap(TimelineEntry.init(entry:))
     VStack(spacing: 0) {
       if entries.isEmpty {
-        EmptyStateView(
-          String(localized: "No Activity", bundle: .module),
+        ThemedEmptyState(
+          title: Text("No Activity", bundle: .module),
           systemImage: Self.emptySymbolName,
           description: Text("Tool calls and reasoning show here.", bundle: .module)
         )
