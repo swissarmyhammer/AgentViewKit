@@ -50,6 +50,7 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 - The guide says that the view kits build on AgentViewKit for the shared visuals. KanbanViewKit and SnapshotViewKit use them from AgentViewKit and keep no copy.
 - Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`.
 - A fixed bound of a view around text, such as the height of the composer or the width of a card, is named in points at the default theme font, and the view scales it with `ThemeFontScale` of its font role (^dcs0pbj). The factor is the size of the theme font over the default size, so it needs no theme token and the bound does not move at the default font. The controls of a media player do not shrink, so a player only grows.
+- A sheet is chrome: a host marks the root of each sheet that it presents with `.onChrome()`, because the kit cannot see that a view stands in a sheet (^dcs0pbj). The demo's settings sheet does.
 - Review enforces the rules of `style.md` and the rules of the kit (user decision of 2026-10-30, ^v0nj72). No test reads the source or the docs of the package as text.
 
 ## Tests of this kit

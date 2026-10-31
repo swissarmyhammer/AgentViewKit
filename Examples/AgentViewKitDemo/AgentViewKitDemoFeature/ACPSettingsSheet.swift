@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -65,5 +66,7 @@ struct ACPSettingsSheet: View {
       }
     }
     .frame(minWidth: Self.minimumWidth, minHeight: Self.minimumHeight)
+    // A sheet is chrome, so its secondary text keeps the vibrant style.
+    .onChrome()
   }
 }
