@@ -565,6 +565,9 @@ public struct ElicitationDateField: View {
           value.wrappedValue = nil
         }
         .labelStyle(.iconOnly)
+        // The nearest button style wins: on the glass of a deck the button is
+        // bordered, and in content it keeps the borderless style.
+        .requestActionStyle(.standard)
         .buttonStyle(.borderless)
         .help(Self.removeDateTitle)
         .accessibilityIdentifier(Self.clearIdentifier(for: context.schema.name))
@@ -712,6 +715,9 @@ public struct ElicitationSingleChoiceField: View {
             systemImage: isSelected ? SharedSymbol.selected : SharedSymbol.notChosen
           )
         }
+        // The nearest button style wins: on the glass of a deck the button is
+        // bordered, and in content it keeps the plain style.
+        .requestActionStyle(.standard)
         .buttonStyle(.plain)
         .help(choice.description ?? choice.title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

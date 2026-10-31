@@ -231,6 +231,9 @@ public struct SessionListView: View {
         .accessibilityIdentifier(Self.newSessionIdentifier)
       }
     }
+    // The list sits in the glass of a sidebar, and glass never goes on glass
+    // (EditorKit `style.md`, "Buttons on glass").
+    .buttonStyle(.bordered)
     .padding(editorStyle.spacing.l)
   }
 

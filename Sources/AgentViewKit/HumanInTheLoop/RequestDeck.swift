@@ -534,6 +534,9 @@ private struct DeckHeader: View {
     }
     .font(editorTheme.font(for: .ui, style: .callout))
     .labelStyle(.iconOnly)
+    // The nearest button style wins: on the glass of the deck the buttons are
+    // bordered, and out of a bar they keep the borderless style.
+    .requestActionStyle(.standard)
     .buttonStyle(.borderless)
   }
 
