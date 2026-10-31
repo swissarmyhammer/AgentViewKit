@@ -16,8 +16,8 @@ comments:
     - not done: the optional inspector form shell of piece 1; SVK candidates (diff configuration, note label, SharedSymbol.closed, chevron). No AVK adopter exists for changeHighlightEdge. Main SHA not sent to the siblings: not merged yet.
     - next: /review
   timestamp: 2026-10-31T08:31:41.959887+00:00
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffffff8980
 title: 'Shared moves into AgentViewKitStyle for KanbanViewKit and SnapshotViewKit: action row, stream banner, dismiss, ChipFlowLayout, file label, completion row, highlight edge'
 ---
 Agreed with KVK and SVK (EditorKit asked AVK, as owner of AgentViewKitStyle, to take these). Starts on top of the style-fixes branch, because that branch folds NoticeRow into StatusBar.
