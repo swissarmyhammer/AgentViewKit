@@ -232,26 +232,6 @@ private struct BedList: View {
     let inset = density.rowInsets(in: .default).top / 2
     return NSPoint(x: row.midX, y: harness.window.frame.height - (row.minY + inset))
   }
-
-  /// The titles of the context menu that a right click at `point` would show,
-  /// by the walk of `HostedViewHarness.contextMenu(identifier:)`, which reads
-  /// only the center of an element.
-  ///
-  /// - Parameter point: The point, in window coordinates.
-  /// - Returns: The titles of the menu, or no title when no view there gives
-  ///   a menu.
-  func menuTitles(at point: NSPoint) throws -> [String] {
-    let hostingView = harness.hostingView
-    let location = hostingView.superview?.convert(point, from: nil) ?? point
-    let target = try #require(hostingView.hitTest(location))
-    let event = try #require(
-      NSEvent.mouseEvent(
-        with: .rightMouseDown, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-        windowNumber: harness.window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
-    let views = sequence(first: target) { $0 === hostingView ? nil : $0.superview }
-    let menu = views.lazy.compactMap { $0.menu(for: event) }.first
-    return menu?.items.map(\.title) ?? []
-  }
 }
 
 /// The densities of a test that runs for each of them.
@@ -364,7 +344,7 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     let bed = try await RowBed(current: RowBed.ids[1])
     defer { bed.harness.close() }
 
-    await QueuedClicks.click(at: try bed.topInsetPoint(ofRow: RowBed.ids[0]), in: bed.harness.window)
+    try await bed.harness.sendClick(atWindowPoint: bed.topInsetPoint(ofRow: RowBed.ids[0]))
     await bed.settle()
 
     #expect(bed.opened.values == [RowBed.ids[0]])
@@ -381,7 +361,7 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     let bed = try await RowBed(rowMenu: .onContent)
     defer { bed.harness.close() }
 
-    #expect(try bed.menuTitles(at: try bed.topInsetPoint(ofRow: RowBed.ids[0])).isEmpty)
+    #expect(try bed.harness.contextMenu(at: bed.topInsetPoint(ofRow: RowBed.ids[0])) == nil)
   }
 
   @Test(arguments: BedLayout.allCases, densities)
@@ -390,7 +370,7 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     defer { bed.harness.close() }
     let id = RowBed.ids[1]
 
-    let titles = try bed.menuTitles(at: try bed.topInsetPoint(ofRow: id))
+    let titles = try bed.harness.contextMenu(at: bed.topInsetPoint(ofRow: id))?.items.map(\.title) ?? []
 
     #expect(titles.contains(RowScopeMenu.itemTitle(id)))
   }
@@ -402,7 +382,7 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     defer { bed.harness.close() }
     let id = RowBed.ids[0]
 
-    let titles = try bed.menuTitles(at: try bed.topInsetPoint(ofRow: id))
+    let titles = try bed.harness.contextMenu(at: bed.topInsetPoint(ofRow: id))?.items.map(\.title) ?? []
 
     #expect(titles.contains(RowScopeMenu.scopeTitle(RowBed.scope.rowSegment(for: id).id)))
   }
@@ -411,7 +391,7 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     let bed = try await RowBed(rowMenu: .aroundRow)
     defer { bed.harness.close() }
 
-    await QueuedClicks.click(at: try bed.topInsetPoint(ofRow: RowBed.ids[0]), in: bed.harness.window)
+    try await bed.harness.sendClick(atWindowPoint: bed.topInsetPoint(ofRow: RowBed.ids[0]))
     await bed.settle()
 
     #expect(bed.opened.values == [RowBed.ids[0]])
