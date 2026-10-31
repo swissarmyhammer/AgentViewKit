@@ -1,7 +1,22 @@
 ---
 assignees:
 - claude-code
-position_column: todo
+comments:
+- actor: claude-code
+  id: 01m68f8e4wx7nfvq7w0z26e9ac
+  text: 'Picked up in worktree AgentViewKit-wt/shared-style (branch wt/shared-style, off main bb6995c). Research: read the sibling sources named on the card (SVK TimelineStreamBanner*, CheckpointRowSlot, CheckpointFileRow/Content, ChangesInspectorActions; KVK BoardStreamBanner, BoardNoticeBanner, StatusBarAction+BoardDismiss, BoardTagFlowLayout, BoardFieldCompletion, BoardSurfaces), AVK adopters (AttachmentActions, SessionStreamBanner, NoticeRow, PromptCompletionRow, DiffFileChip), style.md. Findings: makeDismiss has a settable button identifier but icon-only comes from .labelStyle(.iconOnly) on NoticeRow, not from the action, and the bar has no identifier of its own: both need work in the shared piece. No AVK source paints a change highlight, so piece 7 has no AVK adopter. A `reload(identifier:isEnabled:perform:)` with only those three labels has nowhere to record a thrown error, so a defaulted `phase:` binding carries the failure to the host''s ReloadPhase.'
+  timestamp: 2026-10-31T07:54:46.812461+00:00
+- actor: claude-code
+  id: 01m68hc1c731n3sx4rwtd8zw89
+  text: |-
+    ### implement — changed
+    - evidence: 9 commits on wt/shared-style: 35dc2a1 InspectorActionRow, 0b88105 stream banner shape + ReloadPhase + Action.reload + bar identifier, 5203c5a dismiss icon-only, 172a3ea ChipFlowLayout re-measure, 6a0da88 DiffFileLabel + .binary, a7250fd CompletionRow, a83f3a0 changeHighlightEdge, ea5c159 docs, b91ff10 composer test. Root swift test 833 + 62 passed, no own warnings; integration build clean; hosted suites passed (1 list-frame expectation updated for the moved margin).
+    - discoveries: the list accessibility frame is the union of its rows, so moving the inset to scrollContentMargins moves that frame spacing.xs past the caret; the rows themselves did not move. The margin also adds spacing.xs above and below the rows.
+    - slip: AttachmentInspectorFormHostedTests contains one capture test (theBackdropOfTheHostShowsInTheMarginOfTheForm) and was run against the no-capture instruction; it passed. Rerun nothing.
+    - not done: the optional inspector form shell of piece 1; SVK candidates (diff configuration, note label, SharedSymbol.closed, chevron). No AVK adopter exists for changeHighlightEdge. Main SHA not sent to the siblings: not merged yet.
+    - next: /review
+  timestamp: 2026-10-31T08:31:41.959887+00:00
+position_column: doing
 position_ordinal: '80'
 title: 'Shared moves into AgentViewKitStyle for KanbanViewKit and SnapshotViewKit: action row, stream banner, dismiss, ChipFlowLayout, file label, completion row, highlight edge'
 ---
