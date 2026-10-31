@@ -4,8 +4,10 @@ import SwiftUI
 /// A layout that puts its views in rows, and starts a new row when a view
 /// does not fit.
 ///
-/// Each view gets its ideal size, at most the width of a row, so a chip
-/// wider than the row truncates its own text. The location chips of a tool
+/// Each view gets its ideal size. A chip wider than the row is measured again
+/// at the width of the row, so it gets a row of its own and the height that it
+/// has at that width, and it wraps or truncates its own text. The location
+/// chips of a tool
 /// call (``ToolCallLocationChips``) and the file chips of a diff
 /// (``DiffFileChip``) use it.
 public struct ChipFlowLayout: Layout {
@@ -58,12 +60,41 @@ public struct ChipFlowLayout: Layout {
   ///   - width: The width of a row.
   /// - Returns: One frame for each view, in order.
   private func arrange(_ subviews: Subviews, width: CGFloat) -> [CGRect] {
+    let sizes = subviews.map { subview in
+      Self.chipSize(ideal: subview.sizeThatFits(.unspecified), rowWidth: width) { rowWidth in
+        subview.sizeThatFits(ProposedViewSize(width: rowWidth, height: nil))
+      }
+    }
+    return Self.frames(of: sizes, width: width, spacing: spacing)
+  }
+
+  /// The size of one chip: its ideal size, or its size at the width of the row
+  /// when the ideal size is wider than the row.
+  ///
+  /// - Parameters:
+  ///   - ideal: The ideal size of the chip.
+  ///   - rowWidth: The width of a row.
+  ///   - measure: Gives the size of the chip at a width.
+  /// - Returns: The size, at most the width of the row.
+  static func chipSize(ideal: CGSize, rowWidth: CGFloat, measure: (CGFloat) -> CGSize) -> CGSize {
+    guard ideal.width > rowWidth else { return ideal }
+    let measured = measure(rowWidth)
+    return CGSize(width: min(measured.width, rowWidth), height: measured.height)
+  }
+
+  /// Puts chips in rows, in order: a chip that does not fit at the end of a row
+  /// starts the next row.
+  ///
+  /// - Parameters:
+  ///   - sizes: The sizes of the chips.
+  ///   - width: The width of a row.
+  ///   - spacing: The space between two chips, and between two rows.
+  /// - Returns: One frame for each chip, in order.
+  static func frames(of sizes: [CGSize], width: CGFloat, spacing: CGFloat) -> [CGRect] {
     var frames: [CGRect] = []
     var origin = CGPoint.zero
     var rowHeight: CGFloat = 0
-    for subview in subviews {
-      var size = subview.sizeThatFits(.unspecified)
-      size.width = min(size.width, width)
+    for size in sizes {
       if origin.x > 0, origin.x + size.width > width {
         origin.x = 0
         origin.y += rowHeight + spacing
