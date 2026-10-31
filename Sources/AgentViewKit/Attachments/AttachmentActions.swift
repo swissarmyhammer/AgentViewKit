@@ -1,3 +1,4 @@
+import EditorStyle
 import OSLog
 import SwiftUI
 import UniformTypeIdentifiers
@@ -33,7 +34,7 @@ struct AttachmentActions: View {
 
   var body: some View {
     if !groupsOff.contains(.attachment) {
-      HStack {
+      ControlStack(.horizontal) {
         ForEach(AgentAttachmentVerb.allCases, id: \.self) { verb in
           Button(verb.title, systemImage: verb.icon) { didTap(verb) }
             .help(verb.title)
