@@ -1,5 +1,6 @@
 import AgentViewKit
 import EditorCommands
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import Foundation
@@ -274,8 +275,8 @@ struct GalleryTabView: View, DemoStartingTab {
       case .failed(let error):
         DemoFailureLabel(error: error, identifier: Self.stateFailureIdentifier)
       case .empty:
-        EmptyStateView(
-          "No Session Is Open",
+        ThemedEmptyState(
+          title: Text("No Session Is Open"),
           systemImage: Self.noSessionSymbol,
           description: Text("Select a session or a connection state in the list.")
         )
