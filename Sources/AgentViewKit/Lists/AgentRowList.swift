@@ -38,7 +38,7 @@ public struct AgentRowListScope: Hashable, Sendable {
 }
 
 /// What opens a row of an ``AgentRowList`` with the mouse. Return opens the
-/// selected row under each trigger.
+/// focused row under each trigger.
 public enum AgentRowOpenTrigger: Hashable, Sendable {
   /// A click selects a row, and a double click opens it.
   case doubleClick
@@ -109,8 +109,9 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// nothing, so the list is transparent. Each row is a command scope
 /// (``AgentRowListScope/rowSegment(for:)``), so a jump session of the host
 /// labels it, and a jump to it selects it. The selected row is the row whose
-/// scope is the focused scope of the window (`FocusedValues.commandPath`). It
-/// sits on the shared selectable surface
+/// scope is the focused scope of the window (`FocusedValues.commandPath`), or
+/// the current row of the host (see below). It sits on the shared selectable
+/// surface
 /// (`.selectableSurface(_:corners:)`), the one place where the list paints the
 /// accent. A click selects a row, or opens it in a list that opens on a click
 /// (``AgentRowOpenTrigger/click``). Each row has the tile padding of the style
@@ -126,12 +127,25 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// reads it as a heading. When the focus lands on the first row of a section,
 /// the list scrolls the header of the section into view with the row.
 ///
+/// A host marks the row of the open item with `current:`, the id of that row.
+/// A list has one selection: the current row, when the host names one, takes
+/// the selectable surface and the `.isSelected` trait in place of the focused
+/// row, so VoiceOver hears it as selected and the host adds no trait. The focus
+/// stays where it is, and a focused row elsewhere keeps the focus ring and has
+/// no fill: the fill is the selection and the ring is the focus (EditorKit
+/// `style.md`, "Accent and fills"), and a row that is both shows both. Return
+/// opens the focused row. An id that names no row marks no row. With no
+/// `current:`, the selection follows the focus.
+///
+/// ``wrappingRows(_:)`` wraps each whole row, with its insets, so that a context
+/// menu of the host covers the area that a click covers.
+///
 /// The list registers the `nav.*` commands of EditorKit at its own scope, so
 /// the keys work in each host: the Down Arrow and the Up Arrow select the next
 /// row and the row before, and Esc moves the focus out of the rows to the
 /// list, which clears the selection. A move past the last row that the lazy
-/// stack made scrolls to the next row. Return opens the selected row with
-/// `onOpen`, and so does the mouse (``AgentRowOpenTrigger``). The list routes
+/// stack made scrolls to the next row. Return opens the focused row with
+/// `onOpen`, and the mouse opens a row too (``AgentRowOpenTrigger``). The list routes
 /// each key that reaches it at the focused scope, when that scope is the list
 /// or a scope in it (``SwiftUI/View/agentRowListKeys(listPath:focusedPath:)``).
 /// When no ancestor installs a command system, the list uses one of its own.
@@ -157,6 +171,10 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   /// How tight the rows of the list stand.
   let density: AgentRowDensity
 
+  /// The id of the row that the host marks as open, or `nil` for a list whose
+  /// selection follows the focus.
+  let current: String?
+
   /// The action that opens an item, or `nil` for a list whose rows do not
   /// open.
   let onOpen: ((Item) -> Void)?
@@ -166,6 +184,10 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
 
   /// The view after the last row, such as a "Load More" button.
   let footer: Footer
+
+  /// The wrapper of each whole row, or `nil` for bare rows
+  /// (``wrappingRows(_:)``).
+  var rowWrapper: ((AnyView, Item) -> AnyView)?
 
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
@@ -191,6 +213,9 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///     default.
   ///   - density: How tight the rows stand. The tile spaces of the style by
   ///     default.
+  ///   - current: The id of the row that the host marks as open, the id that
+  ///     `id` gives its item, or `nil` for a list whose selection follows the
+  ///     focus. See ``AgentRowList`` for how it stands beside the focus.
   ///   - onOpen: The action that Return and the open trigger run on an item,
   ///     or `nil` for a list whose rows do not open.
   ///   - row: The builder of the content of a row.
@@ -198,12 +223,12 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   public init(
     _ items: [Item], id: KeyPath<Item, String>, scope: AgentRowListScope,
     openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
-    onOpen: ((Item) -> Void)? = nil,
+    current: String? = nil, onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
   ) {
     self.init(
       entries: AgentRowListEntry.rows(of: items, id: id), scope: scope, openTrigger: openTrigger, density: density,
-      onOpen: onOpen, row: row, footer: footer())
+      current: current, onOpen: onOpen, row: row, footer: footer())
   }
 
   /// Makes a list of sections with a view after the last row.
@@ -218,6 +243,9 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///     default.
   ///   - density: How tight the rows stand. The tile spaces of the style by
   ///     default.
+  ///   - current: The id of the row that the host marks as open, the id that
+  ///     `id` gives its item, or `nil` for a list whose selection follows the
+  ///     focus. See ``AgentRowList`` for how it stands beside the focus.
   ///   - onOpen: The action that Return and the open trigger run on an item,
   ///     or `nil` for a list whose rows do not open.
   ///   - row: The builder of the content of a row.
@@ -225,12 +253,12 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   public init(
     sections: [AgentRowSection<Item>], id: KeyPath<Item, String>, scope: AgentRowListScope,
     openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
-    onOpen: ((Item) -> Void)? = nil,
+    current: String? = nil, onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
   ) {
     self.init(
       entries: AgentRowListEntry.entries(of: sections, id: id), scope: scope, openTrigger: openTrigger,
-      density: density, onOpen: onOpen, row: row, footer: footer())
+      density: density, current: current, onOpen: onOpen, row: row, footer: footer())
   }
 
   /// Makes a list of `entries`, the one path of the flat and the sectioned
@@ -241,17 +269,20 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - scope: The scope of the list.
   ///   - openTrigger: What opens a row with the mouse.
   ///   - density: How tight the rows stand.
+  ///   - current: The id of the row that the host marks as open, or `nil`.
   ///   - onOpen: The action that opens an item, or `nil`.
   ///   - row: The builder of the content of a row.
   ///   - footer: The view after the last row.
   private init(
     entries: [AgentRowListEntry<Item>], scope: AgentRowListScope, openTrigger: AgentRowOpenTrigger,
-    density: AgentRowDensity, onOpen: ((Item) -> Void)?, row: @escaping (Item) -> Row, footer: Footer
+    density: AgentRowDensity, current: String?, onOpen: ((Item) -> Void)?, row: @escaping (Item) -> Row,
+    footer: Footer
   ) {
     self.entries = entries
     self.scope = scope
     self.openTrigger = openTrigger
     self.density = density
+    self.current = current
     self.onOpen = onOpen
     self.row = row
     self.footer = footer
@@ -286,7 +317,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     .commandSystem(system)
   }
 
-  /// The row of `item`, selected while its scope is the focused scope.
+  /// The row of `item`, on the selectable surface while it is the selected row
+  /// of the list.
   ///
   /// - Parameters:
   ///   - item: The item of the row.
@@ -299,12 +331,23 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     let segment = scope.rowSegment(for: id)
     let rowPath = listPath.appending(segment)
     return AgentRowListRow(
-      segment: segment, isSelected: focusedPath == rowPath,
+      segment: segment, isSelected: isSelected(rowWithID: id, at: rowPath),
       select: { _ = system.geometry.requestFocus(at: rowPath) }, open: opener(of: item),
-      openTrigger: openTrigger, density: density
+      openTrigger: openTrigger, density: density, wrapper: rowWrapper.map { wrap in { wrap($0, item) } }
     ) {
       row(item)
     }
+  }
+
+  /// Tells if a row wears the selection: the current row of the host, or the
+  /// focused row in a list with no current row.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the row.
+  ///   - rowPath: The path of the scope of the row.
+  /// - Returns: `true` for the one selected row of the list.
+  private func isSelected(rowWithID id: String, at rowPath: FocusPath) -> Bool {
+    current.map { $0 == id } ?? (focusedPath == rowPath)
   }
 
   /// Scrolls the header of a section into view when a move up lands on the
@@ -373,16 +416,21 @@ extension AgentRowList where Footer == EmptyView {
   ///     default.
   ///   - density: How tight the rows stand. The tile spaces of the style by
   ///     default.
+  ///   - current: The id of the row that the host marks as open, the id that
+  ///     `id` gives its item, or `nil` for a list whose selection follows the
+  ///     focus. See ``AgentRowList`` for how it stands beside the focus.
   ///   - onOpen: The action that Return and the open trigger run on an item,
   ///     or `nil` for a list whose rows do not open.
   ///   - row: The builder of the content of a row.
   public init(
     _ items: [Item], id: KeyPath<Item, String>, scope: AgentRowListScope,
     openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
-    onOpen: ((Item) -> Void)? = nil,
+    current: String? = nil, onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row
   ) {
-    self.init(items, id: id, scope: scope, openOn: openTrigger, density: density, onOpen: onOpen, row: row) {
+    self.init(
+      items, id: id, scope: scope, openOn: openTrigger, density: density, current: current, onOpen: onOpen, row: row
+    ) {
       EmptyView()
     }
   }
@@ -399,20 +447,55 @@ extension AgentRowList where Footer == EmptyView {
   ///     default.
   ///   - density: How tight the rows stand. The tile spaces of the style by
   ///     default.
+  ///   - current: The id of the row that the host marks as open, the id that
+  ///     `id` gives its item, or `nil` for a list whose selection follows the
+  ///     focus. See ``AgentRowList`` for how it stands beside the focus.
   ///   - onOpen: The action that Return and the open trigger run on an item,
   ///     or `nil` for a list whose rows do not open.
   ///   - row: The builder of the content of a row.
   public init(
     sections: [AgentRowSection<Item>], id: KeyPath<Item, String>, scope: AgentRowListScope,
     openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
-    onOpen: ((Item) -> Void)? = nil,
+    current: String? = nil, onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row
   ) {
     self.init(
-      sections: sections, id: id, scope: scope, openOn: openTrigger, density: density, onOpen: onOpen, row: row
+      sections: sections, id: id, scope: scope, openOn: openTrigger, density: density, current: current,
+      onOpen: onOpen, row: row
     ) {
       EmptyView()
     }
+  }
+}
+
+extension AgentRowList {
+  /// Wraps each whole row of the list, with its insets, for a modifier that
+  /// must cover the row: above all a context menu.
+  ///
+  /// The `row` of the wrapper is the row with its insets on its selectable
+  /// surface, so a modifier on it covers the area that a click covers. The
+  /// wrapper stands inside the command scope of the row, so a modifier that
+  /// reads `\.commandScopePath` reads the path of the row:
+  ///
+  /// ```swift
+  /// AgentRowList(sessions, id: \.id, scope: scope) { session in
+  ///   Text(session.title)
+  /// }
+  /// .wrappingRows { row, _ in row.itemContextMenu() }
+  /// ```
+  ///
+  /// A context menu on the content that the `row:` builder of the list makes
+  /// stops at the content, so a right click in an inset shows no menu.
+  ///
+  /// - Parameter wrapper: The builder of the wrapped row, from the whole row
+  ///   and its item.
+  /// - Returns: The list, with each row wrapped.
+  public func wrappingRows<Wrapped: View>(
+    @ViewBuilder _ wrapper: @escaping (_ row: AnyView, _ item: Item) -> Wrapped
+  ) -> Self {
+    var list = self
+    list.rowWrapper = { row, item in AnyView(wrapper(row, item)) }
+    return list
   }
 }
 
@@ -433,25 +516,25 @@ enum AgentRowListLayout {
 }
 
 /// One row of an ``AgentRowList``: the content in the command scope of the
-/// row, on the selectable surface while its scope is the focused scope of the
-/// window.
+/// row, on the selectable surface while it is the selected row of the list.
 ///
 /// The row is focusable, as the rows of the EditorKit TodoList example are,
 /// so a `nav.*` move and a jump focus the row itself, and not a control in
 /// it. Without Keyboard Navigation, SwiftUI gives a focusable view no AppKit
 /// responder, so the beacon of the scope takes the first responder. Thus the
 /// list, and not the `@FocusState` of the row, knows the selection: it reads
-/// the focused path of the window and passes `isSelected`. A click selects
-/// the row through the geometry of the command system, as a `nav.*` move
-/// does; ``AgentRowClicks`` holds the clicks, which depend on the open trigger
-/// of the list. The system focus effect is off: the selectable surface shows
-/// the selection, which is the focus.
+/// the focused path of the window and the current row of the host, and passes
+/// `isSelected`. A click selects the row through the geometry of the command
+/// system, as a `nav.*` move does; ``AgentRowClicks`` holds the clicks, which
+/// depend on the open trigger of the list. The system focus effect is off: the
+/// selectable surface shows the selection, and the ring of the command scope
+/// shows the focus.
 struct AgentRowListRow<Content: View>: View {
   /// The segment of the scope of the row.
   let segment: FocusSegment
 
-  /// Whether the scope of the row is the focused scope, which makes it the
-  /// selected row.
+  /// Whether this is the selected row of the list: the current row of the
+  /// host, or the focused row in a list with no current row.
   let isSelected: Bool
 
   /// The action that gives the focus to the scope of the row.
@@ -466,21 +549,37 @@ struct AgentRowListRow<Content: View>: View {
   /// How tight the rows of the list stand.
   let density: AgentRowDensity
 
+  /// The wrapper of the whole row, or `nil` for a bare row.
+  let wrapper: ((AnyView) -> AnyView)?
+
   /// The content of the row.
   @ViewBuilder let content: Content
 
   @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
-    content
-      .padding(density.rowInsets(in: editorStyle))
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .selectableSurface(isSelected, radius: AgentRowListLayout.radius)
+    wrappedSurface
       .focusEffectDisabled()
       .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open))
       .commandScope(segment: segment)
       .navScrollable(.vertical)
       .scopeFocusRing(radius: AgentRowListLayout.radius)
+  }
+
+  /// The content with its insets on the selectable surface, in the wrapper of
+  /// the host. The shape of the surface reaches the wrapper, so a context menu
+  /// of the host covers the area that a click covers.
+  @ViewBuilder private var wrappedSurface: some View {
+    let surface =
+      content
+      .padding(density.rowInsets(in: editorStyle))
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .selectableSurface(isSelected, radius: AgentRowListLayout.radius)
+    if let wrapper {
+      wrapper(AnyView(surface))
+    } else {
+      surface
+    }
   }
 }
 
@@ -553,6 +652,20 @@ struct AgentRowClicks: ViewModifier {
     openOn: .click, density: .compact, onOpen: { _ in }
   ) { suggestion in
     Text(suggestion)
+  }
+  .scrollContentMargins(\.tile.margin)
+}
+
+#Preview("A current row and a menu around each row") {
+  AgentRowList(
+    PreviewFixtures.suggestions, id: \.self,
+    scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow"),
+    openOn: .click, density: .compact, current: PreviewFixtures.suggestions.first, onOpen: { _ in }
+  ) { suggestion in
+    Text(suggestion)
+  }
+  .wrappingRows { row, suggestion in
+    row.contextMenu { Button(suggestion) {} }
   }
   .scrollContentMargins(\.tile.margin)
 }
