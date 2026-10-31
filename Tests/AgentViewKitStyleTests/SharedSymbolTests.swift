@@ -9,7 +9,7 @@ import Testing
   static let sharedNames = [
     SharedSymbol.error, SharedSymbol.warning, SharedSymbol.information, SharedSymbol.reload,
     SharedSymbol.dismiss, SharedSymbol.edit, SharedSymbol.delete, SharedSymbol.move, SharedSymbol.link,
-    SharedSymbol.binary, SharedSymbol.document,
+    SharedSymbol.binary, SharedSymbol.document, SharedSymbol.closed, SharedSymbol.disclosure,
   ]
 
   /// The tool-kind and file-operation names.

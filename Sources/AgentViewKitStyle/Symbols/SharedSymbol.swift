@@ -35,6 +35,10 @@ public nonisolated enum SharedSymbol {
   /// The symbol of an information notice.
   public static let information = "info.circle.fill"
 
+  /// The symbol of a closed session: the closed banner of a session, and the
+  /// banner of a timeline that gets no more checkpoints.
+  public static let closed = "lock.fill"
+
   // MARK: - Tool kinds
 
   /// The symbol of a tool that reads a file.
@@ -116,6 +120,11 @@ public nonisolated enum SharedSymbol {
   /// of the sources of an answer. A link has no accent text color, so this
   /// symbol marks it (card ^y2mrfxt).
   public static let link = "link"
+
+  /// The symbol of a row that expands, such as a tool call or a checkpoint,
+  /// and the separator between two segments of a path, such as an
+  /// "Agent › Session" breadcrumb. Both point one step down into the item.
+  public static let disclosure = "chevron.right"
 }
 
 #Preview("The shared symbols") {
@@ -124,7 +133,8 @@ public nonisolated enum SharedSymbol {
     SharedSymbol.delete, SharedSymbol.move, SharedSymbol.search, SharedSymbol.terminal, SharedSymbol.reasoning,
     SharedSymbol.web, SharedSymbol.switchMode, SharedSymbol.tool, SharedSymbol.addedFile, SharedSymbol.deletedFile,
     SharedSymbol.modifiedFile, SharedSymbol.renamedFile, SharedSymbol.copiedFile, SharedSymbol.binary,
-    SharedSymbol.document, SharedSymbol.reload, SharedSymbol.dismiss, SharedSymbol.link,
+    SharedSymbol.document, SharedSymbol.reload, SharedSymbol.dismiss, SharedSymbol.link, SharedSymbol.closed,
+    SharedSymbol.disclosure,
   ]
   Grid(alignment: .leading) {
     ForEach(names, id: \.self) { name in
