@@ -57,9 +57,6 @@ nonisolated extension SharedSymbol {
 
   // MARK: - Session and connection
 
-  /// The symbol of a closed session.
-  static let closed = "lock.fill"
-
   /// The symbol of a session that loads its history again: the history
   /// winds back, and the agent sends it again.
   static let replaying = "arrow.trianglehead.counterclockwise"
@@ -197,11 +194,6 @@ nonisolated extension SharedSymbol {
 
   /// The symbol of the button that scrolls to the bottom of the thread.
   static let scrollToBottom = "arrow.down"
-
-  /// The symbol of a row that expands, and the separator between two
-  /// segments of a path, such as the "Agent › Session" breadcrumb of
-  /// ``AgentInfoHeader``. Both point one step down into the item.
-  static let disclosure = "chevron.right"
 
   /// The symbol of the menu of the session options.
   static let options = "slider.horizontal.3"

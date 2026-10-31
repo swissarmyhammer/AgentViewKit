@@ -1,5 +1,4 @@
 import EditorDiff
-import EditorSwiftUI
 import SwiftUI
 
 /// The layout of the EditorKit diff renderer (plan.md §4.1, decision 12).
@@ -40,17 +39,9 @@ extension View {
 /// The default diff renderer of the view kits: the EditorKit `DiffView`
 /// (plan.md §4.1, decision 12).
 ///
-/// The renderer parses the patch with `EditorDiff`, and keeps only the
-/// selected file. It applies the ``SwiftUI/EnvironmentValues/diffLayout``.
-/// The EditorKit `DiffView` reads the EditorKit theme of the environment.
-/// When EditorKit cannot read the patch, a row shows the line where the parse
-/// stopped.
-///
-/// Each line of the patch stands on one row, with no soft wrap: the inline
-/// layout takes the EditorKit wrap mode `.none`, so a line wider than the
-/// view scrolls sideways, and the text, the line-number gutters and the line
-/// colors keep one row for each line (finding of ^8q34yt8). The side-by-side
-/// layout keeps one row for each line already.
+/// The renderer parses the patch with `EditorDiff`, keeps only the selected
+/// file, and shows it in a ``DiffContentView``. When EditorKit cannot read the
+/// patch, a note of that view shows the line where the parse stopped.
 ///
 /// The renderer adds no accessibility identifier to the diff. The EditorKit
 /// `DiffView` puts its own identifiers on its AppKit views: `editor.diff` on
@@ -67,8 +58,6 @@ public struct EditorKitDiffRenderer: View {
   /// The path of the file to show, or `nil` to show each file.
   let file: String?
 
-  @Environment(\.diffLayout) private var layout
-
   /// Makes the renderer of a patch.
   ///
   /// - Parameters:
@@ -82,17 +71,11 @@ public struct EditorKitDiffRenderer: View {
   public var body: some View {
     switch Self.diff(of: patch, file: file) {
     case .success(let diff):
-      EditorSwiftUI.DiffView(patch: diff)
-        .diffLayout(layout.documentLayout)
-        .diffWrapMode(.none)
+      DiffContentView(diff: diff)
     case .failure(let error):
-      let text = String(
-        localized: "Cannot read the patch at line \(Self.line(of: error))", bundle: .module)
-      Label(text, systemImage: SharedSymbol.error)
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(text)
-        .accessibilityIdentifier(Self.unreadablePatchIdentifier)
+      DiffContentView(
+        note: String(localized: "Cannot read the patch at line \(Self.line(of: error))", bundle: .module),
+        systemImage: SharedSymbol.error, identifier: Self.unreadablePatchIdentifier)
     }
   }
 

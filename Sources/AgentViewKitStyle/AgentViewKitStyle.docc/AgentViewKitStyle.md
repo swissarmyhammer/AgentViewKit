@@ -52,6 +52,8 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 ### Rows
 
+- ``InspectorForm``
+- ``SwiftUI/View/inspectorPreviewFrame()``
 - ``InspectorActionRow``
 - ``CompletionRow``
 
@@ -71,6 +73,7 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 - ``DiffSummary``
 - ``EditorKitDiffRenderer``
+- ``DiffContentView``
 - ``DiffLayout``
 - ``SwiftUI/EnvironmentValues/diffLayout``
 - ``SwiftUI/View/diffLayout(_:)``
