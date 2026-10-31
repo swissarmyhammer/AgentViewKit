@@ -131,7 +131,7 @@ import Testing
   /// top bar of ``AgentThreadView``.
   static var threadHeader: some View {
     FloatingGlassContainer(spacing: spacing) {
-      AgentInfoHeader(connection: AgentAuthViewSurfaceHostedTests.connection, sessionTitle: headerSessionTitle)
+      AgentInfoHeader(connection: SnapshotFixtures.signInConnection, sessionTitle: headerSessionTitle)
         .padding(.horizontal, EditorStyle.default.spacing.m)
         .padding(.vertical, EditorStyle.default.spacing.s)
         .floatingGlass()

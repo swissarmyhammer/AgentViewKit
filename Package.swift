@@ -29,8 +29,8 @@
 //
 // The tiers of the tests (plan.md §11 decision 21). `swift test` here runs
 // the unit tests only: no test of this package mounts a view in a window or a
-// hosting view, or captures a window. The hosted, snapshot, pixel, focus-ring
-// and review gallery tests are in the nested package, and run with
+// hosting view, or captures a window. The hosted, snapshot and review gallery
+// tests are in the nested package, and run with
 // `swift test --package-path IntegrationTests`.
 
 import PackageDescription

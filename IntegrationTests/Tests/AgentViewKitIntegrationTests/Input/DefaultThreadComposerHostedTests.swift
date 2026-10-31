@@ -63,9 +63,9 @@ struct ScopedDefaultComposerThreadHost: View {
   /// around the composer makes the text view of the editor the first
   /// responder. In a host scope, the editor yields its own control scope to
   /// the host scope, so the focus does not stop at an inner scope.
-  @Test(arguments: AgentItemFocusRingHostedTests.FocusLanding.allCases)
+  @Test(arguments: AgentItemFocusHostedTests.FocusLanding.allCases)
   func aFocusOnTheHostScopeOfTheComposerGoesIntoTheTextOfTheEditor(
-    landing: AgentItemFocusRingHostedTests.FocusLanding
+    landing: AgentItemFocusHostedTests.FocusLanding
   ) async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -76,7 +76,7 @@ struct ScopedDefaultComposerThreadHost: View {
     defer { thread.harness.close() }
     let composer = thread.path.appending(ScopedDefaultComposerThreadHost.composerSegment)
 
-    try AgentItemFocusRingHostedTests.land(on: composer, in: thread.path, system: thread.system, by: landing)
+    try AgentItemFocusHostedTests.land(on: composer, in: thread.path, system: thread.system, by: landing)
     thread.harness.render()
 
     let editor = try #require(thread.harness.firstEditableTextView(of: NSTextView.self))

@@ -234,7 +234,7 @@ import Testing
     let open = try await Self.openComment(in: session)
     defer { open.window.harness.close() }
 
-    try AgentItemFocusRingHostedTests.land(
+    try AgentItemFocusHostedTests.land(
       on: open.card, in: open.window.path, system: open.window.system, by: .jump)
     open.window.harness.render()
 
@@ -246,9 +246,9 @@ import Testing
   /// focus lands (^cwdb5zg, the nested-scope rule of EditorKit).
   ///
   /// - Parameter landing: The way that the focus lands on the card.
-  @Test(arguments: AgentItemFocusRingHostedTests.FocusLanding.allCases)
+  @Test(arguments: AgentItemFocusHostedTests.FocusLanding.allCases)
   func aLandingOnTheCardWhileTheCommentFieldHasTheFocusFocusesTheCard(
-    landing: AgentItemFocusRingHostedTests.FocusLanding
+    landing: AgentItemFocusHostedTests.FocusLanding
   ) async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -258,7 +258,7 @@ import Testing
       identifier: PermissionView.commentIdentifier, in: open.window.harness)
     try #require(open.window.harness.window.makeFirstResponder(textView))
 
-    try AgentItemFocusRingHostedTests.land(
+    try AgentItemFocusHostedTests.land(
       on: open.card, in: open.window.path, system: open.window.system, by: landing)
     open.window.harness.render()
 
@@ -277,7 +277,7 @@ import Testing
     defer { open.window.harness.close() }
     let field = open.card.appending(.editor(id: PermissionView.commentIdentifier))
 
-    try AgentItemFocusRingHostedTests.land(on: field, in: open.window.path, system: open.window.system, by: .jump)
+    try AgentItemFocusHostedTests.land(on: field, in: open.window.path, system: open.window.system, by: .jump)
     open.window.harness.render()
 
     let textView = try SingleLineFieldChecks.textView(

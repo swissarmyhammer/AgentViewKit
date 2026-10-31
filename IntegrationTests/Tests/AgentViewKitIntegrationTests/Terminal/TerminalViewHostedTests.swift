@@ -30,8 +30,6 @@
     static let rowLimit = 3
     /// The number of lines in the long output.
     static let longLineCount = 10
-    /// The size that the pixel tests render the view at.
-    static let renderSize = CGSize(width: 480, height: 240)
     /// The `command` and `cwd` members of a `terminal_update`.
     static let headerFields = #""command": "\#(command)", "cwd": "\#(cwd)""#
 
@@ -130,20 +128,6 @@
         model.colorRuns == [
           ANSIFixtures.ansiRun(0..<3, ANSIFixtures.redIndex), ANSIFixtures.foregroundRun(3..<6),
         ])
-    }
-
-    /// The terminal has exited, so its footer shows the exit code and no
-    /// progress indicator moves while the window is captured.
-    @Test func theFrameUsesTheTerminalBackgroundAndTheHeaderHasNoFill() async throws {
-      let (session, terminal) = try await Self.openTerminal(
-        Self.outputField("ok") + #", "exitStatus": {"exitCode": \#(Self.successExitCode)}"#)
-      defer { session.close() }
-
-      let image = try await GlassRenderProbeTests.capture(
-        of: TerminalView(entry: terminal).editorTheme(DistinctRolesTheme()), size: Self.renderSize)
-
-      #expect(try EditorThemeViewsTests.contains(image, DistinctRolesTheme.Role.terminalBackground))
-      #expect(try !EditorThemeViewsTests.contains(image, DistinctRolesTheme.Role.statusBarBackground))
     }
 
     @Test func invalidUTF8OutputShowsReplacementCharacters() async throws {

@@ -73,19 +73,6 @@
       }
     }
 
-    /// The region of the glass column of the screen whose dark look a test
-    /// checks, in points from the top leading corner of the image: the session
-    /// list in the sidebar of the gallery columns, and the top of the
-    /// attachment inspector with its form rows. `nil` for a screen with no
-    /// glass column.
-    var glassColumn: CGRect? {
-      switch self {
-      case .gallery: ReviewGalleryFixtures.sidebarColumn
-      case .inspector: ReviewGalleryFixtures.inspectorColumn
-      case .thread, .requestDeck, .banners, .signIn, .scrolled: nil
-      }
-    }
-
     /// The EditorKit key screen with the id, the title, the dated note and the
     /// size of this screen.
     ///
@@ -149,19 +136,6 @@
       return try await body(made)
     }
 
-    /// The image of the screen in `appearance` that `gallery` wrote when it
-    /// recorded the screen. The check of a look reads the page of the run, so
-    /// no screen is mounted and captured a second time for it.
-    ///
-    /// - Parameters:
-    ///   - appearance: The look of the window.
-    ///   - gallery: The gallery that recorded the screen.
-    /// - Returns: The image.
-    /// - Throws: The error of the read or of the decode.
-    func recordedImage(in appearance: ReviewAppearance, of gallery: ReviewGallery) throws -> CapturedImage {
-      let file = gallery.directory.appending(path: ReviewGallery.screenPath(id: rawValue, appearance: appearance))
-      return try CapturedImage(decoding: Data(contentsOf: file))
-    }
   }
 
   /// The fixed data and the views of ``ReviewGalleryScreen``.
@@ -188,26 +162,6 @@
     /// The size of the image of a screen with two columns, in points: about
     /// the demo window.
     static let windowSize = CGSize(width: windowWidth, height: windowHeight)
-
-    /// The width of the part of the attachment inspector that
-    /// ``inspectorColumn`` reads, in points from the trailing edge: inside
-    /// the inspector at each width it takes.
-    static let inspectorColumnWidth: CGFloat = 200
-
-    /// The height of the part of the attachment inspector that
-    /// ``inspectorColumn`` reads, in points from the top: the form rows over
-    /// the preview.
-    static let inspectorColumnHeight: CGFloat = 350
-
-    /// The session list in the sidebar of the gallery columns: the least
-    /// width of the sidebar, from the top to the bottom of the window.
-    static let sidebarColumn = CGRect(
-      x: 0, y: 0, width: DemoWindowLayout.sidebarMinimumWidth, height: windowHeight)
-
-    /// The form rows at the top of the attachment inspector, at the trailing
-    /// edge of the window.
-    static let inspectorColumn = CGRect(
-      x: windowWidth - inspectorColumnWidth, y: 0, width: inspectorColumnWidth, height: inspectorColumnHeight)
 
     /// The title of each session in the header of a thread.
     static let sessionTitle = "Rename the search function"
@@ -383,7 +337,7 @@
     static func signInThread() throws -> some View {
       demoThread(
         .preview(transcript: [.update(try promptWithAttachment())]),
-        connection: AgentAuthViewSurfaceHostedTests.connection)
+        connection: SnapshotFixtures.signInConnection)
     }
 
     /// The sign-in screen: ``signInThread()`` in each look.

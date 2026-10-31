@@ -17,7 +17,7 @@ struct StatusCaptionLabel: View {
   ///
   /// The secondary label color is 3.9:1 on the light window background,
   /// below the 4.5:1 that caption text needs, so the title takes the primary
-  /// one (`StatusLabelColorHostedTests`).
+  /// one.
   static let titleStyle = HierarchicalShapeStyle.primary
 
   /// The title of the state.

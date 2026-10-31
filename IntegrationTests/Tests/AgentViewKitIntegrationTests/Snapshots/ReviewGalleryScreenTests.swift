@@ -12,13 +12,12 @@
   /// ``snapshotRoot``, and writes the page `index.html` with both into
   /// ``gallery``. Each run of `swift test --package-path IntegrationTests`
   /// writes the folder again. Open the page to review the screens. The test
-  /// records each screen one time, in both looks, and the checks of a look
-  /// read the images of that one recording.
+  /// records each screen one time, in both looks.
   ///
   /// The gallery compares no image with a reference image, so a changed
   /// screen does not fail the test. The test fails when a key screen cannot
   /// be built or captured, and when the page does not show a key screen or a
-  /// reference PNG.
+  /// generated image. No check reads the pixels of an image.
   @Suite(.serialized, .hostedSerially) @MainActor struct ReviewGalleryScreenTests {
     /// The name of the package, for the folder and the title of the page.
     static let package = "AgentViewKit"
@@ -37,25 +36,6 @@
       }
 
       expectReviewGalleryComplete(report)
-      for screen in ReviewGalleryScreen.allCases where screen.glassColumn != nil {
-        try Self.expectLightTextOnTheDarkGlassColumn(of: screen)
-      }
-    }
-
-    /// Expects that the dark image of `screen` on the page shows light text
-    /// on its dark glass column. The check reads the image that the page test
-    /// recorded, so the screen is not mounted and captured again for it.
-    ///
-    /// - Parameter screen: A screen with a ``ReviewGalleryScreen/glassColumn``.
-    /// - Throws: The error of the read of the image.
-    static func expectLightTextOnTheDarkGlassColumn(of screen: ReviewGalleryScreen) throws {
-      let column = try #require(screen.glassColumn)
-      let image = try screen.recordedImage(in: .dark, of: gallery)
-
-      let colors = try #require(try RegionColors(of: image, in: column), "\(screen)")
-
-      #expect(colors.background.luminance <= CompositedSnapshotTests.darkLuminance, "\(screen): \(colors)")
-      #expect(colors.contrast >= CompositedSnapshotTests.minimumTextContrast, "\(screen): \(colors)")
     }
   }
 

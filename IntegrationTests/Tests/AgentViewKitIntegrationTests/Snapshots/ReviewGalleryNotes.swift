@@ -52,7 +52,7 @@
       gutter and line colors do not, so the lines do not match and the last lines are cut off (^q89x329); \
       the diff counts "+1 −1" are 1.9:1 in light (^a2dy2gt). The "Exit code 0" text was green at 2.2:1 in \
       light; since ^sbx2q4h the green is on the symbol only and the text is the primary label color, at \
-      4.5:1 or more in light and dark (StatusLabelColorHostedTests checks it). Since ^zbcys18 the image \
+      4.5:1 or more in light and dark. Since ^zbcys18 the image \
       draws the glass of the composer and the mic and Send buttons of the accessory row; their look is not \
       judged yet. Since ^fs3vdg0 the diff has no side-by-side file list: the \
       file chip "SearchIndex.swift +1 −1" stands above the patch on the gray selection surface, and the patch \
@@ -97,7 +97,7 @@
       fill, only thin edges. The notice symbols use the severity roles (the info role is the system blue, \
       not the accent). Since ^zbcys18 "Show Error" draws its glass and its label in the look of each variant; \
       not judged yet. The "Sent" text was green at 2.2:1 in light; since ^sbx2q4h the green is on the symbol \
-      only and the text is the primary label color (StatusLabelColorHostedTests checks 4.5:1 or more). Since \
+      only and the text is the primary label color. Since \
       ^ey6v778 the banners and the error card take the tile padding, and the stacked banners the tile margin \
       between them; the new image is not judged yet.
       """

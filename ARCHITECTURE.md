@@ -1,5 +1,7 @@
 # Architecture
 
+Shared conventions are in [EditorKit's ARCHITECTURE.md](../EditorKit/ARCHITECTURE.md).
+
 ## No backward compatibility
 
 This package has not shipped, and none of the swissarmyhammer packages has. We do not keep backward compatibility, and we do not write code for it.
@@ -65,7 +67,7 @@ The tests have two tiers, and a package boundary separates them (plan.md §11 de
 | Tier | Package | Targets | Holds | Runs |
 | --- | --- | --- | --- | --- |
 | Unit | the root package | `AgentViewKitTests`, `AgentViewKitStyleTests` | the models, the commands, the wire and the scripted agents. No window, no hosting view, no capture. | `swift test`, on each change: the per-card gate. |
-| Integration | `IntegrationTests/`, which depends on the root package by path | `AgentViewKitIntegrationTests`, `AgentViewKitStyleIntegrationTests` | each test that mounts a view in EditorKit's `HostedViewHarness`, an `NSHostingView` or a window, each capture of a real window, the snapshot and pixel tests, the focus rings and the review gallery. | `swift test --package-path IntegrationTests`, once per batch, and in the integration job of CI (`integration-package-path`). |
+| Integration | `IntegrationTests/`, which depends on the root package by path | `AgentViewKitIntegrationTests`, `AgentViewKitStyleIntegrationTests` | each test that mounts a view in EditorKit's `HostedViewHarness`, an `NSHostingView` or a window, the snapshot images of real windows and the review gallery. | `swift test --package-path IntegrationTests`, once per batch, and in the integration job of CI (`integration-package-path`). |
 
 ```mermaid
 flowchart LR

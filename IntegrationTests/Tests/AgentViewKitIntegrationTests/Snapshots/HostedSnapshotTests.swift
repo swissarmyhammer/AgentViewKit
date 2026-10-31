@@ -88,7 +88,7 @@ import Testing
 
   @Test(arguments: ReviewAppearance.allCases)
   func thePermissionRequestCard(look: ReviewAppearance) async throws {
-    let card = try PermissionViewSurfaceHostedTests.card()
+    let card = try SnapshotFixtures.permissionCard()
 
     try await Self.generate(card, named: "permission-card", size: SnapshotFixtures.cardSize, look: look)
   }
@@ -104,7 +104,7 @@ import Testing
   func theSessionNotice(look: ReviewAppearance) async throws {
     // The banner has no margin of its own (^rgsq3k4); the image spaces it
     // with the tile margin, as the top bar of a thread does.
-    let banner = SessionNoticeBanner(session: SessionNoticeBannerSurfaceHostedTests.session)
+    let banner = SessionNoticeBanner(session: SnapshotFixtures.noticeSession)
       .padding(EditorStyle.default.tile.margin)
 
     try await Self.generate(banner, named: "session-notice", size: SnapshotFixtures.cardSize, look: look)

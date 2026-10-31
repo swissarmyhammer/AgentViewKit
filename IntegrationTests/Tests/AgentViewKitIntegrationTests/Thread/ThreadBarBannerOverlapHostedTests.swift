@@ -35,7 +35,7 @@
     }
 
     /// The thread of the failed turn of `session`, with the sign-in card of
-    /// ``AgentAuthViewSurfaceHostedTests/connection``: the content of the
+    /// ``SnapshotFixtures/signInConnection``: the content of the
     /// `bottom-bar-buttons` snapshot images.
     ///
     /// - Parameters:
@@ -43,7 +43,7 @@
     ///   - anchors: The manager of the scroll position of the list.
     /// - Returns: The thread view, with no animation.
     static func failedTurnThread(_ session: SessionModel, anchors: ScrollAnchorManager) -> some View {
-      AgentThreadView(session: session, connection: AgentAuthViewSurfaceHostedTests.connection, anchors: anchors) {
+      AgentThreadView(session: session, connection: SnapshotFixtures.signInConnection, anchors: anchors) {
         DefaultThreadComposer()
       }
       .transaction { $0.disablesAnimations = true }

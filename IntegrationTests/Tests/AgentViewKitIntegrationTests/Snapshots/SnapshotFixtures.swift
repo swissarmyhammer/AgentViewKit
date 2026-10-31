@@ -147,11 +147,61 @@ enum SnapshotFixtures {
     return session
   }
 
+  /// The one agent auth method of ``signInConnection``.
+  static let signInMethod = AuthMethod.agent(
+    AuthMethodAgent(
+      methodId: AuthMethodId(rawValue: "tests-agent-login"), name: "Sign in with the agent",
+      description: "The agent opens its sign-in page."))
+
+  /// A code-built connection model that asks for a sign-in with
+  /// ``signInMethod``.
+  static var signInConnection: ConnectionModel {
+    .preview(
+      authState: .required([signInMethod]),
+      initializeResponse: InitializeResponse(
+        info: Implementation(name: "tests-agent", version: "1.0.0"),
+        protocolVersion: ACPClient.supportedProtocolVersion, authMethods: [signInMethod]))
+  }
+
+  /// A code-built session model that holds one permission request, with one
+  /// `allow_once` option and one `reject_once` option.
+  static var permissionSession: SessionModel {
+    SessionModel.preview(pendingPermissions: [
+      RequestPermissionRequest(
+        options: [
+          PermissionOption(kind: .allowOnce, name: "Allow", optionId: PermissionOptionId(rawValue: "allow")),
+          PermissionOption(kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
+        ],
+        sessionId: SessionModel.previewSessionId,
+        title: "Run the database migration?"
+      )
+    ])
+  }
+
+  /// The card of the one request of ``permissionSession``.
+  ///
+  /// - Returns: The card.
+  /// - Throws: An issue when the session model holds no request.
+  static func permissionCard() throws -> PermissionView {
+    let session = permissionSession
+    let request = try #require(session.pendingPermissions.first)
+    return PermissionView(request: request, session: session)
+  }
+
+  /// A code-built session model that holds one warning notice with a
+  /// description.
+  static var noticeSession: SessionModel {
+    let notice = Notice(
+      severity: .warning, title: "The context is almost full",
+      description: "The agent compacts the context before the next prompt.")
+    return SessionModel.preview(transcript: [.update(.notice(notice))])
+  }
+
   /// The thread of the `bottom-bar-buttons` images: the failed turn of
   /// ``failedTurnSession(messageCount:)``, with the sign-in card of
-  /// ``AgentAuthViewSurfaceHostedTests/connection`` and the default composer.
+  /// ``signInConnection`` and the default composer.
   static var bottomBarThread: some View {
-    AgentThreadView(session: failedTurnSession(), connection: AgentAuthViewSurfaceHostedTests.connection) {
+    AgentThreadView(session: failedTurnSession(), connection: signInConnection) {
       DefaultThreadComposer()
     }
   }

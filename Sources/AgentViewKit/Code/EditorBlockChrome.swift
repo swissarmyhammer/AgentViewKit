@@ -49,8 +49,8 @@ struct EditorBlockFrame: ViewModifier {
 /// `SystemTheme`, gives a block with no fill: kit views are clear by default
 /// (^4rck1pf). The content behind the block shows through it, and
 /// ``ANSIText`` remaps the ANSI grays so that they contrast with it
-/// (`TerminalPalette+Contrast.swift`). `EditorThemeViewsTests` and
-/// `TerminalContrastHostedTests` hold these rules.
+/// (`TerminalPalette+Contrast.swift`). `TerminalContrastHostedTests` holds
+/// the contrast.
 struct TerminalBlockFrame: ViewModifier {
   @Environment(\.editorTheme) private var editorTheme
 
@@ -68,7 +68,7 @@ struct TerminalBlockFrame: ViewModifier {
 /// The header row is content, not a bar (D113). It has no fill, so the fill
 /// of the block shows behind it: no fill for a code block, and the terminal
 /// background for terminal output. A system `Divider` under the row draws
-/// the separator line that marks it. `EditorThemeViewsTests` holds this rule.
+/// the separator line that marks it.
 ///
 /// The block lays out its header and its body in a ``ContentTileStack``, so
 /// the tile gap of `\.editorStyle` is between them. The separator line is in

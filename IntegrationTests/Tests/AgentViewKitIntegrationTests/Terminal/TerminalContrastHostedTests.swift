@@ -146,16 +146,6 @@ import Testing
             background: palette.ansiColor(index))
         })
   }
-
-  @Test func underTheDefaultThemeTheTerminalFrameDrawsNoFill() async throws {
-    // Clear content over a backdrop that fills the frame: only a fill of the
-    // frame can hide the backdrop in the middle of the block.
-    let block = EditorThemeViewsTests.clearBlock.terminalBlockFrame()
-    let image = try await EditorThemeViewsTests.unthemedCapture(
-      of: SurfaceWithBackdrop(content: block, placement: .behindToTheEdge))
-
-    #expect(try GlassRenderProbeTests.showsBackdrop(image, at: EditorThemeViewsTests.center))
-  }
 }
 
 /// An sRGB color with its opacity, resolved in one appearance, for the

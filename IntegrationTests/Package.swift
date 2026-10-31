@@ -55,9 +55,9 @@ let acpProducts: [Target.Dependency] = [
 ///   the commands, the wire and the scripted agents, with no window, no hosting
 ///   view and no capture. It is the per-card gate and the TDD loop.
 /// - `swift test --package-path IntegrationTests` runs the integration tests:
-///   each test that mounts a view in a window or a hosting view, each capture
-///   of a real window, the snapshot and pixel tests, the focus rings, and the
-///   review gallery (`~/Library/Caches/AgentViewKit/screenshot-check/`). Use
+///   each test that mounts a view in a window or a hosting view, the snapshot
+///   images of real windows, and the review gallery
+///   (`~/Library/Caches/AgentViewKit/screenshot-check/`). Use
 ///   `--filter` to run one test. It runs once per batch, at the end.
 ///
 /// The shared `swift-ci` workflow builds this package in its unit job on every
@@ -83,7 +83,7 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
   ],
   targets: [
-    // The kit's hosted, snapshot, pixel, focus-ring and gallery tests: each
+    // The kit's hosted, snapshot and gallery tests: each
     // one mounts a view in EditorKit's `HostedViewHarness` or `CaptureWindow`,
     // or captures the real window from the window server.
     .testTarget(

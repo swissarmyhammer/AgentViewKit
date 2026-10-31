@@ -1,7 +1,6 @@
 import AppKit
 import EditorTestSupport
 import SwiftUI
-import Testing
 
 /// A view mounted in a window, which a test renders after a change of its
 /// model: the off-screen window of a ``HostedViewHarness``, or the real
@@ -34,17 +33,6 @@ extension RenderedMount {
 extension HostedViewHarness: RenderedMount {}
 
 extension CaptureMount: RenderedMount {}
-
-/// The bed of EditorKit that shows command scopes with focus rings in a real
-/// key window, which a test renders after it sends an item of a session.
-extension FocusRingBed: RenderedMount {
-  /// Makes SwiftUI update the view now: a layout pass of the content view of
-  /// the window, the hosting view of the bed, then a display of the window.
-  func render() {
-    window.contentView?.layoutSubtreeIfNeeded()
-    window.displayIfNeeded()
-  }
-}
 
 /// The mount of a key screen of EditorKit's review gallery, as the `settle`
 /// of a `ReviewScreen` receives it: the real key window on the screen.
@@ -108,14 +96,8 @@ final class CaptureMount<Content: View> {
   ///   - content: The view to show.
   ///   - size: The size of the content of the window, in points.
   ///   - appearance: The look of the window: Light or Dark.
-  ///   - styleMask: The style of the window; borderless by default. A titled
-  ///     style with `.fullSizeContentView` shows the title bar and the toolbar
-  ///     of a `NavigationSplitView`.
-  init(
-    _ content: Content, size: CGSize, appearance: ReviewAppearance = .light,
-    styleMask: NSWindow.StyleMask = [.borderless]
-  ) {
-    window = CaptureWindow(contentSize: size, styleMask: styleMask)
+  init(_ content: Content, size: CGSize, appearance: ReviewAppearance = .light) {
+    window = CaptureWindow(contentSize: size, styleMask: [.borderless])
     window.appearance = NSAppearance(named: appearance.appearanceName)
     hostingView = NSHostingView(rootView: ReviewScreenRoot { content })
     // A view with no outer padding is as small as its content, and the
@@ -182,90 +164,5 @@ extension CaptureMount {
     }
     hideViews(of: hiddenTypes, in: mount.hostingView)
     return try await mount.capture()
-  }
-
-  /// The frame of the accessibility element with `identifier` when `content`
-  /// shows at `size`, in points from the top leading corner of the window: the
-  /// region of a capture of the same view at the same size that shows the
-  /// element.
-  ///
-  /// The frame comes from the accessibility tree of the same view in the
-  /// window of a ``HostedViewHarness``, under the same root as a mount, so
-  /// that both lay the view out the same way.
-  ///
-  /// - Parameters:
-  ///   - identifier: The accessibility identifier of the element.
-  ///   - content: The view, as it is given to the mount of the capture.
-  ///   - size: The size of the content of the window, in points.
-  /// - Returns: The frame.
-  /// - Throws: An issue when no element has `identifier`.
-  static func windowFrame(of identifier: String, in content: Content, size: CGSize) throws -> CGRect {
-    let harness = HostedViewHarness(ReviewScreenRoot { content }, size: size)
-    defer { harness.close() }
-    harness.render()
-    let frame = try #require(harness.frame(identifier: identifier), "No element \(identifier).")
-    return ThreadBarControlJumpHostedTests.windowSpaceFrame(of: frame, in: harness.window)
-  }
-
-  /// The frame of the first AppKit view whose class is named `className`
-  /// when `content` shows at `size`, in points from the top leading corner of
-  /// the window: the region of a capture of the same view at the same size
-  /// that shows the view.
-  ///
-  /// The cell of a `List` row hosts its SwiftUI content in a view that the
-  /// accessibility tree of the harness does not list, so a `List` row has no
-  /// frame by identifier (``windowFrame(of:in:size:)``). The cell is a
-  /// private AppKit class, so the lookup is by the name of the class.
-  ///
-  /// - Parameters:
-  ///   - className: The name of the class of the view, such as
-  ///     `ListTableCellView`.
-  ///   - content: The view, as it is given to the mount of the capture.
-  ///   - size: The size of the content of the window, in points.
-  /// - Returns: The frame.
-  /// - Throws: An issue when no view has the class.
-  static func windowFrame(ofViewNamed className: String, in content: Content, size: CGSize) throws -> CGRect {
-    let harness = HostedViewHarness(ReviewScreenRoot { content }, size: size)
-    defer { harness.close() }
-    harness.render()
-    let view = try #require(
-      harness.hostingView.descendants.first { String(describing: type(of: $0)) == className },
-      "No view of the class \(className).")
-    return ThreadBarControlJumpHostedTests.windowSpaceFrame(of: harness.screenFrame(of: view), in: harness.window)
-  }
-}
-
-/// The pixel geometry of a capture: points of a view to the pixels of its
-/// image, and a SwiftUI color to the color its pixels show.
-enum CaptureGeometry {
-  /// The pixels of a capture for one point.
-  static var scale: CGFloat { CGFloat(CapturedImage.captureScale) }
-
-  /// The pixel of a capture that holds `point` of the view.
-  ///
-  /// - Parameter point: A point of the view, from its top leading corner.
-  /// - Returns: The column and the row of the pixel, from the top leading
-  ///   corner of the image.
-  static func pixel(at point: CGPoint) -> (x: Int, y: Int) {
-    (Int((point.x * scale).rounded(.down)), Int((point.y * scale).rounded(.down)))
-  }
-
-  /// The pixels of a capture that `rect` of the view covers.
-  ///
-  /// - Parameter rect: A rect of the view, in points from its top leading
-  ///   corner.
-  /// - Returns: The rect in whole pixels, from the top leading corner of the
-  ///   image.
-  static func pixels(of rect: CGRect) -> CGRect {
-    rect.applying(CGAffineTransform(scaleX: scale, y: scale)).integral
-  }
-
-  /// The sRGB color of `color` with no dynamic part, for a pixel read.
-  ///
-  /// - Parameter color: A fixed color, such as a role of
-  ///   ``DistinctRolesTheme`` or the backdrop of ``GlassRenderProbeTests``.
-  /// - Returns: The color.
-  static func cgColor(of color: Color) -> CGColor {
-    color.resolve(in: EnvironmentValues()).cgColor
   }
 }

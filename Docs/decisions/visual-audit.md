@@ -99,8 +99,7 @@ fill. The header row of a code block, a terminal, or command output is
 content, not a bar: it has no fill, and a separator line is under it. Before
 D113, the table had the row "frame of a code block" with `editorBackground`,
 and the row "header bar of a code block, terminal, or command output" with
-`statusBarBackground`. D113 replaces these two rows. `EditorThemeViewsTests`
-checks the pixels. No view uses a theme color, such as the
+`statusBarBackground`. D113 replaces these two rows. No view uses a theme color, such as the
 `statusBarBackground` role, as a background. Review holds this (EditorKit
 style.md).
 
