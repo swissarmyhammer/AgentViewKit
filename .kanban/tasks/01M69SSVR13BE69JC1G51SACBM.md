@@ -3,15 +3,17 @@ assignees:
 - claude-code
 position_column: todo
 position_ordinal: '8480'
-title: 'CI Integration red on Xcode 27.2: ThreadBarInsetHostedTests reads the floating controls 39 points short'
+title: 'CI Integration red on macOS 27.2: ThreadBarInsetHostedTests reads the floating controls 39 points short'
 ---
-Run 41235913570 (2eb7e92) on m3u1: 5 tests in ThreadBarInsetHostedTests fail at line 166 with bottom inset 239.92, bar below 201.5. On this Mac (Xcode 27.1, same EditorKit 02607e0) the same tests give inset 239.92, bar below 240.5, and pass.
+Runs 41235913570 and 41242786511 on m3u1: 5 tests in ThreadBarInsetHostedTests fail at line 166 with bottom inset 239.92, bar below 201.5.
 
-So the inset is the same on both, and the difference is the accessibility frame of `AgentThreadLayout.floatingControlsIdentifier`.
+Not reproduced here. This Mac passes the suite with Xcode 27.2 (27B52), latest dependencies and the full IntegrationTests run: bar below 240.5 on Xcode 27.1, no failure on 27.2. The Xcode suspicion is ruled out.
 
-m3u1 moved from /Applications/Xcode_27.1.app (SDK 27.0, last pass 0874d19) to /Applications/Xcode.app 27.2 (build 27B52, SDK 27.2). That is the leading suspect, not a proven cause: the newer dependencies on CI differ too, and they can't build here because FoundationModelsRouter needs `Transcript.Entry.data`, which the 27.1 SDK lacks.
+The difference left is the OS. m3u1 went from macOS 27.0.1 (26A434, last pass 0874d19) to macOS 27.2 (26B123), and this Mac is on 27.0.1 (26A434). Accessibility frames come from the OS at runtime, so this is the leading cause, not proven.
 
-- [ ] Install Xcode 27.2 on this Mac (user), so the failure can be reproduced and latest dependencies build.
-- [ ] Reproduce, and find which part of the floating controls the frame misses.
+The inset is 239.92 on both, so the layout looks right and the short value is the accessibility frame of `AgentThreadLayout.floatingControlsIdentifier`. Its contents are the state banner, the login prompt and the composer in a `FloatingGlassContainer`, with `.padding(barEdgeInset)`.
+
+- [ ] Get a macOS 27.2 machine to run this on: update this Mac, or run on m3u1 (user).
+- [ ] Find which part of the floating controls the frame misses.
 - [ ] Fix the measurement, or the view if the element is really wrong. Do not widen `insetTolerance`.
 - [ ] Integration passes on CI.
