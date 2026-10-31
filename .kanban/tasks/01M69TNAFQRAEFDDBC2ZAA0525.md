@@ -1,16 +1,16 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8580'
-title: Adopt ThemedEmptyState for EmptyStateView once it works on chrome (blocked on EditorKit)
+position_column: done
+position_ordinal: ffffff8f80
+title: Adopt ThemedEmptyState for EmptyStateView
 ---
-EditorKit 3b29fc66 added `ThemedEmptyState`, the one empty state of the kits, and style.md now names it. It draws `\.themeSecondary` and is for content only (rule 6), but SessionListView, ConnectionsView (settings sheet) and ActivityTimeline (inspector) stand on chrome. I asked editorkit-82 to make it follow its place, by moving `\.isOnChrome`, `.onChrome()`, `\.showsVibrantText` and `\.placedSecondary` into EditorStyle. Waiting on its SHA or decision.
+EditorKit 7b1a7082 (^cnnrdka) moved `\.isOnChrome`, `.onChrome()`, `\.showsVibrantText` and `\.placedSecondary` into EditorStyle, and `ThemedEmptyState` now follows its place.
 
-- [ ] Update EditorKit.
-- [ ] Replace each `EmptyStateView` with `ThemedEmptyState`, and delete `EmptyStateView` with no wrapper. Its title goes from `title2` to `title3`.
-- [ ] Update FontRoleHostedTests and any test that reads `EmptyStateView.titleIdentifier` or `descriptionIdentifier`.
-- [ ] Regenerate the gallery.
+- [x] Update EditorKit.
+- [x] Replace each `EmptyStateView` with `ThemedEmptyState`, delete `EmptyStateView` and `PlacedSecondary.swift` with no wrapper. Titles go from `title2` to `title3`.
+- [x] Delete `PlacedSecondaryTests`, `PlacedSecondaryHostedTests` and the two empty state tests of FontRoleHostedTests.
+- [x] Regenerate the gallery.
 
 `ConversationEmptyState` stays as it is: it is a scrolling Markdown block, not this layout.
 
