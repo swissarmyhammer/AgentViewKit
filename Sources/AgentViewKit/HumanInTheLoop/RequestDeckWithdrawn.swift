@@ -85,13 +85,20 @@ extension RequestDeck {
 }
 
 /// The row of the notice of one withdrawn request in a ``RequestDeck``: the
-/// information symbol and tint, the text of the notice, and a Dismiss button.
-/// The row is a ``NoticeRow``, so it has no fill, and the content edge of the
-/// kit marks its edge (`.inlineEdge(radius:)`).
+/// information symbol and tint and the short title on the title line, with a
+/// Dismiss button, and the text of the notice below. The title of the request
+/// and the reason of the agent can be long, so the text never stands on the
+/// title line. The row is a ``NoticeRow``, so it has no fill, and the content
+/// edge of the kit marks its edge (`.inlineEdge(radius:)`).
 struct WithdrawnNoticeRow: View {
   /// The severity of each notice of a withdrawn request, which gives the
   /// symbol and the tint.
   static let severity = NoticeSeverity.info
+
+  /// The title line of each notice of a withdrawn request.
+  static var title: String {
+    String(localized: "The request was withdrawn", bundle: .module)
+  }
 
   /// The notice to show.
   let notice: WithdrawnNotice
@@ -101,7 +108,7 @@ struct WithdrawnNoticeRow: View {
 
   var body: some View {
     NoticeRow(
-      severity: Self.severity, title: notice.text, description: nil, label: notice.text,
+      severity: Self.severity, title: Self.title, description: notice.text, label: notice.text,
       identifier: RequestDeck.identifier(forWithdrawn: notice.id),
       dismissIdentifier: RequestDeck.dismissIdentifier(forWithdrawn: notice.id), dismiss: dismiss)
   }

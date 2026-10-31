@@ -107,6 +107,11 @@ import Testing
     try await Self.generate(banner, named: "status-banner", size: SnapshotFixtures.bannerSize)
   }
 
+  @Test func theTitleLinesOfTheBars() async throws {
+    try await Self.generate(
+      SnapshotFixtures.titleLineBars, named: "status-bar-title-lines", size: SnapshotFixtures.titleLineBarsSize)
+  }
+
   @Test func theCodeBlock() async throws {
     let model = EditorModel(PreviewFixtures.codeSample)
     let block = CodeBlockView(

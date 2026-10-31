@@ -48,6 +48,28 @@
       return session
     }
 
+    /// The explanation of the disconnected banner.
+    static let disconnectedExplanation = "No connection to the agent is open. The agent receives no messages."
+
+    /// The width that a test measures an explanation in: wide enough that the
+    /// explanation of a banner of the tests stays on one line.
+    static let explanationMeasureWidth: CGFloat = 800
+
+    /// The height that an explanation adds below the title line of a bar: the
+    /// space of the line and its text. The explanation has no element, so a
+    /// frame cannot read it.
+    ///
+    /// - Parameter explanation: The explanation of the bar.
+    /// - Returns: The height, in points.
+    static func explanationHeight(of explanation: String) -> CGFloat {
+      func height(_ text: String) -> CGFloat {
+        let message = StatusBar.Message(
+          title: "Title", explanation: text, symbolName: SharedSymbol.information, identifier: "message")
+        return StyleViewHost.size(of: StatusBar(message: message, action: nil), width: explanationMeasureWidth).height
+      }
+      return height(explanation) - height("")
+    }
+
     /// The accessibility identifier of the banner of the first notice of
     /// `session`.
     ///
@@ -171,8 +193,12 @@
       let closed = try #require(harness.frame(identifier: SessionStreamBanner.closedIdentifier))
       let style = EditorStyle.default
 
-      // The y axis of the screen goes up.
-      let gap = (disconnected.minY - style.tile.padding) - (closed.maxY + style.tile.padding)
+      // The frame of a text is its title, the top of the bar with no button.
+      // The explanation and the tile padding stand below it. The y axis of the
+      // screen goes up.
+      let disconnectedBottom =
+        disconnected.minY - Self.explanationHeight(of: Self.disconnectedExplanation) - style.tile.padding
+      let gap = disconnectedBottom - (closed.maxY + style.tile.padding)
 
       #expect(abs(gap - style.tile.margin) <= ThreadBottomBarHostedTests.edgeTolerance, "gap \(gap)")
     }

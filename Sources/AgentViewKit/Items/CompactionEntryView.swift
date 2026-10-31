@@ -109,21 +109,15 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   private func header(key: String) -> some View {
     let status = entry.status
     let statusText = Self.statusLabel(for: status)
-    return HStack(spacing: editorStyle.spacing.m) {
+    // The text is the element of the header. A container element here merges
+    // into the element of an `ItemRow` and loses its identifier.
+    return StatusTitleLayout(
+      title: Self.title, explanation: statusText,
+      textLabel: String(localized: "\(Self.title), \(statusText)", bundle: .module),
+      identifier: Self.identifier(for: key)
+    ) {
       StatusSymbolImage(name: Self.symbolName, color: editorTheme.statusColor(for: status))
         .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-        Text(Self.title)
-          .font(editorTheme.font(for: .ui, style: .headline))
-        Text(statusText)
-          .font(editorTheme.font(for: .ui, style: .callout))
-          .foregroundStyle(.secondary)
-      }
-      // The text is the element of the header. A container element here
-      // merges into the element of an `ItemRow` and loses its identifier.
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(String(localized: "\(Self.title), \(statusText)", bundle: .module))
-      .accessibilityIdentifier(Self.identifier(for: key))
     }
   }
 

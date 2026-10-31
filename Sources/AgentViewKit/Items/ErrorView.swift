@@ -65,25 +65,15 @@ public struct ErrorView: View {
   public var body: some View {
     let content = Self.content(code: entry.code.wireValue, message: entry.message)
     ContentTileStack {
-      HStack(alignment: .top, spacing: editorStyle.spacing.m) {
+      // The text is the element of the card. A container element here merges
+      // into the element of an `ItemRow` and loses its identifier.
+      StatusTitleLayout(
+        title: content.title, explanation: content.detail,
+        textLabel: String(localized: "\(content.title), \(content.detail)", bundle: .module),
+        identifier: Self.identifier
+      ) {
         StatusSymbolImage(name: content.symbolName, color: editorTheme.severityError)
           .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-          Text(content.title)
-            .font(editorTheme.font(for: .ui, style: .headline))
-          Text(content.detail)
-            .font(editorTheme.font(for: .ui, style: .callout))
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-        }
-        // The text is the element of the card. A container element here
-        // merges into the element of an `ItemRow` and loses its identifier.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-          String(localized: "\(content.title), \(content.detail)", bundle: .module)
-        )
-        .accessibilityIdentifier(Self.identifier)
-        Spacer(minLength: editorStyle.spacing.s)
       }
     } body: {
       if let data = entry.data?.prettyPrinted {

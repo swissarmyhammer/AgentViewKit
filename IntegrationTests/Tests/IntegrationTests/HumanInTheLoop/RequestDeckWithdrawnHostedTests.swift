@@ -158,10 +158,21 @@ import Testing
     // own content by the tile padding.
     let tile = EditorStyle.default.tile
     let insets = tile.margin + tile.padding
-    // The bar centers its parts, so the taller of the text and the button
-    // stands on the tile padding at each edge.
+    // The title line is the top of the bar, so the taller of the title and
+    // the button stands on the tile padding at the top. The explanation stands
+    // below the title line, so more than the padding is under that line.
     #expect(deck.maxY - max(text.maxY, dismiss.maxY) == insets)
-    #expect(min(text.minY, dismiss.minY) - deck.minY == insets)
+    #expect(min(text.minY, dismiss.minY) - deck.minY > insets)
+  }
+
+  @Test func aNoticeOfAWithdrawnRequestHasAShortTitleLine() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session)
+    defer { harness.close() }
+    _ = try await Self.sendAndWithdrawElicitation(reason: Self.reason, to: session, rendering: harness)
+
+    #expect(harness.accessibilityElements().contains { $0.label == WithdrawnNoticeRow.title })
   }
 
   @Test func aWithdrawnLoginElicitationShowsANoticeInTheConnectionDeckUntilDismiss() async throws {

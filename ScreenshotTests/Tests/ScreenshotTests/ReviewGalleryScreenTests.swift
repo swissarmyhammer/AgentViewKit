@@ -41,6 +41,7 @@
       try await hosted.theRequestDeckInTheBar()
       try await hosted.theSessionNotice()
       try await hosted.theStatusBanner()
+      try await hosted.theTitleLinesOfTheBars()
       try await hosted.theCodeBlock()
       try await hosted.theTerminalOutput()
       try await hosted.theElicitationForm()

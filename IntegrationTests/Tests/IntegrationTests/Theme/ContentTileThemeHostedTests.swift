@@ -109,7 +109,8 @@
     /// The frame of the header text of the compaction of the tests.
     ///
     /// - Parameter harness: The harness that shows the transcript.
-    /// - Returns: The frame of the title and the status.
+    /// - Returns: The frame of the title, the element of the title and the
+    ///   status.
     /// - Throws: An issue when the compaction shows no header.
     static func compactionHeader(in harness: HostedViewHarness<some View>) throws -> CGRect {
       try #require(
@@ -161,7 +162,12 @@
       let header = try Self.compactionHeader(in: harness)
       let error = try Self.compactionError(in: harness)
 
-      ContentTileInsetHostedTests.expectLength(header.minY - error.maxY, is: Self.themedGap, "header-to-body gap")
+      // The frame of the header text is the title. Below it stands the status,
+      // one line of the text style of the error, and then the gap of the tile.
+      let statusLine = EditorStyle.default.spacing.xs + error.height
+
+      ContentTileInsetHostedTests.expectLength(
+        header.minY - error.maxY, is: statusLine + Self.themedGap, "header-to-body gap")
     }
 
     @Test func theThemedPaddingInsetsTheTileWithNoBorder() async throws {
