@@ -315,8 +315,8 @@ struct AgentRowListMount: NSViewRepresentable {
 /// registry, at the focused scope of the window, when that scope is the list
 /// or a scope in it.
 ///
-/// A `nav.*` move, a jump and a click focus a row through the geometry of
-/// EditorKit. Without Keyboard Navigation, SwiftUI gives the focusable view
+/// A `nav.*` move, a jump and a click that selects focus a row through the
+/// geometry of EditorKit. Without Keyboard Navigation, SwiftUI gives the focusable view
 /// of a row no AppKit responder, so the beacon of the row scope takes the
 /// first responder. The beacon is a background of the scope, so a key goes
 /// up from the beacon past the scope, and an `.onKeyPress` on the content of

@@ -1,3 +1,4 @@
+import AppKit
 import EditorCommands
 import EditorCommandsUI
 import EditorStyle
@@ -36,6 +37,59 @@ public struct AgentRowListScope: Hashable, Sendable {
   }
 }
 
+/// What opens a row of an ``AgentRowList`` with the mouse. Return opens the
+/// selected row under each trigger.
+public enum AgentRowOpenTrigger: Hashable, Sendable {
+  /// A click selects a row, and a double click opens it.
+  case doubleClick
+
+  /// One click anywhere on a row opens it, and does not select it. The row
+  /// takes no focus from the click, so the focus ends where `onOpen` puts it,
+  /// such as on the tab of the opened item. The clicks after the first of a
+  /// double click do nothing. A click on a row of a list with no `onOpen`
+  /// selects the row.
+  case click
+}
+
+/// How tight the rows of an ``AgentRowList`` stand. Each space comes from
+/// `\.editorStyle`, so a theme sets it.
+public enum AgentRowDensity: Hashable, Sendable {
+  /// A row is a tile: the tile padding of the style around the content, and
+  /// the tile margin between two rows.
+  case regular
+
+  /// A row of a sidebar: the extra small step of the style above the content,
+  /// below it and between two rows, and the small step at its sides.
+  case compact
+
+  /// The inset of the content of a row from the edges of its surface.
+  ///
+  /// - Parameter style: The style of the list.
+  /// - Returns: The insets of a row.
+  func rowInsets(in style: EditorStyle) -> EdgeInsets {
+    switch self {
+    case .regular:
+      EdgeInsets(
+        top: style.tile.padding, leading: style.tile.padding, bottom: style.tile.padding,
+        trailing: style.tile.padding)
+    case .compact:
+      EdgeInsets(
+        top: style.spacing.xs, leading: style.spacing.s, bottom: style.spacing.xs, trailing: style.spacing.s)
+    }
+  }
+
+  /// The space between two rows.
+  ///
+  /// - Parameter style: The style of the list.
+  /// - Returns: The space.
+  func rowSpacing(in style: EditorStyle) -> CGFloat {
+    switch self {
+    case .regular: style.tile.margin
+    case .compact: style.spacing.xs
+    }
+  }
+}
+
 /// A list of rows whose selection and keys come from the command scopes of
 /// EditorKit, its `nav.*` commands and its jump mode (EditorKit ^7wt12an: no
 /// SwiftUI `List`).
@@ -47,23 +101,31 @@ public struct AgentRowListScope: Hashable, Sendable {
 /// scope is the focused scope of the window (`FocusedValues.commandPath`). It
 /// sits on the shared selectable surface
 /// (`.selectableSurface(_:corners:)`), the one place where the list paints the
-/// accent. A click selects a row. Each row has the tile padding of the style
+/// accent. A click selects a row, or opens it in a list that opens on a click
+/// (``AgentRowOpenTrigger/click``). Each row has the tile padding of the style
 /// (`editorStyle.tile.padding`), and the rows have the tile margin between
-/// them. The list has no margin around its rows (^rgsq3k4): the layout that
+/// them; a compact list (``AgentRowDensity/compact``) has smaller steps of the
+/// style. The list has no margin around its rows (^rgsq3k4): the layout that
 /// holds it gives one, such as `.scrollContentMargins(\.tile.margin)`.
 ///
 /// The list registers the `nav.*` commands of EditorKit at its own scope, so
 /// the keys work in each host: the Down Arrow and the Up Arrow select the next
 /// row and the row before, and Esc moves the focus out of the rows to the
 /// list, which clears the selection. A move past the last row that the lazy
-/// stack made scrolls to the next row. Return and a double click open the
-/// selected row with `onOpen`. The list routes each key that reaches it at
-/// the focused scope, when that scope is the list or a scope in it
-/// (``SwiftUI/View/agentRowListKeys(listPath:focusedPath:)``). When no
-/// ancestor installs a command system, the list uses one of its own.
+/// stack made scrolls to the next row. Return opens the selected row with
+/// `onOpen`, and so does the mouse (``AgentRowOpenTrigger``). The list routes
+/// each key that reaches it at the focused scope, when that scope is the list
+/// or a scope in it (``SwiftUI/View/agentRowListKeys(listPath:focusedPath:)``).
+/// When no ancestor installs a command system, the list uses one of its own.
 ///
 /// The row content gives its own accessibility elements, so VoiceOver reads
 /// each row as the content tells.
+///
+/// The list scrolls itself, so give it a bounded height: the content of a
+/// sidebar column, or any frame with a height. Do not put it in a SwiftUI
+/// `List` or in another `ScrollView`. A `List` makes one row of the whole list,
+/// and that row and an outer scroll view give it no height to fill, so it takes
+/// the height of all its rows and the lazy stack makes each one.
 public struct AgentRowList<Item, Row: View, Footer: View>: View {
   /// The items of the rows, in list order.
   let items: [Item]
@@ -73,6 +135,12 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
 
   /// The scope of the list.
   let scope: AgentRowListScope
+
+  /// What opens a row with the mouse.
+  let openTrigger: AgentRowOpenTrigger
+
+  /// How tight the rows of the list stand.
+  let density: AgentRowDensity
 
   /// The action that opens an item, or `nil` for a list whose rows do not
   /// open.
@@ -104,17 +172,25 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - items: The items of the rows, in list order.
   ///   - id: The id of an item. Each item of the list has its own id.
   ///   - scope: The scope of the list.
-  ///   - onOpen: The action that Return and a double click run on the
-  ///     selected item, or `nil` for a list whose rows do not open.
+  ///   - openTrigger: What opens a row with the mouse. A double click by
+  ///     default.
+  ///   - density: How tight the rows stand. The tile spaces of the style by
+  ///     default.
+  ///   - onOpen: The action that Return and the open trigger run on an item,
+  ///     or `nil` for a list whose rows do not open.
   ///   - row: The builder of the content of a row.
   ///   - footer: The builder of the view after the last row.
   public init(
-    _ items: [Item], id: KeyPath<Item, String>, scope: AgentRowListScope, onOpen: ((Item) -> Void)? = nil,
+    _ items: [Item], id: KeyPath<Item, String>, scope: AgentRowListScope,
+    openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
+    onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
   ) {
     self.items = items
     self.id = id
     self.scope = scope
+    self.openTrigger = openTrigger
+    self.density = density
     self.onOpen = onOpen
     self.row = row
     self.footer = footer()
@@ -125,7 +201,7 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     let path = parentPath?.appending(scope.list) ?? .root(scope.list)
     ScrollViewReader { proxy in
       ScrollView {
-        LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
+        LazyVStack(alignment: .leading, spacing: density.rowSpacing(in: editorStyle)) {
           ForEach(items, id: id) { item in
             rowView(for: item, at: path.appending(scope.rowSegment(for: item[keyPath: id])), in: system)
           }
@@ -151,7 +227,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   private func rowView(for item: Item, at rowPath: FocusPath, in system: CommandSystem) -> some View {
     AgentRowListRow(
       segment: scope.rowSegment(for: item[keyPath: id]), isSelected: focusedPath == rowPath,
-      select: { _ = system.geometry.requestFocus(at: rowPath) }, open: opener(of: item)
+      select: { _ = system.geometry.requestFocus(at: rowPath) }, open: opener(of: item),
+      openTrigger: openTrigger, density: density
     ) {
       row(item)
     }
@@ -195,14 +272,22 @@ extension AgentRowList where Footer == EmptyView {
   ///   - items: The items of the rows, in list order.
   ///   - id: The id of an item. Each item of the list has its own id.
   ///   - scope: The scope of the list.
-  ///   - onOpen: The action that Return and a double click run on the
-  ///     selected item, or `nil` for a list whose rows do not open.
+  ///   - openTrigger: What opens a row with the mouse. A double click by
+  ///     default.
+  ///   - density: How tight the rows stand. The tile spaces of the style by
+  ///     default.
+  ///   - onOpen: The action that Return and the open trigger run on an item,
+  ///     or `nil` for a list whose rows do not open.
   ///   - row: The builder of the content of a row.
   public init(
-    _ items: [Item], id: KeyPath<Item, String>, scope: AgentRowListScope, onOpen: ((Item) -> Void)? = nil,
+    _ items: [Item], id: KeyPath<Item, String>, scope: AgentRowListScope,
+    openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
+    onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row
   ) {
-    self.init(items, id: id, scope: scope, onOpen: onOpen, row: row) { EmptyView() }
+    self.init(items, id: id, scope: scope, openOn: openTrigger, density: density, onOpen: onOpen, row: row) {
+      EmptyView()
+    }
   }
 }
 
@@ -217,6 +302,9 @@ enum AgentRowListLayout {
 
   /// The number of taps of a double click, which opens a row.
   static let openTapCount = 2
+
+  /// The click count of the event of a single click.
+  static let firstClickCount = 1
 }
 
 /// One row of an ``AgentRowList``: the content in the command scope of the
@@ -230,8 +318,9 @@ enum AgentRowListLayout {
 /// list, and not the `@FocusState` of the row, knows the selection: it reads
 /// the focused path of the window and passes `isSelected`. A click selects
 /// the row through the geometry of the command system, as a `nav.*` move
-/// does. The system focus effect is off: the selectable surface shows the
-/// selection, which is the focus.
+/// does; ``AgentRowClicks`` holds the clicks, which depend on the open trigger
+/// of the list. The system focus effect is off: the selectable surface shows
+/// the selection, which is the focus.
 struct AgentRowListRow<Content: View>: View {
   /// The segment of the scope of the row.
   let segment: FocusSegment
@@ -246,6 +335,12 @@ struct AgentRowListRow<Content: View>: View {
   /// The action that opens the row, or `nil` for a row that does not open.
   let open: (() -> Void)?
 
+  /// What opens the row with the mouse.
+  let openTrigger: AgentRowOpenTrigger
+
+  /// How tight the rows of the list stand.
+  let density: AgentRowDensity
+
   /// The content of the row.
   @ViewBuilder let content: Content
 
@@ -253,16 +348,62 @@ struct AgentRowListRow<Content: View>: View {
 
   var body: some View {
     content
-      .padding(editorStyle.tile.padding)
+      .padding(density.rowInsets(in: editorStyle))
       .frame(maxWidth: .infinity, alignment: .leading)
       .selectableSurface(isSelected, radius: AgentRowListLayout.radius)
-      .focusable()
       .focusEffectDisabled()
-      .onTapGesture(count: AgentRowListLayout.openTapCount) { open?() }
-      .simultaneousGesture(TapGesture().onEnded { select() })
+      .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open))
       .commandScope(segment: segment)
       .navScrollable(.vertical)
       .scopeFocusRing(radius: AgentRowListLayout.radius)
+  }
+}
+
+/// The clicks of one row of an ``AgentRowList``, by the open trigger of the
+/// list, and the focusable view that a `nav.*` move and a jump focus.
+///
+/// Under ``AgentRowOpenTrigger/doubleClick``, a click selects the row and a
+/// double click opens it. Under ``AgentRowOpenTrigger/click``, the row is
+/// focusable only for activation (`FocusInteractions.activate`), because a
+/// focusable view with every interaction takes the first responder on the
+/// press of a click: the press of the second click of a double click would take
+/// the focus back from the item that the first click opened. A `nav.*` move and
+/// a jump still focus the row, through its scope.
+struct AgentRowClicks: ViewModifier {
+  /// What opens the row with the mouse.
+  let trigger: AgentRowOpenTrigger
+
+  /// The action that gives the focus to the scope of the row.
+  let select: () -> Void
+
+  /// The action that opens the row, or `nil` for a row that does not open.
+  let open: (() -> Void)?
+
+  func body(content: Content) -> some View {
+    switch trigger {
+    case .doubleClick:
+      content
+        .focusable()
+        .onTapGesture(count: AgentRowListLayout.openTapCount) { open?() }
+        .simultaneousGesture(TapGesture().onEnded { select() })
+    case .click:
+      content
+        .focusable(interactions: .activate)
+        .onTapGesture(perform: openOnFirstClick)
+    }
+  }
+
+  /// Opens the row on the first click of a run of clicks, or selects it when
+  /// it does not open.
+  ///
+  /// A tap gesture of one tap ends on each click of a double click. The click
+  /// count of the event tells them apart with no wait, so the first click
+  /// opens at once. An action with no event, such as a press of an assistive
+  /// client, counts as a first click.
+  private func openOnFirstClick() {
+    let clickCount = NSApp.currentEvent?.clickCount ?? AgentRowListLayout.firstClickCount
+    guard clickCount == AgentRowListLayout.firstClickCount else { return }
+    (open ?? select)()
   }
 }
 
@@ -270,6 +411,17 @@ struct AgentRowListRow<Content: View>: View {
   AgentRowList(
     PreviewFixtures.suggestions, id: \.self,
     scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow")
+  ) { suggestion in
+    Text(suggestion)
+  }
+  .scrollContentMargins(\.tile.margin)
+}
+
+#Preview("Compact rows that open on a click") {
+  AgentRowList(
+    PreviewFixtures.suggestions, id: \.self,
+    scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow"),
+    openOn: .click, density: .compact, onOpen: { _ in }
   ) { suggestion in
     Text(suggestion)
   }
